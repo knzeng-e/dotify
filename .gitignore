@@ -1,0 +1,13 @@
+node_modules/
+.DS_Store
+*.tsbuildinfo
+
+web/node_modules/
+web/dist/
+web/.papi/
+
+contracts/**/node_modules/
+contracts/**/artifacts/
+contracts/**/cache/
+contracts/**/coverage/
+contracts/**/typechain-types/

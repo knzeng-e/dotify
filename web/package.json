@@ -1,0 +1,52 @@
+{
+	"name": "dotify-web",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"engines": {
+		"node": ">=22 <23",
+		"npm": ">=10"
+	},
+	"scripts": {
+		"dev": "vite --host 0.0.0.0 --port 5273",
+		"signal": "SIGNAL_PORT=8788 node server/signaling.mjs",
+		"dev:listen": "concurrently -n signal,web -c magenta,cyan \"npm:signal\" \"npm:dev\"",
+		"build": "tsc -b && vite build",
+		"lint": "eslint .",
+		"fmt": "prettier --write 'src/**/*.{ts,tsx}' server/signaling.mjs README.md",
+		"fmt:check": "prettier --check 'src/**/*.{ts,tsx}' server/signaling.mjs README.md",
+		"update-types": "papi update",
+		"codegen": "papi generate",
+		"preview": "vite preview --host 0.0.0.0 --port 4273"
+	},
+	"dependencies": {
+		"@polkadot-api/descriptors": "file:.papi/descriptors",
+		"@polkadot-labs/hdkd": "^0.0.26",
+		"@polkadot-labs/hdkd-helpers": "^0.0.27",
+		"@vitejs/plugin-react": "^4.3.4",
+		"blakejs": "^1.2.1",
+		"lucide-react": "^1.8.0",
+		"polkadot-api": "^1.23.3",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"socket.io": "^4.8.3",
+		"socket.io-client": "^4.8.3",
+		"viem": "^2.47.6"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.39.4",
+		"@types/react": "^18.3.12",
+		"@types/react-dom": "^18.3.1",
+		"autoprefixer": "^10.4.20",
+		"concurrently": "^9.2.1",
+		"eslint": "^9.39.4",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-react-hooks": "^7.0.1",
+		"postcss": "^8.4.49",
+		"prettier": "^3.8.1",
+		"tailwindcss": "^3.4.15",
+		"typescript": "~5.6.2",
+		"typescript-eslint": "^8.58.1",
+		"vite": "^6.0.1"
+	}
+}
