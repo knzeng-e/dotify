@@ -12,6 +12,8 @@
 		"signal": "SIGNAL_PORT=8788 node server/signaling.mjs",
 		"dev:listen": "concurrently -n signal,web -c magenta,cyan \"npm:signal\" \"npm:dev\"",
 		"build": "tsc -b && vite build",
+		"build:bulletin": "tsc -b && vite build --config vite.bulletin.config.ts",
+		"deploy:bulletin": "node scripts/deploy-bulletin.cjs",
 		"lint": "eslint .",
 		"fmt": "prettier --write 'src/**/*.{ts,tsx}' server/signaling.mjs README.md",
 		"fmt:check": "prettier --check 'src/**/*.{ts,tsx}' server/signaling.mjs README.md",
@@ -47,6 +49,7 @@
 		"tailwindcss": "^3.4.15",
 		"typescript": "~5.6.2",
 		"typescript-eslint": "^8.58.1",
-		"vite": "^6.0.1"
+		"vite": "^6.0.1",
+		"vite-plugin-singlefile": "^2.3.3"
 	}
 }

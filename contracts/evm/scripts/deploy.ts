@@ -1,9 +1,25 @@
 import hre from 'hardhat';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { defineChain } from 'viem';
 
 const DEPLOYMENTS_JSON = path.resolve(__dirname, '../../../deployments.json');
 const DEPLOYMENTS_TS = path.resolve(__dirname, '../../../web/src/config/deployments.ts');
+const POLKADOT_TESTNET_CHAIN_ID = 420420417;
+const POLKADOT_TESTNET_CHAIN = defineChain({
+  id: POLKADOT_TESTNET_CHAIN_ID,
+  name: 'Polkadot Hub TestNet',
+  nativeCurrency: { name: 'PAS', symbol: 'PAS', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://eth-rpc-testnet.polkadot.io/'] }
+  },
+  blockExplorers: {
+    default: {
+      name: 'Blockscout',
+      url: 'https://blockscout-testnet.polkadot.io/'
+    }
+  }
+});
 
 function updateDeployments(address: string) {
   let data: { evm: string | null } = { evm: null };
@@ -30,9 +46,31 @@ function updateDeployments(address: string) {
 
 async function main() {
   console.log('Deploying Dotify MusicRightsRegistry (EVM)...');
-  const contract = await hre.viem.deployContract('MusicRightsRegistry');
+  const deployConfig = await getDeployConfig();
+
+  const contract = await hre.viem.deployContract('MusicRightsRegistry', [], deployConfig);
   console.log(`EVM MusicRightsRegistry deployed to: ${contract.address}`);
   updateDeployments(contract.address);
+}
+
+async function getDeployConfig() {
+  if (hre.network.name !== 'polkadotTestnet') {
+    return {};
+  }
+
+  const publicClient = await hre.viem.getPublicClient({ chain: POLKADOT_TESTNET_CHAIN });
+  const [wallet] = await hre.viem.getWalletClients({ chain: POLKADOT_TESTNET_CHAIN });
+
+  if (!wallet) {
+    throw new Error('No deployer account configured. Set one with: npx hardhat vars set PRIVATE_KEY');
+  }
+
+  return {
+    client: {
+      public: publicClient,
+      wallet
+    }
+  };
 }
 
 main().catch(error => {
