@@ -1,4 +1,6 @@
 import {
+  CircleAlert,
+  CircleCheckBig,
   Copy,
   Play,
   Wifi,
@@ -14,6 +16,7 @@ import {
   Headphones,
   LockKeyhole,
   type LucideIcon,
+  X,
   Link as LinkIcon
 } from 'lucide-react';
 
@@ -22,7 +25,7 @@ import { io, type Socket } from 'socket.io-client';
 import { deployments } from './config/deployments';
 import { devAccounts } from './hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from './config/network';
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { ensureContract, evmDevAccounts, getPublicClient, getWalletClient, musicRightsAbi } from './config/contracts';
 import { checkBulletinAuthorization, destroyBulletinClient, encodeBulletinJson, uploadToBulletin } from './hooks/useBulletin';
 
@@ -32,6 +35,9 @@ type View = 'listen' | 'rooms' | 'artist';
 type AccessMode = 'human-free' | 'classic';
 type SocketStatus = 'offline' | 'connecting' | 'online' | 'error';
 type PeerStatus = 'waiting' | 'connecting' | 'connected' | 'disconnected';
+type SessionAction = 'idle' | 'creating' | 'joining';
+type AssetAction = 'idle' | 'audio' | 'cover';
+type TransactionFeedbackTone = 'pending' | 'success' | 'error';
 
 type RoyaltySplit = {
   label: string;
@@ -119,8 +125,16 @@ type CapturableMediaElement = HTMLMediaElement & {
   mozCaptureStream?: () => MediaStream;
 };
 
+type TransactionFeedback = {
+  tone: TransactionFeedbackTone;
+  title: string;
+  message: string;
+  txHash?: `0x${string}`;
+};
+
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const iceServers: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
+const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
 
 function coverImage(primary: string, secondary: string, label: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640"><rect width="640" height="640" fill="${primary}"/><circle cx="490" cy="120" r="210" fill="${secondary}" opacity=".72"/><circle cx="160" cy="520" r="190" fill="#1ed760" opacity=".82"/><text x="48" y="108" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="800">${label}</text><path d="M230 242c0-25 20-45 45-45h98v62h-70v132c0 34-28 62-62 62s-62-28-62-62 28-62 62-62c13 0 25 4 35 11v-98h-46Z" fill="#fff" opacity=".92"/></svg>`;
@@ -240,6 +254,7 @@ export default function App() {
   const [displayName, setDisplayName] = useState('Listener');
   const [openRooms, setOpenRooms] = useState<OpenRoom[]>([]);
   const [sessionStatus, setSessionStatus] = useState('Ready');
+  const [sessionAction, setSessionAction] = useState<SessionAction>('idle');
   const [localStreamReady, setLocalStreamReady] = useState(false);
   const [listeners, setListeners] = useState<ListenerRecord[]>([]);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
@@ -263,10 +278,14 @@ export default function App() {
   const [bulletinAccountIndex, setBulletinAccountIndex] = useState(0);
   const [accessMode, setAccessMode] = useState<AccessMode>('human-free');
   const [rightsStatus, setRightsStatus] = useState('No audio file selected');
+  const [assetAction, setAssetAction] = useState<AssetAction>('idle');
   const [uploadToBulletinEnabled, setUploadToBulletinEnabled] = useState(true);
+  const [isRefreshingRooms, setIsRefreshingRooms] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const [personhoodLevel, setPersonhoodLevel] = useState<PersonhoodLevel>('DIM1');
   const [coverSource, setCoverSource] = useState(coverImage('#111827', '#e6007a', 'Dotify'));
   const [description, setDescription] = useState('Describe the story, rights context, and intended audience for this track.');
+  const [transactionFeedback, setTransactionFeedback] = useState<TransactionFeedback | null>(null);
 
   const roomIdRef = useRef('');
   const hostIdRef = useRef('');
@@ -311,6 +330,19 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!transactionFeedback || transactionFeedback.tone === 'pending') return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setTransactionFeedback(null);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [transactionFeedback]);
+
   function getSocket() {
     if (socketRef.current) return socketRef.current;
 
@@ -326,6 +358,8 @@ export default function App() {
     });
     socket.on('connect_error', () => {
       setSocketStatus('error');
+      setSessionAction('idle');
+      setIsRefreshingRooms(false);
       setError(`Signal server unavailable: ${signalUrl}`);
     });
     socket.on('disconnect', () => setSocketStatus('offline'));
@@ -356,6 +390,7 @@ export default function App() {
     socket.on('room:closed', (payload: { reason?: string }) => {
       closeListenerPeer();
       setRemoteReady(false);
+      setSessionAction('idle');
       setSessionStatus(payload.reason ?? 'Room closed');
       setError(payload.reason ?? 'Room closed');
     });
@@ -385,8 +420,17 @@ export default function App() {
     return socket;
   }
 
-  function requestOpenRooms() {
-    connectSocket().emit('rooms:list', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
+  function requestOpenRooms(showBusy = false) {
+    if (showBusy) {
+      setIsRefreshingRooms(true);
+    }
+
+    connectSocket().emit('rooms:list', (rooms: OpenRoom[]) => {
+      setOpenRooms(normalizeRooms(rooms));
+      if (showBusy) {
+        setIsRefreshingRooms(false);
+      }
+    });
   }
 
   function changeMode(nextMode: Mode) {
@@ -421,6 +465,7 @@ export default function App() {
 
   function createSession(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
+    setSessionAction('creating');
     changeMode('host');
     setActiveView('listen');
     setError(null);
@@ -429,6 +474,7 @@ export default function App() {
 
     const socket = connectSocket();
     socket.emit('room:create', { displayName, track: getCurrentTrack() }, (response: CreateRoomResponse) => {
+      setSessionAction('idle');
       if (!response.ok) {
         setError(response.error);
         setSessionStatus('Error');
@@ -459,6 +505,7 @@ export default function App() {
     }
 
     changeMode('listener');
+    setSessionAction('joining');
     setActiveView('listen');
     setError(null);
     setSessionStatus('Joining room');
@@ -466,6 +513,7 @@ export default function App() {
 
     const socket = connectSocket();
     socket.emit('room:join', { roomId: normalizedRoomId, displayName }, (response: JoinRoomResponse) => {
+      setSessionAction('idle');
       if (!response.ok) {
         setError(response.error);
         setSessionStatus('Error');
@@ -505,36 +553,56 @@ export default function App() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const result = await hashFileWithBytes(file);
-    const nextTitle = title.trim() === 'Untitled jam' ? stripExtension(file.name) : title;
-    const nextUrl = URL.createObjectURL(file);
-    objectUrlsRef.current.add(nextUrl);
+    setAssetAction('audio');
+    setRightsStatus('Hashing audio');
 
-    setAudioSource(nextUrl);
-    setFileHash(result.hash);
-    setTitle(nextTitle);
-    setSelectedTrackId('draft-upload');
-    setRightsStatus('Audio ready');
+    try {
+      const result = await hashFileWithBytes(file);
+      const nextTitle = title.trim() === 'Untitled jam' ? stripExtension(file.name) : title;
+      const nextUrl = URL.createObjectURL(file);
+      objectUrlsRef.current.add(nextUrl);
 
-    const track = createTrackInfo(nextTitle, artistName, result.hash, '', 0, {
-      imageRef: coverSource,
-      audioRef: `dotify:local:${result.hash}`,
-      description,
-      accessMode,
-      priceDot: accessMode === 'classic' ? priceDot : '0',
-      personhoodLevel
-    });
-    setTrackInfo(track);
-    socketRef.current?.emit('room:track', track);
+      setAudioSource(nextUrl);
+      setFileHash(result.hash);
+      setTitle(nextTitle);
+      setSelectedTrackId('draft-upload');
+      setRightsStatus('Audio ready');
+
+      const track = createTrackInfo(nextTitle, artistName, result.hash, '', 0, {
+        imageRef: coverSource,
+        audioRef: `dotify:local:${result.hash}`,
+        description,
+        accessMode,
+        priceDot: accessMode === 'classic' ? priceDot : '0',
+        personhoodLevel
+      });
+      setTrackInfo(track);
+      socketRef.current?.emit('room:track', track);
+    } catch (audioError) {
+      setRightsStatus(audioError instanceof Error ? audioError.message : 'Audio preparation failed');
+    } finally {
+      setAssetAction('idle');
+      event.target.value = '';
+    }
   }
 
   function handleCoverFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    const nextUrl = URL.createObjectURL(file);
-    objectUrlsRef.current.add(nextUrl);
-    setCoverSource(nextUrl);
-    setRightsStatus('Cover ready');
+    setAssetAction('cover');
+    setRightsStatus('Preparing cover image');
+
+    try {
+      const nextUrl = URL.createObjectURL(file);
+      objectUrlsRef.current.add(nextUrl);
+      setCoverSource(nextUrl);
+      setRightsStatus('Cover ready');
+    } catch (coverError) {
+      setRightsStatus(coverError instanceof Error ? coverError.message : 'Cover preparation failed');
+    } finally {
+      setAssetAction('idle');
+      event.target.value = '';
+    }
   }
 
   async function prepareLocalStream() {
@@ -752,6 +820,13 @@ export default function App() {
       return;
     }
 
+    setIsRegistering(true);
+    setTransactionFeedback({
+      tone: 'pending',
+      title: 'Preparing registration',
+      message: 'Building the rights manifest and validating the selected services.'
+    });
+
     let bulletinRef = trackInfo?.bulletinRef ?? '';
     try {
       const royaltyRecipients = [evmDevAccounts[artistAccountIndex].account.address];
@@ -762,13 +837,29 @@ export default function App() {
       if (uploadToBulletinEnabled) {
         const account = devAccounts[bulletinAccountIndex];
         setRightsStatus('Checking Bulletin authorization for metadata JSON');
+        setTransactionFeedback({
+          tone: 'pending',
+          title: 'Authorizing Bulletin upload',
+          message: 'Checking whether the selected Bulletin account can publish this manifest.'
+        });
         const authorized = await checkBulletinAuthorization(account.address, manifestPayload.bytes.length);
         if (!authorized) {
-          setRightsStatus('Bulletin account is not authorized');
+          const message = 'Bulletin account is not authorized';
+          setRightsStatus(message);
+          setTransactionFeedback({
+            tone: 'error',
+            title: 'Bulletin upload blocked',
+            message
+          });
           return;
         }
 
         setRightsStatus('Publishing metadata JSON to Bulletin Chain');
+        setTransactionFeedback({
+          tone: 'pending',
+          title: 'Publishing manifest',
+          message: 'Writing the compact rights manifest to Bulletin Chain.'
+        });
         const bulletinUpload = await uploadToBulletin(manifestPayload.bytes, account.signer);
         bulletinRef = createBulletinManifestRef(bulletinUpload.contentHash);
         setBulletinManifestRef(bulletinRef);
@@ -776,18 +867,39 @@ export default function App() {
 
       if (!contractAddress) {
         setRightsStatus('Rights staged');
+        setTransactionFeedback({
+          tone: 'success',
+          title: 'Rights prepared',
+          message: 'The release is ready in the studio. Deploy the registry contract to complete the onchain step.'
+        });
         storeRegisteredWork(fileHash, bulletinRef);
         return;
       }
 
       setRightsStatus('Checking contract');
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Checking registry',
+        message: 'Verifying that the EVM rights registry is reachable before submission.'
+      });
       const exists = await ensureContract(contractAddress, ethRpcUrl);
       if (!exists) {
-        setRightsStatus('Contract not found');
+        const message = 'Contract not found';
+        setRightsStatus(message);
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Registry unavailable',
+          message
+        });
         return;
       }
 
       setRightsStatus('Submitting rights transaction');
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Submitting transaction',
+        message: 'Sending the registration to the EVM rights registry.'
+      });
       const walletClient = await getWalletClient(artistAccountIndex, ethRpcUrl);
       const txHash = await walletClient.writeContract({
         address: contractAddress,
@@ -812,11 +924,32 @@ export default function App() {
         ]
       });
 
+      setRightsStatus('Waiting for transaction confirmation');
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Waiting for confirmation',
+        message: 'Transaction submitted. Waiting for the final receipt on the EVM network.',
+        txHash
+      });
       await getPublicClient(ethRpcUrl).waitForTransactionReceipt({ hash: txHash });
       setRightsStatus('Rights registered');
+      setTransactionFeedback({
+        tone: 'success',
+        title: 'Track registered',
+        message: 'The transaction was confirmed and the release was added to the registry.',
+        txHash
+      });
       storeRegisteredWork(fileHash, bulletinRef, txHash);
     } catch (registrationError) {
-      setRightsStatus(registrationError instanceof Error ? registrationError.message : 'Registration failed');
+      const message = registrationError instanceof Error ? registrationError.message : 'Registration failed';
+      setRightsStatus(message);
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Registration failed',
+        message
+      });
+    } finally {
+      setIsRegistering(false);
     }
   }
 
@@ -947,7 +1080,7 @@ export default function App() {
             type='button'
             onClick={() => {
               setActiveView('rooms');
-              requestOpenRooms();
+              requestOpenRooms(true);
             }}
           >
             <Radio size={16} />
@@ -966,8 +1099,10 @@ export default function App() {
 
         <main className='content'>
           <section className='page-head'>
-            <p className='eyebrow'>{currentPage.eyebrow}</p>
-            <h1>{currentPage.title}</h1>
+            <div className='page-copy'>
+              <p className='eyebrow'>{currentPage.eyebrow}</p>
+              <h1>{currentPage.title}</h1>
+            </div>
             <div className='head-metrics'>
               <Metric label='tracks' value={catalogTracks.length.toString()} />
               <Metric label='rooms' value={openRooms.length.toString()} />
@@ -1084,9 +1219,9 @@ export default function App() {
 
                 {mode === 'host' ? (
                   <form className='session-form' onSubmit={createSession}>
-                    <button className='primary-action' type='submit'>
-                      <Radio size={16} />
-                      Start a room
+                    <button className='primary-action' type='submit' disabled={sessionAction !== 'idle'}>
+                      {sessionAction === 'creating' ? <Disc3 size={16} className='spin' /> : <Radio size={16} />}
+                      {sessionAction === 'creating' ? 'Opening room…' : 'Start a room'}
                     </button>
                     <div className='room-code'>
                       <span>Code</span>
@@ -1106,9 +1241,9 @@ export default function App() {
                       placeholder='ABC123'
                       maxLength={12}
                     />
-                    <button className='primary-action' type='submit'>
-                      <Headphones size={16} />
-                      Join
+                    <button className='primary-action' type='submit' disabled={sessionAction !== 'idle'}>
+                      {sessionAction === 'joining' ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
+                      {sessionAction === 'joining' ? 'Joining…' : 'Join'}
                     </button>
                   </form>
                 )}
@@ -1161,9 +1296,9 @@ export default function App() {
                           </span>
                         </div>
                         <code>{room.roomId}</code>
-                        <button type='button' onClick={() => joinRoom(room.roomId)}>
-                          <Headphones size={16} />
-                          Join
+                        <button type='button' onClick={() => joinRoom(room.roomId)} disabled={sessionAction !== 'idle'}>
+                          {sessionAction === 'joining' ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
+                          {sessionAction === 'joining' ? 'Joining…' : 'Join'}
                         </button>
                       </div>
                     ))
@@ -1183,14 +1318,14 @@ export default function App() {
                     placeholder='ABC123'
                     maxLength={12}
                   />
-                  <button className='primary-action' type='submit'>
-                    <Headphones size={16} />
-                    Join
+                  <button className='primary-action' type='submit' disabled={sessionAction !== 'idle'}>
+                    {sessionAction === 'joining' ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
+                    {sessionAction === 'joining' ? 'Joining…' : 'Join'}
                   </button>
                 </form>
-                <button className='secondary-action' type='button' onClick={requestOpenRooms}>
-                  <RefreshCw size={16} />
-                  Refresh
+                <button className='secondary-action' type='button' onClick={() => requestOpenRooms(true)} disabled={isRefreshingRooms}>
+                  {isRefreshingRooms ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
+                  {isRefreshingRooms ? 'Refreshing…' : 'Refresh'}
                 </button>
               </div>
             </section>
@@ -1200,16 +1335,18 @@ export default function App() {
             <section className='content-grid artist-grid'>
               <div className='doc-panel studio-panel'>
                 <PanelTitle icon={FileAudio} title='Register a track' meta='artist' />
-                <label className='file-button'>
-                  <Upload size={16} />
-                  Add audio
-                  <input type='file' accept='audio/*' onChange={handleAudioFile} />
-                </label>
-                <label className='file-button secondary-file'>
-                  <Upload size={16} />
-                  Add cover image
-                  <input type='file' accept='image/*' onChange={handleCoverFile} />
-                </label>
+                <div className='asset-actions'>
+                  <label className='file-button' data-disabled={assetAction !== 'idle'}>
+                    {assetAction === 'audio' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
+                    {assetAction === 'audio' ? 'Preparing audio…' : 'Add audio'}
+                    <input type='file' accept='audio/*' onChange={handleAudioFile} disabled={assetAction !== 'idle'} />
+                  </label>
+                  <label className='file-button secondary-file' data-disabled={assetAction !== 'idle'}>
+                    {assetAction === 'cover' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
+                    {assetAction === 'cover' ? 'Preparing cover…' : 'Add cover image'}
+                    <input type='file' accept='image/*' onChange={handleCoverFile} disabled={assetAction !== 'idle'} />
+                  </label>
+                </div>
 
                 <div className='fields-grid'>
                   <label>
@@ -1281,9 +1418,9 @@ export default function App() {
                   <span>Publish metadata JSON to Bulletin Chain</span>
                 </label>
 
-                <button className='primary-action wide' type='button' onClick={registerRights}>
-                  <BadgeCheck size={16} />
-                  Register track
+                <button className='primary-action wide' type='button' onClick={registerRights} disabled={isRegistering}>
+                  {isRegistering ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
+                  {isRegistering ? 'Registering…' : 'Register track'}
                 </button>
 
                 <div className='rights-status'>
@@ -1300,7 +1437,21 @@ export default function App() {
               <div className='doc-panel contract-panel'>
                 <PanelTitle icon={LockKeyhole} title='Rights registry' meta='EVM' />
                 <div className='stack-list'>
-                  <EndpointRow label='Contract' value={contractAddress ?? 'not deployed'} />
+                  <EndpointRow
+                    label='Contract'
+                    value={
+                      contractAddress ? (
+                        <div className='endpoint-link-stack'>
+                          <a className='verify-link' href={getBlockscoutAddressUrl(contractAddress)} target='_blank' rel='noreferrer'>
+                            {shorten(contractAddress, 12)}
+                          </a>
+                          <small>Don't trust. Verify on Blockscout.</small>
+                        </div>
+                      ) : (
+                        'not deployed'
+                      )
+                    }
+                  />
                   <EndpointRow label='Content hash' value={fileHash ? shorten(fileHash, 18) : '0x'} />
                   <EndpointRow label='Audio' value={audioSource ? 'ready' : 'not loaded'} />
                   <EndpointRow label='Cover' value={coverSource.startsWith('blob:') ? 'ready' : 'generated'} />
@@ -1338,6 +1489,17 @@ export default function App() {
               {roomId}
             </a>
           )}
+
+          {transactionFeedback && (
+            <TransactionModal
+              feedback={transactionFeedback}
+              onClose={() => {
+                if (transactionFeedback.tone !== 'pending') {
+                  setTransactionFeedback(null);
+                }
+              }}
+            />
+          )}
         </main>
       </div>
     </div>
@@ -1374,11 +1536,61 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function EndpointRow({ label, value }: { label: string; value: string }) {
+function EndpointRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className='endpoint-row'>
       <span>{label}</span>
-      <strong>{value}</strong>
+      <div className='endpoint-value'>{value}</div>
+    </div>
+  );
+}
+
+function TransactionModal({ feedback, onClose }: { feedback: TransactionFeedback; onClose: () => void }) {
+  const dismissible = feedback.tone !== 'pending';
+  const Icon = feedback.tone === 'pending' ? Disc3 : feedback.tone === 'success' ? CircleCheckBig : CircleAlert;
+
+  return (
+    <div className='modal-backdrop' role='presentation' onClick={dismissible ? onClose : undefined}>
+      <div
+        className='modal-card'
+        data-tone={feedback.tone}
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='transaction-modal-title'
+        onClick={event => event.stopPropagation()}
+      >
+        <div className='modal-header'>
+          <div className='modal-icon' data-tone={feedback.tone}>
+            <Icon size={20} className={feedback.tone === 'pending' ? 'spin' : undefined} />
+          </div>
+          {dismissible && (
+            <button className='modal-close' type='button' onClick={onClose} aria-label='Close transaction feedback'>
+              <X size={16} />
+            </button>
+          )}
+        </div>
+        <div className='modal-copy'>
+          <p className='modal-eyebrow'>{feedback.tone === 'pending' ? 'In progress' : feedback.tone === 'success' ? 'Confirmed' : 'Attention'}</p>
+          <h2 id='transaction-modal-title'>{feedback.title}</h2>
+          <p>{feedback.message}</p>
+        </div>
+        {feedback.txHash && (
+          <div className='modal-hash'>
+            <span>Transaction hash</span>
+            <code>{shorten(feedback.txHash, 12)}</code>
+            <a className='modal-link' href={getBlockscoutTxUrl(feedback.txHash)} target='_blank' rel='noreferrer'>
+              Don't trust. Verify on Blockscout.
+            </a>
+          </div>
+        )}
+        {dismissible && (
+          <div className='modal-actions'>
+            <button className='modal-action' type='button' onClick={onClose}>
+              Close
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1434,6 +1646,13 @@ function createBulletinManifestRef(hash: `0x${string}`) {
   return `paseo-bulletin:dotify-manifest:${hash}`;
 }
 
+function getBlockscoutAddressUrl(address: `0x${string}`) {
+  return `${blockscoutBaseUrl}/address/${address}`;
+}
+
+function getBlockscoutTxUrl(txHash: `0x${string}`) {
+  return `${blockscoutBaseUrl}/tx/${txHash}`;
+}
 
 function accessModeLabel(track: CatalogTrack) {
   return accessModeLabelFromState(track.accessMode);
