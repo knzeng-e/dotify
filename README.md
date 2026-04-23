@@ -2,12 +2,10 @@
 
 **Let the Music connect the dots.**
 
-Dotify is a decentralized, Spotify-inspired shared-listening app. A host opens a
-listening room, streams audio from their device through WebRTC, and invited
-listeners join the same real-time feed. Artists manage their catalog, rights, and
-monetization in a separate studio view.
+Dotify is a decentralized, cultural social hub, aimed to incentivise direct human connection through real time music listening. Each user can eitheir use it as a normal spotify app, or decide to host an epehemeral sound session, and invite other listeners join the same real-time feed.
+By uploading their tracks on `Dotify`, artists provide their explicit consent to make use of their art as an instrument of "humanificiation", while retaining full control of their productions. Dotify offers them a dedicated dashboard to manage their catalog, rights and monetization, without any intermediary and in real time.
 
-Presentation deck is at `muzinga_presentation.pdf`.
+![](./assets/images/Dotify_Home.png)
 
 ## What it does
 
@@ -15,15 +13,17 @@ Presentation deck is at `muzinga_presentation.pdf`.
   mode badges, a player, and room-hosting controls.
 - **Rooms**: open listening rooms plus manual room-code entry.
 - **Artist Studio**: audio upload, cover image upload, description, rights
-  metadata, Bulletin Chain manifest publication, access mode selection, and EVM
-  contract registration.
+  metadata, music accessibility mode selection, and management of a smart `Music rights registry`.
 
 ## Path chosen
 
-**Backend**: Solidity smart contract (`MusicRightsRegistry`) on EVM (Paseo Asset Hub, chainId 420420417).
+**Backend**: EVM smart contract (`MusicRightsRegistry`) on (Paseo Asset Hub).
 
-**Frontend**: Static React + Vite web app deployed to Paseo Bulletin Chain and
-served via the Paseo IPFS gateway.
+**Frontend**: Static React + Vite web app deployed to dot.li.
+
+**WebRTC**: Realtime music streaming
+
+**Socket.io**: Signaling // TODO -> Use the statement store
 
 ## Deployed
 
@@ -33,9 +33,9 @@ served via the Paseo IPFS gateway.
 
 **Gateway URL** — <https://paseo-ipfs.polkadot.io/ipfs/bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny>
 
-**DotNS name** — `dotify.dot.li` (pending DotNS registration)
+**DotNS name** — `dotify.dot.li`
 
-## How to run end-to-end
+## How to run end-to-end (locally)
 
 **Prerequisites**: Node 22, npm 10+.
 
@@ -45,9 +45,7 @@ npm install
 npm run dev:listen
 ```
 
-Open two browser windows at `http://localhost:5273`. In one, go to Artist Studio,
-upload an audio file, fill in the metadata, and click **Register rights**. The
-track appears in the catalog. In the other, join the room code shown by the host.
+Open the app in a browser at `http://localhost:5273`.
 
 Default ports:
 
@@ -110,19 +108,15 @@ for a live Individuality chain integration without blocking the prototype.
 
 - **Audio is session-only**: blob URLs are revoked on unmount. Reloading the page
   loses the uploaded audio; the on-chain record remains but playback is broken.
-  A pinning backend (IPFS or equivalent) is needed for durable storage.
-- **DotNS not registered yet**: the `.dot.li` name is not live. Reviewers can
-  reach the app at the IPFS gateway URL above.
+  A pinning backend (IPFS or equivalent) is needed for durable storage. (ideally Bullet chain when storage capacity will be higher)
+
 - **No real wallet**: signing uses hardcoded dev accounts (Alice for Bulletin,
-  Alice EVM account for contract calls). A real signer integration
-  (`@polkadot-apps/signer` or MetaMask) is on the migration list.
+  Alice EVM account for contract calls). A real signer integration using Pwallet is on the migration list.
 - **Proof of Personhood is mocked**: `setPersonhoodLevel` is a dev-only admin
   call. Live Individuality chain reads are on the roadmap.
 - **No IPFS pinning backend**: `VITE_IPFS_UPLOAD_URL` is unset. Tracks with
   `pending-*` audio refs cannot stream to remote listeners.
-- **Seed tracks have no real audio**: they display in the catalog and broadcast
-  track metadata, but the host cannot stream them over WebRTC without a real
-  audio file.
+
 - **Single-host rooms**: no multi-host or handoff logic. If the host closes the
   tab, the room ends.
 
@@ -158,6 +152,3 @@ The frontend is built as a single self-contained HTML file using
 | `contracts/evm/` | Hardhat + Solidity `MusicRightsRegistry`                 |
 | `docs/`          | Stack alignment notes                                    |
 | `deployments.json` | EVM address + Bulletin CID (source of truth)           |
-
-See `docs/polkadot-stack-alignment.md` for the mapping between Dotify and the
-local `polkadot-apps/skills` guidance and the migration backlog.
