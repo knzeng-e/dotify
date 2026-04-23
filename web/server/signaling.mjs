@@ -8,15 +8,29 @@ const origin = process.env.SIGNAL_ORIGIN ?? '*';
 const rooms = new Map();
 
 const httpServer = createServer((request, response) => {
-  if (request.url === '/health') {
-    response.writeHead(200, { 'content-type': 'application/json' });
-    response.end(JSON.stringify({ ok: true, app: 'dotify' }));
+  const requestUrl = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
+
+  if (requestUrl.pathname === '/health') {
+    sendJson(response, 200, { ok: true, app: 'dotify' });
     return;
   }
 
-  response.writeHead(200, { 'content-type': 'text/plain' });
+  response.writeHead(200, { ...corsHeaders(), 'content-type': 'text/plain' });
   response.end('Dotify signaling server\n');
 });
+
+function sendJson(response, status, payload) {
+  response.writeHead(status, { ...corsHeaders(), 'content-type': 'application/json' });
+  response.end(JSON.stringify(payload));
+}
+
+function corsHeaders() {
+  return {
+    'access-control-allow-origin': origin,
+    'access-control-allow-methods': 'GET,POST,OPTIONS',
+    'access-control-allow-headers': 'content-type'
+  };
+}
 
 const io = new Server(httpServer, {
   cors: { origin, methods: ['GET', 'POST'] }

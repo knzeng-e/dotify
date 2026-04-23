@@ -18,7 +18,8 @@ export function getDefaultWsUrl() {
 }
 
 export function getDefaultEthRpcUrl() {
-  return import.meta.env.VITE_ETH_RPC_URL || (isLocalHost() ? LOCAL_ETH_RPC_URL : TESTNET_ETH_RPC_URL);
+  // return import.meta.env.VITE_ETH_RPC_URL || (isLocalHost() ? LOCAL_ETH_RPC_URL : TESTNET_ETH_RPC_URL);
+  return TESTNET_ETH_RPC_URL; // Forcing testnet RPC to avoid confusion with local blockchain state during development.
 }
 
 export function getNetworkPresetEndpoints(preset: NetworkPreset) {
