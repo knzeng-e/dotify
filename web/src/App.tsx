@@ -28,6 +28,7 @@ import { getDefaultEthRpcUrl } from './config/network';
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { ensureContract, evmDevAccounts, getPublicClient, getWalletClient, musicRightsAbi } from './config/contracts';
 import { checkBulletinAuthorization, destroyBulletinClient, encodeBulletinJson, uploadToBulletin } from './hooks/useBulletin';
+import { fetchCatalogFromPinata, getGatewayUrl, uploadFileToPinata, uploadJsonToPinata, type DotifyTrackManifest } from './services/pinata';
 
 type Mode = 'host' | 'listener';
 type PersonhoodLevel = 'DIM1' | 'DIM2';
@@ -132,6 +133,7 @@ type TransactionFeedback = {
   txHash?: `0x${string}`;
 };
 
+// TODO: Update this when switching to statement store signaling
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const iceServers: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
 const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
@@ -286,6 +288,9 @@ export default function App() {
   const [coverSource, setCoverSource] = useState(coverImage('#111827', '#e6007a', 'Dotify'));
   const [description, setDescription] = useState('Describe the story, rights context, and intended audience for this track.');
   const [transactionFeedback, setTransactionFeedback] = useState<TransactionFeedback | null>(null);
+  const [audioCID, setAudioCID] = useState('');
+  const [coverCID, setCoverCID] = useState('');
+  const [coverFile, setCoverFile] = useState<File | null>(null);
 
   const roomIdRef = useRef('');
   const hostIdRef = useRef('');
@@ -295,10 +300,13 @@ export default function App() {
   const listenersRef = useRef<ListenerRecord[]>([]);
   const objectUrlsRef = useRef<Set<string>>(new Set());
   const localStreamRef = useRef<MediaStream | null>(null);
+  const audioUploadRef = useRef<Promise<string> | null>(null);
+  const coverUploadRef = useRef<Promise<string> | null>(null);
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const listenerPeerRef = useRef<RTCPeerConnection | null>(null);
   const hostPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const resolvedAudioSourcesRef = useRef<Map<string, string>>(new Map());
 
   const currentPage = viewCopy[activeView];
   const sessionLink = getSessionLink(roomId);
@@ -326,6 +334,7 @@ export default function App() {
       for (const url of objectUrls.values()) {
         URL.revokeObjectURL(url);
       }
+      resolvedAudioSourcesRef.current.clear();
       destroyBulletinClient();
     };
   }, []);
@@ -342,6 +351,23 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [transactionFeedback]);
+
+  useEffect(() => {
+    fetchCatalogFromPinata()
+      .then(manifests => {
+        if (manifests.length === 0) return;
+        const ipfsTracks: CatalogTrack[] = manifests.map(m => ipfsManifestToCatalogTrack(m));
+        setCatalogTracks(tracks => {
+          const seedTracks = tracks.filter(t => t.source === 'seed');
+          return [...ipfsTracks, ...seedTracks];
+        });
+        setSelectedTrackId(ipfsTracks[0].id);
+      })
+      .catch(() => {
+        // fall back to seed catalog when IPFS is unavailable
+        console.warn('Failed to fetch catalog from Pinata, using seed catalog only');
+      });
+  }, []);
 
   function getSocket() {
     if (socketRef.current) return socketRef.current;
@@ -555,6 +581,8 @@ export default function App() {
 
     setAssetAction('audio');
     setRightsStatus('Hashing audio');
+    setAudioCID('');
+    audioUploadRef.current = null;
 
     try {
       const result = await hashFileWithBytes(file);
@@ -566,7 +594,7 @@ export default function App() {
       setFileHash(result.hash);
       setTitle(nextTitle);
       setSelectedTrackId('draft-upload');
-      setRightsStatus('Audio ready');
+      setRightsStatus('Audio ready — uploading to IPFS…');
 
       const track = createTrackInfo(nextTitle, artistName, result.hash, '', 0, {
         imageRef: coverSource,
@@ -578,6 +606,18 @@ export default function App() {
       });
       setTrackInfo(track);
       socketRef.current?.emit('room:track', track);
+
+      const uploadPromise = uploadFileToPinata(file, file.name, { app: 'dotify', type: 'audio' })
+        .then(cid => {
+          setAudioCID(cid);
+          setRightsStatus('Audio ready — uploaded to IPFS');
+          return cid;
+        })
+        .catch(() => {
+          setRightsStatus('Audio ready (IPFS upload failed — will retry on register)');
+          return '';
+        });
+      audioUploadRef.current = uploadPromise;
     } catch (audioError) {
       setRightsStatus(audioError instanceof Error ? audioError.message : 'Audio preparation failed');
     } finally {
@@ -591,12 +631,27 @@ export default function App() {
     if (!file) return;
     setAssetAction('cover');
     setRightsStatus('Preparing cover image');
+    setCoverCID('');
+    coverUploadRef.current = null;
 
     try {
       const nextUrl = URL.createObjectURL(file);
       objectUrlsRef.current.add(nextUrl);
       setCoverSource(nextUrl);
-      setRightsStatus('Cover ready');
+      setCoverFile(file);
+      setRightsStatus('Cover ready — uploading to IPFS…');
+
+      const uploadPromise = uploadFileToPinata(file, file.name, { app: 'dotify', type: 'cover' })
+        .then(cid => {
+          setCoverCID(cid);
+          setRightsStatus('Cover ready — uploaded to IPFS');
+          return cid;
+        })
+        .catch(() => {
+          setRightsStatus('Cover ready (IPFS upload failed — will retry on register)');
+          return '';
+        });
+      coverUploadRef.current = uploadPromise;
     } catch (coverError) {
       setRightsStatus(coverError instanceof Error ? coverError.message : 'Cover preparation failed');
     } finally {
@@ -610,6 +665,13 @@ export default function App() {
     if (!audio || !audioSource) return;
 
     try {
+      const capturableSource = await ensureCapturableAudioSource(audioSource);
+      if (capturableSource !== audioSource) {
+        setSessionStatus('Preparing source');
+        setAudioSource(capturableSource);
+        return;
+      }
+
       const stream = captureAudioStream(audio);
       const track = {
         ...getCurrentTrack(),
@@ -671,6 +733,28 @@ export default function App() {
     if (!stream) throw new Error('captureStream() is not supported by this browser.');
     if (stream.getAudioTracks().length === 0) throw new Error('No audio track detected.');
     return stream;
+  }
+
+  async function ensureCapturableAudioSource(source: string) {
+    if (!shouldMaterializeRemoteSource(source)) {
+      return source;
+    }
+
+    const cachedSource = resolvedAudioSourcesRef.current.get(source);
+    if (cachedSource) {
+      return cachedSource;
+    }
+
+    const response = await fetch(source);
+    if (!response.ok) {
+      throw new Error(`Unable to load audio source (${response.status})`);
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    objectUrlsRef.current.add(objectUrl);
+    resolvedAudioSourcesRef.current.set(source, objectUrl);
+    return objectUrl;
   }
 
   function createHostPeer(listenerId: string) {
@@ -789,10 +873,20 @@ export default function App() {
     }
   }
 
-  function createRightsManifest(contentHash: `0x${string}`, royaltyRecipients: `0x${string}`[], royaltyShares: number[]) {
+  function createRightsManifest(
+    contentHash: `0x${string}`,
+    royaltyRecipients: `0x${string}`[],
+    royaltyShares: number[],
+    resolvedAudioCID: string,
+    resolvedCoverCID: string
+  ): DotifyTrackManifest {
     return {
       schema: 'dotify.track.v1',
       createdAt: new Date().toISOString(),
+      assets: {
+        audioCID: resolvedAudioCID,
+        coverCID: resolvedCoverCID
+      },
       track: {
         contentHash,
         title: title.trim() || 'Untitled',
@@ -800,7 +894,8 @@ export default function App() {
         description: description.trim(),
         accessMode,
         priceDot: accessMode === 'classic' ? priceDot : '0',
-        requiredPersonhood: accessMode === 'human-free' ? personhoodLevel : 'None'
+        requiredPersonhood: accessMode === 'human-free' ? personhoodLevel : 'None',
+        zone: 'Studio'
       },
       royalties: royaltyRecipients.map((recipient, index) => ({
         recipient,
@@ -829,10 +924,35 @@ export default function App() {
 
     let bulletinRef = trackInfo?.bulletinRef ?? '';
     try {
+      // Ensure audio and cover are uploaded to IPFS before proceeding
+      setRightsStatus('Awaiting IPFS uploads…');
+      const [resolvedAudioCID, resolvedCoverCID] = await Promise.all([
+        audioUploadRef.current ??
+          (audioSource
+            ? fetch(audioSource)
+                .then(r => r.blob())
+                .then(b => uploadFileToPinata(new File([b], title || 'audio'), title || 'audio', { app: 'dotify', type: 'audio' }))
+            : Promise.resolve('')),
+        coverUploadRef.current ?? (coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }) : Promise.resolve(''))
+      ]);
+
+      if (resolvedAudioCID) setAudioCID(resolvedAudioCID);
+      if (resolvedCoverCID) setCoverCID(resolvedCoverCID);
+
       const royaltyRecipients = [evmDevAccounts[artistAccountIndex].account.address];
       const royaltyShares = [royaltyBps];
-      const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares);
+      const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID);
       const manifestPayload = encodeBulletinJson(manifest);
+
+      // Upload manifest to IPFS (Pinata) first
+      setRightsStatus('Publishing manifest to IPFS…');
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Uploading to IPFS',
+        message: 'Pinning the track manifest to IPFS via Pinata.'
+      });
+      const metadataCID = await uploadJsonToPinata(manifest, `${manifest.track.title}.json`, { app: 'dotify', type: 'track-metadata' });
+      const ipfsMetadataRef = `ipfs://${metadataCID}`;
 
       if (uploadToBulletinEnabled) {
         const account = devAccounts[bulletinAccountIndex];
@@ -872,7 +992,7 @@ export default function App() {
           title: 'Rights prepared',
           message: 'The release is ready in the studio. Deploy the registry contract to complete the onchain step.'
         });
-        storeRegisteredWork(fileHash, bulletinRef);
+        storeRegisteredWork(fileHash, bulletinRef || ipfsMetadataRef, undefined, resolvedAudioCID, resolvedCoverCID, metadataCID);
         return;
       }
 
@@ -894,6 +1014,9 @@ export default function App() {
         return;
       }
 
+      const ipfsAudioRef = resolvedAudioCID ? `ipfs://${resolvedAudioCID}` : `dotify:local:${fileHash}`;
+      const ipfsCoverRef = resolvedCoverCID ? `ipfs://${resolvedCoverCID}` : `dotify:cover:${fileHash}`;
+
       setRightsStatus('Submitting rights transaction');
       setTransactionFeedback({
         tone: 'pending',
@@ -911,9 +1034,9 @@ export default function App() {
             title,
             artistName,
             description,
-            imageRef: `dotify:cover:${fileHash}`,
-            audioRef: `dotify:local:${fileHash}`,
-            metadataRef: bulletinRef || createMetadataRef(fileHash),
+            imageRef: ipfsCoverRef,
+            audioRef: ipfsAudioRef,
+            metadataRef: ipfsMetadataRef || bulletinRef || createMetadataRef(fileHash),
             artistContractRef: `dotify:self-certified:${fileHash}`,
             accessMode: accessMode === 'human-free' ? 0 : 1,
             pricePlanck: dotToPlanck(accessMode === 'classic' ? priceDot : '0'),
@@ -939,7 +1062,7 @@ export default function App() {
         message: 'The transaction was confirmed and the release was added to the registry.',
         txHash
       });
-      storeRegisteredWork(fileHash, bulletinRef, txHash);
+      storeRegisteredWork(fileHash, bulletinRef || ipfsMetadataRef, txHash, resolvedAudioCID, resolvedCoverCID, metadataCID);
     } catch (registrationError) {
       const message = registrationError instanceof Error ? registrationError.message : 'Registration failed';
       setRightsStatus(message);
@@ -953,19 +1076,34 @@ export default function App() {
     }
   }
 
-  function storeRegisteredWork(hash: `0x${string}`, bulletinRef: string, txHash?: `0x${string}`) {
+  function storeRegisteredWork(
+    hash: `0x${string}`,
+    bulletinRef: string,
+    txHash?: `0x${string}`,
+    resolvedAudioCID = '',
+    resolvedCoverCID = '',
+    metadataCID = ''
+  ) {
     const duration = localAudioRef.current?.duration;
     const resolvedDuration = Number.isFinite(duration) ? Number(duration) : 0;
+
+    const ipfsAudioRef = resolvedAudioCID ? `ipfs://${resolvedAudioCID}` : `dotify:local:${hash}`;
+    const ipfsMetadataRef = metadataCID ? `ipfs://${metadataCID}` : bulletinRef || createMetadataRef(hash);
+    const coverDisplayRef = resolvedCoverCID ? getGatewayUrl(resolvedCoverCID) : coverSource;
+
+    // Use gateway URL as localUrl so the audio plays directly from IPFS
+    const localUrl = audioSource ?? (resolvedAudioCID ? getGatewayUrl(resolvedAudioCID) : undefined);
+
     const nextTrack: CatalogTrack = {
       id: hash,
       hash,
       title: title.trim() || 'Untitled',
       artist: artistName.trim() || 'Unknown artist',
       description: description.trim(),
-      imageRef: coverSource,
-      audioRef: `dotify:local:${hash}`,
+      imageRef: coverDisplayRef,
+      audioRef: ipfsAudioRef,
       bulletinRef,
-      metadataRef: bulletinRef || createMetadataRef(hash),
+      metadataRef: ipfsMetadataRef,
       royaltyBps,
       royaltySplits: [
         {
@@ -982,7 +1120,7 @@ export default function App() {
       zone: 'Studio',
       duration: resolvedDuration,
       durationLabel: resolvedDuration ? formatTime(resolvedDuration) : 'ready',
-      localUrl: audioSource ?? undefined
+      localUrl
     };
 
     setCatalogTracks(tracks => [nextTrack, ...tracks.filter(track => track.hash !== hash)]);
@@ -1129,7 +1267,7 @@ export default function App() {
                           type='button'
                           onClick={() => selectTrack(track)}
                         >
-                          <img className='track-thumb' src={track.imageRef} alt='' />
+                          <img className='track-thumb' src={track.imageRef} alt='' crossOrigin='anonymous' />
                           <span>
                             <strong>{track.title}</strong>
                             <small>
@@ -1147,7 +1285,7 @@ export default function App() {
               <div className='doc-panel player-panel'>
                 <div className='now-playing'>
                   <div className='cover' data-live={localStreamReady || remoteReady}>
-                    <img src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' />
+                    <img src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' crossOrigin='anonymous' />
                   </div>
                   <div className='track-copy'>
                     <span>{mode === 'host' ? 'Source' : hostName || 'Room'}</span>
@@ -1170,6 +1308,7 @@ export default function App() {
                     <audio
                       ref={localAudioRef}
                       src={audioSource ?? undefined}
+                      crossOrigin='anonymous'
                       controls
                       onLoadedMetadata={prepareLocalStream}
                       onPlay={() => emitPlayerState(true)}
@@ -1454,7 +1593,9 @@ export default function App() {
                   />
                   <EndpointRow label='Content hash' value={fileHash ? shorten(fileHash, 18) : '0x'} />
                   <EndpointRow label='Audio' value={audioSource ? 'ready' : 'not loaded'} />
+                  <EndpointRow label='Audio CID' value={audioCID ? shorten(audioCID, 18) : 'pending…'} />
                   <EndpointRow label='Cover' value={coverSource.startsWith('blob:') ? 'ready' : 'generated'} />
+                  <EndpointRow label='Cover CID' value={coverCID ? shorten(coverCID, 18) : 'pending…'} />
                   <EndpointRow label='Bulletin JSON' value={bulletinManifestRef || trackInfo?.bulletinRef || 'not published'} />
                 </div>
 
@@ -1464,7 +1605,7 @@ export default function App() {
                     {artistTracks.length > 0 ? (
                       artistTracks.map(track => (
                         <button className='catalogue-row' key={track.hash} type='button' onClick={() => selectTrack(track)}>
-                          <img className='track-thumb' src={track.imageRef} alt='' />
+                          <img className='track-thumb' src={track.imageRef} alt='' crossOrigin='anonymous' />
                           <span>
                             <strong>{track.title}</strong>
                             <small>
@@ -1595,9 +1736,56 @@ function TransactionModal({ feedback, onClose }: { feedback: TransactionFeedback
   );
 }
 
+function ipfsManifestToCatalogTrack(m: DotifyTrackManifest): CatalogTrack {
+  const { track, assets, royalties, settlement, evm } = m;
+  const audioCID = assets?.audioCID ?? '';
+  const coverCID = assets?.coverCID ?? '';
+  const metadataCID = evm?.txHash ? '' : ''; // metadataCID unknown here; ref stored separately
+  const ipfsAudioRef = audioCID ? `ipfs://${audioCID}` : '';
+  const coverDisplayRef = coverCID ? getGatewayUrl(coverCID) : coverImage('#111827', '#e6007a', track.title);
+
+  return {
+    id: track.contentHash || `ipfs-${m.createdAt}`,
+    hash: (track.contentHash as `0x${string}`) || '0x',
+    title: track.title,
+    artist: track.artistName,
+    description: track.description,
+    imageRef: coverDisplayRef,
+    audioRef: ipfsAudioRef,
+    bulletinRef: '',
+    metadataRef: metadataCID ? `ipfs://${metadataCID}` : '',
+    royaltyBps: settlement.royaltyBps,
+    royaltySplits: royalties.map(r => ({
+      label: r.recipient,
+      recipient: r.recipient as `0x${string}`,
+      bps: r.bps
+    })),
+    accessMode: track.accessMode,
+    priceDot: track.priceDot,
+    personhoodLevel: (track.requiredPersonhood === 'DIM2' ? 'DIM2' : 'DIM1') as PersonhoodLevel,
+    txHash: evm?.txHash as `0x${string}` | undefined,
+    source: 'artist',
+    zone: track.zone ?? 'Studio',
+    durationLabel: 'ready',
+    localUrl: audioCID ? getGatewayUrl(audioCID) : undefined
+  };
+}
+
 function getInitialRoomCode() {
   const hashQuery = window.location.hash.split('?')[1] ?? '';
   return new URLSearchParams(hashQuery).get('room')?.toUpperCase() ?? '';
+}
+
+function shouldMaterializeRemoteSource(source: string) {
+  if (!source) return false;
+  if (source.startsWith('blob:') || source.startsWith('data:')) return false;
+
+  try {
+    const url = new URL(source, window.location.href);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 function getSessionLink(roomId: string) {
