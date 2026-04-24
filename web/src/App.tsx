@@ -26,7 +26,7 @@ import { deployments } from './config/deployments';
 import { devAccounts } from './hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from './config/network';
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
-import { ensureContract, evmDevAccounts, getPublicClient, getWalletClient, musicRightsAbi } from './config/contracts';
+import { ensureContract, evmDevAccounts, getPublicClient, getWalletClient, artistRuntimeFactoryAbi, artistDirectoryAbi, musicRegistryAbi } from './config/contracts';
 import { checkBulletinAuthorization, destroyBulletinClient, encodeBulletinJson, uploadToBulletin } from './hooks/useBulletin';
 import { fetchCatalogFromPinata, getGatewayUrl, uploadFileToPinata, uploadJsonToPinata, type DotifyTrackManifest } from './services/pinata';
 
@@ -310,7 +310,8 @@ export default function App() {
 
   const currentPage = viewCopy[activeView];
   const sessionLink = getSessionLink(roomId);
-  const contractAddress = deployments.evm;
+  const factoryAddress   = deployments.factory;
+  const directoryAddress = deployments.directory;
   const catalogByArtist = groupTracksByArtist(catalogTracks);
   const selectedTrack = catalogTracks.find(track => track.id === selectedTrackId);
 
@@ -985,33 +986,62 @@ export default function App() {
         setBulletinManifestRef(bulletinRef);
       }
 
-      if (!contractAddress) {
+      if (!factoryAddress || !directoryAddress) {
         setRightsStatus('Rights staged');
         setTransactionFeedback({
           tone: 'success',
           title: 'Rights prepared',
-          message: 'The release is ready in the studio. Deploy the registry contract to complete the onchain step.'
+          message: 'The release is ready in the studio. Deploy the factory contract to complete the onchain step.'
         });
         storeRegisteredWork(fileHash, bulletinRef || ipfsMetadataRef, undefined, resolvedAudioCID, resolvedCoverCID, metadataCID);
         return;
       }
 
-      setRightsStatus('Checking contract');
+      setRightsStatus('Checking contracts');
       setTransactionFeedback({
         tone: 'pending',
-        title: 'Checking registry',
-        message: 'Verifying that the EVM rights registry is reachable before submission.'
+        title: 'Checking factory',
+        message: 'Verifying that the ArtistRuntimeFactory is reachable before submission.'
       });
-      const exists = await ensureContract(contractAddress, ethRpcUrl);
-      if (!exists) {
-        const message = 'Contract not found';
-        setRightsStatus(message);
-        setTransactionFeedback({
-          tone: 'error',
-          title: 'Registry unavailable',
-          message
-        });
+      const factoryExists = await ensureContract(factoryAddress, ethRpcUrl);
+      if (!factoryExists) {
+        setRightsStatus('Factory not found');
+        setTransactionFeedback({ tone: 'error', title: 'Factory unavailable', message: 'ArtistRuntimeFactory not found at the configured address.' });
         return;
+      }
+
+      const walletClient  = await getWalletClient(artistAccountIndex, ethRpcUrl);
+      const publicClient  = getPublicClient(ethRpcUrl);
+      const artistAddress = walletClient.account.address;
+
+      // ── Resolve or create the artist's SmartRuntime ──────────────────────
+      setRightsStatus('Looking up artist runtime');
+      setTransactionFeedback({ tone: 'pending', title: 'Looking up runtime', message: 'Checking if you already have a personal SmartRuntime.' });
+
+      let runtimeAddress = await publicClient.readContract({
+        address: directoryAddress,
+        abi: artistDirectoryAbi,
+        functionName: 'runtimeOf',
+        args: [artistAddress]
+      }) as `0x${string}`;
+
+      if (runtimeAddress === '0x0000000000000000000000000000000000000000') {
+        setRightsStatus('Creating your SmartRuntime');
+        setTransactionFeedback({ tone: 'pending', title: 'Creating SmartRuntime', message: 'Deploying your personal music rights runtime — one-time setup.' });
+
+        const createHash = await walletClient.writeContract({
+          address: factoryAddress,
+          abi: artistRuntimeFactoryAbi,
+          functionName: 'createRuntime'
+        });
+        await publicClient.waitForTransactionReceipt({ hash: createHash });
+
+        runtimeAddress = await publicClient.readContract({
+          address: directoryAddress,
+          abi: artistDirectoryAbi,
+          functionName: 'runtimeOf',
+          args: [artistAddress]
+        }) as `0x${string}`;
       }
 
       const ipfsAudioRef = resolvedAudioCID ? `ipfs://${resolvedAudioCID}` : `dotify:local:${fileHash}`;
@@ -1020,14 +1050,14 @@ export default function App() {
       setRightsStatus('Submitting rights transaction');
       setTransactionFeedback({
         tone: 'pending',
-        title: 'Submitting transaction',
-        message: 'Sending the registration to the EVM rights registry.'
+        title: 'Registering track',
+        message: 'Sending the registration to your SmartRuntime.'
       });
-      const walletClient = await getWalletClient(artistAccountIndex, ethRpcUrl);
+
       const txHash = await walletClient.writeContract({
-        address: contractAddress,
-        abi: musicRightsAbi,
-        functionName: 'registerTrack',
+        address: runtimeAddress,
+        abi: musicRegistryAbi,
+        functionName: 'musicRegRegister',
         args: [
           {
             contentHash: fileHash,
@@ -1579,10 +1609,10 @@ export default function App() {
                   <EndpointRow
                     label='Contract'
                     value={
-                      contractAddress ? (
+                      factoryAddress ? (
                         <div className='endpoint-link-stack'>
-                          <a className='verify-link' href={getBlockscoutAddressUrl(contractAddress)} target='_blank' rel='noreferrer'>
-                            {shorten(contractAddress, 12)}
+                          <a className='verify-link' href={getBlockscoutAddressUrl(factoryAddress!)} target='_blank' rel='noreferrer'>
+                            {shorten(factoryAddress!, 12)}
                           </a>
                           <small>Don't trust. Verify on Blockscout.</small>
                         </div>

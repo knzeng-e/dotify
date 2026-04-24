@@ -28,5 +28,22 @@ npm install
 npm run deploy:local
 ```
 
-Deployment scripts update `deployments.json` and `web/src/config/deployments.ts`.
-Use `VITE_DOTIFY_EVM_CONTRACT` to point the frontend at an existing deployment.
+For Polkadot Hub TestNet:
+
+```bash
+cd contracts/evm
+npm run deploy:testnet
+```
+
+The smart-runtime deployment flow:
+
+- deploys the shared pallets, initializer, directory, and factory;
+- writes `deployments.json` and `web/src/config/deployments.ts`;
+- verifies the deployed contracts on Blockscout automatically on `polkadotTestnet`.
+
+To rerun verification without redeploying:
+
+```bash
+cd contracts/evm
+npm run verify:testnet
+```
