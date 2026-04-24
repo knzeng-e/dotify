@@ -4,7 +4,6 @@ node_modules/
 
 web/node_modules/
 web/dist/
-web/.papi/
 
 contracts/**/node_modules/
 contracts/**/artifacts/
