@@ -1,7 +1,6 @@
 import type { HardhatUserConfig } from 'hardhat/config';
 import '@nomicfoundation/hardhat-viem';
 import '@nomicfoundation/hardhat-verify';
-import { vars } from 'hardhat/config';
 
 const config: HardhatUserConfig = {
   solidity: '0.8.28',
@@ -17,9 +16,10 @@ const config: HardhatUserConfig = {
     }
   },
   etherscan: {
-    apiKey: {
-      polkadotTestnet: 'no-api-key-needed'
-    },
+    enabled: false
+  },
+  blockscout: {
+    enabled: true,
     customChains: [
       {
         network: 'polkadotTestnet',
@@ -30,6 +30,9 @@ const config: HardhatUserConfig = {
         }
       }
     ]
+  },
+  sourcify: {
+    enabled: false
   }
 };
 
