@@ -26,7 +26,15 @@ import { deployments } from './config/deployments';
 import { devAccounts } from './hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from './config/network';
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
-import { ensureContract, evmDevAccounts, getPublicClient, getWalletClient, artistRuntimeFactoryAbi, artistDirectoryAbi, musicRegistryAbi } from './config/contracts';
+import {
+  ensureContract,
+  evmDevAccounts,
+  getPublicClient,
+  getWalletClient,
+  artistRuntimeFactoryAbi,
+  artistDirectoryAbi,
+  musicRegistryAbi
+} from './config/contracts';
 import { checkBulletinAuthorization, destroyBulletinClient, encodeBulletinJson, uploadToBulletin } from './hooks/useBulletin';
 import { fetchCatalogFromPinata, getGatewayUrl, uploadFileToPinata, uploadJsonToPinata, type DotifyTrackManifest } from './services/pinata';
 
@@ -80,6 +88,7 @@ type CatalogTrack = {
   zone: string;
   title: string;
   artist: string;
+  artistAddress?: `0x${string}`;
   audioRef: string;
   imageRef: string;
   priceDot: string;
@@ -137,6 +146,7 @@ type TransactionFeedback = {
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const iceServers: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
 const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
+const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
 
 function coverImage(primary: string, secondary: string, label: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640"><rect width="640" height="640" fill="${primary}"/><circle cx="490" cy="120" r="210" fill="${secondary}" opacity=".72"/><circle cx="160" cy="520" r="190" fill="#1ed760" opacity=".82"/><text x="48" y="108" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="800">${label}</text><path d="M230 242c0-25 20-45 45-45h98v62h-70v132c0 34-28 62-62 62s-62-28-62-62 28-62 62-62c13 0 25 4 35 11v-98h-46Z" fill="#fff" opacity=".92"/></svg>`;
@@ -244,7 +254,7 @@ const initialCatalog: CatalogTrack[] = [
 const viewCopy: Record<View, { title: string; eyebrow: string }> = {
   listen: { title: 'Let the Music connect the dots', eyebrow: 'By Polkadot' },
   rooms: { title: 'Live listening rooms', eyebrow: 'Join a real-time stream opened by another host.' },
-  artist: { title: 'Artist Studio', eyebrow: 'Encrypt audio, publish metadata, and register rights.' }
+  artist: { title: 'Artist Studio', eyebrow: 'Register your artist runtime first, then manage your releases.' }
 };
 
 export default function App() {
@@ -273,8 +283,8 @@ export default function App() {
   const [ethRpcUrl] = useState(getDefaultEthRpcUrl);
   const [title, setTitle] = useState('Untitled jam');
   const [royaltyBps, setRoyaltyBps] = useState(7000);
-  const [artistName, setArtistName] = useState('Dotify Artist');
   const [artistAccountIndex, setArtistAccountIndex] = useState(0);
+  const [artistName, setArtistName] = useState(() => getStoredArtistName(evmDevAccounts[0].account.address) || 'Dotify Artist');
   const [fileHash, setFileHash] = useState<`0x${string}` | ''>('');
   const [bulletinManifestRef, setBulletinManifestRef] = useState('');
   const [bulletinAccountIndex, setBulletinAccountIndex] = useState(0);
@@ -291,6 +301,10 @@ export default function App() {
   const [audioCID, setAudioCID] = useState('');
   const [coverCID, setCoverCID] = useState('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [artistRuntimeAddress, setArtistRuntimeAddress] = useState<`0x${string}` | null>(null);
+  const [artistRegistrationStatus, setArtistRegistrationStatus] = useState('Checking artist registration');
+  const [isRefreshingArtistRuntime, setIsRefreshingArtistRuntime] = useState(false);
+  const [isRegisteringArtist, setIsRegisteringArtist] = useState(false);
 
   const roomIdRef = useRef('');
   const hostIdRef = useRef('');
@@ -310,15 +324,19 @@ export default function App() {
 
   const currentPage = viewCopy[activeView];
   const sessionLink = getSessionLink(roomId);
-  const factoryAddress   = deployments.factory;
+  const factoryAddress = deployments.factory;
   const directoryAddress = deployments.directory;
+  const currentArtistAccount = evmDevAccounts[artistAccountIndex];
+  const currentArtistAddress = currentArtistAccount.account.address;
   const catalogByArtist = groupTracksByArtist(catalogTracks);
   const selectedTrack = catalogTracks.find(track => track.id === selectedTrackId);
 
   const streamTitle = trackInfo?.title || selectedTrack?.title || title;
-  const artistTracks = catalogTracks.filter(track => track.source === 'artist');
+  const artistTracks = catalogTracks.filter(track => isTrackManagedByArtist(track, currentArtistAddress, artistName));
   const streamArtist = trackInfo?.artist || selectedTrack?.artist || artistName;
   const activeListeners = listeners.filter(listener => listener.status === 'connected').length;
+  const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
+  const artistStudioLocked = artistRegistrationAvailable && !artistRuntimeAddress;
 
   useEffect(() => {
     const hostPeers = hostPeersRef.current;
@@ -369,6 +387,28 @@ export default function App() {
         console.warn('Failed to fetch catalog from Pinata, using seed catalog only');
       });
   }, []);
+
+  useEffect(() => {
+    const storedName = getStoredArtistName(currentArtistAddress);
+    if (storedName) {
+      setArtistName(storedName);
+      return;
+    }
+
+    setArtistName(previous => (previous.trim() && previous !== 'Dotify Artist' ? previous : `${currentArtistAccount.name} Studio`));
+  }, [currentArtistAccount.name, currentArtistAddress]);
+
+  useEffect(() => {
+    if (activeView !== 'artist') return;
+    const storedName = getStoredArtistName(currentArtistAddress);
+    if (storedName) {
+      setArtistName(storedName);
+    }
+  }, [activeView, currentArtistAddress]);
+
+  useEffect(() => {
+    void refreshArtistRuntime();
+  }, [currentArtistAddress, directoryAddress, ethRpcUrl]);
 
   function getSocket() {
     if (socketRef.current) return socketRef.current;
@@ -488,6 +528,137 @@ export default function App() {
     }
 
     socketRef.current?.emit('room:track', createTrackInfoFromCatalog(track));
+  }
+
+  async function refreshArtistRuntime(showBusy = false) {
+    if (!artistRegistrationAvailable) {
+      setArtistRuntimeAddress(null);
+      setArtistRegistrationStatus('Artist runtime contracts are not deployed yet.');
+      return null;
+    }
+
+    if (showBusy) {
+      setIsRefreshingArtistRuntime(true);
+    }
+
+    setArtistRegistrationStatus('Checking artist runtime');
+
+    try {
+      const directoryExists = await ensureContract(directoryAddress, ethRpcUrl);
+      if (!directoryExists) {
+        setArtistRuntimeAddress(null);
+        setArtistRegistrationStatus('Artist directory unavailable');
+        return null;
+      }
+
+      const runtimeAddress = (await getPublicClient(ethRpcUrl).readContract({
+        address: directoryAddress,
+        abi: artistDirectoryAbi,
+        functionName: 'runtimeOf',
+        args: [currentArtistAddress]
+      })) as `0x${string}`;
+
+      if (runtimeAddress === zeroAddress) {
+        setArtistRuntimeAddress(null);
+        setArtistRegistrationStatus('Artist not registered yet');
+        return null;
+      }
+
+      setArtistRuntimeAddress(runtimeAddress);
+      setArtistRegistrationStatus('Artist registered');
+      return runtimeAddress;
+    } catch (runtimeError) {
+      const message = runtimeError instanceof Error ? runtimeError.message : 'Unable to resolve artist runtime';
+      setArtistRuntimeAddress(null);
+      setArtistRegistrationStatus(message);
+      return null;
+    } finally {
+      if (showBusy) {
+        setIsRefreshingArtistRuntime(false);
+      }
+    }
+  }
+
+  function updateArtistName(nextName: string) {
+    setArtistName(nextName);
+    storeArtistName(currentArtistAddress, nextName);
+  }
+
+  async function registerArtist() {
+    if (!artistRegistrationAvailable) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Artist registry unavailable',
+        message: 'Deploy the ArtistRuntimeFactory and ArtistDirectory before registering an artist.'
+      });
+      return;
+    }
+
+    setIsRegisteringArtist(true);
+
+    try {
+      const existingRuntime = await refreshArtistRuntime();
+      if (existingRuntime) {
+        setTransactionFeedback({
+          tone: 'success',
+          title: 'Artist already registered',
+          message: 'This signer already owns a SmartRuntime and can manage releases.'
+        });
+        return;
+      }
+
+      const factoryExists = await ensureContract(factoryAddress, ethRpcUrl);
+      if (!factoryExists) {
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Factory unavailable',
+          message: 'ArtistRuntimeFactory not found at the configured address.'
+        });
+        return;
+      }
+
+      const walletClient = await getWalletClient(artistAccountIndex, ethRpcUrl);
+      const publicClient = getPublicClient(ethRpcUrl);
+
+      setArtistRegistrationStatus('Creating artist runtime');
+      const txHash = await walletClient.writeContract({
+        address: factoryAddress,
+        abi: artistRuntimeFactoryAbi,
+        functionName: 'createRuntime'
+      });
+
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Registering artist',
+        message: 'Creating the personal SmartRuntime for this artist signer.',
+        txHash
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+      const runtimeAddress = await refreshArtistRuntime();
+
+      if (!runtimeAddress) {
+        throw new Error('Artist runtime was not indexed after confirmation');
+      }
+
+      setRightsStatus('Artist registered. Add audio and publish the first release.');
+      setTransactionFeedback({
+        tone: 'success',
+        title: 'Artist registered',
+        message: 'The artist signer now owns a personal SmartRuntime and can manage releases.',
+        txHash
+      });
+    } catch (registrationError) {
+      const message = registrationError instanceof Error ? registrationError.message : 'Artist registration failed';
+      setArtistRegistrationStatus(message);
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Artist registration failed',
+        message
+      });
+    } finally {
+      setIsRegisteringArtist(false);
+    }
   }
 
   function createSession(event?: FormEvent<HTMLFormElement>) {
@@ -924,7 +1095,23 @@ export default function App() {
     });
 
     let bulletinRef = trackInfo?.bulletinRef ?? '';
+    let runtimeAddress = artistRuntimeAddress;
     try {
+      if (artistRegistrationAvailable) {
+        setRightsStatus('Checking artist registration');
+        const resolvedRuntime = await refreshArtistRuntime();
+        if (!resolvedRuntime) {
+          setTransactionFeedback({
+            tone: 'error',
+            title: 'Artist registration required',
+            message: 'Register the artist first, then come back to publish tracks.'
+          });
+          setRightsStatus('Register artist before managing releases');
+          return;
+        }
+        runtimeAddress = resolvedRuntime;
+      }
+
       // Ensure audio and cover are uploaded to IPFS before proceeding
       setRightsStatus('Awaiting IPFS uploads…');
       const [resolvedAudioCID, resolvedCoverCID] = await Promise.all([
@@ -1010,39 +1197,17 @@ export default function App() {
         return;
       }
 
-      const walletClient  = await getWalletClient(artistAccountIndex, ethRpcUrl);
-      const publicClient  = getPublicClient(ethRpcUrl);
-      const artistAddress = walletClient.account.address;
-
-      // ── Resolve or create the artist's SmartRuntime ──────────────────────
-      setRightsStatus('Looking up artist runtime');
-      setTransactionFeedback({ tone: 'pending', title: 'Looking up runtime', message: 'Checking if you already have a personal SmartRuntime.' });
-
-      let runtimeAddress = await publicClient.readContract({
-        address: directoryAddress,
-        abi: artistDirectoryAbi,
-        functionName: 'runtimeOf',
-        args: [artistAddress]
-      }) as `0x${string}`;
-
-      if (runtimeAddress === '0x0000000000000000000000000000000000000000') {
-        setRightsStatus('Creating your SmartRuntime');
-        setTransactionFeedback({ tone: 'pending', title: 'Creating SmartRuntime', message: 'Deploying your personal music rights runtime — one-time setup.' });
-
-        const createHash = await walletClient.writeContract({
-          address: factoryAddress,
-          abi: artistRuntimeFactoryAbi,
-          functionName: 'createRuntime'
+      if (!runtimeAddress) {
+        setRightsStatus('Artist runtime missing');
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Artist runtime missing',
+          message: 'Register the artist first before submitting a track to the onchain registry.'
         });
-        await publicClient.waitForTransactionReceipt({ hash: createHash });
-
-        runtimeAddress = await publicClient.readContract({
-          address: directoryAddress,
-          abi: artistDirectoryAbi,
-          functionName: 'runtimeOf',
-          args: [artistAddress]
-        }) as `0x${string}`;
+        return;
       }
+
+      const walletClient = await getWalletClient(artistAccountIndex, ethRpcUrl);
 
       const ipfsAudioRef = resolvedAudioCID ? `ipfs://${resolvedAudioCID}` : `dotify:local:${fileHash}`;
       const ipfsCoverRef = resolvedCoverCID ? `ipfs://${resolvedCoverCID}` : `dotify:cover:${fileHash}`;
@@ -1138,7 +1303,7 @@ export default function App() {
       royaltySplits: [
         {
           label: artistName.trim() || 'Primary artist',
-          recipient: evmDevAccounts[artistAccountIndex].account.address,
+          recipient: currentArtistAddress,
           bps: royaltyBps
         }
       ],
@@ -1150,7 +1315,8 @@ export default function App() {
       zone: 'Studio',
       duration: resolvedDuration,
       durationLabel: resolvedDuration ? formatTime(resolvedDuration) : 'ready',
-      localUrl
+      localUrl,
+      artistAddress: currentArtistAddress
     };
 
     setCatalogTracks(tracks => [nextTrack, ...tracks.filter(track => track.hash !== hash)]);
@@ -1502,112 +1668,203 @@ export default function App() {
 
           {activeView === 'artist' && (
             <section className='content-grid artist-grid'>
-              <div className='doc-panel studio-panel'>
-                <PanelTitle icon={FileAudio} title='Register a track' meta='artist' />
-                <div className='asset-actions'>
-                  <label className='file-button' data-disabled={assetAction !== 'idle'}>
-                    {assetAction === 'audio' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
-                    {assetAction === 'audio' ? 'Preparing audio…' : 'Add audio'}
-                    <input type='file' accept='audio/*' onChange={handleAudioFile} disabled={assetAction !== 'idle'} />
-                  </label>
-                  <label className='file-button secondary-file' data-disabled={assetAction !== 'idle'}>
-                    {assetAction === 'cover' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
-                    {assetAction === 'cover' ? 'Preparing cover…' : 'Add cover image'}
-                    <input type='file' accept='image/*' onChange={handleCoverFile} disabled={assetAction !== 'idle'} />
-                  </label>
-                </div>
+              <div className='studio-column'>
+                <div className='doc-panel studio-panel'>
+                  <PanelTitle icon={LockKeyhole} title='Artist registration' meta={artistRuntimeAddress ? 'registered' : 'required'} />
 
-                <div className='fields-grid'>
-                  <label>
-                    <span>Title</span>
-                    <input className='field' value={title} onChange={event => setTitle(event.target.value)} />
-                  </label>
-                  <label>
-                    <span>Artist</span>
-                    <input className='field' value={artistName} onChange={event => setArtistName(event.target.value)} />
-                  </label>
-                  <label>
-                    <span>Description</span>
-                    <textarea className='field textarea-field' value={description} onChange={event => setDescription(event.target.value)} />
-                  </label>
-                  <label>
-                    <span>Access mode</span>
-                    <select className='field' value={accessMode} onChange={event => setAccessMode(event.target.value as AccessMode)}>
-                      <option value='human-free'>Human free</option>
-                      <option value='classic'>Classic</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>PoP level</span>
-                    <select className='field' value={personhoodLevel} onChange={event => setPersonhoodLevel(event.target.value as PersonhoodLevel)}>
-                      <option value='DIM1'>DIM1</option>
-                      <option value='DIM2'>DIM2</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Price in DOT</span>
-                    <input className='field' type='number' min={0} step={0.1} value={priceDot} onChange={event => setPriceDot(event.target.value)} />
-                  </label>
-                  <label>
-                    <span>Royalty bps</span>
-                    <input
-                      className='field'
-                      type='number'
-                      min={0}
-                      max={10000}
-                      step={25}
-                      value={royaltyBps}
-                      onChange={event => setRoyaltyBps(Number(event.target.value))}
+                  <div className='fields-grid'>
+                    <label>
+                      <span>Artist name</span>
+                      <input className='field' value={artistName} onChange={event => updateArtistName(event.target.value)} />
+                    </label>
+                    <label>
+                      <span>Signer</span>
+                      <select className='field' value={artistAccountIndex} onChange={event => setArtistAccountIndex(Number(event.target.value))}>
+                        {evmDevAccounts.map((account, index) => (
+                          <option key={account.name} value={index}>
+                            {account.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className='stack-list'>
+                    <EndpointRow
+                      label='Signer'
+                      value={
+                        <a className='verify-link' href={getBlockscoutAddressUrl(currentArtistAddress)} target='_blank' rel='noreferrer'>
+                          {shorten(currentArtistAddress, 12)}
+                        </a>
+                      }
                     />
-                  </label>
-                  <label>
-                    <span>Signer</span>
-                    <select className='field' value={artistAccountIndex} onChange={event => setArtistAccountIndex(Number(event.target.value))}>
-                      {evmDevAccounts.map((account, index) => (
-                        <option key={account.name} value={index}>
-                          {account.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    <span>Bulletin</span>
-                    <select className='field' value={bulletinAccountIndex} onChange={event => setBulletinAccountIndex(Number(event.target.value))}>
-                      {devAccounts.map((account, index) => (
-                        <option key={account.name} value={index}>
-                          {account.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                    <EndpointRow
+                      label='SmartRuntime'
+                      value={
+                        artistRuntimeAddress ? (
+                          <div className='endpoint-link-stack'>
+                            <a className='verify-link' href={getBlockscoutAddressUrl(artistRuntimeAddress)} target='_blank' rel='noreferrer'>
+                              {shorten(artistRuntimeAddress, 12)}
+                            </a>
+                            <small>Artist registered</small>
+                          </div>
+                        ) : (
+                          'not registered'
+                        )
+                      }
+                    />
+                  </div>
+
+                  <div className='rights-status'>
+                    {artistRegistrationAvailable
+                      ? 'Each artist signer gets one personal SmartRuntime. Register once, then publish and manage releases on that runtime.'
+                      : 'Artist runtime contracts are not deployed yet. The studio can only stage assets locally.'}
+                  </div>
+                  <p className='rights-status'>{artistRegistrationStatus}</p>
+
+                  <button className='primary-action wide' type='button' onClick={registerArtist} disabled={isRegisteringArtist || !artistRegistrationAvailable}>
+                    {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
+                    {isRegisteringArtist ? 'Registering artist…' : artistRuntimeAddress ? 'Artist registered' : 'Register artist'}
+                  </button>
+
+                  <button
+                    className='secondary-action'
+                    type='button'
+                    onClick={() => void refreshArtistRuntime(true)}
+                    disabled={isRefreshingArtistRuntime || !artistRegistrationAvailable}
+                  >
+                    {isRefreshingArtistRuntime ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
+                    {isRefreshingArtistRuntime ? 'Refreshing…' : 'Refresh status'}
+                  </button>
                 </div>
 
-                <label className='toggle-row'>
-                  <input type='checkbox' checked={uploadToBulletinEnabled} onChange={event => setUploadToBulletinEnabled(event.target.checked)} />
-                  <span>Publish metadata JSON to Bulletin Chain</span>
-                </label>
+                <div className='doc-panel studio-panel'>
+                  <PanelTitle icon={FileAudio} title='Manage releases' meta={artistStudioLocked ? 'register first' : 'runtime ready'} />
+                  <div className='asset-actions'>
+                    <label className='file-button' data-disabled={assetAction !== 'idle' || artistStudioLocked}>
+                      {assetAction === 'audio' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
+                      {assetAction === 'audio' ? 'Preparing audio…' : 'Add audio'}
+                      <input type='file' accept='audio/*' onChange={handleAudioFile} disabled={assetAction !== 'idle' || artistStudioLocked} />
+                    </label>
+                    <label className='file-button secondary-file' data-disabled={assetAction !== 'idle' || artistStudioLocked}>
+                      {assetAction === 'cover' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
+                      {assetAction === 'cover' ? 'Preparing cover…' : 'Add cover image'}
+                      <input type='file' accept='image/*' onChange={handleCoverFile} disabled={assetAction !== 'idle' || artistStudioLocked} />
+                    </label>
+                  </div>
 
-                <button className='primary-action wide' type='button' onClick={registerRights} disabled={isRegistering}>
-                  {isRegistering ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
-                  {isRegistering ? 'Registering…' : 'Register track'}
-                </button>
+                  <div className='fields-grid'>
+                    <label>
+                      <span>Title</span>
+                      <input className='field' value={title} onChange={event => setTitle(event.target.value)} disabled={artistStudioLocked} />
+                    </label>
+                    <label>
+                      <span>Bulletin</span>
+                      <select
+                        className='field'
+                        value={bulletinAccountIndex}
+                        onChange={event => setBulletinAccountIndex(Number(event.target.value))}
+                        disabled={artistStudioLocked}
+                      >
+                        {devAccounts.map((account, index) => (
+                          <option key={account.name} value={index}>
+                            {account.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Description</span>
+                      <textarea
+                        className='field textarea-field'
+                        value={description}
+                        onChange={event => setDescription(event.target.value)}
+                        disabled={artistStudioLocked}
+                      />
+                    </label>
+                    <label>
+                      <span>Access mode</span>
+                      <select
+                        className='field'
+                        value={accessMode}
+                        onChange={event => setAccessMode(event.target.value as AccessMode)}
+                        disabled={artistStudioLocked}
+                      >
+                        <option value='human-free'>Human free</option>
+                        <option value='classic'>Classic</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>PoP level</span>
+                      <select
+                        className='field'
+                        value={personhoodLevel}
+                        onChange={event => setPersonhoodLevel(event.target.value as PersonhoodLevel)}
+                        disabled={artistStudioLocked}
+                      >
+                        <option value='DIM1'>DIM1</option>
+                        <option value='DIM2'>DIM2</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Price in DOT</span>
+                      <input
+                        className='field'
+                        type='number'
+                        min={0}
+                        step={0.1}
+                        value={priceDot}
+                        onChange={event => setPriceDot(event.target.value)}
+                        disabled={artistStudioLocked}
+                      />
+                    </label>
+                    <label>
+                      <span>Royalty bps</span>
+                      <input
+                        className='field'
+                        type='number'
+                        min={0}
+                        max={10000}
+                        step={25}
+                        value={royaltyBps}
+                        onChange={event => setRoyaltyBps(Number(event.target.value))}
+                        disabled={artistStudioLocked}
+                      />
+                    </label>
+                  </div>
 
-                <div className='rights-status'>
-                  Audio and cover art are held in memory for this session. Bulletin Chain receives only the compact JSON manifest.
+                  <label className='toggle-row'>
+                    <input
+                      type='checkbox'
+                      checked={uploadToBulletinEnabled}
+                      onChange={event => setUploadToBulletinEnabled(event.target.checked)}
+                      disabled={artistStudioLocked}
+                    />
+                    <span>Publish metadata JSON to Bulletin Chain</span>
+                  </label>
+
+                  <button className='primary-action wide' type='button' onClick={registerRights} disabled={isRegistering || artistStudioLocked}>
+                    {isRegistering ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
+                    {isRegistering ? 'Registering…' : artistStudioLocked ? 'Register artist to unlock' : 'Register track'}
+                  </button>
+
+                  <div className='rights-status'>
+                    Audio and cover art are held in memory for this session. Bulletin Chain receives only the compact JSON manifest.
+                  </div>
+                  <div className='rights-status'>
+                    {accessMode === 'human-free'
+                      ? `Human free tracks are listenable by users with Polkadot Proof of Personhood ${personhoodLevel}; NFT transfers stay PoP-gated.`
+                      : `Classic tracks require a DOT payment or subscription; the contract records royalty recipients for automatic settlement.`}
+                  </div>
+                  <p className='rights-status'>{rightsStatus}</p>
                 </div>
-                <div className='rights-status'>
-                  {accessMode === 'human-free'
-                    ? `Human free tracks are listenable by users with Polkadot Proof of Personhood ${personhoodLevel}; NFT transfers stay PoP-gated.`
-                    : `Classic tracks require a DOT payment or subscription; the contract records royalty recipients for automatic settlement.`}
-                </div>
-                <p className='rights-status'>{rightsStatus}</p>
               </div>
 
               <div className='doc-panel contract-panel'>
-                <PanelTitle icon={LockKeyhole} title='Rights registry' meta='EVM' />
+                <PanelTitle icon={LockKeyhole} title='Artist runtime' meta={artistRuntimeAddress ? 'ready' : 'pending'} />
                 <div className='stack-list'>
                   <EndpointRow
-                    label='Contract'
+                    label='Factory'
                     value={
                       factoryAddress ? (
                         <div className='endpoint-link-stack'>
@@ -1621,6 +1878,30 @@ export default function App() {
                       )
                     }
                   />
+                  <EndpointRow
+                    label='Directory'
+                    value={
+                      directoryAddress ? (
+                        <a className='verify-link' href={getBlockscoutAddressUrl(directoryAddress)} target='_blank' rel='noreferrer'>
+                          {shorten(directoryAddress, 12)}
+                        </a>
+                      ) : (
+                        'not deployed'
+                      )
+                    }
+                  />
+                  <EndpointRow
+                    label='Runtime'
+                    value={
+                      artistRuntimeAddress ? (
+                        <a className='verify-link' href={getBlockscoutAddressUrl(artistRuntimeAddress)} target='_blank' rel='noreferrer'>
+                          {shorten(artistRuntimeAddress, 12)}
+                        </a>
+                      ) : (
+                        'not registered'
+                      )
+                    }
+                  />
                   <EndpointRow label='Content hash' value={fileHash ? shorten(fileHash, 18) : '0x'} />
                   <EndpointRow label='Audio' value={audioSource ? 'ready' : 'not loaded'} />
                   <EndpointRow label='Audio CID' value={audioCID ? shorten(audioCID, 18) : 'pending…'} />
@@ -1630,7 +1911,7 @@ export default function App() {
                 </div>
 
                 <div className='registry-releases'>
-                  <PanelTitle icon={Library} title='Artist releases' meta={`${artistTracks.length} releases`} />
+                  <PanelTitle icon={Library} title='My releases' meta={`${artistTracks.length} releases`} />
                   <div className='catalogue-table'>
                     {artistTracks.length > 0 ? (
                       artistTracks.map(track => (
@@ -1646,7 +1927,7 @@ export default function App() {
                         </button>
                       ))
                     ) : (
-                      <div className='empty-state'>No artist tracks registered</div>
+                      <div className='empty-state'>No releases registered for this artist signer</div>
                     )}
                   </div>
                 </div>
@@ -1790,6 +2071,7 @@ function ipfsManifestToCatalogTrack(m: DotifyTrackManifest): CatalogTrack {
       recipient: r.recipient as `0x${string}`,
       bps: r.bps
     })),
+    artistAddress: royalties[0]?.recipient as `0x${string}` | undefined,
     accessMode: track.accessMode,
     priceDot: track.priceDot,
     personhoodLevel: (track.requiredPersonhood === 'DIM2' ? 'DIM2' : 'DIM1') as PersonhoodLevel,
@@ -1823,6 +2105,32 @@ function getSessionLink(roomId: string) {
   const url = new URL(window.location.href);
   url.hash = `/?room=${roomId}`;
   return url.toString();
+}
+
+function getStoredArtistName(address: `0x${string}`) {
+  try {
+    return window.localStorage.getItem(getArtistNameStorageKey(address));
+  } catch {
+    return null;
+  }
+}
+
+function storeArtistName(address: `0x${string}`, name: string) {
+  try {
+    window.localStorage.setItem(getArtistNameStorageKey(address), name);
+  } catch {
+    // ignore storage failures in private browsing or restricted environments
+  }
+}
+
+function getArtistNameStorageKey(address: `0x${string}`) {
+  return `dotify:artist-name:${address.toLowerCase()}`;
+}
+
+function isTrackManagedByArtist(track: CatalogTrack, artistAddress: `0x${string}`, artistName: string) {
+  if (track.source !== 'artist') return false;
+  if (track.artistAddress) return track.artistAddress.toLowerCase() === artistAddress.toLowerCase();
+  return track.artist === artistName;
 }
 
 function createTrackInfo(
