@@ -1,9 +1,3 @@
 {
-  "evm": "0x17623c6df0e9cb06bf64364588ebb057b0ea43c6",
-  "bulletin": {
-    "cid": "bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny",
-    "gatewayUrl": "https://paseo-ipfs.polkadot.io/ipfs/bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny",
-    "network": "paseo",
-    "deployedAt": "2026-04-23"
-  }
+  "evm": "0x0ec28770d8e8d9ee762e7d6fedd6c70df495be51"
 }

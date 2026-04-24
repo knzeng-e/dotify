@@ -28,6 +28,7 @@
 		"@vitejs/plugin-react": "^4.3.4",
 		"blakejs": "^1.2.1",
 		"lucide-react": "^1.8.0",
+		"pinata": "^2.5.5",
 		"polkadot-api": "^1.23.3",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
