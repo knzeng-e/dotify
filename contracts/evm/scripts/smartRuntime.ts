@@ -49,8 +49,16 @@ export type SmartRuntimeDeploymentRecord = {
 type VerifyTarget = {
   label: string;
   address: `0x${string}`;
+  contract: string;
   constructorArguments?: readonly unknown[];
 };
+
+type VerificationBackend = {
+  label: string;
+  subtaskName: string;
+};
+
+const VERIFICATION_SUBTASKS = new Set(['verify:etherscan', 'verify:sourcify', 'verify:blockscout']);
 
 export function selectorsFromAbi(abi: Abi): `0x${string}`[] {
   return abi.filter((item): item is AbiFunction => item.type === 'function').map(fn => toFunctionSelector(fn));
@@ -156,48 +164,100 @@ export async function verifySmartRuntimeSystem(
   deployments: SmartRuntimeDeployments,
   options: { delayMs?: number; attempts?: number } = {}
 ) {
-  if (hre.network.name !== 'polkadotTestnet') {
-    console.log('\nSkipping verification on non-testnet network.');
+  const verificationBackends = await getVerificationBackends(hre);
+  if (verificationBackends.length === 0) {
+    console.log('\nSkipping verification because no explorer backend is enabled in hardhat.config.ts.');
     return;
   }
 
   const delayMs = options.delayMs ?? 15_000;
   const attempts = options.attempts ?? 3;
+  const factoryConstructorArguments = await buildFactoryConstructorArguments(hre, deployments);
 
   console.log(`\nWaiting ${Math.round(delayMs / 1000)}s for explorer indexing before verification...`);
   await sleep(delayMs);
 
   const verifyTargets: VerifyTarget[] = [
-    { label: 'DiamondCutPallet', address: deployments.pallets.cutPallet },
-    { label: 'DiamondLoupePallet', address: deployments.pallets.loupePallet },
-    { label: 'OwnershipPallet', address: deployments.pallets.ownershipPallet },
-    { label: 'MusicRegistryPallet', address: deployments.pallets.registryPallet },
-    { label: 'MusicNFTPallet', address: deployments.pallets.nftPallet },
-    { label: 'MusicRoyaltiesPallet', address: deployments.pallets.royaltiesPallet },
-    { label: 'MusicAccessPallet', address: deployments.pallets.accessPallet },
-    { label: 'DotifyRuntimeInitializer', address: deployments.initializer },
-    { label: 'ArtistDirectory', address: deployments.directory },
+    {
+      label: 'DiamondCutPallet',
+      address: deployments.pallets.cutPallet,
+      contract: 'contracts/pallets/DiamondCutPallet.sol:DiamondCutPallet'
+    },
+    {
+      label: 'DiamondLoupePallet',
+      address: deployments.pallets.loupePallet,
+      contract: 'contracts/pallets/DiamondLoupePallet.sol:DiamondLoupePallet'
+    },
+    {
+      label: 'OwnershipPallet',
+      address: deployments.pallets.ownershipPallet,
+      contract: 'contracts/pallets/OwnershipPallet.sol:OwnershipPallet'
+    },
+    {
+      label: 'MusicRegistryPallet',
+      address: deployments.pallets.registryPallet,
+      contract: 'contracts/pallets/MusicRegistryPallet.sol:MusicRegistryPallet'
+    },
+    {
+      label: 'MusicNFTPallet',
+      address: deployments.pallets.nftPallet,
+      contract: 'contracts/pallets/MusicNFTPallet.sol:MusicNFTPallet'
+    },
+    {
+      label: 'MusicRoyaltiesPallet',
+      address: deployments.pallets.royaltiesPallet,
+      contract: 'contracts/pallets/MusicRoyaltiesPallet.sol:MusicRoyaltiesPallet'
+    },
+    {
+      label: 'MusicAccessPallet',
+      address: deployments.pallets.accessPallet,
+      contract: 'contracts/pallets/MusicAccessPallet.sol:MusicAccessPallet'
+    },
+    {
+      label: 'DotifyRuntimeInitializer',
+      address: deployments.initializer,
+      contract: 'contracts/DotifyRuntimeInitializer.sol:DotifyRuntimeInitializer'
+    },
+    {
+      label: 'ArtistDirectory',
+      address: deployments.directory,
+      contract: 'contracts/ArtistDirectory.sol:ArtistDirectory'
+    },
     {
       label: 'ArtistRuntimeFactory',
       address: deployments.factory,
-      constructorArguments: await buildFactoryConstructorArguments(hre, deployments)
+      contract: 'contracts/ArtistRuntimeFactory.sol:ArtistRuntimeFactory',
+      constructorArguments: factoryConstructorArguments
     }
   ];
 
-  console.log('\nVerifying deployed contracts on Blockscout...');
-  for (const target of verifyTargets) {
-    await verifyContract(hre, target, attempts);
+  console.log(`\nVerifying deployed contracts using ${verificationBackends.map(({ label }) => label).join(', ')}...`);
+  for (const backend of verificationBackends) {
+    console.log(`\n${backend.label}:`);
+    try {
+      for (const target of verifyTargets) {
+        await verifyContract(hre, backend, target, attempts);
+      }
+    } catch (error) {
+      const message = getErrorMessage(error);
+      if (isUnsupportedVerificationBackend(message)) {
+        console.log(`  ↷ Skipping ${backend.label} on [${hre.network.name}]`);
+        console.log(`    ${firstLine(message)}`);
+        continue;
+      }
+
+      throw error;
+    }
   }
   console.log('  ✓ Verification complete');
 }
 
-async function verifyContract(hre: HardhatRuntimeEnvironment, target: VerifyTarget, attempts: number) {
+async function verifyContract(hre: HardhatRuntimeEnvironment, backend: VerificationBackend, target: VerifyTarget, attempts: number) {
+  const taskArguments = buildVerificationTaskArguments(backend.subtaskName, target);
+
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      await hre.run('verify:verify', {
-        address: target.address,
-        constructorArguments: target.constructorArguments ?? []
-      });
+      await hre.run(backend.subtaskName, taskArguments);
       console.log(`  ✓ ${target.label} verified`);
       return;
     } catch (error) {
@@ -208,19 +268,57 @@ async function verifyContract(hre: HardhatRuntimeEnvironment, target: VerifyTarg
         return;
       }
 
+      if (isUnsupportedVerificationBackend(message)) {
+        throw error;
+      }
+
       if (attempt < attempts && shouldRetryVerification(message)) {
-        console.log(`  … ${target.label} verification attempt ${attempt}/${attempts} failed. Retrying in 10s.\n    ${firstLine(message)}`);
+        console.log(`  … ${target.label} verification attempt ${attempt}/${attempts} failed on ${backend.label}. Retrying in 10s.\n    ${firstLine(message)}`);
         await sleep(10_000);
         continue;
       }
 
-      throw new Error(`${target.label} verification failed: ${message}`);
+      throw new Error(`${target.label} verification failed on ${backend.label}: ${message}`);
     }
+  }
+}
+
+async function getVerificationBackends(hre: HardhatRuntimeEnvironment): Promise<VerificationBackend[]> {
+  const subtasks = (await hre.run('verify:get-verification-subtasks')) as VerificationBackend[];
+  return subtasks.filter(({ subtaskName }) => VERIFICATION_SUBTASKS.has(subtaskName));
+}
+
+function buildVerificationTaskArguments(subtaskName: string, target: VerifyTarget) {
+  switch (subtaskName) {
+    case 'verify:etherscan':
+      return {
+        address: target.address,
+        contract: target.contract,
+        constructorArgsParams: target.constructorArguments ? [...target.constructorArguments] : [],
+        force: false
+      };
+    case 'verify:blockscout':
+      return {
+        address: target.address,
+        contract: target.contract,
+        force: false
+      };
+    case 'verify:sourcify':
+      return {
+        address: target.address,
+        contract: target.contract
+      };
+    default:
+      throw new Error(`Unsupported verification subtask: ${subtaskName}`);
   }
 }
 
 function shouldRetryVerification(message: string) {
   return /bytecode|fetch failed|request failed|not found|timed out|temporary|pending|unable to/i.test(message);
+}
+
+function isUnsupportedVerificationBackend(message: string) {
+  return /not supported for contract verification|doesn't recognize it as a supported chain|not recognized as a supported chain/i.test(message);
 }
 
 function getErrorMessage(error: unknown) {

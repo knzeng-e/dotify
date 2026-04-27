@@ -36,7 +36,7 @@ import {
   musicRegistryAbi
 } from './config/contracts';
 import { checkBulletinAuthorization, destroyBulletinClient, encodeBulletinJson, uploadToBulletin } from './hooks/useBulletin';
-import { fetchCatalogFromPinata, getGatewayUrl, uploadFileToPinata, uploadJsonToPinata, type DotifyTrackManifest } from './services/pinata';
+import { getGatewayUrl, uploadFileToPinata, uploadJsonToPinata, type DotifyTrackManifest } from './services/pinata';
 
 type Mode = 'host' | 'listener';
 type PersonhoodLevel = 'DIM1' | 'DIM2';
@@ -107,6 +107,29 @@ type CatalogTrack = {
   personhoodLevel: PersonhoodLevel;
 };
 
+type OnchainTrackRecord = {
+  artist: `0x${string}`;
+  tokenId: bigint;
+  title: string;
+  artistName: string;
+  description: string;
+  imageRef: string;
+  audioRef: string;
+  metadataRef: string;
+  artistContractRef: string;
+  royaltyBps: number;
+  accessMode: number;
+  pricePlanck: bigint;
+  requiredPersonhood: number;
+  registeredAtBlock: bigint;
+  active: boolean;
+};
+
+type RegistryCatalogTrack = CatalogTrack & {
+  artistAddress: `0x${string}`;
+  registeredAtBlock: number;
+};
+
 type OpenRoom = {
   roomId: string;
   hostName: string;
@@ -153,104 +176,6 @@ function coverImage(primary: string, secondary: string, label: string) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-const initialCatalog: CatalogTrack[] = [
-  {
-    id: 'nala-linha-rosa',
-    hash: '0xa7f6c3e91b6d4a8e9f2c45b8d31a0c3f0d8b7a6c5e4f39281726354433221100',
-    title: 'Linha Rosa',
-    artist: 'Nala Drift',
-    description: 'A neon commute track built for shared night rides.',
-    imageRef: coverImage('#2d1b69', '#e6007a', 'Linha Rosa'),
-    audioRef: 'seed://audio/linha-rosa',
-    bulletinRef: 'paseo-bulletin:manifest-seed-linha-rosa',
-    metadataRef: 'paseo-bulletin:manifest-seed-linha-rosa',
-    royaltyBps: 7000,
-    royaltySplits: [],
-    accessMode: 'human-free',
-    priceDot: '0',
-    personhoodLevel: 'DIM1',
-    source: 'seed',
-    zone: 'Metro',
-    durationLabel: '3:24'
-  },
-  {
-    id: 'nala-window-seat',
-    hash: '0xb18f31c283d745aa910bb3e498f72c61d0d8f4a7519c6e2538271dbf640ca112',
-    title: 'Window Seat Loop',
-    artist: 'Nala Drift',
-    description: 'Soft loop for a quiet bus window and a shared pair of headphones.',
-    imageRef: coverImage('#0f5132', '#136f63', 'Window Seat'),
-    audioRef: 'seed://audio/window-seat',
-    bulletinRef: 'paseo-bulletin:manifest-seed-window-seat',
-    metadataRef: 'paseo-bulletin:manifest-seed-window-seat',
-    royaltyBps: 7000,
-    royaltySplits: [],
-    accessMode: 'classic',
-    priceDot: '0.2',
-    personhoodLevel: 'DIM1',
-    source: 'seed',
-    zone: 'Bus',
-    durationLabel: '2:58'
-  },
-  {
-    id: 'kongo-pulse-mbanza',
-    hash: '0xc9d61f48a3b2e70444ad1f93f69e5a77e2d65109a8bc4e2038f7d615ab120091',
-    title: 'Mbanza Signal',
-    artist: 'Kongo Pulse',
-    description: 'Percussive signal music designed for station-to-station discovery.',
-    imageRef: coverImage('#2f160f', '#d97706', 'Mbanza'),
-    audioRef: 'seed://audio/mbanza-signal',
-    bulletinRef: 'paseo-bulletin:manifest-seed-mbanza-signal',
-    metadataRef: 'paseo-bulletin:manifest-seed-mbanza-signal',
-    royaltyBps: 7500,
-    royaltySplits: [],
-    accessMode: 'human-free',
-    priceDot: '0',
-    personhoodLevel: 'DIM2',
-    source: 'seed',
-    zone: 'Station',
-    durationLabel: '4:08'
-  },
-  {
-    id: 'rue-nova-night',
-    hash: '0xd24421bc73a5019d67f49deff13c5a80b21f34a6d8e9cc70a5f8b31e902d7740',
-    title: 'Rue Nova',
-    artist: 'Kongo Pulse',
-    description: 'A classic paid release with automatic royalty settlement metadata.',
-    imageRef: coverImage('#0f172a', '#2563eb', 'Rue Nova'),
-    audioRef: 'seed://audio/rue-nova',
-    bulletinRef: 'paseo-bulletin:manifest-seed-rue-nova',
-    metadataRef: 'paseo-bulletin:manifest-seed-rue-nova',
-    royaltyBps: 7500,
-    royaltySplits: [],
-    accessMode: 'classic',
-    priceDot: '0.5',
-    personhoodLevel: 'DIM1',
-    source: 'seed',
-    zone: 'Tram',
-    durationLabel: '3:41'
-  },
-  {
-    id: 'sol-mai-the-platform',
-    hash: '0xe90177c4a7d59b13099bb8f1c62452ac7d9a1ef513782eda9a0bc44243d90188',
-    title: 'The Platform',
-    artist: 'Sol Mai',
-    description: 'A human-gated release for unique-person discovery drops.',
-    imageRef: coverImage('#312e81', '#0891b2', 'Platform'),
-    audioRef: 'seed://audio/the-platform',
-    bulletinRef: 'paseo-bulletin:manifest-seed-the-platform',
-    metadataRef: 'paseo-bulletin:manifest-seed-the-platform',
-    royaltyBps: 6800,
-    royaltySplits: [],
-    accessMode: 'human-free',
-    priceDot: '0',
-    personhoodLevel: 'DIM1',
-    source: 'seed',
-    zone: 'Train',
-    durationLabel: '3:12'
-  }
-];
-
 const viewCopy: Record<View, { title: string; eyebrow: string }> = {
   listen: { title: 'Let the Music connect the dots', eyebrow: 'By Polkadot' },
   rooms: { title: 'Live listening rooms', eyebrow: 'Join a real-time stream opened by another host.' },
@@ -274,8 +199,9 @@ export default function App() {
   const [joinCode, setJoinCode] = useState(() => getInitialRoomCode());
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('offline');
-  const [selectedTrackId, setSelectedTrackId] = useState(initialCatalog[0].id);
-  const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>(initialCatalog);
+  const [selectedTrackId, setSelectedTrackId] = useState('');
+  const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>([]);
+  const [catalogStatus, setCatalogStatus] = useState('Loading registry catalog');
   const [mode, setMode] = useState<Mode>(() => (getInitialRoomCode() ? 'listener' : 'host'));
   const [activeView, setActiveView] = useState<View>(() => (getInitialRoomCode() ? 'rooms' : 'listen'));
 
@@ -372,21 +298,8 @@ export default function App() {
   }, [transactionFeedback]);
 
   useEffect(() => {
-    fetchCatalogFromPinata()
-      .then(manifests => {
-        if (manifests.length === 0) return;
-        const ipfsTracks: CatalogTrack[] = manifests.map(m => ipfsManifestToCatalogTrack(m));
-        setCatalogTracks(tracks => {
-          const seedTracks = tracks.filter(t => t.source === 'seed');
-          return [...ipfsTracks, ...seedTracks];
-        });
-        setSelectedTrackId(ipfsTracks[0].id);
-      })
-      .catch(() => {
-        // fall back to seed catalog when IPFS is unavailable
-        console.warn('Failed to fetch catalog from Pinata, using seed catalog only');
-      });
-  }, []);
+    void refreshCatalogFromRegistry();
+  }, [directoryAddress, ethRpcUrl]);
 
   useEffect(() => {
     const storedName = getStoredArtistName(currentArtistAddress);
@@ -579,9 +492,172 @@ export default function App() {
     }
   }
 
+  async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
+    if (!directoryAddress) {
+      setCatalogTracks([]);
+      setSelectedTrackId('');
+      setCatalogStatus('Registry directory not configured');
+      return [];
+    }
+
+    setCatalogStatus('Loading registry catalog');
+
+    try {
+      const directoryExists = await ensureContract(directoryAddress, ethRpcUrl);
+      if (!directoryExists) {
+        setCatalogTracks([]);
+        setSelectedTrackId('');
+        setCatalogStatus('Registry directory unavailable');
+        return [];
+      }
+
+      const client = getPublicClient(ethRpcUrl);
+      const artistCount = (await client.readContract({
+        address: directoryAddress,
+        abi: artistDirectoryAbi,
+        functionName: 'artistCount'
+      })) as bigint;
+
+      if (artistCount === 0n) {
+        setCatalogTracks([]);
+        setSelectedTrackId('');
+        setCatalogStatus('No tracks registered on this directory yet');
+        return [];
+      }
+
+      const entries = await fetchDirectoryEntries(client, directoryAddress, artistCount);
+      const runtimeCatalogs = await Promise.all(
+        entries.map(async entry => {
+          try {
+            return await fetchRuntimeCatalog(client, entry.artist, entry.runtime);
+          } catch (runtimeError) {
+            console.warn(`Failed to load runtime catalog for ${entry.runtime}`, runtimeError);
+            return [];
+          }
+        })
+      );
+      const nextCatalog = runtimeCatalogs
+        .flat()
+        .sort((left, right) => {
+          if (left.registeredAtBlock !== right.registeredAtBlock) {
+            return right.registeredAtBlock - left.registeredAtBlock;
+          }
+          return left.title.localeCompare(right.title);
+        })
+        .map(({ registeredAtBlock: _registeredAtBlock, ...track }): CatalogTrack => track);
+
+      setCatalogTracks(nextCatalog);
+      setSelectedTrackId(previous => {
+        const preferredTrack = preferredTrackHash ? nextCatalog.find(track => track.hash.toLowerCase() === preferredTrackHash.toLowerCase()) : null;
+        if (preferredTrack) return preferredTrack.id;
+        return nextCatalog.some(track => track.id === previous) ? previous : (nextCatalog[0]?.id ?? '');
+      });
+      setCatalogStatus(
+        nextCatalog.length > 0
+          ? `Loaded ${nextCatalog.length} registered track${nextCatalog.length > 1 ? 's' : ''}`
+          : 'No tracks registered on this directory yet'
+      );
+      return nextCatalog;
+    } catch (catalogError) {
+      const message = catalogError instanceof Error ? catalogError.message : 'Unable to load registry catalog';
+      console.warn('Failed to load registry catalog', catalogError);
+      setCatalogTracks([]);
+      setSelectedTrackId('');
+      setCatalogStatus(message);
+      return [];
+    }
+  }
+
   function updateArtistName(nextName: string) {
     setArtistName(nextName);
     storeArtistName(currentArtistAddress, nextName);
+  }
+
+  async function fetchDirectoryEntries(client: ReturnType<typeof getPublicClient>, registryAddress: `0x${string}`, artistCount: bigint) {
+    const pageSize = 50n;
+    const entries: Array<{ artist: `0x${string}`; runtime: `0x${string}` }> = [];
+
+    for (let offset = 0n; offset < artistCount; offset += pageSize) {
+      const limit = artistCount - offset > pageSize ? pageSize : artistCount - offset;
+      const [artists, runtimes] = (await client.readContract({
+        address: registryAddress,
+        abi: artistDirectoryAbi,
+        functionName: 'artistsPage',
+        args: [offset, limit]
+      })) as [`0x${string}`[], `0x${string}`[]];
+
+      for (let index = 0; index < artists.length; index += 1) {
+        const artist = artists[index];
+        const runtime = runtimes[index];
+        if (!artist || !runtime || runtime === zeroAddress) continue;
+        entries.push({ artist, runtime });
+      }
+    }
+
+    return entries;
+  }
+
+  async function fetchRuntimeCatalog(
+    client: ReturnType<typeof getPublicClient>,
+    artistAddress: `0x${string}`,
+    runtimeAddress: `0x${string}`
+  ): Promise<RegistryCatalogTrack[]> {
+    const trackCount = (await client.readContract({
+      address: runtimeAddress,
+      abi: musicRegistryAbi,
+      functionName: 'musicRegTrackCount'
+    })) as bigint;
+
+    const tracks = await Promise.all<(RegistryCatalogTrack | null)[]>(
+      Array.from({ length: Number(trackCount) }, async (_, index) => {
+        const hash = (await client.readContract({
+          address: runtimeAddress,
+          abi: musicRegistryAbi,
+          functionName: 'musicRegTrackHashAtIndex',
+          args: [BigInt(index)]
+        })) as `0x${string}`;
+
+        const [track] = (await client.readContract({
+          address: runtimeAddress,
+          abi: musicRegistryAbi,
+          functionName: 'musicRegGetTrack',
+          args: [hash]
+        })) as [OnchainTrackRecord, `0x${string}`];
+
+        if (!track.active) {
+          return null;
+        }
+
+        const imageRef = resolveVisualAssetRef(track.imageRef, track.title);
+        const localUrl = resolveAudioAssetRef(track.audioRef);
+
+        return {
+          id: `${runtimeAddress}:${hash}`,
+          hash,
+          title: track.title,
+          artist: track.artistName,
+          artistAddress: track.artist || artistAddress,
+          audioRef: track.audioRef,
+          imageRef,
+          priceDot: formatPlanckAsDot(track.pricePlanck),
+          localUrl,
+          description: track.description,
+          bulletinRef: track.metadataRef.startsWith('paseo-bulletin:') ? track.metadataRef : '',
+          metadataRef: track.metadataRef,
+          royaltyBps: Number(track.royaltyBps),
+          txHash: undefined,
+          durationLabel: 'ready',
+          accessMode: (track.accessMode === 1 ? 'classic' : 'human-free') as AccessMode,
+          source: 'artist' as const,
+          royaltySplits: [],
+          personhoodLevel: track.requiredPersonhood === 2 ? 'DIM2' : 'DIM1',
+          zone: 'Registry',
+          registeredAtBlock: Number(track.registeredAtBlock)
+        };
+      })
+    );
+
+    return tracks.flatMap(track => (track ? [track] : []));
   }
 
   async function registerArtist() {
@@ -1180,7 +1256,6 @@ export default function App() {
           title: 'Rights prepared',
           message: 'The release is ready in the studio. Deploy the factory contract to complete the onchain step.'
         });
-        storeRegisteredWork(fileHash, bulletinRef || ipfsMetadataRef, undefined, resolvedAudioCID, resolvedCoverCID, metadataCID);
         return;
       }
 
@@ -1257,7 +1332,7 @@ export default function App() {
         message: 'The transaction was confirmed and the release was added to the registry.',
         txHash
       });
-      storeRegisteredWork(fileHash, bulletinRef || ipfsMetadataRef, txHash, resolvedAudioCID, resolvedCoverCID, metadataCID);
+      await refreshCatalogFromRegistry(fileHash);
     } catch (registrationError) {
       const message = registrationError instanceof Error ? registrationError.message : 'Registration failed';
       setRightsStatus(message);
@@ -1269,61 +1344,6 @@ export default function App() {
     } finally {
       setIsRegistering(false);
     }
-  }
-
-  function storeRegisteredWork(
-    hash: `0x${string}`,
-    bulletinRef: string,
-    txHash?: `0x${string}`,
-    resolvedAudioCID = '',
-    resolvedCoverCID = '',
-    metadataCID = ''
-  ) {
-    const duration = localAudioRef.current?.duration;
-    const resolvedDuration = Number.isFinite(duration) ? Number(duration) : 0;
-
-    const ipfsAudioRef = resolvedAudioCID ? `ipfs://${resolvedAudioCID}` : `dotify:local:${hash}`;
-    const ipfsMetadataRef = metadataCID ? `ipfs://${metadataCID}` : bulletinRef || createMetadataRef(hash);
-    const coverDisplayRef = resolvedCoverCID ? getGatewayUrl(resolvedCoverCID) : coverSource;
-
-    // Use gateway URL as localUrl so the audio plays directly from IPFS
-    const localUrl = audioSource ?? (resolvedAudioCID ? getGatewayUrl(resolvedAudioCID) : undefined);
-
-    const nextTrack: CatalogTrack = {
-      id: hash,
-      hash,
-      title: title.trim() || 'Untitled',
-      artist: artistName.trim() || 'Unknown artist',
-      description: description.trim(),
-      imageRef: coverDisplayRef,
-      audioRef: ipfsAudioRef,
-      bulletinRef,
-      metadataRef: ipfsMetadataRef,
-      royaltyBps,
-      royaltySplits: [
-        {
-          label: artistName.trim() || 'Primary artist',
-          recipient: currentArtistAddress,
-          bps: royaltyBps
-        }
-      ],
-      accessMode,
-      priceDot: accessMode === 'classic' ? priceDot : '0',
-      personhoodLevel,
-      txHash,
-      source: 'artist',
-      zone: 'Studio',
-      duration: resolvedDuration,
-      durationLabel: resolvedDuration ? formatTime(resolvedDuration) : 'ready',
-      localUrl,
-      artistAddress: currentArtistAddress
-    };
-
-    setCatalogTracks(tracks => [nextTrack, ...tracks.filter(track => track.hash !== hash)]);
-    setSelectedTrackId(nextTrack.id);
-    const track = createTrackInfoFromCatalog(nextTrack);
-    setTrackInfo(track);
-    socketRef.current?.emit('room:track', track);
   }
 
   function upsertListener(listener: ListenerRecord) {
@@ -1449,32 +1469,36 @@ export default function App() {
               <div className='doc-panel catalogue-panel'>
                 <PanelTitle icon={Library} title='Browse catalog' meta={`${catalogTracks.length} tracks`} />
                 <div className='artist-list'>
-                  {catalogByArtist.map(group => (
-                    <div className='artist-block' key={group.artist}>
-                      <div className='artist-heading'>
-                        <strong>{group.artist}</strong>
-                        <span>{group.tracks.length}</span>
+                  {catalogByArtist.length > 0 ? (
+                    catalogByArtist.map(group => (
+                      <div className='artist-block' key={group.artist}>
+                        <div className='artist-heading'>
+                          <strong>{group.artist}</strong>
+                          <span>{group.tracks.length}</span>
+                        </div>
+                        {group.tracks.map(track => (
+                          <button
+                            className='track-row'
+                            data-selected={selectedTrackId === track.id}
+                            key={track.id}
+                            type='button'
+                            onClick={() => selectTrack(track)}
+                          >
+                            <img className='track-thumb' src={track.imageRef} alt='' crossOrigin='anonymous' />
+                            <span>
+                              <strong>{track.title}</strong>
+                              <small>
+                                {track.zone} / {track.durationLabel} / {accessModeLabel(track)}
+                              </small>
+                            </span>
+                            <code>{track.accessMode === 'classic' ? `${track.priceDot} DOT` : track.personhoodLevel}</code>
+                          </button>
+                        ))}
                       </div>
-                      {group.tracks.map(track => (
-                        <button
-                          className='track-row'
-                          data-selected={selectedTrackId === track.id}
-                          key={track.id}
-                          type='button'
-                          onClick={() => selectTrack(track)}
-                        >
-                          <img className='track-thumb' src={track.imageRef} alt='' crossOrigin='anonymous' />
-                          <span>
-                            <strong>{track.title}</strong>
-                            <small>
-                              {track.zone} / {track.durationLabel} / {accessModeLabel(track)}
-                            </small>
-                          </span>
-                          <code>{track.accessMode === 'classic' ? `${track.priceDot} DOT` : track.personhoodLevel}</code>
-                        </button>
-                      ))}
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div className='empty-state'>{catalogStatus}</div>
+                  )}
                 </div>
               </div>
 
@@ -2047,42 +2071,6 @@ function TransactionModal({ feedback, onClose }: { feedback: TransactionFeedback
   );
 }
 
-function ipfsManifestToCatalogTrack(m: DotifyTrackManifest): CatalogTrack {
-  const { track, assets, royalties, settlement, evm } = m;
-  const audioCID = assets?.audioCID ?? '';
-  const coverCID = assets?.coverCID ?? '';
-  const metadataCID = evm?.txHash ? '' : ''; // metadataCID unknown here; ref stored separately
-  const ipfsAudioRef = audioCID ? `ipfs://${audioCID}` : '';
-  const coverDisplayRef = coverCID ? getGatewayUrl(coverCID) : coverImage('#111827', '#e6007a', track.title);
-
-  return {
-    id: track.contentHash || `ipfs-${m.createdAt}`,
-    hash: (track.contentHash as `0x${string}`) || '0x',
-    title: track.title,
-    artist: track.artistName,
-    description: track.description,
-    imageRef: coverDisplayRef,
-    audioRef: ipfsAudioRef,
-    bulletinRef: '',
-    metadataRef: metadataCID ? `ipfs://${metadataCID}` : '',
-    royaltyBps: settlement.royaltyBps,
-    royaltySplits: royalties.map(r => ({
-      label: r.recipient,
-      recipient: r.recipient as `0x${string}`,
-      bps: r.bps
-    })),
-    artistAddress: royalties[0]?.recipient as `0x${string}` | undefined,
-    accessMode: track.accessMode,
-    priceDot: track.priceDot,
-    personhoodLevel: (track.requiredPersonhood === 'DIM2' ? 'DIM2' : 'DIM1') as PersonhoodLevel,
-    txHash: evm?.txHash as `0x${string}` | undefined,
-    source: 'artist',
-    zone: track.zone ?? 'Studio',
-    durationLabel: 'ready',
-    localUrl: audioCID ? getGatewayUrl(audioCID) : undefined
-  };
-}
-
 function getInitialRoomCode() {
   const hashQuery = window.location.hash.split('?')[1] ?? '';
   return new URLSearchParams(hashQuery).get('room')?.toUpperCase() ?? '';
@@ -2180,6 +2168,38 @@ function getBlockscoutTxUrl(txHash: `0x${string}`) {
   return `${blockscoutBaseUrl}/tx/${txHash}`;
 }
 
+function resolveVisualAssetRef(assetRef: string, title: string) {
+  if (!assetRef) {
+    return coverImage('#111827', '#e6007a', title);
+  }
+
+  if (assetRef.startsWith('ipfs://')) {
+    return getGatewayUrl(assetRef.slice('ipfs://'.length));
+  }
+
+  if (assetRef.startsWith('http://') || assetRef.startsWith('https://') || assetRef.startsWith('data:') || assetRef.startsWith('blob:')) {
+    return assetRef;
+  }
+
+  return coverImage('#111827', '#e6007a', title);
+}
+
+function resolveAudioAssetRef(assetRef: string) {
+  if (!assetRef) {
+    return undefined;
+  }
+
+  if (assetRef.startsWith('ipfs://')) {
+    return getGatewayUrl(assetRef.slice('ipfs://'.length));
+  }
+
+  if (assetRef.startsWith('http://') || assetRef.startsWith('https://') || assetRef.startsWith('blob:') || assetRef.startsWith('data:')) {
+    return assetRef;
+  }
+
+  return undefined;
+}
+
 function accessModeLabel(track: CatalogTrack) {
   return accessModeLabelFromState(track.accessMode);
 }
@@ -2192,6 +2212,12 @@ function dotToPlanck(dot: string) {
   const [whole = '0', fraction = ''] = dot.trim().split('.');
   const paddedFraction = `${fraction.slice(0, 10)}${'0'.repeat(10)}`.slice(0, 10);
   return BigInt(whole || '0') * 10_000_000_000n + BigInt(paddedFraction || '0');
+}
+
+function formatPlanckAsDot(planck: bigint) {
+  const whole = planck / 10_000_000_000n;
+  const fraction = (planck % 10_000_000_000n).toString().padStart(10, '0').replace(/0+$/, '');
+  return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 
 function getTimestamp() {

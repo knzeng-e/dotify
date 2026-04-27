@@ -12,7 +12,7 @@
  * Outputs:
  *   - deployments.json   (source of truth for addresses)
  *   - web/src/config/deployments.ts  (TypeScript constants for the DApp)
- *   - automatic Blockscout verification on polkadotTestnet
+ *   - automatic explorer verification through the Hardhat verification backends enabled for the target network
  */
 
 import hre from 'hardhat';
@@ -104,20 +104,27 @@ async function main() {
   if (process.env.SKIP_VERIFY === '1') {
     console.log('\nSkipping verification because SKIP_VERIFY=1.');
   } else {
-    await verifySmartRuntimeSystem(hre, {
-      factory: factory.address,
-      directory: directory.address,
-      initializer: initializer.address,
-      pallets: {
-        cutPallet: cutPallet.address,
-        loupePallet: loupePallet.address,
-        ownershipPallet: ownershipPallet.address,
-        registryPallet: registryPallet.address,
-        nftPallet: nftPallet.address,
-        royaltiesPallet: royaltiesPallet.address,
-        accessPallet: accessPallet.address
+    await verifySmartRuntimeSystem(
+      hre,
+      {
+        factory: factory.address,
+        directory: directory.address,
+        initializer: initializer.address,
+        pallets: {
+          cutPallet: cutPallet.address,
+          loupePallet: loupePallet.address,
+          ownershipPallet: ownershipPallet.address,
+          registryPallet: registryPallet.address,
+          nftPallet: nftPallet.address,
+          royaltiesPallet: royaltiesPallet.address,
+          accessPallet: accessPallet.address
+        }
+      },
+      {
+        delayMs: 60_000,
+        attempts: 5
       }
-    });
+    );
   }
 
   console.log('\n✓ Dotify Smart Runtime deployed successfully!\n');

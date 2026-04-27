@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { LibDiamond } from "./libraries/LibDiamond.sol";
-import { LibMusicAccess } from "./libraries/LibMusicAccess.sol";
+import { LibDiamond } from './libraries/LibDiamond.sol';
+import { LibMusicAccess } from './libraries/LibMusicAccess.sol';
 
 /// @title DotifyRuntimeInitializer
 /// @notice Diamond init contract — called once via `delegatecall` inside the
@@ -10,8 +10,8 @@ import { LibMusicAccess } from "./libraries/LibMusicAccess.sol";
 ///
 ///         Bootstraps each new artist runtime so that:
 ///           - The personhood registrar is set to the artist (owner) so they
-///             can immediately grant DIM levels to listeners without a separate
-///             admin transaction.
+///             can immediately grant DIM levels to listeners and optionally
+///             delegate that role later through the owner-only setter.
 ///
 ///         This contract is deployed once and shared across all artist runtimes
 ///         created by the factory.  It executes in the SmartRuntime's storage
@@ -19,7 +19,7 @@ import { LibMusicAccess } from "./libraries/LibMusicAccess.sol";
 ///         the artist's address (set by SmartRuntime's constructor before the
 ///         init call is made).
 contract DotifyRuntimeInitializer {
-    function initialize() external {
-        LibMusicAccess.store().personhoodRegistrar = LibDiamond.contractOwner();
-    }
+  function initialize() external {
+    LibMusicAccess.setPersonhoodRegistrar(LibMusicAccess.store(), LibDiamond.contractOwner());
+  }
 }
