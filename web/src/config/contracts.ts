@@ -226,8 +226,7 @@ export const musicRoyaltiesAbi = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const musicAccessAbi = [
-  { type: 'function', name: 'musicAccSetRegistrar', inputs: [{ name: 'registrar', type: 'address' }], outputs: [], stateMutability: 'nonpayable' },
-  { type: 'function', name: 'musicAccRotateRegistrar', inputs: [{ name: 'next', type: 'address' }], outputs: [], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'setPersonhoodRegistrar', inputs: [{ name: 'registrar', type: 'address' }], outputs: [], stateMutability: 'nonpayable' },
   {
     type: 'function',
     name: 'musicAccSetPersonhoodLevel',

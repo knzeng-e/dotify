@@ -183,19 +183,19 @@ contract MusicRightsRegistry {
   }
 
   function getTrackCount() external view returns (uint256) {
-    return trackHashes.length;
+    return workCount();
   }
 
   function getTrackHashAtIndex(uint256 index) external view returns (bytes32) {
-    return trackHashes[index];
+    return workHashAtIndex(index);
   }
 
   function getWorkCount() external view returns (uint256) {
-    return trackHashes.length;
+    return workCount();
   }
 
   function getWorkHashAtIndex(uint256 index) external view returns (bytes32) {
-    return trackHashes[index];
+    return workHashAtIndex(index);
   }
 
   function validateRegistration(TrackRegistration calldata registration) private view {
@@ -210,6 +210,14 @@ contract MusicRightsRegistry {
     require(tracks[registration.contentHash].artist == address(0), 'Already registered');
     require(registration.accessMode == LibDotify.AccessMode.HumanFree || registration.pricePlanck > 0, 'Missing price');
     require(registration.accessMode == LibDotify.AccessMode.Classic || registration.requiredPersonhood != LibDotify.PersonhoodLevel.None, 'Missing personhood');
+  }
+
+  function workCount() private view returns (uint256) {
+    return trackHashes.length;
+  }
+
+  function workHashAtIndex(uint256 index) private view returns (bytes32) {
+    return trackHashes[index];
   }
 
   function mintTrackToken(bytes32 contentHash, address to) private returns (uint256 tokenId) {
