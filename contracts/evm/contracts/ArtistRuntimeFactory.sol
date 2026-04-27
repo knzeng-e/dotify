@@ -3,7 +3,14 @@ pragma solidity ^0.8.28;
 
 import { SmartRuntime } from './SmartRuntime.sol';
 import { IDiamondCut } from './interfaces/IDiamondCut.sol';
+import { IDiamondLoupe } from './interfaces/IDiamondLoupe.sol';
+import { IERC165 } from './interfaces/IERC165.sol';
 import { ArtistDirectory } from './ArtistDirectory.sol';
+import { OwnershipPallet } from './pallets/OwnershipPallet.sol';
+import { MusicRegistryPallet } from './pallets/MusicRegistryPallet.sol';
+import { MusicNFTPallet } from './pallets/MusicNFTPallet.sol';
+import { MusicRoyaltiesPallet } from './pallets/MusicRoyaltiesPallet.sol';
+import { MusicAccessPallet } from './pallets/MusicAccessPallet.sol';
 
 /// @title ArtistRuntimeFactory
 /// @notice Deploys a personal SmartRuntime for each Dotify artist.
@@ -50,18 +57,6 @@ contract ArtistRuntimeFactory {
   address public immutable accessPallet;
 
   // -------------------------------------------------------------------------
-  // Selector arrays (set once at construction)
-  // -------------------------------------------------------------------------
-
-  bytes4[] private _cutSels;
-  bytes4[] private _loupeSels;
-  bytes4[] private _ownershipSels;
-  bytes4[] private _registrySels;
-  bytes4[] private _nftSels;
-  bytes4[] private _royaltiesSels;
-  bytes4[] private _accessSels;
-
-  // -------------------------------------------------------------------------
   // Events
   // -------------------------------------------------------------------------
 
@@ -80,8 +75,6 @@ contract ArtistRuntimeFactory {
   /// @param _nftPallet       MusicNFTPallet implementation address.
   /// @param _royaltiesPallet MusicRoyaltiesPallet implementation address.
   /// @param _accessPallet    MusicAccessPallet implementation address.
-  /// @param selectors        ABI selectors for each pallet in the same order
-  ///                         [cut, loupe, ownership, registry, nft, royalties, access].
   constructor(
     address _directory,
     address _initContract,
@@ -91,11 +84,8 @@ contract ArtistRuntimeFactory {
     address _registryPallet,
     address _nftPallet,
     address _royaltiesPallet,
-    address _accessPallet,
-    bytes4[][] memory selectors
+    address _accessPallet
   ) {
-    require(selectors.length == 7, 'Factory: need 7 selector arrays');
-
     directory = ArtistDirectory(_directory);
     initContract = _initContract;
     cutPallet = _cutPallet;
@@ -105,14 +95,6 @@ contract ArtistRuntimeFactory {
     nftPallet = _nftPallet;
     royaltiesPallet = _royaltiesPallet;
     accessPallet = _accessPallet;
-
-    _cutSels = selectors[0];
-    _loupeSels = selectors[1];
-    _ownershipSels = selectors[2];
-    _registrySels = selectors[3];
-    _nftSels = selectors[4];
-    _royaltiesSels = selectors[5];
-    _accessSels = selectors[6];
   }
 
   // -------------------------------------------------------------------------
@@ -150,12 +132,75 @@ contract ArtistRuntimeFactory {
 
   function _buildCuts() private view returns (IDiamondCut.FacetCut[] memory cuts) {
     cuts = new IDiamondCut.FacetCut[](7);
-    cuts[0] = IDiamondCut.FacetCut(cutPallet, IDiamondCut.FacetCutAction.Add, _cutSels);
-    cuts[1] = IDiamondCut.FacetCut(loupePallet, IDiamondCut.FacetCutAction.Add, _loupeSels);
-    cuts[2] = IDiamondCut.FacetCut(ownershipPallet, IDiamondCut.FacetCutAction.Add, _ownershipSels);
-    cuts[3] = IDiamondCut.FacetCut(registryPallet, IDiamondCut.FacetCutAction.Add, _registrySels);
-    cuts[4] = IDiamondCut.FacetCut(nftPallet, IDiamondCut.FacetCutAction.Add, _nftSels);
-    cuts[5] = IDiamondCut.FacetCut(royaltiesPallet, IDiamondCut.FacetCutAction.Add, _royaltiesSels);
-    cuts[6] = IDiamondCut.FacetCut(accessPallet, IDiamondCut.FacetCutAction.Add, _accessSels);
+    cuts[0] = IDiamondCut.FacetCut(cutPallet, IDiamondCut.FacetCutAction.Add, _diamondCutSelectors());
+    cuts[1] = IDiamondCut.FacetCut(loupePallet, IDiamondCut.FacetCutAction.Add, _diamondLoupeSelectors());
+    cuts[2] = IDiamondCut.FacetCut(ownershipPallet, IDiamondCut.FacetCutAction.Add, _ownershipSelectors());
+    cuts[3] = IDiamondCut.FacetCut(registryPallet, IDiamondCut.FacetCutAction.Add, _musicRegistrySelectors());
+    cuts[4] = IDiamondCut.FacetCut(nftPallet, IDiamondCut.FacetCutAction.Add, _musicNFTSelectors());
+    cuts[5] = IDiamondCut.FacetCut(royaltiesPallet, IDiamondCut.FacetCutAction.Add, _musicRoyaltiesSelectors());
+    cuts[6] = IDiamondCut.FacetCut(accessPallet, IDiamondCut.FacetCutAction.Add, _musicAccessSelectors());
+  }
+
+  function _diamondCutSelectors() private pure returns (bytes4[] memory selectors) {
+    selectors = new bytes4[](1);
+    selectors[0] = IDiamondCut.diamondCut.selector;
+  }
+
+  function _diamondLoupeSelectors() private pure returns (bytes4[] memory selectors) {
+    selectors = new bytes4[](5);
+    selectors[0] = IDiamondLoupe.facets.selector;
+    selectors[1] = IDiamondLoupe.facetFunctionSelectors.selector;
+    selectors[2] = IDiamondLoupe.facetAddresses.selector;
+    selectors[3] = IDiamondLoupe.facetAddress.selector;
+    selectors[4] = IERC165.supportsInterface.selector;
+  }
+
+  function _ownershipSelectors() private pure returns (bytes4[] memory selectors) {
+    selectors = new bytes4[](2);
+    selectors[0] = OwnershipPallet.owner.selector;
+    selectors[1] = OwnershipPallet.transferOwnership.selector;
+  }
+
+  function _musicRegistrySelectors() private pure returns (bytes4[] memory selectors) {
+    selectors = new bytes4[](8);
+    selectors[0] = MusicRegistryPallet.musicRegRegister.selector;
+    selectors[1] = MusicRegistryPallet.musicRegDeactivate.selector;
+    selectors[2] = MusicRegistryPallet.musicRegGetTrack.selector;
+    selectors[3] = MusicRegistryPallet.musicRegGetTrackByTokenId.selector;
+    selectors[4] = MusicRegistryPallet.musicRegIsRegistered.selector;
+    selectors[5] = MusicRegistryPallet.musicRegIsActive.selector;
+    selectors[6] = MusicRegistryPallet.musicRegTrackCount.selector;
+    selectors[7] = MusicRegistryPallet.musicRegTrackHashAtIndex.selector;
+  }
+
+  function _musicNFTSelectors() private pure returns (bytes4[] memory selectors) {
+    selectors = new bytes4[](7);
+    selectors[0] = MusicNFTPallet.musicNFTTransfer.selector;
+    selectors[1] = MusicNFTPallet.musicNFTApprove.selector;
+    selectors[2] = MusicNFTPallet.musicNFTSetApprovalForAll.selector;
+    selectors[3] = MusicNFTPallet.musicNFTOwnerOf.selector;
+    selectors[4] = MusicNFTPallet.musicNFTBalanceOf.selector;
+    selectors[5] = MusicNFTPallet.musicNFTGetApproved.selector;
+    selectors[6] = MusicNFTPallet.musicNFTIsApprovedForAll.selector;
+  }
+
+  function _musicRoyaltiesSelectors() private pure returns (bytes4[] memory selectors) {
+    selectors = new bytes4[](5);
+    selectors[0] = MusicRoyaltiesPallet.musicRoyPayAccess.selector;
+    selectors[1] = MusicRoyaltiesPallet.musicRoyRecordListen.selector;
+    selectors[2] = MusicRoyaltiesPallet.musicRoySplitCount.selector;
+    selectors[3] = MusicRoyaltiesPallet.musicRoySplitAt.selector;
+    selectors[4] = MusicRoyaltiesPallet.musicRoyTotalBps.selector;
+  }
+
+  function _musicAccessSelectors() private pure returns (bytes4[] memory selectors) {
+    selectors = new bytes4[](7);
+    selectors[0] = MusicAccessPallet.setPersonhoodRegistrar.selector;
+    selectors[1] = MusicAccessPallet.musicAccSetPersonhoodLevel.selector;
+    selectors[2] = MusicAccessPallet.musicAccCanAccess.selector;
+    selectors[3] = MusicAccessPallet.musicAccHasPaid.selector;
+    selectors[4] = MusicAccessPallet.musicAccPersonhoodLevel.selector;
+    selectors[5] = MusicAccessPallet.musicAccHasPersonhood.selector;
+    selectors[6] = MusicAccessPallet.musicAccGetRegistrar.selector;
   }
 }

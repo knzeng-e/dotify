@@ -608,7 +608,7 @@ export default function App() {
       functionName: 'musicRegTrackCount'
     })) as bigint;
 
-    const tracks = await Promise.all<(RegistryCatalogTrack | null)[]>(
+    const tracks: Array<RegistryCatalogTrack | null> = await Promise.all(
       Array.from({ length: Number(trackCount) }, async (_, index) => {
         const hash = (await client.readContract({
           address: runtimeAddress,
@@ -725,7 +725,7 @@ export default function App() {
         txHash
       });
     } catch (registrationError) {
-      const message = registrationError instanceof Error ? registrationError.message : 'Artist registration failed';
+      const message = describeArtistRegistrationError(registrationError);
       setArtistRegistrationStatus(message);
       setTransactionFeedback({
         tone: 'error',
@@ -2245,6 +2245,20 @@ function normalizeRoomCode(roomCode: string) {
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '')
     .slice(0, 12);
+}
+
+function describeArtistRegistrationError(error: unknown) {
+  const message = error instanceof Error ? error.message : 'Artist registration failed';
+
+  if (/consumes more than the allowed weight|proof_size|overweight_by/i.test(message)) {
+    return 'Artist registration exceeds the current Polkadot Hub EVM weight limit. Redeploy the updated ArtistRuntimeFactory, then refresh the app deployment addresses before trying again.';
+  }
+
+  if (/artist already has a runtime/i.test(message)) {
+    return 'This signer already owns a SmartRuntime. Refresh the status and manage releases on that runtime.';
+  }
+
+  return message;
 }
 
 function getPeerStatus(connectionState: RTCPeerConnectionState): PeerStatus {

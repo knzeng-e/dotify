@@ -1,8 +1,7 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { defineChain, type Abi, type AbiFunction } from 'viem';
-import { toFunctionSelector } from 'viem';
+import { defineChain } from 'viem';
 
 const ROOT_DIR = path.resolve(__dirname, '../../..');
 
@@ -60,10 +59,6 @@ type VerificationBackend = {
 
 const VERIFICATION_SUBTASKS = new Set(['verify:etherscan', 'verify:sourcify', 'verify:blockscout']);
 
-export function selectorsFromAbi(abi: Abi): `0x${string}`[] {
-  return abi.filter((item): item is AbiFunction => item.type === 'function').map(fn => toFunctionSelector(fn));
-}
-
 export async function getDeployConfig(hre: HardhatRuntimeEnvironment) {
   if (hre.network.name !== 'polkadotTestnet') {
     return {};
@@ -78,20 +73,7 @@ export async function getDeployConfig(hre: HardhatRuntimeEnvironment) {
   return { client: { public: publicClient, wallet } };
 }
 
-export async function buildFactorySelectors(hre: HardhatRuntimeEnvironment): Promise<`0x${string}`[][]> {
-  const selectors: `0x${string}`[][] = [];
-
-  for (const [, contractName] of PALLET_CONTRACTS) {
-    const artifact = await hre.artifacts.readArtifact(contractName);
-    selectors.push(selectorsFromAbi(artifact.abi as Abi));
-  }
-
-  return selectors;
-}
-
-export async function buildFactoryConstructorArguments(hre: HardhatRuntimeEnvironment, deployments: SmartRuntimeDeployments): Promise<readonly unknown[]> {
-  const selectors = await buildFactorySelectors(hre);
-
+export async function buildFactoryConstructorArguments(_hre: HardhatRuntimeEnvironment, deployments: SmartRuntimeDeployments): Promise<readonly unknown[]> {
   return [
     deployments.directory,
     deployments.initializer,
@@ -101,8 +83,7 @@ export async function buildFactoryConstructorArguments(hre: HardhatRuntimeEnviro
     deployments.pallets.registryPallet,
     deployments.pallets.nftPallet,
     deployments.pallets.royaltiesPallet,
-    deployments.pallets.accessPallet,
-    selectors
+    deployments.pallets.accessPallet
   ] as const;
 }
 
@@ -295,13 +276,13 @@ function buildVerificationTaskArguments(subtaskName: string, target: VerifyTarge
         address: target.address,
         contract: target.contract,
         constructorArgsParams: target.constructorArguments ? [...target.constructorArguments] : [],
-        force: false
+        force: true
       };
     case 'verify:blockscout':
       return {
         address: target.address,
         contract: target.contract,
-        force: false
+        force: true
       };
     case 'verify:sourcify':
       return {

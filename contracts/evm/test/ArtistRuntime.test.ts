@@ -78,13 +78,6 @@ async function deployDotifySystemFixture() {
   const accessPallet = await hre.viem.deployContract('MusicAccessPallet');
   const initializer = await hre.viem.deployContract('DotifyRuntimeInitializer');
 
-  // Compute selectors
-  const selectors = await Promise.all(
-    ['DiamondCutPallet', 'DiamondLoupePallet', 'OwnershipPallet', 'MusicRegistryPallet', 'MusicNFTPallet', 'MusicRoyaltiesPallet', 'MusicAccessPallet'].map(
-      async name => selectorsFromAbi((await hre.artifacts.readArtifact(name)).abi as Abi)
-    )
-  );
-
   // Deploy directory and factory
   const directory = await hre.viem.deployContract('ArtistDirectory');
   const factory = await hre.viem.deployContract('ArtistRuntimeFactory', [
@@ -96,8 +89,7 @@ async function deployDotifySystemFixture() {
     registryPallet.address,
     nftPallet.address,
     royaltiesPallet.address,
-    accessPallet.address,
-    selectors
+    accessPallet.address
   ]);
 
   // Wire factory
