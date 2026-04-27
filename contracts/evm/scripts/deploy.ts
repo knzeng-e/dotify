@@ -16,7 +16,7 @@
  */
 
 import hre from 'hardhat';
-import { buildFactorySelectors, getDeployConfig, verifySmartRuntimeSystem, writeDeployments } from './smartRuntime';
+import { getDeployConfig, verifySmartRuntimeSystem, writeDeployments } from './smartRuntime';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
@@ -59,7 +59,6 @@ async function main() {
 
   // ── 4. ArtistRuntimeFactory ────────────────────────────────────────────────
   console.log('\nStep 4/5 — Deploying ArtistRuntimeFactory');
-  const selectors = await buildFactorySelectors(hre);
 
   const factory = await hre.viem.deployContract(
     'ArtistRuntimeFactory',
@@ -72,8 +71,7 @@ async function main() {
       registryPallet.address,
       nftPallet.address,
       royaltiesPallet.address,
-      accessPallet.address,
-      selectors
+      accessPallet.address
     ],
     cfg
   );
