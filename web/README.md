@@ -25,16 +25,21 @@ Useful environment variables:
 - `VITE_SIGNAL_URL`
 - `VITE_LOCAL_WS_URL`
 - `VITE_LOCAL_ETH_RPC_URL`
-- `VITE_DOTIFY_EVM_CONTRACT`
+- `VITE_BULLETIN_WS_URL`
+- `VITE_PINATA_JWT`
+- `VITE_PINATA_GATEWAY`
+
+See `.env.example` for local defaults and script-only variables.
 
 Audio files, cover images, and artist contract PDFs are stored in browser
 `localStorage` for the current POC. Audio is encrypted before storage, and the
 player decrypts it from the stored ciphertext at playback time.
 
-Bulletin Chain interactions use the PAPI descriptors in `.papi/` and publish
-only a compact JSON manifest that points to the local POC assets. Regenerate the
+Pinata stores audio, cover, and metadata JSON on IPFS. Bulletin Chain
+interactions use the PAPI descriptors in `.papi/` and can publish the compact
+metadata JSON hash as an additional on-chain availability layer. Regenerate the
 descriptors with `npm run update-types && npm run codegen` if the target chains
 change.
 
-Durable IPFS/pinning storage is intentionally deferred to the roadmap so the app
-can validate the encrypted-rights flow without an upload backend.
+The current POC calls Pinata directly from the browser. Use a restricted JWT for
+local demos; production should move pinning behind a backend proxy.

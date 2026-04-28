@@ -1,9 +1,12 @@
 # Dotify Contracts
 
-The first Dotify contract is `MusicRightsRegistry`.
+Dotify currently uses a smart-runtime contract system rather than a single
+registry contract.
 
-It records one active track per audio hash and mints a minimal NFT for each
-registered track:
+`ArtistRuntimeFactory` deploys one personal `SmartRuntime` per artist.
+`ArtistDirectory` records the artist address to runtime mapping. The runtime is
+assembled from pallets that record one active track per audio hash and mint a
+minimal NFT for each registered track:
 
 - artist wallet and display name;
 - title, description, cover image IPFS reference, audio IPFS reference,
