@@ -14,6 +14,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src')
     }
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'esnext'
+    }
+  },
   build: {
     outDir: 'dist-bulletin',
     target: 'esnext',

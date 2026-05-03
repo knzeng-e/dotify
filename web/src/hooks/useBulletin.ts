@@ -1,29 +1,30 @@
-import { Binary, createClient, Enum, type PolkadotClient, type PolkadotSigner } from 'polkadot-api';
-import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat';
-import { getWsProvider } from 'polkadot-api/ws-provider/web';
-import { bulletin } from '@polkadot-api/descriptors';
-import { BULLETIN_WS_URL } from '../config/network';
 import { hashBytes } from '../utils/hash';
+import { BULLETIN_WS_URL } from '../config/network';
+import { createChainClient } from '@polkadot-apps/chain-client';
+import { bulletin } from '@polkadot-apps/descriptors/bulletin';
+import { Binary, Enum, type PolkadotSigner, type TypedApi } from 'polkadot-api';
 
-export const BULLETIN_MAX_DATA_BYTES = 8 * 1024 * 1024;
 const UPLOAD_TIMEOUT_MS = 60_000;
+export const BULLETIN_MAX_DATA_BYTES = 8 * 1024 * 1024;
 
-let bulletinClient: PolkadotClient | null = null;
+let cachedApi: TypedApi<typeof bulletin> | null = null;
+let cachedDestroy: (() => void) | null = null;
 
-function getBulletinClient(): PolkadotClient {
-  if (!bulletinClient) {
-    bulletinClient = createClient(withPolkadotSdkCompat(getWsProvider(BULLETIN_WS_URL)));
+async function getBulletinApi(): Promise<TypedApi<typeof bulletin>> {
+  if (!cachedApi) {
+    const client = await createChainClient({
+      chains: { bulletin },
+      rpcs: { bulletin: [BULLETIN_WS_URL] },
+    });
+    cachedApi = client.bulletin;
+    cachedDestroy = () => client.destroy();
   }
-  return bulletinClient;
-}
-
-function getBulletinApi() {
-  return getBulletinClient().getTypedApi(bulletin);
+  return cachedApi;
 }
 
 export async function checkBulletinAuthorization(address: string, dataSize: number) {
   try {
-    const api = getBulletinApi();
+    const api = await getBulletinApi();
     const auth = await api.query.TransactionStorage.Authorizations.getValue(Enum('Account', address));
     return Boolean(auth && auth.extent.transactions > 0n && auth.extent.bytes >= BigInt(dataSize));
   } catch {
@@ -37,7 +38,7 @@ export async function uploadToBulletin(fileBytes: Uint8Array, signer: PolkadotSi
   }
 
   const contentHash = hashBytes(fileBytes);
-  const api = getBulletinApi();
+  const api = await getBulletinApi();
   const tx = api.tx.TransactionStorage.store({
     data: Binary.fromBytes(fileBytes)
   });
@@ -66,8 +67,9 @@ export async function uploadToBulletin(fileBytes: Uint8Array, signer: PolkadotSi
 }
 
 export function destroyBulletinClient() {
-  bulletinClient?.destroy();
-  bulletinClient = null;
+  cachedDestroy?.();
+  cachedDestroy = null;
+  cachedApi = null;
 }
 
 export function encodeBulletinJson(payload: unknown) {
