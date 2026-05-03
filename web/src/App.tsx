@@ -37,6 +37,7 @@ import {
 } from './config/contracts';
 import { checkBulletinAuthorization, destroyBulletinClient, encodeBulletinJson, uploadToBulletin } from './hooks/useBulletin';
 import { getGatewayUrl, uploadFileToPinata, uploadJsonToPinata, type DotifyTrackManifest } from './services/pinata';
+import { encryptTrackAudio, decryptTrackAudio, makeEncryptedAudioRef, isEncryptedAudioRef, encryptedRefToCID } from './utils/protectedAudio';
 
 type Mode = 'host' | 'listener';
 type PersonhoodLevel = 'DIM1' | 'DIM2';
@@ -105,6 +106,7 @@ type CatalogTrack = {
   source: 'seed' | 'artist';
   royaltySplits: RoyaltySplit[];
   personhoodLevel: PersonhoodLevel;
+  encrypted: boolean;
 };
 
 type OnchainTrackRecord = {
@@ -418,7 +420,7 @@ export default function App() {
     setMode(nextMode);
   }
 
-  function selectTrack(track: CatalogTrack) {
+  async function selectTrack(track: CatalogTrack) {
     setSelectedTrackId(track.id);
     setTitle(track.title);
     setArtistName(track.artist);
@@ -429,18 +431,43 @@ export default function App() {
     setAccessMode(track.accessMode);
     setPriceDot(track.priceDot);
     setPersonhoodLevel(track.personhoodLevel);
-    setAudioSource(track.localUrl ?? null);
     setTrackInfo(createTrackInfoFromCatalog(track));
     setPlayerState(null);
 
-    if (!track.localUrl) {
+    let audioUrl: string | null = null;
+    if (track.localUrl) {
+      if (track.encrypted) {
+        audioUrl = await fetchAndDecryptAudio(track.localUrl, track.hash).catch(() => null);
+      } else {
+        audioUrl = track.localUrl;
+      }
+    }
+    setAudioSource(audioUrl);
+
+    if (!audioUrl) {
       localStreamRef.current = null;
       setLocalStreamReady(false);
       closeHostPeers();
-      setSessionStatus('Source required');
+      setSessionStatus(track.encrypted && track.localUrl ? 'Decryption failed' : 'Source required');
     }
 
     socketRef.current?.emit('room:track', createTrackInfoFromCatalog(track));
+  }
+
+  async function fetchAndDecryptAudio(gatewayUrl: string, contentHash: `0x${string}`): Promise<string> {
+    const cached = resolvedAudioSourcesRef.current.get(gatewayUrl);
+    if (cached) return cached;
+
+    const response = await fetch(gatewayUrl);
+    if (!response.ok) throw new Error(`Unable to fetch encrypted audio (${response.status})`);
+
+    const encryptedBytes = new Uint8Array(await response.arrayBuffer());
+    const clearBytes = await decryptTrackAudio(encryptedBytes, contentHash);
+    const blob = new Blob([clearBytes]);
+    const objectUrl = URL.createObjectURL(blob);
+    objectUrlsRef.current.add(objectUrl);
+    resolvedAudioSourcesRef.current.set(gatewayUrl, objectUrl);
+    return objectUrl;
   }
 
   async function refreshArtistRuntime(showBusy = false) {
@@ -629,6 +656,7 @@ export default function App() {
         }
 
         const imageRef = resolveVisualAssetRef(track.imageRef, track.title);
+        const encrypted = isEncryptedAudioRef(track.audioRef);
         const localUrl = resolveAudioAssetRef(track.audioRef);
 
         return {
@@ -652,6 +680,7 @@ export default function App() {
           royaltySplits: [],
           personhoodLevel: track.requiredPersonhood === 2 ? 'DIM2' : 'DIM1',
           zone: 'Registry',
+          encrypted,
           registeredAtBlock: Number(track.registeredAtBlock)
         };
       })
@@ -855,10 +884,15 @@ export default function App() {
       setTrackInfo(track);
       socketRef.current?.emit('room:track', track);
 
-      const uploadPromise = uploadFileToPinata(file, file.name, { app: 'dotify', type: 'audio' })
+      const uploadPromise = (async () => {
+        const encryptedBytes = await encryptTrackAudio(result.bytes, result.hash);
+        const encBlob = new Blob([encryptedBytes], { type: 'application/octet-stream' });
+        const encFile = new File([encBlob], `${file.name}.enc`, { type: 'application/octet-stream' });
+        return uploadFileToPinata(encFile, `${file.name}.enc`, { app: 'dotify', type: 'audio', encrypted: 'true' });
+      })()
         .then(cid => {
           setAudioCID(cid);
-          setRightsStatus('Audio ready — uploaded to IPFS');
+          setRightsStatus('Audio ready — encrypted and uploaded to IPFS');
           return cid;
         })
         .catch(() => {
@@ -1133,7 +1167,8 @@ export default function App() {
       createdAt: new Date().toISOString(),
       assets: {
         audioCID: resolvedAudioCID,
-        coverCID: resolvedCoverCID
+        coverCID: resolvedCoverCID,
+        encrypted: true
       },
       track: {
         contentHash,
@@ -1194,8 +1229,13 @@ export default function App() {
         audioUploadRef.current ??
           (audioSource
             ? fetch(audioSource)
-                .then(r => r.blob())
-                .then(b => uploadFileToPinata(new File([b], title || 'audio'), title || 'audio', { app: 'dotify', type: 'audio' }))
+                .then(r => r.arrayBuffer())
+                .then(async buf => {
+                  const bytes = new Uint8Array(buf);
+                  const enc = await encryptTrackAudio(bytes, fileHash);
+                  const encFile = new File([enc], `${title || 'audio'}.enc`, { type: 'application/octet-stream' });
+                  return uploadFileToPinata(encFile, encFile.name, { app: 'dotify', type: 'audio', encrypted: 'true' });
+                })
             : Promise.resolve('')),
         coverUploadRef.current ?? (coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }) : Promise.resolve(''))
       ]);
@@ -1284,7 +1324,7 @@ export default function App() {
 
       const walletClient = await getWalletClient(artistAccountIndex, ethRpcUrl);
 
-      const ipfsAudioRef = resolvedAudioCID ? `ipfs://${resolvedAudioCID}` : `dotify:local:${fileHash}`;
+      const ipfsAudioRef = resolvedAudioCID ? makeEncryptedAudioRef(resolvedAudioCID) : `dotify:local:${fileHash}`;
       const ipfsCoverRef = resolvedCoverCID ? `ipfs://${resolvedCoverCID}` : `dotify:cover:${fileHash}`;
 
       setRightsStatus('Submitting rights transaction');
@@ -2187,6 +2227,11 @@ function resolveVisualAssetRef(assetRef: string, title: string) {
 function resolveAudioAssetRef(assetRef: string) {
   if (!assetRef) {
     return undefined;
+  }
+
+  // Encrypted IPFS audio — resolve to gateway URL; caller is responsible for decryption.
+  if (isEncryptedAudioRef(assetRef)) {
+    return getGatewayUrl(encryptedRefToCID(assetRef));
   }
 
   if (assetRef.startsWith('ipfs://')) {

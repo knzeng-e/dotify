@@ -14,6 +14,7 @@ export interface DotifyTrackManifest {
   assets: {
     audioCID: string;
     coverCID: string;
+    encrypted?: boolean; // audio bytes are AES-256-GCM encrypted before upload
   };
   track: {
     contentHash: string;
