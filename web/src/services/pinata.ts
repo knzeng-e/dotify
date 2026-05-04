@@ -1,5 +1,10 @@
 const JWT = import.meta.env.VITE_PINATA_JWT as string;
 const GATEWAY = (import.meta.env.VITE_PINATA_GATEWAY as string | undefined) ?? 'https://paseo-ipfs.polkadot.io';
+const READ_GATEWAYS = (import.meta.env.VITE_IPFS_READ_GATEWAYS as string | undefined)
+  ?.split(',')
+  .map(gateway => gateway.trim())
+  .filter(Boolean);
+const FALLBACK_GATEWAYS = ['https://paseo-ipfs.polkadot.io', 'https://ipfs.io', 'https://dweb.link'];
 
 const PIN_FILE_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
 const PIN_JSON_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
@@ -39,8 +44,30 @@ export interface DotifyTrackManifest {
 }
 
 export function getGatewayUrl(cid: string): string {
-  console.log(`Using gateway URL: ${GATEWAY}/ipfs/${cid}`);
-  return `${GATEWAY}/ipfs/${cid}`;
+  const gateway = getGatewayUrls(cid)[0];
+  console.log(`Using gateway URL: ${gateway}`);
+  return gateway;
+}
+
+export function getGatewayUrls(cid: string): string[] {
+  const gateways = [GATEWAY, ...(READ_GATEWAYS ?? []), ...FALLBACK_GATEWAYS];
+  return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
+}
+
+export async function fetchIpfsCid(cid: string): Promise<Response> {
+  let lastError: unknown;
+
+  for (const url of getGatewayUrls(cid)) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return response;
+      lastError = new Error(`Gateway ${url} returned ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`Unable to fetch IPFS CID ${cid}`);
 }
 
 export async function uploadFileToPinata(file: File, name: string, keyvalues: Record<string, string> = {}): Promise<string> {
@@ -108,8 +135,7 @@ export async function fetchCatalogFromPinata(): Promise<DotifyTrackManifest[]> {
 
   const manifests = await Promise.allSettled(
     sorted.map(async pin => {
-      const r = await fetch(getGatewayUrl(pin.ipfs_pin_hash));
-      if (!r.ok) throw new Error(`Failed to fetch manifest ${pin.ipfs_pin_hash}`);
+      const r = await fetchIpfsCid(pin.ipfs_pin_hash);
       const manifest = (await r.json()) as DotifyTrackManifest;
       if (manifest.schema !== 'dotify.track.v1') throw new Error('Unknown schema');
       return manifest;

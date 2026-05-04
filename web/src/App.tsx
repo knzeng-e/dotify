@@ -33,10 +33,12 @@ import {
   getWalletClient,
   artistRuntimeFactoryAbi,
   artistDirectoryAbi,
-  musicRegistryAbi
+  musicRegistryAbi,
+  musicAccessAbi,
+  musicRoyaltiesAbi
 } from './config/contracts';
 import { checkBulletinAuthorization, destroyBulletinClient, encodeBulletinJson, uploadToBulletin } from './hooks/useBulletin';
-import { getGatewayUrl, uploadFileToPinata, uploadJsonToPinata, type DotifyTrackManifest } from './services/pinata';
+import { fetchIpfsCid, getGatewayUrl, uploadFileToPinata, uploadJsonToPinata, type DotifyTrackManifest } from './services/pinata';
 import { encryptTrackAudio, decryptTrackAudio, makeEncryptedAudioRef, isEncryptedAudioRef, encryptedRefToCID } from './utils/protectedAudio';
 
 type Mode = 'host' | 'listener';
@@ -48,6 +50,10 @@ type PeerStatus = 'waiting' | 'connecting' | 'connected' | 'disconnected';
 type SessionAction = 'idle' | 'creating' | 'joining';
 type AssetAction = 'idle' | 'audio' | 'cover';
 type TransactionFeedbackTone = 'pending' | 'success' | 'error';
+type AudioContextWindow = Window &
+  typeof globalThis & {
+    webkitAudioContext?: typeof AudioContext;
+  };
 
 type RoyaltySplit = {
   label: string;
@@ -167,11 +173,20 @@ type TransactionFeedback = {
   txHash?: `0x${string}`;
 };
 
+type AccessGate = {
+  track: CatalogTrack;
+  title: string;
+  message: string;
+  hint: string;
+  actionType: 'personhood' | 'payment';
+};
+
 // TODO: Update this when switching to statement store signaling
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const iceServers: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
 const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
+const PREVIEW_RATIO = 0.1;
 
 function coverImage(primary: string, secondary: string, label: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640"><rect width="640" height="640" fill="${primary}"/><circle cx="490" cy="120" r="210" fill="${secondary}" opacity=".72"/><circle cx="160" cy="520" r="190" fill="#1ed760" opacity=".82"/><text x="48" y="108" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="800">${label}</text><path d="M230 242c0-25 20-45 45-45h98v62h-70v132c0 34-28 62-62 62s-62-28-62-62 28-62 62-62c13 0 25 4 35 11v-98h-46Z" fill="#fff" opacity=".92"/></svg>`;
@@ -233,8 +248,11 @@ export default function App() {
   const [artistRegistrationStatus, setArtistRegistrationStatus] = useState('Checking artist registration');
   const [isRefreshingArtistRuntime, setIsRefreshingArtistRuntime] = useState(false);
   const [isRegisteringArtist, setIsRegisteringArtist] = useState(false);
+  const [accessGate, setAccessGate] = useState<AccessGate | null>(null);
 
   const roomIdRef = useRef('');
+  const previewOnlyRef = useRef(false);
+  const previewLimitRef = useRef<number | null>(null);
   const hostIdRef = useRef('');
   const modeRef = useRef<Mode>(mode);
   const lastPlayerStateEmitRef = useRef(0);
@@ -433,15 +451,26 @@ export default function App() {
     setPersonhoodLevel(track.personhoodLevel);
     setTrackInfo(createTrackInfoFromCatalog(track));
     setPlayerState(null);
+    setAccessGate(null);
+    previewOnlyRef.current = false;
+    previewLimitRef.current = null;
 
     let audioUrl: string | null = null;
+
     if (track.localUrl) {
-      if (track.encrypted) {
-        audioUrl = await fetchAndDecryptAudio(track.localUrl, track.hash).catch(() => null);
-      } else {
-        audioUrl = track.localUrl;
+      const hasAccess = await checkTrackAccess(track, currentArtistAddress);
+      const previewOnly = !hasAccess;
+      previewOnlyRef.current = previewOnly;
+
+      audioUrl = track.encrypted
+        ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, { previewOnly }).catch(() => null)
+        : await resolvePlayableAudioSource(track.localUrl, track.audioRef, { previewOnly }).catch(() => null);
+
+      if (previewOnly) {
+        setAccessGate(buildAccessGateInfo(track));
       }
     }
+
     setAudioSource(audioUrl);
 
     if (!audioUrl) {
@@ -454,20 +483,153 @@ export default function App() {
     socketRef.current?.emit('room:track', createTrackInfoFromCatalog(track));
   }
 
-  async function fetchAndDecryptAudio(gatewayUrl: string, contentHash: `0x${string}`): Promise<string> {
-    const cached = resolvedAudioSourcesRef.current.get(gatewayUrl);
+  // Returns true when the current user has on-chain access to the track.
+  // Fails open (returns true) if the contract call errors — best-effort only.
+  async function checkTrackAccess(track: CatalogTrack, listenerAddress: `0x${string}`): Promise<boolean> {
+    if (track.source !== 'artist' || !track.id.includes(':')) return true;
+    const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
+    try {
+      return (await getPublicClient(ethRpcUrl).readContract({
+        address: runtimeAddress,
+        abi: musicAccessAbi,
+        functionName: 'musicAccCanAccess',
+        args: [track.hash, listenerAddress]
+      })) as boolean;
+    } catch {
+      return true;
+    }
+  }
+
+  function buildAccessGateInfo(track: CatalogTrack): AccessGate {
+    if (track.accessMode === 'human-free') {
+      return {
+        track,
+        title: 'Personhood required',
+        message: `"${track.title}" is restricted because this account does not hold the required ${track.personhoodLevel} credential. Only a 10% preview is available.`,
+        hint: 'Verify your identity through Polkadot Individuality to unlock the whole track.',
+        actionType: 'personhood'
+      };
+    }
+    return {
+      track,
+      title: 'Purchase required',
+      message: `"${track.title}" is restricted because this account has not paid the artist (${track.priceDot} DOT). Only a 10% preview is available.`,
+      hint: 'Pay the artist directly from this app to unlock the whole track.',
+      actionType: 'payment'
+    };
+  }
+
+  // Called from onLoadedMetadata. Sets the preview cutoff when access is restricted.
+  function setupPreviewLimit() {
+    const audio = localAudioRef.current;
+    if (!audio || !previewOnlyRef.current || !Number.isFinite(audio.duration)) return;
+    previewLimitRef.current = audio.duration * 0.1;
+  }
+
+  // Called from onTimeUpdate and onPlay. Pauses and shows gate when limit is reached.
+  function enforcePreviewCutoff() {
+    const audio = localAudioRef.current;
+    const limit = previewLimitRef.current;
+    if (!audio || limit === null || audio.paused) return;
+    if (audio.currentTime >= limit) {
+      audio.pause();
+      const track = catalogTracks.find(t => t.id === selectedTrackId) ?? null;
+      if (track) setAccessGate(buildAccessGateInfo(track));
+    }
+  }
+
+  // Submits the on-chain royalty payment for a paid track, then replays with full access.
+  async function payForTrackAccess(track: CatalogTrack) {
+    const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
+    // Convert Substrate planck (10 decimals) → EVM wei (18 decimals)
+    const priceWei = dotToPlanck(track.priceDot) * 100_000_000n;
+
+    setAccessGate(null);
+    setTransactionFeedback({
+      tone: 'pending',
+      title: 'Processing payment',
+      message: `Paying ${track.priceDot} DOT to unlock "${track.title}".`
+    });
+
+    try {
+      const walletClient = await getWalletClient(artistAccountIndex, ethRpcUrl);
+      const txHash = await walletClient.writeContract({
+        address: runtimeAddress,
+        abi: musicRoyaltiesAbi,
+        functionName: 'musicRoyPayAccess',
+        args: [track.hash],
+        value: priceWei
+      });
+      setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Payment submitted.', txHash });
+      await getPublicClient(ethRpcUrl).waitForTransactionReceipt({ hash: txHash });
+
+      previewOnlyRef.current = false;
+      previewLimitRef.current = null;
+      setTransactionFeedback({ tone: 'success', title: 'Access unlocked', message: `Full playback of "${track.title}" is now available.`, txHash });
+      await selectTrack(track);
+    } catch (payError) {
+      const message = payError instanceof Error ? payError.message : 'Payment failed';
+      setTransactionFeedback({ tone: 'error', title: 'Payment failed', message });
+    }
+  }
+
+  async function resolvePlayableAudioSource(source: string, cacheKey: string, options: { previewOnly: boolean }): Promise<string> {
+    if (!options.previewOnly) return source;
+
+    const previewCacheKey = `${cacheKey}:preview`;
+    const cached = resolvedAudioSourcesRef.current.get(previewCacheKey);
     if (cached) return cached;
 
-    const response = await fetch(gatewayUrl);
+    const response = await fetch(source);
+    if (!response.ok) throw new Error(`Unable to fetch preview audio (${response.status})`);
+
+    const sourceBytes = new Uint8Array(await response.arrayBuffer());
+    return createPreviewAudioObjectUrl(sourceBytes, previewCacheKey);
+  }
+
+  async function fetchAndDecryptAudio(
+    audioRef: string,
+    gatewayUrl: string,
+    contentHash: `0x${string}`,
+    options: { previewOnly: boolean }
+  ): Promise<string> {
+    const cacheKey = options.previewOnly ? `${audioRef}:preview` : audioRef;
+    const cached = resolvedAudioSourcesRef.current.get(cacheKey);
+    if (cached) return cached;
+
+    const response = isEncryptedAudioRef(audioRef) ? await fetchIpfsCid(encryptedRefToCID(audioRef)) : await fetch(gatewayUrl);
     if (!response.ok) throw new Error(`Unable to fetch encrypted audio (${response.status})`);
 
     const encryptedBytes = new Uint8Array(await response.arrayBuffer());
     const clearBytes = await decryptTrackAudio(encryptedBytes, contentHash);
+    if (options.previewOnly) {
+      return createPreviewAudioObjectUrl(clearBytes, cacheKey);
+    }
+
     const blob = new Blob([clearBytes]);
     const objectUrl = URL.createObjectURL(blob);
     objectUrlsRef.current.add(objectUrl);
-    resolvedAudioSourcesRef.current.set(gatewayUrl, objectUrl);
+    resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
     return objectUrl;
+  }
+
+  async function createPreviewAudioObjectUrl(audioBytes: Uint8Array, cacheKey: string): Promise<string> {
+    const AudioContextCtor = window.AudioContext ?? (window as AudioContextWindow).webkitAudioContext;
+    if (!AudioContextCtor) throw new Error('Audio previews are not supported in this browser.');
+
+    const audioContext = new AudioContextCtor();
+    try {
+      const audioData = audioBytes.buffer.slice(audioBytes.byteOffset, audioBytes.byteOffset + audioBytes.byteLength);
+      const audioBuffer = await audioContext.decodeAudioData(audioData);
+      const previewFrameCount = Math.max(1, Math.floor(audioBuffer.length * PREVIEW_RATIO));
+      const previewBytes = encodeAudioBufferPreviewAsWav(audioBuffer, previewFrameCount);
+      const objectUrl = URL.createObjectURL(new Blob([previewBytes], { type: 'audio/wav' }));
+      objectUrlsRef.current.add(objectUrl);
+      resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
+      return objectUrl;
+    } finally {
+      await audioContext.close();
+    }
   }
 
   async function refreshArtistRuntime(showBusy = false) {
@@ -1570,11 +1732,11 @@ export default function App() {
                       src={audioSource ?? undefined}
                       crossOrigin='anonymous'
                       controls
-                      onLoadedMetadata={prepareLocalStream}
-                      onPlay={() => emitPlayerState(true)}
+                      onLoadedMetadata={() => { void prepareLocalStream(); setupPreviewLimit(); }}
+                      onPlay={() => { emitPlayerState(true); enforcePreviewCutoff(); }}
                       onPause={() => emitPlayerState(true)}
                       onSeeked={() => emitPlayerState(true)}
-                      onTimeUpdate={() => emitPlayerState(false)}
+                      onTimeUpdate={() => { emitPlayerState(false); enforcePreviewCutoff(); }}
                     />
                     <div className='remote-state' data-active={localStreamReady}>
                       {localStreamReady ? <Play size={16} /> : <Pause size={16} />}
@@ -1598,6 +1760,14 @@ export default function App() {
                   </div>
                   <span>{formatTime(playerState?.duration ?? trackInfo?.duration ?? 0)}</span>
                 </div>
+
+                {accessGate && (
+                  <AccessGateOverlay
+                    gate={accessGate}
+                    onDismiss={() => setAccessGate(null)}
+                    onPay={accessGate.actionType === 'payment' ? () => { void payForTrackAccess(accessGate.track); } : undefined}
+                  />
+                )}
               </div>
 
               <div className='doc-panel session-panel'>
@@ -2057,6 +2227,77 @@ function EndpointRow({ label, value }: { label: string; value: ReactNode }) {
     <div className='endpoint-row'>
       <span>{label}</span>
       <div className='endpoint-value'>{value}</div>
+    </div>
+  );
+}
+
+function encodeAudioBufferPreviewAsWav(audioBuffer: AudioBuffer, frameCount: number) {
+  const channelCount = audioBuffer.numberOfChannels;
+  const sampleRate = audioBuffer.sampleRate;
+  const bytesPerSample = 2;
+  const dataSize = frameCount * channelCount * bytesPerSample;
+  const bytes = new Uint8Array(44 + dataSize);
+  const view = new DataView(bytes.buffer);
+
+  writeAscii(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeAscii(view, 8, 'WAVE');
+  writeAscii(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channelCount, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * channelCount * bytesPerSample, true);
+  view.setUint16(32, channelCount * bytesPerSample, true);
+  view.setUint16(34, 16, true);
+  writeAscii(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  let offset = 44;
+  for (let frame = 0; frame < frameCount; frame += 1) {
+    for (let channel = 0; channel < channelCount; channel += 1) {
+      const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[frame] ?? 0));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += bytesPerSample;
+    }
+  }
+
+  return bytes;
+}
+
+function writeAscii(view: DataView, offset: number, value: string) {
+  for (let index = 0; index < value.length; index += 1) {
+    view.setUint8(offset + index, value.charCodeAt(index));
+  }
+}
+
+function AccessGateOverlay({
+  gate,
+  onDismiss,
+  onPay
+}: {
+  gate: AccessGate;
+  onDismiss: () => void;
+  onPay?: () => void;
+}) {
+  return (
+    <div className='access-gate'>
+      <div className='access-gate-header'>
+        <LockKeyhole size={16} />
+        <strong>{gate.title}</strong>
+      </div>
+      <p className='access-gate-message'>{gate.message}</p>
+      <p className='access-gate-hint'>{gate.hint}</p>
+      <div className='access-gate-actions'>
+        {gate.actionType === 'payment' && onPay && (
+          <button className='primary-action' type='button' onClick={onPay}>
+            Pay {gate.track.priceDot} DOT
+          </button>
+        )}
+        <button className='secondary-action' type='button' onClick={onDismiss}>
+          Dismiss
+        </button>
+      </div>
     </div>
   );
 }

@@ -621,6 +621,46 @@ audio {
   background: #1ed760;
 }
 
+.access-gate {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid rgba(230, 0, 122, 0.38);
+  border-radius: 8px;
+  background: rgba(230, 0, 122, 0.08);
+  padding: 0.9rem;
+}
+
+.access-gate-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.access-gate-header svg {
+  color: #ff5ca8;
+}
+
+.access-gate-message,
+.access-gate-hint {
+  margin: 0;
+  color: #c9c9c9;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.access-gate-hint {
+  color: #fff;
+  font-weight: 760;
+}
+
+.access-gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
 .segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;
