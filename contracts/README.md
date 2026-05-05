@@ -50,3 +50,34 @@ To rerun verification without redeploying:
 cd contracts/evm
 npm run verify:testnet
 ```
+
+To run the contract suite:
+
+```bash
+cd contracts/evm
+npm test
+```
+
+## Current Notes
+
+- `ArtistRuntime.test.ts` covers the active smart-runtime / pallet system:
+  runtime creation, registration, paid access, royalty distribution,
+  personhood-gated access, NFT transfer gating, and runtime isolation.
+- `MusicRightsRegistry.sol` and `MusicRightsRegistry.test.ts` are legacy
+  monolithic registry code kept in the repository for comparison. The web app
+  uses the smart-runtime pallet ABI from `web/src/config/contracts.ts`.
+- The frontend currently performs access checks before playback and serves a
+  10% preview for unauthorized listeners. Contracts remain the source of truth
+  for `musicAccCanAccess` and `musicRoyPayAccess`; production-grade audio key
+  delivery should be added outside the public frontend bundle.
+
+## Improvements
+
+- Archive or remove the legacy monolithic registry once the smart-runtime path
+  is fully accepted.
+- Generate frontend ABI definitions from Hardhat artifacts instead of
+  maintaining inline ABI objects manually.
+- Add deployment smoke tests that read the live factory, directory, and pallet
+  addresses after `deploy:testnet`.
+- Add an operator flow for a shared personhood registrar or Individuality
+  integration.

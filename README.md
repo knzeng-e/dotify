@@ -2,15 +2,21 @@
 
 **Let the Music connect the dots.**
 
-Dotify is a decentralized, cultural social hub, aimed to incentivise direct human connection through real time music listening. Each user can eitheir use it as a normal spotify app, or decide to host an epehemeral sound session, and invite other listeners join the same real-time feed.
-By uploading their tracks on `Dotify`, artists provide their explicit consent to make use of their art as an instrument of "humanificiation", while retaining full control of their productions. Dotify offers them a dedicated dashboard to manage their catalog, rights and monetization, without any intermediary and in real time.
+Dotify is a decentralized cultural social hub that incentivizes direct human
+connection through real-time music listening. Each user can browse it like a
+music app or host an ephemeral listening session and invite other listeners into
+the same real-time feed.
+
+By uploading tracks to Dotify, artists opt into using their work as an
+instrument of human connection while retaining control over catalog, rights, and
+monetization through their own artist runtime.
 
 ![](./assets/images/Dotify_Home.png)
 
 ## What it does
 
 - **Home**: artist-grouped music discovery, track artwork, descriptions, access
-  mode badges, a player, and room-hosting controls.
+  mode badges, a policy-aware player, and room-hosting controls.
 - **Rooms**: open listening rooms plus manual room-code entry.
 - **Artist Studio**: audio upload, cover image upload, description, rights
   metadata, music accessibility mode selection, and management of a smart `Music rights registry`.
@@ -23,15 +29,16 @@ artist addresses to their runtimes.
 
 **Frontend**: Static React + Vite web app deployed to dot.li.
 
-**WebRTC**: Realtime music streaming
+**WebRTC**: real-time music streaming.
 
-**Socket.io**: Signaling // TODO -> Use the statement store
+**Socket.IO**: signaling for room discovery and SDP/ICE exchange. A future
+iteration can move signaling to statement-store style infrastructure.
 
 ## Deployed
 
-**EVM factory** — `0x34f8eb390ba7c4ce3f7d8fab1cb82b099449b7f5` (Paseo Asset Hub, chainId 420420417)
+**EVM factory** — `0x74ba85c2b29d2acb3777b9b3ca26c286945cae3c` (Paseo Asset Hub, chainId 420420417)
 
-**EVM directory** — `0xa93f43ef98924a3b42098c207332dceadb0632a7`
+**EVM directory** — `0xdd92194909df3dc5c3d254b53f7283d025c35d8c`
 
 **Bulletin CID** — `bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny`
 
@@ -80,13 +87,16 @@ Each uploaded track gets:
 
 - a blake2b-256 content hash of the audio file;
 - local blob URLs for draft playback before registration;
-- Pinata IPFS refs for audio, cover, and metadata JSON;
+- encrypted Pinata IPFS refs for audio plus IPFS refs for cover and metadata
+  JSON;
 - an optional JSON rights manifest published to Bulletin Chain;
 - an EVM NFT minted by the artist `SmartRuntime` with the content hash, metadata
   reference, royalty splits, and access mode.
 
 Draft track data is in-session only until registration. Registered tracks store
-IPFS refs on-chain and can be loaded through the configured gateway.
+IPFS refs on-chain and can be loaded through the configured gateway. IPFS reads
+use a primary gateway plus fallback gateways to avoid custom gateway
+authorization failures.
 
 ## Access modes
 
@@ -98,6 +108,13 @@ IPFS refs on-chain and can be loaded through the configured gateway.
 Proof of Personhood is a registrar-controlled mapping in the contract — ready
 for a live Individuality chain integration without blocking the prototype.
 
+The frontend checks `musicAccCanAccess` before loading a registered track. If the
+listener does not meet the PoP or payment requirement, it creates a separate 10%
+preview and shows a warning explaining the restriction and the action needed to
+unlock the whole track. This is product-policy enforcement in the current
+client; production-grade protection still needs server-side or artist-side key
+delivery.
+
 ## What works
 
 - WebRTC host-to-listener audio stream (tested with two local browser tabs and
@@ -106,6 +123,8 @@ for a live Individuality chain integration without blocking the prototype.
 - Artist Studio: audio upload, cover image upload, Pinata IPFS pinning,
   blake2b hash, optional Bulletin Chain manifest upload, artist runtime
   creation, and on-chain release registration.
+- Best-effort encrypted audio storage with 10% preview playback for restricted
+  listeners.
 - Seed catalog with five tracks browsable on the Home view.
 - SmartRuntime music pallets: registration, NFT ownership, access checks, paid
   access, listen recording, royalty split storage, and transfer gating by
@@ -115,9 +134,12 @@ for a live Individuality chain integration without blocking the prototype.
 
 - **Draft audio is session-only**: blob URLs are revoked on unmount before the
   release is registered. Registered releases rely on Pinata IPFS refs.
-
+- **Client-side protection is best-effort**: encrypted audio and preview gating
+  improve the demo, but the frontend still contains the code and configured
+  content secret. Production needs wallet-gated key delivery.
 - **No real wallet**: signing uses hardcoded dev accounts (Alice for Bulletin,
-  Alice EVM account for contract calls). A real signer integration using Pwallet is on the migration list.
+  Alice EVM account for contract calls). A real signer integration using an
+  injected wallet is on the migration list.
 - **Proof of Personhood is mocked**: `setPersonhoodLevel` is a dev-only admin
   call. Live Individuality chain reads are on the roadmap.
 - **Pinata runs from the browser**: `VITE_PINATA_JWT` is exposed by Vite, so use
@@ -133,7 +155,8 @@ for a live Individuality chain integration without blocking the prototype.
 Browser (React + Vite)
   ├── WebRTC audio stream (captureStream → RTCPeerConnection per listener)
   ├── Socket.IO  →  Node signaling server  (SDP/ICE only)
-  ├── Pinata HTTP API  →  IPFS audio, cover, and metadata pinning
+  ├── Pinata HTTP API  →  encrypted audio, cover, and metadata pinning
+  ├── IPFS gateways  →  primary + fallback reads for manifests and audio bytes
   ├── polkadot-api (PAPI)  →  Paseo Bulletin Chain  (optional manifest upload)
   └── viem  →  Paseo Asset Hub EVM  (ArtistDirectory, ArtistRuntimeFactory, SmartRuntime)
 ```
@@ -161,3 +184,18 @@ handle:
 | `web/.papi/`     | PAPI descriptors for Bulletin Chain                      |
 | `contracts/evm/` | Hardhat + Solidity smart-runtime contracts               |
 | `deployments.json` | EVM factory, directory, initializer, and pallet addresses |
+
+## Improvement Backlog
+
+- Add real wallet integration and remove dev account usage from public flows.
+- Move Pinata uploads and audio key delivery behind a backend or artist-operated
+  key service.
+- Replace bundled content secrets with per-track key custody and wallet-signed
+  unlock requests.
+- Integrate live Proof of Personhood / Individuality data instead of manual
+  registrar writes.
+- Deploy and monitor a public signaling server for DotNS / Bulletin builds.
+- Add frontend tests for registration, payment, preview gating, unlock, and
+  listening rooms.
+- Split the large React app into catalog, player, studio, rooms, and chain
+  modules.
