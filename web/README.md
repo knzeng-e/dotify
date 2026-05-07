@@ -71,7 +71,7 @@ Registered tracks use two access modes:
 
 Before playback, the frontend calls `musicAccCanAccess(contentHash, listener)`.
 If access is granted, the encrypted IPFS audio is decrypted and the full track is
-loaded. If access is denied, the app creates a separate 10% preview audio object
+loaded. If access is denied, the app creates a separate 42% preview audio object
 and shows an unlock warning:
 
 - Human free tracks instruct the listener to verify personhood.

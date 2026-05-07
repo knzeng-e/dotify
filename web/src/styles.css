@@ -882,7 +882,8 @@ audio {
 }
 
 .rights-status,
-.error-box {
+.error-box,
+.info-box {
   margin: 0.75rem 0 0;
   border-radius: 8px;
   background: #242424;
@@ -894,6 +895,11 @@ audio {
 .error-box {
   background: rgba(239, 68, 68, 0.16);
   color: #fca5a5;
+}
+
+.info-box {
+  background: rgba(30, 215, 96, 0.12);
+  color: #54f08a;
 }
 
 .toggle-row {

@@ -67,7 +67,7 @@ npm test
   monolithic registry code kept in the repository for comparison. The web app
   uses the smart-runtime pallet ABI from `web/src/config/contracts.ts`.
 - The frontend currently performs access checks before playback and serves a
-  10% preview for unauthorized listeners. Contracts remain the source of truth
+  42% preview for unauthorized listeners. Contracts remain the source of truth
   for `musicAccCanAccess` and `musicRoyPayAccess`; production-grade audio key
   delivery should be added outside the public frontend bundle.
 

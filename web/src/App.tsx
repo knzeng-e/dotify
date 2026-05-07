@@ -31,6 +31,7 @@ import {
   evmDevAccounts,
   getPublicClient,
   getWalletClient,
+  resolveEvmChain,
   artistRuntimeFactoryAbi,
   artistDirectoryAbi,
   musicRegistryAbi,
@@ -40,6 +41,7 @@ import {
 import { checkBulletinAuthorization, destroyBulletinClient, encodeBulletinJson, uploadToBulletin } from './hooks/useBulletin';
 import { fetchIpfsCid, getGatewayUrl, uploadFileToPinata, uploadJsonToPinata, type DotifyTrackManifest } from './services/pinata';
 import { encryptTrackAudio, decryptTrackAudio, makeEncryptedAudioRef, isEncryptedAudioRef, encryptedRefToCID } from './utils/protectedAudio';
+import { useWallet, type WalletState } from './hooks/useWallet';
 
 type Mode = 'host' | 'listener';
 type PersonhoodLevel = 'DIM1' | 'DIM2';
@@ -186,7 +188,7 @@ const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol
 const iceServers: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
 const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
-const PREVIEW_RATIO = 0.1;
+const PREVIEW_RATIO = 0.42;
 
 function coverImage(primary: string, secondary: string, label: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640"><rect width="640" height="640" fill="${primary}"/><circle cx="490" cy="120" r="210" fill="${secondary}" opacity=".72"/><circle cx="160" cy="520" r="190" fill="#1ed760" opacity=".82"/><text x="48" y="108" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="800">${label}</text><path d="M230 242c0-25 20-45 45-45h98v62h-70v132c0 34-28 62-62 62s-62-28-62-62 28-62 62-62c13 0 25 4 35 11v-98h-46Z" fill="#fff" opacity=".92"/></svg>`;
@@ -238,6 +240,7 @@ export default function App() {
   const [isRefreshingRooms, setIsRefreshingRooms] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [personhoodLevel, setPersonhoodLevel] = useState<PersonhoodLevel>('DIM1');
+  const [showWalletModal, setShowWalletModal] = useState(false);
   const [coverSource, setCoverSource] = useState(coverImage('#111827', '#e6007a', 'Dotify'));
   const [description, setDescription] = useState('Describe the story, rights context, and intended audience for this track.');
   const [transactionFeedback, setTransactionFeedback] = useState<TransactionFeedback | null>(null);
@@ -272,13 +275,22 @@ export default function App() {
   const sessionLink = getSessionLink(roomId);
   const factoryAddress = deployments.factory;
   const directoryAddress = deployments.directory;
+  const { state: walletState, connectPasskey, connectExtension, disconnect: disconnectWallet, hasPrfSupport, hasStoredPasskey, forgetPasskey } = useWallet();
+  const connectedWallet = walletState.status === 'connected' ? walletState.wallet : null;
+
   const currentArtistAccount = evmDevAccounts[artistAccountIndex];
   const currentArtistAddress = currentArtistAccount.account.address;
+
+  // When a wallet is connected it takes precedence over the dev account selectors.
+  const activeEvmAddress = connectedWallet?.evmAddress ?? currentArtistAddress;
+  const activeSubstrateAddress = connectedWallet?.substrateAddress ?? devAccounts[bulletinAccountIndex].address;
+  const activeSubstrateSigner = connectedWallet?.substrateSigner ?? devAccounts[bulletinAccountIndex].signer;
+
   const catalogByArtist = groupTracksByArtist(catalogTracks);
   const selectedTrack = catalogTracks.find(track => track.id === selectedTrackId);
 
   const streamTitle = trackInfo?.title || selectedTrack?.title || title;
-  const artistTracks = catalogTracks.filter(track => isTrackManagedByArtist(track, currentArtistAddress, artistName));
+  const artistTracks = catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
   const streamArtist = trackInfo?.artist || selectedTrack?.artist || artistName;
   const activeListeners = listeners.filter(listener => listener.status === 'connected').length;
   const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
@@ -316,6 +328,12 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [transactionFeedback]);
+
+  useEffect(() => {
+    if (walletState.status === 'connected') {
+      setShowWalletModal(false);
+    }
+  }, [walletState.status]);
 
   useEffect(() => {
     void refreshCatalogFromRegistry();
@@ -458,7 +476,7 @@ export default function App() {
     let audioUrl: string | null = null;
 
     if (track.localUrl) {
-      const hasAccess = await checkTrackAccess(track, currentArtistAddress);
+      const hasAccess = await checkTrackAccess(track, activeEvmAddress);
       const previewOnly = !hasAccess;
       previewOnlyRef.current = previewOnly;
 
@@ -505,7 +523,7 @@ export default function App() {
       return {
         track,
         title: 'Personhood required',
-        message: `"${track.title}" is restricted because this account does not hold the required ${track.personhoodLevel} credential. Only a 10% preview is available.`,
+        message: `"${track.title}" is restricted because this account does not hold the required ${track.personhoodLevel} credential. Only a 42% preview is available.`,
         hint: 'Verify your identity through Polkadot Individuality to unlock the whole track.',
         actionType: 'personhood'
       };
@@ -513,7 +531,7 @@ export default function App() {
     return {
       track,
       title: 'Purchase required',
-      message: `"${track.title}" is restricted because this account has not paid the artist (${track.priceDot} DOT). Only a 10% preview is available.`,
+      message: `"${track.title}" is restricted because this account has not paid the artist (${track.priceDot} DOT). Only a 42% preview is available.`,
       hint: 'Pay the artist directly from this app to unlock the whole track.',
       actionType: 'payment'
     };
@@ -523,7 +541,7 @@ export default function App() {
   function setupPreviewLimit() {
     const audio = localAudioRef.current;
     if (!audio || !previewOnlyRef.current || !Number.isFinite(audio.duration)) return;
-    previewLimitRef.current = audio.duration * 0.1;
+    previewLimitRef.current = audio.duration * PREVIEW_RATIO;
   }
 
   // Called from onTimeUpdate and onPlay. Pauses and shows gate when limit is reached.
@@ -552,7 +570,7 @@ export default function App() {
     });
 
     try {
-      const walletClient = await getWalletClient(artistAccountIndex, ethRpcUrl);
+      const walletClient = await getActiveWalletClient();
       const txHash = await walletClient.writeContract({
         address: runtimeAddress,
         abi: musicRoyaltiesAbi,
@@ -657,7 +675,7 @@ export default function App() {
         address: directoryAddress,
         abi: artistDirectoryAbi,
         functionName: 'runtimeOf',
-        args: [currentArtistAddress]
+        args: [activeEvmAddress]
       })) as `0x${string}`;
 
       if (runtimeAddress === zeroAddress) {
@@ -755,6 +773,15 @@ export default function App() {
       setCatalogStatus(message);
       return [];
     }
+  }
+
+  /** Returns the right viem WalletClient: connected wallet first, dev account fallback. */
+  async function getActiveWalletClient(): Promise<Awaited<ReturnType<typeof getWalletClient>>> {
+    if (connectedWallet) {
+      const chain = await resolveEvmChain(ethRpcUrl);
+      return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
+    }
+    return getWalletClient(artistAccountIndex, ethRpcUrl);
   }
 
   function updateArtistName(nextName: string) {
@@ -884,7 +911,7 @@ export default function App() {
         return;
       }
 
-      const walletClient = await getWalletClient(artistAccountIndex, ethRpcUrl);
+      const walletClient = await getActiveWalletClient();
       const publicClient = getPublicClient(ethRpcUrl);
 
       setArtistRegistrationStatus('Creating artist runtime');
@@ -1405,7 +1432,7 @@ export default function App() {
       if (resolvedAudioCID) setAudioCID(resolvedAudioCID);
       if (resolvedCoverCID) setCoverCID(resolvedCoverCID);
 
-      const royaltyRecipients = [evmDevAccounts[artistAccountIndex].account.address];
+      const royaltyRecipients = [activeEvmAddress];
       const royaltyShares = [royaltyBps];
       const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID);
       const manifestPayload = encodeBulletinJson(manifest);
@@ -1421,14 +1448,13 @@ export default function App() {
       const ipfsMetadataRef = `ipfs://${metadataCID}`;
 
       if (uploadToBulletinEnabled) {
-        const account = devAccounts[bulletinAccountIndex];
         setRightsStatus('Checking Bulletin authorization for metadata JSON');
         setTransactionFeedback({
           tone: 'pending',
           title: 'Authorizing Bulletin upload',
           message: 'Checking whether the selected Bulletin account can publish this manifest.'
         });
-        const authorized = await checkBulletinAuthorization(account.address, manifestPayload.bytes.length);
+        const authorized = await checkBulletinAuthorization(activeSubstrateAddress, manifestPayload.bytes.length);
         if (!authorized) {
           const message = 'Bulletin account is not authorized';
           setRightsStatus(message);
@@ -1446,7 +1472,7 @@ export default function App() {
           title: 'Publishing manifest',
           message: 'Writing the compact rights manifest to Bulletin Chain.'
         });
-        const bulletinUpload = await uploadToBulletin(manifestPayload.bytes, account.signer);
+        const bulletinUpload = await uploadToBulletin(manifestPayload.bytes, activeSubstrateSigner);
         bulletinRef = createBulletinManifestRef(bulletinUpload.contentHash);
         setBulletinManifestRef(bulletinRef);
       }
@@ -1484,7 +1510,7 @@ export default function App() {
         return;
       }
 
-      const walletClient = await getWalletClient(artistAccountIndex, ethRpcUrl);
+      const walletClient = await getActiveWalletClient();
 
       const ipfsAudioRef = resolvedAudioCID ? makeEncryptedAudioRef(resolvedAudioCID) : `dotify:local:${fileHash}`;
       const ipfsCoverRef = resolvedCoverCID ? `ipfs://${resolvedCoverCID}` : `dotify:cover:${fileHash}`;
@@ -1620,8 +1646,21 @@ export default function App() {
           />
           <StatusPill icon={Radio} label={sessionStatus} tone='pink' />
           <StatusPill icon={LockKeyhole} label='dotify.dot.li' tone='muted' />
+          <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnectWallet} />
         </nav>
       </header>
+
+      {showWalletModal && (
+        <WalletModal
+          state={walletState}
+          hasPrfSupport={hasPrfSupport}
+          hasStoredPasskey={hasStoredPasskey}
+          onPasskey={() => { void connectPasskey(); }}
+          onExtension={() => { void connectExtension(); }}
+          onForgetPasskey={forgetPasskey}
+          onClose={() => setShowWalletModal(false)}
+        />
+      )}
 
       <div className='docs-layout' id='top'>
         <aside className='sidebar' aria-label='Dotify navigation'>
@@ -1911,16 +1950,26 @@ export default function App() {
                       <span>Artist name</span>
                       <input className='field' value={artistName} onChange={event => updateArtistName(event.target.value)} />
                     </label>
-                    <label>
-                      <span>Signer</span>
-                      <select className='field' value={artistAccountIndex} onChange={event => setArtistAccountIndex(Number(event.target.value))}>
-                        {evmDevAccounts.map((account, index) => (
-                          <option key={account.name} value={index}>
-                            {account.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    {connectedWallet ? (
+                      <label>
+                        <span>Signer</span>
+                        <div className='field wallet-field'>
+                          <LockKeyhole size={14} />
+                          {connectedWallet.label}
+                        </div>
+                      </label>
+                    ) : (
+                      <label>
+                        <span>Signer</span>
+                        <select className='field' value={artistAccountIndex} onChange={event => setArtistAccountIndex(Number(event.target.value))}>
+                          {evmDevAccounts.map((account, index) => (
+                            <option key={account.name} value={index}>
+                              {account.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                   </div>
 
                   <div className='stack-list'>
@@ -1992,21 +2041,31 @@ export default function App() {
                       <span>Title</span>
                       <input className='field' value={title} onChange={event => setTitle(event.target.value)} disabled={artistStudioLocked} />
                     </label>
-                    <label>
-                      <span>Bulletin</span>
-                      <select
-                        className='field'
-                        value={bulletinAccountIndex}
-                        onChange={event => setBulletinAccountIndex(Number(event.target.value))}
-                        disabled={artistStudioLocked}
-                      >
-                        {devAccounts.map((account, index) => (
-                          <option key={account.name} value={index}>
-                            {account.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    {connectedWallet ? (
+                      <label>
+                        <span>Bulletin</span>
+                        <div className='field wallet-field'>
+                          <LockKeyhole size={14} />
+                          {connectedWallet.substrateAddress.slice(0, 8)}…
+                        </div>
+                      </label>
+                    ) : (
+                      <label>
+                        <span>Bulletin</span>
+                        <select
+                          className='field'
+                          value={bulletinAccountIndex}
+                          onChange={event => setBulletinAccountIndex(Number(event.target.value))}
+                          disabled={artistStudioLocked}
+                        >
+                          {devAccounts.map((account, index) => (
+                            <option key={account.name} value={index}>
+                              {account.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                     <label>
                       <span>Description</span>
                       <textarea
@@ -2269,6 +2328,118 @@ function writeAscii(view: DataView, offset: number, value: string) {
   for (let index = 0; index < value.length; index += 1) {
     view.setUint8(offset + index, value.charCodeAt(index));
   }
+}
+
+// ── Wallet UI components ──────────────────────────────────────────────────────
+
+function WalletStatusPill({
+  state,
+  onClick,
+  onDisconnect
+}: {
+  state: WalletState;
+  onClick: () => void;
+  onDisconnect: () => void;
+}) {
+  if (state.status === 'connected') {
+    return (
+      <div className='status-pill wallet-pill' data-tone='green'>
+        <LockKeyhole size={14} />
+        <span>{state.wallet.label}</span>
+        <button type='button' onClick={onDisconnect} aria-label='Disconnect wallet' title='Disconnect'>
+          ×
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button type='button' className='status-pill wallet-pill' data-tone='muted' onClick={onClick}>
+      <LockKeyhole size={14} />
+      <span>{state.status === 'connecting' ? 'Connecting…' : 'Sign in'}</span>
+    </button>
+  );
+}
+
+function WalletModal({
+  state,
+  hasPrfSupport,
+  hasStoredPasskey,
+  onPasskey,
+  onExtension,
+  onForgetPasskey,
+  onClose
+}: {
+  state: WalletState;
+  hasPrfSupport: boolean;
+  hasStoredPasskey: boolean;
+  onPasskey: () => void;
+  onExtension: () => void;
+  onForgetPasskey: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className='modal-backdrop' role='presentation' onClick={onClose}>
+      <div className='modal-card' role='dialog' aria-modal='true' aria-labelledby='wallet-modal-title' onClick={e => e.stopPropagation()}>
+        <div className='modal-header'>
+          <div className='modal-icon' data-tone='success'>
+            <LockKeyhole size={20} />
+          </div>
+          <button className='modal-close' type='button' onClick={onClose} aria-label='Close'>
+            <X size={16} />
+          </button>
+        </div>
+        <div className='modal-copy'>
+          <p className='modal-eyebrow'>Authentication</p>
+          <h2 id='wallet-modal-title'>Sign in to Dotify</h2>
+          <p>
+            Choose how you want to sign transactions. Passkeys require localhost or HTTPS; wallet extensions also need to be unlocked
+            before approval.
+          </p>
+        </div>
+
+        {state.status === 'error' && <p className='error-box'>{state.message}</p>}
+        {state.status === 'connecting' && (
+          <p className='info-box'>
+            Waiting for {state.via === 'passkey' ? 'browser passkey confirmation' : 'wallet extension approval'}…
+          </p>
+        )}
+
+        <div className='modal-actions' style={{ flexDirection: 'column', gap: '0.5rem' }}>
+          {hasPrfSupport && (
+            <button className='primary-action' type='button' onClick={onPasskey} style={{ justifyContent: 'flex-start', gap: '0.75rem' }}>
+              <LockKeyhole size={16} />
+              <span>
+                <strong>{hasStoredPasskey ? 'Continue with passkey' : 'Create a passkey'}</strong>
+                <small style={{ display: 'block', fontWeight: 400, opacity: 0.75 }}>
+                  Face ID · Touch ID · Windows Hello — no extension needed
+                </small>
+              </span>
+            </button>
+          )}
+
+          <button className='secondary-action' type='button' onClick={onExtension} style={{ justifyContent: 'flex-start', gap: '0.75rem' }}>
+            <BadgeCheck size={16} />
+            <span>
+              <strong>Connect wallet extension</strong>
+              <small style={{ display: 'block', fontWeight: 400, opacity: 0.75 }}>
+                Talisman · SubWallet · Polkadot.js
+              </small>
+            </span>
+          </button>
+
+          {hasStoredPasskey && (
+            <button
+              type='button'
+              style={{ fontSize: '0.75rem', opacity: 0.6, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-end', color: 'inherit' }}
+              onClick={() => { onForgetPasskey(); onClose(); }}
+            >
+              Forget stored passkey
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function AccessGateOverlay({

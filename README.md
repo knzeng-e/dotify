@@ -109,7 +109,7 @@ Proof of Personhood is a registrar-controlled mapping in the contract — ready
 for a live Individuality chain integration without blocking the prototype.
 
 The frontend checks `musicAccCanAccess` before loading a registered track. If the
-listener does not meet the PoP or payment requirement, it creates a separate 10%
+listener does not meet the PoP or payment requirement, it creates a separate 42%
 preview and shows a warning explaining the restriction and the action needed to
 unlock the whole track. This is product-policy enforcement in the current
 client; production-grade protection still needs server-side or artist-side key
@@ -123,7 +123,7 @@ delivery.
 - Artist Studio: audio upload, cover image upload, Pinata IPFS pinning,
   blake2b hash, optional Bulletin Chain manifest upload, artist runtime
   creation, and on-chain release registration.
-- Best-effort encrypted audio storage with 10% preview playback for restricted
+- Best-effort encrypted audio storage with 42% preview playback for restricted
   listeners.
 - Seed catalog with five tracks browsable on the Home view.
 - SmartRuntime music pallets: registration, NFT ownership, access checks, paid
