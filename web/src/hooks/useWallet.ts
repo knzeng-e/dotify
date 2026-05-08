@@ -13,21 +13,21 @@
 // Both tiers expose the same ConnectedWallet shape so callers don't care
 // which tier is active.
 
-import { useState, useCallback, useRef } from 'react';
 import { KeyManager } from '@polkadot-apps/keys';
-import { SignerManager } from '@polkadot-apps/signer';
 import { bytesToHex } from '@polkadot-apps/utils';
-import { createWalletClient, http, custom, type WalletClient, type Chain } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import type { PolkadotSigner } from 'polkadot-api';
+import { privateKeyToAccount } from 'viem/accounts';
+import { SignerManager } from '@polkadot-apps/signer';
+import { useState, useCallback, useRef } from 'react';
+import { createWalletClient, http, custom, type WalletClient, type Chain } from 'viem';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 // Changing PRF_SALT rotates ALL derived keys — all connected accounts change.
 const PRF_SALT = new TextEncoder().encode('dotify-wallet-v1');
 const CRED_KEY = 'dotify:passkey:credId';
-const SS58_PREFIX = 42;
-const CONNECT_TIMEOUT_MS = 30_000;
+const SS58_PREFIX = 42; // adapt prefix for target chain (42 = generic Substrate, 0 = Polkadot, 2 = Kusama, etc.)
+const CONNECT_TIMEOUT_MS = 42_000;
 
 // ── Public types ─────────────────────────────────────────────────────────────
 

@@ -74,6 +74,8 @@ If access is granted, the encrypted IPFS audio is decrypted and the full track i
 loaded. If access is denied, the app creates a separate 42% preview audio object
 and shows an unlock warning:
 
+- Users without a connected wallet receive preview-only playback and are asked
+  to sign in before full access can be checked.
 - Human free tracks instruct the listener to verify personhood.
 - Classic tracks show a payment action and retry playback after the transaction
   confirms.

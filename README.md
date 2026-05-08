@@ -115,6 +115,10 @@ unlock the whole track. This is product-policy enforcement in the current
 client; production-grade protection still needs server-side or artist-side key
 delivery.
 
+For registered artist tracks, users without a connected wallet are treated as
+unauthorized listeners and receive preview-only playback. Dev-account fallback
+must not grant full listener playback.
+
 ## What works
 
 - WebRTC host-to-listener audio stream (tested with two local browser tabs and

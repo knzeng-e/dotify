@@ -180,7 +180,7 @@ type AccessGate = {
   title: string;
   message: string;
   hint: string;
-  actionType: 'personhood' | 'payment';
+  actionType: 'personhood' | 'payment' | 'signin';
 };
 
 // TODO: Update this when switching to statement store signaling
@@ -283,6 +283,7 @@ export default function App() {
 
   // When a wallet is connected it takes precedence over the dev account selectors.
   const activeEvmAddress = connectedWallet?.evmAddress ?? currentArtistAddress;
+  const listenerEvmAddress = connectedWallet?.evmAddress ?? null;
   const activeSubstrateAddress = connectedWallet?.substrateAddress ?? devAccounts[bulletinAccountIndex].address;
   const activeSubstrateSigner = connectedWallet?.substrateSigner ?? devAccounts[bulletinAccountIndex].signer;
 
@@ -476,7 +477,7 @@ export default function App() {
     let audioUrl: string | null = null;
 
     if (track.localUrl) {
-      const hasAccess = await checkTrackAccess(track, activeEvmAddress);
+      const hasAccess = await checkTrackAccess(track, listenerEvmAddress);
       const previewOnly = !hasAccess;
       previewOnlyRef.current = previewOnly;
 
@@ -501,10 +502,11 @@ export default function App() {
     socketRef.current?.emit('room:track', createTrackInfoFromCatalog(track));
   }
 
-  // Returns true when the current user has on-chain access to the track.
-  // Fails open (returns true) if the contract call errors — best-effort only.
-  async function checkTrackAccess(track: CatalogTrack, listenerAddress: `0x${string}`): Promise<boolean> {
+  // Returns true only when the connected listener has on-chain access to the track.
+  // Fails closed for registered tracks so unauthenticated users never receive full playback.
+  async function checkTrackAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
     if (track.source !== 'artist' || !track.id.includes(':')) return true;
+    if (!listenerAddress) return false;
     const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
     try {
       return (await getPublicClient(ethRpcUrl).readContract({
@@ -514,11 +516,21 @@ export default function App() {
         args: [track.hash, listenerAddress]
       })) as boolean;
     } catch {
-      return true;
+      return false;
     }
   }
 
   function buildAccessGateInfo(track: CatalogTrack): AccessGate {
+    if (!connectedWallet) {
+      return {
+        track,
+        title: 'Sign in required',
+        message: `"${track.title}" is restricted. Connect a wallet to check payment or personhood access. Only a 42% preview is available.`,
+        hint: 'Sign in with a passkey or wallet extension to unlock eligible full playback.',
+        actionType: 'signin'
+      };
+    }
+
     if (track.accessMode === 'human-free') {
       return {
         track,
@@ -558,6 +570,12 @@ export default function App() {
 
   // Submits the on-chain royalty payment for a paid track, then replays with full access.
   async function payForTrackAccess(track: CatalogTrack) {
+    if (!connectedWallet) {
+      setAccessGate(buildAccessGateInfo(track));
+      setShowWalletModal(true);
+      return;
+    }
+
     const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
     // Convert Substrate planck (10 decimals) → EVM wei (18 decimals)
     const priceWei = dotToPlanck(track.priceDot) * 100_000_000n;
@@ -1805,6 +1823,7 @@ export default function App() {
                     gate={accessGate}
                     onDismiss={() => setAccessGate(null)}
                     onPay={accessGate.actionType === 'payment' ? () => { void payForTrackAccess(accessGate.track); } : undefined}
+                    onSignIn={accessGate.actionType === 'signin' ? () => setShowWalletModal(true) : undefined}
                   />
                 )}
               </div>
@@ -2445,11 +2464,13 @@ function WalletModal({
 function AccessGateOverlay({
   gate,
   onDismiss,
-  onPay
+  onPay,
+  onSignIn
 }: {
   gate: AccessGate;
   onDismiss: () => void;
   onPay?: () => void;
+  onSignIn?: () => void;
 }) {
   return (
     <div className='access-gate'>
@@ -2463,6 +2484,11 @@ function AccessGateOverlay({
         {gate.actionType === 'payment' && onPay && (
           <button className='primary-action' type='button' onClick={onPay}>
             Pay {gate.track.priceDot} DOT
+          </button>
+        )}
+        {gate.actionType === 'signin' && onSignIn && (
+          <button className='primary-action' type='button' onClick={onSignIn}>
+            Sign in
           </button>
         )}
         <button className='secondary-action' type='button' onClick={onDismiss}>
