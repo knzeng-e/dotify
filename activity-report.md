@@ -132,3 +132,18 @@ Move Bulletin out of the core publishing path for MVP. Keep it as:
 - future transparency or activity stream if the use case becomes clearer.
 
 Do not require Bulletin authorization for artists to publish tracks.
+
+### Implementation follow-up
+
+The simplification path has been implemented in the frontend:
+
+- wallet extension login now requests an EVM provider first and no longer
+  requires a Substrate extension account for normal Dotify use;
+- passkey login still derives a Substrate signer, but that signer is only used
+  when optional Bulletin archival is enabled;
+- Artist Studio disables Bulletin archival by default;
+- the track manifest pinned to IPFS is the canonical `metadataRef` sent to the
+  EVM runtime;
+- if Bulletin archival is manually enabled without a Substrate signer, the app
+  blocks submission before the on-chain registration step and explains that the
+  user can disable the option or use a passkey wallet.

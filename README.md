@@ -89,7 +89,7 @@ Each uploaded track gets:
 - local blob URLs for draft playback before registration;
 - encrypted Pinata IPFS refs for audio plus IPFS refs for cover and metadata
   JSON;
-- an optional JSON rights manifest published to Bulletin Chain;
+- an optional advanced JSON rights manifest archived to Bulletin Chain;
 - an EVM NFT minted by the artist `SmartRuntime` with the content hash, metadata
   reference, royalty splits, and access mode.
 
@@ -125,8 +125,8 @@ must not grant full listener playback.
   across LAN).
 - Socket.IO signaling with open-room discovery and manual room codes.
 - Artist Studio: audio upload, cover image upload, Pinata IPFS pinning,
-  blake2b hash, optional Bulletin Chain manifest upload, artist runtime
-  creation, and on-chain release registration.
+  canonical IPFS metadata, blake2b hash, optional Bulletin Chain archival
+  upload, artist runtime creation, and on-chain release registration.
 - Best-effort encrypted audio storage with 42% preview playback for restricted
   listeners.
 - Seed catalog with five tracks browsable on the Home view.
@@ -141,9 +141,9 @@ must not grant full listener playback.
 - **Client-side protection is best-effort**: encrypted audio and preview gating
   improve the demo, but the frontend still contains the code and configured
   content secret. Production needs wallet-gated key delivery.
-- **No real wallet**: signing uses hardcoded dev accounts (Alice for Bulletin,
-  Alice EVM account for contract calls). A real signer integration using an
-  injected wallet is on the migration list.
+- **Wallet scope**: Dotify now treats the EVM account as the primary artist and
+  listener identity. Dev accounts remain as local fallbacks when no wallet is
+  connected; Bulletin archival still needs a Substrate signer when enabled.
 - **Proof of Personhood is mocked**: `setPersonhoodLevel` is a dev-only admin
   call. Live Individuality chain reads are on the roadmap.
 - **Pinata runs from the browser**: `VITE_PINATA_JWT` is exposed by Vite, so use

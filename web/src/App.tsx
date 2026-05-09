@@ -236,7 +236,7 @@ export default function App() {
   const [accessMode, setAccessMode] = useState<AccessMode>('human-free');
   const [rightsStatus, setRightsStatus] = useState('No audio file selected');
   const [assetAction, setAssetAction] = useState<AssetAction>('idle');
-  const [uploadToBulletinEnabled, setUploadToBulletinEnabled] = useState(true);
+  const [uploadToBulletinEnabled, setUploadToBulletinEnabled] = useState(false);
   const [isRefreshingRooms, setIsRefreshingRooms] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [personhoodLevel, setPersonhoodLevel] = useState<PersonhoodLevel>('DIM1');
@@ -280,12 +280,14 @@ export default function App() {
 
   const currentArtistAccount = evmDevAccounts[artistAccountIndex];
   const currentArtistAddress = currentArtistAccount.account.address;
+  const currentBulletinAccount = devAccounts[bulletinAccountIndex];
 
   // When a wallet is connected it takes precedence over the dev account selectors.
   const activeEvmAddress = connectedWallet?.evmAddress ?? currentArtistAddress;
   const listenerEvmAddress = connectedWallet?.evmAddress ?? null;
-  const activeSubstrateAddress = connectedWallet?.substrateAddress ?? devAccounts[bulletinAccountIndex].address;
-  const activeSubstrateSigner = connectedWallet?.substrateSigner ?? devAccounts[bulletinAccountIndex].signer;
+  const activeSubstrateAddress = connectedWallet ? connectedWallet.substrateAddress : currentBulletinAccount.address;
+  const activeSubstrateSigner = connectedWallet ? connectedWallet.substrateSigner : currentBulletinAccount.signer;
+  const activeArtistDefaultName = connectedWallet ? 'Dotify Artist' : `${currentArtistAccount.name} Studio`;
 
   const catalogByArtist = groupTracksByArtist(catalogTracks);
   const selectedTrack = catalogTracks.find(track => track.id === selectedTrackId);
@@ -341,26 +343,26 @@ export default function App() {
   }, [directoryAddress, ethRpcUrl]);
 
   useEffect(() => {
-    const storedName = getStoredArtistName(currentArtistAddress);
+    const storedName = getStoredArtistName(activeEvmAddress);
     if (storedName) {
       setArtistName(storedName);
       return;
     }
 
-    setArtistName(previous => (previous.trim() && previous !== 'Dotify Artist' ? previous : `${currentArtistAccount.name} Studio`));
-  }, [currentArtistAccount.name, currentArtistAddress]);
+    setArtistName(previous => (previous.trim() && previous !== 'Dotify Artist' ? previous : activeArtistDefaultName));
+  }, [activeArtistDefaultName, activeEvmAddress]);
 
   useEffect(() => {
     if (activeView !== 'artist') return;
-    const storedName = getStoredArtistName(currentArtistAddress);
+    const storedName = getStoredArtistName(activeEvmAddress);
     if (storedName) {
       setArtistName(storedName);
     }
-  }, [activeView, currentArtistAddress]);
+  }, [activeView, activeEvmAddress]);
 
   useEffect(() => {
     void refreshArtistRuntime();
-  }, [currentArtistAddress, directoryAddress, ethRpcUrl]);
+  }, [activeEvmAddress, directoryAddress, ethRpcUrl]);
 
   function getSocket() {
     if (socketRef.current) return socketRef.current;
@@ -804,7 +806,7 @@ export default function App() {
 
   function updateArtistName(nextName: string) {
     setArtistName(nextName);
-    storeArtistName(currentArtistAddress, nextName);
+    storeArtistName(activeEvmAddress, nextName);
   }
 
   async function fetchDirectoryEntries(client: ReturnType<typeof getPublicClient>, registryAddress: `0x${string}`, artistCount: bigint) {
@@ -1453,9 +1455,8 @@ export default function App() {
       const royaltyRecipients = [activeEvmAddress];
       const royaltyShares = [royaltyBps];
       const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID);
-      const manifestPayload = encodeBulletinJson(manifest);
 
-      // Upload manifest to IPFS (Pinata) first
+      // IPFS is the canonical metadata path. Bulletin is optional archival.
       setRightsStatus('Publishing manifest to IPFS…');
       setTransactionFeedback({
         tone: 'pending',
@@ -1466,6 +1467,18 @@ export default function App() {
       const ipfsMetadataRef = `ipfs://${metadataCID}`;
 
       if (uploadToBulletinEnabled) {
+        if (!activeSubstrateAddress || !activeSubstrateSigner) {
+          const message = 'Bulletin archival requires a Substrate signer. Use a passkey wallet or disable the Bulletin archival option.';
+          setRightsStatus(message);
+          setTransactionFeedback({
+            tone: 'error',
+            title: 'Bulletin signer missing',
+            message
+          });
+          return;
+        }
+
+        const manifestPayload = encodeBulletinJson(manifest);
         setRightsStatus('Checking Bulletin authorization for metadata JSON');
         setTransactionFeedback({
           tone: 'pending',
@@ -1552,7 +1565,7 @@ export default function App() {
             description,
             imageRef: ipfsCoverRef,
             audioRef: ipfsAudioRef,
-            metadataRef: ipfsMetadataRef || bulletinRef || createMetadataRef(fileHash),
+            metadataRef: ipfsMetadataRef,
             artistContractRef: `dotify:self-certified:${fileHash}`,
             accessMode: accessMode === 'human-free' ? 0 : 1,
             pricePlanck: dotToPlanck(accessMode === 'classic' ? priceDot : '0'),
@@ -1995,8 +2008,8 @@ export default function App() {
                     <EndpointRow
                       label='Signer'
                       value={
-                        <a className='verify-link' href={getBlockscoutAddressUrl(currentArtistAddress)} target='_blank' rel='noreferrer'>
-                          {shorten(currentArtistAddress, 12)}
+                        <a className='verify-link' href={getBlockscoutAddressUrl(activeEvmAddress)} target='_blank' rel='noreferrer'>
+                          {shorten(activeEvmAddress, 12)}
                         </a>
                       }
                     />
@@ -2060,30 +2073,32 @@ export default function App() {
                       <span>Title</span>
                       <input className='field' value={title} onChange={event => setTitle(event.target.value)} disabled={artistStudioLocked} />
                     </label>
-                    {connectedWallet ? (
-                      <label>
-                        <span>Bulletin</span>
-                        <div className='field wallet-field'>
-                          <LockKeyhole size={14} />
-                          {connectedWallet.substrateAddress.slice(0, 8)}…
-                        </div>
-                      </label>
-                    ) : (
-                      <label>
-                        <span>Bulletin</span>
-                        <select
-                          className='field'
-                          value={bulletinAccountIndex}
-                          onChange={event => setBulletinAccountIndex(Number(event.target.value))}
-                          disabled={artistStudioLocked}
-                        >
-                          {devAccounts.map((account, index) => (
-                            <option key={account.name} value={index}>
-                              {account.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                    {uploadToBulletinEnabled && (
+                      connectedWallet ? (
+                        <label>
+                          <span>Bulletin signer</span>
+                          <div className='field wallet-field'>
+                            <LockKeyhole size={14} />
+                            {activeSubstrateAddress ? `${activeSubstrateAddress.slice(0, 8)}…` : 'No Substrate signer'}
+                          </div>
+                        </label>
+                      ) : (
+                        <label>
+                          <span>Bulletin signer</span>
+                          <select
+                            className='field'
+                            value={bulletinAccountIndex}
+                            onChange={event => setBulletinAccountIndex(Number(event.target.value))}
+                            disabled={artistStudioLocked}
+                          >
+                            {devAccounts.map((account, index) => (
+                              <option key={account.name} value={index}>
+                                {account.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )
                     )}
                     <label>
                       <span>Description</span>
@@ -2152,7 +2167,7 @@ export default function App() {
                       onChange={event => setUploadToBulletinEnabled(event.target.checked)}
                       disabled={artistStudioLocked}
                     />
-                    <span>Publish metadata JSON to Bulletin Chain</span>
+                    <span>Archive manifest to Bulletin Chain</span>
                   </label>
 
                   <button className='primary-action wide' type='button' onClick={registerRights} disabled={isRegistering || artistStudioLocked}>
@@ -2161,7 +2176,7 @@ export default function App() {
                   </button>
 
                   <div className='rights-status'>
-                    Audio and cover art are held in memory for this session. Bulletin Chain receives only the compact JSON manifest.
+                    Audio, cover art, and the canonical metadata manifest are pinned to IPFS. Bulletin archival is optional and never required for the core release flow.
                   </div>
                   <div className='rights-status'>
                     {accessMode === 'human-free'
@@ -2411,8 +2426,8 @@ function WalletModal({
           <p className='modal-eyebrow'>Authentication</p>
           <h2 id='wallet-modal-title'>Sign in to Dotify</h2>
           <p>
-            Choose how you want to sign transactions. Passkeys require localhost or HTTPS; wallet extensions also need to be unlocked
-            before approval.
+            Choose how you want to sign Dotify transactions. Passkeys require localhost or HTTPS; wallet extensions must expose an
+            EVM account before approval.
           </p>
         </div>
 
@@ -2430,7 +2445,7 @@ function WalletModal({
               <span>
                 <strong>{hasStoredPasskey ? 'Continue with passkey' : 'Create a passkey'}</strong>
                 <small style={{ display: 'block', fontWeight: 400, opacity: 0.75 }}>
-                  Face ID · Touch ID · Windows Hello — no extension needed
+                  Face ID · Touch ID · Windows Hello — includes optional Bulletin signer
                 </small>
               </span>
             </button>
@@ -2441,7 +2456,7 @@ function WalletModal({
             <span>
               <strong>Connect wallet extension</strong>
               <small style={{ display: 'block', fontWeight: 400, opacity: 0.75 }}>
-                Talisman · SubWallet · Polkadot.js
+                MetaMask · Talisman EVM · SubWallet EVM
               </small>
             </span>
           </button>
@@ -2628,10 +2643,6 @@ function createTrackInfoFromCatalog(track: CatalogTrack): TrackInfo {
     priceDot: track.priceDot,
     personhoodLevel: track.personhoodLevel
   });
-}
-
-function createMetadataRef(hash: `0x${string}`) {
-  return createBulletinManifestRef(hash);
 }
 
 function createBulletinManifestRef(hash: `0x${string}`) {

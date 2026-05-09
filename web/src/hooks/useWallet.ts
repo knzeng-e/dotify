@@ -1,24 +1,22 @@
-// Dotify wallet — two-tier signing without seed phrases.
+// Dotify wallet — primary EVM signing without seed phrases.
 //
 // Tier 1 · Passkey (WebAuthn PRF)
 //   WebAuthn credential + PRF extension → 32-byte deterministic secret
-//   → KeyManager.fromRawKey → Substrate signer + EVM private key
+//   → KeyManager.fromRawKey → EVM private key + optional Substrate signer
 //   No extension, no seed phrase. Works via Face ID / Touch ID / Windows Hello.
 //   Browser support: Chrome 116+, Firefox 119+, Safari 17.4+
 //
-// Tier 2 · Extension (Talisman / SubWallet)
-//   SignerManager.connect("extension") → PolkadotSigner (Substrate)
-//   window.ethereum (if present)       → EVM via EIP-1193
+// Tier 2 · Extension (MetaMask / Talisman EVM / SubWallet EVM)
+//   window.ethereum → EVM via EIP-1193
 //
-// Both tiers expose the same ConnectedWallet shape so callers don't care
-// which tier is active.
+// Dotify treats the EVM address as the canonical product identity. Substrate is
+// only exposed by the passkey path for optional Bulletin archival writes.
 
 import { KeyManager } from '@polkadot-apps/keys';
 import { bytesToHex } from '@polkadot-apps/utils';
 import type { PolkadotSigner } from 'polkadot-api';
 import { privateKeyToAccount } from 'viem/accounts';
-import { SignerManager } from '@polkadot-apps/signer';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { createWalletClient, http, custom, type WalletClient, type Chain } from 'viem';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -37,9 +35,9 @@ export type ConnectedWallet = {
   method: WalletMethod;
   /** Short label shown in the UI (e.g. "Passkey" or "5GrwvA…utQY") */
   label: string;
-  /** Substrate account used for Bulletin Chain transactions */
-  substrateAddress: string;
-  substrateSigner: PolkadotSigner;
+  /** Optional Substrate account used only for Bulletin Chain archival transactions */
+  substrateAddress?: string;
+  substrateSigner?: PolkadotSigner;
   /** EVM account used for Asset Hub contract calls */
   evmAddress: `0x${string}`;
   /** Build the right viem WalletClient for this connection type */
@@ -140,66 +138,32 @@ async function passkeyConnect(): Promise<ConnectedWallet> {
 // ── Internal: browser extension ───────────────────────────────────────────────
 
 async function extensionConnect(): Promise<ConnectedWallet> {
-  const manager = new SignerManager({
-    ss58Prefix: SS58_PREFIX,
-    dappName: 'Dotify',
-    persistence: localStorage,
-  });
+  type EIP1193 = { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
+  const ethereum = (window as unknown as Record<string, unknown>).ethereum as EIP1193 | undefined;
 
-  const result = await manager.connect('extension');
-  if (!result.ok || result.value.length === 0) {
-    manager.destroy();
+  if (!ethereum) {
     throw new Error(
-      'No extension accounts found. Install Talisman or SubWallet, create an account, and reload.'
+      'No EVM wallet found. Install MetaMask, Talisman EVM, or SubWallet EVM, then reload Dotify.'
     );
   }
 
-  manager.selectAccount(result.value[0].address);
-  const substrateSigner = manager.getSigner();
-  if (!substrateSigner) {
-    manager.destroy();
-    throw new Error('Could not get signer from extension.');
+  const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+  const evmAddress = Array.isArray(accounts) ? accounts[0] as `0x${string}` | undefined : undefined;
+  if (!evmAddress) {
+    throw new Error('No EVM account was approved by the wallet extension.');
   }
 
-  const substrateAddress = result.value[0].address;
-  const label = `${substrateAddress.slice(0, 6)}…${substrateAddress.slice(-4)}`;
-
-  // EVM: use window.ethereum if available (Talisman EVM mode, MetaMask, etc.)
-  type EIP1193 = { request: (args: { method: string }) => Promise<string[]> };
-  const ethereum = (window as unknown as Record<string, unknown>).ethereum as EIP1193 | undefined;
-
-  if (ethereum) {
-    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-    const evmAddress = accounts[0] as `0x${string}`;
-    return {
-      method: 'extension',
-      label,
-      substrateAddress,
-      substrateSigner,
-      evmAddress,
-      // Signing delegated to the extension via window.ethereum
-      createEvmClient: (chain, _rpcUrl) =>
-        createWalletClient({
-          account: evmAddress,
-          chain,
-          transport: custom(ethereum as Parameters<typeof custom>[0]),
-        }),
-    };
-  }
-
-  // No window.ethereum: Substrate-only. EVM ops will throw with a clear message.
-  const noEvmAddress = '0x0000000000000000000000000000000000000000' as `0x${string}`;
+  const label = `${evmAddress.slice(0, 6)}…${evmAddress.slice(-4)}`;
   return {
     method: 'extension',
     label,
-    substrateAddress,
-    substrateSigner,
-    evmAddress: noEvmAddress,
-    createEvmClient: () => {
-      throw new Error(
-        'Enable EVM in your wallet (Talisman → Settings → Enable Ethereum) to sign on-chain transactions.'
-      );
-    },
+    evmAddress,
+    createEvmClient: (chain, _rpcUrl) =>
+      createWalletClient({
+        account: evmAddress,
+        chain,
+        transport: custom(ethereum as Parameters<typeof custom>[0]),
+      }),
   };
 }
 
@@ -220,7 +184,6 @@ async function withTimeout<T>(promise: Promise<T>, message: string): Promise<T> 
 
 export function useWallet() {
   const [state, setState] = useState<WalletState>({ status: 'disconnected' });
-  const managerRef = useRef<SignerManager | null>(null);
 
   const connectPasskey = useCallback(async () => {
     setState({ status: 'connecting', via: 'passkey' });
@@ -238,15 +201,11 @@ export function useWallet() {
       const wallet = await withTimeout(extensionConnect(), 'Wallet extension connection timed out. Unlock the extension, approve Dotify, then try again.');
       setState({ status: 'connected', wallet });
     } catch (e) {
-      managerRef.current?.destroy();
-      managerRef.current = null;
       setState({ status: 'error', message: e instanceof Error ? e.message : 'Extension connection failed.' });
     }
   }, []);
 
   const disconnect = useCallback(() => {
-    managerRef.current?.destroy();
-    managerRef.current = null;
     setState({ status: 'disconnected' });
   }, []);
 
