@@ -51,6 +51,8 @@ type SocketStatus = 'offline' | 'connecting' | 'online' | 'error';
 type PeerStatus = 'waiting' | 'connecting' | 'connected' | 'disconnected';
 type SessionAction = 'idle' | 'creating' | 'joining';
 type AssetAction = 'idle' | 'audio' | 'cover';
+type ArtistTab = 'overview' | 'new' | 'releases' | 'advanced';
+type ReleaseStep = 'assets' | 'metadata' | 'access' | 'review';
 type TransactionFeedbackTone = 'pending' | 'success' | 'error';
 type AudioContextWindow = Window &
   typeof globalThis & {
@@ -196,10 +198,24 @@ function coverImage(primary: string, secondary: string, label: string) {
 }
 
 const viewCopy: Record<View, { title: string; eyebrow: string }> = {
-  listen: { title: 'Let the Music connect the dots', eyebrow: 'By Polkadot' },
-  rooms: { title: 'Live listening rooms', eyebrow: 'Join a real-time stream opened by another host.' },
-  artist: { title: 'Artist Studio', eyebrow: 'Register your artist runtime first, then manage your releases.' }
+  listen: { title: 'Discover music', eyebrow: 'Listen, preview, unlock.' },
+  rooms: { title: 'Live rooms', eyebrow: 'Join a real-time stream opened by another host.' },
+  artist: { title: 'Artist Console', eyebrow: 'Profile, releases, access policy, and advanced publishing controls.' }
 };
+
+const artistTabs: Array<{ id: ArtistTab; label: string; description: string }> = [
+  { id: 'overview', label: 'Overview', description: 'Artist setup and next action' },
+  { id: 'new', label: 'New Release', description: 'Upload, price, and publish' },
+  { id: 'releases', label: 'Releases', description: 'Registered catalog' },
+  { id: 'advanced', label: 'Advanced', description: 'Contracts and archival' }
+];
+
+const releaseSteps: Array<{ id: ReleaseStep; label: string }> = [
+  { id: 'assets', label: 'Assets' },
+  { id: 'metadata', label: 'Metadata' },
+  { id: 'access', label: 'Access' },
+  { id: 'review', label: 'Review' }
+];
 
 export default function App() {
   const [roomId, setRoomId] = useState('');
@@ -223,6 +239,8 @@ export default function App() {
   const [catalogStatus, setCatalogStatus] = useState('Loading registry catalog');
   const [mode, setMode] = useState<Mode>(() => (getInitialRoomCode() ? 'listener' : 'host'));
   const [activeView, setActiveView] = useState<View>(() => (getInitialRoomCode() ? 'rooms' : 'listen'));
+  const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
+  const [releaseStep, setReleaseStep] = useState<ReleaseStep>('assets');
 
   const [priceDot, setPriceDot] = useState('0.5');
   const [ethRpcUrl] = useState(getDefaultEthRpcUrl);
@@ -298,6 +316,9 @@ export default function App() {
   const activeListeners = listeners.filter(listener => listener.status === 'connected').length;
   const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
   const artistStudioLocked = artistRegistrationAvailable && !artistRuntimeAddress;
+  const releaseStepIndex = releaseSteps.findIndex(step => step.id === releaseStep);
+  const canReviewRelease = Boolean(fileHash && title.trim() && audioSource);
+  const artistSetupState = connectedWallet ? (artistRuntimeAddress ? 'Ready' : 'Registration needed') : 'Wallet needed';
 
   useEffect(() => {
     const hostPeers = hostPeersRef.current;
@@ -1660,6 +1681,16 @@ export default function App() {
     }
   }
 
+  function goToPreviousReleaseStep() {
+    const previousStep = releaseSteps[Math.max(0, releaseStepIndex - 1)]?.id;
+    if (previousStep) setReleaseStep(previousStep);
+  }
+
+  function goToNextReleaseStep() {
+    const nextStep = releaseSteps[Math.min(releaseSteps.length - 1, releaseStepIndex + 1)]?.id;
+    if (nextStep) setReleaseStep(nextStep);
+  }
+
   return (
     <div className='app-shell'>
       <header className='topbar'>
@@ -1695,10 +1726,10 @@ export default function App() {
 
       <div className='docs-layout' id='top'>
         <aside className='sidebar' aria-label='Dotify navigation'>
-          <div className='sidebar-heading'>Dotify</div>
+          <div className='sidebar-heading'>Listen</div>
           <button className='sidebar-link' data-active={activeView === 'listen'} type='button' onClick={() => setActiveView('listen')}>
             <Headphones size={16} />
-            Home
+            Discover
           </button>
           <button
             className='sidebar-link'
@@ -1712,9 +1743,10 @@ export default function App() {
             <Radio size={16} />
             Rooms
           </button>
+          <div className='sidebar-heading sidebar-heading-spaced'>Create</div>
           <button className='sidebar-link' data-active={activeView === 'artist'} type='button' onClick={() => setActiveView('artist')}>
             <FileAudio size={16} />
-            Artist Studio
+            Artist Console
           </button>
 
           <div className='sidebar-card'>
@@ -1972,293 +2004,433 @@ export default function App() {
           )}
 
           {activeView === 'artist' && (
-            <section className='content-grid artist-grid'>
-              <div className='studio-column'>
-                <div className='doc-panel studio-panel'>
-                  <PanelTitle icon={LockKeyhole} title='Artist registration' meta={artistRuntimeAddress ? 'registered' : 'required'} />
-
-                  <div className='fields-grid'>
-                    <label>
-                      <span>Artist name</span>
-                      <input className='field' value={artistName} onChange={event => updateArtistName(event.target.value)} />
-                    </label>
-                    {connectedWallet ? (
-                      <label>
-                        <span>Signer</span>
-                        <div className='field wallet-field'>
-                          <LockKeyhole size={14} />
-                          {connectedWallet.label}
-                        </div>
-                      </label>
-                    ) : (
-                      <label>
-                        <span>Signer</span>
-                        <select className='field' value={artistAccountIndex} onChange={event => setArtistAccountIndex(Number(event.target.value))}>
-                          {evmDevAccounts.map((account, index) => (
-                            <option key={account.name} value={index}>
-                              {account.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    )}
-                  </div>
-
-                  <div className='stack-list'>
-                    <EndpointRow
-                      label='Signer'
-                      value={
-                        <a className='verify-link' href={getBlockscoutAddressUrl(activeEvmAddress)} target='_blank' rel='noreferrer'>
-                          {shorten(activeEvmAddress, 12)}
-                        </a>
-                      }
-                    />
-                    <EndpointRow
-                      label='SmartRuntime'
-                      value={
-                        artistRuntimeAddress ? (
-                          <div className='endpoint-link-stack'>
-                            <a className='verify-link' href={getBlockscoutAddressUrl(artistRuntimeAddress)} target='_blank' rel='noreferrer'>
-                              {shorten(artistRuntimeAddress, 12)}
-                            </a>
-                            <small>Artist registered</small>
-                          </div>
-                        ) : (
-                          'not registered'
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div className='rights-status'>
-                    {artistRegistrationAvailable
-                      ? 'Each artist signer gets one personal SmartRuntime. Register once, then publish and manage releases on that runtime.'
-                      : 'Artist runtime contracts are not deployed yet. The studio can only stage assets locally.'}
-                  </div>
-                  <p className='rights-status'>{artistRegistrationStatus}</p>
-
-                  <button className='primary-action wide' type='button' onClick={registerArtist} disabled={isRegisteringArtist || !artistRegistrationAvailable}>
-                    {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
-                    {isRegisteringArtist ? 'Registering artist…' : artistRuntimeAddress ? 'Artist registered' : 'Register artist'}
-                  </button>
-
+            <section className='artist-console'>
+              <div className='console-tabs' role='tablist' aria-label='Artist console'>
+                {artistTabs.map(tab => (
                   <button
-                    className='secondary-action'
+                    key={tab.id}
                     type='button'
-                    onClick={() => void refreshArtistRuntime(true)}
-                    disabled={isRefreshingArtistRuntime || !artistRegistrationAvailable}
+                    role='tab'
+                    aria-selected={artistTab === tab.id}
+                    data-active={artistTab === tab.id}
+                    onClick={() => setArtistTab(tab.id)}
                   >
-                    {isRefreshingArtistRuntime ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
-                    {isRefreshingArtistRuntime ? 'Refreshing…' : 'Refresh status'}
+                    <strong>{tab.label}</strong>
+                    <span>{tab.description}</span>
                   </button>
-                </div>
+                ))}
+              </div>
 
-                <div className='doc-panel studio-panel'>
-                  <PanelTitle icon={FileAudio} title='Manage releases' meta={artistStudioLocked ? 'register first' : 'runtime ready'} />
-                  <div className='asset-actions'>
-                    <label className='file-button' data-disabled={assetAction !== 'idle' || artistStudioLocked}>
-                      {assetAction === 'audio' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
-                      {assetAction === 'audio' ? 'Preparing audio…' : 'Add audio'}
-                      <input type='file' accept='audio/*' onChange={handleAudioFile} disabled={assetAction !== 'idle' || artistStudioLocked} />
-                    </label>
-                    <label className='file-button secondary-file' data-disabled={assetAction !== 'idle' || artistStudioLocked}>
-                      {assetAction === 'cover' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
-                      {assetAction === 'cover' ? 'Preparing cover…' : 'Add cover image'}
-                      <input type='file' accept='image/*' onChange={handleCoverFile} disabled={assetAction !== 'idle' || artistStudioLocked} />
-                    </label>
-                  </div>
+              {artistTab === 'overview' && (
+                <section className='content-grid artist-overview-grid'>
+                  <div className='doc-panel studio-panel'>
+                    <PanelTitle icon={LockKeyhole} title='Artist profile' meta={artistSetupState.toLowerCase()} />
 
-                  <div className='fields-grid'>
-                    <label>
-                      <span>Title</span>
-                      <input className='field' value={title} onChange={event => setTitle(event.target.value)} disabled={artistStudioLocked} />
-                    </label>
-                    {uploadToBulletinEnabled && (
-                      connectedWallet ? (
+                    <div className='fields-grid'>
+                      <label>
+                        <span>Artist name</span>
+                        <input className='field' value={artistName} onChange={event => updateArtistName(event.target.value)} />
+                      </label>
+                      {connectedWallet ? (
                         <label>
-                          <span>Bulletin signer</span>
+                          <span>Wallet</span>
                           <div className='field wallet-field'>
                             <LockKeyhole size={14} />
-                            {activeSubstrateAddress ? `${activeSubstrateAddress.slice(0, 8)}…` : 'No Substrate signer'}
+                            {connectedWallet.label}
                           </div>
                         </label>
                       ) : (
                         <label>
-                          <span>Bulletin signer</span>
-                          <select
-                            className='field'
-                            value={bulletinAccountIndex}
-                            onChange={event => setBulletinAccountIndex(Number(event.target.value))}
-                            disabled={artistStudioLocked}
-                          >
-                            {devAccounts.map((account, index) => (
+                          <span>Dev wallet</span>
+                          <select className='field' value={artistAccountIndex} onChange={event => setArtistAccountIndex(Number(event.target.value))}>
+                            {evmDevAccounts.map((account, index) => (
                               <option key={account.name} value={index}>
                                 {account.name}
                               </option>
                             ))}
                           </select>
                         </label>
-                      )
-                    )}
-                    <label>
-                      <span>Description</span>
-                      <textarea
-                        className='field textarea-field'
-                        value={description}
-                        onChange={event => setDescription(event.target.value)}
-                        disabled={artistStudioLocked}
-                      />
-                    </label>
-                    <label>
-                      <span>Access mode</span>
-                      <select
-                        className='field'
-                        value={accessMode}
-                        onChange={event => setAccessMode(event.target.value as AccessMode)}
-                        disabled={artistStudioLocked}
-                      >
-                        <option value='human-free'>Human free</option>
-                        <option value='classic'>Classic</option>
-                      </select>
-                    </label>
-                    <label>
-                      <span>PoP level</span>
-                      <select
-                        className='field'
-                        value={personhoodLevel}
-                        onChange={event => setPersonhoodLevel(event.target.value as PersonhoodLevel)}
-                        disabled={artistStudioLocked}
-                      >
-                        <option value='DIM1'>DIM1</option>
-                        <option value='DIM2'>DIM2</option>
-                      </select>
-                    </label>
-                    <label>
-                      <span>Price in DOT</span>
-                      <input
-                        className='field'
-                        type='number'
-                        min={0}
-                        step={0.1}
-                        value={priceDot}
-                        onChange={event => setPriceDot(event.target.value)}
-                        disabled={artistStudioLocked}
-                      />
-                    </label>
-                    <label>
-                      <span>Royalty bps</span>
-                      <input
-                        className='field'
-                        type='number'
-                        min={0}
-                        max={10000}
-                        step={25}
-                        value={royaltyBps}
-                        onChange={event => setRoyaltyBps(Number(event.target.value))}
-                        disabled={artistStudioLocked}
-                      />
-                    </label>
-                  </div>
+                      )}
+                    </div>
 
-                  <label className='toggle-row'>
-                    <input
-                      type='checkbox'
-                      checked={uploadToBulletinEnabled}
-                      onChange={event => setUploadToBulletinEnabled(event.target.checked)}
-                      disabled={artistStudioLocked}
-                    />
-                    <span>Archive manifest to Bulletin Chain</span>
-                  </label>
-
-                  <button className='primary-action wide' type='button' onClick={registerRights} disabled={isRegistering || artistStudioLocked}>
-                    {isRegistering ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
-                    {isRegistering ? 'Registering…' : artistStudioLocked ? 'Register artist to unlock' : 'Register track'}
-                  </button>
-
-                  <div className='rights-status'>
-                    Audio, cover art, and the canonical metadata manifest are pinned to IPFS. Bulletin archival is optional and never required for the core release flow.
-                  </div>
-                  <div className='rights-status'>
-                    {accessMode === 'human-free'
-                      ? `Human free tracks are listenable by users with Polkadot Proof of Personhood ${personhoodLevel}; NFT transfers stay PoP-gated.`
-                      : `Classic tracks require a DOT payment or subscription; the contract records royalty recipients for automatic settlement.`}
-                  </div>
-                  <p className='rights-status'>{rightsStatus}</p>
-                </div>
-              </div>
-
-              <div className='doc-panel contract-panel'>
-                <PanelTitle icon={LockKeyhole} title='Artist runtime' meta={artistRuntimeAddress ? 'ready' : 'pending'} />
-                <div className='stack-list'>
-                  <EndpointRow
-                    label='Factory'
-                    value={
-                      factoryAddress ? (
-                        <div className='endpoint-link-stack'>
-                          <a className='verify-link' href={getBlockscoutAddressUrl(factoryAddress!)} target='_blank' rel='noreferrer'>
-                            {shorten(factoryAddress!, 12)}
+                    <div className='stack-list'>
+                      <EndpointRow
+                        label='Rights wallet'
+                        value={
+                          <a className='verify-link' href={getBlockscoutAddressUrl(activeEvmAddress)} target='_blank' rel='noreferrer'>
+                            {shorten(activeEvmAddress, 12)}
                           </a>
-                          <small>Don't trust. Verify on Blockscout.</small>
-                        </div>
-                      ) : (
-                        'not deployed'
-                      )
-                    }
-                  />
-                  <EndpointRow
-                    label='Directory'
-                    value={
-                      directoryAddress ? (
-                        <a className='verify-link' href={getBlockscoutAddressUrl(directoryAddress)} target='_blank' rel='noreferrer'>
-                          {shorten(directoryAddress, 12)}
-                        </a>
-                      ) : (
-                        'not deployed'
-                      )
-                    }
-                  />
-                  <EndpointRow
-                    label='Runtime'
-                    value={
-                      artistRuntimeAddress ? (
-                        <a className='verify-link' href={getBlockscoutAddressUrl(artistRuntimeAddress)} target='_blank' rel='noreferrer'>
-                          {shorten(artistRuntimeAddress, 12)}
-                        </a>
-                      ) : (
-                        'not registered'
-                      )
-                    }
-                  />
-                  <EndpointRow label='Content hash' value={fileHash ? shorten(fileHash, 18) : '0x'} />
-                  <EndpointRow label='Audio' value={audioSource ? 'ready' : 'not loaded'} />
-                  <EndpointRow label='Audio CID' value={audioCID ? shorten(audioCID, 18) : 'pending…'} />
-                  <EndpointRow label='Cover' value={coverSource.startsWith('blob:') ? 'ready' : 'generated'} />
-                  <EndpointRow label='Cover CID' value={coverCID ? shorten(coverCID, 18) : 'pending…'} />
-                  <EndpointRow label='Bulletin JSON' value={bulletinManifestRef || trackInfo?.bulletinRef || 'not published'} />
-                </div>
+                        }
+                      />
+                      <EndpointRow
+                        label='Artist profile'
+                        value={
+                          artistRuntimeAddress ? (
+                            <div className='endpoint-link-stack'>
+                              <a className='verify-link' href={getBlockscoutAddressUrl(artistRuntimeAddress)} target='_blank' rel='noreferrer'>
+                                {shorten(artistRuntimeAddress, 12)}
+                              </a>
+                              <small>Ready to publish</small>
+                            </div>
+                          ) : (
+                            'not created'
+                          )
+                        }
+                      />
+                    </div>
 
-                <div className='registry-releases'>
-                  <PanelTitle icon={Library} title='My releases' meta={`${artistTracks.length} releases`} />
-                  <div className='catalogue-table'>
-                    {artistTracks.length > 0 ? (
-                      artistTracks.map(track => (
-                        <button className='catalogue-row' key={track.hash} type='button' onClick={() => selectTrack(track)}>
-                          <img className='track-thumb' src={track.imageRef} alt='' crossOrigin='anonymous' />
-                          <span>
-                            <strong>{track.title}</strong>
-                            <small>
-                              {track.artist} / {accessModeLabel(track)}
-                            </small>
-                          </span>
-                          <code>{track.accessMode === 'classic' ? `${track.priceDot} DOT` : track.personhoodLevel}</code>
-                        </button>
-                      ))
-                    ) : (
-                      <div className='empty-state'>No releases registered for this artist signer</div>
-                    )}
+                    <p className='rights-status'>{artistRegistrationStatus}</p>
+
+                    <button className='primary-action wide' type='button' onClick={registerArtist} disabled={isRegisteringArtist || !artistRegistrationAvailable || Boolean(artistRuntimeAddress)}>
+                      {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
+                      {isRegisteringArtist ? 'Creating profile…' : artistRuntimeAddress ? 'Artist profile ready' : 'Create artist profile'}
+                    </button>
+
+                    <button
+                      className='secondary-action'
+                      type='button'
+                      onClick={() => void refreshArtistRuntime(true)}
+                      disabled={isRefreshingArtistRuntime || !artistRegistrationAvailable}
+                    >
+                      {isRefreshingArtistRuntime ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
+                      {isRefreshingArtistRuntime ? 'Refreshing…' : 'Refresh status'}
+                    </button>
                   </div>
-                </div>
-              </div>
+
+                  <div className='doc-panel next-action-panel'>
+                    <PanelTitle icon={BadgeCheck} title='Next action' meta={artistSetupState} />
+                    <div className='next-action-copy'>
+                      <strong>
+                        {!connectedWallet
+                          ? 'Connect a wallet to use your real artist identity.'
+                          : artistRuntimeAddress
+                            ? 'Your artist profile is ready.'
+                            : 'Create your artist profile before publishing.'}
+                      </strong>
+                      <p>
+                        {!connectedWallet
+                          ? 'You can keep testing with the local dev account, but real releases should use the EVM wallet that will own the artist profile.'
+                          : artistRuntimeAddress
+                            ? 'Start a new release, review its access policy, then publish it to your profile.'
+                            : 'Dotify creates one artist profile per EVM wallet. Releases and payments stay attached to that address.'}
+                      </p>
+                    </div>
+                    {!connectedWallet ? (
+                      <button className='primary-action wide' type='button' onClick={() => setShowWalletModal(true)}>
+                        <LockKeyhole size={16} />
+                        Connect wallet
+                      </button>
+                    ) : artistRuntimeAddress ? (
+                      <button className='primary-action wide' type='button' onClick={() => setArtistTab('new')}>
+                        <Upload size={16} />
+                        Publish a release
+                      </button>
+                    ) : (
+                      <button className='primary-action wide' type='button' onClick={registerArtist} disabled={isRegisteringArtist || !artistRegistrationAvailable}>
+                        {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
+                        Create artist profile
+                      </button>
+                    )}
+                    <div className='artist-summary-grid'>
+                      <Metric label='releases' value={artistTracks.length.toString()} />
+                      <Metric label='profile' value={artistRuntimeAddress ? 'ready' : 'pending'} />
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {artistTab === 'new' && (
+                <section className='content-grid release-workbench-grid'>
+                  <div className='doc-panel studio-panel release-wizard'>
+                    <PanelTitle icon={FileAudio} title='New release' meta={artistStudioLocked ? 'create profile first' : releaseSteps[releaseStepIndex]?.label ?? 'draft'} />
+
+                    <div className='release-stepper' aria-label='Release steps'>
+                      {releaseSteps.map((step, index) => (
+                        <button key={step.id} type='button' data-active={releaseStep === step.id} onClick={() => setReleaseStep(step.id)}>
+                          <span>{index + 1}</span>
+                          {step.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {releaseStep === 'assets' && (
+                      <div className='wizard-panel'>
+                        <div className='asset-actions'>
+                          <label className='file-button' data-disabled={assetAction !== 'idle' || artistStudioLocked}>
+                            {assetAction === 'audio' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
+                            {assetAction === 'audio' ? 'Preparing audio…' : 'Add audio'}
+                            <input type='file' accept='audio/*' onChange={handleAudioFile} disabled={assetAction !== 'idle' || artistStudioLocked} />
+                          </label>
+                          <label className='file-button secondary-file' data-disabled={assetAction !== 'idle' || artistStudioLocked}>
+                            {assetAction === 'cover' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
+                            {assetAction === 'cover' ? 'Preparing cover…' : 'Add cover image'}
+                            <input type='file' accept='image/*' onChange={handleCoverFile} disabled={assetAction !== 'idle' || artistStudioLocked} />
+                          </label>
+                        </div>
+                        <div className='asset-readiness'>
+                          <div><strong>{audioSource ? 'Audio ready' : 'Audio missing'}</strong><span>{fileHash ? shorten(fileHash, 18) : 'Upload an audio file to generate the release hash.'}</span></div>
+                          <div><strong>{coverSource.startsWith('blob:') ? 'Cover ready' : 'Generated cover'}</strong><span>{coverCID ? shorten(coverCID, 18) : 'A custom cover can be added before publish.'}</span></div>
+                        </div>
+                      </div>
+                    )}
+
+                    {releaseStep === 'metadata' && (
+                      <div className='wizard-panel fields-grid'>
+                        <label>
+                          <span>Title</span>
+                          <input className='field' value={title} onChange={event => setTitle(event.target.value)} disabled={artistStudioLocked} />
+                        </label>
+                        <label>
+                          <span>Description</span>
+                          <textarea
+                            className='field textarea-field'
+                            value={description}
+                            onChange={event => setDescription(event.target.value)}
+                            disabled={artistStudioLocked}
+                          />
+                        </label>
+                      </div>
+                    )}
+
+                    {releaseStep === 'access' && (
+                      <div className='wizard-panel'>
+                        <div className='fields-grid'>
+                          <label>
+                            <span>Access mode</span>
+                            <select
+                              className='field'
+                              value={accessMode}
+                              onChange={event => setAccessMode(event.target.value as AccessMode)}
+                              disabled={artistStudioLocked}
+                            >
+                              <option value='human-free'>Human free</option>
+                              <option value='classic'>Classic</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span>PoP level</span>
+                            <select
+                              className='field'
+                              value={personhoodLevel}
+                              onChange={event => setPersonhoodLevel(event.target.value as PersonhoodLevel)}
+                              disabled={artistStudioLocked}
+                            >
+                              <option value='DIM1'>DIM1</option>
+                              <option value='DIM2'>DIM2</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span>Price in DOT</span>
+                            <input
+                              className='field'
+                              type='number'
+                              min={0}
+                              step={0.1}
+                              value={priceDot}
+                              onChange={event => setPriceDot(event.target.value)}
+                              disabled={artistStudioLocked}
+                            />
+                          </label>
+                          <label>
+                            <span>Royalty bps</span>
+                            <input
+                              className='field'
+                              type='number'
+                              min={0}
+                              max={10000}
+                              step={25}
+                              value={royaltyBps}
+                              onChange={event => setRoyaltyBps(Number(event.target.value))}
+                              disabled={artistStudioLocked}
+                            />
+                          </label>
+                          {uploadToBulletinEnabled && (
+                            connectedWallet ? (
+                              <label>
+                                <span>Archive signer</span>
+                                <div className='field wallet-field'>
+                                  <LockKeyhole size={14} />
+                                  {activeSubstrateAddress ? `${activeSubstrateAddress.slice(0, 8)}…` : 'No Substrate signer'}
+                                </div>
+                              </label>
+                            ) : (
+                              <label>
+                                <span>Archive signer</span>
+                                <select
+                                  className='field'
+                                  value={bulletinAccountIndex}
+                                  onChange={event => setBulletinAccountIndex(Number(event.target.value))}
+                                  disabled={artistStudioLocked}
+                                >
+                                  {devAccounts.map((account, index) => (
+                                    <option key={account.name} value={index}>
+                                      {account.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            )
+                          )}
+                        </div>
+                        <label className='toggle-row'>
+                          <input
+                            type='checkbox'
+                            checked={uploadToBulletinEnabled}
+                            onChange={event => setUploadToBulletinEnabled(event.target.checked)}
+                            disabled={artistStudioLocked}
+                          />
+                          <span>Archive manifest to Bulletin Chain</span>
+                        </label>
+                        <div className='rights-status'>
+                          {accessMode === 'human-free'
+                            ? `Human free tracks are listenable by users with Polkadot Proof of Personhood ${personhoodLevel}; NFT transfers stay PoP-gated.`
+                            : `Classic tracks require a DOT payment or subscription; the contract records royalty recipients for automatic settlement.`}
+                        </div>
+                      </div>
+                    )}
+
+                    {releaseStep === 'review' && (
+                      <div className='wizard-panel release-review'>
+                        <EndpointRow label='Track' value={title.trim() || 'Untitled'} />
+                        <EndpointRow label='Artist' value={artistName.trim() || 'Unknown artist'} />
+                        <EndpointRow label='Access' value={accessMode === 'classic' ? `${priceDot} DOT` : `Human verified ${personhoodLevel}`} />
+                        <EndpointRow label='Royalty' value={`${royaltyBps} bps`} />
+                        <EndpointRow label='Metadata' value='IPFS canonical manifest' />
+                        <EndpointRow label='Archive' value={uploadToBulletinEnabled ? 'Bulletin enabled' : 'Off'} />
+                        {!canReviewRelease && <p className='error-box'>Add an audio file and title before publishing.</p>}
+                      </div>
+                    )}
+
+                    <div className='wizard-actions'>
+                      <button className='secondary-action compact-action' type='button' onClick={goToPreviousReleaseStep} disabled={releaseStepIndex === 0}>
+                        Back
+                      </button>
+                      {releaseStep === 'review' ? (
+                        <button className='primary-action compact-action' type='button' onClick={registerRights} disabled={isRegistering || artistStudioLocked || !canReviewRelease}>
+                          {isRegistering ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
+                          {isRegistering ? 'Publishing…' : artistStudioLocked ? 'Create profile first' : 'Publish release'}
+                        </button>
+                      ) : (
+                        <button className='primary-action compact-action' type='button' onClick={goToNextReleaseStep}>
+                          Continue
+                        </button>
+                      )}
+                    </div>
+
+                    <p className='rights-status'>{rightsStatus}</p>
+                  </div>
+
+                  <div className='doc-panel release-preview-panel'>
+                    <PanelTitle icon={Library} title='Release preview' meta={accessModeLabelFromState(accessMode)} />
+                    <div className='now-playing compact-now-playing'>
+                      <div className='cover'>
+                        <img src={coverSource} alt='' crossOrigin='anonymous' />
+                      </div>
+                      <div className='track-copy'>
+                        <span>{artistName || 'Artist'}</span>
+                        <h2>{title || 'Untitled'}</h2>
+                        <p>{description}</p>
+                        <div className='access-badges'>
+                          <span>{accessModeLabelFromState(accessMode)}</span>
+                          <span>{accessMode === 'classic' ? `${priceDot} DOT` : `PoP ${personhoodLevel}`}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className='rights-status'>
+                      Audio, cover art, and the canonical metadata manifest are pinned to IPFS. Bulletin archival is optional and never required for the core release flow.
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {artistTab === 'releases' && (
+                <section className='content-grid releases-grid'>
+                  <div className='doc-panel releases-panel'>
+                    <PanelTitle icon={Library} title='My releases' meta={`${artistTracks.length} releases`} />
+                    <div className='catalogue-table release-table'>
+                      {artistTracks.length > 0 ? (
+                        artistTracks.map(track => (
+                          <button className='catalogue-row' key={track.hash} type='button' onClick={() => selectTrack(track)}>
+                            <img className='track-thumb' src={track.imageRef} alt='' crossOrigin='anonymous' />
+                            <span>
+                              <strong>{track.title}</strong>
+                              <small>
+                                {track.artist} / {accessModeLabel(track)} / {track.durationLabel}
+                              </small>
+                            </span>
+                            <code>{track.accessMode === 'classic' ? `${track.priceDot} DOT` : track.personhoodLevel}</code>
+                          </button>
+                        ))
+                      ) : (
+                        <div className='empty-state'>No releases registered for this artist wallet yet.</div>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {artistTab === 'advanced' && (
+                <section className='content-grid artist-grid'>
+                  <div className='doc-panel contract-panel'>
+                    <PanelTitle icon={LockKeyhole} title='Technical details' meta={artistRuntimeAddress ? 'ready' : 'pending'} />
+                    <div className='stack-list'>
+                      <EndpointRow
+                        label='Factory'
+                        value={
+                          factoryAddress ? (
+                            <div className='endpoint-link-stack'>
+                              <a className='verify-link' href={getBlockscoutAddressUrl(factoryAddress!)} target='_blank' rel='noreferrer'>
+                                {shorten(factoryAddress!, 12)}
+                              </a>
+                              <small>Verify on Blockscout.</small>
+                            </div>
+                          ) : (
+                            'not deployed'
+                          )
+                        }
+                      />
+                      <EndpointRow
+                        label='Directory'
+                        value={
+                          directoryAddress ? (
+                            <a className='verify-link' href={getBlockscoutAddressUrl(directoryAddress)} target='_blank' rel='noreferrer'>
+                              {shorten(directoryAddress, 12)}
+                            </a>
+                          ) : (
+                            'not deployed'
+                          )
+                        }
+                      />
+                      <EndpointRow
+                        label='Artist profile'
+                        value={
+                          artistRuntimeAddress ? (
+                            <a className='verify-link' href={getBlockscoutAddressUrl(artistRuntimeAddress)} target='_blank' rel='noreferrer'>
+                              {shorten(artistRuntimeAddress, 12)}
+                            </a>
+                          ) : (
+                            'not registered'
+                          )
+                        }
+                      />
+                      <EndpointRow label='Content hash' value={fileHash ? shorten(fileHash, 18) : '0x'} />
+                      <EndpointRow label='Audio CID' value={audioCID ? shorten(audioCID, 18) : 'pending…'} />
+                      <EndpointRow label='Cover CID' value={coverCID ? shorten(coverCID, 18) : 'pending…'} />
+                      <EndpointRow label='Bulletin archive' value={bulletinManifestRef || trackInfo?.bulletinRef || 'not published'} />
+                    </div>
+                  </div>
+
+                  <div className='doc-panel'>
+                    <PanelTitle icon={BadgeCheck} title='Capabilities' meta='advanced' />
+                    <div className='stack-list'>
+                      <EndpointRow label='Primary identity' value='EVM wallet' />
+                      <EndpointRow label='Canonical metadata' value='IPFS manifest' />
+                      <EndpointRow label='Bulletin archival' value={uploadToBulletinEnabled ? 'enabled for next release' : 'disabled by default'} />
+                      <EndpointRow label='Substrate signer' value={activeSubstrateAddress ? shorten(activeSubstrateAddress, 12) : 'not connected'} />
+                    </div>
+                  </div>
+                </section>
+              )}
             </section>
           )}
 

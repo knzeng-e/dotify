@@ -133,6 +133,36 @@ Move Bulletin out of the core publishing path for MVP. Keep it as:
 
 Do not require Bulletin authorization for artists to publish tracks.
 
+## 2026-05-09 · Artist Console UX Simplification
+
+### Context
+
+The previous UI exposed listener, room, artist registration, release publishing,
+contract diagnostics, and archival controls with almost the same visual weight.
+That made the app feel technically complete but less intuitive for regular
+listeners and first-time artists.
+
+### Implemented direction
+
+- The public app now presents clearer listener navigation: Discover and Rooms.
+- Artist workflows are isolated behind an Artist Console.
+- Artist Console is split into Overview, New Release, Releases, and Advanced.
+- Artist profile registration is treated as onboarding, not part of the release
+  form.
+- New release creation now uses a guided wizard: Assets, Metadata, Access,
+  Review.
+- Contract addresses, IPFS CIDs, and Bulletin archival details live in Advanced
+  instead of competing with the primary artist flow.
+
+### UX intent
+
+The core mental model becomes:
+
+- listeners discover and unlock music;
+- artists create a profile, publish releases, and manage their catalog;
+- advanced chain/archive details remain available without dominating the daily
+  workflow.
+
 ### Implementation follow-up
 
 The simplification path has been implemented in the frontend:
