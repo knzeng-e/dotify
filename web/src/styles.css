@@ -326,7 +326,7 @@ button:disabled {
 
 .page-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 1.2rem;
   padding: 0.35rem 0 1.7rem;
@@ -348,14 +348,16 @@ button:disabled {
 }
 
 .page-head h1 {
+  max-width: 100%;
   margin: 0;
   color: var(--fg-primary);
   font-family: Manrope, 'Avenir Next', Avenir, 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(2.35rem, 5.4vw, 5.7rem);
-  line-height: 0.92;
+  font-size: clamp(2.25rem, 5.1vw, 5.15rem);
+  line-height: 0.96;
   font-weight: 850;
   letter-spacing: 0;
-  white-space: nowrap;
+  overflow-wrap: normal;
+  text-wrap: balance;
 }
 
 /* ── Metrics ── */
@@ -364,7 +366,7 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(3, minmax(5.4rem, 1fr));
   gap: 0.55rem;
-  justify-self: end;
+  justify-self: start;
 }
 
 .metric {
@@ -393,8 +395,13 @@ button:disabled {
   margin-top: 1.35rem;
 }
 
-.listen-grid {
-  grid-template-columns: minmax(18rem, 0.95fr) minmax(24rem, 1.15fr) minmax(18rem, 0.85fr);
+.catalog-home-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.34fr);
+  align-items: start;
+}
+
+.player-view-grid {
+  grid-template-columns: minmax(28rem, 1fr) minmax(18rem, 0.36fr);
   align-items: start;
 }
 
@@ -535,6 +542,175 @@ button:disabled {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.55rem;
   margin-top: 0.85rem;
+}
+
+/* ── Catalog home ── */
+
+.catalogue-home-panel {
+  min-height: 32rem;
+  display: grid;
+  align-content: start;
+}
+
+.catalogue-intro {
+  max-width: 46rem;
+  margin: -0.35rem auto 1.2rem;
+  color: var(--fg-secondary);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.catalogue-grid {
+  display: flex;
+  width: min(100%, 58rem);
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 1rem;
+  margin: 0 auto;
+}
+
+.catalogue-card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 0.72rem;
+  width: clamp(13.5rem, 22vw, 15.75rem);
+  min-height: 100%;
+  border: 1px solid var(--border-divider);
+  border-radius: var(--radius-small);
+  background: #ffffff;
+  color: var(--fg-primary);
+  padding: 0.65rem;
+  text-align: left;
+  box-shadow: 0 12px 28px -24px rgba(6, 21, 45, 0.54);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+  cursor: pointer;
+}
+
+.catalogue-card:hover,
+.catalogue-card[data-selected='true'] {
+  border-color: var(--dotify-green-border);
+  background: var(--bg-selection-container-hover);
+  box-shadow: 0 20px 36px -28px rgba(6, 21, 45, 0.64);
+  transform: translateY(-2px);
+}
+
+.catalogue-cover-frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 7px;
+  background: var(--bg-selection-container-active);
+}
+
+.catalogue-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.catalogue-access-line {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 1.75rem;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: auto;
+  border: 1px solid var(--dotify-green-border);
+  border-radius: var(--radius-full);
+  background: var(--dotify-green-dim);
+  color: var(--dotify-green);
+  padding: 0.34rem 0.58rem;
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.catalogue-access-line[data-access='granted'] {
+  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(34, 197, 94, 0.1);
+  color: #16803a;
+}
+
+.catalogue-access-line svg {
+  flex: 0 0 auto;
+}
+
+.catalogue-access-line span {
+  overflow-wrap: anywhere;
+}
+
+.catalogue-card-copy {
+  display: grid;
+  gap: 0.24rem;
+}
+
+.catalogue-card-copy strong {
+  color: var(--fg-primary);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.catalogue-card-copy small {
+  color: var(--fg-secondary);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.catalogue-card-description {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--fg-secondary);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.catalogue-grid .empty-state {
+  width: 100%;
+}
+
+.home-principles-panel {
+  position: sticky;
+  top: 5rem;
+}
+
+.principle-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.principle-list div {
+  display: grid;
+  gap: 0.28rem;
+  border: 1px solid var(--border-divider);
+  border-radius: var(--radius-small);
+  background: #f8fbff;
+  padding: 0.85rem;
+}
+
+.principle-list strong {
+  color: var(--fg-primary);
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.principle-list span {
+  color: var(--fg-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 /* ── Panel title ── */
@@ -720,6 +896,39 @@ button:disabled {
   color: #ffffff;
 }
 
+.integrated-player-panel {
+  min-height: calc(100vh - 11rem);
+  padding: clamp(1rem, 2vw, 1.6rem);
+}
+
+.player-view-grid .now-playing {
+  grid-template-columns: minmax(13rem, 0.35fr) minmax(0, 1fr);
+  gap: clamp(1rem, 3vw, 2rem);
+}
+
+.player-view-grid .cover {
+  width: min(100%, 18rem);
+}
+
+.player-view-grid .track-copy h2 {
+  font-size: clamp(2.8rem, 7vw, 5.8rem);
+  line-height: 0.94;
+}
+
+.player-view-grid .track-description {
+  max-width: 52rem;
+  font-size: 0.98rem;
+}
+
+.player-side-column {
+  position: sticky;
+  top: 5rem;
+}
+
+.player-context-panel .secondary-action {
+  margin-top: 0.85rem;
+}
+
 .player-panel .panel-title span,
 .player-panel .panel-title small,
 .player-panel .track-copy h2,
@@ -885,9 +1094,7 @@ audio {
   justify-items: center;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--radius-small);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.07)),
-    rgba(6, 21, 45, 0.3);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.07)), rgba(6, 21, 45, 0.3);
   padding: 1rem;
   text-align: center;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -895,16 +1102,12 @@ audio {
 
 .access-gate[data-action='payment'] {
   border-color: rgba(200, 255, 77, 0.24);
-  background:
-    linear-gradient(180deg, rgba(200, 255, 77, 0.13), rgba(255, 255, 255, 0.07)),
-    rgba(6, 21, 45, 0.34);
+  background: linear-gradient(180deg, rgba(200, 255, 77, 0.13), rgba(255, 255, 255, 0.07)), rgba(6, 21, 45, 0.34);
 }
 
 .access-gate[data-access='classic'] {
   border-color: rgba(200, 255, 77, 0.24);
-  background:
-    linear-gradient(180deg, rgba(200, 255, 77, 0.13), rgba(255, 255, 255, 0.07)),
-    rgba(6, 21, 45, 0.34);
+  background: linear-gradient(180deg, rgba(200, 255, 77, 0.13), rgba(255, 255, 255, 0.07)), rgba(6, 21, 45, 0.34);
 }
 
 .access-gate-header {
@@ -1888,7 +2091,8 @@ audio {
     flex: 0 0 auto;
   }
 
-  .listen-grid,
+  .catalog-home-grid,
+  .player-view-grid,
   .rooms-grid,
   .artist-grid,
   .artist-overview-grid,
@@ -1902,6 +2106,8 @@ audio {
   }
 
   .next-action-panel,
+  .home-principles-panel,
+  .player-side-column,
   .release-preview-panel {
     position: static;
   }
@@ -1946,9 +2152,18 @@ audio {
     grid-template-columns: 1fr;
   }
 
+  .player-view-grid .now-playing {
+    grid-template-columns: 1fr;
+  }
+
   .cover {
     width: 100%;
     max-width: 9rem;
+  }
+
+  .player-view-grid .cover {
+    width: 100%;
+    max-width: 12rem;
   }
 
   .fields-grid {

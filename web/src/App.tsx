@@ -48,7 +48,7 @@ import { useWallet, type WalletState } from './hooks/useWallet';
 
 type Mode = 'host' | 'listener';
 type PersonhoodLevel = 'DIM1' | 'DIM2';
-type View = 'listen' | 'rooms' | 'artist';
+type View = 'listen' | 'player' | 'rooms' | 'artist';
 type AccessMode = 'human-free' | 'classic';
 type SocketStatus = 'offline' | 'connecting' | 'online' | 'error';
 type PeerStatus = 'waiting' | 'connecting' | 'connected' | 'disconnected';
@@ -201,10 +201,24 @@ function coverImage(primary: string, secondary: string, label: string) {
 }
 
 const viewCopy: Record<View, { title: string; eyebrow: string }> = {
-  listen: { title: 'Discover music', eyebrow: 'Listen freely. Unlock with proof, not profiles.' },
+  listen: { title: 'Let the Music connect the dots', eyebrow: 'by Polkadot' },
+  player: { title: 'Let the Music connect the dots', eyebrow: 'by Polkadot' },
   rooms: { title: 'Live rooms', eyebrow: 'Shared listening for people in the same moment.' },
   artist: { title: 'Artist Console', eyebrow: 'Own your catalog, set your rules, keep your audience direct.' }
 };
+
+function isDotifyView(value: unknown): value is View {
+  return value === 'listen' || value === 'player' || value === 'rooms' || value === 'artist';
+}
+
+function getInitialView(): View {
+  return getInitialRoomCode() ? 'rooms' : 'listen';
+}
+
+function getHistoryStateObject(): Record<string, unknown> {
+  const currentState = window.history.state;
+  return currentState && typeof currentState === 'object' ? (currentState as Record<string, unknown>) : {};
+}
 
 const artistTabs: Array<{ id: ArtistTab; label: string; description: string }> = [
   { id: 'overview', label: 'Overview', description: 'Identity and next step' },
@@ -239,9 +253,10 @@ export default function App() {
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('offline');
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>([]);
+  const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
   const [catalogStatus, setCatalogStatus] = useState('Loading registry catalog');
   const [mode, setMode] = useState<Mode>(() => (getInitialRoomCode() ? 'listener' : 'host'));
-  const [activeView, setActiveView] = useState<View>(() => (getInitialRoomCode() ? 'rooms' : 'listen'));
+  const [activeView, setActiveView] = useState<View>(() => getInitialView());
   const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
   const [releaseStep, setReleaseStep] = useState<ReleaseStep>('assets');
 
@@ -310,7 +325,6 @@ export default function App() {
   const activeSubstrateSigner = connectedWallet ? connectedWallet.substrateSigner : currentBulletinAccount.signer;
   const activeArtistDefaultName = connectedWallet ? 'Dotify Artist' : `${currentArtistAccount.name} Studio`;
 
-  const catalogByArtist = groupTracksByArtist(catalogTracks);
   const selectedTrack = catalogTracks.find(track => track.id === selectedTrackId);
 
   const streamTitle = trackInfo?.title || selectedTrack?.title || title;
@@ -322,6 +336,16 @@ export default function App() {
   const releaseStepIndex = releaseSteps.findIndex(step => step.id === releaseStep);
   const canReviewRelease = Boolean(fileHash && title.trim() && audioSource);
   const artistSetupState = connectedWallet ? (artistRuntimeAddress ? 'Ready' : 'Registration needed') : 'Wallet needed';
+
+  function navigateToView(nextView: View, options: { replace?: boolean } = {}) {
+    setActiveView(nextView);
+    const nextState = { ...getHistoryStateObject(), dotifyView: nextView };
+    if (options.replace || activeView === nextView) {
+      window.history.replaceState(nextState, '', window.location.href);
+      return;
+    }
+    window.history.pushState(nextState, '', window.location.href);
+  }
 
   useEffect(() => {
     const hostPeers = hostPeersRef.current;
@@ -341,6 +365,18 @@ export default function App() {
       resolvedAudioSourcesRef.current.clear();
       destroyBulletinClient();
     };
+  }, []);
+
+  useEffect(() => {
+    window.history.replaceState({ ...getHistoryStateObject(), dotifyView: getInitialView() }, '', window.location.href);
+
+    const onPopState = (event: PopStateEvent) => {
+      const stateView = (event.state as { dotifyView?: unknown } | null)?.dotifyView;
+      setActiveView(isDotifyView(stateView) ? stateView : getInitialView());
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
   useEffect(() => {
@@ -365,6 +401,29 @@ export default function App() {
   useEffect(() => {
     void refreshCatalogFromRegistry();
   }, [directoryAddress, ethRpcUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refreshCatalogAccess() {
+      if (catalogTracks.length === 0) {
+        setCatalogAccessByTrackId({});
+        return;
+      }
+
+      const accessEntries = await Promise.all(catalogTracks.map(async track => [track.id, await checkTrackAccess(track, listenerEvmAddress)] as const));
+
+      if (!cancelled) {
+        setCatalogAccessByTrackId(Object.fromEntries(accessEntries));
+      }
+    }
+
+    void refreshCatalogAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [catalogTracks, ethRpcUrl, listenerEvmAddress]);
 
   useEffect(() => {
     const storedName = getStoredArtistName(activeEvmAddress);
@@ -504,6 +563,7 @@ export default function App() {
 
     if (track.localUrl) {
       const hasAccess = await checkTrackAccess(track, listenerEvmAddress);
+      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
       const previewOnly = !hasAccess;
       previewOnlyRef.current = previewOnly;
 
@@ -526,6 +586,11 @@ export default function App() {
     }
 
     socketRef.current?.emit('room:track', createTrackInfoFromCatalog(track));
+  }
+
+  async function openTrack(track: CatalogTrack) {
+    navigateToView('player');
+    await selectTrack(track);
   }
 
   // Returns true only when the connected listener has on-chain access to the track.
@@ -637,6 +702,7 @@ export default function App() {
 
       previewOnlyRef.current = false;
       previewLimitRef.current = null;
+      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback({ tone: 'success', title: 'Access unlocked', message: `Full playback of "${track.title}" is now available.`, txHash });
       await selectTrack(track);
     } catch (payError) {
@@ -1008,7 +1074,7 @@ export default function App() {
     event?.preventDefault();
     setSessionAction('creating');
     changeMode('host');
-    setActiveView('listen');
+    navigateToView('player');
     setError(null);
     setSessionStatus('Opening room');
     closeListenerPeer();
@@ -1047,7 +1113,7 @@ export default function App() {
 
     changeMode('listener');
     setSessionAction('joining');
-    setActiveView('listen');
+    navigateToView('player');
     setError(null);
     setSessionStatus('Joining room');
     closeHostPeers();
@@ -1739,7 +1805,12 @@ export default function App() {
       <div className='docs-layout' id='top'>
         <aside className='sidebar' aria-label='Dotify navigation'>
           <div className='sidebar-heading'>Listen</div>
-          <button className='sidebar-link' data-active={activeView === 'listen'} type='button' onClick={() => setActiveView('listen')}>
+          <button
+            className='sidebar-link'
+            data-active={activeView === 'listen' || activeView === 'player'}
+            type='button'
+            onClick={() => navigateToView('listen')}
+          >
             <Headphones size={16} />
             Discover
           </button>
@@ -1748,7 +1819,7 @@ export default function App() {
             data-active={activeView === 'rooms'}
             type='button'
             onClick={() => {
-              setActiveView('rooms');
+              navigateToView('rooms');
               requestOpenRooms(true);
             }}
           >
@@ -1756,7 +1827,7 @@ export default function App() {
             Rooms
           </button>
           <div className='sidebar-heading sidebar-heading-spaced'>Create</div>
-          <button className='sidebar-link' data-active={activeView === 'artist'} type='button' onClick={() => setActiveView('artist')}>
+          <button className='sidebar-link' data-active={activeView === 'artist'} type='button' onClick={() => navigateToView('artist')}>
             <FileAudio size={16} />
             Artist Console
           </button>
@@ -1781,44 +1852,74 @@ export default function App() {
           </section>
 
           {activeView === 'listen' && (
-            <section className='content-grid listen-grid'>
-              <div className='doc-panel catalogue-panel'>
+            <section className='content-grid catalog-home-grid'>
+              <div className='doc-panel catalogue-panel catalogue-home-panel'>
                 <PanelTitle icon={Library} title='Browse catalog' meta={`${catalogTracks.length} tracks`} />
-                <div className='artist-list'>
-                  {catalogByArtist.length > 0 ? (
-                    catalogByArtist.map(group => (
-                      <div className='artist-block' key={group.artist}>
-                        <div className='artist-heading'>
-                          <strong>{group.artist}</strong>
-                          <span>{group.tracks.length}</span>
-                        </div>
-                        {group.tracks.map(track => (
-                          <button
-                            className='track-row'
-                            data-selected={selectedTrackId === track.id}
-                            key={track.id}
-                            type='button'
-                            onClick={() => selectTrack(track)}
+                <p className='catalogue-intro'>Choose a cover to open the player, preview the track, and unlock full access with payment or proof.</p>
+                <div className='catalogue-grid'>
+                  {catalogTracks.length > 0 ? (
+                    catalogTracks.map(track => {
+                      const hasCatalogAccess = catalogAccessByTrackId[track.id] === true;
+
+                      return (
+                        <button
+                          className='catalogue-card'
+                          data-selected={selectedTrackId === track.id}
+                          key={track.id}
+                          type='button'
+                          aria-label={`Open ${track.title} by ${track.artist}`}
+                          onClick={() => {
+                            void openTrack(track);
+                          }}
+                        >
+                          <span className='catalogue-cover-frame'>
+                            <img className='catalogue-cover' src={track.imageRef} alt='' crossOrigin='anonymous' />
+                          </span>
+                          <span className='catalogue-card-copy'>
+                            <strong>{track.title}</strong>
+                            <small>{track.artist}</small>
+                            <span className='catalogue-card-description'>{track.description || 'Artist-owned release on Dotify.'}</span>
+                          </span>
+                          <span
+                            className='catalogue-access-line'
+                            data-access={hasCatalogAccess ? 'granted' : 'locked'}
+                            aria-label={catalogAccessAriaLabel(track, hasCatalogAccess)}
                           >
-                            <img className='track-thumb' src={track.imageRef} alt='' crossOrigin='anonymous' />
-                            <span>
-                              <strong>{track.title}</strong>
-                              <small>
-                                {track.zone} / {track.durationLabel} / {accessModeLabel(track)}
-                              </small>
-                            </span>
-                            <code>{track.accessMode === 'classic' ? `${track.priceDot} DOT` : track.personhoodLevel}</code>
-                          </button>
-                        ))}
-                      </div>
-                    ))
+                            {hasCatalogAccess ? <CircleCheckBig size={15} /> : <Wallet size={15} />}
+                            <span>{catalogAccessLabel(track)}</span>
+                          </span>
+                        </button>
+                      );
+                    })
                   ) : (
                     <div className='empty-state'>{catalogStatus}</div>
                   )}
                 </div>
               </div>
 
-              <div className='doc-panel player-panel'>
+              <div className='doc-panel home-principles-panel'>
+                <PanelTitle icon={BadgeCheck} title='Access culture' meta='proof, not profiles' />
+                <div className='principle-list'>
+                  <div>
+                    <strong>Preview first</strong>
+                    <span>Every listener can discover before deciding how to unlock.</span>
+                  </div>
+                  <div>
+                    <strong>Pay artists directly</strong>
+                    <span>Classic access shows the DOT price before payment.</span>
+                  </div>
+                  <div>
+                    <strong>Human free</strong>
+                    <span>Personhood can unlock culture without turning people into ad profiles.</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeView === 'player' && (
+            <section className='content-grid player-view-grid'>
+              <div className='doc-panel player-panel integrated-player-panel'>
                 <div className='now-playing'>
                   <div className='cover' data-live={localStreamReady || remoteReady}>
                     <img src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' crossOrigin='anonymous' />
@@ -1900,82 +2001,107 @@ export default function App() {
                 )}
               </div>
 
-              <div className='doc-panel session-panel'>
-                <PanelTitle icon={Radio} title='Listening room' meta={roomId || 'offline'} />
-                <div className='segmented' role='tablist' aria-label='Mode'>
-                  <button type='button' className={mode === 'host' ? 'active' : ''} onClick={() => changeMode('host')}>
-                    <Radio size={16} />
-                    Host
-                  </button>
-                  <button type='button' className={mode === 'listener' ? 'active' : ''} onClick={() => changeMode('listener')}>
-                    <Headphones size={16} />
-                    Join
-                  </button>
-                </div>
-
-                <label className='field-label'>Name</label>
-                <input className='field' value={displayName} onChange={event => setDisplayName(event.target.value)} maxLength={32} />
-
-                {mode === 'host' ? (
-                  <form className='session-form' onSubmit={createSession}>
-                    <button className='primary-action' type='submit' disabled={sessionAction !== 'idle'}>
-                      {sessionAction === 'creating' ? <Disc3 size={16} className='spin' /> : <Radio size={16} />}
-                      {sessionAction === 'creating' ? 'Opening room…' : 'Start a room'}
+              <div className='studio-column player-side-column'>
+                <div className='doc-panel session-panel'>
+                  <PanelTitle icon={Radio} title='Listening room' meta={roomId || 'offline'} />
+                  <div className='segmented' role='tablist' aria-label='Mode'>
+                    <button type='button' className={mode === 'host' ? 'active' : ''} onClick={() => changeMode('host')}>
+                      <Radio size={16} />
+                      Host
                     </button>
-                    <div className='room-code'>
-                      <span>Code</span>
-                      <strong>{roomId || '------'}</strong>
-                      <button type='button' onClick={copySessionLink} disabled={!roomId} title='Copy link' aria-label='Copy link'>
-                        <Copy size={16} />
+                    <button type='button' className={mode === 'listener' ? 'active' : ''} onClick={() => changeMode('listener')}>
+                      <Headphones size={16} />
+                      Join
+                    </button>
+                  </div>
+
+                  <label className='field-label'>Name</label>
+                  <input className='field' value={displayName} onChange={event => setDisplayName(event.target.value)} maxLength={32} />
+
+                  {mode === 'host' ? (
+                    <form className='session-form' onSubmit={createSession}>
+                      <button className='primary-action' type='submit' disabled={sessionAction !== 'idle'}>
+                        {sessionAction === 'creating' ? <Disc3 size={16} className='spin' /> : <Radio size={16} />}
+                        {sessionAction === 'creating' ? 'Opening room…' : 'Start a room'}
                       </button>
-                    </div>
-                  </form>
-                ) : (
-                  <form className='session-form' onSubmit={joinSession}>
-                    <label className='field-label'>Code</label>
-                    <input
-                      className='field code-field'
-                      value={joinCode}
-                      onChange={event => setJoinCode(event.target.value.toUpperCase())}
-                      placeholder='ABC123'
-                      maxLength={12}
-                    />
-                    <button className='primary-action' type='submit' disabled={sessionAction !== 'idle'}>
-                      {sessionAction === 'joining' ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
-                      {sessionAction === 'joining' ? 'Joining…' : 'Join'}
-                    </button>
-                  </form>
-                )}
-
-                {roomId && (
-                  <button className='secondary-action' type='button' onClick={leaveSession}>
-                    Leave
-                  </button>
-                )}
-
-                <div className='listener-list'>
-                  {mode === 'host' && listeners.length > 0 ? (
-                    listeners.map(listener => (
-                      <div className='list-row' key={listener.id}>
-                        <div>
-                          <strong>{listener.displayName}</strong>
-                          <span>{peerStatusLabel(listener.status)}</span>
-                        </div>
-                        <i data-status={listener.status} />
+                      <div className='room-code'>
+                        <span>Code</span>
+                        <strong>{roomId || '------'}</strong>
+                        <button type='button' onClick={copySessionLink} disabled={!roomId} title='Copy link' aria-label='Copy link'>
+                          <Copy size={16} />
+                        </button>
                       </div>
-                    ))
+                    </form>
                   ) : (
-                    <div className='list-row muted-row'>
-                      <div>
-                        <strong>{mode === 'host' ? 'No listeners yet' : hostName || 'Host'}</strong>
-                        <span>{mode === 'host' ? 'Waiting' : roomId || 'Not connected'}</span>
-                      </div>
-                      <i data-status={remoteReady ? 'connected' : 'waiting'} />
-                    </div>
+                    <form className='session-form' onSubmit={joinSession}>
+                      <label className='field-label'>Code</label>
+                      <input
+                        className='field code-field'
+                        value={joinCode}
+                        onChange={event => setJoinCode(event.target.value.toUpperCase())}
+                        placeholder='ABC123'
+                        maxLength={12}
+                      />
+                      <button className='primary-action' type='submit' disabled={sessionAction !== 'idle'}>
+                        {sessionAction === 'joining' ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
+                        {sessionAction === 'joining' ? 'Joining…' : 'Join'}
+                      </button>
+                    </form>
                   )}
+
+                  {roomId && (
+                    <button className='secondary-action' type='button' onClick={leaveSession}>
+                      Leave
+                    </button>
+                  )}
+
+                  <div className='listener-list'>
+                    {mode === 'host' && listeners.length > 0 ? (
+                      listeners.map(listener => (
+                        <div className='list-row' key={listener.id}>
+                          <div>
+                            <strong>{listener.displayName}</strong>
+                            <span>{peerStatusLabel(listener.status)}</span>
+                          </div>
+                          <i data-status={listener.status} />
+                        </div>
+                      ))
+                    ) : (
+                      <div className='list-row muted-row'>
+                        <div>
+                          <strong>{mode === 'host' ? 'No listeners yet' : hostName || 'Host'}</strong>
+                          <span>{mode === 'host' ? 'Waiting' : roomId || 'Not connected'}</span>
+                        </div>
+                        <i data-status={remoteReady ? 'connected' : 'waiting'} />
+                      </div>
+                    )}
+                  </div>
+
+                  {error && <p className='error-box'>{error}</p>}
                 </div>
 
-                {error && <p className='error-box'>{error}</p>}
+                <div className='doc-panel player-context-panel'>
+                  <PanelTitle
+                    icon={Library}
+                    title='Track access'
+                    meta={selectedTrack ? accessModeLabel(selectedTrack) : accessModeLabelFromState(accessMode)}
+                  />
+                  <div className='stack-list'>
+                    <EndpointRow label='Artist' value={streamArtist} />
+                    <EndpointRow
+                      label='Access'
+                      value={
+                        (selectedTrack?.accessMode ?? accessMode) === 'classic'
+                          ? `${selectedTrack?.priceDot ?? priceDot} DOT`
+                          : `Human proof ${selectedTrack?.personhoodLevel ?? personhoodLevel}`
+                      }
+                    />
+                    <EndpointRow label='Metadata' value={trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'portable manifest' : 'draft source'} />
+                  </div>
+                  <button className='secondary-action' type='button' onClick={() => navigateToView('listen')}>
+                    Back to catalog
+                  </button>
+                </div>
               </div>
             </section>
           )}
@@ -2401,7 +2527,14 @@ export default function App() {
                     <div className='catalogue-table release-table'>
                       {artistTracks.length > 0 ? (
                         artistTracks.map(track => (
-                          <button className='catalogue-row' key={track.hash} type='button' onClick={() => selectTrack(track)}>
+                          <button
+                            className='catalogue-row'
+                            key={track.hash}
+                            type='button'
+                            onClick={() => {
+                              void openTrack(track);
+                            }}
+                          >
                             <img className='track-thumb' src={track.imageRef} alt='' crossOrigin='anonymous' />
                             <span>
                               <strong>{track.title}</strong>
@@ -2710,7 +2843,12 @@ function AccessGateOverlay({ gate, onDismiss, onPay, onSignIn }: { gate: AccessG
       )}
       <div className='access-gate-actions'>
         {gate.actionType === 'payment' && onPay && (
-          <button className='primary-action access-gate-primary' type='button' onClick={onPay} aria-label={`Pay ${gate.track.priceDot} DOT to unlock ${gate.track.title}`}>
+          <button
+            className='primary-action access-gate-primary'
+            type='button'
+            onClick={onPay}
+            aria-label={`Pay ${gate.track.priceDot} DOT to unlock ${gate.track.title}`}
+          >
             Pay {gate.track.priceDot} DOT to unlock
           </button>
         )}
@@ -2915,6 +3053,15 @@ function accessModeLabelFromState(mode: AccessMode) {
   return mode === 'human-free' ? 'Human free' : 'Classic';
 }
 
+function catalogAccessLabel(track: CatalogTrack) {
+  return track.accessMode === 'classic' ? `${track.priceDot} DOT` : `Proof of Personhood ${track.personhoodLevel}`;
+}
+
+function catalogAccessAriaLabel(track: CatalogTrack, hasAccess: boolean) {
+  const status = hasAccess ? 'Access already available' : 'Access required';
+  return `${status}: ${catalogAccessLabel(track)}`;
+}
+
 function dotToPlanck(dot: string) {
   const [whole = '0', fraction = ''] = dot.trim().split('.');
   const paddedFraction = `${fraction.slice(0, 10)}${'0'.repeat(10)}`.slice(0, 10);
@@ -2929,17 +3076,6 @@ function formatPlanckAsDot(planck: bigint) {
 
 function getTimestamp() {
   return Date.now();
-}
-
-function groupTracksByArtist(tracks: CatalogTrack[]) {
-  const groups = new Map<string, CatalogTrack[]>();
-  for (const track of tracks) {
-    groups.set(track.artist, [...(groups.get(track.artist) ?? []), track]);
-  }
-
-  return Array.from(groups.entries())
-    .map(([artist, groupTracks]) => ({ artist, tracks: groupTracks }))
-    .sort((left, right) => left.artist.localeCompare(right.artist));
 }
 
 function normalizeRooms(rooms: OpenRoom[]) {
