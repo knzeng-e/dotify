@@ -65,8 +65,7 @@ function walletFromKeyManager(km: KeyManager, method: WalletMethod, label: strin
     substrateAddress: subAcc.ss58Address,
     substrateSigner: subAcc.signer,
     evmAddress: evmAcc.address,
-    createEvmClient: (chain, rpcUrl) =>
-      createWalletClient({ account: evmAcc, chain, transport: http(rpcUrl) }),
+    createEvmClient: (chain, rpcUrl) => createWalletClient({ account: evmAcc, chain, transport: http(rpcUrl) })
   };
 }
 
@@ -86,8 +85,8 @@ async function prfGet(credId?: Uint8Array): Promise<Uint8Array> {
         challenge: crypto.getRandomValues(new Uint8Array(32)),
         allowCredentials: [{ type: 'public-key', id: credId }],
         userVerification: 'required',
-        extensions: extensions as unknown as AuthenticationExtensionsClientInputs,
-      },
+        extensions: extensions as unknown as AuthenticationExtensionsClientInputs
+      }
     })) as PublicKeyCredential;
 
     const prf = (assertion.getClientExtensionResults() as Record<string, PrfResult>).prf;
@@ -103,23 +102,20 @@ async function prfGet(credId?: Uint8Array): Promise<Uint8Array> {
       user: {
         id: crypto.getRandomValues(new Uint8Array(16)),
         name: 'dotify-user',
-        displayName: 'Dotify User',
+        displayName: 'Dotify User'
       },
       pubKeyCredParams: [
-        { alg: -7, type: 'public-key' },   // ES256 (P-256)
-        { alg: -257, type: 'public-key' },  // RS256
+        { alg: -7, type: 'public-key' }, // ES256 (P-256)
+        { alg: -257, type: 'public-key' } // RS256
       ],
       authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
-      extensions: extensions as unknown as AuthenticationExtensionsClientInputs,
-    },
+      extensions: extensions as unknown as AuthenticationExtensionsClientInputs
+    }
   })) as PublicKeyCredential;
 
   const prf = (cred.getClientExtensionResults() as Record<string, PrfResult>).prf;
   if (!prf?.results?.first) {
-    throw new Error(
-      'Your browser or authenticator does not support the PRF extension. ' +
-        'Try Chrome 116+, Firefox 119+, or a FIDO2 hardware key.'
-    );
+    throw new Error('Your browser or authenticator does not support the PRF extension. ' + 'Try Chrome 116+, Firefox 119+, or a FIDO2 hardware key.');
   }
 
   // Persist credential ID so future logins can locate the right credential.
@@ -142,15 +138,13 @@ async function extensionConnect(): Promise<ConnectedWallet> {
   const ethereum = (window as unknown as Record<string, unknown>).ethereum as EIP1193 | undefined;
 
   if (!ethereum) {
-    throw new Error(
-      'No EVM wallet found. Install MetaMask, Talisman EVM, or SubWallet EVM, then reload Dotify.'
-    );
+    throw new Error('No wallet app found. Install MetaMask, Talisman, or SubWallet, then reload Dotify.');
   }
 
   const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-  const evmAddress = Array.isArray(accounts) ? accounts[0] as `0x${string}` | undefined : undefined;
+  const evmAddress = Array.isArray(accounts) ? (accounts[0] as `0x${string}` | undefined) : undefined;
   if (!evmAddress) {
-    throw new Error('No EVM account was approved by the wallet extension.');
+    throw new Error('No wallet address was approved. Open your wallet and allow Dotify to continue.');
   }
 
   const label = `${evmAddress.slice(0, 6)}…${evmAddress.slice(-4)}`;
@@ -162,8 +156,8 @@ async function extensionConnect(): Promise<ConnectedWallet> {
       createWalletClient({
         account: evmAddress,
         chain,
-        transport: custom(ethereum as Parameters<typeof custom>[0]),
-      }),
+        transport: custom(ethereum as Parameters<typeof custom>[0])
+      })
   };
 }
 
@@ -188,20 +182,20 @@ export function useWallet() {
   const connectPasskey = useCallback(async () => {
     setState({ status: 'connecting', via: 'passkey' });
     try {
-      const wallet = await withTimeout(passkeyConnect(), 'Passkey authentication timed out. Try again from a secure origin such as localhost or HTTPS.');
+      const wallet = await withTimeout(passkeyConnect(), 'Passkey timed out. Check the browser prompt, then try again.');
       setState({ status: 'connected', wallet });
     } catch (e) {
-      setState({ status: 'error', message: e instanceof Error ? e.message : 'Passkey authentication failed.' });
+      setState({ status: 'error', message: e instanceof Error ? e.message : 'Passkey sign in failed.' });
     }
   }, []);
 
   const connectExtension = useCallback(async () => {
     setState({ status: 'connecting', via: 'extension' });
     try {
-      const wallet = await withTimeout(extensionConnect(), 'Wallet extension connection timed out. Unlock the extension, approve Dotify, then try again.');
+      const wallet = await withTimeout(extensionConnect(), 'Wallet connection timed out. Open your wallet, approve Dotify, then try again.');
       setState({ status: 'connected', wallet });
     } catch (e) {
-      setState({ status: 'error', message: e instanceof Error ? e.message : 'Extension connection failed.' });
+      setState({ status: 'error', message: e instanceof Error ? e.message : 'Wallet connection failed.' });
     }
   }, []);
 

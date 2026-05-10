@@ -1,20 +1,23 @@
 import {
-  CircleAlert,
-  CircleCheckBig,
   Copy,
   Play,
   Wifi,
   Disc3,
   Pause,
+  Power,
   Radio,
   Upload,
+  Wallet,
   Library,
   WifiOff,
+  KeyRound,
   FileAudio,
   RefreshCw,
   BadgeCheck,
   Headphones,
+  CircleAlert,
   LockKeyhole,
+  CircleCheckBig,
   type LucideIcon,
   X,
   Link as LinkIcon
@@ -193,21 +196,21 @@ const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
 const PREVIEW_RATIO = 0.42;
 
 function coverImage(primary: string, secondary: string, label: string) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640"><rect width="640" height="640" fill="${primary}"/><circle cx="490" cy="120" r="210" fill="${secondary}" opacity=".72"/><circle cx="160" cy="520" r="190" fill="#1ed760" opacity=".82"/><text x="48" y="108" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="800">${label}</text><path d="M230 242c0-25 20-45 45-45h98v62h-70v132c0 34-28 62-62 62s-62-28-62-62 28-62 62-62c13 0 25 4 35 11v-98h-46Z" fill="#fff" opacity=".92"/></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640"><rect width="640" height="640" fill="${primary}"/><circle cx="490" cy="120" r="210" fill="${secondary}" opacity=".72"/><circle cx="160" cy="520" r="190" fill="#c8ff4d" opacity=".78"/><text x="48" y="108" fill="#fff" font-family="Manrope,Arial,sans-serif" font-size="42" font-weight="800">${label}</text><path d="M230 242c0-25 20-45 45-45h98v62h-70v132c0 34-28 62-62 62s-62-28-62-62 28-62 62-62c13 0 25 4 35 11v-98h-46Z" fill="#fff" opacity=".92"/></svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
 const viewCopy: Record<View, { title: string; eyebrow: string }> = {
-  listen: { title: 'Discover music', eyebrow: 'Listen, preview, unlock.' },
-  rooms: { title: 'Live rooms', eyebrow: 'Join a real-time stream opened by another host.' },
-  artist: { title: 'Artist Console', eyebrow: 'Profile, releases, access policy, and advanced publishing controls.' }
+  listen: { title: 'Discover music', eyebrow: 'Listen freely. Unlock with proof, not profiles.' },
+  rooms: { title: 'Live rooms', eyebrow: 'Shared listening for people in the same moment.' },
+  artist: { title: 'Artist Console', eyebrow: 'Own your catalog, set your rules, keep your audience direct.' }
 };
 
 const artistTabs: Array<{ id: ArtistTab; label: string; description: string }> = [
-  { id: 'overview', label: 'Overview', description: 'Artist setup and next action' },
-  { id: 'new', label: 'New Release', description: 'Upload, price, and publish' },
-  { id: 'releases', label: 'Releases', description: 'Registered catalog' },
-  { id: 'advanced', label: 'Advanced', description: 'Contracts and archival' }
+  { id: 'overview', label: 'Overview', description: 'Identity and next step' },
+  { id: 'new', label: 'New Release', description: 'Publish under your own terms' },
+  { id: 'releases', label: 'Releases', description: 'Catalog you control' },
+  { id: 'advanced', label: 'Advanced', description: 'Proofs, contracts, and archives' }
 ];
 
 const releaseSteps: Array<{ id: ReleaseStep; label: string }> = [
@@ -259,7 +262,7 @@ export default function App() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [personhoodLevel, setPersonhoodLevel] = useState<PersonhoodLevel>('DIM1');
   const [showWalletModal, setShowWalletModal] = useState(false);
-  const [coverSource, setCoverSource] = useState(coverImage('#111827', '#e6007a', 'Dotify'));
+  const [coverSource, setCoverSource] = useState(coverImage('#06152d', '#2bb3ff', 'Dotify'));
   const [description, setDescription] = useState('Describe the story, rights context, and intended audience for this track.');
   const [transactionFeedback, setTransactionFeedback] = useState<TransactionFeedback | null>(null);
   const [audioCID, setAudioCID] = useState('');
@@ -545,11 +548,21 @@ export default function App() {
 
   function buildAccessGateInfo(track: CatalogTrack): AccessGate {
     if (!connectedWallet) {
+      if (track.accessMode === 'classic') {
+        return {
+          track,
+          title: 'Payment unlock',
+          message: `"${track.title}" costs ${track.priceDot} DOT for full access. Connect a wallet first, then pay the artist directly.`,
+          hint: 'No account required. Your wallet handles the payment and access proof.',
+          actionType: 'signin'
+        };
+      }
+
       return {
         track,
-        title: 'Sign in required',
-        message: `"${track.title}" is restricted. Connect a wallet to check payment or personhood access. Only a 42% preview is available.`,
-        hint: 'Sign in with a passkey or wallet extension to unlock eligible full playback.',
+        title: 'Proof needed',
+        message: `"${track.title}" is protected by the artist. You can preview 42% now; connect a wallet to prove access without creating an account.`,
+        hint: 'Your wallet is your key. Dotify does not need your private information.',
         actionType: 'signin'
       };
     }
@@ -557,17 +570,17 @@ export default function App() {
     if (track.accessMode === 'human-free') {
       return {
         track,
-        title: 'Personhood required',
-        message: `"${track.title}" is restricted because this account does not hold the required ${track.personhoodLevel} credential. Only a 42% preview is available.`,
-        hint: 'Verify your identity through Polkadot Individuality to unlock the whole track.',
+        title: 'Proof Of Personhood required',
+        message: `"${track.title}" is reserved for listeners with ${track.personhoodLevel} personhood proof. You can preview 42% now.`,
+        hint: 'Personhood proves you are a real human.',
         actionType: 'personhood'
       };
     }
     return {
       track,
-      title: 'Purchase required',
-      message: `"${track.title}" is restricted because this account has not paid the artist (${track.priceDot} DOT). Only a 42% preview is available.`,
-      hint: 'Pay the artist directly from this app to unlock the whole track.',
+      title: 'Payment unlock',
+      message: `"${track.title}" unlocks after a ${track.priceDot} DOT payment. You can preview 42% now.`,
+      hint: 'Your payment goes Directly to the artist, not an opaque intermediary account.',
       actionType: 'payment'
     };
   }
@@ -646,12 +659,7 @@ export default function App() {
     return createPreviewAudioObjectUrl(sourceBytes, previewCacheKey);
   }
 
-  async function fetchAndDecryptAudio(
-    audioRef: string,
-    gatewayUrl: string,
-    contentHash: `0x${string}`,
-    options: { previewOnly: boolean }
-  ): Promise<string> {
+  async function fetchAndDecryptAudio(audioRef: string, gatewayUrl: string, contentHash: `0x${string}`, options: { previewOnly: boolean }): Promise<string> {
     const cacheKey = options.previewOnly ? `${audioRef}:preview` : audioRef;
     const cached = resolvedAudioSourcesRef.current.get(cacheKey);
     if (cached) return cached;
@@ -1717,8 +1725,12 @@ export default function App() {
           state={walletState}
           hasPrfSupport={hasPrfSupport}
           hasStoredPasskey={hasStoredPasskey}
-          onPasskey={() => { void connectPasskey(); }}
-          onExtension={() => { void connectExtension(); }}
+          onPasskey={() => {
+            void connectPasskey();
+          }}
+          onExtension={() => {
+            void connectExtension();
+          }}
           onForgetPasskey={forgetPasskey}
           onClose={() => setShowWalletModal(false)}
         />
@@ -1834,11 +1846,20 @@ export default function App() {
                       src={audioSource ?? undefined}
                       crossOrigin='anonymous'
                       controls
-                      onLoadedMetadata={() => { void prepareLocalStream(); setupPreviewLimit(); }}
-                      onPlay={() => { emitPlayerState(true); enforcePreviewCutoff(); }}
+                      onLoadedMetadata={() => {
+                        void prepareLocalStream();
+                        setupPreviewLimit();
+                      }}
+                      onPlay={() => {
+                        emitPlayerState(true);
+                        enforcePreviewCutoff();
+                      }}
                       onPause={() => emitPlayerState(true)}
                       onSeeked={() => emitPlayerState(true)}
-                      onTimeUpdate={() => { emitPlayerState(false); enforcePreviewCutoff(); }}
+                      onTimeUpdate={() => {
+                        emitPlayerState(false);
+                        enforcePreviewCutoff();
+                      }}
                     />
                     <div className='remote-state' data-active={localStreamReady}>
                       {localStreamReady ? <Play size={16} /> : <Pause size={16} />}
@@ -1867,7 +1888,13 @@ export default function App() {
                   <AccessGateOverlay
                     gate={accessGate}
                     onDismiss={() => setAccessGate(null)}
-                    onPay={accessGate.actionType === 'payment' ? () => { void payForTrackAccess(accessGate.track); } : undefined}
+                    onPay={
+                      accessGate.actionType === 'payment'
+                        ? () => {
+                            void payForTrackAccess(accessGate.track);
+                          }
+                        : undefined
+                    }
                     onSignIn={accessGate.actionType === 'signin' ? () => setShowWalletModal(true) : undefined}
                   />
                 )}
@@ -2081,7 +2108,12 @@ export default function App() {
 
                     <p className='rights-status'>{artistRegistrationStatus}</p>
 
-                    <button className='primary-action wide' type='button' onClick={registerArtist} disabled={isRegisteringArtist || !artistRegistrationAvailable || Boolean(artistRuntimeAddress)}>
+                    <button
+                      className='primary-action wide'
+                      type='button'
+                      onClick={registerArtist}
+                      disabled={isRegisteringArtist || !artistRegistrationAvailable || Boolean(artistRuntimeAddress)}
+                    >
                       {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
                       {isRegisteringArtist ? 'Creating profile…' : artistRuntimeAddress ? 'Artist profile ready' : 'Create artist profile'}
                     </button>
@@ -2102,23 +2134,23 @@ export default function App() {
                     <div className='next-action-copy'>
                       <strong>
                         {!connectedWallet
-                          ? 'Connect a wallet to use your real artist identity.'
+                          ? 'Use a wallet to make this profile yours.'
                           : artistRuntimeAddress
-                            ? 'Your artist profile is ready.'
-                            : 'Create your artist profile before publishing.'}
+                            ? 'Your artist profile is yours to publish from.'
+                            : 'Create your artist-owned profile before publishing.'}
                       </strong>
                       <p>
                         {!connectedWallet
-                          ? 'You can keep testing with the local dev account, but real releases should use the EVM wallet that will own the artist profile.'
+                          ? 'No password, no platform login. Your wallet becomes the address that owns your catalog and receives payments.'
                           : artistRuntimeAddress
-                            ? 'Start a new release, review its access policy, then publish it to your profile.'
-                            : 'Dotify creates one artist profile per EVM wallet. Releases and payments stay attached to that address.'}
+                            ? 'Start a new release, choose the access culture around it, then publish it to your own runtime.'
+                            : 'Dotify creates one artist profile per wallet. Releases, rights, and payments stay attached to that address.'}
                       </p>
                     </div>
                     {!connectedWallet ? (
                       <button className='primary-action wide' type='button' onClick={() => setShowWalletModal(true)}>
                         <LockKeyhole size={16} />
-                        Connect wallet
+                        Use my wallet
                       </button>
                     ) : artistRuntimeAddress ? (
                       <button className='primary-action wide' type='button' onClick={() => setArtistTab('new')}>
@@ -2126,7 +2158,12 @@ export default function App() {
                         Publish a release
                       </button>
                     ) : (
-                      <button className='primary-action wide' type='button' onClick={registerArtist} disabled={isRegisteringArtist || !artistRegistrationAvailable}>
+                      <button
+                        className='primary-action wide'
+                        type='button'
+                        onClick={registerArtist}
+                        disabled={isRegisteringArtist || !artistRegistrationAvailable}
+                      >
                         {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
                         Create artist profile
                       </button>
@@ -2142,7 +2179,11 @@ export default function App() {
               {artistTab === 'new' && (
                 <section className='content-grid release-workbench-grid'>
                   <div className='doc-panel studio-panel release-wizard'>
-                    <PanelTitle icon={FileAudio} title='New release' meta={artistStudioLocked ? 'create profile first' : releaseSteps[releaseStepIndex]?.label ?? 'draft'} />
+                    <PanelTitle
+                      icon={FileAudio}
+                      title='New release'
+                      meta={artistStudioLocked ? 'create profile first' : (releaseSteps[releaseStepIndex]?.label ?? 'draft')}
+                    />
 
                     <div className='release-stepper' aria-label='Release steps'>
                       {releaseSteps.map((step, index) => (
@@ -2168,8 +2209,14 @@ export default function App() {
                           </label>
                         </div>
                         <div className='asset-readiness'>
-                          <div><strong>{audioSource ? 'Audio ready' : 'Audio missing'}</strong><span>{fileHash ? shorten(fileHash, 18) : 'Upload an audio file to generate the release hash.'}</span></div>
-                          <div><strong>{coverSource.startsWith('blob:') ? 'Cover ready' : 'Generated cover'}</strong><span>{coverCID ? shorten(coverCID, 18) : 'A custom cover can be added before publish.'}</span></div>
+                          <div>
+                            <strong>{audioSource ? 'Audio ready' : 'Audio missing'}</strong>
+                            <span>{fileHash ? shorten(fileHash, 18) : 'Upload an audio file to generate the release hash.'}</span>
+                          </div>
+                          <div>
+                            <strong>{coverSource.startsWith('blob:') ? 'Cover ready' : 'Generated cover'}</strong>
+                            <span>{coverCID ? shorten(coverCID, 18) : 'A custom cover can be added before publish.'}</span>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -2244,8 +2291,8 @@ export default function App() {
                               disabled={artistStudioLocked}
                             />
                           </label>
-                          {uploadToBulletinEnabled && (
-                            connectedWallet ? (
+                          {uploadToBulletinEnabled &&
+                            (connectedWallet ? (
                               <label>
                                 <span>Archive signer</span>
                                 <div className='field wallet-field'>
@@ -2269,8 +2316,7 @@ export default function App() {
                                   ))}
                                 </select>
                               </label>
-                            )
-                          )}
+                            ))}
                         </div>
                         <label className='toggle-row'>
                           <input
@@ -2283,8 +2329,8 @@ export default function App() {
                         </label>
                         <div className='rights-status'>
                           {accessMode === 'human-free'
-                            ? `Human free tracks are listenable by users with Polkadot Proof of Personhood ${personhoodLevel}; NFT transfers stay PoP-gated.`
-                            : `Classic tracks require a DOT payment or subscription; the contract records royalty recipients for automatic settlement.`}
+                            ? `Human free means access through personhood, not surveillance. Listeners with Polkadot Proof of Personhood ${personhoodLevel} can unlock the full track.`
+                            : `Classic access means direct payment in DOT. The artist runtime records who paid and settles royalties transparently.`}
                         </div>
                       </div>
                     )}
@@ -2306,7 +2352,12 @@ export default function App() {
                         Back
                       </button>
                       {releaseStep === 'review' ? (
-                        <button className='primary-action compact-action' type='button' onClick={registerRights} disabled={isRegistering || artistStudioLocked || !canReviewRelease}>
+                        <button
+                          className='primary-action compact-action'
+                          type='button'
+                          onClick={registerRights}
+                          disabled={isRegistering || artistStudioLocked || !canReviewRelease}
+                        >
                           {isRegistering ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
                           {isRegistering ? 'Publishing…' : artistStudioLocked ? 'Create profile first' : 'Publish release'}
                         </button>
@@ -2337,7 +2388,7 @@ export default function App() {
                       </div>
                     </div>
                     <div className='rights-status'>
-                      Audio, cover art, and the canonical metadata manifest are pinned to IPFS. Bulletin archival is optional and never required for the core release flow.
+                      Audio, cover art, and metadata are pinned to open networks. Dotify keeps the release portable instead of locking it inside one platform.
                     </div>
                   </div>
                 </section>
@@ -2421,12 +2472,12 @@ export default function App() {
                   </div>
 
                   <div className='doc-panel'>
-                    <PanelTitle icon={BadgeCheck} title='Capabilities' meta='advanced' />
+                    <PanelTitle icon={BadgeCheck} title='Capabilities' meta='culture layer' />
                     <div className='stack-list'>
-                      <EndpointRow label='Primary identity' value='EVM wallet' />
-                      <EndpointRow label='Canonical metadata' value='IPFS manifest' />
-                      <EndpointRow label='Bulletin archival' value={uploadToBulletinEnabled ? 'enabled for next release' : 'disabled by default'} />
-                      <EndpointRow label='Substrate signer' value={activeSubstrateAddress ? shorten(activeSubstrateAddress, 12) : 'not connected'} />
+                      <EndpointRow label='Self-owned identity' value='Wallet address' />
+                      <EndpointRow label='Portable metadata' value='IPFS manifest' />
+                      <EndpointRow label='Public archive' value={uploadToBulletinEnabled ? 'enabled for next release' : 'optional by default'} />
+                      <EndpointRow label='Community signer' value={activeSubstrateAddress ? shorten(activeSubstrateAddress, 12) : 'not connected'} />
                     </div>
                   </div>
                 </section>
@@ -2538,15 +2589,7 @@ function writeAscii(view: DataView, offset: number, value: string) {
 
 // ── Wallet UI components ──────────────────────────────────────────────────────
 
-function WalletStatusPill({
-  state,
-  onClick,
-  onDisconnect
-}: {
-  state: WalletState;
-  onClick: () => void;
-  onDisconnect: () => void;
-}) {
+function WalletStatusPill({ state, onClick, onDisconnect }: { state: WalletState; onClick: () => void; onDisconnect: () => void }) {
   if (state.status === 'connected') {
     return (
       <div className='status-pill wallet-pill' data-tone='green'>
@@ -2560,8 +2603,8 @@ function WalletStatusPill({
   }
   return (
     <button type='button' className='status-pill wallet-pill' data-tone='muted' onClick={onClick}>
-      <LockKeyhole size={14} />
-      <span>{state.status === 'connecting' ? 'Connecting…' : 'Sign in'}</span>
+      <Power size={14} />
+      <span>{state.status === 'connecting' ? 'Connecting…' : 'Connect'}</span>
     </button>
   );
 }
@@ -2585,7 +2628,7 @@ function WalletModal({
 }) {
   return (
     <div className='modal-backdrop' role='presentation' onClick={onClose}>
-      <div className='modal-card' role='dialog' aria-modal='true' aria-labelledby='wallet-modal-title' onClick={e => e.stopPropagation()}>
+      <div className='modal-card wallet-modal' role='dialog' aria-modal='true' aria-labelledby='wallet-modal-title' onClick={e => e.stopPropagation()}>
         <div className='modal-header'>
           <div className='modal-icon' data-tone='success'>
             <LockKeyhole size={20} />
@@ -2595,51 +2638,49 @@ function WalletModal({
           </button>
         </div>
         <div className='modal-copy'>
-          <p className='modal-eyebrow'>Authentication</p>
-          <h2 id='wallet-modal-title'>Sign in to Dotify</h2>
-          <p>
-            Choose how you want to sign Dotify transactions. Passkeys require localhost or HTTPS; wallet extensions must expose an
-            EVM account before approval.
-          </p>
+          <p className='modal-eyebrow'>Account</p>
+          <h2 id='wallet-modal-title'>Sovereign access</h2>
+          <p>Your wallet is enough. No forms, no passwords, no personal data handover.</p>
         </div>
 
         {state.status === 'error' && <p className='error-box'>{state.message}</p>}
         {state.status === 'connecting' && (
-          <p className='info-box'>
-            Waiting for {state.via === 'passkey' ? 'browser passkey confirmation' : 'wallet extension approval'}…
-          </p>
+          <p className='info-box'>{state.via === 'passkey' ? 'Check your browser prompt to continue.' : 'Check your wallet to approve the connection.'}</p>
         )}
 
-        <div className='modal-actions' style={{ flexDirection: 'column', gap: '0.5rem' }}>
+        <div className='wallet-options'>
           {hasPrfSupport && (
-            <button className='primary-action' type='button' onClick={onPasskey} style={{ justifyContent: 'flex-start', gap: '0.75rem' }}>
-              <LockKeyhole size={16} />
-              <span>
-                <strong>{hasStoredPasskey ? 'Continue with passkey' : 'Create a passkey'}</strong>
-                <small style={{ display: 'block', fontWeight: 400, opacity: 0.75 }}>
-                  Face ID · Touch ID · Windows Hello — includes optional Bulletin signer
-                </small>
+            <button className='wallet-option wallet-option-primary' type='button' onClick={onPasskey}>
+              <span className='wallet-option-icon'>
+                <KeyRound size={18} />
+              </span>
+              <span className='wallet-option-copy'>
+                <strong>{hasStoredPasskey ? 'Use passkey' : 'Create passkey'}</strong>
+                <small>Use this device without a seed phrase.</small>
               </span>
             </button>
           )}
 
-          <button className='secondary-action' type='button' onClick={onExtension} style={{ justifyContent: 'flex-start', gap: '0.75rem' }}>
-            <BadgeCheck size={16} />
-            <span>
-              <strong>Connect wallet extension</strong>
-              <small style={{ display: 'block', fontWeight: 400, opacity: 0.75 }}>
-                MetaMask · Talisman EVM · SubWallet EVM
-              </small>
+          <button className='wallet-option' type='button' onClick={onExtension}>
+            <span className='wallet-option-icon'>
+              <Wallet size={18} />
+            </span>
+            <span className='wallet-option-copy'>
+              <strong>Use wallet app</strong>
+              <small>Bring your existing web3 identity.</small>
             </span>
           </button>
 
           {hasStoredPasskey && (
             <button
+              className='wallet-forget'
               type='button'
-              style={{ fontSize: '0.75rem', opacity: 0.6, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-end', color: 'inherit' }}
-              onClick={() => { onForgetPasskey(); onClose(); }}
+              onClick={() => {
+                onForgetPasskey();
+                onClose();
+              }}
             >
-              Forget stored passkey
+              Remove saved passkey
             </button>
           )}
         </div>
@@ -2648,38 +2689,38 @@ function WalletModal({
   );
 }
 
-function AccessGateOverlay({
-  gate,
-  onDismiss,
-  onPay,
-  onSignIn
-}: {
-  gate: AccessGate;
-  onDismiss: () => void;
-  onPay?: () => void;
-  onSignIn?: () => void;
-}) {
+function AccessGateOverlay({ gate, onDismiss, onPay, onSignIn }: { gate: AccessGate; onDismiss: () => void; onPay?: () => void; onSignIn?: () => void }) {
   return (
-    <div className='access-gate'>
+    <div className='access-gate' data-action={gate.actionType} data-access={gate.track.accessMode}>
       <div className='access-gate-header'>
-        <LockKeyhole size={16} />
+        <span>
+          <LockKeyhole size={17} />
+        </span>
         <strong>{gate.title}</strong>
       </div>
-      <p className='access-gate-message'>{gate.message}</p>
-      <p className='access-gate-hint'>{gate.hint}</p>
+      <div className='access-gate-copy'>
+        <p className='access-gate-message'>{gate.message}</p>
+        <p className='access-gate-hint'>{gate.hint}</p>
+      </div>
+      {gate.track.accessMode === 'classic' && (
+        <div className='access-gate-price' aria-label={`Unlock price ${gate.track.priceDot} DOT`}>
+          <span>Unlock price</span>
+          <strong>{gate.track.priceDot} DOT</strong>
+        </div>
+      )}
       <div className='access-gate-actions'>
         {gate.actionType === 'payment' && onPay && (
-          <button className='primary-action' type='button' onClick={onPay}>
-            Pay {gate.track.priceDot} DOT
+          <button className='primary-action access-gate-primary' type='button' onClick={onPay} aria-label={`Pay ${gate.track.priceDot} DOT to unlock ${gate.track.title}`}>
+            Pay {gate.track.priceDot} DOT to unlock
           </button>
         )}
         {gate.actionType === 'signin' && onSignIn && (
-          <button className='primary-action' type='button' onClick={onSignIn}>
-            Sign in
+          <button className='primary-action access-gate-primary' type='button' onClick={onSignIn}>
+            Use wallet to unlock
           </button>
         )}
         <button className='secondary-action' type='button' onClick={onDismiss}>
-          Dismiss
+          Keep preview
         </button>
       </div>
     </div>
@@ -2831,7 +2872,7 @@ function getBlockscoutTxUrl(txHash: `0x${string}`) {
 
 function resolveVisualAssetRef(assetRef: string, title: string) {
   if (!assetRef) {
-    return coverImage('#111827', '#e6007a', title);
+    return coverImage('#06152d', '#2bb3ff', title);
   }
 
   if (assetRef.startsWith('ipfs://')) {
@@ -2842,7 +2883,7 @@ function resolveVisualAssetRef(assetRef: string, title: string) {
     return assetRef;
   }
 
-  return coverImage('#111827', '#e6007a', title);
+  return coverImage('#06152d', '#2bb3ff', title);
 }
 
 function resolveAudioAssetRef(assetRef: string) {
