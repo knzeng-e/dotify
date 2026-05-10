@@ -2499,14 +2499,14 @@ export default function App() {
 
                   <div className='doc-panel release-preview-panel'>
                     <PanelTitle icon={Library} title='Release preview' meta={accessModeLabelFromState(accessMode)} />
-                    <div className='now-playing compact-now-playing'>
-                      <div className='cover'>
+                    <div className='release-preview-card'>
+                      <div className='release-preview-cover'>
                         <img src={coverSource} alt='' crossOrigin='anonymous' />
                       </div>
-                      <div className='track-copy'>
-                        <span>{artistName || 'Artist'}</span>
+                      <div className='release-preview-copy'>
+                        <span className='release-preview-artist'>{artistName || 'Artist'}</span>
                         <h2>{title || 'Untitled'}</h2>
-                        <p>{description}</p>
+                        <p>{description || 'Add a short release note to help listeners understand the world behind this track.'}</p>
                         <div className='access-badges'>
                           <span>{accessModeLabelFromState(accessMode)}</span>
                           <span>{accessMode === 'classic' ? `${priceDot} DOT` : `PoP ${personhoodLevel}`}</span>
