@@ -550,6 +550,8 @@ export default function App() {
               coverSource={catalog.coverSource}
               playerState={catalog.playerState}
               accessGate={catalog.accessGate}
+              catalogTracks={catalog.catalogTracks}
+              selectedTrackId={catalog.selectedTrackId}
               mode={session.mode}
               hostName={session.hostName}
               roomId={session.roomId}
@@ -584,6 +586,7 @@ export default function App() {
               onSetupPreviewLimit={catalog.setupPreviewLimit}
               onEmitPlayerState={session.emitPlayerState}
               onEnforcePreviewCutoff={handleEnforcePreviewCutoff}
+              onOpenTrack={handleOpenTrack}
             />
           )}
 
