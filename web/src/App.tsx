@@ -14,6 +14,7 @@ import {
   FileAudio,
   RefreshCw,
   BadgeCheck,
+  ChevronDown,
   Headphones,
   CircleAlert,
   LockKeyhole,
@@ -25,6 +26,7 @@ import {
 
 import { hashFileWithBytes } from './utils/hash';
 import { io, type Socket } from 'socket.io-client';
+import { formatEther, parseAbiItem } from 'viem';
 import { deployments } from './config/deployments';
 import { devAccounts } from './hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from './config/network';
@@ -54,7 +56,7 @@ type SocketStatus = 'offline' | 'connecting' | 'online' | 'error';
 type PeerStatus = 'waiting' | 'connecting' | 'connected' | 'disconnected';
 type SessionAction = 'idle' | 'creating' | 'joining';
 type AssetAction = 'idle' | 'audio' | 'cover';
-type ArtistTab = 'overview' | 'new' | 'releases' | 'advanced';
+type ArtistTab = 'overview' | 'new' | 'releases' | 'royalties' | 'advanced';
 type ReleaseStep = 'assets' | 'metadata' | 'access' | 'review';
 type TransactionFeedbackTone = 'pending' | 'success' | 'error';
 type AudioContextWindow = Window &
@@ -188,12 +190,26 @@ type AccessGate = {
   actionType: 'personhood' | 'payment' | 'signin';
 };
 
+type RoyaltyPayment = {
+  id: string;
+  trackHash: `0x${string}`;
+  trackTitle: string;
+  listener: `0x${string}`;
+  amountWei: bigint;
+  amountDot: string;
+  paidAtMs: number | null;
+  transactionHash: `0x${string}`;
+  blockNumber: bigint;
+  logIndex: number;
+};
+
 // TODO: Update this when switching to statement store signaling
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const iceServers: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
 const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
 const PREVIEW_RATIO = 0.42;
+const musicRoyAccessPaidEvent = parseAbiItem('event MusicRoyAccessPaid(bytes32 indexed contentHash, address indexed listener, uint256 amount)');
 
 function coverImage(primary: string, secondary: string, label: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640"><rect width="640" height="640" fill="${primary}"/><circle cx="490" cy="120" r="210" fill="${secondary}" opacity=".72"/><circle cx="160" cy="520" r="190" fill="#c8ff4d" opacity=".78"/><text x="48" y="108" fill="#fff" font-family="Manrope,Arial,sans-serif" font-size="42" font-weight="800">${label}</text><path d="M230 242c0-25 20-45 45-45h98v62h-70v132c0 34-28 62-62 62s-62-28-62-62 28-62 62-62c13 0 25 4 35 11v-98h-46Z" fill="#fff" opacity=".92"/></svg>`;
@@ -224,6 +240,7 @@ const artistTabs: Array<{ id: ArtistTab; label: string; description: string }> =
   { id: 'overview', label: 'Overview', description: 'Identity and next step' },
   { id: 'new', label: 'New Release', description: 'Publish under your own terms' },
   { id: 'releases', label: 'Releases', description: 'Catalog you control' },
+  { id: 'royalties', label: 'Royalties', description: 'Payments received' },
   { id: 'advanced', label: 'Advanced', description: 'Proofs, contracts, and archives' }
 ];
 
@@ -255,6 +272,10 @@ export default function App() {
   const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>([]);
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
   const [catalogStatus, setCatalogStatus] = useState('Loading registry catalog');
+  const [royaltyPayments, setRoyaltyPayments] = useState<RoyaltyPayment[]>([]);
+  const [royaltyStatus, setRoyaltyStatus] = useState('No artist profile selected');
+  const [isRefreshingRoyalties, setIsRefreshingRoyalties] = useState(false);
+  const [expandedRoyaltyPaymentId, setExpandedRoyaltyPaymentId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>(() => (getInitialRoomCode() ? 'listener' : 'host'));
   const [activeView, setActiveView] = useState<View>(() => getInitialView());
   const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
@@ -331,6 +352,9 @@ export default function App() {
   const artistTracks = catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
   const streamArtist = trackInfo?.artist || selectedTrack?.artist || artistName;
   const activeListeners = listeners.filter(listener => listener.status === 'connected').length;
+  const totalRoyaltyWei = royaltyPayments.reduce((total, payment) => total + payment.amountWei, 0n);
+  const uniqueRoyaltyListeners = new Set(royaltyPayments.map(payment => payment.listener.toLowerCase())).size;
+  const paidRoyaltyTracks = new Set(royaltyPayments.map(payment => payment.trackHash.toLowerCase())).size;
   const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
   const artistStudioLocked = artistRegistrationAvailable && !artistRuntimeAddress;
   const releaseStepIndex = releaseSteps.findIndex(step => step.id === releaseStep);
@@ -401,6 +425,11 @@ export default function App() {
   useEffect(() => {
     void refreshCatalogFromRegistry();
   }, [directoryAddress, ethRpcUrl]);
+
+  useEffect(() => {
+    if (activeView !== 'artist' || artistTab !== 'royalties') return;
+    void refreshArtistRoyalties();
+  }, [activeView, artistTab, artistRuntimeAddress, ethRpcUrl, catalogTracks.length, activeEvmAddress, artistName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -887,6 +916,83 @@ export default function App() {
       setSelectedTrackId('');
       setCatalogStatus(message);
       return [];
+    }
+  }
+
+  async function refreshArtistRoyalties(showBusy = false) {
+    if (!artistRuntimeAddress) {
+      setRoyaltyPayments([]);
+      setRoyaltyStatus('Create an artist profile to track payments');
+      return;
+    }
+
+    if (showBusy) {
+      setIsRefreshingRoyalties(true);
+    }
+
+    setRoyaltyStatus('Reading artist runtime payments');
+
+    try {
+      const client = getPublicClient(ethRpcUrl);
+      const trackByHash = new Map(artistTracks.map(track => [track.hash.toLowerCase(), track]));
+      const logs = await client.getLogs({
+        address: artistRuntimeAddress,
+        event: musicRoyAccessPaidEvent,
+        fromBlock: 0n,
+        toBlock: 'latest'
+      });
+      const blockTimestampsByNumber = new Map<string, bigint>();
+      await Promise.all(
+        Array.from(new Set(logs.map(log => log.blockNumber.toString()))).map(async blockNumber => {
+          const block = await client.getBlock({ blockNumber: BigInt(blockNumber) });
+          blockTimestampsByNumber.set(blockNumber, block.timestamp);
+        })
+      );
+
+      const payments = logs
+        .map(log => {
+          const trackHash = log.args.contentHash;
+          const listener = log.args.listener;
+          const amountWei = log.args.amount;
+
+          if (!trackHash || !listener || amountWei === undefined) {
+            return null;
+          }
+
+          const track = trackByHash.get(trackHash.toLowerCase());
+
+          return {
+            id: `${log.transactionHash}-${log.logIndex}`,
+            trackHash,
+            trackTitle: track?.title ?? shorten(trackHash, 14),
+            listener,
+            amountWei,
+            amountDot: formatWeiAsDot(amountWei),
+            paidAtMs: formatBlockTimestampMs(blockTimestampsByNumber.get(log.blockNumber.toString())),
+            transactionHash: log.transactionHash,
+            blockNumber: log.blockNumber,
+            logIndex: log.logIndex
+          } satisfies RoyaltyPayment;
+        })
+        .filter((payment): payment is RoyaltyPayment => Boolean(payment))
+        .sort((left, right) => {
+          if (left.blockNumber !== right.blockNumber) {
+            return left.blockNumber > right.blockNumber ? -1 : 1;
+          }
+
+          return right.logIndex - left.logIndex;
+        });
+
+      setRoyaltyPayments(payments);
+      setRoyaltyStatus(payments.length > 0 ? 'Payments indexed from your runtime' : 'No access payments received yet');
+    } catch (royaltyError) {
+      const message = royaltyError instanceof Error ? royaltyError.message : 'Unable to load royalty payments';
+      setRoyaltyPayments([]);
+      setRoyaltyStatus(message);
+    } finally {
+      if (showBusy) {
+        setIsRefreshingRoyalties(false);
+      }
     }
   }
 
@@ -2553,6 +2659,138 @@ export default function App() {
                 </section>
               )}
 
+              {artistTab === 'royalties' && (
+                <section className='content-grid royalties-grid'>
+                  <div className='doc-panel royalties-panel'>
+                    <PanelTitle icon={Wallet} title='Royalty ledger' meta={artistRuntimeAddress ? 'on-chain payments' : 'profile needed'} />
+                    <div className='royalty-summary-grid'>
+                      <Metric label='received' value={`${formatWeiAsDot(totalRoyaltyWei)} DOT`} />
+                      <Metric label='payments' value={royaltyPayments.length.toString()} />
+                      <Metric label='listeners' value={uniqueRoyaltyListeners.toString()} />
+                      <Metric label='tracks paid' value={paidRoyaltyTracks.toString()} />
+                    </div>
+                    <div className='royalty-toolbar'>
+                      <p className='rights-status'>{royaltyStatus}</p>
+                      <button
+                        className='secondary-action compact-action'
+                        type='button'
+                        onClick={() => void refreshArtistRoyalties(true)}
+                        disabled={isRefreshingRoyalties || !artistRuntimeAddress}
+                      >
+                        {isRefreshingRoyalties ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
+                        {isRefreshingRoyalties ? 'Refreshing…' : 'Refresh ledger'}
+                      </button>
+                    </div>
+
+                    <div className='royalty-ledger-list'>
+                      {royaltyPayments.length > 0 ? (
+                        royaltyPayments.map(payment => {
+                          const isExpanded = expandedRoyaltyPaymentId === payment.id;
+
+                          return (
+                            <article className='royalty-entry' data-expanded={isExpanded} key={payment.id}>
+                              <button
+                                className='royalty-row'
+                                type='button'
+                                aria-expanded={isExpanded}
+                                aria-controls={`royalty-details-${payment.id}`}
+                                onClick={() => setExpandedRoyaltyPaymentId(current => (current === payment.id ? null : payment.id))}
+                              >
+                                <div className='royalty-row-main'>
+                                  <strong>{payment.trackTitle}</strong>
+                                  <span>{formatPaymentDate(payment.paidAtMs)}</span>
+                                </div>
+                                <div className='royalty-row-side'>
+                                  <strong>{payment.amountDot} DOT</strong>
+                                  <span>
+                                    Details
+                                    <ChevronDown size={15} />
+                                  </span>
+                                </div>
+                              </button>
+
+                              {isExpanded && (
+                                <div className='royalty-details' id={`royalty-details-${payment.id}`}>
+                                  <EndpointRow label='Paid at' value={formatPaymentDate(payment.paidAtMs)} />
+                                  <EndpointRow
+                                    label='Listener wallet'
+                                    value={
+                                      <a className='verify-link' href={getBlockscoutAddressUrl(payment.listener)} target='_blank' rel='noreferrer'>
+                                        {shorten(payment.listener, 14)}
+                                      </a>
+                                    }
+                                  />
+                                  <EndpointRow
+                                    label='Block'
+                                    value={
+                                      <a className='verify-link' href={getBlockscoutBlockUrl(payment.blockNumber)} target='_blank' rel='noreferrer'>
+                                        {payment.blockNumber.toString()}
+                                      </a>
+                                    }
+                                  />
+                                  <EndpointRow
+                                    label='Track hash'
+                                    value={
+                                      <div className='endpoint-link-stack'>
+                                        <code>{shorten(payment.trackHash, 18)}</code>
+                                        <a className='verify-link' href={getBlockscoutTxUrl(payment.transactionHash)} target='_blank' rel='noreferrer'>
+                                          Source event
+                                        </a>
+                                      </div>
+                                    }
+                                  />
+                                  <EndpointRow
+                                    label='Transaction receipt'
+                                    value={
+                                      <a className='verify-link' href={getBlockscoutTxUrl(payment.transactionHash)} target='_blank' rel='noreferrer'>
+                                        {shorten(payment.transactionHash, 14)}
+                                      </a>
+                                    }
+                                  />
+                                  {artistRuntimeAddress && (
+                                    <EndpointRow
+                                      label='Artist runtime'
+                                      value={
+                                        <a className='verify-link' href={getBlockscoutAddressUrl(artistRuntimeAddress)} target='_blank' rel='noreferrer'>
+                                          {shorten(artistRuntimeAddress, 14)}
+                                        </a>
+                                      }
+                                    />
+                                  )}
+                                  <EndpointRow label='Log index' value={payment.logIndex.toString()} />
+                                </div>
+                              )}
+                            </article>
+                          );
+                        })
+                      ) : (
+                        <div className='empty-state'>
+                          {artistRuntimeAddress ? 'No paid unlocks recorded yet.' : 'Create an artist profile before tracking payments.'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className='doc-panel royalties-context-panel'>
+                    <PanelTitle icon={CircleCheckBig} title='Direct settlement' meta='artist-owned' />
+                    <div className='principle-list'>
+                      <div>
+                        <strong>Runtime ledger</strong>
+                        <span>Every row comes from a payment event emitted by your artist runtime.</span>
+                      </div>
+                      <div>
+                        <strong>Listener proof</strong>
+                        <span>The listener wallet and transaction stay verifiable without platform accounts.</span>
+                      </div>
+                      <div>
+                        <strong>Open accounting</strong>
+                        <span>Amounts are shown in DOT and each payment links back to Blockscout.</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
               {artistTab === 'advanced' && (
                 <section className='content-grid artist-grid'>
                   <div className='doc-panel contract-panel'>
@@ -3008,6 +3246,10 @@ function getBlockscoutTxUrl(txHash: `0x${string}`) {
   return `${blockscoutBaseUrl}/tx/${txHash}`;
 }
 
+function getBlockscoutBlockUrl(blockNumber: bigint) {
+  return `${blockscoutBaseUrl}/block/${blockNumber.toString()}`;
+}
+
 function resolveVisualAssetRef(assetRef: string, title: string) {
   if (!assetRef) {
     return coverImage('#06152d', '#2bb3ff', title);
@@ -3072,6 +3314,27 @@ function formatPlanckAsDot(planck: bigint) {
   const whole = planck / 10_000_000_000n;
   const fraction = (planck % 10_000_000_000n).toString().padStart(10, '0').replace(/0+$/, '');
   return fraction ? `${whole}.${fraction}` : whole.toString();
+}
+
+function formatWeiAsDot(wei: bigint) {
+  const [whole = '0', fraction = ''] = formatEther(wei).split('.');
+  const trimmedFraction = fraction.replace(/0+$/, '').slice(0, 4);
+  return trimmedFraction ? `${whole}.${trimmedFraction}` : whole;
+}
+
+function formatBlockTimestampMs(timestamp: bigint | undefined) {
+  return timestamp === undefined ? null : Number(timestamp) * 1000;
+}
+
+function formatPaymentDate(timestampMs: number | null) {
+  if (timestampMs === null) return 'Date unavailable';
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(timestampMs));
 }
 
 function getTimestamp() {
