@@ -1,0 +1,602 @@
+import { useRef, useState } from 'react';
+import { getGatewayUrl } from '../services/pinata';
+import {
+  ensureContract,
+  getPublicClient,
+  artistDirectoryAbi,
+  musicRegistryAbi,
+  musicAccessAbi
+} from '../config/contracts';
+import { encodeAudioBufferPreviewAsWav } from '../utils/audio';
+import { formatPlanckAsDot } from '../utils/format';
+import { fetchIpfsCid } from '../services/pinata';
+import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../utils/protectedAudio';
+import type {
+  AccessGate,
+  AccessMode,
+  CatalogTrack,
+  OnchainTrackRecord,
+  PersonhoodLevel,
+  PlayerState,
+  RegistryCatalogTrack,
+  TrackInfo,
+  TransactionFeedback
+} from '../types';
+import type { ConnectedWallet } from './useWallet';
+
+type AudioContextWindow = Window &
+  typeof globalThis & {
+    webkitAudioContext?: typeof AudioContext;
+  };
+
+const PREVIEW_RATIO = 0.42;
+const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
+
+function coverImage(primary: string, secondary: string, label: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640"><rect width="640" height="640" fill="${primary}"/><circle cx="490" cy="120" r="210" fill="${secondary}" opacity=".72"/><circle cx="160" cy="520" r="190" fill="#c8ff4d" opacity=".78"/><text x="48" y="108" fill="#fff" font-family="Manrope,Arial,sans-serif" font-size="42" font-weight="800">${label}</text><path d="M230 242c0-25 20-45 45-45h98v62h-70v132c0 34-28 62-62 62s-62-28-62-62 28-62 62-62c13 0 25 4 35 11v-98h-46Z" fill="#fff" opacity=".92"/></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+function resolveVisualAssetRef(assetRef: string, title: string) {
+  if (!assetRef) {
+    return coverImage('#06152d', '#2bb3ff', title);
+  }
+  if (assetRef.startsWith('ipfs://')) {
+    return getGatewayUrl(assetRef.slice('ipfs://'.length));
+  }
+  if (assetRef.startsWith('http://') || assetRef.startsWith('https://') || assetRef.startsWith('data:') || assetRef.startsWith('blob:')) {
+    return assetRef;
+  }
+  return coverImage('#06152d', '#2bb3ff', title);
+}
+
+function resolveAudioAssetRef(assetRef: string) {
+  if (!assetRef) return undefined;
+  if (isEncryptedAudioRef(assetRef)) {
+    return getGatewayUrl(encryptedRefToCID(assetRef));
+  }
+  if (assetRef.startsWith('ipfs://')) {
+    return getGatewayUrl(assetRef.slice('ipfs://'.length));
+  }
+  if (assetRef.startsWith('http://') || assetRef.startsWith('https://') || assetRef.startsWith('blob:') || assetRef.startsWith('data:')) {
+    return assetRef;
+  }
+  return undefined;
+}
+
+function createTrackInfo(
+  title: string,
+  artist: string,
+  hash: `0x${string}` | '',
+  bulletinRef: string,
+  duration = 0,
+  metadata: Partial<TrackInfo> = {}
+): TrackInfo {
+  return {
+    title: title.trim() || 'Untitled',
+    artist: artist.trim() || 'Unknown artist',
+    hash,
+    bulletinRef,
+    duration,
+    updatedAt: Date.now(),
+    ...metadata
+  };
+}
+
+function createTrackInfoFromCatalog(track: CatalogTrack): TrackInfo {
+  return createTrackInfo(track.title, track.artist, track.hash, track.bulletinRef, track.duration ?? 0, {
+    imageRef: track.imageRef,
+    audioRef: track.audioRef,
+    metadataRef: track.metadataRef,
+    description: track.description,
+    accessMode: track.accessMode,
+    priceDot: track.priceDot,
+    personhoodLevel: track.personhoodLevel
+  });
+}
+
+export type UseCatalogDeps = {
+  ethRpcUrl: string;
+  listenerEvmAddress: `0x${string}` | null;
+  connectedWallet: ConnectedWallet | null;
+  directoryAddress: `0x${string}` | undefined;
+  setShowWalletModal: (show: boolean) => void;
+  setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
+  navigateToView: (view: 'listen' | 'player' | 'rooms' | 'artist') => void;
+  getActiveWalletClient: () => Promise<Awaited<ReturnType<typeof import('../config/contracts').getWalletClient>>>;
+  setBulletinManifestRef: (ref: string) => void;
+  setAccessMode: (mode: AccessMode) => void;
+  setPriceDot: (price: string) => void;
+  setPersonhoodLevel: (level: PersonhoodLevel) => void;
+  setArtistName: (name: string) => void;
+  setDescription: (desc: string) => void;
+  setTitle: (title: string) => void;
+};
+
+export function useCatalog(deps: UseCatalogDeps) {
+  const {
+    ethRpcUrl,
+    listenerEvmAddress,
+    connectedWallet,
+    directoryAddress,
+    setShowWalletModal,
+    setTransactionFeedback,
+    setTitle,
+    navigateToView,
+    getActiveWalletClient,
+    setBulletinManifestRef,
+    setAccessMode,
+    setPriceDot,
+    setPersonhoodLevel,
+    setArtistName,
+    setDescription
+  } = deps;
+
+  const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>([]);
+  const [catalogStatus, setCatalogStatus] = useState('Loading registry catalog');
+  const [selectedTrackId, setSelectedTrackId] = useState('');
+  const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
+  const [audioSource, setAudioSource] = useState<string | null>(null);
+  const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
+  const [playerState, setPlayerState] = useState<PlayerState | null>(null);
+  const [accessGate, setAccessGate] = useState<AccessGate | null>(null);
+  const [fileHash, setFileHashState] = useState<`0x${string}` | ''>('');
+  const [audioCID, setAudioCID] = useState('');
+  const [coverCID, setCoverCID] = useState('');
+  const [coverSource, setCoverSource] = useState(() => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640"><rect width="640" height="640" fill="#06152d"/><circle cx="490" cy="120" r="210" fill="#2bb3ff" opacity=".72"/><circle cx="160" cy="520" r="190" fill="#c8ff4d" opacity=".78"/><text x="48" y="108" fill="#fff" font-family="Manrope,Arial,sans-serif" font-size="42" font-weight="800">Dotify</text><path d="M230 242c0-25 20-45 45-45h98v62h-70v132c0 34-28 62-62 62s-62-28-62-62 28-62 62-62c13 0 25 4 35 11v-98h-46Z" fill="#fff" opacity=".92"/></svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  });
+
+  const objectUrlsRef = useRef<Set<string>>(new Set());
+  const resolvedAudioSourcesRef = useRef<Map<string, string>>(new Map());
+  const audioUploadRef = useRef<Promise<string> | null>(null);
+  const coverUploadRef = useRef<Promise<string> | null>(null);
+  const localAudioRef = useRef<HTMLAudioElement | null>(null);
+  const previewOnlyRef = useRef(false);
+  const previewLimitRef = useRef<number | null>(null);
+
+  function internalSetFileHash(hash: `0x${string}` | '') {
+    setFileHashState(hash);
+  }
+
+  async function checkTrackAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
+    if (track.source !== 'artist' || !track.id.includes(':')) return true;
+    if (!listenerAddress) return false;
+    const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
+    try {
+      return (await getPublicClient(ethRpcUrl).readContract({
+        address: runtimeAddress,
+        abi: musicAccessAbi,
+        functionName: 'musicAccCanAccess',
+        args: [track.hash, listenerAddress]
+      })) as boolean;
+    } catch {
+      return false;
+    }
+  }
+
+  function buildAccessGateInfo(track: CatalogTrack): AccessGate {
+    if (!connectedWallet) {
+      if (track.accessMode === 'classic') {
+        return {
+          track,
+          title: 'Payment unlock',
+          message: `"${track.title}" costs ${track.priceDot} DOT for full access. Connect a wallet first, then pay the artist directly.`,
+          hint: 'No account required. Your wallet handles the payment and access proof.',
+          actionType: 'signin'
+        };
+      }
+      return {
+        track,
+        title: 'Proof needed',
+        message: `"${track.title}" is protected by the artist. You can preview 42% now; connect a wallet to prove access without creating an account.`,
+        hint: 'Your wallet is your key. Dotify does not need your private information.',
+        actionType: 'signin'
+      };
+    }
+
+    if (track.accessMode === 'human-free') {
+      return {
+        track,
+        title: 'Proof Of Personhood required',
+        message: `"${track.title}" is reserved for listeners with ${track.personhoodLevel} personhood proof. You can preview 42% now.`,
+        hint: 'Personhood proves you are a real human.',
+        actionType: 'personhood'
+      };
+    }
+    return {
+      track,
+      title: 'Payment unlock',
+      message: `"${track.title}" unlocks after a ${track.priceDot} DOT payment. You can preview 42% now.`,
+      hint: 'Your payment goes Directly to the artist, not an opaque intermediary account.',
+      actionType: 'payment'
+    };
+  }
+
+  function setupPreviewLimit() {
+    const audio = localAudioRef.current;
+    if (!audio || !previewOnlyRef.current || !Number.isFinite(audio.duration)) return;
+    previewLimitRef.current = audio.duration * PREVIEW_RATIO;
+  }
+
+  function enforcePreviewCutoff(catalogTracksSnapshot: CatalogTrack[], selectedTrackIdSnapshot: string) {
+    const audio = localAudioRef.current;
+    const limit = previewLimitRef.current;
+    if (!audio || limit === null || audio.paused) return;
+    if (audio.currentTime >= limit) {
+      audio.pause();
+      const track = catalogTracksSnapshot.find(t => t.id === selectedTrackIdSnapshot) ?? null;
+      if (track) setAccessGate(buildAccessGateInfo(track));
+    }
+  }
+
+  async function createPreviewAudioObjectUrl(audioBytes: Uint8Array, cacheKey: string): Promise<string> {
+    const AudioContextCtor = window.AudioContext ?? (window as AudioContextWindow).webkitAudioContext;
+    if (!AudioContextCtor) throw new Error('Audio previews are not supported in this browser.');
+
+    const audioContext = new AudioContextCtor();
+    try {
+      const audioData = audioBytes.buffer.slice(audioBytes.byteOffset, audioBytes.byteOffset + audioBytes.byteLength);
+      const audioBuffer = await audioContext.decodeAudioData(audioData);
+      const previewFrameCount = Math.max(1, Math.floor(audioBuffer.length * PREVIEW_RATIO));
+      const previewBytes = encodeAudioBufferPreviewAsWav(audioBuffer, previewFrameCount);
+      const objectUrl = URL.createObjectURL(new Blob([previewBytes], { type: 'audio/wav' }));
+      objectUrlsRef.current.add(objectUrl);
+      resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
+      return objectUrl;
+    } finally {
+      await audioContext.close();
+    }
+  }
+
+  async function resolvePlayableAudioSource(source: string, cacheKey: string, options: { previewOnly: boolean }): Promise<string> {
+    if (!options.previewOnly) return source;
+
+    const previewCacheKey = `${cacheKey}:preview`;
+    const cached = resolvedAudioSourcesRef.current.get(previewCacheKey);
+    if (cached) return cached;
+
+    const response = await fetch(source);
+    if (!response.ok) throw new Error(`Unable to fetch preview audio (${response.status})`);
+
+    const sourceBytes = new Uint8Array(await response.arrayBuffer());
+    return createPreviewAudioObjectUrl(sourceBytes, previewCacheKey);
+  }
+
+  async function fetchAndDecryptAudio(audioRef: string, gatewayUrl: string, contentHash: `0x${string}`, options: { previewOnly: boolean }): Promise<string> {
+    const cacheKey = options.previewOnly ? `${audioRef}:preview` : audioRef;
+    const cached = resolvedAudioSourcesRef.current.get(cacheKey);
+    if (cached) return cached;
+
+    const response = isEncryptedAudioRef(audioRef) ? await fetchIpfsCid(encryptedRefToCID(audioRef)) : await fetch(gatewayUrl);
+    if (!response.ok) throw new Error(`Unable to fetch encrypted audio (${response.status})`);
+
+    const encryptedBytes = new Uint8Array(await response.arrayBuffer());
+    const clearBytes = await decryptTrackAudio(encryptedBytes, contentHash);
+    if (options.previewOnly) {
+      return createPreviewAudioObjectUrl(clearBytes, cacheKey);
+    }
+
+    const blob = new Blob([clearBytes]);
+    const objectUrl = URL.createObjectURL(blob);
+    objectUrlsRef.current.add(objectUrl);
+    resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
+    return objectUrl;
+  }
+
+  async function selectTrack(track: CatalogTrack, socketEmit?: (event: string, data: unknown) => void, setLocalStreamReady?: (ready: boolean) => void, closeHostPeers?: () => void) {
+    setSelectedTrackId(track.id);
+    setTitle(track.title);
+    setArtistName(track.artist);
+    setDescription(track.description);
+    setCoverSource(track.imageRef);
+    setBulletinManifestRef(track.metadataRef);
+    internalSetFileHash(track.hash);
+    setAccessMode(track.accessMode);
+    setPriceDot(track.priceDot);
+    setPersonhoodLevel(track.personhoodLevel);
+    setTrackInfo(createTrackInfoFromCatalog(track));
+    setPlayerState(null);
+    setAccessGate(null);
+    previewOnlyRef.current = false;
+    previewLimitRef.current = null;
+
+    let audioUrl: string | null = null;
+
+    if (track.localUrl) {
+      const hasAccess = await checkTrackAccess(track, listenerEvmAddress);
+      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
+      const previewOnly = !hasAccess;
+      previewOnlyRef.current = previewOnly;
+
+      audioUrl = track.encrypted
+        ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, { previewOnly }).catch(() => null)
+        : await resolvePlayableAudioSource(track.localUrl, track.audioRef, { previewOnly }).catch(() => null);
+
+      if (previewOnly) {
+        setAccessGate(buildAccessGateInfo(track));
+      }
+    }
+
+    setAudioSource(audioUrl);
+
+    if (!audioUrl) {
+      if (setLocalStreamReady) setLocalStreamReady(false);
+      if (closeHostPeers) closeHostPeers();
+    }
+
+    if (socketEmit) {
+      socketEmit('room:track', createTrackInfoFromCatalog(track));
+    }
+  }
+
+  async function openTrack(track: CatalogTrack, socketEmit?: (event: string, data: unknown) => void, setLocalStreamReady?: (ready: boolean) => void, closeHostPeers?: () => void) {
+    navigateToView('player');
+    await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+  }
+
+  async function payForTrackAccess(track: CatalogTrack) {
+    if (!connectedWallet) {
+      setAccessGate(buildAccessGateInfo(track));
+      setShowWalletModal(true);
+      return;
+    }
+
+    const { musicRoyaltiesAbi, getPublicClient: getClient } = await import('../config/contracts');
+    const { dotToPlanck } = await import('../utils/format');
+
+    const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
+    const priceWei = dotToPlanck(track.priceDot) * 100_000_000n;
+
+    setAccessGate(null);
+    setTransactionFeedback({
+      tone: 'pending',
+      title: 'Processing payment',
+      message: `Paying ${track.priceDot} DOT to unlock "${track.title}".`
+    });
+
+    try {
+      const walletClient = await getActiveWalletClient();
+      const txHash = await walletClient.writeContract({
+        address: runtimeAddress,
+        abi: musicRoyaltiesAbi,
+        functionName: 'musicRoyPayAccess',
+        args: [track.hash],
+        value: priceWei
+      });
+      setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Payment submitted.', txHash });
+      await getClient(ethRpcUrl).waitForTransactionReceipt({ hash: txHash });
+
+      previewOnlyRef.current = false;
+      previewLimitRef.current = null;
+      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+      setTransactionFeedback({ tone: 'success', title: 'Access unlocked', message: `Full playback of "${track.title}" is now available.`, txHash });
+      await selectTrack(track, undefined, undefined, undefined);
+    } catch (payError) {
+      const message = payError instanceof Error ? payError.message : 'Payment failed';
+      setTransactionFeedback({ tone: 'error', title: 'Payment failed', message });
+    }
+  }
+
+  async function fetchDirectoryEntries(client: ReturnType<typeof getPublicClient>, registryAddress: `0x${string}`, artistCount: bigint) {
+    const pageSize = 50n;
+    const entries: Array<{ artist: `0x${string}`; runtime: `0x${string}` }> = [];
+
+    for (let offset = 0n; offset < artistCount; offset += pageSize) {
+      const limit = artistCount - offset > pageSize ? pageSize : artistCount - offset;
+      const [artists, runtimes] = (await client.readContract({
+        address: registryAddress,
+        abi: artistDirectoryAbi,
+        functionName: 'artistsPage',
+        args: [offset, limit]
+      })) as [`0x${string}`[], `0x${string}`[]];
+
+      for (let index = 0; index < artists.length; index += 1) {
+        const artist = artists[index];
+        const runtime = runtimes[index];
+        if (!artist || !runtime || runtime === zeroAddress) continue;
+        entries.push({ artist, runtime });
+      }
+    }
+
+    return entries;
+  }
+
+  async function fetchRuntimeCatalog(
+    client: ReturnType<typeof getPublicClient>,
+    artistAddress: `0x${string}`,
+    runtimeAddress: `0x${string}`
+  ): Promise<RegistryCatalogTrack[]> {
+    const trackCount = (await client.readContract({
+      address: runtimeAddress,
+      abi: musicRegistryAbi,
+      functionName: 'musicRegTrackCount'
+    })) as bigint;
+
+    const tracks: Array<RegistryCatalogTrack | null> = await Promise.all(
+      Array.from({ length: Number(trackCount) }, async (_, index) => {
+        const hash = (await client.readContract({
+          address: runtimeAddress,
+          abi: musicRegistryAbi,
+          functionName: 'musicRegTrackHashAtIndex',
+          args: [BigInt(index)]
+        })) as `0x${string}`;
+
+        const [track] = (await client.readContract({
+          address: runtimeAddress,
+          abi: musicRegistryAbi,
+          functionName: 'musicRegGetTrack',
+          args: [hash]
+        })) as [OnchainTrackRecord, `0x${string}`];
+
+        if (!track.active) {
+          return null;
+        }
+
+        const imageRef = resolveVisualAssetRef(track.imageRef, track.title);
+        const encrypted = isEncryptedAudioRef(track.audioRef);
+        const localUrl = resolveAudioAssetRef(track.audioRef);
+
+        return {
+          id: `${runtimeAddress}:${hash}`,
+          hash,
+          title: track.title,
+          artist: track.artistName,
+          artistAddress: track.artist || artistAddress,
+          audioRef: track.audioRef,
+          imageRef,
+          priceDot: formatPlanckAsDot(track.pricePlanck),
+          localUrl,
+          description: track.description,
+          bulletinRef: track.metadataRef.startsWith('paseo-bulletin:') ? track.metadataRef : '',
+          metadataRef: track.metadataRef,
+          royaltyBps: Number(track.royaltyBps),
+          txHash: undefined,
+          durationLabel: 'ready',
+          accessMode: (track.accessMode === 1 ? 'classic' : 'human-free') as AccessMode,
+          source: 'artist' as const,
+          royaltySplits: [],
+          personhoodLevel: track.requiredPersonhood === 2 ? 'DIM2' : 'DIM1',
+          zone: 'Registry',
+          encrypted,
+          registeredAtBlock: Number(track.registeredAtBlock)
+        };
+      })
+    );
+
+    return tracks.flatMap(track => (track ? [track] : []));
+  }
+
+  async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
+    if (!directoryAddress) {
+      setCatalogTracks([]);
+      setSelectedTrackId('');
+      setCatalogStatus('Registry directory not configured');
+      return [];
+    }
+
+    setCatalogStatus('Loading registry catalog');
+
+    try {
+      const directoryExists = await ensureContract(directoryAddress, ethRpcUrl);
+      if (!directoryExists) {
+        setCatalogTracks([]);
+        setSelectedTrackId('');
+        setCatalogStatus('Registry directory unavailable');
+        return [];
+      }
+
+      const client = getPublicClient(ethRpcUrl);
+      const artistCount = (await client.readContract({
+        address: directoryAddress,
+        abi: artistDirectoryAbi,
+        functionName: 'artistCount'
+      })) as bigint;
+
+      if (artistCount === 0n) {
+        setCatalogTracks([]);
+        setSelectedTrackId('');
+        setCatalogStatus('No tracks registered on this directory yet');
+        return [];
+      }
+
+      const entries = await fetchDirectoryEntries(client, directoryAddress, artistCount);
+      const runtimeCatalogs = await Promise.all(
+        entries.map(async entry => {
+          try {
+            return await fetchRuntimeCatalog(client, entry.artist, entry.runtime);
+          } catch (runtimeError) {
+            console.warn(`Failed to load runtime catalog for ${entry.runtime}`, runtimeError);
+            return [];
+          }
+        })
+      );
+      const nextCatalog = runtimeCatalogs
+        .flat()
+        .sort((left, right) => {
+          if (left.registeredAtBlock !== right.registeredAtBlock) {
+            return right.registeredAtBlock - left.registeredAtBlock;
+          }
+          return left.title.localeCompare(right.title);
+        })
+        .map(({ registeredAtBlock: _registeredAtBlock, ...track }): CatalogTrack => track);
+
+      setCatalogTracks(nextCatalog);
+      setSelectedTrackId(previous => {
+        const preferredTrack = preferredTrackHash ? nextCatalog.find(track => track.hash.toLowerCase() === preferredTrackHash.toLowerCase()) : null;
+        if (preferredTrack) return preferredTrack.id;
+        return nextCatalog.some(track => track.id === previous) ? previous : (nextCatalog[0]?.id ?? '');
+      });
+      setCatalogStatus(
+        nextCatalog.length > 0
+          ? `Loaded ${nextCatalog.length} registered track${nextCatalog.length > 1 ? 's' : ''}`
+          : 'No tracks registered on this directory yet'
+      );
+      return nextCatalog;
+    } catch (catalogError) {
+      const message = catalogError instanceof Error ? catalogError.message : 'Unable to load registry catalog';
+      console.warn('Failed to load registry catalog', catalogError);
+      setCatalogTracks([]);
+      setSelectedTrackId('');
+      setCatalogStatus(message);
+      return [];
+    }
+  }
+
+  function clearObjectUrls() {
+    for (const url of objectUrlsRef.current.values()) {
+      URL.revokeObjectURL(url);
+    }
+    resolvedAudioSourcesRef.current.clear();
+  }
+
+  return {
+    // State
+    catalogTracks,
+    catalogStatus,
+    selectedTrackId,
+    setSelectedTrackId,
+    catalogAccessByTrackId,
+    setCatalogAccessByTrackId,
+    audioSource,
+    setAudioSource,
+    trackInfo,
+    setTrackInfo,
+    coverSource,
+    setCoverSource,
+    playerState,
+    setPlayerState,
+    accessGate,
+    setAccessGate,
+    fileHash,
+    setFileHash: internalSetFileHash,
+    audioCID,
+    setAudioCID,
+    coverCID,
+    setCoverCID,
+    // Refs
+    objectUrlsRef,
+    resolvedAudioSourcesRef,
+    audioUploadRef,
+    coverUploadRef,
+    localAudioRef,
+    previewOnlyRef,
+    previewLimitRef,
+    // Functions
+    selectTrack,
+    openTrack,
+    checkTrackAccess,
+    buildAccessGateInfo,
+    setupPreviewLimit,
+    enforcePreviewCutoff,
+    payForTrackAccess,
+    fetchAndDecryptAudio,
+    resolvePlayableAudioSource,
+    createPreviewAudioObjectUrl,
+    refreshCatalogFromRegistry,
+    fetchDirectoryEntries,
+    fetchRuntimeCatalog,
+    clearObjectUrls
+  };
+}
