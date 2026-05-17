@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { LibDiamond } from "../libraries/LibDiamond.sol";
+import { LibDiamond } from '../libraries/LibDiamond.sol';
 
 /// @title OwnershipPallet
 /// @notice Smart Pallet for managing the Smart Runtime's owner.
@@ -14,18 +14,18 @@ import { LibDiamond } from "../libraries/LibDiamond.sol";
 ///         this pallet with an upgraded version — no redeployment of the Smart
 ///         Runtime required.
 contract OwnershipPallet {
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-    /// @notice Returns the current owner of the Smart Runtime.
-    function owner() external view returns (address owner_) {
-        owner_ = LibDiamond.contractOwner();
-    }
+  /// @notice Returns the current owner of the Smart Runtime.
+  function owner() external view returns (address owner_) {
+    owner_ = LibDiamond.contractOwner();
+  }
 
-    /// @notice Transfer ownership of the Smart Runtime to `newOwner`.
-    /// @dev Only callable by the current owner.
-    function transferOwnership(address newOwner) external {
-        LibDiamond.enforceIsContractOwner();
-        require(newOwner != address(0), "OwnershipPallet: new owner is zero");
-        LibDiamond.setContractOwner(newOwner);
-    }
+  /// @notice Transfer ownership of the Smart Runtime to `newOwner`.
+  /// @dev Only callable by the current owner.
+  function transferOwnership(address newOwner) external {
+    LibDiamond.enforceIsContractOwner();
+    require(newOwner != address(0), 'OwnershipPallet: new owner is zero');
+    LibDiamond.setContractOwner(newOwner);
+  }
 }

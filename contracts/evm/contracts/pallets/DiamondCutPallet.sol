@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { IDiamondCut } from "../interfaces/IDiamondCut.sol";
-import { LibDiamond } from "../libraries/LibDiamond.sol";
+import { IDiamondCut } from '../interfaces/IDiamondCut.sol';
+import { LibDiamond } from '../libraries/LibDiamond.sol';
 
 /// @title DiamondCutPallet
 /// @notice Smart Pallet responsible for upgrading the Smart Runtime.
@@ -16,15 +16,11 @@ import { LibDiamond } from "../libraries/LibDiamond.sol";
 ///           3. The Smart Runtime now routes those selectors to the new pallet —
 ///              no full redeployment needed (forkless upgrade).
 contract DiamondCutPallet is IDiamondCut {
-    /// @inheritdoc IDiamondCut
-    /// @dev Executed via delegatecall inside SmartRuntime, so `address(this)` is
-    ///      SmartRuntime and storage mutations land in SmartRuntime's slot.
-    function diamondCut(
-        FacetCut[] calldata cuts,
-        address init,
-        bytes calldata initCalldata
-    ) external override {
-        LibDiamond.enforceIsContractOwner();
-        LibDiamond.diamondCut(cuts, init, initCalldata);
-    }
+  /// @inheritdoc IDiamondCut
+  /// @dev Executed via delegatecall inside SmartRuntime, so `address(this)` is
+  ///      SmartRuntime and storage mutations land in SmartRuntime's slot.
+  function diamondCut(FacetCut[] calldata cuts, address init, bytes calldata initCalldata) external override {
+    LibDiamond.enforceIsContractOwner();
+    LibDiamond.diamondCut(cuts, init, initCalldata);
+  }
 }
