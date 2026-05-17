@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dotify — Shared listening, artist sovereignty, cultural connection</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #08070f;
+        --panel: #14111f;
+        --text: #f5f2ff;
+        --muted: #b9aecf;
+        --accent: #e6007a;
+        --line: rgba(255, 255, 255, 0.12);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(230, 0, 122, 0.22), transparent 32rem),
+          radial-gradient(circle at bottom right, rgba(110, 70, 255, 0.18), transparent 30rem),
+          var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      main { max-width: 1120px; margin: 0 auto; padding: 56px 24px 80px; }
+      header { padding: 56px 0 40px; }
+      .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+      h1 { font-size: clamp(2.6rem, 7vw, 5.5rem); line-height: 0.95; margin: 18px 0; }
+      h2 { font-size: clamp(1.7rem, 4vw, 2.6rem); margin-top: 56px; }
+      h3 { margin-bottom: 8px; }
+      p { color: var(--muted); font-size: 1.08rem; }
+      a { color: var(--text); }
+      .lead { font-size: clamp(1.2rem, 2vw, 1.5rem); max-width: 840px; color: #ded7ef; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-top: 24px; }
+      .card {
+        background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.035));
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 22px;
+        box-shadow: 0 18px 60px rgba(0,0,0,0.25);
+      }
+      .card p { margin-bottom: 0; }
+      .pillrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+      .pill { border: 1px solid var(--line); border-radius: 999px; padding: 8px 13px; color: #eee8ff; background: rgba(255,255,255,0.04); }
+      .cta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px; }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 18px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 700;
+        border: 1px solid var(--line);
+      }
+      .primary { background: var(--accent); border-color: var(--accent); color: white; }
+      code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 7px; }
+      .flow { font-size: 1.1rem; color: #fff; background: rgba(230,0,122,0.12); border: 1px solid rgba(230,0,122,0.32); }
+      footer { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="eyebrow">Dotify / Muzinga</div>
+        <h1>Let the music connect the dots.</h1>
+        <p class="lead">
+          Dotify is a decentralized cultural social hub for real-time shared listening,
+          artist-owned smart runtimes, protected audio access, and human-centered music discovery.
+        </p>
+        <div class="pillrow">
+          <span class="pill">Shared listening</span>
+          <span class="pill">Artist sovereignty</span>
+          <span class="pill">Protected access</span>
+          <span class="pill">Polkadot / Web3</span>
+          <span class="pill">Cultural propagation</span>
+        </div>
+        <div class="cta">
+          <a class="button primary" href="../README.md">Read the repo README</a>
+          <a class="button" href="Dotify_presentation.pptx">Open the presentation</a>
+          <a class="button" href="backlog/README.md">View production backlog</a>
+          <a class="button" href="context/README.md">View project memory</a>
+        </div>
+      </header>
+
+      <section>
+        <h2>Not a Spotify clone</h2>
+        <p>
+          Spotify optimizes individual consumption. Dotify optimizes shared musical presence,
+          artist sovereignty, and cultural transmission. The first felt value should be simple:
+        </p>
+        <div class="card flow"><strong>create a room → share a link → listen together</strong></div>
+      </section>
+
+      <section>
+        <h2>The product promise</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>For listeners</h3>
+            <p>Discover music through people, not only algorithms. Join a room and enter the same listening moment.</p>
+          </article>
+          <article class="card">
+            <h3>For artists</h3>
+            <p>Publish through artist-owned SmartRuntimes with access policy, royalties, and protected audio references.</p>
+          </article>
+          <article class="card">
+            <h3>For communities</h3>
+            <p>Turn isolated listening into a living cultural commons where music travels through human presence.</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Production spine</h2>
+        <div class="grid">
+          <article class="card"><h3>1. Secure keys</h3><p>Move Pinata uploads and content-key delivery behind a backend boundary.</p></article>
+          <article class="card"><h3>2. Unlock access</h3><p>Use wallet-signed key requests and on-chain access checks before full playback.</p></article>
+          <article class="card"><h3>3. Stabilize rooms</h3><p>Hosted signaling, join links, heartbeats, expiry, reconnect states, and clear errors.</p></article>
+          <article class="card"><h3>4. Test critical flows</h3><p>Classic unlock, artist publish, and room join must be deterministic and CI-covered.</p></article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Repository memory</h2>
+        <p>
+          The project keeps its execution memory in <code>docs/backlog/</code> and its long-term product,
+          technical, and philosophical memory in <code>docs/context/</code>. AI coding agents should read
+          <code>AGENTS.md</code> or <code>CLAUDE.md</code> before implementing.
+        </p>
+      </section>
+
+      <footer>
+        Dotify must be as simple as a shared link, as alive as a listening room,
+        as fair as an auditable access policy, and as deep as a cultural commons.
+      </footer>
+    </main>
+  </body>
+</html>
