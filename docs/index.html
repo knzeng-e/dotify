@@ -6,84 +6,230 @@
     <title>Dotify — Shared listening, artist sovereignty, cultural connection</title>
     <style>
       :root {
-        color-scheme: dark;
-        --bg: #08070f;
-        --panel: #14111f;
-        --text: #f5f2ff;
-        --muted: #b9aecf;
-        --accent: #e6007a;
-        --line: rgba(255, 255, 255, 0.12);
+        color-scheme: light;
+        --color-neutral-white: #ffffff;
+        --color-neutral-50: #f8fbff;
+        --color-neutral-100: #eef5fb;
+        --color-neutral-150: #e3edf7;
+        --color-neutral-200: #d5e3ef;
+        --color-neutral-400: #7d8ea1;
+        --color-neutral-600: #3f4a5a;
+        --color-neutral-800: #13233a;
+        --color-neutral-900: #07162a;
+        --fg-primary: #08172a;
+        --fg-secondary: #526174;
+        --fg-tertiary: #8794a4;
+        --bg-surface-main: #f4f8fc;
+        --bg-surface-container: rgba(255, 255, 255, 0.92);
+        --bg-surface-nested: #ffffff;
+        --bg-action-primary: #071a33;
+        --bg-action-primary-hover: #102f57;
+        --bg-action-secondary: #eaf2fa;
+        --bg-action-secondary-hover: #dbeaf7;
+        --bg-navigation: #06152d;
+        --border-default: #dbe7f1;
+        --border-divider: #e7eef6;
+        --focus-ring: #2bb3ff;
+        --dotify-blue: #0477ff;
+        --dotify-blue-dim: rgba(4, 119, 255, 0.11);
+        --dotify-blue-border: rgba(4, 119, 255, 0.26);
+        --dotify-cyan: #2bb3ff;
+        --dotify-cyan-dim: rgba(43, 179, 255, 0.14);
+        --dotify-pink: #e6007a;
+        --dotify-pink-dim: rgba(230, 0, 122, 0.08);
+        --dotify-pink-border: rgba(230, 0, 122, 0.22);
+        --shadow-1: 0 8px 24px -18px rgba(6, 21, 45, 0.36);
+        --shadow-2: 0 18px 48px -32px rgba(6, 21, 45, 0.48);
+        --shadow-3: 0 24px 72px -36px rgba(6, 21, 45, 0.56);
+        --radius-container: 8px;
+        --radius-full: 9999px;
       }
       * { box-sizing: border-box; }
+      *:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
       body {
         margin: 0;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        min-width: 320px;
+        font-family: Manrope, "Avenir Next", Avenir, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
         background:
-          radial-gradient(circle at top left, rgba(230, 0, 122, 0.22), transparent 32rem),
-          radial-gradient(circle at bottom right, rgba(110, 70, 255, 0.18), transparent 30rem),
-          var(--bg);
-        color: var(--text);
+          radial-gradient(circle at 16% -12%, rgba(43, 179, 255, 0.18), transparent 30rem),
+          radial-gradient(circle at 86% 10%, rgba(230, 0, 122, 0.09), transparent 24rem),
+          linear-gradient(180deg, #fbfdff 0%, var(--bg-surface-main) 34rem);
+        color: var(--fg-primary);
         line-height: 1.6;
       }
-      main { max-width: 1120px; margin: 0 auto; padding: 56px 24px 80px; }
-      header { padding: 56px 0 40px; }
-      .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-      h1 { font-size: clamp(2.6rem, 7vw, 5.5rem); line-height: 0.95; margin: 18px 0; }
-      h2 { font-size: clamp(1.7rem, 4vw, 2.6rem); margin-top: 56px; }
-      h3 { margin-bottom: 8px; }
-      p { color: var(--muted); font-size: 1.08rem; }
-      a { color: var(--text); }
-      .lead { font-size: clamp(1.2rem, 2vw, 1.5rem); max-width: 840px; color: #ded7ef; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-top: 24px; }
-      .card {
-        background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.035));
-        border: 1px solid var(--line);
-        border-radius: 22px;
-        padding: 22px;
-        box-shadow: 0 18px 60px rgba(0,0,0,0.25);
+      main { width: min(1180px, 100%); margin: 0 auto; padding: 24px 18px 72px; }
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        min-height: 4rem;
+        border: 1px solid rgba(219, 231, 241, 0.82);
+        border-radius: var(--radius-container);
+        background: rgba(255, 255, 255, 0.84);
+        padding: 0 1rem;
+        box-shadow: var(--shadow-1);
+        backdrop-filter: blur(18px) saturate(1.25);
       }
+      .brand { display: inline-flex; align-items: center; gap: 0.65rem; color: var(--fg-primary); font-weight: 800; text-decoration: none; }
+      .brand-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: var(--radius-full);
+        background: var(--bg-action-primary);
+        color: #ffffff;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 8px 20px -14px rgba(6,21,45,0.8);
+      }
+      .nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
+      .nav a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2rem;
+        border: 1px solid rgba(207, 222, 236, 0.92);
+        border-radius: var(--radius-full);
+        background: rgba(255,255,255,0.76);
+        color: var(--fg-secondary);
+        padding: 0 0.72rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+        gap: 24px;
+        align-items: stretch;
+        padding: 64px 0 40px;
+      }
+      .hero-copy, .hero-card, .card {
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-container);
+        background: var(--bg-surface-container);
+        box-shadow: var(--shadow-2);
+      }
+      .hero-copy { padding: clamp(24px, 4vw, 44px); }
+      .hero-card {
+        overflow: hidden;
+        background: linear-gradient(180deg, rgba(43,179,255,0.12), rgba(255,255,255,0.92) 42%), #ffffff;
+      }
+      .hero-card-inner { padding: 24px; }
+      .eyebrow { color: var(--dotify-pink); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.78rem; }
+      h1 { font-size: clamp(2.65rem, 7vw, 5.7rem); line-height: 0.95; letter-spacing: -0.06em; margin: 18px 0 20px; color: var(--fg-primary); }
+      h2 { font-size: clamp(1.7rem, 4vw, 2.6rem); line-height: 1.05; letter-spacing: -0.04em; margin: 56px 0 16px; }
+      h3 { margin: 0 0 8px; color: var(--fg-primary); }
+      p { color: var(--fg-secondary); font-size: 1.06rem; }
+      a { color: var(--fg-primary); }
+      .lead { font-size: clamp(1.15rem, 2vw, 1.44rem); max-width: 820px; color: var(--fg-secondary); }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 18px; }
+      .card { padding: 22px; }
       .card p { margin-bottom: 0; }
       .pillrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
-      .pill { border: 1px solid var(--line); border-radius: 999px; padding: 8px 13px; color: #eee8ff; background: rgba(255,255,255,0.04); }
-      .cta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px; }
+      .pill {
+        border: 1px solid var(--dotify-blue-border);
+        border-radius: var(--radius-full);
+        padding: 8px 13px;
+        color: var(--dotify-blue);
+        background: var(--dotify-blue-dim);
+        font-weight: 700;
+        font-size: 0.88rem;
+      }
+      .pill.pink { border-color: var(--dotify-pink-border); color: var(--dotify-pink); background: var(--dotify-pink-dim); }
+      .pill.dark { border-color: rgba(7,26,51,0.14); color: #ffffff; background: var(--bg-action-primary); }
+      .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
       .button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 12px 18px;
-        border-radius: 999px;
+        min-height: 2.65rem;
+        padding: 0 1.05rem;
+        border-radius: var(--radius-full);
         text-decoration: none;
-        font-weight: 700;
-        border: 1px solid var(--line);
+        font-weight: 800;
+        border: 1px solid rgba(207, 222, 236, 0.92);
+        background: var(--bg-action-secondary);
+        color: var(--fg-primary);
       }
-      .primary { background: var(--accent); border-color: var(--accent); color: white; }
-      code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 7px; }
-      .flow { font-size: 1.1rem; color: #fff; background: rgba(230,0,122,0.12); border: 1px solid rgba(230,0,122,0.32); }
-      footer { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); }
+      .button:hover { background: var(--bg-action-secondary-hover); }
+      .primary { background: var(--bg-action-primary); border-color: var(--bg-action-primary); color: white; }
+      .primary:hover { background: var(--bg-action-primary-hover); }
+      code { background: var(--bg-action-secondary); color: var(--fg-primary); padding: 2px 6px; border-radius: 7px; }
+      .flow {
+        position: relative;
+        overflow: hidden;
+        border-color: var(--dotify-blue-border);
+        background: linear-gradient(90deg, var(--dotify-blue-dim), var(--dotify-cyan-dim));
+        color: var(--fg-primary);
+        font-size: 1.13rem;
+      }
+      .metric {
+        display: grid;
+        gap: 6px;
+        border-top: 1px solid var(--border-divider);
+        padding-top: 18px;
+        margin-top: 18px;
+      }
+      .metric strong { font-size: 1.55rem; color: var(--dotify-blue); }
+      .metric span { color: var(--fg-secondary); }
+      footer { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--border-divider); color: var(--fg-secondary); }
+      @media (max-width: 820px) {
+        main { padding-top: 12px; }
+        .topbar { position: static; align-items: flex-start; flex-direction: column; padding: 0.85rem; }
+        .nav { justify-content: flex-start; }
+        .hero { grid-template-columns: 1fr; padding-top: 28px; }
+      }
     </style>
   </head>
   <body>
     <main>
-      <header>
-        <div class="eyebrow">Dotify / Muzinga</div>
-        <h1>Let the music connect the dots.</h1>
-        <p class="lead">
-          Dotify is a decentralized cultural social hub for real-time shared listening,
-          artist-owned smart runtimes, protected audio access, and human-centered music discovery.
-        </p>
-        <div class="pillrow">
-          <span class="pill">Shared listening</span>
-          <span class="pill">Artist sovereignty</span>
-          <span class="pill">Protected access</span>
-          <span class="pill">Polkadot / Web3</span>
-          <span class="pill">Cultural propagation</span>
+      <nav class="topbar" aria-label="Dotify project navigation">
+        <a class="brand" href="./index.html"><span class="brand-mark">●</span><span>Dotify</span></a>
+        <div class="nav">
+          <a href="Dotify_presentation.pptx">Presentation</a>
+          <a href="backlog/README.md">Backlog</a>
+          <a href="context/README.md">Memory</a>
         </div>
-        <div class="cta">
-          <a class="button primary" href="../README.md">Read the repo README</a>
-          <a class="button" href="Dotify_presentation.pptx">Open the presentation</a>
-          <a class="button" href="backlog/README.md">View production backlog</a>
-          <a class="button" href="context/README.md">View project memory</a>
+      </nav>
+
+      <header class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">Dotify / Muzinga · by Polkadot spirit</div>
+          <h1>Let the music connect the dots.</h1>
+          <p class="lead">
+            Dotify is a decentralized cultural social hub for real-time shared listening,
+            artist-owned smart runtimes, protected audio access, and human-centered music discovery.
+          </p>
+          <div class="pillrow">
+            <span class="pill">Shared listening</span>
+            <span class="pill">Artist sovereignty</span>
+            <span class="pill">Protected access</span>
+            <span class="pill pink">Polkadot / Web3</span>
+            <span class="pill dark">Cultural propagation</span>
+          </div>
+          <div class="cta">
+            <a class="button primary" href="Dotify_presentation.pptx">Open the presentation</a>
+            <a class="button" href="backlog/README.md">View production backlog</a>
+            <a class="button" href="context/README.md">View project memory</a>
+          </div>
         </div>
+        <aside class="hero-card" aria-label="Dotify production spine summary">
+          <div class="hero-card-inner">
+            <div class="eyebrow">Production spine</div>
+            <h2 style="margin-top: 14px;">From prototype to living product.</h2>
+            <p>Secure keys, stabilize rooms, test the trust flows, and keep the experience simple enough to feel human.</p>
+            <div class="metric"><strong>01</strong><span>Artist publishes a protected track.</span></div>
+            <div class="metric"><strong>02</strong><span>Listener unlocks or receives preview only.</span></div>
+            <div class="metric"><strong>03</strong><span>Host opens a room and shares a link.</span></div>
+          </div>
+        </aside>
       </header>
 
       <section>
@@ -114,7 +260,7 @@
       </section>
 
       <section>
-        <h2>Production spine</h2>
+        <h2>Production priorities</h2>
         <div class="grid">
           <article class="card"><h3>1. Secure keys</h3><p>Move Pinata uploads and content-key delivery behind a backend boundary.</p></article>
           <article class="card"><h3>2. Unlock access</h3><p>Use wallet-signed key requests and on-chain access checks before full playback.</p></article>
@@ -128,7 +274,7 @@
         <p>
           The project keeps its execution memory in <code>docs/backlog/</code> and its long-term product,
           technical, and philosophical memory in <code>docs/context/</code>. AI coding agents should read
-          <code>AGENTS.md</code> or <code>CLAUDE.md</code> before implementing.
+          <code>AGENTS.md</code> or <code>CLAUDE.md</code> before implementing and keep this page aligned after relevant changes.
         </p>
       </section>
 
