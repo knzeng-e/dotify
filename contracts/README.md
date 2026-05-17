@@ -1,9 +1,12 @@
 # Dotify Contracts
 
-The first Dotify contract is `MusicRightsRegistry`.
+Dotify currently uses a smart-runtime contract system rather than a single
+registry contract.
 
-It records one active track per audio hash and mints a minimal NFT for each
-registered track:
+`ArtistRuntimeFactory` deploys one personal `SmartRuntime` per artist.
+`ArtistDirectory` records the artist address to runtime mapping. The runtime is
+assembled from pallets that record one active track per audio hash and mint a
+minimal NFT for each registered track:
 
 - artist wallet and display name;
 - title, description, cover image IPFS reference, audio IPFS reference,
@@ -47,3 +50,34 @@ To rerun verification without redeploying:
 cd contracts/evm
 npm run verify:testnet
 ```
+
+To run the contract suite:
+
+```bash
+cd contracts/evm
+npm test
+```
+
+## Current Notes
+
+- `ArtistRuntime.test.ts` covers the active smart-runtime / pallet system:
+  runtime creation, registration, paid access, royalty distribution,
+  personhood-gated access, NFT transfer gating, and runtime isolation.
+- `MusicRightsRegistry.sol` and `MusicRightsRegistry.test.ts` are legacy
+  monolithic registry code kept in the repository for comparison. The web app
+  uses the smart-runtime pallet ABI from `web/src/config/contracts.ts`.
+- The frontend currently performs access checks before playback and serves a
+  42% preview for unauthorized listeners. Contracts remain the source of truth
+  for `musicAccCanAccess` and `musicRoyPayAccess`; production-grade audio key
+  delivery should be added outside the public frontend bundle.
+
+## Improvements
+
+- Archive or remove the legacy monolithic registry once the smart-runtime path
+  is fully accepted.
+- Generate frontend ABI definitions from Hardhat artifacts instead of
+  maintaining inline ABI objects manually.
+- Add deployment smoke tests that read the live factory, directory, and pallet
+  addresses after `deploy:testnet`.
+- Add an operator flow for a shared personhood registrar or Individuality
+  integration.

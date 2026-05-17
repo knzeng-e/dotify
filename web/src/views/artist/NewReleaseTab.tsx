@@ -1,0 +1,310 @@
+import { BadgeCheck, Disc3, FileAudio, Library, LockKeyhole, Upload } from 'lucide-react';
+import { PanelTitle } from '../../components/ui/PanelTitle';
+import { EndpointRow } from '../../components/ui/EndpointRow';
+import { accessModeLabelFromState, shorten } from '../../utils/format';
+import { devAccounts } from '../../hooks/useDevAccounts';
+import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseStep } from '../../types';
+import type { ChangeEvent } from 'react';
+
+const releaseSteps: Array<{ id: ReleaseStep; label: string }> = [
+  { id: 'assets', label: 'Assets' },
+  { id: 'metadata', label: 'Metadata' },
+  { id: 'access', label: 'Access' },
+  { id: 'review', label: 'Review' }
+];
+
+type NewReleaseTabProps = {
+  releaseStep: ReleaseStep;
+  artistStudioLocked: boolean;
+  assetAction: AssetAction;
+  audioSource: string | null;
+  fileHash: `0x${string}` | '';
+  coverSource: string;
+  coverCID: string;
+  title: string;
+  description: string;
+  accessMode: AccessMode;
+  personhoodLevel: PersonhoodLevel;
+  priceDot: string;
+  royaltyBps: number;
+  uploadToBulletinEnabled: boolean;
+  rightsStatus: string;
+  isRegistering: boolean;
+  canReviewRelease: boolean;
+  artistName: string;
+  connectedWallet: { label: string } | null;
+  activeSubstrateAddress: string | null;
+  bulletinAccountIndex: number;
+  onSetReleaseStep: (step: ReleaseStep) => void;
+  onGoToPreviousStep: () => void;
+  onGoToNextStep: () => void;
+  onHandleAudioFile: (event: ChangeEvent<HTMLInputElement>) => void;
+  onHandleCoverFile: (event: ChangeEvent<HTMLInputElement>) => void;
+  onSetTitle: (title: string) => void;
+  onSetDescription: (desc: string) => void;
+  onSetAccessMode: (mode: AccessMode) => void;
+  onSetPersonhoodLevel: (level: PersonhoodLevel) => void;
+  onSetPriceDot: (price: string) => void;
+  onSetRoyaltyBps: (bps: number) => void;
+  onSetUploadToBulletinEnabled: (enabled: boolean) => void;
+  onSetBulletinAccountIndex: (index: number) => void;
+  onRegisterRights: () => void;
+};
+
+export function NewReleaseTab({
+  releaseStep,
+  artistStudioLocked,
+  assetAction,
+  audioSource,
+  fileHash,
+  coverSource,
+  coverCID,
+  title,
+  description,
+  accessMode,
+  personhoodLevel,
+  priceDot,
+  royaltyBps,
+  uploadToBulletinEnabled,
+  rightsStatus,
+  isRegistering,
+  canReviewRelease,
+  artistName,
+  connectedWallet,
+  activeSubstrateAddress,
+  bulletinAccountIndex,
+  onSetReleaseStep,
+  onGoToPreviousStep,
+  onGoToNextStep,
+  onHandleAudioFile,
+  onHandleCoverFile,
+  onSetTitle,
+  onSetDescription,
+  onSetAccessMode,
+  onSetPersonhoodLevel,
+  onSetPriceDot,
+  onSetRoyaltyBps,
+  onSetUploadToBulletinEnabled,
+  onSetBulletinAccountIndex,
+  onRegisterRights
+}: NewReleaseTabProps) {
+  const releaseStepIndex = releaseSteps.findIndex(step => step.id === releaseStep);
+
+  return (
+    <section className='content-grid release-workbench-grid'>
+      <div className='doc-panel studio-panel release-wizard'>
+        <PanelTitle
+          icon={FileAudio}
+          title='New release'
+          meta={artistStudioLocked ? 'create profile first' : (releaseSteps[releaseStepIndex]?.label ?? 'draft')}
+        />
+
+        <div className='release-stepper' aria-label='Release steps'>
+          {releaseSteps.map((step, index) => (
+            <button key={step.id} type='button' data-active={releaseStep === step.id} onClick={() => onSetReleaseStep(step.id)}>
+              <span>{index + 1}</span>
+              {step.label}
+            </button>
+          ))}
+        </div>
+
+        {releaseStep === 'assets' && (
+          <div className='wizard-panel'>
+            <div className='asset-actions'>
+              <label className='file-button' data-disabled={assetAction !== 'idle' || artistStudioLocked}>
+                {assetAction === 'audio' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
+                {assetAction === 'audio' ? 'Preparing audio…' : 'Add audio'}
+                <input type='file' accept='audio/*' onChange={onHandleAudioFile} disabled={assetAction !== 'idle' || artistStudioLocked} />
+              </label>
+              <label className='file-button secondary-file' data-disabled={assetAction !== 'idle' || artistStudioLocked}>
+                {assetAction === 'cover' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
+                {assetAction === 'cover' ? 'Preparing cover…' : 'Add cover image'}
+                <input type='file' accept='image/*' onChange={onHandleCoverFile} disabled={assetAction !== 'idle' || artistStudioLocked} />
+              </label>
+            </div>
+            <div className='asset-readiness'>
+              <div>
+                <strong>{audioSource ? 'Audio ready' : 'Audio missing'}</strong>
+                <span>{fileHash ? shorten(fileHash, 18) : 'Upload an audio file to generate the release hash.'}</span>
+              </div>
+              <div>
+                <strong>{coverSource.startsWith('blob:') ? 'Cover ready' : 'Generated cover'}</strong>
+                <span>{coverCID ? shorten(coverCID, 18) : 'A custom cover can be added before publish.'}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {releaseStep === 'metadata' && (
+          <div className='wizard-panel fields-grid'>
+            <label>
+              <span>Title</span>
+              <input className='field' value={title} onChange={event => onSetTitle(event.target.value)} disabled={artistStudioLocked} />
+            </label>
+            <label>
+              <span>Description</span>
+              <textarea
+                className='field textarea-field'
+                value={description}
+                onChange={event => onSetDescription(event.target.value)}
+                disabled={artistStudioLocked}
+              />
+            </label>
+          </div>
+        )}
+
+        {releaseStep === 'access' && (
+          <div className='wizard-panel'>
+            <div className='fields-grid'>
+              <label>
+                <span>Access mode</span>
+                <select
+                  className='field'
+                  value={accessMode}
+                  onChange={event => onSetAccessMode(event.target.value as AccessMode)}
+                  disabled={artistStudioLocked}
+                >
+                  <option value='human-free'>Human free</option>
+                  <option value='classic'>Classic</option>
+                </select>
+              </label>
+              <label>
+                <span>PoP level</span>
+                <select
+                  className='field'
+                  value={personhoodLevel}
+                  onChange={event => onSetPersonhoodLevel(event.target.value as PersonhoodLevel)}
+                  disabled={artistStudioLocked}
+                >
+                  <option value='DIM1'>DIM1</option>
+                  <option value='DIM2'>DIM2</option>
+                </select>
+              </label>
+              <label>
+                <span>Price in DOT</span>
+                <input
+                  className='field'
+                  type='number'
+                  min={0}
+                  step={0.1}
+                  value={priceDot}
+                  onChange={event => onSetPriceDot(event.target.value)}
+                  disabled={artistStudioLocked}
+                />
+              </label>
+              <label>
+                <span>Royalty bps</span>
+                <input
+                  className='field'
+                  type='number'
+                  min={0}
+                  max={10000}
+                  step={25}
+                  value={royaltyBps}
+                  onChange={event => onSetRoyaltyBps(Number(event.target.value))}
+                  disabled={artistStudioLocked}
+                />
+              </label>
+              {uploadToBulletinEnabled &&
+                (connectedWallet ? (
+                  <label>
+                    <span>Archive signer</span>
+                    <div className='field wallet-field'>
+                      <LockKeyhole size={14} />
+                      {activeSubstrateAddress ? `${activeSubstrateAddress.slice(0, 8)}…` : 'No Substrate signer'}
+                    </div>
+                  </label>
+                ) : (
+                  <label>
+                    <span>Archive signer</span>
+                    <select
+                      className='field'
+                      value={bulletinAccountIndex}
+                      onChange={event => onSetBulletinAccountIndex(Number(event.target.value))}
+                      disabled={artistStudioLocked}
+                    >
+                      {devAccounts.map((account, index) => (
+                        <option key={account.name} value={index}>
+                          {account.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+            </div>
+            <label className='toggle-row'>
+              <input
+                type='checkbox'
+                checked={uploadToBulletinEnabled}
+                onChange={event => onSetUploadToBulletinEnabled(event.target.checked)}
+                disabled={artistStudioLocked}
+              />
+              <span>Archive manifest to Bulletin Chain</span>
+            </label>
+            <div className='rights-status'>
+              {accessMode === 'human-free'
+                ? `Human free means access through personhood, not surveillance. Listeners with Polkadot Proof of Personhood ${personhoodLevel} can unlock the full track.`
+                : `Classic access means direct payment in DOT. The artist runtime records who paid and settles royalties transparently.`}
+            </div>
+          </div>
+        )}
+
+        {releaseStep === 'review' && (
+          <div className='wizard-panel release-review'>
+            <EndpointRow label='Track' value={title.trim() || 'Untitled'} />
+            <EndpointRow label='Artist' value={artistName.trim() || 'Unknown artist'} />
+            <EndpointRow label='Access' value={accessMode === 'classic' ? `${priceDot} DOT` : `Human verified ${personhoodLevel}`} />
+            <EndpointRow label='Royalty' value={`${royaltyBps} bps`} />
+            <EndpointRow label='Metadata' value='IPFS canonical manifest' />
+            <EndpointRow label='Archive' value={uploadToBulletinEnabled ? 'Bulletin enabled' : 'Off'} />
+            {!canReviewRelease && <p className='error-box'>Add an audio file and title before publishing.</p>}
+          </div>
+        )}
+
+        <div className='wizard-actions'>
+          <button className='secondary-action compact-action' type='button' onClick={onGoToPreviousStep} disabled={releaseStepIndex === 0}>
+            Back
+          </button>
+          {releaseStep === 'review' ? (
+            <button
+              className='primary-action compact-action'
+              type='button'
+              onClick={onRegisterRights}
+              disabled={isRegistering || artistStudioLocked || !canReviewRelease}
+            >
+              {isRegistering ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
+              {isRegistering ? 'Publishing…' : artistStudioLocked ? 'Create profile first' : 'Publish release'}
+            </button>
+          ) : (
+            <button className='primary-action compact-action' type='button' onClick={onGoToNextStep}>
+              Continue
+            </button>
+          )}
+        </div>
+
+        <p className='rights-status'>{rightsStatus}</p>
+      </div>
+
+      <div className='doc-panel release-preview-panel'>
+        <PanelTitle icon={Library} title='Release preview' meta={accessModeLabelFromState(accessMode)} />
+        <div className='release-preview-card'>
+          <div className='release-preview-cover'>
+            <img src={coverSource} alt='' crossOrigin='anonymous' />
+          </div>
+          <div className='release-preview-copy'>
+            <span className='release-preview-artist'>{artistName || 'Artist'}</span>
+            <h2>{title || 'Untitled'}</h2>
+            <p>{description || 'Add a short release note to help listeners understand the world behind this track.'}</p>
+            <div className='access-badges'>
+              <span>{accessModeLabelFromState(accessMode)}</span>
+              <span>{accessMode === 'classic' ? `${priceDot} DOT` : `PoP ${personhoodLevel}`}</span>
+            </div>
+          </div>
+        </div>
+        <div className='rights-status'>
+          Audio, cover art, and metadata are pinned to open networks. Dotify keeps the release portable instead of locking it inside one platform.
+        </div>
+      </div>
+    </section>
+  );
+}

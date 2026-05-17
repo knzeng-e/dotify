@@ -385,6 +385,10 @@ export async function ensureContract(address: Address, ethRpcUrl: string) {
   return Boolean(code && code !== '0x');
 }
 
+export async function resolveEvmChain(ethRpcUrl: string): Promise<Chain> {
+  return resolveChain(ethRpcUrl);
+}
+
 async function resolveChain(ethRpcUrl: string): Promise<Chain> {
   if (!chainCache) {
     const chainId = await getPublicClient(ethRpcUrl).getChainId();

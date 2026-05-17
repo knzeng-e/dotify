@@ -1,4 +1,4 @@
-import { blake2b } from 'blakejs';
+import { blake2b256, bytesToHex } from '@polkadot-apps/utils';
 
 export type FileHashResult = {
   hash: `0x${string}`;
@@ -18,9 +18,5 @@ export function hashFileWithBytes(file: File): Promise<FileHashResult> {
 }
 
 export function hashBytes(bytes: Uint8Array): `0x${string}` {
-  const hash = blake2b(bytes, undefined, 32);
-  const hex = Array.from(hash)
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('');
-  return `0x${hex}`;
+  return `0x${bytesToHex(blake2b256(bytes))}`;
 }

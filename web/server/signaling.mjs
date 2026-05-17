@@ -1,9 +1,8 @@
-/* global console, process */
-
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 
 const port = Number(process.env.SIGNAL_PORT ?? 8788);
+const host = process.env.SIGNAL_HOST ?? '0.0.0.0';
 const origin = process.env.SIGNAL_ORIGIN ?? '*';
 const rooms = new Map();
 
@@ -152,8 +151,8 @@ io.on('connection', socket => {
   socket.on('disconnect', () => leaveRoom(socket));
 });
 
-httpServer.listen(port, '127.0.0.1', () => {
-  console.log(`Dotify signaling server listening on http://localhost:${port}`);
+httpServer.listen(port, host, () => {
+  console.log(`Dotify signaling server listening on http://${host}:${port}`);
 });
 
 function createRoomId() {
