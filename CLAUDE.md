@@ -68,9 +68,9 @@ Before implementing, read:
 - `README.md`
 - `spec.md`
 
-If available in the local checkout, also inspect:
+Also inspect:
 
-- `Dotify_presentation.pptx`
+- `docs/Dotify_presentation.pptx`
 
 The presentation is part of the product memory and should inform the tone, positioning, and UX direction.
 
