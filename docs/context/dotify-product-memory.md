@@ -156,5 +156,5 @@ Blockchain should be felt as trust, not as bureaucracy.
 - Treating rooms as secondary when they are the social core.
 
 ## Product mantra
-
+Let the Music connect the dots.
 Make music social again without dispossessing the artist.
