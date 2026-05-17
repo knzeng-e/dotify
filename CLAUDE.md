@@ -137,6 +137,16 @@ For each issue:
 6. Update README/spec/context docs if behavior changes.
 7. Keep commits focused.
 
+## GitHub Pages alignment rule
+
+`docs/index.html` is the public-facing project page.
+
+When a change affects public product positioning, roadmap, production priorities, architecture narrative, presentation links, visual identity, or the philosophical framing of Dotify, update `docs/index.html` in the same PR.
+
+Keep the page visually aligned with the DApp theme from `web/src/styles.css`: Dotify Light Console, deep blue core, cyan action accents, restrained Polkadot pink, white surfaces, and clear low-friction product language.
+
+Do not let the page drift into generic crypto landing-page aesthetics.
+
 ## Commands
 
 Frontend:
