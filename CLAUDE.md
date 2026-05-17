@@ -8,7 +8,7 @@ Dotify is not a Spotify clone.
 
 ## Philosophical line
 
-The project starts from a simple social observation: in shared spaces, people are physically together but musically isolated. Dotify/Muzinga explores whether music can reopen a human commons inside that isolation.
+The project starts from a simple social observation: in shared spaces, people are physically together but spiritually isolated. Dotify/Muzinga explores whether music can reopen a human commons inside that isolation, while leveraging the web 3 principles and philosophy, as promoted by Polkadot community, Dr Gavin Wood and Parity.
 
 The goal is not merely to stream audio. The goal is to restore a form of relation: one human can let another enter their musical world, in real time, without dispossessing the artist.
 
@@ -19,6 +19,7 @@ Think of Dotify as:
 - a rights-aware music runtime;
 - a cultural propagation system;
 - a Web3 infrastructure for shared presence.
+- a community-powered cultural coordination protocol.
 
 The technology must serve the living social experience, not dominate it.
 
