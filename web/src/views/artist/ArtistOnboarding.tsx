@@ -115,7 +115,7 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
           <div className='step'>
             <div className='step-number'>1</div>
             <div className='step-content'>
-              <h3>Connect or select an account</h3>
+              <h3>Connect your wallet</h3>
               <p>Your artist workspace will be tied to this address.</p>
               {needsWallet ? (
                 <button className='primary-action compact-action' type='button' onClick={onShowWalletModal}>
@@ -432,19 +432,6 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
           background: var(--color-background-secondary, #f9f9f9);
           border-radius: 0.375rem;
           border: 1px solid var(--color-border, #ddd);
-        }
-
-        .dev-account-field {
-          display: block;
-          margin-top: 0.8rem;
-        }
-
-        .dev-account-field span {
-          display: block;
-          margin-bottom: 0.35rem;
-          color: var(--fg-secondary);
-          font-size: 0.82rem;
-          font-weight: 700;
         }
 
         .account-address {

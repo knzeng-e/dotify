@@ -79,7 +79,6 @@ export type UseArtistConsoleDeps = {
   refreshCatalogFromRegistry: (hash?: `0x${string}`) => Promise<CatalogTrack[]>;
   setAudioCID: (cid: string) => void;
   setCoverCID: (cid: string) => void;
-  artistAccountIndex: number;
   uploadToBulletinEnabled: boolean;
   audioUploadRef: React.RefObject<Promise<string> | null>;
   coverUploadRef: React.RefObject<Promise<string> | null>;
@@ -109,7 +108,6 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     refreshCatalogFromRegistry,
     setAudioCID,
     setCoverCID,
-    artistAccountIndex,
     uploadToBulletinEnabled,
     audioUploadRef,
     coverUploadRef
@@ -130,11 +128,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
 
   async function getActiveWalletClient(): Promise<Awaited<ReturnType<typeof getWalletClient>>> {
-    if (connectedWallet) {
-      const chain = await resolveEvmChain(ethRpcUrl);
-      return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
+    if (!connectedWallet) {
+      throw new Error('Connect a wallet before signing this transaction.');
     }
-    return getWalletClient(artistAccountIndex, ethRpcUrl);
+    const chain = await resolveEvmChain(ethRpcUrl);
+    return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
   }
 
   async function refreshArtistRuntime(showBusy = false) {
@@ -187,6 +185,16 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   }
 
   async function registerArtist() {
+    if (!connectedWallet) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Wallet required',
+        message: 'Connect a wallet before creating an artist profile.'
+      });
+      setArtistRegistrationStatus('Connect your wallet to claim an artist profile.');
+      return;
+    }
+
     if (!artistRegistrationAvailable) {
       setTransactionFeedback({
         tone: 'error',
@@ -377,6 +385,16 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   }
 
   async function registerRights() {
+    if (!connectedWallet) {
+      setRightsStatus('Connect your wallet before publishing');
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Wallet required',
+        message: 'Connect the artist wallet before publishing a release.'
+      });
+      return;
+    }
+
     if (!fileHash) {
       setRightsStatus('Select an audio file');
       return;
@@ -579,7 +597,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
   function updateArtistName(nextName: string, setArtistName: (name: string) => void) {
     setArtistName(nextName);
-    storeArtistName(activeEvmAddress, nextName);
+    if (connectedWallet) {
+      storeArtistName(activeEvmAddress, nextName);
+    }
   }
 
   return {

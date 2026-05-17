@@ -12,7 +12,7 @@ import { hashFileWithBytes } from './utils/hash';
 import { deployments } from './config/deployments';
 import { devAccounts } from './hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from './config/network';
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { resolveEvmChain, getWalletClient } from './config/contracts';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { uploadFileToPinata } from './services/pinata';
@@ -93,7 +93,6 @@ export default function App() {
   const [ethRpcUrl] = useState(getDefaultEthRpcUrl);
   const [title, setTitle] = useState('Untitled jam');
   const [royaltyBps, setRoyaltyBps] = useState(7000);
-  const [artistAccountIndex, setArtistAccountIndex] = useState(0);
   const [artistName, setArtistName] = useState('');
   const [bulletinAccountIndex, setBulletinAccountIndex] = useState(0);
   const [accessMode, setAccessMode] = useState<AccessMode>('human-free');
@@ -133,12 +132,16 @@ export default function App() {
 
   // ── getActiveWalletClient (defined before hooks that need it) ─────────────────
   async function getActiveWalletClient(): Promise<Awaited<ReturnType<typeof getWalletClient>>> {
-    if (connectedWallet) {
-      const chain = await resolveEvmChain(ethRpcUrl);
-      return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
+    if (!connectedWallet) {
+      throw new Error('Connect a wallet before signing this transaction.');
     }
-    return getWalletClient(artistAccountIndex, ethRpcUrl);
+    const chain = await resolveEvmChain(ethRpcUrl);
+    return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
   }
+
+  // Use a ref to break the circular dependency between catalog and artistConsole
+  // (catalog needs setBulletinManifestRef, artistConsole owns bulletinManifestRef state).
+  const artistConsoleBulletinRef = useRef('');
 
   // ── Catalog hook ─────────────────────────────────────────────────────────────
   const catalog = useCatalog({
@@ -159,10 +162,6 @@ export default function App() {
     setDescription
   });
 
-  // Use a ref to break the circular dependency between catalog and artistConsole
-  // (catalog needs setBulletinManifestRef, artistConsole owns bulletinManifestRef state)
-  const artistConsoleBulletinRef = { current: '' };
-
   // ── Session hook ──────────────────────────────────────────────────────────────
   const session = useSession({
     signalUrl,
@@ -177,7 +176,7 @@ export default function App() {
     setAudioSource: catalog.setAudioSource
   });
 
-  // ── Artist Console hook ───────────────────────────────────────────────────────
+  // ── Artist portal hook ────────────────────────────────────────────────────────
   const artistConsole = useArtistConsole({
     activeEvmAddress,
     connectedWallet,
@@ -204,7 +203,6 @@ export default function App() {
     refreshCatalogFromRegistry: catalog.refreshCatalogFromRegistry,
     setAudioCID: catalog.setAudioCID,
     setCoverCID: catalog.setCoverCID,
-    artistAccountIndex,
     uploadToBulletinEnabled,
     audioUploadRef: catalog.audioUploadRef,
     coverUploadRef: catalog.coverUploadRef
@@ -512,9 +510,7 @@ export default function App() {
               artistSetupState={artistSetupState}
               artistTracks={artistTracks}
               connectedWallet={connectedWallet}
-              artistAccountIndex={artistAccountIndex}
               onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
-              onSetArtistAccountIndex={setArtistAccountIndex}
               onRegisterArtist={artistConsole.registerArtist}
               onRefreshArtistRuntime={() => { void artistConsole.refreshArtistRuntime(true); }}
               onShowWalletModal={() => setShowWalletModal(true)}

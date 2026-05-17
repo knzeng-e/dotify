@@ -38,17 +38,17 @@ The Polkadot Proof of Personhood level required to access a Human free track.
 ### `View`
 
 ```typescript
-type View = 'listen' | 'player' | 'rooms' | 'artist';
+type View = 'listen' | 'player' | 'rooms';
 ```
 
-The active top-level route. Controls which view component is rendered.
+The active top-level listener-app view. The artist portal is a separate `/artists`
+surface and is not part of this in-app view union.
 
 | Value | Screen |
 |---|---|
 | `listen` | Catalog grid — discover and browse tracks |
 | `player` | Integrated player — play a track and manage a room |
 | `rooms` | Live rooms list — discover and join active sessions |
-| `artist` | Artist Console — manage profile, releases, and royalties |
 
 ---
 
@@ -120,7 +120,8 @@ Tracks whether an asset upload (hashing + encryption + IPFS upload) is in progre
 type ArtistTab = 'overview' | 'new' | 'releases' | 'royalties' | 'advanced';
 ```
 
-The active tab within the Artist Console view.
+The active tab within the artist studio shown after a wallet has claimed an
+artist profile on `/artists`.
 
 ---
 
@@ -324,7 +325,8 @@ type RoyaltyPayment = {
 };
 ```
 
-A single royalty payment event parsed from `MusicRoyAccessPaid` logs. Used in the Royalties tab of the Artist Console.
+A single royalty payment event parsed from `MusicRoyAccessPaid` logs. Used in the
+Royalties tab of the artist studio.
 
 ---
 

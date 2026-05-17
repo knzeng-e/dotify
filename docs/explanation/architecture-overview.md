@@ -95,13 +95,13 @@ src/
 ├── hooks/
 │   ├── useCatalog.ts          # Catalog state, IPFS resolution, access gating
 │   ├── useSession.ts          # WebRTC + Socket.IO room management
-│   ├── useArtistConsole.ts    # Artist registration, rights, royalties
-│   └── useWallet.ts           # Wallet tiers: passkey → EIP-6963 → dev fallback
+│   ├── useArtistConsole.ts    # /artists registration, releases, royalties
+│   └── useWallet.ts           # Wallet tiers: passkey → EIP-6963 extension
 ├── views/                     # One file per screen / tab
 │   ├── ListenView.tsx
 │   ├── PlayerView.tsx
 │   ├── RoomsView.tsx
-│   └── artist/                # ArtistConsole + 5 sub-tabs
+│   └── artist/                # ArtistOnboarding, ArtistConsole + sub-tabs
 └── services/
     └── pinata.ts              # IPFS upload + fetch with gateway fallback
 ```

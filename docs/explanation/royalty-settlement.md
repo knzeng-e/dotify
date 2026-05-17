@@ -14,9 +14,11 @@ Everything is verifiable on-chain. Any listener can inspect the payment records 
 
 ---
 
-## What you see in the Artist Console
+## What you see in the artist studio
 
-The **Royalties** tab in the Artist Console shows you a ledger of every paid unlock recorded against your SmartRuntime. For each entry you can see:
+After claiming an artist profile on `/artists`, the **Royalties** tab in the
+artist studio shows you a ledger of every paid unlock recorded against your
+SmartRuntime. For each entry you can see:
 
 - The track that was unlocked.
 - The listener's wallet address.

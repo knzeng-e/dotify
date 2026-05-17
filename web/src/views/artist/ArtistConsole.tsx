@@ -30,9 +30,7 @@ type ArtistConsoleProps = {
   artistSetupState: string;
   artistTracks: CatalogTrack[];
   connectedWallet: { label: string } | null;
-  artistAccountIndex: number;
   onUpdateArtistName: (name: string) => void;
-  onSetArtistAccountIndex: (index: number) => void;
   onRegisterArtist: () => void;
   onRefreshArtistRuntime: () => void;
   onShowWalletModal: () => void;
@@ -108,9 +106,7 @@ export function ArtistConsole(props: ArtistConsoleProps) {
     artistSetupState,
     artistTracks,
     connectedWallet,
-    artistAccountIndex,
     onUpdateArtistName,
-    onSetArtistAccountIndex,
     onRegisterArtist,
     onRefreshArtistRuntime,
     onShowWalletModal,
@@ -194,9 +190,7 @@ export function ArtistConsole(props: ArtistConsoleProps) {
           artistSetupState={artistSetupState}
           artistTracks={artistTracks}
           connectedWallet={connectedWallet}
-          artistAccountIndex={artistAccountIndex}
           onUpdateArtistName={onUpdateArtistName}
-          onSetArtistAccountIndex={onSetArtistAccountIndex}
           onRegisterArtist={onRegisterArtist}
           onRefreshArtistRuntime={onRefreshArtistRuntime}
           onSetArtistTab={onSetArtistTab}

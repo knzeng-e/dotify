@@ -9,10 +9,10 @@ Visible product areas:
 - `Home`: artist-grouped catalog browsing, track artwork, descriptions, access
   badges, policy-aware player, and room hosting.
 - `Rooms`: open room discovery and room-code entry.
-- `Artist Studio`: artist runtime creation, audio upload, cover upload, artist
-  contract PDF upload, royalty splits, Human free / Classic mode selection,
-  Pinata IPFS pinning, optional Bulletin Chain metadata publication, and
-  contract registration.
+- `/artists`: dedicated artist onboarding and studio flow for artist runtime
+  creation, audio upload, cover upload, royalty splits, Human free / Classic
+  mode selection, Pinata IPFS pinning, optional Bulletin Chain metadata
+  publication, and contract registration.
 
 ## Run Locally
 
@@ -24,7 +24,8 @@ npm run dev:listen
 ```
 
 The script starts Vite at `http://localhost:5273` and the Socket.IO signaling
-server at `http://localhost:8788`.
+server at `http://localhost:8788`. Open the listener app at `/` and the artist
+portal at `/artists`.
 
 Useful environment variables:
 
@@ -116,8 +117,8 @@ can be distributed from a flat IPFS CID / DotNS record.
   production should proxy pinning through a backend.
 - Playback protection is client-side best-effort. A real release system needs
   wallet-gated key delivery instead of a bundled `VITE_CONTENT_SECRET`.
-- Wallet selection still uses local dev account helpers; public testnet usage
-  needs injected wallet support.
+- Artist registration and release publication require a connected wallet. Local
+  EVM dev accounts are no longer exposed as public artist fallbacks.
 - Proof of Personhood levels are contract storage controlled by the runtime
   registrar; live Individuality integration is not implemented yet.
 - The signaling server must be hosted separately for DotNS / Bulletin builds.
@@ -125,13 +126,14 @@ can be distributed from a flat IPFS CID / DotNS record.
 
 ## Improvement Backlog
 
-- Add real wallet integration through injected EVM providers / Polkadot wallets.
-- Move Pinata uploads and content-key release behind a backend or artist-run key
-  service.
-- Replace bundled-content-secret protection with per-track key custody and
-  wallet-signed key requests.
-- Add Playwright or Vitest coverage for register, pay, preview, unlock, and
-  WebRTC room flows.
-- Split `App.tsx` into focused modules for catalog, player, studio, rooms, and
-  chain access.
-- Add production monitoring for gateway fallback failures and signaling uptime.
+1. Harden injected EVM provider and passkey wallet support for production usage.
+2. Move Pinata uploads and content-key release behind a backend or artist-run key
+   service.
+3. Replace bundled-content-secret protection with per-track key custody and
+   wallet-signed key requests.
+4. Add Playwright or Vitest coverage for register, pay, preview, unlock, and
+   WebRTC room flows.
+5. Split `App.tsx` into focused modules for catalog, player, artist portal,
+   rooms, and chain access.
+6. Add release draft persistence and edit flows for the `/artists` portal.
+7. Add production monitoring for gateway fallback failures and signaling uptime.

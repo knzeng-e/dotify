@@ -4,11 +4,37 @@ import reactHooks from "eslint-plugin-react-hooks";
 import eslintConfigPrettier from "eslint-config-prettier";
 
 export default tseslint.config(
+	{
+		ignores: ["dist/**", "dist-bulletin/**", "node_modules/**", ".papi/**", "tsconfig.tsbuildinfo"],
+	},
 	js.configs.recommended,
 	...tseslint.configs.recommended,
 	reactHooks.configs.flat["recommended-latest"],
 	eslintConfigPrettier,
 	{
-		ignores: ["dist/", "node_modules/", ".papi/"],
+		rules: {
+			"@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+			"react-hooks/immutability": "off",
+			"react-hooks/set-state-in-effect": "off",
+		},
+	},
+	{
+		files: ["server/**/*.mjs", "scripts/**/*.cjs"],
+		languageOptions: {
+			globals: {
+				BinaryType: "readonly",
+				Buffer: "readonly",
+				URL: "readonly",
+				__dirname: "readonly",
+				clearTimeout: "readonly",
+				console: "readonly",
+				process: "readonly",
+				require: "readonly",
+				setTimeout: "readonly",
+			},
+		},
+		rules: {
+			"@typescript-eslint/no-require-imports": "off",
+		},
 	},
 );

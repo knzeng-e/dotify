@@ -18,8 +18,9 @@ monetization through their own artist runtime.
 - **Home**: artist-grouped music discovery, track artwork, descriptions, access
   mode badges, a policy-aware player, and room-hosting controls.
 - **Rooms**: open listening rooms plus manual room-code entry.
-- **Artist Studio**: audio upload, cover image upload, description, rights
-  metadata, music accessibility mode selection, and management of a smart `Music rights registry`.
+- **Artist portal**: a dedicated `/artists` onboarding and studio surface where
+  artists connect a wallet, create their runtime, upload releases, configure
+  access, and manage royalty records outside the listener-first app shell.
 
 ## Path chosen
 
@@ -56,13 +57,15 @@ npm install
 npm run dev:listen
 ```
 
-Open the app in a browser at `http://localhost:5273`.
+Open the listener app in a browser at `http://localhost:5273`. The artist
+onboarding and studio flow is available at `http://localhost:5273/artists`.
 
 Default ports:
 
 | Service       | URL                                              |
 | ------------- | ------------------------------------------------ |
 | Frontend      | <http://localhost:5273>                          |
+| Artist portal | <http://localhost:5273/artists>                  |
 | Signaling     | <http://localhost:8788>                          |
 | Bulletin RPC  | `wss://paseo-bulletin-rpc.polkadot.io`           |
 | Asset Hub RPC | <https://services.polkadothub-rpc.com/testnet>   |
@@ -124,9 +127,10 @@ must not grant full listener playback.
 - WebRTC host-to-listener audio stream (tested with two local browser tabs and
   across LAN).
 - Socket.IO signaling with open-room discovery and manual room codes.
-- Artist Studio: audio upload, cover image upload, Pinata IPFS pinning,
-  canonical IPFS metadata, blake2b hash, optional Bulletin Chain archival
-  upload, artist runtime creation, and on-chain release registration.
+- Artist portal: wallet-gated artist onboarding, audio upload, cover image
+  upload, Pinata IPFS pinning, canonical IPFS metadata, blake2b hash, optional
+  Bulletin Chain archival upload, artist runtime creation, and on-chain release
+  registration.
 - Best-effort encrypted audio storage with 42% preview playback for restricted
   listeners.
 - Seed catalog with five tracks browsable on the Home view.
@@ -141,9 +145,10 @@ must not grant full listener playback.
 - **Client-side protection is best-effort**: encrypted audio and preview gating
   improve the demo, but the frontend still contains the code and configured
   content secret. Production needs wallet-gated key delivery.
-- **Wallet scope**: Dotify now treats the EVM account as the primary artist and
-  listener identity. Dev accounts remain as local fallbacks when no wallet is
-  connected; Bulletin archival still needs a Substrate signer when enabled.
+- **Wallet scope**: Dotify treats the connected EVM account as the primary
+  artist and listener identity. Artist registration and release publication
+  require a connected wallet; dev EVM accounts are not used as public fallback
+  signers. Bulletin archival still needs a Substrate signer when enabled.
 - **Proof of Personhood is mocked**: `setPersonhoodLevel` is a dev-only admin
   call. Live Individuality chain reads are on the roadmap.
 - **Pinata runs from the browser**: `VITE_PINATA_JWT` is exposed by Vite, so use
@@ -191,15 +196,22 @@ handle:
 
 ## Improvement Backlog
 
-- Add real wallet integration and remove dev account usage from public flows.
-- Move Pinata uploads and audio key delivery behind a backend or artist-operated
-  key service.
-- Replace bundled content secrets with per-track key custody and wallet-signed
-  unlock requests.
-- Integrate live Proof of Personhood / Individuality data instead of manual
-  registrar writes.
-- Deploy and monitor a public signaling server for DotNS / Bulletin builds.
-- Add frontend tests for registration, payment, preview gating, unlock, and
-  listening rooms.
-- Split the large React app into catalog, player, studio, rooms, and chain
-  modules.
+1. Harden wallet support: injected EVM providers, passkey recovery warnings,
+   network mismatch handling, and clear transaction preflight states.
+2. Move Pinata uploads and audio key delivery behind a backend or artist-operated
+   key service.
+3. Replace bundled content secrets with per-track key custody and wallet-signed
+   unlock requests.
+4. Integrate live Proof of Personhood / Individuality data instead of manual
+   registrar writes.
+5. Add a production artist dashboard on `/artists`: release drafts, edit
+   metadata, royalty analytics, and profile verification state.
+6. Deploy and monitor a public signaling server for DotNS / Bulletin builds.
+7. Add frontend tests for registration, payment, preview gating, unlock, and
+   listening rooms.
+8. Split the large React app into catalog, player, artist portal, rooms, and
+   chain modules.
+9. Add deployment smoke tests for DotNS/Bulletin CIDs, IPFS gateway fallback,
+   and contract address availability.
+10. Improve room resilience with host handoff, reconnect recovery, and explicit
+   room expiry.

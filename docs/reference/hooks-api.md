@@ -191,7 +191,6 @@ const artist = useArtistConsole({
 | `artistRegistrationStatus` | `string` | Human-readable registration status message |
 | `isRegisteringArtist` | `boolean` | `true` while `registerArtist()` is running |
 | `isRefreshingArtistRuntime` | `boolean` | `true` while `refreshArtistRuntime()` is running |
-| `artistAccountIndex` | `number` | Selected dev account index (0 = Alice) |
 | `bulletinManifestRef` | `string` | Bulletin archive ref for the last registered track |
 | `uploadToBulletinEnabled` | `boolean` | Whether Bulletin archival is enabled for the next release |
 | `rightsStatus` | `string` | Human-readable status of the current release operation |
@@ -209,7 +208,6 @@ const artist = useArtistConsole({
 | `registerRights` | `() => Promise<void>` | Full release publish flow: IPFS upload → optional Bulletin → `musicRegRegister()`. |
 | `refreshArtistRoyalties` | `(showBusy?: boolean) => Promise<void>` | Fetch all `MusicRoyAccessPaid` logs for the artist's runtime. |
 | `updateArtistName` | `(name: string) => void` | Update artist name in state and persist to `localStorage`. |
-| `getActiveWalletClient` | `() => Promise<WalletClient>` | Returns the viem `WalletClient` for the active signer (connected wallet or dev account). |
-| `setArtistAccountIndex` | `(index: number) => void` | Switch the active dev account. |
+| `getActiveWalletClient` | `() => Promise<WalletClient>` | Returns the viem `WalletClient` for the connected artist wallet. Throws if no wallet is connected. |
 | `setUploadToBulletinEnabled` | `(enabled: boolean) => void` | Toggle Bulletin archival for the next release. |
 | `setExpandedRoyaltyPaymentId` | `(id: string \| null) => void` | Expand or collapse a royalty ledger entry. |

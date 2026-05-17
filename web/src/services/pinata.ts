@@ -44,9 +44,7 @@ export interface DotifyTrackManifest {
 }
 
 export function getGatewayUrl(cid: string): string {
-  const gateway = getGatewayUrls(cid)[0];
-  console.log(`Using gateway URL: ${gateway}`);
-  return gateway;
+  return getGatewayUrls(cid)[0];
 }
 
 export function getGatewayUrls(cid: string): string[] {

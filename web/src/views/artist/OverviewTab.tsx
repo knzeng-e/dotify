@@ -3,7 +3,6 @@ import { PanelTitle } from '../../components/ui/PanelTitle';
 import { EndpointRow } from '../../components/ui/EndpointRow';
 import { Metric } from '../../components/ui/Metric';
 import { shorten } from '../../utils/format';
-import { evmDevAccounts } from '../../config/contracts';
 import type { CatalogTrack } from '../../types';
 
 const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
@@ -23,9 +22,7 @@ type OverviewTabProps = {
   artistSetupState: string;
   artistTracks: CatalogTrack[];
   connectedWallet: { label: string } | null;
-  artistAccountIndex: number;
   onUpdateArtistName: (name: string) => void;
-  onSetArtistAccountIndex: (index: number) => void;
   onRegisterArtist: () => void;
   onRefreshArtistRuntime: () => void;
   onSetArtistTab: (tab: 'overview' | 'new' | 'releases' | 'royalties' | 'advanced') => void;
@@ -43,9 +40,7 @@ export function OverviewTab({
   artistSetupState,
   artistTracks,
   connectedWallet,
-  artistAccountIndex,
   onUpdateArtistName,
-  onSetArtistAccountIndex,
   onRegisterArtist,
   onRefreshArtistRuntime,
   onSetArtistTab,
@@ -61,26 +56,13 @@ export function OverviewTab({
             <span>Artist name</span>
             <input className='field' value={artistName} onChange={event => onUpdateArtistName(event.target.value)} />
           </label>
-          {connectedWallet ? (
-            <label>
-              <span>Wallet</span>
-              <div className='field wallet-field'>
-                <LockKeyhole size={14} />
-                {connectedWallet.label}
-              </div>
-            </label>
-          ) : (
-            <label>
-              <span>Dev wallet</span>
-              <select className='field' value={artistAccountIndex} onChange={event => onSetArtistAccountIndex(Number(event.target.value))}>
-                {evmDevAccounts.map((account, index) => (
-                  <option key={account.name} value={index}>
-                    {account.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+          <label>
+            <span>Wallet</span>
+            <div className='field wallet-field'>
+              <LockKeyhole size={14} />
+              {connectedWallet?.label ?? 'Connect wallet'}
+            </div>
+          </label>
         </div>
 
         <div className='stack-list'>

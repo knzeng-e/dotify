@@ -40,14 +40,14 @@ The Rooms view provides:
 - listener count and host information;
 - WebRTC connection setup between host and listener.
 
-### 2.3 Artist Studio
+### 2.3 Artist Portal
 
-Artist Studio provides:
+The dedicated `/artists` portal provides:
 
+- wallet-first artist onboarding;
 - artist runtime creation;
 - audio upload;
 - cover upload;
-- artist contract PDF upload;
 - title, description, access mode, price, personhood level, and royalty inputs;
 - audio encryption and Pinata IPFS upload;
 - canonical IPFS metadata publication;
@@ -269,8 +269,9 @@ When a registered track is selected:
 5. The app creates a local object URL and assigns it to the audio element.
 
 If no listener wallet is connected, the app must fail closed and treat the user
-as unauthorized for registered artist tracks. Dev-account fallback may be used
-for artist/studio operations, but must not grant full listener playback.
+as unauthorized for registered artist tracks. Artist registration and release
+publication also require a connected wallet; dev EVM accounts must not sign
+public user or artist flows.
 
 ### 8.2 Restricted Preview
 
@@ -556,8 +557,7 @@ npm test
 
 Priority improvements:
 
-1. Complete production wallet support and remove dev-account signing from public
-   flows.
+1. Harden production wallet support and passkey recovery across public flows.
 2. Move Pinata upload and content-key delivery behind a backend or artist key
    service.
 3. Replace bundled content secrets with per-track key custody and wallet-signed
@@ -567,7 +567,7 @@ Priority improvements:
 5. Integrate live Proof of Personhood / Individuality data.
 6. Deploy public signaling infrastructure for DotNS / Bulletin builds.
 7. Add frontend tests for registration, payment, preview, unlock, and rooms.
-8. Split `App.tsx` into catalog, player, studio, rooms, and chain modules.
+8. Split `App.tsx` into catalog, player, artist portal, rooms, and chain modules.
 9. Generate frontend ABI bindings from Hardhat artifacts.
 10. Archive or remove the legacy monolithic registry path.
 11. Add deployment smoke tests and runtime health checks.
