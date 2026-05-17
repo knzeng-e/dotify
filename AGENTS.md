@@ -44,7 +44,7 @@ For product/vision context, also review:
 
 - `spec.md`
 - `README.md`
-- `Dotify_presentation.pptx` when available locally
+- `docs/Dotify_presentation.pptx`
 
 ## Engineering rules
 
