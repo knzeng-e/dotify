@@ -20,7 +20,7 @@ It exists so human contributors and AI coding agents can preserve coherence acro
 - Production backlog: `docs/backlog/README.md`
 - Project specification: `spec.md`
 - Product overview: `README.md`
-- Presentation deck: `Dotify_presentation.pptx` when available locally
+- Presentation deck: `docs/Dotify_presentation.pptx`
 
 ## Rule
 
