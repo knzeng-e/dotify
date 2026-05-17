@@ -45,7 +45,7 @@ export type UseSessionDeps = {
   localAudioRef: React.RefObject<HTMLAudioElement | null>;
   objectUrlsRef: React.RefObject<Set<string>>;
   resolvedAudioSourcesRef: React.RefObject<Map<string, string>>;
-  navigateToView: (view: 'listen' | 'player' | 'rooms' | 'artist') => void;
+  navigateToView: (view: 'listen' | 'player' | 'rooms') => void;
   setAudioSource: (source: string | null) => void;
 };
 

@@ -1,6 +1,5 @@
 import {
   Disc3,
-  FileAudio,
   Headphones,
   Radio,
   Wifi,
@@ -14,11 +13,12 @@ import { deployments } from './config/deployments';
 import { devAccounts } from './hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from './config/network';
 import { useEffect, useState, type ChangeEvent } from 'react';
-import { evmDevAccounts, resolveEvmChain, getWalletClient } from './config/contracts';
+import { resolveEvmChain, getWalletClient } from './config/contracts';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { uploadFileToPinata } from './services/pinata';
 import { encryptTrackAudio } from './utils/protectedAudio';
 import { useWallet } from './hooks/useWallet';
+import { zeroAddress } from 'viem';
 
 import { StatusPill } from './components/ui/StatusPill';
 import { Metric } from './components/ui/Metric';
@@ -33,6 +33,7 @@ import { ListenView } from './views/ListenView';
 import { PlayerView } from './views/PlayerView';
 import { RoomsView } from './views/RoomsView';
 import { ArtistConsole } from './views/artist/ArtistConsole';
+import { ArtistOnboarding } from './views/artist/ArtistOnboarding';
 
 import { stripExtension } from './utils/format';
 
@@ -45,8 +46,7 @@ const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol
 const viewCopy: Record<View, { title: string; eyebrow: string }> = {
   listen: { title: 'Let the Music connect the dots', eyebrow: 'by Polkadot' },
   player: { title: 'Let the Music connect the dots', eyebrow: 'by Polkadot' },
-  rooms: { title: 'Live rooms', eyebrow: 'Shared listening for people in the same moment.' },
-  artist: { title: 'Artist Console', eyebrow: 'Own your catalog, set your rules, keep your audience direct.' }
+  rooms: { title: 'Live rooms', eyebrow: 'Shared listening for people in the same moment.' }
 };
 
 const releaseStepsConfig: Array<{ id: ReleaseStep; label: string }> = [
@@ -57,11 +57,15 @@ const releaseStepsConfig: Array<{ id: ReleaseStep; label: string }> = [
 ];
 
 function isDotifyView(value: unknown): value is View {
-  return value === 'listen' || value === 'player' || value === 'rooms' || value === 'artist';
+  return value === 'listen' || value === 'player' || value === 'rooms';
 }
 
 function getInitialView(): View {
   return getInitialRoomCode() ? 'rooms' : 'listen';
+}
+
+function isArtistPortalPath() {
+  return window.location.pathname.replace(/\/$/, '') === '/artists';
 }
 
 function getHistoryStateObject(): Record<string, unknown> {
@@ -80,6 +84,7 @@ function isTrackManagedByArtist(track: CatalogTrack, artistAddress: `0x${string}
 export default function App() {
   // ── View routing ─────────────────────────────────────────────────────────────
   const [activeView, setActiveView] = useState<View>(() => getInitialView());
+  const [isArtistPortal, setIsArtistPortal] = useState(() => isArtistPortalPath());
   const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
   const [releaseStep, setReleaseStep] = useState<ReleaseStep>('assets');
 
@@ -89,7 +94,7 @@ export default function App() {
   const [title, setTitle] = useState('Untitled jam');
   const [royaltyBps, setRoyaltyBps] = useState(7000);
   const [artistAccountIndex, setArtistAccountIndex] = useState(0);
-  const [artistName, setArtistName] = useState(() => getStoredArtistName(evmDevAccounts[0].account.address) || 'Dotify Artist');
+  const [artistName, setArtistName] = useState('');
   const [bulletinAccountIndex, setBulletinAccountIndex] = useState(0);
   const [accessMode, setAccessMode] = useState<AccessMode>('human-free');
   const [assetAction, setAssetAction] = useState<AssetAction>('idle');
@@ -104,15 +109,13 @@ export default function App() {
   const { state: walletState, connectPasskey, connectExtension, disconnect: disconnectWallet, hasPrfSupport, hasStoredPasskey, forgetPasskey } = useWallet();
   const connectedWallet = walletState.status === 'connected' ? walletState.wallet : null;
 
-  const currentArtistAccount = evmDevAccounts[artistAccountIndex];
-  const currentArtistAddress = currentArtistAccount.account.address;
   const currentBulletinAccount = devAccounts[bulletinAccountIndex];
 
-  const activeEvmAddress = connectedWallet?.evmAddress ?? currentArtistAddress;
+  const activeEvmAddress = connectedWallet?.evmAddress ?? zeroAddress;
   const listenerEvmAddress = connectedWallet?.evmAddress ?? null;
   const activeSubstrateAddress = connectedWallet ? connectedWallet.substrateAddress ?? null : currentBulletinAccount.address;
   const activeSubstrateSigner = connectedWallet ? connectedWallet.substrateSigner ?? null : currentBulletinAccount.signer;
-  const activeArtistDefaultName = connectedWallet ? 'Dotify Artist' : `${currentArtistAccount.name} Studio`;
+  const activeArtistDefaultName = 'Dotify Artist';
 
   const factoryAddress = deployments.factory;
   const directoryAddress = deployments.directory;
@@ -235,6 +238,7 @@ export default function App() {
   useEffect(() => {
     window.history.replaceState({ ...getHistoryStateObject(), dotifyView: getInitialView() }, '', window.location.href);
     const onPopState = (event: PopStateEvent) => {
+      setIsArtistPortal(isArtistPortalPath());
       const stateView = (event.state as { dotifyView?: unknown } | null)?.dotifyView;
       setActiveView(isDotifyView(stateView) ? stateView : getInitialView());
     };
@@ -260,9 +264,9 @@ export default function App() {
   }, [directoryAddress, ethRpcUrl]);
 
   useEffect(() => {
-    if (activeView !== 'artist' || artistTab !== 'royalties') return;
+    if (!isArtistPortal || artistTab !== 'royalties') return;
     void artistConsole.refreshArtistRoyalties();
-  }, [activeView, artistTab, artistConsole.artistRuntimeAddress, ethRpcUrl, catalog.catalogTracks.length, activeEvmAddress, artistName]);
+  }, [activeView, isArtistPortal, artistTab, artistConsole.artistRuntimeAddress, ethRpcUrl, catalog.catalogTracks.length, activeEvmAddress, artistName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -292,10 +296,10 @@ export default function App() {
   }, [activeArtistDefaultName, activeEvmAddress]);
 
   useEffect(() => {
-    if (activeView !== 'artist') return;
+    if (!isArtistPortal) return;
     const storedName = getStoredArtistName(activeEvmAddress);
     if (storedName) setArtistName(storedName);
-  }, [activeView, activeEvmAddress]);
+  }, [activeView, isArtistPortal, activeEvmAddress]);
 
   useEffect(() => {
     void artistConsole.refreshArtistRuntime();
@@ -450,6 +454,142 @@ export default function App() {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
+  const walletModal = showWalletModal && (
+    <WalletModal
+      state={walletState}
+      hasPrfSupport={hasPrfSupport}
+      hasStoredPasskey={hasStoredPasskey}
+      onPasskey={() => { void connectPasskey(); }}
+      onExtension={() => { void connectExtension(); }}
+      onForgetPasskey={forgetPasskey}
+      onClose={() => setShowWalletModal(false)}
+    />
+  );
+
+  const transactionModal = transactionFeedback && (
+    <TransactionModal
+      feedback={transactionFeedback}
+      onClose={() => {
+        if (transactionFeedback.tone !== 'pending') {
+          setTransactionFeedback(null);
+        }
+      }}
+    />
+  );
+
+  if (isArtistPortal) {
+    return (
+      <div className='app-shell artist-portal-shell'>
+        <header className='topbar artist-portal-topbar'>
+          <a className='brand' href='/' aria-label='Dotify home'>
+            <span className='brand-mark'>
+              <Disc3 size={21} />
+            </span>
+            <span>Dotify</span>
+          </a>
+          <nav className='nav-pills' aria-label='Artist portal actions'>
+            <a className='artist-entry-link' href='/'>
+              Listener app
+            </a>
+            <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnectWallet} />
+          </nav>
+        </header>
+
+        {walletModal}
+
+        <main className='artist-portal-main'>
+          {connectedWallet && artistConsole.artistRuntimeAddress ? (
+            <ArtistConsole
+              artistTab={artistTab}
+              onSetArtistTab={setArtistTab}
+              artistName={artistName}
+              activeEvmAddress={activeEvmAddress}
+              artistRuntimeAddress={artistConsole.artistRuntimeAddress}
+              artistRegistrationStatus={artistConsole.artistRegistrationStatus}
+              isRegisteringArtist={artistConsole.isRegisteringArtist}
+              isRefreshingArtistRuntime={artistConsole.isRefreshingArtistRuntime}
+              artistRegistrationAvailable={artistRegistrationAvailable}
+              artistSetupState={artistSetupState}
+              artistTracks={artistTracks}
+              connectedWallet={connectedWallet}
+              artistAccountIndex={artistAccountIndex}
+              onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
+              onSetArtistAccountIndex={setArtistAccountIndex}
+              onRegisterArtist={artistConsole.registerArtist}
+              onRefreshArtistRuntime={() => { void artistConsole.refreshArtistRuntime(true); }}
+              onShowWalletModal={() => setShowWalletModal(true)}
+              releaseStep={releaseStep}
+              artistStudioLocked={artistStudioLocked}
+              assetAction={assetAction}
+              audioSource={catalog.audioSource}
+              fileHash={catalog.fileHash}
+              coverSource={catalog.coverSource}
+              coverCID={catalog.coverCID}
+              title={title}
+              description={description}
+              accessMode={accessMode}
+              personhoodLevel={personhoodLevel}
+              priceDot={priceDot}
+              royaltyBps={royaltyBps}
+              uploadToBulletinEnabled={uploadToBulletinEnabled}
+              rightsStatus={artistConsole.rightsStatus}
+              isRegistering={artistConsole.isRegistering}
+              canReviewRelease={canReviewRelease}
+              activeSubstrateAddress={activeSubstrateAddress}
+              bulletinAccountIndex={bulletinAccountIndex}
+              onSetReleaseStep={setReleaseStep}
+              onGoToPreviousStep={goToPreviousReleaseStep}
+              onGoToNextStep={goToNextReleaseStep}
+              onHandleAudioFile={handleAudioFile}
+              onHandleCoverFile={handleCoverFile}
+              onSetTitle={setTitle}
+              onSetDescription={setDescription}
+              onSetAccessMode={setAccessMode}
+              onSetPersonhoodLevel={setPersonhoodLevel}
+              onSetPriceDot={setPriceDot}
+              onSetRoyaltyBps={setRoyaltyBps}
+              onSetUploadToBulletinEnabled={setUploadToBulletinEnabled}
+              onSetBulletinAccountIndex={setBulletinAccountIndex}
+              onRegisterRights={artistConsole.registerRights}
+              onOpenTrack={handleOpenTrack}
+              royaltyPayments={artistConsole.royaltyPayments}
+              royaltyStatus={artistConsole.royaltyStatus}
+              isRefreshingRoyalties={artistConsole.isRefreshingRoyalties}
+              expandedRoyaltyPaymentId={artistConsole.expandedRoyaltyPaymentId}
+              totalRoyaltyWei={totalRoyaltyWei}
+              uniqueRoyaltyListeners={uniqueRoyaltyListeners}
+              paidRoyaltyTracks={paidRoyaltyTracks}
+              onSetExpandedRoyaltyPaymentId={artistConsole.setExpandedRoyaltyPaymentId}
+              onRefreshRoyalties={() => { void artistConsole.refreshArtistRoyalties(true); }}
+              factoryAddress={factoryAddress}
+              directoryAddress={directoryAddress}
+              audioCID={catalog.audioCID}
+              bulletinManifestRef={artistConsole.bulletinManifestRef}
+              trackInfo={catalog.trackInfo}
+            />
+          ) : (
+            <ArtistOnboarding
+              activeEvmAddress={activeEvmAddress}
+              artistName={artistName}
+              artistRegistrationStatus={artistConsole.artistRegistrationStatus}
+              isRegisteringArtist={artistConsole.isRegisteringArtist}
+              isRefreshingArtistRuntime={artistConsole.isRefreshingArtistRuntime}
+              artistRegistrationAvailable={artistRegistrationAvailable}
+              connectedWallet={connectedWallet}
+              onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
+              onRegisterArtist={artistConsole.registerArtist}
+              onRefreshArtistRuntime={() => { void artistConsole.refreshArtistRuntime(true); }}
+              onShowWalletModal={() => setShowWalletModal(true)}
+              artistTracks={connectedWallet ? artistTracks : []}
+            />
+          )}
+        </main>
+
+        {transactionModal}
+      </div>
+    );
+  }
+
   return (
     <div className='app-shell'>
       <header className='topbar'>
@@ -460,6 +600,9 @@ export default function App() {
           <span>Dotify</span>
         </a>
         <nav className='nav-pills' aria-label='Status'>
+          <a className='artist-entry-link' href='/artists'>
+            For artists
+          </a>
           <StatusPill
             icon={session.socketStatus === 'online' ? Wifi : WifiOff}
             label={session.socketStatus === 'online' ? 'Signal online' : 'Signal offline'}
@@ -471,17 +614,7 @@ export default function App() {
         </nav>
       </header>
 
-      {showWalletModal && (
-        <WalletModal
-          state={walletState}
-          hasPrfSupport={hasPrfSupport}
-          hasStoredPasskey={hasStoredPasskey}
-          onPasskey={() => { void connectPasskey(); }}
-          onExtension={() => { void connectExtension(); }}
-          onForgetPasskey={forgetPasskey}
-          onClose={() => setShowWalletModal(false)}
-        />
-      )}
+      {walletModal}
 
       <div className='docs-layout' id='top'>
         <aside className='sidebar' aria-label='Dotify navigation'>
@@ -507,12 +640,6 @@ export default function App() {
             <Radio size={16} />
             Rooms
           </button>
-          <div className='sidebar-heading sidebar-heading-spaced'>Create</div>
-          <button className='sidebar-link' data-active={activeView === 'artist'} type='button' onClick={() => navigateToView('artist')}>
-            <FileAudio size={16} />
-            Artist Console
-          </button>
-
           <div className='sidebar-card'>
             <span>Active room</span>
             <strong>{session.roomId || 'None'}</strong>
@@ -603,77 +730,6 @@ export default function App() {
             />
           )}
 
-          {activeView === 'artist' && (
-            <ArtistConsole
-              artistTab={artistTab}
-              onSetArtistTab={setArtistTab}
-              artistName={artistName}
-              activeEvmAddress={activeEvmAddress}
-              artistRuntimeAddress={artistConsole.artistRuntimeAddress}
-              artistRegistrationStatus={artistConsole.artistRegistrationStatus}
-              isRegisteringArtist={artistConsole.isRegisteringArtist}
-              isRefreshingArtistRuntime={artistConsole.isRefreshingArtistRuntime}
-              artistRegistrationAvailable={artistRegistrationAvailable}
-              artistSetupState={artistSetupState}
-              artistTracks={artistTracks}
-              connectedWallet={connectedWallet}
-              artistAccountIndex={artistAccountIndex}
-              onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
-              onSetArtistAccountIndex={setArtistAccountIndex}
-              onRegisterArtist={artistConsole.registerArtist}
-              onRefreshArtistRuntime={() => { void artistConsole.refreshArtistRuntime(true); }}
-              onShowWalletModal={() => setShowWalletModal(true)}
-              releaseStep={releaseStep}
-              artistStudioLocked={artistStudioLocked}
-              assetAction={assetAction}
-              audioSource={catalog.audioSource}
-              fileHash={catalog.fileHash}
-              coverSource={catalog.coverSource}
-              coverCID={catalog.coverCID}
-              title={title}
-              description={description}
-              accessMode={accessMode}
-              personhoodLevel={personhoodLevel}
-              priceDot={priceDot}
-              royaltyBps={royaltyBps}
-              uploadToBulletinEnabled={uploadToBulletinEnabled}
-              rightsStatus={artistConsole.rightsStatus}
-              isRegistering={artistConsole.isRegistering}
-              canReviewRelease={canReviewRelease}
-              activeSubstrateAddress={activeSubstrateAddress}
-              bulletinAccountIndex={bulletinAccountIndex}
-              onSetReleaseStep={setReleaseStep}
-              onGoToPreviousStep={goToPreviousReleaseStep}
-              onGoToNextStep={goToNextReleaseStep}
-              onHandleAudioFile={handleAudioFile}
-              onHandleCoverFile={handleCoverFile}
-              onSetTitle={setTitle}
-              onSetDescription={setDescription}
-              onSetAccessMode={setAccessMode}
-              onSetPersonhoodLevel={setPersonhoodLevel}
-              onSetPriceDot={setPriceDot}
-              onSetRoyaltyBps={setRoyaltyBps}
-              onSetUploadToBulletinEnabled={setUploadToBulletinEnabled}
-              onSetBulletinAccountIndex={setBulletinAccountIndex}
-              onRegisterRights={artistConsole.registerRights}
-              onOpenTrack={handleOpenTrack}
-              royaltyPayments={artistConsole.royaltyPayments}
-              royaltyStatus={artistConsole.royaltyStatus}
-              isRefreshingRoyalties={artistConsole.isRefreshingRoyalties}
-              expandedRoyaltyPaymentId={artistConsole.expandedRoyaltyPaymentId}
-              totalRoyaltyWei={totalRoyaltyWei}
-              uniqueRoyaltyListeners={uniqueRoyaltyListeners}
-              paidRoyaltyTracks={paidRoyaltyTracks}
-              onSetExpandedRoyaltyPaymentId={artistConsole.setExpandedRoyaltyPaymentId}
-              onRefreshRoyalties={() => { void artistConsole.refreshArtistRoyalties(true); }}
-              factoryAddress={factoryAddress}
-              directoryAddress={directoryAddress}
-              audioCID={catalog.audioCID}
-              bulletinManifestRef={artistConsole.bulletinManifestRef}
-              trackInfo={catalog.trackInfo}
-            />
-          )}
-
           {session.sessionLink && (
             <a className='floating-link' href={session.sessionLink}>
               <LinkIcon size={15} />
@@ -681,16 +737,7 @@ export default function App() {
             </a>
           )}
 
-          {transactionFeedback && (
-            <TransactionModal
-              feedback={transactionFeedback}
-              onClose={() => {
-                if (transactionFeedback.tone !== 'pending') {
-                  setTransactionFeedback(null);
-                }
-              }}
-            />
-          )}
+          {transactionModal}
         </main>
       </div>
     </div>

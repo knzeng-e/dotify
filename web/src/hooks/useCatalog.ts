@@ -102,7 +102,7 @@ export type UseCatalogDeps = {
   directoryAddress: `0x${string}` | undefined;
   setShowWalletModal: (show: boolean) => void;
   setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
-  navigateToView: (view: 'listen' | 'player' | 'rooms' | 'artist') => void;
+  navigateToView: (view: 'listen' | 'player' | 'rooms') => void;
   getActiveWalletClient: () => Promise<Awaited<ReturnType<typeof import('../config/contracts').getWalletClient>>>;
   setBulletinManifestRef: (ref: string) => void;
   setAccessMode: (mode: AccessMode) => void;
