@@ -45,6 +45,17 @@ For product/vision context, also review:
 - `spec.md`
 - `README.md`
 - `docs/Dotify_presentation.pptx`
+- `docs/index.html`
+
+## GitHub Pages alignment rule
+
+`docs/index.html` is the public-facing project page.
+
+When a change affects public product positioning, roadmap, production priorities, architecture narrative, presentation links, or the philosophical framing of Dotify, update `docs/index.html` in the same PR.
+
+Keep the page aligned with the DApp visual identity from `web/src/styles.css`: Dotify Light Console, deep blue core, cyan action accents, restrained Polkadot pink, white surfaces, and low-friction product language.
+
+Do not let the page drift into generic crypto landing-page aesthetics.
 
 ## Engineering rules
 
@@ -90,6 +101,7 @@ When working on an issue:
 3. Implement only the requested scope.
 4. Add or update tests when requested.
 5. Update docs when behavior or setup changes.
-6. Avoid unrelated refactors.
+6. Update `docs/index.html` when product positioning, roadmap, architecture narrative, public presentation, or visual identity changes.
+7. Avoid unrelated refactors.
 
 The standard is senior engineering: secure by default, explicit in failure, clean enough for future contributors, and faithful to the product's human-centered purpose.
