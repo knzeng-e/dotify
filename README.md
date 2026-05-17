@@ -67,11 +67,29 @@ Default ports:
 | Frontend      | <http://localhost:5273>                          |
 | Artist portal | <http://localhost:5273/artists>                  |
 | Signaling     | <http://localhost:8788>                          |
+| Backend API   | <http://localhost:8790>                          |
 | Bulletin RPC  | `wss://paseo-bulletin-rpc.polkadot.io`           |
 | Asset Hub RPC | <https://services.polkadothub-rpc.com/testnet>   |
 
 The app talks to Paseo Bulletin and Asset Hub directly from the browser. A local
 Ethereum node or local Substrate node is not required to run the demo.
+
+### Running the backend API
+
+The backend service is the production boundary for future upload orchestration,
+wallet-signed content-key delivery, and health checks. Ticket 01 exposes the
+skeleton endpoints only; Pinata upload handling lands in Ticket 02.
+
+```bash
+cd services/api
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Set `VITE_DOTIFY_API_URL=http://localhost:8790` in `web/.env.local` when testing
+frontend/backend integration. The current artist upload flow remains demo/local
+until the server-side Pinata upload ticket lands.
 
 **To rebuild and redeploy the frontend to Bulletin Chain:**
 
@@ -152,8 +170,8 @@ must not grant full listener playback.
 - **Proof of Personhood is mocked**: `setPersonhoodLevel` is a dev-only admin
   call. Live Individuality chain reads are on the roadmap.
 - **Pinata runs from the browser**: `VITE_PINATA_JWT` is exposed by Vite, so use
-  a restricted token for demos only. A backend pinning proxy is still needed for
-  production.
+  a restricted token for demos only. The backend skeleton is in place; the
+  server-side Pinata upload proxy is tracked by Ticket 02.
 
 - **Single-host rooms**: no multi-host or handoff logic. If the host closes the
   tab, the room ends.
@@ -163,11 +181,12 @@ must not grant full listener playback.
 ```text
 Browser (React + Vite)
   ├── WebRTC audio stream (captureStream → RTCPeerConnection per listener)
-  ├── Socket.IO  →  Node signaling server  (SDP/ICE only)
-  ├── Pinata HTTP API  →  encrypted audio, cover, and metadata pinning
-  ├── IPFS gateways  →  primary + fallback reads for manifests and audio bytes
+  ├── Socket.IO       →  Node signaling server  (SDP/ICE only)
+  ├── Dotify API      →  backend service  (health, auth nonce, future key delivery)
+  ├── Pinata HTTP API →  encrypted audio, cover, and metadata pinning (demo/local)
+  ├── IPFS gateways   →  primary + fallback reads for manifests and audio bytes
   ├── polkadot-api (PAPI)  →  Paseo Bulletin Chain  (optional manifest upload)
-  └── viem  →  Paseo Asset Hub EVM  (ArtistDirectory, ArtistRuntimeFactory, SmartRuntime)
+  └── viem            →  Paseo Asset Hub EVM  (ArtistDirectory, ArtistRuntimeFactory, SmartRuntime)
 ```
 
 The frontend is built as a single self-contained HTML file using
@@ -187,12 +206,13 @@ handle:
 
 ## Structure
 
-| Path             | Role                                                     |
-| ---------------- | -------------------------------------------------------- |
-| `web/`           | React app, signaling server, Bulletin deploy scripts     |
-| `web/.papi/`     | PAPI descriptors for Bulletin Chain                      |
-| `contracts/evm/` | Hardhat + Solidity smart-runtime contracts               |
-| `deployments.json` | EVM factory, directory, initializer, and pallet addresses |
+| Path               | Role                                                     |
+| ------------------ | -------------------------------------------------------- |
+| `web/`             | React app, signaling server, Bulletin deploy scripts     |
+| `web/.papi/`       | PAPI descriptors for Bulletin Chain                      |
+| `services/api/`    | Backend API: health, auth nonce, future key delivery     |
+| `contracts/evm/`   | Hardhat + Solidity smart-runtime contracts               |
+| `deployments.json` | EVM factory, directory, initializer, pallet addresses    |
 
 ## Improvement Backlog
 
