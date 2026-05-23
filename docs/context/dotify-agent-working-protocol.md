@@ -48,6 +48,8 @@ Assume wallet/network/RPC/IPFS/signaling can fail.
 
 Fail closed on access ambiguity.
 
+Production content keys must never be bundled into the frontend. Room listeners must never receive content keys or encrypted source files.
+
 ## Product posture
 
 Do not make the user feel the machinery first.
@@ -70,6 +72,18 @@ The third should be:
 The system is trustworthy.
 ```
 
+## Room access doctrine
+
+Room playback is host-access based.
+
+- Individual full playback checks the listener's access.
+- Room full playback checks the host's access.
+- Room guests join without wallet/signature requirements.
+- Room guests receive only the WebRTC stream.
+- Unauthorized hosts should get 42% preview fallback, a discreet host CTA, and auto-advance.
+
+Do not “secure” rooms by killing the social flow.
+
 ## Coding posture
 
 - Prefer explicit types.
@@ -91,6 +105,8 @@ When adding a production-relevant behavior, document:
 - what it does not protect;
 - how to test it.
 
+When changing public product positioning, roadmap, room policy, architecture narrative, presentation links, or visual identity, update `docs/index.html` in the same PR.
+
 ## Review checklist
 
 Before considering work done, ask:
@@ -100,6 +116,7 @@ Before considering work done, ask:
 - Does this preserve artist sovereignty?
 - Does this make failure modes visible?
 - Does this reduce or contain complexity?
+- Are room guests kept free from wallet friction unless explicitly required by a future documented policy?
 - Are tests or manual verification steps included?
 - Are docs updated where needed?
 
