@@ -17,7 +17,8 @@ monetization through their own artist runtime.
 
 - **Home**: artist-grouped music discovery, track artwork, descriptions, access
   mode badges, a policy-aware player, and room-hosting controls.
-- **Rooms**: open listening rooms plus manual room-code entry.
+- **Rooms**: open listening rooms plus manual room-code entry. Room guests should
+  be able to join and listen without wallet friction.
 - **Artist portal**: a dedicated `/artists` onboarding and studio surface where
   artists connect a wallet, create their runtime, upload releases, configure
   access, and manage royalty records outside the listener-first app shell.
@@ -129,16 +130,50 @@ authorization failures.
 Proof of Personhood is a registrar-controlled mapping in the contract — ready
 for a live Individuality chain integration without blocking the prototype.
 
-The frontend checks `musicAccCanAccess` before loading a registered track. If the
-listener does not meet the PoP or payment requirement, it creates a separate 42%
-preview and shows a warning explaining the restriction and the action needed to
-unlock the whole track. This is product-policy enforcement in the current
-client; production-grade protection still needs server-side or artist-side key
-delivery.
+### Individual playback access
+
+For individual full-track playback, Dotify checks `musicAccCanAccess` for the
+listener before loading the registered track. If the listener does not meet the
+PoP or payment requirement, Dotify creates a separate 42% preview and shows a
+warning explaining the restriction and the action needed to unlock the whole
+track.
 
 For registered artist tracks, users without a connected wallet are treated as
-unauthorized listeners and receive preview-only playback. Dev-account fallback
-must not grant full listener playback.
+unauthorized individual listeners and receive preview-only playback. Dev-account
+fallback must not grant full listener playback.
+
+### Room playback access
+
+Room playback uses **host-based access**.
+
+- If the host has access to a protected track, Dotify may deliver a temporary
+  content key to the host only, and the host streams the full track through
+  WebRTC.
+- Room listeners do not need to connect a wallet, sign, pay, or prove access
+  merely to listen inside a room.
+- Room listeners never receive the encrypted source file or content key; they
+  receive only the ephemeral WebRTC media stream.
+- If the host lacks access to a protected track, Dotify should keep the room
+  alive, stream the 42% preview, show a discreet host-facing unlock/personhood
+  CTA, and auto-advance to the next playlist track when the preview ends.
+
+This protects source-file distribution without turning the room into a wallet
+checkpoint.
+
+### Security boundary
+
+Current client-side protection is demo-grade. Production protection requires
+server-side upload/key delivery and wallet-signed content-key requests.
+
+Dotify protects distribution access to encrypted source files and keys. It does
+not claim absolute DRM and does not prevent recording of an authorized WebRTC
+stream.
+
+See also:
+
+- `docs/product/ux-signature-flows.md`
+- `docs/product/room-access-policy.md`
+- `docs/security/content-key-delivery-threat-model.md`
 
 ## What works
 
@@ -172,9 +207,10 @@ must not grant full listener playback.
 - **Pinata runs from the browser**: `VITE_PINATA_JWT` is exposed by Vite, so use
   a restricted token for demos only. The backend skeleton is in place; the
   server-side Pinata upload proxy is tracked by Ticket 02.
-
 - **Single-host rooms**: no multi-host or handoff logic. If the host closes the
   tab, the room ends.
+- **Room stream capture limits**: room guests do not receive keys/source files,
+  but WebRTC audio heard by guests can still be recorded outside Dotify.
 
 ## Architecture
 
@@ -212,6 +248,8 @@ handle:
 | `web/.papi/`       | PAPI descriptors for Bulletin Chain                      |
 | `services/api/`    | Backend API: health, auth nonce, future key delivery     |
 | `contracts/evm/`   | Hardhat + Solidity smart-runtime contracts               |
+| `docs/product/`    | Product policy and UX flow documentation                 |
+| `docs/security/`   | Security boundaries and threat models                    |
 | `deployments.json` | EVM factory, directory, initializer, pallet addresses    |
 
 ## Improvement Backlog
