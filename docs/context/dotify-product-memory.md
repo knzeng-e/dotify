@@ -29,15 +29,19 @@ The app should transform isolated music consumption into human connection.
 
 ### Listener
 
-A listener browses tracks, listens to previews, unlocks access, joins rooms, and discovers artists through other humans.
+A listener browses tracks, listens to previews, unlocks access for individual full playback, joins rooms, and discovers artists through other humans.
 
 The listener experience must remain simple. Wallets and access policies should not become the first thing the listener feels.
+
+As a room guest, the listener should be able to join and listen without wallet/signature friction. Room guests receive only the ephemeral WebRTC stream, never protected source files or content keys.
 
 ### Host
 
 A host turns listening into a social event.
 
 The host creates a room, plays a track, and shares a link/code. The room is the social heart of Dotify.
+
+For protected room playback, access is checked against the host. If the host is authorized, the host may receive the temporary content key and stream full audio. If the host is unauthorized, Dotify should keep the room alive, stream the 42% preview, show a discreet host-facing CTA, and auto-advance.
 
 ### Artist
 
@@ -118,6 +122,18 @@ connect wallet -> understand runtime -> understand IPFS -> understand access mod
 
 Blockchain should be felt as trust, not as bureaucracy.
 
+## Access doctrine
+
+Dotify distinguishes direct file access from room presence.
+
+- Individual playback: the listener must satisfy the access policy before receiving a temporary content key.
+- Room playback: the host must satisfy the access policy before receiving a temporary content key.
+- Room guests receive WebRTC media only.
+- Room guests must not be forced to connect a wallet or sign merely to listen.
+- If the host lacks access to a protected track, the room should continue in 42% preview mode with a host-facing unlock/personhood CTA.
+
+This is the compromise: protect the artist's source-file distribution without killing the social flow.
+
 ## Product priorities
 
 ### Now
@@ -126,6 +142,7 @@ Blockchain should be felt as trust, not as bureaucracy.
 - artist publish flow;
 - public hosted rooms;
 - simple join link;
+- host-based room access;
 - production key delivery;
 - tests for core flows.
 
@@ -151,6 +168,7 @@ Blockchain should be felt as trust, not as bureaucracy.
 - Becoming an NFT marketplace with music attached.
 - Adding tokenomics before trust and usability.
 - Making wallet friction the first experience.
+- Requiring room guests to authenticate before feeling the room.
 - Overpromising DRM.
 - Treating the artist portal like a cold admin dashboard.
 - Treating rooms as secondary when they are the social core.
