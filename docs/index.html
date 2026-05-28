@@ -12,14 +12,14 @@
         color-scheme: dark;
         --navy:  #06152d;
         --ink:   #09213f;
-        --cyan:  #2bb3ff;
+        --cyan:  #29e87a;
         --green: #c8ff4d;
         --pink:  #e6007a;
         --gold:  #e8c86a;
         --white: #fff;
         --muted: rgba(255, 255, 255, 0.72);
         --soft:  rgba(255, 255, 255, 0.08);
-        --border: rgba(43, 179, 255, 0.22);
+        --border: rgba(41, 232, 122, 0.22);
         --shadow-1: 0 8px 24px -18px rgba(0,0,0,0.56);
         --shadow-2: 0 18px 48px -32px rgba(0,0,0,0.72);
         --radius: 8px;
@@ -35,7 +35,7 @@
       body {
         font-family: Inter, system-ui, sans-serif;
         background:
-          radial-gradient(circle at 10% 8%, rgba(43,179,255,0.18), transparent 28%),
+          radial-gradient(circle at 10% 8%, rgba(41,232,122,0.18), transparent 28%),
           radial-gradient(circle at 86% 12%, rgba(200,255,77,0.10), transparent 24%),
           radial-gradient(circle at 70% 78%, rgba(230,0,122,0.10), transparent 28%),
           #06152d;
@@ -82,7 +82,7 @@
         justify-content: center;
         font-size: 18px;
         font-weight: 900;
-        box-shadow: 0 0 28px rgba(43,179,255,0.42);
+        box-shadow: 0 0 28px rgba(41,232,122,0.42);
       }
       .nav-right {
         display: flex;
@@ -180,9 +180,9 @@
         background: var(--cyan);
         color: var(--navy);
         border-color: var(--cyan);
-        box-shadow: 0 0 24px rgba(43,179,255,0.32);
+        box-shadow: 0 0 24px rgba(41,232,122,0.32);
       }
-      .btn-primary:hover { background: #52c4ff; }
+      .btn-primary:hover { background: #45f090; }
       .btn-secondary {
         background: rgba(9,33,63,0.72);
         color: var(--white);
@@ -525,7 +525,7 @@
           </div>
           <div class="value-row">
             <strong>Repository memory</strong>
-            <p>Context lives in <code style="font-family:'JetBrains Mono',monospace;background:rgba(43,179,255,0.12);color:#2bb3ff;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/backlog/</code> and <code style="font-family:'JetBrains Mono',monospace;background:rgba(43,179,255,0.12);color:#2bb3ff;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/context/</code>. AI agents must read CLAUDE.md before implementing.</p>
+            <p>Context lives in <code style="font-family:'JetBrains Mono',monospace;background:rgba(41,232,122,0.12);color:#29e87a;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/backlog/</code> and <code style="font-family:'JetBrains Mono',monospace;background:rgba(41,232,122,0.12);color:#29e87a;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/context/</code>. AI agents must read CLAUDE.md before implementing.</p>
           </div>
         </div>
       </section>
@@ -557,7 +557,7 @@
         if (!ctx) return;
 
         var NODES = [
-          { x: 0.5,  y: 0.24, r: 22, color: '#2bb3ff', label: 'Host',     phase: 0   },
+          { x: 0.5,  y: 0.24, r: 22, color: '#29e87a', label: 'Host',     phase: 0   },
           { x: 0.22, y: 0.56, r: 15, color: '#c8ff4d', label: 'Listener', phase: 1.2 },
           { x: 0.78, y: 0.56, r: 15, color: '#c8ff4d', label: 'Listener', phase: 2.4 },
           { x: 0.5,  y: 0.72, r: 14, color: '#e8c86a', label: 'Artist',   phase: 3.1 },
@@ -581,7 +581,7 @@
 
           // Background radial glow
           var bg = ctx.createRadialGradient(W*0.5, H*0.4, 0, W*0.5, H*0.4, W*0.55);
-          bg.addColorStop(0,   'rgba(43,179,255,0.14)');
+          bg.addColorStop(0,   'rgba(41,232,122,0.14)');
           bg.addColorStop(0.45,'rgba(200,255,77,0.06)');
           bg.addColorStop(1,   'rgba(6,21,45,0)');
           ctx.fillStyle = bg;
@@ -599,7 +599,7 @@
             ctx.beginPath();
             ctx.moveTo(pos[i].x, pos[i].y);
             ctx.lineTo(pos[j].x, pos[j].y);
-            ctx.strokeStyle = isArtist ? 'rgba(232,200,106,0.28)' : 'rgba(43,179,255,0.22)';
+            ctx.strokeStyle = isArtist ? 'rgba(232,200,106,0.28)' : 'rgba(41,232,122,0.22)';
             ctx.lineWidth   = isArtist ? 2 : 3;
             ctx.stroke();
           });

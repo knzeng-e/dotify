@@ -9,7 +9,7 @@ type Node = {
 };
 
 const NODES: Node[] = [
-  { x: 0.5,  y: 0.22, r: 18, color: '#2bb3ff', phase: 0   },
+  { x: 0.5,  y: 0.22, r: 18, color: '#29e87a', phase: 0   },
   { x: 0.2,  y: 0.56, r: 12, color: '#c8ff4d', phase: 1.2 },
   { x: 0.8,  y: 0.56, r: 12, color: '#c8ff4d', phase: 2.4 },
   { x: 0.5,  y: 0.75, r: 11, color: '#e8c86a', phase: 3.1 },
@@ -60,7 +60,7 @@ export function AmbientCanvas() {
         ctx.beginPath();
         ctx.moveTo(pos[i].x, pos[i].y);
         ctx.lineTo(pos[j].x, pos[j].y);
-        ctx.strokeStyle = isArtist ? 'rgba(232,200,106,0.18)' : 'rgba(43,179,255,0.14)';
+        ctx.strokeStyle = isArtist ? 'rgba(232,200,106,0.18)' : 'rgba(41,232,122,0.14)';
         ctx.lineWidth = isArtist ? 1 : 1.5;
         ctx.stroke();
       });
