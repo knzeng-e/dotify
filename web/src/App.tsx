@@ -8,6 +8,8 @@ import {
   Link as LinkIcon
 } from 'lucide-react';
 
+import { AmbientCanvas } from './components/AmbientCanvas';
+
 import { hashFileWithBytes } from './utils/hash';
 import { deployments } from './config/deployments';
 import { devAccounts } from './hooks/useDevAccounts';
@@ -477,6 +479,8 @@ export default function App() {
 
   if (isArtistPortal) {
     return (
+      <>
+      <AmbientCanvas />
       <div className='app-shell artist-portal-shell'>
         <header className='topbar artist-portal-topbar'>
           <a className='brand' href='/' aria-label='Dotify home'>
@@ -583,10 +587,13 @@ export default function App() {
 
         {transactionModal}
       </div>
+      </>
     );
   }
 
   return (
+    <>
+    <AmbientCanvas />
     <div className='app-shell'>
       <header className='topbar'>
         <a className='brand' href='#top' aria-label='Dotify'>
@@ -737,5 +744,6 @@ export default function App() {
         </main>
       </div>
     </div>
+    </>
   );
 }
