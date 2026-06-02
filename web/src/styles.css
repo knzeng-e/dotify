@@ -129,6 +129,17 @@ button:disabled {
   opacity: 0.6;
 }
 
+/* Shooting-stars backdrop — restrained, app-wide layer above the network graph. */
+.starfield-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 /* ── App shell ── */
 
 .app-shell {
@@ -454,8 +465,66 @@ button:disabled {
 }
 
 .player-view-grid {
-  grid-template-columns: minmax(28rem, 1fr) minmax(18rem, 0.36fr);
+  position: relative;
+  display: block;
+  width: min(100%, 80rem);
+  margin-right: auto;
+  margin-left: auto;
+  scroll-margin-top: 5rem;
+  min-height: calc(100vh - 11rem);
+  overflow: hidden;
+  border-radius: var(--radius-nested);
+  background: radial-gradient(135% 105% at 20% 36%, rgba(10, 32, 62, 0.55), rgba(3, 10, 22, 0.94) 72%);
+  padding: clamp(1.2rem, 2.6vw, 2.6rem);
+  box-shadow: var(--shadow-2);
+  isolation: isolate;
+}
+
+/* Immersive warp-field spanning the whole player view, bursting from behind the cover. */
+.player-view-starfield {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.player-view-grid > *:not(.player-view-starfield) {
+  position: relative;
+  z-index: 1;
+}
+
+.player-stage {
+  display: grid;
+  min-height: clamp(25rem, 55vh, 34rem);
+  grid-template-columns: minmax(15rem, 21rem) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(1.4rem, 3.4vw, 3.25rem);
+}
+
+.player-cover-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  justify-self: center;
+}
+
+.player-main-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  min-width: 0;
+}
+
+.player-lower-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr);
   align-items: start;
+  gap: 1rem;
+  margin-top: clamp(1.5rem, 3vw, 2.5rem);
 }
 
 .rooms-grid {
@@ -955,17 +1024,64 @@ button:disabled {
 }
 
 .integrated-player-panel {
+  position: relative;
   min-height: calc(100vh - 11rem);
   padding: clamp(1rem, 2vw, 1.6rem);
+  isolation: isolate;
 }
 
-.player-view-grid .now-playing {
-  grid-template-columns: minmax(13rem, 0.35fr) minmax(0, 1fr);
-  gap: clamp(1rem, 3vw, 2rem);
+/* Immersive shooting-stars layer behind the now-playing content. */
+.player-starfield {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
 }
 
-.player-view-grid .cover {
-  width: min(100%, 18rem);
+.integrated-player-panel > *:not(.player-starfield) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Big cover presented on a calm card in the narrow left column, like the reference. */
+.cover-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-nested);
+  background: rgba(6, 21, 45, 0.66);
+  padding: 0.85rem;
+  box-shadow: var(--shadow-3);
+  backdrop-filter: blur(10px);
+}
+
+.player-view-grid .cover-card .cover {
+  width: 100%;
+}
+
+.cover-card .audio-stack {
+  display: flex;
+  justify-content: center;
+}
+
+/* Title, description, and player controls grouped together in the centre column. */
+.player-view-grid .track-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.player-view-grid .track-copy .access-badges {
+  margin-top: 0.55rem;
+}
+
+.player-view-grid .track-copy .player-transport {
+  margin-top: 1.4rem;
 }
 
 .player-view-grid .track-copy h2 {
@@ -1048,6 +1164,32 @@ button:disabled {
 .cover[data-playing='true'] img {
   filter: saturate(1.08) contrast(1.02);
   transform: scale(1.018);
+}
+
+.player-view-grid .cover[data-playing='true'] {
+  animation: coverPulse 3.2s ease-in-out infinite;
+}
+
+@keyframes coverPulse {
+  0%,
+  100% {
+    box-shadow:
+      var(--shadow-2),
+      0 0 0 1px rgba(41, 232, 122, 0.28),
+      0 0 26px -6px rgba(41, 232, 122, 0.45);
+  }
+  50% {
+    box-shadow:
+      var(--shadow-2),
+      0 0 0 1px rgba(41, 232, 122, 0.42),
+      0 0 44px -4px rgba(41, 232, 122, 0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-view-grid .cover[data-playing='true'] {
+    animation: none;
+  }
 }
 
 .cover[data-live='true'] svg {
@@ -2577,7 +2719,6 @@ audio {
   }
 
   .catalog-home-grid,
-  .player-view-grid,
   .rooms-grid,
   .artist-grid,
   .artist-overview-grid,
@@ -2606,6 +2747,21 @@ audio {
   }
 }
 
+@media (max-width: 900px) {
+  .player-stage,
+  .player-lower-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .player-stage {
+    min-height: 0;
+  }
+
+  .player-cover-column {
+    width: min(100%, 21rem);
+  }
+}
+
 @media (max-width: 760px) {
   .topbar {
     align-items: flex-start;
@@ -2625,6 +2781,10 @@ audio {
     padding: 1rem 1rem 5.5rem;
   }
 
+  .player-view-grid {
+    scroll-margin-top: 9rem;
+  }
+
   .page-head {
     grid-template-columns: 1fr;
   }
@@ -2641,10 +2801,6 @@ audio {
     grid-template-columns: 1fr;
   }
 
-  .player-view-grid .now-playing {
-    grid-template-columns: 1fr;
-  }
-
   .cover {
     width: 100%;
     max-width: 9rem;
@@ -2652,7 +2808,7 @@ audio {
 
   .player-view-grid .cover {
     width: 100%;
-    max-width: 12rem;
+    max-width: none;
   }
 
   .player-transport {
