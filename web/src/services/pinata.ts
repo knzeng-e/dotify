@@ -187,6 +187,40 @@ export async function uploadMetadataToBackend(manifest: DotifyTrackManifest): Pr
 }
 
 // ---------------------------------------------------------------------------
+// Protected audio publication
+// ---------------------------------------------------------------------------
+
+export type ProtectedAudioSource = {
+  bytes: Uint8Array;
+  name: string;
+  mime: string;
+};
+
+/**
+ * Upload protected audio for publication and return the encrypted-asset CID.
+ *
+ * Production (backend configured): the RAW audio goes to the backend, which
+ * derives the per-track key server-side, encrypts, and pins. The content key
+ * never exists in the browser at publish time; listeners obtain it later via
+ * the wallet-signed key request (services/keyService.ts).
+ *
+ * Demo/local: bytes are encrypted in the browser with the bundle-derived
+ * demo key (best-effort, not a production boundary) and pinned directly.
+ */
+export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentHash: string): Promise<string> {
+  if (API_URL) {
+    const rawFile = new File([audio.bytes as BlobPart], audio.name, { type: audio.mime || 'audio/mpeg' });
+    const ref = await uploadAudioToBackend(rawFile, contentHash);
+    return ref.startsWith('dotify:enc:ipfs://') ? ref.slice('dotify:enc:ipfs://'.length) : ref;
+  }
+
+  const { encryptTrackAudio } = await import('../utils/protectedAudio');
+  const encrypted = await encryptTrackAudio(audio.bytes, contentHash);
+  const encFile = new File([encrypted as BlobPart], `${audio.name}.enc`, { type: 'application/octet-stream' });
+  return uploadFileToPinata(encFile, encFile.name, { app: 'dotify', type: 'audio', encrypted: 'true' });
+}
+
+// ---------------------------------------------------------------------------
 // Demo/local mode upload helpers (direct Pinata from browser)
 //
 // These require VITE_PINATA_JWT. Only use in local development with a

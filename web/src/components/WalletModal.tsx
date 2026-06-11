@@ -1,14 +1,20 @@
 import { KeyRound, LockKeyhole, Power, Wallet, X } from 'lucide-react';
 import type { WalletState } from '../hooks/useWallet';
 
+function shortenAddress(address: string) {
+  return address.length > 14 ? `${address.slice(0, 8)}...${address.slice(-6)}` : address;
+}
+
 export function WalletStatusPill({ state, onClick, onDisconnect }: { state: WalletState; onClick: () => void; onDisconnect: () => void }) {
   if (state.status === 'connected') {
     return (
       <div className='status-pill wallet-pill' data-tone='green'>
-        <LockKeyhole size={14} />
-        <span>{state.wallet.label}</span>
-        <button type='button' onClick={onDisconnect} aria-label='Disconnect wallet' title='Disconnect'>
-          ×
+        <button className='wallet-pill-open' type='button' onClick={onClick}>
+          <LockKeyhole size={14} />
+          <span>{state.wallet.label}</span>
+        </button>
+        <button className='wallet-pill-disconnect' type='button' onClick={onDisconnect} aria-label='Disconnect wallet' title='Disconnect'>
+          x
         </button>
       </div>
     );
@@ -25,19 +31,102 @@ export function WalletModal({
   state,
   hasPrfSupport,
   hasStoredPasskey,
+  supportingCount = 0,
+  unlockedCount = 0,
   onPasskey,
   onExtension,
   onForgetPasskey,
+  onDisconnect,
   onClose
 }: {
   state: WalletState;
   hasPrfSupport: boolean;
   hasStoredPasskey: boolean;
+  supportingCount?: number;
+  unlockedCount?: number;
   onPasskey: () => void;
   onExtension: () => void;
   onForgetPasskey: () => void;
+  onDisconnect?: () => void;
   onClose: () => void;
 }) {
+  if (state.status === 'connected') {
+    const { wallet } = state;
+    const identityAddress = wallet.substrateAddress ?? wallet.evmAddress;
+    return (
+      <div className='modal-backdrop' role='presentation' onClick={onClose}>
+        <div className='modal-card wallet-modal' role='dialog' aria-modal='true' aria-labelledby='wallet-modal-title' onClick={e => e.stopPropagation()}>
+          <div className='modal-header'>
+            <div className='modal-icon' data-tone='success'>
+              <LockKeyhole size={20} />
+            </div>
+            <button className='modal-close' type='button' onClick={onClose} aria-label='Close'>
+              <X size={16} />
+            </button>
+          </div>
+          <div className='modal-copy'>
+            <p className='modal-eyebrow'>Your wallet</p>
+            <h2 id='wallet-modal-title'>Connected, on your terms</h2>
+          </div>
+
+          <div className='wallet-identity'>
+            <span className='wallet-identity-orb' aria-hidden='true' />
+            <div>
+              <strong>{wallet.label}</strong>
+              <small className='tnum'>{shortenAddress(identityAddress)}</small>
+            </div>
+          </div>
+
+          <div className='wallet-stats'>
+            <div>
+              <strong className='tnum'>{supportingCount}</strong>
+              <span>artist{supportingCount === 1 ? '' : 's'} supported</span>
+            </div>
+            <div>
+              <strong className='tnum'>{unlockedCount}</strong>
+              <span>track{unlockedCount === 1 ? '' : 's'} unlocked</span>
+            </div>
+          </div>
+
+          <div className='wallet-selfcustody'>
+            <span className='wallet-option-icon'>
+              <KeyRound size={16} />
+            </span>
+            <span className='wallet-option-copy'>
+              <strong>You hold your keys</strong>
+              <small>Dotify never sees your seed. Payments and access proofs are signed by you, on your device.</small>
+            </span>
+          </div>
+
+          {hasStoredPasskey && (
+            <button
+              className='wallet-forget'
+              type='button'
+              onClick={() => {
+                onForgetPasskey();
+              }}
+            >
+              Remove saved passkey
+            </button>
+          )}
+          {onDisconnect && (
+            <button
+              className='secondary-action'
+              type='button'
+              onClick={() => {
+                onDisconnect();
+                onClose();
+              }}
+            >
+              <Power size={16} />
+              Disconnect
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className='modal-backdrop' role='presentation' onClick={onClose}>
       <div className='modal-card wallet-modal' role='dialog' aria-modal='true' aria-labelledby='wallet-modal-title' onClick={e => e.stopPropagation()}>
@@ -51,8 +140,8 @@ export function WalletModal({
         </div>
         <div className='modal-copy'>
           <p className='modal-eyebrow'>Account</p>
-          <h2 id='wallet-modal-title'>Sovereign access</h2>
-          <p>Your wallet is enough. No forms, no passwords, no personal data handover.</p>
+          <h2 id='wallet-modal-title'>Your wallet, quietly</h2>
+          <p>Use Dotify without creating a platform account. Your wallet proves access while your keys stay with you.</p>
         </div>
 
         {state.status === 'error' && <p className='error-box'>{state.message}</p>}
@@ -68,7 +157,7 @@ export function WalletModal({
               </span>
               <span className='wallet-option-copy'>
                 <strong>{hasStoredPasskey ? 'Use passkey' : 'Create passkey'}</strong>
-                <small>Use this device without a seed phrase.</small>
+                <small>Use this device without a seed phrase prompt.</small>
               </span>
             </button>
           )}
@@ -79,7 +168,7 @@ export function WalletModal({
             </span>
             <span className='wallet-option-copy'>
               <strong>Use wallet app</strong>
-              <small>Bring your existing web3 identity.</small>
+              <small>Bring your existing wallet when a signature is needed.</small>
             </span>
           </button>
 

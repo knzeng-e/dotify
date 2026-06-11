@@ -5,6 +5,7 @@ import { LibMusicRegistry } from '../libraries/LibMusicRegistry.sol';
 import { LibMusicRoyalties } from '../libraries/LibMusicRoyalties.sol';
 import { LibMusicAccess } from '../libraries/LibMusicAccess.sol';
 import { LibMusicNFT } from '../libraries/LibMusicNFT.sol';
+import { LibReentrancyGuard } from '../libraries/LibReentrancyGuard.sol';
 
 /// @title MusicRoyaltiesPallet
 /// @notice Smart Pallet for on-chain payment collection and royalty distribution.
@@ -31,26 +32,52 @@ contract MusicRoyaltiesPallet {
   event MusicRoyListenRecorded(bytes32 indexed contentHash, address indexed listener, LibMusicRegistry.PersonhoodLevel requiredPersonhood);
 
   // -------------------------------------------------------------------------
+  // Reentrancy guard
+  // -------------------------------------------------------------------------
+
+  /// @dev Cross-pallet reentrancy lock backed by LibReentrancyGuard's namespaced
+  ///      diamond storage slot. Guards every ETH-sending external entry point so a
+  ///      malicious royalty recipient cannot re-enter mid-distribution.
+  modifier nonReentrant() {
+    LibReentrancyGuard.enter();
+    _;
+    LibReentrancyGuard.exit();
+  }
+
+  // -------------------------------------------------------------------------
   // Write functions
   // -------------------------------------------------------------------------
 
   /// @notice Pay for access to a Classic track.
-  ///         `msg.value` must be >= `track.pricePlanck`.
-  ///         Payment is immediately distributed to royalty recipients.
-  function musicRoyPayAccess(bytes32 contentHash) external payable {
+  ///         `msg.value` must be >= `track.pricePlanck`. Exactly `pricePlanck`
+  ///         is distributed to royalty recipients; any excess is refunded to the
+  ///         caller. Reverts if the caller already holds paid access.
+  function musicRoyPayAccess(bytes32 contentHash) external payable nonReentrant {
     LibMusicRegistry.Storage storage rs = LibMusicRegistry.store();
     LibMusicRegistry.requireExists(rs, contentHash);
     LibMusicRegistry.requireActive(rs, contentHash);
 
     LibMusicRegistry.TrackRecord storage track = rs.tracks[contentHash];
     require(track.accessMode == LibMusicRegistry.AccessMode.Classic, 'MusicRoyalties: not a Classic track');
-    require(msg.value >= track.pricePlanck, 'MusicRoyalties: insufficient payment');
 
-    LibMusicAccess.store().paidAccess[contentHash][msg.sender] = true;
+    LibMusicAccess.Storage storage accessStore = LibMusicAccess.store();
+    require(!accessStore.paidAccess[contentHash][msg.sender], 'MusicRoyalties: already paid');
 
-    LibMusicRoyalties.distribute(LibMusicRoyalties.store(), contentHash, track.artist, msg.value);
+    uint256 price = track.pricePlanck;
+    require(msg.value >= price, 'MusicRoyalties: insufficient payment');
 
-    emit MusicRoyAccessPaid(contentHash, msg.sender, msg.value);
+    accessStore.paidAccess[contentHash][msg.sender] = true;
+
+    // Distribute exactly the track price; refund any overpayment.
+    LibMusicRoyalties.distribute(LibMusicRoyalties.store(), contentHash, track.artist, price);
+
+    uint256 refund = msg.value - price;
+    if (refund > 0) {
+      (bool refunded, ) = payable(msg.sender).call{ value: refund }('');
+      require(refunded, 'MusicRoyalties: refund failed');
+    }
+
+    emit MusicRoyAccessPaid(contentHash, msg.sender, price);
   }
 
   /// @notice Record a listen event for a HumanFree track (analytics; no charge).

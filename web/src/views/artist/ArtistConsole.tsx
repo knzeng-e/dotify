@@ -1,6 +1,9 @@
 import type { ArtistTab, CatalogTrack, RoyaltyPayment, TrackInfo } from '../../types';
 import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseStep } from '../../types';
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, CSSProperties } from 'react';
+import { BadgeCheck } from 'lucide-react';
+import { shorten } from '../../utils/format';
+import { auraForName } from '../../utils/aura';
 import { OverviewTab } from './OverviewTab';
 import { NewReleaseTab } from './NewReleaseTab';
 import { ReleasesTab } from './ReleasesTab';
@@ -160,8 +163,30 @@ export function ArtistConsole(props: ArtistConsoleProps) {
     trackInfo
   } = props;
 
+  const studioAura = auraForName(artistName);
+  const studioHandle = artistName.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || 'artist';
+
   return (
     <section className='artist-console'>
+      <header className='studio-head'>
+        <span
+          className='studio-avatar'
+          aria-hidden='true'
+          style={{ '--aura-a': studioAura.a, '--aura-b': studioAura.b, '--aura-accent': studioAura.accent } as CSSProperties}
+        />
+        <div className='studio-id'>
+          <h1>
+            {artistName}
+            <BadgeCheck size={22} aria-label='Verified artist-owned runtime' />
+          </h1>
+          <div className='studio-id-sub'>
+            <span>@{studioHandle}</span>
+            {artistRuntimeAddress && <code>{shorten(artistRuntimeAddress, 12)}</code>}
+            <span>{artistTracks.length} release{artistTracks.length === 1 ? '' : 's'}</span>
+          </div>
+        </div>
+      </header>
+
       <div className='console-tabs' role='tablist' aria-label='Artist console'>
         {artistTabs.map(tab => (
           <button
@@ -190,11 +215,15 @@ export function ArtistConsole(props: ArtistConsoleProps) {
           artistSetupState={artistSetupState}
           artistTracks={artistTracks}
           connectedWallet={connectedWallet}
+          royaltyPayments={royaltyPayments}
+          totalRoyaltyWei={totalRoyaltyWei}
+          uniqueRoyaltyListeners={uniqueRoyaltyListeners}
           onUpdateArtistName={onUpdateArtistName}
           onRegisterArtist={onRegisterArtist}
           onRefreshArtistRuntime={onRefreshArtistRuntime}
           onSetArtistTab={onSetArtistTab}
           onShowWalletModal={onShowWalletModal}
+          onOpenTrack={onOpenTrack}
         />
       )}
 

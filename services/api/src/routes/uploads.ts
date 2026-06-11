@@ -1,7 +1,7 @@
-import { createCipheriv, hkdfSync, randomBytes } from 'node:crypto';
+import { createCipheriv, randomBytes } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { config } from '../config.js';
+import { deriveContentKeyBytes } from '../services/keyVault.js';
 import { PinataError, PinataUnconfiguredError, pinFileToPinata, pinJsonToPinata } from '../services/pinata.js';
 
 // ---------------------------------------------------------------------------
@@ -80,24 +80,13 @@ const dotifyManifestSchema = z.object({
 // ---------------------------------------------------------------------------
 // Server-side AES-256-GCM encryption
 //
-// Key derivation: HKDF-SHA256(CONTENT_KEY_MASTER_SECRET, contentHash label)
-// Wire format:   nonce(12) || ciphertext || authTag(16)
+// Key derivation lives in services/keyVault.ts and is shared with the
+// content-key delivery route: a key delivered after an access check MUST
+// decrypt bytes encrypted here.
+// Wire format: nonce(12) || ciphertext || authTag(16)
 //   — identical to the Web Crypto AES-GCM layout used by the frontend.
 // ---------------------------------------------------------------------------
-function deriveContentKey(contentHash: string, masterSecret: Buffer): Buffer {
-  return Buffer.from(
-    hkdfSync(
-      'sha256',
-      masterSecret,
-      Buffer.alloc(0),
-      Buffer.from(`dotify-content-key-v1:${contentHash}`, 'utf8'),
-      32,
-    ),
-  );
-}
-
-function encryptAesGcm(plaintext: Buffer, contentHash: string, masterSecret: Buffer): Buffer {
-  const key = deriveContentKey(contentHash, masterSecret);
+function encryptAesGcm(plaintext: Buffer, key: Buffer): Buffer {
   const nonce = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', key, nonce);
   const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
@@ -142,17 +131,6 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
    * TODO: add virus scanning / content moderation before pinning.
    */
   app.post('/audio', async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!config.CONTENT_KEY_MASTER_SECRET) {
-      return reply.status(503).send({
-        error: 'Server-side encryption is not configured. Set CONTENT_KEY_MASTER_SECRET.',
-      });
-    }
-
-    const masterSecret = Buffer.from(config.CONTENT_KEY_MASTER_SECRET, 'hex');
-    if (masterSecret.length < 32) {
-      return reply.status(503).send({ error: 'CONTENT_KEY_MASTER_SECRET must be at least 32 bytes.' });
-    }
-
     let fileBuffer: Buffer | undefined;
     let fileMime = '';
     let contentHash = '';
@@ -187,9 +165,16 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
       return badRequest(reply, 'contentHash field is required and must be a 0x-prefixed 32-byte hex string.');
     }
 
+    const contentKey = deriveContentKeyBytes(hashCheck.data);
+    if (!contentKey) {
+      return reply.status(503).send({
+        error: 'Server-side encryption is not configured. Set CONTENT_KEY_MASTER_SECRET (32+ bytes of hex).',
+      });
+    }
+
     let encrypted: Buffer;
     try {
-      encrypted = encryptAesGcm(fileBuffer, hashCheck.data, masterSecret);
+      encrypted = encryptAesGcm(fileBuffer, contentKey);
     } catch {
       request.log.error('Audio encryption failed');
       return reply.status(500).send({ error: 'Audio encryption failed.' });

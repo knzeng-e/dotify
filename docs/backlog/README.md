@@ -23,13 +23,13 @@ Do not add ornamental product features until the following spine is stable:
 
 ## Sprint 0 — Production spine
 
-| Backlog doc | GitHub issue | Goal |
-| --- | --- | --- |
-| `01-backend-key-service-skeleton.md` | #2 | Backend key service skeleton |
-| `02-server-side-pinata-uploads.md` | #3 | Server-side Pinata uploads |
-| `03-wallet-signed-content-key-requests.md` | #4 | Wallet-signed content-key requests for individual and host playback |
-| `04-hosted-signaling-room-join-links.md` | #5 | Hosted signaling, room join links, and host-based room access |
-| Documentation task | #15 | UX signature and host-based room playback rules |
+| Backlog doc | GitHub issue | Status | Goal |
+| --- | --- | --- | --- |
+| `01-backend-key-service-skeleton.md` | #2 | Delivered | Backend key service skeleton |
+| `02-server-side-pinata-uploads.md` | #3 | Delivered | Server-side Pinata uploads |
+| `03-wallet-signed-content-key-requests.md` | #4 | Delivered (see delivery notes in the ticket) | Wallet-signed content-key requests for individual and host playback |
+| `04-hosted-signaling-room-join-links.md` | #5 | Next | Hosted signaling, room join links, and host-based room access |
+| Documentation task | #15 | Open | UX signature and host-based room playback rules |
 
 ## Sprint 1 — Stabilization and maintainability
 
@@ -48,6 +48,22 @@ Do not add ornamental product features until the following spine is stable:
 | `10-observability-health-checks.md` | #11 | Observability and health checks |
 | `11-proof-of-personhood-integration-research.md` | #12 | Proof of Personhood integration research |
 | `12-ambassador-social-propagation-model.md` | #13 | Ambassador and social propagation model |
+
+## Design track - Living Light experience
+
+Presentational UX work derived from `design/Dotify-design/` (the "Living Light" prototype and redesign brief). This track is parallelizable with the spine and must not block or destabilize it: behavior is preserved and the aura is pure presentation. Honesty rule applies throughout - no UI element may imply a capability (persisted mood, broadcast chat, fabricated stats) the backend does not have.
+
+| Backlog doc | Status | Goal |
+| --- | --- | --- |
+| `13-living-light-design-foundation.md` | Delivered (`feat/improve-UI`) | Aura engine, presence, dock, immersive-room presence, font/hero/cleanup polish |
+| `14-one-link-room-creation-sheet.md` | Delivered (`feat/improve-UI`) | "As easy as sharing a link" room-create sheet over the existing createSession |
+| `15-immersive-room-parity.md` | Delivered, chat deferred | Room code pill + copy, access chips, sync note; chat omitted until a Socket.IO channel exists |
+| `16-wallet-connected-identity-card.md` | Delivered (`feat/improve-UI`) | Calm connected-wallet identity card with real, non-fabricated stats |
+| `17-artist-studio-living-light-parity.md` | Delivered (`feat/improve-UI`) | Studio identity header, metric cards, sovereignty card, releases + support showcase |
+
+Delivered on `feat/improve-UI`: album-aura engine (`web/src/utils/aura.ts`, `components/AuraBackground.tsx`), presence avatars (`components/Presence.tsx`), player dock (`components/PlayerDock.tsx`), create-room sheet (`components/CreateRoomModal.tsx`), immersive-room cover-glow/EQ/reactions/header/sync-note (`views/PlayerView.tsx`), wallet connected card (`components/WalletModal.tsx`), studio showcase (`views/artist/ArtistConsole.tsx` + `OverviewTab.tsx`), Hanken-only type with system mono for code, featured aura hero on Home, and the Living Light stylesheet block in `web/src/styles.css`. The old node/warp `AmbientCanvas` / `StarfieldCanvas` are removed.
+
+Deferred (needs a backend channel, deliberately not faked): room chat / "say something" (no Socket.IO message relay yet - see #15); persisted room mood; the custom Dotify logo (`design/Dotify-design/Dotify - Logo.html`); aura-recolored cover fallback.
 
 ## Current room access doctrine
 

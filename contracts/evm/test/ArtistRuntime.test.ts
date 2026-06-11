@@ -464,6 +464,126 @@ describe('Forkless upgrade — artist replaces their MusicAccessPallet', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Suite: Royalties payment security (adversarial)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('MusicRoyaltiesPallet — payment security', () => {
+  async function withArtistRuntime() {
+    const ctx = await loadFixture(deployDotifySystemFixture);
+    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistA } });
+    await factoryAsA.write.createRuntime();
+    const runtimeAddr = (await ctx.directory.read.runtimeOf([ctx.artistA.account.address])) as `0x${string}`;
+
+    const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtimeAddr);
+    const royalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', runtimeAddr);
+    const access = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr);
+
+    return { ...ctx, runtimeAddr, registry, royalties, access };
+  }
+
+  it('second musicRoyPayAccess for same listener+contentHash reverts with already-paid', async () => {
+    const PRICE = parseEther('0.5');
+    const { registry, royalties, artistA, listener, royaltyRecip } = await withArtistRuntime();
+
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([sampleRegistration({ pricePlanck: PRICE }), [royaltyRecip.account.address], [10_000]]);
+
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+
+    try {
+      await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+      expect.fail('Should have reverted');
+    } catch (e: unknown) {
+      expect((e as Error).message).to.include('MusicRoyalties: already paid');
+    }
+  });
+
+  it('overpayment is refunded: listener pays exactly price (+gas); recipients get exactly their split', async () => {
+    const PRICE = parseEther('0.5');
+    const OVERPAY = parseEther('1.5'); // 1.0 excess to be refunded
+    const { registry, royalties, artistA, listener, royaltyRecip, other, publicClient } = await withArtistRuntime();
+
+    // Two recipients: 70% / 30% of the price.
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([
+      sampleRegistration({ pricePlanck: PRICE }),
+      [royaltyRecip.account.address, other.account.address],
+      [7_000, 3_000]
+    ]);
+
+    const recip1Before = await publicClient.getBalance({ address: royaltyRecip.account.address });
+    const recip2Before = await publicClient.getBalance({ address: other.account.address });
+    const listenerBefore = await publicClient.getBalance({ address: listener.account.address });
+
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    const txHash = await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: OVERPAY });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+    const gasCost = receipt.gasUsed * receipt.effectiveGasPrice;
+
+    const recip1After = await publicClient.getBalance({ address: royaltyRecip.account.address });
+    const recip2After = await publicClient.getBalance({ address: other.account.address });
+    const listenerAfter = await publicClient.getBalance({ address: listener.account.address });
+
+    // Recipients receive exactly their split of the PRICE, not of msg.value.
+    expect(recip1After - recip1Before).to.equal((PRICE * 7_000n) / 10_000n);
+    expect(recip2After - recip2Before).to.equal((PRICE * 3_000n) / 10_000n);
+
+    // Listener is out exactly PRICE plus gas; the 1.0 overpayment is refunded.
+    expect(listenerBefore - listenerAfter).to.equal(PRICE + gasCost);
+  });
+
+  it('reentrancy: a malicious royalty recipient that re-enters for another track cannot bypass the guard', async () => {
+    const PRICE = parseEther('0.5');
+    const ctx = await withArtistRuntime();
+    const { registry, royalties, access, artistA, listener } = ctx;
+
+    // Deploy the malicious recipient and register track 1 paying it 100%.
+    const evil = await hre.viem.deployContract('ReentrantRoyaltyRecipient');
+
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([sampleRegistration({ contentHash: TRACK_HASH, pricePlanck: PRICE }), [evil.address], [10_000]]);
+    // A second Classic track the attacker tries to re-enter for.
+    await artistRegistry.write.musicRegRegister([sampleRegistration({ contentHash: TRACK_HASH2, pricePlanck: PRICE }), [artistA.account.address], [10_000]]);
+
+    // Arm the attacker to re-enter musicRoyPayAccess(TRACK_HASH2) when it receives funds.
+    await evil.write.configure([royalties.address, TRACK_HASH2]);
+
+    // Outer payment for TRACK_HASH completes cleanly (recipient swallows the failed re-entry).
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+
+    // The attacker DID attempt re-entry, and it FAILED (guard held).
+    expect(await evil.read.attempted()).to.equal(true);
+    expect(await evil.read.reenterSucceeded()).to.equal(false);
+
+    // Outer payment still granted access for TRACK_HASH; no access leaked for TRACK_HASH2.
+    expect(await access.read.musicAccHasPaid([TRACK_HASH, listener.account.address])).to.equal(true);
+    expect(await access.read.musicAccHasPaid([TRACK_HASH2, evil.address])).to.equal(false);
+  });
+
+  it('musicAccCanAccess returns false after musicRegDeactivate (fail-closed on inactive track)', async () => {
+    const PRICE = parseEther('0.5');
+    const { registry, royalties, access, artistA, listener, royaltyRecip } = await withArtistRuntime();
+
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([sampleRegistration({ pricePlanck: PRICE }), [royaltyRecip.account.address], [10_000]]);
+
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(true);
+
+    // Artist deactivates the track.
+    await artistRegistry.write.musicRegDeactivate([TRACK_HASH]);
+
+    // Access is now denied even though the listener previously paid.
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(false);
+    // Payment record itself is preserved (deactivation does not refund/revoke history).
+    expect(await access.read.musicAccHasPaid([TRACK_HASH, listener.account.address])).to.equal(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Suite: Directory pagination
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -163,3 +163,29 @@ This is acceptable for testnet production readiness. Document that future artist
 Be explicit in comments and docs: this protects distribution access, not analog capture. Do not oversell security. A serious product earns trust by naming its boundaries.
 
 The social room is a doorway, not a wallet checkpoint.
+---
+
+## Delivery notes (implemented 2026-06)
+
+### What shipped
+
+- `POST /api/auth/nonce` issues single-use nonces bound to address + chain ID (`services/api/src/services/replayProtection.ts`, in-memory, 5 minute TTL).
+- `POST /api/tracks/:contentHash/key-request` verifies an EIP-191 structured signature, consumes the nonce, resolves the owning artist runtime by enumerating the `ArtistDirectory`, calls `musicAccCanAccess(contentHash, requester)`, and only then derives and returns the per-track key (`services/api/src/routes/keys.ts`).
+- Purposes: `individual` and `room_host` only. `room_listener` is rejected at the schema boundary; room listeners receive the WebRTC stream, never keys.
+- Denials answer 200 with the preview-mode response model (`access: denied`, `previewRatio: 0.42`, reason code, host CTA). Unauthorized room hosts are not hard-failed.
+- Frontend: `web/src/services/keyService.ts` (nonce + sign + key request), wired into `useCatalog`. Delivered keys are cached per session, one wallet signature per track per session. Publish flow now sends RAW audio to `/api/uploads/audio` when the backend is configured; the backend encrypts server-side, so the production content key never exists in the browser at publish time.
+- Tests: `services/api` `npm test` covers signature verification, replay rejection, purpose handling, denial semantics, and fail-closed RPC behavior.
+
+### Decisions that deviate from the ticket text
+
+1. **Key derivation**: `HKDF-SHA256(masterSecret, salt=empty, info='dotify-content-key-v1:<contentHash>')`, centralized in `services/api/src/services/keyVault.ts`. The ticket suggested `info='dotify-track-key-v1'`; the implemented label matches what the already-shipped upload encryption path (Ticket 02) uses, so previously pinned testnet content stays decryptable and the two paths cannot diverge.
+2. **No publish-key endpoint**: artists never receive the production key. Raw audio is encrypted server-side at upload. This is a smaller attack surface than publish-time key delivery.
+3. **EIP-191 over EIP-712**: structured, domain-bound personal_sign message (app, action, purpose, contentHash, requester, chainId, nonce, expiry). EIP-712 can replace it without changing the route contract.
+
+### Documented boundaries (do not oversell)
+
+- This protects distribution access, not analog capture. An authorized listener can record what they can play.
+- Keys are deterministic per track; "temporary" applies to the grant. Rotating `CONTENT_KEY_MASTER_SECRET` re-keys everything at once.
+- The nonce store is in-memory: restarts invalidate outstanding nonces (clients re-request), and horizontal scaling needs a shared store. Both fail closed.
+- `musicAccCanAccess` lives behind an artist-upgradeable runtime. The backend answers "does the artist's current policy allow this listener", nothing stronger. That is artist sovereignty, stated plainly.
+- **42% preview gap for server-keyed tracks**: tracks encrypted with the server-side key cannot be previewed by unauthorized listeners (the browser has no key to slice 42% from). Demo-mode tracks keep the old preview behavior. Restoring previews for production tracks requires publishing a separate unencrypted preview asset at publish time - tracked as follow-up work for the publish pipeline.

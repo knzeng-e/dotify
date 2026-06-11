@@ -35,7 +35,16 @@ const envSchema = z.object({
   DOTIFY_FACTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_DIRECTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_CHAIN_ID: z.coerce.number().int().default(420420417),
-  CONTENT_KEY_MASTER_SECRET: optionalNonEmptyString,
+  // Master secret for HKDF per-track key derivation (hex, 32+ bytes). Must
+  // never reach the frontend. Both the upload encryption path and the
+  // content-key delivery path derive from this value (services/keyVault.ts).
+  CONTENT_KEY_MASTER_SECRET: z.preprocess(
+    value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .regex(/^(0x)?[0-9a-fA-F]{64,}$/, 'CONTENT_KEY_MASTER_SECRET must be hex encoding at least 32 bytes')
+      .optional(),
+  ),
   // Pinata JWT — must stay server-side only. Never expose in frontend env.
   PINATA_JWT: optionalNonEmptyString,
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

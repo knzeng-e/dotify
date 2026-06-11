@@ -8,8 +8,10 @@ import {
   musicAccessAbi
 } from '../config/contracts';
 import { encodeAudioBufferPreviewAsWav } from '../utils/audio';
+import { decryptAudio, hexToBytes } from '../utils/crypto';
 import { formatPlanckAsDot } from '../utils/format';
 import { fetchIpfsCid } from '../services/pinata';
+import { isKeyServiceConfigured, requestContentKey, type KeyRequestPurpose } from '../services/keyService';
 import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../utils/protectedAudio';
 import type {
   AccessGate,
@@ -155,6 +157,12 @@ export function useCatalog(deps: UseCatalogDeps) {
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewOnlyRef = useRef(false);
   const previewLimitRef = useRef<number | null>(null);
+  // Session cache of backend-delivered content keys: one wallet signature per
+  // track per session, instead of one per playback (signature-fatigue rule).
+  const contentKeysRef = useRef<Map<string, Uint8Array>>(new Map());
+  // 'room_host' when the selected track streams into a room; room listeners
+  // never request keys at all (they only receive the WebRTC stream).
+  const keyRequestPurposeRef = useRef<KeyRequestPurpose>('individual');
 
   function internalSetFileHash(hash: `0x${string}` | '') {
     setFileHashState(hash);
@@ -181,16 +189,16 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (track.accessMode === 'classic') {
         return {
           track,
-          title: 'Payment unlock',
-          message: `"${track.title}" costs ${track.priceDot} DOT for full access. Connect a wallet first, then pay the artist directly.`,
-          hint: 'No account required. Your wallet handles the payment and access proof.',
+          title: 'Unlock full track',
+          message: `"${track.title}" costs ${track.priceDot} DOT for full access. Connect a wallet first, then support the artist directly.`,
+          hint: 'No account required. Your wallet only proves access and handles payment.',
           actionType: 'signin'
         };
       }
       return {
         track,
-        title: 'Proof needed',
-        message: `"${track.title}" is protected by the artist. You can preview 42% now; connect a wallet to prove access without creating an account.`,
+        title: 'Human proof needed',
+        message: `"${track.title}" is protected by the artist. You can preview 42% now; connect a wallet to check access without creating an account.`,
         hint: 'Your wallet is your key. Dotify does not need your private information.',
         actionType: 'signin'
       };
@@ -199,17 +207,17 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (track.accessMode === 'human-free') {
       return {
         track,
-        title: 'Proof Of Personhood required',
+        title: 'Human proof needed',
         message: `"${track.title}" is reserved for listeners with ${track.personhoodLevel} personhood proof. You can preview 42% now.`,
-        hint: 'Personhood proves you are a real human.',
+        hint: 'Personhood unlocks access without turning you into an ad profile.',
         actionType: 'personhood'
       };
     }
     return {
       track,
-      title: 'Payment unlock',
+      title: 'Unlock full track',
       message: `"${track.title}" unlocks after a ${track.priceDot} DOT payment. You can preview 42% now.`,
-      hint: 'Your payment goes Directly to the artist, not an opaque intermediary account.',
+      hint: 'Your payment goes directly to the artist, not an opaque intermediary account.',
       actionType: 'payment'
     };
   }
@@ -264,6 +272,38 @@ export function useCatalog(deps: UseCatalogDeps) {
     return createPreviewAudioObjectUrl(sourceBytes, previewCacheKey);
   }
 
+  /**
+   * Obtain the per-track content key from the backend key service.
+   * Returns null when the service is not configured, no wallet is connected,
+   * or the backend denies access; callers then fall back to the demo-mode
+   * bundle-derived key (which only decrypts demo-published tracks).
+   */
+  async function resolveServerContentKey(contentHash: `0x${string}`): Promise<Uint8Array | null> {
+    const cacheKey = contentHash.toLowerCase();
+    const cached = contentKeysRef.current.get(cacheKey);
+    if (cached) return cached;
+    if (!isKeyServiceConfigured() || !connectedWallet) return null;
+
+    try {
+      const walletClient = await getActiveWalletClient();
+      const chainId = walletClient.chain?.id ?? (await getPublicClient(ethRpcUrl).getChainId());
+      const response = await requestContentKey({
+        contentHash,
+        purpose: keyRequestPurposeRef.current,
+        walletClient,
+        chainId
+      });
+      if (response.access !== 'allowed') return null;
+      const keyBytes = hexToBytes(response.contentKey);
+      contentKeysRef.current.set(cacheKey, keyBytes);
+      return keyBytes;
+    } catch {
+      // Fail closed: no key. Playback falls back to demo derivation or the
+      // access gate; it never invents access.
+      return null;
+    }
+  }
+
   async function fetchAndDecryptAudio(audioRef: string, gatewayUrl: string, contentHash: `0x${string}`, options: { previewOnly: boolean }): Promise<string> {
     const cacheKey = options.previewOnly ? `${audioRef}:preview` : audioRef;
     const cached = resolvedAudioSourcesRef.current.get(cacheKey);
@@ -273,7 +313,12 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (!response.ok) throw new Error(`Unable to fetch encrypted audio (${response.status})`);
 
     const encryptedBytes = new Uint8Array(await response.arrayBuffer());
-    const clearBytes = await decryptTrackAudio(encryptedBytes, contentHash);
+    // Preview-only playback skips the key request: the backend would deny it
+    // anyway, and we avoid a pointless wallet signature prompt.
+    const serverKey = options.previewOnly ? null : await resolveServerContentKey(contentHash);
+    const clearBytes = serverKey
+      ? await decryptAudio(encryptedBytes, serverKey)
+      : await decryptTrackAudio(encryptedBytes, contentHash);
     if (options.previewOnly) {
       return createPreviewAudioObjectUrl(clearBytes, cacheKey);
     }
@@ -301,6 +346,9 @@ export function useCatalog(deps: UseCatalogDeps) {
     setAccessGate(null);
     previewOnlyRef.current = false;
     previewLimitRef.current = null;
+    // A socketEmit callback means this selection streams into a room: the
+    // signer is the host, and only the host needs to satisfy the policy.
+    keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
 
     let audioUrl: string | null = null;
 
@@ -316,6 +364,14 @@ export function useCatalog(deps: UseCatalogDeps) {
 
       if (previewOnly) {
         setAccessGate(buildAccessGateInfo(track));
+      } else if (!audioUrl && track.encrypted) {
+        // Access is granted but the key or decryption failed. Say so plainly
+        // instead of leaving a silent dead player.
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Protected playback unavailable',
+          message: 'Your access checks out, but the content key could not be obtained or used. The key service may be unreachable; try again shortly.'
+        });
       }
     }
 

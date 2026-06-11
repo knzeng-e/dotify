@@ -16,7 +16,16 @@ import type {
 } from '../types';
 import type { FormEvent } from 'react';
 
-const iceServers: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
+// STUN alone fails silently behind symmetric NAT; configure a TURN relay for
+// production rooms so "share a link, listen together" survives hostile networks.
+const TURN_URL = import.meta.env.VITE_TURN_URL as string | undefined;
+const TURN_USERNAME = import.meta.env.VITE_TURN_USERNAME as string | undefined;
+const TURN_CREDENTIAL = import.meta.env.VITE_TURN_CREDENTIAL as string | undefined;
+
+const iceServers: RTCIceServer[] = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  ...(TURN_URL ? [{ urls: TURN_URL, username: TURN_USERNAME, credential: TURN_CREDENTIAL } satisfies RTCIceServer] : [])
+];
 
 function getSessionLink(roomId: string) {
   if (!roomId) return '';

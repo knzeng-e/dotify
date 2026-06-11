@@ -58,9 +58,9 @@ Build the production spine first:
 
 ## Active ticket
 
-**Sprint 0 · Ticket 03** — wallet-signed content-key requests (`docs/backlog/03-wallet-signed-content-key-requests.md`)
+**Sprint 0 · Ticket 04** — hosted signaling, room join links, and host-based room access (`docs/backlog/04-hosted-signaling-room-join-links.md`)
 
-Next: Ticket 04 — hosted signaling, room join links, and host-based room access.
+Ticket 03 (wallet-signed content-key requests) is delivered; see the delivery notes appended to `docs/backlog/03-wallet-signed-content-key-requests.md` for the implemented design and its documented boundaries.
 
 ## Source of truth
 

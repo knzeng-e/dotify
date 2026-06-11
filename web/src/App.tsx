@@ -8,8 +8,10 @@ import {
   Link as LinkIcon
 } from 'lucide-react';
 
-import { AmbientCanvas } from './components/AmbientCanvas';
-import { StarfieldCanvas } from './components/StarfieldCanvas';
+import { AuraBackground } from './components/AuraBackground';
+import { PlayerDock } from './components/PlayerDock';
+import { CreateRoomModal } from './components/CreateRoomModal';
+import { applyAura, auraForTrack, auraForName } from './utils/aura';
 
 import { hashFileWithBytes } from './utils/hash';
 import { deployments } from './config/deployments';
@@ -18,8 +20,7 @@ import { getDefaultEthRpcUrl } from './config/network';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { resolveEvmChain, getWalletClient } from './config/contracts';
 import { destroyBulletinClient } from './hooks/useBulletin';
-import { uploadFileToPinata } from './services/pinata';
-import { encryptTrackAudio } from './utils/protectedAudio';
+import { uploadFileToPinata, uploadProtectedAudio } from './services/pinata';
 import { useWallet } from './hooks/useWallet';
 import { zeroAddress } from 'viem';
 
@@ -35,6 +36,7 @@ import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole'
 import { ListenView } from './views/ListenView';
 import { PlayerView } from './views/PlayerView';
 import { RoomsView } from './views/RoomsView';
+import { ArtistProfileView } from './views/ArtistProfileView';
 import { ArtistConsole } from './views/artist/ArtistConsole';
 import { ArtistOnboarding } from './views/artist/ArtistOnboarding';
 
@@ -47,9 +49,9 @@ import type { AccessMode, ArtistTab, AssetAction, CatalogTrack, PersonhoodLevel,
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 
 const viewCopy: Record<View, { title: string; eyebrow: string }> = {
-  listen: { title: 'Let the Music connect the dots', eyebrow: 'by Polkadot' },
-  player: { title: 'Let the Music connect the dots', eyebrow: 'by Polkadot' },
-  rooms: { title: 'Live rooms', eyebrow: 'Shared listening for people in the same moment.' }
+  listen: { title: 'Press play with someone.', eyebrow: 'Shared listening, right now' },
+  player: { title: 'The room starts from the track.', eyebrow: 'Living light player' },
+  rooms: { title: 'Live rooms', eyebrow: 'Enter a shared listening moment with a link or code.' }
 };
 
 const releaseStepsConfig: Array<{ id: ReleaseStep; label: string }> = [
@@ -88,6 +90,8 @@ export default function App() {
   // ── View routing ─────────────────────────────────────────────────────────────
   const [activeView, setActiveView] = useState<View>(() => getInitialView());
   const [isArtistPortal, setIsArtistPortal] = useState(() => isArtistPortalPath());
+  const [publicArtistName, setPublicArtistName] = useState<string | null>(null);
+  const [createRoomOpen, setCreateRoomOpen] = useState(false);
   const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
   const [releaseStep, setReleaseStep] = useState<ReleaseStep>('assets');
 
@@ -115,8 +119,12 @@ export default function App() {
 
   const activeEvmAddress = connectedWallet?.evmAddress ?? zeroAddress;
   const listenerEvmAddress = connectedWallet?.evmAddress ?? null;
-  const activeSubstrateAddress = connectedWallet ? connectedWallet.substrateAddress ?? null : currentBulletinAccount.address;
-  const activeSubstrateSigner = connectedWallet ? connectedWallet.substrateSigner ?? null : currentBulletinAccount.signer;
+  // Bulletin signing fails closed in production builds: dev accounts (Alice,
+  // Bob, ...) use a universally known mnemonic and must never become a hidden
+  // fallback signer outside local development (CLAUDE.md security posture).
+  const devBulletinFallback = import.meta.env.DEV ? currentBulletinAccount : null;
+  const activeSubstrateAddress = connectedWallet ? connectedWallet.substrateAddress ?? null : devBulletinFallback?.address ?? null;
+  const activeSubstrateSigner = connectedWallet ? connectedWallet.substrateSigner ?? null : devBulletinFallback?.signer ?? null;
   const activeArtistDefaultName = 'Dotify Artist';
 
   const factoryAddress = deployments.factory;
@@ -124,6 +132,7 @@ export default function App() {
 
   // ── Navigation ────────────────────────────────────────────────────────────────
   function navigateToView(nextView: View, options: { replace?: boolean } = {}) {
+    setPublicArtistName(null);
     setActiveView(nextView);
     const nextState = { ...getHistoryStateObject(), dotifyView: nextView };
     if (options.replace || activeView === nextView) {
@@ -236,6 +245,22 @@ export default function App() {
     };
   }, []);
 
+  // Locked Living Light direction: aurora ambient + lights-down listening.
+  useEffect(() => {
+    document.body.classList.add('ambient-aurora', 'lights-down');
+    return () => document.body.classList.remove('ambient-aurora', 'lights-down');
+  }, []);
+
+  // Aura engine: paint the whole field with the active track (or artist) light.
+  useEffect(() => {
+    if (publicArtistName) {
+      applyAura(auraForName(publicArtistName));
+      return;
+    }
+    const activeTrack = catalog.trackInfo ?? catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId) ?? null;
+    applyAura(auraForTrack(activeTrack));
+  }, [publicArtistName, catalog.trackInfo, catalog.selectedTrackId, catalog.catalogTracks]);
+
   useEffect(() => {
     window.history.replaceState({ ...getHistoryStateObject(), dotifyView: getInitialView() }, '', window.location.href);
     const onPopState = (event: PopStateEvent) => {
@@ -326,7 +351,7 @@ export default function App() {
       catalog.setFileHash(result.hash);
       setTitle(nextTitle);
       catalog.setSelectedTrackId('draft-upload');
-      artistConsole.setRightsStatus('Audio ready — uploading to IPFS…');
+      artistConsole.setRightsStatus('Audio ready - uploading to IPFS...');
 
       const trackInfoObj: TrackInfo = {
         title: nextTitle.trim() || 'Untitled',
@@ -345,19 +370,16 @@ export default function App() {
       catalog.setTrackInfo(trackInfoObj);
       session.socketEmit('room:track', trackInfoObj);
 
-      const uploadPromise = (async () => {
-        const encryptedBytes = await encryptTrackAudio(result.bytes, result.hash);
-        const encBlob = new Blob([encryptedBytes], { type: 'application/octet-stream' });
-        const encFile = new File([encBlob], `${file.name}.enc`, { type: 'application/octet-stream' });
-        return uploadFileToPinata(encFile, `${file.name}.enc`, { app: 'dotify', type: 'audio', encrypted: 'true' });
-      })()
+      // Production: raw audio goes to the backend, which encrypts server-side
+      // with the master-secret-derived key. Demo: browser-side encryption.
+      const uploadPromise = uploadProtectedAudio({ bytes: result.bytes, name: file.name, mime: file.type }, result.hash)
         .then(cid => {
           catalog.setAudioCID(cid);
-          artistConsole.setRightsStatus('Audio ready — encrypted and uploaded to IPFS');
+          artistConsole.setRightsStatus('Audio ready - protected and uploaded to IPFS');
           return cid;
         })
         .catch(() => {
-          artistConsole.setRightsStatus('Audio ready (IPFS upload failed — will retry on register)');
+          artistConsole.setRightsStatus('Audio ready (IPFS upload failed - will retry on register)');
           return '';
         });
       catalog.audioUploadRef.current = uploadPromise;
@@ -382,16 +404,16 @@ export default function App() {
       catalog.objectUrlsRef.current.add(nextUrl);
       catalog.setCoverSource(nextUrl);
       setCoverFile(file);
-      artistConsole.setRightsStatus('Cover ready — uploading to IPFS…');
+      artistConsole.setRightsStatus('Cover ready - uploading to IPFS...');
 
       const uploadPromise = uploadFileToPinata(file, file.name, { app: 'dotify', type: 'cover' })
         .then(cid => {
           catalog.setCoverCID(cid);
-          artistConsole.setRightsStatus('Cover ready — uploaded to IPFS');
+          artistConsole.setRightsStatus('Cover ready - uploaded to IPFS');
           return cid;
         })
         .catch(() => {
-          artistConsole.setRightsStatus('Cover ready (IPFS upload failed — will retry on register)');
+          artistConsole.setRightsStatus('Cover ready (IPFS upload failed - will retry on register)');
           return '';
         });
       catalog.coverUploadRef.current = uploadPromise;
@@ -424,12 +446,52 @@ export default function App() {
   }
 
   function handleOpenTrack(track: CatalogTrack) {
+    setPublicArtistName(null);
     void catalog.openTrack(
       track,
       session.socketEmit,
       session.setLocalStreamReady,
       session.closeHostPeers
     );
+  }
+
+  function trackToInfo(track: CatalogTrack): TrackInfo {
+    return {
+      title: track.title,
+      artist: track.artist,
+      hash: track.hash,
+      bulletinRef: track.bulletinRef,
+      duration: track.duration ?? 0,
+      updatedAt: Date.now(),
+      imageRef: track.imageRef,
+      audioRef: track.audioRef,
+      metadataRef: track.metadataRef,
+      description: track.description,
+      accessMode: track.accessMode,
+      priceDot: track.priceDot,
+      personhoodLevel: track.personhoodLevel
+    };
+  }
+
+  function handleOpenArtistProfile(name: string) {
+    setPublicArtistName(name);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleOpenArtistRoom(track: CatalogTrack) {
+    setPublicArtistName(null);
+    void catalog.openTrack(
+      track,
+      session.socketEmit,
+      session.setLocalStreamReady,
+      session.closeHostPeers
+    );
+    session.createSession(trackToInfo(track));
+  }
+
+  function handleJoinRoomFromProfile(roomId: string) {
+    setPublicArtistName(null);
+    session.joinRoom(roomId);
   }
 
   function handleCreateSession(event?: import('react').FormEvent<HTMLFormElement>) {
@@ -455,14 +517,25 @@ export default function App() {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
+  const unlockedTrackIds = Object.entries(catalog.catalogAccessByTrackId)
+    .filter(([, granted]) => granted)
+    .map(([id]) => id);
+  const unlockedTrackCount = unlockedTrackIds.length;
+  const supportedArtistCount = new Set(
+    unlockedTrackIds.map(id => catalog.catalogTracks.find(track => track.id === id)?.artist).filter(Boolean)
+  ).size;
+
   const walletModal = showWalletModal && (
     <WalletModal
       state={walletState}
       hasPrfSupport={hasPrfSupport}
       hasStoredPasskey={hasStoredPasskey}
+      supportingCount={supportedArtistCount}
+      unlockedCount={unlockedTrackCount}
       onPasskey={() => { void connectPasskey(); }}
       onExtension={() => { void connectExtension(); }}
       onForgetPasskey={forgetPasskey}
+      onDisconnect={disconnectWallet}
       onClose={() => setShowWalletModal(false)}
     />
   );
@@ -481,8 +554,7 @@ export default function App() {
   if (isArtistPortal) {
     return (
       <>
-      <AmbientCanvas />
-      <StarfieldCanvas variant='ambient' />
+      <AuraBackground />
       <div className='app-shell artist-portal-shell'>
         <header className='topbar artist-portal-topbar'>
           <a className='brand' href='/' aria-label='Dotify home'>
@@ -595,11 +667,10 @@ export default function App() {
 
   return (
     <>
-    <AmbientCanvas />
-    <StarfieldCanvas variant='ambient' />
+    <AuraBackground />
     <div className='app-shell'>
       <header className='topbar'>
-        <a className='brand' href='#top' aria-label='Dotify'>
+        <a className='brand' href='#top' aria-label='Dotify' onClick={() => setPublicArtistName(null)}>
           <span className='brand-mark'>
             <Disc3 size={21} />
           </span>
@@ -652,30 +723,47 @@ export default function App() {
           </div>
         </aside>
 
-        <main className='content'>
-          <section className='page-head'>
-            <div className='page-copy'>
-              <p className='eyebrow'>{currentPage.eyebrow}</p>
-              <h1>{currentPage.title}</h1>
-            </div>
-            <div className='head-metrics'>
-              <Metric label='tracks' value={catalog.catalogTracks.length.toString()} />
-              <Metric label='rooms' value={session.openRooms.length.toString()} />
-              <Metric label='listeners' value={`${activeListeners}/${session.listenerCount}`} />
-            </div>
-          </section>
+        <main className={`content content-${activeView}`}>
+          {publicArtistName ? (
+            <ArtistProfileView
+              artistName={publicArtistName}
+              catalogTracks={catalog.catalogTracks}
+              openRooms={session.openRooms}
+              catalogAccessByTrackId={catalog.catalogAccessByTrackId}
+              onBack={() => setPublicArtistName(null)}
+              onOpenTrack={handleOpenTrack}
+              onOpenArtistRoom={handleOpenArtistRoom}
+              onJoinRoom={handleJoinRoomFromProfile}
+            />
+          ) : (
+            <>
+            <section className='page-head'>
+              <div className='page-copy'>
+                <p className='eyebrow'>{currentPage.eyebrow}</p>
+                <h1>{currentPage.title}</h1>
+              </div>
+              <div className='head-metrics'>
+                <Metric label='tracks' value={catalog.catalogTracks.length.toString()} />
+                <Metric label='rooms' value={session.openRooms.length.toString()} />
+                <Metric label='listeners' value={`${activeListeners}/${session.listenerCount}`} />
+              </div>
+            </section>
 
-          {activeView === 'listen' && (
+            {activeView === 'listen' && (
             <ListenView
               catalogTracks={catalog.catalogTracks}
               catalogStatus={catalog.catalogStatus}
+              openRooms={session.openRooms}
               selectedTrackId={catalog.selectedTrackId}
               catalogAccessByTrackId={catalog.catalogAccessByTrackId}
               onOpenTrack={handleOpenTrack}
+              onOpenArtist={handleOpenArtistProfile}
+              onJoinRoom={session.joinRoom}
+              onStartRoom={() => setCreateRoomOpen(true)}
             />
-          )}
+            )}
 
-          {activeView === 'player' && (
+            {activeView === 'player' && (
             <PlayerView
               trackInfo={catalog.trackInfo}
               selectedTrack={selectedTrack}
@@ -720,10 +808,11 @@ export default function App() {
               onEmitPlayerState={session.emitPlayerState}
               onEnforcePreviewCutoff={handleEnforcePreviewCutoff}
               onOpenTrack={handleOpenTrack}
+              onOpenArtist={handleOpenArtistProfile}
             />
-          )}
+            )}
 
-          {activeView === 'rooms' && (
+            {activeView === 'rooms' && (
             <RoomsView
               openRooms={session.openRooms}
               joinCode={session.joinCode}
@@ -734,6 +823,8 @@ export default function App() {
               onJoinSession={session.joinSession}
               onRefreshRooms={() => session.requestOpenRooms(true)}
             />
+            )}
+            </>
           )}
 
           {session.sessionLink && (
@@ -746,6 +837,30 @@ export default function App() {
           {transactionModal}
         </main>
       </div>
+
+      {activeView !== 'player' && !publicArtistName && (selectedTrack || catalog.trackInfo) && (
+        <PlayerDock
+          track={selectedTrack}
+          trackInfo={catalog.trackInfo}
+          playerState={catalog.playerState}
+          locked={Boolean(selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true)}
+          onOpenPlayer={() => navigateToView('player')}
+          onOpenArtist={handleOpenArtistProfile}
+          onStartRoom={() => setCreateRoomOpen(true)}
+        />
+      )}
+
+      {createRoomOpen && (
+        <CreateRoomModal
+          tracks={catalog.catalogTracks}
+          initialTrack={selectedTrack ?? catalog.catalogTracks[0]}
+          onClose={() => setCreateRoomOpen(false)}
+          onOpenRoom={track => {
+            setCreateRoomOpen(false);
+            handleOpenArtistRoom(track);
+          }}
+        />
+      )}
     </div>
     </>
   );
