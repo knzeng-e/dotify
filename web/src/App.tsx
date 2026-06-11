@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { AmbientCanvas } from './components/AmbientCanvas';
+import { StarfieldCanvas } from './components/StarfieldCanvas';
 
 import { hashFileWithBytes } from './utils/hash';
 import { deployments } from './config/deployments';
@@ -481,6 +482,7 @@ export default function App() {
     return (
       <>
       <AmbientCanvas />
+      <StarfieldCanvas variant='ambient' />
       <div className='app-shell artist-portal-shell'>
         <header className='topbar artist-portal-topbar'>
           <a className='brand' href='/' aria-label='Dotify home'>
@@ -594,6 +596,7 @@ export default function App() {
   return (
     <>
     <AmbientCanvas />
+    <StarfieldCanvas variant='ambient' />
     <div className='app-shell'>
       <header className='topbar'>
         <a className='brand' href='#top' aria-label='Dotify'>
