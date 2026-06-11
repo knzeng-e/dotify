@@ -36,6 +36,8 @@ const envSchema = z.object({
   DOTIFY_DIRECTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_CHAIN_ID: z.coerce.number().int().default(420420417),
   CONTENT_KEY_MASTER_SECRET: optionalNonEmptyString,
+  // Pinata JWT — must stay server-side only. Never expose in frontend env.
+  PINATA_JWT: optionalNonEmptyString,
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
 

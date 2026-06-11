@@ -77,20 +77,31 @@ Ethereum node or local Substrate node is not required to run the demo.
 
 ### Running the backend API
 
-The backend service is the production boundary for future upload orchestration,
-wallet-signed content-key delivery, and health checks. Ticket 01 exposes the
-skeleton endpoints only; Pinata upload handling lands in Ticket 02.
+The backend service handles server-side IPFS pinning, audio encryption,
+wallet-signed content-key delivery, and health checks.
 
 ```bash
 cd services/api
 npm install
 cp .env.example .env
+# Edit .env: set PINATA_JWT and CONTENT_KEY_MASTER_SECRET
 npm run dev
 ```
 
-Set `VITE_DOTIFY_API_URL=http://localhost:8790` in `web/.env.local` when testing
-frontend/backend integration. The current artist upload flow remains demo/local
-until the server-side Pinata upload ticket lands.
+**Environment variables** (see `services/api/.env.example`):
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `PINATA_JWT` | For uploads | Server-side Pinata token (never expose in frontend) |
+| `CONTENT_KEY_MASTER_SECRET` | For audio upload | 32-byte hex master secret for AES-256-GCM key derivation |
+
+Set `VITE_DOTIFY_API_URL=http://localhost:8790` in `web/.env.local` to route
+cover and metadata uploads through the backend. Audio backend upload requires
+calling `uploadAudioToBackend` from `web/src/services/pinata.ts` (the existing
+artist console uses demo/local mode until that wiring lands).
+
+**Demo/local mode** (no backend): set `VITE_PINATA_JWT` in `web/.env.local` with
+a restricted upload-only Pinata token. Do not use an unrestricted token in demos.
 
 **To rebuild and redeploy the frontend to Bulletin Chain:**
 
@@ -204,9 +215,10 @@ See also:
   signers. Bulletin archival still needs a Substrate signer when enabled.
 - **Proof of Personhood is mocked**: `setPersonhoodLevel` is a dev-only admin
   call. Live Individuality chain reads are on the roadmap.
-- **Pinata runs from the browser**: `VITE_PINATA_JWT` is exposed by Vite, so use
-  a restricted token for demos only. The backend skeleton is in place; the
-  server-side Pinata upload proxy is tracked by Ticket 02.
+- **Pinata JWT still required for catalog fetch and local demo mode**: `VITE_PINATA_JWT` is used
+  for browser-side catalog reads and demo uploads. Production uploads use the backend API
+  (`VITE_DOTIFY_API_URL`); see the backend README for `PINATA_JWT` and `CONTENT_KEY_MASTER_SECRET`.
+  The audio upload backend wiring in the artist console (skipping client-side encryption) lands in a follow-up ticket.
 - **Single-host rooms**: no multi-host or handoff logic. If the host closes the
   tab, the room ends.
 - **Room stream capture limits**: room guests do not receive keys/source files,
