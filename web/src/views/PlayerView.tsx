@@ -1,6 +1,7 @@
-import { Copy, Disc3, Headphones, Library, Pause, Play, Radio, Repeat2, Shuffle, SkipBack, SkipForward } from 'lucide-react';
+import { BadgeCheck, Copy, Disc3, Headphones, KeyRound, Library, Pause, Play, Radio, Repeat2, ShieldCheck, Shuffle, SkipBack, SkipForward, Users } from 'lucide-react';
 import { PanelTitle } from '../components/ui/PanelTitle';
 import { EndpointRow } from '../components/ui/EndpointRow';
+import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { accessModeLabel, accessModeLabelFromState, formatTime, peerStatusLabel } from '../utils/format';
 import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, PersonhoodLevel, PlayerState, SessionAction, TrackInfo } from '../types';
@@ -55,6 +56,7 @@ type PlayerViewProps = {
   onEmitPlayerState: (force: boolean) => void;
   onEnforcePreviewCutoff: () => void;
   onOpenTrack: (track: CatalogTrack) => void;
+  onOpenArtist: (artistName: string) => void;
 };
 
 type QueuedAutoplay = {
@@ -104,6 +106,7 @@ export function PlayerView({
   onEmitPlayerState,
   onEnforcePreviewCutoff,
   onOpenTrack,
+  onOpenArtist,
   description
 }: PlayerViewProps) {
   const effectiveAccessMode = trackInfo?.accessMode ?? selectedTrack?.accessMode ?? accessMode;
@@ -111,7 +114,16 @@ export function PlayerView({
   const effectivePersonhoodLevel = trackInfo?.personhoodLevel ?? selectedTrack?.personhoodLevel ?? personhoodLevel;
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [shuffleEnabled, setShuffleEnabled] = useState(false);
+  const [reactions, setReactions] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
   const [queuedAutoplay, setQueuedAutoplay] = useState<QueuedAutoplay | null>(null);
+
+  // Local ambient reactions over the cover (visual delight, not broadcast).
+  function sendReaction(emoji: string) {
+    const id = Date.now() + Math.random();
+    const x = 20 + Math.random() * 60;
+    setReactions(current => [...current, { id, emoji, x }]);
+    window.setTimeout(() => setReactions(current => current.filter(reaction => reaction.id !== id)), 2600);
+  }
   const [transportState, setTransportState] = useState<PlayerState>({
     playing: false,
     duration: playerState?.duration ?? trackInfo?.duration ?? 0,
@@ -124,6 +136,13 @@ export function PlayerView({
   const canUseTransport = mode === 'host' ? Boolean(audioSource) : Boolean(remoteReady || remoteAudioRef.current?.srcObject);
   const canShuffle = mode === 'host' && catalogTracks.length > 1;
   const canSkipTracks = mode === 'host' && catalogTracks.length > 1;
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      document.querySelector('.player-view-grid')?.scrollIntoView({ block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     setTransportState({
@@ -246,179 +265,272 @@ export function PlayerView({
     }
   }
 
+  const connectedListenerCount = listeners.filter(listener => listener.status === 'connected').length;
+
   return (
-    <section className='content-grid player-view-grid'>
-      <div className='doc-panel player-panel integrated-player-panel'>
-        <div className='now-playing'>
-          <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transportState.playing}>
-            <img src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' crossOrigin='anonymous' />
-            <span className='sound-bars' aria-hidden='true'>
-              <i />
-              <i />
-              <i />
-              <i />
-            </span>
+    <section className={'content-grid player-view-grid' + (roomId ? ' player-room-mode' : '')}>
+      {roomId && (
+        <div className='room-header'>
+          <span className='room-live-chip'>
+            <span className='live-dot' />
+            Live
+          </span>
+          <span className='room-header-meta'>
+            {mode === 'host' ? `${connectedListenerCount + 1} in the room` : `with ${hostName || 'the host'}`}
+          </span>
+          <div className='room-code-pill'>
+            <span>ROOM</span>
+            <strong className='tnum'>{roomId}</strong>
+            <button className='room-copy-btn' type='button' onClick={onCopySessionLink}>
+              <Copy size={14} />
+              Copy link
+            </button>
           </div>
+        </div>
+      )}
+      {roomId && (
+        <div className='room-promise-strip' aria-label='Room access model'>
+          <span>
+            <Users size={14} />
+            {connectedListenerCount + 1} present
+          </span>
+          <span>
+            <KeyRound size={14} />
+            Host holds access
+          </span>
+          <span>
+            <ShieldCheck size={14} />
+            Guests receive stream only
+          </span>
+        </div>
+      )}
+      <div className='player-stage'>
+        <div className='player-cover-column'>
+          <div className={'room-cover-glow' + (transportState.playing ? ' on' : '')} aria-hidden='true' />
+          <div className='cover-card'>
+            <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transportState.playing}>
+              <img src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' crossOrigin='anonymous' />
+              <span className='sound-bars' aria-hidden='true'>
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
+              <span className='room-reactions' aria-hidden='true'>
+                {reactions.map(reaction => (
+                  <span className='room-reaction' key={reaction.id} style={{ left: `${reaction.x}%` }}>
+                    {reaction.emoji}
+                  </span>
+                ))}
+              </span>
+            </div>
+            {mode === 'host' ? (
+              <div className='audio-stack'>
+                <audio
+                  className='native-player-source'
+                  ref={localAudioRef}
+                  src={audioSource ?? undefined}
+                  crossOrigin='anonymous'
+                  onLoadedMetadata={() => {
+                    syncTransportFromAudio(localAudioRef.current);
+                    void onPrepareLocalStream();
+                    onSetupPreviewLimit();
+                  }}
+                  onPlay={() => {
+                    syncTransportFromAudio(localAudioRef.current);
+                    onEmitPlayerState(true);
+                    onEnforcePreviewCutoff();
+                  }}
+                  onPause={() => {
+                    syncTransportFromAudio(localAudioRef.current);
+                    onEmitPlayerState(true);
+                  }}
+                  onSeeked={() => {
+                    syncTransportFromAudio(localAudioRef.current);
+                    onEmitPlayerState(true);
+                  }}
+                  onTimeUpdate={() => {
+                    syncTransportFromAudio(localAudioRef.current);
+                    onEmitPlayerState(false);
+                    onEnforcePreviewCutoff();
+                  }}
+                  onEnded={event => handleAudioEnded(event.currentTarget)}
+                />
+                <div className='remote-state' data-active={localStreamReady}>
+                  {localStreamReady ? <Play size={16} /> : <Pause size={16} />}
+                  <span>{localStreamReady ? 'Stream ready' : 'Source missing'}</span>
+                </div>
+              </div>
+            ) : (
+              <div className='audio-stack'>
+                <audio
+                  className='native-player-source'
+                  ref={remoteAudioRef}
+                  autoPlay
+                  playsInline
+                  onLoadedMetadata={event => syncTransportFromAudio(event.currentTarget)}
+                  onPlay={event => syncTransportFromAudio(event.currentTarget)}
+                  onPause={event => syncTransportFromAudio(event.currentTarget)}
+                  onSeeked={event => syncTransportFromAudio(event.currentTarget)}
+                  onTimeUpdate={event => syncTransportFromAudio(event.currentTarget)}
+                  onEnded={event => handleAudioEnded(event.currentTarget)}
+                />
+                <div className='remote-state' data-active={remoteReady}>
+                  {remoteReady ? <Play size={16} /> : playerState?.playing ? <Pause size={16} /> : <Headphones size={16} />}
+                  <span>{remoteReady ? 'Stream received' : 'Waiting'}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className='player-main-column'>
           <div className='track-copy'>
             <span>{mode === 'host' ? 'Source' : hostName || 'Room'}</span>
             <h2>{streamTitle}</h2>
-            <p>{streamArtist}</p>
+            <button className='player-artist-link' type='button' onClick={() => onOpenArtist(streamArtist)}>
+              {streamArtist}
+            </button>
             <div className='access-badges'>
-              <span>{accessModeLabelFromState(effectiveAccessMode)}</span>
-              <span>{effectiveAccessMode === 'classic' ? `${effectivePriceDot} DOT` : `PoP ${effectivePersonhoodLevel}`}</span>
+              <span className='access-chip'>{accessModeLabelFromState(effectiveAccessMode)}</span>
+              <span className='access-chip'>{effectiveAccessMode === 'classic' ? `${effectivePriceDot} DOT` : `PoP ${effectivePersonhoodLevel}`}</span>
+              {(selectedTrack?.source === 'artist' || selectedTrack?.artistAddress) && (
+                <span className='access-chip access-chip-trust'>
+                  <BadgeCheck size={13} />
+                  Artist-owned
+                </span>
+              )}
             </div>
             <p className='track-description'>{trackInfo?.description ?? selectedTrack?.description ?? description}</p>
-          </div>
-        </div>
 
-        {mode === 'host' ? (
-          <div className='audio-stack'>
-            <audio
-              className='native-player-source'
-              ref={localAudioRef}
-              src={audioSource ?? undefined}
-              crossOrigin='anonymous'
-              onLoadedMetadata={() => {
-                syncTransportFromAudio(localAudioRef.current);
-                void onPrepareLocalStream();
-                onSetupPreviewLimit();
-              }}
-              onPlay={() => {
-                syncTransportFromAudio(localAudioRef.current);
-                onEmitPlayerState(true);
-                onEnforcePreviewCutoff();
-              }}
-              onPause={() => {
-                syncTransportFromAudio(localAudioRef.current);
-                onEmitPlayerState(true);
-              }}
-              onSeeked={() => {
-                syncTransportFromAudio(localAudioRef.current);
-                onEmitPlayerState(true);
-              }}
-              onTimeUpdate={() => {
-                syncTransportFromAudio(localAudioRef.current);
-                onEmitPlayerState(false);
-                onEnforcePreviewCutoff();
-              }}
-              onEnded={event => handleAudioEnded(event.currentTarget)}
-            />
-            <div className='remote-state' data-active={localStreamReady}>
-              {localStreamReady ? <Play size={16} /> : <Pause size={16} />}
-              <span>{localStreamReady ? 'Stream ready' : 'Source missing'}</span>
+            <div className='player-transport' data-playing={transportState.playing}>
+              <div className='transport-cluster' aria-label='Track navigation'>
+                <button
+                  className='transport-skip'
+                  type='button'
+                  onClick={() => skipTrack('previous')}
+                  disabled={!canSkipTracks}
+                  aria-label='Previous track'
+                  title={canSkipTracks ? 'Previous track' : 'Previous track needs more than one catalog track'}
+                >
+                  <SkipBack size={16} />
+                </button>
+                <button
+                  className='transport-play'
+                  type='button'
+                  onClick={() => void togglePlayback()}
+                  disabled={!canUseTransport}
+                  aria-label={transportState.playing ? 'Pause track' : 'Play track'}
+                >
+                  {transportState.playing ? <Pause size={18} /> : <Play size={18} />}
+                </button>
+                <button
+                  className='transport-skip'
+                  type='button'
+                  onClick={() => skipTrack('next')}
+                  disabled={!canSkipTracks}
+                  aria-label='Next track'
+                  title={canSkipTracks ? (shuffleEnabled ? 'Shuffle next track' : 'Next track') : 'Next track needs more than one catalog track'}
+                >
+                  <SkipForward size={16} />
+                </button>
+              </div>
+              <div className='transport-progress'>
+                <span>{formatTime(transportState.currentTime)}</span>
+                <input
+                  type='range'
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={transportProgress}
+                  style={transportProgressStyle}
+                  onChange={event => seekTransport(Number(event.target.value))}
+                  disabled={!canUseTransport || transportDuration <= 0}
+                  aria-label='Seek track'
+                />
+                <span>{formatTime(transportDuration)}</span>
+              </div>
+              <div className='transport-actions' aria-label='Playback modes'>
+                <button
+                  type='button'
+                  data-active={shuffleEnabled}
+                  onClick={() => setShuffleEnabled(current => !current)}
+                  disabled={!canShuffle}
+                  aria-pressed={shuffleEnabled}
+                  title={canShuffle ? 'Shuffle catalog after this track' : 'Shuffle needs more than one catalog track'}
+                >
+                  <Shuffle size={16} />
+                </button>
+                <button
+                  type='button'
+                  data-active={repeatEnabled}
+                  onClick={() => setRepeatEnabled(current => !current)}
+                  disabled={!canUseTransport}
+                  aria-pressed={repeatEnabled}
+                  title='Repeat this track'
+                >
+                  <Repeat2 size={16} />
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className='audio-stack'>
-            <audio
-              className='native-player-source'
-              ref={remoteAudioRef}
-              autoPlay
-              playsInline
-              onLoadedMetadata={event => syncTransportFromAudio(event.currentTarget)}
-              onPlay={event => syncTransportFromAudio(event.currentTarget)}
-              onPause={event => syncTransportFromAudio(event.currentTarget)}
-              onSeeked={event => syncTransportFromAudio(event.currentTarget)}
-              onTimeUpdate={event => syncTransportFromAudio(event.currentTarget)}
-              onEnded={event => handleAudioEnded(event.currentTarget)}
-            />
-            <div className='remote-state' data-active={remoteReady}>
-              {remoteReady ? <Play size={16} /> : playerState?.playing ? <Pause size={16} /> : <Headphones size={16} />}
-              <span>{remoteReady ? 'Stream received' : 'Waiting'}</span>
-            </div>
-          </div>
-        )}
 
-        <div className='player-transport' data-playing={transportState.playing}>
-          <div className='transport-cluster' aria-label='Track navigation'>
-            <button
-              className='transport-skip'
-              type='button'
-              onClick={() => skipTrack('previous')}
-              disabled={!canSkipTracks}
-              aria-label='Previous track'
-              title={canSkipTracks ? 'Previous track' : 'Previous track needs more than one catalog track'}
-            >
-              <SkipBack size={16} />
-            </button>
-            <button
-              className='transport-play'
-              type='button'
-              onClick={() => void togglePlayback()}
-              disabled={!canUseTransport}
-              aria-label={transportState.playing ? 'Pause track' : 'Play track'}
-            >
-              {transportState.playing ? <Pause size={18} /> : <Play size={18} />}
-            </button>
-            <button
-              className='transport-skip'
-              type='button'
-              onClick={() => skipTrack('next')}
-              disabled={!canSkipTracks}
-              aria-label='Next track'
-              title={canSkipTracks ? (shuffleEnabled ? 'Shuffle next track' : 'Next track') : 'Next track needs more than one catalog track'}
-            >
-              <SkipForward size={16} />
-            </button>
+            {roomId && (
+              <p className='room-sync-note'>
+                <span className='live-dot' />
+                {mode === 'host'
+                  ? 'You are hosting - everyone hears what you play.'
+                  : `Following ${hostName || 'the host'} - in sync`}
+              </p>
+            )}
+
+            {roomId && (
+              <div className='room-react-bar' aria-label='Send a reaction to the room'>
+                {['heart', 'fire', 'leaf', 'sparkle', 'raise', 'tear'].map((key, index) => {
+                  const emoji = ['❤️', '🔥', '🌿', '✨', '🙌', '🥹'][index];
+                  return (
+                    <button className='room-react-btn' type='button' key={key} onClick={() => sendReaction(emoji)} aria-label={`React ${key}`}>
+                      {emoji}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
-          <div className='transport-progress'>
-            <span>{formatTime(transportState.currentTime)}</span>
-            <input
-              type='range'
-              min={0}
-              max={100}
-              step={0.1}
-              value={transportProgress}
-              style={transportProgressStyle}
-              onChange={event => seekTransport(Number(event.target.value))}
-              disabled={!canUseTransport || transportDuration <= 0}
-              aria-label='Seek track'
+
+          {accessGate && (
+            <AccessGateOverlay
+              gate={accessGate}
+              onDismiss={() => onSetAccessGate(null)}
+              onPay={
+                accessGate.actionType === 'payment'
+                  ? () => {
+                      void onPayForTrackAccess(accessGate.track);
+                    }
+                  : undefined
+              }
+              onSignIn={accessGate.actionType === 'signin' ? onShowWalletModal : undefined}
             />
-            <span>{formatTime(transportDuration)}</span>
-          </div>
-          <div className='transport-actions' aria-label='Playback modes'>
-            <button
-              type='button'
-              data-active={shuffleEnabled}
-              onClick={() => setShuffleEnabled(current => !current)}
-              disabled={!canShuffle}
-              aria-pressed={shuffleEnabled}
-              title={canShuffle ? 'Shuffle catalog after this track' : 'Shuffle needs more than one catalog track'}
-            >
-              <Shuffle size={16} />
-            </button>
-            <button
-              type='button'
-              data-active={repeatEnabled}
-              onClick={() => setRepeatEnabled(current => !current)}
-              disabled={!canUseTransport}
-              aria-pressed={repeatEnabled}
-              title='Repeat this track'
-            >
-              <Repeat2 size={16} />
-            </button>
-          </div>
+          )}
         </div>
-
-        {accessGate && (
-          <AccessGateOverlay
-            gate={accessGate}
-            onDismiss={() => onSetAccessGate(null)}
-            onPay={
-              accessGate.actionType === 'payment'
-                ? () => {
-                    void onPayForTrackAccess(accessGate.track);
-                  }
-                : undefined
-            }
-            onSignIn={accessGate.actionType === 'signin' ? onShowWalletModal : undefined}
-          />
-        )}
       </div>
 
-      <div className='studio-column player-side-column'>
+      {!roomId && (
+        <div className='solo-room-invite'>
+          <div>
+            <span className='eyebrow'>One link away</span>
+            <strong>Make this track a shared room.</strong>
+            <p>Live stream, one link, host-held access.</p>
+          </div>
+          <button className='primary-action compact-action' type='button' onClick={() => onCreateSession()}>
+            <Radio size={16} />
+            Open room
+          </button>
+        </div>
+      )}
+
+      <div className='player-lower-grid'>
         <div className='doc-panel session-panel'>
-          <PanelTitle icon={Radio} title='Listening room' meta={roomId || 'offline'} />
+          <PanelTitle icon={Radio} title={roomId ? 'In the room' : 'Listening room'} meta={roomId || 'offline'} />
           <div className='segmented' role='tablist' aria-label='Mode'>
             <button type='button' className={mode === 'host' ? 'active' : ''} onClick={() => onChangeMode('host')}>
               <Radio size={16} />
@@ -471,26 +583,90 @@ export function PlayerView({
           )}
 
           <div className='listener-list'>
+            {mode === 'host' && (
+              <div className='list-row' key='host-self'>
+                <div className='room-person-main'>
+                  <Avatar name={displayName || 'Host'} size={34} host />
+                  <div>
+                    <strong>
+                      {displayName || 'You'}
+                      <span className='room-person-tag'>host</span>
+                    </strong>
+                    <span>holds the key</span>
+                  </div>
+                </div>
+                {transportState.playing ? (
+                  <span className='room-eq' aria-hidden='true'>
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                ) : (
+                  <i data-status={localStreamReady ? 'connected' : 'waiting'} />
+                )}
+              </div>
+            )}
             {mode === 'host' && listeners.length > 0 ? (
               listeners.map(listener => (
                 <div className='list-row' key={listener.id}>
-                  <div>
-                    <strong>{listener.displayName}</strong>
-                    <span>{peerStatusLabel(listener.status)}</span>
+                  <div className='room-person-main'>
+                    <Avatar name={listener.displayName} size={34} />
+                    <div>
+                      <strong>{listener.displayName}</strong>
+                      <span>{peerStatusLabel(listener.status)}</span>
+                    </div>
                   </div>
-                  <i data-status={listener.status} />
+                  {listener.status === 'connected' ? (
+                    <span className='room-eq' aria-hidden='true'>
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  ) : (
+                    <i data-status={listener.status} />
+                  )}
                 </div>
               ))
-            ) : (
+            ) : mode === 'host' ? (
               <div className='list-row muted-row'>
                 <div>
-                  <strong>{mode === 'host' ? 'No listeners yet' : hostName || 'Host'}</strong>
-                  <span>{mode === 'host' ? 'Waiting' : roomId || 'Not connected'}</span>
+                  <strong>No listeners yet</strong>
+                  <span>Share the link to fill the room</span>
                 </div>
-                <i data-status={remoteReady ? 'connected' : 'waiting'} />
+                <i data-status='waiting' />
+              </div>
+            ) : (
+              <div className='list-row'>
+                <div className='room-person-main'>
+                  <Avatar name={hostName || 'Host'} size={34} host />
+                  <div>
+                    <strong>
+                      {hostName || 'Host'}
+                      <span className='room-person-tag'>host</span>
+                    </strong>
+                    <span>{roomId || 'Not connected'}</span>
+                  </div>
+                </div>
+                {remoteReady ? (
+                  <span className='room-eq' aria-hidden='true'>
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                ) : (
+                  <i data-status='waiting' />
+                )}
               </div>
             )}
           </div>
+
+          {roomId && (
+            <p className='room-doctrine-note'>
+              {mode === 'host'
+                ? 'You hold track access for this room. Guests hear your WebRTC stream and never receive content keys.'
+                : 'You are listening to the host stream. No wallet or access proof is required just to be present.'}
+            </p>
+          )}
 
           {error && <p className='error-box'>{error}</p>}
         </div>

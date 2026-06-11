@@ -56,6 +56,12 @@ Build the production spine first:
 9. generated ABI bindings;
 10. observability and health checks.
 
+## Active ticket
+
+**Sprint 0 · Ticket 04** — hosted signaling, room join links, and host-based room access (`docs/backlog/04-hosted-signaling-room-join-links.md`)
+
+Ticket 03 (wallet-signed content-key requests) is delivered; see the delivery notes appended to `docs/backlog/03-wallet-signed-content-key-requests.md` for the implemented design and its documented boundaries.
+
 ## Source of truth
 
 Before implementing, read:
@@ -67,12 +73,14 @@ Before implementing, read:
 - `docs/context/dotify-philosophical-north-star.md`
 - `README.md`
 - `spec.md`
+- `deployments.json` (canonical contract addresses for all deployed pallets)
 
 Also inspect:
 
 - `docs/Dotify_presentation.pptx`
 
 The presentation is part of the product memory and should inform the tone, positioning, and UX direction.
+List every file/repo you plan to modify and wait for my confirmation before making any edits.
 
 ## Engineering posture
 
@@ -89,7 +97,8 @@ Do not:
 - add speculative tokenomics before the production spine is stable;
 - grow `App.tsx` with more unrelated business logic;
 - overpromise DRM guarantees;
-- hide complex failure modes behind vague messages.
+- hide complex failure modes behind vague messages;
+- insert curly/smart quotes (U+2018/U+2019/U+201C/U+201D) or unescaped apostrophes into source files — use straight ASCII quotes; they break esbuild silently.
 
 Do:
 
@@ -100,7 +109,8 @@ Do:
 - use typed APIs and explicit errors;
 - add tests for critical flows;
 - preserve existing local demo behavior unless the active ticket says otherwise;
-- make every technical detail serve the social/philosophical purpose.
+- make every technical detail serve the social/philosophical purpose;
+- ground all explanations of contract/pallet behavior in actual source code with file and function references.
 
 ## Product language
 
@@ -137,6 +147,10 @@ For each issue:
 6. Update README/spec/context docs if behavior changes.
 7. Keep commits focused.
 
+## Build & Verification
+
+Always run typecheck, lint, and build after making code changes; report results before considering work complete.
+
 ## GitHub Pages alignment rule
 
 `docs/index.html` is the public-facing project page.
@@ -157,6 +171,18 @@ npm install
 npm run dev:listen
 npm run build
 npm run lint
+npm run typecheck
+```
+
+Backend API:
+
+```bash
+cd services/api
+npm install
+npm run dev        # tsx watch (hot reload)
+npm run typecheck
+npm run build
+npm run start      # production (requires build first)
 ```
 
 Contracts:

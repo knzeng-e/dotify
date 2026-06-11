@@ -1,0 +1,111 @@
+// Wallet-signed request verification (EIP-191 personal_sign).
+//
+// The signed payload is a structured, domain-bound text message that binds:
+// app, action, purpose, content hash, requester address, chain ID, nonce,
+// and expiry. The same canonical format is reproduced by the frontend client
+// (web/src/services/keyService.ts); any drift between the two breaks
+// verification, which fails closed.
+//
+// Security boundary: EIP-191 is used instead of EIP-712 for the first
+// production spine because it is supported uniformly across the wallets we
+// target. The message is structured and domain-bound, so it cannot be
+// replayed against another app, chain, purpose, or track.
+
+import { verifyMessage } from 'viem';
+import { config } from '../config.js';
+import { consumeNonce, issueNonce } from './replayProtection.js';
+
+// 'room_listener' deliberately does not exist: room listeners never receive
+// content keys, they only receive the host's ephemeral WebRTC stream.
+export type KeyRequestPurpose = 'individual' | 'room_host';
+export type SignedAction = 'REQUEST_CONTENT_KEY';
+
+export type NonceChallengeRequest = {
+  address: string;
+  chainId?: number;
+};
+
+export type NonceChallenge = {
+  nonce: string;
+  expiresAt: string;
+  chainId: number;
+};
+
+export type SignedRequestPayload = {
+  action: SignedAction;
+  purpose: KeyRequestPurpose;
+  contentHash: string;
+  requester: string;
+  chainId: number;
+  nonce: string;
+  expiresAt: string;
+};
+
+export type KeySignatureRequest = SignedRequestPayload & {
+  signature: string;
+};
+
+export type SignatureVerification =
+  | { valid: true }
+  | { valid: false; code: string; reason: string };
+
+/**
+ * Canonical EIP-191 message for a Dotify signed request.
+ * Must stay byte-identical with the frontend builder.
+ */
+export function buildSignedRequestMessage(payload: SignedRequestPayload): string {
+  return [
+    'Dotify signed request',
+    'App: Dotify',
+    `Action: ${payload.action}`,
+    `Purpose: ${payload.purpose}`,
+    `Content Hash: ${payload.contentHash.toLowerCase()}`,
+    `Requester: ${payload.requester.toLowerCase()}`,
+    `Chain ID: ${payload.chainId}`,
+    `Nonce: ${payload.nonce}`,
+    `Expires At: ${payload.expiresAt}`,
+  ].join('\n');
+}
+
+/** Issue a wallet nonce challenge bound to the address and chain. */
+export function createWalletNonceChallenge(request: NonceChallengeRequest): NonceChallenge {
+  const chainId = request.chainId ?? config.DOTIFY_CHAIN_ID;
+  const issued = issueNonce(request.address, chainId);
+  return { nonce: issued.nonce, expiresAt: issued.expiresAt, chainId };
+}
+
+/**
+ * Verify a wallet-signed request: expiry, signature, then nonce consumption.
+ * The nonce is only consumed after the signature checks out, so an attacker
+ * cannot burn a victim's nonce with a garbage signature.
+ */
+export async function verifySignedRequest(request: KeySignatureRequest): Promise<SignatureVerification> {
+  const expiresAtMs = Date.parse(request.expiresAt);
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+    return { valid: false, code: 'EXPIRED_SESSION', reason: 'Key request has expired. Request a new challenge.' };
+  }
+
+  const message = buildSignedRequestMessage(request);
+
+  let signatureValid = false;
+  try {
+    signatureValid = await verifyMessage({
+      address: request.requester as `0x${string}`,
+      message,
+      signature: request.signature as `0x${string}`,
+    });
+  } catch {
+    signatureValid = false;
+  }
+
+  if (!signatureValid) {
+    return { valid: false, code: 'SIGNATURE_INVALID', reason: 'Wallet signature does not match the request payload.' };
+  }
+
+  const nonce = consumeNonce(request.nonce, request.requester);
+  if (!nonce.ok) {
+    return { valid: false, code: nonce.code, reason: nonce.reason };
+  }
+
+  return { valid: true };
+}

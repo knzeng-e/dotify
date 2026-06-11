@@ -1,3 +1,22 @@
+// ---------------------------------------------------------------------------
+// Pinata / IPFS service — demo/local mode and production backend mode.
+//
+// Upload routing:
+//   Production (VITE_DOTIFY_API_URL set) → all uploads go through the backend API.
+//     - Audio:    POST /api/uploads/audio    (backend encrypts server-side)
+//     - Cover:    POST /api/uploads/cover
+//     - Metadata: POST /api/uploads/metadata
+//
+//   Demo/local (VITE_DOTIFY_API_URL absent, VITE_PINATA_JWT set) →
+//     browser calls Pinata directly. For demos only.
+//     Do NOT use an unrestricted Pinata JWT in production.
+// ---------------------------------------------------------------------------
+
+// Backend API base URL. When set, uploads are routed server-side.
+const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
+
+// Demo/local mode credentials — browser-side Pinata only.
+// These env vars have no effect when API_URL is configured.
 const JWT = import.meta.env.VITE_PINATA_JWT as string;
 const GATEWAY = (import.meta.env.VITE_PINATA_GATEWAY as string | undefined) ?? 'https://paseo-ipfs.polkadot.io';
 const READ_GATEWAYS = (import.meta.env.VITE_IPFS_READ_GATEWAYS as string | undefined)
@@ -43,6 +62,19 @@ export interface DotifyTrackManifest {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Mode detection
+// ---------------------------------------------------------------------------
+
+/** Returns true when the backend API is configured and uploads go server-side. */
+export function isBackendConfigured(): boolean {
+  return Boolean(API_URL);
+}
+
+// ---------------------------------------------------------------------------
+// IPFS gateway helpers (read-only; gateway reads do not require a JWT)
+// ---------------------------------------------------------------------------
+
 export function getGatewayUrl(cid: string): string {
   return getGatewayUrls(cid)[0];
 }
@@ -68,14 +100,152 @@ export async function fetchIpfsCid(cid: string): Promise<Response> {
   throw lastError instanceof Error ? lastError : new Error(`Unable to fetch IPFS CID ${cid}`);
 }
 
+// ---------------------------------------------------------------------------
+// Backend upload helpers
+// ---------------------------------------------------------------------------
+
+async function parseBackendError(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = (await res.json()) as { error?: string };
+    return body.error ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Upload a raw (unencrypted) audio file through the backend.
+ * The backend derives a per-track key, encrypts server-side, and pins to Pinata.
+ *
+ * @param rawFile     The original audio file as selected by the artist.
+ * @param contentHash 0x-prefixed blake2b-256 hash of the raw audio bytes.
+ * @returns           Full Dotify audio ref: "dotify:enc:ipfs://<CID>"
+ */
+export async function uploadAudioToBackend(rawFile: File, contentHash: string): Promise<string> {
+  if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
+
+  const form = new FormData();
+  form.append('audio', rawFile, rawFile.name);
+  form.append('contentHash', contentHash);
+
+  const res = await fetch(`${API_URL}/api/uploads/audio`, { method: 'POST', body: form });
+
+  if (!res.ok) {
+    const msg = await parseBackendError(res, `Audio upload failed (${res.status})`);
+    throw new Error(msg);
+  }
+
+  const data = (await res.json()) as { ref: string };
+  return data.ref; // "dotify:enc:ipfs://<CID>"
+}
+
+/**
+ * Upload a cover image through the backend.
+ *
+ * @returns CID string (without ipfs:// prefix) — matches the return format of
+ *          uploadFileToPinata so callers are interchangeable.
+ */
+export async function uploadCoverToBackend(file: File): Promise<string> {
+  if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
+
+  const form = new FormData();
+  form.append('cover', file, file.name);
+
+  const res = await fetch(`${API_URL}/api/uploads/cover`, { method: 'POST', body: form });
+
+  if (!res.ok) {
+    const msg = await parseBackendError(res, `Cover upload failed (${res.status})`);
+    throw new Error(msg);
+  }
+
+  const data = (await res.json()) as { ref: string };
+  // Strip "ipfs://" prefix — callers add it themselves (matches uploadFileToPinata return format).
+  return data.ref.startsWith('ipfs://') ? data.ref.slice(7) : data.ref;
+}
+
+/**
+ * Upload a Dotify track manifest through the backend.
+ *
+ * @returns CID string (without ipfs:// prefix) — matches uploadJsonToPinata return format.
+ */
+export async function uploadMetadataToBackend(manifest: DotifyTrackManifest): Promise<string> {
+  if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
+
+  const res = await fetch(`${API_URL}/api/uploads/metadata`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(manifest),
+  });
+
+  if (!res.ok) {
+    const msg = await parseBackendError(res, `Metadata upload failed (${res.status})`);
+    throw new Error(msg);
+  }
+
+  const data = (await res.json()) as { ref: string };
+  return data.ref.startsWith('ipfs://') ? data.ref.slice(7) : data.ref;
+}
+
+// ---------------------------------------------------------------------------
+// Protected audio publication
+// ---------------------------------------------------------------------------
+
+export type ProtectedAudioSource = {
+  bytes: Uint8Array;
+  name: string;
+  mime: string;
+};
+
+/**
+ * Upload protected audio for publication and return the encrypted-asset CID.
+ *
+ * Production (backend configured): the RAW audio goes to the backend, which
+ * derives the per-track key server-side, encrypts, and pins. The content key
+ * never exists in the browser at publish time; listeners obtain it later via
+ * the wallet-signed key request (services/keyService.ts).
+ *
+ * Demo/local: bytes are encrypted in the browser with the bundle-derived
+ * demo key (best-effort, not a production boundary) and pinned directly.
+ */
+export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentHash: string): Promise<string> {
+  if (API_URL) {
+    const rawFile = new File([audio.bytes as BlobPart], audio.name, { type: audio.mime || 'audio/mpeg' });
+    const ref = await uploadAudioToBackend(rawFile, contentHash);
+    return ref.startsWith('dotify:enc:ipfs://') ? ref.slice('dotify:enc:ipfs://'.length) : ref;
+  }
+
+  const { encryptTrackAudio } = await import('../utils/protectedAudio');
+  const encrypted = await encryptTrackAudio(audio.bytes, contentHash);
+  const encFile = new File([encrypted as BlobPart], `${audio.name}.enc`, { type: 'application/octet-stream' });
+  return uploadFileToPinata(encFile, encFile.name, { app: 'dotify', type: 'audio', encrypted: 'true' });
+}
+
+// ---------------------------------------------------------------------------
+// Demo/local mode upload helpers (direct Pinata from browser)
+//
+// These require VITE_PINATA_JWT. Only use in local development with a
+// restricted upload-only Pinata token. Do NOT expose an unrestricted token.
+// ---------------------------------------------------------------------------
+
+function demoPinataHeaders(): Record<string, string> {
+  if (!JWT) throw new Error('VITE_PINATA_JWT is not set. Configure the backend API or set a demo Pinata JWT.');
+  return { Authorization: `Bearer ${JWT}` };
+}
+
 export async function uploadFileToPinata(file: File, name: string, keyvalues: Record<string, string> = {}): Promise<string> {
+  // Cover images: route through backend when API is configured.
+  if (API_URL && keyvalues.type === 'cover') {
+    return uploadCoverToBackend(file);
+  }
+
+  // Demo/local path — requires VITE_PINATA_JWT.
   const form = new FormData();
   form.append('file', file, name);
   form.append('pinataMetadata', JSON.stringify({ name, keyvalues }));
 
   const res = await fetch(PIN_FILE_URL, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${JWT}` },
+    headers: demoPinataHeaders(),
     body: form
   });
 
@@ -89,10 +259,16 @@ export async function uploadFileToPinata(file: File, name: string, keyvalues: Re
 }
 
 export async function uploadJsonToPinata(json: unknown, name: string, keyvalues: Record<string, string> = {}): Promise<string> {
+  // Route through backend when API is configured.
+  if (API_URL) {
+    return uploadMetadataToBackend(json as DotifyTrackManifest);
+  }
+
+  // Demo/local path — requires VITE_PINATA_JWT.
   const res = await fetch(PIN_JSON_URL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${JWT}`,
+      ...demoPinataHeaders(),
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ pinataContent: json, pinataMetadata: { name, keyvalues } })
@@ -106,6 +282,10 @@ export async function uploadJsonToPinata(json: unknown, name: string, keyvalues:
   const data = (await res.json()) as { IpfsHash: string };
   return data.IpfsHash;
 }
+
+// ---------------------------------------------------------------------------
+// Catalog fetch (read-only, always via IPFS gateways + Pinata list)
+// ---------------------------------------------------------------------------
 
 interface PinListRow {
   ipfs_pin_hash: string;

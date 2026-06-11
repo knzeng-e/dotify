@@ -17,7 +17,8 @@ monetization through their own artist runtime.
 
 - **Home**: artist-grouped music discovery, track artwork, descriptions, access
   mode badges, a policy-aware player, and room-hosting controls.
-- **Rooms**: open listening rooms plus manual room-code entry.
+- **Rooms**: open listening rooms plus manual room-code entry. Room guests should
+  be able to join and listen without wallet friction.
 - **Artist portal**: a dedicated `/artists` onboarding and studio surface where
   artists connect a wallet, create their runtime, upload releases, configure
   access, and manage royalty records outside the listener-first app shell.
@@ -67,11 +68,40 @@ Default ports:
 | Frontend      | <http://localhost:5273>                          |
 | Artist portal | <http://localhost:5273/artists>                  |
 | Signaling     | <http://localhost:8788>                          |
+| Backend API   | <http://localhost:8790>                          |
 | Bulletin RPC  | `wss://paseo-bulletin-rpc.polkadot.io`           |
 | Asset Hub RPC | <https://services.polkadothub-rpc.com/testnet>   |
 
 The app talks to Paseo Bulletin and Asset Hub directly from the browser. A local
 Ethereum node or local Substrate node is not required to run the demo.
+
+### Running the backend API
+
+The backend service handles server-side IPFS pinning, audio encryption,
+wallet-signed content-key delivery, and health checks.
+
+```bash
+cd services/api
+npm install
+cp .env.example .env
+# Edit .env: set PINATA_JWT and CONTENT_KEY_MASTER_SECRET
+npm run dev
+```
+
+**Environment variables** (see `services/api/.env.example`):
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `PINATA_JWT` | For uploads | Server-side Pinata token (never expose in frontend) |
+| `CONTENT_KEY_MASTER_SECRET` | For audio upload | 32-byte hex master secret for AES-256-GCM key derivation |
+
+Set `VITE_DOTIFY_API_URL=http://localhost:8790` in `web/.env.local` to route
+cover and metadata uploads through the backend. Audio backend upload requires
+calling `uploadAudioToBackend` from `web/src/services/pinata.ts` (the existing
+artist console uses demo/local mode until that wiring lands).
+
+**Demo/local mode** (no backend): set `VITE_PINATA_JWT` in `web/.env.local` with
+a restricted upload-only Pinata token. Do not use an unrestricted token in demos.
 
 **To rebuild and redeploy the frontend to Bulletin Chain:**
 
@@ -111,16 +141,50 @@ authorization failures.
 Proof of Personhood is a registrar-controlled mapping in the contract — ready
 for a live Individuality chain integration without blocking the prototype.
 
-The frontend checks `musicAccCanAccess` before loading a registered track. If the
-listener does not meet the PoP or payment requirement, it creates a separate 42%
-preview and shows a warning explaining the restriction and the action needed to
-unlock the whole track. This is product-policy enforcement in the current
-client; production-grade protection still needs server-side or artist-side key
-delivery.
+### Individual playback access
+
+For individual full-track playback, Dotify checks `musicAccCanAccess` for the
+listener before loading the registered track. If the listener does not meet the
+PoP or payment requirement, Dotify creates a separate 42% preview and shows a
+warning explaining the restriction and the action needed to unlock the whole
+track.
 
 For registered artist tracks, users without a connected wallet are treated as
-unauthorized listeners and receive preview-only playback. Dev-account fallback
-must not grant full listener playback.
+unauthorized individual listeners and receive preview-only playback. Dev-account
+fallback must not grant full listener playback.
+
+### Room playback access
+
+Room playback uses **host-based access**.
+
+- If the host has access to a protected track, Dotify may deliver a temporary
+  content key to the host only, and the host streams the full track through
+  WebRTC.
+- Room listeners do not need to connect a wallet, sign, pay, or prove access
+  merely to listen inside a room.
+- Room listeners never receive the encrypted source file or content key; they
+  receive only the ephemeral WebRTC media stream.
+- If the host lacks access to a protected track, Dotify should keep the room
+  alive, stream the 42% preview, show a discreet host-facing unlock/personhood
+  CTA, and auto-advance to the next playlist track when the preview ends.
+
+This protects source-file distribution without turning the room into a wallet
+checkpoint.
+
+### Security boundary
+
+Current client-side protection is demo-grade. Production protection requires
+server-side upload/key delivery and wallet-signed content-key requests.
+
+Dotify protects distribution access to encrypted source files and keys. It does
+not claim absolute DRM and does not prevent recording of an authorized WebRTC
+stream.
+
+See also:
+
+- `docs/product/ux-signature-flows.md`
+- `docs/product/room-access-policy.md`
+- `docs/security/content-key-delivery-threat-model.md`
 
 ## What works
 
@@ -151,23 +215,26 @@ must not grant full listener playback.
   signers. Bulletin archival still needs a Substrate signer when enabled.
 - **Proof of Personhood is mocked**: `setPersonhoodLevel` is a dev-only admin
   call. Live Individuality chain reads are on the roadmap.
-- **Pinata runs from the browser**: `VITE_PINATA_JWT` is exposed by Vite, so use
-  a restricted token for demos only. A backend pinning proxy is still needed for
-  production.
-
+- **Pinata JWT still required for catalog fetch and local demo mode**: `VITE_PINATA_JWT` is used
+  for browser-side catalog reads and demo uploads. Production uploads use the backend API
+  (`VITE_DOTIFY_API_URL`); see the backend README for `PINATA_JWT` and `CONTENT_KEY_MASTER_SECRET`.
+  The audio upload backend wiring in the artist console (skipping client-side encryption) lands in a follow-up ticket.
 - **Single-host rooms**: no multi-host or handoff logic. If the host closes the
   tab, the room ends.
+- **Room stream capture limits**: room guests do not receive keys/source files,
+  but WebRTC audio heard by guests can still be recorded outside Dotify.
 
 ## Architecture
 
 ```text
 Browser (React + Vite)
   ├── WebRTC audio stream (captureStream → RTCPeerConnection per listener)
-  ├── Socket.IO  →  Node signaling server  (SDP/ICE only)
-  ├── Pinata HTTP API  →  encrypted audio, cover, and metadata pinning
-  ├── IPFS gateways  →  primary + fallback reads for manifests and audio bytes
+  ├── Socket.IO       →  Node signaling server  (SDP/ICE only)
+  ├── Dotify API      →  backend service  (health, auth nonce, future key delivery)
+  ├── Pinata HTTP API →  encrypted audio, cover, and metadata pinning (demo/local)
+  ├── IPFS gateways   →  primary + fallback reads for manifests and audio bytes
   ├── polkadot-api (PAPI)  →  Paseo Bulletin Chain  (optional manifest upload)
-  └── viem  →  Paseo Asset Hub EVM  (ArtistDirectory, ArtistRuntimeFactory, SmartRuntime)
+  └── viem            →  Paseo Asset Hub EVM  (ArtistDirectory, ArtistRuntimeFactory, SmartRuntime)
 ```
 
 The frontend is built as a single self-contained HTML file using
@@ -187,12 +254,15 @@ handle:
 
 ## Structure
 
-| Path             | Role                                                     |
-| ---------------- | -------------------------------------------------------- |
-| `web/`           | React app, signaling server, Bulletin deploy scripts     |
-| `web/.papi/`     | PAPI descriptors for Bulletin Chain                      |
-| `contracts/evm/` | Hardhat + Solidity smart-runtime contracts               |
-| `deployments.json` | EVM factory, directory, initializer, and pallet addresses |
+| Path               | Role                                                     |
+| ------------------ | -------------------------------------------------------- |
+| `web/`             | React app, signaling server, Bulletin deploy scripts     |
+| `web/.papi/`       | PAPI descriptors for Bulletin Chain                      |
+| `services/api/`    | Backend API: health, auth nonce, future key delivery     |
+| `contracts/evm/`   | Hardhat + Solidity smart-runtime contracts               |
+| `docs/product/`    | Product policy and UX flow documentation                 |
+| `docs/security/`   | Security boundaries and threat models                    |
+| `deployments.json` | EVM factory, directory, initializer, pallet addresses    |
 
 ## Improvement Backlog
 

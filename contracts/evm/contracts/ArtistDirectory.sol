@@ -32,7 +32,7 @@ contract ArtistDirectory {
   // Constructor
   // -------------------------------------------------------------------------
 
-  constructor() payable {
+  constructor() {
     deployer = msg.sender;
   }
 
@@ -42,7 +42,7 @@ contract ArtistDirectory {
 
   /// @notice Set the factory address that is authorised to register artists.
   ///         Can only be called once by the original deployer.
-  function setFactory(address _factory) external payable {
+  function setFactory(address _factory) external {
     require(msg.sender == deployer, 'Directory: not deployer');
     require(factory == address(0), 'Directory: factory already set');
     require(_factory != address(0), 'Directory: zero address');
@@ -55,7 +55,7 @@ contract ArtistDirectory {
   // -------------------------------------------------------------------------
 
   /// @notice Register an artist → runtime mapping.  Called by the factory.
-  function register(address artist, address runtime) external payable {
+  function register(address artist, address runtime) external {
     require(msg.sender == factory, 'Directory: only factory');
     require(runtimeOf[artist] == address(0), 'Directory: already registered');
     runtimeOf[artist] = runtime;

@@ -93,8 +93,8 @@ library LibDiamond {
         revert('LibDiamond: bad FacetCutAction');
       }
     }
-    emit DiamondCut(cuts, init, initCalldata);
     _initializeDiamondCut(init, initCalldata);
+    emit DiamondCut(cuts, init, initCalldata);
   }
 
   // -------------------------------------------------------------------------

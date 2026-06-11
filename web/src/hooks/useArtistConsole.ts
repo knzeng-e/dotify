@@ -10,8 +10,8 @@ import {
   musicRegistryAbi
 } from '../config/contracts';
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
-import { uploadFileToPinata, uploadJsonToPinata, type DotifyTrackManifest } from '../services/pinata';
-import { encryptTrackAudio, makeEncryptedAudioRef } from '../utils/protectedAudio';
+import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
+import { makeEncryptedAudioRef } from '../utils/protectedAudio';
 import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../utils/format';
 import type {
   AccessMode,
@@ -430,12 +430,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         audioUploadRef.current ??
           (audioSource
             ? fetch(audioSource)
-                .then(r => r.arrayBuffer())
-                .then(async buf => {
-                  const bytes = new Uint8Array(buf);
-                  const enc = await encryptTrackAudio(bytes, fileHash);
-                  const encFile = new File([enc], `${title || 'audio'}.enc`, { type: 'application/octet-stream' });
-                  return uploadFileToPinata(encFile, encFile.name, { app: 'dotify', type: 'audio', encrypted: 'true' });
+                .then(r => r.blob())
+                .then(async blob => {
+                  const bytes = new Uint8Array(await blob.arrayBuffer());
+                  return uploadProtectedAudio({ bytes, name: title || 'audio', mime: blob.type }, fileHash);
                 })
             : Promise.resolve('')),
         coverUploadRef.current ?? (coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }) : Promise.resolve(''))

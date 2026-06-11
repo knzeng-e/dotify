@@ -3,6 +3,15 @@ pragma solidity ^0.8.28;
 
 import './LibDotify.sol';
 
+/// @dev LEGACY PROTOTYPE — NOT FOR DEPLOYMENT.
+///      This monolithic registry was the first Dotify proof of concept. It has
+///      been superseded by the Smart Runtime pallet system (SmartRuntime +
+///      MusicRegistryPallet / MusicRoyaltiesPallet / MusicAccessPallet / MusicNFTPallet)
+///      and is NOT listed in deployments.json. It retains known security issues
+///      (full msg.value distributed without refund, no reentrancy guard, no
+///      double-charge guard) that are fixed in the pallet system. It is kept only
+///      for historical reference and must not be deployed to any network.
+///
 /// @title MusicRightsRegistry
 /// @notice Dotify registry for artist-owned track NFTs, access rules, and royalty settlement.
 contract MusicRightsRegistry {

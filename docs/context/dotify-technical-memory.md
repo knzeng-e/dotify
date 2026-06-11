@@ -24,6 +24,8 @@ Catalog browsing, track cards, artwork, description, access badges, player, room
 
 Room discovery, manual room-code entry, WebRTC join flow, Socket.IO signaling.
 
+Room playback is host-access based: the host may receive a temporary content key after access verification; room guests receive only WebRTC media and should not need wallet/signature friction.
+
 ### Artist portal
 
 Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication, metadata, royalty inputs, access mode configuration, on-chain registration.
@@ -34,8 +36,8 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
 - `VITE_CONTENT_SECRET` must not remain the production key boundary.
 - Pinata uploads from the browser are unsafe for public production.
 - Proof of Personhood is currently mocked/dev-operated.
-- Listener-side room access is not independently enforced.
 - Public rooms require hosted signaling.
+- Room guests do not receive keys/source files, but WebRTC audio heard by guests can still be recorded outside Dotify.
 - `App.tsx` is still too monolithic.
 - Frontend/e2e coverage is missing or insufficient.
 - Legacy registry paths should be archived or removed.
@@ -50,12 +52,14 @@ Production readiness means the following must work reliably:
 3. Artist uploads protected audio through a backend boundary.
 4. Artist registers a track on-chain.
 5. Listener sees track in catalog.
-6. Unauthorized listener receives only preview.
-7. Classic listener pays and unlocks.
-8. Backend releases the content key only after wallet signature and access check.
+6. Unauthorized individual listener receives only preview.
+7. Classic listener pays and unlocks individual full playback.
+8. Backend releases a temporary content key only after wallet signature and access check.
 9. Host creates room from playable track.
-10. Listener joins through simple link.
-11. Critical flows are covered by tests.
+10. Room guest joins through a simple link without wallet/signature.
+11. Protected room playback checks host access only.
+12. Room guests never receive content keys or source files.
+13. Critical flows are covered by tests.
 
 ## Backend direction
 
@@ -66,6 +70,8 @@ Introduce a lean backend service for:
 - wallet signature verification;
 - nonce/replay protection;
 - access checks against SmartRuntime;
+- room host key requests;
+- preview-mode responses for unauthorized hosts;
 - health and version endpoints;
 - future WebAuthn backend support.
 
@@ -91,7 +97,9 @@ The target is distribution access protection:
 wallet signature -> backend verifies signature -> backend checks runtime access -> backend releases key -> browser decrypts local audio
 ```
 
-This prevents bundled frontend secrets and direct full-track access by unauthorized listeners. It does not prevent recording after authorized playback.
+For room playback, the key is released to the host only. Room guests receive only the ephemeral WebRTC stream.
+
+This prevents bundled frontend secrets and direct full-track source access by unauthorized listeners. It does not prevent recording after authorized playback or after receiving a WebRTC stream.
 
 Document this honestly.
 
@@ -106,7 +114,10 @@ Rooms must become production-stable:
 - cleanup;
 - clear states;
 - explicit unsupported-browser behavior;
-- simple user language.
+- simple user language;
+- no wallet requirement for room guests;
+- host-based access metadata;
+- preview fallback and auto-advance when host lacks protected-track access.
 
 Room UX should be benchmarked against Spotify Jam and Jukebox Duo for low friction.
 
@@ -157,6 +168,10 @@ Add deterministic tests for:
 - Classic unlock;
 - artist publish;
 - room join;
+- room guest no-wallet join;
+- authorized host full protected stream;
+- unauthorized host preview fallback;
+- listener never receives room content keys;
 - access-state logic;
 - preview/full playback state;
 - signature verification;
@@ -173,8 +188,9 @@ Contracts already have meaningful tests; frontend and e2e must catch up.
 - No dev fallback signer in public flows.
 - Access checks must fail closed.
 - Backend must not trust frontend-provided access results.
-- Wallet signatures must include nonce, chain ID, content hash, listener address, and expiration.
+- Wallet signatures must include nonce, chain ID, content hash, requester address, request purpose, and expiration.
 - Replay protection is mandatory for key requests.
+- Room listeners must never receive content keys or encrypted source files.
 - Logs must never expose secrets, keys, or raw uploaded contents.
 
 ## Deployment principle
