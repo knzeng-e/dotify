@@ -10,6 +10,7 @@ import type {
   OpenRoom,
   PeerStatus,
   PlayerState,
+  RoomPlaybackMode,
   SessionAction,
   SocketStatus,
   TrackInfo
@@ -480,7 +481,11 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
-  function createSession(currentTrackInfo: TrackInfo | null, event?: FormEvent<HTMLFormElement>) {
+  function createSession(
+    currentTrackInfo: TrackInfo | null,
+    playbackMode: RoomPlaybackMode = 'full',
+    event?: FormEvent<HTMLFormElement>
+  ) {
     event?.preventDefault();
     setSessionAction('creating');
     changeMode('host');
@@ -492,7 +497,7 @@ export function useSession(deps: UseSessionDeps) {
     const socket = connectSocket();
     socket.emit(
       'room:create',
-      { displayName, track: currentTrackInfo, hostAddress: hostAddress ?? null },
+      { displayName, track: currentTrackInfo, hostAddress: hostAddress ?? null, playbackMode },
       (response: CreateRoomResponse) => {
         setSessionAction('idle');
         if (!response.ok) {
@@ -507,7 +512,7 @@ export function useSession(deps: UseSessionDeps) {
         setListeners([]);
         listenersRef.current = [];
         setListenerCount(0);
-        setRoomPlaybackMode('full');
+        setRoomPlaybackMode(playbackMode);
         setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
         requestOpenRooms();
       }

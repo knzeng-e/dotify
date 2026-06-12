@@ -42,7 +42,7 @@ import { ArtistOnboarding } from './views/artist/ArtistOnboarding';
 
 import { stripExtension } from './utils/format';
 
-import type { AccessMode, ArtistTab, AssetAction, CatalogTrack, PersonhoodLevel, ReleaseStep, TrackInfo, TransactionFeedback, View } from './types';
+import type { AccessMode, ArtistTab, AssetAction, CatalogTrack, PersonhoodLevel, ReleaseStep, RoomPlaybackMode, TrackInfo, TransactionFeedback, View } from './types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -497,6 +497,14 @@ export default function App() {
     };
   }
 
+  function getHostPlaybackModeForRoom(track: CatalogTrack | undefined): RoomPlaybackMode {
+    if (!track) return catalog.previewOnlyRef.current ? 'preview' : 'full';
+    if (catalog.selectedTrackId === track.id && catalog.previewOnlyRef.current) return 'preview';
+    if (catalog.accessGate?.track.id === track.id) return 'preview';
+    if (track.source !== 'artist' || !track.id.includes(':')) return 'full';
+    return catalog.catalogAccessByTrackId[track.id] === true ? 'full' : 'preview';
+  }
+
   function handleOpenArtistProfile(name: string) {
     setPublicArtistName(name);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -504,13 +512,13 @@ export default function App() {
 
   function handleOpenArtistRoom(track: CatalogTrack) {
     setPublicArtistName(null);
-    void catalog.openTrack(
-      track,
-      session.socketEmit,
-      session.setLocalStreamReady,
-      session.closeHostPeers
-    );
-    session.createSession(trackToInfo(track));
+    void (async () => {
+      await catalog.openTrack(track).catch(() => {
+        // Room creation should still fail closed to preview metadata if track
+        // preparation cannot prove full host access.
+      });
+      session.createSession(trackToInfo(track), getHostPlaybackModeForRoom(track));
+    })();
   }
 
   function handleJoinRoomFromProfile(roomId: string) {
@@ -537,7 +545,7 @@ export default function App() {
         personhoodLevel: selectedTrack.personhoodLevel
       };
     }
-    session.createSession(currentTrack, event);
+    session.createSession(currentTrack, getHostPlaybackModeForRoom(selectedTrack), event);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
