@@ -65,12 +65,18 @@ export function startSignalingServer(overrides = {}) {
 
   function corsHeaders(request) {
     const origin = request?.headers?.origin;
-    const allowed = config.origins === '*' ? '*' : (isOriginAllowed(origin) ? origin : 'null');
-    return {
-      'access-control-allow-origin': allowed,
+    const headers = {
       'access-control-allow-methods': 'GET,OPTIONS',
       'access-control-allow-headers': 'content-type',
     };
+
+    if (config.origins === '*') {
+      headers['access-control-allow-origin'] = '*';
+    } else if (isOriginAllowed(origin)) {
+      headers['access-control-allow-origin'] = origin;
+    }
+
+    return headers;
   }
 
   function sendJson(request, response, status, payload) {

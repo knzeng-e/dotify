@@ -78,6 +78,27 @@ describe('signaling server', () => {
     assert.ok(room.expiresAt > room.createdAt);
   });
 
+  it('omits access-control-allow-origin for disallowed status origins', async () => {
+    await server.close();
+    server = startSignalingServer({
+      port: 0,
+      host: '127.0.0.1',
+      origins: ['https://dotify.example'],
+      logger: () => {},
+    });
+    port = await server.listen();
+
+    const denied = await fetch(`http://127.0.0.1:${port}/status`, {
+      headers: { origin: 'https://evil.example' },
+    });
+    assert.equal(denied.headers.get('access-control-allow-origin'), null);
+
+    const allowed = await fetch(`http://127.0.0.1:${port}/status`, {
+      headers: { origin: 'https://dotify.example' },
+    });
+    assert.equal(allowed.headers.get('access-control-allow-origin'), 'https://dotify.example');
+  });
+
   it('broadcasts host playback-mode changes to listeners and room metadata', async () => {
     const host = connectClient();
     const created = await createRoom(host, { track: { title: 'Aurora', artist: 'Ada' } });
