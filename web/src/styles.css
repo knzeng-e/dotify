@@ -5274,3 +5274,15 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
     width: 100%;
   }
 }
+
+/* Honest room metadata: a room streaming the 42% preview fallback says so. */
+.room-preview-chip {
+  font-style: normal;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cyan, #2bb3ff);
+  opacity: 0.85;
+  margin-left: 6px;
+}

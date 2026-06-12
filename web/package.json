@@ -10,6 +10,7 @@
 	"scripts": {
 		"dev": "vite --host 0.0.0.0 --port 5273",
 		"signal": "SIGNAL_PORT=8788 node server/signaling.mjs",
+		"test:signal": "node --test server/signaling.test.mjs",
 		"dev:listen": "concurrently -n signal,web -c magenta,cyan \"npm:signal\" \"npm:dev\"",
 		"build": "tsc -b && vite build",
 		"build:bulletin": "tsc -b && vite build --config vite.bulletin.config.ts",

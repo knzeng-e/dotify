@@ -177,6 +177,7 @@ export default function App() {
   // ── Session hook ──────────────────────────────────────────────────────────────
   const session = useSession({
     signalUrl,
+    hostAddress: listenerEvmAddress,
     audioSource: catalog.audioSource,
     trackInfo: catalog.trackInfo,
     setTrackInfo: catalog.setTrackInfo,
@@ -288,6 +289,18 @@ export default function App() {
   useEffect(() => {
     void catalog.refreshCatalogFromRegistry();
   }, [directoryAddress, ethRpcUrl]);
+
+  // One-link join: a guest landing on a #/rooms/<id> share link joins the
+  // room immediately. No wallet, no signature, no payment: room access is
+  // host-based and the guest only receives the ephemeral WebRTC stream.
+  const autoJoinAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (autoJoinAttemptedRef.current) return;
+    const initialRoomCode = getInitialRoomCode();
+    if (!initialRoomCode) return;
+    autoJoinAttemptedRef.current = true;
+    session.joinRoom(initialRoomCode);
+  }, []);
 
   useEffect(() => {
     if (!isArtistPortal || artistTab !== 'royalties') return;
@@ -442,7 +455,18 @@ export default function App() {
   }
 
   function handleEnforcePreviewCutoff() {
-    catalog.enforcePreviewCutoff(catalog.catalogTracks, catalog.selectedTrackId);
+    const hostingRoom = session.mode === 'host' && Boolean(session.roomId);
+    catalog.enforcePreviewCutoff(catalog.catalogTracks, catalog.selectedTrackId, {
+      // Room doctrine: an unauthorized host streams the 42% preview and the
+      // playlist auto-advances instead of stalling the room.
+      onPreviewEnded: hostingRoom
+        ? (_ended, nextTrack) => {
+            if (nextTrack) {
+              void catalog.selectTrack(nextTrack, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
+            }
+          }
+        : undefined
+    });
   }
 
   function handleOpenTrack(track: CatalogTrack) {

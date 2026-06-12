@@ -126,3 +126,35 @@ Room listeners never receive content keys or encrypted source files.
 ## Senior-engineer notes
 
 Benchmark Jukebox Duo / Spotify Jam simplicity: room creation must feel like sharing a link, not operating infrastructure. Protect the artist without killing the room's social flow.
+---
+
+## Delivery notes (implemented 2026-06)
+
+### What shipped
+
+- Signaling server (`web/server/signaling.mjs`) hardened and made testable (`startSignalingServer(config)` export with a CLI entry):
+  - configurable allowed origins (`SIGNAL_ORIGINS`, comma-separated; `*` for demo);
+  - room expiration (`SIGNAL_ROOM_TTL_MS`, default 6h) and host liveness sweep (`SIGNAL_HOST_TIMEOUT_MS`, default 120s; client heartbeats every 25s);
+  - per-room listener cap (`SIGNAL_MAX_LISTENERS`, default 24) with a `ROOM_FULL` rejection;
+  - room metadata: roomId, title, hostName, hostAddress (optional, sanitized), current track, playerState, `playbackMode: full | preview`, `hostAccessRequired`, `listenersNeedWalletAccess: false`, createdAt, expiresAt, listenerCount;
+  - structured JSON lifecycle logs (created/joined/left/closed/expired/host-timeout/playback-mode);
+  - `GET /health` (uptime, room/listener counts) and `GET /status` (public room metadata).
+- Integration tests: `web/server/signaling.test.mjs` (`npm run test:signal`) covering create/join, status metadata, playback-mode broadcast, listener cap, host-disconnect close, listener cleanup, TTL expiry, heartbeat timeout, health.
+- Frontend:
+  - share links use `#/rooms/<roomId>` (legacy `#/?room=` still parses); landing on a link auto-joins with zero wallet friction;
+  - listener auto-rejoin after a socket reconnect ("Reconnecting" state); `room:closed` clears room state so dead rooms are not rejoined, with the reason ("Host left the room", "Room expired", "Host connection lost") surfaced;
+  - host emits `room:playback-mode` when selecting a track (preview vs full); listeners see "Host preview mode"; the rooms list shows a preview chip;
+  - unauthorized host preview now auto-advances to the next catalog track at the 42% cutoff while the unlock CTA stays visible (room is never blocked);
+  - host heartbeat while hosting an open room.
+
+### Decisions
+
+1. **Hash-based join links** (`#/rooms/<id>`) instead of path links: the app deploys to static hosts (GitHub Pages, IPFS/Bulletin gateways) where server-side rewrites do not exist. Same one-link UX, no infrastructure dependency.
+2. **No multi-host handoff** (per non-goals): a host disconnect closes the room after the heartbeat window; listeners get an explicit reason.
+3. **`hostAccessRequired` is derived** from the presence of a current track (every registered track sits behind an artist policy that the host satisfies); `playbackMode` is the host's honest declaration of what the room actually hears.
+
+### Boundaries (do not oversell)
+
+- The signaling server relays SDP/ICE and room metadata only; it cannot verify what audio the host actually streams. `playbackMode` is host-declared.
+- WebRTC listeners can hear and record the stream. The protection boundary remains: no content keys, no encrypted source files for listeners.
+- For reliable rooms across symmetric NAT, deploy a TURN relay (`VITE_TURN_URL`).

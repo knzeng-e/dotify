@@ -96,12 +96,53 @@ npm run dev
 | `CONTENT_KEY_MASTER_SECRET` | For audio upload | 32-byte hex master secret for AES-256-GCM key derivation |
 
 Set `VITE_DOTIFY_API_URL=http://localhost:8790` in `web/.env.local` to route
-cover and metadata uploads through the backend. Audio backend upload requires
-calling `uploadAudioToBackend` from `web/src/services/pinata.ts` (the existing
-artist console uses demo/local mode until that wiring lands).
+audio, cover, and metadata uploads through the backend. In this mode the
+backend encrypts audio server-side and listeners obtain per-track keys through
+wallet-signed key requests; the production content key never ships in the
+frontend bundle.
 
 **Demo/local mode** (no backend): set `VITE_PINATA_JWT` in `web/.env.local` with
 a restricted upload-only Pinata token. Do not use an unrestricted token in demos.
+
+### Running the signaling server (hosted rooms)
+
+The signaling server coordinates room discovery and WebRTC SDP/ICE exchange.
+It never carries audio: media flows host to listeners over WebRTC only.
+
+```bash
+cd web
+npm run signal          # local dev (started automatically by npm run dev:listen)
+npm run test:signal     # integration tests: create/join/cap/expiry/heartbeat
+```
+
+For a public deployment, run `node server/signaling.mjs` on any Node 22 host
+and point the frontend at it with `VITE_SIGNAL_URL`.
+
+**Environment variables**:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `SIGNAL_PORT` | `8788` | Listen port |
+| `SIGNAL_HOST` | `0.0.0.0` | Bind address |
+| `SIGNAL_ORIGINS` | `*` | Comma-separated allowed origins (set explicitly in production) |
+| `SIGNAL_ROOM_TTL_MS` | 6 h | Hard room lifetime before expiry |
+| `SIGNAL_HOST_TIMEOUT_MS` | 120 s | Close rooms whose host stops heartbeating |
+| `SIGNAL_MAX_LISTENERS` | 24 | Per-room listener cap |
+
+`GET /health` reports uptime plus room and listener counts; `GET /status`
+exposes public room metadata (current track, playback mode, host-based access
+flags, expiry).
+
+**Host-based room access.** Rooms never become a wallet checkpoint:
+
+- A host creates a room and shares a join link (`#/rooms/<roomId>`) or code.
+- Guests join with the link alone: no wallet, no signature, no payment.
+- Only the host must satisfy a protected track's access policy. An authorized
+  host streams the full track; an unauthorized host streams the 42% preview,
+  sees a discreet unlock CTA, and the playlist auto-advances.
+- Guests receive only the ephemeral WebRTC stream, never content keys or
+  encrypted source files. They can of course hear and record what is streamed;
+  Dotify does not claim otherwise.
 
 **To rebuild and redeploy the frontend to Bulletin Chain:**
 

@@ -53,7 +53,10 @@ export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRoom
                       <span className='live-dot' />
                       {room.hostName} hosts
                     </span>
-                    <strong>{room.track?.title ?? 'Audio session'}</strong>
+                    <strong>
+                      {room.track?.title ?? 'Audio session'}
+                      {room.playbackMode === 'preview' && <em className='room-preview-chip'> preview</em>}
+                    </strong>
                     <span className='home-room-presence'>
                       <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={24} />
                       <small>{room.listenerCount + 1} listening</small>

@@ -228,14 +228,27 @@ export function useCatalog(deps: UseCatalogDeps) {
     previewLimitRef.current = audio.duration * PREVIEW_RATIO;
   }
 
-  function enforcePreviewCutoff(catalogTracksSnapshot: CatalogTrack[], selectedTrackIdSnapshot: string) {
+  function enforcePreviewCutoff(
+    catalogTracksSnapshot: CatalogTrack[],
+    selectedTrackIdSnapshot: string,
+    options: { onPreviewEnded?: (endedTrack: CatalogTrack, nextTrack: CatalogTrack | null) => void } = {}
+  ) {
     const audio = localAudioRef.current;
     const limit = previewLimitRef.current;
     if (!audio || limit === null || audio.paused) return;
     if (audio.currentTime >= limit) {
       audio.pause();
-      const track = catalogTracksSnapshot.find(t => t.id === selectedTrackIdSnapshot) ?? null;
-      if (track) setAccessGate(buildAccessGateInfo(track));
+      const trackIndex = catalogTracksSnapshot.findIndex(t => t.id === selectedTrackIdSnapshot);
+      const track = trackIndex >= 0 ? catalogTracksSnapshot[trackIndex] : null;
+      if (!track) return;
+      setAccessGate(buildAccessGateInfo(track));
+      if (options.onPreviewEnded) {
+        // Room doctrine: an unauthorized host streams the 42% preview, sees a
+        // discreet unlock CTA, and the playlist auto-advances. The caller
+        // decides whether a room is live and what "next" means.
+        const nextTrack = catalogTracksSnapshot.length > 1 ? catalogTracksSnapshot[(trackIndex + 1) % catalogTracksSnapshot.length] : null;
+        options.onPreviewEnded(track, nextTrack);
+      }
     }
   }
 
@@ -384,6 +397,9 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     if (socketEmit) {
       socketEmit('room:track', createTrackInfoFromCatalog(track));
+      // Host-based room access: declare honestly whether the room hears the
+      // full track or the 42% preview fallback.
+      socketEmit('room:playback-mode', { playbackMode: previewOnlyRef.current ? 'preview' : 'full' });
     }
   }
 

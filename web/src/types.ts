@@ -93,16 +93,26 @@ export type RegistryCatalogTrack = CatalogTrack & {
   registeredAtBlock: number;
 };
 
+export type RoomPlaybackMode = 'full' | 'preview';
+
 export type OpenRoom = {
   roomId: string;
+  title?: string;
   hostName: string;
+  hostAddress?: string | null;
   createdAt: number;
+  expiresAt?: number;
   listenerCount: number;
   track: TrackInfo | null;
   playerState: PlayerState | null;
+  // Host-based room access doctrine: the HOST satisfies the track policy;
+  // listeners never need wallet access to listen inside a room.
+  playbackMode?: RoomPlaybackMode;
+  hostAccessRequired?: boolean;
+  listenersNeedWalletAccess?: false;
 };
 
-export type CreateRoomResponse = { ok: true; roomId: string; hostName: string } | { ok: false; error: string };
+export type CreateRoomResponse = { ok: true; roomId: string; hostName: string; expiresAt?: number } | { ok: false; error: string };
 
 export type JoinRoomResponse =
   | {
@@ -113,8 +123,10 @@ export type JoinRoomResponse =
       listenerCount: number;
       track: TrackInfo | null;
       playerState: PlayerState | null;
+      playbackMode?: RoomPlaybackMode;
+      expiresAt?: number;
     }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: string };
 
 export type CapturableMediaElement = HTMLMediaElement & {
   captureStream?: () => MediaStream;
