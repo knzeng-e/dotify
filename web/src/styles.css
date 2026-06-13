@@ -2009,6 +2009,95 @@ audio {
   grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
 }
 
+.release-entry {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-divider);
+  border-radius: var(--radius-small);
+  background: rgba(9, 33, 63, 0.44);
+}
+
+.release-entry[data-expanded='true'] {
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-1);
+}
+
+.release-row {
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.release-entry[data-expanded='true'] .release-row svg:last-child {
+  transform: rotate(180deg);
+}
+
+.release-details {
+  display: grid;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border-divider);
+  background: rgba(6, 21, 45, 0.46);
+  padding: 0.85rem;
+}
+
+.release-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.release-detail-grid .endpoint-row {
+  min-width: 0;
+  padding: 0.62rem 0.7rem;
+}
+
+.release-splits {
+  display: grid;
+  gap: 0.48rem;
+  border: 1px solid var(--border-divider);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.7rem;
+}
+
+.release-splits > strong {
+  color: var(--fg-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.release-splits > span {
+  color: var(--fg-tertiary);
+  font-size: 0.78rem;
+}
+
+.release-split-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--fg-secondary);
+  font-size: 0.78rem;
+}
+
+.release-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.release-actions .secondary-action {
+  width: auto;
+  min-height: 2.25rem;
+  margin-top: 0;
+  padding: 0 0.8rem;
+  text-decoration: none;
+}
+
 /* ── Royalties ── */
 
 .royalties-panel {
@@ -2330,8 +2419,22 @@ audio {
   text-decoration: none;
 }
 
+.icon-link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 1.9rem;
+  height: 1.9rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--dotify-cyan);
+  text-decoration: none;
+}
+
 .verify-link:hover,
-.modal-link:hover {
+.modal-link:hover,
+.icon-link:hover {
   text-decoration: underline;
 }
 
@@ -2728,6 +2831,10 @@ audio {
   }
 
   .royalties-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .release-detail-grid {
     grid-template-columns: 1fr;
   }
 
@@ -4171,6 +4278,22 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
 }
 .wallet-identity strong { display: block; color: #fff; font-size: 1.05rem; font-weight: 800; }
 .wallet-identity small { display: block; color: var(--fg-tertiary); font-size: 0.82rem; }
+.wallet-network {
+  display: grid;
+  gap: 0.1rem;
+  margin: -0.35rem 0 0.85rem;
+  border: 1px solid var(--border-divider);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.65rem 0.75rem;
+}
+.wallet-network[data-warning='true'] {
+  border-color: rgba(255, 90, 126, 0.42);
+  background: rgba(255, 90, 126, 0.08);
+}
+.wallet-network span { color: var(--fg-tertiary); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.wallet-network strong { color: var(--fg-primary); font-size: 0.88rem; font-weight: 800; }
+.wallet-network small { color: var(--fg-tertiary); font-size: 0.74rem; }
 .wallet-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4186,6 +4309,62 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
 }
 .wallet-stats strong { display: block; color: #fff; font-size: 1.4rem; font-weight: 800; }
 .wallet-stats span { display: block; margin-top: 0.1rem; color: var(--fg-tertiary); font-size: 0.74rem; font-weight: 700; }
+.wallet-activity {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.wallet-activity-section {
+  border: 1px solid var(--border-divider);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.75rem;
+}
+.wallet-activity-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.55rem;
+  color: var(--fg-primary);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.wallet-activity-list {
+  display: grid;
+  gap: 0.45rem;
+}
+.wallet-activity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+.wallet-activity-row span {
+  min-width: 0;
+}
+.wallet-activity-row strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--fg-primary);
+  font-size: 0.8rem;
+  font-weight: 760;
+}
+.wallet-activity-row small,
+.wallet-empty {
+  color: var(--fg-tertiary);
+  font-size: 0.74rem;
+}
+.wallet-activity-row code {
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--fg-secondary);
+  padding: 0.15rem 0.35rem;
+  font-size: 0.68rem;
+}
+.wallet-empty {
+  margin: 0;
+}
 .wallet-selfcustody {
   display: flex;
   gap: 0.7rem;
@@ -4310,6 +4489,21 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
   padding: 0.1rem 0.45rem;
   font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
   font-size: 0.78rem;
+}
+.studio-id-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 7px;
+  background: color-mix(in oklab, var(--color-cyan) 12%, transparent);
+  color: var(--color-cyan);
+  padding: 0.1rem 0.45rem;
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.78rem;
+  text-decoration: none;
+}
+.studio-id-link:hover {
+  text-decoration: underline;
 }
 
 .artist-overview-grid {

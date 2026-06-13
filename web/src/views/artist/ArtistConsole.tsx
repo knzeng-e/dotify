@@ -1,7 +1,7 @@
 import type { ArtistTab, CatalogTrack, RoyaltyPayment, TrackInfo } from '../../types';
 import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseStep } from '../../types';
 import type { ChangeEvent, CSSProperties } from 'react';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, ExternalLink } from 'lucide-react';
 import { shorten } from '../../utils/format';
 import { auraForName } from '../../utils/aura';
 import { OverviewTab } from './OverviewTab';
@@ -9,6 +9,12 @@ import { NewReleaseTab } from './NewReleaseTab';
 import { ReleasesTab } from './ReleasesTab';
 import { RoyaltiesTab } from './RoyaltiesTab';
 import { AdvancedTab } from './AdvancedTab';
+
+const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
+
+function getBlockscoutAddressUrl(address: `0x${string}`) {
+  return `${blockscoutBaseUrl}/address/${address}`;
+}
 
 const artistTabs: Array<{ id: ArtistTab; label: string; description: string }> = [
   { id: 'overview', label: 'Overview', description: 'Identity and next step' },
@@ -181,7 +187,16 @@ export function ArtistConsole(props: ArtistConsoleProps) {
           </h1>
           <div className='studio-id-sub'>
             <span>@{studioHandle}</span>
-            {artistRuntimeAddress && <code>{shorten(artistRuntimeAddress, 12)}</code>}
+            <a className='studio-id-link' href={getBlockscoutAddressUrl(activeEvmAddress)} target='_blank' rel='noreferrer'>
+              wallet {shorten(activeEvmAddress, 10)}
+              <ExternalLink size={12} />
+            </a>
+            {artistRuntimeAddress && (
+              <a className='studio-id-link' href={getBlockscoutAddressUrl(artistRuntimeAddress)} target='_blank' rel='noreferrer'>
+                runtime {shorten(artistRuntimeAddress, 10)}
+                <ExternalLink size={12} />
+              </a>
+            )}
             <span>{artistTracks.length} release{artistTracks.length === 1 ? '' : 's'}</span>
           </div>
         </div>
@@ -290,6 +305,7 @@ export function ArtistConsole(props: ArtistConsoleProps) {
         <AdvancedTab
           factoryAddress={factoryAddress}
           directoryAddress={directoryAddress}
+          activeEvmAddress={activeEvmAddress}
           artistRuntimeAddress={artistRuntimeAddress}
           fileHash={fileHash}
           audioCID={audioCID}

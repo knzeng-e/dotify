@@ -218,6 +218,15 @@ export const musicRoyaltiesAbi = [
       { name: 'listener', type: 'address', indexed: true },
       { name: 'amount', type: 'uint256', indexed: false }
     ]
+  },
+  {
+    type: 'event',
+    name: 'MusicRoyRefunded',
+    inputs: [
+      { name: 'contentHash', type: 'bytes32', indexed: true },
+      { name: 'listener', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false }
+    ]
   }
 ] as const;
 

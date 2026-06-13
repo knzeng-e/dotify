@@ -1,9 +1,30 @@
-import { KeyRound, LockKeyhole, Power, Wallet, X } from 'lucide-react';
+import { ExternalLink, KeyRound, LockKeyhole, Music2, Power, Users, Wallet, X } from 'lucide-react';
 import type { WalletState } from '../hooks/useWallet';
 
 function shortenAddress(address: string) {
   return address.length > 14 ? `${address.slice(0, 8)}...${address.slice(-6)}` : address;
 }
+
+const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
+
+function getBlockscoutAddressUrl(address: `0x${string}`) {
+  return `${blockscoutBaseUrl}/address/${address}`;
+}
+
+type WalletSupportedArtist = {
+  name: string;
+  address?: `0x${string}`;
+  trackCount: number;
+};
+
+type WalletPaidTrack = {
+  id: string;
+  title: string;
+  artist: string;
+  artistAddress?: `0x${string}`;
+  priceDot: string;
+  hash: `0x${string}`;
+};
 
 export function WalletStatusPill({ state, onClick, onDisconnect }: { state: WalletState; onClick: () => void; onDisconnect: () => void }) {
   if (state.status === 'connected') {
@@ -33,6 +54,9 @@ export function WalletModal({
   hasStoredPasskey,
   supportingCount = 0,
   unlockedCount = 0,
+  supportedArtists = [],
+  paidTracks = [],
+  expectedChainId = null,
   onPasskey,
   onExtension,
   onForgetPasskey,
@@ -44,6 +68,9 @@ export function WalletModal({
   hasStoredPasskey: boolean;
   supportingCount?: number;
   unlockedCount?: number;
+  supportedArtists?: WalletSupportedArtist[];
+  paidTracks?: WalletPaidTrack[];
+  expectedChainId?: number | null;
   onPasskey: () => void;
   onExtension: () => void;
   onForgetPasskey: () => void;
@@ -53,6 +80,7 @@ export function WalletModal({
   if (state.status === 'connected') {
     const { wallet } = state;
     const identityAddress = wallet.substrateAddress ?? wallet.evmAddress;
+    const walletChainMismatch = Boolean(expectedChainId && wallet.chainId && wallet.chainId !== expectedChainId);
     return (
       <div className='modal-backdrop' role='presentation' onClick={onClose}>
         <div className='modal-card wallet-modal' role='dialog' aria-modal='true' aria-labelledby='wallet-modal-title' onClick={e => e.stopPropagation()}>
@@ -73,8 +101,22 @@ export function WalletModal({
             <span className='wallet-identity-orb' aria-hidden='true' />
             <div>
               <strong>{wallet.label}</strong>
-              <small className='tnum'>{shortenAddress(identityAddress)}</small>
+              <small className='tnum'>
+                {wallet.evmAddress ? (
+                  <a className='verify-link' href={getBlockscoutAddressUrl(wallet.evmAddress)} target='_blank' rel='noreferrer'>
+                    {shortenAddress(identityAddress)}
+                  </a>
+                ) : (
+                  shortenAddress(identityAddress)
+                )}
+              </small>
             </div>
+          </div>
+
+          <div className='wallet-network' data-warning={walletChainMismatch}>
+            <span>Network</span>
+            <strong>{wallet.chainId ? `Chain ${wallet.chainId}` : wallet.method === 'passkey' ? 'App RPC signer' : 'Unknown'}</strong>
+            {expectedChainId && <small>Expected chain {expectedChainId}</small>}
           </div>
 
           <div className='wallet-stats'>
@@ -86,6 +128,58 @@ export function WalletModal({
               <strong className='tnum'>{unlockedCount}</strong>
               <span>track{unlockedCount === 1 ? '' : 's'} unlocked</span>
             </div>
+          </div>
+
+          <div className='wallet-activity'>
+            <section className='wallet-activity-section'>
+              <h3>
+                <Users size={15} />
+                Artists supported
+              </h3>
+              {supportedArtists.length > 0 ? (
+                <div className='wallet-activity-list'>
+                  {supportedArtists.slice(0, 5).map(artist => (
+                    <div className='wallet-activity-row' key={artist.address ?? artist.name}>
+                      <span>
+                        <strong>{artist.name}</strong>
+                        <small>{artist.trackCount} paid track{artist.trackCount === 1 ? '' : 's'}</small>
+                      </span>
+                      {artist.address && (
+                        <a className='icon-link' href={getBlockscoutAddressUrl(artist.address)} target='_blank' rel='noreferrer' aria-label={`Open ${artist.name} wallet on explorer`}>
+                          <ExternalLink size={14} />
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className='wallet-empty'>No paid artist support detected for this wallet yet.</p>
+              )}
+            </section>
+
+            <section className='wallet-activity-section'>
+              <h3>
+                <Music2 size={15} />
+                Paid access
+              </h3>
+              {paidTracks.length > 0 ? (
+                <div className='wallet-activity-list'>
+                  {paidTracks.slice(0, 5).map(track => (
+                    <div className='wallet-activity-row' key={track.id}>
+                      <span>
+                        <strong>{track.title}</strong>
+                        <small>
+                          {track.artist} / {track.priceDot} DOT
+                        </small>
+                      </span>
+                      <code>{shortenAddress(track.hash)}</code>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className='wallet-empty'>No Classic unlocks found in the indexed catalog.</p>
+              )}
+            </section>
           </div>
 
           <div className='wallet-selfcustody'>

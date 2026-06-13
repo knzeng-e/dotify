@@ -98,6 +98,7 @@ export default function App() {
   // ── Shared state (release form, identity) ────────────────────────────────────
   const [priceDot, setPriceDot] = useState('0.5');
   const [ethRpcUrl] = useState(getDefaultEthRpcUrl);
+  const [expectedChainId, setExpectedChainId] = useState<number | null>(null);
   const [title, setTitle] = useState('Untitled jam');
   const [royaltyBps, setRoyaltyBps] = useState(7000);
   const [artistName, setArtistName] = useState('');
@@ -148,6 +149,9 @@ export default function App() {
       throw new Error('Connect a wallet before signing this transaction.');
     }
     const chain = await resolveEvmChain(ethRpcUrl);
+    if (connectedWallet.chainId && connectedWallet.chainId !== chain.id) {
+      throw new Error(`Switch your wallet to chain ${chain.id}. Your wallet is currently on chain ${connectedWallet.chainId}.`);
+    }
     return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
   }
 
@@ -287,6 +291,18 @@ export default function App() {
   }, [walletState.status]);
 
   useEffect(() => {
+    let cancelled = false;
+    resolveEvmChain(ethRpcUrl)
+      .then(chain => {
+        if (!cancelled) setExpectedChainId(chain.id);
+      })
+      .catch(() => {
+        if (!cancelled) setExpectedChainId(null);
+      });
+    return () => { cancelled = true; };
+  }, [ethRpcUrl]);
+
+  useEffect(() => {
     void catalog.refreshCatalogFromRegistry();
   }, [directoryAddress, ethRpcUrl]);
 
@@ -312,13 +328,18 @@ export default function App() {
     async function refreshCatalogAccess() {
       if (catalog.catalogTracks.length === 0) {
         catalog.setCatalogAccessByTrackId({});
+        catalog.setCatalogPaidAccessByTrackId({});
         return;
       }
-      const accessEntries = await Promise.all(
-        catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackAccess(track, listenerEvmAddress)] as const)
+      const [accessEntries, paidEntries] = await Promise.all(
+        [
+          Promise.all(catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackAccess(track, listenerEvmAddress)] as const)),
+          Promise.all(catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackPaidAccess(track, listenerEvmAddress)] as const))
+        ]
       );
       if (!cancelled) {
         catalog.setCatalogAccessByTrackId(Object.fromEntries(accessEntries));
+        catalog.setCatalogPaidAccessByTrackId(Object.fromEntries(paidEntries));
       }
     }
     void refreshCatalogAccess();
@@ -551,21 +572,43 @@ export default function App() {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
-  const unlockedTrackIds = Object.entries(catalog.catalogAccessByTrackId)
+  const paidTrackIds = Object.entries(catalog.catalogPaidAccessByTrackId)
     .filter(([, granted]) => granted)
     .map(([id]) => id);
-  const unlockedTrackCount = unlockedTrackIds.length;
-  const supportedArtistCount = new Set(
-    unlockedTrackIds.map(id => catalog.catalogTracks.find(track => track.id === id)?.artist).filter(Boolean)
-  ).size;
+  const paidTracks = paidTrackIds
+    .map(id => catalog.catalogTracks.find(track => track.id === id))
+    .filter((track): track is CatalogTrack => Boolean(track));
+  const supportedArtists = Array.from(
+    paidTracks.reduce((artistsByKey, track) => {
+      const key = track.artistAddress?.toLowerCase() ?? track.artist.toLowerCase();
+      const existing = artistsByKey.get(key);
+      artistsByKey.set(key, {
+        name: track.artist,
+        address: track.artistAddress,
+        trackCount: (existing?.trackCount ?? 0) + 1
+      });
+      return artistsByKey;
+    }, new Map<string, { name: string; address?: `0x${string}`; trackCount: number }>())
+    .values()
+  );
 
   const walletModal = showWalletModal && (
     <WalletModal
       state={walletState}
       hasPrfSupport={hasPrfSupport}
       hasStoredPasskey={hasStoredPasskey}
-      supportingCount={supportedArtistCount}
-      unlockedCount={unlockedTrackCount}
+      supportingCount={supportedArtists.length}
+      unlockedCount={paidTracks.length}
+      supportedArtists={supportedArtists}
+      paidTracks={paidTracks.map(track => ({
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        artistAddress: track.artistAddress,
+        priceDot: track.priceDot,
+        hash: track.hash
+      }))}
+      expectedChainId={expectedChainId}
       onPasskey={() => { void connectPasskey(); }}
       onExtension={() => { void connectExtension(); }}
       onForgetPasskey={forgetPasskey}

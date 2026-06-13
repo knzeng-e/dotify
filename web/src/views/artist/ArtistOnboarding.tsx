@@ -1,7 +1,13 @@
-import { BadgeCheck, Disc3, FileAudio, LockKeyhole, RefreshCw, Sparkles, Wallet } from 'lucide-react';
+import { BadgeCheck, Disc3, ExternalLink, FileAudio, LockKeyhole, RefreshCw, Sparkles, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { shorten } from '../../utils/format';
 import type { CatalogTrack } from '../../types';
+
+const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
+
+function getBlockscoutAddressUrl(address: `0x${string}`) {
+  return `${blockscoutBaseUrl}/address/${address}`;
+}
 
 type ArtistOnboardingProps = {
   activeEvmAddress: `0x${string}`;
@@ -126,7 +132,10 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
                 <div className='account-info'>
                   <div className='account-address'>
                     <span className='label'>Active address:</span>
-                    <code>{shorten(activeEvmAddress, 14)}</code>
+                    <a className='verify-link' href={getBlockscoutAddressUrl(activeEvmAddress)} target='_blank' rel='noreferrer'>
+                      <code>{shorten(activeEvmAddress, 14)}</code>
+                      <ExternalLink size={12} />
+                    </a>
                   </div>
                   <span className='badge badge-success'>{connectedWallet.label}</span>
                 </div>
@@ -452,6 +461,13 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
           font-family: 'Monaco', 'Menlo', monospace;
           font-size: 0.875rem;
           color: var(--color-text-primary, #000);
+        }
+
+        .account-address .verify-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          width: fit-content;
         }
 
         .badge {

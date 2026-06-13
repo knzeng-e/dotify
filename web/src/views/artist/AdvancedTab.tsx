@@ -13,6 +13,7 @@ function getBlockscoutAddressUrl(address: `0x${string}`) {
 type AdvancedTabProps = {
   factoryAddress: `0x${string}` | undefined;
   directoryAddress: `0x${string}` | undefined;
+  activeEvmAddress: `0x${string}`;
   artistRuntimeAddress: `0x${string}` | null;
   fileHash: `0x${string}` | '';
   audioCID: string;
@@ -26,6 +27,7 @@ type AdvancedTabProps = {
 export function AdvancedTab({
   factoryAddress,
   directoryAddress,
+  activeEvmAddress,
   artistRuntimeAddress,
   fileHash,
   audioCID,
@@ -65,6 +67,14 @@ export function AdvancedTab({
               ) : (
                 'not deployed'
               )
+            }
+          />
+          <EndpointRow
+            label='Artist wallet'
+            value={
+              <a className='verify-link' href={getBlockscoutAddressUrl(activeEvmAddress)} target='_blank' rel='noreferrer'>
+                {shorten(activeEvmAddress, 12)}
+              </a>
             }
           />
           <EndpointRow
