@@ -40,6 +40,7 @@ function getSessionLink(roomId: string) {
 // Hosts must show liveness to the signaling server; rooms with silent hosts
 // are swept server-side to avoid zombie rooms.
 const HOST_HEARTBEAT_INTERVAL_MS = 25_000;
+const SIGNAL_ACK_TIMEOUT_MS = 8_000;
 
 function shouldMaterializeRemoteSource(source: string) {
   if (!source) return false;
@@ -156,6 +157,24 @@ export function useSession(deps: UseSessionDeps) {
     setLocalStreamReady(false);
   }
 
+  function clearRoomState(status: string, errorMessage: string | null, options: { closePeers?: boolean } = {}) {
+    if (options.closePeers !== false) {
+      closeAllPeers();
+    }
+    roomIdRef.current = '';
+    hostIdRef.current = '';
+    setRoomId('');
+    setHostName('');
+    setListeners([]);
+    listenersRef.current = [];
+    setListenerCount(0);
+    setRoomPlaybackMode('full');
+    setRemoteReady(false);
+    setSessionAction('idle');
+    setSessionStatus(status);
+    setError(errorMessage);
+  }
+
   function getSocket() {
     if (socketRef.current) return socketRef.current;
 
@@ -185,6 +204,10 @@ export function useSession(deps: UseSessionDeps) {
     });
     socket.on('disconnect', () => {
       setSocketStatus('offline');
+      if (modeRef.current === 'host' && roomIdRef.current) {
+        clearRoomState('Room closed', 'Signal disconnected. The hosted room was closed.');
+        return;
+      }
       if (roomIdRef.current) {
         setSessionStatus('Reconnecting');
       }
@@ -222,17 +245,9 @@ export function useSession(deps: UseSessionDeps) {
       }
     });
     socket.on('room:closed', (payload: { reason?: string }) => {
-      closeListenerPeer();
-      setRemoteReady(false);
-      setSessionAction('idle');
       // The room is gone (host left, expired, or timed out): forget it so the
       // reconnect logic does not try to rejoin a dead room.
-      roomIdRef.current = '';
-      hostIdRef.current = '';
-      setRoomId('');
-      setRoomPlaybackMode('full');
-      setSessionStatus(payload.reason ?? 'Room closed');
-      setError(payload.reason ?? 'Room closed');
+      clearRoomState(payload.reason ?? 'Room closed', payload.reason ?? 'Room closed');
     });
     socket.on('webrtc:offer', (payload: { from: string; offer: RTCSessionDescriptionInit }) => {
       void acceptOffer(payload.from, payload.offer);
@@ -257,6 +272,53 @@ export function useSession(deps: UseSessionDeps) {
       setSocketStatus('connecting');
       socket.connect();
     }
+    return socket;
+  }
+
+  function emitAckWhenConnected<Response>(
+    event: string,
+    payload: unknown,
+    onAck: (response: Response) => void,
+    onFailure: () => void
+  ) {
+    const socket = connectSocket();
+    let settled = false;
+    let timeoutId = 0;
+
+    function cleanup() {
+      socket.off('connect', send);
+      socket.off('connect_error', fail);
+      if (timeoutId) window.clearTimeout(timeoutId);
+    }
+
+    function fail() {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      onFailure();
+    }
+
+    function send() {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      socket.timeout(SIGNAL_ACK_TIMEOUT_MS).emit(event, payload, (error: Error | null, response: Response | undefined) => {
+        if (error || response === undefined) {
+          onFailure();
+          return;
+        }
+        onAck(response);
+      });
+    }
+
+    timeoutId = window.setTimeout(fail, SIGNAL_ACK_TIMEOUT_MS);
+    if (socket.connected) {
+      send();
+    } else {
+      socket.once('connect', send);
+      socket.once('connect_error', fail);
+    }
+
     return socket;
   }
 
@@ -494,8 +556,7 @@ export function useSession(deps: UseSessionDeps) {
     setSessionStatus('Opening room');
     closeListenerPeer();
 
-    const socket = connectSocket();
-    socket.emit(
+    emitAckWhenConnected<CreateRoomResponse>(
       'room:create',
       { displayName, track: currentTrackInfo, hostAddress: hostAddress ?? null, playbackMode },
       (response: CreateRoomResponse) => {
@@ -515,6 +576,9 @@ export function useSession(deps: UseSessionDeps) {
         setRoomPlaybackMode(playbackMode);
         setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
         requestOpenRooms();
+      },
+      () => {
+        clearRoomState('Error', 'Signal server did not confirm room creation.', { closePeers: false });
       }
     );
   }
@@ -533,8 +597,7 @@ export function useSession(deps: UseSessionDeps) {
     setSessionStatus('Joining room');
     closeHostPeers();
 
-    const socket = connectSocket();
-    socket.emit('room:join', { roomId: normalizedRoomId, displayName }, (response: JoinRoomResponse) => {
+    emitAckWhenConnected<JoinRoomResponse>('room:join', { roomId: normalizedRoomId, displayName }, (response: JoinRoomResponse) => {
       setSessionAction('idle');
       if (!response.ok) {
         setError(response.error);
@@ -553,6 +616,8 @@ export function useSession(deps: UseSessionDeps) {
       setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
       setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
       requestOpenRooms();
+    }, () => {
+      clearRoomState('Error', 'Signal server did not confirm room join.', { closePeers: false });
     });
   }
 
@@ -564,11 +629,7 @@ export function useSession(deps: UseSessionDeps) {
 
     socket.emit('room:join', { roomId: targetRoomId, displayName }, (response: JoinRoomResponse) => {
       if (!response.ok) {
-        roomIdRef.current = '';
-        hostIdRef.current = '';
-        setRoomId('');
-        setSessionStatus('Room closed');
-        setError(response.error);
+        clearRoomState('Room closed', response.error);
         return;
       }
 
@@ -590,18 +651,7 @@ export function useSession(deps: UseSessionDeps) {
 
   function leaveSession() {
     socketRef.current?.emit('room:leave');
-    closeAllPeers();
-    roomIdRef.current = '';
-    hostIdRef.current = '';
-    setRoomId('');
-    setHostName('');
-    setListeners([]);
-    listenersRef.current = [];
-    setListenerCount(0);
-    setRoomPlaybackMode('full');
-    setRemoteReady(false);
-    setSessionStatus('Ready');
-    setError(null);
+    clearRoomState('Ready', null);
     requestOpenRooms();
   }
 

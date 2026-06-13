@@ -21,6 +21,7 @@ import type {
   PersonhoodLevel,
   PlayerState,
   RegistryCatalogTrack,
+  RoomPlaybackMode,
   TrackInfo,
   TransactionFeedback
 } from '../types';
@@ -343,7 +344,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     return objectUrl;
   }
 
-  async function selectTrack(track: CatalogTrack, socketEmit?: (event: string, data: unknown) => void, setLocalStreamReady?: (ready: boolean) => void, closeHostPeers?: () => void) {
+  async function selectTrack(track: CatalogTrack, socketEmit?: (event: string, data: unknown) => void, setLocalStreamReady?: (ready: boolean) => void, closeHostPeers?: () => void): Promise<RoomPlaybackMode> {
     setSelectedTrackId(track.id);
     setTitle(track.title);
     setArtistName(track.artist);
@@ -364,20 +365,26 @@ export function useCatalog(deps: UseCatalogDeps) {
     keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
 
     let audioUrl: string | null = null;
+    let playbackMode: RoomPlaybackMode = 'full';
 
-    if (track.localUrl) {
+    if (track.source === 'artist' && track.id.includes(':')) {
       const hasAccess = await checkTrackAccess(track, listenerEvmAddress);
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
       const previewOnly = !hasAccess;
       previewOnlyRef.current = previewOnly;
-
-      audioUrl = track.encrypted
-        ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, { previewOnly }).catch(() => null)
-        : await resolvePlayableAudioSource(track.localUrl, track.audioRef, { previewOnly }).catch(() => null);
+      playbackMode = previewOnly ? 'preview' : 'full';
 
       if (previewOnly) {
         setAccessGate(buildAccessGateInfo(track));
-      } else if (!audioUrl && track.encrypted) {
+      }
+    }
+
+    if (track.localUrl) {
+      audioUrl = track.encrypted
+        ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, { previewOnly: playbackMode === 'preview' }).catch(() => null)
+        : await resolvePlayableAudioSource(track.localUrl, track.audioRef, { previewOnly: playbackMode === 'preview' }).catch(() => null);
+
+      if (playbackMode === 'full' && !audioUrl && track.encrypted) {
         // Access is granted but the key or decryption failed. Say so plainly
         // instead of leaving a silent dead player.
         setTransactionFeedback({
@@ -399,13 +406,15 @@ export function useCatalog(deps: UseCatalogDeps) {
       socketEmit('room:track', createTrackInfoFromCatalog(track));
       // Host-based room access: declare honestly whether the room hears the
       // full track or the 42% preview fallback.
-      socketEmit('room:playback-mode', { playbackMode: previewOnlyRef.current ? 'preview' : 'full' });
+      socketEmit('room:playback-mode', { playbackMode });
     }
+
+    return playbackMode;
   }
 
   async function openTrack(track: CatalogTrack, socketEmit?: (event: string, data: unknown) => void, setLocalStreamReady?: (ready: boolean) => void, closeHostPeers?: () => void) {
     navigateToView('player');
-    await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+    return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
   }
 
   async function payForTrackAccess(track: CatalogTrack) {

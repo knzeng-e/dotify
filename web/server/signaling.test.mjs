@@ -65,7 +65,10 @@ describe('signaling server', () => {
 
   it('exposes host-based access metadata on the status endpoint', async () => {
     const host = connectClient();
-    const created = await createRoom(host, { track: { title: 'Aurora', artist: 'Ada', accessMode: 'classic' } });
+    const created = await createRoom(host, {
+      hostAddress: '0xAbCd00000000000000000000000000000000Ef12',
+      track: { title: 'Aurora', artist: 'Ada', accessMode: 'classic' },
+    });
 
     const res = await fetch(`http://127.0.0.1:${port}/status`);
     const body = await res.json();
@@ -74,8 +77,26 @@ describe('signaling server', () => {
     assert.ok(room, 'room is listed');
     assert.equal(room.listenersNeedWalletAccess, false);
     assert.equal(room.hostAccessRequired, true);
+    assert.equal(room.hostAddress, '0xabcd00000000000000000000000000000000ef12');
     assert.equal(room.playbackMode, 'full');
     assert.ok(room.expiresAt > room.createdAt);
+  });
+
+  it('honors preview playback mode at room creation', async () => {
+    const host = connectClient();
+    const created = await createRoom(host, {
+      playbackMode: 'preview',
+      track: { title: 'Preview locked', artist: 'Ada', accessMode: 'classic' },
+    });
+
+    const listener = connectClient();
+    await once(listener, 'connect');
+    const joined = await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+    assert.equal(joined.playbackMode, 'preview');
+
+    const res = await fetch(`http://127.0.0.1:${port}/status`);
+    const body = await res.json();
+    assert.equal(body.rooms.find(r => r.roomId === created.roomId).playbackMode, 'preview');
   });
 
   it('omits access-control-allow-origin for disallowed status origins', async () => {

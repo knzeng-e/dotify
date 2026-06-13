@@ -513,11 +513,13 @@ export default function App() {
   function handleOpenArtistRoom(track: CatalogTrack) {
     setPublicArtistName(null);
     void (async () => {
-      await catalog.openTrack(track).catch(() => {
+      const playbackMode = await catalog.openTrack(track).catch((): RoomPlaybackMode => {
         // Room creation should still fail closed to preview metadata if track
         // preparation cannot prove full host access.
+        catalog.previewOnlyRef.current = true;
+        return 'preview';
       });
-      session.createSession(trackToInfo(track), getHostPlaybackModeForRoom(track));
+      session.createSession(trackToInfo(track), playbackMode);
     })();
   }
 

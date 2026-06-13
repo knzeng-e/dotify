@@ -407,7 +407,7 @@ function sanitizeText(value, fallback, maxLength) {
 
 function sanitizeAddress(value) {
   const text = String(value ?? '').trim();
-  return /^0x[0-9a-fA-F]{40}$/.test(text) ? text : null;
+  return /^0x[0-9a-fA-F]{40}$/.test(text) ? text.toLowerCase() : null;
 }
 
 function sanitizeTrack(track) {
