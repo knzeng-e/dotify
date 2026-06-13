@@ -75,6 +75,7 @@ contract MusicRoyaltiesPallet {
     if (refund > 0) {
       (bool refunded, ) = payable(msg.sender).call{ value: refund }('');
       require(refunded, 'MusicRoyalties: refund failed');
+      // TODO: emit a refunded event
     }
 
     emit MusicRoyAccessPaid(contentHash, msg.sender, price);
