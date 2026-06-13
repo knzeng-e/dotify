@@ -428,7 +428,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const { dotToPlanck } = await import('../utils/format');
 
     const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
-    const priceWei = dotToPlanck(track.priceDot) * 100_000_000n;
+    const priceWei = dotToPlanck(track.priceDot);
 
     setAccessGate(null);
     setTransactionFeedback({
