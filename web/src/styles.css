@@ -2023,11 +2023,18 @@ audio {
 }
 
 .release-row {
+  display: grid;
   width: 100%;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: 3rem minmax(0, 1fr) max-content max-content;
+  justify-content: stretch;
   border: 0;
   border-radius: 0;
   background: transparent;
+}
+
+.release-row > span,
+.release-row .track-thumb {
+  flex: initial;
 }
 
 .release-entry[data-expanded='true'] .release-row svg:last-child {
