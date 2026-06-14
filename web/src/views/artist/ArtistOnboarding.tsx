@@ -1,13 +1,8 @@
 import { BadgeCheck, Disc3, ExternalLink, FileAudio, LockKeyhole, RefreshCw, Sparkles, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import { getBlockscoutAddressUrl } from '../../utils/explorer';
 import { shorten } from '../../utils/format';
 import type { CatalogTrack } from '../../types';
-
-const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
-
-function getBlockscoutAddressUrl(address: `0x${string}`) {
-  return `${blockscoutBaseUrl}/address/${address}`;
-}
 
 type ArtistOnboardingProps = {
   activeEvmAddress: `0x${string}`;

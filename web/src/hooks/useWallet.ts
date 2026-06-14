@@ -154,6 +154,18 @@ function parseChainId(value: unknown) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function toEip155ChainId(chainId: number) {
+  return `0x${chainId.toString(16)}`;
+}
+
+function getProviderErrorCode(error: unknown) {
+  if (!error || typeof error !== 'object' || !('code' in error)) return undefined;
+  const code = (error as { code?: unknown }).code;
+  if (typeof code === 'number') return code;
+  if (typeof code === 'string') return Number.parseInt(code, 10);
+  return undefined;
+}
+
 async function walletFromExtensionAddress(ethereum: EIP1193, evmAddress: `0x${string}`): Promise<ConnectedWallet> {
   const chainId = await ethereum.request({ method: 'eth_chainId' }).then(parseChainId).catch(() => undefined);
   const label = `${evmAddress.slice(0, 6)}…${evmAddress.slice(-4)}`;
@@ -186,6 +198,51 @@ async function extensionConnect(options: { requestAccounts?: boolean } = {}): Pr
   }
 
   return walletFromExtensionAddress(ethereum, evmAddress);
+}
+
+async function switchExtensionChain(chain: Chain): Promise<ConnectedWallet> {
+  const ethereum = getEthereumProvider();
+
+  if (!ethereum) {
+    throw new Error('No wallet app found. Install MetaMask, Talisman, or SubWallet, then reload Dotify.');
+  }
+
+  const chainId = toEip155ChainId(chain.id);
+  const switchParams = { chainId };
+
+  try {
+    await ethereum.request({ method: 'wallet_switchEthereumChain', params: [switchParams] });
+  } catch (error) {
+    if (getProviderErrorCode(error) !== 4902) {
+      throw error;
+    }
+
+    const blockExplorerUrl = chain.blockExplorers?.default.url;
+    await ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [
+        {
+          ...switchParams,
+          chainName: chain.name,
+          nativeCurrency: chain.nativeCurrency,
+          rpcUrls: chain.rpcUrls.default.http,
+          ...(blockExplorerUrl ? { blockExplorerUrls: [blockExplorerUrl] } : {})
+        }
+      ]
+    });
+  }
+
+  const accounts = await ethereum.request({ method: 'eth_accounts' });
+  const evmAddress = Array.isArray(accounts) ? (accounts[0] as `0x${string}` | undefined) : undefined;
+  if (!evmAddress) {
+    throw new Error('Reconnect your wallet before switching networks.');
+  }
+
+  const wallet = await walletFromExtensionAddress(ethereum, evmAddress);
+  if (wallet.chainId !== chain.id) {
+    throw new Error(`Select chain ${chain.id} in your wallet to continue. Your wallet is currently on chain ${wallet.chainId ?? 'unknown'}.`);
+  }
+  return wallet;
 }
 
 async function withTimeout<T>(promise: Promise<T>, message: string): Promise<T> {
@@ -226,6 +283,13 @@ export function useWallet() {
     } catch (e) {
       setState({ status: 'error', message: e instanceof Error ? e.message : 'Wallet connection failed.' });
     }
+  }, []);
+
+  const switchExtensionNetwork = useCallback(async (chain: Chain) => {
+    const wallet = await withTimeout(switchExtensionChain(chain), 'Network switch timed out. Check your wallet, then try again.');
+    localStorage.setItem(LAST_METHOD_KEY, 'extension');
+    setState({ status: 'connected', wallet });
+    return wallet;
   }, []);
 
   const disconnect = useCallback(() => {
@@ -329,5 +393,5 @@ export function useWallet() {
     setState(current => (current.status === 'needs-reconnect' && current.via === 'passkey' ? { status: 'disconnected' } : current));
   }, []);
 
-  return { state, connectPasskey, connectExtension, disconnect, hasPrfSupport, hasStoredPasskey, forgetPasskey };
+  return { state, connectPasskey, connectExtension, switchExtensionNetwork, disconnect, hasPrfSupport, hasStoredPasskey, forgetPasskey };
 }

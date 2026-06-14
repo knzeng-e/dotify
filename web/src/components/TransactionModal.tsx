@@ -1,12 +1,7 @@
 import { CircleAlert, CircleCheckBig, Disc3, X } from 'lucide-react';
 import type { TransactionFeedback } from '../types';
+import { getBlockscoutTxUrl } from '../utils/explorer';
 import { shorten } from '../utils/format';
-
-const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
-
-function getBlockscoutTxUrl(txHash: `0x${string}`) {
-  return `${blockscoutBaseUrl}/tx/${txHash}`;
-}
 
 export function TransactionModal({ feedback, onClose }: { feedback: TransactionFeedback; onClose: () => void }) {
   const dismissible = feedback.tone !== 'pending';

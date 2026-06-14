@@ -1,30 +1,14 @@
-import { ExternalLink, KeyRound, LockKeyhole, Music2, Power, Users, Wallet, X } from 'lucide-react';
+import { ExternalLink, KeyRound, LockKeyhole, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
 import type { WalletState } from '../hooks/useWallet';
+import type { CatalogTrack } from '../types';
+import { getBlockscoutAddressUrl } from '../utils/explorer';
 
 function shortenAddress(address: string) {
   return address.length > 14 ? `${address.slice(0, 8)}...${address.slice(-6)}` : address;
 }
 
-const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
-
-function getBlockscoutAddressUrl(address: `0x${string}`) {
-  return `${blockscoutBaseUrl}/address/${address}`;
-}
-
-type WalletSupportedArtist = {
-  name: string;
-  address?: `0x${string}`;
-  trackCount: number;
-};
-
-type WalletPaidTrack = {
-  id: string;
-  title: string;
-  artist: string;
-  artistAddress?: `0x${string}`;
-  priceDot: string;
-  hash: `0x${string}`;
-};
+type WalletSupportedArtist = Pick<CatalogTrack, 'artist' | 'artistAddress'> & { trackCount: number };
+type WalletPaidTrack = Pick<CatalogTrack, 'id' | 'title' | 'artist' | 'artistAddress' | 'priceDot' | 'hash'>;
 
 export function WalletStatusPill({ state, onClick, onDisconnect }: { state: WalletState; onClick: () => void; onDisconnect: () => void }) {
   if (state.status === 'connected') {
@@ -57,8 +41,10 @@ export function WalletModal({
   supportedArtists = [],
   paidTracks = [],
   expectedChainId = null,
+  isSwitchingNetwork = false,
   onPasskey,
   onExtension,
+  onSwitchNetwork,
   onForgetPasskey,
   onDisconnect,
   onClose
@@ -71,8 +57,10 @@ export function WalletModal({
   supportedArtists?: WalletSupportedArtist[];
   paidTracks?: WalletPaidTrack[];
   expectedChainId?: number | null;
+  isSwitchingNetwork?: boolean;
   onPasskey: () => void;
   onExtension: () => void;
+  onSwitchNetwork?: () => void;
   onForgetPasskey: () => void;
   onDisconnect?: () => void;
   onClose: () => void;
@@ -80,7 +68,7 @@ export function WalletModal({
   if (state.status === 'connected') {
     const { wallet } = state;
     const identityAddress = wallet.substrateAddress ?? wallet.evmAddress;
-    const walletChainMismatch = Boolean(expectedChainId && wallet.chainId && wallet.chainId !== expectedChainId);
+    const walletChainMismatch = expectedChainId !== null && wallet.chainId !== undefined && wallet.chainId !== expectedChainId;
     return (
       <div className='modal-backdrop' role='presentation' onClick={onClose}>
         <div className='modal-card wallet-modal' role='dialog' aria-modal='true' aria-labelledby='wallet-modal-title' onClick={e => e.stopPropagation()}>
@@ -115,8 +103,14 @@ export function WalletModal({
 
           <div className='wallet-network' data-warning={walletChainMismatch}>
             <span>Network</span>
-            <strong>{wallet.chainId ? `Chain ${wallet.chainId}` : wallet.method === 'passkey' ? 'App RPC signer' : 'Unknown'}</strong>
-            {expectedChainId && <small>Expected chain {expectedChainId}</small>}
+            <strong>{wallet.chainId !== undefined ? `Chain ${wallet.chainId}` : wallet.method === 'passkey' ? 'App RPC signer' : 'Unknown'}</strong>
+            {expectedChainId !== null && <small>Expected chain {expectedChainId}</small>}
+            {walletChainMismatch && wallet.method === 'extension' && onSwitchNetwork && (
+              <button className='wallet-network-action' type='button' onClick={onSwitchNetwork} disabled={isSwitchingNetwork}>
+                <RefreshCw size={14} className={isSwitchingNetwork ? 'spin' : undefined} />
+                {isSwitchingNetwork ? 'Switching...' : 'Switch network'}
+              </button>
+            )}
           </div>
 
           <div className='wallet-stats'>
@@ -139,13 +133,13 @@ export function WalletModal({
               {supportedArtists.length > 0 ? (
                 <div className='wallet-activity-list'>
                   {supportedArtists.slice(0, 5).map(artist => (
-                    <div className='wallet-activity-row' key={artist.address ?? artist.name}>
+                    <div className='wallet-activity-row' key={artist.artistAddress ?? artist.artist}>
                       <span>
-                        <strong>{artist.name}</strong>
+                        <strong>{artist.artist}</strong>
                         <small>{artist.trackCount} paid track{artist.trackCount === 1 ? '' : 's'}</small>
                       </span>
-                      {artist.address && (
-                        <a className='icon-link' href={getBlockscoutAddressUrl(artist.address)} target='_blank' rel='noreferrer' aria-label={`Open ${artist.name} wallet on explorer`}>
+                      {artist.artistAddress && (
+                        <a className='icon-link' href={getBlockscoutAddressUrl(artist.artistAddress)} target='_blank' rel='noreferrer' aria-label={`Open ${artist.artist} wallet on explorer`}>
                           <ExternalLink size={14} />
                         </a>
                       )}

@@ -2,14 +2,9 @@ import { useState } from 'react';
 import { ChevronDown, ExternalLink, Library, Play } from 'lucide-react';
 import { EndpointRow } from '../../components/ui/EndpointRow';
 import { PanelTitle } from '../../components/ui/PanelTitle';
+import { getBlockscoutAddressUrl } from '../../utils/explorer';
 import { accessModeLabel, shorten } from '../../utils/format';
 import type { CatalogTrack } from '../../types';
-
-const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
-
-function getBlockscoutAddressUrl(address: `0x${string}`) {
-  return `${blockscoutBaseUrl}/address/${address}`;
-}
 
 function getRuntimeAddress(track: CatalogTrack) {
   return track.source === 'artist' && track.id.includes(':') ? (track.id.split(':')[0] as `0x${string}`) : null;

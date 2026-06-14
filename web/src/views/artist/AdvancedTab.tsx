@@ -1,14 +1,9 @@
 import { BadgeCheck, LockKeyhole } from 'lucide-react';
 import { PanelTitle } from '../../components/ui/PanelTitle';
 import { EndpointRow } from '../../components/ui/EndpointRow';
+import { getBlockscoutAddressUrl } from '../../utils/explorer';
 import { shorten } from '../../utils/format';
 import type { TrackInfo } from '../../types';
-
-const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
-
-function getBlockscoutAddressUrl(address: `0x${string}`) {
-  return `${blockscoutBaseUrl}/address/${address}`;
-}
 
 type AdvancedTabProps = {
   factoryAddress: `0x${string}` | undefined;

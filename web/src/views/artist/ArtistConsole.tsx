@@ -2,6 +2,7 @@ import type { ArtistTab, CatalogTrack, RoyaltyPayment, TrackInfo } from '../../t
 import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseStep } from '../../types';
 import type { ChangeEvent, CSSProperties } from 'react';
 import { BadgeCheck, ExternalLink } from 'lucide-react';
+import { getBlockscoutAddressUrl } from '../../utils/explorer';
 import { shorten } from '../../utils/format';
 import { auraForName } from '../../utils/aura';
 import { OverviewTab } from './OverviewTab';
@@ -9,12 +10,6 @@ import { NewReleaseTab } from './NewReleaseTab';
 import { ReleasesTab } from './ReleasesTab';
 import { RoyaltiesTab } from './RoyaltiesTab';
 import { AdvancedTab } from './AdvancedTab';
-
-const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
-
-function getBlockscoutAddressUrl(address: `0x${string}`) {
-  return `${blockscoutBaseUrl}/address/${address}`;
-}
 
 const artistTabs: Array<{ id: ArtistTab; label: string; description: string }> = [
   { id: 'overview', label: 'Overview', description: 'Identity and next step' },

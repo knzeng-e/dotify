@@ -4301,6 +4301,24 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
 .wallet-network span { color: var(--fg-tertiary); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
 .wallet-network strong { color: var(--fg-primary); font-size: 0.88rem; font-weight: 800; }
 .wallet-network small { color: var(--fg-tertiary); font-size: 0.74rem; }
+.wallet-network-action {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+  border: 1px solid rgba(255, 90, 126, 0.38);
+  border-radius: var(--button-radius);
+  background: rgba(255, 90, 126, 0.12);
+  color: #fff;
+  padding: 0.45rem 0.62rem;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+.wallet-network-action:disabled {
+  cursor: progress;
+  opacity: 0.68;
+}
 .wallet-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;

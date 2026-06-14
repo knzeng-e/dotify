@@ -108,12 +108,13 @@ export default function App() {
   const [uploadToBulletinEnabled, setUploadToBulletinEnabled] = useState(false);
   const [personhoodLevel, setPersonhoodLevel] = useState<PersonhoodLevel>('DIM1');
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
   const [description, setDescription] = useState('Describe the story, rights context, and intended audience for this track.');
   const [transactionFeedback, setTransactionFeedback] = useState<TransactionFeedback | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
 
   // ── Wallet ───────────────────────────────────────────────────────────────────
-  const { state: walletState, connectPasskey, connectExtension, disconnect: disconnectWallet, hasPrfSupport, hasStoredPasskey, forgetPasskey } = useWallet();
+  const { state: walletState, connectPasskey, connectExtension, switchExtensionNetwork, disconnect: disconnectWallet, hasPrfSupport, hasStoredPasskey, forgetPasskey } = useWallet();
   const connectedWallet = walletState.status === 'connected' ? walletState.wallet : null;
 
   const currentBulletinAccount = devAccounts[bulletinAccountIndex];
@@ -149,7 +150,7 @@ export default function App() {
       throw new Error('Connect a wallet before signing this transaction.');
     }
     const chain = await resolveEvmChain(ethRpcUrl);
-    if (connectedWallet.chainId && connectedWallet.chainId !== chain.id) {
+    if (connectedWallet.chainId !== undefined && connectedWallet.chainId !== chain.id) {
       throw new Error(`Switch your wallet to chain ${chain.id}. Your wallet is currently on chain ${connectedWallet.chainId}.`);
     }
     return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
@@ -544,6 +545,42 @@ export default function App() {
     })();
   }
 
+  async function handleSwitchNetwork() {
+    if (!connectedWallet || connectedWallet.method !== 'extension') {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Wallet app required',
+        message: 'Only browser wallet connections can switch networks from Dotify.'
+      });
+      return;
+    }
+
+    setIsSwitchingNetwork(true);
+    try {
+      const chain = await resolveEvmChain(ethRpcUrl);
+      setExpectedChainId(chain.id);
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Switch network',
+        message: `Confirm the network switch to chain ${chain.id} in your wallet.`
+      });
+      await switchExtensionNetwork(chain);
+      setTransactionFeedback({
+        tone: 'success',
+        title: 'Network ready',
+        message: `Your wallet is now connected to chain ${chain.id}.`
+      });
+    } catch (error) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Network switch failed',
+        message: error instanceof Error ? error.message : 'Open your wallet and switch to the expected network, then try again.'
+      });
+    } finally {
+      setIsSwitchingNetwork(false);
+    }
+  }
+
   function handleJoinRoomFromProfile(roomId: string) {
     setPublicArtistName(null);
     session.joinRoom(roomId);
@@ -583,12 +620,12 @@ export default function App() {
       const key = track.artistAddress?.toLowerCase() ?? track.artist.toLowerCase();
       const existing = artistsByKey.get(key);
       artistsByKey.set(key, {
-        name: track.artist,
-        address: track.artistAddress,
+        artist: track.artist,
+        artistAddress: track.artistAddress,
         trackCount: (existing?.trackCount ?? 0) + 1
       });
       return artistsByKey;
-    }, new Map<string, { name: string; address?: `0x${string}`; trackCount: number }>())
+    }, new Map<string, { artist: string; artistAddress?: `0x${string}`; trackCount: number }>())
     .values()
   );
 
@@ -609,8 +646,10 @@ export default function App() {
         hash: track.hash
       }))}
       expectedChainId={expectedChainId}
+      isSwitchingNetwork={isSwitchingNetwork}
       onPasskey={() => { void connectPasskey(); }}
       onExtension={() => { void connectExtension(); }}
+      onSwitchNetwork={() => { void handleSwitchNetwork(); }}
       onForgetPasskey={forgetPasskey}
       onDisconnect={disconnectWallet}
       onClose={() => setShowWalletModal(false)}
