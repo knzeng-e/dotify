@@ -49,6 +49,7 @@ export type ConnectedWallet = {
 
 export type WalletState =
   | { status: 'disconnected' }
+  | { status: 'needs-reconnect'; via: 'passkey' }
   | { status: 'connecting'; via: WalletMethod }
   | { status: 'connected'; wallet: ConnectedWallet }
   | { status: 'error'; message: string };
@@ -238,20 +239,24 @@ export function useWallet() {
     if (lastMethod !== 'extension' && lastMethod !== 'passkey') return;
     const restoreMethod = lastMethod;
 
+    if (restoreMethod === 'passkey') {
+      if (localStorage.getItem(CRED_KEY)) {
+        setState({ status: 'needs-reconnect', via: 'passkey' });
+      } else {
+        localStorage.removeItem(LAST_METHOD_KEY);
+      }
+      return;
+    }
+
     async function restoreWallet() {
       setState({ status: 'connecting', via: restoreMethod });
       try {
-        const wallet =
-          restoreMethod === 'extension'
-            ? await withTimeout(extensionConnect({ requestAccounts: false }), 'Wallet restore timed out.')
-            : await withTimeout(passkeyConnect(), 'Passkey restore timed out.');
+        const wallet = await withTimeout(extensionConnect({ requestAccounts: false }), 'Wallet restore timed out.');
         if (!cancelled) {
           setState({ status: 'connected', wallet });
         }
       } catch {
-        if (restoreMethod === 'extension') {
-          localStorage.removeItem(LAST_METHOD_KEY);
-        }
+        localStorage.removeItem(LAST_METHOD_KEY);
         if (!cancelled) {
           setState({ status: 'disconnected' });
         }
@@ -321,6 +326,7 @@ export function useWallet() {
     if (localStorage.getItem(LAST_METHOD_KEY) === 'passkey') {
       localStorage.removeItem(LAST_METHOD_KEY);
     }
+    setState(current => (current.status === 'needs-reconnect' && current.via === 'passkey' ? { status: 'disconnected' } : current));
   }, []);
 
   return { state, connectPasskey, connectExtension, disconnect, hasPrfSupport, hasStoredPasskey, forgetPasskey };

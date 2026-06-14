@@ -43,7 +43,7 @@ export function WalletStatusPill({ state, onClick, onDisconnect }: { state: Wall
   return (
     <button type='button' className='status-pill wallet-pill' data-tone='muted' onClick={onClick}>
       <Power size={14} />
-      <span>{state.status === 'connecting' ? 'Connecting…' : 'Connect'}</span>
+      <span>{state.status === 'connecting' ? 'Connecting…' : state.status === 'needs-reconnect' ? 'Reconnect' : 'Connect'}</span>
     </button>
   );
 }
@@ -242,6 +242,9 @@ export function WalletModal({
         {state.status === 'connecting' && (
           <p className='info-box'>{state.via === 'passkey' ? 'Check your browser prompt to continue.' : 'Check your wallet to approve the connection.'}</p>
         )}
+        {state.status === 'needs-reconnect' && state.via === 'passkey' && (
+          <p className='info-box'>Your saved passkey is ready. Use passkey to reconnect when you are ready.</p>
+        )}
 
         <div className='wallet-options'>
           {hasPrfSupport && (
@@ -250,7 +253,7 @@ export function WalletModal({
                 <KeyRound size={18} />
               </span>
               <span className='wallet-option-copy'>
-                <strong>{hasStoredPasskey ? 'Use passkey' : 'Create passkey'}</strong>
+                <strong>{state.status === 'needs-reconnect' && state.via === 'passkey' ? 'Reconnect passkey' : hasStoredPasskey ? 'Use passkey' : 'Create passkey'}</strong>
                 <small>Use this device without a seed phrase prompt.</small>
               </span>
             </button>
