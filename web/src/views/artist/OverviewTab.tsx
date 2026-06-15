@@ -22,7 +22,7 @@ type OverviewTabProps = {
   onRefreshArtistRuntime: () => void;
   onSetArtistTab: (tab: 'overview' | 'new' | 'releases' | 'royalties' | 'advanced') => void;
   onShowWalletModal: () => void;
-  onOpenTrack: (track: CatalogTrack) => void;
+  onOpenRelease: (track: CatalogTrack) => void;
 };
 
 export function OverviewTab({
@@ -41,7 +41,8 @@ export function OverviewTab({
   onRegisterArtist,
   onRefreshArtistRuntime,
   onSetArtistTab,
-  onShowWalletModal
+  onShowWalletModal,
+  onOpenRelease
 }: OverviewTabProps) {
   const earnedDot = formatWeiAsDot(totalRoyaltyWei);
 
@@ -75,7 +76,7 @@ export function OverviewTab({
           </div>
           {artistTracks.length > 0 ? (
             artistTracks.map(track => (
-              <button className='studio-release-row' type='button' key={track.id} onClick={() => onSetArtistTab('releases')}>
+              <button className='studio-release-row' type='button' key={track.id} onClick={() => onOpenRelease(track)}>
                 <img src={track.imageRef} alt='' crossOrigin='anonymous' />
                 <span className='studio-release-meta'>
                   <strong>{track.title}</strong>

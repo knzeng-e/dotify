@@ -1,6 +1,6 @@
 import type { ArtistTab, CatalogTrack, RoyaltyPayment, TrackInfo } from '../../types';
 import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseStep } from '../../types';
-import type { ChangeEvent, CSSProperties } from 'react';
+import { useEffect, useState, type ChangeEvent, type CSSProperties } from 'react';
 import { BadgeCheck, ExternalLink } from 'lucide-react';
 import { getBlockscoutAddressUrl } from '../../utils/explorer';
 import { shorten } from '../../utils/format';
@@ -166,6 +166,23 @@ export function ArtistConsole(props: ArtistConsoleProps) {
 
   const studioAura = auraForName(artistName);
   const studioHandle = artistName.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || 'artist';
+  const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(artistTracks[0]?.id ?? null);
+
+  useEffect(() => {
+    if (artistTracks.length === 0) {
+      setSelectedReleaseId(null);
+      return;
+    }
+
+    setSelectedReleaseId(current => (
+      current && artistTracks.some(track => track.id === current) ? current : artistTracks[0].id
+    ));
+  }, [artistTracks]);
+
+  function openReleaseDetails(track: CatalogTrack) {
+    setSelectedReleaseId(track.id);
+    onSetArtistTab('releases');
+  }
 
   return (
     <section className='artist-console'>
@@ -233,7 +250,7 @@ export function ArtistConsole(props: ArtistConsoleProps) {
           onRefreshArtistRuntime={onRefreshArtistRuntime}
           onSetArtistTab={onSetArtistTab}
           onShowWalletModal={onShowWalletModal}
-          onOpenTrack={onOpenTrack}
+          onOpenRelease={openReleaseDetails}
         />
       )}
 
@@ -278,7 +295,12 @@ export function ArtistConsole(props: ArtistConsoleProps) {
       )}
 
       {artistTab === 'releases' && (
-        <ReleasesTab artistTracks={artistTracks} onOpenTrack={onOpenTrack} />
+        <ReleasesTab
+          artistTracks={artistTracks}
+          selectedReleaseId={selectedReleaseId}
+          onSelectRelease={setSelectedReleaseId}
+          onOpenTrack={onOpenTrack}
+        />
       )}
 
       {artistTab === 'royalties' && (

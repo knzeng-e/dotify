@@ -493,6 +493,21 @@ export default function App() {
 
   function handleOpenTrack(track: CatalogTrack) {
     setPublicArtistName(null);
+    if (isArtistPortal) {
+      const nextState = { ...getHistoryStateObject(), dotifyView: 'player' };
+      setIsArtistPortal(false);
+      setActiveView('player');
+      window.history.pushState(nextState, '', '/');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      void catalog.selectTrack(
+        track,
+        session.socketEmit,
+        session.setLocalStreamReady,
+        session.closeHostPeers
+      );
+      return;
+    }
+
     void catalog.openTrack(
       track,
       session.socketEmit,
