@@ -19,6 +19,7 @@
 
 import { createPublicClient, createWalletClient, defineChain, http, type Address, type Chain } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
+import { blockscoutBaseUrl } from '../utils/explorer';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ArtistDirectory ABI
@@ -218,6 +219,15 @@ export const musicRoyaltiesAbi = [
       { name: 'listener', type: 'address', indexed: true },
       { name: 'amount', type: 'uint256', indexed: false }
     ]
+  },
+  {
+    type: 'event',
+    name: 'MusicRoyRefunded',
+    inputs: [
+      { name: 'contentHash', type: 'bytes32', indexed: true },
+      { name: 'listener', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false }
+    ]
   }
 ] as const;
 
@@ -392,11 +402,13 @@ export async function resolveEvmChain(ethRpcUrl: string): Promise<Chain> {
 async function resolveChain(ethRpcUrl: string): Promise<Chain> {
   if (!chainCache) {
     const chainId = await getPublicClient(ethRpcUrl).getChainId();
+    const isLocalChain = ethRpcUrl.includes('localhost') || ethRpcUrl.includes('127.0.0.1');
     chainCache = defineChain({
       id: chainId,
-      name: ethRpcUrl.includes('localhost') ? 'Local Polkadot Devnet' : 'Polkadot Hub TestNet',
+      name: isLocalChain ? 'Local Polkadot Devnet' : 'Polkadot Hub TestNet',
       nativeCurrency: { name: 'Unit', symbol: 'UNIT', decimals: 18 },
-      rpcUrls: { default: { http: [ethRpcUrl] } }
+      rpcUrls: { default: { http: [ethRpcUrl] } },
+      ...(isLocalChain ? {} : { blockExplorers: { default: { name: 'Blockscout', url: blockscoutBaseUrl } } })
     });
   }
   return chainCache;

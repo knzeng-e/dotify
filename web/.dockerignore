@@ -1,0 +1,8 @@
+node_modules
+dist
+dist-bulletin
+.env
+.env.*
+.playwright-cli
+npm-debug.log*
+

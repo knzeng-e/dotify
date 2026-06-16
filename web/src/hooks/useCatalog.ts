@@ -5,7 +5,8 @@ import {
   getPublicClient,
   artistDirectoryAbi,
   musicRegistryAbi,
-  musicAccessAbi
+  musicAccessAbi,
+  musicRoyaltiesAbi
 } from '../config/contracts';
 import { encodeAudioBufferPreviewAsWav } from '../utils/audio';
 import { decryptAudio, hexToBytes } from '../utils/crypto';
@@ -22,6 +23,7 @@ import type {
   PlayerState,
   RegistryCatalogTrack,
   RoomPlaybackMode,
+  RoyaltySplit,
   TrackInfo,
   TransactionFeedback
 } from '../types';
@@ -139,6 +141,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const [catalogStatus, setCatalogStatus] = useState('Loading registry catalog');
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
+  const [catalogPaidAccessByTrackId, setCatalogPaidAccessByTrackId] = useState<Record<string, boolean>>({});
   const [audioSource, setAudioSource] = useState<string | null>(null);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
@@ -178,6 +181,22 @@ export function useCatalog(deps: UseCatalogDeps) {
         address: runtimeAddress,
         abi: musicAccessAbi,
         functionName: 'musicAccCanAccess',
+        args: [track.hash, listenerAddress]
+      })) as boolean;
+    } catch {
+      return false;
+    }
+  }
+
+  async function checkTrackPaidAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
+    if (track.source !== 'artist' || !track.id.includes(':') || track.accessMode !== 'classic') return false;
+    if (!listenerAddress) return false;
+    const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
+    try {
+      return (await getPublicClient(ethRpcUrl).readContract({
+        address: runtimeAddress,
+        abi: musicAccessAbi,
+        functionName: 'musicAccHasPaid',
         args: [track.hash, listenerAddress]
       })) as boolean;
     } catch {
@@ -452,6 +471,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       previewOnlyRef.current = false;
       previewLimitRef.current = null;
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+      setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback({ tone: 'success', title: 'Access unlocked', message: `Full playback of "${track.title}" is now available.`, txHash });
       await selectTrack(track, undefined, undefined, undefined);
     } catch (payError) {
@@ -518,6 +538,31 @@ export function useCatalog(deps: UseCatalogDeps) {
         const imageRef = resolveVisualAssetRef(track.imageRef, track.title);
         const encrypted = isEncryptedAudioRef(track.audioRef);
         const localUrl = resolveAudioAssetRef(track.audioRef);
+        const splitCount = (await client.readContract({
+          address: runtimeAddress,
+          abi: musicRoyaltiesAbi,
+          functionName: 'musicRoySplitCount',
+          args: [hash]
+        }).catch(() => 0n)) as bigint;
+        const royaltySplits = await Promise.all(
+          Array.from({ length: Number(splitCount) }, async (_, splitIndex): Promise<RoyaltySplit | null> => {
+            try {
+              const [recipient, bps] = (await client.readContract({
+                address: runtimeAddress,
+                abi: musicRoyaltiesAbi,
+                functionName: 'musicRoySplitAt',
+                args: [hash, BigInt(splitIndex)]
+              })) as [`0x${string}`, number];
+              return {
+                label: splitIndex === 0 ? 'Primary recipient' : `Split ${splitIndex + 1}`,
+                recipient,
+                bps: Number(bps)
+              };
+            } catch {
+              return null;
+            }
+          })
+        );
 
         return {
           id: `${runtimeAddress}:${hash}`,
@@ -537,7 +582,7 @@ export function useCatalog(deps: UseCatalogDeps) {
           durationLabel: 'ready',
           accessMode: (track.accessMode === 1 ? 'classic' : 'human-free') as AccessMode,
           source: 'artist' as const,
-          royaltySplits: [],
+          royaltySplits: royaltySplits.filter((split): split is RoyaltySplit => Boolean(split)),
           personhoodLevel: track.requiredPersonhood === 2 ? 'DIM2' : 'DIM1',
           zone: 'Registry',
           encrypted,
@@ -640,6 +685,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     setSelectedTrackId,
     catalogAccessByTrackId,
     setCatalogAccessByTrackId,
+    catalogPaidAccessByTrackId,
+    setCatalogPaidAccessByTrackId,
     audioSource,
     setAudioSource,
     trackInfo,
@@ -668,6 +715,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     selectTrack,
     openTrack,
     checkTrackAccess,
+    checkTrackPaidAccess,
     buildAccessGateInfo,
     setupPreviewLimit,
     enforcePreviewCutoff,

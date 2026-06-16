@@ -98,6 +98,7 @@ export default function App() {
   // ── Shared state (release form, identity) ────────────────────────────────────
   const [priceDot, setPriceDot] = useState('0.5');
   const [ethRpcUrl] = useState(getDefaultEthRpcUrl);
+  const [expectedChainId, setExpectedChainId] = useState<number | null>(null);
   const [title, setTitle] = useState('Untitled jam');
   const [royaltyBps, setRoyaltyBps] = useState(7000);
   const [artistName, setArtistName] = useState('');
@@ -107,12 +108,13 @@ export default function App() {
   const [uploadToBulletinEnabled, setUploadToBulletinEnabled] = useState(false);
   const [personhoodLevel, setPersonhoodLevel] = useState<PersonhoodLevel>('DIM1');
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
   const [description, setDescription] = useState('Describe the story, rights context, and intended audience for this track.');
   const [transactionFeedback, setTransactionFeedback] = useState<TransactionFeedback | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
 
   // ── Wallet ───────────────────────────────────────────────────────────────────
-  const { state: walletState, connectPasskey, connectExtension, disconnect: disconnectWallet, hasPrfSupport, hasStoredPasskey, forgetPasskey } = useWallet();
+  const { state: walletState, connectPasskey, connectExtension, switchExtensionNetwork, disconnect: disconnectWallet, hasPrfSupport, hasStoredPasskey, forgetPasskey } = useWallet();
   const connectedWallet = walletState.status === 'connected' ? walletState.wallet : null;
 
   const currentBulletinAccount = devAccounts[bulletinAccountIndex];
@@ -148,6 +150,9 @@ export default function App() {
       throw new Error('Connect a wallet before signing this transaction.');
     }
     const chain = await resolveEvmChain(ethRpcUrl);
+    if (connectedWallet.chainId !== undefined && connectedWallet.chainId !== chain.id) {
+      throw new Error(`Switch your wallet to chain ${chain.id}. Your wallet is currently on chain ${connectedWallet.chainId}.`);
+    }
     return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
   }
 
@@ -287,6 +292,18 @@ export default function App() {
   }, [walletState.status]);
 
   useEffect(() => {
+    let cancelled = false;
+    resolveEvmChain(ethRpcUrl)
+      .then(chain => {
+        if (!cancelled) setExpectedChainId(chain.id);
+      })
+      .catch(() => {
+        if (!cancelled) setExpectedChainId(null);
+      });
+    return () => { cancelled = true; };
+  }, [ethRpcUrl]);
+
+  useEffect(() => {
     void catalog.refreshCatalogFromRegistry();
   }, [directoryAddress, ethRpcUrl]);
 
@@ -312,13 +329,18 @@ export default function App() {
     async function refreshCatalogAccess() {
       if (catalog.catalogTracks.length === 0) {
         catalog.setCatalogAccessByTrackId({});
+        catalog.setCatalogPaidAccessByTrackId({});
         return;
       }
-      const accessEntries = await Promise.all(
-        catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackAccess(track, listenerEvmAddress)] as const)
+      const [accessEntries, paidEntries] = await Promise.all(
+        [
+          Promise.all(catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackAccess(track, listenerEvmAddress)] as const)),
+          Promise.all(catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackPaidAccess(track, listenerEvmAddress)] as const))
+        ]
       );
       if (!cancelled) {
         catalog.setCatalogAccessByTrackId(Object.fromEntries(accessEntries));
+        catalog.setCatalogPaidAccessByTrackId(Object.fromEntries(paidEntries));
       }
     }
     void refreshCatalogAccess();
@@ -471,6 +493,21 @@ export default function App() {
 
   function handleOpenTrack(track: CatalogTrack) {
     setPublicArtistName(null);
+    if (isArtistPortal) {
+      const nextState = { ...getHistoryStateObject(), dotifyView: 'player' };
+      setIsArtistPortal(false);
+      setActiveView('player');
+      window.history.pushState(nextState, '', '/');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      void catalog.selectTrack(
+        track,
+        session.socketEmit,
+        session.setLocalStreamReady,
+        session.closeHostPeers
+      );
+      return;
+    }
+
     void catalog.openTrack(
       track,
       session.socketEmit,
@@ -523,6 +560,42 @@ export default function App() {
     })();
   }
 
+  async function handleSwitchNetwork() {
+    if (!connectedWallet || connectedWallet.method !== 'extension') {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Wallet app required',
+        message: 'Only browser wallet connections can switch networks from Dotify.'
+      });
+      return;
+    }
+
+    setIsSwitchingNetwork(true);
+    try {
+      const chain = await resolveEvmChain(ethRpcUrl);
+      setExpectedChainId(chain.id);
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Switch network',
+        message: `Confirm the network switch to chain ${chain.id} in your wallet.`
+      });
+      await switchExtensionNetwork(chain);
+      setTransactionFeedback({
+        tone: 'success',
+        title: 'Network ready',
+        message: `Your wallet is now connected to chain ${chain.id}.`
+      });
+    } catch (error) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Network switch failed',
+        message: error instanceof Error ? error.message : 'Open your wallet and switch to the expected network, then try again.'
+      });
+    } finally {
+      setIsSwitchingNetwork(false);
+    }
+  }
+
   function handleJoinRoomFromProfile(roomId: string) {
     setPublicArtistName(null);
     session.joinRoom(roomId);
@@ -551,23 +624,47 @@ export default function App() {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
-  const unlockedTrackIds = Object.entries(catalog.catalogAccessByTrackId)
+  const paidTrackIds = Object.entries(catalog.catalogPaidAccessByTrackId)
     .filter(([, granted]) => granted)
     .map(([id]) => id);
-  const unlockedTrackCount = unlockedTrackIds.length;
-  const supportedArtistCount = new Set(
-    unlockedTrackIds.map(id => catalog.catalogTracks.find(track => track.id === id)?.artist).filter(Boolean)
-  ).size;
+  const paidTracks = paidTrackIds
+    .map(id => catalog.catalogTracks.find(track => track.id === id))
+    .filter((track): track is CatalogTrack => Boolean(track));
+  const supportedArtists = Array.from(
+    paidTracks.reduce((artistsByKey, track) => {
+      const key = track.artistAddress?.toLowerCase() ?? track.artist.toLowerCase();
+      const existing = artistsByKey.get(key);
+      artistsByKey.set(key, {
+        artist: track.artist,
+        artistAddress: track.artistAddress,
+        trackCount: (existing?.trackCount ?? 0) + 1
+      });
+      return artistsByKey;
+    }, new Map<string, { artist: string; artistAddress?: `0x${string}`; trackCount: number }>())
+    .values()
+  );
 
   const walletModal = showWalletModal && (
     <WalletModal
       state={walletState}
       hasPrfSupport={hasPrfSupport}
       hasStoredPasskey={hasStoredPasskey}
-      supportingCount={supportedArtistCount}
-      unlockedCount={unlockedTrackCount}
+      supportingCount={supportedArtists.length}
+      unlockedCount={paidTracks.length}
+      supportedArtists={supportedArtists}
+      paidTracks={paidTracks.map(track => ({
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        artistAddress: track.artistAddress,
+        priceDot: track.priceDot,
+        hash: track.hash
+      }))}
+      expectedChainId={expectedChainId}
+      isSwitchingNetwork={isSwitchingNetwork}
       onPasskey={() => { void connectPasskey(); }}
       onExtension={() => { void connectExtension(); }}
+      onSwitchNetwork={() => { void handleSwitchNetwork(); }}
       onForgetPasskey={forgetPasskey}
       onDisconnect={disconnectWallet}
       onClose={() => setShowWalletModal(false)}

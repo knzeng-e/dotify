@@ -24,7 +24,6 @@ import type { ConnectedWallet } from './useWallet';
 import type { PolkadotSigner } from 'polkadot-api';
 
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
-const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
 const musicRoyAccessPaidEvent = parseAbiItem('event MusicRoyAccessPaid(bytes32 indexed contentHash, address indexed listener, uint256 amount)');
 
 function createBulletinManifestRef(hash: `0x${string}`) {
@@ -624,7 +623,6 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     refreshArtistRoyalties,
     createRightsManifest,
     getActiveWalletClient,
-    updateArtistName,
-    blockscoutBaseUrl
+    updateArtistName
   };
 }

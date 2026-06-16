@@ -68,6 +68,7 @@ export type CatalogTrack = {
   royaltySplits: RoyaltySplit[];
   personhoodLevel: PersonhoodLevel;
   encrypted: boolean;
+  registeredAtBlock?: number;
 };
 
 export type OnchainTrackRecord = {
