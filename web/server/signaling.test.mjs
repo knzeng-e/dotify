@@ -34,7 +34,7 @@ beforeEach(async () => {
     host: '127.0.0.1',
     maxListenersPerRoom: 2,
     sweepIntervalMs: 40,
-    logger: () => {},
+    logger: () => {}
   });
   port = await server.listen();
   clients = [];
@@ -67,7 +67,7 @@ describe('signaling server', () => {
     const host = connectClient();
     const created = await createRoom(host, {
       hostAddress: '0xAbCd00000000000000000000000000000000Ef12',
-      track: { title: 'Aurora', artist: 'Ada', accessMode: 'classic' },
+      track: { title: 'Aurora', artist: 'Ada', accessMode: 'classic' }
     });
 
     const res = await fetch(`http://127.0.0.1:${port}/status`);
@@ -86,7 +86,7 @@ describe('signaling server', () => {
     const host = connectClient();
     const created = await createRoom(host, {
       playbackMode: 'preview',
-      track: { title: 'Preview locked', artist: 'Ada', accessMode: 'classic' },
+      track: { title: 'Preview locked', artist: 'Ada', accessMode: 'classic' }
     });
 
     const listener = connectClient();
@@ -105,17 +105,17 @@ describe('signaling server', () => {
       port: 0,
       host: '127.0.0.1',
       origins: ['https://dotify.example'],
-      logger: () => {},
+      logger: () => {}
     });
     port = await server.listen();
 
     const denied = await fetch(`http://127.0.0.1:${port}/status`, {
-      headers: { origin: 'https://evil.example' },
+      headers: { origin: 'https://evil.example' }
     });
     assert.equal(denied.headers.get('access-control-allow-origin'), null);
 
     const allowed = await fetch(`http://127.0.0.1:${port}/status`, {
-      headers: { origin: 'https://dotify.example' },
+      headers: { origin: 'https://dotify.example' }
     });
     assert.equal(allowed.headers.get('access-control-allow-origin'), 'https://dotify.example');
   });

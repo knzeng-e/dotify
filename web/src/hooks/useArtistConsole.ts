@@ -13,13 +13,7 @@ import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from
 import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
 import { makeEncryptedAudioRef } from '../utils/protectedAudio';
 import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../utils/format';
-import type {
-  AccessMode,
-  CatalogTrack,
-  PersonhoodLevel,
-  RoyaltyPayment,
-  TransactionFeedback
-} from '../types';
+import type { AccessMode, CatalogTrack, PersonhoodLevel, RoyaltyPayment, TransactionFeedback } from '../types';
 import type { ConnectedWallet } from './useWallet';
 import type { PolkadotSigner } from 'polkadot-api';
 

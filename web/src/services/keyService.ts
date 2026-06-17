@@ -67,7 +67,7 @@ function buildSignedRequestMessage(payload: SignedRequestPayload): string {
     `Requester: ${payload.requester.toLowerCase()}`,
     `Chain ID: ${payload.chainId}`,
     `Nonce: ${payload.nonce}`,
-    `Expires At: ${payload.expiresAt}`,
+    `Expires At: ${payload.expiresAt}`
   ].join('\n');
 }
 
@@ -84,7 +84,7 @@ async function requestNonce(address: string, chainId: number): Promise<{ nonce: 
   const res = await fetch(`${API_URL}/api/auth/nonce`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ address, chainId }),
+    body: JSON.stringify({ address, chainId })
   });
   if (!res.ok) {
     const { message, code } = await parseError(res, `Nonce request failed (${res.status})`);
@@ -124,12 +124,12 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
     requester: account.address,
     chainId: request.chainId,
     nonce,
-    expiresAt,
+    expiresAt
   };
 
   const signature = await request.walletClient.signMessage({
     account,
-    message: buildSignedRequestMessage(payload),
+    message: buildSignedRequestMessage(payload)
   });
 
   const res = await fetch(`${API_URL}/api/tracks/${request.contentHash}/key-request`, {
@@ -141,8 +141,8 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
       nonce,
       chainId: request.chainId,
       expiresAt,
-      purpose: request.purpose,
-    }),
+      purpose: request.purpose
+    })
   });
 
   if (!res.ok) {

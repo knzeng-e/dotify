@@ -22,7 +22,10 @@ export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRoom
     <section className='rooms-landing'>
       <div className='doc-panel rooms-hero-panel'>
         <div className='rooms-hero-copy'>
-          <p className='eyebrow'><span className='live-dot' />Live rooms</p>
+          <p className='eyebrow'>
+            <span className='live-dot' />
+            Live rooms
+          </p>
           <h2>Enter the same listening moment.</h2>
           <p>Join by link or code. Guests hear the host stream without receiving content keys or protected source files.</p>
         </div>

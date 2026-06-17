@@ -51,7 +51,7 @@ export function sanitizeTrack(track) {
     priceDot: sanitizeText(track.priceDot, '0', 32),
     personhoodLevel: track.personhoodLevel === 'DIM2' ? 'DIM2' : 'DIM1',
     duration: Number.isFinite(track.duration) ? Number(track.duration) : 0,
-    updatedAt: Number.isFinite(track.updatedAt) ? Number(track.updatedAt) : Date.now(),
+    updatedAt: Number.isFinite(track.updatedAt) ? Number(track.updatedAt) : Date.now()
   };
 }
 
@@ -64,7 +64,6 @@ export function sanitizePlayerState(state) {
     playing: Boolean(state.playing),
     currentTime: Number.isFinite(state.currentTime) ? Number(state.currentTime) : 0,
     duration: Number.isFinite(state.duration) ? Number(state.duration) : 0,
-    updatedAt: Number.isFinite(state.updatedAt) ? Number(state.updatedAt) : Date.now(),
+    updatedAt: Number.isFinite(state.updatedAt) ? Number(state.updatedAt) : Date.now()
   };
 }
-

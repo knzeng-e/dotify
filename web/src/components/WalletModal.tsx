@@ -136,10 +136,18 @@ export function WalletModal({
                     <div className='wallet-activity-row' key={artist.artistAddress ?? artist.artist}>
                       <span>
                         <strong>{artist.artist}</strong>
-                        <small>{artist.trackCount} paid track{artist.trackCount === 1 ? '' : 's'}</small>
+                        <small>
+                          {artist.trackCount} paid track{artist.trackCount === 1 ? '' : 's'}
+                        </small>
                       </span>
                       {artist.artistAddress && (
-                        <a className='icon-link' href={getBlockscoutAddressUrl(artist.artistAddress)} target='_blank' rel='noreferrer' aria-label={`Open ${artist.artist} wallet on explorer`}>
+                        <a
+                          className='icon-link'
+                          href={getBlockscoutAddressUrl(artist.artistAddress)}
+                          target='_blank'
+                          rel='noreferrer'
+                          aria-label={`Open ${artist.artist} wallet on explorer`}
+                        >
                           <ExternalLink size={14} />
                         </a>
                       )}
@@ -247,7 +255,9 @@ export function WalletModal({
                 <KeyRound size={18} />
               </span>
               <span className='wallet-option-copy'>
-                <strong>{state.status === 'needs-reconnect' && state.via === 'passkey' ? 'Reconnect passkey' : hasStoredPasskey ? 'Use passkey' : 'Create passkey'}</strong>
+                <strong>
+                  {state.status === 'needs-reconnect' && state.via === 'passkey' ? 'Reconnect passkey' : hasStoredPasskey ? 'Use passkey' : 'Create passkey'}
+                </strong>
                 <small>Use this device without a seed phrase prompt.</small>
               </span>
             </button>

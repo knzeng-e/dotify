@@ -159,12 +159,7 @@ export function OverviewTab({
               Publish a release
             </button>
           ) : (
-            <button
-              className='primary-action wide'
-              type='button'
-              onClick={onRegisterArtist}
-              disabled={isRegisteringArtist || !artistRegistrationAvailable}
-            >
+            <button className='primary-action wide' type='button' onClick={onRegisterArtist} disabled={isRegisteringArtist || !artistRegistrationAvailable}>
               {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
               Create artist profile
             </button>

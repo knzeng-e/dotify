@@ -21,10 +21,6 @@ export function dotToPlanck(dot: string) {
   return parseEther(dot.trim() || '0');
 }
 
-export function formatPlanckAsDot(planck: bigint) {
-  return formatNativeAmount(planck, 9);
-}
-
 export function formatWeiAsDot(wei: bigint) {
   return formatNativeAmount(wei, 9);
 }

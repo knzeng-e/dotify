@@ -165,7 +165,11 @@ export function ArtistConsole(props: ArtistConsoleProps) {
   } = props;
 
   const studioAura = auraForName(artistName);
-  const studioHandle = artistName.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || 'artist';
+  const studioHandle =
+    artistName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '.')
+      .replace(/^\.+|\.+$/g, '') || 'artist';
   const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(artistTracks[0]?.id ?? null);
 
   useEffect(() => {
@@ -174,9 +178,7 @@ export function ArtistConsole(props: ArtistConsoleProps) {
       return;
     }
 
-    setSelectedReleaseId(current => (
-      current && artistTracks.some(track => track.id === current) ? current : artistTracks[0].id
-    ));
+    setSelectedReleaseId(current => (current && artistTracks.some(track => track.id === current) ? current : artistTracks[0].id));
   }, [artistTracks]);
 
   function openReleaseDetails(track: CatalogTrack) {
@@ -209,7 +211,9 @@ export function ArtistConsole(props: ArtistConsoleProps) {
                 <ExternalLink size={12} />
               </a>
             )}
-            <span>{artistTracks.length} release{artistTracks.length === 1 ? '' : 's'}</span>
+            <span>
+              {artistTracks.length} release{artistTracks.length === 1 ? '' : 's'}
+            </span>
           </div>
         </div>
       </header>
@@ -295,12 +299,7 @@ export function ArtistConsole(props: ArtistConsoleProps) {
       )}
 
       {artistTab === 'releases' && (
-        <ReleasesTab
-          artistTracks={artistTracks}
-          selectedReleaseId={selectedReleaseId}
-          onSelectRelease={setSelectedReleaseId}
-          onOpenTrack={onOpenTrack}
-        />
+        <ReleasesTab artistTracks={artistTracks} selectedReleaseId={selectedReleaseId} onSelectRelease={setSelectedReleaseId} onOpenTrack={onOpenTrack} />
       )}
 
       {artistTab === 'royalties' && (

@@ -65,12 +65,7 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
       </aside>
 
       {selectedRelease && (
-        <article
-          className='doc-panel release-focus-panel'
-          id='release-detail-panel'
-          role='tabpanel'
-          aria-labelledby={`release-tab-${selectedDomId}`}
-        >
+        <article className='doc-panel release-focus-panel' id='release-detail-panel' role='tabpanel' aria-labelledby={`release-tab-${selectedDomId}`}>
           <div className='release-focus-hero'>
             <div className='release-focus-cover'>
               <img src={selectedRelease.imageRef} alt='' crossOrigin='anonymous' />
@@ -88,9 +83,7 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
               <div className='access-badges'>
                 <span className='access-chip'>{accessModeLabel(selectedRelease)}</span>
                 <span className='access-chip'>
-                  {selectedRelease.accessMode === 'classic'
-                    ? `${selectedRelease.priceDot} DOT`
-                    : `PoP ${selectedRelease.personhoodLevel}`}
+                  {selectedRelease.accessMode === 'classic' ? `${selectedRelease.priceDot} DOT` : `PoP ${selectedRelease.personhoodLevel}`}
                 </span>
                 <span className='access-chip access-chip-trust'>
                   <BadgeCheck size={13} />
@@ -120,11 +113,7 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
           <div className='release-detail-grid'>
             <EndpointRow
               label='Access'
-              value={
-                selectedRelease.accessMode === 'classic'
-                  ? `${selectedRelease.priceDot} DOT`
-                  : `Proof of Personhood ${selectedRelease.personhoodLevel}`
-              }
+              value={selectedRelease.accessMode === 'classic' ? `${selectedRelease.priceDot} DOT` : `Proof of Personhood ${selectedRelease.personhoodLevel}`}
             />
             <EndpointRow label='Royalty total' value={`${selectedRelease.royaltyBps} bps`} />
             <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />

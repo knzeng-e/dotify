@@ -16,8 +16,8 @@
 		"build:bulletin": "tsc -b && vite build --config vite.bulletin.config.ts",
 		"deploy:bulletin": "node scripts/deploy-bulletin.cjs",
 		"lint": "eslint .",
-		"fmt": "prettier --write 'src/**/*.{ts,tsx}' server/signaling.mjs README.md",
-		"fmt:check": "prettier --check 'src/**/*.{ts,tsx}' server/signaling.mjs README.md",
+		"fmt": "prettier --write 'src/**/*.{ts,tsx}' 'server/**/*.mjs' README.md",
+		"fmt:check": "prettier --check 'src/**/*.{ts,tsx}' 'server/**/*.mjs' README.md",
 		"update-types": "papi update",
 		"codegen": "papi generate",
 		"preview": "vite preview --host 0.0.0.0 --port 4273"

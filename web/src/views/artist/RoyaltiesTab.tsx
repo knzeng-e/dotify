@@ -136,9 +136,7 @@ export function RoyaltiesTab({
               );
             })
           ) : (
-            <div className='empty-state'>
-              {artistRuntimeAddress ? 'No paid unlocks recorded yet.' : 'Create an artist profile before tracking payments.'}
-            </div>
+            <div className='empty-state'>{artistRuntimeAddress ? 'No paid unlocks recorded yet.' : 'Create an artist profile before tracking payments.'}</div>
           )}
         </div>
       </div>

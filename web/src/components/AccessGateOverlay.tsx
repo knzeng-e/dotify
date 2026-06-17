@@ -1,7 +1,17 @@
 import { LockKeyhole } from 'lucide-react';
 import type { AccessGate } from '../types';
 
-export function AccessGateOverlay({ gate, onDismiss, onPay, onSignIn }: { gate: AccessGate; onDismiss: () => void; onPay?: () => void; onSignIn?: () => void }) {
+export function AccessGateOverlay({
+  gate,
+  onDismiss,
+  onPay,
+  onSignIn
+}: {
+  gate: AccessGate;
+  onDismiss: () => void;
+  onPay?: () => void;
+  onSignIn?: () => void;
+}) {
   return (
     <div className='access-gate' data-action={gate.actionType} data-access={gate.track.accessMode}>
       <div className='access-gate-header'>

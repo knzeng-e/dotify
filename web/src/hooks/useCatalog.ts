@@ -1,16 +1,9 @@
 import { useRef, useState } from 'react';
 import { getGatewayUrl } from '../services/pinata';
-import {
-  ensureContract,
-  getPublicClient,
-  artistDirectoryAbi,
-  musicRegistryAbi,
-  musicAccessAbi,
-  musicRoyaltiesAbi
-} from '../config/contracts';
+import { ensureContract, getPublicClient, artistDirectoryAbi, musicRegistryAbi, musicAccessAbi, musicRoyaltiesAbi } from '../config/contracts';
 import { encodeAudioBufferPreviewAsWav } from '../utils/audio';
 import { decryptAudio, hexToBytes } from '../utils/crypto';
-import { formatPlanckAsDot } from '../utils/format';
+import { formatWeiAsDot } from '../utils/format';
 import { fetchIpfsCid } from '../services/pinata';
 import { isKeyServiceConfigured, requestContentKey, type KeyRequestPurpose } from '../services/keyService';
 import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../utils/protectedAudio';
@@ -349,9 +342,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     // Preview-only playback skips the key request: the backend would deny it
     // anyway, and we avoid a pointless wallet signature prompt.
     const serverKey = options.previewOnly ? null : await resolveServerContentKey(contentHash);
-    const clearBytes = serverKey
-      ? await decryptAudio(encryptedBytes, serverKey)
-      : await decryptTrackAudio(encryptedBytes, contentHash);
+    const clearBytes = serverKey ? await decryptAudio(encryptedBytes, serverKey) : await decryptTrackAudio(encryptedBytes, contentHash);
     if (options.previewOnly) {
       return createPreviewAudioObjectUrl(clearBytes, cacheKey);
     }
@@ -363,7 +354,12 @@ export function useCatalog(deps: UseCatalogDeps) {
     return objectUrl;
   }
 
-  async function selectTrack(track: CatalogTrack, socketEmit?: (event: string, data: unknown) => void, setLocalStreamReady?: (ready: boolean) => void, closeHostPeers?: () => void): Promise<RoomPlaybackMode> {
+  async function selectTrack(
+    track: CatalogTrack,
+    socketEmit?: (event: string, data: unknown) => void,
+    setLocalStreamReady?: (ready: boolean) => void,
+    closeHostPeers?: () => void
+  ): Promise<RoomPlaybackMode> {
     setSelectedTrackId(track.id);
     setTitle(track.title);
     setArtistName(track.artist);
@@ -431,7 +427,12 @@ export function useCatalog(deps: UseCatalogDeps) {
     return playbackMode;
   }
 
-  async function openTrack(track: CatalogTrack, socketEmit?: (event: string, data: unknown) => void, setLocalStreamReady?: (ready: boolean) => void, closeHostPeers?: () => void) {
+  async function openTrack(
+    track: CatalogTrack,
+    socketEmit?: (event: string, data: unknown) => void,
+    setLocalStreamReady?: (ready: boolean) => void,
+    closeHostPeers?: () => void
+  ) {
     navigateToView('player');
     return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
   }
@@ -538,12 +539,14 @@ export function useCatalog(deps: UseCatalogDeps) {
         const imageRef = resolveVisualAssetRef(track.imageRef, track.title);
         const encrypted = isEncryptedAudioRef(track.audioRef);
         const localUrl = resolveAudioAssetRef(track.audioRef);
-        const splitCount = (await client.readContract({
-          address: runtimeAddress,
-          abi: musicRoyaltiesAbi,
-          functionName: 'musicRoySplitCount',
-          args: [hash]
-        }).catch(() => 0n)) as bigint;
+        const splitCount = (await client
+          .readContract({
+            address: runtimeAddress,
+            abi: musicRoyaltiesAbi,
+            functionName: 'musicRoySplitCount',
+            args: [hash]
+          })
+          .catch(() => 0n)) as bigint;
         const royaltySplits = await Promise.all(
           Array.from({ length: Number(splitCount) }, async (_, splitIndex): Promise<RoyaltySplit | null> => {
             try {
@@ -572,7 +575,7 @@ export function useCatalog(deps: UseCatalogDeps) {
           artistAddress: track.artist || artistAddress,
           audioRef: track.audioRef,
           imageRef,
-          priceDot: formatPlanckAsDot(track.pricePlanck),
+          priceDot: formatWeiAsDot(track.pricePlanck),
           localUrl,
           description: track.description,
           bulletinRef: track.metadataRef.startsWith('paseo-bulletin:') ? track.metadataRef : '',

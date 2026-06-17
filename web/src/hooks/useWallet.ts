@@ -167,7 +167,10 @@ function getProviderErrorCode(error: unknown) {
 }
 
 async function walletFromExtensionAddress(ethereum: EIP1193, evmAddress: `0x${string}`): Promise<ConnectedWallet> {
-  const chainId = await ethereum.request({ method: 'eth_chainId' }).then(parseChainId).catch(() => undefined);
+  const chainId = await ethereum
+    .request({ method: 'eth_chainId' })
+    .then(parseChainId)
+    .catch(() => undefined);
   const label = `${evmAddress.slice(0, 6)}…${evmAddress.slice(-4)}`;
 
   return {
@@ -328,7 +331,9 @@ export function useWallet() {
     }
 
     void restoreWallet();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

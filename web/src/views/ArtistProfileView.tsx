@@ -82,8 +82,16 @@ export function ArtistProfileView({
             {verified && <BadgeCheck size={23} aria-label='Verified artist' />}
           </h1>
           <div className='artist-profile-meta'>
-            <span>@{artistName.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || 'artist'}</span>
-            <span>{artistTracks.length} registered track{artistTracks.length === 1 ? '' : 's'}</span>
+            <span>
+              @
+              {artistName
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '.')
+                .replace(/^\.+|\.+$/g, '') || 'artist'}
+            </span>
+            <span>
+              {artistTracks.length} registered track{artistTracks.length === 1 ? '' : 's'}
+            </span>
             <span>{activeListeners > 0 ? `${activeListeners} listening now` : 'ready for the next room'}</span>
           </div>
           <p>{artistBio(artistName, artistTracks)}</p>

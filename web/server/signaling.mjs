@@ -17,14 +17,7 @@
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
-import {
-  createRoomId,
-  normalizeRoomId,
-  sanitizeAddress,
-  sanitizePlayerState,
-  sanitizeText,
-  sanitizeTrack,
-} from './signaling-utils.mjs';
+import { createRoomId, normalizeRoomId, sanitizeAddress, sanitizePlayerState, sanitizeText, sanitizeTrack } from './signaling-utils.mjs';
 
 export const defaultConfig = {
   port: 8788,
@@ -38,7 +31,7 @@ export const defaultConfig = {
   hostHeartbeatTimeoutMs: 120_000,
   sweepIntervalMs: 30_000,
   maxListenersPerRoom: 24,
-  logger: (line) => console.log(line),
+  logger: line => console.log(line)
 };
 
 export function readConfigFromEnv(env = process.env) {
@@ -47,10 +40,16 @@ export function readConfigFromEnv(env = process.env) {
     ...defaultConfig,
     port: Number(env.SIGNAL_PORT ?? defaultConfig.port),
     host: env.SIGNAL_HOST ?? defaultConfig.host,
-    origins: origins === '*' ? '*' : origins.split(',').map(o => o.trim().replace(/\/$/, '')).filter(Boolean),
+    origins:
+      origins === '*'
+        ? '*'
+        : origins
+            .split(',')
+            .map(o => o.trim().replace(/\/$/, ''))
+            .filter(Boolean),
     roomTtlMs: Number(env.SIGNAL_ROOM_TTL_MS ?? defaultConfig.roomTtlMs),
     hostHeartbeatTimeoutMs: Number(env.SIGNAL_HOST_TIMEOUT_MS ?? defaultConfig.hostHeartbeatTimeoutMs),
-    maxListenersPerRoom: Number(env.SIGNAL_MAX_LISTENERS ?? defaultConfig.maxListenersPerRoom),
+    maxListenersPerRoom: Number(env.SIGNAL_MAX_LISTENERS ?? defaultConfig.maxListenersPerRoom)
   };
 }
 
@@ -73,7 +72,7 @@ export function startSignalingServer(overrides = {}) {
     const origin = request?.headers?.origin;
     const headers = {
       'access-control-allow-methods': 'GET,OPTIONS',
-      'access-control-allow-headers': 'content-type',
+      'access-control-allow-headers': 'content-type'
     };
 
     if (config.origins === '*') {
@@ -100,7 +99,7 @@ export function startSignalingServer(overrides = {}) {
         app: 'dotify',
         uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
         rooms: rooms.size,
-        listeners: listenerTotal,
+        listeners: listenerTotal
       });
       return;
     }
@@ -115,7 +114,7 @@ export function startSignalingServer(overrides = {}) {
   });
 
   const io = new Server(httpServer, {
-    cors: { origin: config.origins === '*' ? '*' : config.origins, methods: ['GET', 'POST'] },
+    cors: { origin: config.origins === '*' ? '*' : config.origins, methods: ['GET', 'POST'] }
   });
 
   function publicRoom(roomId, room) {
@@ -133,7 +132,7 @@ export function startSignalingServer(overrides = {}) {
       listenersNeedWalletAccess: false,
       createdAt: room.createdAt,
       expiresAt: room.createdAt + config.roomTtlMs,
-      listenerCount: room.listeners.size,
+      listenerCount: room.listeners.size
     };
   }
 
@@ -173,7 +172,7 @@ export function startSignalingServer(overrides = {}) {
         playerState: null,
         playbackMode: payload.playbackMode === 'preview' ? 'preview' : 'full',
         createdAt: Date.now(),
-        lastHostSeenAt: Date.now(),
+        lastHostSeenAt: Date.now()
       };
 
       rooms.set(roomId, room);
@@ -202,7 +201,7 @@ export function startSignalingServer(overrides = {}) {
 
       const listener = {
         id: socket.id,
-        displayName: sanitizeText(payload.displayName, 'Listener', 32),
+        displayName: sanitizeText(payload.displayName, 'Listener', 32)
       };
       room.listeners.set(socket.id, listener);
 
@@ -221,13 +220,13 @@ export function startSignalingServer(overrides = {}) {
         track: room.track,
         playerState: room.playerState,
         playbackMode: room.playbackMode,
-        expiresAt: room.createdAt + config.roomTtlMs,
+        expiresAt: room.createdAt + config.roomTtlMs
       });
 
       io.to(room.hostId).emit('listener:joined', {
         listenerId: socket.id,
         displayName: listener.displayName,
-        listenerCount,
+        listenerCount
       });
       io.to(roomId).emit('room:listener-count', { listenerCount });
       emitRooms();
@@ -376,7 +375,7 @@ export function startSignalingServer(overrides = {}) {
     async close() {
       clearInterval(sweepTimer);
       await io.close();
-    },
+    }
   };
 }
 
