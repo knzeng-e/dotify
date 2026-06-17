@@ -55,11 +55,13 @@ Creates a new room. The caller becomes the host.
 // Emit
 socket.emit('room:create', {
   displayName: string,
+  hostAddress?: string | null,
   track: TrackInfo | null,
+  playbackMode?: 'full' | 'preview',
 }, (response: CreateRoomResponse) => { ... });
 
 // Ack — success
-{ ok: true; roomId: string; hostName: string }
+{ ok: true; roomId: string; hostName: string; expiresAt?: number }
 
 // Ack — failure
 { ok: false; error: string }
@@ -91,10 +93,12 @@ socket.emit('room:join', {
   listenerCount: number;
   track: TrackInfo | null;
   playerState: PlayerState | null;
+  playbackMode?: 'full' | 'preview';
+  expiresAt?: number;
 }
 
 // Ack — failure
-{ ok: false; error: string }
+{ ok: false; error: string; code?: string }
 ```
 
 On success, the host receives a `listener:joined` event for this listener.
@@ -117,7 +121,8 @@ socket.emit('room:leave');
 
 **Direction:** Server → Listener(s)
 
-Sent to all listeners when the host closes the room.
+Sent to all listeners when the host closes the room, the room expires, or host
+heartbeat times out.
 
 ```typescript
 socket.on('room:closed', (payload: { reason?: string }) => { ... });
@@ -137,6 +142,36 @@ socket.emit('room:track', track /* TrackInfo | null */);
 
 // Listener receives
 socket.on('room:track', (track: TrackInfo | null) => { ... });
+```
+
+---
+
+### `room:playback-mode`
+
+**Direction:** Client (host) → Server → Listeners
+
+Updates the host-declared room playback mode. `preview` means the host is
+streaming the 42% fallback because full access was not available.
+
+```typescript
+// Host emits
+socket.emit('room:playback-mode', { playbackMode: 'full' | 'preview' });
+
+// Listener receives
+socket.on('room:playback-mode', (payload: { playbackMode?: 'full' | 'preview' }) => { ... });
+```
+
+---
+
+### `host:heartbeat`
+
+**Direction:** Client (host) → Server
+
+Keeps the room alive while the host is connected. Rooms are swept if no host
+event or heartbeat arrives before `SIGNAL_HOST_TIMEOUT_MS`.
+
+```typescript
+socket.emit('host:heartbeat');
 ```
 
 ---

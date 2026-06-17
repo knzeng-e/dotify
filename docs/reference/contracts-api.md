@@ -3,6 +3,7 @@
 All contracts are deployed on **Paseo Asset Hub** (`chainId 420420417`). Source lives in `Dotify/contracts/evm/contracts/`.
 
 **Live deployments:**
+
 - `ArtistRuntimeFactory`: `0x74ba85c2b29d2acb3777b9b3ca26c286945cae3c`
 - `ArtistDirectory`: `0xdd92194909df3dc5c3d254b53f7283d025c35d8c`
 
@@ -22,11 +23,12 @@ function createRuntime() external returns (address runtime)
 
 Deploys a new `SmartRuntime` for `msg.sender`, registers it in `ArtistDirectory`, and initializes all music pallets.
 
-| Gas consideration | Notes |
-|---|---|
-| High gas usage | Deploys a proxy + initialises 7 pallets. May hit the EVM weight limit on Polkadot Hub — see spec.md known limitations. |
+| Gas consideration | Notes                                                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| High gas usage    | Deploys a proxy + initialises 7 pallets. May hit the EVM weight limit on Polkadot Hub — see spec.md known limitations. |
 
 **Reverts if:**
+
 - `msg.sender` is already registered in `ArtistDirectory`.
 
 **Emits:** None directly. `ArtistDirectory` emits `ArtistRegistered`.
@@ -69,10 +71,10 @@ function artistsPage(uint256 offset, uint256 limit)
 
 Returns a paginated slice of artists and their runtime addresses. Used by the frontend to build the catalog in batches of 50.
 
-| Parameter | Description |
-|---|---|
-| `offset` | Start index (0-based) |
-| `limit` | Max entries to return |
+| Parameter | Description           |
+| --------- | --------------------- |
+| `offset`  | Start index (0-based) |
+| `limit`   | Max entries to return |
 
 **Emits on registration:** `ArtistRegistered(address indexed artist, address indexed runtime)`
 
@@ -98,7 +100,7 @@ struct TrackData {
     string artistContractRef;
     uint256 royaltyBps;
     uint8 accessMode;         // 0 = human-free, 1 = classic
-    uint256 pricePlanck;
+    uint256 pricePlanck;       // Historical name; value is 18-decimal native token units.
     uint8 requiredPersonhood; // 0 = none, 1 = DIM1, 2 = DIM2
 }
 
@@ -114,6 +116,7 @@ Registers a new track. Mints an NFT via `MusicNFTPallet` and stores royalty spli
 **Caller must be:** Runtime owner (the artist).
 
 **Reverts if:**
+
 - `contentHash` is already registered and active.
 - `royaltyRecipients.length != royaltyShares.length`.
 - Sum of `royaltyShares` exceeds 10,000 bps.
@@ -213,11 +216,11 @@ Records a personhood level for a listener address.
 
 **Caller must be:** The designated personhood registrar (initially the artist; set by `DotifyRuntimeInitializer`).
 
-| `level` | Meaning |
-|---|---|
-| `0` | No personhood recorded |
-| `1` | DIM1 |
-| `2` | DIM2 |
+| `level` | Meaning                |
+| ------- | ---------------------- |
+| `0`     | No personhood recorded |
+| `1`     | DIM1                   |
+| `2`     | DIM2                   |
 
 ---
 
@@ -235,9 +238,12 @@ function musicRoyPayAccess(bytes32 contentHash) external payable
 
 Pay for access to a Classic-mode track.
 
-**`msg.value`** must be at least `pricePlanck * 1e8` (Planck-to-wei conversion).
+**`msg.value`** must be at least the stored `pricePlanck` value. The Solidity
+field name is historical; Dotify now stores the price as 18-decimal Asset Hub
+EVM native units.
 
 On success:
+
 1. Distributes `msg.value` across royalty splits (basis points).
 2. Sends remainder to the runtime owner.
 3. Sets `paidAccess[contentHash][msg.sender] = true`.
@@ -312,16 +318,16 @@ Introspection: `facets()`, `facetFunctionSelectors(address)`, `facetAddresses()`
 
 ## Price conversion
 
-Dotify stores prices in Substrate planck (10 decimal places). The EVM uses wei (18 decimal places). The conversion factor is:
+The Solidity field is still named `pricePlanck` for historical/Substrate
+context, but the active EVM path stores prices directly as 18-decimal native
+token units. The frontend uses viem's `parseEther()` and `formatEther()` helpers
+for DOT display and `msg.value`.
 
-```
-pricePlanck * 100_000_000 = priceWei
-```
+| Format                         | Example                   |
+| ------------------------------ | ------------------------- |
+| DOT (display)                  | `0.5`                     |
+| Stored value / EVM `msg.value` | `500_000_000_000_000_000` |
 
-| Format | Example |
-|---|---|
-| DOT (display) | `0.5` |
-| Planck (on-chain, Substrate) | `5_000_000_000` |
-| Wei (EVM `msg.value`) | `500_000_000_000_000_000` |
-
-Frontend conversion: `src/utils/format.ts` → `dotToPlanck()` and `formatPlanckAsDot()`.
+Frontend conversion: `src/utils/format.ts` → `dotToPlanck()` for input and
+`formatWeiAsDot()` for display. The `dotToPlanck()` function name is legacy; it
+returns 18-decimal native units via `parseEther()`.

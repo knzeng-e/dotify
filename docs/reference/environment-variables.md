@@ -1,132 +1,185 @@
 # Environment Variables Reference
 
-All environment variables for the Dotify web app (`Dotify/web/`) and the signaling server. Copy `.env.example` and fill in the values for your environment.
+All environment variables for the Dotify web app, signaling server, backend API,
+and EVM deployment scripts. Copy the relevant `.env.example` file and fill in
+values for your environment.
 
 ---
 
-## Web app variables (`VITE_` prefix)
+## Web app variables (`web/.env.local`)
 
-Variables prefixed with `VITE_` are bundled into the browser. Do not put secrets that must remain server-side here.
+Variables prefixed with `VITE_` are bundled into the browser. Do not put secrets
+that must remain server-side here.
 
 ### `VITE_SIGNAL_URL`
 
-| Property | Value |
-|---|---|
-| **Type** | URL string |
-| **Required** | No |
-| **Default** | `http://localhost:8788` (dev) or same host on port 8788 |
-| **Example** | `https://signal.example.com` |
+| Property     | Value                                                                            |
+| ------------ | -------------------------------------------------------------------------------- |
+| **Type**     | URL string                                                                       |
+| **Required** | No                                                                               |
+| **Default**  | `http://localhost:8788` in local development, otherwise same host on port `8788` |
+| **Example**  | `https://dotify-signal.fly.dev`                                                  |
 
-The URL of the Socket.IO signaling server. Used by `useSession` to establish WebSocket connection for room management and WebRTC handshake relay.
+Socket.IO signaling server used for room discovery and WebRTC handshake relay.
+Production deployments must use a publicly reachable HTTPS endpoint.
 
-In production, this must be a publicly reachable HTTPS endpoint.
+---
+
+### `VITE_DOTIFY_API_URL`
+
+| Property     | Value                           |
+| ------------ | ------------------------------- |
+| **Type**     | URL string                      |
+| **Required** | Production uploads/key delivery |
+| **Default**  | None                            |
+| **Example**  | `https://dotify-api.fly.dev`    |
+
+Backend API base URL. When set, audio, cover, and metadata uploads go through
+the backend. Full-track playback can request content keys with wallet-signed
+requests. When unset, the web app falls back to local/demo browser-side Pinata
+upload and `VITE_CONTENT_SECRET` encryption.
 
 ---
 
 ### `VITE_BULLETIN_WS_URL`
 
-| Property | Value |
-|---|---|
-| **Type** | WebSocket URL |
-| **Required** | No |
-| **Default** | `wss://paseo-bulletin-rpc.polkadot.io` |
-| **Example** | `wss://paseo-bulletin-rpc.polkadot.io` |
+| Property     | Value                                  |
+| ------------ | -------------------------------------- |
+| **Type**     | WebSocket URL                          |
+| **Required** | No                                     |
+| **Default**  | `wss://paseo-bulletin-rpc.polkadot.io` |
 
-WebSocket RPC endpoint for the Polkadot Bulletin Chain. Used by `useBulletin` to submit `TransactionStorage` extrinsics when an artist enables Bulletin archival.
+Paseo Bulletin Chain RPC used when an artist enables Bulletin archival.
 
 ---
 
 ### `VITE_LOCAL_WS_URL`
 
-| Property | Value |
-|---|---|
-| **Type** | WebSocket URL |
-| **Required** | No |
-| **Default** | `ws://localhost:9944` |
+| Property     | Value                 |
+| ------------ | --------------------- |
+| **Type**     | WebSocket URL         |
+| **Required** | No                    |
+| **Default**  | `ws://localhost:9944` |
 
-Local Substrate node WebSocket endpoint. Used during local development to connect PAPI to a local chain node instead of Paseo.
+Local Substrate node endpoint for development.
+
+---
+
+### `VITE_WS_URL`
+
+| Property     | Value                                             |
+| ------------ | ------------------------------------------------- |
+| **Type**     | WebSocket URL                                     |
+| **Required** | No                                                |
+| **Default**  | Local/testnet preset from `src/config/network.ts` |
+
+Optional global Polkadot WS override.
 
 ---
 
 ### `VITE_LOCAL_ETH_RPC_URL`
 
-| Property | Value |
-|---|---|
-| **Type** | HTTP URL |
-| **Required** | No |
-| **Default** | `http://localhost:8545` |
+| Property     | Value                   |
+| ------------ | ----------------------- |
+| **Type**     | HTTP URL                |
+| **Required** | No                      |
+| **Default**  | `http://localhost:8545` |
 
-Local EVM JSON-RPC endpoint. Used when `config/network.ts` detects a local development environment and routes contract calls to the local node.
+Local EVM JSON-RPC endpoint used by the local network preset.
 
 ---
 
 ### `VITE_PINATA_JWT`
 
-| Property | Value |
-|---|---|
-| **Type** | JWT string |
-| **Required** | Yes (for uploads) |
-| **Default** | None |
-| **Security** | Exposed in the browser bundle. Use a restricted Pinata API key scoped to `pinFileToIPFS` only. |
+| Property     | Value                           |
+| ------------ | ------------------------------- |
+| **Type**     | JWT string                      |
+| **Required** | Demo/local browser uploads only |
+| **Default**  | None                            |
+| **Security** | Exposed in the browser bundle   |
 
-Bearer token for the Pinata IPFS pinning API. Used by `services/pinata.ts` for audio, cover, and metadata uploads.
-
-Create a restricted API key in the [Pinata dashboard](https://app.pinata.cloud/keys) with only `pinFileToIPFS` permission. A leaked key can incur upload costs on your account but cannot delete existing pins if the key has no delete permission.
+Restricted browser-exposed Pinata token used only when `VITE_DOTIFY_API_URL` is
+unset. Do not use an unrestricted Pinata JWT here. Production uploads should set
+`VITE_DOTIFY_API_URL` and keep `PINATA_JWT` in the backend environment.
 
 ---
 
 ### `VITE_PINATA_GATEWAY`
 
-| Property | Value |
-|---|---|
-| **Type** | URL string |
-| **Required** | No |
-| **Default** | `https://paseo-ipfs.polkadot.io` |
-| **Example** | `https://gateway.pinata.cloud` |
+| Property     | Value                            |
+| ------------ | -------------------------------- |
+| **Type**     | URL string                       |
+| **Required** | No                               |
+| **Default**  | `https://paseo-ipfs.polkadot.io` |
 
-Primary IPFS gateway for fetching audio, cover images, and metadata. The gateway is tried first; if the request fails, `VITE_IPFS_READ_GATEWAYS` fallbacks are tried in order.
+Primary IPFS gateway for fetching audio, cover images, and metadata.
 
 ---
 
 ### `VITE_IPFS_READ_GATEWAYS`
 
-| Property | Value |
-|---|---|
-| **Type** | Comma-separated URL list |
-| **Required** | No |
-| **Default** | `https://paseo-ipfs.polkadot.io,https://ipfs.io,https://dweb.link` |
+| Property     | Value                                                              |
+| ------------ | ------------------------------------------------------------------ |
+| **Type**     | Comma-separated URL list                                           |
+| **Required** | No                                                                 |
+| **Default**  | `https://paseo-ipfs.polkadot.io,https://ipfs.io,https://dweb.link` |
 
-Ordered list of fallback IPFS gateways. If the primary gateway (`VITE_PINATA_GATEWAY`) fails, `fetchIpfsCid()` tries each gateway in this list until a successful response is received.
+Fallback IPFS gateways tried after `VITE_PINATA_GATEWAY`.
 
 ---
 
 ### `VITE_CONTENT_SECRET`
 
-| Property | Value |
-|---|---|
-| **Type** | 32-byte hex string |
-| **Required** | No |
-| **Default** | None (encryption disabled or uses a fixed demo key) |
-| **Security** | Exposed in the browser bundle. This is demo-grade protection only. |
-| **Example** | `a3f1...` (64 hex characters) |
+| Property     | Value                                      |
+| ------------ | ------------------------------------------ |
+| **Type**     | 32-byte hex string                         |
+| **Required** | Demo/local browser encryption only         |
+| **Default**  | Empty, which falls back to a fixed dev key |
+| **Security** | Exposed in the browser bundle              |
 
-Input to AES-256-GCM key derivation for audio encryption and decryption. All tracks encrypted with the same secret share the same key derivation root (though each track uses the content hash as a per-track salt, producing different keys per track).
-
-Do not use a production secret here — a determined attacker can extract it from the browser bundle.
+Best-effort browser-side encryption secret used only in demo/local mode. Do not
+use this as a production key boundary; production should use the backend
+`CONTENT_KEY_MASTER_SECRET`.
 
 ---
 
-## Signaling server variables (Node.js only)
+### `VITE_TURN_URL`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL`
 
-These variables are read by the signaling server process (`server/signaling.mjs`) and are never sent to the browser.
+| Property     | Value                             |
+| ------------ | --------------------------------- |
+| **Type**     | TURN URL and optional credentials |
+| **Required** | Recommended for production rooms  |
+| **Default**  | None                              |
+
+Optional TURN relay configuration for WebRTC rooms. Without TURN, STUN-only
+connections can fail behind symmetric NATs and some corporate firewalls.
+
+---
+
+### `VITE_BLOCKSCOUT_BASE_URL`
+
+| Property     | Value                                    |
+| ------------ | ---------------------------------------- |
+| **Type**     | URL string                               |
+| **Required** | No                                       |
+| **Default**  | `https://blockscout-testnet.polkadot.io` |
+
+Explorer base URL used for address, transaction, and block links.
+
+---
+
+## Signaling server variables (`web/server/signaling.mjs`)
+
+These variables are read by the signaling server process and are never sent to
+the browser.
 
 ### `SIGNAL_PORT`
 
-| Property | Value |
-|---|---|
-| **Type** | Integer |
-| **Required** | No |
-| **Default** | `8788` |
+| Property     | Value   |
+| ------------ | ------- |
+| **Type**     | Integer |
+| **Required** | No      |
+| **Default**  | `8788`  |
 
 TCP port the Socket.IO server listens on.
 
@@ -134,79 +187,217 @@ TCP port the Socket.IO server listens on.
 
 ### `SIGNAL_HOST`
 
-| Property | Value |
-|---|---|
-| **Type** | String |
-| **Required** | No |
-| **Default** | `0.0.0.0` |
+| Property     | Value     |
+| ------------ | --------- |
+| **Type**     | String    |
+| **Required** | No        |
+| **Default**  | `0.0.0.0` |
 
-Network interface to bind. Set to `127.0.0.1` to restrict to localhost (useful when behind a reverse proxy).
+Network interface to bind.
 
 ---
 
-### `SIGNAL_ORIGIN`
+### `SIGNAL_ORIGINS`
 
-| Property | Value |
-|---|---|
-| **Type** | URL or `*` |
-| **Required** | No |
-| **Default** | `http://localhost:5273` |
-| **Example** | `https://dotify.dot.li` |
+| Property     | Value                                               |
+| ------------ | --------------------------------------------------- |
+| **Type**     | Comma-separated URL list or `*`                     |
+| **Required** | No                                                  |
+| **Default**  | `*`                                                 |
+| **Example**  | `https://muzinga.netlify.app,https://dotify.dot.li` |
 
-CORS allowed origin for Socket.IO connections. In production, set this to the exact origin of your deployed frontend. Using `*` allows connections from any origin.
+CORS allowed origins for Socket.IO and status endpoints. Set explicit frontend
+origins in production. `SIGNAL_ORIGIN` is still accepted as a backwards-compatible
+singular alias.
+
+---
+
+### `SIGNAL_ROOM_TTL_MS`
+
+| Property     | Value                |
+| ------------ | -------------------- |
+| **Type**     | Integer milliseconds |
+| **Required** | No                   |
+| **Default**  | `21600000` (6 hours) |
+
+Hard room lifetime before the signaling server expires it.
+
+---
+
+### `SIGNAL_HOST_TIMEOUT_MS`
+
+| Property     | Value                |
+| ------------ | -------------------- |
+| **Type**     | Integer milliseconds |
+| **Required** | No                   |
+| **Default**  | `120000`             |
+
+Closes rooms whose host stops sending events or heartbeats.
+
+---
+
+### `SIGNAL_MAX_LISTENERS`
+
+| Property     | Value   |
+| ------------ | ------- |
+| **Type**     | Integer |
+| **Required** | No      |
+| **Default**  | `24`    |
+
+Maximum listeners allowed in one room.
 
 ---
 
 ### `BULLETIN_ACCOUNT`
 
-| Property | Value |
-|---|---|
-| **Type** | String |
-| **Required** | No |
-| **Default** | `Alice` |
+| Property     | Value   |
+| ------------ | ------- |
+| **Type**     | String  |
+| **Required** | No      |
+| **Default**  | `Alice` |
 
-Dev account name used for Bulletin Chain uploads when no wallet signer is available (local development / CI only). Valid values: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`, `Ferdie`.
+Dev account used by web Bulletin scripts in local development or CI. Never use
+this as a production user fallback.
 
-Never set this in a production environment. Bulletin uploads in production must use the connected wallet's Substrate signer.
+---
+
+## Backend API variables (`services/api/.env`)
+
+These variables are server-side only.
+
+### `API_PORT`
+
+| Property     | Value   |
+| ------------ | ------- |
+| **Type**     | Integer |
+| **Required** | No      |
+| **Default**  | `8790`  |
+
+Port the backend API listens on.
+
+---
+
+### `API_ORIGIN`
+
+| Property     | Value                   |
+| ------------ | ----------------------- |
+| **Type**     | URL string              |
+| **Required** | Production              |
+| **Default**  | `http://localhost:5273` |
+
+Frontend origin allowed by backend CORS.
+
+---
+
+### `PASEO_ASSET_HUB_RPC`
+
+| Property     | Value        |
+| ------------ | ------------ |
+| **Type**     | HTTP URL     |
+| **Required** | Key requests |
+| **Default**  | None         |
+
+Paseo Asset Hub EVM RPC used by the backend to verify track access before
+delivering content keys. If unavailable, key delivery fails closed.
+
+---
+
+### `DOTIFY_FACTORY_ADDRESS`
+
+| Property     | Value       |
+| ------------ | ----------- |
+| **Type**     | EVM address |
+| **Required** | No          |
+| **Default**  | None        |
+
+Deployed `ArtistRuntimeFactory` address. Stored for deployment context.
+
+---
+
+### `DOTIFY_DIRECTORY_ADDRESS`
+
+| Property     | Value        |
+| ------------ | ------------ |
+| **Type**     | EVM address  |
+| **Required** | Key requests |
+| **Default**  | None         |
+
+Deployed `ArtistDirectory` address used to resolve artist runtimes.
+
+---
+
+### `DOTIFY_CHAIN_ID`
+
+| Property     | Value       |
+| ------------ | ----------- |
+| **Type**     | Integer     |
+| **Required** | No          |
+| **Default**  | `420420417` |
+
+Expected chain ID in wallet-signed content-key requests.
+
+---
+
+### `CONTENT_KEY_MASTER_SECRET`
+
+| Property     | Value                                         |
+| ------------ | --------------------------------------------- |
+| **Type**     | 32+ byte hex string                           |
+| **Required** | Server-side audio encryption and key delivery |
+| **Default**  | None                                          |
+
+Backend-only master secret used to derive per-track AES-256-GCM content keys.
+Never expose this value to the frontend.
+
+---
+
+### `PINATA_JWT`
+
+| Property     | Value               |
+| ------------ | ------------------- |
+| **Type**     | JWT string          |
+| **Required** | Server-side uploads |
+| **Default**  | None                |
+
+Backend-only Pinata token for IPFS uploads.
 
 ---
 
 ## Contract deployment variables
 
-Set via Hardhat vars (`npx hardhat vars set`), not in `.env`. Used only during contract deployment and verification.
+Set `PRIVATE_KEY` via Hardhat vars, not in `.env`. `ETH_RPC_HTTP` and
+`SKIP_VERIFY` are read from `contracts/evm/.env`.
 
 ### `PRIVATE_KEY`
 
-| Property | Value |
-|---|---|
-| **Type** | Hex private key |
-| **Required** | Yes (testnet/mainnet deployment) |
-| **Set via** | `npx hardhat vars set PRIVATE_KEY` |
+| Property     | Value                              |
+| ------------ | ---------------------------------- |
+| **Type**     | Hex private key                    |
+| **Required** | Testnet/mainnet deployment         |
+| **Set via**  | `npx hardhat vars set PRIVATE_KEY` |
 
-EVM private key for the deployer account. Must hold sufficient DOT (as native EVM token on Asset Hub) to pay deployment gas fees.
-
-Never commit this value to source control.
+EVM private key for the deployer account. Never commit this value.
 
 ---
 
 ### `ETH_RPC_HTTP`
 
-| Property | Value |
-|---|---|
-| **Type** | HTTP URL |
-| **Required** | No |
-| **Default** | `http://127.0.0.1:8545` |
+| Property     | Value                   |
+| ------------ | ----------------------- |
+| **Type**     | HTTP URL                |
+| **Required** | No                      |
+| **Default**  | `http://127.0.0.1:8545` |
 
-Overrides the EVM RPC endpoint used by Hardhat scripts (`contracts/evm/.env`). Set to the Paseo Asset Hub EVM endpoint for testnet deployments.
+EVM RPC endpoint used by Hardhat.
 
 ---
 
 ### `SKIP_VERIFY`
 
-| Property | Value |
-|---|---|
-| **Type** | `0` or `1` |
-| **Required** | No |
-| **Default** | `0` |
+| Property     | Value      |
+| ------------ | ---------- |
+| **Type**     | `0` or `1` |
+| **Required** | No         |
+| **Default**  | `0`        |
 
-Set to `1` to skip Blockscout contract verification after deployment. Useful during rapid iteration where verification is not needed.
+Set to `1` to skip Blockscout verification after deployment.

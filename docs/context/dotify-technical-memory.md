@@ -32,9 +32,11 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
 
 ## Current important limitations
 
-- Browser-side protection is demo-grade.
-- `VITE_CONTENT_SECRET` must not remain the production key boundary.
-- Pinata uploads from the browser are unsafe for public production.
+- Browser-side protection is demo-grade and should stay local/demo only.
+- Production key delivery uses the backend-held `CONTENT_KEY_MASTER_SECRET`;
+  `VITE_CONTENT_SECRET` is not a production key boundary.
+- Pinata uploads from the browser are unsafe for public production; use the
+  backend API when `VITE_DOTIFY_API_URL` is configured.
 - Proof of Personhood is currently mocked/dev-operated.
 - Public rooms require hosted signaling.
 - Room guests do not receive keys/source files, but WebRTC audio heard by guests can still be recorded outside Dotify.

@@ -63,14 +63,14 @@ onboarding and studio flow is available at `http://localhost:5273/artists`.
 
 Default ports:
 
-| Service       | URL                                              |
-| ------------- | ------------------------------------------------ |
-| Frontend      | <http://localhost:5273>                          |
-| Artist portal | <http://localhost:5273/artists>                  |
-| Signaling     | <http://localhost:8788>                          |
-| Backend API   | <http://localhost:8790>                          |
-| Bulletin RPC  | `wss://paseo-bulletin-rpc.polkadot.io`           |
-| Asset Hub RPC | <https://services.polkadothub-rpc.com/testnet>   |
+| Service       | URL                                            |
+| ------------- | ---------------------------------------------- |
+| Frontend      | <http://localhost:5273>                        |
+| Artist portal | <http://localhost:5273/artists>                |
+| Signaling     | <http://localhost:8788>                        |
+| Backend API   | <http://localhost:8790>                        |
+| Bulletin RPC  | `wss://paseo-bulletin-rpc.polkadot.io`         |
+| Asset Hub RPC | <https://services.polkadothub-rpc.com/testnet> |
 
 The app talks to Paseo Bulletin and Asset Hub directly from the browser. A local
 Ethereum node or local Substrate node is not required to run the demo.
@@ -90,9 +90,13 @@ npm run dev
 
 **Environment variables** (see `services/api/.env.example`):
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `PINATA_JWT` | For uploads | Server-side Pinata token (never expose in frontend) |
+| Variable                    | Required         | Purpose                                                  |
+| --------------------------- | ---------------- | -------------------------------------------------------- |
+| `API_ORIGIN`                | Production       | Frontend origin allowed by API CORS                      |
+| `PASEO_ASSET_HUB_RPC`       | Key requests     | Paseo Asset Hub EVM RPC used for access checks           |
+| `DOTIFY_DIRECTORY_ADDRESS`  | Key requests     | ArtistDirectory address used to resolve artist runtimes  |
+| `DOTIFY_CHAIN_ID`           | Key requests     | Chain ID expected in wallet-signed key requests          |
+| `PINATA_JWT`                | For uploads      | Server-side Pinata token (never expose in frontend)      |
 | `CONTENT_KEY_MASTER_SECRET` | For audio upload | 32-byte hex master secret for AES-256-GCM key derivation |
 
 Set `VITE_DOTIFY_API_URL=http://localhost:8790` in `web/.env.local` to route
@@ -118,16 +122,21 @@ npm run test:signal     # integration tests: create/join/cap/expiry/heartbeat
 For a public deployment, run `node server/signaling.mjs` on any Node 22 host
 and point the frontend at it with `VITE_SIGNAL_URL`.
 
+The repository includes `web/fly.signal.toml` and `web/Dockerfile.signal` for a
+Fly.io signaling deployment. Keep `min_machines_running = 1` for this service:
+rooms can be active while no HTTP traffic is flowing, and stopping the machine
+would drop active WebSocket rooms without a clean `room:closed` broadcast.
+
 **Environment variables**:
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `SIGNAL_PORT` | `8788` | Listen port |
-| `SIGNAL_HOST` | `0.0.0.0` | Bind address |
-| `SIGNAL_ORIGINS` | `*` | Comma-separated allowed origins (set explicitly in production) |
-| `SIGNAL_ROOM_TTL_MS` | 6 h | Hard room lifetime before expiry |
-| `SIGNAL_HOST_TIMEOUT_MS` | 120 s | Close rooms whose host stops heartbeating |
-| `SIGNAL_MAX_LISTENERS` | 24 | Per-room listener cap |
+| Variable                 | Default   | Purpose                                                        |
+| ------------------------ | --------- | -------------------------------------------------------------- |
+| `SIGNAL_PORT`            | `8788`    | Listen port                                                    |
+| `SIGNAL_HOST`            | `0.0.0.0` | Bind address                                                   |
+| `SIGNAL_ORIGINS`         | `*`       | Comma-separated allowed origins (set explicitly in production) |
+| `SIGNAL_ROOM_TTL_MS`     | 6 h       | Hard room lifetime before expiry                               |
+| `SIGNAL_HOST_TIMEOUT_MS` | 120 s     | Close rooms whose host stops heartbeating                      |
+| `SIGNAL_MAX_LISTENERS`   | 24        | Per-room listener cap                                          |
 
 `GET /health` reports uptime plus room and listener counts; `GET /status`
 exposes public room metadata (current track, playback mode, host-based access
@@ -248,18 +257,19 @@ See also:
 - **Draft audio is session-only**: blob URLs are revoked on unmount before the
   release is registered. Registered releases rely on Pinata IPFS refs.
 - **Client-side protection is best-effort**: encrypted audio and preview gating
-  improve the demo, but the frontend still contains the code and configured
-  content secret. Production needs wallet-gated key delivery.
+  improve the demo, but `VITE_CONTENT_SECRET` is still only a local/demo
+  boundary. Production uploads and full-track playback should use
+  `VITE_DOTIFY_API_URL` with the backend-held `CONTENT_KEY_MASTER_SECRET`.
 - **Wallet scope**: Dotify treats the connected EVM account as the primary
   artist and listener identity. Artist registration and release publication
   require a connected wallet; dev EVM accounts are not used as public fallback
   signers. Bulletin archival still needs a Substrate signer when enabled.
 - **Proof of Personhood is mocked**: `setPersonhoodLevel` is a dev-only admin
   call. Live Individuality chain reads are on the roadmap.
-- **Pinata JWT still required for catalog fetch and local demo mode**: `VITE_PINATA_JWT` is used
-  for browser-side catalog reads and demo uploads. Production uploads use the backend API
-  (`VITE_DOTIFY_API_URL`); see the backend README for `PINATA_JWT` and `CONTENT_KEY_MASTER_SECRET`.
-  The audio upload backend wiring in the artist console (skipping client-side encryption) lands in a follow-up ticket.
+- **Browser-side Pinata JWT is demo/local only**: `VITE_PINATA_JWT` is used for
+  direct browser uploads only when `VITE_DOTIFY_API_URL` is unset. Production
+  uploads use the backend API; see `services/api/.env.example` for server-side
+  `PINATA_JWT` and `CONTENT_KEY_MASTER_SECRET`.
 - **Single-host rooms**: no multi-host or handoff logic. If the host closes the
   tab, the room ends.
 - **Room stream capture limits**: room guests do not receive keys/source files,
@@ -271,7 +281,7 @@ See also:
 Browser (React + Vite)
   ├── WebRTC audio stream (captureStream → RTCPeerConnection per listener)
   ├── Socket.IO       →  Node signaling server  (SDP/ICE only)
-  ├── Dotify API      →  backend service  (health, auth nonce, future key delivery)
+  ├── Dotify API      →  backend service  (health, uploads, nonce, key delivery)
   ├── Pinata HTTP API →  encrypted audio, cover, and metadata pinning (demo/local)
   ├── IPFS gateways   →  primary + fallback reads for manifests and audio bytes
   ├── polkadot-api (PAPI)  →  Paseo Bulletin Chain  (optional manifest upload)
@@ -295,24 +305,24 @@ handle:
 
 ## Structure
 
-| Path               | Role                                                     |
-| ------------------ | -------------------------------------------------------- |
-| `web/`             | React app, signaling server, Bulletin deploy scripts     |
-| `web/.papi/`       | PAPI descriptors for Bulletin Chain                      |
-| `services/api/`    | Backend API: health, auth nonce, future key delivery     |
-| `contracts/evm/`   | Hardhat + Solidity smart-runtime contracts               |
-| `docs/product/`    | Product policy and UX flow documentation                 |
-| `docs/security/`   | Security boundaries and threat models                    |
-| `deployments.json` | EVM factory, directory, initializer, pallet addresses    |
+| Path               | Role                                                   |
+| ------------------ | ------------------------------------------------------ |
+| `web/`             | React app, signaling server, Bulletin deploy scripts   |
+| `web/.papi/`       | PAPI descriptors for Bulletin Chain                    |
+| `services/api/`    | Backend API: health, uploads, auth nonce, key delivery |
+| `contracts/evm/`   | Hardhat + Solidity smart-runtime contracts             |
+| `docs/product/`    | Product policy and UX flow documentation               |
+| `docs/security/`   | Security boundaries and threat models                  |
+| `deployments.json` | EVM factory, directory, initializer, pallet addresses  |
 
 ## Improvement Backlog
 
 1. Harden wallet support: injected EVM providers, passkey recovery warnings,
    network mismatch handling, and clear transaction preflight states.
-2. Move Pinata uploads and audio key delivery behind a backend or artist-operated
-   key service.
-3. Replace bundled content secrets with per-track key custody and wallet-signed
-   unlock requests.
+2. Harden and operate the backend upload/key service for public traffic:
+   production CORS, secret rotation, monitoring, and rate limits.
+3. Remove demo-mode dependence on browser-exposed Pinata/content secrets from
+   public deployments.
 4. Integrate live Proof of Personhood / Individuality data instead of manual
    registrar writes.
 5. Add a production artist dashboard on `/artists`: release drafts, edit
@@ -325,4 +335,4 @@ handle:
 9. Add deployment smoke tests for DotNS/Bulletin CIDs, IPFS gateway fallback,
    and contract address availability.
 10. Improve room resilience with host handoff, reconnect recovery, and explicit
-   room expiry.
+    room expiry.
