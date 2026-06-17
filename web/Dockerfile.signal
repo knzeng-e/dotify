@@ -4,10 +4,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package*.json ./
-COPY .papi ./.papi
 RUN npm ci --omit=dev
 
 COPY server ./server
 
 CMD ["npm", "run", "signal"]
-
