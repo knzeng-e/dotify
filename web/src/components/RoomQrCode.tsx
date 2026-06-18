@@ -65,7 +65,7 @@ export function RoomQrCode({ value, label, asLink = true }: RoomQrCodeProps) {
 
   if (!asLink) {
     return (
-      <div className='room-qr-link' aria-label={label}>
+      <div className='room-qr-link' role='img' aria-label={label}>
         {qrSvg}
       </div>
     );
