@@ -5,6 +5,7 @@ import {
   Headphones,
   KeyRound,
   Library,
+  Maximize2,
   Pause,
   Play,
   Radio,
@@ -13,12 +14,14 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
-  Users
+  Users,
+  X
 } from 'lucide-react';
 import { PanelTitle } from '../components/ui/PanelTitle';
 import { EndpointRow } from '../components/ui/EndpointRow';
 import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
+import { RoomQrCode } from '../components/RoomQrCode';
 import { accessModeLabel, accessModeLabelFromState, formatTime, peerStatusLabel } from '../utils/format';
 import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, PersonhoodLevel, PlayerState, SessionAction, TrackInfo } from '../types';
 import { useEffect, useState, type CSSProperties, type FormEvent, type RefObject } from 'react';
@@ -37,6 +40,7 @@ type PlayerViewProps = {
   mode: Mode;
   hostName: string;
   roomId: string;
+  sessionLink: string;
   sessionAction: SessionAction;
   displayName: string;
   joinCode: string;
@@ -92,6 +96,7 @@ export function PlayerView({
   mode,
   hostName,
   roomId,
+  sessionLink,
   sessionAction,
   displayName,
   joinCode,
@@ -132,6 +137,7 @@ export function PlayerView({
   const [shuffleEnabled, setShuffleEnabled] = useState(false);
   const [reactions, setReactions] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
   const [queuedAutoplay, setQueuedAutoplay] = useState<QueuedAutoplay | null>(null);
+  const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
 
   // Local ambient reactions over the cover (visual delight, not broadcast).
   function sendReaction(emoji: string) {
@@ -173,6 +179,19 @@ export function PlayerView({
     if (!playerState) return;
     setTransportState(playerState);
   }, [playerState]);
+
+  useEffect(() => {
+    if (!isQrProjectorOpen) return undefined;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsQrProjectorOpen(false);
+      }
+    }
+
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isQrProjectorOpen]);
 
   useEffect(() => {
     if (!queuedAutoplay || mode !== 'host' || !audioSource || selectedTrackId !== queuedAutoplay.trackId) return undefined;
@@ -594,6 +613,20 @@ export function PlayerView({
             </button>
           )}
 
+          {mode === 'host' && roomId && sessionLink && (
+            <div className='room-share-card'>
+              <div className='room-share-copy'>
+                <strong>Scan to join</strong>
+                <span>Opens this room link directly.</span>
+                <button className='room-project-btn' type='button' onClick={() => setIsQrProjectorOpen(true)}>
+                  <Maximize2 size={14} />
+                  Project QR
+                </button>
+              </div>
+              <RoomQrCode value={sessionLink} label={`QR code for room ${roomId}`} />
+            </div>
+          )}
+
           <div className='listener-list'>
             {mode === 'host' && (
               <div className='list-row' key='host-self'>
@@ -702,6 +735,20 @@ export function PlayerView({
           </button>
         </div>
       </div>
+
+      {mode === 'host' && roomId && sessionLink && isQrProjectorOpen && (
+        <div className='room-qr-projector' role='dialog' aria-modal='true' aria-labelledby='room-qr-projector-title'>
+          <button className='room-qr-projector-close' type='button' onClick={() => setIsQrProjectorOpen(false)} aria-label='Close projected QR'>
+            <X size={20} />
+          </button>
+          <div className='room-qr-projector-content'>
+            <p className='modal-eyebrow'>Room {roomId}</p>
+            <h2 id='room-qr-projector-title'>Scan to join</h2>
+            <RoomQrCode value={sessionLink} label={`Large QR code for room ${roomId}`} />
+            <code>{sessionLink}</code>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

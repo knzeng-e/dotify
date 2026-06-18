@@ -910,6 +910,7 @@ export default function App() {
                     mode={session.mode}
                     hostName={session.hostName}
                     roomId={session.roomId}
+                    sessionLink={session.sessionLink}
                     sessionAction={session.sessionAction}
                     displayName={session.displayName}
                     joinCode={session.joinCode}
