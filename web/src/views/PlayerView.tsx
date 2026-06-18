@@ -24,7 +24,7 @@ import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { accessModeLabel, accessModeLabelFromState, formatTime, peerStatusLabel } from '../utils/format';
 import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, PersonhoodLevel, PlayerState, SessionAction, TrackInfo } from '../types';
-import { useEffect, useState, type CSSProperties, type FormEvent, type RefObject } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type RefObject } from 'react';
 
 type PlayerViewProps = {
   // Track/audio state
@@ -138,6 +138,8 @@ export function PlayerView({
   const [reactions, setReactions] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
   const [queuedAutoplay, setQueuedAutoplay] = useState<QueuedAutoplay | null>(null);
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
+  const qrProjectorRef = useRef<HTMLDivElement | null>(null);
+  const qrProjectorCloseRef = useRef<HTMLButtonElement | null>(null);
 
   // Local ambient reactions over the cover (visual delight, not broadcast).
   function sendReaction(emoji: string) {
@@ -183,14 +185,60 @@ export function PlayerView({
   useEffect(() => {
     if (!isQrProjectorOpen) return undefined;
 
-    function closeOnEscape(event: KeyboardEvent) {
+    const previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = window.requestAnimationFrame(() => {
+      (qrProjectorCloseRef.current ?? qrProjectorRef.current)?.focus();
+    });
+
+    function getFocusableElements() {
+      const dialog = qrProjectorRef.current;
+      if (!dialog) return [];
+
+      return Array.from(
+        dialog.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')
+      ).filter(element => element.getClientRects().length > 0 || element === document.activeElement);
+    }
+
+    function handleProjectorKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setIsQrProjectorOpen(false);
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const dialog = qrProjectorRef.current;
+      if (!dialog) return;
+
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && (activeElement === firstElement || !dialog.contains(activeElement))) {
+        event.preventDefault();
+        lastElement.focus();
+        return;
+      }
+
+      if (!event.shiftKey && (activeElement === lastElement || !dialog.contains(activeElement))) {
+        event.preventDefault();
+        firstElement.focus();
       }
     }
 
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
+    window.addEventListener('keydown', handleProjectorKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('keydown', handleProjectorKeyDown);
+      previousActiveElement?.focus();
+    };
   }, [isQrProjectorOpen]);
 
   useEffect(() => {
@@ -737,8 +785,8 @@ export function PlayerView({
       </div>
 
       {mode === 'host' && roomId && sessionLink && isQrProjectorOpen && (
-        <div className='room-qr-projector' role='dialog' aria-modal='true' aria-labelledby='room-qr-projector-title'>
-          <button className='room-qr-projector-close' type='button' onClick={() => setIsQrProjectorOpen(false)} aria-label='Close projected QR'>
+        <div className='room-qr-projector' role='dialog' aria-modal='true' aria-labelledby='room-qr-projector-title' tabIndex={-1} ref={qrProjectorRef}>
+          <button className='room-qr-projector-close' type='button' onClick={() => setIsQrProjectorOpen(false)} aria-label='Close projected QR' ref={qrProjectorCloseRef}>
             <X size={20} />
           </button>
           <div className='room-qr-projector-content'>
