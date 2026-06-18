@@ -200,7 +200,9 @@ export function PlayerView({
       if (!dialog) return [];
 
       return Array.from(
-        dialog.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
       ).filter(element => element.getClientRects().length > 0 || element === document.activeElement);
     }
 
@@ -799,7 +801,13 @@ export function PlayerView({
           ref={qrProjectorRef}
           onClick={handleQrProjectorBackdropClick}
         >
-          <button className='room-qr-projector-close' type='button' onClick={() => setIsQrProjectorOpen(false)} aria-label='Close projected QR' ref={qrProjectorCloseRef}>
+          <button
+            className='room-qr-projector-close'
+            type='button'
+            onClick={() => setIsQrProjectorOpen(false)}
+            aria-label='Close projected QR'
+            ref={qrProjectorCloseRef}
+          >
             <X size={20} />
           </button>
           <div className='room-qr-projector-content'>
