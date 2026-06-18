@@ -45,7 +45,6 @@ type PlayerViewProps = {
   displayName: string;
   joinCode: string;
   listeners: ListenerRecord[];
-  listenerCount: number;
   remoteReady: boolean;
   localStreamReady: boolean;
   error: string | null;
