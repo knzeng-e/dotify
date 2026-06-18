@@ -57,7 +57,7 @@ export function RoomQrCode({ value, label, asLink = true }: RoomQrCodeProps) {
   }
 
   const qrSvg = (
-    <svg className='room-qr-code' viewBox={`0 0 ${qrState.viewBoxSize} ${qrState.viewBoxSize}`} role='img' aria-label={label} shapeRendering='crispEdges'>
+    <svg className='room-qr-code' viewBox={`0 0 ${qrState.viewBoxSize} ${qrState.viewBoxSize}`} aria-hidden='true' shapeRendering='crispEdges'>
       <rect width={qrState.viewBoxSize} height={qrState.viewBoxSize} rx='1.5' fill='#ffffff' />
       <path d={qrState.path} fill='#06152d' />
     </svg>
