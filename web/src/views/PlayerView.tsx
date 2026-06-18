@@ -24,7 +24,7 @@ import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { accessModeLabel, accessModeLabelFromState, formatTime, peerStatusLabel } from '../utils/format';
 import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, PersonhoodLevel, PlayerState, SessionAction, TrackInfo } from '../types';
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type RefObject } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type RefObject } from 'react';
 
 type PlayerViewProps = {
   // Track/audio state
@@ -139,6 +139,12 @@ export function PlayerView({
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
   const qrProjectorRef = useRef<HTMLDivElement | null>(null);
   const qrProjectorCloseRef = useRef<HTMLButtonElement | null>(null);
+
+  function handleQrProjectorBackdropClick(event: MouseEvent<HTMLDivElement>) {
+    if (event.target === event.currentTarget) {
+      setIsQrProjectorOpen(false);
+    }
+  }
 
   // Local ambient reactions over the cover (visual delight, not broadcast).
   function sendReaction(emoji: string) {
@@ -784,7 +790,15 @@ export function PlayerView({
       </div>
 
       {mode === 'host' && roomId && sessionLink && isQrProjectorOpen && (
-        <div className='room-qr-projector' role='dialog' aria-modal='true' aria-labelledby='room-qr-projector-title' tabIndex={-1} ref={qrProjectorRef}>
+        <div
+          className='room-qr-projector'
+          role='dialog'
+          aria-modal='true'
+          aria-labelledby='room-qr-projector-title'
+          tabIndex={-1}
+          ref={qrProjectorRef}
+          onClick={handleQrProjectorBackdropClick}
+        >
           <button className='room-qr-projector-close' type='button' onClick={() => setIsQrProjectorOpen(false)} aria-label='Close projected QR' ref={qrProjectorCloseRef}>
             <X size={20} />
           </button>
