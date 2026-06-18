@@ -14,8 +14,4 @@ function createDevAccount(name: string, path: string): DevAccount {
   return { name, address: ss58Address, signer };
 }
 
-export const devAccounts: DevAccount[] = [
-  createDevAccount('Alice', '//Alice'),
-  createDevAccount('Bob', '//Bob'),
-  createDevAccount('Charlie', '//Charlie')
-];
+export const devAccounts: DevAccount[] = [createDevAccount('Alice', '//Alice'), createDevAccount('Bob', '//Bob'), createDevAccount('Charlie', '//Charlie')];

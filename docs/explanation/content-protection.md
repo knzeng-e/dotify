@@ -6,30 +6,38 @@
 
 ## What content protection means for artists
 
-When you upload an audio file to Dotify, it is encrypted in your browser before it is sent anywhere. The encrypted file is stored on IPFS — a public, decentralized network. Anyone can download it. But without the decryption key, it is unplayable noise.
+When an artist publishes protected audio, Dotify stores encrypted bytes on IPFS.
+The IPFS object is public and content-addressed, but it is not directly playable
+without the per-track content key.
 
-The decryption key is never stored on IPFS, never sent to a server, and never leaves your configured environment. A listener can only decrypt and play the audio after their wallet passes the access check described in [access-control-model.md](./access-control-model.md).
+In the production path, Dotify keeps the upload credential and master key
+material in the backend API:
 
-This means:
-- The IPFS URL of your audio file is not a secret.
-- Even if someone finds it, they cannot play it.
-- Dotify does not hold your keys — you do.
+1. The browser computes the audio content hash.
+2. The browser uploads the raw audio to the backend.
+3. The backend derives the per-track key from `CONTENT_KEY_MASTER_SECRET`.
+4. The backend encrypts the audio with AES-256-GCM and pins the encrypted bytes
+   to Pinata.
+5. A listener or room host receives a key only after a wallet-signed request and
+   a server-side runtime access check.
+
+Room guests never receive content keys. They receive only the ephemeral WebRTC
+stream from the host.
 
 ---
 
 ## What content protection is not
 
-Dotify's current encryption is **demo-grade protection**, not production DRM. It uses a shared secret configured via an environment variable (`VITE_CONTENT_SECRET`). All tracks deployed with the same secret share the same key derivation input.
+Dotify protects distribution access to full source files and content keys. It is
+not absolute DRM.
 
-This is sufficient to:
-- Prevent casual discovery of audio via IPFS URL.
-- Demonstrate the encryption architecture end-to-end.
+This means Dotify can prevent an unauthorized user from directly fetching and
+decrypting the full IPFS audio through the app. It cannot prevent recording
+after someone is authorized to hear a track or a room stream.
 
-It is not sufficient to:
-- Prevent a determined attacker from extracting the key from the browser bundle.
-- Provide per-listener key delivery (which would require a trusted server or an on-chain key encapsulation mechanism).
-
-Production-grade DRM is a planned improvement documented in the improvement backlog.
+The browser-only fallback using `VITE_CONTENT_SECRET` is demo-grade protection.
+That secret is bundled into the frontend, so it must not be treated as a
+production key boundary.
 
 ---
 
@@ -37,87 +45,120 @@ Production-grade DRM is a planned improvement documented in the improvement back
 
 ### Content addressing
 
-When an audio file is selected in the browser, `hashFileWithBytes()` computes a **blake2b-256** hash of the raw bytes. This hash becomes the **content identity** of the track — it is used as:
+When an audio file is selected, `hashFileWithBytes()` computes a blake2b-256
+hash of the raw bytes. This hash becomes the content identity of the track. It
+is used as:
 
-- The `contentHash` argument in `musicRegRegister()`.
-- The key in `paidAccess[contentHash][listener]` on-chain.
-- The input to AES key derivation.
-- The canonical identifier everywhere in the system (IPFS, Bulletin, on-chain).
+- the `contentHash` argument in `musicRegRegister()`;
+- the key in access checks on the artist runtime;
+- the key-derivation input;
+- the canonical identifier for IPFS metadata, Bulletin archival, and room
+  metadata.
 
-If the content changes, the hash changes. You cannot substitute a different audio file for a registered track.
+If the content changes, the hash changes. You cannot substitute a different
+audio file for a registered track without creating a different content hash.
 
-### Encryption pipeline
+### Production encryption pipeline
 
+```txt
+Raw audio bytes
+        |
+        v
+Browser computes contentHash
+        |
+        v
+POST /api/uploads/audio
+        |
+        v
+Backend derives key:
+HKDF-SHA256(CONTENT_KEY_MASTER_SECRET, "dotify-content-key-v1:<contentHash>")
+        |
+        v
+Backend AES-256-GCM encrypts audio
+        |
+        v
+Encrypted bytes pinned to Pinata
+        |
+        v
+audioRef = "dotify:enc:ipfs://<CID>"
 ```
-Raw audio bytes (ArrayBuffer)
-        │
-        ▼
-encryptTrackAudio(bytes, contentHash)
-        │
-        ├── key = await deriveKey(VITE_CONTENT_SECRET, contentHash)
-        │       └── AES-256-GCM key via WebCrypto PBKDF2
-        │
-        ├── iv = random 12-byte nonce
-        │
-        └── ciphertext = AES-GCM.encrypt(key, iv, bytes)
-                │
-                ▼
-        [iv (12 bytes)] + [ciphertext]   ← stored as .enc blob on IPFS
+
+The same backend derivation is used when an authorized key request succeeds, so
+the delivered per-track key decrypts bytes encrypted by the upload route.
+
+### Demo/local encryption pipeline
+
+When `VITE_DOTIFY_API_URL` is unset, the browser can still run in demo mode:
+
+```txt
+Raw audio bytes
+        |
+        v
+Browser derives key from VITE_CONTENT_SECRET + contentHash
+        |
+        v
+Browser AES-256-GCM encrypts audio
+        |
+        v
+Browser pins directly to Pinata with VITE_PINATA_JWT
 ```
 
-The encrypted file is uploaded to Pinata with the metadata tag `encrypted: 'true'`. The IPFS CID is stored in the on-chain track record as the `audioRef` field, prefixed with `dotify.enc://` to signal that decryption is required.
+This is useful for local demos only. Both `VITE_CONTENT_SECRET` and
+`VITE_PINATA_JWT` are browser-exposed.
+
+### Key request pipeline
+
+For full protected playback, the browser requests a nonce, signs a content-key
+challenge with the connected wallet, and sends:
+
+```txt
+POST /api/tracks/:contentHash/key-request
+purpose = "individual" | "room_host"
+```
+
+The backend verifies:
+
+- signature validity;
+- nonce and expiry;
+- chain ID;
+- requester address;
+- request purpose;
+- runtime access through `musicAccCanAccess`.
+
+If access is allowed, the backend returns the per-track key. If access is
+denied or ambiguous, it returns a preview-mode response instead of a key.
 
 ### Decryption pipeline
 
-When a listener selects a track and passes the access check:
-
-```
-audioRef = "dotify.enc://<CID>"
-        │
-        ▼
-fetchIpfsCid(CID)           ← with gateway fallback
-        │
-        ▼
-decryptTrackAudio(bytes, contentHash)
-        │
-        ├── re-derive same key from VITE_CONTENT_SECRET + contentHash
-        │
-        └── AES-GCM.decrypt(key, iv, ciphertext)
-                │
-                ▼
-        Clear audio bytes → Blob URL → <audio> element
+```txt
+audioRef = "dotify:enc:ipfs://<CID>"
+        |
+        v
+fetchIpfsCid(CID) with gateway fallback
+        |
+        v
+authorized key available?
+        |
+        +-- yes --> decrypt full audio -> Blob URL -> <audio>
+        |
+        +-- no  --> create 42% preview -> Blob URL -> <audio>
 ```
 
-The clear audio is never persisted — it exists only as an in-memory `Blob` and the associated Object URL, which is revoked when the component unmounts.
+The clear audio is not persisted. It exists as an in-memory Blob/Object URL and
+is revoked during normal cleanup.
 
 ### Preview truncation
 
-For restricted tracks in preview mode, decryption produces the full clear audio buffer. A Web Audio API pass then re-encodes only the first 42 % as a WAV file (`encodeAudioBufferPreviewAsWav`). The truncated WAV is played; the full clear bytes are discarded. This happens entirely in the browser — no server sees the clear audio.
+For restricted tracks in preview mode, Dotify re-encodes only the first 42% of
+the decoded audio as a WAV object URL. This keeps the social room alive without
+delivering a full-track key to an unauthorized listener or host.
 
 ### Encrypted audio ref format
 
-| Prefix | Meaning |
-|---|---|
-| `dotify.enc://<CID>` | Encrypted audio on IPFS — fetch and decrypt |
-| `ipfs://<CID>` | Plain audio on IPFS — fetch directly |
-| `http[s]://...` | Plain audio at HTTP URL — fetch directly |
-| `blob:...` | Local Object URL — use directly (upload in progress) |
-| `dotify:local:<hash>` | Local draft — audio not yet uploaded |
-
-### Key derivation
-
-```typescript
-// Pseudocode — actual implementation in utils/protectedAudio.ts
-async function deriveKey(secret: string, contentHash: string): Promise<CryptoKey> {
-  const baseKey = await crypto.subtle.importKey('raw', utf8(secret), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: hex(contentHash), iterations: 100_000, hash: 'SHA-256' },
-    baseKey,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-}
-```
-
-The `contentHash` acts as a per-track salt, ensuring that different tracks produce different keys even from the same `VITE_CONTENT_SECRET`.
+| Prefix                    | Meaning                                    |
+| ------------------------- | ------------------------------------------ |
+| `dotify:enc:ipfs://<CID>` | Encrypted audio on IPFS; fetch and decrypt |
+| `ipfs://<CID>`            | Plain IPFS ref                             |
+| `http[s]://...`           | Plain HTTP audio URL                       |
+| `blob:...`                | Local Object URL                           |
+| `dotify:local:<hash>`     | Local draft audio not yet uploaded         |

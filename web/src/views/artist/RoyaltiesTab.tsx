@@ -2,22 +2,9 @@ import { ChevronDown, CircleCheckBig, Disc3, RefreshCw, Wallet } from 'lucide-re
 import { PanelTitle } from '../../components/ui/PanelTitle';
 import { EndpointRow } from '../../components/ui/EndpointRow';
 import { Metric } from '../../components/ui/Metric';
+import { getBlockscoutAddressUrl, getBlockscoutBlockUrl, getBlockscoutTxUrl } from '../../utils/explorer';
 import { formatPaymentDate, formatWeiAsDot, shorten } from '../../utils/format';
 import type { RoyaltyPayment } from '../../types';
-
-const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
-
-function getBlockscoutAddressUrl(address: `0x${string}`) {
-  return `${blockscoutBaseUrl}/address/${address}`;
-}
-
-function getBlockscoutTxUrl(txHash: `0x${string}`) {
-  return `${blockscoutBaseUrl}/tx/${txHash}`;
-}
-
-function getBlockscoutBlockUrl(blockNumber: bigint) {
-  return `${blockscoutBaseUrl}/block/${blockNumber.toString()}`;
-}
 
 type RoyaltiesTabProps = {
   royaltyPayments: RoyaltyPayment[];
@@ -149,9 +136,7 @@ export function RoyaltiesTab({
               );
             })
           ) : (
-            <div className='empty-state'>
-              {artistRuntimeAddress ? 'No paid unlocks recorded yet.' : 'Create an artist profile before tracking payments.'}
-            </div>
+            <div className='empty-state'>{artistRuntimeAddress ? 'No paid unlocks recorded yet.' : 'Create an artist profile before tracking payments.'}</div>
           )}
         </div>
       </div>

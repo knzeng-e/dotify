@@ -1,4 +1,20 @@
-import { BadgeCheck, Copy, Disc3, Headphones, KeyRound, Library, Pause, Play, Radio, Repeat2, ShieldCheck, Shuffle, SkipBack, SkipForward, Users } from 'lucide-react';
+import {
+  BadgeCheck,
+  Copy,
+  Disc3,
+  Headphones,
+  KeyRound,
+  Library,
+  Pause,
+  Play,
+  Radio,
+  Repeat2,
+  ShieldCheck,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+  Users
+} from 'lucide-react';
 import { PanelTitle } from '../components/ui/PanelTitle';
 import { EndpointRow } from '../components/ui/EndpointRow';
 import { Avatar } from '../components/Presence';
@@ -275,9 +291,7 @@ export function PlayerView({
             <span className='live-dot' />
             Live
           </span>
-          <span className='room-header-meta'>
-            {mode === 'host' ? `${connectedListenerCount + 1} in the room` : `with ${hostName || 'the host'}`}
-          </span>
+          <span className='room-header-meta'>{mode === 'host' ? `${connectedListenerCount + 1} in the room` : `with ${hostName || 'the host'}`}</span>
           <div className='room-code-pill'>
             <span>ROOM</span>
             <strong className='tnum'>{roomId}</strong>
@@ -477,9 +491,7 @@ export function PlayerView({
             {roomId && (
               <p className='room-sync-note'>
                 <span className='live-dot' />
-                {mode === 'host'
-                  ? 'You are hosting - everyone hears what you play.'
-                  : `Following ${hostName || 'the host'} - in sync`}
+                {mode === 'host' ? 'You are hosting - everyone hears what you play.' : `Following ${hostName || 'the host'} - in sync`}
               </p>
             )}
 

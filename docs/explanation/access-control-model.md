@@ -26,6 +26,7 @@ In Human free mode, a listener unlocks full playback by proving they are a real 
 The registrar (initially the artist themselves) is responsible for recording which wallet addresses hold which personhood level on-chain. Once a wallet is recognized as human at the required level, it can access the track permanently — without ever paying.
 
 **When to choose Human free:**
+
 - You want your music heard by real people, not scrapers.
 - You do not want to charge for access.
 - You want to experiment with Polkadot's identity infrastructure.
@@ -41,6 +42,7 @@ In Classic mode, a listener pays a fixed amount of DOT to unlock full playback. 
 Once a listener has paid for a track, their wallet is permanently recorded on-chain. They can return and play the track at any time without paying again.
 
 **When to choose Classic:**
+
 - You want to monetize your releases directly in DOT.
 - You prefer familiar pay-to-play economics.
 
@@ -78,7 +80,7 @@ The frontend checks this at track selection time and caches the result in `catal
 ### Payment flow (Classic mode)
 
 ```
-listener calls musicRoyPayAccess(contentHash) with msg.value = pricePlanck * 1e8
+listener calls musicRoyPayAccess(contentHash) with msg.value = stored track price
         │
         ▼
 contract verifies value >= price

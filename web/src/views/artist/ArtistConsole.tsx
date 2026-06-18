@@ -1,7 +1,8 @@
 import type { ArtistTab, CatalogTrack, RoyaltyPayment, TrackInfo } from '../../types';
 import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseStep } from '../../types';
-import type { ChangeEvent, CSSProperties } from 'react';
-import { BadgeCheck } from 'lucide-react';
+import { useEffect, useState, type ChangeEvent, type CSSProperties } from 'react';
+import { BadgeCheck, ExternalLink } from 'lucide-react';
+import { getBlockscoutAddressUrl } from '../../utils/explorer';
 import { shorten } from '../../utils/format';
 import { auraForName } from '../../utils/aura';
 import { OverviewTab } from './OverviewTab';
@@ -164,7 +165,26 @@ export function ArtistConsole(props: ArtistConsoleProps) {
   } = props;
 
   const studioAura = auraForName(artistName);
-  const studioHandle = artistName.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || 'artist';
+  const studioHandle =
+    artistName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '.')
+      .replace(/^\.+|\.+$/g, '') || 'artist';
+  const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(artistTracks[0]?.id ?? null);
+
+  useEffect(() => {
+    if (artistTracks.length === 0) {
+      setSelectedReleaseId(null);
+      return;
+    }
+
+    setSelectedReleaseId(current => (current && artistTracks.some(track => track.id === current) ? current : artistTracks[0].id));
+  }, [artistTracks]);
+
+  function openReleaseDetails(track: CatalogTrack) {
+    setSelectedReleaseId(track.id);
+    onSetArtistTab('releases');
+  }
 
   return (
     <section className='artist-console'>
@@ -181,8 +201,19 @@ export function ArtistConsole(props: ArtistConsoleProps) {
           </h1>
           <div className='studio-id-sub'>
             <span>@{studioHandle}</span>
-            {artistRuntimeAddress && <code>{shorten(artistRuntimeAddress, 12)}</code>}
-            <span>{artistTracks.length} release{artistTracks.length === 1 ? '' : 's'}</span>
+            <a className='studio-id-link' href={getBlockscoutAddressUrl(activeEvmAddress)} target='_blank' rel='noreferrer'>
+              wallet {shorten(activeEvmAddress, 10)}
+              <ExternalLink size={12} />
+            </a>
+            {artistRuntimeAddress && (
+              <a className='studio-id-link' href={getBlockscoutAddressUrl(artistRuntimeAddress)} target='_blank' rel='noreferrer'>
+                runtime {shorten(artistRuntimeAddress, 10)}
+                <ExternalLink size={12} />
+              </a>
+            )}
+            <span>
+              {artistTracks.length} release{artistTracks.length === 1 ? '' : 's'}
+            </span>
           </div>
         </div>
       </header>
@@ -223,7 +254,7 @@ export function ArtistConsole(props: ArtistConsoleProps) {
           onRefreshArtistRuntime={onRefreshArtistRuntime}
           onSetArtistTab={onSetArtistTab}
           onShowWalletModal={onShowWalletModal}
-          onOpenTrack={onOpenTrack}
+          onOpenRelease={openReleaseDetails}
         />
       )}
 
@@ -268,7 +299,7 @@ export function ArtistConsole(props: ArtistConsoleProps) {
       )}
 
       {artistTab === 'releases' && (
-        <ReleasesTab artistTracks={artistTracks} onOpenTrack={onOpenTrack} />
+        <ReleasesTab artistTracks={artistTracks} selectedReleaseId={selectedReleaseId} onSelectRelease={setSelectedReleaseId} onOpenTrack={onOpenTrack} />
       )}
 
       {artistTab === 'royalties' && (
@@ -290,6 +321,7 @@ export function ArtistConsole(props: ArtistConsoleProps) {
         <AdvancedTab
           factoryAddress={factoryAddress}
           directoryAddress={directoryAddress}
+          activeEvmAddress={activeEvmAddress}
           artistRuntimeAddress={artistRuntimeAddress}
           fileHash={fileHash}
           audioCID={audioCID}

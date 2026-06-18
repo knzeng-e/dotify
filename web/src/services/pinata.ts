@@ -174,7 +174,7 @@ export async function uploadMetadataToBackend(manifest: DotifyTrackManifest): Pr
   const res = await fetch(`${API_URL}/api/uploads/metadata`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(manifest),
+    body: JSON.stringify(manifest)
   });
 
   if (!res.ok) {

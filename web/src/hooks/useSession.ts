@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../utils/format';
 import type {
@@ -10,6 +10,7 @@ import type {
   OpenRoom,
   PeerStatus,
   PlayerState,
+  RoomPlaybackMode,
   SessionAction,
   SocketStatus,
   TrackInfo
@@ -27,12 +28,19 @@ const iceServers: RTCIceServer[] = [
   ...(TURN_URL ? [{ urls: TURN_URL, username: TURN_USERNAME, credential: TURN_CREDENTIAL } satisfies RTCIceServer] : [])
 ];
 
+// Join links use the hash route #/rooms/<roomId> so they survive static
+// hosting (GitHub Pages, IPFS gateways) without server-side rewrites.
 function getSessionLink(roomId: string) {
   if (!roomId) return '';
   const url = new URL(window.location.href);
-  url.hash = `/?room=${roomId}`;
+  url.hash = `/rooms/${roomId}`;
   return url.toString();
 }
+
+// Hosts must show liveness to the signaling server; rooms with silent hosts
+// are swept server-side to avoid zombie rooms.
+const HOST_HEARTBEAT_INTERVAL_MS = 25_000;
+const SIGNAL_ACK_TIMEOUT_MS = 8_000;
 
 function shouldMaterializeRemoteSource(source: string) {
   if (!source) return false;
@@ -47,6 +55,9 @@ function shouldMaterializeRemoteSource(source: string) {
 
 export type UseSessionDeps = {
   signalUrl: string;
+  // Optional wallet address of the host, surfaced in public room metadata.
+  // Never used for listener access: rooms are host-access based.
+  hostAddress?: string | null;
   audioSource: string | null;
   trackInfo: TrackInfo | null;
   setTrackInfo: (info: TrackInfo | null) => void;
@@ -59,16 +70,7 @@ export type UseSessionDeps = {
 };
 
 export function useSession(deps: UseSessionDeps) {
-  const {
-    signalUrl,
-    setTrackInfo,
-    setPlayerState,
-    localAudioRef,
-    objectUrlsRef,
-    resolvedAudioSourcesRef,
-    navigateToView,
-    setAudioSource
-  } = deps;
+  const { signalUrl, hostAddress, setTrackInfo, setPlayerState, localAudioRef, objectUrlsRef, resolvedAudioSourcesRef, navigateToView, setAudioSource } = deps;
 
   const [roomId, setRoomId] = useState('');
   const [hostName, setHostName] = useState('');
@@ -85,6 +87,9 @@ export function useSession(deps: UseSessionDeps) {
   const [displayName, setDisplayName] = useState('Listener');
   const [localStreamReady, setLocalStreamReady] = useState(false);
   const [isRefreshingRooms, setIsRefreshingRooms] = useState(false);
+  // Host-declared playback mode for the room: 'preview' when the host lacks
+  // access to the current protected track and streams the 42% fallback.
+  const [roomPlaybackMode, setRoomPlaybackMode] = useState<'full' | 'preview'>('full');
 
   const roomIdRef = useRef('');
   const hostIdRef = useRef('');
@@ -142,6 +147,24 @@ export function useSession(deps: UseSessionDeps) {
     setLocalStreamReady(false);
   }
 
+  function clearRoomState(status: string, errorMessage: string | null, options: { closePeers?: boolean } = {}) {
+    if (options.closePeers !== false) {
+      closeAllPeers();
+    }
+    roomIdRef.current = '';
+    hostIdRef.current = '';
+    setRoomId('');
+    setHostName('');
+    setListeners([]);
+    listenersRef.current = [];
+    setListenerCount(0);
+    setRoomPlaybackMode('full');
+    setRemoteReady(false);
+    setSessionAction('idle');
+    setSessionStatus(status);
+    setError(errorMessage);
+  }
+
   function getSocket() {
     if (socketRef.current) return socketRef.current;
 
@@ -154,6 +177,14 @@ export function useSession(deps: UseSessionDeps) {
       setSocketStatus('online');
       setError(null);
       socket.emit('rooms:list', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
+
+      // A listener whose socket dropped mid-session rejoins the same room
+      // automatically (the server sees a fresh socket id, so a clean re-join
+      // is the correct recovery; the host then re-offers WebRTC).
+      if (modeRef.current === 'listener' && roomIdRef.current) {
+        setSessionStatus('Reconnecting');
+        rejoinRoom(roomIdRef.current);
+      }
     });
     socket.on('connect_error', () => {
       setSocketStatus('error');
@@ -161,7 +192,16 @@ export function useSession(deps: UseSessionDeps) {
       setIsRefreshingRooms(false);
       setError(`Signal server unavailable: ${signalUrl}`);
     });
-    socket.on('disconnect', () => setSocketStatus('offline'));
+    socket.on('disconnect', () => {
+      setSocketStatus('offline');
+      if (modeRef.current === 'host' && roomIdRef.current) {
+        clearRoomState('Room closed', 'Signal disconnected. The hosted room was closed.');
+        return;
+      }
+      if (roomIdRef.current) {
+        setSessionStatus('Reconnecting');
+      }
+    });
     socket.on('rooms:updated', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
 
     socket.on('listener:joined', (payload: { listenerId: string; displayName: string; listenerCount: number }) => {
@@ -187,12 +227,17 @@ export function useSession(deps: UseSessionDeps) {
     });
     socket.on('room:track', (track: TrackInfo | null) => setTrackInfo(track));
     socket.on('player:state', (state: PlayerState | null) => setPlayerState(state));
+    socket.on('room:playback-mode', (payload: { playbackMode?: 'full' | 'preview' }) => {
+      const playbackMode = payload?.playbackMode === 'preview' ? 'preview' : 'full';
+      setRoomPlaybackMode(playbackMode);
+      if (modeRef.current === 'listener') {
+        setSessionStatus(playbackMode === 'preview' ? 'Host preview mode' : 'Live');
+      }
+    });
     socket.on('room:closed', (payload: { reason?: string }) => {
-      closeListenerPeer();
-      setRemoteReady(false);
-      setSessionAction('idle');
-      setSessionStatus(payload.reason ?? 'Room closed');
-      setError(payload.reason ?? 'Room closed');
+      // The room is gone (host left, expired, or timed out): forget it so the
+      // reconnect logic does not try to rejoin a dead room.
+      clearRoomState(payload.reason ?? 'Room closed', payload.reason ?? 'Room closed');
     });
     socket.on('webrtc:offer', (payload: { from: string; offer: RTCSessionDescriptionInit }) => {
       void acceptOffer(payload.from, payload.offer);
@@ -217,6 +262,48 @@ export function useSession(deps: UseSessionDeps) {
       setSocketStatus('connecting');
       socket.connect();
     }
+    return socket;
+  }
+
+  function emitAckWhenConnected<Response>(event: string, payload: unknown, onAck: (response: Response) => void, onFailure: () => void) {
+    const socket = connectSocket();
+    let settled = false;
+    let timeoutId = 0;
+
+    function cleanup() {
+      socket.off('connect', send);
+      socket.off('connect_error', fail);
+      if (timeoutId) window.clearTimeout(timeoutId);
+    }
+
+    function fail() {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      onFailure();
+    }
+
+    function send() {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      socket.timeout(SIGNAL_ACK_TIMEOUT_MS).emit(event, payload, (error: Error | null, response: Response | undefined) => {
+        if (error || response === undefined) {
+          onFailure();
+          return;
+        }
+        onAck(response);
+      });
+    }
+
+    timeoutId = window.setTimeout(fail, SIGNAL_ACK_TIMEOUT_MS);
+    if (socket.connected) {
+      send();
+    } else {
+      socket.once('connect', send);
+      socket.once('connect_error', fail);
+    }
+
     return socket;
   }
 
@@ -441,7 +528,7 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
-  function createSession(currentTrackInfo: TrackInfo | null, event?: FormEvent<HTMLFormElement>) {
+  function createSession(currentTrackInfo: TrackInfo | null, playbackMode: RoomPlaybackMode = 'full', event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     setSessionAction('creating');
     changeMode('host');
@@ -450,24 +537,31 @@ export function useSession(deps: UseSessionDeps) {
     setSessionStatus('Opening room');
     closeListenerPeer();
 
-    const socket = connectSocket();
-    socket.emit('room:create', { displayName, track: currentTrackInfo }, (response: CreateRoomResponse) => {
-      setSessionAction('idle');
-      if (!response.ok) {
-        setError(response.error);
-        setSessionStatus('Error');
-        return;
-      }
+    emitAckWhenConnected<CreateRoomResponse>(
+      'room:create',
+      { displayName, track: currentTrackInfo, hostAddress: hostAddress ?? null, playbackMode },
+      (response: CreateRoomResponse) => {
+        setSessionAction('idle');
+        if (!response.ok) {
+          setError(response.error);
+          setSessionStatus('Error');
+          return;
+        }
 
-      roomIdRef.current = response.roomId;
-      setRoomId(response.roomId);
-      setHostName(response.hostName);
-      setListeners([]);
-      listenersRef.current = [];
-      setListenerCount(0);
-      setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
-      requestOpenRooms();
-    });
+        roomIdRef.current = response.roomId;
+        setRoomId(response.roomId);
+        setHostName(response.hostName);
+        setListeners([]);
+        listenersRef.current = [];
+        setListenerCount(0);
+        setRoomPlaybackMode(playbackMode);
+        setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
+        requestOpenRooms();
+      },
+      () => {
+        clearRoomState('Error', 'Signal server did not confirm room creation.', { closePeers: false });
+      }
+    );
   }
 
   function joinRoom(roomCode: string) {
@@ -484,25 +578,55 @@ export function useSession(deps: UseSessionDeps) {
     setSessionStatus('Joining room');
     closeHostPeers();
 
-    const socket = connectSocket();
-    socket.emit('room:join', { roomId: normalizedRoomId, displayName }, (response: JoinRoomResponse) => {
-      setSessionAction('idle');
+    emitAckWhenConnected<JoinRoomResponse>(
+      'room:join',
+      { roomId: normalizedRoomId, displayName },
+      (response: JoinRoomResponse) => {
+        setSessionAction('idle');
+        if (!response.ok) {
+          setError(response.error);
+          setSessionStatus('Error');
+          return;
+        }
+
+        roomIdRef.current = response.roomId;
+        hostIdRef.current = response.hostId;
+        setRoomId(response.roomId);
+        setJoinCode(response.roomId);
+        setHostName(response.hostName);
+        setTrackInfo(response.track);
+        setPlayerState(response.playerState);
+        setListenerCount(response.listenerCount);
+        setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
+        setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
+        requestOpenRooms();
+      },
+      () => {
+        clearRoomState('Error', 'Signal server did not confirm room join.', { closePeers: false });
+      }
+    );
+  }
+
+  // Silent re-join after a socket reconnect: same room, fresh socket id.
+  // The host receives listener:joined and re-offers WebRTC.
+  function rejoinRoom(targetRoomId: string) {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    socket.emit('room:join', { roomId: targetRoomId, displayName }, (response: JoinRoomResponse) => {
       if (!response.ok) {
-        setError(response.error);
-        setSessionStatus('Error');
+        clearRoomState('Room closed', response.error);
         return;
       }
 
       roomIdRef.current = response.roomId;
       hostIdRef.current = response.hostId;
-      setRoomId(response.roomId);
-      setJoinCode(response.roomId);
       setHostName(response.hostName);
       setTrackInfo(response.track);
       setPlayerState(response.playerState);
       setListenerCount(response.listenerCount);
+      setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
       setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
-      requestOpenRooms();
     });
   }
 
@@ -513,19 +637,20 @@ export function useSession(deps: UseSessionDeps) {
 
   function leaveSession() {
     socketRef.current?.emit('room:leave');
-    closeAllPeers();
-    roomIdRef.current = '';
-    hostIdRef.current = '';
-    setRoomId('');
-    setHostName('');
-    setListeners([]);
-    listenersRef.current = [];
-    setListenerCount(0);
-    setRemoteReady(false);
-    setSessionStatus('Ready');
-    setError(null);
+    clearRoomState('Ready', null);
     requestOpenRooms();
   }
+
+  // Host heartbeat: proves liveness to the signaling server so the room is
+  // not swept as a zombie. Only active while hosting an open room.
+  useEffect(() => {
+    if (mode !== 'host' || !roomId) return;
+
+    const timer = setInterval(() => {
+      socketRef.current?.emit('host:heartbeat');
+    }, HOST_HEARTBEAT_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [mode, roomId]);
 
   async function copySessionLink() {
     const link = getSessionLink(roomId);
@@ -574,6 +699,7 @@ export function useSession(deps: UseSessionDeps) {
     localStreamReady,
     setLocalStreamReady,
     isRefreshingRooms,
+    roomPlaybackMode,
     // Refs
     roomIdRef,
     hostIdRef,
@@ -617,6 +743,12 @@ export function useSession(deps: UseSessionDeps) {
 }
 
 export function getInitialRoomCode() {
+  // Preferred share-link form: #/rooms/<roomId>
+  const hashPath = window.location.hash.split('?')[0] ?? '';
+  const roomsMatch = hashPath.match(/\/rooms\/([A-Za-z0-9]{4,12})/);
+  if (roomsMatch) return roomsMatch[1].toUpperCase();
+
+  // Legacy form: #/?room=<roomId> (older shared links keep working)
   const hashQuery = window.location.hash.split('?')[1] ?? '';
   return new URLSearchParams(hashQuery).get('room')?.toUpperCase() ?? '';
 }

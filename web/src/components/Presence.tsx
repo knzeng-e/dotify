@@ -19,12 +19,7 @@ function avatarVars(name: string, size: number): CSSProperties {
 
 export function Avatar({ name, size = 34, host = false, you = false }: AvatarProps) {
   return (
-    <span
-      className={'ava' + (host ? ' ava-host' : '') + (you ? ' ava-you' : '')}
-      style={avatarVars(name, size)}
-      title={name}
-      aria-hidden='true'
-    >
+    <span className={'ava' + (host ? ' ava-host' : '') + (you ? ' ava-you' : '')} style={avatarVars(name, size)} title={name} aria-hidden='true'>
       <span className='ava-initials'>{(name || '?').slice(0, 2).toUpperCase()}</span>
     </span>
   );

@@ -10,13 +10,14 @@
 	"scripts": {
 		"dev": "vite --host 0.0.0.0 --port 5273",
 		"signal": "SIGNAL_PORT=8788 node server/signaling.mjs",
+		"test:signal": "node --test server/signaling.test.mjs",
 		"dev:listen": "concurrently -n signal,web -c magenta,cyan \"npm:signal\" \"npm:dev\"",
 		"build": "tsc -b && vite build",
 		"build:bulletin": "tsc -b && vite build --config vite.bulletin.config.ts",
 		"deploy:bulletin": "node scripts/deploy-bulletin.cjs",
 		"lint": "eslint .",
-		"fmt": "prettier --write 'src/**/*.{ts,tsx}' server/signaling.mjs README.md",
-		"fmt:check": "prettier --check 'src/**/*.{ts,tsx}' server/signaling.mjs README.md",
+		"fmt": "prettier --write 'src/**/*.{ts,tsx}' 'server/**/*.mjs' README.md",
+		"fmt:check": "prettier --check 'src/**/*.{ts,tsx}' 'server/**/*.mjs' README.md",
 		"update-types": "papi update",
 		"codegen": "papi generate",
 		"preview": "vite preview --host 0.0.0.0 --port 4273"

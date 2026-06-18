@@ -1,0 +1,27 @@
+app = "dotify-api"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  API_PORT = "8790"
+  NODE_ENV = "production"
+  PASEO_ASSET_HUB_RPC = "https://services.polkadothub-rpc.com/testnet"
+  DOTIFY_FACTORY_ADDRESS = "0x74ba85c2b29d2acb3777b9b3ca26c286945cae3c"
+  DOTIFY_DIRECTORY_ADDRESS = "0xdd92194909df3dc5c3d254b53f7283d025c35d8c"
+  DOTIFY_CHAIN_ID = "420420417"
+
+[http_service]
+  internal_port = 8790
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"
+

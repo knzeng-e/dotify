@@ -13,18 +13,11 @@ import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from
 import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
 import { makeEncryptedAudioRef } from '../utils/protectedAudio';
 import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../utils/format';
-import type {
-  AccessMode,
-  CatalogTrack,
-  PersonhoodLevel,
-  RoyaltyPayment,
-  TransactionFeedback
-} from '../types';
+import type { AccessMode, CatalogTrack, PersonhoodLevel, RoyaltyPayment, TransactionFeedback } from '../types';
 import type { ConnectedWallet } from './useWallet';
 import type { PolkadotSigner } from 'polkadot-api';
 
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
-const blockscoutBaseUrl = 'https://blockscout-testnet.polkadot.io';
 const musicRoyAccessPaidEvent = parseAbiItem('event MusicRoyAccessPaid(bytes32 indexed contentHash, address indexed listener, uint256 amount)');
 
 function createBulletinManifestRef(hash: `0x${string}`) {
@@ -624,7 +617,6 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     refreshArtistRoyalties,
     createRightsManifest,
     getActiveWalletClient,
-    updateArtistName,
-    blockscoutBaseUrl
+    updateArtistName
   };
 }

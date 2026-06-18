@@ -18,7 +18,7 @@
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { expect } from 'chai';
 import hre from 'hardhat';
-import { keccak256, toBytes, parseEther, type Abi, type AbiFunction } from 'viem';
+import { keccak256, toBytes, parseAbiItem, parseEther, type Abi, type AbiFunction } from 'viem';
 import { toFunctionSelector } from 'viem';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,6 +36,7 @@ function selectorsFromAbi(abi: Abi): `0x${string}`[] {
 
 const TRACK_HASH = keccak256(toBytes('dotify:track:001')) as `0x${string}`;
 const TRACK_HASH2 = keccak256(toBytes('dotify:track:002')) as `0x${string}`;
+const musicRoyRefundedEvent = parseAbiItem('event MusicRoyRefunded(bytes32 indexed contentHash, address indexed listener, uint256 amount)');
 
 function sampleRegistration(
   overrides: Partial<{
@@ -520,6 +521,12 @@ describe('MusicRoyaltiesPallet — payment security', () => {
     const txHash = await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: OVERPAY });
     const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
     const gasCost = receipt.gasUsed * receipt.effectiveGasPrice;
+    const refundEvents = await publicClient.getLogs({
+      address: royalties.address,
+      event: musicRoyRefundedEvent,
+      fromBlock: receipt.blockNumber,
+      toBlock: receipt.blockNumber
+    });
 
     const recip1After = await publicClient.getBalance({ address: royaltyRecip.account.address });
     const recip2After = await publicClient.getBalance({ address: other.account.address });
@@ -531,6 +538,10 @@ describe('MusicRoyaltiesPallet — payment security', () => {
 
     // Listener is out exactly PRICE plus gas; the 1.0 overpayment is refunded.
     expect(listenerBefore - listenerAfter).to.equal(PRICE + gasCost);
+    expect(refundEvents).to.have.lengthOf(1);
+    expect(refundEvents[0].args.contentHash).to.equal(TRACK_HASH);
+    expect(refundEvents[0].args.listener?.toLowerCase()).to.equal(listener.account.address.toLowerCase());
+    expect(refundEvents[0].args.amount).to.equal(OVERPAY - PRICE);
   });
 
   it('reentrancy: a malicious royalty recipient that re-enters for another track cannot bypass the guard', async () => {

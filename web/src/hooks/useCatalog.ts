@@ -1,15 +1,9 @@
 import { useRef, useState } from 'react';
 import { getGatewayUrl } from '../services/pinata';
-import {
-  ensureContract,
-  getPublicClient,
-  artistDirectoryAbi,
-  musicRegistryAbi,
-  musicAccessAbi
-} from '../config/contracts';
+import { ensureContract, getPublicClient, artistDirectoryAbi, musicRegistryAbi, musicAccessAbi, musicRoyaltiesAbi } from '../config/contracts';
 import { encodeAudioBufferPreviewAsWav } from '../utils/audio';
 import { decryptAudio, hexToBytes } from '../utils/crypto';
-import { formatPlanckAsDot } from '../utils/format';
+import { formatWeiAsDot } from '../utils/format';
 import { fetchIpfsCid } from '../services/pinata';
 import { isKeyServiceConfigured, requestContentKey, type KeyRequestPurpose } from '../services/keyService';
 import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../utils/protectedAudio';
@@ -21,6 +15,8 @@ import type {
   PersonhoodLevel,
   PlayerState,
   RegistryCatalogTrack,
+  RoomPlaybackMode,
+  RoyaltySplit,
   TrackInfo,
   TransactionFeedback
 } from '../types';
@@ -138,6 +134,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const [catalogStatus, setCatalogStatus] = useState('Loading registry catalog');
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
+  const [catalogPaidAccessByTrackId, setCatalogPaidAccessByTrackId] = useState<Record<string, boolean>>({});
   const [audioSource, setAudioSource] = useState<string | null>(null);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
@@ -177,6 +174,22 @@ export function useCatalog(deps: UseCatalogDeps) {
         address: runtimeAddress,
         abi: musicAccessAbi,
         functionName: 'musicAccCanAccess',
+        args: [track.hash, listenerAddress]
+      })) as boolean;
+    } catch {
+      return false;
+    }
+  }
+
+  async function checkTrackPaidAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
+    if (track.source !== 'artist' || !track.id.includes(':') || track.accessMode !== 'classic') return false;
+    if (!listenerAddress) return false;
+    const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
+    try {
+      return (await getPublicClient(ethRpcUrl).readContract({
+        address: runtimeAddress,
+        abi: musicAccessAbi,
+        functionName: 'musicAccHasPaid',
         args: [track.hash, listenerAddress]
       })) as boolean;
     } catch {
@@ -228,14 +241,27 @@ export function useCatalog(deps: UseCatalogDeps) {
     previewLimitRef.current = audio.duration * PREVIEW_RATIO;
   }
 
-  function enforcePreviewCutoff(catalogTracksSnapshot: CatalogTrack[], selectedTrackIdSnapshot: string) {
+  function enforcePreviewCutoff(
+    catalogTracksSnapshot: CatalogTrack[],
+    selectedTrackIdSnapshot: string,
+    options: { onPreviewEnded?: (endedTrack: CatalogTrack, nextTrack: CatalogTrack | null) => void } = {}
+  ) {
     const audio = localAudioRef.current;
     const limit = previewLimitRef.current;
     if (!audio || limit === null || audio.paused) return;
     if (audio.currentTime >= limit) {
       audio.pause();
-      const track = catalogTracksSnapshot.find(t => t.id === selectedTrackIdSnapshot) ?? null;
-      if (track) setAccessGate(buildAccessGateInfo(track));
+      const trackIndex = catalogTracksSnapshot.findIndex(t => t.id === selectedTrackIdSnapshot);
+      const track = trackIndex >= 0 ? catalogTracksSnapshot[trackIndex] : null;
+      if (!track) return;
+      setAccessGate(buildAccessGateInfo(track));
+      if (options.onPreviewEnded) {
+        // Room doctrine: an unauthorized host streams the 42% preview, sees a
+        // discreet unlock CTA, and the playlist auto-advances. The caller
+        // decides whether a room is live and what "next" means.
+        const nextTrack = catalogTracksSnapshot.length > 1 ? catalogTracksSnapshot[(trackIndex + 1) % catalogTracksSnapshot.length] : null;
+        options.onPreviewEnded(track, nextTrack);
+      }
     }
   }
 
@@ -316,9 +342,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     // Preview-only playback skips the key request: the backend would deny it
     // anyway, and we avoid a pointless wallet signature prompt.
     const serverKey = options.previewOnly ? null : await resolveServerContentKey(contentHash);
-    const clearBytes = serverKey
-      ? await decryptAudio(encryptedBytes, serverKey)
-      : await decryptTrackAudio(encryptedBytes, contentHash);
+    const clearBytes = serverKey ? await decryptAudio(encryptedBytes, serverKey) : await decryptTrackAudio(encryptedBytes, contentHash);
     if (options.previewOnly) {
       return createPreviewAudioObjectUrl(clearBytes, cacheKey);
     }
@@ -330,7 +354,12 @@ export function useCatalog(deps: UseCatalogDeps) {
     return objectUrl;
   }
 
-  async function selectTrack(track: CatalogTrack, socketEmit?: (event: string, data: unknown) => void, setLocalStreamReady?: (ready: boolean) => void, closeHostPeers?: () => void) {
+  async function selectTrack(
+    track: CatalogTrack,
+    socketEmit?: (event: string, data: unknown) => void,
+    setLocalStreamReady?: (ready: boolean) => void,
+    closeHostPeers?: () => void
+  ): Promise<RoomPlaybackMode> {
     setSelectedTrackId(track.id);
     setTitle(track.title);
     setArtistName(track.artist);
@@ -351,20 +380,26 @@ export function useCatalog(deps: UseCatalogDeps) {
     keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
 
     let audioUrl: string | null = null;
+    let playbackMode: RoomPlaybackMode = 'full';
 
-    if (track.localUrl) {
+    if (track.source === 'artist' && track.id.includes(':')) {
       const hasAccess = await checkTrackAccess(track, listenerEvmAddress);
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
       const previewOnly = !hasAccess;
       previewOnlyRef.current = previewOnly;
-
-      audioUrl = track.encrypted
-        ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, { previewOnly }).catch(() => null)
-        : await resolvePlayableAudioSource(track.localUrl, track.audioRef, { previewOnly }).catch(() => null);
+      playbackMode = previewOnly ? 'preview' : 'full';
 
       if (previewOnly) {
         setAccessGate(buildAccessGateInfo(track));
-      } else if (!audioUrl && track.encrypted) {
+      }
+    }
+
+    if (track.localUrl) {
+      audioUrl = track.encrypted
+        ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, { previewOnly: playbackMode === 'preview' }).catch(() => null)
+        : await resolvePlayableAudioSource(track.localUrl, track.audioRef, { previewOnly: playbackMode === 'preview' }).catch(() => null);
+
+      if (playbackMode === 'full' && !audioUrl && track.encrypted) {
         // Access is granted but the key or decryption failed. Say so plainly
         // instead of leaving a silent dead player.
         setTransactionFeedback({
@@ -384,12 +419,22 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     if (socketEmit) {
       socketEmit('room:track', createTrackInfoFromCatalog(track));
+      // Host-based room access: declare honestly whether the room hears the
+      // full track or the 42% preview fallback.
+      socketEmit('room:playback-mode', { playbackMode });
     }
+
+    return playbackMode;
   }
 
-  async function openTrack(track: CatalogTrack, socketEmit?: (event: string, data: unknown) => void, setLocalStreamReady?: (ready: boolean) => void, closeHostPeers?: () => void) {
+  async function openTrack(
+    track: CatalogTrack,
+    socketEmit?: (event: string, data: unknown) => void,
+    setLocalStreamReady?: (ready: boolean) => void,
+    closeHostPeers?: () => void
+  ) {
     navigateToView('player');
-    await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+    return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
   }
 
   async function payForTrackAccess(track: CatalogTrack) {
@@ -403,7 +448,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const { dotToPlanck } = await import('../utils/format');
 
     const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
-    const priceWei = dotToPlanck(track.priceDot) * 100_000_000n;
+    const priceWei = dotToPlanck(track.priceDot);
 
     setAccessGate(null);
     setTransactionFeedback({
@@ -427,6 +472,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       previewOnlyRef.current = false;
       previewLimitRef.current = null;
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+      setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback({ tone: 'success', title: 'Access unlocked', message: `Full playback of "${track.title}" is now available.`, txHash });
       await selectTrack(track, undefined, undefined, undefined);
     } catch (payError) {
@@ -493,6 +539,33 @@ export function useCatalog(deps: UseCatalogDeps) {
         const imageRef = resolveVisualAssetRef(track.imageRef, track.title);
         const encrypted = isEncryptedAudioRef(track.audioRef);
         const localUrl = resolveAudioAssetRef(track.audioRef);
+        const splitCount = (await client
+          .readContract({
+            address: runtimeAddress,
+            abi: musicRoyaltiesAbi,
+            functionName: 'musicRoySplitCount',
+            args: [hash]
+          })
+          .catch(() => 0n)) as bigint;
+        const royaltySplits = await Promise.all(
+          Array.from({ length: Number(splitCount) }, async (_, splitIndex): Promise<RoyaltySplit | null> => {
+            try {
+              const [recipient, bps] = (await client.readContract({
+                address: runtimeAddress,
+                abi: musicRoyaltiesAbi,
+                functionName: 'musicRoySplitAt',
+                args: [hash, BigInt(splitIndex)]
+              })) as [`0x${string}`, number];
+              return {
+                label: splitIndex === 0 ? 'Primary recipient' : `Split ${splitIndex + 1}`,
+                recipient,
+                bps: Number(bps)
+              };
+            } catch {
+              return null;
+            }
+          })
+        );
 
         return {
           id: `${runtimeAddress}:${hash}`,
@@ -502,7 +575,7 @@ export function useCatalog(deps: UseCatalogDeps) {
           artistAddress: track.artist || artistAddress,
           audioRef: track.audioRef,
           imageRef,
-          priceDot: formatPlanckAsDot(track.pricePlanck),
+          priceDot: formatWeiAsDot(track.pricePlanck),
           localUrl,
           description: track.description,
           bulletinRef: track.metadataRef.startsWith('paseo-bulletin:') ? track.metadataRef : '',
@@ -512,7 +585,7 @@ export function useCatalog(deps: UseCatalogDeps) {
           durationLabel: 'ready',
           accessMode: (track.accessMode === 1 ? 'classic' : 'human-free') as AccessMode,
           source: 'artist' as const,
-          royaltySplits: [],
+          royaltySplits: royaltySplits.filter((split): split is RoyaltySplit => Boolean(split)),
           personhoodLevel: track.requiredPersonhood === 2 ? 'DIM2' : 'DIM1',
           zone: 'Registry',
           encrypted,
@@ -615,6 +688,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     setSelectedTrackId,
     catalogAccessByTrackId,
     setCatalogAccessByTrackId,
+    catalogPaidAccessByTrackId,
+    setCatalogPaidAccessByTrackId,
     audioSource,
     setAudioSource,
     trackInfo,
@@ -643,6 +718,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     selectTrack,
     openTrack,
     checkTrackAccess,
+    checkTrackPaidAccess,
     buildAccessGateInfo,
     setupPreviewLimit,
     enforcePreviewCutoff,

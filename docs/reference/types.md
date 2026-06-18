@@ -28,9 +28,9 @@ type PersonhoodLevel = 'DIM1' | 'DIM2';
 
 The Polkadot Proof of Personhood level required to access a Human free track.
 
-| Value | Meaning |
-|---|---|
-| `DIM1` | Basic proof of unique humanity |
+| Value  | Meaning                                 |
+| ------ | --------------------------------------- |
+| `DIM1` | Basic proof of unique humanity          |
 | `DIM2` | Higher-confidence identity verification |
 
 ---
@@ -44,11 +44,11 @@ type View = 'listen' | 'player' | 'rooms';
 The active top-level listener-app view. The artist portal is a separate `/artists`
 surface and is not part of this in-app view union.
 
-| Value | Screen |
-|---|---|
-| `listen` | Catalog grid — discover and browse tracks |
-| `player` | Integrated player — play a track and manage a room |
-| `rooms` | Live rooms list — discover and join active sessions |
+| Value    | Screen                                              |
+| -------- | --------------------------------------------------- |
+| `listen` | Catalog grid — discover and browse tracks           |
+| `player` | Integrated player — play a track and manage a room  |
+| `rooms`  | Live rooms list — discover and join active sessions |
 
 ---
 
@@ -60,10 +60,10 @@ type AccessMode = 'human-free' | 'classic';
 
 The access policy for a registered track.
 
-| Value | Meaning |
-|---|---|
+| Value        | Meaning                                  |
+| ------------ | ---------------------------------------- |
 | `human-free` | Unlocked by Polkadot Proof of Personhood |
-| `classic` | Unlocked by DOT payment |
+| `classic`    | Unlocked by DOT payment                  |
 
 ---
 
@@ -85,12 +85,12 @@ type PeerStatus = 'waiting' | 'connecting' | 'connected' | 'disconnected';
 
 The WebRTC connection status of a single listener peer.
 
-| Value | Meaning |
-|---|---|
-| `waiting` | Room created but audio stream not started yet |
-| `connecting` | ICE negotiation in progress |
-| `connected` | Audio stream active |
-| `disconnected` | Connection lost or closed |
+| Value          | Meaning                                       |
+| -------------- | --------------------------------------------- |
+| `waiting`      | Room created but audio stream not started yet |
+| `connecting`   | ICE negotiation in progress                   |
+| `connected`    | Audio stream active                           |
+| `disconnected` | Connection lost or closed                     |
 
 ---
 
@@ -133,12 +133,23 @@ type ReleaseStep = 'assets' | 'metadata' | 'access' | 'review';
 
 The current step in the four-step new release wizard.
 
-| Step | Content |
-|---|---|
-| `assets` | Upload audio and cover image |
-| `metadata` | Set title and description |
-| `access` | Choose access mode, personhood level, price, royalties |
-| `review` | Summary before publishing |
+| Step       | Content                                                |
+| ---------- | ------------------------------------------------------ |
+| `assets`   | Upload audio and cover image                           |
+| `metadata` | Set title and description                              |
+| `access`   | Choose access mode, personhood level, price, royalties |
+| `review`   | Summary before publishing                              |
+
+---
+
+### `RoomPlaybackMode`
+
+```typescript
+type RoomPlaybackMode = 'full' | 'preview';
+```
+
+Host-declared playback mode for a room. `preview` means the host is streaming
+the 42% fallback instead of full protected audio.
 
 ---
 
@@ -158,9 +169,9 @@ Controls the visual state of the `TransactionModal`.
 
 ```typescript
 type RoyaltySplit = {
-  label: string;        // Display name for the recipient (UI only)
-  recipient: `0x${string}`;  // EVM wallet address
-  bps: number;          // Basis points (0–10000, where 10000 = 100 %)
+  label: string; // Display name for the recipient (UI only)
+  recipient: `0x${string}`; // EVM wallet address
+  bps: number; // Basis points (0–10000, where 10000 = 100 %)
 };
 ```
 
@@ -174,16 +185,16 @@ A single entry in a track's royalty distribution table. Submitted as parallel ar
 type TrackInfo = {
   title: string;
   artist: string;
-  duration: number;             // Seconds
-  updatedAt: number;            // Unix ms timestamp
-  imageRef?: string;            // URL or IPFS ref for cover image
-  audioRef?: string;            // URL or IPFS ref for audio file
-  priceDot?: string;            // Decimal DOT amount (Classic mode only)
-  bulletinRef: string;          // Bulletin archive ref, or empty string
-  metadataRef?: string;         // IPFS metadata ref (ipfs://<CID>)
+  duration: number; // Seconds
+  updatedAt: number; // Unix ms timestamp
+  imageRef?: string; // URL or IPFS ref for cover image
+  audioRef?: string; // URL or IPFS ref for audio file
+  priceDot?: string; // Decimal DOT amount (Classic mode only)
+  bulletinRef: string; // Bulletin archive ref, or empty string
+  metadataRef?: string; // IPFS metadata ref (ipfs://<CID>)
   description?: string;
   accessMode?: AccessMode;
-  hash: `0x${string}` | '';     // blake2b-256 content hash
+  hash: `0x${string}` | ''; // blake2b-256 content hash
   personhoodLevel?: PersonhoodLevel;
 };
 ```
@@ -196,15 +207,15 @@ The lightweight track representation used in the player and emitted over Socket.
 
 ```typescript
 type CatalogTrack = {
-  id: string;                   // "<runtimeAddress>:<contentHash>" for on-chain tracks
-  zone: string;                 // Display group ("Registry", "Studio", etc.)
+  id: string; // "<runtimeAddress>:<contentHash>" for on-chain tracks
+  zone: string; // Display group ("Registry", "Studio", etc.)
   title: string;
   artist: string;
   artistAddress?: `0x${string}`;
   audioRef: string;
   imageRef: string;
   priceDot: string;
-  localUrl?: string;            // Resolved playable URL (blob:, http:, etc.)
+  localUrl?: string; // Resolved playable URL (blob:, http:, etc.)
   duration?: number;
   hash: `0x${string}`;
   description: string;
@@ -217,7 +228,7 @@ type CatalogTrack = {
   source: 'seed' | 'artist';
   royaltySplits: RoyaltySplit[];
   personhoodLevel: PersonhoodLevel;
-  encrypted: boolean;           // true if audioRef is a dotify.enc:// ref
+  encrypted: boolean; // true if audioRef is a dotify:enc:ipfs:// ref
 };
 ```
 
@@ -230,8 +241,8 @@ The full catalog entry for a track as used in the browse and player views. On-ch
 ```typescript
 type PlayerState = {
   playing: boolean;
-  duration: number;    // Seconds
-  updatedAt: number;   // Unix ms timestamp of last state emission
+  duration: number; // Seconds
+  updatedAt: number; // Unix ms timestamp of last state emission
   currentTime: number; // Seconds
 };
 ```
@@ -244,7 +255,7 @@ Emitted by the host every ~1 second (and immediately on play/pause/seek) to sync
 
 ```typescript
 type ListenerRecord = {
-  id: string;           // Socket.IO socket ID
+  id: string; // Socket.IO socket ID
   status: PeerStatus;
   displayName: string;
 };
@@ -259,15 +270,55 @@ One connected listener as tracked by the host. The host maintains a list of thes
 ```typescript
 type OpenRoom = {
   roomId: string;
+  title?: string;
   hostName: string;
-  createdAt: number;          // Unix ms timestamp
+  hostAddress?: string | null;
+  createdAt: number; // Unix ms timestamp
+  expiresAt?: number; // Unix ms timestamp
   listenerCount: number;
-  track: TrackInfo | null;    // null if host has not started playing
+  track: TrackInfo | null; // null if host has not started playing
   playerState: PlayerState | null;
+  playbackMode?: RoomPlaybackMode;
+  hostAccessRequired?: boolean;
+  listenersNeedWalletAccess?: false;
 };
 ```
 
-The public listing for a room, broadcast by the signaling server to all clients. Displayed in the Rooms view.
+The public listing for a room, broadcast by the signaling server to all clients.
+Displayed in the Rooms view. Room access is host-based:
+`listenersNeedWalletAccess` is always `false`.
+
+---
+
+### `CreateRoomResponse`
+
+```typescript
+type CreateRoomResponse = { ok: true; roomId: string; hostName: string; expiresAt?: number } | { ok: false; error: string };
+```
+
+Ack payload for `room:create`.
+
+---
+
+### `JoinRoomResponse`
+
+```typescript
+type JoinRoomResponse =
+  | {
+      ok: true;
+      roomId: string;
+      hostId: string;
+      hostName: string;
+      listenerCount: number;
+      track: TrackInfo | null;
+      playerState: PlayerState | null;
+      playbackMode?: RoomPlaybackMode;
+      expiresAt?: number;
+    }
+  | { ok: false; error: string; code?: string };
+```
+
+Ack payload for `room:join`.
 
 ---
 
@@ -278,7 +329,7 @@ type TransactionFeedback = {
   tone: TransactionFeedbackTone;
   title: string;
   message: string;
-  txHash?: `0x${string}`;  // Present after transaction submission
+  txHash?: `0x${string}`; // Present after transaction submission
 };
 ```
 
@@ -300,10 +351,10 @@ type AccessGate = {
 
 Displayed as the `AccessGateOverlay` when a listener hits the 42 % preview limit without access. `actionType` controls which CTA is shown:
 
-| `actionType` | Shown when | CTA |
-|---|---|---|
-| `signin` | No wallet connected | "Use wallet to unlock" |
-| `payment` | Wallet connected, Classic track | "Pay X DOT to unlock" |
+| `actionType` | Shown when                         | CTA                                             |
+| ------------ | ---------------------------------- | ----------------------------------------------- |
+| `signin`     | No wallet connected                | "Use wallet to unlock"                          |
+| `payment`    | Wallet connected, Classic track    | "Pay X DOT to unlock"                           |
 | `personhood` | Wallet connected, insufficient PoP | No payment CTA — user must obtain PoP off-chain |
 
 ---
@@ -312,13 +363,13 @@ Displayed as the `AccessGateOverlay` when a listener hits the 42 % preview limit
 
 ```typescript
 type RoyaltyPayment = {
-  id: string;               // "<txHash>-<logIndex>"
+  id: string; // "<txHash>-<logIndex>"
   trackHash: `0x${string}`;
   trackTitle: string;
   listener: `0x${string}`;
   amountWei: bigint;
-  amountDot: string;        // Formatted for display
-  paidAtMs: number | null;  // null if block timestamp unavailable
+  amountDot: string; // Formatted for display
+  paidAtMs: number | null; // null if block timestamp unavailable
   transactionHash: `0x${string}`;
   blockNumber: bigint;
   logIndex: number;
@@ -344,7 +395,7 @@ type OnchainTrackRecord = {
   metadataRef: string;
   artistContractRef: string;
   royaltyBps: number;
-  accessMode: number;       // 0 = human-free, 1 = classic
+  accessMode: number; // 0 = human-free, 1 = classic
   pricePlanck: bigint;
   requiredPersonhood: number; // 0 = none, 1 = DIM1, 2 = DIM2
   registeredAtBlock: bigint;

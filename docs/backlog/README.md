@@ -28,7 +28,7 @@ Do not add ornamental product features until the following spine is stable:
 | `01-backend-key-service-skeleton.md` | #2 | Delivered | Backend key service skeleton |
 | `02-server-side-pinata-uploads.md` | #3 | Delivered | Server-side Pinata uploads |
 | `03-wallet-signed-content-key-requests.md` | #4 | Delivered (see delivery notes in the ticket) | Wallet-signed content-key requests for individual and host playback |
-| `04-hosted-signaling-room-join-links.md` | #5 | Next | Hosted signaling, room join links, and host-based room access |
+| `04-hosted-signaling-room-join-links.md` | #5 | Delivered (see delivery notes in the ticket) | Hosted signaling, room join links, and host-based room access |
 | Documentation task | #15 | Open | UX signature and host-based room playback rules |
 
 ## Sprint 1 — Stabilization and maintainability

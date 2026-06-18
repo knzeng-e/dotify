@@ -17,7 +17,7 @@ No account is required to join a room. No audio passes through a server. The hos
 1. Select a track in the Discover view.
 2. Open the player and switch to **Host** mode.
 3. Click **Start a room**. A six-character room code appears.
-4. Share the code (or the generated link) with listeners.
+4. Share the generated `#/rooms/<roomId>` link or the room code with listeners.
 5. Press Play. The audio streams to everyone who has joined.
 
 Listeners can join before you press Play. They will hear audio as soon as you start playing.
@@ -26,7 +26,7 @@ Listeners can join before you press Play. They will hear audio as soon as you st
 
 ## How it works for a listener
 
-1. Go to the **Rooms** view to see all open rooms — or enter a room code directly.
+1. Open a shared room link, go to the **Rooms** view to see all open rooms, or enter a room code directly.
 2. Click **Join**. The room connects.
 3. Audio begins playing automatically when the host starts streaming.
 
@@ -36,13 +36,13 @@ If autoplay is blocked by the browser, a manual play prompt appears.
 
 ## What listeners can and cannot do
 
-| Capability | Host | Listener |
-|---|---|---|
-| Control playback (play/pause/seek) | Yes | No |
-| See what is playing | Yes | Yes |
-| See the current position | Yes | Yes (approximate) |
-| Choose the track | Yes | No |
-| Leave the room | Yes | Yes |
+| Capability                         | Host | Listener          |
+| ---------------------------------- | ---- | ----------------- |
+| Control playback (play/pause/seek) | Yes  | No                |
+| See what is playing                | Yes  | Yes               |
+| See the current position           | Yes  | Yes (approximate) |
+| Choose the track                   | Yes  | No                |
+| Leave the room                     | Yes  | Yes               |
 
 Listeners hear the audio the host is playing. They cannot change the track or skip ahead.
 
@@ -77,6 +77,8 @@ The signaling server (`server/signaling.mjs`) is a Socket.IO process that relays
 - Maintaining a registry of open rooms.
 - Routing SDP offers, answers, and ICE candidates between the correct peers.
 - Broadcasting `rooms:updated` to all connected clients when the room list changes.
+- Expiring rooms after their TTL and closing rooms whose host stops heartbeating.
+- Exposing `GET /health` and `GET /status` for uptime and public room metadata.
 
 See [socket-events.md](../reference/socket-events.md) for the full event schema.
 
@@ -111,7 +113,7 @@ The listener's progress bar is derived from `playerState`, not from the local `<
 
 ### NAT traversal
 
-ICE candidates are gathered using a public STUN server (`stun.l.google.com:19302`). This resolves most consumer NAT configurations. Symmetric NAT and some corporate firewalls will block peer-to-peer connections. A TURN relay server would address these cases but is not currently deployed.
+ICE candidates are gathered using a public STUN server (`stun.l.google.com:19302`). This resolves most consumer NAT configurations. Symmetric NAT and some corporate firewalls will block peer-to-peer connections. Configure `VITE_TURN_URL` and optional TURN credentials for production room reliability.
 
 ### One peer connection per listener
 
@@ -121,6 +123,8 @@ The host creates a separate `RTCPeerConnection` for each listener. Connections a
 
 - Audio only — no video.
 - Listeners cannot control playback.
-- Symmetric NAT will block connection without a TURN server.
+- Symmetric NAT can block connection without a TURN server.
 - `captureStream()` is not available in all browsers or in the Bulletin-distributed build.
-- There is no reconnection logic — if a listener's connection drops, they must rejoin.
+- Socket reconnect can silently rejoin the room, but the host still needs to
+  create a fresh WebRTC offer for the new socket. If the host leaves, expires,
+  or times out, the room is closed and listeners must join another room.

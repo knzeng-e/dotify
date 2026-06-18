@@ -1,12 +1,4 @@
-import {
-  Disc3,
-  Headphones,
-  Radio,
-  Wifi,
-  WifiOff,
-  LockKeyhole,
-  Link as LinkIcon
-} from 'lucide-react';
+import { Disc3, Headphones, Radio, Wifi, WifiOff, LockKeyhole, Link as LinkIcon } from 'lucide-react';
 
 import { AuraBackground } from './components/AuraBackground';
 import { PlayerDock } from './components/PlayerDock';
@@ -42,7 +34,18 @@ import { ArtistOnboarding } from './views/artist/ArtistOnboarding';
 
 import { stripExtension } from './utils/format';
 
-import type { AccessMode, ArtistTab, AssetAction, CatalogTrack, PersonhoodLevel, ReleaseStep, TrackInfo, TransactionFeedback, View } from './types';
+import type {
+  AccessMode,
+  ArtistTab,
+  AssetAction,
+  CatalogTrack,
+  PersonhoodLevel,
+  ReleaseStep,
+  RoomPlaybackMode,
+  TrackInfo,
+  TransactionFeedback,
+  View
+} from './types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -98,6 +101,7 @@ export default function App() {
   // ── Shared state (release form, identity) ────────────────────────────────────
   const [priceDot, setPriceDot] = useState('0.5');
   const [ethRpcUrl] = useState(getDefaultEthRpcUrl);
+  const [expectedChainId, setExpectedChainId] = useState<number | null>(null);
   const [title, setTitle] = useState('Untitled jam');
   const [royaltyBps, setRoyaltyBps] = useState(7000);
   const [artistName, setArtistName] = useState('');
@@ -107,12 +111,22 @@ export default function App() {
   const [uploadToBulletinEnabled, setUploadToBulletinEnabled] = useState(false);
   const [personhoodLevel, setPersonhoodLevel] = useState<PersonhoodLevel>('DIM1');
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
   const [description, setDescription] = useState('Describe the story, rights context, and intended audience for this track.');
   const [transactionFeedback, setTransactionFeedback] = useState<TransactionFeedback | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
 
   // ── Wallet ───────────────────────────────────────────────────────────────────
-  const { state: walletState, connectPasskey, connectExtension, disconnect: disconnectWallet, hasPrfSupport, hasStoredPasskey, forgetPasskey } = useWallet();
+  const {
+    state: walletState,
+    connectPasskey,
+    connectExtension,
+    switchExtensionNetwork,
+    disconnect: disconnectWallet,
+    hasPrfSupport,
+    hasStoredPasskey,
+    forgetPasskey
+  } = useWallet();
   const connectedWallet = walletState.status === 'connected' ? walletState.wallet : null;
 
   const currentBulletinAccount = devAccounts[bulletinAccountIndex];
@@ -123,8 +137,8 @@ export default function App() {
   // Bob, ...) use a universally known mnemonic and must never become a hidden
   // fallback signer outside local development (CLAUDE.md security posture).
   const devBulletinFallback = import.meta.env.DEV ? currentBulletinAccount : null;
-  const activeSubstrateAddress = connectedWallet ? connectedWallet.substrateAddress ?? null : devBulletinFallback?.address ?? null;
-  const activeSubstrateSigner = connectedWallet ? connectedWallet.substrateSigner ?? null : devBulletinFallback?.signer ?? null;
+  const activeSubstrateAddress = connectedWallet ? (connectedWallet.substrateAddress ?? null) : (devBulletinFallback?.address ?? null);
+  const activeSubstrateSigner = connectedWallet ? (connectedWallet.substrateSigner ?? null) : (devBulletinFallback?.signer ?? null);
   const activeArtistDefaultName = 'Dotify Artist';
 
   const factoryAddress = deployments.factory;
@@ -148,6 +162,9 @@ export default function App() {
       throw new Error('Connect a wallet before signing this transaction.');
     }
     const chain = await resolveEvmChain(ethRpcUrl);
+    if (connectedWallet.chainId !== undefined && connectedWallet.chainId !== chain.id) {
+      throw new Error(`Switch your wallet to chain ${chain.id}. Your wallet is currently on chain ${connectedWallet.chainId}.`);
+    }
     return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
   }
 
@@ -166,7 +183,9 @@ export default function App() {
     setTitle,
     navigateToView,
     getActiveWalletClient,
-    setBulletinManifestRef: (ref) => { artistConsoleBulletinRef.current = ref; },
+    setBulletinManifestRef: ref => {
+      artistConsoleBulletinRef.current = ref;
+    },
     setAccessMode,
     setPriceDot,
     setPersonhoodLevel,
@@ -177,6 +196,7 @@ export default function App() {
   // ── Session hook ──────────────────────────────────────────────────────────────
   const session = useSession({
     signalUrl,
+    hostAddress: listenerEvmAddress,
     audioSource: catalog.audioSource,
     trackInfo: catalog.trackInfo,
     setTrackInfo: catalog.setTrackInfo,
@@ -286,8 +306,34 @@ export default function App() {
   }, [walletState.status]);
 
   useEffect(() => {
+    let cancelled = false;
+    resolveEvmChain(ethRpcUrl)
+      .then(chain => {
+        if (!cancelled) setExpectedChainId(chain.id);
+      })
+      .catch(() => {
+        if (!cancelled) setExpectedChainId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ethRpcUrl]);
+
+  useEffect(() => {
     void catalog.refreshCatalogFromRegistry();
   }, [directoryAddress, ethRpcUrl]);
+
+  // One-link join: a guest landing on a #/rooms/<id> share link joins the
+  // room immediately. No wallet, no signature, no payment: room access is
+  // host-based and the guest only receives the ephemeral WebRTC stream.
+  const autoJoinAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (autoJoinAttemptedRef.current) return;
+    const initialRoomCode = getInitialRoomCode();
+    if (!initialRoomCode) return;
+    autoJoinAttemptedRef.current = true;
+    session.joinRoom(initialRoomCode);
+  }, []);
 
   useEffect(() => {
     if (!isArtistPortal || artistTab !== 'royalties') return;
@@ -299,17 +345,22 @@ export default function App() {
     async function refreshCatalogAccess() {
       if (catalog.catalogTracks.length === 0) {
         catalog.setCatalogAccessByTrackId({});
+        catalog.setCatalogPaidAccessByTrackId({});
         return;
       }
-      const accessEntries = await Promise.all(
-        catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackAccess(track, listenerEvmAddress)] as const)
-      );
+      const [accessEntries, paidEntries] = await Promise.all([
+        Promise.all(catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackAccess(track, listenerEvmAddress)] as const)),
+        Promise.all(catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackPaidAccess(track, listenerEvmAddress)] as const))
+      ]);
       if (!cancelled) {
         catalog.setCatalogAccessByTrackId(Object.fromEntries(accessEntries));
+        catalog.setCatalogPaidAccessByTrackId(Object.fromEntries(paidEntries));
       }
     }
     void refreshCatalogAccess();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [catalog.catalogTracks, ethRpcUrl, listenerEvmAddress]);
 
   useEffect(() => {
@@ -442,17 +493,33 @@ export default function App() {
   }
 
   function handleEnforcePreviewCutoff() {
-    catalog.enforcePreviewCutoff(catalog.catalogTracks, catalog.selectedTrackId);
+    const hostingRoom = session.mode === 'host' && Boolean(session.roomId);
+    catalog.enforcePreviewCutoff(catalog.catalogTracks, catalog.selectedTrackId, {
+      // Room doctrine: an unauthorized host streams the 42% preview and the
+      // playlist auto-advances instead of stalling the room.
+      onPreviewEnded: hostingRoom
+        ? (_ended, nextTrack) => {
+            if (nextTrack) {
+              void catalog.selectTrack(nextTrack, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
+            }
+          }
+        : undefined
+    });
   }
 
   function handleOpenTrack(track: CatalogTrack) {
     setPublicArtistName(null);
-    void catalog.openTrack(
-      track,
-      session.socketEmit,
-      session.setLocalStreamReady,
-      session.closeHostPeers
-    );
+    if (isArtistPortal) {
+      const nextState = { ...getHistoryStateObject(), dotifyView: 'player' };
+      setIsArtistPortal(false);
+      setActiveView('player');
+      window.history.pushState(nextState, '', '/');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      void catalog.selectTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
+      return;
+    }
+
+    void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
   }
 
   function trackToInfo(track: CatalogTrack): TrackInfo {
@@ -473,6 +540,14 @@ export default function App() {
     };
   }
 
+  function getHostPlaybackModeForRoom(track: CatalogTrack | undefined): RoomPlaybackMode {
+    if (!track) return catalog.previewOnlyRef.current ? 'preview' : 'full';
+    if (catalog.selectedTrackId === track.id && catalog.previewOnlyRef.current) return 'preview';
+    if (catalog.accessGate?.track.id === track.id) return 'preview';
+    if (track.source !== 'artist' || !track.id.includes(':')) return 'full';
+    return catalog.catalogAccessByTrackId[track.id] === true ? 'full' : 'preview';
+  }
+
   function handleOpenArtistProfile(name: string) {
     setPublicArtistName(name);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -480,13 +555,51 @@ export default function App() {
 
   function handleOpenArtistRoom(track: CatalogTrack) {
     setPublicArtistName(null);
-    void catalog.openTrack(
-      track,
-      session.socketEmit,
-      session.setLocalStreamReady,
-      session.closeHostPeers
-    );
-    session.createSession(trackToInfo(track));
+    void (async () => {
+      const playbackMode = await catalog.openTrack(track).catch((): RoomPlaybackMode => {
+        // Room creation should still fail closed to preview metadata if track
+        // preparation cannot prove full host access.
+        catalog.previewOnlyRef.current = true;
+        return 'preview';
+      });
+      session.createSession(trackToInfo(track), playbackMode);
+    })();
+  }
+
+  async function handleSwitchNetwork() {
+    if (!connectedWallet || connectedWallet.method !== 'extension') {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Wallet app required',
+        message: 'Only browser wallet connections can switch networks from Dotify.'
+      });
+      return;
+    }
+
+    setIsSwitchingNetwork(true);
+    try {
+      const chain = await resolveEvmChain(ethRpcUrl);
+      setExpectedChainId(chain.id);
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Switch network',
+        message: `Confirm the network switch to chain ${chain.id} in your wallet.`
+      });
+      await switchExtensionNetwork(chain);
+      setTransactionFeedback({
+        tone: 'success',
+        title: 'Network ready',
+        message: `Your wallet is now connected to chain ${chain.id}.`
+      });
+    } catch (error) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Network switch failed',
+        message: error instanceof Error ? error.message : 'Open your wallet and switch to the expected network, then try again.'
+      });
+    } finally {
+      setIsSwitchingNetwork(false);
+    }
   }
 
   function handleJoinRoomFromProfile(roomId: string) {
@@ -497,43 +610,58 @@ export default function App() {
   function handleCreateSession(event?: import('react').FormEvent<HTMLFormElement>) {
     let currentTrack = catalog.trackInfo;
     if (selectedTrack && !currentTrack) {
-      currentTrack = {
-        title: selectedTrack.title,
-        artist: selectedTrack.artist,
-        hash: selectedTrack.hash,
-        bulletinRef: selectedTrack.bulletinRef,
-        duration: selectedTrack.duration ?? 0,
-        updatedAt: Date.now(),
-        imageRef: selectedTrack.imageRef,
-        audioRef: selectedTrack.audioRef,
-        metadataRef: selectedTrack.metadataRef,
-        description: selectedTrack.description,
-        accessMode: selectedTrack.accessMode,
-        priceDot: selectedTrack.priceDot,
-        personhoodLevel: selectedTrack.personhoodLevel
-      };
+      currentTrack = trackToInfo(selectedTrack);
     }
-    session.createSession(currentTrack, event);
+    session.createSession(currentTrack, getHostPlaybackModeForRoom(selectedTrack), event);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
-  const unlockedTrackIds = Object.entries(catalog.catalogAccessByTrackId)
+  const paidTrackIds = Object.entries(catalog.catalogPaidAccessByTrackId)
     .filter(([, granted]) => granted)
     .map(([id]) => id);
-  const unlockedTrackCount = unlockedTrackIds.length;
-  const supportedArtistCount = new Set(
-    unlockedTrackIds.map(id => catalog.catalogTracks.find(track => track.id === id)?.artist).filter(Boolean)
-  ).size;
+  const paidTracks = paidTrackIds.map(id => catalog.catalogTracks.find(track => track.id === id)).filter((track): track is CatalogTrack => Boolean(track));
+  const supportedArtists = Array.from(
+    paidTracks
+      .reduce((artistsByKey, track) => {
+        const key = track.artistAddress?.toLowerCase() ?? track.artist.toLowerCase();
+        const existing = artistsByKey.get(key);
+        artistsByKey.set(key, {
+          artist: track.artist,
+          artistAddress: track.artistAddress,
+          trackCount: (existing?.trackCount ?? 0) + 1
+        });
+        return artistsByKey;
+      }, new Map<string, { artist: string; artistAddress?: `0x${string}`; trackCount: number }>())
+      .values()
+  );
 
   const walletModal = showWalletModal && (
     <WalletModal
       state={walletState}
       hasPrfSupport={hasPrfSupport}
       hasStoredPasskey={hasStoredPasskey}
-      supportingCount={supportedArtistCount}
-      unlockedCount={unlockedTrackCount}
-      onPasskey={() => { void connectPasskey(); }}
-      onExtension={() => { void connectExtension(); }}
+      supportingCount={supportedArtists.length}
+      unlockedCount={paidTracks.length}
+      supportedArtists={supportedArtists}
+      paidTracks={paidTracks.map(track => ({
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        artistAddress: track.artistAddress,
+        priceDot: track.priceDot,
+        hash: track.hash
+      }))}
+      expectedChainId={expectedChainId}
+      isSwitchingNetwork={isSwitchingNetwork}
+      onPasskey={() => {
+        void connectPasskey();
+      }}
+      onExtension={() => {
+        void connectExtension();
+      }}
+      onSwitchNetwork={() => {
+        void handleSwitchNetwork();
+      }}
       onForgetPasskey={forgetPasskey}
       onDisconnect={disconnectWallet}
       onClose={() => setShowWalletModal(false)}
@@ -554,314 +682,322 @@ export default function App() {
   if (isArtistPortal) {
     return (
       <>
-      <AuraBackground />
-      <div className='app-shell artist-portal-shell'>
-        <header className='topbar artist-portal-topbar'>
-          <a className='brand' href='/' aria-label='Dotify home'>
-            <span className='brand-mark'>
-              <Disc3 size={21} />
-            </span>
-            <span>Dotify</span>
-          </a>
-          <nav className='nav-pills' aria-label='Artist portal actions'>
-            <a className='artist-entry-link' href='/'>
-              Listener app
+        <AuraBackground />
+        <div className='app-shell artist-portal-shell'>
+          <header className='topbar artist-portal-topbar'>
+            <a className='brand' href='/' aria-label='Dotify home'>
+              <span className='brand-mark'>
+                <Disc3 size={21} />
+              </span>
+              <span>Dotify</span>
             </a>
-            <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnectWallet} />
-          </nav>
-        </header>
+            <nav className='nav-pills' aria-label='Artist portal actions'>
+              <a className='artist-entry-link' href='/'>
+                Listener app
+              </a>
+              <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnectWallet} />
+            </nav>
+          </header>
 
-        {walletModal}
+          {walletModal}
 
-        <main className='artist-portal-main'>
-          {connectedWallet && artistConsole.artistRuntimeAddress ? (
-            <ArtistConsole
-              artistTab={artistTab}
-              onSetArtistTab={setArtistTab}
-              artistName={artistName}
-              activeEvmAddress={activeEvmAddress}
-              artistRuntimeAddress={artistConsole.artistRuntimeAddress}
-              artistRegistrationStatus={artistConsole.artistRegistrationStatus}
-              isRegisteringArtist={artistConsole.isRegisteringArtist}
-              isRefreshingArtistRuntime={artistConsole.isRefreshingArtistRuntime}
-              artistRegistrationAvailable={artistRegistrationAvailable}
-              artistSetupState={artistSetupState}
-              artistTracks={artistTracks}
-              connectedWallet={connectedWallet}
-              onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
-              onRegisterArtist={artistConsole.registerArtist}
-              onRefreshArtistRuntime={() => { void artistConsole.refreshArtistRuntime(true); }}
-              onShowWalletModal={() => setShowWalletModal(true)}
-              releaseStep={releaseStep}
-              artistStudioLocked={artistStudioLocked}
-              assetAction={assetAction}
-              audioSource={catalog.audioSource}
-              fileHash={catalog.fileHash}
-              coverSource={catalog.coverSource}
-              coverCID={catalog.coverCID}
-              title={title}
-              description={description}
-              accessMode={accessMode}
-              personhoodLevel={personhoodLevel}
-              priceDot={priceDot}
-              royaltyBps={royaltyBps}
-              uploadToBulletinEnabled={uploadToBulletinEnabled}
-              rightsStatus={artistConsole.rightsStatus}
-              isRegistering={artistConsole.isRegistering}
-              canReviewRelease={canReviewRelease}
-              activeSubstrateAddress={activeSubstrateAddress}
-              bulletinAccountIndex={bulletinAccountIndex}
-              onSetReleaseStep={setReleaseStep}
-              onGoToPreviousStep={goToPreviousReleaseStep}
-              onGoToNextStep={goToNextReleaseStep}
-              onHandleAudioFile={handleAudioFile}
-              onHandleCoverFile={handleCoverFile}
-              onSetTitle={setTitle}
-              onSetDescription={setDescription}
-              onSetAccessMode={setAccessMode}
-              onSetPersonhoodLevel={setPersonhoodLevel}
-              onSetPriceDot={setPriceDot}
-              onSetRoyaltyBps={setRoyaltyBps}
-              onSetUploadToBulletinEnabled={setUploadToBulletinEnabled}
-              onSetBulletinAccountIndex={setBulletinAccountIndex}
-              onRegisterRights={artistConsole.registerRights}
-              onOpenTrack={handleOpenTrack}
-              royaltyPayments={artistConsole.royaltyPayments}
-              royaltyStatus={artistConsole.royaltyStatus}
-              isRefreshingRoyalties={artistConsole.isRefreshingRoyalties}
-              expandedRoyaltyPaymentId={artistConsole.expandedRoyaltyPaymentId}
-              totalRoyaltyWei={totalRoyaltyWei}
-              uniqueRoyaltyListeners={uniqueRoyaltyListeners}
-              paidRoyaltyTracks={paidRoyaltyTracks}
-              onSetExpandedRoyaltyPaymentId={artistConsole.setExpandedRoyaltyPaymentId}
-              onRefreshRoyalties={() => { void artistConsole.refreshArtistRoyalties(true); }}
-              factoryAddress={factoryAddress}
-              directoryAddress={directoryAddress}
-              audioCID={catalog.audioCID}
-              bulletinManifestRef={artistConsole.bulletinManifestRef}
-              trackInfo={catalog.trackInfo}
-            />
-          ) : (
-            <ArtistOnboarding
-              activeEvmAddress={activeEvmAddress}
-              artistName={artistName}
-              artistRegistrationStatus={artistConsole.artistRegistrationStatus}
-              isRegisteringArtist={artistConsole.isRegisteringArtist}
-              isRefreshingArtistRuntime={artistConsole.isRefreshingArtistRuntime}
-              artistRegistrationAvailable={artistRegistrationAvailable}
-              connectedWallet={connectedWallet}
-              onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
-              onRegisterArtist={artistConsole.registerArtist}
-              onRefreshArtistRuntime={() => { void artistConsole.refreshArtistRuntime(true); }}
-              onShowWalletModal={() => setShowWalletModal(true)}
-              artistTracks={connectedWallet ? artistTracks : []}
-            />
-          )}
-        </main>
+          <main className='artist-portal-main'>
+            {connectedWallet && artistConsole.artistRuntimeAddress ? (
+              <ArtistConsole
+                artistTab={artistTab}
+                onSetArtistTab={setArtistTab}
+                artistName={artistName}
+                activeEvmAddress={activeEvmAddress}
+                artistRuntimeAddress={artistConsole.artistRuntimeAddress}
+                artistRegistrationStatus={artistConsole.artistRegistrationStatus}
+                isRegisteringArtist={artistConsole.isRegisteringArtist}
+                isRefreshingArtistRuntime={artistConsole.isRefreshingArtistRuntime}
+                artistRegistrationAvailable={artistRegistrationAvailable}
+                artistSetupState={artistSetupState}
+                artistTracks={artistTracks}
+                connectedWallet={connectedWallet}
+                onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
+                onRegisterArtist={artistConsole.registerArtist}
+                onRefreshArtistRuntime={() => {
+                  void artistConsole.refreshArtistRuntime(true);
+                }}
+                onShowWalletModal={() => setShowWalletModal(true)}
+                releaseStep={releaseStep}
+                artistStudioLocked={artistStudioLocked}
+                assetAction={assetAction}
+                audioSource={catalog.audioSource}
+                fileHash={catalog.fileHash}
+                coverSource={catalog.coverSource}
+                coverCID={catalog.coverCID}
+                title={title}
+                description={description}
+                accessMode={accessMode}
+                personhoodLevel={personhoodLevel}
+                priceDot={priceDot}
+                royaltyBps={royaltyBps}
+                uploadToBulletinEnabled={uploadToBulletinEnabled}
+                rightsStatus={artistConsole.rightsStatus}
+                isRegistering={artistConsole.isRegistering}
+                canReviewRelease={canReviewRelease}
+                activeSubstrateAddress={activeSubstrateAddress}
+                bulletinAccountIndex={bulletinAccountIndex}
+                onSetReleaseStep={setReleaseStep}
+                onGoToPreviousStep={goToPreviousReleaseStep}
+                onGoToNextStep={goToNextReleaseStep}
+                onHandleAudioFile={handleAudioFile}
+                onHandleCoverFile={handleCoverFile}
+                onSetTitle={setTitle}
+                onSetDescription={setDescription}
+                onSetAccessMode={setAccessMode}
+                onSetPersonhoodLevel={setPersonhoodLevel}
+                onSetPriceDot={setPriceDot}
+                onSetRoyaltyBps={setRoyaltyBps}
+                onSetUploadToBulletinEnabled={setUploadToBulletinEnabled}
+                onSetBulletinAccountIndex={setBulletinAccountIndex}
+                onRegisterRights={artistConsole.registerRights}
+                onOpenTrack={handleOpenTrack}
+                royaltyPayments={artistConsole.royaltyPayments}
+                royaltyStatus={artistConsole.royaltyStatus}
+                isRefreshingRoyalties={artistConsole.isRefreshingRoyalties}
+                expandedRoyaltyPaymentId={artistConsole.expandedRoyaltyPaymentId}
+                totalRoyaltyWei={totalRoyaltyWei}
+                uniqueRoyaltyListeners={uniqueRoyaltyListeners}
+                paidRoyaltyTracks={paidRoyaltyTracks}
+                onSetExpandedRoyaltyPaymentId={artistConsole.setExpandedRoyaltyPaymentId}
+                onRefreshRoyalties={() => {
+                  void artistConsole.refreshArtistRoyalties(true);
+                }}
+                factoryAddress={factoryAddress}
+                directoryAddress={directoryAddress}
+                audioCID={catalog.audioCID}
+                bulletinManifestRef={artistConsole.bulletinManifestRef}
+                trackInfo={catalog.trackInfo}
+              />
+            ) : (
+              <ArtistOnboarding
+                activeEvmAddress={activeEvmAddress}
+                artistName={artistName}
+                artistRegistrationStatus={artistConsole.artistRegistrationStatus}
+                isRegisteringArtist={artistConsole.isRegisteringArtist}
+                isRefreshingArtistRuntime={artistConsole.isRefreshingArtistRuntime}
+                artistRegistrationAvailable={artistRegistrationAvailable}
+                connectedWallet={connectedWallet}
+                onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
+                onRegisterArtist={artistConsole.registerArtist}
+                onRefreshArtistRuntime={() => {
+                  void artistConsole.refreshArtistRuntime(true);
+                }}
+                onShowWalletModal={() => setShowWalletModal(true)}
+                artistTracks={connectedWallet ? artistTracks : []}
+              />
+            )}
+          </main>
 
-        {transactionModal}
-      </div>
+          {transactionModal}
+        </div>
       </>
     );
   }
 
   return (
     <>
-    <AuraBackground />
-    <div className='app-shell'>
-      <header className='topbar'>
-        <a className='brand' href='#top' aria-label='Dotify' onClick={() => setPublicArtistName(null)}>
-          <span className='brand-mark'>
-            <Disc3 size={21} />
-          </span>
-          <span>Dotify</span>
-        </a>
-        <nav className='nav-pills' aria-label='Status'>
-          <a className='artist-entry-link' href='/artists'>
-            For artists
+      <AuraBackground />
+      <div className='app-shell'>
+        <header className='topbar'>
+          <a className='brand' href='#top' aria-label='Dotify' onClick={() => setPublicArtistName(null)}>
+            <span className='brand-mark'>
+              <Disc3 size={21} />
+            </span>
+            <span>Dotify</span>
           </a>
-          <StatusPill
-            icon={session.socketStatus === 'online' ? Wifi : WifiOff}
-            label={session.socketStatus === 'online' ? 'Signal online' : 'Signal offline'}
-            tone={session.socketStatus === 'online' ? 'green' : 'muted'}
-          />
-          <StatusPill icon={Radio} label={session.sessionStatus} tone='pink' />
-          <StatusPill icon={LockKeyhole} label='dotify.dot.li' tone='muted' />
-          <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnectWallet} />
-        </nav>
-      </header>
-
-      {walletModal}
-
-      <div className='docs-layout' id='top'>
-        <aside className='sidebar' aria-label='Dotify navigation'>
-          <div className='sidebar-heading'>Listen</div>
-          <button
-            className='sidebar-link'
-            data-active={activeView === 'listen' || activeView === 'player'}
-            type='button'
-            onClick={() => navigateToView('listen')}
-          >
-            <Headphones size={16} />
-            Discover
-          </button>
-          <button
-            className='sidebar-link'
-            data-active={activeView === 'rooms'}
-            type='button'
-            onClick={() => {
-              navigateToView('rooms');
-              session.requestOpenRooms(true);
-            }}
-          >
-            <Radio size={16} />
-            Rooms
-          </button>
-          <div className='sidebar-card'>
-            <span>Active room</span>
-            <strong>{session.roomId || 'None'}</strong>
-          </div>
-        </aside>
-
-        <main className={`content content-${activeView}`}>
-          {publicArtistName ? (
-            <ArtistProfileView
-              artistName={publicArtistName}
-              catalogTracks={catalog.catalogTracks}
-              openRooms={session.openRooms}
-              catalogAccessByTrackId={catalog.catalogAccessByTrackId}
-              onBack={() => setPublicArtistName(null)}
-              onOpenTrack={handleOpenTrack}
-              onOpenArtistRoom={handleOpenArtistRoom}
-              onJoinRoom={handleJoinRoomFromProfile}
-            />
-          ) : (
-            <>
-            <section className='page-head'>
-              <div className='page-copy'>
-                <p className='eyebrow'>{currentPage.eyebrow}</p>
-                <h1>{currentPage.title}</h1>
-              </div>
-              <div className='head-metrics'>
-                <Metric label='tracks' value={catalog.catalogTracks.length.toString()} />
-                <Metric label='rooms' value={session.openRooms.length.toString()} />
-                <Metric label='listeners' value={`${activeListeners}/${session.listenerCount}`} />
-              </div>
-            </section>
-
-            {activeView === 'listen' && (
-            <ListenView
-              catalogTracks={catalog.catalogTracks}
-              catalogStatus={catalog.catalogStatus}
-              openRooms={session.openRooms}
-              selectedTrackId={catalog.selectedTrackId}
-              catalogAccessByTrackId={catalog.catalogAccessByTrackId}
-              onOpenTrack={handleOpenTrack}
-              onOpenArtist={handleOpenArtistProfile}
-              onJoinRoom={session.joinRoom}
-              onStartRoom={() => setCreateRoomOpen(true)}
-            />
-            )}
-
-            {activeView === 'player' && (
-            <PlayerView
-              trackInfo={catalog.trackInfo}
-              selectedTrack={selectedTrack}
-              audioSource={catalog.audioSource}
-              coverSource={catalog.coverSource}
-              playerState={catalog.playerState}
-              accessGate={catalog.accessGate}
-              catalogTracks={catalog.catalogTracks}
-              selectedTrackId={catalog.selectedTrackId}
-              mode={session.mode}
-              hostName={session.hostName}
-              roomId={session.roomId}
-              sessionAction={session.sessionAction}
-              displayName={session.displayName}
-              joinCode={session.joinCode}
-              listeners={session.listeners}
-              listenerCount={session.listenerCount}
-              remoteReady={session.remoteReady}
-              localStreamReady={session.localStreamReady}
-              error={session.error}
-              streamTitle={streamTitle}
-              streamArtist={streamArtist}
-              accessMode={accessMode}
-              priceDot={priceDot}
-              personhoodLevel={personhoodLevel}
-              description={description}
-              localAudioRef={catalog.localAudioRef as React.RefObject<HTMLAudioElement>}
-              remoteAudioRef={session.remoteAudioRef as React.RefObject<HTMLAudioElement>}
-              onSetDisplayName={session.setDisplayName}
-              onSetJoinCode={session.setJoinCode}
-              onChangeMode={session.changeMode}
-              onCreateSession={handleCreateSession}
-              onJoinSession={session.joinSession}
-              onLeaveSession={session.leaveSession}
-              onCopySessionLink={session.copySessionLink}
-              onSetAccessGate={catalog.setAccessGate}
-              onPayForTrackAccess={track => { void catalog.payForTrackAccess(track); }}
-              onShowWalletModal={() => setShowWalletModal(true)}
-              onNavigateToListen={() => navigateToView('listen')}
-              onPrepareLocalStream={handlePrepareLocalStream}
-              onSetupPreviewLimit={catalog.setupPreviewLimit}
-              onEmitPlayerState={session.emitPlayerState}
-              onEnforcePreviewCutoff={handleEnforcePreviewCutoff}
-              onOpenTrack={handleOpenTrack}
-              onOpenArtist={handleOpenArtistProfile}
-            />
-            )}
-
-            {activeView === 'rooms' && (
-            <RoomsView
-              openRooms={session.openRooms}
-              joinCode={session.joinCode}
-              sessionAction={session.sessionAction}
-              isRefreshingRooms={session.isRefreshingRooms}
-              onSetJoinCode={session.setJoinCode}
-              onJoinRoom={session.joinRoom}
-              onJoinSession={session.joinSession}
-              onRefreshRooms={() => session.requestOpenRooms(true)}
-            />
-            )}
-            </>
-          )}
-
-          {session.sessionLink && (
-            <a className='floating-link' href={session.sessionLink}>
-              <LinkIcon size={15} />
-              {session.roomId}
+          <nav className='nav-pills' aria-label='Status'>
+            <a className='artist-entry-link' href='/artists'>
+              For artists
             </a>
-          )}
+            <StatusPill
+              icon={session.socketStatus === 'online' ? Wifi : WifiOff}
+              label={session.socketStatus === 'online' ? 'Signal online' : 'Signal offline'}
+              tone={session.socketStatus === 'online' ? 'green' : 'muted'}
+            />
+            <StatusPill icon={Radio} label={session.sessionStatus} tone='pink' />
+            <StatusPill icon={LockKeyhole} label='dotify.dot.li' tone='muted' />
+            <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnectWallet} />
+          </nav>
+        </header>
 
-          {transactionModal}
-        </main>
+        {walletModal}
+
+        <div className='docs-layout' id='top'>
+          <aside className='sidebar' aria-label='Dotify navigation'>
+            <div className='sidebar-heading'>Listen</div>
+            <button
+              className='sidebar-link'
+              data-active={activeView === 'listen' || activeView === 'player'}
+              type='button'
+              onClick={() => navigateToView('listen')}
+            >
+              <Headphones size={16} />
+              Discover
+            </button>
+            <button
+              className='sidebar-link'
+              data-active={activeView === 'rooms'}
+              type='button'
+              onClick={() => {
+                navigateToView('rooms');
+                session.requestOpenRooms(true);
+              }}
+            >
+              <Radio size={16} />
+              Rooms
+            </button>
+            <div className='sidebar-card'>
+              <span>Active room</span>
+              <strong>{session.roomId || 'None'}</strong>
+            </div>
+          </aside>
+
+          <main className={`content content-${activeView}`}>
+            {publicArtistName ? (
+              <ArtistProfileView
+                artistName={publicArtistName}
+                catalogTracks={catalog.catalogTracks}
+                openRooms={session.openRooms}
+                catalogAccessByTrackId={catalog.catalogAccessByTrackId}
+                onBack={() => setPublicArtistName(null)}
+                onOpenTrack={handleOpenTrack}
+                onOpenArtistRoom={handleOpenArtistRoom}
+                onJoinRoom={handleJoinRoomFromProfile}
+              />
+            ) : (
+              <>
+                <section className='page-head'>
+                  <div className='page-copy'>
+                    <p className='eyebrow'>{currentPage.eyebrow}</p>
+                    <h1>{currentPage.title}</h1>
+                  </div>
+                  <div className='head-metrics'>
+                    <Metric label='tracks' value={catalog.catalogTracks.length.toString()} />
+                    <Metric label='rooms' value={session.openRooms.length.toString()} />
+                    <Metric label='listeners' value={`${activeListeners}/${session.listenerCount}`} />
+                  </div>
+                </section>
+
+                {activeView === 'listen' && (
+                  <ListenView
+                    catalogTracks={catalog.catalogTracks}
+                    catalogStatus={catalog.catalogStatus}
+                    openRooms={session.openRooms}
+                    selectedTrackId={catalog.selectedTrackId}
+                    catalogAccessByTrackId={catalog.catalogAccessByTrackId}
+                    onOpenTrack={handleOpenTrack}
+                    onOpenArtist={handleOpenArtistProfile}
+                    onJoinRoom={session.joinRoom}
+                    onStartRoom={() => setCreateRoomOpen(true)}
+                  />
+                )}
+
+                {activeView === 'player' && (
+                  <PlayerView
+                    trackInfo={catalog.trackInfo}
+                    selectedTrack={selectedTrack}
+                    audioSource={catalog.audioSource}
+                    coverSource={catalog.coverSource}
+                    playerState={catalog.playerState}
+                    accessGate={catalog.accessGate}
+                    catalogTracks={catalog.catalogTracks}
+                    selectedTrackId={catalog.selectedTrackId}
+                    mode={session.mode}
+                    hostName={session.hostName}
+                    roomId={session.roomId}
+                    sessionAction={session.sessionAction}
+                    displayName={session.displayName}
+                    joinCode={session.joinCode}
+                    listeners={session.listeners}
+                    listenerCount={session.listenerCount}
+                    remoteReady={session.remoteReady}
+                    localStreamReady={session.localStreamReady}
+                    error={session.error}
+                    streamTitle={streamTitle}
+                    streamArtist={streamArtist}
+                    accessMode={accessMode}
+                    priceDot={priceDot}
+                    personhoodLevel={personhoodLevel}
+                    description={description}
+                    localAudioRef={catalog.localAudioRef as React.RefObject<HTMLAudioElement>}
+                    remoteAudioRef={session.remoteAudioRef as React.RefObject<HTMLAudioElement>}
+                    onSetDisplayName={session.setDisplayName}
+                    onSetJoinCode={session.setJoinCode}
+                    onChangeMode={session.changeMode}
+                    onCreateSession={handleCreateSession}
+                    onJoinSession={session.joinSession}
+                    onLeaveSession={session.leaveSession}
+                    onCopySessionLink={session.copySessionLink}
+                    onSetAccessGate={catalog.setAccessGate}
+                    onPayForTrackAccess={track => {
+                      void catalog.payForTrackAccess(track);
+                    }}
+                    onShowWalletModal={() => setShowWalletModal(true)}
+                    onNavigateToListen={() => navigateToView('listen')}
+                    onPrepareLocalStream={handlePrepareLocalStream}
+                    onSetupPreviewLimit={catalog.setupPreviewLimit}
+                    onEmitPlayerState={session.emitPlayerState}
+                    onEnforcePreviewCutoff={handleEnforcePreviewCutoff}
+                    onOpenTrack={handleOpenTrack}
+                    onOpenArtist={handleOpenArtistProfile}
+                  />
+                )}
+
+                {activeView === 'rooms' && (
+                  <RoomsView
+                    openRooms={session.openRooms}
+                    joinCode={session.joinCode}
+                    sessionAction={session.sessionAction}
+                    isRefreshingRooms={session.isRefreshingRooms}
+                    onSetJoinCode={session.setJoinCode}
+                    onJoinRoom={session.joinRoom}
+                    onJoinSession={session.joinSession}
+                    onRefreshRooms={() => session.requestOpenRooms(true)}
+                  />
+                )}
+              </>
+            )}
+
+            {session.sessionLink && (
+              <a className='floating-link' href={session.sessionLink}>
+                <LinkIcon size={15} />
+                {session.roomId}
+              </a>
+            )}
+
+            {transactionModal}
+          </main>
+        </div>
+
+        {activeView !== 'player' && !publicArtistName && (selectedTrack || catalog.trackInfo) && (
+          <PlayerDock
+            track={selectedTrack}
+            trackInfo={catalog.trackInfo}
+            playerState={catalog.playerState}
+            locked={Boolean(selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true)}
+            onOpenPlayer={() => navigateToView('player')}
+            onOpenArtist={handleOpenArtistProfile}
+            onStartRoom={() => setCreateRoomOpen(true)}
+          />
+        )}
+
+        {createRoomOpen && (
+          <CreateRoomModal
+            tracks={catalog.catalogTracks}
+            initialTrack={selectedTrack ?? catalog.catalogTracks[0]}
+            onClose={() => setCreateRoomOpen(false)}
+            onOpenRoom={track => {
+              setCreateRoomOpen(false);
+              handleOpenArtistRoom(track);
+            }}
+          />
+        )}
       </div>
-
-      {activeView !== 'player' && !publicArtistName && (selectedTrack || catalog.trackInfo) && (
-        <PlayerDock
-          track={selectedTrack}
-          trackInfo={catalog.trackInfo}
-          playerState={catalog.playerState}
-          locked={Boolean(selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true)}
-          onOpenPlayer={() => navigateToView('player')}
-          onOpenArtist={handleOpenArtistProfile}
-          onStartRoom={() => setCreateRoomOpen(true)}
-        />
-      )}
-
-      {createRoomOpen && (
-        <CreateRoomModal
-          tracks={catalog.catalogTracks}
-          initialTrack={selectedTrack ?? catalog.catalogTracks[0]}
-          onClose={() => setCreateRoomOpen(false)}
-          onOpenRoom={track => {
-            setCreateRoomOpen(false);
-            handleOpenArtistRoom(track);
-          }}
-        />
-      )}
-    </div>
     </>
   );
 }

@@ -45,15 +45,22 @@ export function ListenView({
       <div className='listen-hero'>
         <div className='home-listening-hero'>
           <div className='home-listening-copy'>
-            <p className='eyebrow'><span className='live-dot' />{totalListening} listening together now</p>
-            <h2>Make the track a place.</h2>
-            <p>
-              Shared presence on the surface. Artist-held access, protected audio, and policy beneath it.
+            <p className='eyebrow'>
+              <span className='live-dot' />
+              {totalListening} listening together now
             </p>
+            <h2>Make the track a place.</h2>
+            <p>Shared presence on the surface. Artist-held access, protected audio, and policy beneath it.</p>
             <div className='home-hero-trust-row' aria-label='Dotify trust model'>
-              <span><KeyRound size={14} /> Artists keep keys</span>
-              <span><ShieldCheck size={14} /> Access fails closed</span>
-              <span><Users size={14} /> Guests just listen</span>
+              <span>
+                <KeyRound size={14} /> Artists keep keys
+              </span>
+              <span>
+                <ShieldCheck size={14} /> Access fails closed
+              </span>
+              <span>
+                <Users size={14} /> Guests just listen
+              </span>
             </div>
           </div>
           <div className='home-listening-actions'>
@@ -69,9 +76,18 @@ export function ListenView({
             )}
             <span>Guest-ready room links.</span>
             <div className='home-hero-stats' aria-label='Live Dotify state'>
-              <strong className='tnum'>{openRooms.length}<small>rooms</small></strong>
-              <strong className='tnum'>{totalListening}<small>listeners</small></strong>
-              <strong className='tnum'>{artistCount}<small>artists</small></strong>
+              <strong className='tnum'>
+                {openRooms.length}
+                <small>rooms</small>
+              </strong>
+              <strong className='tnum'>
+                {totalListening}
+                <small>listeners</small>
+              </strong>
+              <strong className='tnum'>
+                {artistCount}
+                <small>artists</small>
+              </strong>
             </div>
           </div>
         </div>
@@ -185,79 +201,79 @@ export function ListenView({
       </section>
 
       <section className='content-grid catalog-home-grid'>
-      <div className='doc-panel catalogue-panel catalogue-home-panel'>
-        <PanelTitle icon={Library} title='Browse catalog' meta={`${catalogTracks.length} tracks`} />
-        <p className='catalogue-intro'>Previewable releases with explicit access terms and artist-owned metadata.</p>
-        <div className='catalogue-grid'>
-          {catalogTracks.length > 0 ? (
-            catalogTracks.map(track => {
-              const hasCatalogAccess = catalogAccessByTrackId[track.id] === true;
+        <div className='doc-panel catalogue-panel catalogue-home-panel'>
+          <PanelTitle icon={Library} title='Browse catalog' meta={`${catalogTracks.length} tracks`} />
+          <p className='catalogue-intro'>Previewable releases with explicit access terms and artist-owned metadata.</p>
+          <div className='catalogue-grid'>
+            {catalogTracks.length > 0 ? (
+              catalogTracks.map(track => {
+                const hasCatalogAccess = catalogAccessByTrackId[track.id] === true;
 
-              return (
-                <article
-                  className='catalogue-card'
-                  data-selected={selectedTrackId === track.id}
-                  key={track.id}
-                  role='button'
-                  tabIndex={0}
-                  aria-label={`Open ${track.title} by ${track.artist}`}
-                  onClick={() => {
-                    void onOpenTrack(track);
-                  }}
-                  onKeyDown={event => handleCardKeyDown(event, track)}
-                >
-                  <span className='catalogue-cover-frame'>
-                    <img className='catalogue-cover' src={track.imageRef} alt='' crossOrigin='anonymous' />
-                  </span>
-                  <span className='catalogue-card-copy'>
-                    <strong>{track.title}</strong>
-                    <button
-                      className='artist-text-button'
-                      type='button'
-                      onClick={event => {
-                        event.stopPropagation();
-                        onOpenArtist(track.artist);
-                      }}
-                    >
-                      {track.artist}
-                    </button>
-                    <span className='catalogue-card-description'>{track.description || 'Artist-owned release on Dotify.'}</span>
-                  </span>
-                  <span
-                    className='catalogue-access-line'
-                    data-access={hasCatalogAccess ? 'granted' : 'locked'}
-                    aria-label={catalogAccessAriaLabel(track, hasCatalogAccess)}
+                return (
+                  <article
+                    className='catalogue-card'
+                    data-selected={selectedTrackId === track.id}
+                    key={track.id}
+                    role='button'
+                    tabIndex={0}
+                    aria-label={`Open ${track.title} by ${track.artist}`}
+                    onClick={() => {
+                      void onOpenTrack(track);
+                    }}
+                    onKeyDown={event => handleCardKeyDown(event, track)}
                   >
-                    {hasCatalogAccess ? <CircleCheckBig size={15} /> : <Wallet size={15} />}
-                    <span>{catalogAccessLabel(track)}</span>
-                  </span>
-                </article>
-              );
-            })
-          ) : (
-            <div className='empty-state'>{catalogStatus}</div>
-          )}
+                    <span className='catalogue-cover-frame'>
+                      <img className='catalogue-cover' src={track.imageRef} alt='' crossOrigin='anonymous' />
+                    </span>
+                    <span className='catalogue-card-copy'>
+                      <strong>{track.title}</strong>
+                      <button
+                        className='artist-text-button'
+                        type='button'
+                        onClick={event => {
+                          event.stopPropagation();
+                          onOpenArtist(track.artist);
+                        }}
+                      >
+                        {track.artist}
+                      </button>
+                      <span className='catalogue-card-description'>{track.description || 'Artist-owned release on Dotify.'}</span>
+                    </span>
+                    <span
+                      className='catalogue-access-line'
+                      data-access={hasCatalogAccess ? 'granted' : 'locked'}
+                      aria-label={catalogAccessAriaLabel(track, hasCatalogAccess)}
+                    >
+                      {hasCatalogAccess ? <CircleCheckBig size={15} /> : <Wallet size={15} />}
+                      <span>{catalogAccessLabel(track)}</span>
+                    </span>
+                  </article>
+                );
+              })
+            ) : (
+              <div className='empty-state'>{catalogStatus}</div>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className='doc-panel home-principles-panel'>
-        <PanelTitle icon={BadgeCheck} title='Access culture' meta='proof, not profiles' />
-        <div className='principle-list'>
-          <div>
-            <strong>Preview first</strong>
-            <span>Every listener can discover before deciding how to unlock.</span>
-          </div>
-          <div>
-            <strong>Pay artists directly</strong>
-            <span>Classic access shows the DOT price before payment.</span>
-          </div>
-          <div>
-            <strong>Human free</strong>
-            <span>Personhood can unlock culture without turning people into ad profiles.</span>
+        <div className='doc-panel home-principles-panel'>
+          <PanelTitle icon={BadgeCheck} title='Access culture' meta='proof, not profiles' />
+          <div className='principle-list'>
+            <div>
+              <strong>Preview first</strong>
+              <span>Every listener can discover before deciding how to unlock.</span>
+            </div>
+            <div>
+              <strong>Pay artists directly</strong>
+              <span>Classic access shows the DOT price before payment.</span>
+            </div>
+            <div>
+              <strong>Human free</strong>
+              <span>Personhood can unlock culture without turning people into ad profiles.</span>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
     </section>
   );
 }

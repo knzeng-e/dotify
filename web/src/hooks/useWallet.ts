@@ -16,7 +16,7 @@ import { KeyManager } from '@polkadot-apps/keys';
 import { bytesToHex } from '@polkadot-apps/utils';
 import type { PolkadotSigner } from 'polkadot-api';
 import { privateKeyToAccount } from 'viem/accounts';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { createWalletClient, http, custom, type WalletClient, type Chain } from 'viem';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -24,6 +24,7 @@ import { createWalletClient, http, custom, type WalletClient, type Chain } from 
 // Changing PRF_SALT rotates ALL derived keys — all connected accounts change.
 const PRF_SALT = new TextEncoder().encode('dotify-wallet-v1');
 const CRED_KEY = 'dotify:passkey:credId';
+const LAST_METHOD_KEY = 'dotify:wallet:lastMethod';
 const SS58_PREFIX = 42; // adapt prefix for target chain (42 = generic Substrate, 0 = Polkadot, 2 = Kusama, etc.)
 const CONNECT_TIMEOUT_MS = 42_000;
 
@@ -40,12 +41,15 @@ export type ConnectedWallet = {
   substrateSigner?: PolkadotSigner;
   /** EVM account used for Asset Hub contract calls */
   evmAddress: `0x${string}`;
+  /** EIP-1193 chain id when the connected wallet reports one */
+  chainId?: number;
   /** Build the right viem WalletClient for this connection type */
   createEvmClient: (chain: Chain, rpcUrl: string) => WalletClient;
 };
 
 export type WalletState =
   | { status: 'disconnected' }
+  | { status: 'needs-reconnect'; via: 'passkey' }
   | { status: 'connecting'; via: WalletMethod }
   | { status: 'connected'; wallet: ConnectedWallet }
   | { status: 'error'; message: string };
@@ -133,25 +137,47 @@ async function passkeyConnect(): Promise<ConnectedWallet> {
 
 // ── Internal: browser extension ───────────────────────────────────────────────
 
-async function extensionConnect(): Promise<ConnectedWallet> {
-  type EIP1193 = { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
-  const ethereum = (window as unknown as Record<string, unknown>).ethereum as EIP1193 | undefined;
+type EIP1193 = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+  on?: (event: string, listener: (...args: unknown[]) => void) => void;
+  removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
+};
 
-  if (!ethereum) {
-    throw new Error('No wallet app found. Install MetaMask, Talisman, or SubWallet, then reload Dotify.');
-  }
+function getEthereumProvider() {
+  return (window as unknown as Record<string, unknown>).ethereum as EIP1193 | undefined;
+}
 
-  const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-  const evmAddress = Array.isArray(accounts) ? (accounts[0] as `0x${string}` | undefined) : undefined;
-  if (!evmAddress) {
-    throw new Error('No wallet address was approved. Open your wallet and allow Dotify to continue.');
-  }
+function parseChainId(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value !== 'string') return undefined;
+  const parsed = value.startsWith('0x') ? Number.parseInt(value, 16) : Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
 
+function toEip155ChainId(chainId: number) {
+  return `0x${chainId.toString(16)}`;
+}
+
+function getProviderErrorCode(error: unknown) {
+  if (!error || typeof error !== 'object' || !('code' in error)) return undefined;
+  const code = (error as { code?: unknown }).code;
+  if (typeof code === 'number') return code;
+  if (typeof code === 'string') return Number.parseInt(code, 10);
+  return undefined;
+}
+
+async function walletFromExtensionAddress(ethereum: EIP1193, evmAddress: `0x${string}`): Promise<ConnectedWallet> {
+  const chainId = await ethereum
+    .request({ method: 'eth_chainId' })
+    .then(parseChainId)
+    .catch(() => undefined);
   const label = `${evmAddress.slice(0, 6)}…${evmAddress.slice(-4)}`;
+
   return {
     method: 'extension',
     label,
     evmAddress,
+    chainId,
     createEvmClient: (chain, _rpcUrl) =>
       createWalletClient({
         account: evmAddress,
@@ -159,6 +185,67 @@ async function extensionConnect(): Promise<ConnectedWallet> {
         transport: custom(ethereum as Parameters<typeof custom>[0])
       })
   };
+}
+
+async function extensionConnect(options: { requestAccounts?: boolean } = {}): Promise<ConnectedWallet> {
+  const ethereum = getEthereumProvider();
+
+  if (!ethereum) {
+    throw new Error('No wallet app found. Install MetaMask, Talisman, or SubWallet, then reload Dotify.');
+  }
+
+  const accounts = await ethereum.request({ method: options.requestAccounts === false ? 'eth_accounts' : 'eth_requestAccounts' });
+  const evmAddress = Array.isArray(accounts) ? (accounts[0] as `0x${string}` | undefined) : undefined;
+  if (!evmAddress) {
+    throw new Error('No wallet address was approved. Open your wallet and allow Dotify to continue.');
+  }
+
+  return walletFromExtensionAddress(ethereum, evmAddress);
+}
+
+async function switchExtensionChain(chain: Chain): Promise<ConnectedWallet> {
+  const ethereum = getEthereumProvider();
+
+  if (!ethereum) {
+    throw new Error('No wallet app found. Install MetaMask, Talisman, or SubWallet, then reload Dotify.');
+  }
+
+  const chainId = toEip155ChainId(chain.id);
+  const switchParams = { chainId };
+
+  try {
+    await ethereum.request({ method: 'wallet_switchEthereumChain', params: [switchParams] });
+  } catch (error) {
+    if (getProviderErrorCode(error) !== 4902) {
+      throw error;
+    }
+
+    const blockExplorerUrl = chain.blockExplorers?.default.url;
+    await ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [
+        {
+          ...switchParams,
+          chainName: chain.name,
+          nativeCurrency: chain.nativeCurrency,
+          rpcUrls: chain.rpcUrls.default.http,
+          ...(blockExplorerUrl ? { blockExplorerUrls: [blockExplorerUrl] } : {})
+        }
+      ]
+    });
+  }
+
+  const accounts = await ethereum.request({ method: 'eth_accounts' });
+  const evmAddress = Array.isArray(accounts) ? (accounts[0] as `0x${string}` | undefined) : undefined;
+  if (!evmAddress) {
+    throw new Error('Reconnect your wallet before switching networks.');
+  }
+
+  const wallet = await walletFromExtensionAddress(ethereum, evmAddress);
+  if (wallet.chainId !== chain.id) {
+    throw new Error(`Select chain ${chain.id} in your wallet to continue. Your wallet is currently on chain ${wallet.chainId ?? 'unknown'}.`);
+  }
+  return wallet;
 }
 
 async function withTimeout<T>(promise: Promise<T>, message: string): Promise<T> {
@@ -183,6 +270,7 @@ export function useWallet() {
     setState({ status: 'connecting', via: 'passkey' });
     try {
       const wallet = await withTimeout(passkeyConnect(), 'Passkey timed out. Check the browser prompt, then try again.');
+      localStorage.setItem(LAST_METHOD_KEY, 'passkey');
       setState({ status: 'connected', wallet });
     } catch (e) {
       setState({ status: 'error', message: e instanceof Error ? e.message : 'Passkey sign in failed.' });
@@ -193,14 +281,103 @@ export function useWallet() {
     setState({ status: 'connecting', via: 'extension' });
     try {
       const wallet = await withTimeout(extensionConnect(), 'Wallet connection timed out. Open your wallet, approve Dotify, then try again.');
+      localStorage.setItem(LAST_METHOD_KEY, 'extension');
       setState({ status: 'connected', wallet });
     } catch (e) {
       setState({ status: 'error', message: e instanceof Error ? e.message : 'Wallet connection failed.' });
     }
   }, []);
 
+  const switchExtensionNetwork = useCallback(async (chain: Chain) => {
+    const wallet = await withTimeout(switchExtensionChain(chain), 'Network switch timed out. Check your wallet, then try again.');
+    localStorage.setItem(LAST_METHOD_KEY, 'extension');
+    setState({ status: 'connected', wallet });
+    return wallet;
+  }, []);
+
   const disconnect = useCallback(() => {
+    localStorage.removeItem(LAST_METHOD_KEY);
     setState({ status: 'disconnected' });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const lastMethod = localStorage.getItem(LAST_METHOD_KEY) as WalletMethod | null;
+    if (lastMethod !== 'extension' && lastMethod !== 'passkey') return;
+    const restoreMethod = lastMethod;
+
+    if (restoreMethod === 'passkey') {
+      if (localStorage.getItem(CRED_KEY)) {
+        setState({ status: 'needs-reconnect', via: 'passkey' });
+      } else {
+        localStorage.removeItem(LAST_METHOD_KEY);
+      }
+      return;
+    }
+
+    async function restoreWallet() {
+      setState({ status: 'connecting', via: restoreMethod });
+      try {
+        const wallet = await withTimeout(extensionConnect({ requestAccounts: false }), 'Wallet restore timed out.');
+        if (!cancelled) {
+          setState({ status: 'connected', wallet });
+        }
+      } catch {
+        localStorage.removeItem(LAST_METHOD_KEY);
+        if (!cancelled) {
+          setState({ status: 'disconnected' });
+        }
+      }
+    }
+
+    void restoreWallet();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const ethereum = getEthereumProvider();
+    if (!ethereum?.on || !ethereum.removeListener) return;
+    const provider = ethereum;
+
+    function handleAccountsChanged(accounts: unknown) {
+      const evmAddress = Array.isArray(accounts) ? (accounts[0] as `0x${string}` | undefined) : undefined;
+      if (!evmAddress) {
+        localStorage.removeItem(LAST_METHOD_KEY);
+        setState({ status: 'disconnected' });
+        return;
+      }
+
+      void walletFromExtensionAddress(provider, evmAddress).then(wallet => {
+        localStorage.setItem(LAST_METHOD_KEY, 'extension');
+        setState({ status: 'connected', wallet });
+      });
+    }
+
+    function handleChainChanged(chainId: unknown) {
+      const parsedChainId = parseChainId(chainId);
+      setState(current =>
+        current.status === 'connected' && current.wallet.method === 'extension'
+          ? { status: 'connected', wallet: { ...current.wallet, chainId: parsedChainId } }
+          : current
+      );
+    }
+
+    function handleDisconnect() {
+      localStorage.removeItem(LAST_METHOD_KEY);
+      setState({ status: 'disconnected' });
+    }
+
+    provider.on?.('accountsChanged', handleAccountsChanged);
+    provider.on?.('chainChanged', handleChainChanged);
+    provider.on?.('disconnect', handleDisconnect);
+
+    return () => {
+      provider.removeListener?.('accountsChanged', handleAccountsChanged);
+      provider.removeListener?.('chainChanged', handleChainChanged);
+      provider.removeListener?.('disconnect', handleDisconnect);
+    };
   }, []);
 
   /** True when the browser supports WebAuthn with the PRF extension. */
@@ -215,7 +392,11 @@ export function useWallet() {
 
   const forgetPasskey = useCallback(() => {
     localStorage.removeItem(CRED_KEY);
+    if (localStorage.getItem(LAST_METHOD_KEY) === 'passkey') {
+      localStorage.removeItem(LAST_METHOD_KEY);
+    }
+    setState(current => (current.status === 'needs-reconnect' && current.via === 'passkey' ? { status: 'disconnected' } : current));
   }, []);
 
-  return { state, connectPasskey, connectExtension, disconnect, hasPrfSupport, hasStoredPasskey, forgetPasskey };
+  return { state, connectPasskey, connectExtension, switchExtensionNetwork, disconnect, hasPrfSupport, hasStoredPasskey, forgetPasskey };
 }

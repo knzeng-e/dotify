@@ -1,6 +1,7 @@
 # Architecture Overview
 
 > **Reading level:** This document has two levels.
+>
 > - The first section is for anyone who wants to understand what Dotify is made of.
 > - The [Technical deep-dive](#technical-deep-dive) section is for developers integrating with or contributing to the codebase.
 
@@ -12,14 +13,15 @@ Dotify is a decentralized music streaming platform. When you stream a track, upl
 
 Those systems are:
 
-| Layer | Technology | What it does |
-|---|---|---|
-| **Identity** | EVM wallet (passkey or extension) | Proves who you are without a password or an account |
-| **Storage** | IPFS via Pinata | Holds audio files, cover images, and track metadata |
-| **On-chain registry** | Paseo Asset Hub (EVM) | Records track ownership, access rules, and payments |
-| **Archival** | Polkadot Bulletin Chain | Permanent, tamper-proof backup of the rights manifest |
-| **Real-time streaming** | WebRTC + Socket.IO | Delivers live audio to listening rooms |
-| **Frontend** | React SPA | The user interface that ties all of the above together |
+| Layer                   | Technology                        | What it does                                                  |
+| ----------------------- | --------------------------------- | ------------------------------------------------------------- |
+| **Identity**            | EVM wallet (passkey or extension) | Proves who you are without a password or an account           |
+| **Storage**             | IPFS via Pinata                   | Holds audio files, cover images, and track metadata           |
+| **Backend API**         | Node.js + Fastify                 | Keeps Pinata credentials and content-key material server-side |
+| **On-chain registry**   | Paseo Asset Hub (EVM)             | Records track ownership, access rules, and payments           |
+| **Archival**            | Polkadot Bulletin Chain           | Permanent, tamper-proof backup of the rights manifest         |
+| **Real-time streaming** | WebRTC + Socket.IO                | Delivers live audio to listening rooms                        |
+| **Frontend**            | React SPA                         | The user interface that ties all of the above together        |
 
 These systems are intentionally separate. If any one of them goes down or is replaced, the others keep working. Your music is not locked into Dotify — it lives on open networks.
 
@@ -36,10 +38,10 @@ Artist selects audio file
 blake2b-256 hash computed      ← content identity, used everywhere
         │
         ▼
-AES-256-GCM encryption         ← protects audio before it leaves the browser
+AES-256-GCM encryption         ← backend path protects audio before pinning
         │
         ▼
-Upload to IPFS via Pinata      ← audio CID stored on-chain
+Upload to IPFS via Pinata      ← backend pins encrypted audio; CID stored on-chain
 Cover image → IPFS             ← cover CID stored on-chain
         │
         ▼
@@ -70,7 +72,7 @@ Each runtime's track list fetched ← on-chain catalog
         ▼
 Track selected → access checked
         │
-        ├── Has access?  ──► Full audio decrypted and played
+        ├── Has access?  ──► Content key requested, full audio decrypted and played
         │
         └── No access?  ──► 42 % preview played, access gate shown
                 │
@@ -84,7 +86,10 @@ Track selected → access checked
 
 ### Frontend (React SPA)
 
-The frontend lives at `Dotify/web/src/` and is a Vite + React + TypeScript application. It has no backend of its own — every network call goes directly to IPFS, an EVM RPC, the Bulletin RPC, or the signaling server.
+The frontend lives at `Dotify/web/src/` and is a Vite + React + TypeScript
+application. It talks directly to public RPCs and IPFS gateways for reads, and
+uses the backend API when `VITE_DOTIFY_API_URL` is configured for server-side
+uploads and wallet-signed content-key delivery.
 
 **Key modules:**
 
@@ -103,10 +108,25 @@ src/
 │   ├── RoomsView.tsx
 │   └── artist/                # ArtistOnboarding, ArtistConsole + sub-tabs
 └── services/
-    └── pinata.ts              # IPFS upload + fetch with gateway fallback
+    ├── keyService.ts          # Wallet-signed content-key requests
+    └── pinata.ts              # Backend/demo uploads + gateway fallback reads
 ```
 
 The three custom hooks own all non-UI state and logic. View components are thin — they receive props and render JSX.
+
+### Backend API
+
+The backend API lives in `services/api/`. It is a Node.js 22 + Fastify service
+for production boundaries that must not be bundled into the frontend:
+
+- server-side Pinata uploads;
+- server-side AES-256-GCM audio encryption;
+- nonce issuance and replay protection;
+- wallet-signature verification;
+- runtime access checks before content-key delivery.
+
+It exposes health, auth nonce, upload, and track key-request routes. It fails
+closed when key material, RPC, or access checks are unavailable.
 
 ### Smart contracts (EVM)
 

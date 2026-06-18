@@ -58,9 +58,9 @@ Build the production spine first:
 
 ## Active ticket
 
-**Sprint 0 · Ticket 04** — hosted signaling, room join links, and host-based room access (`docs/backlog/04-hosted-signaling-room-join-links.md`)
+**Sprint 1 · Ticket 05** — Classic unlock end-to-end coverage (`docs/backlog/05-classic-unlock-e2e-coverage.md`)
 
-Ticket 03 (wallet-signed content-key requests) is delivered; see the delivery notes appended to `docs/backlog/03-wallet-signed-content-key-requests.md` for the implemented design and its documented boundaries.
+Sprint 0 spine tickets 01-04 are delivered; each ticket file carries delivery notes documenting the implemented design and its boundaries (key derivation, host-based room access, honest playback-mode metadata).
 
 ## Source of truth
 

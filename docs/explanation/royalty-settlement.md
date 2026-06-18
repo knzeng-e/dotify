@@ -56,13 +56,15 @@ These splits are stored in the runtime and applied on every payment.
 
 When a listener calls `musicRoyPayAccess(contentHash)`, the contract:
 
-1. Verifies `msg.value >= pricePlanck * 1e8` (converts Substrate planck to EVM wei).
+1. Verifies `msg.value >= pricePlanck`.
 2. Iterates the royalty recipient list and transfers `(value * bps) / 10_000` to each.
 3. Sends any remainder to the runtime owner.
 4. Sets `paidAccess[contentHash][msg.sender] = true`.
 5. Emits `MusicRoyAccessPaid(contentHash, listener, amount)`.
 
-The price conversion accounts for the different decimal bases between Substrate (10 decimals) and the EVM (18 decimals): `pricePlanck * 100_000_000 = priceWei`.
+The `pricePlanck` field name is historical. The active EVM path stores and pays
+prices as 18-decimal native token units, so the frontend uses `parseEther()` for
+DOT input and `formatEther()` for display.
 
 ### Royalty event structure
 

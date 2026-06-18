@@ -1,4 +1,4 @@
-import { formatEther } from 'viem';
+import { formatEther, parseEther } from 'viem';
 import type { AccessMode, CatalogTrack, PeerStatus, PlayerState } from '../types';
 
 export function formatTime(seconds: number) {
@@ -15,21 +15,19 @@ export function progressPercent(state: PlayerState | null) {
   return Math.min(100, Math.max(0, (state.currentTime / state.duration) * 100));
 }
 
+// The contract field is still named pricePlanck for historical/Substrate
+// context, but Asset Hub EVM msg.value uses 18-decimal native units.
 export function dotToPlanck(dot: string) {
-  const [whole = '0', fraction = ''] = dot.trim().split('.');
-  const paddedFraction = `${fraction.slice(0, 10)}${'0'.repeat(10)}`.slice(0, 10);
-  return BigInt(whole || '0') * 10_000_000_000n + BigInt(paddedFraction || '0');
-}
-
-export function formatPlanckAsDot(planck: bigint) {
-  const whole = planck / 10_000_000_000n;
-  const fraction = (planck % 10_000_000_000n).toString().padStart(10, '0').replace(/0+$/, '');
-  return fraction ? `${whole}.${fraction}` : whole.toString();
+  return parseEther(dot.trim() || '0');
 }
 
 export function formatWeiAsDot(wei: bigint) {
-  const [whole = '0', fraction = ''] = formatEther(wei).split('.');
-  const trimmedFraction = fraction.replace(/0+$/, '').slice(0, 4);
+  return formatNativeAmount(wei, 9);
+}
+
+function formatNativeAmount(value: bigint, maxFractionDigits: number) {
+  const [whole = '0', fraction = ''] = formatEther(value).split('.');
+  const trimmedFraction = fraction.replace(/0+$/, '').slice(0, maxFractionDigits);
   return trimmedFraction ? `${whole}.${trimmedFraction}` : whole;
 }
 

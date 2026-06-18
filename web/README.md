@@ -30,37 +30,57 @@ portal at `/artists`.
 Useful environment variables:
 
 - `VITE_SIGNAL_URL`: Socket.IO signaling server for listening rooms.
+- `VITE_DOTIFY_API_URL`: backend API for server-side uploads and
+  wallet-signed content-key requests.
 - `VITE_LOCAL_WS_URL` / `VITE_LOCAL_ETH_RPC_URL`: local development endpoints.
 - `VITE_BULLETIN_WS_URL`: Paseo Bulletin Chain RPC.
-- `VITE_PINATA_JWT`: restricted browser-exposed Pinata JWT for demo uploads.
+- `VITE_PINATA_JWT`: restricted browser-exposed Pinata JWT for demo uploads
+  when `VITE_DOTIFY_API_URL` is unset.
 - `VITE_PINATA_GATEWAY`: primary gateway used when rendering IPFS assets.
 - `VITE_IPFS_READ_GATEWAYS`: comma-separated read fallback gateways for IPFS
   manifests and encrypted audio.
 - `VITE_CONTENT_SECRET`: optional 32-byte hex secret used for best-effort
   browser-side encrypted audio. It is bundled into the app, so it is not a
   production DRM boundary.
+- `VITE_TURN_URL` / `VITE_TURN_USERNAME` / `VITE_TURN_CREDENTIAL`: optional TURN
+  relay credentials for reliable room WebRTC across restrictive NATs.
+- `VITE_BLOCKSCOUT_BASE_URL`: optional Blockscout explorer base URL.
 
 See `.env.example` for local defaults and script-only variables.
 
 ## Audio And IPFS
 
-Uploaded audio is hashed locally with blake2b-256, encrypted with AES-256-GCM,
-and uploaded to Pinata as encrypted bytes. The on-chain `audioRef` stores a
-`dotify:enc:ipfs://CID` URI, so the raw IPFS object is not directly playable by
-an HTML audio element.
+Uploaded audio is always hashed locally with blake2b-256. When
+`VITE_DOTIFY_API_URL` is configured, the browser sends the raw audio plus
+content hash to the backend, and the backend encrypts with its
+`CONTENT_KEY_MASTER_SECRET` before pinning to Pinata. In local demo mode, when
+`VITE_DOTIFY_API_URL` is unset, the browser encrypts with `VITE_CONTENT_SECRET`
+and pins directly with `VITE_PINATA_JWT`.
+
+The on-chain `audioRef` stores a `dotify:enc:ipfs://CID` URI, so the raw IPFS
+object is not directly playable by an HTML audio element.
 
 Cover images and track manifests are also pinned through Pinata. Manifest reads
 and encrypted audio downloads use `fetchIpfsCid`, which tries the configured
 primary gateway first and then falls back to public IPFS gateways. This avoids
 breaking playback when a custom Pinata gateway returns `401` for public files.
 
-The current protection model is best-effort:
+The production protection boundary is the backend API:
+
+- Pinata credentials stay server-side.
+- Content keys are derived from `CONTENT_KEY_MASTER_SECRET`.
+- Full-track key delivery requires a wallet-signed request and an on-chain
+  access check.
+- Room guests never receive keys; only an authorized host may request a
+  `room_host` key.
+
+The fallback browser-only protection model is best-effort:
 
 - the browser derives the content key from `VITE_CONTENT_SECRET` plus the track
   hash;
 - the encrypted CID is public, but the bytes are not directly playable;
 - the secret is still shipped to the browser, so production key release should
-  move behind a wallet-gated backend or artist key service.
+  use the backend path instead.
 
 ## Access Policy
 
@@ -113,10 +133,10 @@ can be distributed from a flat IPFS CID / DotNS record.
 
 ## Current Limitations
 
-- Uploads call Pinata directly from the browser. Use only restricted demo tokens;
-  production should proxy pinning through a backend.
-- Playback protection is client-side best-effort. A real release system needs
-  wallet-gated key delivery instead of a bundled `VITE_CONTENT_SECRET`.
+- Browser-side Pinata uploads are demo/local mode only. Production should set
+  `VITE_DOTIFY_API_URL` and configure `PINATA_JWT` on the backend.
+- Playback protection is client-side best-effort only when the backend API is
+  not configured. Production key delivery uses wallet-signed backend requests.
 - Artist registration and release publication require a connected wallet. Local
   EVM dev accounts are no longer exposed as public artist fallbacks.
 - Proof of Personhood levels are contract storage controlled by the runtime

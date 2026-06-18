@@ -1,5 +1,6 @@
-import { BadgeCheck, Disc3, FileAudio, LockKeyhole, RefreshCw, Sparkles, Wallet } from 'lucide-react';
+import { BadgeCheck, Disc3, ExternalLink, FileAudio, LockKeyhole, RefreshCw, Sparkles, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import { getBlockscoutAddressUrl } from '../../utils/explorer';
 import { shorten } from '../../utils/format';
 import type { CatalogTrack } from '../../types';
 
@@ -49,8 +50,8 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
           </div>
           <h1 id='artist-claim-title'>Claim your artist space on Dotify.</h1>
           <p>
-            Register the wallet that owns your catalog, publish music from your own SmartRuntime, and keep the listener
-            experience centered on shared rooms, direct access, and transparent payments.
+            Register the wallet that owns your catalog, publish music from your own SmartRuntime, and keep the listener experience centered on shared rooms,
+            direct access, and transparent payments.
           </p>
           <div className='artist-claim-actions'>
             <a className='primary-action' href='#claim-profile'>
@@ -85,28 +86,20 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
             <Wallet size={28} />
           </div>
           <h2>Register as an artist</h2>
-          <p className='onboarding-subtitle'>
-            Use your wallet to create an artist profile before publishing releases.
-          </p>
+          <p className='onboarding-subtitle'>Use your wallet to create an artist profile before publishing releases.</p>
         </div>
 
         <div className='philosophy-commitment'>
           <p className='philosophy-statement'>
-            Dotify is not only a streaming platform. It is a cultural social hub, a place where music becomes the reason people
-            gather in real time. When you upload a track, it enters a shared space where listeners can tune in together,
-            inhabiting the same moment around your work.
+            Dotify is not only a streaming platform. It is a cultural social hub, a place where music becomes the reason people gather in real time. When you
+            upload a track, it enters a shared space where listeners can tune in together, inhabiting the same moment around your work.
           </p>
           <p className='philosophy-statement'>
-            You keep full control of your catalog, rights, and monetization. What you are offering is
-            a presence. Your music as an instrument of direct human connection.
+            You keep full control of your catalog, rights, and monetization. What you are offering is a presence. Your music as an instrument of direct human
+            connection.
           </p>
           <label className='consent-row'>
-            <input
-              type='checkbox'
-              className='consent-checkbox'
-              checked={consented}
-              onChange={e => setConsented(e.target.checked)}
-            />
+            <input type='checkbox' className='consent-checkbox' checked={consented} onChange={e => setConsented(e.target.checked)} />
             <span>I understand and consent to my music being used to create real-time shared listening experiences on Dotify.</span>
           </label>
         </div>
@@ -126,7 +119,10 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
                 <div className='account-info'>
                   <div className='account-address'>
                     <span className='label'>Active address:</span>
-                    <code>{shorten(activeEvmAddress, 14)}</code>
+                    <a className='verify-link' href={getBlockscoutAddressUrl(activeEvmAddress)} target='_blank' rel='noreferrer'>
+                      <code>{shorten(activeEvmAddress, 14)}</code>
+                      <ExternalLink size={12} />
+                    </a>
                   </div>
                   <span className='badge badge-success'>{connectedWallet.label}</span>
                 </div>
@@ -144,7 +140,7 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
                 className='field'
                 placeholder='Your artist name'
                 value={artistName}
-                onChange={(e) => onUpdateArtistName(e.target.value)}
+                onChange={e => onUpdateArtistName(e.target.value)}
                 disabled={isRegisteringArtist}
               />
             </div>
@@ -158,12 +154,7 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
               <div className='registration-status'>
                 <span className='status-text'>{registrationStatus}</span>
               </div>
-              <button
-                className='primary-action compact-action'
-                type='button'
-                onClick={onRegisterArtist}
-                disabled={!canRegister}
-              >
+              <button className='primary-action compact-action' type='button' onClick={onRegisterArtist} disabled={!canRegister}>
                 {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
                 {isRegisteringArtist ? 'Registering...' : 'Create artist profile'}
               </button>
@@ -184,8 +175,7 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
           <div className='onboarding-note'>
             <FileAudio size={20} />
             <p>
-              You have <strong>{artistTracks.length}</strong> unreleased track(s) waiting. Once registered, you can publish them
-              and start earning royalties.
+              You have <strong>{artistTracks.length}</strong> unreleased track(s) waiting. Once registered, you can publish them and start earning royalties.
             </p>
           </div>
         )}
@@ -452,6 +442,13 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
           font-family: 'Monaco', 'Menlo', monospace;
           font-size: 0.875rem;
           color: var(--color-text-primary, #000);
+        }
+
+        .account-address .verify-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          width: fit-content;
         }
 
         .badge {

@@ -14,7 +14,7 @@ async function getBulletinApi(): Promise<TypedApi<typeof bulletin>> {
   if (!cachedApi) {
     const client = await createChainClient({
       chains: { bulletin },
-      rpcs: { bulletin: [BULLETIN_WS_URL] },
+      rpcs: { bulletin: [BULLETIN_WS_URL] }
     });
     cachedApi = client.bulletin;
     cachedDestroy = () => client.destroy();
