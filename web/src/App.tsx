@@ -910,11 +910,11 @@ export default function App() {
                     mode={session.mode}
                     hostName={session.hostName}
                     roomId={session.roomId}
+                    sessionLink={session.sessionLink}
                     sessionAction={session.sessionAction}
                     displayName={session.displayName}
                     joinCode={session.joinCode}
                     listeners={session.listeners}
-                    listenerCount={session.listenerCount}
                     remoteReady={session.remoteReady}
                     localStreamReady={session.localStreamReady}
                     error={session.error}

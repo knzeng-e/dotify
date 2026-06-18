@@ -2423,6 +2423,159 @@ audio {
   background: rgba(41, 232, 122, 0.22);
 }
 
+.room-share-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(11.5rem, 13rem);
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.85rem;
+  border: 1px solid var(--border-divider);
+  border-radius: var(--radius-small);
+  background:
+    radial-gradient(14rem 9rem at 100% 0%, color-mix(in oklab, var(--aura-accent) 18%, transparent), transparent 70%),
+    rgba(255, 255, 255, 0.045);
+  padding: 0.95rem;
+}
+
+.room-share-copy {
+  display: grid;
+  gap: 0.24rem;
+  min-width: 0;
+}
+
+.room-share-copy strong {
+  color: var(--fg-primary);
+  font-size: 0.92rem;
+  font-weight: 850;
+}
+
+.room-share-copy span {
+  color: var(--fg-tertiary);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.room-project-btn {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.38rem;
+  margin-top: 0.45rem;
+  border: 1px solid color-mix(in oklab, var(--aura-accent) 48%, transparent);
+  border-radius: var(--radius-full);
+  background: color-mix(in oklab, var(--aura-accent) 18%, transparent);
+  color: #ffffff;
+  padding: 0.42rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.room-project-btn:hover {
+  background: color-mix(in oklab, var(--aura-accent) 30%, transparent);
+  transform: translateY(-1px);
+}
+
+.room-qr-link {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 0.55rem;
+  box-shadow: 0 12px 28px -18px rgba(0, 0, 0, 0.65);
+}
+
+.room-qr-code {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.room-qr-fallback {
+  margin: 0;
+  max-width: 9rem;
+  color: var(--fg-tertiary);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.room-qr-projector {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  color: #06152d;
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.room-qr-projector-close {
+  position: fixed;
+  top: clamp(1rem, 2.2vw, 1.5rem);
+  right: clamp(1rem, 2.2vw, 1.5rem);
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border: 1px solid rgba(6, 21, 45, 0.16);
+  border-radius: var(--radius-full);
+  background: rgba(6, 21, 45, 0.06);
+  color: #06152d;
+  cursor: pointer;
+}
+
+.room-qr-projector-content {
+  display: grid;
+  justify-items: center;
+  gap: clamp(0.8rem, 2vmin, 1.35rem);
+  width: min(100%, 62rem);
+  text-align: center;
+}
+
+.room-qr-projector-content .modal-eyebrow {
+  margin: 0;
+  border-color: rgba(6, 21, 45, 0.16);
+  background: rgba(6, 21, 45, 0.06);
+  color: #06152d;
+}
+
+.room-qr-projector-content h2 {
+  margin: 0;
+  color: #06152d;
+  font-size: clamp(2.4rem, 7vmin, 6.5rem);
+  font-weight: 900;
+  line-height: 0.95;
+}
+
+.room-qr-projector-content .room-qr-link {
+  width: min(90vmin, 92vw, 60rem);
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.room-qr-projector-content .room-qr-code {
+  filter: none;
+}
+
+.room-qr-projector-content code {
+  max-width: min(96vw, 54rem);
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-small);
+  background: rgba(6, 21, 45, 0.06);
+  color: #06152d;
+  padding: 0.6rem 0.75rem;
+  font-size: clamp(0.9rem, 1.8vmin, 1.35rem);
+  font-weight: 800;
+}
+
 /* ── Status boxes ── */
 
 .rights-status,
@@ -5285,6 +5438,15 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
     width: 100%;
     margin-left: 0;
     justify-content: space-between;
+  }
+
+  .room-share-card {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .room-qr-link {
+    width: min(13rem, 100%);
   }
 
   .room-promise-strip span {

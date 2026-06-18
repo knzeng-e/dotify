@@ -5,6 +5,7 @@ import {
   Headphones,
   KeyRound,
   Library,
+  Maximize2,
   Pause,
   Play,
   Radio,
@@ -13,15 +14,18 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
-  Users
+  Users,
+  X
 } from 'lucide-react';
 import { PanelTitle } from '../components/ui/PanelTitle';
 import { EndpointRow } from '../components/ui/EndpointRow';
 import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
+import { RoomQrCode } from '../components/RoomQrCode';
 import { accessModeLabel, accessModeLabelFromState, formatTime, peerStatusLabel } from '../utils/format';
 import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, PersonhoodLevel, PlayerState, SessionAction, TrackInfo } from '../types';
-import { useEffect, useState, type CSSProperties, type FormEvent, type RefObject } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 
 type PlayerViewProps = {
   // Track/audio state
@@ -37,11 +41,11 @@ type PlayerViewProps = {
   mode: Mode;
   hostName: string;
   roomId: string;
+  sessionLink: string;
   sessionAction: SessionAction;
   displayName: string;
   joinCode: string;
   listeners: ListenerRecord[];
-  listenerCount: number;
   remoteReady: boolean;
   localStreamReady: boolean;
   error: string | null;
@@ -92,6 +96,7 @@ export function PlayerView({
   mode,
   hostName,
   roomId,
+  sessionLink,
   sessionAction,
   displayName,
   joinCode,
@@ -132,6 +137,15 @@ export function PlayerView({
   const [shuffleEnabled, setShuffleEnabled] = useState(false);
   const [reactions, setReactions] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
   const [queuedAutoplay, setQueuedAutoplay] = useState<QueuedAutoplay | null>(null);
+  const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
+  const qrProjectorRef = useRef<HTMLDivElement | null>(null);
+  const qrProjectorCloseRef = useRef<HTMLButtonElement | null>(null);
+
+  function handleQrProjectorBackdropClick(event: MouseEvent<HTMLDivElement>) {
+    if (event.target === event.currentTarget) {
+      setIsQrProjectorOpen(false);
+    }
+  }
 
   // Local ambient reactions over the cover (visual delight, not broadcast).
   function sendReaction(emoji: string) {
@@ -173,6 +187,81 @@ export function PlayerView({
     if (!playerState) return;
     setTransportState(playerState);
   }, [playerState]);
+
+  useEffect(() => {
+    if (!isQrProjectorOpen) return undefined;
+
+    const previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const appContainer = document.getElementById('root');
+    const previousAppContainerAriaHidden = appContainer?.getAttribute('aria-hidden') ?? null;
+    let didHideAppContainer = false;
+    const frame = window.requestAnimationFrame(() => {
+      (qrProjectorCloseRef.current ?? qrProjectorRef.current)?.focus();
+      if (appContainer) {
+        appContainer.setAttribute('aria-hidden', 'true');
+        didHideAppContainer = true;
+      }
+    });
+
+    function getFocusableElements() {
+      const dialog = qrProjectorRef.current;
+      if (!dialog) return [];
+
+      return Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(element => element.getClientRects().length > 0 || element === document.activeElement);
+    }
+
+    function handleProjectorKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsQrProjectorOpen(false);
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const dialog = qrProjectorRef.current;
+      if (!dialog) return;
+
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && (activeElement === firstElement || !dialog.contains(activeElement))) {
+        event.preventDefault();
+        lastElement.focus();
+        return;
+      }
+
+      if (!event.shiftKey && (activeElement === lastElement || !dialog.contains(activeElement))) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+
+    window.addEventListener('keydown', handleProjectorKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('keydown', handleProjectorKeyDown);
+      if (appContainer && didHideAppContainer) {
+        if (previousAppContainerAriaHidden === null) {
+          appContainer.removeAttribute('aria-hidden');
+        } else {
+          appContainer.setAttribute('aria-hidden', previousAppContainerAriaHidden);
+        }
+      }
+      previousActiveElement?.focus();
+    };
+  }, [isQrProjectorOpen]);
 
   useEffect(() => {
     if (!queuedAutoplay || mode !== 'host' || !audioSource || selectedTrackId !== queuedAutoplay.trackId) return undefined;
@@ -282,6 +371,34 @@ export function PlayerView({
   }
 
   const connectedListenerCount = listeners.filter(listener => listener.status === 'connected').length;
+  const qrProjectorDialog =
+    mode === 'host' && roomId && sessionLink && isQrProjectorOpen ? (
+      <div
+        className='room-qr-projector'
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='room-qr-projector-title'
+        tabIndex={-1}
+        ref={qrProjectorRef}
+        onClick={handleQrProjectorBackdropClick}
+      >
+        <button
+          className='room-qr-projector-close'
+          type='button'
+          onClick={() => setIsQrProjectorOpen(false)}
+          aria-label='Close projected QR'
+          ref={qrProjectorCloseRef}
+        >
+          <X size={20} />
+        </button>
+        <div className='room-qr-projector-content'>
+          <p className='modal-eyebrow'>Room {roomId}</p>
+          <h2 id='room-qr-projector-title'>Scan to join</h2>
+          <RoomQrCode value={sessionLink} label={`Large QR code for room ${roomId}`} asLink={false} />
+          <code>{sessionLink}</code>
+        </div>
+      </div>
+    ) : null;
 
   return (
     <section className={'content-grid player-view-grid' + (roomId ? ' player-room-mode' : '')}>
@@ -594,6 +711,20 @@ export function PlayerView({
             </button>
           )}
 
+          {mode === 'host' && roomId && sessionLink && (
+            <div className='room-share-card'>
+              <div className='room-share-copy'>
+                <strong>Scan to join</strong>
+                <span>Opens this room link directly.</span>
+                <button className='room-project-btn' type='button' onClick={() => setIsQrProjectorOpen(true)}>
+                  <Maximize2 size={14} />
+                  Project QR
+                </button>
+              </div>
+              <RoomQrCode value={sessionLink} label={`QR code for room ${roomId}`} />
+            </div>
+          )}
+
           <div className='listener-list'>
             {mode === 'host' && (
               <div className='list-row' key='host-self'>
@@ -702,6 +833,8 @@ export function PlayerView({
           </button>
         </div>
       </div>
+
+      {qrProjectorDialog && (typeof document === 'undefined' ? qrProjectorDialog : createPortal(qrProjectorDialog, document.body))}
     </section>
   );
 }
