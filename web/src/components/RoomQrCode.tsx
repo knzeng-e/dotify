@@ -4,6 +4,7 @@ import * as QRCode from 'qrcode';
 type RoomQrCodeProps = {
   value: string;
   label: string;
+  asLink?: boolean;
 };
 
 type QrState =
@@ -34,7 +35,7 @@ function createQrPath(modules: QRCode.BitMatrix) {
   return commands.join('');
 }
 
-export function RoomQrCode({ value, label }: RoomQrCodeProps) {
+export function RoomQrCode({ value, label, asLink = true }: RoomQrCodeProps) {
   const qrState = useMemo<QrState>(() => {
     try {
       const matrix = QRCode.create(value, { errorCorrectionLevel: 'H' });
@@ -55,12 +56,24 @@ export function RoomQrCode({ value, label }: RoomQrCodeProps) {
     return <p className='room-qr-fallback'>{qrState.message}</p>;
   }
 
+  const qrSvg = (
+    <svg className='room-qr-code' viewBox={`0 0 ${qrState.viewBoxSize} ${qrState.viewBoxSize}`} role='img' aria-label={label} shapeRendering='crispEdges'>
+      <rect width={qrState.viewBoxSize} height={qrState.viewBoxSize} rx='1.5' fill='#ffffff' />
+      <path d={qrState.path} fill='#06152d' />
+    </svg>
+  );
+
+  if (!asLink) {
+    return (
+      <div className='room-qr-link' aria-label={label}>
+        {qrSvg}
+      </div>
+    );
+  }
+
   return (
     <a className='room-qr-link' href={value} aria-label={label}>
-      <svg className='room-qr-code' viewBox={`0 0 ${qrState.viewBoxSize} ${qrState.viewBoxSize}`} role='img' aria-label={label} shapeRendering='crispEdges'>
-        <rect width={qrState.viewBoxSize} height={qrState.viewBoxSize} rx='1.5' fill='#ffffff' />
-        <path d={qrState.path} fill='#06152d' />
-      </svg>
+      {qrSvg}
     </a>
   );
 }

@@ -744,7 +744,7 @@ export function PlayerView({
           <div className='room-qr-projector-content'>
             <p className='modal-eyebrow'>Room {roomId}</p>
             <h2 id='room-qr-projector-title'>Scan to join</h2>
-            <RoomQrCode value={sessionLink} label={`Large QR code for room ${roomId}`} />
+            <RoomQrCode value={sessionLink} label={`Large QR code for room ${roomId}`} asLink={false} />
             <code>{sessionLink}</code>
           </div>
         </div>
