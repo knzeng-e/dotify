@@ -25,6 +25,7 @@ import { RoomQrCode } from '../components/RoomQrCode';
 import { accessModeLabel, accessModeLabelFromState, formatTime, peerStatusLabel } from '../utils/format';
 import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, PersonhoodLevel, PlayerState, SessionAction, TrackInfo } from '../types';
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 
 type PlayerViewProps = {
   // Track/audio state
@@ -191,8 +192,15 @@ export function PlayerView({
     if (!isQrProjectorOpen) return undefined;
 
     const previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const appContainer = document.getElementById('root');
+    const previousAppContainerAriaHidden = appContainer?.getAttribute('aria-hidden') ?? null;
+    let didHideAppContainer = false;
     const frame = window.requestAnimationFrame(() => {
       (qrProjectorCloseRef.current ?? qrProjectorRef.current)?.focus();
+      if (appContainer) {
+        appContainer.setAttribute('aria-hidden', 'true');
+        didHideAppContainer = true;
+      }
     });
 
     function getFocusableElements() {
@@ -244,6 +252,13 @@ export function PlayerView({
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener('keydown', handleProjectorKeyDown);
+      if (appContainer && didHideAppContainer) {
+        if (previousAppContainerAriaHidden === null) {
+          appContainer.removeAttribute('aria-hidden');
+        } else {
+          appContainer.setAttribute('aria-hidden', previousAppContainerAriaHidden);
+        }
+      }
       previousActiveElement?.focus();
     };
   }, [isQrProjectorOpen]);
@@ -356,6 +371,34 @@ export function PlayerView({
   }
 
   const connectedListenerCount = listeners.filter(listener => listener.status === 'connected').length;
+  const qrProjectorDialog =
+    mode === 'host' && roomId && sessionLink && isQrProjectorOpen ? (
+      <div
+        className='room-qr-projector'
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='room-qr-projector-title'
+        tabIndex={-1}
+        ref={qrProjectorRef}
+        onClick={handleQrProjectorBackdropClick}
+      >
+        <button
+          className='room-qr-projector-close'
+          type='button'
+          onClick={() => setIsQrProjectorOpen(false)}
+          aria-label='Close projected QR'
+          ref={qrProjectorCloseRef}
+        >
+          <X size={20} />
+        </button>
+        <div className='room-qr-projector-content'>
+          <p className='modal-eyebrow'>Room {roomId}</p>
+          <h2 id='room-qr-projector-title'>Scan to join</h2>
+          <RoomQrCode value={sessionLink} label={`Large QR code for room ${roomId}`} asLink={false} />
+          <code>{sessionLink}</code>
+        </div>
+      </div>
+    ) : null;
 
   return (
     <section className={'content-grid player-view-grid' + (roomId ? ' player-room-mode' : '')}>
@@ -791,33 +834,7 @@ export function PlayerView({
         </div>
       </div>
 
-      {mode === 'host' && roomId && sessionLink && isQrProjectorOpen && (
-        <div
-          className='room-qr-projector'
-          role='dialog'
-          aria-modal='true'
-          aria-labelledby='room-qr-projector-title'
-          tabIndex={-1}
-          ref={qrProjectorRef}
-          onClick={handleQrProjectorBackdropClick}
-        >
-          <button
-            className='room-qr-projector-close'
-            type='button'
-            onClick={() => setIsQrProjectorOpen(false)}
-            aria-label='Close projected QR'
-            ref={qrProjectorCloseRef}
-          >
-            <X size={20} />
-          </button>
-          <div className='room-qr-projector-content'>
-            <p className='modal-eyebrow'>Room {roomId}</p>
-            <h2 id='room-qr-projector-title'>Scan to join</h2>
-            <RoomQrCode value={sessionLink} label={`Large QR code for room ${roomId}`} asLink={false} />
-            <code>{sessionLink}</code>
-          </div>
-        </div>
-      )}
+      {qrProjectorDialog && (typeof document === 'undefined' ? qrProjectorDialog : createPortal(qrProjectorDialog, document.body))}
     </section>
   );
 }
