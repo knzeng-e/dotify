@@ -3,7 +3,6 @@ import { PanelTitle } from '../components/ui/PanelTitle';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../utils/format';
 import type { CatalogTrack, OpenRoom } from '../types';
-import type { KeyboardEvent } from 'react';
 
 type ListenViewProps = {
   catalogTracks: CatalogTrack[];
@@ -28,13 +27,6 @@ export function ListenView({
   onJoinRoom,
   onStartRoom
 }: ListenViewProps) {
-  function handleCardKeyDown(event: KeyboardEvent<HTMLElement>, track: CatalogTrack) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      onOpenTrack(track);
-    }
-  }
-
   const featured = catalogTracks[0];
   const totalListening = openRooms.reduce((total, room) => total + room.listenerCount + 1, 0);
   const artistCount = new Set(catalogTracks.map(track => track.artist)).size;
@@ -213,31 +205,23 @@ export function ListenView({
                 const hasCatalogAccess = catalogAccessByTrackId[track.id] === true;
 
                 return (
-                  <article
-                    className='catalogue-card'
-                    data-selected={selectedTrackId === track.id}
-                    key={track.id}
-                    role='button'
-                    tabIndex={0}
-                    aria-label={`Open ${track.title} by ${track.artist}`}
-                    onClick={() => {
-                      void onOpenTrack(track);
-                    }}
-                    onKeyDown={event => handleCardKeyDown(event, track)}
-                  >
+                  // Plain container: the primary "open track" action is a real
+                  // button whose ::after stretches over the whole card, so the
+                  // artist button can sit beside it without nesting interactives.
+                  <div className='catalogue-card' data-selected={selectedTrackId === track.id} key={track.id}>
                     <span className='catalogue-cover-frame'>
                       <img className='catalogue-cover' src={track.imageRef} alt='' crossOrigin='anonymous' />
                     </span>
                     <span className='catalogue-card-copy'>
-                      <strong>{track.title}</strong>
                       <button
-                        className='artist-text-button'
+                        className='catalogue-card-open'
                         type='button'
-                        onClick={event => {
-                          event.stopPropagation();
-                          onOpenArtist(track.artist);
-                        }}
+                        aria-label={`Open ${track.title} by ${track.artist}`}
+                        onClick={() => void onOpenTrack(track)}
                       >
+                        {track.title}
+                      </button>
+                      <button className='artist-text-button' type='button' onClick={() => onOpenArtist(track.artist)}>
                         {track.artist}
                       </button>
                       <span className='catalogue-card-description'>{track.description || 'Artist-owned release on Dotify.'}</span>
@@ -250,7 +234,7 @@ export function ListenView({
                       {hasCatalogAccess ? <CircleCheckBig size={15} /> : <Wallet size={15} />}
                       <span>{catalogAccessLabel(track)}</span>
                     </span>
-                  </article>
+                  </div>
                 );
               })
             ) : (

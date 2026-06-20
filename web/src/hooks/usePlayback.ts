@@ -119,7 +119,9 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   useEffect(() => {
     if (mode !== 'listener') return;
-    setStatus(remoteReady ? ((playerState?.playing ?? true) ? 'playing' : 'ready') : 'joining');
+    // Before the first broadcast arrives, a freshly connected listener is
+    // "Connected" rather than "In sync" - default to not-playing.
+    setStatus(remoteReady ? ((playerState?.playing ?? false) ? 'playing' : 'ready') : 'joining');
   }, [mode, remoteReady, playerState]);
 
   // Host capture lifecycle feeds the "Hosting" ready state.
@@ -235,6 +237,8 @@ export function usePlayback(deps: UsePlaybackDeps) {
   );
 
   const markNoAudio = useCallback(() => setStatus('no-audio'), []);
+  const toggleRepeat = useCallback(() => setRepeatEnabled(value => !value), []);
+  const toggleShuffle = useCallback(() => setShuffleEnabled(value => !value), []);
 
   return {
     // state
@@ -252,16 +256,15 @@ export function usePlayback(deps: UsePlaybackDeps) {
     seekToProgress,
     toggleMute,
     skip,
-    toggleRepeat: () => setRepeatEnabled(value => !value),
-    toggleShuffle: () => setShuffleEnabled(value => !value),
+    toggleRepeat,
+    toggleShuffle,
     // wiring used by <PersistentAudio>
     getActiveAudio,
     syncFromAudio,
     handleEnded,
     handleHostLoadedMetadata,
     requestAutoplay,
-    markNoAudio,
-    setStatus
+    markNoAudio
   };
 }
 

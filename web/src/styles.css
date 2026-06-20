@@ -832,6 +832,40 @@ button:disabled {
   line-height: 1.2;
 }
 
+/* Primary card action: looks like the title, stretches over the whole card. */
+.catalogue-card-open {
+  display: block;
+  border: 0;
+  background: none;
+  color: var(--fg-primary);
+  padding: 0;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+}
+
+.catalogue-card-open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+}
+
+.catalogue-card-open:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+/* Keep the artist button clickable above the stretched track action. */
+.catalogue-card-copy .artist-text-button {
+  position: relative;
+  z-index: 1;
+}
+
 .catalogue-card-copy small {
   color: var(--fg-secondary);
   font-size: 0.82rem;
