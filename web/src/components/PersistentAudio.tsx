@@ -1,0 +1,91 @@
+// ── Persistent audio elements ───────────────────────────────────────────────
+// Rendered once at the App root, always mounted. Owns the two <audio> nodes so
+// playback survives tab navigation:
+//   - localAudioRef:  host source (also captured into the WebRTC stream)
+//   - remoteAudioRef: room-listener stream (srcObject set by useSession.ontrack)
+// All transport state lives in usePlayback; this component only forwards DOM
+// media events into that shared state and the host streaming callbacks.
+
+import { useEffect, type RefObject } from 'react';
+import type { PlaybackControls } from '../hooks/usePlayback';
+
+type PersistentAudioProps = {
+  audioSource: string | null;
+  localAudioRef: RefObject<HTMLAudioElement | null>;
+  remoteAudioRef: RefObject<HTMLAudioElement | null>;
+  playback: PlaybackControls;
+  onPrepareLocalStream: () => void;
+  onSetupPreviewLimit: () => void;
+  onEnforcePreviewCutoff: () => void;
+  onEmitPlayerState: (force: boolean) => void;
+};
+
+export function PersistentAudio({
+  audioSource,
+  localAudioRef,
+  remoteAudioRef,
+  playback,
+  onPrepareLocalStream,
+  onSetupPreviewLimit,
+  onEnforcePreviewCutoff,
+  onEmitPlayerState
+}: PersistentAudioProps) {
+  // Keep the mute flag applied to whichever element exists at any moment.
+  useEffect(() => {
+    if (localAudioRef.current) localAudioRef.current.muted = playback.muted;
+    if (remoteAudioRef.current) remoteAudioRef.current.muted = playback.muted;
+  }, [playback.muted, localAudioRef, remoteAudioRef, audioSource]);
+
+  return (
+    <div className='persistent-audio' aria-hidden='true'>
+      {/* Host source: drives local playback and the WebRTC capture. */}
+      <audio
+        className='native-player-source'
+        ref={localAudioRef as RefObject<HTMLAudioElement>}
+        src={audioSource ?? undefined}
+        crossOrigin='anonymous'
+        onLoadedMetadata={() => {
+          playback.handleHostLoadedMetadata(localAudioRef.current!);
+          void onPrepareLocalStream();
+          onSetupPreviewLimit();
+        }}
+        onPlay={() => {
+          playback.syncFromAudio(localAudioRef.current);
+          onEmitPlayerState(true);
+          onEnforcePreviewCutoff();
+        }}
+        onPause={() => {
+          playback.syncFromAudio(localAudioRef.current);
+          onEmitPlayerState(true);
+        }}
+        onSeeked={() => {
+          playback.syncFromAudio(localAudioRef.current);
+          onEmitPlayerState(true);
+        }}
+        onTimeUpdate={() => {
+          playback.syncFromAudio(localAudioRef.current);
+          onEmitPlayerState(false);
+          onEnforcePreviewCutoff();
+        }}
+        onEnded={event => playback.handleEnded(event.currentTarget)}
+        onError={() => {
+          if (audioSource) playback.markNoAudio();
+        }}
+      />
+
+      {/* Room listener: live stream attached to srcObject by the session hook. */}
+      <audio
+        className='native-player-source'
+        ref={remoteAudioRef as RefObject<HTMLAudioElement>}
+        autoPlay
+        playsInline
+        onLoadedMetadata={event => playback.syncFromAudio(event.currentTarget)}
+        onPlay={event => playback.syncFromAudio(event.currentTarget)}
+        onPause={event => playback.syncFromAudio(event.currentTarget)}
+        onSeeked={event => playback.syncFromAudio(event.currentTarget)}
+        onTimeUpdate={event => playback.syncFromAudio(event.currentTarget)}
+        onEnded={event => playback.handleEnded(event.currentTarget)}
+      />
+    </div>
+  );
+}

@@ -1,16 +1,18 @@
-// ── Player dock ─────────────────────────────────────────────────────────────
-// Persistent bottom bar shown on discovery / rooms once a track has been opened.
-// The actual <audio> element lives in the player view, so the dock is a "now
-// playing / jump back in" affordance: its controls resume the track in the player
-// rather than faking a second audio source. Progress reflects the last position.
+// ── Player dock (persistent bottom bar) ─────────────────────────────────────
+// Real transport controls over the shared persistent audio: play/pause, a
+// draggable seek bar, and mute all act in place and never navigate. Only the
+// artwork/title and the explicit "Player" affordance open the full player view.
 
-import { Headphones, LockKeyhole, Play, Radio } from 'lucide-react';
-import type { CatalogTrack, PlayerState, TrackInfo } from '../types';
+import { LockKeyhole, Maximize2, Pause, Play, Radio, Volume2, VolumeX } from 'lucide-react';
+import type { CSSProperties } from 'react';
+import { playbackStatusLabel, type PlaybackControls } from '../hooks/usePlayback';
+import type { CatalogTrack, Mode, TrackInfo } from '../types';
 
 type PlayerDockProps = {
   track: CatalogTrack | undefined;
   trackInfo: TrackInfo | null;
-  playerState: PlayerState | null;
+  playback: PlaybackControls;
+  mode: Mode;
   locked: boolean;
   onOpenPlayer: () => void;
   onOpenArtist: (artistName: string) => void;
@@ -23,15 +25,17 @@ function formatClock(seconds: number) {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-export function PlayerDock({ track, trackInfo, playerState, locked, onOpenPlayer, onOpenArtist, onStartRoom }: PlayerDockProps) {
+export function PlayerDock({ track, trackInfo, playback, mode, locked, onOpenPlayer, onOpenArtist, onStartRoom }: PlayerDockProps) {
   const title = track?.title ?? trackInfo?.title;
   const artist = track?.artist ?? trackInfo?.artist;
   if (!title) return null;
 
+  const { transport, status } = playback;
   const cover = track?.imageRef ?? trackInfo?.imageRef;
-  const duration = playerState?.duration ?? track?.duration ?? trackInfo?.duration ?? 0;
-  const currentTime = playerState?.currentTime ?? 0;
-  const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
+  const duration = transport.duration || track?.duration || trackInfo?.duration || 0;
+  const currentTime = transport.currentTime;
+  const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  const isBusy = status === 'preparing' || status === 'joining';
 
   return (
     <div className='player-dock'>
@@ -41,7 +45,9 @@ export function PlayerDock({ track, trackInfo, playerState, locked, onOpenPlayer
             {cover && <img src={cover} alt='' crossOrigin='anonymous' />}
           </button>
           <div className='player-dock-meta'>
-            <strong>{title}</strong>
+            <button className='player-dock-title' type='button' onClick={onOpenPlayer} title={`Open ${title}`}>
+              {title}
+            </button>
             {artist && (
               <button type='button' onClick={() => onOpenArtist(artist)}>
                 {artist}
@@ -52,20 +58,56 @@ export function PlayerDock({ track, trackInfo, playerState, locked, onOpenPlayer
 
         <div className='player-dock-center'>
           <div className='player-dock-controls'>
-            <button className='player-dock-play' type='button' onClick={onOpenPlayer} aria-label='Open player'>
-              <Play size={18} fill='currentColor' />
+            <button
+              className='player-dock-play'
+              type='button'
+              onClick={() => void playback.togglePlay()}
+              disabled={!playback.canUseTransport}
+              data-busy={isBusy}
+              aria-label={transport.playing ? 'Pause' : 'Play'}
+            >
+              {isBusy ? (
+                <span className='player-dock-dots' aria-hidden='true'>
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              ) : transport.playing ? (
+                <Pause size={18} fill='currentColor' />
+              ) : (
+                <Play size={18} fill='currentColor' />
+              )}
             </button>
           </div>
           <div className='player-dock-scrub'>
             <small>{formatClock(currentTime)}</small>
-            <button className='player-dock-bar' type='button' onClick={onOpenPlayer} aria-label='Open player to scrub'>
-              <i style={{ width: `${progress * 100}%` }} />
-            </button>
+            <input
+              className='player-dock-range'
+              type='range'
+              min={0}
+              max={100}
+              step={0.1}
+              value={progress}
+              style={{ '--dock-progress': `${progress}%` } as CSSProperties}
+              onChange={event => playback.seekToProgress(Number(event.target.value))}
+              disabled={!playback.canUseTransport || duration <= 0}
+              aria-label='Seek'
+            />
             <small>{formatClock(duration)}</small>
           </div>
         </div>
 
         <div className='player-dock-right'>
+          <button
+            className='player-dock-iconbtn'
+            type='button'
+            onClick={playback.toggleMute}
+            aria-pressed={playback.muted}
+            aria-label={playback.muted ? 'Unmute' : 'Mute'}
+            title={playback.muted ? 'Unmute' : 'Mute'}
+          >
+            {playback.muted ? <VolumeX size={17} /> : <Volume2 size={17} />}
+          </button>
           {locked ? (
             <>
               <span className='player-dock-chip'>Preview - 42%</span>
@@ -74,10 +116,15 @@ export function PlayerDock({ track, trackInfo, playerState, locked, onOpenPlayer
                 Unlock
               </button>
             </>
+          ) : mode === 'listener' ? (
+            <button className='player-dock-cta' type='button' onClick={onOpenPlayer}>
+              <Maximize2 size={15} />
+              Open room
+            </button>
           ) : (
             <>
               <button className='player-dock-chip' type='button' onClick={onOpenPlayer} aria-label='Open player'>
-                <Headphones size={15} />
+                <Maximize2 size={15} />
                 Player
               </button>
               <button className='player-dock-cta' type='button' onClick={onStartRoom}>
@@ -88,6 +135,7 @@ export function PlayerDock({ track, trackInfo, playerState, locked, onOpenPlayer
           )}
         </div>
       </div>
+      {isBusy && <span className='player-dock-status'>{playbackStatusLabel(status, mode)}</span>}
     </div>
   );
 }

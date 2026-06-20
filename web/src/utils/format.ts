@@ -87,11 +87,11 @@ export function accessModeLabel(track: CatalogTrack) {
 }
 
 export function accessModeLabelFromState(mode: AccessMode) {
-  return mode === 'human-free' ? 'Human free' : 'Classic';
+  return mode === 'human-free' ? 'Human-verified' : 'Paid';
 }
 
 export function catalogAccessLabel(track: CatalogTrack) {
-  return track.accessMode === 'classic' ? `${track.priceDot} DOT` : `Proof of Personhood ${track.personhoodLevel}`;
+  return track.accessMode === 'classic' ? `${track.priceDot} DOT` : 'Free for humans';
 }
 
 export function catalogAccessAriaLabel(track: CatalogTrack, hasAccess: boolean) {

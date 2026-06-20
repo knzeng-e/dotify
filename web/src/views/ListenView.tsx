@@ -39,10 +39,56 @@ export function ListenView({
   const totalListening = openRooms.reduce((total, room) => total + room.listenerCount + 1, 0);
   const artistCount = new Set(catalogTracks.map(track => track.artist)).size;
   const leadRoom = openRooms[0];
+  const heroRoom = leadRoom?.track ? leadRoom : null;
+  const heroTrack = heroRoom?.track ?? featured;
 
   return (
     <section className='listen-home'>
       <div className='listen-hero'>
+        {heroTrack && (
+          <button
+            className='home-live-feature'
+            type='button'
+            onClick={() => {
+              if (heroRoom) {
+                onJoinRoom(heroRoom.roomId);
+                return;
+              }
+              if (featured) onOpenTrack(featured);
+            }}
+            aria-label={heroRoom ? `Join ${heroRoom.hostName}'s room` : `Open ${heroTrack.title} by ${heroTrack.artist}`}
+          >
+            <span className='home-live-art' aria-hidden='true'>
+              <img src={heroTrack.imageRef} alt='' crossOrigin='anonymous' />
+            </span>
+            <span className='home-live-shade' aria-hidden='true' />
+            <span className='home-live-copy'>
+              <span className='home-live-kicker'>
+                <span className='live-dot' />
+                {heroRoom ? 'Live now' : 'Featured live-ready'}
+              </span>
+              <strong>{heroTrack.title}</strong>
+              <span>{heroRoom ? `${heroRoom.hostName} hosts` : heroTrack.artist}</span>
+              <span className='home-live-presence'>
+                {heroRoom ? (
+                  <>
+                    <AvatarStack names={roomPresenceNames(heroRoom.hostName, heroRoom.listenerCount, heroRoom.roomId)} max={4} size={28} />
+                    <small>{heroRoom.listenerCount + 1} listening</small>
+                  </>
+                ) : featured ? (
+                  <small>{catalogAccessLabel(featured)}</small>
+                ) : (
+                  <small>Preview first</small>
+                )}
+              </span>
+            </span>
+            <span className='home-live-cta'>
+              {heroRoom ? <Headphones size={17} /> : <Play size={17} fill='currentColor' />}
+              {heroRoom ? 'Join room' : 'Open player'}
+            </span>
+          </button>
+        )}
+
         <div className='home-listening-hero'>
           <div className='home-listening-copy'>
             <p className='eyebrow'>
@@ -91,49 +137,6 @@ export function ListenView({
             </div>
           </div>
         </div>
-
-        {featured && (
-          <article
-            className='home-featured'
-            role='button'
-            tabIndex={0}
-            aria-label={`Open ${featured.title} by ${featured.artist}`}
-            onClick={() => onOpenTrack(featured)}
-            onKeyDown={event => handleCardKeyDown(event, featured)}
-          >
-            <img className='home-featured-cover' src={featured.imageRef} alt='' crossOrigin='anonymous' />
-            <span className='home-featured-veil' aria-hidden='true' />
-            <button
-              className='home-featured-play'
-              type='button'
-              onClick={event => {
-                event.stopPropagation();
-                onOpenTrack(featured);
-              }}
-              aria-label={`Play ${featured.title}`}
-            >
-              <Play size={20} fill='currentColor' />
-            </button>
-            <span className='home-featured-body'>
-              <span className='eyebrow'>Featured today</span>
-              <strong>{featured.title}</strong>
-              <button
-                className='home-featured-artist'
-                type='button'
-                onClick={event => {
-                  event.stopPropagation();
-                  onOpenArtist(featured.artist);
-                }}
-              >
-                {featured.artist}
-              </button>
-              <span className='home-featured-chips'>
-                <span className='home-featured-access'>{catalogAccessLabel(featured)}</span>
-                <span className='home-featured-access'>Preview first</span>
-              </span>
-            </span>
-          </article>
-        )}
       </div>
 
       <section className='commons-path' aria-label='Shared listening state'>

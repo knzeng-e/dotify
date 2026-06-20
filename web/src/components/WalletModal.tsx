@@ -19,7 +19,7 @@ export function WalletStatusPill({ state, onClick, onDisconnect }: { state: Wall
           <span>{state.wallet.label}</span>
         </button>
         <button className='wallet-pill-disconnect' type='button' onClick={onDisconnect} aria-label='Disconnect wallet' title='Disconnect'>
-          x
+          <X size={14} />
         </button>
       </div>
     );
@@ -103,8 +103,8 @@ export function WalletModal({
 
           <div className='wallet-network' data-warning={walletChainMismatch}>
             <span>Network</span>
-            <strong>{wallet.chainId !== undefined ? `Chain ${wallet.chainId}` : wallet.method === 'passkey' ? 'App RPC signer' : 'Unknown'}</strong>
-            {expectedChainId !== null && <small>Expected chain {expectedChainId}</small>}
+            <strong>{wallet.chainId !== undefined ? `Chain ${wallet.chainId}` : wallet.method === 'passkey' ? 'App signer' : 'Unknown'}</strong>
+            {walletChainMismatch && <small>Wrong network for Dotify</small>}
             {walletChainMismatch && wallet.method === 'extension' && onSwitchNetwork && (
               <button className='wallet-network-action' type='button' onClick={onSwitchNetwork} disabled={isSwitchingNetwork}>
                 <RefreshCw size={14} className={isSwitchingNetwork ? 'spin' : undefined} />
