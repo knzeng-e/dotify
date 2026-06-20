@@ -39,7 +39,19 @@ type UsePlaybackDeps = {
 };
 
 export function usePlayback(deps: UsePlaybackDeps) {
-  const { mode, localAudioRef, remoteAudioRef, audioSource, remoteReady, localStreamReady, playerState, catalogTracks, selectedTrackId, onOpenTrack, onEmitPlayerState } = deps;
+  const {
+    mode,
+    localAudioRef,
+    remoteAudioRef,
+    audioSource,
+    remoteReady,
+    localStreamReady,
+    playerState,
+    catalogTracks,
+    selectedTrackId,
+    onOpenTrack,
+    onEmitPlayerState
+  } = deps;
 
   const [transport, setTransport] = useState<PlayerState>(() => ({ playing: false, duration: 0, currentTime: 0, updatedAt: Date.now() }));
   const [status, setStatus] = useState<AudioStatus>('idle');
@@ -100,7 +112,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   useEffect(() => {
     if (mode !== 'listener') return;
-    setStatus(remoteReady ? (playerState?.playing ?? true ? 'playing' : 'ready') : 'joining');
+    setStatus(remoteReady ? ((playerState?.playing ?? true) ? 'playing' : 'ready') : 'joining');
   }, [mode, remoteReady, playerState]);
 
   // Host capture lifecycle feeds the "Hosting" ready state.
