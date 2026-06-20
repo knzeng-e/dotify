@@ -109,7 +109,7 @@ export function YouView({
                 <span>DOT earned</span>
               </div>
             </div>
-            <code className='you-address'>{shortenAddress(artistRuntimeAddress as string)}</code>
+            <code className='you-address'>{shortenAddress(artistRuntimeAddress!)}</code>
             <span className='you-studio-cta'>
               Open Studio
               <ArrowRight size={15} />

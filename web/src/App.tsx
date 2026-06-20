@@ -257,7 +257,7 @@ export default function App() {
     playerState: catalog.playerState,
     catalogTracks: catalog.catalogTracks,
     selectedTrackId: catalog.selectedTrackId,
-    onOpenTrack: track => handleOpenTrack(track),
+    onOpenTrack: handleOpenTrack,
     onEmitPlayerState: session.emitPlayerState
   });
 
@@ -1020,6 +1020,7 @@ export default function App() {
             trackInfo={catalog.trackInfo}
             playback={playback}
             mode={session.mode}
+            roomId={session.roomId}
             locked={Boolean(selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true)}
             onOpenPlayer={() => navigateToView('player')}
             onOpenArtist={handleOpenArtistProfile}

@@ -63,6 +63,13 @@ export function usePlayback(deps: UsePlaybackDeps) {
   // source is ready, without forcing the user to press play again.
   const autoplayIntentRef = useRef(false);
 
+  // Latest-ref for onOpenTrack: the parent passes a fresh closure every render,
+  // so reading it through a ref keeps skip/handleEnded callbacks stable.
+  const onOpenTrackRef = useRef(onOpenTrack);
+  useEffect(() => {
+    onOpenTrackRef.current = onOpenTrack;
+  }, [onOpenTrack]);
+
   const getActiveAudio = useCallback(() => (mode === 'host' ? localAudioRef.current : remoteAudioRef.current), [mode, localAudioRef, remoteAudioRef]);
 
   const canUseTransport = mode === 'host' ? Boolean(audioSource) : remoteReady;
@@ -144,7 +151,9 @@ export function usePlayback(deps: UsePlaybackDeps) {
       }
     } else {
       audio.pause();
-      setStatus(mode === 'host' ? 'ready' : 'ready');
+      // Host idles back to its capturable "ready" state; a listener pausing a
+      // live stream keeps whatever connection status it already had.
+      setStatus(previous => (mode === 'host' ? 'ready' : previous));
     }
     syncFromAudio(audio);
     if (mode === 'host') onEmitPlayerState(true);
@@ -184,9 +193,9 @@ export function usePlayback(deps: UsePlaybackDeps) {
       const next = getSkipTrack(direction);
       if (!next) return;
       requestAutoplay();
-      onOpenTrack(next);
+      onOpenTrackRef.current(next);
     },
-    [canSkip, getSkipTrack, requestAutoplay, onOpenTrack]
+    [canSkip, getSkipTrack, requestAutoplay]
   );
 
   const handleEnded = useCallback(
@@ -201,11 +210,11 @@ export function usePlayback(deps: UsePlaybackDeps) {
         const next = getSkipTrack('next');
         if (next) {
           requestAutoplay();
-          onOpenTrack(next);
+          onOpenTrackRef.current(next);
         }
       }
     },
-    [syncFromAudio, repeatEnabled, shuffleEnabled, mode, catalogTracks.length, getSkipTrack, requestAutoplay, onOpenTrack]
+    [syncFromAudio, repeatEnabled, shuffleEnabled, mode, catalogTracks.length, getSkipTrack, requestAutoplay]
   );
 
   // Called by <PersistentAudio> once the host source has loaded its metadata.
@@ -270,6 +279,8 @@ export function playbackStatusLabel(status: AudioStatus, mode: Mode): string {
       return mode === 'host' ? 'Playing' : 'In sync';
     case 'ready':
       return mode === 'host' ? 'Hosting' : 'Connected';
+    case 'idle':
+      return '';
     default:
       return mode === 'host' ? 'Hosting' : 'Ready';
   }

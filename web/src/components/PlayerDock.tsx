@@ -13,6 +13,7 @@ type PlayerDockProps = {
   trackInfo: TrackInfo | null;
   playback: PlaybackControls;
   mode: Mode;
+  roomId: string;
   locked: boolean;
   onOpenPlayer: () => void;
   onOpenArtist: (artistName: string) => void;
@@ -25,7 +26,7 @@ function formatClock(seconds: number) {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-export function PlayerDock({ track, trackInfo, playback, mode, locked, onOpenPlayer, onOpenArtist, onStartRoom }: PlayerDockProps) {
+export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, onOpenPlayer, onOpenArtist, onStartRoom }: PlayerDockProps) {
   const title = track?.title ?? trackInfo?.title;
   const artist = track?.artist ?? trackInfo?.artist;
   if (!title) return null;
@@ -120,6 +121,13 @@ export function PlayerDock({ track, trackInfo, playback, mode, locked, onOpenPla
             <button className='player-dock-cta' type='button' onClick={onOpenPlayer}>
               <Maximize2 size={15} />
               Open room
+            </button>
+          ) : roomId ? (
+            // Already hosting a live room: open it rather than offering to
+            // start a second one.
+            <button className='player-dock-cta' type='button' onClick={onOpenPlayer}>
+              <Radio size={15} />
+              Room live
             </button>
           ) : (
             <>

@@ -34,7 +34,7 @@ export function PersistentAudio({
   useEffect(() => {
     if (localAudioRef.current) localAudioRef.current.muted = playback.muted;
     if (remoteAudioRef.current) remoteAudioRef.current.muted = playback.muted;
-  }, [playback.muted, localAudioRef, remoteAudioRef, audioSource]);
+  }, [playback.muted, localAudioRef, remoteAudioRef]);
 
   return (
     <div className='persistent-audio' aria-hidden='true'>
@@ -85,6 +85,11 @@ export function PersistentAudio({
         onSeeked={event => playback.syncFromAudio(event.currentTarget)}
         onTimeUpdate={event => playback.syncFromAudio(event.currentTarget)}
         onEnded={event => playback.handleEnded(event.currentTarget)}
+        onError={() => {
+          // A live stream that errors mid-session should surface, not hang on
+          // "Joining". Only fault when a stream was actually attached.
+          if (remoteAudioRef.current?.srcObject) playback.markNoAudio();
+        }}
       />
     </div>
   );
