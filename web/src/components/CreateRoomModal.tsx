@@ -107,11 +107,11 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
         <p className='create-room-label'>Vibe</p>
         <span className='create-room-label-hint'>Sets the tone of your room.</span>
       </div>
-      <div className='create-room-moods'>
+      <div className='create-room-vibes' role='group' aria-label='Vibe'>
         {MOODS.map(option => (
           <button
             key={option.id}
-            className={'create-room-mood' + (moodId === option.id ? ' is-on' : '')}
+            className={'create-room-vibe-seg' + (moodId === option.id ? ' is-on' : '')}
             style={{ '--mood-color': option.color } as React.CSSProperties}
             type='button'
             onClick={() => setMoodId(option.id)}
