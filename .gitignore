@@ -4,6 +4,7 @@ node_modules/
 dist/
 .env
 .env.*
+.playwright*
 !.env.example
 !web/.env.example
 !contracts/evm/.env.example
