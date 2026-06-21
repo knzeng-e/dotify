@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;700&amp;family=Inter:wght@400;500;700&amp;family=Jetbrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style>
+        body {
+            background-color: #0d1511; /* surface from config */
+            color: #dbe5dd; /* on-surface */
+            overflow-x: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .clash-display { font-family: 'Clash Display', sans-serif; }
+        .jetbrains-mono { font-family: 'JetBrains Mono', sans-serif; }
+        
+        .artwork-shadow {
+            box-shadow: 0 20px 50px -12px rgba(0, 226, 158, 0.2);
+        }
+        
+        .modal-blur {
+            backdrop-filter: blur(12px);
+            background-color: rgba(13, 21, 17, 0.85);
+        }
+
+        .micro-border {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .active-glow {
+            box-shadow: 0 0 15px rgba(110, 255, 192, 0.3);
+        }
+    </style>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"on-primary-fixed-variant": "#004c6a", "on-tertiary-container": "#754705", error: "#ffb4ab", "on-secondary-fixed-variant": "#344957", "surface-container-low": "#191c1e", "surface-container-highest": "#323538", "primary-fixed-dim": "#90cef5", "secondary-fixed-dim": "#b2cadb", "on-primary-fixed": "#001e2d", "on-primary-container": "#015779", "surface-tint": "#90cef5", "inverse-primary": "#1d6587", "inverse-surface": "#e1e2e6", primary: "#c1e5ff", tertiary: "#ffdab6", "surface-container": "#1d2022", "on-background": "#e1e2e6", "tertiary-fixed-dim": "#fbba72", "primary-container": "#8eccf3", "on-surface-variant": "#c0c7ce", "tertiary-container": "#f9b870", "surface-variant": "#323538", "on-secondary-fixed": "#051e2a", "surface-container-high": "#272a2d", "inverse-on-surface": "#2e3133", "on-surface": "#e1e2e6", "on-tertiary": "#482900", "primary-fixed": "#c5e7ff", "surface-dim": "#111416", "secondary-container": "#364c5a", secondary: "#b2cadb", "surface-bright": "#37393c", "on-secondary-container": "#a5bbcc", "on-primary": "#00344b", "outline-variant": "#40484d", surface: "#111416", "on-tertiary-fixed-variant": "#673d00", background: "#111416", "on-error-container": "#ffdad6", "surface-container-lowest": "#0b0f11", "on-error": "#690005", "tertiary-fixed": "#ffddbb", "on-secondary": "#1d3340", outline: "#8a9298", "error-container": "#93000a", "secondary-fixed": "#cee6f7", "on-tertiary-fixed": "#2b1700"}, borderRadius: {DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem"}, spacing: {gutter: "12px", unit: "4px", "container-padding": "16px", "stack-sm": "8px", "stack-md": "16px", "stack-lg": "32px"}, fontFamily: {"headline-md": ["Clash Display"], "headline-lg": ["Clash Display"], "body-md": ["Inter"], "headline-sm": ["Clash Display"], "body-lg": ["Inter"], "display-lg": ["Clash Display"], "label-md": ["JetBrains Mono"], "label-sm": ["JetBrains Mono"], headline: ["Clash Display"], display: ["Clash Display"], body: ["Inter"], label: ["Jetbrains Mono"]}, fontSize: {"headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "headline-lg": ["32px", {lineHeight: "40px", fontWeight: "600"}], "body-md": ["14px", {lineHeight: "20px", fontWeight: "400"}], "headline-sm": ["20px", {lineHeight: "28px", fontWeight: "600"}], "body-lg": ["16px", {lineHeight: "24px", fontWeight: "400"}], "display-lg": ["40px", {lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700"}], "label-md": ["12px", {lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500"}], "label-sm": ["10px", {lineHeight: "14px", fontWeight: "500"}]}}}};</script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface">
+<!-- Top Navigation Anchor -->
+<header class="w-full sticky top-0 z-50 bg-background/80 backdrop-blur-md flex justify-between items-center px-container-padding py-stack-sm border-b border-white/10">
+<div class="flex items-center gap-stack-sm">
+<span class="material-symbols-outlined text-primary">expand_more</span>
+<span class="font-label-md text-label-md text-on-surface-variant tracking-widest uppercase">Now Playing</span>
+</div>
+<div class="font-headline-md text-headline-md text-primary font-bold tracking-tighter">Dotify</div>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-primary/20">
+<img class="w-full h-full object-cover" data-alt="A sophisticated close-up portrait of a modern music enthusiast with cool studio lighting, deep blacks and neon green highlights, looking professional and artistic for a premium app profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbzwTeZQxN_yCBOhdFPDidE8LkjLSb-ql18oi1QKXjhc1lWsasDTfkX55N4SPFOseJj_NzsujULYr-2bv9AYTCACAL9wADd-q_6jlvGL5HOintlHm8oG3SUh8B53V8pcdcMkzzbuCD8ln2vDLvRcTOMYV2NlH5XA6OXfE3O-NXTDU2qnlYq1HXcsn70ZtEz2433w7r_LvpEfxvr06T9JX3afKuTOxTezdu_SHJvI_pqHsN2JJAZWQYxEN4JDhuzmJHaLRb0zp2ftM"/>
+</div>
+</header>
+<main class="flex flex-col min-h-[calc(100vh-120px)] pb-24">
+<!-- Artwork Section (52vw fill intent) -->
+<section class="flex flex-col items-center justify-center pt-stack-lg px-container-padding">
+<div class="relative w-[85vw] max-w-[400px] aspect-square rounded-xl overflow-hidden artwork-shadow micro-border group">
+<img class="w-full h-full object-cover" data-alt="A highly detailed, cinematic album cover featuring abstract obsidian shards floating in a vibrant emerald green nebula. The lighting is dramatic and technical, with sharp edges and a sense of high-fidelity digital precision, fitting the Electric Obsidian brand aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkMHxWxomaXsQhNhtzL50u3u-B7yqtXaseJp36HQjJjgXkGy641Y3DjN5R9xocmMgXodrJSxdfdsFW3jm5IzPxzFl-BxnGGJjczZhCLkNi8EXLpnhIe6WdwaN20ccORaRr10svtAHQfMLOgCzr5hP-HUWJ7vgPDmJ2RLS0nq21oEIJi_AP7Cyl9BPndbGLmUKkckjgihQd7KdXxaXwRfnr2vkcwb9tfV7KCTb0A_iGr1s4nUhGvMgZatmg7zajXT1U-DoJ8iOJCYo"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent"></div>
+<!-- Quality Badge Overlay -->
+<div class="absolute top-4 right-4 flex gap-2">
+<span class="jetbrains-mono text-label-sm bg-surface-container-highest/80 backdrop-blur-md border border-primary text-primary px-2 py-1 rounded-sm">24-BIT</span>
+</div>
+</div>
+</section>
+<!-- Metadata Section -->
+<section class="px-container-padding mt-stack-lg space-y-unit text-center md:text-left">
+<div class="flex flex-col items-center">
+<span class="font-label-md text-label-md text-primary tracking-widest uppercase mb-1">Ether Drift</span>
+<h1 class="font-headline-lg text-headline-lg text-on-surface clash-display tracking-tight">Vortex Horizons</h1>
+<div class="flex items-center gap-2 mt-stack-sm">
+<span class="jetbrains-mono text-[10px] px-1.5 py-0.5 border border-on-surface-variant/30 text-on-surface-variant rounded">FULL STREAM</span>
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+</section>
+<!-- Transport Controls -->
+<section class="px-container-padding mt-stack-lg flex flex-col gap-stack-md">
+<!-- Seekbar -->
+<div class="space-y-2">
+<div class="relative h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="absolute top-0 left-0 h-full w-[35%] bg-primary active-glow"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>1:24</span>
+<span>4:12</span>
+</div>
+</div>
+<!-- Buttons -->
+<div class="flex items-center justify-between px-stack-md">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">shuffle</button>
+<div class="flex items-center gap-stack-lg">
+<button class="material-symbols-outlined text-headline-md text-on-surface hover:text-primary transition-colors">skip_previous</button>
+<button class="w-16 h-16 rounded-full bg-primary text-background flex items-center justify-center hover:scale-105 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[40px]" style="font-variation-settings: 'FILL' 1;">pause</span>
+</button>
+<button class="material-symbols-outlined text-headline-md text-on-surface hover:text-primary transition-colors">skip_next</button>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">repeat</button>
+</div>
+</section>
+<!-- Room Presence Bar -->
+<section class="mt-auto pt-stack-lg px-container-padding">
+<div class="bg-surface-container-low border border-white/5 rounded-xl p-stack-sm flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="flex -space-x-3 overflow-hidden">
+<div class="inline-block h-8 w-8 rounded-full ring-2 ring-surface-container-low">
+<img class="h-full w-full object-cover rounded-full" data-alt="Close up avatar of a person with colorful hair and neon glasses in a dark tech environment, 8k resolution." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-pr287prDyH1eIfiNnT8_5IRZWNKkG4sGeLPzz8YWqKxgOTFnMyp8dlD3aNd19jznzsuZlxUKS9krfCih5yVICJrYPiv_-7WaDy0F94apsy7HVuo3r5T0RhRdjccM-t8QFNQyOlM0q00tOZMfwGb1FnOtyjcqJ6M1DjrOIV66cJNdKPUvGKQNnjk6vm3xyT0qt1--9JVGnJFpg0q4Lg026aLAwfxYef4ZMjYlE67afQybnrjGTsJf0vhFDSFZApn3YgT90Oqk5Bs"/>
+</div>
+<div class="inline-block h-8 w-8 rounded-full ring-2 ring-surface-container-low">
+<img class="h-full w-full object-cover rounded-full" data-alt="Close up avatar of a futuristic character wearing an audio headset with glowing light elements." src="https://lh3.googleusercontent.com/aida-public/AB6AXuChzw54UY5Ym5xcnhB3MQ7Zk1YKFkITLUMCk522rDCaynPlbCz6FWsX_xvYkyGzGmfcBYaWJSySUDMctcWKy5l0-j8Y1Nq-6gTUgdCNrBxoSy4dvRGDk_ceodymd5hKA14yZfcpl8SkvsQ_Hcu3sg5az-WkRaL-DsvzMlm_TvXxiDSqLuazytfUIwGlLd7kG99K6F4il16ujttW8jQxhDC47-xRfPYD91pJBH8uJ-6U-I3e6h0HgaKQ9ZfqR6-A_AFXvTnm1TxSNjY"/>
+</div>
+<div class="inline-block h-8 w-8 rounded-full ring-2 ring-surface-container-low">
+<img class="h-full w-full object-cover rounded-full" data-alt="Profile picture of a trendy user with moody studio lighting and vibrant electric cyan backlighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7V0KvJGZIORLUkcLjt76BNsC55BLQ4cEj_JRuW7DF3dyC4qNySkWxzh-BpC1XW5hfpzvbQUM8DlqZtR84IkcoatS3M1xK7GoNo0rOsCgUclfyIyaMAtBz6AdDj2Ttr60PO_aPKZyJ3tIH44bdhgdXbCiCcRl2lOtLXWvASIRBGbgjy1U9AM2kik1v7aFLFC_r9Vf4QK6e1y0hFcWxvSwXyF5XUW6iVHZOJFZBs7UPZ6Hhwz4BYaJ1qN3-NsMYiSts1fS8LpjbuMs"/>
+</div>
+<div class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-highest ring-2 ring-surface-container-low">
+<span class="text-[10px] font-bold text-primary">+12</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-2">Listening with the room</span>
+</div>
+<button class="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-sm">groups</span>
+<span class="font-label-sm text-label-sm">Join</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Shell -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface flex justify-around items-center h-16 px-gutter border-t border-white/10">
+<a class="flex flex-col items-center justify-center text-primary font-bold transition-transform scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_circle</span>
+<span class="font-label-sm text-label-sm">Now</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary/80 transition-transform scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined">explore</span>
+<span class="font-label-sm text-label-sm">Listen</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary/80 transition-transform scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-label-sm text-label-sm">Rooms</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary/80 transition-transform scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">You</span>
+</a>
+</nav>
+<!-- Access Gate Modal -->
+<div class="fixed inset-0 z-[60] flex items-center justify-center p-container-padding invisible opacity-0 transition-all duration-300" id="access-modal">
+<div class="absolute inset-0 bg-background/60 backdrop-blur-sm" onclick="toggleModal()"></div>
+<div class="relative w-full max-w-sm bg-surface-container-high border border-primary/20 rounded-xl p-stack-lg shadow-2xl flex flex-col items-center text-center">
+<div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-stack-md">
+<span class="material-symbols-outlined text-primary text-headline-lg">high_quality</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-2">Upgrade Your Audio</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-stack-lg">
+                Unlock full high-fidelity stream and experience 24-bit studio quality sound without interruptions.
+            </p>
+<div class="w-full space-y-3">
+<button class="w-full py-3 bg-primary text-background font-bold rounded-lg hover:brightness-110 active:scale-[0.98] transition-all">
+                    Unlock Now
+                </button>
+<button class="w-full py-3 bg-transparent text-on-surface-variant font-label-md hover:text-on-surface transition-colors" onclick="toggleModal()">
+                    Maybe Later
+                </button>
+</div>
+</div>
+</div>
+<script>
+        // Micro-interaction logic
+        function toggleModal() {
+            const modal = document.getElementById('access-modal');
+            if (modal.classList.contains('invisible')) {
+                modal.classList.remove('invisible');
+                modal.classList.add('opacity-100');
+            } else {
+                modal.classList.add('invisible');
+                modal.classList.remove('opacity-100');
+            }
+        }
+
+        // Show modal automatically after 2 seconds for demo purposes
+        setTimeout(toggleModal, 2000);
+
+        // Vanilla micro-interactions for buttons
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('touchstart', () => {
+                btn.style.opacity = '0.7';
+            });
+            btn.addEventListener('touchend', () => {
+                btn.style.opacity = '1';
+            });
+        });
+    </script>
+</body></html>

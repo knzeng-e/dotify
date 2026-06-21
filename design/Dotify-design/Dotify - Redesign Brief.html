@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dotify — Living Light · Redesign Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..900;1,400..600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --base:#0a1326; --deep:#070e1d; --raise:#101a33;
+  --fg:#f1f5ff; --fg2:rgba(223,231,250,.72); --fg3:rgba(200,212,238,.46);
+  --green:#29e87a; --cyan:#2bd3e8; --pink:#e6007a; --amber:#ff9a4d; --violet:#9b6aff;
+  --glass:rgba(255,255,255,.05); --bd:rgba(255,255,255,.1); --hi:rgba(255,255,255,.16);
+  --r:18px;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--fg);background:var(--deep);line-height:1.55;letter-spacing:-.005em;
+  background-image:radial-gradient(50% 40% at 12% 0%,color-mix(in oklab,var(--amber) 22%,transparent),transparent 70%),radial-gradient(45% 40% at 92% 6%,color-mix(in oklab,var(--violet) 24%,transparent),transparent 72%),radial-gradient(60% 50% at 70% 100%,color-mix(in oklab,var(--cyan) 16%,transparent),transparent 75%);}
+.wrap{max-width:980px;margin:0 auto;padding:64px 28px 120px}
+h1,h2,h3,h4{margin:0;letter-spacing:-.03em;line-height:1.05;font-weight:800;text-wrap:balance}
+p{margin:0;text-wrap:pretty}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--fg3)}
+.lead-concept{font-size:clamp(28px,4.4vw,46px);font-weight:800;margin:18px 0 10px;letter-spacing:-.035em}
+.lead-concept em{font-style:normal;background:linear-gradient(100deg,var(--amber),var(--pink) 55%,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--fg2);font-size:18px;max-width:62ch}
+.rule{height:1px;background:var(--bd);margin:54px 0}
+section{margin-top:52px}
+.kicker{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.kicker .n{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:14px;background:var(--glass);border:1px solid var(--bd);color:var(--cyan)}
+.kicker h2{font-size:clamp(22px,3vw,30px)}
+.card{background:var(--glass);border:1px solid var(--bd);border-radius:var(--r);padding:22px;backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 var(--hi)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:740px){.grid2,.grid3{grid-template-columns:1fr}}
+.card h3{font-size:17px;margin-bottom:7px}
+.card h4{font-size:14.5px;font-weight:700;margin-bottom:5px}
+.card p,.card li{color:var(--fg2);font-size:14.5px}
+.card.bad h3{color:#ff8e8e}
+.muted{color:var(--fg3)}
+ul.clean{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+ul.clean li{padding-left:20px;position:relative}
+ul.clean li::before{content:'';position:absolute;left:2px;top:9px;width:7px;height:7px;border-radius:50%;background:var(--amber)}
+ul.clean.cyan li::before{background:var(--cyan)} ul.clean.green li::before{background:var(--green)}
+.swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.sw{display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--fg3);font-weight:600}
+.sw i{width:60px;height:42px;border-radius:10px;display:block;box-shadow:inset 0 0 0 1px var(--bd)}
+.tag{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;background:var(--glass);border:1px solid var(--bd);color:var(--fg2)}
+.p0{color:#0a1326;background:var(--green);border:0} .p1{color:#0a1326;background:var(--amber);border:0} .p2{color:var(--fg2)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{text-align:left;padding:11px 12px;border-bottom:1px solid var(--bd);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--fg3);font-weight:800}
+td code{font-family:ui-monospace,monospace;font-size:12.5px;color:var(--cyan);background:rgba(43,211,232,.1);padding:2px 6px;border-radius:6px}
+.steps{counter-reset:s;display:flex;flex-direction:column;gap:12px}
+.step{display:flex;gap:14px;align-items:flex-start}
+.step .b{counter-increment:s;flex:0 0 auto;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--glass);border:1px solid var(--bd)}
+.step .b::before{content:counter(s)}
+.step strong{font-size:15px}.step p{color:var(--fg2);font-size:14px;margin-top:2px}
+.mini{display:flex;gap:10px;align-items:center;padding:12px;border-radius:12px;background:var(--glass);border:1px solid var(--bd)}
+.mini .c{width:44px;height:44px;border-radius:10px;flex:0 0 auto}
+.foot{margin-top:60px;color:var(--fg3);font-size:13px}
+a.cta{color:var(--cyan);text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="eyebrow">Dotify · Art Direction & Implementation Brief</span>
+  <h1 class="lead-concept">Music as <em>living light</em>.</h1>
+  <p class="sub">The thing playing right now should light the whole room — its colour bleeds into the surfaces, and the first thing you see isn't a catalogue, it's the people already listening together. Web3 is felt as trust, never as bureaucracy.</p>
+
+  <div class="rule"></div>
+
+  <!-- DIAGNOSIS -->
+  <section>
+    <div class="kicker"><span class="n">01</span><h2>What's holding the current UI back</h2></div>
+    <div class="grid2">
+      <div class="card bad"><h3>Crypto-cyberpunk backdrop</h3><p>The green warp-field lines read as exactly the generic web3/neon cliché the product wants to avoid. No warmth, no human presence, no sense of "living light".</p></div>
+      <div class="card bad"><h3>A landing page on the product screen</h3><p>The giant "Let the Music connect the dots" headline turns Home into marketing. The real catalogue is small and floats in a sea of navy.</p></div>
+      <div class="card bad"><h3>Web3 reads as technical</h3><p>Mono/terminal type for "Proof of Personhood DIM1" and "0.42 DOT" makes the chain <em>feel</em> like infrastructure instead of disappearing into trust.</p></div>
+      <div class="card bad"><h3>Rooms feel administrative</h3><p>The social core looks like an empty form — no faces, no presence, no "you're listening with someone". The village square is cold.</p></div>
+    </div>
+  </section>
+
+  <!-- THE SYSTEM -->
+  <section>
+    <div class="kicker"><span class="n">02</span><h2>The design system — "Living Light"</h2></div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Colour · album-aura engine</h3>
+        <p>Keep the <strong>deep-blue heart</strong>. Every track carries an <code>aura</code> (two stops + an accent) that paints its generated cover <em>and</em> the ambient halos behind the whole UI. The world is lit by whatever's playing. Brand constants stay; Polkadot pink is used with restraint.</p>
+        <div class="swatches">
+          <div class="sw"><i style="background:#0a1326"></i>base</div>
+          <div class="sw"><i style="background:#29e87a"></i>action</div>
+          <div class="sw"><i style="background:#2bd3e8"></i>cyan</div>
+          <div class="sw"><i style="background:#e6007a"></i>pink·rare</div>
+          <div class="sw"><i style="background:linear-gradient(145deg,#ffc05c,#ff5e3a)"></i>aura·warm</div>
+          <div class="sw"><i style="background:linear-gradient(160deg,#c264ff,#e6007a)"></i>aura·violet</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Type · one humanist voice</h3>
+        <p><strong>Hanken Grotesk</strong> throughout — soft, premium, warm — replacing the Space Grotesk / Inter / JetBrains-Mono trio. Display is the same family at heavy weight + tight tracking. Mono is retired from prices and access (numbers use <code>tabular-nums</code>), which alone de-crypts the feel.</p>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:30px;font-weight:800;letter-spacing:-.03em">Press play with someone</span>
+          <span style="font-size:15px;color:var(--fg2)">Body · 15px / 1.55 · warm humanist</span>
+          <span style="font-size:13px;font-weight:700;color:var(--cyan);font-variant-numeric:tabular-nums">0.42 DOT · 128 listening</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Surface · light-catching glass</h3>
+        <p>Panels are blurred glass with a 1px top highlight so they catch light from the aura, on radii of 14–28px. Generous spacing; soft, deep shadows. A toggle drops glass for flat surfaces when needed.</p>
+      </div>
+      <div class="card">
+        <h3>Motion · breathing, never busy</h3>
+        <p>Aura drifts slowly; the room cover pulses while playing; reactions float. <strong>Visibility never depends on an entrance animation</strong> (transform-only) so print, reduced-motion and slow frames always show content. No infinite decorative loops on text.</p>
+      </div>
+      <div class="card">
+        <h3>Presence · the people, three ways</h3>
+        <p>Avatars (portraits), glowing orbs, or initials-aura — chosen by tweak. Hosts get an accent ring; live equalizer bars mark who's actively listening. Rooms always show <em>who</em> is in them.</p>
+      </div>
+      <div class="card">
+        <h3>Web3 · quiet & warm</h3>
+        <p>Trust marks (<span class="tag">✦ Artist-owned</span> <span class="tag">Free for humans</span>) and human microcopy: "The artist keeps the keys", "goes straight to the artist — no middle cut". DOT stays visible, framed as <em>support</em>, not speculation.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENS -->
+  <section>
+    <div class="kicker"><span class="n">03</span><h2>Screen by screen</h2></div>
+    <div class="grid2">
+      <div class="card"><h3>Home / Discovery</h3><p>Opens as a <em>product</em>, not a pitch. A live "X people listening together right now" header, a featured aura hero, then <strong>Happening now</strong> rooms surfaced <em>before</em> the catalogue, then Discover. A warm "Access, the human way" rail explains the model without jargon.</p></div>
+      <div class="card"><h3>Shared listening room</h3><p>Full-bleed in the track's light. Big glowing cover, presence cluster with host marked, synced transport (listeners "follow the host · in sync"), floating reactions, and a one-tap <strong>Copy link</strong>. Guests listen free — "only you need access to the track".</p></div>
+      <div class="card"><h3>Create / share a room</h3><p>One sheet titled "As easy as sharing a link": pick what's playing, see the live <code>dotify.dot.li/r/CODE</code> link, set a mood, open &amp; copy. Zero wallet friction to start.</p></div>
+      <div class="card"><h3>Wallet &amp; unlock</h3><p>Not-connected is an invitation ("Bring your wallet — keep your music"), passkey-first. Connected is a calm identity card with a "You hold your keys" note. Unlock is music-first: a small modal, the artist's name, and where the DOT goes — plus "keep the 42% preview".</p></div>
+    </div>
+  </section>
+
+  <!-- COMPONENTS -->
+  <section>
+    <div class="kicker"><span class="n">04</span><h2>Reusable components to extract</h2></div>
+    <div class="card">
+      <table>
+        <tr><th>Component</th><th>Replaces / maps to</th><th>Notes</th></tr>
+        <tr><td><code>&lt;Cover&gt;</code></td><td>cover art / artwork</td><td>Generated aura gradient = the light source. Real art layers on top later.</td></tr>
+        <tr><td><code>&lt;PlayerDock&gt;</code> / <code>&lt;RoomTransport&gt;</code></td><td>PlayerView transport</td><td>Preview vs unlocked vs host states; aura-tinted scrubber.</td></tr>
+        <tr><td><code>&lt;Presence&gt;</code> / <code>&lt;AvaStack&gt;</code></td><td>listener list, social indicators</td><td>photo / orb / initials; host ring; live EQ bars.</td></tr>
+        <tr><td><code>&lt;TrackCard&gt;</code> · <code>&lt;RoomCard&gt;</code></td><td>catalogue-card, room-row</td><td>Aura glow, access chip, live count.</td></tr>
+        <tr><td><code>&lt;AccessChip&gt;</code> / <code>&lt;UnlockModal&gt;</code></td><td>AccessGateOverlay</td><td>Free-for-humans / paid / unlocked; warm copy.</td></tr>
+        <tr><td><code>&lt;WalletPill&gt;</code> + <code>&lt;WalletModal&gt;</code></td><td>WalletStatusPill / WalletModal</td><td>Connected vs not; passkey-first.</td></tr>
+        <tr><td><code>&lt;ArtistCard&gt;</code> · <code>&lt;PublishPanel&gt;</code></td><td>Artist portal (next phase)</td><td>Same glass + aura language for the studio.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- IMPLEMENTATION -->
+  <section>
+    <div class="kicker"><span class="n">05</span><h2>Implementation in the existing React/Vite app</h2></div>
+    <div class="grid2" style="margin-bottom:16px">
+      <div class="card">
+        <h4>Files to modify</h4>
+        <ul class="clean cyan">
+          <li><code>web/src/styles.css</code> — swap tokens: warm base, glass surfaces, aura CSS vars (<code>--aura-a/-b/-accent</code>), retire mono for prices, add <code>color-mix</code> aura layers. Delete the warp-field rules.</li>
+          <li><code>components/AmbientCanvas.tsx</code> &amp; <code>StarfieldCanvas.tsx</code> — replace network/warp canvas with the CSS aura layer (cheaper, warmer).</li>
+          <li><code>views/ListenView.tsx</code> — lead with live rooms, then catalogue.</li>
+          <li><code>views/RoomsView.tsx</code> / <code>PlayerView.tsx</code> — adopt presence + full-bleed aura room.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Behaviour preserved</h4>
+        <ul class="clean green">
+          <li>WebRTC host stream, Socket.IO rooms, host-based access — unchanged.</li>
+          <li>Classic pay → <code>musicRoyPayAccess</code>, 42% preview gating, personhood checks — same logic, warmer surface.</li>
+          <li>Wallet connect (passkey / extension) — same paths, calmer UI.</li>
+          <li>Aura is pure presentation: one CSS-var write on track-select drives the whole look.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <h4 style="margin-bottom:14px">Progressive rollout</h4>
+      <div class="steps">
+        <div class="step"><span class="b"></span><div><strong>Re-skin tokens &amp; kill the warp-field</strong><p>Land the new <code>styles.css</code> variables + glass; instant lift, no behaviour change.</p></div></div>
+        <div class="step"><span class="b"></span><div><strong>Aura engine + Cover</strong><p>Set <code>--aura-*</code> on track-select; introduce generated covers as fallback art.</p></div></div>
+        <div class="step"><span class="b"></span><div><strong>Presence + room redesign</strong><p>Add <code>&lt;Presence&gt;</code> and the full-bleed room; surface rooms on Home.</p></div></div>
+        <div class="step"><span class="b"></span><div><strong>Warm the web3 surfaces</strong><p>Unlock/wallet copy + trust marks; retire mono from prices.</p></div></div>
+        <div class="step"><span class="b"></span><div><strong>Split <code>App.tsx</code></strong><p>Extract the components above into modules (already on your backlog #8).</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRIORITY + RISKS -->
+  <section>
+    <div class="kicker"><span class="n">06</span><h2>Priorities &amp; risks</h2></div>
+    <div class="grid2">
+      <div class="card">
+        <h4 style="margin-bottom:12px">Priority list</h4>
+        <ul class="clean">
+          <li><span class="tag p0">P0</span> &nbsp;Token re-skin + remove warp-field</li>
+          <li><span class="tag p0">P0</span> &nbsp;Rooms surfaced on Home + presence</li>
+          <li><span class="tag p0">P0</span> &nbsp;One-link room creation</li>
+          <li><span class="tag p1">P1</span> &nbsp;Aura engine + generated covers</li>
+          <li><span class="tag p1">P1</span> &nbsp;Warm wallet / unlock copy</li>
+          <li><span class="tag p2">P2</span> &nbsp;Lights-down mode, reactions, tweak variants</li>
+          <li><span class="tag p2">P2</span> &nbsp;Artist studio in the same language</li>
+        </ul>
+      </div>
+      <div class="card bad">
+        <h4 style="margin-bottom:12px;color:#ff8e8e">UX risks to avoid</h4>
+        <ul class="clean">
+          <li>Over-saturating the aura until text loses contrast — keep the base floor + vignette.</li>
+          <li>Letting the wallet feel more important than the music.</li>
+          <li>Hiding critical errors or over-simplifying rights so access/ownership reads as a lie.</li>
+          <li>Forcing room guests to authenticate before they feel the room.</li>
+          <li>Decorative motion that loops forever or gates content visibility.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="rule"></div>
+  <section>
+    <span class="eyebrow">In one line</span>
+    <p style="font-size:22px;font-weight:700;margin-top:12px;letter-spacing:-.02em;max-width:60ch">Dotify is bathed in the living light of whatever's playing — and listening together is the first thing you see, not a buried feature.</p>
+  </section>
+
+  <p class="foot">Companion to the interactive prototype (<strong>Dotify.html</strong>). Toggle <strong>Tweaks</strong> there to compare directions live — accent lead, ambient, presence, warmth, density and lights-down.</p>
+
+</div>
+</body>
+</html>

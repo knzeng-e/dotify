@@ -1,0 +1,36 @@
+/* ============================================================================
+   DOTIFY — tweakable states: ambient variants · density · lights-down
+   ========================================================================= */
+
+/* ---- Ambient style variants (background metaphor) ---- */
+.ambient-aurora .aura-bg::before { opacity: calc(0.66 * var(--aura-strength)); filter: blur(6px) saturate(1.35); animation-duration: 18s; }
+.ambient-aurora .aura-bg::after { background:
+  radial-gradient(120% 90% at 50% 0%, transparent 48%, color-mix(in oklab, var(--base) 60%, transparent) 100%),
+  linear-gradient(180deg, transparent, color-mix(in oklab, var(--base-deep) 78%, transparent)); }
+
+.ambient-calm .aura-bg::before { opacity: calc(0.3 * var(--aura-strength)); filter: blur(14px) saturate(0.95); animation: none; }
+.ambient-calm .aura-bg::after { background:
+  radial-gradient(120% 90% at 50% 0%, transparent 30%, color-mix(in oklab, var(--base) 82%, transparent) 100%),
+  linear-gradient(180deg, color-mix(in oklab, var(--base) 40%, transparent), var(--base-deep)); }
+
+/* ---- Density ---- */
+.density-cozy { --gap: 12px; }
+.density-cozy .section { margin-bottom: 26px; }
+.density-cozy .catalog { gap: 12px; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); }
+.density-cozy .rooms-strip { gap: 12px; }
+.density-cozy .hero { margin-bottom: 28px; }
+
+.density-airy .section { margin-bottom: 52px; }
+.density-airy .catalog { gap: 26px; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); }
+.density-airy .rooms-strip { gap: 22px; }
+.density-airy .hero { gap: 30px; margin-bottom: 52px; }
+.density-airy .main { padding-top: 30px; }
+
+/* ---- Lights-down: dim the room, let the music glow ---- */
+.lights-down { --fg-2: rgba(225,233,250,0.58); --fg-3: rgba(205,216,240,0.36); }
+.lights-down .glass { background: rgba(255,255,255,0.025); border-color: rgba(255,255,255,0.06); box-shadow: var(--shadow-1); }
+.lights-down .topbar { background: color-mix(in oklab, var(--base-deep) 80%, transparent); }
+.lights-down .aura-bg::after { opacity: 0.86; }
+.lights-down .room-cover-glow { opacity: 1 !important; }
+.lights-down .cover { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), inset 0 2px 24px rgba(255,255,255,0.18), 0 0 60px -10px color-mix(in oklab, var(--aura-accent) 60%, transparent); }
+.lights-down .trust, .lights-down .rail-now, .lights-down .room-aside { opacity: 0.82; }

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dotify — Logo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300..900&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --base:#0a1326; --deep:#070e1d; --raise:#111b34;
+  --fg:#f1f5ff; --fg2:rgba(223,231,250,.72); --fg3:rgba(200,212,238,.46);
+  --green:#29e87a; --cyan:#2bd3e8; --pink:#e6007a; --amber:#ff9a4d;
+  --bd:rgba(255,255,255,.1); --hi:rgba(255,255,255,.16); --glass:rgba(255,255,255,.05);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--fg);background:var(--deep);line-height:1.55;letter-spacing:-.005em;
+  background-image:radial-gradient(46% 40% at 14% 0%,color-mix(in oklab,var(--cyan) 18%,transparent),transparent 70%),radial-gradient(44% 38% at 90% 4%,color-mix(in oklab,var(--green) 16%,transparent),transparent 72%),radial-gradient(60% 50% at 72% 100%,color-mix(in oklab,var(--amber) 12%,transparent),transparent 75%);}
+.wrap{max-width:1080px;margin:0 auto;padding:60px 28px 120px}
+h1,h2,h3{margin:0;letter-spacing:-.03em;line-height:1.05;font-weight:800}
+p{margin:0;text-wrap:pretty}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--fg3)}
+.rule{height:1px;background:var(--bd);margin:52px 0}
+section{margin-top:54px}
+.kick{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.kick .n{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--glass);border:1px solid var(--bd);color:var(--cyan)}
+.kick h2{font-size:clamp(20px,2.6vw,26px)}
+.sec-sub{color:var(--fg2);font-size:15px;margin:6px 0 22px;max-width:64ch}
+.card{background:var(--glass);border:1px solid var(--bd);border-radius:18px;backdrop-filter:blur(16px);box-shadow:inset 0 1px 0 var(--hi)}
+.grid{display:grid;gap:16px}
+.g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)} .g2{grid-template-columns:1fr 1fr}
+@media(max-width:760px){.g3,.g4,.g2{grid-template-columns:1fr 1fr}}
+
+/* ---- the mark ---- */
+.mk{display:inline-block;line-height:0;--mk-line:var(--cyan);--mk-dot:#eef3ff;--mk-accent:var(--green)}
+.mk svg{width:100%;height:100%;display:block;overflow:visible}
+.mk .mk-line{fill:none;stroke:var(--mk-line);stroke-width:4.6;stroke-linecap:round;stroke-linejoin:round}
+.mk .mk-dot{fill:var(--mk-dot)}
+.mk .mk-accent{fill:var(--mk-accent);filter:drop-shadow(0 0 5px color-mix(in oklab,var(--mk-accent) 80%,transparent))}
+.mk .mk-ring{fill:none;stroke:var(--mk-line);stroke-width:4;opacity:.55}
+
+/* ---- hero ---- */
+.hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:64px 24px 56px;border-radius:28px;position:relative;overflow:hidden}
+.hero-glow{position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(40% 60% at 50% 30%,color-mix(in oklab,var(--green) 16%,transparent),transparent 70%)}
+.lockup{display:inline-flex;align-items:center;gap:20px;position:relative;z-index:1}
+.lockup .mk{width:96px;height:96px}
+.wordmark{font-weight:800;letter-spacing:-.045em;font-size:72px;line-height:1}
+.tag{color:var(--fg2);font-size:17px;margin-top:22px;position:relative;z-index:1}
+
+/* ---- idea notes ---- */
+.note{padding:18px}
+.note h3{font-size:15px;margin-bottom:5px}
+.note p{font-size:13.5px;color:var(--fg3)}
+
+/* ---- construction ---- */
+.build{display:grid;grid-template-columns:300px 1fr;gap:26px;align-items:center;padding:26px}
+@media(max-width:760px){.build{grid-template-columns:1fr}}
+.build-stage{aspect-ratio:1;border-radius:16px;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,#101c36,#0a1326);border:1px solid var(--bd);position:relative}
+.build-stage .mk{width:62%;height:62%}
+.build-grid{position:absolute;inset:0;border-radius:inherit;background-image:linear-gradient(var(--bd) 1px,transparent 1px),linear-gradient(90deg,var(--bd) 1px,transparent 1px);background-size:11.11% 11.11%;opacity:.4;pointer-events:none}
+.build ul{margin:0;padding-left:18px;color:var(--fg2);font-size:14.5px}
+.build li{margin:9px 0}
+.build li b{color:var(--fg)}
+
+/* ---- lockups ---- */
+.lk{padding:26px;display:flex;align-items:center;justify-content:center;min-height:130px}
+.lk-h{display:inline-flex;align-items:center;gap:13px}
+.lk-h .mk{width:52px;height:52px}
+.lk-h .w{font-weight:800;letter-spacing:-.045em;font-size:38px}
+.lk-v{display:flex;flex-direction:column;align-items:center;gap:12px}
+.lk-v .mk{width:60px;height:60px}
+.lk-v .w{font-weight:800;letter-spacing:-.045em;font-size:30px}
+.lk-int{font-weight:800;letter-spacing:-.05em;font-size:46px;display:inline-flex;align-items:center}
+.lk-int .o-mk{width:.92em;height:.92em;margin:0 .02em;transform:translateY(.04em)}
+.cap{font-size:12px;color:var(--fg3);font-weight:700;letter-spacing:.04em;margin-top:14px;text-align:center}
+
+/* reversal */
+.swatch{padding:0;overflow:hidden;border-radius:16px}
+.swatch .inner{height:150px;display:grid;place-items:center}
+.swatch .lk-h .mk{width:44px;height:44px}
+.swatch .lk-h .w{font-size:30px}
+.on-dark{background:#0a1326}
+.on-light{background:#f3f5fa}
+.on-light .w{color:#0a1326}
+.on-color{background:linear-gradient(140deg,#0d7a52,#0a1326)}
+.mono-d{background:#f3f5fa}
+.mono-l{background:#0a1326}
+
+/* applications */
+.appicon{aspect-ratio:1;border-radius:24px;display:grid;place-items:center;position:relative;overflow:hidden;
+  background:radial-gradient(120% 100% at 25% 12%,#15influence,#0a1326);}
+.appicon{background:radial-gradient(120% 100% at 22% 14%,#123a6a,#0a1326)}
+.appicon .glowring{position:absolute;inset:0;background:radial-gradient(45% 45% at 62% 30%,color-mix(in oklab,var(--green) 30%,transparent),transparent 70%)}
+.appicon .mk{width:58%;height:58%;position:relative}
+.favrow{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;padding:24px}
+.fav{border-radius:22%;display:grid;place-items:center;background:radial-gradient(120% 100% at 22% 14%,#123a6a,#0a1326);box-shadow:inset 0 0 0 1px var(--bd)}
+.fav .mk{width:62%;height:62%}
+.favlbl{font-size:11px;color:var(--fg3);text-align:center;margin-top:7px;font-weight:600}
+.chip-demo{display:inline-flex;align-items:center;gap:9px;height:40px;padding:0 14px 0 10px;border-radius:12px;background:var(--glass);border:1px solid var(--bd);font-weight:700;font-size:14px}
+.chip-demo .mk{width:24px;height:24px}
+
+/* concepts */
+.concept{padding:22px;text-align:center}
+.concept .stage{aspect-ratio:1.3;border-radius:14px;display:grid;place-items:center;background:radial-gradient(circle at 50% 42%,#101c36,#0a1326);border:1px solid var(--bd);margin-bottom:14px}
+.concept .stage .mk{width:50%;height:50%}
+.concept h3{font-size:15px;margin-bottom:4px}
+.concept p{font-size:13px;color:var(--fg3)}
+
+.foot{margin-top:60px;color:var(--fg3);font-size:13px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.sw{display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--fg3);font-weight:600;align-items:center}
+.sw i{width:54px;height:40px;border-radius:9px;box-shadow:inset 0 0 0 1px var(--bd)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="eyebrow">Dotify · Identity</span>
+  <h1 style="font-size:clamp(26px,4vw,40px);margin:14px 0 8px">A mark for “let the music connect the dots.”</h1>
+  <p style="color:var(--fg2);font-size:17px;max-width:60ch">Polkadot gives us the dot. Dotify draws the line <em>between</em> them — a single melody threading through scattered points, turning isolated dots into one shared phrase.</p>
+
+  <!-- HERO -->
+  <div class="hero card" style="margin-top:34px">
+    <div class="hero-glow"></div>
+    <div class="lockup">
+      <span class="mk" data-mark="melody"></span>
+      <span class="wordmark">Dotify</span>
+    </div>
+    <p class="tag">Let the music connect the dots.</p>
+  </div>
+
+  <!-- IDEA -->
+  <section>
+    <div class="grid g3">
+      <div class="note card"><h3>Dots = people</h3><p>Each point is a listener, an artist, a moment — scattered, separate.</p></div>
+      <div class="note card"><h3>The line = music</h3><p>A continuous melody contour passes through every dot and joins them into one phrase.</p></div>
+      <div class="note card"><h3>The lit dot = presence</h3><p>One point glows in Dotify green — the track playing right now, where everyone meets.</p></div>
+    </div>
+  </section>
+
+  <!-- CONSTRUCTION -->
+  <section>
+    <div class="kick"><span class="n">01</span><h2>The mark</h2></div>
+    <p class="sec-sub">Five dots on a rhythmic grid, threaded by one smooth line. Geometric, reproducible at any size, and unmistakably “connect the dots”.</p>
+    <div class="build card">
+      <div class="build-stage"><div class="build-grid"></div><span class="mk" data-mark="melody"></span></div>
+      <ul>
+        <li><b>Dots</b> sit at the peaks and valleys of the line — a melody you could hum.</li>
+        <li><b>One line, no breaks</b> — the music never drops the connection.</li>
+        <li><b>The accent dot</b> (top-right, green) is the resolving note — the “now playing”.</li>
+        <li>Built on an 9×9 unit grid; the line uses a single stroke weight for clean small-size rendering.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- LOCKUPS -->
+  <section>
+    <div class="kick"><span class="n">02</span><h2>Lockups</h2></div>
+    <p class="sec-sub">Mark + Hanken Grotesk wordmark (Extrabold, tight tracking). The integrated lockup swaps the “o” for the orbit dot — a small, ownable detail.</p>
+    <div class="grid g2">
+      <div><div class="lk card"><span class="lk-h"><span class="mk" data-mark="melody"></span><span class="w">Dotify</span></span></div><div class="cap">Horizontal · primary</div></div>
+      <div><div class="lk card"><span class="lk-v"><span class="mk" data-mark="melody"></span><span class="w">Dotify</span></span></div><div class="cap">Stacked · compact spaces</div></div>
+      <div><div class="lk card"><span class="lk-int">D<span class="mk o-mk" data-mark="orbit"></span>tify</span></div><div class="cap">Integrated · “o” becomes the orbit</div></div>
+      <div><div class="lk card"><span class="mk" data-mark="melody" style="width:64px;height:64px"></span></div><div class="cap">Mark only · avatars &amp; app tiles</div></div>
+    </div>
+  </section>
+
+  <!-- REVERSAL -->
+  <section>
+    <div class="kick"><span class="n">03</span><h2>Color &amp; reversal</h2></div>
+    <p class="sec-sub">Cyan line, near-white dots, green accent on dark. On light, the line deepens to navy. Single-colour versions hold up where colour can’t.</p>
+    <div class="grid g4">
+      <div class="card swatch on-dark"><div class="inner"><span class="lk-h"><span class="mk" data-mark="melody"></span><span class="w">Dotify</span></span></div></div>
+      <div class="card swatch on-light"><div class="inner"><span class="lk-h"><span class="mk" data-mark="melody" style="--mk-line:#0a1326;--mk-dot:#0a1326;--mk-accent:#0a9b56"></span><span class="w">Dotify</span></span></div></div>
+      <div class="card swatch mono-l"><div class="inner"><span class="lk-h"><span class="mk" data-mark="melody" style="--mk-line:#fff;--mk-dot:#fff;--mk-accent:#fff"></span><span class="w" style="color:#fff">Dotify</span></span></div></div>
+      <div class="card swatch mono-d"><div class="inner"><span class="lk-h"><span class="mk" data-mark="melody" style="--mk-line:#0a1326;--mk-dot:#0a1326;--mk-accent:#0a1326"></span><span class="w" style="color:#0a1326">Dotify</span></span></div></div>
+    </div>
+    <div class="swatches" style="margin-top:18px">
+      <div class="sw"><i style="background:#0a1326"></i>navy #0a1326</div>
+      <div class="sw"><i style="background:#2bd3e8"></i>cyan #2bd3e8</div>
+      <div class="sw"><i style="background:#29e87a"></i>green #29e87a</div>
+      <div class="sw"><i style="background:#eef3ff"></i>dot #eef3ff</div>
+    </div>
+  </section>
+
+  <!-- APPLICATIONS -->
+  <section>
+    <div class="kick"><span class="n">04</span><h2>In use</h2></div>
+    <div class="grid g3">
+      <div class="card" style="padding:18px"><div class="appicon"><div class="glowring"></div><span class="mk" data-mark="melody"></span></div><div class="cap">App icon</div></div>
+      <div class="card favrow" style="align-items:flex-end;justify-content:center">
+        <div><div class="fav" style="width:72px;height:72px"><span class="mk" data-mark="orbit"></span></div><div class="favlbl">64</div></div>
+        <div><div class="fav" style="width:48px;height:48px"><span class="mk" data-mark="orbit"></span></div><div class="favlbl">32</div></div>
+        <div><div class="fav" style="width:32px;height:32px"><span class="mk" data-mark="orbit"></span></div><div class="favlbl">16 · favicon</div></div>
+      </div>
+      <div class="card" style="padding:18px;display:flex;align-items:center;justify-content:center;gap:14px;flex-direction:column">
+        <span class="chip-demo"><span class="mk" data-mark="melody"></span>Dotify</span>
+        <div class="cap" style="margin-top:0">Top-bar / now-playing chip</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONCEPTS -->
+  <section>
+    <div class="kick"><span class="n">05</span><h2>Other directions explored</h2></div>
+    <p class="sec-sub">The melody mark is the recommendation. These read the same idea differently if you want to compare.</p>
+    <div class="grid g3">
+      <div class="card concept"><div class="stage"><span class="mk" data-mark="orbit"></span></div><h3>Orbit</h3><p>Dots on a shared circle — listeners around one track. Also the “o”.</p></div>
+      <div class="card concept"><div class="stage"><span class="mk" data-mark="wave"></span></div><h3>Pulse</h3><p>Dots riding a flatter sound-wave — calmer, more “signal”.</p></div>
+      <div class="card concept"><div class="stage"><span class="mk" data-mark="vinyl"></span></div><h3>Groove</h3><p>A dot at the centre of dotted grooves — record + point.</p></div>
+    </div>
+  </section>
+
+  <p class="foot">Original mark — geometric dots + a single melody line, drawing on Polkadot’s dot motif without copying it. Built in the Dotify “Living Light” palette. Export-ready as SVG.</p>
+
+</div>
+
+<script>
+const MARKS = {
+  melody: `
+    <svg viewBox="0 0 100 100" aria-label="Dotify">
+      <path class="mk-line" d="M14,62 C24,62 27,33 37,33 C46,33 46,53 51,53 C58,53 58,25 68,25 C79,25 80,47 88,47"/>
+      <circle class="mk-dot" cx="14" cy="62" r="4.2"/>
+      <circle class="mk-dot" cx="37" cy="33" r="5.2"/>
+      <circle class="mk-dot" cx="51" cy="53" r="4.6"/>
+      <circle class="mk-accent" cx="68" cy="25" r="6.6"/>
+      <circle class="mk-dot" cx="88" cy="47" r="4.2"/>
+    </svg>`,
+  orbit: (()=>{ const c=50,r=32,pts=[-90,-30,30,90,150,210].map(a=>[c+r*Math.cos(a*Math.PI/180),c+r*Math.sin(a*Math.PI/180)]);
+    let s=`<svg viewBox="0 0 100 100"><circle class="mk-ring" cx="50" cy="50" r="32"/>`;
+    pts.forEach((p,i)=> s+= i===0 ? `<circle class="mk-accent" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="7"/>` : `<circle class="mk-dot" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="5"/>`);
+    s+=`<circle class="mk-dot" cx="50" cy="50" r="4.4"/></svg>`; return s; })(),
+  wave: `
+    <svg viewBox="0 0 100 100">
+      <path class="mk-line" d="M12,50 C22,50 24,38 34,38 C44,38 44,62 51,62 C58,62 58,42 68,42 C78,42 79,50 88,50"/>
+      <circle class="mk-dot" cx="12" cy="50" r="4"/>
+      <circle class="mk-dot" cx="34" cy="38" r="4.6"/>
+      <circle class="mk-accent" cx="51" cy="62" r="6"/>
+      <circle class="mk-dot" cx="68" cy="42" r="4.6"/>
+      <circle class="mk-dot" cx="88" cy="50" r="4"/>
+    </svg>`,
+  vinyl: `
+    <svg viewBox="0 0 100 100">
+      <circle class="mk-ring" cx="50" cy="50" r="32"/>
+      <circle class="mk-ring" cx="50" cy="50" r="22" style="opacity:.35"/>
+      <circle class="mk-accent" cx="50" cy="18" r="6"/>
+      <circle class="mk-dot" cx="50" cy="50" r="7"/>
+    </svg>`,
+};
+document.querySelectorAll('[data-mark]').forEach(el=>{ el.innerHTML = MARKS[el.getAttribute('data-mark')] || MARKS.melody; });
+</script>
+</body>
+</html>
