@@ -5,7 +5,7 @@
 // fabricated URL); the room header then exposes the real Copy link.
 
 import { useState } from 'react';
-import { Link as LinkIcon, Radio, X } from 'lucide-react';
+import { Link as LinkIcon, Radio } from 'lucide-react';
 import { Dialog } from './Dialog';
 import type { CatalogTrack } from '../types';
 
@@ -30,14 +30,11 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
         <div className='modal-icon' data-tone='success'>
           <Radio size={20} />
         </div>
-        <button className='modal-close' type='button' onClick={onClose} aria-label='Close'>
-          <X size={16} />
-        </button>
       </div>
       <div className='modal-copy'>
         <p className='modal-eyebrow'>Start a room</p>
         <h2 id='create-room-title'>As easy as sharing a link</h2>
-        <p>Pick what is playing. Anyone with the link can listen with you - no wallet, no sign-up.</p>
+        <p>Open a room and share the link. Anyone can join and listen - no wallet, no sign-up.</p>
       </div>
 
       {picked && (
@@ -56,7 +53,10 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
 
       {tracks.length > 1 && (
         <>
-          <p className='create-room-label'>Now playing</p>
+          <div className='create-room-label-group'>
+            <p className='create-room-label'>Choose a track</p>
+            <span className='create-room-label-hint'>Your room opens with this track.</span>
+          </div>
           <div className='create-room-picker'>
             {tracks.map(track => (
               <button
@@ -74,7 +74,10 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
         </>
       )}
 
-      <p className='create-room-label'>Mood</p>
+      <div className='create-room-label-group'>
+        <p className='create-room-label'>Vibe</p>
+        <span className='create-room-label-hint'>Sets the tone - visible on the room card.</span>
+      </div>
       <div className='create-room-moods'>
         {MOODS.map(option => (
           <button
@@ -104,7 +107,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
           <Radio size={16} />
           Open the room
         </button>
-        <button className='secondary-action' type='button' onClick={onClose}>
+        <button className='create-room-cancel' type='button' onClick={onClose}>
           Cancel
         </button>
       </div>

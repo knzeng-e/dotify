@@ -5044,8 +5044,13 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
   transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
 }
 .create-room-mood.is-on { border-color: transparent; background: var(--aura-accent); color: #06152d; }
-.create-room-actions { display: flex; align-items: center; gap: 0.7rem; }
-.create-room-actions .primary-action { flex: 1; justify-content: center; }
+.create-room-label-group { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.5rem; }
+.create-room-label-group .create-room-label { margin: 0; }
+.create-room-label-hint { color: var(--fg-tertiary); font-size: 0.74rem; font-weight: 400; }
+.create-room-actions { display: flex; flex-direction: column; gap: 0.6rem; }
+.create-room-actions .primary-action { width: 100%; justify-content: center; }
+.create-room-cancel { background: none; border: none; color: var(--fg-tertiary); font-size: 0.85rem; padding: 0.3rem; cursor: pointer; transition: color 0.15s; text-align: center; }
+.create-room-cancel:hover { color: var(--fg-secondary); }
 .create-room-foot { margin-top: 0.9rem; color: var(--fg-tertiary); font-size: 0.76rem; text-align: center; }
 
 /* Final Living Light refinement layer - room-first product surface. */
@@ -7763,6 +7768,149 @@ code,
 
   .content-player .track-copy h2 {
     font-size: 2.8rem;
+  }
+}
+
+/* Room mode stabilization: the social controls are primary, so the player
+   becomes denser and the presence bar stops covering content on desktop. */
+.content-player .player-view-grid.player-room-mode {
+  align-content: start;
+  gap: 1rem;
+  overflow: visible;
+  padding-bottom: calc(7.75rem + env(safe-area-inset-bottom));
+}
+
+.content-player .player-view-grid.player-room-mode .player-stage {
+  min-height: 0;
+}
+
+.content-player .player-view-grid.player-room-mode .player-lower-grid {
+  align-items: start;
+}
+
+.content-player .player-view-grid.player-room-mode .track-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.content-player .player-view-grid.player-room-mode .room-sync-note,
+.content-player .player-view-grid.player-room-mode .room-react-bar {
+  display: none;
+}
+
+.content-player .player-view-grid.player-room-mode .room-share-card {
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 980px) {
+  .content-player .player-view-grid.player-room-mode {
+    min-height: auto;
+    padding: clamp(1rem, 2vw, 1.5rem) clamp(2rem, 4vw, 4rem) 1.5rem;
+  }
+
+  .content-player .player-view-grid.player-room-mode .room-header {
+    position: relative;
+    inset: auto;
+    z-index: 3;
+    width: min(100%, 112rem);
+    min-height: 0;
+    margin: 0 auto;
+    border: 1px solid rgba(101, 139, 165, 0.18);
+    border-radius: var(--radius-lg);
+    background: rgba(7, 19, 38, 0.78);
+    padding: 0.65rem 0.85rem;
+  }
+
+  .content-player .player-view-grid.player-room-mode .player-stage {
+    grid-template-columns: minmax(10rem, 18rem) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(1rem, 2.2vw, 1.8rem);
+    width: min(100%, 112rem);
+    margin: 0 auto;
+  }
+
+  .content-player .player-view-grid.player-room-mode .player-cover-column {
+    justify-self: start;
+  }
+
+  .content-player .player-view-grid.player-room-mode .cover-card,
+  .content-player .player-view-grid.player-room-mode .cover-card .cover,
+  .content-player .player-view-grid.player-room-mode .cover {
+    width: 100%;
+    max-width: 18rem;
+  }
+
+  .content-player .player-view-grid.player-room-mode .cover-card .audio-stack {
+    gap: 0.55rem;
+  }
+
+  .content-player .player-view-grid.player-room-mode .remote-state,
+  .content-player .player-view-grid.player-room-mode .preview-cover-action {
+    min-height: 2.35rem;
+    padding-right: 0.7rem;
+    padding-left: 0.7rem;
+    font-size: 0.76rem;
+  }
+
+  .content-player .player-view-grid.player-room-mode .player-main-column {
+    max-width: none;
+  }
+
+  .content-player .player-view-grid.player-room-mode .track-copy {
+    gap: 0.46rem;
+  }
+
+  .content-player .player-view-grid.player-room-mode .track-copy h2 {
+    max-width: 17ch;
+    font-size: clamp(2rem, 3.65vw, 3.65rem);
+    line-height: 0.94;
+  }
+
+  .content-player .player-view-grid.player-room-mode .track-description {
+    width: min(100%, 52rem);
+    max-width: 52rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .content-player .player-view-grid.player-room-mode .player-transport {
+    width: min(100%, 46rem);
+    max-width: 46rem;
+    padding: 0.72rem;
+  }
+
+  .content-player .player-view-grid.player-room-mode .player-lower-grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(17rem, 0.48fr);
+    gap: 0.85rem;
+    width: min(100%, 112rem);
+    margin: 0 auto;
+  }
+
+  .content-player .player-view-grid.player-room-mode .player-context-panel {
+    position: sticky;
+    top: 5.25rem;
+  }
+
+  .content-player .player-view-grid.player-room-mode .room-share-card {
+    grid-template-columns: minmax(0, 1fr) minmax(8.5rem, 10.25rem);
+    gap: 0.8rem;
+    padding: 0.8rem;
+  }
+
+  .content-player .player-view-grid.player-room-mode .room-share-copy span {
+    max-width: 18rem;
+  }
+}
+
+@media (max-width: 979px) {
+  .content-player .player-view-grid.player-room-mode {
+    padding-top: 1rem;
+  }
+
+  .content-player .player-view-grid.player-room-mode .player-stage {
+    gap: 1rem;
   }
 }
 
