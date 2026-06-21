@@ -10,6 +10,7 @@ dist/
 
 web/node_modules/
 web/dist/
+web/dist-bulletin*
 
 contracts/**/node_modules/
 contracts/**/artifacts/
