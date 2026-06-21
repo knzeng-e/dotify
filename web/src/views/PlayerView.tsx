@@ -124,7 +124,8 @@ export function PlayerView({
   const isManagedTrack = Boolean(selectedTrack && selectedTrack.source === 'artist' && selectedTrack.id.includes(':'));
   const needsTrackAccess = Boolean(selectedTrack && isManagedTrack && !selectedTrackHasAccess);
   const showPreviewAction = Boolean(needsTrackAccess && selectedTrack);
-  const accessStatusLabel = needsTrackAccess ? 'Preview available' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
+  const showWideStatus = Boolean(selectedTrack && !showPreviewAction);
+  const accessStatusLabel = needsTrackAccess ? 'Preview mode' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
   const accessPriceLabel = effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT` : 'Unlocked for this wallet') : 'Human pass';
   const previewCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full track' : 'Check access';
 
@@ -309,7 +310,7 @@ export function PlayerView({
                 ))}
               </span>
             </div>
-            <div className={`audio-stack${showPreviewAction ? ' has-preview-action' : ''}`}>
+            <div className={`audio-stack${showPreviewAction ? ' has-preview-action' : ''}${showWideStatus ? ' has-wide-status' : ''}`}>
               <div className='remote-state' data-active={transport.playing} data-busy={isBusy}>
                 {isBusy ? (
                   <span className='remote-state-dots' aria-hidden='true'>

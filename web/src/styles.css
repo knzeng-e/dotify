@@ -7486,6 +7486,11 @@ code,
   justify-content: space-between;
 }
 
+.content-player .cover-card .audio-stack.has-wide-status .remote-state {
+  width: 100%;
+  justify-content: center;
+}
+
 .content-player .player-main-column {
   justify-self: center;
   max-width: 62rem;
@@ -7544,12 +7549,46 @@ code,
 .content-player .remote-state {
   flex: 0 0 auto;
   min-height: 2.6rem;
+  position: relative;
+  overflow: hidden;
 }
 
 .content-player .remote-state[data-active='true'] {
-  border: 1px solid rgba(240, 180, 41, 0.3);
-  background: rgba(240, 180, 41, 0.1);
-  color: #f0d58a;
+  border: 1px solid rgba(255, 49, 83, 0.72);
+  background:
+    linear-gradient(180deg, rgba(255, 49, 83, 0.42), rgba(106, 8, 24, 0.84)),
+    rgba(34, 3, 10, 0.92);
+  color: #ffffff;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 0 22px rgba(255, 49, 83, 0.26),
+    0 0 16px rgba(255, 49, 83, 0.5),
+    0 0 34px rgba(255, 49, 83, 0.18);
+  text-shadow:
+    0 0 8px rgba(255, 255, 255, 0.9),
+    0 0 18px rgba(255, 49, 83, 0.9);
+}
+
+.content-player .remote-state[data-active='true'] span:last-child {
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.content-player .cover-card .audio-stack.has-wide-status .remote-state[data-active='true'] {
+  min-height: 3.4rem;
+  border-radius: calc(var(--radius-small) + 2px);
+  font-size: 1.05rem;
+}
+
+.content-player .remote-state[data-active='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  opacity: 0.48;
+  transform: translateX(-130%);
+  animation: onAirSweep 3.2s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .on-air-pulse {
@@ -7557,22 +7596,44 @@ code,
   width: 0.58rem;
   height: 0.58rem;
   border-radius: var(--radius-full);
-  background: #f0b429;
-  box-shadow: 0 0 0 0 rgba(240, 180, 41, 0.46);
+  background: #ffffff;
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.95),
+    0 0 18px rgba(255, 49, 83, 0.95);
   animation: onAirPulse 1.5s ease-out infinite;
 }
 
 @keyframes onAirPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(240, 180, 41, 0.46);
+    box-shadow:
+      0 0 8px rgba(255, 255, 255, 0.95),
+      0 0 18px rgba(255, 49, 83, 0.95),
+      0 0 0 0 rgba(255, 49, 83, 0.48);
   }
 
   70% {
-    box-shadow: 0 0 0 0.5rem rgba(240, 180, 41, 0);
+    box-shadow:
+      0 0 8px rgba(255, 255, 255, 0.95),
+      0 0 18px rgba(255, 49, 83, 0.95),
+      0 0 0 0.5rem rgba(255, 49, 83, 0);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(240, 180, 41, 0);
+    box-shadow:
+      0 0 8px rgba(255, 255, 255, 0.95),
+      0 0 18px rgba(255, 49, 83, 0.95),
+      0 0 0 0 rgba(255, 49, 83, 0);
+  }
+}
+
+@keyframes onAirSweep {
+  0%,
+  46% {
+    transform: translateX(-130%);
+  }
+
+  100% {
+    transform: translateX(130%);
   }
 }
 
@@ -7585,12 +7646,12 @@ code,
   justify-content: center;
   gap: 0.45rem;
   width: auto;
-  border: 1px solid rgba(240, 180, 41, 0.28);
+  border: 1px solid rgba(0, 229, 160, 0.52);
   border-radius: var(--radius-small);
   background:
-    linear-gradient(180deg, rgba(240, 180, 41, 0.2), rgba(240, 180, 41, 0.1)),
-    rgba(7, 19, 38, 0.86);
-  color: #ffe4a3;
+    linear-gradient(180deg, rgba(65, 255, 190, 0.98), rgba(0, 229, 160, 0.88)),
+    rgba(0, 229, 160, 0.9);
+  color: #021711;
   padding: 0 0.95rem;
   font-size: 0.82rem;
   font-weight: 800;
@@ -7606,16 +7667,17 @@ code,
 }
 
 .preview-cover-action:hover {
-  border-color: rgba(240, 180, 41, 0.52);
+  border-color: rgba(134, 247, 213, 0.78);
   background:
-    linear-gradient(180deg, rgba(240, 180, 41, 0.28), rgba(240, 180, 41, 0.14)),
-    rgba(7, 19, 38, 0.9);
-  color: #fff3d0;
+    linear-gradient(180deg, rgba(145, 255, 220, 1), rgba(0, 229, 160, 0.94)),
+    rgba(0, 229, 160, 0.94);
+  color: #00110c;
+  box-shadow: 0 0 18px rgba(0, 229, 160, 0.28);
   transform: translateY(-1px);
 }
 
 .preview-cover-action:focus-visible {
-  outline: 2px solid #f0b429;
+  outline: 2px solid #00e5a0;
   outline-offset: 3px;
 }
 
@@ -7721,6 +7783,7 @@ code,
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .content-player .remote-state[data-active='true']::after,
   .on-air-pulse {
     animation: none;
   }
