@@ -322,6 +322,22 @@ export function PlayerView({
                 )}
                 <span>{statusLabel}</span>
               </div>
+              {needsTrackAccess && selectedTrack && (
+                <button
+                  className='preview-cover-action'
+                  type='button'
+                  onClick={() => {
+                    if (effectiveAccessMode === 'classic') {
+                      void onPayForTrackAccess(selectedTrack);
+                      return;
+                    }
+                    onShowWalletModal();
+                  }}
+                >
+                  <KeyRound size={16} />
+                  {previewCtaLabel}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -340,33 +356,6 @@ export function PlayerView({
               <span className='access-chip'>{accessPriceLabel}</span>
             </div>
             <p className='track-description'>{trackInfo?.description ?? selectedTrack?.description ?? description}</p>
-
-            {needsTrackAccess && selectedTrack && (
-              <div className='preview-access-card' data-access={effectiveAccessMode}>
-                <div>
-                  <strong>{effectiveAccessMode === 'classic' ? 'Preview mode' : 'Access check needed'}</strong>
-                  <span>
-                    {effectiveAccessMode === 'classic'
-                      ? 'Stay in preview, or unlock full playback when you are ready.'
-                      : 'Stay in preview, or check whether your wallet can open the full track.'}
-                  </span>
-                </div>
-                <button
-                  className='primary-action compact-action'
-                  type='button'
-                  onClick={() => {
-                    if (effectiveAccessMode === 'classic') {
-                      void onPayForTrackAccess(selectedTrack);
-                      return;
-                    }
-                    onShowWalletModal();
-                  }}
-                >
-                  <KeyRound size={16} />
-                  {previewCtaLabel}
-                </button>
-              </div>
-            )}
 
             <div className='player-transport' data-playing={transport.playing}>
               <div className='transport-cluster' aria-label='Track navigation'>
