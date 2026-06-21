@@ -102,9 +102,9 @@ export function Dialog({ children, className, dataAttributes, describedBy, dismi
     >
       <div
         className={['modal-card', className].filter(Boolean).join(' ')}
+        {...dataProps}
         data-size={size}
         data-tone={tone}
-        {...dataProps}
         role='dialog'
         aria-modal='true'
         aria-labelledby={labelledBy}

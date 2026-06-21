@@ -691,9 +691,11 @@ export default function App() {
       onOpenAccountDetails={() => {
         setShowWalletModal(false);
         navigateToView('you');
-        window.setTimeout(() => {
-          document.getElementById('account-dashboard-title')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-        }, 0);
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            document.getElementById('account-dashboard-title')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          });
+        });
       }}
       onClose={() => setShowWalletModal(false)}
     />
