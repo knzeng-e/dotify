@@ -79,6 +79,24 @@ function isArtistPortalPath() {
   return window.location.pathname.replace(/\/$/, '') === '/artists';
 }
 
+function catalogTrackToTrackInfo(track: CatalogTrack): TrackInfo {
+  return {
+    title: track.title,
+    artist: track.artist,
+    hash: track.hash,
+    bulletinRef: track.bulletinRef,
+    duration: track.duration ?? 0,
+    updatedAt: Date.now(),
+    imageRef: track.imageRef,
+    audioRef: track.audioRef,
+    metadataRef: track.metadataRef,
+    description: track.description,
+    accessMode: track.accessMode,
+    priceDot: track.priceDot,
+    personhoodLevel: track.personhoodLevel
+  };
+}
+
 function getHistoryStateObject(): Record<string, unknown> {
   const currentState = window.history.state;
   return currentState && typeof currentState === 'object' ? (currentState as Record<string, unknown>) : {};
@@ -263,6 +281,9 @@ export default function App() {
 
   // ── Derived values ────────────────────────────────────────────────────────────
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
+  const selectedTrackHasAccess = selectedTrack
+    ? selectedTrack.source !== 'artist' || !selectedTrack.id.includes(':') || catalog.catalogAccessByTrackId[selectedTrack.id] === true
+    : false;
   const artistTracks = catalog.catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
   const streamTitle = catalog.trackInfo?.title || selectedTrack?.title || title;
   const streamArtist = catalog.trackInfo?.artist || selectedTrack?.artist || artistName;
@@ -543,24 +564,6 @@ export default function App() {
     void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
   }
 
-  function trackToInfo(track: CatalogTrack): TrackInfo {
-    return {
-      title: track.title,
-      artist: track.artist,
-      hash: track.hash,
-      bulletinRef: track.bulletinRef,
-      duration: track.duration ?? 0,
-      updatedAt: Date.now(),
-      imageRef: track.imageRef,
-      audioRef: track.audioRef,
-      metadataRef: track.metadataRef,
-      description: track.description,
-      accessMode: track.accessMode,
-      priceDot: track.priceDot,
-      personhoodLevel: track.personhoodLevel
-    };
-  }
-
   function getHostPlaybackModeForRoom(track: CatalogTrack | undefined): RoomPlaybackMode {
     if (!track) return catalog.previewOnlyRef.current ? 'preview' : 'full';
     if (catalog.selectedTrackId === track.id && catalog.previewOnlyRef.current) return 'preview';
@@ -583,7 +586,7 @@ export default function App() {
         catalog.previewOnlyRef.current = true;
         return 'preview';
       });
-      session.createSession(trackToInfo(track), playbackMode);
+      session.createSession(catalogTrackToTrackInfo(track), playbackMode);
     })();
   }
 
@@ -631,7 +634,7 @@ export default function App() {
   function handleCreateSession(event?: import('react').FormEvent<HTMLFormElement>) {
     let currentTrack = catalog.trackInfo;
     if (selectedTrack && !currentTrack) {
-      currentTrack = trackToInfo(selectedTrack);
+      currentTrack = catalogTrackToTrackInfo(selectedTrack);
     }
     session.createSession(currentTrack, getHostPlaybackModeForRoom(selectedTrack), event);
   }
@@ -960,6 +963,7 @@ export default function App() {
                     error={session.error}
                     streamTitle={streamTitle}
                     streamArtist={streamArtist}
+                    selectedTrackHasAccess={selectedTrackHasAccess}
                     accessMode={accessMode}
                     priceDot={priceDot}
                     description={description}

@@ -1,5 +1,4 @@
 import {
-  BadgeCheck,
   Copy,
   Disc3,
   Headphones,
@@ -53,6 +52,7 @@ type PlayerViewProps = {
   // Derived display values
   streamTitle: string;
   streamArtist: string;
+  selectedTrackHasAccess: boolean;
   accessMode: AccessMode;
   priceDot: string;
   description: string;
@@ -90,6 +90,7 @@ export function PlayerView({
   error,
   streamTitle,
   streamArtist,
+  selectedTrackHasAccess,
   accessMode,
   priceDot,
   onSetDisplayName,
@@ -119,6 +120,11 @@ export function PlayerView({
   const transportProgressStyle = { '--progress': `${transportProgress}%` } as CSSProperties;
   const isBusy = status === 'preparing' || status === 'joining';
   const statusLabel = playbackStatusLabel(status, mode);
+  const isManagedTrack = Boolean(selectedTrack && selectedTrack.source === 'artist' && selectedTrack.id.includes(':'));
+  const needsTrackAccess = Boolean(selectedTrack && isManagedTrack && !selectedTrackHasAccess);
+  const accessStatusLabel = needsTrackAccess ? 'Preview available' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
+  const accessPriceLabel = effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT` : 'Unlocked for this wallet') : 'Human pass';
+  const previewCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full track' : 'Check access';
 
   function handleQrProjectorBackdropClick(event: MouseEvent<HTMLDivElement>) {
     if (event.target === event.currentTarget) {
@@ -328,16 +334,39 @@ export function PlayerView({
             <h2>{streamTitle}</h2>
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : hostName || 'Room'}</span>
             <div className='access-badges'>
-              <span className='access-chip'>{accessModeLabelFromState(effectiveAccessMode)}</span>
-              <span className='access-chip'>{effectiveAccessMode === 'classic' ? `${effectivePriceDot} DOT` : 'Free'}</span>
-              {(selectedTrack?.source === 'artist' || selectedTrack?.artistAddress) && (
-                <span className='access-chip access-chip-trust'>
-                  <BadgeCheck size={13} />
-                  Artist-owned
-                </span>
-              )}
+              <span className='access-chip' data-tone={needsTrackAccess ? 'preview' : 'ready'}>
+                {accessStatusLabel}
+              </span>
+              <span className='access-chip'>{accessPriceLabel}</span>
             </div>
             <p className='track-description'>{trackInfo?.description ?? selectedTrack?.description ?? description}</p>
+
+            {needsTrackAccess && selectedTrack && (
+              <div className='preview-access-card' data-access={effectiveAccessMode}>
+                <div>
+                  <strong>{effectiveAccessMode === 'classic' ? 'Preview mode' : 'Access check needed'}</strong>
+                  <span>
+                    {effectiveAccessMode === 'classic'
+                      ? 'Stay in preview, or unlock full playback when you are ready.'
+                      : 'Stay in preview, or check whether your wallet can open the full track.'}
+                  </span>
+                </div>
+                <button
+                  className='primary-action compact-action'
+                  type='button'
+                  onClick={() => {
+                    if (effectiveAccessMode === 'classic') {
+                      void onPayForTrackAccess(selectedTrack);
+                      return;
+                    }
+                    onShowWalletModal();
+                  }}
+                >
+                  <KeyRound size={16} />
+                  {previewCtaLabel}
+                </button>
+              </div>
+            )}
 
             <div className='player-transport' data-playing={transport.playing}>
               <div className='transport-cluster' aria-label='Track navigation'>
@@ -629,14 +658,18 @@ export function PlayerView({
         </div>
 
         <div className='doc-panel player-context-panel'>
-          <PanelTitle icon={Library} title='Track access' meta={selectedTrack ? accessModeLabel(selectedTrack) : accessModeLabelFromState(accessMode)} />
+          <PanelTitle
+            icon={Library}
+            title='Listening access'
+            meta={needsTrackAccess ? 'Preview mode' : selectedTrack ? accessModeLabel(selectedTrack) : accessModeLabelFromState(accessMode)}
+          />
           <div className='stack-list'>
             <EndpointRow label='Artist' value={streamArtist} />
             <EndpointRow
-              label='Access'
-              value={(selectedTrack?.accessMode ?? accessMode) === 'classic' ? `${selectedTrack?.priceDot ?? priceDot} DOT` : 'Verified human'}
+              label={(selectedTrack?.accessMode ?? accessMode) === 'classic' ? 'Full track' : 'Access'}
+              value={(selectedTrack?.accessMode ?? accessMode) === 'classic' ? `${selectedTrack?.priceDot ?? priceDot} DOT` : 'Human pass'}
             />
-            <EndpointRow label='Saved' value={trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'On-chain manifest' : 'Draft'} />
+            <EndpointRow label='Release' value={trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'Published' : 'Draft'} />
           </div>
           <button className='secondary-action' type='button' onClick={onNavigateToListen}>
             Back to catalog
