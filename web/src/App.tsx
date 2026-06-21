@@ -57,7 +57,7 @@ const viewCopy: Record<View, { title: string; eyebrow: string }> = {
   listen: { title: 'Now', eyebrow: 'Live rooms' },
   player: { title: 'Listen', eyebrow: 'Catalog and player' },
   rooms: { title: 'Rooms', eyebrow: 'Join or create' },
-  you: { title: 'You', eyebrow: 'Wallet and artist mode' }
+  you: { title: 'Account', eyebrow: 'Wallet and artist space' }
 };
 
 const releaseStepsConfig: Array<{ id: ReleaseStep; label: string }> = [
@@ -264,7 +264,6 @@ export default function App() {
   // ── Derived values ────────────────────────────────────────────────────────────
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
   const artistTracks = catalog.catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
-  const unlockedTrackCount = Object.values(catalog.catalogAccessByTrackId).filter(Boolean).length;
   const streamTitle = catalog.trackInfo?.title || selectedTrack?.title || title;
   const streamArtist = catalog.trackInfo?.artist || selectedTrack?.artist || artistName;
   const activeListeners = session.listeners.filter(listener => listener.status === 'connected').length;
@@ -686,6 +685,13 @@ export default function App() {
       }}
       onForgetPasskey={forgetPasskey}
       onDisconnect={disconnectWallet}
+      onOpenAccountDetails={() => {
+        setShowWalletModal(false);
+        navigateToView('you');
+        window.setTimeout(() => {
+          document.getElementById('account-dashboard-title')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }, 0);
+      }}
       onClose={() => setShowWalletModal(false)}
     />
   );
@@ -715,7 +721,7 @@ export default function App() {
         session.requestOpenRooms(true);
       }
     },
-    { view: 'you', label: 'You', icon: UserRound, onSelect: () => navigateToView('you') }
+    { view: 'you', label: 'Account', icon: UserRound, onSelect: () => navigateToView('you') }
   ];
 
   if (isArtistPortal) {
@@ -994,8 +1000,16 @@ export default function App() {
                     artistRuntimeAddress={artistConsole.artistRuntimeAddress}
                     artistReleaseCount={artistTracks.length}
                     totalRoyaltyWei={totalRoyaltyWei}
-                    unlockedTrackCount={unlockedTrackCount}
+                    unlockedTrackCount={paidTracks.length}
                     supportedArtistCount={supportedArtists.length}
+                    supportedArtists={supportedArtists}
+                    unlockedTracks={paidTracks.map(track => ({
+                      id: track.id,
+                      title: track.title,
+                      artist: track.artist,
+                      priceDot: track.priceDot,
+                      hash: track.hash
+                    }))}
                     onShowWalletModal={() => setShowWalletModal(true)}
                     onDisconnectWallet={disconnectWallet}
                   />

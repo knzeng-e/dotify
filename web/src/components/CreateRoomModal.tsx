@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { Link as LinkIcon, Radio, X } from 'lucide-react';
+import { Dialog } from './Dialog';
 import type { CatalogTrack } from '../types';
 
 const MOODS = ['Late night', 'Morning', 'Focus', 'Drive', 'Together'];
@@ -22,8 +23,7 @@ export function CreateRoomModal({ tracks, initialTrack, onClose, onOpenRoom }: C
   const [mood, setMood] = useState(MOODS[0]);
 
   return (
-    <div className='modal-backdrop' role='presentation' onClick={onClose}>
-      <div className='modal-card create-room-modal' role='dialog' aria-modal='true' aria-labelledby='create-room-title' onClick={e => e.stopPropagation()}>
+    <Dialog className='create-room-modal' size='wide' labelledBy='create-room-title' onClose={onClose}>
         <div className='modal-header'>
           <div className='modal-icon' data-tone='success'>
             <Radio size={20} />
@@ -97,7 +97,6 @@ export function CreateRoomModal({ tracks, initialTrack, onClose, onOpenRoom }: C
           </button>
         </div>
         <p className='create-room-foot'>You host. Guests just listen - only you need access to the track.</p>
-      </div>
-    </div>
+    </Dialog>
   );
 }

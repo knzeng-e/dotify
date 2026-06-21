@@ -1,79 +1,11 @@
 import { ExternalLink, KeyRound, LockKeyhole, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { Dialog } from './Dialog';
 import type { WalletState } from '../hooks/useWallet';
 import type { CatalogTrack } from '../types';
 import { getBlockscoutAddressUrl } from '../utils/explorer';
 
 function shortenAddress(address: string) {
   return address.length > 14 ? `${address.slice(0, 8)}...${address.slice(-6)}` : address;
-}
-
-// Focus management for the wallet dialog: move focus in on open, trap Tab /
-// Shift-Tab, close on Escape, and restore focus on unmount. The modal lives
-// inside #root and already sets aria-modal="true", so background content is
-// announced as inert without a self-hiding aria-hidden on the app root.
-function useDialogFocusTrap(onClose: () => void) {
-  const dialogRef = useRef<HTMLDivElement | null>(null);
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    const previousActive = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-    function getFocusable() {
-      const dialog = dialogRef.current;
-      if (!dialog) return [] as HTMLElement[];
-      return Array.from(
-        dialog.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter(element => element.getClientRects().length > 0 || element === document.activeElement);
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      const items = getFocusable();
-      (items[0] ?? dialogRef.current)?.focus();
-    });
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        onCloseRef.current();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const dialog = dialogRef.current;
-      if (!dialog) return;
-      const items = getFocusable();
-      if (items.length === 0) {
-        event.preventDefault();
-        dialog.focus();
-        return;
-      }
-      const first = items[0];
-      const last = items[items.length - 1];
-      const active = document.activeElement;
-      if (event.shiftKey && (active === first || !dialog.contains(active))) {
-        event.preventDefault();
-        last.focus();
-        return;
-      }
-      if (!event.shiftKey && (active === last || !dialog.contains(active))) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener('keydown', handleKeyDown);
-      previousActive?.focus();
-    };
-  }, []);
-
-  return dialogRef;
 }
 
 type WalletSupportedArtist = Pick<CatalogTrack, 'artist' | 'artistAddress'> & { trackCount: number };
@@ -116,6 +48,7 @@ export function WalletModal({
   onSwitchNetwork,
   onForgetPasskey,
   onDisconnect,
+  onOpenAccountDetails,
   onClose
 }: {
   state: WalletState;
@@ -132,26 +65,15 @@ export function WalletModal({
   onSwitchNetwork?: () => void;
   onForgetPasskey: () => void;
   onDisconnect?: () => void;
+  onOpenAccountDetails?: () => void;
   onClose: () => void;
 }) {
-  const dialogRef = useDialogFocusTrap(onClose);
-
   if (state.status === 'connected') {
     const { wallet } = state;
     const identityAddress = wallet.substrateAddress ?? wallet.evmAddress;
     const walletChainMismatch = expectedChainId !== null && wallet.chainId !== undefined && wallet.chainId !== expectedChainId;
     return (
-      <div className='modal-backdrop' role='presentation' onClick={onClose}>
-        <div
-          className='modal-card wallet-modal'
-          role='dialog'
-          aria-modal='true'
-          aria-labelledby='wallet-modal-title'
-          aria-describedby='wallet-modal-desc'
-          tabIndex={-1}
-          ref={dialogRef}
-          onClick={e => e.stopPropagation()}
-        >
+      <Dialog className='wallet-modal' size='wide' labelledBy='wallet-modal-title' describedBy='wallet-modal-desc' onClose={onClose}>
           <div className='modal-header'>
             <div className='modal-icon' data-tone='success'>
               <LockKeyhole size={20} />
@@ -196,7 +118,7 @@ export function WalletModal({
           <div className='wallet-stats'>
             <div>
               <strong className='tnum'>{supportingCount}</strong>
-              <span>artist{supportingCount === 1 ? '' : 's'} supported</span>
+              <span>artist{supportingCount === 1 ? '' : 's'} backed</span>
             </div>
             <div>
               <strong className='tnum'>{unlockedCount}</strong>
@@ -204,11 +126,17 @@ export function WalletModal({
             </div>
           </div>
 
+          {onOpenAccountDetails && (
+            <button className='wallet-details-link' type='button' onClick={onOpenAccountDetails}>
+              View account details
+            </button>
+          )}
+
           <div className='wallet-activity'>
             <section className='wallet-activity-section'>
               <h3>
                 <Users size={15} />
-                Artists supported
+                Artists backed
               </h3>
               {supportedArtists.length > 0 ? (
                 <div className='wallet-activity-list'>
@@ -235,14 +163,14 @@ export function WalletModal({
                   ))}
                 </div>
               ) : (
-                <p className='wallet-empty'>No paid artist support detected for this wallet yet.</p>
+                <p className='wallet-empty'>No backed artists found for this wallet yet.</p>
               )}
             </section>
 
             <section className='wallet-activity-section'>
               <h3>
                 <Music2 size={15} />
-                Paid access
+                Tracks unlocked
               </h3>
               {paidTracks.length > 0 ? (
                 <div className='wallet-activity-list'>
@@ -259,7 +187,7 @@ export function WalletModal({
                   ))}
                 </div>
               ) : (
-                <p className='wallet-empty'>No Classic unlocks found in the indexed catalog.</p>
+                <p className='wallet-empty'>No unlocked tracks found in the indexed catalog.</p>
               )}
             </section>
           </div>
@@ -299,23 +227,12 @@ export function WalletModal({
               Disconnect
             </button>
           )}
-        </div>
-      </div>
+      </Dialog>
     );
   }
 
   return (
-    <div className='modal-backdrop' role='presentation' onClick={onClose}>
-      <div
-        className='modal-card wallet-modal'
-        role='dialog'
-        aria-modal='true'
-        aria-labelledby='wallet-modal-title'
-        aria-describedby='wallet-modal-desc'
-        tabIndex={-1}
-        ref={dialogRef}
-        onClick={e => e.stopPropagation()}
-      >
+    <Dialog className='wallet-modal' labelledBy='wallet-modal-title' describedBy='wallet-modal-desc' onClose={onClose}>
         <div className='modal-header'>
           <div className='modal-icon' data-tone='success'>
             <LockKeyhole size={20} />
@@ -376,7 +293,6 @@ export function WalletModal({
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </Dialog>
   );
 }

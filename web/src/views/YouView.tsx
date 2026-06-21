@@ -1,6 +1,10 @@
-import { ArrowRight, KeyRound, Mic2, Power, ShieldCheck, Sparkles, UserRound, Wallet } from 'lucide-react';
+import { ArrowRight, ExternalLink, KeyRound, Mic2, Music2, Power, Sparkles, Users, Wallet } from 'lucide-react';
 import { formatWeiAsDot } from '../utils/format';
+import { getBlockscoutAddressUrl } from '../utils/explorer';
 import type { WalletState } from '../hooks/useWallet';
+
+type AccountSupportedArtist = { artist: string; artistAddress?: `0x${string}`; trackCount: number };
+type AccountUnlockedTrack = { id: string; title: string; artist: string; priceDot: string; hash: `0x${string}` };
 
 type YouViewProps = {
   walletState: WalletState;
@@ -10,6 +14,8 @@ type YouViewProps = {
   totalRoyaltyWei: bigint;
   unlockedTrackCount: number;
   supportedArtistCount: number;
+  supportedArtists: AccountSupportedArtist[];
+  unlockedTracks: AccountUnlockedTrack[];
   onShowWalletModal: () => void;
   onDisconnectWallet: () => void;
 };
@@ -26,6 +32,8 @@ export function YouView({
   totalRoyaltyWei,
   unlockedTrackCount,
   supportedArtistCount,
+  supportedArtists,
+  unlockedTracks,
   onShowWalletModal,
   onDisconnectWallet
 }: YouViewProps) {
@@ -38,9 +46,9 @@ export function YouView({
   return (
     <section className='you-view' aria-labelledby='you-view-title'>
       <div className='you-hero'>
-        <p className='eyebrow'>You</p>
-        <h2 id='you-view-title'>Your door pass.</h2>
-        <p>What you have unlocked, the artists you back, and your own artist space - all tied to your wallet.</p>
+        <p className='eyebrow'>Account</p>
+        <h2 id='you-view-title'>My account.</h2>
+        <p>Your unlocked music, backed artists, and artist space in one place.</p>
       </div>
 
       <div className='you-grid'>
@@ -59,14 +67,14 @@ export function YouView({
             <>
               <code className='you-address'>{shortenAddress(identityAddress)}</code>
               <div className='you-stats'>
-                <div>
+                <a className='you-stat-link' href='#account-unlocked-tracks'>
                   <strong className='tnum'>{unlockedTrackCount}</strong>
-                  <span>tracks unlocked</span>
-                </div>
-                <div>
+                  <span>Tracks unlocked</span>
+                </a>
+                <a className='you-stat-link' href='#account-artists-backed'>
                   <strong className='tnum'>{supportedArtistCount}</strong>
-                  <span>artists backed</span>
-                </div>
+                  <span>Artists backed</span>
+                </a>
               </div>
             </>
           ) : (
@@ -135,14 +143,75 @@ export function YouView({
           </a>
         )}
 
-        <section className='you-panel policy-panel' aria-label='How access works'>
-          <div className='you-policy-item'>
-            <UserRound size={17} />
-            <span>Guests join rooms as people, not accounts.</span>
+        <section className='you-panel account-dashboard' aria-labelledby='account-dashboard-title'>
+          <div className='account-dashboard-head'>
+            <span className='you-panel-icon'>
+              <Users size={18} />
+            </span>
+            <div>
+              <h3 id='account-dashboard-title'>Account dashboard</h3>
+              <p>Music and artist support Dotify can show for this wallet.</p>
+            </div>
           </div>
-          <div className='you-policy-item'>
-            <ShieldCheck size={17} />
-            <span>Protected tracks stay with the host who holds access.</span>
+
+          <div className='account-detail-grid'>
+            <section className='account-detail-section' id='account-unlocked-tracks' tabIndex={-1} aria-labelledby='account-unlocked-title'>
+              <div className='account-detail-title'>
+                <Music2 size={16} />
+                <h4 id='account-unlocked-title'>Tracks unlocked</h4>
+              </div>
+              {unlockedTracks.length > 0 ? (
+                <div className='account-detail-list'>
+                  {unlockedTracks.map(track => (
+                    <div className='account-detail-row' key={track.id}>
+                      <span>
+                        <strong>{track.title}</strong>
+                        <small>
+                          {track.artist} / {track.priceDot} DOT
+                        </small>
+                      </span>
+                      <code>{shortenAddress(track.hash)}</code>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className='account-empty'>Tracks you unlock will appear here.</p>
+              )}
+            </section>
+
+            <section className='account-detail-section' id='account-artists-backed' tabIndex={-1} aria-labelledby='account-artists-title'>
+              <div className='account-detail-title'>
+                <Users size={16} />
+                <h4 id='account-artists-title'>Artists backed</h4>
+              </div>
+              {supportedArtists.length > 0 ? (
+                <div className='account-detail-list'>
+                  {supportedArtists.map(artist => (
+                    <div className='account-detail-row' key={artist.artistAddress ?? artist.artist}>
+                      <span>
+                        <strong>{artist.artist}</strong>
+                        <small>
+                          {artist.trackCount} unlocked track{artist.trackCount === 1 ? '' : 's'}
+                        </small>
+                      </span>
+                      {artist.artistAddress && (
+                        <a
+                          className='icon-link'
+                          href={getBlockscoutAddressUrl(artist.artistAddress)}
+                          target='_blank'
+                          rel='noreferrer'
+                          aria-label={`Open ${artist.artist} on Blockscout`}
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className='account-empty'>Artists you back will appear here.</p>
+              )}
+            </section>
           </div>
         </section>
       </div>

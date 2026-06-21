@@ -1,4 +1,5 @@
 import { CircleAlert, CircleCheckBig, Disc3, X } from 'lucide-react';
+import { Dialog } from './Dialog';
 import type { TransactionFeedback } from '../types';
 import { getBlockscoutTxUrl } from '../utils/explorer';
 import { shorten } from '../utils/format';
@@ -8,15 +9,7 @@ export function TransactionModal({ feedback, onClose }: { feedback: TransactionF
   const Icon = feedback.tone === 'pending' ? Disc3 : feedback.tone === 'success' ? CircleCheckBig : CircleAlert;
 
   return (
-    <div className='modal-backdrop' role='presentation' onClick={dismissible ? onClose : undefined}>
-      <div
-        className='modal-card'
-        data-tone={feedback.tone}
-        role='dialog'
-        aria-modal='true'
-        aria-labelledby='transaction-modal-title'
-        onClick={event => event.stopPropagation()}
-      >
+    <Dialog labelledBy='transaction-modal-title' dismissible={dismissible} tone={feedback.tone} onClose={onClose}>
         <div className='modal-header'>
           <div className='modal-icon' data-tone={feedback.tone}>
             <Icon size={20} className={feedback.tone === 'pending' ? 'spin' : undefined} />
@@ -48,7 +41,6 @@ export function TransactionModal({ feedback, onClose }: { feedback: TransactionF
             </button>
           </div>
         )}
-      </div>
-    </div>
+    </Dialog>
   );
 }

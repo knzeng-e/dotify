@@ -1,4 +1,5 @@
 import { LockKeyhole } from 'lucide-react';
+import { Dialog } from './Dialog';
 import type { AccessGate } from '../types';
 
 export function AccessGateOverlay({
@@ -13,15 +14,24 @@ export function AccessGateOverlay({
   onSignIn?: () => void;
 }) {
   return (
-    <div className='access-gate' data-action={gate.actionType} data-access={gate.track.accessMode}>
+    <Dialog
+      className='access-gate'
+      size='compact'
+      dataAttributes={{ action: gate.actionType, access: gate.track.accessMode }}
+      labelledBy='access-gate-title'
+      describedBy='access-gate-message'
+      onClose={onDismiss}
+    >
       <div className='access-gate-header'>
         <span>
           <LockKeyhole size={17} />
         </span>
-        <strong>{gate.title}</strong>
+        <strong id='access-gate-title'>{gate.title}</strong>
       </div>
       <div className='access-gate-copy'>
-        <p className='access-gate-message'>{gate.message}</p>
+        <p className='access-gate-message' id='access-gate-message'>
+          {gate.message}
+        </p>
         <p className='access-gate-hint'>{gate.hint}</p>
       </div>
       {gate.track.accessMode === 'classic' && (
@@ -50,6 +60,6 @@ export function AccessGateOverlay({
           Stay in preview
         </button>
       </div>
-    </div>
+    </Dialog>
   );
 }

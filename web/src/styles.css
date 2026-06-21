@@ -7199,3 +7199,242 @@ code,
   font-size: 0.82rem;
   font-weight: 800;
 }
+
+/* ── UI stabilization: responsive dialogs + Account details ── */
+.modal-backdrop {
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+  background: rgba(3, 9, 24, 0.78);
+  backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.modal-card {
+  --dialog-width: 31rem;
+  width: min(var(--dialog-width), calc(100dvw - 2rem));
+  max-height: min(44rem, calc(100dvh - 2rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-small);
+}
+
+.modal-card[data-size='compact'] {
+  --dialog-width: 28rem;
+}
+
+.modal-card[data-size='wide'],
+.wallet-modal {
+  --dialog-width: 42rem;
+}
+
+.modal-card:focus {
+  outline: none;
+}
+
+.modal-copy h2 {
+  max-width: 100%;
+  font-size: 2rem;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.wallet-details-link {
+  width: 100%;
+  margin: -0.25rem 0 1rem;
+  border: 1px solid rgba(0, 229, 160, 0.22);
+  border-radius: var(--radius-small);
+  background: rgba(0, 229, 160, 0.08);
+  color: #00E5A0;
+  padding: 0.7rem 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.wallet-details-link:hover {
+  background: rgba(0, 229, 160, 0.14);
+}
+
+.modal-card.access-gate {
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: auto;
+  width: min(var(--dialog-width), calc(100dvw - 2rem));
+  max-width: none;
+  transform: none;
+  box-shadow: var(--shadow-3);
+}
+
+.you-hero h2 {
+  max-width: 12ch;
+  font-size: 4.25rem;
+  line-height: 0.95;
+}
+
+.you-stat-link {
+  display: block;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  background: rgba(5, 13, 26, 0.5);
+  color: inherit;
+  padding: 0.8rem;
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.you-stat-link:hover,
+.you-stat-link:focus-visible {
+  border-color: rgba(0, 229, 160, 0.28);
+  background: rgba(0, 229, 160, 0.08);
+  transform: translateY(-1px);
+}
+
+.account-dashboard {
+  grid-column: 1 / -1;
+}
+
+.account-dashboard-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.account-dashboard-head h3,
+.account-detail-title h4 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.account-dashboard-head p {
+  margin: 0.16rem 0 0;
+  color: var(--fg-tertiary);
+  font-size: 0.84rem;
+}
+
+.account-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.account-detail-section {
+  min-width: 0;
+  scroll-margin-top: 6rem;
+  border: 1px solid rgba(101, 139, 165, 0.16);
+  border-radius: var(--radius-small);
+  background: rgba(5, 13, 26, 0.46);
+  padding: 0.85rem;
+}
+
+.account-detail-section:focus {
+  outline: 2px solid rgba(0, 229, 160, 0.42);
+  outline-offset: 3px;
+}
+
+.account-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+  color: #00E5A0;
+}
+
+.account-detail-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.account-detail-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.account-detail-row strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.account-detail-row small {
+  display: block;
+  margin-top: 0.12rem;
+  color: var(--fg-tertiary);
+  font-size: 0.78rem;
+}
+
+.account-detail-row code {
+  max-width: 9.5rem;
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.06);
+  color: #B8F012;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.72rem;
+}
+
+.account-empty {
+  margin: 0;
+  color: var(--fg-tertiary);
+  font-size: 0.84rem;
+}
+
+@media (max-width: 760px) {
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0.75rem 0.75rem max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .modal-card {
+    width: min(100%, calc(100dvw - 1.5rem));
+    max-height: calc(100dvh - 1.5rem - env(safe-area-inset-bottom));
+    padding: 1rem;
+  }
+
+  .modal-copy h2 {
+    font-size: 1.65rem;
+  }
+
+  .wallet-stats,
+  .account-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .access-gate-actions .primary-action,
+  .access-gate-actions .secondary-action {
+    width: 100%;
+  }
+
+  .you-hero h2 {
+    font-size: 2.75rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .modal-card {
+    width: 100%;
+    max-height: calc(100dvh - 0.75rem - env(safe-area-inset-bottom));
+  }
+
+  .account-detail-row {
+    grid-template-columns: 1fr;
+  }
+
+  .account-detail-row code,
+  .wallet-activity-row code {
+    width: fit-content;
+    max-width: 100%;
+  }
+}
