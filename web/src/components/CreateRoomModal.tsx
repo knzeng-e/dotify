@@ -24,79 +24,79 @@ export function CreateRoomModal({ tracks, initialTrack, onClose, onOpenRoom }: C
 
   return (
     <Dialog className='create-room-modal' size='wide' labelledBy='create-room-title' onClose={onClose}>
-        <div className='modal-header'>
-          <div className='modal-icon' data-tone='success'>
-            <Radio size={20} />
+      <div className='modal-header'>
+        <div className='modal-icon' data-tone='success'>
+          <Radio size={20} />
+        </div>
+        <button className='modal-close' type='button' onClick={onClose} aria-label='Close'>
+          <X size={16} />
+        </button>
+      </div>
+      <div className='modal-copy'>
+        <p className='modal-eyebrow'>Start a room</p>
+        <h2 id='create-room-title'>As easy as sharing a link</h2>
+        <p>Pick what is playing. Anyone with the link can listen with you - no wallet, no sign-up.</p>
+      </div>
+
+      {picked && (
+        <div className='create-room-preview'>
+          <img src={picked.imageRef} alt='' crossOrigin='anonymous' />
+          <div>
+            <strong>{picked.title}</strong>
+            <span>{picked.artist}</span>
+            <span className='create-room-link'>
+              <LinkIcon size={13} />
+              Your link appears when the room opens
+            </span>
           </div>
-          <button className='modal-close' type='button' onClick={onClose} aria-label='Close'>
-            <X size={16} />
-          </button>
         </div>
-        <div className='modal-copy'>
-          <p className='modal-eyebrow'>Start a room</p>
-          <h2 id='create-room-title'>As easy as sharing a link</h2>
-          <p>Pick what is playing. Anyone with the link can listen with you - no wallet, no sign-up.</p>
-        </div>
+      )}
 
-        {picked && (
-          <div className='create-room-preview'>
-            <img src={picked.imageRef} alt='' crossOrigin='anonymous' />
-            <div>
-              <strong>{picked.title}</strong>
-              <span>{picked.artist}</span>
-              <span className='create-room-link'>
-                <LinkIcon size={13} />
-                Your link appears when the room opens
-              </span>
-            </div>
+      {tracks.length > 1 && (
+        <>
+          <p className='create-room-label'>Now playing</p>
+          <div className='create-room-picker'>
+            {tracks.map(track => (
+              <button
+                key={track.id}
+                className={'create-room-pick' + (picked?.id === track.id ? ' is-on' : '')}
+                type='button'
+                onClick={() => setPicked(track)}
+                aria-label={`Select ${track.title}`}
+                aria-pressed={picked?.id === track.id}
+              >
+                <img src={track.imageRef} alt='' crossOrigin='anonymous' />
+              </button>
+            ))}
           </div>
-        )}
+        </>
+      )}
 
-        {tracks.length > 1 && (
-          <>
-            <p className='create-room-label'>Now playing</p>
-            <div className='create-room-picker'>
-              {tracks.map(track => (
-                <button
-                  key={track.id}
-                  className={'create-room-pick' + (picked?.id === track.id ? ' is-on' : '')}
-                  type='button'
-                  onClick={() => setPicked(track)}
-                  aria-label={`Select ${track.title}`}
-                  aria-pressed={picked?.id === track.id}
-                >
-                  <img src={track.imageRef} alt='' crossOrigin='anonymous' />
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        <p className='create-room-label'>Mood</p>
-        <div className='create-room-moods'>
-          {MOODS.map(option => (
-            <button
-              key={option}
-              className={'create-room-mood' + (mood === option ? ' is-on' : '')}
-              type='button'
-              onClick={() => setMood(option)}
-              aria-pressed={mood === option}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-
-        <div className='create-room-actions'>
-          <button className='primary-action wide' type='button' disabled={!picked} onClick={() => picked && onOpenRoom(picked)}>
-            <Radio size={16} />
-            Open the room
+      <p className='create-room-label'>Mood</p>
+      <div className='create-room-moods'>
+        {MOODS.map(option => (
+          <button
+            key={option}
+            className={'create-room-mood' + (mood === option ? ' is-on' : '')}
+            type='button'
+            onClick={() => setMood(option)}
+            aria-pressed={mood === option}
+          >
+            {option}
           </button>
-          <button className='secondary-action' type='button' onClick={onClose}>
-            Cancel
-          </button>
-        </div>
-        <p className='create-room-foot'>You host. Guests just listen - only you need access to the track.</p>
+        ))}
+      </div>
+
+      <div className='create-room-actions'>
+        <button className='primary-action wide' type='button' disabled={!picked} onClick={() => picked && onOpenRoom(picked)}>
+          <Radio size={16} />
+          Open the room
+        </button>
+        <button className='secondary-action' type='button' onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+      <p className='create-room-foot'>You host. Guests just listen - only you need access to the track.</p>
     </Dialog>
   );
 }

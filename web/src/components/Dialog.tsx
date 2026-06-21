@@ -22,17 +22,7 @@ function getFocusableElements(dialog: HTMLDivElement | null) {
   ).filter(element => element.getClientRects().length > 0 || element === document.activeElement);
 }
 
-export function Dialog({
-  children,
-  className,
-  dataAttributes,
-  describedBy,
-  dismissible = true,
-  labelledBy,
-  onClose,
-  size = 'default',
-  tone
-}: DialogProps) {
+export function Dialog({ children, className, dataAttributes, describedBy, dismissible = true, labelledBy, onClose, size = 'default', tone }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const onCloseRef = useRef(onClose);
   const dataProps = Object.fromEntries(
