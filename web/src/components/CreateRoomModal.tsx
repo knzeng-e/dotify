@@ -14,11 +14,13 @@ const MOODS = ['Late night', 'Morning', 'Focus', 'Drive', 'Together'];
 type CreateRoomModalProps = {
   tracks: CatalogTrack[];
   initialTrack: CatalogTrack | undefined;
+  displayName: string;
+  onSetDisplayName: (name: string) => void;
   onClose: () => void;
   onOpenRoom: (track: CatalogTrack) => void;
 };
 
-export function CreateRoomModal({ tracks, initialTrack, onClose, onOpenRoom }: CreateRoomModalProps) {
+export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDisplayName, onClose, onOpenRoom }: CreateRoomModalProps) {
   const [picked, setPicked] = useState<CatalogTrack | undefined>(initialTrack ?? tracks[0]);
   const [mood, setMood] = useState(MOODS[0]);
 
@@ -86,6 +88,16 @@ export function CreateRoomModal({ tracks, initialTrack, onClose, onOpenRoom }: C
           </button>
         ))}
       </div>
+
+      <label className='create-room-label' htmlFor='create-room-name'>Your name in the room</label>
+      <input
+        id='create-room-name'
+        className='field'
+        value={displayName}
+        onChange={event => onSetDisplayName(event.target.value)}
+        placeholder='How should people see you?'
+        maxLength={32}
+      />
 
       <div className='create-room-actions'>
         <button className='primary-action wide' type='button' disabled={!picked} onClick={() => picked && onOpenRoom(picked)}>

@@ -4,6 +4,7 @@ import { AuraBackground } from './components/AuraBackground';
 import { PlayerDock } from './components/PlayerDock';
 import { PersistentAudio } from './components/PersistentAudio';
 import { CreateRoomModal } from './components/CreateRoomModal';
+import { JoinRoomModal } from './components/JoinRoomModal';
 import { applyAura, auraForTrack, auraForName } from './utils/aura';
 
 import { hashFileWithBytes } from './utils/hash';
@@ -116,6 +117,7 @@ export default function App() {
   const [isArtistPortal, setIsArtistPortal] = useState(() => isArtistPortalPath());
   const [publicArtistName, setPublicArtistName] = useState<string | null>(null);
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
+  const [joinRoomOpen, setJoinRoomOpen] = useState(false);
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
   const [releaseStep, setReleaseStep] = useState<ReleaseStep>('assets');
@@ -576,13 +578,6 @@ export default function App() {
     void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
   }
 
-  function getHostPlaybackModeForRoom(track: CatalogTrack | undefined): RoomPlaybackMode {
-    if (!track) return catalog.previewOnlyRef.current ? 'preview' : 'full';
-    if (catalog.selectedTrackId === track.id && catalog.previewOnlyRef.current) return 'preview';
-    if (catalog.accessGate?.track.id === track.id) return 'preview';
-    if (track.source !== 'artist' || !track.id.includes(':')) return 'full';
-    return catalog.catalogAccessByTrackId[track.id] === true ? 'full' : 'preview';
-  }
 
   function handleOpenArtistProfile(name: string) {
     setPublicArtistName(name);
@@ -643,13 +638,6 @@ export default function App() {
     session.joinRoom(roomId);
   }
 
-  function handleCreateSession(event?: import('react').FormEvent<HTMLFormElement>) {
-    let currentTrack = catalog.trackInfo;
-    if (selectedTrack && !currentTrack) {
-      currentTrack = catalogTrackToTrackInfo(selectedTrack);
-    }
-    session.createSession(currentTrack, getHostPlaybackModeForRoom(selectedTrack), event);
-  }
 
   // ── Render ────────────────────────────────────────────────────────────────────
   const paidTrackIds = Object.entries(catalog.catalogPaidAccessByTrackId)
@@ -969,10 +957,8 @@ export default function App() {
                     roomId={session.roomId}
                     sessionLink={session.sessionLink}
                     sessionAction={session.sessionAction}
-                    displayName={session.displayName}
-                    joinCode={session.joinCode}
-                    listeners={session.listeners}
                     listenerCount={session.listenerCount}
+                    listeners={session.listeners}
                     remoteReady={session.remoteReady}
                     localStreamReady={session.localStreamReady}
                     error={session.error}
@@ -982,11 +968,8 @@ export default function App() {
                     accessMode={accessMode}
                     priceDot={priceDot}
                     description={description}
-                    onSetDisplayName={session.setDisplayName}
-                    onSetJoinCode={session.setJoinCode}
-                    onChangeMode={session.changeMode}
-                    onCreateSession={handleCreateSession}
-                    onJoinSession={session.joinSession}
+                    onShowCreateModal={() => setCreateRoomOpen(true)}
+                    onShowJoinModal={() => setJoinRoomOpen(true)}
                     onLeaveSession={session.leaveSession}
                     onCopySessionLink={session.copySessionLink}
                     onSetAccessGate={catalog.setAccessGate}
@@ -1009,6 +992,7 @@ export default function App() {
                     onJoinRoom={session.joinRoom}
                     onJoinSession={session.joinSession}
                     onRefreshRooms={() => session.requestOpenRooms(true)}
+                    onStartRoom={() => setCreateRoomOpen(true)}
                   />
                 )}
 
@@ -1066,11 +1050,28 @@ export default function App() {
           <CreateRoomModal
             tracks={catalog.catalogTracks}
             initialTrack={selectedTrack ?? catalog.catalogTracks[0]}
+            displayName={session.displayName}
+            onSetDisplayName={session.setDisplayName}
             onClose={() => setCreateRoomOpen(false)}
             onOpenRoom={track => {
               setCreateRoomOpen(false);
               handleOpenArtistRoom(track);
             }}
+          />
+        )}
+
+        {joinRoomOpen && (
+          <JoinRoomModal
+            displayName={session.displayName}
+            joinCode={session.joinCode}
+            sessionAction={session.sessionAction}
+            onSetDisplayName={session.setDisplayName}
+            onSetJoinCode={session.setJoinCode}
+            onJoin={code => {
+              setJoinRoomOpen(false);
+              session.joinRoom(code);
+            }}
+            onClose={() => setJoinRoomOpen(false)}
           />
         )}
 

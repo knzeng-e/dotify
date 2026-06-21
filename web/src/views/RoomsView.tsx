@@ -13,9 +13,10 @@ type RoomsViewProps = {
   onJoinRoom: (roomId: string) => void;
   onJoinSession: (event: FormEvent<HTMLFormElement>) => void;
   onRefreshRooms: () => void;
+  onStartRoom: () => void;
 };
 
-export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRooms, onSetJoinCode, onJoinRoom, onJoinSession, onRefreshRooms }: RoomsViewProps) {
+export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRooms, onSetJoinCode, onJoinRoom, onJoinSession, onRefreshRooms, onStartRoom }: RoomsViewProps) {
   const totalListening = openRooms.reduce((total, room) => total + room.listenerCount + 1, 0);
 
   return (
@@ -27,7 +28,7 @@ export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRoom
             Live rooms
           </p>
           <h2>Enter the same listening moment.</h2>
-          <p>Join by link or code. Guests hear the host stream without receiving content keys or protected source files.</p>
+          <p>Join by link or code. The host chooses the music; everyone else enters the same listening moment.</p>
         </div>
         <div className='rooms-hero-stats'>
           <div>
@@ -81,6 +82,17 @@ export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRoom
         </div>
 
         <aside className='doc-panel rooms-join-panel'>
+          <div className='rooms-start-section'>
+            <strong>Host a room</strong>
+            <p>Pick a track, open the room, share the link. No wallet needed to join.</p>
+            <button className='primary-action' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
+              <Radio size={16} />
+              Start a room
+            </button>
+          </div>
+
+          <div className='rooms-section-divider' />
+
           <PanelTitle icon={Headphones} title='Join by code' meta='manual' />
           <form className='session-form' onSubmit={onJoinSession}>
             <input
@@ -103,14 +115,14 @@ export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRoom
           <div className='rooms-doctrine-card'>
             <KeyRound size={16} />
             <div>
-              <strong>Host-based access</strong>
-              <span>The host must be allowed to play protected tracks. Guests receive only the live stream.</span>
+              <strong>Host-led rooms</strong>
+              <span>The host opens the room and keeps the music moving for everyone inside.</span>
             </div>
           </div>
           <div className='rooms-doctrine-card'>
             <Users size={16} />
             <div>
-              <strong>No guest wallet checkpoint</strong>
+              <strong>One shared door</strong>
               <span>A room should feel as simple as entering through a shared link.</span>
             </div>
           </div>

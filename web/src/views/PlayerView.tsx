@@ -1,6 +1,5 @@
 import {
   Copy,
-  Disc3,
   Headphones,
   KeyRound,
   Library,
@@ -24,10 +23,10 @@ import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
-import { formatTime, peerStatusLabel } from '../utils/format';
+import { formatTime } from '../utils/format';
 import { playbackStatusLabel, type PlaybackControls } from '../hooks/usePlayback';
 import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, SessionAction, TrackInfo } from '../types';
-import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 
 type PlayerViewProps = {
   // Track/audio state
@@ -43,10 +42,8 @@ type PlayerViewProps = {
   roomId: string;
   sessionLink: string;
   sessionAction: SessionAction;
-  displayName: string;
-  joinCode: string;
-  listeners: ListenerRecord[];
   listenerCount: number;
+  listeners: ListenerRecord[];
   remoteReady: boolean;
   localStreamReady: boolean;
   error: string | null;
@@ -58,11 +55,8 @@ type PlayerViewProps = {
   priceDot: string;
   description: string;
   // Callbacks
-  onSetDisplayName: (name: string) => void;
-  onSetJoinCode: (code: string) => void;
-  onChangeMode: (mode: Mode) => void;
-  onCreateSession: (event?: FormEvent<HTMLFormElement>) => void;
-  onJoinSession: (event: FormEvent<HTMLFormElement>) => void;
+  onShowCreateModal: () => void;
+  onShowJoinModal: () => void;
   onLeaveSession: () => void;
   onCopySessionLink: () => void;
   onSetAccessGate: (gate: AccessGate | null) => void;
@@ -92,10 +86,8 @@ export function PlayerView({
   roomId,
   sessionLink,
   sessionAction,
-  displayName,
-  joinCode,
-  listeners,
   listenerCount,
+  listeners,
   remoteReady,
   localStreamReady,
   error,
@@ -104,11 +96,8 @@ export function PlayerView({
   selectedTrackHasAccess,
   accessMode,
   priceDot,
-  onSetDisplayName,
-  onSetJoinCode,
-  onChangeMode,
-  onCreateSession,
-  onJoinSession,
+  onShowCreateModal,
+  onShowJoinModal,
   onLeaveSession,
   onCopySessionLink,
   onSetAccessGate,
@@ -408,7 +397,7 @@ export function PlayerView({
             <strong>Make this track a shared room.</strong>
             <p>Live stream, one link, host-held access.</p>
           </div>
-          <button className='primary-action compact-action' type='button' onClick={() => onCreateSession()}>
+          <button className='primary-action compact-action' type='button' onClick={onShowCreateModal}>
             <Radio size={16} />
             Open room
           </button>
@@ -418,125 +407,101 @@ export function PlayerView({
       <div className='player-lower-grid'>
         <div className='doc-panel session-panel'>
           <PanelTitle icon={Radio} title={roomId ? 'In the room' : 'Listening room'} meta={roomId || 'offline'} />
-          <div className='segmented' role='tablist' aria-label='Mode'>
-            <button type='button' className={mode === 'host' ? 'active' : ''} onClick={() => onChangeMode('host')}>
-              <Radio size={16} />
-              Host
-            </button>
-            <button type='button' className={mode === 'listener' ? 'active' : ''} onClick={() => onChangeMode('listener')}>
+
+          {/* State 1: not in any room */}
+          {!roomId && (
+            <button className='secondary-action' type='button' onClick={onShowJoinModal} disabled={sessionAction !== 'idle'}>
               <Headphones size={16} />
-              Join
+              Join a room
             </button>
-          </div>
+          )}
 
-          <label className='field-label'>Name</label>
-          <input className='field' value={displayName} onChange={event => onSetDisplayName(event.target.value)} maxLength={32} />
-
-          {mode === 'host' ? (
-            <form className='session-form' onSubmit={onCreateSession}>
-              <button className='primary-action' type='submit' disabled={sessionAction !== 'idle' || Boolean(roomId)}>
-                {sessionAction === 'creating' ? <Disc3 size={16} className='spin' /> : <Radio size={16} />}
-                {roomId ? 'Room is live' : sessionAction === 'creating' ? 'Opening room...' : 'Start a room'}
-              </button>
+          {/* State 2: hosting a room */}
+          {roomId && mode === 'host' && (
+            <>
               <div className='room-code'>
                 <span>Room code</span>
-                <strong>{roomId || '------'}</strong>
-                <button type='button' onClick={onCopySessionLink} disabled={!roomId} title='Copy link' aria-label='Copy link'>
+                <strong>{roomId}</strong>
+                <button type='button' onClick={onCopySessionLink} title='Copy link' aria-label='Copy link'>
                   <Copy size={16} />
                 </button>
               </div>
-            </form>
-          ) : (
-            <form className='session-form' onSubmit={onJoinSession}>
-              <label className='field-label'>Code</label>
-              <input
-                className='field code-field'
-                value={joinCode}
-                onChange={event => onSetJoinCode(event.target.value.toUpperCase())}
-                placeholder='ABC123'
-                maxLength={12}
-              />
-              <button className='primary-action' type='submit' disabled={sessionAction !== 'idle'}>
-                {sessionAction === 'joining' ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
-                {sessionAction === 'joining' ? 'Joining…' : 'Join'}
-              </button>
-            </form>
-          )}
 
-          {roomId && (
-            <button className='secondary-action' type='button' onClick={onLeaveSession}>
-              {mode === 'host' ? 'Close room' : 'Leave'}
-            </button>
-          )}
-
-          {mode === 'host' && roomId && sessionLink && (
-            <div className='room-share-card'>
-              <div className='room-share-copy'>
-                <strong>Scan to join</strong>
-                <span>People can join from their camera.</span>
-                <button className='room-project-btn' type='button' onClick={() => setIsQrProjectorOpen(true)}>
-                  <Maximize2 size={14} />
-                  Show big QR
-                </button>
-              </div>
-              <RoomQrCode value={sessionLink} label={`QR code for room ${roomId}`} />
-            </div>
-          )}
-
-          <div className='listener-list'>
-            {mode === 'host' && (
-              <div className='list-row' key='host-self'>
-                <div className='room-person-main'>
-                  <Avatar name={displayName || 'Host'} size={34} host />
-                  <div>
-                    <strong>
-                      {displayName || 'You'}
-                      <span className='room-person-tag'>host</span>
-                    </strong>
-                    <span>sharing the music</span>
+              {sessionLink && (
+                <div className='room-share-card'>
+                  <div className='room-share-copy'>
+                    <strong>Scan to join</strong>
+                    <span>People can join from their camera.</span>
+                    <button className='room-project-btn' type='button' onClick={() => setIsQrProjectorOpen(true)}>
+                      <Maximize2 size={14} />
+                      Show big QR
+                    </button>
                   </div>
+                  <RoomQrCode value={sessionLink} label={`QR code for room ${roomId}`} />
                 </div>
-                {transport.playing ? (
-                  <span className='room-eq' aria-hidden='true'>
-                    <i />
-                    <i />
-                    <i />
-                  </span>
-                ) : (
-                  <i data-status={localStreamReady ? 'connected' : 'waiting'} />
-                )}
-              </div>
-            )}
-            {mode === 'host' && listeners.length > 0 ? (
-              listeners.map(listener => (
-                <div className='list-row' key={listener.id}>
+              )}
+
+              <div className='listener-list'>
+                <div className='list-row'>
                   <div className='room-person-main'>
-                    <Avatar name={listener.displayName} size={34} />
+                    <Avatar name={hostName || 'You'} size={34} host />
                     <div>
-                      <strong>{listener.displayName}</strong>
-                      <span>{peerStatusLabel(listener.status)}</span>
+                      <strong>
+                        {hostName || 'You'}
+                        <span className='room-person-tag'>host</span>
+                      </strong>
+                      <span>sharing the music</span>
                     </div>
                   </div>
-                  {listener.status === 'connected' ? (
+                  {transport.playing ? (
                     <span className='room-eq' aria-hidden='true'>
-                      <i />
-                      <i />
-                      <i />
+                      <i /><i /><i />
                     </span>
                   ) : (
-                    <i data-status={listener.status} />
+                    <i data-status={localStreamReady ? 'connected' : 'waiting'} />
                   )}
                 </div>
-              ))
-            ) : mode === 'host' ? (
-              <div className='list-row muted-row'>
-                <div>
-                  <strong>No listeners yet</strong>
-                  <span>Share the link to fill the room</span>
-                </div>
-                <i data-status='waiting' />
+                {listeners.length > 0 ? (
+                  listeners.map(listener => (
+                    <div className='list-row' key={listener.id}>
+                      <div className='room-person-main'>
+                        <Avatar name={listener.displayName} size={34} />
+                        <div>
+                          <strong>{listener.displayName}</strong>
+                          <span>{listener.status === 'connected' ? 'In the room' : 'Connecting...'}</span>
+                        </div>
+                      </div>
+                      {listener.status === 'connected' ? (
+                        <span className='room-eq' aria-hidden='true'>
+                          <i /><i /><i />
+                        </span>
+                      ) : (
+                        <i data-status='connecting' />
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className='list-row muted-row'>
+                    <div>
+                      <strong>No listeners yet</strong>
+                      <span>Share the link to fill the room</span>
+                    </div>
+                    <i data-status='waiting' />
+                  </div>
+                )}
               </div>
-            ) : (
+
+              <p className='room-doctrine-note'>You choose the music. Guests join and listen - only you need track access.</p>
+
+              <button className='secondary-action' type='button' onClick={onLeaveSession}>
+                Close room
+              </button>
+            </>
+          )}
+
+          {/* State 3: listening in a room */}
+          {roomId && mode === 'listener' && (
+            <>
               <div className='list-row'>
                 <div className='room-person-main'>
                   <Avatar name={hostName || 'Host'} size={34} host />
@@ -545,28 +510,24 @@ export function PlayerView({
                       {hostName || 'Host'}
                       <span className='room-person-tag'>host</span>
                     </strong>
-                    <span>{roomId || 'Not connected'}</span>
+                    <span>{remoteReady ? 'In sync' : 'Connecting...'}</span>
                   </div>
                 </div>
                 {remoteReady ? (
                   <span className='room-eq' aria-hidden='true'>
-                    <i />
-                    <i />
-                    <i />
+                    <i /><i /><i />
                   </span>
                 ) : (
                   <i data-status='waiting' />
                 )}
               </div>
-            )}
-          </div>
 
-          {roomId && (
-            <p className='room-doctrine-note'>
-              {mode === 'host'
-                ? 'You choose the music. Guests join the room and listen with you.'
-                : 'You are listening with the host. The link is enough to be here.'}
-            </p>
+              <p className='room-doctrine-note'>You are listening with the host. The link is enough to be here.</p>
+
+              <button className='secondary-action' type='button' onClick={onLeaveSession}>
+                Leave
+              </button>
+            </>
           )}
 
           {error && <p className='error-box'>{error}</p>}
