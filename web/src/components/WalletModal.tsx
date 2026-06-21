@@ -158,9 +158,7 @@ export function WalletModal({
                     )}
                   </div>
                 ))}
-                {supportedArtists.length > 5 && (
-                  <p className='wallet-empty'>+{supportedArtists.length - 5} more - view all in account details</p>
-                )}
+                {supportedArtists.length > 5 && <p className='wallet-empty'>+{supportedArtists.length - 5} more - view all in account details</p>}
               </div>
             ) : (
               <p className='wallet-empty'>No backed artists found for this wallet yet.</p>
