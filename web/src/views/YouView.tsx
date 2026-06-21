@@ -1,5 +1,5 @@
 import { ArrowRight, ExternalLink, KeyRound, Mic2, Music2, Power, Sparkles, Users, Wallet } from 'lucide-react';
-import { formatWeiAsDot } from '../utils/format';
+import { formatWeiAsDot, shortenAddress } from '../utils/format';
 import { getBlockscoutAddressUrl } from '../utils/explorer';
 import type { WalletState } from '../hooks/useWallet';
 
@@ -16,13 +16,10 @@ type YouViewProps = {
   supportedArtistCount: number;
   supportedArtists: AccountSupportedArtist[];
   unlockedTracks: AccountUnlockedTrack[];
+  onOpenArtistStudio: () => void;
   onShowWalletModal: () => void;
   onDisconnectWallet: () => void;
 };
-
-function shortenAddress(address: string) {
-  return address.length > 16 ? `${address.slice(0, 8)}...${address.slice(-6)}` : address;
-}
 
 export function YouView({
   walletState,
@@ -34,6 +31,7 @@ export function YouView({
   supportedArtistCount,
   supportedArtists,
   unlockedTracks,
+  onOpenArtistStudio,
   onShowWalletModal,
   onDisconnectWallet
 }: YouViewProps) {
@@ -47,7 +45,7 @@ export function YouView({
     <section className='you-view' aria-labelledby='you-view-title'>
       <div className='you-hero'>
         <p className='eyebrow'>Account</p>
-        <h2 id='you-view-title'>My account.</h2>
+        <h2 id='you-view-title'>My account</h2>
         <p>Your unlocked music, backed artists, and artist space in one place.</p>
       </div>
 
@@ -96,7 +94,7 @@ export function YouView({
         </section>
 
         {isArtist ? (
-          <a className='you-panel artist-studio-card' href='/artists' aria-label={`Open ${artistName} Studio`}>
+          <button className='you-panel artist-studio-card' type='button' onClick={onOpenArtistStudio} aria-label={`Open ${artistName} Studio`}>
             <div className='you-panel-head'>
               <span className='you-panel-icon lime'>
                 <Mic2 size={18} />
@@ -122,9 +120,9 @@ export function YouView({
               Open Studio
               <ArrowRight size={15} />
             </span>
-          </a>
+          </button>
         ) : (
-          <a className='you-panel artist-setup-card' href='/artists' aria-label='Set up your artist space'>
+          <button className='you-panel artist-setup-card' type='button' onClick={onOpenArtistStudio} aria-label='Set up your artist space'>
             <div className='you-panel-head'>
               <span className='you-panel-icon lime'>
                 <Sparkles size={18} />
@@ -140,7 +138,7 @@ export function YouView({
               Set up artist space
               <ArrowRight size={15} />
             </span>
-          </a>
+          </button>
         )}
 
         <section className='you-panel account-dashboard' aria-labelledby='account-dashboard-title'>

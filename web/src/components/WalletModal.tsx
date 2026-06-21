@@ -3,10 +3,7 @@ import { Dialog } from './Dialog';
 import type { WalletState } from '../hooks/useWallet';
 import type { CatalogTrack } from '../types';
 import { getBlockscoutAddressUrl } from '../utils/explorer';
-
-function shortenAddress(address: string) {
-  return address.length > 14 ? `${address.slice(0, 8)}...${address.slice(-6)}` : address;
-}
+import { shortenAddress } from '../utils/format';
 
 type WalletSupportedArtist = Pick<CatalogTrack, 'artist' | 'artistAddress'> & { trackCount: number };
 type WalletPaidTrack = Pick<CatalogTrack, 'id' | 'title' | 'artist' | 'artistAddress' | 'priceDot' | 'hash'>;
@@ -161,6 +158,9 @@ export function WalletModal({
                     )}
                   </div>
                 ))}
+                {supportedArtists.length > 5 && (
+                  <p className='wallet-empty'>+{supportedArtists.length - 5} more - view all in account details</p>
+                )}
               </div>
             ) : (
               <p className='wallet-empty'>No backed artists found for this wallet yet.</p>
@@ -185,6 +185,7 @@ export function WalletModal({
                     <code>{shortenAddress(track.hash)}</code>
                   </div>
                 ))}
+                {paidTracks.length > 5 && <p className='wallet-empty'>+{paidTracks.length - 5} more - view all in account details</p>}
               </div>
             ) : (
               <p className='wallet-empty'>No unlocked tracks found in the indexed catalog.</p>

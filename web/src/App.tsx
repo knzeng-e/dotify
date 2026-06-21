@@ -178,6 +178,18 @@ export default function App() {
     window.history.pushState(nextState, '', window.location.href);
   }
 
+  function handleOpenArtistStudio() {
+    setPublicArtistName(null);
+    setIsArtistPortal(true);
+    const nextState = { ...getHistoryStateObject(), dotifyView: activeView };
+    if (isArtistPortal) {
+      window.history.replaceState(nextState, '', '/artists');
+    } else {
+      window.history.pushState(nextState, '', '/artists');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   // ── getActiveWalletClient (defined before hooks that need it) ─────────────────
   async function getActiveWalletClient(): Promise<Awaited<ReturnType<typeof getWalletClient>>> {
     if (!connectedWallet) {
@@ -1016,6 +1028,7 @@ export default function App() {
                       priceDot: track.priceDot,
                       hash: track.hash
                     }))}
+                    onOpenArtistStudio={handleOpenArtistStudio}
                     onShowWalletModal={() => setShowWalletModal(true)}
                     onDisconnectWallet={disconnectWallet}
                   />
