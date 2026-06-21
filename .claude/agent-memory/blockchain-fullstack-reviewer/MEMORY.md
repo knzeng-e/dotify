@@ -1,0 +1,3 @@
+- [EVM Architecture](project_evm_architecture.md) — Diamond/pallet system, dual registry, security gaps found in 2026-06-11 review (reentrancy, overpayment, dead code)
+- [User profile](user_profile.md) — Kevin: senior blockchain engineer, PBP Lisbon 2026, Polkadot/EVM/TS/Rust stack, delegating-lead style
+- [Project context](project_context.md) — Sprint 0 active (Ticket 03), security boundaries, architecture, known honesty violations
