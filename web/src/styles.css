@@ -70,8 +70,8 @@
   --bg-selection-container-active: rgba(0, 229, 160, 0.18);
 
   /* Actions */
-  --bg-action-primary:       #00E5A0;
-  --bg-action-primary-hover: #37f8bd;
+  --bg-action-primary:       #EAEEF3;
+  --bg-action-primary-hover: #FFFFFF;
   --bg-action-secondary:     #16304c;
   --bg-action-secondary-hover: #1f4469;
 
@@ -1853,7 +1853,7 @@ audio {
   background: var(--bg-action-primary);
   color: #06152d;
   font-weight: 700;
-  box-shadow: 0 12px 24px -18px rgba(41, 232, 122, 0.48);
+  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.32);
 }
 
 .primary-action:hover:not(:disabled) {
@@ -5043,7 +5043,8 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
   cursor: pointer;
   transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
 }
-.create-room-mood.is-on { border-color: transparent; background: var(--aura-accent); color: #06152d; }
+.create-room-mood.is-on { border-color: transparent; background: var(--mood-color, var(--aura-accent)); color: #fff; }
+.create-room-mood-desc { margin: 0.35rem 0 1rem; color: var(--fg-secondary); font-size: 0.82rem; min-height: 1.1em; }
 .create-room-label-group { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.5rem; }
 .create-room-label-group .create-room-label { margin: 0; }
 .create-room-label-hint { color: var(--fg-tertiary); font-size: 0.74rem; font-weight: 400; }

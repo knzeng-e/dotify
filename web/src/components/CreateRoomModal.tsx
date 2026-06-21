@@ -5,11 +5,39 @@
 // fabricated URL); the room header then exposes the real Copy link.
 
 import { useState } from 'react';
-import { Link as LinkIcon, Radio } from 'lucide-react';
 import { Dialog } from './Dialog';
 import type { CatalogTrack } from '../types';
 
-const MOODS = ['Late night', 'Morning', 'Focus', 'Drive', 'Together'];
+const MOODS = [
+  { id: 'late-night', label: 'Late night', color: '#6366f1', desc: 'Deep, introspective, after midnight.' },
+  { id: 'morning',    label: 'Morning',    color: '#0ea5e9', desc: 'Light energy, fresh start of day.' },
+  { id: 'focus',      label: 'Focus',      color: '#8b5cf6', desc: 'No distractions, full presence.' },
+  { id: 'drive',      label: 'Drive',      color: '#f59e0b', desc: 'Forward motion, bold tempo.' },
+  { id: 'together',   label: 'Together',   color: '#ec4899', desc: 'Shared, open, warm company.' },
+] as const;
+
+type MoodId = (typeof MOODS)[number]['id'];
+
+function SvgBroadcast({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
+      <path d='M4.9 19.1C1 15.2 1 8.8 4.9 4.9'/>
+      <path d='M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5'/>
+      <circle cx='12' cy='12' r='2'/>
+      <path d='M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5'/>
+      <path d='M19.1 4.9C23 8.8 23 15.1 19.1 19'/>
+    </svg>
+  );
+}
+
+function SvgLink({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
+      <path d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/>
+      <path d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/>
+    </svg>
+  );
+}
 
 type CreateRoomModalProps = {
   tracks: CatalogTrack[];
@@ -22,13 +50,14 @@ type CreateRoomModalProps = {
 
 export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDisplayName, onClose, onOpenRoom }: CreateRoomModalProps) {
   const [picked, setPicked] = useState<CatalogTrack | undefined>(initialTrack ?? tracks[0]);
-  const [mood, setMood] = useState(MOODS[0]);
+  const [moodId, setMoodId] = useState<MoodId>(MOODS[0].id);
+  const selectedMood = MOODS.find(m => m.id === moodId) ?? MOODS[0];
 
   return (
     <Dialog className='create-room-modal' size='wide' labelledBy='create-room-title' onClose={onClose}>
       <div className='modal-header'>
         <div className='modal-icon' data-tone='success'>
-          <Radio size={20} />
+          <SvgBroadcast size={20} />
         </div>
       </div>
       <div className='modal-copy'>
@@ -44,7 +73,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
             <strong>{picked.title}</strong>
             <span>{picked.artist}</span>
             <span className='create-room-link'>
-              <LinkIcon size={13} />
+              <SvgLink size={13} />
               Your link appears when the room opens
             </span>
           </div>
@@ -76,21 +105,23 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
 
       <div className='create-room-label-group'>
         <p className='create-room-label'>Vibe</p>
-        <span className='create-room-label-hint'>Sets the tone - visible on the room card.</span>
+        <span className='create-room-label-hint'>Sets the tone of your room.</span>
       </div>
       <div className='create-room-moods'>
         {MOODS.map(option => (
           <button
-            key={option}
-            className={'create-room-mood' + (mood === option ? ' is-on' : '')}
+            key={option.id}
+            className={'create-room-mood' + (moodId === option.id ? ' is-on' : '')}
+            style={{ '--mood-color': option.color } as React.CSSProperties}
             type='button'
-            onClick={() => setMood(option)}
-            aria-pressed={mood === option}
+            onClick={() => setMoodId(option.id)}
+            aria-pressed={moodId === option.id}
           >
-            {option}
+            {option.label}
           </button>
         ))}
       </div>
+      <p className='create-room-mood-desc'>{selectedMood.desc}</p>
 
       <label className='create-room-label' htmlFor='create-room-name'>Your name in the room</label>
       <input
@@ -104,7 +135,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
 
       <div className='create-room-actions'>
         <button className='primary-action wide' type='button' disabled={!picked} onClick={() => picked && onOpenRoom(picked)}>
-          <Radio size={16} />
+          <SvgBroadcast size={16} />
           Open the room
         </button>
         <button className='create-room-cancel' type='button' onClick={onClose}>
