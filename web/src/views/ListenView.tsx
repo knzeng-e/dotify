@@ -3,7 +3,6 @@ import { PanelTitle } from '../components/ui/PanelTitle';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../utils/format';
 import type { CatalogTrack, OpenRoom } from '../types';
-import type { KeyboardEvent } from 'react';
 
 type ListenViewProps = {
   catalogTracks: CatalogTrack[];
@@ -28,21 +27,60 @@ export function ListenView({
   onJoinRoom,
   onStartRoom
 }: ListenViewProps) {
-  function handleCardKeyDown(event: KeyboardEvent<HTMLElement>, track: CatalogTrack) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      onOpenTrack(track);
-    }
-  }
-
   const featured = catalogTracks[0];
   const totalListening = openRooms.reduce((total, room) => total + room.listenerCount + 1, 0);
   const artistCount = new Set(catalogTracks.map(track => track.artist)).size;
   const leadRoom = openRooms[0];
+  const heroRoom = leadRoom?.track ? leadRoom : null;
+  const heroTrack = heroRoom?.track ?? featured;
 
   return (
     <section className='listen-home'>
       <div className='listen-hero'>
+        {heroTrack && (
+          <button
+            className='home-live-feature'
+            type='button'
+            onClick={() => {
+              if (heroRoom) {
+                onJoinRoom(heroRoom.roomId);
+                return;
+              }
+              if (featured) onOpenTrack(featured);
+            }}
+            aria-label={heroRoom ? `Join ${heroRoom.hostName}'s room` : `Open ${heroTrack.title} by ${heroTrack.artist}`}
+          >
+            <span className='home-live-art' aria-hidden='true'>
+              <img src={heroTrack.imageRef} alt='' crossOrigin='anonymous' />
+            </span>
+            <span className='home-live-shade' aria-hidden='true' />
+            <span className='home-live-copy'>
+              <span className='home-live-kicker'>
+                <span className='live-dot' />
+                {heroRoom ? 'Live now' : 'Featured live-ready'}
+              </span>
+              <strong>{heroTrack.title}</strong>
+              <span>{heroRoom ? `${heroRoom.hostName} hosts` : heroTrack.artist}</span>
+              <span className='home-live-presence'>
+                {heroRoom ? (
+                  <>
+                    <AvatarStack names={roomPresenceNames(heroRoom.hostName, heroRoom.listenerCount, heroRoom.roomId)} max={4} size={28} />
+                    <small>{heroRoom.listenerCount + 1} listening</small>
+                  </>
+                ) : featured ? (
+                  <small>{catalogAccessLabel(featured)}</small>
+                ) : (
+                  <small>Preview first</small>
+                )}
+              </span>
+            </span>
+            <span className='home-live-cta'>
+              {heroRoom ? <Headphones size={17} /> : <Play size={17} fill='currentColor' />}
+              {heroRoom ? 'Join room' : 'Open player'}
+            </span>
+          </button>
+        )}
+
         <div className='home-listening-hero'>
           <div className='home-listening-copy'>
             <p className='eyebrow'>
@@ -91,49 +129,6 @@ export function ListenView({
             </div>
           </div>
         </div>
-
-        {featured && (
-          <article
-            className='home-featured'
-            role='button'
-            tabIndex={0}
-            aria-label={`Open ${featured.title} by ${featured.artist}`}
-            onClick={() => onOpenTrack(featured)}
-            onKeyDown={event => handleCardKeyDown(event, featured)}
-          >
-            <img className='home-featured-cover' src={featured.imageRef} alt='' crossOrigin='anonymous' />
-            <span className='home-featured-veil' aria-hidden='true' />
-            <button
-              className='home-featured-play'
-              type='button'
-              onClick={event => {
-                event.stopPropagation();
-                onOpenTrack(featured);
-              }}
-              aria-label={`Play ${featured.title}`}
-            >
-              <Play size={20} fill='currentColor' />
-            </button>
-            <span className='home-featured-body'>
-              <span className='eyebrow'>Featured today</span>
-              <strong>{featured.title}</strong>
-              <button
-                className='home-featured-artist'
-                type='button'
-                onClick={event => {
-                  event.stopPropagation();
-                  onOpenArtist(featured.artist);
-                }}
-              >
-                {featured.artist}
-              </button>
-              <span className='home-featured-chips'>
-                <span className='home-featured-access'>{catalogAccessLabel(featured)}</span>
-                <span className='home-featured-access'>Preview first</span>
-              </span>
-            </span>
-          </article>
-        )}
       </div>
 
       <section className='commons-path' aria-label='Shared listening state'>
@@ -210,31 +205,23 @@ export function ListenView({
                 const hasCatalogAccess = catalogAccessByTrackId[track.id] === true;
 
                 return (
-                  <article
-                    className='catalogue-card'
-                    data-selected={selectedTrackId === track.id}
-                    key={track.id}
-                    role='button'
-                    tabIndex={0}
-                    aria-label={`Open ${track.title} by ${track.artist}`}
-                    onClick={() => {
-                      void onOpenTrack(track);
-                    }}
-                    onKeyDown={event => handleCardKeyDown(event, track)}
-                  >
+                  // Plain container: the primary "open track" action is a real
+                  // button whose ::after stretches over the whole card, so the
+                  // artist button can sit beside it without nesting interactives.
+                  <div className='catalogue-card' data-selected={selectedTrackId === track.id} key={track.id}>
                     <span className='catalogue-cover-frame'>
                       <img className='catalogue-cover' src={track.imageRef} alt='' crossOrigin='anonymous' />
                     </span>
                     <span className='catalogue-card-copy'>
-                      <strong>{track.title}</strong>
                       <button
-                        className='artist-text-button'
+                        className='catalogue-card-open'
                         type='button'
-                        onClick={event => {
-                          event.stopPropagation();
-                          onOpenArtist(track.artist);
-                        }}
+                        aria-label={`Open ${track.title} by ${track.artist}`}
+                        onClick={() => void onOpenTrack(track)}
                       >
+                        {track.title}
+                      </button>
+                      <button className='artist-text-button' type='button' onClick={() => onOpenArtist(track.artist)}>
                         {track.artist}
                       </button>
                       <span className='catalogue-card-description'>{track.description || 'Artist-owned release on Dotify.'}</span>
@@ -247,7 +234,7 @@ export function ListenView({
                       {hasCatalogAccess ? <CircleCheckBig size={15} /> : <Wallet size={15} />}
                       <span>{catalogAccessLabel(track)}</span>
                     </span>
-                  </article>
+                  </div>
                 );
               })
             ) : (

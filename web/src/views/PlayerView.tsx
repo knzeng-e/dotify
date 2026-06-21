@@ -15,6 +15,8 @@ import {
   SkipBack,
   SkipForward,
   Users,
+  Volume2,
+  VolumeX,
   X
 } from 'lucide-react';
 import { PanelTitle } from '../components/ui/PanelTitle';
@@ -23,20 +25,19 @@ import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { accessModeLabel, accessModeLabelFromState, formatTime, peerStatusLabel } from '../utils/format';
-import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, PersonhoodLevel, PlayerState, SessionAction, TrackInfo } from '../types';
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type RefObject } from 'react';
+import { playbackStatusLabel, type PlaybackControls } from '../hooks/usePlayback';
+import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, SessionAction, TrackInfo } from '../types';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 
 type PlayerViewProps = {
   // Track/audio state
   trackInfo: TrackInfo | null;
   selectedTrack: CatalogTrack | undefined;
-  audioSource: string | null;
   coverSource: string;
-  playerState: PlayerState | null;
   accessGate: AccessGate | null;
-  catalogTracks: CatalogTrack[];
-  selectedTrackId: string;
+  // Shared persistent playback
+  playback: PlaybackControls;
   // Session state
   mode: Mode;
   hostName: string;
@@ -54,11 +55,7 @@ type PlayerViewProps = {
   streamArtist: string;
   accessMode: AccessMode;
   priceDot: string;
-  personhoodLevel: PersonhoodLevel;
   description: string;
-  // Refs
-  localAudioRef: RefObject<HTMLAudioElement>;
-  remoteAudioRef: RefObject<HTMLAudioElement>;
   // Callbacks
   onSetDisplayName: (name: string) => void;
   onSetJoinCode: (code: string) => void;
@@ -71,28 +68,15 @@ type PlayerViewProps = {
   onPayForTrackAccess: (track: CatalogTrack) => void;
   onShowWalletModal: () => void;
   onNavigateToListen: () => void;
-  onPrepareLocalStream: () => void;
-  onSetupPreviewLimit: () => void;
-  onEmitPlayerState: (force: boolean) => void;
-  onEnforcePreviewCutoff: () => void;
-  onOpenTrack: (track: CatalogTrack) => void;
   onOpenArtist: (artistName: string) => void;
-};
-
-type QueuedAutoplay = {
-  trackId: string;
-  previousSource: string | null;
 };
 
 export function PlayerView({
   trackInfo,
   selectedTrack,
-  audioSource,
   coverSource,
-  playerState,
   accessGate,
-  catalogTracks,
-  selectedTrackId,
+  playback,
   mode,
   hostName,
   roomId,
@@ -108,9 +92,6 @@ export function PlayerView({
   streamArtist,
   accessMode,
   priceDot,
-  personhoodLevel,
-  localAudioRef,
-  remoteAudioRef,
   onSetDisplayName,
   onSetJoinCode,
   onChangeMode,
@@ -122,24 +103,22 @@ export function PlayerView({
   onPayForTrackAccess,
   onShowWalletModal,
   onNavigateToListen,
-  onPrepareLocalStream,
-  onSetupPreviewLimit,
-  onEmitPlayerState,
-  onEnforcePreviewCutoff,
-  onOpenTrack,
   onOpenArtist,
   description
 }: PlayerViewProps) {
   const effectiveAccessMode = trackInfo?.accessMode ?? selectedTrack?.accessMode ?? accessMode;
   const effectivePriceDot = trackInfo?.priceDot ?? selectedTrack?.priceDot ?? priceDot;
-  const effectivePersonhoodLevel = trackInfo?.personhoodLevel ?? selectedTrack?.personhoodLevel ?? personhoodLevel;
-  const [repeatEnabled, setRepeatEnabled] = useState(false);
-  const [shuffleEnabled, setShuffleEnabled] = useState(false);
   const [reactions, setReactions] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
-  const [queuedAutoplay, setQueuedAutoplay] = useState<QueuedAutoplay | null>(null);
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
   const qrProjectorRef = useRef<HTMLDivElement | null>(null);
   const qrProjectorCloseRef = useRef<HTMLButtonElement | null>(null);
+
+  const { transport, status } = playback;
+  const transportDuration = transport.duration || trackInfo?.duration || selectedTrack?.duration || 0;
+  const transportProgress = transportDuration > 0 ? Math.min(100, Math.max(0, (transport.currentTime / transportDuration) * 100)) : 0;
+  const transportProgressStyle = { '--progress': `${transportProgress}%` } as CSSProperties;
+  const isBusy = status === 'preparing' || status === 'joining';
+  const statusLabel = playbackStatusLabel(status, mode);
 
   function handleQrProjectorBackdropClick(event: MouseEvent<HTMLDivElement>) {
     if (event.target === event.currentTarget) {
@@ -154,18 +133,6 @@ export function PlayerView({
     setReactions(current => [...current, { id, emoji, x }]);
     window.setTimeout(() => setReactions(current => current.filter(reaction => reaction.id !== id)), 2600);
   }
-  const [transportState, setTransportState] = useState<PlayerState>({
-    playing: false,
-    duration: playerState?.duration ?? trackInfo?.duration ?? 0,
-    currentTime: playerState?.currentTime ?? 0,
-    updatedAt: Date.now()
-  });
-  const transportDuration = transportState.duration || trackInfo?.duration || selectedTrack?.duration || 0;
-  const transportProgress = transportDuration > 0 ? Math.min(100, Math.max(0, (transportState.currentTime / transportDuration) * 100)) : 0;
-  const transportProgressStyle = { '--progress': `${transportProgress}%` } as CSSProperties;
-  const canUseTransport = mode === 'host' ? Boolean(audioSource) : Boolean(remoteReady || remoteAudioRef.current?.srcObject);
-  const canShuffle = mode === 'host' && catalogTracks.length > 1;
-  const canSkipTracks = mode === 'host' && catalogTracks.length > 1;
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -173,20 +140,6 @@ export function PlayerView({
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
-
-  useEffect(() => {
-    setTransportState({
-      playing: false,
-      duration: trackInfo?.duration ?? selectedTrack?.duration ?? 0,
-      currentTime: 0,
-      updatedAt: Date.now()
-    });
-  }, [audioSource, selectedTrack?.duration, selectedTrackId, trackInfo?.duration]);
-
-  useEffect(() => {
-    if (!playerState) return;
-    setTransportState(playerState);
-  }, [playerState]);
 
   useEffect(() => {
     if (!isQrProjectorOpen) return undefined;
@@ -263,113 +216,6 @@ export function PlayerView({
     };
   }, [isQrProjectorOpen]);
 
-  useEffect(() => {
-    if (!queuedAutoplay || mode !== 'host' || !audioSource || selectedTrackId !== queuedAutoplay.trackId) return undefined;
-    if (queuedAutoplay.previousSource && audioSource === queuedAutoplay.previousSource) return undefined;
-
-    const audio = localAudioRef.current;
-    if (!audio) return undefined;
-
-    const clearQueuedAutoplay = () => {
-      setQueuedAutoplay(current => (current?.trackId === queuedAutoplay.trackId ? null : current));
-    };
-
-    const playQueuedTrack = () => {
-      void audio
-        .play()
-        .then(() => syncTransportFromAudio(audio))
-        .finally(clearQueuedAutoplay);
-    };
-
-    if (audio.readyState >= 1) {
-      playQueuedTrack();
-      return undefined;
-    }
-
-    audio.addEventListener('loadedmetadata', playQueuedTrack, { once: true });
-    return () => audio.removeEventListener('loadedmetadata', playQueuedTrack);
-  }, [audioSource, localAudioRef, mode, queuedAutoplay, selectedTrackId]);
-
-  function getActiveAudio() {
-    return mode === 'host' ? localAudioRef.current : remoteAudioRef.current;
-  }
-
-  function syncTransportFromAudio(audio: HTMLAudioElement | null = getActiveAudio()) {
-    if (!audio) return;
-    setTransportState({
-      playing: !audio.paused,
-      currentTime: audio.currentTime,
-      duration: Number.isFinite(audio.duration) ? audio.duration : transportDuration,
-      updatedAt: Date.now()
-    });
-  }
-
-  async function togglePlayback() {
-    const activeAudio = getActiveAudio();
-    if (!activeAudio || !canUseTransport) return;
-
-    if (activeAudio.paused) {
-      await activeAudio.play().catch(() => undefined);
-    } else {
-      activeAudio.pause();
-    }
-
-    syncTransportFromAudio(activeAudio);
-    if (mode === 'host') onEmitPlayerState(true);
-  }
-
-  function seekTransport(nextProgress: number) {
-    const activeAudio = getActiveAudio();
-    if (!activeAudio || transportDuration <= 0) return;
-    activeAudio.currentTime = (nextProgress / 100) * transportDuration;
-    syncTransportFromAudio(activeAudio);
-    if (mode === 'host') onEmitPlayerState(true);
-  }
-
-  function getSkipTrack(direction: 'previous' | 'next') {
-    if (catalogTracks.length === 0) return null;
-
-    if (direction === 'next' && shuffleEnabled) {
-      const nextTracks = catalogTracks.filter(track => track.id !== selectedTrackId);
-      return nextTracks[Math.floor(Math.random() * nextTracks.length)] ?? catalogTracks[0] ?? null;
-    }
-
-    const currentIndex = catalogTracks.findIndex(track => track.id === selectedTrackId);
-    const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
-    const offset = direction === 'next' ? 1 : -1;
-    const nextIndex = (safeCurrentIndex + offset + catalogTracks.length) % catalogTracks.length;
-    return catalogTracks[nextIndex] ?? null;
-  }
-
-  function openTrackFromTransport(track: CatalogTrack, audio: HTMLAudioElement | null = getActiveAudio()) {
-    setQueuedAutoplay({
-      trackId: track.id,
-      previousSource: audio?.currentSrc || audio?.src || audioSource
-    });
-    onOpenTrack(track);
-  }
-
-  function skipTrack(direction: 'previous' | 'next') {
-    if (!canSkipTracks) return;
-    const nextTrack = getSkipTrack(direction);
-    if (nextTrack) openTrackFromTransport(nextTrack);
-  }
-
-  function handleAudioEnded(audio: HTMLAudioElement) {
-    syncTransportFromAudio(audio);
-
-    if (repeatEnabled) {
-      audio.currentTime = 0;
-      void audio.play().catch(() => undefined);
-      return;
-    }
-
-    if (shuffleEnabled && mode === 'host' && catalogTracks.length > 0) {
-      const nextTrack = getSkipTrack('next');
-      if (nextTrack) openTrackFromTransport(nextTrack, audio);
-    }
-  }
-
   const connectedListenerCount = listeners.filter(listener => listener.status === 'connected').length;
   const qrProjectorDialog =
     mode === 'host' && roomId && sessionLink && isQrProjectorOpen ? (
@@ -437,9 +283,9 @@ export function PlayerView({
       )}
       <div className='player-stage'>
         <div className='player-cover-column'>
-          <div className={'room-cover-glow' + (transportState.playing ? ' on' : '')} aria-hidden='true' />
+          <div className={'room-cover-glow' + (transport.playing ? ' on' : '')} aria-hidden='true' />
           <div className='cover-card'>
-            <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transportState.playing}>
+            <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
               <img src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' crossOrigin='anonymous' />
               <span className='sound-bars' aria-hidden='true'>
                 <i />
@@ -455,76 +301,35 @@ export function PlayerView({
                 ))}
               </span>
             </div>
-            {mode === 'host' ? (
-              <div className='audio-stack'>
-                <audio
-                  className='native-player-source'
-                  ref={localAudioRef}
-                  src={audioSource ?? undefined}
-                  crossOrigin='anonymous'
-                  onLoadedMetadata={() => {
-                    syncTransportFromAudio(localAudioRef.current);
-                    void onPrepareLocalStream();
-                    onSetupPreviewLimit();
-                  }}
-                  onPlay={() => {
-                    syncTransportFromAudio(localAudioRef.current);
-                    onEmitPlayerState(true);
-                    onEnforcePreviewCutoff();
-                  }}
-                  onPause={() => {
-                    syncTransportFromAudio(localAudioRef.current);
-                    onEmitPlayerState(true);
-                  }}
-                  onSeeked={() => {
-                    syncTransportFromAudio(localAudioRef.current);
-                    onEmitPlayerState(true);
-                  }}
-                  onTimeUpdate={() => {
-                    syncTransportFromAudio(localAudioRef.current);
-                    onEmitPlayerState(false);
-                    onEnforcePreviewCutoff();
-                  }}
-                  onEnded={event => handleAudioEnded(event.currentTarget)}
-                />
-                <div className='remote-state' data-active={localStreamReady}>
-                  {localStreamReady ? <Play size={16} /> : <Pause size={16} />}
-                  <span>{localStreamReady ? 'Stream ready' : 'Source missing'}</span>
-                </div>
+            <div className='audio-stack'>
+              <div className='remote-state' data-active={transport.playing} data-busy={isBusy}>
+                {isBusy ? (
+                  <span className='remote-state-dots' aria-hidden='true'>
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                ) : transport.playing ? (
+                  <Play size={16} />
+                ) : (
+                  <Headphones size={16} />
+                )}
+                <span>{statusLabel}</span>
               </div>
-            ) : (
-              <div className='audio-stack'>
-                <audio
-                  className='native-player-source'
-                  ref={remoteAudioRef}
-                  autoPlay
-                  playsInline
-                  onLoadedMetadata={event => syncTransportFromAudio(event.currentTarget)}
-                  onPlay={event => syncTransportFromAudio(event.currentTarget)}
-                  onPause={event => syncTransportFromAudio(event.currentTarget)}
-                  onSeeked={event => syncTransportFromAudio(event.currentTarget)}
-                  onTimeUpdate={event => syncTransportFromAudio(event.currentTarget)}
-                  onEnded={event => handleAudioEnded(event.currentTarget)}
-                />
-                <div className='remote-state' data-active={remoteReady}>
-                  {remoteReady ? <Play size={16} /> : playerState?.playing ? <Pause size={16} /> : <Headphones size={16} />}
-                  <span>{remoteReady ? 'Stream received' : 'Waiting'}</span>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
 
         <div className='player-main-column'>
           <div className='track-copy'>
-            <span>{mode === 'host' ? 'Source' : hostName || 'Room'}</span>
-            <h2>{streamTitle}</h2>
             <button className='player-artist-link' type='button' onClick={() => onOpenArtist(streamArtist)}>
               {streamArtist}
             </button>
+            <h2>{streamTitle}</h2>
+            <span className='track-room-label'>{mode === 'host' ? 'Now playing' : hostName || 'Room'}</span>
             <div className='access-badges'>
               <span className='access-chip'>{accessModeLabelFromState(effectiveAccessMode)}</span>
-              <span className='access-chip'>{effectiveAccessMode === 'classic' ? `${effectivePriceDot} DOT` : `PoP ${effectivePersonhoodLevel}`}</span>
+              <span className='access-chip'>{effectiveAccessMode === 'classic' ? `${effectivePriceDot} DOT` : 'Free'}</span>
               {(selectedTrack?.source === 'artist' || selectedTrack?.artistAddress) && (
                 <span className='access-chip access-chip-trust'>
                   <BadgeCheck size={13} />
@@ -534,40 +339,40 @@ export function PlayerView({
             </div>
             <p className='track-description'>{trackInfo?.description ?? selectedTrack?.description ?? description}</p>
 
-            <div className='player-transport' data-playing={transportState.playing}>
+            <div className='player-transport' data-playing={transport.playing}>
               <div className='transport-cluster' aria-label='Track navigation'>
                 <button
                   className='transport-skip'
                   type='button'
-                  onClick={() => skipTrack('previous')}
-                  disabled={!canSkipTracks}
+                  onClick={() => playback.skip('previous')}
+                  disabled={!playback.canSkip}
                   aria-label='Previous track'
-                  title={canSkipTracks ? 'Previous track' : 'Previous track needs more than one catalog track'}
+                  title={playback.canSkip ? 'Previous track' : 'Add more tracks to skip'}
                 >
                   <SkipBack size={16} />
                 </button>
                 <button
                   className='transport-play'
                   type='button'
-                  onClick={() => void togglePlayback()}
-                  disabled={!canUseTransport}
-                  aria-label={transportState.playing ? 'Pause track' : 'Play track'}
+                  onClick={() => void playback.togglePlay()}
+                  disabled={!playback.canUseTransport}
+                  aria-label={transport.playing ? 'Pause' : 'Play'}
                 >
-                  {transportState.playing ? <Pause size={18} /> : <Play size={18} />}
+                  {transport.playing ? <Pause size={18} /> : <Play size={18} />}
                 </button>
                 <button
                   className='transport-skip'
                   type='button'
-                  onClick={() => skipTrack('next')}
-                  disabled={!canSkipTracks}
+                  onClick={() => playback.skip('next')}
+                  disabled={!playback.canSkip}
                   aria-label='Next track'
-                  title={canSkipTracks ? (shuffleEnabled ? 'Shuffle next track' : 'Next track') : 'Next track needs more than one catalog track'}
+                  title={playback.canSkip ? (playback.shuffleEnabled ? 'Shuffle next track' : 'Next track') : 'Add more tracks to skip'}
                 >
                   <SkipForward size={16} />
                 </button>
               </div>
               <div className='transport-progress'>
-                <span>{formatTime(transportState.currentTime)}</span>
+                <span>{formatTime(transport.currentTime)}</span>
                 <input
                   type='range'
                   min={0}
@@ -575,29 +380,38 @@ export function PlayerView({
                   step={0.1}
                   value={transportProgress}
                   style={transportProgressStyle}
-                  onChange={event => seekTransport(Number(event.target.value))}
-                  disabled={!canUseTransport || transportDuration <= 0}
-                  aria-label='Seek track'
+                  onChange={event => playback.seekToProgress(Number(event.target.value))}
+                  disabled={!playback.canUseTransport || transportDuration <= 0}
+                  aria-label='Seek'
                 />
                 <span>{formatTime(transportDuration)}</span>
               </div>
               <div className='transport-actions' aria-label='Playback modes'>
                 <button
                   type='button'
-                  data-active={shuffleEnabled}
-                  onClick={() => setShuffleEnabled(current => !current)}
-                  disabled={!canShuffle}
-                  aria-pressed={shuffleEnabled}
-                  title={canShuffle ? 'Shuffle catalog after this track' : 'Shuffle needs more than one catalog track'}
+                  data-active={playback.muted}
+                  onClick={playback.toggleMute}
+                  aria-pressed={playback.muted}
+                  title={playback.muted ? 'Unmute' : 'Mute'}
+                >
+                  {playback.muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                </button>
+                <button
+                  type='button'
+                  data-active={playback.shuffleEnabled}
+                  onClick={playback.toggleShuffle}
+                  disabled={!playback.canShuffle}
+                  aria-pressed={playback.shuffleEnabled}
+                  title={playback.canShuffle ? 'Shuffle' : 'Add more tracks to shuffle'}
                 >
                   <Shuffle size={16} />
                 </button>
                 <button
                   type='button'
-                  data-active={repeatEnabled}
-                  onClick={() => setRepeatEnabled(current => !current)}
-                  disabled={!canUseTransport}
-                  aria-pressed={repeatEnabled}
+                  data-active={playback.repeatEnabled}
+                  onClick={playback.toggleRepeat}
+                  disabled={!playback.canUseTransport}
+                  aria-pressed={playback.repeatEnabled}
                   title='Repeat this track'
                 >
                   <Repeat2 size={16} />
@@ -735,10 +549,10 @@ export function PlayerView({
                       {displayName || 'You'}
                       <span className='room-person-tag'>host</span>
                     </strong>
-                    <span>holds the key</span>
+                    <span>holds access</span>
                   </div>
                 </div>
-                {transportState.playing ? (
+                {transport.playing ? (
                   <span className='room-eq' aria-hidden='true'>
                     <i />
                     <i />
@@ -806,8 +620,8 @@ export function PlayerView({
           {roomId && (
             <p className='room-doctrine-note'>
               {mode === 'host'
-                ? 'You hold track access for this room. Guests hear your WebRTC stream and never receive content keys.'
-                : 'You are listening to the host stream. No wallet or access proof is required just to be present.'}
+                ? 'You hold track access for this room. Guests hear your stream and never receive content keys.'
+                : 'You are listening to the host stream. No wallet or proof is needed just to be present.'}
             </p>
           )}
 
@@ -820,13 +634,9 @@ export function PlayerView({
             <EndpointRow label='Artist' value={streamArtist} />
             <EndpointRow
               label='Access'
-              value={
-                (selectedTrack?.accessMode ?? accessMode) === 'classic'
-                  ? `${selectedTrack?.priceDot ?? priceDot} DOT`
-                  : `Human proof ${selectedTrack?.personhoodLevel ?? personhoodLevel}`
-              }
+              value={(selectedTrack?.accessMode ?? accessMode) === 'classic' ? `${selectedTrack?.priceDot ?? priceDot} DOT` : 'Verified human'}
             />
-            <EndpointRow label='Metadata' value={trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'portable manifest' : 'draft source'} />
+            <EndpointRow label='Saved' value={trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'On-chain manifest' : 'Draft'} />
           </div>
           <button className='secondary-action' type='button' onClick={onNavigateToListen}>
             Back to catalog

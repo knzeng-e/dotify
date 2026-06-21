@@ -7,19 +7,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap" rel="stylesheet" />
     <style>
       :root {
         color-scheme: dark;
-        --navy:  #06152d;
-        --ink:   #09213f;
-        --cyan:  #29e87a;
-        --green: #c8ff4d;
-        --pink:  #e6007a;
-        --gold:  #e8c86a;
+        --navy:  #050D1A;
+        --ink:   #071326;
+        --cyan:  #00E5A0;
+        --green: #B8F012;
+        --pink:  #E6007A;
+        --gold:  #F0B429;
         --white: #fff;
-        --muted: rgba(255, 255, 255, 0.72);
+        --muted: rgba(216, 232, 244, 0.76);
         --soft:  rgba(255, 255, 255, 0.08);
-        --border: rgba(41, 232, 122, 0.22);
+        --border: rgba(101, 139, 165, 0.24);
         --shadow-1: 0 8px 24px -18px rgba(0,0,0,0.56);
         --shadow-2: 0 18px 48px -32px rgba(0,0,0,0.72);
         --radius: 8px;
@@ -27,7 +29,7 @@
       }
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       *:focus-visible {
-        outline: 2px solid var(--green);
+        outline: 2px solid var(--cyan);
         outline-offset: 3px;
       }
       html { scroll-behavior: smooth; }
@@ -35,10 +37,9 @@
       body {
         font-family: Inter, system-ui, sans-serif;
         background:
-          radial-gradient(circle at 10% 8%, rgba(41,232,122,0.18), transparent 28%),
-          radial-gradient(circle at 86% 12%, rgba(200,255,77,0.10), transparent 24%),
-          radial-gradient(circle at 70% 78%, rgba(230,0,122,0.10), transparent 28%),
-          #06152d;
+          linear-gradient(180deg, rgba(0,229,160,0.055), transparent 26rem),
+          linear-gradient(145deg, rgba(230,0,122,0.055), transparent 34rem),
+          #050D1A;
         color: var(--white);
         line-height: 1.6;
         min-height: 100vh;
@@ -50,7 +51,7 @@
         top: 0;
         z-index: 10;
         border-bottom: 1px solid var(--border);
-        background: rgba(6,21,45,0.82);
+        background: rgba(5,13,26,0.86);
         backdrop-filter: blur(18px);
       }
       .top-inner {
@@ -68,13 +69,13 @@
         gap: 10px;
         text-decoration: none;
         color: var(--white);
-        font-family: 'Space Grotesk', Inter, system-ui, sans-serif;
+        font-family: 'Clash Display', 'Space Grotesk', Inter, system-ui, sans-serif;
         font-size: 20px;
         font-weight: 800;
       }
       .brand-dot {
         width: 34px; height: 34px;
-        border-radius: var(--radius-full);
+        border-radius: var(--radius);
         background: var(--cyan);
         color: var(--navy);
         display: inline-flex;
@@ -82,7 +83,7 @@
         justify-content: center;
         font-size: 18px;
         font-weight: 900;
-        box-shadow: 0 0 28px rgba(41,232,122,0.42);
+        box-shadow: 0 0 28px rgba(0,229,160,0.34);
       }
       .nav-right {
         display: flex;
@@ -96,7 +97,7 @@
         padding: 0 13px;
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        background: rgba(9,33,63,0.78);
+        background: rgba(7,19,38,0.78);
         color: var(--muted);
         font-size: 12px;
         font-weight: 800;
@@ -143,7 +144,7 @@
         margin-bottom: 20px;
       }
       .hero-copy h1 {
-        font-family: 'Space Grotesk', Inter, system-ui, sans-serif;
+        font-family: 'Clash Display', 'Space Grotesk', Inter, system-ui, sans-serif;
         font-size: clamp(3rem, 8vw, 6.4rem);
         font-weight: 800;
         line-height: 0.95;
@@ -180,14 +181,14 @@
         background: var(--cyan);
         color: var(--navy);
         border-color: var(--cyan);
-        box-shadow: 0 0 24px rgba(41,232,122,0.32);
+        box-shadow: 0 0 24px rgba(0,229,160,0.28);
       }
-      .btn-primary:hover { background: #45f090; }
+      .btn-primary:hover { background: #37f8bd; }
       .btn-secondary {
-        background: rgba(9,33,63,0.72);
+        background: rgba(7,19,38,0.72);
         color: var(--white);
       }
-      .btn-secondary:hover { background: rgba(9,33,63,0.92); }
+      .btn-secondary:hover { background: rgba(7,19,38,0.92); }
 
       /* ── Hero visual (canvas container) ── */
       .hero-visual {
@@ -195,7 +196,7 @@
         height: 520px;
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        background: rgba(9,33,63,0.58);
+        background: rgba(7,19,38,0.58);
         overflow: hidden;
         box-shadow: 0 28px 80px rgba(0,0,0,0.28);
       }
@@ -214,7 +215,7 @@
         gap: 4px;
         border: 1px solid rgba(255,255,255,0.12);
         border-radius: var(--radius);
-        background: rgba(6,21,45,0.78);
+        background: rgba(5,13,26,0.78);
         padding: 14px;
         backdrop-filter: blur(16px);
       }
@@ -237,7 +238,7 @@
         margin-bottom: 28px;
       }
       .section-head h2 {
-        font-family: 'Space Grotesk', Inter, system-ui, sans-serif;
+        font-family: 'Clash Display', 'Space Grotesk', Inter, system-ui, sans-serif;
         font-size: clamp(2rem, 4vw, 3.2rem);
         font-weight: 800;
         line-height: 1.05;
@@ -264,7 +265,7 @@
         padding: 22px;
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        background: rgba(9,33,63,0.58);
+        background: rgba(7,19,38,0.58);
       }
       .info-card h3 {
         color: var(--white);
@@ -290,7 +291,7 @@
         padding: 20px;
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        background: rgba(9,33,63,0.58);
+        background: rgba(7,19,38,0.58);
       }
       .flow-step .step-badge {
         display: inline-flex;
@@ -329,7 +330,7 @@
         padding: 24px;
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        background: rgba(9,33,63,0.58);
+        background: rgba(7,19,38,0.58);
       }
       .value-row strong {
         color: var(--white);
@@ -525,7 +526,7 @@
           </div>
           <div class="value-row">
             <strong>Repository memory</strong>
-            <p>Context lives in <code style="font-family:'JetBrains Mono',monospace;background:rgba(41,232,122,0.12);color:#29e87a;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/backlog/</code> and <code style="font-family:'JetBrains Mono',monospace;background:rgba(41,232,122,0.12);color:#29e87a;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/context/</code>. AI agents must read CLAUDE.md before implementing.</p>
+            <p>Context lives in <code style="font-family:'JetBrains Mono',monospace;background:rgba(0,229,160,0.12);color:#00E5A0;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/backlog/</code> and <code style="font-family:'JetBrains Mono',monospace;background:rgba(0,229,160,0.12);color:#00E5A0;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/context/</code>. AI agents must read CLAUDE.md before implementing.</p>
           </div>
         </div>
       </section>
@@ -557,10 +558,10 @@
         if (!ctx) return;
 
         var NODES = [
-          { x: 0.5,  y: 0.24, r: 22, color: '#29e87a', label: 'Host',     phase: 0   },
-          { x: 0.22, y: 0.56, r: 15, color: '#c8ff4d', label: 'Listener', phase: 1.2 },
-          { x: 0.78, y: 0.56, r: 15, color: '#c8ff4d', label: 'Listener', phase: 2.4 },
-          { x: 0.5,  y: 0.72, r: 14, color: '#e8c86a', label: 'Artist',   phase: 3.1 },
+          { x: 0.5,  y: 0.24, r: 22, color: '#00E5A0', label: 'Host',     phase: 0   },
+          { x: 0.22, y: 0.56, r: 15, color: '#F0B429', label: 'Listener', phase: 1.2 },
+          { x: 0.78, y: 0.56, r: 15, color: '#F0B429', label: 'Listener', phase: 2.4 },
+          { x: 0.5,  y: 0.72, r: 14, color: '#B8F012', label: 'Artist',   phase: 3.1 },
         ];
         var CONNS = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
         var frame = 0;
@@ -581,9 +582,9 @@
 
           // Background radial glow
           var bg = ctx.createRadialGradient(W*0.5, H*0.4, 0, W*0.5, H*0.4, W*0.55);
-          bg.addColorStop(0,   'rgba(41,232,122,0.14)');
-          bg.addColorStop(0.45,'rgba(200,255,77,0.06)');
-          bg.addColorStop(1,   'rgba(6,21,45,0)');
+          bg.addColorStop(0,   'rgba(0,229,160,0.14)');
+          bg.addColorStop(0.45,'rgba(184,240,18,0.06)');
+          bg.addColorStop(1,   'rgba(5,13,26,0)');
           ctx.fillStyle = bg;
           ctx.fillRect(0, 0, W, H);
 
@@ -595,11 +596,11 @@
           // Connection lines
           CONNS.forEach(function(c) {
             var i = c[0]; var j = c[1];
-            var isArtist = NODES[i].color === '#e8c86a' || NODES[j].color === '#e8c86a';
+            var isArtist = NODES[i].color === '#B8F012' || NODES[j].color === '#B8F012';
             ctx.beginPath();
             ctx.moveTo(pos[i].x, pos[i].y);
             ctx.lineTo(pos[j].x, pos[j].y);
-            ctx.strokeStyle = isArtist ? 'rgba(232,200,106,0.28)' : 'rgba(41,232,122,0.22)';
+            ctx.strokeStyle = isArtist ? 'rgba(184,240,18,0.28)' : 'rgba(0,229,160,0.22)';
             ctx.lineWidth   = isArtist ? 2 : 3;
             ctx.stroke();
           });
@@ -638,7 +639,7 @@
               var pr    = n.r * 1.7;
               ctx.beginPath();
               ctx.arc(x + Math.cos(angle)*pr, y + Math.sin(angle)*pr, 2.8, 0, Math.PI*2);
-              ctx.fillStyle = p === 0 ? '#e6007a' : '#ffffff';
+              ctx.fillStyle = p === 0 ? '#E6007A' : '#ffffff';
               ctx.globalAlpha = p === 0 ? 0.72 : 0.5;
               ctx.fill();
               ctx.globalAlpha = 1;

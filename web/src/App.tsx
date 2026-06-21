@@ -1,7 +1,8 @@
-import { Disc3, Headphones, Radio, Wifi, WifiOff, LockKeyhole, Link as LinkIcon } from 'lucide-react';
+import { Disc3, Headphones, PanelLeftClose, PanelLeftOpen, Radio, UserRound, Link as LinkIcon } from 'lucide-react';
 
 import { AuraBackground } from './components/AuraBackground';
 import { PlayerDock } from './components/PlayerDock';
+import { PersistentAudio } from './components/PersistentAudio';
 import { CreateRoomModal } from './components/CreateRoomModal';
 import { applyAura, auraForTrack, auraForName } from './utils/aura';
 
@@ -16,7 +17,6 @@ import { uploadFileToPinata, uploadProtectedAudio } from './services/pinata';
 import { useWallet } from './hooks/useWallet';
 import { zeroAddress } from 'viem';
 
-import { StatusPill } from './components/ui/StatusPill';
 import { Metric } from './components/ui/Metric';
 import { WalletModal, WalletStatusPill } from './components/WalletModal';
 import { TransactionModal } from './components/TransactionModal';
@@ -24,10 +24,12 @@ import { TransactionModal } from './components/TransactionModal';
 import { useCatalog } from './hooks/useCatalog';
 import { useSession, getInitialRoomCode } from './hooks/useSession';
 import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole';
+import { usePlayback } from './hooks/usePlayback';
 
 import { ListenView } from './views/ListenView';
 import { PlayerView } from './views/PlayerView';
 import { RoomsView } from './views/RoomsView';
+import { YouView } from './views/YouView';
 import { ArtistProfileView } from './views/ArtistProfileView';
 import { ArtistConsole } from './views/artist/ArtistConsole';
 import { ArtistOnboarding } from './views/artist/ArtistOnboarding';
@@ -52,9 +54,10 @@ import type {
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 
 const viewCopy: Record<View, { title: string; eyebrow: string }> = {
-  listen: { title: 'Press play with someone.', eyebrow: 'Shared listening, right now' },
-  player: { title: 'The room starts from the track.', eyebrow: 'Living light player' },
-  rooms: { title: 'Live rooms', eyebrow: 'Enter a shared listening moment with a link or code.' }
+  listen: { title: 'Now', eyebrow: 'Live rooms' },
+  player: { title: 'Listen', eyebrow: 'Catalog and player' },
+  rooms: { title: 'Rooms', eyebrow: 'Join or create' },
+  you: { title: 'You', eyebrow: 'Wallet and artist mode' }
 };
 
 const releaseStepsConfig: Array<{ id: ReleaseStep; label: string }> = [
@@ -65,7 +68,7 @@ const releaseStepsConfig: Array<{ id: ReleaseStep; label: string }> = [
 ];
 
 function isDotifyView(value: unknown): value is View {
-  return value === 'listen' || value === 'player' || value === 'rooms';
+  return value === 'listen' || value === 'player' || value === 'rooms' || value === 'you';
 }
 
 function getInitialView(): View {
@@ -95,6 +98,7 @@ export default function App() {
   const [isArtistPortal, setIsArtistPortal] = useState(() => isArtistPortalPath());
   const [publicArtistName, setPublicArtistName] = useState<string | null>(null);
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
+  const [railCollapsed, setRailCollapsed] = useState(false);
   const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
   const [releaseStep, setReleaseStep] = useState<ReleaseStep>('assets');
 
@@ -240,9 +244,27 @@ export default function App() {
     coverUploadRef: catalog.coverUploadRef
   });
 
+  // ── Persistent playback layer ────────────────────────────────────────────────
+  // Owns the media elements + transport state so sound survives tab changes.
+  // handleOpenTrack / handleEnforcePreviewCutoff are hoisted function decls.
+  const playback = usePlayback({
+    mode: session.mode,
+    localAudioRef: catalog.localAudioRef,
+    remoteAudioRef: session.remoteAudioRef,
+    audioSource: catalog.audioSource,
+    remoteReady: session.remoteReady,
+    localStreamReady: session.localStreamReady,
+    playerState: catalog.playerState,
+    catalogTracks: catalog.catalogTracks,
+    selectedTrackId: catalog.selectedTrackId,
+    onOpenTrack: handleOpenTrack,
+    onEmitPlayerState: session.emitPlayerState
+  });
+
   // ── Derived values ────────────────────────────────────────────────────────────
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
   const artistTracks = catalog.catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
+  const unlockedTrackCount = Object.values(catalog.catalogAccessByTrackId).filter(Boolean).length;
   const streamTitle = catalog.trackInfo?.title || selectedTrack?.title || title;
   const streamArtist = catalog.trackInfo?.artist || selectedTrack?.artist || artistName;
   const activeListeners = session.listeners.filter(listener => listener.status === 'connected').length;
@@ -679,6 +701,23 @@ export default function App() {
     />
   );
 
+  // Shared navigation model: rendered as a bottom tab bar on mobile and a
+  // collapsible left rail on desktop. Same handlers, one source of truth.
+  const navItems: Array<{ view: View; label: string; icon: typeof Headphones; onSelect: () => void }> = [
+    { view: 'listen', label: 'Now', icon: Headphones, onSelect: () => navigateToView('listen') },
+    { view: 'player', label: 'Listen', icon: Disc3, onSelect: () => navigateToView('player') },
+    {
+      view: 'rooms',
+      label: 'Rooms',
+      icon: Radio,
+      onSelect: () => {
+        navigateToView('rooms');
+        session.requestOpenRooms(true);
+      }
+    },
+    { view: 'you', label: 'You', icon: UserRound, onSelect: () => navigateToView('you') }
+  ];
+
   if (isArtistPortal) {
     return (
       <>
@@ -802,6 +841,16 @@ export default function App() {
   return (
     <>
       <AuraBackground />
+      <PersistentAudio
+        audioSource={catalog.audioSource}
+        localAudioRef={catalog.localAudioRef}
+        remoteAudioRef={session.remoteAudioRef}
+        playback={playback}
+        onPrepareLocalStream={handlePrepareLocalStream}
+        onSetupPreviewLimit={catalog.setupPreviewLimit}
+        onEnforcePreviewCutoff={handleEnforcePreviewCutoff}
+        onEmitPlayerState={session.emitPlayerState}
+      />
       <div className='app-shell'>
         <header className='topbar'>
           <a className='brand' href='#top' aria-label='Dotify' onClick={() => setPublicArtistName(null)}>
@@ -810,53 +859,41 @@ export default function App() {
             </span>
             <span>Dotify</span>
           </a>
-          <nav className='nav-pills' aria-label='Status'>
-            <a className='artist-entry-link' href='/artists'>
-              For artists
-            </a>
-            <StatusPill
-              icon={session.socketStatus === 'online' ? Wifi : WifiOff}
-              label={session.socketStatus === 'online' ? 'Signal online' : 'Signal offline'}
-              tone={session.socketStatus === 'online' ? 'green' : 'muted'}
-            />
-            <StatusPill icon={Radio} label={session.sessionStatus} tone='pink' />
-            <StatusPill icon={LockKeyhole} label='dotify.dot.li' tone='muted' />
+          <nav className='nav-pills' aria-label='Navigation'>
             <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnectWallet} />
           </nav>
         </header>
 
         {walletModal}
 
-        <div className='docs-layout' id='top'>
-          <aside className='sidebar' aria-label='Dotify navigation'>
-            <div className='sidebar-heading'>Listen</div>
-            <button
-              className='sidebar-link'
-              data-active={activeView === 'listen' || activeView === 'player'}
-              type='button'
-              onClick={() => navigateToView('listen')}
-            >
-              <Headphones size={16} />
-              Discover
-            </button>
-            <button
-              className='sidebar-link'
-              data-active={activeView === 'rooms'}
-              type='button'
-              onClick={() => {
-                navigateToView('rooms');
-                session.requestOpenRooms(true);
-              }}
-            >
-              <Radio size={16} />
-              Rooms
-            </button>
-            <div className='sidebar-card'>
-              <span>Active room</span>
-              <strong>{session.roomId || 'None'}</strong>
-            </div>
-          </aside>
+        <nav className='side-rail' data-collapsed={railCollapsed} aria-label='Library navigation'>
+          <button
+            className='side-rail-toggle'
+            type='button'
+            onClick={() => setRailCollapsed(value => !value)}
+            aria-label={railCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+            title={railCollapsed ? 'Expand' : 'Collapse'}
+          >
+            {railCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
+          <div className='side-rail-items'>
+            {navItems.map(item => (
+              <button
+                key={item.view}
+                className='side-rail-item'
+                type='button'
+                data-active={activeView === item.view}
+                onClick={item.onSelect}
+                title={item.label}
+              >
+                <item.icon size={20} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
 
+        <div className='app-content' id='top'>
           <main className={`content content-${activeView}`}>
             {publicArtistName ? (
               <ArtistProfileView
@@ -901,12 +938,9 @@ export default function App() {
                   <PlayerView
                     trackInfo={catalog.trackInfo}
                     selectedTrack={selectedTrack}
-                    audioSource={catalog.audioSource}
                     coverSource={catalog.coverSource}
-                    playerState={catalog.playerState}
                     accessGate={catalog.accessGate}
-                    catalogTracks={catalog.catalogTracks}
-                    selectedTrackId={catalog.selectedTrackId}
+                    playback={playback}
                     mode={session.mode}
                     hostName={session.hostName}
                     roomId={session.roomId}
@@ -922,10 +956,7 @@ export default function App() {
                     streamArtist={streamArtist}
                     accessMode={accessMode}
                     priceDot={priceDot}
-                    personhoodLevel={personhoodLevel}
                     description={description}
-                    localAudioRef={catalog.localAudioRef as React.RefObject<HTMLAudioElement>}
-                    remoteAudioRef={session.remoteAudioRef as React.RefObject<HTMLAudioElement>}
                     onSetDisplayName={session.setDisplayName}
                     onSetJoinCode={session.setJoinCode}
                     onChangeMode={session.changeMode}
@@ -939,11 +970,6 @@ export default function App() {
                     }}
                     onShowWalletModal={() => setShowWalletModal(true)}
                     onNavigateToListen={() => navigateToView('listen')}
-                    onPrepareLocalStream={handlePrepareLocalStream}
-                    onSetupPreviewLimit={catalog.setupPreviewLimit}
-                    onEmitPlayerState={session.emitPlayerState}
-                    onEnforcePreviewCutoff={handleEnforcePreviewCutoff}
-                    onOpenTrack={handleOpenTrack}
                     onOpenArtist={handleOpenArtistProfile}
                   />
                 )}
@@ -960,6 +986,20 @@ export default function App() {
                     onRefreshRooms={() => session.requestOpenRooms(true)}
                   />
                 )}
+
+                {activeView === 'you' && (
+                  <YouView
+                    walletState={walletState}
+                    artistName={artistName || getStoredArtistName(activeEvmAddress) || activeArtistDefaultName}
+                    artistRuntimeAddress={artistConsole.artistRuntimeAddress}
+                    artistReleaseCount={artistTracks.length}
+                    totalRoyaltyWei={totalRoyaltyWei}
+                    unlockedTrackCount={unlockedTrackCount}
+                    supportedArtistCount={supportedArtists.length}
+                    onShowWalletModal={() => setShowWalletModal(true)}
+                    onDisconnectWallet={disconnectWallet}
+                  />
+                )}
               </>
             )}
 
@@ -974,11 +1014,13 @@ export default function App() {
           </main>
         </div>
 
-        {activeView !== 'player' && !publicArtistName && (selectedTrack || catalog.trackInfo) && (
+        {activeView !== 'player' && !publicArtistName && (selectedTrack || catalog.trackInfo || session.roomId) && (
           <PlayerDock
             track={selectedTrack}
             trackInfo={catalog.trackInfo}
-            playerState={catalog.playerState}
+            playback={playback}
+            mode={session.mode}
+            roomId={session.roomId}
             locked={Boolean(selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true)}
             onOpenPlayer={() => navigateToView('player')}
             onOpenArtist={handleOpenArtistProfile}
@@ -997,6 +1039,15 @@ export default function App() {
             }}
           />
         )}
+
+        <nav className='bottom-nav' aria-label='Main navigation'>
+          {navItems.map(item => (
+            <button key={item.view} className='bottom-nav-item' type='button' data-active={activeView === item.view} onClick={item.onSelect}>
+              <item.icon size={22} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
     </>
   );

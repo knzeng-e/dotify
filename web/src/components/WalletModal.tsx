@@ -1,10 +1,79 @@
 import { ExternalLink, KeyRound, LockKeyhole, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import type { WalletState } from '../hooks/useWallet';
 import type { CatalogTrack } from '../types';
 import { getBlockscoutAddressUrl } from '../utils/explorer';
 
 function shortenAddress(address: string) {
   return address.length > 14 ? `${address.slice(0, 8)}...${address.slice(-6)}` : address;
+}
+
+// Focus management for the wallet dialog: move focus in on open, trap Tab /
+// Shift-Tab, close on Escape, and restore focus on unmount. The modal lives
+// inside #root and already sets aria-modal="true", so background content is
+// announced as inert without a self-hiding aria-hidden on the app root.
+function useDialogFocusTrap(onClose: () => void) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const previousActive = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    function getFocusable() {
+      const dialog = dialogRef.current;
+      if (!dialog) return [] as HTMLElement[];
+      return Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(element => element.getClientRects().length > 0 || element === document.activeElement);
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const items = getFocusable();
+      (items[0] ?? dialogRef.current)?.focus();
+    });
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const items = getFocusable();
+      if (items.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !dialog.contains(active))) {
+        event.preventDefault();
+        last.focus();
+        return;
+      }
+      if (!event.shiftKey && (active === last || !dialog.contains(active))) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('keydown', handleKeyDown);
+      previousActive?.focus();
+    };
+  }, []);
+
+  return dialogRef;
 }
 
 type WalletSupportedArtist = Pick<CatalogTrack, 'artist' | 'artistAddress'> & { trackCount: number };
@@ -19,7 +88,7 @@ export function WalletStatusPill({ state, onClick, onDisconnect }: { state: Wall
           <span>{state.wallet.label}</span>
         </button>
         <button className='wallet-pill-disconnect' type='button' onClick={onDisconnect} aria-label='Disconnect wallet' title='Disconnect'>
-          x
+          <X size={14} />
         </button>
       </div>
     );
@@ -65,13 +134,24 @@ export function WalletModal({
   onDisconnect?: () => void;
   onClose: () => void;
 }) {
+  const dialogRef = useDialogFocusTrap(onClose);
+
   if (state.status === 'connected') {
     const { wallet } = state;
     const identityAddress = wallet.substrateAddress ?? wallet.evmAddress;
     const walletChainMismatch = expectedChainId !== null && wallet.chainId !== undefined && wallet.chainId !== expectedChainId;
     return (
       <div className='modal-backdrop' role='presentation' onClick={onClose}>
-        <div className='modal-card wallet-modal' role='dialog' aria-modal='true' aria-labelledby='wallet-modal-title' onClick={e => e.stopPropagation()}>
+        <div
+          className='modal-card wallet-modal'
+          role='dialog'
+          aria-modal='true'
+          aria-labelledby='wallet-modal-title'
+          aria-describedby='wallet-modal-desc'
+          tabIndex={-1}
+          ref={dialogRef}
+          onClick={e => e.stopPropagation()}
+        >
           <div className='modal-header'>
             <div className='modal-icon' data-tone='success'>
               <LockKeyhole size={20} />
@@ -103,8 +183,8 @@ export function WalletModal({
 
           <div className='wallet-network' data-warning={walletChainMismatch}>
             <span>Network</span>
-            <strong>{wallet.chainId !== undefined ? `Chain ${wallet.chainId}` : wallet.method === 'passkey' ? 'App RPC signer' : 'Unknown'}</strong>
-            {expectedChainId !== null && <small>Expected chain {expectedChainId}</small>}
+            <strong>{wallet.chainId !== undefined ? `Chain ${wallet.chainId}` : wallet.method === 'passkey' ? 'App signer' : 'Unknown'}</strong>
+            {walletChainMismatch && <small>Wrong network for Dotify</small>}
             {walletChainMismatch && wallet.method === 'extension' && onSwitchNetwork && (
               <button className='wallet-network-action' type='button' onClick={onSwitchNetwork} disabled={isSwitchingNetwork}>
                 <RefreshCw size={14} className={isSwitchingNetwork ? 'spin' : undefined} />
@@ -190,7 +270,7 @@ export function WalletModal({
             </span>
             <span className='wallet-option-copy'>
               <strong>You hold your keys</strong>
-              <small>Dotify never sees your seed. Payments and access proofs are signed by you, on your device.</small>
+              <small id='wallet-modal-desc'>Dotify never sees your seed. Payments and access proofs are signed by you, on your device.</small>
             </span>
           </div>
 
@@ -200,6 +280,7 @@ export function WalletModal({
               type='button'
               onClick={() => {
                 onForgetPasskey();
+                onClose();
               }}
             >
               Remove saved passkey
@@ -225,7 +306,16 @@ export function WalletModal({
 
   return (
     <div className='modal-backdrop' role='presentation' onClick={onClose}>
-      <div className='modal-card wallet-modal' role='dialog' aria-modal='true' aria-labelledby='wallet-modal-title' onClick={e => e.stopPropagation()}>
+      <div
+        className='modal-card wallet-modal'
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='wallet-modal-title'
+        aria-describedby='wallet-modal-desc'
+        tabIndex={-1}
+        ref={dialogRef}
+        onClick={e => e.stopPropagation()}
+      >
         <div className='modal-header'>
           <div className='modal-icon' data-tone='success'>
             <LockKeyhole size={20} />
@@ -237,7 +327,7 @@ export function WalletModal({
         <div className='modal-copy'>
           <p className='modal-eyebrow'>Account</p>
           <h2 id='wallet-modal-title'>Your wallet, quietly</h2>
-          <p>Use Dotify without creating a platform account. Your wallet proves access while your keys stay with you.</p>
+          <p id='wallet-modal-desc'>Use Dotify without creating a platform account. Your wallet proves access while your keys stay with you.</p>
         </div>
 
         {state.status === 'error' && <p className='error-box'>{state.message}</p>}
