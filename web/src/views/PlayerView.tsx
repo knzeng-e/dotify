@@ -119,9 +119,11 @@ export function PlayerView({
   const transportProgress = transportDuration > 0 ? Math.min(100, Math.max(0, (transport.currentTime / transportDuration) * 100)) : 0;
   const transportProgressStyle = { '--progress': `${transportProgress}%` } as CSSProperties;
   const isBusy = status === 'preparing' || status === 'joining';
-  const statusLabel = playbackStatusLabel(status, mode);
+  const isOnAir = !isBusy && transport.playing;
+  const statusLabel = isOnAir ? 'ON AIR' : playbackStatusLabel(status, mode);
   const isManagedTrack = Boolean(selectedTrack && selectedTrack.source === 'artist' && selectedTrack.id.includes(':'));
   const needsTrackAccess = Boolean(selectedTrack && isManagedTrack && !selectedTrackHasAccess);
+  const showPreviewAction = Boolean(needsTrackAccess && selectedTrack);
   const accessStatusLabel = needsTrackAccess ? 'Preview available' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
   const accessPriceLabel = effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT` : 'Unlocked for this wallet') : 'Human pass';
   const previewCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full track' : 'Check access';
@@ -307,7 +309,7 @@ export function PlayerView({
                 ))}
               </span>
             </div>
-            <div className='audio-stack'>
+            <div className={`audio-stack${showPreviewAction ? ' has-preview-action' : ''}`}>
               <div className='remote-state' data-active={transport.playing} data-busy={isBusy}>
                 {isBusy ? (
                   <span className='remote-state-dots' aria-hidden='true'>
@@ -316,13 +318,13 @@ export function PlayerView({
                     <i />
                   </span>
                 ) : transport.playing ? (
-                  <Play size={16} />
+                  <span className='on-air-pulse' aria-hidden='true' />
                 ) : (
                   <Headphones size={16} />
                 )}
                 <span>{statusLabel}</span>
               </div>
-              {needsTrackAccess && selectedTrack && (
+              {showPreviewAction && selectedTrack && (
                 <button
                   className='preview-cover-action'
                   type='button'

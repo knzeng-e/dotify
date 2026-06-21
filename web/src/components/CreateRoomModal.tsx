@@ -62,7 +62,7 @@ export function CreateRoomModal({ tracks, initialTrack, onClose, onOpenRoom }: C
                   className={'create-room-pick' + (picked?.id === track.id ? ' is-on' : '')}
                   type='button'
                   onClick={() => setPicked(track)}
-                  aria-label={`Play ${track.title}`}
+                  aria-label={`Select ${track.title}`}
                   aria-pressed={picked?.id === track.id}
                 >
                   <img src={track.imageRef} alt='' crossOrigin='anonymous' />
