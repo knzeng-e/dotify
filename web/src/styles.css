@@ -2581,7 +2581,7 @@ audio {
   line-height: 1.35;
 }
 
-.room-qr-projector {
+.modal-backdrop.room-qr-projector {
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -2590,6 +2590,20 @@ audio {
   background: #ffffff;
   color: #06152d;
   padding: clamp(1rem, 3vw, 2rem);
+}
+
+.modal-card.room-qr-projector-card {
+  --dialog-width: 62rem;
+  display: grid;
+  justify-items: center;
+  width: min(100%, 62rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
 
 .room-qr-projector-close {

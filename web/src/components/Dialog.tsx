@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 type DialogProps = {
+  backdropClassName?: string;
   children: ReactNode;
   className?: string;
   dataAttributes?: Record<string, string | number | boolean | undefined>;
@@ -22,7 +23,18 @@ function getFocusableElements(dialog: HTMLDivElement | null) {
   ).filter(element => element.getClientRects().length > 0 || element === document.activeElement);
 }
 
-export function Dialog({ children, className, dataAttributes, describedBy, dismissible = true, labelledBy, onClose, size = 'default', tone }: DialogProps) {
+export function Dialog({
+  backdropClassName,
+  children,
+  className,
+  dataAttributes,
+  describedBy,
+  dismissible = true,
+  labelledBy,
+  onClose,
+  size = 'default',
+  tone
+}: DialogProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const onCloseRef = useRef(onClose);
   const dataProps = Object.fromEntries(
@@ -41,6 +53,8 @@ export function Dialog({ children, className, dataAttributes, describedBy, dismi
     const appRoot = document.getElementById('root');
     const previousAriaHidden = appRoot?.getAttribute('aria-hidden') ?? null;
     document.body.style.overflow = 'hidden';
+    // Dotify currently opens one dialog at a time. If nested dialogs are later
+    // allowed, replace this restore logic with a stack-aware aria-hidden manager.
     appRoot?.setAttribute('aria-hidden', 'true');
 
     const frame = window.requestAnimationFrame(() => {
@@ -94,7 +108,7 @@ export function Dialog({ children, className, dataAttributes, describedBy, dismi
 
   const modal = (
     <div
-      className='modal-backdrop'
+      className={['modal-backdrop', backdropClassName].filter(Boolean).join(' ')}
       role='presentation'
       onClick={event => {
         if (dismissible && event.target === event.currentTarget) onCloseRef.current?.();
