@@ -101,6 +101,7 @@ export function useSession(deps: UseSessionDeps) {
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastPlayerStateEmitRef = useRef(0);
+  const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
 
   function upsertListener(listener: ListenerRecord) {
     setListeners(previous => {
@@ -131,6 +132,7 @@ export function useSession(deps: UseSessionDeps) {
   function closeListenerPeer() {
     listenerPeerRef.current?.close();
     listenerPeerRef.current = null;
+    pendingCandidatesRef.current.clear();
   }
 
   function closeHostPeers() {
@@ -414,6 +416,7 @@ export function useSession(deps: UseSessionDeps) {
 
   function createHostPeer(listenerId: string) {
     hostPeersRef.current.get(listenerId)?.close();
+    pendingCandidatesRef.current.delete(listenerId);
     const peer = new RTCPeerConnection({ iceServers });
     const stream = localStreamRef.current;
 
@@ -461,6 +464,18 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
+  async function flushPendingCandidates(peerId: string, peer: RTCPeerConnection) {
+    const candidates = pendingCandidatesRef.current.get(peerId) ?? [];
+    pendingCandidatesRef.current.delete(peerId);
+    for (const candidate of candidates) {
+      try {
+        await peer.addIceCandidate(candidate);
+      } catch {
+        // Stale candidate after flush
+      }
+    }
+  }
+
   async function acceptOffer(from: string, offer: RTCSessionDescriptionInit) {
     closeListenerPeer();
     const peer = new RTCPeerConnection({ iceServers });
@@ -472,7 +487,8 @@ export function useSession(deps: UseSessionDeps) {
         remoteAudioRef.current.srcObject = stream;
         setRemoteReady(true);
         setSessionStatus('Live');
-        void remoteAudioRef.current.play().catch(() => setSessionStatus('Manual playback required'));
+        // Playback is triggered by usePlayback which correctly surfaces
+        // 'autoplay-blocked' to the UI when the browser policy blocks autoplay.
       }
     };
     peer.onicecandidate = event => {
@@ -493,6 +509,7 @@ export function useSession(deps: UseSessionDeps) {
 
     try {
       await peer.setRemoteDescription(offer);
+      await flushPendingCandidates(from, peer);
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
       socketRef.current?.emit('webrtc:answer', {
@@ -511,6 +528,7 @@ export function useSession(deps: UseSessionDeps) {
 
     try {
       await peer.setRemoteDescription(answer);
+      await flushPendingCandidates(from, peer);
     } catch (answerError) {
       upsertListenerStatus(from, 'disconnected');
       setError(answerError instanceof Error ? answerError.message : 'Invalid WebRTC answer');
@@ -520,6 +538,13 @@ export function useSession(deps: UseSessionDeps) {
   async function addRemoteCandidate(from: string, candidate: RTCIceCandidateInit) {
     const peer = modeRef.current === 'host' ? hostPeersRef.current.get(from) : listenerPeerRef.current;
     if (!peer || !candidate) return;
+
+    if (!peer.remoteDescription) {
+      const bucket = pendingCandidatesRef.current.get(from) ?? [];
+      bucket.push(candidate);
+      pendingCandidatesRef.current.set(from, bucket);
+      return;
+    }
 
     try {
       await peer.addIceCandidate(candidate);

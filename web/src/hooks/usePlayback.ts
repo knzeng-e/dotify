@@ -126,6 +126,19 @@ export function usePlayback(deps: UsePlaybackDeps) {
     // clock tick (~4 Hz), but only playing/paused changes the status.
   }, [mode, remoteReady, playerState?.playing]);
 
+  // Listener: as soon as the remote stream lands (remoteReady), attempt playback.
+  // Surfaces 'autoplay-blocked' so the UI shows "Tap play to start" instead of
+  // silent "In sync" when the browser blocks autoplay without user gesture.
+  useEffect(() => {
+    if (mode !== 'listener' || !remoteReady) return;
+    const audio = remoteAudioRef.current;
+    if (!audio || !audio.srcObject) return;
+    void audio
+      .play()
+      .then(() => setStatus('playing'))
+      .catch(() => setStatus('autoplay-blocked'));
+  }, [mode, remoteReady, remoteAudioRef]);
+
   // Host capture lifecycle feeds the "Hosting" ready state.
   useEffect(() => {
     if (mode !== 'host' || !localStreamReady) return;

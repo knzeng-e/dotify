@@ -24,7 +24,7 @@ import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
-import { accessModeLabel, accessModeLabelFromState, formatTime, peerStatusLabel } from '../utils/format';
+import { formatTime, peerStatusLabel } from '../utils/format';
 import { playbackStatusLabel, type PlaybackControls } from '../hooks/usePlayback';
 import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, SessionAction, TrackInfo } from '../types';
 import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
@@ -46,6 +46,7 @@ type PlayerViewProps = {
   displayName: string;
   joinCode: string;
   listeners: ListenerRecord[];
+  listenerCount: number;
   remoteReady: boolean;
   localStreamReady: boolean;
   error: string | null;
@@ -71,6 +72,16 @@ type PlayerViewProps = {
   onOpenArtist: (artistName: string) => void;
 };
 
+function userFacingDescription(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  const metadataLabelCount =
+    trimmed.match(/\b(?:Titre|Duree|Durée|Auteurs?|Compositeur|Album|Genre musical|Annee|Année|Commentaires?)\s*:/gi)?.length ?? 0;
+
+  return metadataLabelCount >= 2 ? '' : trimmed;
+}
+
 export function PlayerView({
   trackInfo,
   selectedTrack,
@@ -85,6 +96,7 @@ export function PlayerView({
   displayName,
   joinCode,
   listeners,
+  listenerCount,
   remoteReady,
   localStreamReady,
   error,
@@ -123,9 +135,14 @@ export function PlayerView({
   const needsTrackAccess = Boolean(selectedTrack && isManagedTrack && !selectedTrackHasAccess);
   const showPreviewAction = Boolean(needsTrackAccess && selectedTrack);
   const showWideStatus = Boolean(selectedTrack && !showPreviewAction);
-  const accessStatusLabel = needsTrackAccess ? 'Preview mode' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
-  const accessPriceLabel = effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT` : 'Unlocked for this wallet') : 'Human pass';
-  const previewCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full track' : 'Check access';
+  const accessStatusLabel = needsTrackAccess ? 'Preview mode' : effectiveAccessMode === 'classic' ? 'Full song' : 'Ready to listen';
+  const accessPriceLabel = effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT to unlock` : 'Artist supported') : 'Open in rooms';
+  const trackPanelMeta = needsTrackAccess ? 'Preview mode' : 'Ready to play';
+  const trackAccessValue =
+    effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT to unlock` : 'Full song ready') : 'Open in this room';
+  const releaseStateLabel = trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'In the catalog' : 'Being prepared';
+  const previewCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full song' : 'Continue';
+  const displayDescription = userFacingDescription(trackInfo?.description ?? selectedTrack?.description ?? description);
 
   // Local ambient reactions over the cover (visual delight, not broadcast).
   function sendReaction(emoji: string) {
@@ -142,7 +159,6 @@ export function PlayerView({
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  const connectedListenerCount = listeners.filter(listener => listener.status === 'connected').length;
   const qrProjectorDialog =
     mode === 'host' && roomId && sessionLink && isQrProjectorOpen ? (
       <Dialog
@@ -171,7 +187,7 @@ export function PlayerView({
             <span className='live-dot' />
             Live
           </span>
-          <span className='room-header-meta'>{mode === 'host' ? `${connectedListenerCount + 1} in the room` : `with ${hostName || 'the host'}`}</span>
+          <span className='room-header-meta'>{mode === 'host' ? `${listenerCount + 1} in the room` : `with ${hostName || 'the host'}`}</span>
           <div className='room-code-pill'>
             <span>ROOM</span>
             <strong className='tnum'>{roomId}</strong>
@@ -186,15 +202,15 @@ export function PlayerView({
         <div className='room-promise-strip' aria-label='Room access model'>
           <span>
             <Users size={14} />
-            {connectedListenerCount + 1} present
+            {listenerCount + 1} present
           </span>
           <span>
             <KeyRound size={14} />
-            Host holds access
+            Host keeps the music flowing
           </span>
           <span>
             <ShieldCheck size={14} />
-            Guests receive stream only
+            Guests just join and listen
           </span>
         </div>
       )}
@@ -266,7 +282,7 @@ export function PlayerView({
               </span>
               <span className='access-chip'>{accessPriceLabel}</span>
             </div>
-            <p className='track-description'>{trackInfo?.description ?? selectedTrack?.description ?? description}</p>
+            {displayDescription && <p className='track-description'>{displayDescription}</p>}
 
             <div className='player-transport' data-playing={transport.playing}>
               <div className='transport-cluster' aria-label='Track navigation'>
@@ -419,12 +435,12 @@ export function PlayerView({
 
           {mode === 'host' ? (
             <form className='session-form' onSubmit={onCreateSession}>
-              <button className='primary-action' type='submit' disabled={sessionAction !== 'idle'}>
+              <button className='primary-action' type='submit' disabled={sessionAction !== 'idle' || Boolean(roomId)}>
                 {sessionAction === 'creating' ? <Disc3 size={16} className='spin' /> : <Radio size={16} />}
-                {sessionAction === 'creating' ? 'Opening room…' : 'Start a room'}
+                {roomId ? 'Room is live' : sessionAction === 'creating' ? 'Opening room...' : 'Start a room'}
               </button>
               <div className='room-code'>
-                <span>Code</span>
+                <span>Room code</span>
                 <strong>{roomId || '------'}</strong>
                 <button type='button' onClick={onCopySessionLink} disabled={!roomId} title='Copy link' aria-label='Copy link'>
                   <Copy size={16} />
@@ -450,7 +466,7 @@ export function PlayerView({
 
           {roomId && (
             <button className='secondary-action' type='button' onClick={onLeaveSession}>
-              Leave
+              {mode === 'host' ? 'Close room' : 'Leave'}
             </button>
           )}
 
@@ -458,10 +474,10 @@ export function PlayerView({
             <div className='room-share-card'>
               <div className='room-share-copy'>
                 <strong>Scan to join</strong>
-                <span>Opens this room link directly.</span>
+                <span>People can join from their camera.</span>
                 <button className='room-project-btn' type='button' onClick={() => setIsQrProjectorOpen(true)}>
                   <Maximize2 size={14} />
-                  Project QR
+                  Show big QR
                 </button>
               </div>
               <RoomQrCode value={sessionLink} label={`QR code for room ${roomId}`} />
@@ -478,7 +494,7 @@ export function PlayerView({
                       {displayName || 'You'}
                       <span className='room-person-tag'>host</span>
                     </strong>
-                    <span>holds access</span>
+                    <span>sharing the music</span>
                   </div>
                 </div>
                 {transport.playing ? (
@@ -549,8 +565,8 @@ export function PlayerView({
           {roomId && (
             <p className='room-doctrine-note'>
               {mode === 'host'
-                ? 'You hold track access for this room. Guests hear your stream and never receive content keys.'
-                : 'You are listening to the host stream. No wallet or proof is needed just to be present.'}
+                ? 'You choose the music. Guests join the room and listen with you.'
+                : 'You are listening with the host. The link is enough to be here.'}
             </p>
           )}
 
@@ -558,21 +574,14 @@ export function PlayerView({
         </div>
 
         <div className='doc-panel player-context-panel'>
-          <PanelTitle
-            icon={Library}
-            title='Listening access'
-            meta={needsTrackAccess ? 'Preview mode' : selectedTrack ? accessModeLabel(selectedTrack) : accessModeLabelFromState(accessMode)}
-          />
+          <PanelTitle icon={Library} title='Current track' meta={trackPanelMeta} />
           <div className='stack-list'>
             <EndpointRow label='Artist' value={streamArtist} />
-            <EndpointRow
-              label={(selectedTrack?.accessMode ?? accessMode) === 'classic' ? 'Full track' : 'Access'}
-              value={(selectedTrack?.accessMode ?? accessMode) === 'classic' ? `${selectedTrack?.priceDot ?? priceDot} DOT` : 'Human pass'}
-            />
-            <EndpointRow label='Release' value={trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'Published' : 'Draft'} />
+            <EndpointRow label='Listen' value={trackAccessValue} />
+            <EndpointRow label='Status' value={releaseStateLabel} />
           </div>
           <button className='secondary-action' type='button' onClick={onNavigateToListen}>
-            Back to catalog
+            Browse music
           </button>
         </div>
       </div>

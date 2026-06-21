@@ -972,6 +972,7 @@ export default function App() {
                     displayName={session.displayName}
                     joinCode={session.joinCode}
                     listeners={session.listeners}
+                    listenerCount={session.listenerCount}
                     remoteReady={session.remoteReady}
                     localStreamReady={session.localStreamReady}
                     error={session.error}
