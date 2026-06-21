@@ -122,7 +122,9 @@ export function usePlayback(deps: UsePlaybackDeps) {
     // Before the first broadcast arrives, a freshly connected listener is
     // "Connected" rather than "In sync" - default to not-playing.
     setStatus(remoteReady ? ((playerState?.playing ?? false) ? 'playing' : 'ready') : 'joining');
-  }, [mode, remoteReady, playerState]);
+    // Depend only on the play flag: playerState is a fresh object on every host
+    // clock tick (~4 Hz), but only playing/paused changes the status.
+  }, [mode, remoteReady, playerState?.playing]);
 
   // Host capture lifecycle feeds the "Hosting" ready state.
   useEffect(() => {

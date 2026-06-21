@@ -280,6 +280,7 @@ export function WalletModal({
               type='button'
               onClick={() => {
                 onForgetPasskey();
+                onClose();
               }}
             >
               Remove saved passkey
