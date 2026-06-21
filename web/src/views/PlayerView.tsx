@@ -1,5 +1,4 @@
 import {
-  BadgeCheck,
   Copy,
   Disc3,
   Headphones,
@@ -24,11 +23,11 @@ import { EndpointRow } from '../components/ui/EndpointRow';
 import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomQrCode } from '../components/RoomQrCode';
+import { Dialog } from '../components/Dialog';
 import { accessModeLabel, accessModeLabelFromState, formatTime, peerStatusLabel } from '../utils/format';
 import { playbackStatusLabel, type PlaybackControls } from '../hooks/usePlayback';
 import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, SessionAction, TrackInfo } from '../types';
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 
 type PlayerViewProps = {
   // Track/audio state
@@ -53,6 +52,7 @@ type PlayerViewProps = {
   // Derived display values
   streamTitle: string;
   streamArtist: string;
+  selectedTrackHasAccess: boolean;
   accessMode: AccessMode;
   priceDot: string;
   description: string;
@@ -90,6 +90,7 @@ export function PlayerView({
   error,
   streamTitle,
   streamArtist,
+  selectedTrackHasAccess,
   accessMode,
   priceDot,
   onSetDisplayName,
@@ -110,21 +111,21 @@ export function PlayerView({
   const effectivePriceDot = trackInfo?.priceDot ?? selectedTrack?.priceDot ?? priceDot;
   const [reactions, setReactions] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
-  const qrProjectorRef = useRef<HTMLDivElement | null>(null);
-  const qrProjectorCloseRef = useRef<HTMLButtonElement | null>(null);
 
   const { transport, status } = playback;
   const transportDuration = transport.duration || trackInfo?.duration || selectedTrack?.duration || 0;
   const transportProgress = transportDuration > 0 ? Math.min(100, Math.max(0, (transport.currentTime / transportDuration) * 100)) : 0;
   const transportProgressStyle = { '--progress': `${transportProgress}%` } as CSSProperties;
   const isBusy = status === 'preparing' || status === 'joining';
-  const statusLabel = playbackStatusLabel(status, mode);
-
-  function handleQrProjectorBackdropClick(event: MouseEvent<HTMLDivElement>) {
-    if (event.target === event.currentTarget) {
-      setIsQrProjectorOpen(false);
-    }
-  }
+  const isOnAir = !isBusy && transport.playing;
+  const statusLabel = isOnAir ? 'ON AIR' : playbackStatusLabel(status, mode);
+  const isManagedTrack = Boolean(selectedTrack && selectedTrack.source === 'artist' && selectedTrack.id.includes(':'));
+  const needsTrackAccess = Boolean(selectedTrack && isManagedTrack && !selectedTrackHasAccess);
+  const showPreviewAction = Boolean(needsTrackAccess && selectedTrack);
+  const showWideStatus = Boolean(selectedTrack && !showPreviewAction);
+  const accessStatusLabel = needsTrackAccess ? 'Preview mode' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
+  const accessPriceLabel = effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT` : 'Unlocked for this wallet') : 'Human pass';
+  const previewCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full track' : 'Check access';
 
   // Local ambient reactions over the cover (visual delight, not broadcast).
   function sendReaction(emoji: string) {
@@ -141,100 +142,16 @@ export function PlayerView({
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  useEffect(() => {
-    if (!isQrProjectorOpen) return undefined;
-
-    const previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const appContainer = document.getElementById('root');
-    const previousAppContainerAriaHidden = appContainer?.getAttribute('aria-hidden') ?? null;
-    let didHideAppContainer = false;
-    const frame = window.requestAnimationFrame(() => {
-      (qrProjectorCloseRef.current ?? qrProjectorRef.current)?.focus();
-      if (appContainer) {
-        appContainer.setAttribute('aria-hidden', 'true');
-        didHideAppContainer = true;
-      }
-    });
-
-    function getFocusableElements() {
-      const dialog = qrProjectorRef.current;
-      if (!dialog) return [];
-
-      return Array.from(
-        dialog.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter(element => element.getClientRects().length > 0 || element === document.activeElement);
-    }
-
-    function handleProjectorKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsQrProjectorOpen(false);
-        return;
-      }
-
-      if (event.key !== 'Tab') return;
-
-      const dialog = qrProjectorRef.current;
-      if (!dialog) return;
-
-      const focusableElements = getFocusableElements();
-      if (focusableElements.length === 0) {
-        event.preventDefault();
-        dialog.focus();
-        return;
-      }
-
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-      const activeElement = document.activeElement;
-
-      if (event.shiftKey && (activeElement === firstElement || !dialog.contains(activeElement))) {
-        event.preventDefault();
-        lastElement.focus();
-        return;
-      }
-
-      if (!event.shiftKey && (activeElement === lastElement || !dialog.contains(activeElement))) {
-        event.preventDefault();
-        firstElement.focus();
-      }
-    }
-
-    window.addEventListener('keydown', handleProjectorKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener('keydown', handleProjectorKeyDown);
-      if (appContainer && didHideAppContainer) {
-        if (previousAppContainerAriaHidden === null) {
-          appContainer.removeAttribute('aria-hidden');
-        } else {
-          appContainer.setAttribute('aria-hidden', previousAppContainerAriaHidden);
-        }
-      }
-      previousActiveElement?.focus();
-    };
-  }, [isQrProjectorOpen]);
-
   const connectedListenerCount = listeners.filter(listener => listener.status === 'connected').length;
   const qrProjectorDialog =
     mode === 'host' && roomId && sessionLink && isQrProjectorOpen ? (
-      <div
-        className='room-qr-projector'
-        role='dialog'
-        aria-modal='true'
-        aria-labelledby='room-qr-projector-title'
-        tabIndex={-1}
-        ref={qrProjectorRef}
-        onClick={handleQrProjectorBackdropClick}
+      <Dialog
+        backdropClassName='room-qr-projector'
+        className='room-qr-projector-card'
+        labelledBy='room-qr-projector-title'
+        onClose={() => setIsQrProjectorOpen(false)}
       >
-        <button
-          className='room-qr-projector-close'
-          type='button'
-          onClick={() => setIsQrProjectorOpen(false)}
-          aria-label='Close projected QR'
-          ref={qrProjectorCloseRef}
-        >
+        <button className='room-qr-projector-close' type='button' onClick={() => setIsQrProjectorOpen(false)} aria-label='Close projected QR'>
           <X size={20} />
         </button>
         <div className='room-qr-projector-content'>
@@ -243,7 +160,7 @@ export function PlayerView({
           <RoomQrCode value={sessionLink} label={`Large QR code for room ${roomId}`} asLink={false} />
           <code>{sessionLink}</code>
         </div>
-      </div>
+      </Dialog>
     ) : null;
 
   return (
@@ -301,7 +218,7 @@ export function PlayerView({
                 ))}
               </span>
             </div>
-            <div className='audio-stack'>
+            <div className={`audio-stack${showPreviewAction ? ' has-preview-action' : ''}${showWideStatus ? ' has-wide-status' : ''}`}>
               <div className='remote-state' data-active={transport.playing} data-busy={isBusy}>
                 {isBusy ? (
                   <span className='remote-state-dots' aria-hidden='true'>
@@ -310,12 +227,28 @@ export function PlayerView({
                     <i />
                   </span>
                 ) : transport.playing ? (
-                  <Play size={16} />
+                  <span className='on-air-pulse' aria-hidden='true' />
                 ) : (
                   <Headphones size={16} />
                 )}
                 <span>{statusLabel}</span>
               </div>
+              {showPreviewAction && selectedTrack && (
+                <button
+                  className='preview-cover-action'
+                  type='button'
+                  onClick={() => {
+                    if (effectiveAccessMode === 'classic') {
+                      void onPayForTrackAccess(selectedTrack);
+                      return;
+                    }
+                    onShowWalletModal();
+                  }}
+                >
+                  <KeyRound size={16} />
+                  {previewCtaLabel}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -328,14 +261,10 @@ export function PlayerView({
             <h2>{streamTitle}</h2>
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : hostName || 'Room'}</span>
             <div className='access-badges'>
-              <span className='access-chip'>{accessModeLabelFromState(effectiveAccessMode)}</span>
-              <span className='access-chip'>{effectiveAccessMode === 'classic' ? `${effectivePriceDot} DOT` : 'Free'}</span>
-              {(selectedTrack?.source === 'artist' || selectedTrack?.artistAddress) && (
-                <span className='access-chip access-chip-trust'>
-                  <BadgeCheck size={13} />
-                  Artist-owned
-                </span>
-              )}
+              <span className='access-chip' data-tone={needsTrackAccess ? 'preview' : 'ready'}>
+                {accessStatusLabel}
+              </span>
+              <span className='access-chip'>{accessPriceLabel}</span>
             </div>
             <p className='track-description'>{trackInfo?.description ?? selectedTrack?.description ?? description}</p>
 
@@ -629,14 +558,18 @@ export function PlayerView({
         </div>
 
         <div className='doc-panel player-context-panel'>
-          <PanelTitle icon={Library} title='Track access' meta={selectedTrack ? accessModeLabel(selectedTrack) : accessModeLabelFromState(accessMode)} />
+          <PanelTitle
+            icon={Library}
+            title='Listening access'
+            meta={needsTrackAccess ? 'Preview mode' : selectedTrack ? accessModeLabel(selectedTrack) : accessModeLabelFromState(accessMode)}
+          />
           <div className='stack-list'>
             <EndpointRow label='Artist' value={streamArtist} />
             <EndpointRow
-              label='Access'
-              value={(selectedTrack?.accessMode ?? accessMode) === 'classic' ? `${selectedTrack?.priceDot ?? priceDot} DOT` : 'Verified human'}
+              label={(selectedTrack?.accessMode ?? accessMode) === 'classic' ? 'Full track' : 'Access'}
+              value={(selectedTrack?.accessMode ?? accessMode) === 'classic' ? `${selectedTrack?.priceDot ?? priceDot} DOT` : 'Human pass'}
             />
-            <EndpointRow label='Saved' value={trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'On-chain manifest' : 'Draft'} />
+            <EndpointRow label='Release' value={trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'Published' : 'Draft'} />
           </div>
           <button className='secondary-action' type='button' onClick={onNavigateToListen}>
             Back to catalog
@@ -644,7 +577,7 @@ export function PlayerView({
         </div>
       </div>
 
-      {qrProjectorDialog && (typeof document === 'undefined' ? qrProjectorDialog : createPortal(qrProjectorDialog, document.body))}
+      {qrProjectorDialog}
     </section>
   );
 }

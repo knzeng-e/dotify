@@ -1,4 +1,4 @@
-import { BadgeCheck, CircleCheckBig, Headphones, KeyRound, Library, Play, Radio, Share2, ShieldCheck, Users, Wallet } from 'lucide-react';
+import { BadgeCheck, CircleCheckBig, Disc3, Headphones, KeyRound, Library, Radio, Share2, ShieldCheck, Users, Wallet } from 'lucide-react';
 import { PanelTitle } from '../components/ui/PanelTitle';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../utils/format';
@@ -75,7 +75,7 @@ export function ListenView({
               </span>
             </span>
             <span className='home-live-cta'>
-              {heroRoom ? <Headphones size={17} /> : <Play size={17} fill='currentColor' />}
+              {heroRoom ? <Headphones size={17} /> : <Disc3 size={17} />}
               {heroRoom ? 'Join room' : 'Open player'}
             </span>
           </button>

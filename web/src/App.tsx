@@ -57,7 +57,7 @@ const viewCopy: Record<View, { title: string; eyebrow: string }> = {
   listen: { title: 'Now', eyebrow: 'Live rooms' },
   player: { title: 'Listen', eyebrow: 'Catalog and player' },
   rooms: { title: 'Rooms', eyebrow: 'Join or create' },
-  you: { title: 'You', eyebrow: 'Wallet and artist mode' }
+  you: { title: 'Account', eyebrow: 'Wallet and artist space' }
 };
 
 const releaseStepsConfig: Array<{ id: ReleaseStep; label: string }> = [
@@ -77,6 +77,24 @@ function getInitialView(): View {
 
 function isArtistPortalPath() {
   return window.location.pathname.replace(/\/$/, '') === '/artists';
+}
+
+function catalogTrackToTrackInfo(track: CatalogTrack): TrackInfo {
+  return {
+    title: track.title,
+    artist: track.artist,
+    hash: track.hash,
+    bulletinRef: track.bulletinRef,
+    duration: track.duration ?? 0,
+    updatedAt: Date.now(),
+    imageRef: track.imageRef,
+    audioRef: track.audioRef,
+    metadataRef: track.metadataRef,
+    description: track.description,
+    accessMode: track.accessMode,
+    priceDot: track.priceDot,
+    personhoodLevel: track.personhoodLevel
+  };
 }
 
 function getHistoryStateObject(): Record<string, unknown> {
@@ -158,6 +176,18 @@ export default function App() {
       return;
     }
     window.history.pushState(nextState, '', window.location.href);
+  }
+
+  function handleOpenArtistStudio() {
+    setPublicArtistName(null);
+    setIsArtistPortal(true);
+    const nextState = { ...getHistoryStateObject(), dotifyView: activeView };
+    if (isArtistPortal) {
+      window.history.replaceState(nextState, '', '/artists');
+    } else {
+      window.history.pushState(nextState, '', '/artists');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ── getActiveWalletClient (defined before hooks that need it) ─────────────────
@@ -263,8 +293,10 @@ export default function App() {
 
   // ── Derived values ────────────────────────────────────────────────────────────
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
+  const selectedTrackHasAccess = selectedTrack
+    ? selectedTrack.source !== 'artist' || !selectedTrack.id.includes(':') || catalog.catalogAccessByTrackId[selectedTrack.id] === true
+    : false;
   const artistTracks = catalog.catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
-  const unlockedTrackCount = Object.values(catalog.catalogAccessByTrackId).filter(Boolean).length;
   const streamTitle = catalog.trackInfo?.title || selectedTrack?.title || title;
   const streamArtist = catalog.trackInfo?.artist || selectedTrack?.artist || artistName;
   const activeListeners = session.listeners.filter(listener => listener.status === 'connected').length;
@@ -544,24 +576,6 @@ export default function App() {
     void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
   }
 
-  function trackToInfo(track: CatalogTrack): TrackInfo {
-    return {
-      title: track.title,
-      artist: track.artist,
-      hash: track.hash,
-      bulletinRef: track.bulletinRef,
-      duration: track.duration ?? 0,
-      updatedAt: Date.now(),
-      imageRef: track.imageRef,
-      audioRef: track.audioRef,
-      metadataRef: track.metadataRef,
-      description: track.description,
-      accessMode: track.accessMode,
-      priceDot: track.priceDot,
-      personhoodLevel: track.personhoodLevel
-    };
-  }
-
   function getHostPlaybackModeForRoom(track: CatalogTrack | undefined): RoomPlaybackMode {
     if (!track) return catalog.previewOnlyRef.current ? 'preview' : 'full';
     if (catalog.selectedTrackId === track.id && catalog.previewOnlyRef.current) return 'preview';
@@ -584,7 +598,7 @@ export default function App() {
         catalog.previewOnlyRef.current = true;
         return 'preview';
       });
-      session.createSession(trackToInfo(track), playbackMode);
+      session.createSession(catalogTrackToTrackInfo(track), playbackMode);
     })();
   }
 
@@ -632,7 +646,7 @@ export default function App() {
   function handleCreateSession(event?: import('react').FormEvent<HTMLFormElement>) {
     let currentTrack = catalog.trackInfo;
     if (selectedTrack && !currentTrack) {
-      currentTrack = trackToInfo(selectedTrack);
+      currentTrack = catalogTrackToTrackInfo(selectedTrack);
     }
     session.createSession(currentTrack, getHostPlaybackModeForRoom(selectedTrack), event);
   }
@@ -686,6 +700,15 @@ export default function App() {
       }}
       onForgetPasskey={forgetPasskey}
       onDisconnect={disconnectWallet}
+      onOpenAccountDetails={() => {
+        setShowWalletModal(false);
+        navigateToView('you');
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            document.getElementById('account-dashboard-title')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          });
+        });
+      }}
       onClose={() => setShowWalletModal(false)}
     />
   );
@@ -715,7 +738,7 @@ export default function App() {
         session.requestOpenRooms(true);
       }
     },
-    { view: 'you', label: 'You', icon: UserRound, onSelect: () => navigateToView('you') }
+    { view: 'you', label: 'Account', icon: UserRound, onSelect: () => navigateToView('you') }
   ];
 
   if (isArtistPortal) {
@@ -954,6 +977,7 @@ export default function App() {
                     error={session.error}
                     streamTitle={streamTitle}
                     streamArtist={streamArtist}
+                    selectedTrackHasAccess={selectedTrackHasAccess}
                     accessMode={accessMode}
                     priceDot={priceDot}
                     description={description}
@@ -994,8 +1018,17 @@ export default function App() {
                     artistRuntimeAddress={artistConsole.artistRuntimeAddress}
                     artistReleaseCount={artistTracks.length}
                     totalRoyaltyWei={totalRoyaltyWei}
-                    unlockedTrackCount={unlockedTrackCount}
+                    unlockedTrackCount={paidTracks.length}
                     supportedArtistCount={supportedArtists.length}
+                    supportedArtists={supportedArtists}
+                    unlockedTracks={paidTracks.map(track => ({
+                      id: track.id,
+                      title: track.title,
+                      artist: track.artist,
+                      priceDot: track.priceDot,
+                      hash: track.hash
+                    }))}
+                    onOpenArtistStudio={handleOpenArtistStudio}
                     onShowWalletModal={() => setShowWalletModal(true)}
                     onDisconnectWallet={disconnectWallet}
                   />

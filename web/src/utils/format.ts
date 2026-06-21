@@ -51,6 +51,10 @@ export function shorten(value: string, visible: number) {
   return `${value.slice(0, visible)}...${value.slice(-visible)}`;
 }
 
+export function shortenAddress(address: string) {
+  return address.length > 14 ? `${address.slice(0, 8)}...${address.slice(-6)}` : address;
+}
+
 export function stripExtension(fileName: string) {
   return fileName.replace(/\.[^/.]+$/, '');
 }
