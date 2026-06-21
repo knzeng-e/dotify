@@ -1769,6 +1769,8 @@ audio {
   transition:
     background 150ms ease,
     color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
     transform 150ms ease;
   cursor: pointer;
 }
@@ -1781,14 +1783,18 @@ audio {
 }
 
 .segmented button:hover {
-  background: rgba(41, 232, 122, 0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--fg-primary);
 }
 
 .segmented button.active {
-  background: var(--bg-action-primary);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0.08) 100%),
+    var(--bg-action-primary);
   color: #06152d;
-  box-shadow: var(--shadow-1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.60),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.14);
 }
 
 /* ── Form fields ── */
@@ -1850,14 +1856,26 @@ audio {
 /* ── Primary action button ── */
 
 .primary-action {
-  background: var(--bg-action-primary);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.20) 0%, rgba(0, 0, 0, 0.08) 100%),
+    var(--bg-action-primary);
   color: #06152d;
   font-weight: 700;
-  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.14),
+    0 3px 10px -2px rgba(0, 0, 0, 0.38);
 }
 
 .primary-action:hover:not(:disabled) {
-  background: var(--bg-action-primary-hover);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.30) 0%, rgba(0, 0, 0, 0.04) 100%),
+    var(--bg-action-primary-hover);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.80),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.10),
+    0 5px 16px -3px rgba(0, 0, 0, 0.40);
   transform: translateY(-1px);
 }
 
@@ -1871,8 +1889,15 @@ audio {
 .secondary-action,
 .preset-row button,
 .room-row button {
-  background: var(--bg-action-secondary);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(0, 0, 0, 0.10) 100%),
+    var(--bg-action-secondary);
   color: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+    0 2px 8px -2px rgba(0, 0, 0, 0.42);
 }
 
 .secondary-action {
@@ -1883,7 +1908,14 @@ audio {
 .secondary-action:hover:not(:disabled),
 .preset-row button:hover:not(:disabled),
 .room-row button:hover:not(:disabled) {
-  background: var(--bg-action-secondary-hover);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(0, 0, 0, 0.06) 100%),
+    var(--bg-action-secondary-hover);
+  border-color: rgba(255, 255, 255, 0.13);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 4px 12px -2px rgba(0, 0, 0, 0.46);
   transform: translateY(-1px);
 }
 
@@ -3517,30 +3549,52 @@ h4 {
 }
 
 .primary-action {
-  background: var(--bg-action-primary);
-  color: #052012;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.20) 0%, rgba(0, 0, 0, 0.08) 100%),
+    var(--bg-action-primary);
+  color: #06152d;
   font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow:
-    0 14px 34px -18px rgba(41, 232, 122, 0.8),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.14),
+    0 3px 10px -2px rgba(0, 0, 0, 0.38);
 }
 
 .primary-action:hover:not(:disabled) {
-  background: var(--bg-action-primary-hover);
-  color: #052012;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.30) 0%, rgba(0, 0, 0, 0.04) 100%),
+    var(--bg-action-primary-hover);
+  color: #06152d;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.80),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.10),
+    0 5px 16px -3px rgba(0, 0, 0, 0.40);
 }
 
 .secondary-action,
 .artist-entry-link {
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(0, 0, 0, 0.10) 100%),
+    rgba(255, 255, 255, 0.055);
   color: rgba(245, 248, 255, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+    0 2px 8px -2px rgba(0, 0, 0, 0.42);
 }
 
 .secondary-action:hover:not(:disabled),
 .artist-entry-link:hover {
-  border-color: rgba(41, 232, 122, 0.28);
-  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(0, 0, 0, 0.06) 100%),
+    rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 4px 12px -2px rgba(0, 0, 0, 0.46);
   color: #ffffff;
 }
 
