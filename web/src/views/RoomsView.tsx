@@ -5,56 +5,118 @@ import type { OpenRoom, SessionAction } from '../types';
 // ── Inline SVG icons ────────────────────────────────────────────────────────
 function SvgBroadcast({ size }: { size: number }) {
   return (
-    <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
-      <path d='M4.9 19.1C1 15.2 1 8.8 4.9 4.9'/>
-      <path d='M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5'/>
-      <circle cx='12' cy='12' r='2'/>
-      <path d='M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5'/>
-      <path d='M19.1 4.9C23 8.8 23 15.1 19.1 19'/>
+    <svg
+      width={size}
+      height={size}
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      aria-hidden='true'
+    >
+      <path d='M4.9 19.1C1 15.2 1 8.8 4.9 4.9' />
+      <path d='M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5' />
+      <circle cx='12' cy='12' r='2' />
+      <path d='M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5' />
+      <path d='M19.1 4.9C23 8.8 23 15.1 19.1 19' />
     </svg>
   );
 }
 function SvgHeadphones({ size }: { size: number }) {
   return (
-    <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
-      <path d='M3 18v-6a9 9 0 0 1 18 0v6'/>
-      <path d='M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z'/>
-      <path d='M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z'/>
+    <svg
+      width={size}
+      height={size}
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      aria-hidden='true'
+    >
+      <path d='M3 18v-6a9 9 0 0 1 18 0v6' />
+      <path d='M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z' />
+      <path d='M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z' />
     </svg>
   );
 }
 function SvgRefresh({ size, spinning }: { size: number; spinning?: boolean }) {
   return (
-    <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true' className={spinning ? 'spin' : ''}>
-      <polyline points='23 4 23 10 17 10'/>
-      <polyline points='1 20 1 14 7 14'/>
-      <path d='M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15'/>
+    <svg
+      width={size}
+      height={size}
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      aria-hidden='true'
+      className={spinning ? 'spin' : ''}
+    >
+      <polyline points='23 4 23 10 17 10' />
+      <polyline points='1 20 1 14 7 14' />
+      <path d='M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15' />
     </svg>
   );
 }
 function SvgSpinner({ size }: { size: number }) {
   return (
-    <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true' className='spin'>
-      <path d='M21 12a9 9 0 1 1-6.219-8.56'/>
+    <svg
+      width={size}
+      height={size}
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      aria-hidden='true'
+      className='spin'
+    >
+      <path d='M21 12a9 9 0 1 1-6.219-8.56' />
     </svg>
   );
 }
 function SvgKey({ size }: { size: number }) {
   return (
-    <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
-      <circle cx='7.5' cy='15.5' r='5.5'/>
-      <path d='M21 2l-9.6 9.6'/>
-      <path d='M15.5 7.5l3 3L22 7l-3-3'/>
+    <svg
+      width={size}
+      height={size}
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      aria-hidden='true'
+    >
+      <circle cx='7.5' cy='15.5' r='5.5' />
+      <path d='M21 2l-9.6 9.6' />
+      <path d='M15.5 7.5l3 3L22 7l-3-3' />
     </svg>
   );
 }
 function SvgUsers({ size }: { size: number }) {
   return (
-    <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
-      <path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/>
-      <circle cx='9' cy='7' r='4'/>
-      <path d='M23 21v-2a4 4 0 0 0-3-3.87'/>
-      <path d='M16 3.13a4 4 0 0 1 0 7.75'/>
+    <svg
+      width={size}
+      height={size}
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      aria-hidden='true'
+    >
+      <path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' />
+      <circle cx='9' cy='7' r='4' />
+      <path d='M23 21v-2a4 4 0 0 0-3-3.87' />
+      <path d='M16 3.13a4 4 0 0 1 0 7.75' />
     </svg>
   );
 }
@@ -79,7 +141,17 @@ const ROOM_ACTIONS: Array<{ value: RoomAction; label: string }> = [
   { value: 'join', label: 'Join an existing room' }
 ];
 
-export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRooms, onSetJoinCode, onJoinRoom, onJoinSession, onRefreshRooms, onStartRoom }: RoomsViewProps) {
+export function RoomsView({
+  openRooms,
+  joinCode,
+  sessionAction,
+  isRefreshingRooms,
+  onSetJoinCode,
+  onJoinRoom,
+  onJoinSession,
+  onRefreshRooms,
+  onStartRoom
+}: RoomsViewProps) {
   const [action, setAction] = useState<RoomAction>('start');
   const [isActionPickerOpen, setIsActionPickerOpen] = useState(false);
   const actionPickerRef = useRef<HTMLDivElement | null>(null);
@@ -227,19 +299,15 @@ export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRoom
         <div className='rooms-board'>
           <div className='doc-panel rooms-live-panel'>
             <div className='panel-title'>
-              <span className='panel-title-icon'><SvgBroadcast size={15} /></span>
+              <span className='panel-title-icon'>
+                <SvgBroadcast size={15} />
+              </span>
               <span className='panel-title-text'>Happening now</span>
               <span className='panel-title-meta'>{openRooms.length} open</span>
             </div>
             <div className='room-card-grid'>
               {openRooms.map(room => (
-                <button
-                  className='room-live-card'
-                  type='button'
-                  key={room.roomId}
-                  onClick={() => onJoinRoom(room.roomId)}
-                  disabled={sessionAction !== 'idle'}
-                >
+                <button className='room-live-card' type='button' key={room.roomId} onClick={() => onJoinRoom(room.roomId)} disabled={sessionAction !== 'idle'}>
                   <span className='room-live-art' aria-hidden='true'>
                     {room.track?.imageRef && <img src={room.track.imageRef} alt='' crossOrigin='anonymous' />}
                   </span>

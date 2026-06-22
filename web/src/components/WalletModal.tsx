@@ -243,7 +243,9 @@ export function WalletModal({
       <div className='modal-copy'>
         <p className='modal-eyebrow'>Account</p>
         <h2 id='wallet-modal-title'>Your wallet, quietly</h2>
-        <p id='wallet-modal-desc'>Use Dotify without creating a platform account. Your wallet opens paid or protected releases while rooms stay easy to join.</p>
+        <p id='wallet-modal-desc'>
+          Use Dotify without creating a platform account. Your wallet opens paid or protected releases while rooms stay easy to join.
+        </p>
       </div>
 
       {state.status === 'error' && <p className='error-box'>{state.message}</p>}

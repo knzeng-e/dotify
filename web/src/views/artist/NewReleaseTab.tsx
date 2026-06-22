@@ -301,9 +301,7 @@ export function NewReleaseTab({
             </div>
           </div>
         </div>
-        <div className='rights-status'>
-          Audio, cover art, and release details stay portable instead of being locked inside one platform.
-        </div>
+        <div className='rights-status'>Audio, cover art, and release details stay portable instead of being locked inside one platform.</div>
       </div>
     </section>
   );

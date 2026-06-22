@@ -578,7 +578,6 @@ export default function App() {
     void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
   }
 
-
   function handleOpenArtistProfile(name: string) {
     setPublicArtistName(name);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -637,7 +636,6 @@ export default function App() {
     setPublicArtistName(null);
     session.joinRoom(roomId);
   }
-
 
   // ── Render ────────────────────────────────────────────────────────────────────
   const paidTrackIds = Object.entries(catalog.catalogPaidAccessByTrackId)

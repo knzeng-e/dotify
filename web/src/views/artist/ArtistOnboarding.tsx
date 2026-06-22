@@ -50,8 +50,8 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
           </div>
           <h1 id='artist-claim-title'>Claim your artist space on Dotify.</h1>
           <p>
-            Connect the wallet that owns your catalog, publish music from your artist space, and keep the listener experience centered on shared rooms,
-            clear listening doors, and transparent payments.
+            Connect the wallet that owns your catalog, publish music from your artist space, and keep the listener experience centered on shared rooms, clear
+            listening doors, and transparent payments.
           </p>
           <div className='artist-claim-actions'>
             <a className='primary-action' href='#claim-profile'>

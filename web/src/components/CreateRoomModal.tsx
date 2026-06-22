@@ -10,31 +10,51 @@ import type { CatalogTrack } from '../types';
 
 const MOODS = [
   { id: 'late-night', label: 'Late night', color: '#6366f1', desc: 'Deep, introspective, after midnight.' },
-  { id: 'morning',    label: 'Morning',    color: '#0ea5e9', desc: 'Light energy, fresh start of day.' },
-  { id: 'focus',      label: 'Focus',      color: '#8b5cf6', desc: 'No distractions, full presence.' },
-  { id: 'drive',      label: 'Drive',      color: '#f59e0b', desc: 'Forward motion, bold tempo.' },
-  { id: 'together',   label: 'Together',   color: '#ec4899', desc: 'Shared, open, warm company.' },
+  { id: 'morning', label: 'Morning', color: '#0ea5e9', desc: 'Light energy, fresh start of day.' },
+  { id: 'focus', label: 'Focus', color: '#8b5cf6', desc: 'No distractions, full presence.' },
+  { id: 'drive', label: 'Drive', color: '#f59e0b', desc: 'Forward motion, bold tempo.' },
+  { id: 'together', label: 'Together', color: '#ec4899', desc: 'Shared, open, warm company.' }
 ] as const;
 
 type MoodId = (typeof MOODS)[number]['id'];
 
 function SvgBroadcast({ size }: { size: number }) {
   return (
-    <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
-      <path d='M4.9 19.1C1 15.2 1 8.8 4.9 4.9'/>
-      <path d='M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5'/>
-      <circle cx='12' cy='12' r='2'/>
-      <path d='M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5'/>
-      <path d='M19.1 4.9C23 8.8 23 15.1 19.1 19'/>
+    <svg
+      width={size}
+      height={size}
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      aria-hidden='true'
+    >
+      <path d='M4.9 19.1C1 15.2 1 8.8 4.9 4.9' />
+      <path d='M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5' />
+      <circle cx='12' cy='12' r='2' />
+      <path d='M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5' />
+      <path d='M19.1 4.9C23 8.8 23 15.1 19.1 19' />
     </svg>
   );
 }
 
 function SvgLink({ size }: { size: number }) {
   return (
-    <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
-      <path d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/>
-      <path d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/>
+    <svg
+      width={size}
+      height={size}
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      aria-hidden='true'
+    >
+      <path d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71' />
+      <path d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71' />
     </svg>
   );
 }
@@ -123,7 +143,9 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
       </div>
       <p className='create-room-mood-desc'>{selectedMood.desc}</p>
 
-      <label className='create-room-label' htmlFor='create-room-name'>Your name in the room</label>
+      <label className='create-room-label' htmlFor='create-room-name'>
+        Your name in the room
+      </label>
       <input
         id='create-room-name'
         className='field'

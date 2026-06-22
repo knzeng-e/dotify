@@ -123,7 +123,9 @@ export function PlayerView({
   const roomPresenceCount = roomId ? listenerCount + 1 : 0;
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
   const disconnectedListeners = listeners.filter(listener => listener.status === 'disconnected');
-  const showManualAudioStart = Boolean(mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus)));
+  const showManualAudioStart = Boolean(
+    mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
+  );
   const showAudioRetry = Boolean(mode === 'listener' && roomId && (!remoteReady || status === 'no-audio'));
 
   // Local ambient reactions over the cover (visual delight, not broadcast).
@@ -448,7 +450,9 @@ export function PlayerView({
                   </div>
                   {transport.playing ? (
                     <span className='room-eq' aria-hidden='true'>
-                      <i /><i /><i />
+                      <i />
+                      <i />
+                      <i />
                     </span>
                   ) : (
                     <i data-status={localStreamReady ? 'connected' : 'waiting'} />
@@ -466,7 +470,9 @@ export function PlayerView({
                       </div>
                       {listener.status === 'connected' ? (
                         <span className='room-eq' aria-hidden='true'>
-                          <i /><i /><i />
+                          <i />
+                          <i />
+                          <i />
                         </span>
                       ) : (
                         <i data-status='connecting' />
@@ -517,7 +523,9 @@ export function PlayerView({
                 </div>
                 {remoteReady ? (
                   <span className='room-eq' aria-hidden='true'>
-                    <i /><i /><i />
+                    <i />
+                    <i />
+                    <i />
                   </span>
                 ) : (
                   <i data-status='waiting' />

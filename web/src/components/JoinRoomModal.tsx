@@ -37,7 +37,9 @@ export function JoinRoomModal({ displayName, joinCode, sessionAction, onSetDispl
       </div>
 
       <form onSubmit={handleSubmit}>
-        <label className='create-room-label' htmlFor='join-room-name'>Your name in the room</label>
+        <label className='create-room-label' htmlFor='join-room-name'>
+          Your name in the room
+        </label>
         <input
           id='join-room-name'
           className='field'
@@ -48,7 +50,9 @@ export function JoinRoomModal({ displayName, joinCode, sessionAction, onSetDispl
           autoComplete='nickname'
         />
 
-        <label className='create-room-label' htmlFor='join-room-code'>Room code</label>
+        <label className='create-room-label' htmlFor='join-room-code'>
+          Room code
+        </label>
         <input
           id='join-room-code'
           className='field code-field'
