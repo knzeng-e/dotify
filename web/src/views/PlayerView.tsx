@@ -76,8 +76,7 @@ function userFacingDescription(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return '';
 
-  const metadataLabelCount =
-    trimmed.match(/\b(?:Titre|Duree|Durée|Auteurs?|Compositeur|Album|Genre musical|Annee|Année|Commentaires?)\s*:/gi)?.length ?? 0;
+  const metadataLabelCount = trimmed.match(/\b(?:Titre|Duree|Durée|Auteurs?|Compositeur|Album|Genre musical|Annee|Année|Commentaires?)\s*:/gi)?.length ?? 0;
 
   return metadataLabelCount >= 2 ? '' : trimmed;
 }
