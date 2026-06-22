@@ -187,6 +187,22 @@ describe('signaling server', () => {
     assert.equal(server.rooms.get(created.roomId).listeners.size, 0);
   });
 
+  it('routes listener audio retry requests back to the host', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Gabe' });
+
+    const ready = once(host, 'listener:ready');
+    listener.emit('listener:ready');
+    const payload = await ready;
+    assert.equal(payload.displayName, 'Gabe');
+    assert.equal(payload.listenerCount, 1);
+    assert.equal(typeof payload.listenerId, 'string');
+  });
+
   it('expires rooms past their TTL', async () => {
     await server.close();
     server = startSignalingServer({ port: 0, host: '127.0.0.1', roomTtlMs: 50, sweepIntervalMs: 20, logger: () => {} });

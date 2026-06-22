@@ -197,7 +197,7 @@ export function ArtistConsole(props: ArtistConsoleProps) {
         <div className='studio-id'>
           <h1>
             {artistName}
-            <BadgeCheck size={22} aria-label='Verified artist-owned runtime' />
+            <BadgeCheck size={22} aria-label='Verified artist space' />
           </h1>
           <div className='studio-id-sub'>
             <span>@{studioHandle}</span>

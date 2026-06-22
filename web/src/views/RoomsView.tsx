@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import type { OpenRoom, SessionAction } from '../types';
 
@@ -72,10 +72,119 @@ type RoomsViewProps = {
   onStartRoom: () => void;
 };
 
+type RoomAction = 'start' | 'join';
+
+const ROOM_ACTIONS: Array<{ value: RoomAction; label: string }> = [
+  { value: 'start', label: 'Start a room' },
+  { value: 'join', label: 'Join an existing room' }
+];
+
 export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRooms, onSetJoinCode, onJoinRoom, onJoinSession, onRefreshRooms, onStartRoom }: RoomsViewProps) {
-  const [action, setAction] = useState<'start' | 'join'>('start');
+  const [action, setAction] = useState<RoomAction>('start');
+  const [isActionPickerOpen, setIsActionPickerOpen] = useState(false);
+  const actionPickerRef = useRef<HTMLDivElement | null>(null);
   const totalListening = openRooms.reduce((total, room) => total + room.listenerCount + 1, 0);
   const isJoining = sessionAction === 'joining';
+  const selectedAction = ROOM_ACTIONS.find(item => item.value === action) ?? ROOM_ACTIONS[0];
+
+  useEffect(() => {
+    if (!isActionPickerOpen) return;
+
+    function onPointerDown(event: PointerEvent) {
+      if (!actionPickerRef.current?.contains(event.target as Node)) {
+        setIsActionPickerOpen(false);
+      }
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsActionPickerOpen(false);
+      }
+    }
+
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isActionPickerOpen]);
+
+  const renderActionPicker = (id: string) => (
+    <div className='rooms-action-picker' ref={actionPickerRef}>
+      <span id={`${id}-label`}>What do you want to do?</span>
+      <button
+        id={`${id}-button`}
+        className='rooms-action-select'
+        type='button'
+        aria-haspopup='listbox'
+        aria-expanded={isActionPickerOpen}
+        aria-controls={`${id}-menu`}
+        aria-labelledby={`${id}-label ${id}-button`}
+        onClick={() => setIsActionPickerOpen(open => !open)}
+        onKeyDown={event => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            setIsActionPickerOpen(true);
+          }
+        }}
+      >
+        <span>{selectedAction.label}</span>
+        <i aria-hidden='true' />
+      </button>
+      {isActionPickerOpen && (
+        <div className='rooms-action-menu' id={`${id}-menu`} role='listbox' aria-labelledby={`${id}-label`}>
+          {ROOM_ACTIONS.map(item => (
+            <button
+              key={item.value}
+              type='button'
+              role='option'
+              aria-selected={item.value === action}
+              onClick={() => {
+                setAction(item.value);
+                setIsActionPickerOpen(false);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderActionPanel = (variant: 'empty' | 'side') => (
+    <div className={variant === 'empty' ? 'rooms-empty-panel' : 'rooms-inline-panel'}>
+      {action === 'start' ? (
+        <>
+          <p>Pick a track, open the room, copy the link. Anyone can join — no wallet, no sign-up.</p>
+          <button className='primary-action wide room-action-submit' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
+            <SvgBroadcast size={16} />
+            Open room
+          </button>
+        </>
+      ) : (
+        <>
+          <p>Paste the room code or link you received.</p>
+          <form className='session-form room-action-form' onSubmit={onJoinSession}>
+            <input
+              className='field code-field room-action-field'
+              value={joinCode}
+              onChange={event => onSetJoinCode(event.target.value)}
+              placeholder='ABC123 or room link'
+              maxLength={140}
+              aria-label='Room code or room link'
+              autoFocus={variant === 'empty'}
+            />
+            <button className='primary-action wide room-action-submit' type='submit' disabled={sessionAction !== 'idle'}>
+              {isJoining ? <SvgSpinner size={16} /> : <SvgHeadphones size={16} />}
+              {isJoining ? 'Joining...' : 'Join room'}
+            </button>
+          </form>
+        </>
+      )}
+    </div>
+  );
 
   return (
     <section className='rooms-landing'>
@@ -103,55 +212,10 @@ export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRoom
       {openRooms.length === 0 ? (
         /* ── Empty state: centered action picker ───────────────────────── */
         <div className='rooms-empty-cta'>
-          <div className='rooms-action-segs' role='group' aria-label='Room action'>
-            <button
-              className={'rooms-action-seg' + (action === 'start' ? ' is-on' : '')}
-              type='button'
-              onClick={() => setAction('start')}
-              aria-pressed={action === 'start'}
-            >
-              <SvgBroadcast size={15} />
-              Start a room
-            </button>
-            <button
-              className={'rooms-action-seg' + (action === 'join' ? ' is-on' : '')}
-              type='button'
-              onClick={() => setAction('join')}
-              aria-pressed={action === 'join'}
-            >
-              <SvgHeadphones size={15} />
-              Join a room
-            </button>
+          <div className='rooms-action-stack'>
+            {renderActionPicker('rooms-empty-action')}
+            {renderActionPanel('empty')}
           </div>
-
-          {action === 'start' ? (
-            <div className='rooms-empty-panel'>
-              <p>Pick a track, open the room, copy the link. Anyone can join — no wallet, no sign-up.</p>
-              <button className='primary-action wide' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
-                <SvgBroadcast size={16} />
-                Open room
-              </button>
-            </div>
-          ) : (
-            <div className='rooms-empty-panel'>
-              <p>Paste a room code or link you received.</p>
-              <form className='session-form' onSubmit={onJoinSession}>
-                <input
-                  className='field code-field'
-                  value={joinCode}
-                  onChange={event => onSetJoinCode(event.target.value.toUpperCase())}
-                  placeholder='ABC123'
-                  maxLength={12}
-                  aria-label='Room code'
-                  autoFocus
-                />
-                <button className='primary-action wide' type='submit' disabled={sessionAction !== 'idle'}>
-                  {isJoining ? <SvgSpinner size={16} /> : <SvgHeadphones size={16} />}
-                  {isJoining ? 'Joining...' : 'Join room'}
-                </button>
-              </form>
-            </div>
-          )}
 
           <button className='rooms-empty-refresh' type='button' onClick={onRefreshRooms} disabled={isRefreshingRooms}>
             <SvgRefresh size={14} spinning={isRefreshingRooms} />
@@ -206,32 +270,10 @@ export function RoomsView({ openRooms, joinCode, sessionAction, isRefreshingRoom
           </div>
 
           <aside className='doc-panel rooms-join-panel'>
-            <div className='rooms-start-section'>
-              <strong>Host a room</strong>
-              <p>Pick a track, open the room, share the link.</p>
-              <button className='primary-action' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
-                <SvgBroadcast size={16} />
-                Start a room
-              </button>
+            <div className='rooms-action-stack'>
+              {renderActionPicker('rooms-side-action')}
+              {renderActionPanel('side')}
             </div>
-
-            <div className='rooms-section-divider' />
-
-            <p className='rooms-join-label'>Join by code</p>
-            <form className='session-form' onSubmit={onJoinSession}>
-              <input
-                className='field code-field'
-                value={joinCode}
-                onChange={event => onSetJoinCode(event.target.value.toUpperCase())}
-                placeholder='ABC123'
-                maxLength={12}
-                aria-label='Room code'
-              />
-              <button className='primary-action' type='submit' disabled={sessionAction !== 'idle'}>
-                {isJoining ? <SvgSpinner size={16} /> : <SvgHeadphones size={16} />}
-                {isJoining ? 'Joining...' : 'Join room'}
-              </button>
-            </form>
             <button className='secondary-action' type='button' onClick={onRefreshRooms} disabled={isRefreshingRooms}>
               <SvgRefresh size={15} spinning={isRefreshingRooms} />
               {isRefreshingRooms ? 'Refreshing...' : 'Refresh rooms'}

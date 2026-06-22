@@ -957,6 +957,7 @@ export default function App() {
                     roomId={session.roomId}
                     sessionLink={session.sessionLink}
                     sessionAction={session.sessionAction}
+                    sessionStatus={session.sessionStatus}
                     listenerCount={session.listenerCount}
                     listeners={session.listeners}
                     remoteReady={session.remoteReady}
@@ -967,10 +968,10 @@ export default function App() {
                     selectedTrackHasAccess={selectedTrackHasAccess}
                     accessMode={accessMode}
                     priceDot={priceDot}
-                    description={description}
                     onShowCreateModal={() => setCreateRoomOpen(true)}
                     onShowJoinModal={() => setJoinRoomOpen(true)}
                     onLeaveSession={session.leaveSession}
+                    onRetryRoomAudio={session.requestRoomAudio}
                     onCopySessionLink={session.copySessionLink}
                     onSetAccessGate={catalog.setAccessGate}
                     onPayForTrackAccess={track => {

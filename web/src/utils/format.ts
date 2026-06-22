@@ -60,8 +60,23 @@ export function stripExtension(fileName: string) {
 }
 
 export function normalizeRoomCode(roomCode: string) {
-  return roomCode
-    .trim()
+  const raw = roomCode.trim();
+  if (!raw) return '';
+
+  const explicitMatch = raw.match(/(?:#\/)?rooms\/([A-Za-z0-9]{4,12})/i) ?? raw.match(/[?&]room=([A-Za-z0-9]{4,12})/i);
+  if (explicitMatch?.[1]) return explicitMatch[1].toUpperCase();
+
+  try {
+    const url = new URL(raw, window.location.href);
+    const hashMatch = url.hash.match(/\/rooms\/([A-Za-z0-9]{4,12})/i);
+    const searchRoom = url.searchParams.get('room');
+    if (hashMatch?.[1]) return hashMatch[1].toUpperCase();
+    if (searchRoom) return normalizeRoomCode(searchRoom);
+  } catch {
+    // Plain room codes are handled below.
+  }
+
+  return raw
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '')
     .slice(0, 12);
@@ -91,11 +106,11 @@ export function accessModeLabel(track: CatalogTrack) {
 }
 
 export function accessModeLabelFromState(mode: AccessMode) {
-  return mode === 'human-free' ? 'Human-verified' : 'Paid';
+  return mode === 'human-free' ? 'Listener pass' : 'Full song';
 }
 
 export function catalogAccessLabel(track: CatalogTrack) {
-  return track.accessMode === 'classic' ? `${track.priceDot} DOT` : 'Free for humans';
+  return track.accessMode === 'classic' ? `${track.priceDot} DOT` : 'Free with listener pass';
 }
 
 export function catalogAccessAriaLabel(track: CatalogTrack, hasAccess: boolean) {
@@ -111,7 +126,7 @@ export function describeArtistRegistrationError(error: unknown) {
   }
 
   if (/artist already has a runtime/i.test(message)) {
-    return 'This signer already owns a SmartRuntime. Refresh the status and manage releases on that runtime.';
+    return 'This wallet already owns an artist space. Refresh the status and manage releases there.';
   }
 
   return message;

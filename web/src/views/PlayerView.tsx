@@ -42,6 +42,7 @@ type PlayerViewProps = {
   roomId: string;
   sessionLink: string;
   sessionAction: SessionAction;
+  sessionStatus: string;
   listenerCount: number;
   listeners: ListenerRecord[];
   remoteReady: boolean;
@@ -53,11 +54,11 @@ type PlayerViewProps = {
   selectedTrackHasAccess: boolean;
   accessMode: AccessMode;
   priceDot: string;
-  description: string;
   // Callbacks
   onShowCreateModal: () => void;
   onShowJoinModal: () => void;
   onLeaveSession: () => void;
+  onRetryRoomAudio: () => void;
   onCopySessionLink: () => void;
   onSetAccessGate: (gate: AccessGate | null) => void;
   onPayForTrackAccess: (track: CatalogTrack) => void;
@@ -66,14 +67,6 @@ type PlayerViewProps = {
   onOpenArtist: (artistName: string) => void;
 };
 
-function userFacingDescription(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return '';
-
-  const metadataLabelCount = trimmed.match(/\b(?:Titre|Duree|Durée|Auteurs?|Compositeur|Album|Genre musical|Annee|Année|Commentaires?)\s*:/gi)?.length ?? 0;
-
-  return metadataLabelCount >= 2 ? '' : trimmed;
-}
 
 export function PlayerView({
   trackInfo,
@@ -86,6 +79,7 @@ export function PlayerView({
   roomId,
   sessionLink,
   sessionAction,
+  sessionStatus,
   listenerCount,
   listeners,
   remoteReady,
@@ -99,13 +93,13 @@ export function PlayerView({
   onShowCreateModal,
   onShowJoinModal,
   onLeaveSession,
+  onRetryRoomAudio,
   onCopySessionLink,
   onSetAccessGate,
   onPayForTrackAccess,
   onShowWalletModal,
   onNavigateToListen,
-  onOpenArtist,
-  description
+  onOpenArtist
 }: PlayerViewProps) {
   const effectiveAccessMode = trackInfo?.accessMode ?? selectedTrack?.accessMode ?? accessMode;
   const effectivePriceDot = trackInfo?.priceDot ?? selectedTrack?.priceDot ?? priceDot;
@@ -123,14 +117,14 @@ export function PlayerView({
   const needsTrackAccess = Boolean(selectedTrack && isManagedTrack && !selectedTrackHasAccess);
   const showPreviewAction = Boolean(needsTrackAccess && selectedTrack);
   const showWideStatus = Boolean(selectedTrack && !showPreviewAction);
-  const accessStatusLabel = needsTrackAccess ? 'Preview mode' : effectiveAccessMode === 'classic' ? 'Full song' : 'Ready to listen';
-  const accessPriceLabel = effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT to unlock` : 'Artist supported') : 'Open in rooms';
-  const trackPanelMeta = needsTrackAccess ? 'Preview mode' : 'Ready to play';
-  const trackAccessValue =
-    effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT to unlock` : 'Full song ready') : 'Open in this room';
-  const releaseStateLabel = trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'In the catalog' : 'Being prepared';
-  const previewCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full song' : 'Continue';
-  const displayDescription = userFacingDescription(trackInfo?.description ?? selectedTrack?.description ?? description);
+  const accessStatusLabel = needsTrackAccess ? 'Preview mode' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
+  const accessPriceLabel = effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT` : 'Unlocked for this wallet') : 'Human pass';
+  const previewCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full track' : 'Check access';
+  const roomPresenceCount = roomId ? listenerCount + 1 : 0;
+  const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
+  const disconnectedListeners = listeners.filter(listener => listener.status === 'disconnected');
+  const showManualAudioStart = Boolean(mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus)));
+  const showAudioRetry = Boolean(mode === 'listener' && roomId && (!remoteReady || status === 'no-audio'));
 
   // Local ambient reactions over the cover (visual delight, not broadcast).
   function sendReaction(emoji: string) {
@@ -175,7 +169,7 @@ export function PlayerView({
             <span className='live-dot' />
             Live
           </span>
-          <span className='room-header-meta'>{mode === 'host' ? `${listenerCount + 1} in the room` : `with ${hostName || 'the host'}`}</span>
+          <span className='room-header-meta'>{mode === 'host' ? `${roomPresenceCount} in the room` : `with ${hostName || 'the host'}`}</span>
           <div className='room-code-pill'>
             <span>ROOM</span>
             <strong className='tnum'>{roomId}</strong>
@@ -190,7 +184,7 @@ export function PlayerView({
         <div className='room-promise-strip' aria-label='Room access model'>
           <span>
             <Users size={14} />
-            {listenerCount + 1} present
+            {roomPresenceCount} present
           </span>
           <span>
             <KeyRound size={14} />
@@ -270,7 +264,6 @@ export function PlayerView({
               </span>
               <span className='access-chip'>{accessPriceLabel}</span>
             </div>
-            {displayDescription && <p className='track-description'>{displayDescription}</p>}
 
             <div className='player-transport' data-playing={transport.playing}>
               <div className='transport-cluster' aria-label='Track navigation'>
@@ -461,8 +454,8 @@ export function PlayerView({
                     <i data-status={localStreamReady ? 'connected' : 'waiting'} />
                   )}
                 </div>
-                {listeners.length > 0 ? (
-                  listeners.map(listener => (
+                {activeListeners.length > 0 ? (
+                  activeListeners.map(listener => (
                     <div className='list-row' key={listener.id}>
                       <div className='room-person-main'>
                         <Avatar name={listener.displayName} size={34} />
@@ -485,6 +478,15 @@ export function PlayerView({
                     <div>
                       <strong>No listeners yet</strong>
                       <span>Share the link to fill the room</span>
+                    </div>
+                    <i data-status='waiting' />
+                  </div>
+                )}
+                {disconnectedListeners.length > 0 && (
+                  <div className='list-row muted-row'>
+                    <div>
+                      <strong>{disconnectedListeners.length === 1 ? 'A listener left' : 'Some listeners left'}</strong>
+                      <span>The room count only includes people still connected.</span>
                     </div>
                     <i data-status='waiting' />
                   </div>
@@ -524,6 +526,23 @@ export function PlayerView({
 
               <p className='room-doctrine-note'>You are listening with the host. The link is enough to be here.</p>
 
+              {(showManualAudioStart || showAudioRetry) && (
+                <button
+                  className='primary-action'
+                  type='button'
+                  onClick={() => {
+                    if (showManualAudioStart) {
+                      void playback.togglePlay();
+                      return;
+                    }
+                    onRetryRoomAudio();
+                  }}
+                >
+                  <Headphones size={16} />
+                  {showManualAudioStart ? 'Start audio' : 'Retry audio'}
+                </button>
+              )}
+
               <button className='secondary-action' type='button' onClick={onLeaveSession}>
                 Leave
               </button>
@@ -534,11 +553,14 @@ export function PlayerView({
         </div>
 
         <div className='doc-panel player-context-panel'>
-          <PanelTitle icon={Library} title='Current track' meta={trackPanelMeta} />
+          <PanelTitle icon={Library} title='Current track' meta={needsTrackAccess ? 'Preview mode' : 'Ready to play'} />
           <div className='stack-list'>
             <EndpointRow label='Artist' value={streamArtist} />
-            <EndpointRow label='Listen' value={trackAccessValue} />
-            <EndpointRow label='Status' value={releaseStateLabel} />
+            <EndpointRow
+              label='Listen'
+              value={effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT to unlock` : 'Full track ready') : 'Open in this room'}
+            />
+            <EndpointRow label='Status' value={trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'In the catalog' : 'Being prepared'} />
           </div>
           <button className='secondary-action' type='button' onClick={onNavigateToListen}>
             Browse music

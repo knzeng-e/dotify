@@ -50,8 +50,8 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
           </div>
           <h1 id='artist-claim-title'>Claim your artist space on Dotify.</h1>
           <p>
-            Register the wallet that owns your catalog, publish music from your own SmartRuntime, and keep the listener experience centered on shared rooms,
-            direct access, and transparent payments.
+            Connect the wallet that owns your catalog, publish music from your artist space, and keep the listener experience centered on shared rooms,
+            clear listening doors, and transparent payments.
           </p>
           <div className='artist-claim-actions'>
             <a className='primary-action' href='#claim-profile'>
@@ -67,7 +67,7 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
         <div className='artist-claim-proof' aria-label='Artist tools summary'>
           <div>
             <strong>Own the release path</strong>
-            <span>One profile per wallet, with royalties tied to the artist runtime.</span>
+            <span>One profile per wallet, with royalties tied to your artist space.</span>
           </div>
           <div>
             <strong>Publish into listening rooms</strong>
@@ -75,7 +75,7 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
           </div>
           <div>
             <strong>Keep context attached</strong>
-            <span>Metadata, access mode, personhood rules, and pricing travel with the track.</span>
+            <span>Release details, listening rules, and pricing travel with the track.</span>
           </div>
         </div>
       </section>
@@ -149,8 +149,8 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
           <div className='step'>
             <div className='step-number'>3</div>
             <div className='step-content'>
-              <h3>Register your SmartRuntime</h3>
-              <p>Deploy your personal contract to manage releases and royalties.</p>
+              <h3>Register your artist space</h3>
+              <p>Create the space that manages releases and royalties.</p>
               <div className='registration-status'>
                 <span className='status-text'>{registrationStatus}</span>
               </div>

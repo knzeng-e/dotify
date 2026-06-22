@@ -8,7 +8,7 @@ import type { ChangeEvent } from 'react';
 
 const releaseSteps: Array<{ id: ReleaseStep; label: string }> = [
   { id: 'assets', label: 'Assets' },
-  { id: 'metadata', label: 'Metadata' },
+  { id: 'metadata', label: 'Details' },
   { id: 'access', label: 'Access' },
   { id: 'review', label: 'Review' }
 ];
@@ -157,27 +157,27 @@ export function NewReleaseTab({
           <div className='wizard-panel'>
             <div className='fields-grid'>
               <label>
-                <span>Access mode</span>
+                <span>Listening door</span>
                 <select
                   className='field'
                   value={accessMode}
                   onChange={event => onSetAccessMode(event.target.value as AccessMode)}
                   disabled={artistStudioLocked}
                 >
-                  <option value='human-free'>Human free</option>
-                  <option value='classic'>Classic</option>
+                  <option value='human-free'>Listener pass</option>
+                  <option value='classic'>Paid unlock</option>
                 </select>
               </label>
               <label>
-                <span>PoP level</span>
+                <span>Pass level</span>
                 <select
                   className='field'
                   value={personhoodLevel}
                   onChange={event => onSetPersonhoodLevel(event.target.value as PersonhoodLevel)}
                   disabled={artistStudioLocked}
                 >
-                  <option value='DIM1'>DIM1</option>
-                  <option value='DIM2'>DIM2</option>
+                  <option value='DIM1'>Basic pass</option>
+                  <option value='DIM2'>Extended pass</option>
                 </select>
               </label>
               <label>
@@ -239,12 +239,12 @@ export function NewReleaseTab({
                 onChange={event => onSetUploadToBulletinEnabled(event.target.checked)}
                 disabled={artistStudioLocked}
               />
-              <span>Archive manifest to Bulletin Chain</span>
+              <span>Keep a public release archive</span>
             </label>
             <div className='rights-status'>
               {accessMode === 'human-free'
-                ? `Human free means access through personhood, not surveillance. Listeners with Polkadot Proof of Personhood ${personhoodLevel} can unlock the full track.`
-                : `Classic access means direct payment in DOT. The artist runtime records who paid and settles royalties transparently.`}
+                ? 'Listener pass means the full song can open without ad-style profiles.'
+                : 'Paid unlock means listeners see the price first and support goes directly to the artist.'}
             </div>
           </div>
         )}
@@ -297,12 +297,12 @@ export function NewReleaseTab({
             <p>{description || 'Add a short release note to help listeners understand the world behind this track.'}</p>
             <div className='access-badges'>
               <span>{accessModeLabelFromState(accessMode)}</span>
-              <span>{accessMode === 'classic' ? `${priceDot} DOT` : `PoP ${personhoodLevel}`}</span>
+              <span>{accessMode === 'classic' ? `${priceDot} DOT` : 'Listener pass'}</span>
             </div>
           </div>
         </div>
         <div className='rights-status'>
-          Audio, cover art, and metadata are pinned to open networks. Dotify keeps the release portable instead of locking it inside one platform.
+          Audio, cover art, and release details stay portable instead of being locked inside one platform.
         </div>
       </div>
     </section>

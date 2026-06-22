@@ -202,17 +202,17 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (track.accessMode === 'classic') {
         return {
           track,
-          title: 'Unlock full track',
-          message: `"${track.title}" costs ${track.priceDot} DOT for full access. Connect a wallet first, then support the artist directly.`,
-          hint: 'No account required. Your wallet only proves access and handles payment.',
+          title: 'Unlock full song',
+          message: `"${track.title}" is available as a preview. Unlock the full track for ${track.priceDot} DOT and support the artist directly.`,
+          hint: 'No platform account needed. Confirm once from your wallet.',
           actionType: 'signin'
         };
       }
       return {
         track,
-        title: 'Human proof needed',
-        message: `"${track.title}" is protected by the artist. You can preview 42% now; connect a wallet to check access without creating an account.`,
-        hint: 'Your wallet is your key. Dotify does not need your private information.',
+        title: 'Listener pass needed',
+        message: `"${track.title}" is protected by the artist. Preview 42% now, or connect your pass to listen in full.`,
+        hint: 'Dotify only checks whether the door should open.',
         actionType: 'signin'
       };
     }
@@ -220,17 +220,17 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (track.accessMode === 'human-free') {
       return {
         track,
-        title: 'Human proof needed',
-        message: `"${track.title}" is reserved for listeners with ${track.personhoodLevel} personhood proof. You can preview 42% now.`,
-        hint: 'Personhood unlocks access without turning you into an ad profile.',
+        title: 'Listener pass needed',
+        message: `"${track.title}" needs the right listener pass. You can preview 42% now.`,
+        hint: 'No profile is created for this check.',
         actionType: 'personhood'
       };
     }
     return {
       track,
-      title: 'Unlock full track',
+      title: 'Unlock full song',
       message: `"${track.title}" unlocks after a ${track.priceDot} DOT payment. You can preview 42% now.`,
-      hint: 'Your payment goes directly to the artist, not an opaque intermediary account.',
+      hint: 'Your support goes directly to the artist.',
       actionType: 'payment'
     };
   }

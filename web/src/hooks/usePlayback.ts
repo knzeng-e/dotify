@@ -58,6 +58,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const [muted, setMutedState] = useState(false);
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [shuffleEnabled, setShuffleEnabled] = useState(false);
+  const [remotePausedByUser, setRemotePausedByUser] = useState(false);
 
   // When a track is opened/skipped we want sound to start as soon as the new
   // source is ready, without forcing the user to press play again.
@@ -70,14 +71,26 @@ export function usePlayback(deps: UsePlaybackDeps) {
     onOpenTrackRef.current = onOpenTrack;
   }, [onOpenTrack]);
 
-  const getActiveAudio = useCallback(() => (mode === 'host' ? localAudioRef.current : remoteAudioRef.current), [mode, localAudioRef, remoteAudioRef]);
+  const isAudioPlaying = useCallback((audio: HTMLAudioElement | null) => Boolean(audio && !audio.paused && !audio.ended), []);
 
-  const canUseTransport = mode === 'host' ? Boolean(audioSource) : remoteReady;
+  const getModeAudio = useCallback(() => (mode === 'host' ? localAudioRef.current : remoteAudioRef.current), [mode, localAudioRef, remoteAudioRef]);
+
+  const getPlayingAudio = useCallback(() => {
+    const localAudio = localAudioRef.current;
+    const remoteAudio = remoteAudioRef.current;
+    if (isAudioPlaying(localAudio)) return localAudio;
+    if (isAudioPlaying(remoteAudio)) return remoteAudio;
+    return null;
+  }, [isAudioPlaying, localAudioRef, remoteAudioRef]);
+
+  const getControllingAudio = useCallback(() => getPlayingAudio() ?? getModeAudio(), [getPlayingAudio, getModeAudio]);
+
+  const canUseTransport = transport.playing || (mode === 'host' ? Boolean(audioSource) : remoteReady);
   const canSkip = mode === 'host' && catalogTracks.length > 1;
   const canShuffle = mode === 'host' && catalogTracks.length > 1;
 
   const syncFromAudio = useCallback(
-    (audio: HTMLAudioElement | null = getActiveAudio()) => {
+    (audio: HTMLAudioElement | null = getControllingAudio()) => {
       if (!audio) return;
       setTransport(previous => ({
         playing: !audio.paused,
@@ -88,10 +101,10 @@ export function usePlayback(deps: UsePlaybackDeps) {
       setStatus(previous => {
         if (!audio.paused) return 'playing';
         if (previous === 'autoplay-blocked' || previous === 'no-audio') return previous;
-        return mode === 'host' ? 'ready' : previous;
+        return mode === 'host' ? 'ready' : remoteReady ? 'ready' : previous;
       });
     },
-    [getActiveAudio, mode]
+    [getControllingAudio, mode, remoteReady]
   );
 
   // Mark intent to start playback as soon as the active source is ready.
@@ -114,17 +127,25 @@ export function usePlayback(deps: UsePlaybackDeps) {
   // Listener: reflect the host's broadcast clock and the connection lifecycle.
   useEffect(() => {
     if (mode !== 'listener') return;
-    if (playerState) setTransport(playerState);
-  }, [mode, playerState]);
+    if (playerState) {
+      setTransport(remotePausedByUser ? { ...playerState, playing: false, updatedAt: Date.now() } : playerState);
+    }
+  }, [mode, playerState, remotePausedByUser]);
 
   useEffect(() => {
     if (mode !== 'listener') return;
     // Before the first broadcast arrives, a freshly connected listener is
     // "Connected" rather than "In sync" - default to not-playing.
-    setStatus(remoteReady ? ((playerState?.playing ?? false) ? 'playing' : 'ready') : 'joining');
+    setStatus(remoteReady ? (!remotePausedByUser && (playerState?.playing ?? false) ? 'playing' : 'ready') : 'joining');
     // Depend only on the play flag: playerState is a fresh object on every host
     // clock tick (~4 Hz), but only playing/paused changes the status.
-  }, [mode, remoteReady, playerState?.playing]);
+  }, [mode, remoteReady, remotePausedByUser, playerState?.playing]);
+
+  useEffect(() => {
+    if (mode !== 'listener' || !remoteReady) {
+      setRemotePausedByUser(false);
+    }
+  }, [mode, remoteReady]);
 
   // Listener: as soon as the remote stream lands (remoteReady), attempt playback.
   // Surfaces 'autoplay-blocked' so the UI shows "Tap play to start" instead of
@@ -157,11 +178,26 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const toggleMute = useCallback(() => applyMuted(!muted), [applyMuted, muted]);
 
   const togglePlay = useCallback(async () => {
-    const audio = getActiveAudio();
+    const playingAudio = getPlayingAudio();
+    if (playingAudio) {
+      if (isAudioPlaying(localAudioRef.current)) {
+        localAudioRef.current?.pause();
+      }
+      if (isAudioPlaying(remoteAudioRef.current)) {
+        remoteAudioRef.current?.pause();
+        if (mode === 'listener') setRemotePausedByUser(true);
+      }
+      syncFromAudio(playingAudio);
+      if (mode === 'host' || playingAudio === localAudioRef.current) onEmitPlayerState(true);
+      return;
+    }
+
+    const audio = getControllingAudio();
     if (!audio || !canUseTransport) return;
     if (audio.paused) {
       try {
         await audio.play();
+        if (audio === remoteAudioRef.current) setRemotePausedByUser(false);
         setStatus('playing');
       } catch {
         setStatus('autoplay-blocked');
@@ -174,18 +210,18 @@ export function usePlayback(deps: UsePlaybackDeps) {
     }
     syncFromAudio(audio);
     if (mode === 'host') onEmitPlayerState(true);
-  }, [getActiveAudio, canUseTransport, mode, syncFromAudio, onEmitPlayerState]);
+  }, [getPlayingAudio, isAudioPlaying, localAudioRef, remoteAudioRef, mode, syncFromAudio, onEmitPlayerState, getControllingAudio, canUseTransport]);
 
   const seekToProgress = useCallback(
     (progressPercent: number) => {
-      const audio = getActiveAudio();
+      const audio = getControllingAudio();
       const duration = transport.duration;
       if (!audio || duration <= 0) return;
       audio.currentTime = Math.min(duration, Math.max(0, (progressPercent / 100) * duration));
       syncFromAudio(audio);
       if (mode === 'host') onEmitPlayerState(true);
     },
-    [getActiveAudio, transport.duration, syncFromAudio, mode, onEmitPlayerState]
+    [getControllingAudio, transport.duration, syncFromAudio, mode, onEmitPlayerState]
   );
 
   const getSkipTrack = useCallback(
@@ -274,7 +310,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     toggleRepeat,
     toggleShuffle,
     // wiring used by <PersistentAudio>
-    getActiveAudio,
+    getActiveAudio: getControllingAudio,
     syncFromAudio,
     handleEnded,
     handleHostLoadedMetadata,

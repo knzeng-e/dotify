@@ -57,7 +57,7 @@ export function YouView({
             </span>
             <div>
               <strong>{wallet ? wallet.label : 'No wallet connected'}</strong>
-              <span>{isConnected ? 'Ready for access checks' : 'Connect only when a door needs it'}</span>
+              <span>{isConnected ? 'Ready when a release needs confirmation' : 'Connect only when you choose to unlock'}</span>
             </div>
           </div>
 
@@ -76,7 +76,7 @@ export function YouView({
               </div>
             </>
           ) : (
-            <p className='you-muted'>Listen to rooms through shared links without an account. Unlocking a protected release asks for your wallet.</p>
+            <p className='you-muted'>Listen to rooms through shared links without an account. Unlock a protected release only when you choose to.</p>
           )}
 
           <div className='you-actions'>

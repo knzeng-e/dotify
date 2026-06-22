@@ -80,7 +80,7 @@ export function WalletModal({
           </button>
         </div>
         <div className='modal-copy'>
-          <p className='modal-eyebrow'>Your wallet</p>
+          <p className='modal-eyebrow'>Account</p>
           <h2 id='wallet-modal-title'>Connected, on your terms</h2>
         </div>
 
@@ -101,9 +101,9 @@ export function WalletModal({
         </div>
 
         <div className='wallet-network' data-warning={walletChainMismatch}>
-          <span>Network</span>
-          <strong>{wallet.chainId !== undefined ? `Chain ${wallet.chainId}` : wallet.method === 'passkey' ? 'App signer' : 'Unknown'}</strong>
-          {walletChainMismatch && <small>Wrong network for Dotify</small>}
+          <span>Connection</span>
+          <strong>{walletChainMismatch ? 'Needs attention' : wallet.method === 'passkey' ? 'This device' : 'Wallet app'}</strong>
+          {walletChainMismatch && <small>Choose the right network to continue</small>}
           {walletChainMismatch && wallet.method === 'extension' && onSwitchNetwork && (
             <button className='wallet-network-action' type='button' onClick={onSwitchNetwork} disabled={isSwitchingNetwork}>
               <RefreshCw size={14} className={isSwitchingNetwork ? 'spin' : undefined} />
@@ -114,12 +114,12 @@ export function WalletModal({
 
         <div className='wallet-stats'>
           <div>
-            <strong className='tnum'>{supportingCount}</strong>
-            <span>artist{supportingCount === 1 ? '' : 's'} backed</span>
-          </div>
-          <div>
             <strong className='tnum'>{unlockedCount}</strong>
             <span>track{unlockedCount === 1 ? '' : 's'} unlocked</span>
+          </div>
+          <div>
+            <strong className='tnum'>{supportingCount}</strong>
+            <span>artist{supportingCount === 1 ? '' : 's'} backed</span>
           </div>
         </div>
 
@@ -142,7 +142,7 @@ export function WalletModal({
                     <span>
                       <strong>{artist.artist}</strong>
                       <small>
-                        {artist.trackCount} paid track{artist.trackCount === 1 ? '' : 's'}
+                        {artist.trackCount} unlocked track{artist.trackCount === 1 ? '' : 's'}
                       </small>
                     </span>
                     {artist.artistAddress && (
@@ -197,7 +197,7 @@ export function WalletModal({
           </span>
           <span className='wallet-option-copy'>
             <strong>You hold your keys</strong>
-            <small id='wallet-modal-desc'>Dotify never sees your seed. Payments and access proofs are signed by you, on your device.</small>
+            <small id='wallet-modal-desc'>Dotify never sees your recovery phrase. Unlocks and artist support stay approved by you, on your device.</small>
           </span>
         </div>
 
@@ -243,7 +243,7 @@ export function WalletModal({
       <div className='modal-copy'>
         <p className='modal-eyebrow'>Account</p>
         <h2 id='wallet-modal-title'>Your wallet, quietly</h2>
-        <p id='wallet-modal-desc'>Use Dotify without creating a platform account. Your wallet proves access while your keys stay with you.</p>
+        <p id='wallet-modal-desc'>Use Dotify without creating a platform account. Your wallet opens paid or protected releases while rooms stay easy to join.</p>
       </div>
 
       {state.status === 'error' && <p className='error-box'>{state.message}</p>}
@@ -264,7 +264,7 @@ export function WalletModal({
               <strong>
                 {state.status === 'needs-reconnect' && state.via === 'passkey' ? 'Reconnect passkey' : hasStoredPasskey ? 'Use passkey' : 'Create passkey'}
               </strong>
-              <small>Use this device without a seed phrase prompt.</small>
+              <small>Use this device without a recovery phrase prompt.</small>
             </span>
           </button>
         )}
@@ -275,7 +275,7 @@ export function WalletModal({
           </span>
           <span className='wallet-option-copy'>
             <strong>Use wallet app</strong>
-            <small>Bring your existing wallet when a signature is needed.</small>
+            <small>Bring your existing wallet when a confirmation is needed.</small>
           </span>
         </button>
 

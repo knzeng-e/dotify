@@ -289,6 +289,19 @@ export function startSignalingServer(overrides = {}) {
       routePeerMessage(payload.targetId, 'peer:connected', { from: socket.id });
     });
 
+    socket.on('listener:ready', () => {
+      const roomId = socket.data.roomId;
+      const room = rooms.get(roomId);
+      if (socket.data.role !== 'listener' || !room) return;
+
+      const listener = room.listeners.get(socket.id);
+      io.to(room.hostId).emit('listener:ready', {
+        listenerId: socket.id,
+        displayName: listener?.displayName ?? 'Listener',
+        listenerCount: room.listeners.size
+      });
+    });
+
     socket.on('rooms:list', reply => {
       reply?.(publicRooms());
     });

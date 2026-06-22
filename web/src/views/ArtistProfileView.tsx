@@ -26,9 +26,9 @@ function hashHue(value: string) {
 function artistBio(artistName: string, tracks: CatalogTrack[]) {
   const describedTrack = tracks.find(track => track.description.trim());
   if (!describedTrack) {
-    return `${artistName} publishes on Dotify with an artist-owned runtime, protected access, and music that can move through shared listening rooms.`;
+    return `${artistName} shares music on Dotify with rooms built for live presence, clear listening doors, and direct artist support.`;
   }
-  return `${describedTrack.description} On Dotify, this catalog lives in an artist-owned space where access and value flows stay attached to the work.`;
+  return `${describedTrack.description} On Dotify, this catalog can move through shared rooms while support stays attached to the work.`;
 }
 
 function profileVars(artistName: string): CSSProperties {
@@ -76,7 +76,7 @@ export function ArtistProfileView({
           {artistName.slice(0, 2).toUpperCase()}
         </div>
         <div className='artist-profile-copy'>
-          <p className='eyebrow'>Artist-owned space</p>
+          <p className='eyebrow'>Artist space</p>
           <h1>
             {artistName}
             {verified && <BadgeCheck size={23} aria-label='Verified artist' />}
@@ -90,7 +90,7 @@ export function ArtistProfileView({
                 .replace(/^\.+|\.+$/g, '') || 'artist'}
             </span>
             <span>
-              {artistTracks.length} registered track{artistTracks.length === 1 ? '' : 's'}
+              {artistTracks.length} release{artistTracks.length === 1 ? '' : 's'}
             </span>
             <span>{activeListeners > 0 ? `${activeListeners} listening now` : 'ready for the next room'}</span>
           </div>
@@ -142,22 +142,22 @@ export function ArtistProfileView({
           <div className='panel-title'>
             <span>
               <UsersRound size={16} />
-              Trust marks
+              Why it matters
             </span>
-            <small>quiet web3</small>
+            <small>artist control</small>
           </div>
           <div className='principle-list'>
             <div>
-              <strong>Artist-owned runtime</strong>
-              <span>The catalog keeps its access rules and rights context attached.</span>
+              <strong>Artist control</strong>
+              <span>The artist decides how each release opens and how support flows back.</span>
             </div>
             <div>
               <strong>Rooms first</strong>
               <span>Discovery happens through people listening in the same moment.</span>
             </div>
             <div>
-              <strong>Payments are explicit</strong>
-              <span>Classic unlocks show price and access before the listener pays.</span>
+              <strong>Direct support</strong>
+              <span>When a release has a price, listeners see it before unlocking.</span>
             </div>
           </div>
         </section>
@@ -188,7 +188,7 @@ export function ArtistProfileView({
                   <img src={track.imageRef} alt='' crossOrigin='anonymous' />
                   <div>
                     <strong>{track.title}</strong>
-                    <span>{track.description || 'Artist-owned release on Dotify.'}</span>
+                    <span>{track.description || 'A Dotify release ready for preview, rooms, and direct support.'}</span>
                     <small aria-label={catalogAccessAriaLabel(track, hasCatalogAccess)}>{catalogAccessLabel(track)}</small>
                   </div>
                 </article>
