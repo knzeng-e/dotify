@@ -132,7 +132,6 @@ export function useSession(deps: UseSessionDeps) {
     listenerPeerRef.current?.close();
     listenerPeerRef.current = null;
     pendingIceCandidatesRef.current.clear();
-    pendingIceCandidatesRef.current.clear();
     const remoteAudio = remoteAudioRef.current;
     if (remoteAudio) {
       remoteAudio.pause();
