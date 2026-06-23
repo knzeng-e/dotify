@@ -102,8 +102,6 @@ export function useSession(deps: UseSessionDeps) {
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastPlayerStateEmitRef = useRef(0);
-  const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
-
   function upsertListener(listener: ListenerRecord) {
     setListeners(previous => {
       const next = previous.some(item => item.id === listener.id)
@@ -133,7 +131,7 @@ export function useSession(deps: UseSessionDeps) {
   function closeListenerPeer() {
     listenerPeerRef.current?.close();
     listenerPeerRef.current = null;
-    pendingCandidatesRef.current.clear();
+    pendingIceCandidatesRef.current.clear();
     pendingIceCandidatesRef.current.clear();
     const remoteAudio = remoteAudioRef.current;
     if (remoteAudio) {
@@ -437,7 +435,7 @@ export function useSession(deps: UseSessionDeps) {
 
   function createHostPeer(listenerId: string) {
     hostPeersRef.current.get(listenerId)?.close();
-    pendingCandidatesRef.current.delete(listenerId);
+    pendingIceCandidatesRef.current.delete(listenerId);
     const peer = new RTCPeerConnection({ iceServers });
     const stream = localStreamRef.current;
 
@@ -569,13 +567,6 @@ export function useSession(deps: UseSessionDeps) {
     const peer = modeRef.current === 'host' ? hostPeersRef.current.get(from) : listenerPeerRef.current;
     if (!peer || !peer.remoteDescription) {
       queueRemoteCandidate(from, candidate);
-      return;
-    }
-
-    if (!peer.remoteDescription) {
-      const bucket = pendingCandidatesRef.current.get(from) ?? [];
-      bucket.push(candidate);
-      pendingCandidatesRef.current.set(from, bucket);
       return;
     }
 

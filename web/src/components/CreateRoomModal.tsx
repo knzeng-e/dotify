@@ -1,22 +1,12 @@
 // ── Create / share a room ─────────────────────────────────────────────────────
 // "As easy as sharing a link." A thin, honest wrapper over the existing
-// createSession flow: pick what is playing, set a mood, open the room. The
+// createSession flow: pick what is playing, name yourself, open the room. The
 // shareable link is shown as pending until the server assigns a room code (no
 // fabricated URL); the room header then exposes the real Copy link.
 
 import { useState } from 'react';
 import { Dialog } from './Dialog';
 import type { CatalogTrack } from '../types';
-
-const MOODS = [
-  { id: 'late-night', label: 'Late night', color: '#6366f1', desc: 'Deep, introspective, after midnight.' },
-  { id: 'morning', label: 'Morning', color: '#0ea5e9', desc: 'Light energy, fresh start of day.' },
-  { id: 'focus', label: 'Focus', color: '#8b5cf6', desc: 'No distractions, full presence.' },
-  { id: 'drive', label: 'Drive', color: '#f59e0b', desc: 'Forward motion, bold tempo.' },
-  { id: 'together', label: 'Together', color: '#ec4899', desc: 'Shared, open, warm company.' }
-] as const;
-
-type MoodId = (typeof MOODS)[number]['id'];
 
 function SvgBroadcast({ size }: { size: number }) {
   return (
@@ -70,8 +60,6 @@ type CreateRoomModalProps = {
 
 export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDisplayName, onClose, onOpenRoom }: CreateRoomModalProps) {
   const [picked, setPicked] = useState<CatalogTrack | undefined>(initialTrack ?? tracks[0]);
-  const [moodId, setMoodId] = useState<MoodId>(MOODS[0].id);
-  const selectedMood = MOODS.find(m => m.id === moodId) ?? MOODS[0];
 
   return (
     <Dialog className='create-room-modal' size='wide' labelledBy='create-room-title' onClose={onClose}>
@@ -123,26 +111,6 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
         </>
       )}
 
-      <div className='create-room-label-group'>
-        <p className='create-room-label'>Vibe</p>
-        <span className='create-room-label-hint'>Sets the tone of your room.</span>
-      </div>
-      <div className='create-room-vibes' role='group' aria-label='Vibe'>
-        {MOODS.map(option => (
-          <button
-            key={option.id}
-            className={'create-room-vibe-seg' + (moodId === option.id ? ' is-on' : '')}
-            style={{ '--mood-color': option.color } as React.CSSProperties}
-            type='button'
-            onClick={() => setMoodId(option.id)}
-            aria-pressed={moodId === option.id}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-      <p className='create-room-mood-desc'>{selectedMood.desc}</p>
-
       <label className='create-room-label' htmlFor='create-room-name'>
         Your name in the room
       </label>
@@ -153,10 +121,16 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
         onChange={event => onSetDisplayName(event.target.value)}
         placeholder='How should people see you?'
         maxLength={32}
+        autoFocus
       />
 
       <div className='create-room-actions'>
-        <button className='primary-action wide' type='button' disabled={!picked} onClick={() => picked && onOpenRoom(picked)}>
+        <button
+          className='primary-action wide'
+          type='button'
+          disabled={!picked || !displayName.trim()}
+          onClick={() => picked && onOpenRoom(picked)}
+        >
           <SvgBroadcast size={16} />
           Open the room
         </button>

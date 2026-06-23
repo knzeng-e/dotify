@@ -207,18 +207,25 @@ export function RoomsView({
       {isActionPickerOpen && (
         <div className='rooms-action-menu' id={`${id}-menu`} role='listbox' aria-labelledby={`${id}-label`}>
           {ROOM_ACTIONS.map(item => (
-            <button
+            <div
               key={item.value}
-              type='button'
               role='option'
+              tabIndex={0}
               aria-selected={item.value === action}
               onClick={() => {
                 setAction(item.value);
                 setIsActionPickerOpen(false);
               }}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setAction(item.value);
+                  setIsActionPickerOpen(false);
+                }
+              }}
             >
               {item.label}
-            </button>
+            </div>
           ))}
         </div>
       )}

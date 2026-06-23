@@ -118,6 +118,7 @@ export default function App() {
   const [publicArtistName, setPublicArtistName] = useState<string | null>(null);
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
   const [joinRoomOpen, setJoinRoomOpen] = useState(false);
+  const [pendingArtistTrack, setPendingArtistTrack] = useState<CatalogTrack | null>(null);
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
   const [releaseStep, setReleaseStep] = useState<ReleaseStep>('assets');
@@ -583,17 +584,21 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // Opens the room after the user has confirmed their display name in the modal.
+  async function executeArtistRoom(track: CatalogTrack) {
+    const playbackMode = await catalog.openTrack(track).catch((): RoomPlaybackMode => {
+      catalog.previewOnlyRef.current = true;
+      return 'preview';
+    });
+    session.createSession(catalogTrackToTrackInfo(track), playbackMode);
+  }
+
+  // Entry point from artist profile / room cards — opens CreateRoomModal so the
+  // host can set their display name before the room is created.
   function handleOpenArtistRoom(track: CatalogTrack) {
     setPublicArtistName(null);
-    void (async () => {
-      const playbackMode = await catalog.openTrack(track).catch((): RoomPlaybackMode => {
-        // Room creation should still fail closed to preview metadata if track
-        // preparation cannot prove full host access.
-        catalog.previewOnlyRef.current = true;
-        return 'preview';
-      });
-      session.createSession(catalogTrackToTrackInfo(track), playbackMode);
-    })();
+    setPendingArtistTrack(track);
+    setCreateRoomOpen(true);
   }
 
   async function handleSwitchNetwork() {
@@ -1048,13 +1053,17 @@ export default function App() {
         {createRoomOpen && (
           <CreateRoomModal
             tracks={catalog.catalogTracks}
-            initialTrack={selectedTrack ?? catalog.catalogTracks[0]}
+            initialTrack={pendingArtistTrack ?? selectedTrack ?? catalog.catalogTracks[0]}
             displayName={session.displayName}
             onSetDisplayName={session.setDisplayName}
-            onClose={() => setCreateRoomOpen(false)}
+            onClose={() => {
+              setCreateRoomOpen(false);
+              setPendingArtistTrack(null);
+            }}
             onOpenRoom={track => {
               setCreateRoomOpen(false);
-              handleOpenArtistRoom(track);
+              setPendingArtistTrack(null);
+              void executeArtistRoom(track);
             }}
           />
         )}

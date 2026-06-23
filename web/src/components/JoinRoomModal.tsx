@@ -17,7 +17,7 @@ export function JoinRoomModal({ displayName, joinCode, sessionAction, onSetDispl
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (joinCode.trim()) onJoin(joinCode);
+    if (joinCode.trim()) onJoin(joinCode.trim());
   }
 
   return (
@@ -65,7 +65,7 @@ export function JoinRoomModal({ displayName, joinCode, sessionAction, onSetDispl
         />
 
         <div className='create-room-actions'>
-          <button className='primary-action wide' type='submit' disabled={isJoining || !joinCode.trim()}>
+          <button className='primary-action wide' type='submit' disabled={isJoining || !joinCode.trim() || !displayName.trim()}>
             {isJoining ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
             {isJoining ? 'Joining...' : 'Join room'}
           </button>
