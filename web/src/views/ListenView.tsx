@@ -88,13 +88,13 @@ export function ListenView({
               {totalListening} listening together now
             </p>
             <h2>Make the track a place.</h2>
-            <p>Shared presence on the surface. Artist-held access, protected audio, and policy beneath it.</p>
+            <p>Start with a song, open a room, and let people join the same listening moment.</p>
             <div className='home-hero-trust-row' aria-label='Dotify trust model'>
               <span>
-                <KeyRound size={14} /> Artists keep keys
+                <KeyRound size={14} /> Artists stay in control
               </span>
               <span>
-                <ShieldCheck size={14} /> Access fails closed
+                <ShieldCheck size={14} /> Clear listening doors
               </span>
               <span>
                 <Users size={14} /> Guests just listen
@@ -112,7 +112,7 @@ export function ListenView({
                 Listen solo
               </button>
             )}
-            <span>Guest-ready room links.</span>
+            <span>Room links ready to share.</span>
             <div className='home-hero-stats' aria-label='Live Dotify state'>
               <strong className='tnum'>
                 {openRooms.length}
@@ -136,21 +136,21 @@ export function ListenView({
           <span>1</span>
           <div>
             <strong>Sound</strong>
-            <small>Preview-ready</small>
+            <small>Preview first</small>
           </div>
         </div>
         <div className='commons-step'>
           <span>2</span>
           <div>
             <strong>Room</strong>
-            <small>Host access</small>
+            <small>Host-led</small>
           </div>
         </div>
         <div className='commons-step'>
           <span>3</span>
           <div>
             <strong>Link</strong>
-            <small>Guest stream</small>
+            <small>Join together</small>
           </div>
         </div>
         {leadRoom ? (
@@ -198,7 +198,7 @@ export function ListenView({
       <section className='content-grid catalog-home-grid'>
         <div className='doc-panel catalogue-panel catalogue-home-panel'>
           <PanelTitle icon={Library} title='Browse catalog' meta={`${catalogTracks.length} tracks`} />
-          <p className='catalogue-intro'>Previewable releases with explicit access terms and artist-owned metadata.</p>
+          <p className='catalogue-intro'>Preview releases, join listening rooms, and support artists without losing the music-first flow.</p>
           <div className='catalogue-grid'>
             {catalogTracks.length > 0 ? (
               catalogTracks.map(track => {
@@ -224,7 +224,7 @@ export function ListenView({
                       <button className='artist-text-button' type='button' onClick={() => onOpenArtist(track.artist)}>
                         {track.artist}
                       </button>
-                      <span className='catalogue-card-description'>{track.description || 'Artist-owned release on Dotify.'}</span>
+                      <span className='catalogue-card-description'>{track.description || 'A release you can preview, share, and unlock on Dotify.'}</span>
                     </span>
                     <span
                       className='catalogue-access-line'
@@ -244,19 +244,19 @@ export function ListenView({
         </div>
 
         <div className='doc-panel home-principles-panel'>
-          <PanelTitle icon={BadgeCheck} title='Access culture' meta='proof, not profiles' />
+          <PanelTitle icon={BadgeCheck} title='Listening doors' meta='simple entry' />
           <div className='principle-list'>
             <div>
               <strong>Preview first</strong>
               <span>Every listener can discover before deciding how to unlock.</span>
             </div>
             <div>
-              <strong>Pay artists directly</strong>
-              <span>Classic access shows the DOT price before payment.</span>
+              <strong>Support artists directly</strong>
+              <span>When a release has a price, it is shown before you unlock.</span>
             </div>
             <div>
-              <strong>Human free</strong>
-              <span>Personhood can unlock culture without turning people into ad profiles.</span>
+              <strong>No profile wall</strong>
+              <span>Some doors can open without turning listeners into ad profiles.</span>
             </div>
           </div>
         </div>

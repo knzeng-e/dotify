@@ -142,15 +142,15 @@ export function RoyaltiesTab({
       </div>
 
       <div className='doc-panel royalties-context-panel'>
-        <PanelTitle icon={CircleCheckBig} title='Direct settlement' meta='artist-owned' />
+        <PanelTitle icon={CircleCheckBig} title='Direct settlement' meta='artist control' />
         <div className='principle-list'>
           <div>
-            <strong>Runtime ledger</strong>
-            <span>Every row comes from a payment event emitted by your artist runtime.</span>
+            <strong>Payment history</strong>
+            <span>Every row is a listener unlocking one of your releases.</span>
           </div>
           <div>
-            <strong>Listener proof</strong>
-            <span>The listener wallet and transaction stay verifiable without platform accounts.</span>
+            <strong>Listener record</strong>
+            <span>Support stays visible without forcing listeners into platform accounts.</span>
           </div>
           <div>
             <strong>Open accounting</strong>

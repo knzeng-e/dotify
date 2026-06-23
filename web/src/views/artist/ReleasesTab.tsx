@@ -82,12 +82,10 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
               <p className='release-artist-line'>{selectedRelease.artist}</p>
               <div className='access-badges'>
                 <span className='access-chip'>{accessModeLabel(selectedRelease)}</span>
-                <span className='access-chip'>
-                  {selectedRelease.accessMode === 'classic' ? `${selectedRelease.priceDot} DOT` : `PoP ${selectedRelease.personhoodLevel}`}
-                </span>
+                <span className='access-chip'>{selectedRelease.accessMode === 'classic' ? `${selectedRelease.priceDot} DOT` : 'Listener pass'}</span>
                 <span className='access-chip access-chip-trust'>
                   <BadgeCheck size={13} />
-                  Artist-owned
+                  Artist controlled
                 </span>
                 <span className='access-chip access-chip-trust'>
                   <ShieldCheck size={13} />
@@ -103,7 +101,7 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
                 {runtimeAddress && (
                   <a className='secondary-action compact-action' href={getBlockscoutAddressUrl(runtimeAddress)} target='_blank' rel='noreferrer'>
                     <ExternalLink size={15} />
-                    SmartRuntime
+                    Artist record
                   </a>
                 )}
               </div>
@@ -111,16 +109,13 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
           </div>
 
           <div className='release-detail-grid'>
-            <EndpointRow
-              label='Access'
-              value={selectedRelease.accessMode === 'classic' ? `${selectedRelease.priceDot} DOT` : `Proof of Personhood ${selectedRelease.personhoodLevel}`}
-            />
+            <EndpointRow label='Access' value={selectedRelease.accessMode === 'classic' ? `${selectedRelease.priceDot} DOT` : 'Listener pass required'} />
             <EndpointRow label='Royalty total' value={`${selectedRelease.royaltyBps} bps`} />
             <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />
             <EndpointRow label='Encrypted audio' value={selectedRelease.encrypted ? 'yes' : 'no'} />
             <EndpointRow label='Content hash' value={<code className='release-ref-code'>{selectedRelease.hash}</code>} />
             <EndpointRow
-              label='Runtime'
+              label='Artist record'
               value={
                 runtimeAddress ? (
                   <a className='verify-link' href={getBlockscoutAddressUrl(runtimeAddress)} target='_blank' rel='noreferrer'>
@@ -143,7 +138,7 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
                 )
               }
             />
-            <EndpointRow label='Metadata' value={<code className='release-ref-code'>{selectedRelease.metadataRef || 'not published'}</code>} />
+            <EndpointRow label='Release record' value={<code className='release-ref-code'>{selectedRelease.metadataRef || 'not published'}</code>} />
             <EndpointRow label='Audio ref' value={<code className='release-ref-code'>{selectedRelease.audioRef || 'not published'}</code>} />
           </div>
 

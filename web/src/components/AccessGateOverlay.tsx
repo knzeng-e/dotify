@@ -36,7 +36,7 @@ export function AccessGateOverlay({
       </div>
       {gate.track.accessMode === 'classic' && (
         <div className='access-gate-price' aria-label={`Unlock price ${gate.track.priceDot} DOT`}>
-          <span>Door price</span>
+          <span>Full song</span>
           <strong>{gate.track.priceDot} DOT</strong>
         </div>
       )}
@@ -53,7 +53,7 @@ export function AccessGateOverlay({
         )}
         {gate.actionType === 'signin' && onSignIn && (
           <button className='primary-action access-gate-primary' type='button' onClick={onSignIn}>
-            Check my pass
+            Continue
           </button>
         )}
         <button className='secondary-action' type='button' onClick={onDismiss}>
