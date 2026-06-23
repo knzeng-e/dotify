@@ -4,6 +4,7 @@ import { AuraBackground } from './components/AuraBackground';
 import { PlayerDock } from './components/PlayerDock';
 import { PersistentAudio } from './components/PersistentAudio';
 import { CreateRoomModal } from './components/CreateRoomModal';
+import { JoinRoomModal } from './components/JoinRoomModal';
 import { applyAura, auraForTrack, auraForName } from './utils/aura';
 
 import { hashFileWithBytes } from './utils/hash';
@@ -116,6 +117,8 @@ export default function App() {
   const [isArtistPortal, setIsArtistPortal] = useState(() => isArtistPortalPath());
   const [publicArtistName, setPublicArtistName] = useState<string | null>(null);
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
+  const [joinRoomOpen, setJoinRoomOpen] = useState(false);
+  const [pendingArtistTrack, setPendingArtistTrack] = useState<CatalogTrack | null>(null);
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
   const [releaseStep, setReleaseStep] = useState<ReleaseStep>('assets');
@@ -576,30 +579,26 @@ export default function App() {
     void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
   }
 
-  function getHostPlaybackModeForRoom(track: CatalogTrack | undefined): RoomPlaybackMode {
-    if (!track) return catalog.previewOnlyRef.current ? 'preview' : 'full';
-    if (catalog.selectedTrackId === track.id && catalog.previewOnlyRef.current) return 'preview';
-    if (catalog.accessGate?.track.id === track.id) return 'preview';
-    if (track.source !== 'artist' || !track.id.includes(':')) return 'full';
-    return catalog.catalogAccessByTrackId[track.id] === true ? 'full' : 'preview';
-  }
-
   function handleOpenArtistProfile(name: string) {
     setPublicArtistName(name);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // Opens the room after the user has confirmed their display name in the modal.
+  async function executeArtistRoom(track: CatalogTrack) {
+    const playbackMode = await catalog.openTrack(track).catch((): RoomPlaybackMode => {
+      catalog.previewOnlyRef.current = true;
+      return 'preview';
+    });
+    session.createSession(catalogTrackToTrackInfo(track), playbackMode);
+  }
+
+  // Entry point from artist profile / room cards — opens CreateRoomModal so the
+  // host can set their display name before the room is created.
   function handleOpenArtistRoom(track: CatalogTrack) {
     setPublicArtistName(null);
-    void (async () => {
-      const playbackMode = await catalog.openTrack(track).catch((): RoomPlaybackMode => {
-        // Room creation should still fail closed to preview metadata if track
-        // preparation cannot prove full host access.
-        catalog.previewOnlyRef.current = true;
-        return 'preview';
-      });
-      session.createSession(catalogTrackToTrackInfo(track), playbackMode);
-    })();
+    setPendingArtistTrack(track);
+    setCreateRoomOpen(true);
   }
 
   async function handleSwitchNetwork() {
@@ -641,14 +640,6 @@ export default function App() {
   function handleJoinRoomFromProfile(roomId: string) {
     setPublicArtistName(null);
     session.joinRoom(roomId);
-  }
-
-  function handleCreateSession(event?: import('react').FormEvent<HTMLFormElement>) {
-    let currentTrack = catalog.trackInfo;
-    if (selectedTrack && !currentTrack) {
-      currentTrack = catalogTrackToTrackInfo(selectedTrack);
-    }
-    session.createSession(currentTrack, getHostPlaybackModeForRoom(selectedTrack), event);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -969,8 +960,8 @@ export default function App() {
                     roomId={session.roomId}
                     sessionLink={session.sessionLink}
                     sessionAction={session.sessionAction}
-                    displayName={session.displayName}
-                    joinCode={session.joinCode}
+                    sessionStatus={session.sessionStatus}
+                    listenerCount={session.listenerCount}
                     listeners={session.listeners}
                     remoteReady={session.remoteReady}
                     localStreamReady={session.localStreamReady}
@@ -980,13 +971,10 @@ export default function App() {
                     selectedTrackHasAccess={selectedTrackHasAccess}
                     accessMode={accessMode}
                     priceDot={priceDot}
-                    description={description}
-                    onSetDisplayName={session.setDisplayName}
-                    onSetJoinCode={session.setJoinCode}
-                    onChangeMode={session.changeMode}
-                    onCreateSession={handleCreateSession}
-                    onJoinSession={session.joinSession}
+                    onShowCreateModal={() => setCreateRoomOpen(true)}
+                    onShowJoinModal={() => setJoinRoomOpen(true)}
                     onLeaveSession={session.leaveSession}
+                    onRetryRoomAudio={session.requestRoomAudio}
                     onCopySessionLink={session.copySessionLink}
                     onSetAccessGate={catalog.setAccessGate}
                     onPayForTrackAccess={track => {
@@ -1008,6 +996,7 @@ export default function App() {
                     onJoinRoom={session.joinRoom}
                     onJoinSession={session.joinSession}
                     onRefreshRooms={() => session.requestOpenRooms(true)}
+                    onStartRoom={() => setCreateRoomOpen(true)}
                   />
                 )}
 
@@ -1064,12 +1053,33 @@ export default function App() {
         {createRoomOpen && (
           <CreateRoomModal
             tracks={catalog.catalogTracks}
-            initialTrack={selectedTrack ?? catalog.catalogTracks[0]}
-            onClose={() => setCreateRoomOpen(false)}
+            initialTrack={pendingArtistTrack ?? selectedTrack ?? catalog.catalogTracks[0]}
+            displayName={session.displayName}
+            onSetDisplayName={session.setDisplayName}
+            onClose={() => {
+              setCreateRoomOpen(false);
+              setPendingArtistTrack(null);
+            }}
             onOpenRoom={track => {
               setCreateRoomOpen(false);
-              handleOpenArtistRoom(track);
+              setPendingArtistTrack(null);
+              void executeArtistRoom(track);
             }}
+          />
+        )}
+
+        {joinRoomOpen && (
+          <JoinRoomModal
+            displayName={session.displayName}
+            joinCode={session.joinCode}
+            sessionAction={session.sessionAction}
+            onSetDisplayName={session.setDisplayName}
+            onSetJoinCode={session.setJoinCode}
+            onJoin={code => {
+              setJoinRoomOpen(false);
+              session.joinRoom(code);
+            }}
+            onClose={() => setJoinRoomOpen(false)}
           />
         )}
 

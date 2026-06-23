@@ -94,8 +94,8 @@ export function AdvancedTab({
       <div className='doc-panel'>
         <PanelTitle icon={BadgeCheck} title='Capabilities' meta='culture layer' />
         <div className='stack-list'>
-          <EndpointRow label='Self-owned identity' value='Wallet address' />
-          <EndpointRow label='Portable metadata' value='IPFS manifest' />
+          <EndpointRow label='Artist identity' value='Wallet address' />
+          <EndpointRow label='Portable release record' value='Open release record' />
           <EndpointRow label='Public archive' value={uploadToBulletinEnabled ? 'enabled for next release' : 'optional by default'} />
           <EndpointRow label='Community signer' value={activeSubstrateAddress ? shorten(activeSubstrateAddress, 12) : 'not connected'} />
         </div>

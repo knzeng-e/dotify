@@ -3,7 +3,7 @@
 // draggable seek bar, and mute all act in place and never navigate. Only the
 // artwork/title and the explicit "Player" affordance open the full player view.
 
-import { LockKeyhole, Maximize2, Pause, Play, Radio, Volume2, VolumeX } from 'lucide-react';
+import { LockKeyhole, Maximize2, Pause, Play, Radio, Repeat2, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { playbackStatusLabel, type PlaybackControls } from '../hooks/usePlayback';
 import type { CatalogTrack, Mode, TrackInfo } from '../types';
@@ -60,6 +60,16 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, o
         <div className='player-dock-center'>
           <div className='player-dock-controls'>
             <button
+              className='player-dock-iconbtn player-dock-skipbtn'
+              type='button'
+              onClick={() => playback.skip('previous')}
+              disabled={!playback.canSkip}
+              aria-label='Previous track'
+              title={playback.canSkip ? 'Previous track' : 'Add more tracks to skip'}
+            >
+              <SkipBack size={16} />
+            </button>
+            <button
               className='player-dock-play'
               type='button'
               onClick={() => void playback.togglePlay()}
@@ -78,6 +88,48 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, o
               ) : (
                 <Play size={18} fill='currentColor' />
               )}
+            </button>
+            <button
+              className='player-dock-iconbtn player-dock-skipbtn'
+              type='button'
+              onClick={() => playback.skip('next')}
+              disabled={!playback.canSkip}
+              aria-label='Next track'
+              title={playback.canSkip ? (playback.shuffleEnabled ? 'Shuffle next track' : 'Next track') : 'Add more tracks to skip'}
+            >
+              <SkipForward size={16} />
+            </button>
+            <button
+              className='player-dock-iconbtn player-dock-mutebtn'
+              type='button'
+              onClick={playback.toggleMute}
+              aria-pressed={playback.muted}
+              aria-label={playback.muted ? 'Unmute' : 'Mute'}
+              title={playback.muted ? 'Unmute' : 'Mute'}
+            >
+              {playback.muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            </button>
+            <button
+              className='player-dock-iconbtn player-dock-modebtn'
+              type='button'
+              onClick={playback.toggleShuffle}
+              disabled={!playback.canShuffle}
+              aria-pressed={playback.shuffleEnabled}
+              aria-label='Shuffle'
+              title={playback.canShuffle ? 'Shuffle' : 'Add more tracks to shuffle'}
+            >
+              <Shuffle size={15} />
+            </button>
+            <button
+              className='player-dock-iconbtn player-dock-modebtn'
+              type='button'
+              onClick={playback.toggleRepeat}
+              disabled={!playback.canUseTransport}
+              aria-pressed={playback.repeatEnabled}
+              aria-label='Repeat this track'
+              title='Repeat this track'
+            >
+              <Repeat2 size={15} />
             </button>
           </div>
           <div className='player-dock-scrub'>
@@ -99,16 +151,6 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, o
         </div>
 
         <div className='player-dock-right'>
-          <button
-            className='player-dock-iconbtn'
-            type='button'
-            onClick={playback.toggleMute}
-            aria-pressed={playback.muted}
-            aria-label={playback.muted ? 'Unmute' : 'Mute'}
-            title={playback.muted ? 'Unmute' : 'Mute'}
-          >
-            {playback.muted ? <VolumeX size={17} /> : <Volume2 size={17} />}
-          </button>
           {locked ? (
             <>
               <span className='player-dock-chip'>Preview - 42%</span>

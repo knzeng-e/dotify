@@ -98,10 +98,10 @@ export function useSession(deps: UseSessionDeps) {
   const socketRef = useRef<Socket | null>(null);
   const listenerPeerRef = useRef<RTCPeerConnection | null>(null);
   const hostPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const pendingIceCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastPlayerStateEmitRef = useRef(0);
-
   function upsertListener(listener: ListenerRecord) {
     setListeners(previous => {
       const next = previous.some(item => item.id === listener.id)
@@ -131,6 +131,13 @@ export function useSession(deps: UseSessionDeps) {
   function closeListenerPeer() {
     listenerPeerRef.current?.close();
     listenerPeerRef.current = null;
+    pendingIceCandidatesRef.current.clear();
+    const remoteAudio = remoteAudioRef.current;
+    if (remoteAudio) {
+      remoteAudio.pause();
+      remoteAudio.srcObject = null;
+    }
+    setRemoteReady(false);
   }
 
   function closeHostPeers() {
@@ -138,6 +145,7 @@ export function useSession(deps: UseSessionDeps) {
       peer.close();
     }
     hostPeersRef.current.clear();
+    pendingIceCandidatesRef.current.clear();
   }
 
   function closeAllPeers() {
@@ -205,6 +213,18 @@ export function useSession(deps: UseSessionDeps) {
     socket.on('rooms:updated', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
 
     socket.on('listener:joined', (payload: { listenerId: string; displayName: string; listenerCount: number }) => {
+      upsertListener({
+        id: payload.listenerId,
+        displayName: payload.displayName,
+        status: localStreamRef.current ? 'connecting' : 'waiting'
+      });
+      setListenerCount(payload.listenerCount);
+      setSessionStatus(localStreamRef.current ? 'Pairing listener' : 'Room open');
+      if (localStreamRef.current) {
+        void createOfferForListener(payload.listenerId);
+      }
+    });
+    socket.on('listener:ready', (payload: { listenerId: string; displayName: string; listenerCount: number }) => {
       upsertListener({
         id: payload.listenerId,
         displayName: payload.displayName,
@@ -414,6 +434,7 @@ export function useSession(deps: UseSessionDeps) {
 
   function createHostPeer(listenerId: string) {
     hostPeersRef.current.get(listenerId)?.close();
+    pendingIceCandidatesRef.current.delete(listenerId);
     const peer = new RTCPeerConnection({ iceServers });
     const stream = localStreamRef.current;
 
@@ -472,7 +493,8 @@ export function useSession(deps: UseSessionDeps) {
         remoteAudioRef.current.srcObject = stream;
         setRemoteReady(true);
         setSessionStatus('Live');
-        void remoteAudioRef.current.play().catch(() => setSessionStatus('Manual playback required'));
+        // Playback is triggered by usePlayback which correctly surfaces
+        // 'autoplay-blocked' to the UI when the browser policy blocks autoplay.
       }
     };
     peer.onicecandidate = event => {
@@ -493,6 +515,7 @@ export function useSession(deps: UseSessionDeps) {
 
     try {
       await peer.setRemoteDescription(offer);
+      await flushRemoteCandidates(from, peer);
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
       socketRef.current?.emit('webrtc:answer', {
@@ -511,15 +534,40 @@ export function useSession(deps: UseSessionDeps) {
 
     try {
       await peer.setRemoteDescription(answer);
+      await flushRemoteCandidates(from, peer);
     } catch (answerError) {
       upsertListenerStatus(from, 'disconnected');
       setError(answerError instanceof Error ? answerError.message : 'Invalid WebRTC answer');
     }
   }
 
+  function queueRemoteCandidate(from: string, candidate: RTCIceCandidateInit) {
+    const pending = pendingIceCandidatesRef.current.get(from) ?? [];
+    pending.push(candidate);
+    pendingIceCandidatesRef.current.set(from, pending);
+  }
+
+  async function flushRemoteCandidates(from: string, peer: RTCPeerConnection) {
+    const pending = pendingIceCandidatesRef.current.get(from);
+    if (!pending?.length) return;
+
+    pendingIceCandidatesRef.current.delete(from);
+    for (const candidate of pending) {
+      try {
+        await peer.addIceCandidate(candidate);
+      } catch (candidateError) {
+        console.warn('ICE candidate rejected', candidateError);
+      }
+    }
+  }
+
   async function addRemoteCandidate(from: string, candidate: RTCIceCandidateInit) {
+    if (!candidate) return;
     const peer = modeRef.current === 'host' ? hostPeersRef.current.get(from) : listenerPeerRef.current;
-    if (!peer || !candidate) return;
+    if (!peer || !peer.remoteDescription) {
+      queueRemoteCandidate(from, candidate);
+      return;
+    }
 
     try {
       await peer.addIceCandidate(candidate);
@@ -635,6 +683,16 @@ export function useSession(deps: UseSessionDeps) {
     joinRoom(joinCode);
   }
 
+  function requestRoomAudio() {
+    if (modeRef.current !== 'listener' || !roomIdRef.current) return;
+
+    pendingIceCandidatesRef.current.clear();
+    closeListenerPeer();
+    setError(null);
+    setSessionStatus('Connecting audio');
+    connectSocket().emit('listener:ready');
+  }
+
   function leaveSession() {
     socketRef.current?.emit('room:leave');
     clearRoomState('Ready', null);
@@ -718,6 +776,7 @@ export function useSession(deps: UseSessionDeps) {
     createSession,
     joinRoom,
     joinSession,
+    requestRoomAudio,
     leaveSession,
     createHostPeer,
     createOfferForListener,
