@@ -125,12 +125,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
       />
 
       <div className='create-room-actions'>
-        <button
-          className='primary-action wide'
-          type='button'
-          disabled={!picked || !displayName.trim()}
-          onClick={() => picked && onOpenRoom(picked)}
-        >
+        <button className='primary-action wide' type='button' disabled={!picked || !displayName.trim()} onClick={() => picked && onOpenRoom(picked)}>
           <SvgBroadcast size={16} />
           Open the room
         </button>
