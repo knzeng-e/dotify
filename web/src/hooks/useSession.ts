@@ -485,8 +485,6 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
-
-
   async function acceptOffer(from: string, offer: RTCSessionDescriptionInit) {
     closeListenerPeer();
     const peer = new RTCPeerConnection({ iceServers });

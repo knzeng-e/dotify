@@ -67,7 +67,6 @@ type PlayerViewProps = {
   onOpenArtist: (artistName: string) => void;
 };
 
-
 export function PlayerView({
   trackInfo,
   selectedTrack,
