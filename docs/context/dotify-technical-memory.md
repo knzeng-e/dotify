@@ -37,6 +37,9 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
   `VITE_CONTENT_SECRET` is not a production key boundary.
 - Pinata uploads from the browser are unsafe for public production; use the
   backend API when `VITE_DOTIFY_API_URL` is configured.
+- Server-keyed production tracks still need a separate preview asset; without
+  one, unauthorized listeners and unauthorized room hosts cannot reliably hear
+  the promised 42% preview without the full-track key.
 - Proof of Personhood is currently mocked/dev-operated.
 - Public rooms require hosted signaling.
 - Room guests do not receive keys/source files, but WebRTC audio heard by guests can still be recorded outside Dotify.
@@ -61,7 +64,8 @@ Production readiness means the following must work reliably:
 10. Room guest joins through a simple link without wallet/signature.
 11. Protected room playback checks host access only.
 12. Room guests never receive content keys or source files.
-13. Critical flows are covered by tests.
+13. Production protected tracks publish a separate preview asset for denied access states.
+14. Critical flows are covered by tests.
 
 ## Backend direction
 
@@ -74,6 +78,7 @@ Introduce a lean backend service for:
 - access checks against SmartRuntime;
 - room host key requests;
 - preview-mode responses for unauthorized hosts;
+- preview-asset generation or validation for server-keyed protected tracks;
 - health and version endpoints;
 - future WebAuthn backend support.
 

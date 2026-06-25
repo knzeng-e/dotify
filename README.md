@@ -193,15 +193,22 @@ for a live Individuality chain integration without blocking the prototype.
 
 ### Individual playback access
 
-For individual full-track playback, Dotify checks `musicAccCanAccess` for the
-listener before loading the registered track. If the listener does not meet the
-PoP or payment requirement, Dotify creates a separate 42% preview and shows a
-warning explaining the restriction and the action needed to unlock the whole
-track.
+For individual full-track playback, Dotify checks access before loading the
+registered track. In production mode, the frontend requests a backend-held
+content key with a wallet signature; the backend verifies the signature, rejects
+nonce replay, resolves the artist runtime, and calls `musicAccCanAccess` before
+releasing a per-track key. If access is denied, the UI falls back to preview
+mode and shows the action needed to unlock the whole track.
 
 For registered artist tracks, users without a connected wallet are treated as
 unauthorized individual listeners and receive preview-only playback. Dev-account
 fallback must not grant full listener playback.
+
+Current preview caveat: server-keyed production tracks still need a separate
+preview asset. Demo/local tracks can slice a 42% preview from browser-decrypted
+bytes, but production tracks encrypted with the backend-held key cannot be
+previewed by an unauthorized browser unless a preview reference is published.
+See `docs/backlog/18-production-preview-assets.md`.
 
 ### Room playback access
 
@@ -220,6 +227,9 @@ Room playback uses **host-based access**.
 
 This protects source-file distribution without turning the room into a wallet
 checkpoint.
+
+The same production preview caveat applies to rooms: unauthorized host preview
+fallback needs a publish-time preview asset for server-keyed tracks.
 
 ### Security boundary
 
@@ -245,8 +255,10 @@ See also:
   upload, Pinata IPFS pinning, canonical IPFS metadata, blake2b hash, optional
   Bulletin Chain archival upload, artist runtime creation, and on-chain release
   registration.
-- Best-effort encrypted audio storage with 42% preview playback for restricted
-  listeners.
+- Backend upload/key service for server-side audio encryption and wallet-signed
+  content-key requests, with demo/local browser encryption still available.
+- 42% preview playback for demo/local protected tracks; production preview
+  assets are still pending for server-keyed tracks.
 - Seed catalog with five tracks browsable on the Home view.
 - SmartRuntime music pallets: registration, NFT ownership, access checks, paid
   access, listen recording, royalty split storage, and transfer gating by
@@ -270,6 +282,10 @@ See also:
   direct browser uploads only when `VITE_DOTIFY_API_URL` is unset. Production
   uploads use the backend API; see `services/api/.env.example` for server-side
   `PINATA_JWT` and `CONTENT_KEY_MASTER_SECRET`.
+- **Production preview asset gap**: production tracks encrypted with the
+  backend-held key need a separate preview asset before unauthorized listeners
+  and unauthorized room hosts can reliably hear the promised 42% preview.
+  Tracked in `docs/backlog/18-production-preview-assets.md`.
 - **Single-host rooms**: no multi-host or handoff logic. If the host closes the
   tab, the room ends.
 - **Room stream capture limits**: room guests do not receive keys/source files,
@@ -321,18 +337,21 @@ handle:
    network mismatch handling, and clear transaction preflight states.
 2. Harden and operate the backend upload/key service for public traffic:
    production CORS, secret rotation, monitoring, and rate limits.
-3. Remove demo-mode dependence on browser-exposed Pinata/content secrets from
-   public deployments.
-4. Integrate live Proof of Personhood / Individuality data instead of manual
+3. Publish separate preview assets for server-keyed protected tracks so
+   unauthorized previews do not depend on demo-mode decryption.
+4. Keep demo-mode browser-exposed Pinata/content secrets out of public
+   deployments.
+5. Integrate live Proof of Personhood / Individuality data instead of manual
    registrar writes.
-5. Add a production artist dashboard on `/artists`: release drafts, edit
+6. Add a production artist dashboard on `/artists`: release drafts, edit
    metadata, royalty analytics, and profile verification state.
-6. Deploy and monitor a public signaling server for DotNS / Bulletin builds.
-7. Add frontend tests for registration, payment, preview gating, unlock, and
+7. Deploy and monitor a public signaling server for DotNS / Bulletin builds.
+8. Add frontend tests for registration, payment, preview gating, unlock, and
    listening rooms.
-8. Split the large React app into catalog, player, artist portal, rooms, and
+9. Split the large React app into catalog, player, artist portal, rooms, and
    chain modules.
-9. Add deployment smoke tests for DotNS/Bulletin CIDs, IPFS gateway fallback,
+10. Generate frontend ABI bindings from Hardhat artifacts.
+11. Add deployment smoke tests for DotNS/Bulletin CIDs, IPFS gateway fallback,
    and contract address availability.
-10. Improve room resilience with host handoff, reconnect recovery, and explicit
+12. Improve room resilience with host handoff, reconnect recovery, and explicit
     room expiry.

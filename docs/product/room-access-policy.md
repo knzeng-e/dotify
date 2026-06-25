@@ -65,6 +65,11 @@ If a host attempts to stream a protected track without access:
 5. Dotify auto-advances to the next playlist track when the preview ends.
 6. Room guests keep listening without wallet interruption.
 
+Implementation note: for tracks encrypted with the backend-held production key,
+the 42% preview requires a separate preview asset published with the track. The
+browser must not receive or derive the full-track production key merely to build
+a preview. See `docs/backlog/18-production-preview-assets.md`.
+
 ## Listener rule
 
 Room listeners must not be required to connect a wallet, sign a message, pay, or prove personhood merely to listen to a host stream.
