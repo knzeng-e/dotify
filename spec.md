@@ -1,6 +1,6 @@
 # Dotify Project Specification
 
-Last updated: 2026-05-05
+Last updated: 2026-06-25
 
 ## 1. Purpose
 
@@ -49,7 +49,7 @@ The dedicated `/artists` portal provides:
 - audio upload;
 - cover upload;
 - title, description, access mode, price, personhood level, and royalty inputs;
-- audio encryption and Pinata IPFS upload;
+- server-side audio encryption and Pinata IPFS upload when the backend is configured;
 - canonical IPFS metadata publication;
 - optional advanced Bulletin Chain archival publication;
 - on-chain release registration.
@@ -97,7 +97,8 @@ Browser (React + Vite)
   ├── Player and catalog UI
   ├── WebRTC host-to-listener audio stream
   ├── Socket.IO signaling server for SDP/ICE and room discovery
-  ├── Pinata API for encrypted audio, cover, and metadata pinning
+  ├── Dotify API for production upload orchestration and key delivery
+  ├── Pinata API for demo/local encrypted audio, cover, and metadata pinning
   ├── IPFS gateways for manifest and audio-byte reads
   ├── Paseo Bulletin Chain for optional archival metadata availability
   └── Paseo Asset Hub EVM contracts for artist runtimes and access policy
@@ -106,6 +107,10 @@ Browser (React + Vite)
 The frontend is a static React/Vite app. It can be served locally by Vite or
 built as a single-file Bulletin/IPFS-friendly artifact.
 
+Production-sensitive upload and content-key operations live behind
+`services/api/`. Browser-side Pinata upload and `VITE_CONTENT_SECRET` key
+derivation remain local/demo paths only.
+
 ## 5. Repository Layout
 
 | Path | Responsibility |
@@ -113,10 +118,12 @@ built as a single-file Bulletin/IPFS-friendly artifact.
 | `README.md` | project overview, current deployment, run instructions |
 | `web/` | React frontend, signaling server, Bulletin deploy scripts |
 | `web/src/App.tsx` | main app shell and current product workflows |
-| `web/src/services/pinata.ts` | Pinata uploads and IPFS gateway fallback reads |
+| `web/src/services/pinata.ts` | backend-mediated uploads, demo Pinata uploads, and IPFS gateway fallback reads |
+| `web/src/services/keyService.ts` | wallet-signed nonce and content-key request client |
 | `web/src/utils/crypto.ts` | AES-256-GCM helpers |
-| `web/src/utils/protectedAudio.ts` | encrypted audio refs and deterministic key derivation |
+| `web/src/utils/protectedAudio.ts` | demo/local encrypted audio refs and deterministic browser key derivation |
 | `web/server/signaling.mjs` | Socket.IO signaling server |
+| `services/api/` | Fastify backend for health, uploads, nonces, key delivery, and access checks |
 | `contracts/evm/` | Hardhat project for smart-runtime contracts |
 | `contracts/evm/contracts/` | Solidity contracts, pallets, libraries |
 | `contracts/evm/scripts/deploy.ts` | local/testnet deployment script |
@@ -206,7 +213,23 @@ frontend integration path.
 
 ### 7.1 Upload Pipeline
 
-For an uploaded track:
+For a production uploaded track when `VITE_DOTIFY_API_URL` is configured:
+
+1. The browser reads the audio file.
+2. The browser computes a blake2b-256 content hash.
+3. The browser sends the raw audio file and content hash to the backend upload
+   endpoint.
+4. The backend derives the per-track content key from
+   `CONTENT_KEY_MASTER_SECRET`, encrypts the full audio with AES-256-GCM, and
+   pins the encrypted bytes to Pinata.
+5. The cover image is uploaded through the backend.
+6. A canonical Dotify metadata manifest is validated and uploaded through the
+   backend.
+7. The manifest can also be archived to Paseo Bulletin Chain when the advanced
+   Bulletin option is enabled and a Substrate signer is available.
+8. The artist registers the track on their runtime.
+
+For a local/demo uploaded track when `VITE_DOTIFY_API_URL` is unset:
 
 1. The browser reads the audio file.
 2. The browser computes a blake2b-256 content hash.
@@ -232,17 +255,31 @@ registered Dotify uploads should use encrypted audio refs.
 
 ### 7.3 Encryption Model
 
-Audio protection is currently best-effort and browser-side:
+Production audio protection uses the backend as the key boundary:
+
+- full audio is encrypted with AES-256-GCM server-side;
+- per-track keys are derived from backend-only `CONTENT_KEY_MASTER_SECRET`;
+- the frontend requests keys through `POST /api/tracks/:contentHash/key-request`;
+- the backend verifies a wallet signature, consumes a nonce, resolves the artist
+  runtime, and calls `musicAccCanAccess` before releasing a key;
+- denials return preview-mode metadata and no content key.
+
+Demo/local audio protection is still best-effort and browser-side:
 
 - encrypted audio is produced with AES-256-GCM;
 - the app derives a deterministic content key from `VITE_CONTENT_SECRET` and
   the content hash;
 - the encrypted IPFS object is not directly playable by an HTML audio element;
 - `VITE_CONTENT_SECRET` is bundled into the frontend, so this is not a
-  production DRM boundary.
+  production key boundary.
 
-Production key delivery should move to a backend or artist-operated key service
-that releases keys only after wallet-authenticated access checks.
+Dotify protects distribution access. It does not promise absolute DRM or prevent
+recording after authorized playback.
+
+Current preview gap: production tracks encrypted with the backend-held key still
+need a separate preview asset. Without one, an unauthorized browser cannot
+decrypt the full encrypted source just to slice a 42% preview. See
+`docs/backlog/18-production-preview-assets.md`.
 
 ### 7.4 IPFS Gateway Reads
 
@@ -263,10 +300,14 @@ When a registered track is selected:
 
 1. The app resolves the track from the runtime catalog.
 2. The app requires a connected listener wallet for registered artist tracks.
-3. The app calls `musicAccCanAccess(contentHash, listener)`.
-3. If access is allowed, the app fetches encrypted bytes from IPFS.
-4. The app decrypts the full audio in the browser.
-5. The app creates a local object URL and assigns it to the audio element.
+3. The app checks `musicAccCanAccess(contentHash, listener)` for local UI state.
+4. For production encrypted tracks, the app requests a content key from the
+   backend with a wallet-signed nonce challenge and purpose `individual`.
+5. The backend performs the authoritative access check before returning a key.
+6. If access is allowed, the app fetches encrypted bytes from IPFS.
+7. The app decrypts the full audio in the browser using the backend-delivered
+   key (or the demo/local derived key for demo-published tracks).
+8. The app creates a local object URL and assigns it to the audio element.
 
 If no listener wallet is connected, the app must fail closed and treat the user
 as unauthorized for registered artist tracks. Artist registration and release
@@ -277,11 +318,15 @@ public user or artist flows.
 
 If access is denied:
 
-1. The app still fetches and decrypts bytes locally in the current prototype.
-2. It decodes the audio into an `AudioBuffer`.
-3. It creates a separate WAV preview containing 42% of the track frames.
-4. It assigns only the preview object URL to the player.
-5. It shows an access warning explaining the restriction.
+1. The app enters preview mode and shows an access warning explaining the
+   restriction.
+2. For demo/local encrypted tracks, the app can still fetch and decrypt bytes
+   with the demo key, decode them into an `AudioBuffer`, and create a separate
+   WAV preview containing 42% of the track frames.
+3. For server-keyed production tracks, the app needs a published preview asset.
+   Without that asset, the app must fail closed rather than deriving or leaking
+   the production full-track key.
+4. The player receives only the preview object URL when one is available.
 
 Warning behavior:
 
@@ -337,7 +382,8 @@ The listener browser:
 - A room has one host.
 - If the host leaves, the room ends.
 - There is no host handoff.
-- Room access is not yet independently gated for every listener.
+- Room playback is intentionally host-access based; room listeners are not
+  independently gated for the default public-room policy.
 - Public deployments require a hosted signaling server.
 
 ## 10. Frontend Runtime Configuration
@@ -353,14 +399,22 @@ Important browser-exposed variables:
 | `VITE_PINATA_JWT` | restricted Pinata JWT for browser demo uploads |
 | `VITE_PINATA_GATEWAY` | primary IPFS gateway |
 | `VITE_IPFS_READ_GATEWAYS` | comma-separated IPFS read fallbacks |
-| `VITE_CONTENT_SECRET` | optional 32-byte hex content-key derivation secret |
+| `VITE_DOTIFY_API_URL` | backend API URL for production uploads and wallet-signed key requests |
+| `VITE_CONTENT_SECRET` | optional demo/local 32-byte hex content-key derivation secret |
 
-Node/script variables:
+Server/script variables:
 
 | Variable | Purpose |
 | --- | --- |
 | `SIGNAL_PORT` | local signaling server port |
-| `SIGNAL_ORIGIN` | allowed frontend origin for signaling |
+| `SIGNAL_ORIGINS` | allowed frontend origins for signaling |
+| `API_PORT` | backend API port |
+| `API_ORIGIN` | frontend origin allowed by backend CORS |
+| `PASEO_ASSET_HUB_RPC` | backend RPC endpoint for access checks |
+| `DOTIFY_DIRECTORY_ADDRESS` | backend ArtistDirectory address for runtime lookup |
+| `DOTIFY_CHAIN_ID` | chain ID expected in signed key requests |
+| `PINATA_JWT` | backend-only Pinata credential |
+| `CONTENT_KEY_MASTER_SECRET` | backend-only content-key derivation secret |
 | `BULLETIN_ACCOUNT` | dev account used by Bulletin deploy script |
 
 ## 11. Wallet And Passkey Design
@@ -543,34 +597,37 @@ npm test
 
 ## 14. Current Limitations
 
-- Pinata uploads happen from the browser.
-- `VITE_CONTENT_SECRET` is bundled into the frontend.
+- Browser-side Pinata upload and `VITE_CONTENT_SECRET` are still available for
+  local/demo mode and must not be used as public production boundaries.
+- Production protected tracks need a separate preview asset before unauthorized
+  listeners and unauthorized room hosts can reliably hear the promised 42%
+  preview.
 - Passkey credential discovery currently depends on locally stored credential
   metadata.
 - Proof of Personhood is not connected to live Individuality data.
-- Listener-side room access is not independently enforced.
 - Frontend test coverage is missing.
 - `App.tsx` is still a large monolithic component.
+- Frontend contract ABIs are still hand-maintained rather than generated from
+  Hardhat artifacts.
 - Legacy monolithic registry contracts remain in the repository.
 
 ## 15. Improvement Backlog
 
 Priority improvements:
 
-1. Harden production wallet support and passkey recovery across public flows.
-2. Move Pinata upload and content-key delivery behind a backend or artist key
-   service.
-3. Replace bundled content secrets with per-track key custody and wallet-signed
-   unlock requests.
-4. Add backend-backed WebAuthn registration, credential storage, and
+1. Add deterministic frontend/e2e coverage for Classic unlock, artist publish,
+   and room join.
+2. Publish separate preview assets for server-keyed protected tracks.
+3. Split `App.tsx` into catalog, player, artist portal, rooms, and chain modules.
+4. Generate frontend ABI bindings from Hardhat artifacts.
+5. Harden production wallet support and passkey recovery across public flows.
+6. Add backend-backed WebAuthn registration, credential storage, and
    discoverable passkey recovery.
-5. Integrate live Proof of Personhood / Individuality data.
-6. Deploy public signaling infrastructure for DotNS / Bulletin builds.
-7. Add frontend tests for registration, payment, preview, unlock, and rooms.
-8. Split `App.tsx` into catalog, player, artist portal, rooms, and chain modules.
-9. Generate frontend ABI bindings from Hardhat artifacts.
-10. Archive or remove the legacy monolithic registry path.
-11. Add deployment smoke tests and runtime health checks.
+7. Integrate live Proof of Personhood / Individuality data.
+8. Operate and monitor public backend and signaling infrastructure for DotNS /
+   Bulletin builds.
+9. Archive or remove the legacy monolithic registry path.
+10. Add deployment smoke tests and runtime health checks.
 
 ## 16. Acceptance Criteria For MVP
 
@@ -581,7 +638,8 @@ The project reaches a coherent public testnet MVP when:
 - an external listener can browse the registered catalog;
 - a Classic listener can pay and unlock full playback;
 - a Human free listener can unlock based on a live personhood source;
-- unauthorized listeners receive only preview playback;
+- unauthorized listeners receive only preview playback for protected tracks with
+  a published preview asset, and fail closed otherwise;
 - a host can open a room from an authorized track;
 - listeners can join the room through the hosted signaling server;
 - critical flows have automated test coverage.

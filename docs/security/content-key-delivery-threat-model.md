@@ -127,6 +127,15 @@ Dotify protects access to full source files and content keys. It does not preven
 
 Do not describe Dotify as perfect DRM.
 
+## Preview asset boundary
+
+Denied access responses may advertise `playbackMode: preview`, but production
+tracks encrypted with the backend-held key need a separate preview asset for
+the browser to play 42% without receiving the full-track key.
+
+Preview assets are intentionally playable. They protect the full source file by
+being incomplete, not by being secret.
+
 ## Logging rules
 
 Never log:
@@ -175,5 +184,6 @@ Before merging key-delivery changes, verify:
 - chain access is checked server-side;
 - room listener key path does not exist;
 - unauthorized host receives preview-mode response;
+- server-keyed protected tracks have a preview asset before public production use;
 - docs do not claim absolute DRM;
 - tests cover denied, allowed, replay, and RPC failure paths.
