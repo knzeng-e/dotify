@@ -6,6 +6,9 @@ Sprint 1 — Stabilization and maintainability
 ## Priority
 P1
 
+## Status
+Delivered on `main`.
+
 ## Objective
 Add deterministic end-to-end coverage for the Classic paid unlock flow.
 
@@ -58,6 +61,14 @@ data-testid="full-playback-state"
 - Test is documented in README or testing docs.
 - CI can run it in deterministic mode.
 - Failure modes are actionable.
+
+## Delivery notes
+
+- Added Playwright browser e2e coverage in `web/e2e/classic-unlock.spec.ts`.
+- Added `npm run test:e2e` and `web/playwright.config.ts`.
+- The test starts Vite with `VITE_E2E_CLASSIC_UNLOCK=true`, seeds one deterministic Classic track, and auto-connects a test wallet.
+- The test asserts preview-only state, the access warning, the Classic unlock action, transaction success, full playback state after payment, and that no full content-key request happens before payment.
+- Stable UI selectors were added for the trust-flow surfaces: `track-card`, `access-warning`, `preview-player-state`, `classic-unlock-button`, `unlock-transaction-status`, and `full-playback-state`.
 
 ## Non-goals
 

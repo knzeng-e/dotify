@@ -9,7 +9,13 @@ export function TransactionModal({ feedback, onClose }: { feedback: TransactionF
   const Icon = feedback.tone === 'pending' ? Disc3 : feedback.tone === 'success' ? CircleCheckBig : CircleAlert;
 
   return (
-    <Dialog labelledBy='transaction-modal-title' dismissible={dismissible} tone={feedback.tone} onClose={onClose}>
+    <Dialog
+      labelledBy='transaction-modal-title'
+      dataAttributes={{ testid: 'unlock-transaction-status' }}
+      dismissible={dismissible}
+      tone={feedback.tone}
+      onClose={onClose}
+    >
       <div className='modal-header'>
         <div className='modal-icon' data-tone={feedback.tone}>
           <Icon size={20} className={feedback.tone === 'pending' ? 'spin' : undefined} />
