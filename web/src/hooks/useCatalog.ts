@@ -660,8 +660,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       const hasAccess = e2eClassicAccessGrantedRef.current;
       setCatalogTracks(nextCatalog);
       setSelectedTrackId(previous => {
-        const preferredTrack =
-          preferredTrackHash && preferredTrackHash.toLowerCase() === E2E_CLASSIC_TRACK.hash.toLowerCase() ? E2E_CLASSIC_TRACK : null;
+        const preferredTrack = preferredTrackHash && preferredTrackHash.toLowerCase() === E2E_CLASSIC_TRACK.hash.toLowerCase() ? E2E_CLASSIC_TRACK : null;
         if (preferredTrack) return preferredTrack.id;
         return nextCatalog.some(track => track.id === previous) ? previous : E2E_CLASSIC_TRACK.id;
       });
