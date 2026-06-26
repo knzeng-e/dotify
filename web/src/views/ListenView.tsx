@@ -208,7 +208,7 @@ export function ListenView({
                   // Plain container: the primary "open track" action is a real
                   // button whose ::after stretches over the whole card, so the
                   // artist button can sit beside it without nesting interactives.
-                  <div className='catalogue-card' data-selected={selectedTrackId === track.id} key={track.id}>
+                  <div className='catalogue-card' data-selected={selectedTrackId === track.id} data-testid='track-card' key={track.id}>
                     <span className='catalogue-cover-frame'>
                       <img className='catalogue-cover' src={track.imageRef} alt='' crossOrigin='anonymous' />
                     </span>
@@ -216,6 +216,7 @@ export function ListenView({
                       <button
                         className='catalogue-card-open'
                         type='button'
+                        data-testid='track-card-open'
                         aria-label={`Open ${track.title} by ${track.artist}`}
                         onClick={() => void onOpenTrack(track)}
                       >
