@@ -54,7 +54,7 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
                       {accessModeLabel(track)} / {track.durationLabel}
                     </small>
                   </span>
-                  <code>{track.accessMode === 'classic' ? `${track.priceDot} DOT` : track.personhoodLevel}</code>
+                  <span className='release-tab-access'>{track.accessMode === 'classic' ? `${track.priceDot} DOT` : track.personhoodLevel}</span>
                 </button>
               );
             })

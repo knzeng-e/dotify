@@ -6,9 +6,7 @@
     <title>Dotify — Shared listening, artist sovereignty, cultural connection</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="preconnect" href="https://api.fontshare.com" />
-    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
       :root {
         color-scheme: dark;
@@ -35,7 +33,7 @@
       html { scroll-behavior: smooth; }
       @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
       body {
-        font-family: Inter, system-ui, sans-serif;
+        font-family: 'Hanken Grotesk', system-ui, sans-serif;
         background:
           linear-gradient(180deg, rgba(0,229,160,0.055), transparent 26rem),
           linear-gradient(145deg, rgba(230,0,122,0.055), transparent 34rem),
@@ -69,7 +67,7 @@
         gap: 10px;
         text-decoration: none;
         color: var(--white);
-        font-family: 'Clash Display', 'Space Grotesk', Inter, system-ui, sans-serif;
+        font-family: 'Hanken Grotesk', system-ui, sans-serif;
         font-size: 20px;
         font-weight: 800;
       }
@@ -144,7 +142,7 @@
         margin-bottom: 20px;
       }
       .hero-copy h1 {
-        font-family: 'Clash Display', 'Space Grotesk', Inter, system-ui, sans-serif;
+        font-family: 'Hanken Grotesk', system-ui, sans-serif;
         font-size: clamp(3rem, 8vw, 6.4rem);
         font-weight: 800;
         line-height: 0.95;
@@ -238,7 +236,7 @@
         margin-bottom: 28px;
       }
       .section-head h2 {
-        font-family: 'Clash Display', 'Space Grotesk', Inter, system-ui, sans-serif;
+        font-family: 'Hanken Grotesk', system-ui, sans-serif;
         font-size: clamp(2rem, 4vw, 3.2rem);
         font-weight: 800;
         line-height: 1.05;
@@ -302,7 +300,7 @@
         border-radius: var(--radius-full);
         background: var(--green);
         color: var(--navy);
-        font-family: 'JetBrains Mono', monospace;
+        font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
         font-size: 0.88rem;
         font-weight: 900;
       }
@@ -526,7 +524,7 @@
           </div>
           <div class="value-row">
             <strong>Repository memory</strong>
-            <p>Context lives in <code style="font-family:'JetBrains Mono',monospace;background:rgba(0,229,160,0.12);color:#00E5A0;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/backlog/</code> and <code style="font-family:'JetBrains Mono',monospace;background:rgba(0,229,160,0.12);color:#00E5A0;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/context/</code>. AI agents must read AGENTS.md or CLAUDE.md before implementing.</p>
+            <p>Context lives in <code style="font-family:ui-monospace,'SFMono-Regular',Consolas,monospace;background:rgba(0,229,160,0.12);color:#00E5A0;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/backlog/</code> and <code style="font-family:ui-monospace,'SFMono-Regular',Consolas,monospace;background:rgba(0,229,160,0.12);color:#00E5A0;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/context/</code>. AI agents must read AGENTS.md or CLAUDE.md before implementing.</p>
           </div>
         </div>
       </section>
@@ -646,7 +644,7 @@
             }
 
             // Label
-            ctx.font      = '600 13px Inter, system-ui, sans-serif';
+            ctx.font      = '600 13px Hanken Grotesk, system-ui, sans-serif';
             ctx.fillStyle = 'rgba(255,255,255,0.72)';
             ctx.textAlign = 'center';
             ctx.fillText(n.label, x, y + r * 1.9 + 18);

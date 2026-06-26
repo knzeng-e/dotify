@@ -110,9 +110,9 @@
   --radius-small:     var(--radius-lg);
 
   /* Typography vars */
-  --font-display: 'Clash Display', 'Inter', system-ui, sans-serif;
-  --font-body:    'Inter', system-ui, sans-serif;
-  --font-mono:    'JetBrains Mono', 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  --font-display: 'Hanken Grotesk', system-ui, sans-serif;
+  --font-body:    'Hanken Grotesk', system-ui, sans-serif;
+  --font-mono:    ui-monospace, 'SFMono-Regular', Consolas, monospace;
 
   color-scheme: dark;
   font-family: var(--font-body);
@@ -222,7 +222,7 @@ button:disabled {
 .brand {
   gap: 0.65rem;
   color: var(--fg-primary);
-  font-family: 'Clash Display', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 1.02rem;
   font-weight: 800;
   text-decoration: none;
@@ -410,7 +410,7 @@ button:disabled {
 .room-row code,
 .track-row code,
 .catalogue-row code {
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 .sidebar-card strong {
@@ -458,7 +458,7 @@ button:disabled {
   max-width: 100%;
   margin: 0;
   color: var(--fg-primary);
-  font-family: 'Clash Display', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(2.25rem, 5.1vw, 5.15rem);
   line-height: 0.96;
   font-weight: 800;
@@ -486,8 +486,9 @@ button:disabled {
 .metric strong {
   display: block;
   color: var(--fg-primary);
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-display);
   font-size: 1rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .metric span {
@@ -800,9 +801,10 @@ button:disabled {
   background: var(--dotify-green-dim);
   color: var(--dotify-green);
   padding: 0.34rem 0.58rem;
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-display);
   font-size: 0.74rem;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
   line-height: 1.15;
 }
 
@@ -938,7 +940,7 @@ button:disabled {
 
 .panel-title small {
   color: var(--fg-tertiary);
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
 }
 
@@ -984,7 +986,7 @@ button:disabled {
   border-radius: var(--radius-full);
   background: rgba(41, 232, 122, 0.12);
   color: var(--dotify-cyan);
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
 }
 
@@ -1344,7 +1346,7 @@ button:disabled {
   margin: 0.22rem 0;
   overflow-wrap: anywhere;
   color: var(--fg-primary);
-  font-family: 'Clash Display', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(2.1rem, 4vw, 3rem);
   line-height: 1.02;
   font-weight: 800;
@@ -1424,7 +1426,7 @@ audio {
   align-items: center;
   gap: 0.7rem;
   color: var(--fg-secondary);
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
 }
 
@@ -1515,7 +1517,7 @@ audio {
 
 .transport-progress span {
   color: rgba(255, 255, 255, 0.72);
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -1690,8 +1692,9 @@ audio {
 
 .access-gate-price strong {
   color: #c8ff4d;
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-display);
   font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
 
@@ -1849,7 +1852,7 @@ audio {
 }
 
 .code-field {
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   text-transform: uppercase;
 }
 
@@ -1972,7 +1975,7 @@ audio {
   border-radius: var(--radius-full);
   background: rgba(200, 255, 77, 0.12);
   color: inherit;
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
 }
 
@@ -2080,7 +2083,7 @@ audio {
   margin: 0;
   overflow-wrap: anywhere;
   color: var(--fg-primary);
-  font-family: 'Clash Display', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 2.05rem;
   line-height: 1.05;
   font-weight: 800;
@@ -2186,12 +2189,15 @@ audio {
   white-space: nowrap;
 }
 
-.release-tab code {
+.release-tab-access {
   border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.07);
   color: var(--fg-secondary);
   padding: 0.22rem 0.48rem;
+  font-family: var(--font-display);
   font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .release-focus-panel {
@@ -2429,7 +2435,8 @@ audio {
 }
 
 .royalty-row-side strong {
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
   color: var(--dotify-green);
 }
 
@@ -2885,7 +2892,7 @@ audio {
   padding: 0.65rem 0.9rem;
   text-decoration: none;
   box-shadow: var(--shadow-2);
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -3031,7 +3038,7 @@ audio {
 .modal-copy h2 {
   margin: 0;
   color: var(--fg-primary);
-  font-family: 'Clash Display', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(1.8rem, 2.7vw, 2.25rem);
   line-height: 1.05;
   font-weight: 800;
@@ -3507,7 +3514,7 @@ h4 {
 }
 
 .brand {
-  font-family: 'Clash Display', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-display);
   letter-spacing: 0;
 }
 
@@ -3881,7 +3888,7 @@ h4 {
 
 .catalogue-access-line {
   border-radius: var(--button-radius);
-  font-family: 'Clash Display', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-display);
   letter-spacing: 0;
 }
 
@@ -3941,7 +3948,7 @@ h4 {
 
 .player-view-grid .track-copy h2 {
   max-width: 54rem;
-  font-family: 'Clash Display', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-display);
 }
 
 .player-transport {
@@ -3954,7 +3961,7 @@ h4 {
 .access-badges span,
 .track-row code {
   border-radius: var(--button-radius);
-  font-family: 'Clash Display', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-display);
   letter-spacing: 0;
 }
 
@@ -3981,7 +3988,7 @@ h4 {
 }
 
 .access-gate-price strong {
-  font-family: 'Clash Display', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-display);
   letter-spacing: 0;
 }
 
@@ -4891,6 +4898,7 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
   display: inline-flex;
   align-items: center;
   gap: 0.32rem;
+  font-variant-numeric: tabular-nums;
 }
 .access-badges .access-chip-trust {
   border-color: color-mix(in oklab, var(--color-cyan) 45%, transparent);
@@ -4948,7 +4956,7 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
   background: color-mix(in oklab, var(--color-cyan) 12%, transparent);
   color: var(--color-cyan);
   padding: 0.1rem 0.45rem;
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
 }
 .studio-id-link {
@@ -4959,7 +4967,7 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
   background: color-mix(in oklab, var(--color-cyan) 12%, transparent);
   color: var(--color-cyan);
   padding: 0.1rem 0.45rem;
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
   text-decoration: none;
 }
@@ -5528,7 +5536,7 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
   background: rgba(255, 255, 255, 0.07);
   color: var(--fg-secondary);
   padding: 0.24rem 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7rem;
 }
 
@@ -6273,11 +6281,15 @@ select {
 }
 
 code,
-.tnum,
 .you-address,
 .room-code-pill strong,
 .room-live-side code {
   font-family: var(--font-mono);
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
 
 .app-shell:not(.artist-portal-shell) {

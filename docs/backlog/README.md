@@ -56,17 +56,15 @@ Presentational UX work derived from `design/Dotify-design/` (the "Living Light" 
 
 | Backlog doc | Status | Goal |
 | --- | --- | --- |
-| `13-living-light-design-foundation.md` | Mostly delivered; typography cleanup remains on `main` | Aura engine, presence, dock, immersive-room presence, hero/cleanup polish |
+| `13-living-light-design-foundation.md` | Delivered on `main` | Aura engine, presence, dock, immersive-room presence, hero/typography/cover-fallback polish |
 | `14-one-link-room-creation-sheet.md` | Delivered on `main` | "As easy as sharing a link" room-create sheet over the existing createSession |
 | `15-immersive-room-parity.md` | Delivered, chat deferred | Room code pill + copy, access chips, sync note; chat omitted until a Socket.IO channel exists |
 | `16-wallet-connected-identity-card.md` | Delivered on `main` | Calm connected-wallet identity card with real, non-fabricated stats |
 | `17-artist-studio-living-light-parity.md` | Delivered on `main` | Studio identity header, metric cards, sovereignty card, releases + support showcase |
 
-Delivered on `main`: album-aura engine (`web/src/utils/aura.ts`, `components/AuraBackground.tsx`), presence avatars (`components/Presence.tsx`), player dock (`components/PlayerDock.tsx`), create-room sheet (`components/CreateRoomModal.tsx`), immersive-room cover-glow/EQ/reactions/header/sync-note (`views/PlayerView.tsx`), wallet connected card (`components/WalletModal.tsx`), studio showcase (`views/artist/ArtistConsole.tsx` + `OverviewTab.tsx`), featured aura hero on Home, and the Living Light stylesheet block in `web/src/styles.css`. The old node/warp `AmbientCanvas` / `StarfieldCanvas` are removed.
+Delivered on `main`: album-aura engine (`web/src/utils/aura.ts`, `components/AuraBackground.tsx`), aura-colored cover fallbacks (`hooks/useCatalog.ts`), presence avatars (`components/Presence.tsx`), player dock (`components/PlayerDock.tsx`), create-room sheet (`components/CreateRoomModal.tsx`), immersive-room cover-glow/EQ/reactions/header/sync-note (`views/PlayerView.tsx`), wallet connected card (`components/WalletModal.tsx`), studio showcase (`views/artist/ArtistConsole.tsx` + `OverviewTab.tsx`), Hanken-only app type with system mono for code, featured aura hero on Home, and the Living Light stylesheet block in `web/src/styles.css`. The old node/warp `AmbientCanvas` / `StarfieldCanvas` are removed.
 
-Still open on `main`: the typography cleanup in `13-living-light-design-foundation.md`. `web/index.html` still loads Inter, JetBrains Mono, and Clash Display, and `web/src/styles.css` still uses them as the active font stack.
-
-Deferred (needs a backend channel, deliberately not faked): room chat / "say something" (no Socket.IO message relay yet - see #15); persisted room mood; the custom Dotify logo (`design/Dotify-design/Dotify - Logo.html`); aura-recolored cover fallback.
+Deferred (needs a backend channel or separate design asset, deliberately not faked): room chat / "say something" (no Socket.IO message relay yet - see #15); persisted room mood; the custom Dotify logo (`design/Dotify-design/Dotify - Logo.html`).
 
 ## Current room access doctrine
 

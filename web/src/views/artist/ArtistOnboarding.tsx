@@ -439,7 +439,7 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
         }
 
         .account-address code {
-          font-family: 'Monaco', 'Menlo', monospace;
+          font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
           font-size: 0.875rem;
           color: var(--color-text-primary, #000);
         }
