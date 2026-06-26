@@ -7,7 +7,7 @@ Design track - Living Light experience (presentational, parallelizable with the 
 P1 (UX), non-blocking for the production spine
 
 ## Status
-Mostly delivered on `main`. This doc records what landed and the remaining design-system polish.
+Delivered on `main`. This doc records what landed.
 
 ## Objective
 Bring the "Living Light" art direction (see `design/Dotify-design/Dotify - Redesign Brief.html`) into the React/Vite app: the track playing now lights the whole room, web3 is felt as trust, and the surface is warm humanist glass. Behavior is preserved; the aura is pure presentation (one CSS-var write on track select).
@@ -20,13 +20,15 @@ Bring the "Living Light" art direction (see `design/Dotify-design/Dotify - Redes
 - Presence. `web/src/components/Presence.tsx` (`Avatar`, `AvatarStack`, `roomPresenceNames`) renders photo-style, per-person hued portraits; used on home room cards, the room cluster, public profile live rooms, and the rooms list.
 - Player dock. `web/src/components/PlayerDock.tsx` is a persistent "now playing / resume" bar on discovery and rooms.
 - Immersive room presence. `web/src/views/PlayerView.tsx` gained an aura cover-glow (breathes on play), a presence cluster with live EQ bars and host marking, and a local reactions bar.
+- Hanken-only app type. `web/index.html` loads Hanken Grotesk only; code-like surfaces use system mono and numeric stats use tabular numerals without switching into a decorative mono face.
+- Aura cover fallback. Generated fallback cover images now use the track aura instead of a static blue SVG.
 - Living Light stylesheet. `web/src/styles.css` carries the aura/grain/ambient/lights-down system, presence avatars, dock, and immersive-room styles.
 
-## Remaining polish (this ticket)
+## Completed polish
 
-- Retire unused type families. `web/index.html` still loads Inter, JetBrains Mono, and Clash Display, and `web/src/styles.css` uses those stacks. Decide the final type direction, remove unused font links, and confirm no price/access number renders in a decorative mono face (use `tabular-nums` when numeric alignment is needed).
+- Retire unused type families. Delivered on `main`; app and public docs load Hanken Grotesk, with system mono reserved for code-like content.
 - Featured aura hero on Home. Delivered on `main` via `ListenView`'s live/featured hero surface.
-- Generated aura Cover (optional fallback). The prototype `Cover` is a generated aura gradient that real art layers over. The app uses real cover art with an SVG fallback (`coverImage()` in `useCatalog.ts`); optionally align the fallback to the track's aura so empty covers still glow correctly.
+- Generated aura Cover. Delivered on `main`; `coverImage()` in `useCatalog.ts` derives the fallback palette from the same aura engine used by the room and page background.
 - Remove dead canvas. Delivered on `main`; `AmbientCanvas.tsx` and `StarfieldCanvas.tsx` are no longer present.
 
 ## Constraints
