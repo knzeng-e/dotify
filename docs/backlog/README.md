@@ -29,26 +29,25 @@ Do not add ornamental product features until the following spine is stable:
 | `02-server-side-pinata-uploads.md` | #3 | Delivered | Server-side Pinata uploads |
 | `03-wallet-signed-content-key-requests.md` | #4 | Delivered (see delivery notes in the ticket) | Wallet-signed content-key requests for individual and host playback |
 | `04-hosted-signaling-room-join-links.md` | #5 | Delivered (see delivery notes in the ticket) | Hosted signaling, room join links, and host-based room access |
-| Documentation task | #15 | Closed | UX signature and host-based room playback rules |
+| Documentation task | #15 | Open | UX signature and host-based room playback rules |
 
 ## Sprint 1 — Stabilization and maintainability
 
-| Backlog doc | GitHub issue | Status | Goal |
-| --- | --- | --- | --- |
-| `05-classic-unlock-e2e-coverage.md` | #6 | Open | Classic unlock end-to-end coverage |
-| `06-artist-publish-e2e-coverage.md` | #7 | Open | Artist publish end-to-end coverage |
-| `07-room-join-e2e-coverage.md` | #8 | Open | Room join and host-access playback end-to-end coverage |
-| `18-production-preview-assets.md` | #27 | Open | Separate preview assets for server-keyed protected tracks |
-| `08-frontend-feature-module-refactor.md` | #9 | Open | Frontend feature-module refactor |
-| `09-generated-abi-bindings.md` | #10 | Open | Generated ABI bindings |
+| Backlog doc | GitHub issue | Goal |
+| --- | --- | --- |
+| `05-classic-unlock-e2e-coverage.md` | #6 | Classic unlock end-to-end coverage |
+| `06-artist-publish-e2e-coverage.md` | #7 | Artist publish end-to-end coverage |
+| `07-room-join-e2e-coverage.md` | #8 | Room join and host-access playback end-to-end coverage |
+| `08-frontend-feature-module-refactor.md` | #9 | Frontend feature-module refactor |
+| `09-generated-abi-bindings.md` | #10 | Generated ABI bindings |
 
 ## Sprint 2 — Product hardening and philosophical differentiation
 
-| Backlog doc | GitHub issue | Status | Goal |
-| --- | --- | --- | --- |
-| `10-observability-health-checks.md` | #11 | Open | Observability and health checks |
-| `11-proof-of-personhood-integration-research.md` | #12 | Open | Proof of Personhood integration research |
-| `12-ambassador-social-propagation-model.md` | #13 | Open | Ambassador and social propagation model |
+| Backlog doc | GitHub issue | Goal |
+| --- | --- | --- |
+| `10-observability-health-checks.md` | #11 | Observability and health checks |
+| `11-proof-of-personhood-integration-research.md` | #12 | Proof of Personhood integration research |
+| `12-ambassador-social-propagation-model.md` | #13 | Ambassador and social propagation model |
 
 ## Design track - Living Light experience
 
@@ -56,15 +55,13 @@ Presentational UX work derived from `design/Dotify-design/` (the "Living Light" 
 
 | Backlog doc | Status | Goal |
 | --- | --- | --- |
-| `13-living-light-design-foundation.md` | Mostly delivered; typography cleanup remains on `main` | Aura engine, presence, dock, immersive-room presence, hero/cleanup polish |
-| `14-one-link-room-creation-sheet.md` | Delivered on `main` | "As easy as sharing a link" room-create sheet over the existing createSession |
+| `13-living-light-design-foundation.md` | Delivered (`feat/improve-UI`) | Aura engine, presence, dock, immersive-room presence, font/hero/cleanup polish |
+| `14-one-link-room-creation-sheet.md` | Delivered (`feat/improve-UI`) | "As easy as sharing a link" room-create sheet over the existing createSession |
 | `15-immersive-room-parity.md` | Delivered, chat deferred | Room code pill + copy, access chips, sync note; chat omitted until a Socket.IO channel exists |
-| `16-wallet-connected-identity-card.md` | Delivered on `main` | Calm connected-wallet identity card with real, non-fabricated stats |
-| `17-artist-studio-living-light-parity.md` | Delivered on `main` | Studio identity header, metric cards, sovereignty card, releases + support showcase |
+| `16-wallet-connected-identity-card.md` | Delivered (`feat/improve-UI`) | Calm connected-wallet identity card with real, non-fabricated stats |
+| `17-artist-studio-living-light-parity.md` | Delivered (`feat/improve-UI`) | Studio identity header, metric cards, sovereignty card, releases + support showcase |
 
-Delivered on `main`: album-aura engine (`web/src/utils/aura.ts`, `components/AuraBackground.tsx`), presence avatars (`components/Presence.tsx`), player dock (`components/PlayerDock.tsx`), create-room sheet (`components/CreateRoomModal.tsx`), immersive-room cover-glow/EQ/reactions/header/sync-note (`views/PlayerView.tsx`), wallet connected card (`components/WalletModal.tsx`), studio showcase (`views/artist/ArtistConsole.tsx` + `OverviewTab.tsx`), featured aura hero on Home, and the Living Light stylesheet block in `web/src/styles.css`. The old node/warp `AmbientCanvas` / `StarfieldCanvas` are removed.
-
-Still open on `main`: the typography cleanup in `13-living-light-design-foundation.md`. `web/index.html` still loads Inter, JetBrains Mono, and Clash Display, and `web/src/styles.css` still uses them as the active font stack.
+Delivered on `feat/improve-UI`: album-aura engine (`web/src/utils/aura.ts`, `components/AuraBackground.tsx`), presence avatars (`components/Presence.tsx`), player dock (`components/PlayerDock.tsx`), create-room sheet (`components/CreateRoomModal.tsx`), immersive-room cover-glow/EQ/reactions/header/sync-note (`views/PlayerView.tsx`), wallet connected card (`components/WalletModal.tsx`), studio showcase (`views/artist/ArtistConsole.tsx` + `OverviewTab.tsx`), Hanken-only type with system mono for code, featured aura hero on Home, and the Living Light stylesheet block in `web/src/styles.css`. The old node/warp `AmbientCanvas` / `StarfieldCanvas` are removed.
 
 Deferred (needs a backend channel, deliberately not faked): room chat / "say something" (no Socket.IO message relay yet - see #15); persisted room mood; the custom Dotify logo (`design/Dotify-design/Dotify - Logo.html`); aura-recolored cover fallback.
 
@@ -77,8 +74,6 @@ Dotify distinguishes direct file access from room presence.
 - Room listeners do not need to connect a wallet, sign, pay, or prove access merely to listen inside a room.
 - Room listeners never receive the encrypted source file or content key; they receive only the ephemeral WebRTC stream.
 - If an unauthorized host selects a protected track, Dotify plays the 42% preview, shows a discreet host-facing unlock/personhood CTA, then auto-advances to the next playlist track.
-
-Current implementation caveat: server-keyed production tracks do not yet publish a separate preview asset, so unauthorized preview playback for those tracks cannot be guaranteed without falling back to demo-mode decryption. `18-production-preview-assets.md` tracks the missing production path.
 
 ## Engineering bar
 
@@ -96,6 +91,6 @@ All implementation must be production-minded:
 
 ## Recommended execution order
 
-Sprint 0 is delivered on `main`. Execute Sprint 1 next. Do not start ambassador mechanics, awards, or advanced social graph work until deterministic tests, production previews, modularization, and ABI generation are stable.
+Execute Sprint 0 first. Do not start ambassador mechanics, awards, or advanced social graph work until the production spine is stable.
 
 The philosophical line is simple: make the social listening experience as frictionless as a shared link, while keeping the artist-owned runtime and access policy as the invisible foundation.

@@ -7,7 +7,7 @@ Design track - Living Light experience (presentational, parallelizable with the 
 P1 (UX), non-blocking for the production spine
 
 ## Status
-Mostly delivered on `main`. This doc records what landed and the remaining design-system polish.
+Largely delivered on `feat/improve-UI`. This doc records what landed and the remaining design-system polish.
 
 ## Objective
 Bring the "Living Light" art direction (see `design/Dotify-design/Dotify - Redesign Brief.html`) into the React/Vite app: the track playing now lights the whole room, web3 is felt as trust, and the surface is warm humanist glass. Behavior is preserved; the aura is pure presentation (one CSS-var write on track select).
@@ -24,10 +24,10 @@ Bring the "Living Light" art direction (see `design/Dotify-design/Dotify - Redes
 
 ## Remaining polish (this ticket)
 
-- Retire unused type families. `web/index.html` still loads Inter, JetBrains Mono, and Clash Display, and `web/src/styles.css` uses those stacks. Decide the final type direction, remove unused font links, and confirm no price/access number renders in a decorative mono face (use `tabular-nums` when numeric alignment is needed).
-- Featured aura hero on Home. Delivered on `main` via `ListenView`'s live/featured hero surface.
+- Retire unused type families. `web/index.html` still preloads Space Grotesk and JetBrains Mono; the design uses Hanken Grotesk only (mono retired from prices). Remove the unused font links and confirm no surface still renders mono for prices/access numbers (use `tabular-nums`).
+- Featured aura hero on Home. The prototype Home leads with a large featured cover tile bathed in its aura beside the listen CTA; the current `ListenView` hero is copy + actions only. Add the featured tile.
 - Generated aura Cover (optional fallback). The prototype `Cover` is a generated aura gradient that real art layers over. The app uses real cover art with an SVG fallback (`coverImage()` in `useCatalog.ts`); optionally align the fallback to the track's aura so empty covers still glow correctly.
-- Remove dead canvas. Delivered on `main`; `AmbientCanvas.tsx` and `StarfieldCanvas.tsx` are no longer present.
+- Remove dead canvas. `AmbientCanvas.tsx` / `StarfieldCanvas.tsx` and the `.ambient-canvas` CSS rule are now unused; delete once no branch depends on them.
 
 ## Constraints
 

@@ -168,11 +168,6 @@ sequenceDiagram
 - Artist publishing must be explicit and reviewable.
 - Dotify should prefer one session-level off-chain signature where feasible, not a signature per track.
 
-Current implementation caveat: production tracks encrypted with the
-backend-held content key still need a separate preview asset before denied
-individual playback and denied room-host playback can reliably produce the 42%
-preview without exposing the full-track key.
-
 ## Non-goals
 
 - Do not claim that WebRTC streams cannot be recorded.
