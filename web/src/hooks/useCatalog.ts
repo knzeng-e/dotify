@@ -18,6 +18,16 @@ import {
   recordClassicUnlockFullKeyRequest
 } from '../e2e/classicUnlockMock';
 import { getArtistPublishE2eTracks, isArtistPublishE2e, isArtistPublishE2eTrack } from '../e2e/artistPublishMock';
+import {
+  E2E_ROOM_AUDIO_URL,
+  getRoomJoinE2eTracks,
+  isRoomJoinE2e,
+  isRoomJoinE2eContext,
+  isRoomJoinE2eProtectedHash,
+  isRoomJoinE2eTrack,
+  recordRoomJoinE2eKeyRequest,
+  roomJoinE2eHostHasAccess
+} from '../e2e/roomJoinMock';
 import type {
   AccessGate,
   AccessMode,
@@ -184,6 +194,10 @@ export function useCatalog(deps: UseCatalogDeps) {
     const tracks: CatalogTrack[] = [];
     if (isClassicUnlockE2e) tracks.push(E2E_CLASSIC_TRACK);
     if (isArtistPublishE2e) tracks.push(...getArtistPublishE2eTracks());
+    // Only seed room tracks in a room context, so the classic-unlock and
+    // artist-publish suites (which share the always-on flags) keep their
+    // single-track catalog assumptions.
+    if (isRoomJoinE2eContext()) tracks.push(...getRoomJoinE2eTracks());
     return tracks;
   }
 
@@ -193,6 +207,11 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
     if (isArtistPublishE2eTrack(track)) {
       return Boolean(listenerAddress && track.artistAddress?.toLowerCase() === listenerAddress.toLowerCase());
+    }
+    // Room-join e2e: only the protected track is policy-gated, and only the
+    // host (authorized scenario) satisfies it. Public tracks fall through.
+    if (isRoomJoinE2eTrack(track)) {
+      return !track.id.includes(':') || roomJoinE2eHostHasAccess();
     }
     if (track.source !== 'artist' || !track.id.includes(':')) return true;
     if (!listenerAddress) return false;
@@ -215,6 +234,9 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
     if (isArtistPublishE2eTrack(track)) {
       return false;
+    }
+    if (isRoomJoinE2eTrack(track)) {
+      return track.id.includes(':') && roomJoinE2eHostHasAccess();
     }
     if (track.source !== 'artist' || !track.id.includes(':') || track.accessMode !== 'classic') return false;
     if (!listenerAddress) return false;
@@ -345,6 +367,14 @@ export function useCatalog(deps: UseCatalogDeps) {
       return authorized ? new Uint8Array(32).fill(7) : null;
     }
 
+    // Room-join e2e: only the host ever reaches this path for the protected
+    // track. Record the request so the spec can prove listeners stay at zero.
+    if (isRoomJoinE2eProtectedHash(contentHash)) {
+      const authorized = roomJoinE2eHostHasAccess();
+      recordRoomJoinE2eKeyRequest(authorized);
+      return authorized ? new Uint8Array(32).fill(9) : null;
+    }
+
     const cacheKey = contentHash.toLowerCase();
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
@@ -376,6 +406,15 @@ export function useCatalog(deps: UseCatalogDeps) {
       const serverKey = await resolveServerContentKey(contentHash);
       if (!serverKey) throw new Error('E2E full key request denied before payment.');
       return E2E_CLASSIC_AUDIO_URL;
+    }
+
+    if (isRoomJoinE2eProtectedHash(contentHash)) {
+      // Preview skips the key request entirely (host lacks access); full
+      // playback records the host key request via resolveServerContentKey.
+      if (options.previewOnly) return E2E_ROOM_AUDIO_URL;
+      const serverKey = await resolveServerContentKey(contentHash);
+      if (!serverKey) throw new Error('E2E room host is not authorized for full playback.');
+      return E2E_ROOM_AUDIO_URL;
     }
 
     const cacheKey = options.previewOnly ? `${audioRef}:preview` : audioRef;
@@ -669,7 +708,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
-    if (isClassicUnlockE2e || isArtistPublishE2e) {
+    if (isClassicUnlockE2e || isArtistPublishE2e || isRoomJoinE2e) {
       const nextCatalog = getDeterministicE2eCatalogTracks();
       setCatalogTracks(nextCatalog);
       setSelectedTrackId(previous => {

@@ -47,6 +47,7 @@ type PlayerViewProps = {
   listeners: ListenerRecord[];
   remoteReady: boolean;
   localStreamReady: boolean;
+  roomPlaybackMode: 'full' | 'preview';
   error: string | null;
   // Derived display values
   streamTitle: string;
@@ -83,6 +84,7 @@ export function PlayerView({
   listeners,
   remoteReady,
   localStreamReady,
+  roomPlaybackMode,
   error,
   streamTitle,
   streamArtist,
@@ -171,9 +173,31 @@ export function PlayerView({
             Live
           </span>
           <span className='room-header-meta'>{mode === 'host' ? `${roomPresenceCount} in the room` : `with ${hostName || 'the host'}`}</span>
+          {/* Honest room playback mode ('full' or the 42% 'preview' fallback),
+              exposed as a non-visual metadata hook; the visible preview cue lives
+              in the rooms list and session status. */}
+          <span
+            data-testid='room-playback-mode'
+            data-mode={roomPlaybackMode}
+            style={{
+              position: 'absolute',
+              width: 1,
+              height: 1,
+              padding: 0,
+              margin: -1,
+              overflow: 'hidden',
+              clip: 'rect(0,0,0,0)',
+              whiteSpace: 'nowrap',
+              border: 0
+            }}
+          >
+            {roomPlaybackMode}
+          </span>
           <div className='room-code-pill'>
             <span>ROOM</span>
-            <strong className='tnum'>{roomId}</strong>
+            <strong className='tnum' data-testid='room-code'>
+              {roomId}
+            </strong>
             <button className='room-copy-btn' type='button' onClick={onCopySessionLink}>
               <Copy size={14} />
               Copy link
@@ -521,7 +545,7 @@ export function PlayerView({
                       {hostName || 'Host'}
                       <span className='room-person-tag'>host</span>
                     </strong>
-                    <span>{remoteReady ? 'In sync' : 'Connecting...'}</span>
+                    <span data-testid='room-listener-sync'>{remoteReady ? 'In sync' : 'Connecting...'}</span>
                   </div>
                 </div>
                 {remoteReady ? (
@@ -560,7 +584,11 @@ export function PlayerView({
             </>
           )}
 
-          {error && <p className='error-box'>{error}</p>}
+          {error && (
+            <p className='error-box' data-testid='session-error'>
+              {error}
+            </p>
+          )}
         </div>
 
         <div className='doc-panel player-context-panel'>

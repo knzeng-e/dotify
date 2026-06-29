@@ -11,6 +11,7 @@
 // remoteAudioRef.current.srcObject - both refs are stable here.
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
 import type { CatalogTrack, Mode, PlayerState } from '../types';
 
 export type AudioStatus =
@@ -274,7 +275,12 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const handleHostLoadedMetadata = useCallback(
     (audio: HTMLAudioElement) => {
       syncFromAudio(audio);
-      if (!autoplayIntentRef.current) {
+      // E2E room-join keeps the host paused on load so the deterministic preview
+      // -> auto-advance transition is driven explicitly by the test rather than
+      // racing a sub-second autoplay window. Scope to room-join contexts only so
+      // the classic-unlock and artist-publish suites keep their normal autoplay.
+      // Manual togglePlay still works.
+      if (!autoplayIntentRef.current || isRoomJoinE2eContext()) {
         setStatus('ready');
         return;
       }
