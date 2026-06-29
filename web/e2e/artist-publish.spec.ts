@@ -30,6 +30,24 @@ async function readArtistPublishState(page: Page) {
   return page.evaluate(() => window.__DOTIFY_E2E_ARTIST_PUBLISH__ as ArtistPublishE2eState | undefined);
 }
 
+// Explicit per-test state reset. Playwright already gives each test a fresh browser
+// context (empty storage), but the artist-publish mock persists to both
+// window.__DOTIFY_E2E_ARTIST_PUBLISH__ and localStorage, so we clear them before any
+// page script runs rather than relying solely on that default isolation.
+//
+// addInitScript re-runs on every navigation within a test, so we gate the reset on a
+// sessionStorage marker: each test gets a fresh context (and fresh sessionStorage), so
+// the clear fires exactly once on the first page load and then leaves in-test state
+// (e.g. a published track inspected after navigating to '/') intact.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    if (window.sessionStorage.getItem('dotify:e2e:artist-publish:reset')) return;
+    window.__DOTIFY_E2E_ARTIST_PUBLISH__ = undefined;
+    window.localStorage.removeItem('dotify:e2e:artist-publish');
+    window.sessionStorage.setItem('dotify:e2e:artist-publish:reset', '1');
+  });
+});
+
 async function openArtistScenario(page: Page, scenario: string) {
   await page.goto(`/artists?e2eArtist=${scenario}`);
 }
@@ -113,7 +131,7 @@ test('artist profile creation rejects a mismatched wallet network', async ({ pag
   expect(state?.registerArtistTransactions ?? 0).toBe(0);
 });
 
-test('artist publish surfaces upload failure before registration', async ({ page }) => {
+test('upload failure surfaces an error and halts registration', async ({ page }) => {
   await createArtistProfile(page, 'upload-failure');
   await completeReleaseDraft(page);
   await page.getByTestId('publish-release-button').click();

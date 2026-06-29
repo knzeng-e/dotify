@@ -17,7 +17,7 @@ import {
   isClassicUnlockE2e,
   recordClassicUnlockFullKeyRequest
 } from '../e2e/classicUnlockMock';
-import { getArtistPublishE2eTracks, isArtistPublishE2e } from '../e2e/artistPublishMock';
+import { getArtistPublishE2eTracks, isArtistPublishE2e, isArtistPublishE2eTrack } from '../e2e/artistPublishMock';
 import type {
   AccessGate,
   AccessMode,
@@ -191,7 +191,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
       return e2eClassicAccessGrantedRef.current;
     }
-    if (isArtistPublishE2e && track.source === 'artist') {
+    if (isArtistPublishE2eTrack(track)) {
       return Boolean(listenerAddress && track.artistAddress?.toLowerCase() === listenerAddress.toLowerCase());
     }
     if (track.source !== 'artist' || !track.id.includes(':')) return true;
@@ -213,7 +213,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
       return e2eClassicAccessGrantedRef.current;
     }
-    if (isArtistPublishE2e && track.source === 'artist') {
+    if (isArtistPublishE2eTrack(track)) {
       return false;
     }
     if (track.source !== 'artist' || !track.id.includes(':') || track.accessMode !== 'classic') return false;

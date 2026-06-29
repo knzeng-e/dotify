@@ -219,3 +219,11 @@ export function publishArtistPublishE2eTrack(track: CatalogTrack) {
 export function getArtistPublishE2eTracks() {
   return getArtistPublishE2eState().tracks;
 }
+
+// Precise marker for tracks minted by the artist-publish e2e flow. Their ids are
+// `${E2E_ARTIST_RUNTIME}:${hash}`, so this never matches a real artist-source track
+// — letting access guards short-circuit only on deterministic e2e fixtures.
+export function isArtistPublishE2eTrack(track: Pick<CatalogTrack, 'id'>) {
+  if (!isArtistPublishE2e) return false;
+  return track.id.toLowerCase().startsWith(`${E2E_ARTIST_RUNTIME.toLowerCase()}:`);
+}
