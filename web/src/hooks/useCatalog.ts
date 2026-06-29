@@ -17,6 +17,7 @@ import {
   isClassicUnlockE2e,
   recordClassicUnlockFullKeyRequest
 } from '../e2e/classicUnlockMock';
+import { getArtistPublishE2eTracks, isArtistPublishE2e } from '../e2e/artistPublishMock';
 import type {
   AccessGate,
   AccessMode,
@@ -179,9 +180,19 @@ export function useCatalog(deps: UseCatalogDeps) {
     setFileHashState(hash);
   }
 
+  function getDeterministicE2eCatalogTracks() {
+    const tracks: CatalogTrack[] = [];
+    if (isClassicUnlockE2e) tracks.push(E2E_CLASSIC_TRACK);
+    if (isArtistPublishE2e) tracks.push(...getArtistPublishE2eTracks());
+    return tracks;
+  }
+
   async function checkTrackAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
     if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
       return e2eClassicAccessGrantedRef.current;
+    }
+    if (isArtistPublishE2e && track.source === 'artist') {
+      return Boolean(listenerAddress && track.artistAddress?.toLowerCase() === listenerAddress.toLowerCase());
     }
     if (track.source !== 'artist' || !track.id.includes(':')) return true;
     if (!listenerAddress) return false;
@@ -201,6 +212,9 @@ export function useCatalog(deps: UseCatalogDeps) {
   async function checkTrackPaidAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
     if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
       return e2eClassicAccessGrantedRef.current;
+    }
+    if (isArtistPublishE2e && track.source === 'artist') {
+      return false;
     }
     if (track.source !== 'artist' || !track.id.includes(':') || track.accessMode !== 'classic') return false;
     if (!listenerAddress) return false;
@@ -655,18 +669,28 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
-    if (isClassicUnlockE2e) {
-      const nextCatalog = [E2E_CLASSIC_TRACK];
-      const hasAccess = e2eClassicAccessGrantedRef.current;
+    if (isClassicUnlockE2e || isArtistPublishE2e) {
+      const nextCatalog = getDeterministicE2eCatalogTracks();
       setCatalogTracks(nextCatalog);
       setSelectedTrackId(previous => {
-        const preferredTrack = preferredTrackHash && preferredTrackHash.toLowerCase() === E2E_CLASSIC_TRACK.hash.toLowerCase() ? E2E_CLASSIC_TRACK : null;
+        const preferredTrack = preferredTrackHash ? (nextCatalog.find(track => track.hash.toLowerCase() === preferredTrackHash.toLowerCase()) ?? null) : null;
         if (preferredTrack) return preferredTrack.id;
-        return nextCatalog.some(track => track.id === previous) ? previous : E2E_CLASSIC_TRACK.id;
+        return nextCatalog.some(track => track.id === previous) ? previous : (nextCatalog[0]?.id ?? '');
       });
-      setCatalogAccessByTrackId({ [E2E_CLASSIC_TRACK.id]: hasAccess });
-      setCatalogPaidAccessByTrackId({ [E2E_CLASSIC_TRACK.id]: hasAccess });
-      setCatalogStatus('Loaded deterministic Classic unlock e2e track');
+      setCatalogAccessByTrackId(
+        Object.fromEntries(
+          nextCatalog.map(track => [
+            track.id,
+            track.id === E2E_CLASSIC_TRACK.id
+              ? e2eClassicAccessGrantedRef.current
+              : Boolean(listenerEvmAddress && track.artistAddress?.toLowerCase() === listenerEvmAddress.toLowerCase())
+          ])
+        )
+      );
+      setCatalogPaidAccessByTrackId(Object.fromEntries(nextCatalog.map(track => [track.id, track.id === E2E_CLASSIC_TRACK.id && e2eClassicAccessGrantedRef.current])));
+      setCatalogStatus(
+        nextCatalog.length > 0 ? `Loaded ${nextCatalog.length} deterministic e2e track${nextCatalog.length === 1 ? '' : 's'}` : 'No e2e tracks registered yet'
+      );
       return nextCatalog;
     }
 

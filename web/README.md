@@ -138,10 +138,11 @@ npm run test:signal
 npm run test:e2e
 ```
 
-`test:e2e` runs Playwright against a deterministic Classic unlock mock mode. It
-seeds one paid Classic track, connects a test wallet, asserts preview-only
-state before payment, clicks the visible unlock action, and verifies full access
-after the mocked confirmation without requiring live funds, Pinata, or a chain.
+`test:e2e` runs Playwright against deterministic mock modes. It covers Classic
+preview/payment/unlock and artist runtime creation plus release publication
+without requiring live funds, Pinata, or a chain. Artist publish coverage also
+asserts missing wallet, wrong network, upload failure, and transaction failure
+states.
 
 ## Current Limitations
 
@@ -154,8 +155,9 @@ after the mocked confirmation without requiring live funds, Pinata, or a chain.
 - Proof of Personhood levels are contract storage controlled by the runtime
   registrar; live Individuality integration is not implemented yet.
 - The signaling server must be hosted separately for DotNS / Bulletin builds.
-- Frontend e2e coverage exists for the Classic preview/payment/unlock trust flow.
-  Artist publish, room join, and broader wallet/provider coverage are still open.
+- Frontend e2e coverage exists for the Classic preview/payment/unlock and artist
+  publish trust flows. Room join and broader wallet/provider coverage are still
+  open.
 
 ## Improvement Backlog
 
@@ -164,8 +166,7 @@ after the mocked confirmation without requiring live funds, Pinata, or a chain.
    service.
 3. Replace bundled-content-secret protection with per-track key custody and
    wallet-signed key requests.
-4. Add Playwright or Vitest coverage for artist register/publish and WebRTC room
-   flows.
+4. Add Playwright or Vitest coverage for WebRTC room flows.
 5. Split `App.tsx` into focused modules for catalog, player, artist portal,
    rooms, and chain access.
 6. Add release draft persistence and edit flows for the `/artists` portal.

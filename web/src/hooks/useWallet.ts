@@ -19,6 +19,12 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { useState, useCallback, useEffect } from 'react';
 import { createWalletClient, http, custom, type WalletClient, type Chain } from 'viem';
 import { createClassicUnlockE2eWallet, isClassicUnlockE2e } from '../e2e/classicUnlockMock';
+import {
+  createArtistPublishE2eWallet,
+  isArtistPublishE2e,
+  isArtistPublishE2eScenarioRequested,
+  shouldAutoConnectArtistPublishE2eWallet
+} from '../e2e/artistPublishMock';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -265,11 +271,24 @@ async function withTimeout<T>(promise: Promise<T>, message: string): Promise<T> 
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useWallet() {
-  const [state, setState] = useState<WalletState>(() =>
-    isClassicUnlockE2e ? { status: 'connected', wallet: createClassicUnlockE2eWallet() } : { status: 'disconnected' }
-  );
+  const [state, setState] = useState<WalletState>(() => {
+    // When an artist-publish scenario is explicitly requested via the URL, it is
+    // authoritative: the classic-unlock auto-connect must not override a scenario
+    // (e.g. missing-wallet) that intentionally leaves the wallet disconnected.
+    if (isArtistPublishE2eScenarioRequested()) {
+      return shouldAutoConnectArtistPublishE2eWallet()
+        ? { status: 'connected', wallet: createArtistPublishE2eWallet() }
+        : { status: 'disconnected' };
+    }
+    if (isClassicUnlockE2e) return { status: 'connected', wallet: createClassicUnlockE2eWallet() };
+    return { status: 'disconnected' };
+  });
 
   const connectPasskey = useCallback(async () => {
+    if (isArtistPublishE2e) {
+      setState({ status: 'connected', wallet: createArtistPublishE2eWallet() });
+      return;
+    }
     if (isClassicUnlockE2e) {
       setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
       return;
@@ -285,6 +304,10 @@ export function useWallet() {
   }, []);
 
   const connectExtension = useCallback(async () => {
+    if (isArtistPublishE2e) {
+      setState({ status: 'connected', wallet: createArtistPublishE2eWallet() });
+      return;
+    }
     if (isClassicUnlockE2e) {
       setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
       return;
@@ -300,6 +323,11 @@ export function useWallet() {
   }, []);
 
   const switchExtensionNetwork = useCallback(async (chain: Chain) => {
+    if (isArtistPublishE2e) {
+      const wallet = { ...createArtistPublishE2eWallet(), chainId: chain.id };
+      setState({ status: 'connected', wallet });
+      return wallet;
+    }
     if (isClassicUnlockE2e) {
       const wallet = createClassicUnlockE2eWallet();
       setState({ status: 'connected', wallet });
@@ -312,6 +340,10 @@ export function useWallet() {
   }, []);
 
   const disconnect = useCallback(() => {
+    if (isArtistPublishE2e) {
+      setState({ status: 'disconnected' });
+      return;
+    }
     if (isClassicUnlockE2e) {
       setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
       return;
@@ -321,7 +353,7 @@ export function useWallet() {
   }, []);
 
   useEffect(() => {
-    if (isClassicUnlockE2e) return;
+    if (isClassicUnlockE2e || isArtistPublishE2e) return;
     let cancelled = false;
     const lastMethod = localStorage.getItem(LAST_METHOD_KEY) as WalletMethod | null;
     if (lastMethod !== 'extension' && lastMethod !== 'passkey') return;
@@ -358,7 +390,7 @@ export function useWallet() {
   }, []);
 
   useEffect(() => {
-    if (isClassicUnlockE2e) return;
+    if (isClassicUnlockE2e || isArtistPublishE2e) return;
     const ethereum = getEthereumProvider();
     if (!ethereum?.on || !ethereum.removeListener) return;
     const provider = ethereum;

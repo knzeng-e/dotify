@@ -12,6 +12,7 @@ export default defineConfig({
     reuseExistingServer: false,
     env: {
       VITE_E2E_CLASSIC_UNLOCK: 'true',
+      VITE_E2E_ARTIST_PUBLISH: 'true',
       VITE_SIGNAL_URL: 'http://127.0.0.1:65535'
     }
   },

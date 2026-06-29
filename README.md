@@ -117,13 +117,13 @@ It never carries audio: media flows host to listeners over WebRTC only.
 cd web
 npm run signal          # local dev (started automatically by npm run dev:listen)
 npm run test:signal     # integration tests: create/join/cap/expiry/heartbeat
-npm run test:e2e        # Playwright: deterministic Classic unlock flow
+npm run test:e2e        # Playwright: deterministic Classic unlock and artist publish flows
 ```
 
-`npm run test:e2e` starts Vite in `VITE_E2E_CLASSIC_UNLOCK=true` mode. That
-mode seeds one Classic track, connects a deterministic test wallet, and verifies
-that the listener sees preview-only playback before payment, unlocks through the
-visible Classic action, and reaches the full-access state after confirmation.
+`npm run test:e2e` starts Vite in deterministic e2e mode. It seeds one Classic
+track, connects deterministic test wallets, verifies preview-only playback
+before Classic payment, and covers artist runtime creation plus release
+publication with mocked upload and transaction failure states.
 
 For a public deployment, run `node server/signaling.mjs` on any Node 22 host
 and point the frontend at it with `VITE_SIGNAL_URL`.
@@ -352,8 +352,9 @@ handle:
 6. Add a production artist dashboard on `/artists`: release drafts, edit
    metadata, royalty analytics, and profile verification state.
 7. Deploy and monitor a public signaling server for DotNS / Bulletin builds.
-8. Add remaining frontend tests for artist registration/publish and listening
-   rooms; Classic preview/payment/unlock now has deterministic e2e coverage.
+8. Add remaining frontend tests for listening rooms; Classic
+   preview/payment/unlock and artist publish now have deterministic e2e
+   coverage.
 9. Split the large React app into catalog, player, artist portal, rooms, and
    chain modules.
 10. Generate frontend ABI bindings from Hardhat artifacts.

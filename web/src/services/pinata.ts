@@ -12,6 +12,13 @@
 //     Do NOT use an unrestricted Pinata JWT in production.
 // ---------------------------------------------------------------------------
 
+import {
+  getArtistPublishE2eCid,
+  getArtistPublishE2eScenario,
+  isArtistPublishE2e,
+  recordArtistPublishUploadFailure
+} from '../e2e/artistPublishMock';
+
 // Backend API base URL. When set, uploads are routed server-side.
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
 
@@ -208,6 +215,12 @@ export type ProtectedAudioSource = {
  * demo key (best-effort, not a production boundary) and pinned directly.
  */
 export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentHash: string): Promise<string> {
+  if (isArtistPublishE2e) {
+    void audio;
+    void contentHash;
+    return getArtistPublishE2eCid('audio');
+  }
+
   if (API_URL) {
     const rawFile = new File([audio.bytes as BlobPart], audio.name, { type: audio.mime || 'audio/mpeg' });
     const ref = await uploadAudioToBackend(rawFile, contentHash);
@@ -233,6 +246,12 @@ function demoPinataHeaders(): Record<string, string> {
 }
 
 export async function uploadFileToPinata(file: File, name: string, keyvalues: Record<string, string> = {}): Promise<string> {
+  if (isArtistPublishE2e && keyvalues.type === 'cover') {
+    void file;
+    void name;
+    return getArtistPublishE2eCid('cover');
+  }
+
   // Cover images: route through backend when API is configured.
   if (API_URL && keyvalues.type === 'cover') {
     return uploadCoverToBackend(file);
@@ -259,6 +278,16 @@ export async function uploadFileToPinata(file: File, name: string, keyvalues: Re
 }
 
 export async function uploadJsonToPinata(json: unknown, name: string, keyvalues: Record<string, string> = {}): Promise<string> {
+  if (isArtistPublishE2e && keyvalues.type === 'track-metadata') {
+    void json;
+    void name;
+    if (getArtistPublishE2eScenario() === 'upload-failure') {
+      recordArtistPublishUploadFailure();
+      throw new Error('E2E metadata upload failed.');
+    }
+    return getArtistPublishE2eCid('metadata');
+  }
+
   // Route through backend when API is configured.
   if (API_URL) {
     return uploadMetadataToBackend(json as DotifyTrackManifest);

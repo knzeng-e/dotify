@@ -13,6 +13,19 @@ import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from
 import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
 import { makeEncryptedAudioRef } from '../utils/protectedAudio';
 import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../utils/format';
+import {
+  createArtistPublishE2eTrack,
+  E2E_ARTIST_PROFILE_TX_HASH,
+  E2E_ARTIST_RELEASE_TX_HASH,
+  E2E_ARTIST_RUNTIME,
+  getArtistPublishE2eNetworkError,
+  getArtistPublishE2eScenario,
+  getArtistPublishE2eState,
+  isArtistPublishE2e,
+  markArtistPublishRuntimeCreated,
+  publishArtistPublishE2eTrack,
+  recordArtistPublishTransactionFailure
+} from '../e2e/artistPublishMock';
 import type { AccessMode, CatalogTrack, PersonhoodLevel, RoyaltyPayment, TransactionFeedback } from '../types';
 import type { ConnectedWallet } from './useWallet';
 import type { PolkadotSigner } from 'polkadot-api';
@@ -125,10 +138,32 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       throw new Error('Connect a wallet before signing this transaction.');
     }
     const chain = await resolveEvmChain(ethRpcUrl);
+    if (connectedWallet.chainId !== undefined && connectedWallet.chainId !== chain.id) {
+      throw new Error(`Switch your wallet to chain ${chain.id}. Your wallet is currently on chain ${connectedWallet.chainId}.`);
+    }
     return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
   }
 
   async function refreshArtistRuntime(showBusy = false) {
+    if (isArtistPublishE2e) {
+      if (showBusy) {
+        setIsRefreshingArtistRuntime(true);
+      }
+      setArtistRegistrationStatus('Checking artist runtime');
+      await new Promise(resolve => window.setTimeout(resolve, 10));
+      const state = getArtistPublishE2eState();
+      if (state.runtimeCreated) {
+        setArtistRuntimeAddress(E2E_ARTIST_RUNTIME);
+        setArtistRegistrationStatus('Artist registered');
+        if (showBusy) setIsRefreshingArtistRuntime(false);
+        return E2E_ARTIST_RUNTIME;
+      }
+      setArtistRuntimeAddress(null);
+      setArtistRegistrationStatus('Artist not registered yet');
+      if (showBusy) setIsRefreshingArtistRuntime(false);
+      return null;
+    }
+
     if (!artistRegistrationAvailable) {
       setArtistRuntimeAddress(null);
       setArtistRegistrationStatus('Artist runtime contracts are not deployed yet.');
@@ -185,6 +220,38 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         message: 'Connect a wallet before creating an artist profile.'
       });
       setArtistRegistrationStatus('Connect your wallet to claim an artist profile.');
+      return;
+    }
+
+    if (isArtistPublishE2e) {
+      const networkError = getArtistPublishE2eNetworkError(connectedWallet);
+      if (networkError) {
+        setArtistRegistrationStatus(networkError);
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Network mismatch',
+          message: networkError
+        });
+        return;
+      }
+
+      setIsRegisteringArtist(true);
+      try {
+        setArtistRegistrationStatus('Creating artist runtime');
+        await new Promise(resolve => window.setTimeout(resolve, 20));
+        markArtistPublishRuntimeCreated();
+        setArtistRuntimeAddress(E2E_ARTIST_RUNTIME);
+        setArtistRegistrationStatus('Artist registered');
+        setRightsStatus('Artist registered. Add audio and publish the first release.');
+        setTransactionFeedback({
+          tone: 'success',
+          title: 'Artist registered',
+          message: 'The artist signer now owns a personal SmartRuntime and can manage releases.',
+          txHash: E2E_ARTIST_PROFILE_TX_HASH
+        });
+      } finally {
+        setIsRegisteringArtist(false);
+      }
       return;
     }
 
@@ -403,6 +470,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     let bulletinRef = bulletinManifestRef;
     let runtimeAddress = artistRuntimeAddress;
     try {
+      if (isArtistPublishE2e) {
+        const networkError = getArtistPublishE2eNetworkError(connectedWallet);
+        if (networkError) {
+          throw new Error(networkError);
+        }
+      }
+
       if (artistRegistrationAvailable) {
         setRightsStatus('Checking artist registration');
         const resolvedRuntime = await refreshArtistRuntime();
@@ -447,6 +521,42 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       });
       const metadataCID = await uploadJsonToPinata(manifest, `${manifest.track.title}.json`, { app: 'dotify', type: 'track-metadata' });
       const ipfsMetadataRef = `ipfs://${metadataCID}`;
+
+      if (isArtistPublishE2e) {
+        if (!runtimeAddress) {
+          throw new Error('Artist runtime missing');
+        }
+        if (getArtistPublishE2eScenario() === 'transaction-failure') {
+          recordArtistPublishTransactionFailure();
+          throw new Error('E2E registration transaction rejected.');
+        }
+
+        const track = createArtistPublishE2eTrack({
+          artistAddress: activeEvmAddress,
+          runtimeAddress,
+          hash: fileHash,
+          title,
+          artistName,
+          description,
+          accessMode,
+          priceDot,
+          personhoodLevel,
+          royaltyBps,
+          audioCID: resolvedAudioCID,
+          coverCID: resolvedCoverCID,
+          metadataCID
+        });
+        publishArtistPublishE2eTrack(track);
+        setRightsStatus('Rights registered');
+        setTransactionFeedback({
+          tone: 'success',
+          title: 'Track registered',
+          message: 'The transaction was confirmed and the release was added to the registry.',
+          txHash: E2E_ARTIST_RELEASE_TX_HASH
+        });
+        await refreshCatalogFromRegistry(fileHash);
+        return;
+      }
 
       if (uploadToBulletinEnabled) {
         if (!activeSubstrateAddress || !activeSubstrateSigner) {
