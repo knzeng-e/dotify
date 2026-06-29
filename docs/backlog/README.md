@@ -37,7 +37,7 @@ Do not add ornamental product features until the following spine is stable:
 | --- | --- | --- | --- |
 | `05-classic-unlock-e2e-coverage.md` | #6 | Delivered on `main` | Classic unlock end-to-end coverage |
 | `06-artist-publish-e2e-coverage.md` | #7 | Delivered on `main` | Artist publish end-to-end coverage |
-| `07-room-join-e2e-coverage.md` | #8 | Open | Room join and host-access playback end-to-end coverage |
+| `07-room-join-e2e-coverage.md` | #8 | Delivered (see delivery notes in the ticket) | Room join and host-access playback end-to-end coverage |
 | `18-production-preview-assets.md` | #27 | Open | Separate preview assets for server-keyed protected tracks |
 | `08-frontend-feature-module-refactor.md` | #9 | Open | Frontend feature-module refactor |
 | `09-generated-abi-bindings.md` | #10 | Open | Generated ABI bindings |

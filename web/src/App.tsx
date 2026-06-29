@@ -383,13 +383,17 @@ export default function App() {
   // One-link join: a guest landing on a #/rooms/<id> share link joins the
   // room immediately. No wallet, no signature, no payment: room access is
   // host-based and the guest only receives the ephemeral WebRTC stream.
-  const autoJoinAttemptedRef = useRef(false);
+  //
+  // Re-attempt while not yet in a room rather than latching a one-shot ref:
+  // under React StrictMode the mount/unmount/remount cycle tears the first
+  // socket down before it connects, and a latched ref would leave the guest
+  // permanently unconnected on the surviving mount.
   useEffect(() => {
-    if (autoJoinAttemptedRef.current) return;
     const initialRoomCode = getInitialRoomCode();
-    if (!initialRoomCode) return;
-    autoJoinAttemptedRef.current = true;
+    if (!initialRoomCode || session.roomId) return;
     session.joinRoom(initialRoomCode);
+    // Run once per mount; the share-link code is read from the URL at mount time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -965,6 +969,7 @@ export default function App() {
                     listeners={session.listeners}
                     remoteReady={session.remoteReady}
                     localStreamReady={session.localStreamReady}
+                    roomPlaybackMode={session.roomPlaybackMode}
                     error={session.error}
                     streamTitle={streamTitle}
                     streamArtist={streamArtist}

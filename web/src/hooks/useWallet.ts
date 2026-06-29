@@ -25,6 +25,7 @@ import {
   isArtistPublishE2eScenarioRequested,
   shouldAutoConnectArtistPublishE2eWallet
 } from '../e2e/artistPublishMock';
+import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -278,6 +279,10 @@ export function useWallet() {
     if (isArtistPublishE2eScenarioRequested()) {
       return shouldAutoConnectArtistPublishE2eWallet() ? { status: 'connected', wallet: createArtistPublishE2eWallet() } : { status: 'disconnected' };
     }
+    // Room-join e2e contexts (host scenario or listener share link) stay wallet-
+    // free: the room flow must work with no wallet, and this also stops the
+    // classic-unlock flag from auto-connecting a wallet in those tabs.
+    if (isRoomJoinE2eContext()) return { status: 'disconnected' };
     if (isClassicUnlockE2e) return { status: 'connected', wallet: createClassicUnlockE2eWallet() };
     return { status: 'disconnected' };
   });

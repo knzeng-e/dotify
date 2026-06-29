@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { createRoomJoinE2eCaptureStream, isRoomJoinE2e, roomJoinE2eIceServers } from '../e2e/roomJoinMock';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../utils/format';
 import type {
   CapturableMediaElement,
@@ -23,10 +24,14 @@ const TURN_URL = import.meta.env.VITE_TURN_URL as string | undefined;
 const TURN_USERNAME = import.meta.env.VITE_TURN_USERNAME as string | undefined;
 const TURN_CREDENTIAL = import.meta.env.VITE_TURN_CREDENTIAL as string | undefined;
 
-const iceServers: RTCIceServer[] = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  ...(TURN_URL ? [{ urls: TURN_URL, username: TURN_USERNAME, credential: TURN_CREDENTIAL } satisfies RTCIceServer] : [])
-];
+// E2E room-join runs loopback-only ICE (no public STUN) so two browser contexts
+// in the same headless Chromium connect deterministically without internet.
+const iceServers: RTCIceServer[] = isRoomJoinE2e
+  ? roomJoinE2eIceServers()
+  : [
+      { urls: 'stun:stun.l.google.com:19302' },
+      ...(TURN_URL ? [{ urls: TURN_URL, username: TURN_USERNAME, credential: TURN_CREDENTIAL } satisfies RTCIceServer] : [])
+    ];
 
 // Join links use the hash route #/rooms/<roomId> so they survive static
 // hosting (GitHub Pages, IPFS gateways) without server-side rewrites.
@@ -345,6 +350,9 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function captureAudioStream(audio: HTMLMediaElement) {
+    // E2E: stream a synthetic near-silent track instead of capturing the local
+    // element, so the host always has a transmittable audio track in CI.
+    if (isRoomJoinE2e) return createRoomJoinE2eCaptureStream();
     const capturable = audio as CapturableMediaElement;
     const stream = capturable.captureStream?.() ?? capturable.mozCaptureStream?.();
     if (!stream) throw new Error('captureStream() is not supported by this browser.');
