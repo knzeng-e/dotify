@@ -138,6 +138,7 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
               <input
                 type='text'
                 className='field'
+                data-testid='artist-name-input'
                 placeholder='Your artist name'
                 value={artistName}
                 onChange={e => onUpdateArtistName(e.target.value)}
@@ -154,7 +155,13 @@ export function ArtistOnboarding(props: ArtistOnboardingProps) {
               <div className='registration-status'>
                 <span className='status-text'>{registrationStatus}</span>
               </div>
-              <button className='primary-action compact-action' type='button' onClick={onRegisterArtist} disabled={!canRegister}>
+              <button
+                className='primary-action compact-action'
+                type='button'
+                data-testid='create-artist-profile'
+                onClick={onRegisterArtist}
+                disabled={!canRegister}
+              >
                 {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
                 {isRegisteringArtist ? 'Registering...' : 'Create artist profile'}
               </button>

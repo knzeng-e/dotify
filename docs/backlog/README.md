@@ -36,7 +36,7 @@ Do not add ornamental product features until the following spine is stable:
 | Backlog doc | GitHub issue | Status | Goal |
 | --- | --- | --- | --- |
 | `05-classic-unlock-e2e-coverage.md` | #6 | Delivered on `main` | Classic unlock end-to-end coverage |
-| `06-artist-publish-e2e-coverage.md` | #7 | Open | Artist publish end-to-end coverage |
+| `06-artist-publish-e2e-coverage.md` | #7 | Delivered on `main` | Artist publish end-to-end coverage |
 | `07-room-join-e2e-coverage.md` | #8 | Open | Room join and host-access playback end-to-end coverage |
 | `18-production-preview-assets.md` | #27 | Open | Separate preview assets for server-keyed protected tracks |
 | `08-frontend-feature-module-refactor.md` | #9 | Open | Frontend feature-module refactor |
@@ -94,6 +94,6 @@ All implementation must be production-minded:
 
 ## Recommended execution order
 
-Sprint 0 and Classic unlock e2e coverage are delivered on `main`. Execute the remaining Sprint 1 items next. Do not start ambassador mechanics, awards, or advanced social graph work until deterministic tests, production previews, modularization, and ABI generation are stable.
+Sprint 0, Classic unlock e2e coverage, and artist publish e2e coverage are delivered on `main`. Execute the remaining Sprint 1 items next. Do not start ambassador mechanics, awards, or advanced social graph work until deterministic tests, production previews, modularization, and ABI generation are stable.
 
 The philosophical line is simple: make the social listening experience as frictionless as a shared link, while keeping the artist-owned runtime and access policy as the invisible foundation.

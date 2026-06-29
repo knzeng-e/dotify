@@ -1,6 +1,6 @@
 # Dotify Project Specification
 
-Last updated: 2026-06-25
+Last updated: 2026-06-29
 
 ## 1. Purpose
 
@@ -605,7 +605,8 @@ npm test
 - Passkey credential discovery currently depends on locally stored credential
   metadata.
 - Proof of Personhood is not connected to live Individuality data.
-- Frontend test coverage is missing.
+- Frontend e2e coverage exists for Classic unlock and artist publish; room join
+  coverage is still pending.
 - `App.tsx` is still a large monolithic component.
 - Frontend contract ABIs are still hand-maintained rather than generated from
   Hardhat artifacts.
@@ -615,8 +616,7 @@ npm test
 
 Priority improvements:
 
-1. Add deterministic frontend/e2e coverage for Classic unlock, artist publish,
-   and room join.
+1. Add deterministic frontend/e2e coverage for room join.
 2. Publish separate preview assets for server-keyed protected tracks.
 3. Split `App.tsx` into catalog, player, artist portal, rooms, and chain modules.
 4. Generate frontend ABI bindings from Hardhat artifacts.

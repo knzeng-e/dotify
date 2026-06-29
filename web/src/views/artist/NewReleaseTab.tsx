@@ -114,12 +114,24 @@ export function NewReleaseTab({
               <label className='file-button' data-disabled={assetAction !== 'idle' || artistStudioLocked}>
                 {assetAction === 'audio' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
                 {assetAction === 'audio' ? 'Preparing audio…' : 'Add audio'}
-                <input type='file' accept='audio/*' onChange={onHandleAudioFile} disabled={assetAction !== 'idle' || artistStudioLocked} />
+                <input
+                  type='file'
+                  accept='audio/*'
+                  data-testid='artist-audio-input'
+                  onChange={onHandleAudioFile}
+                  disabled={assetAction !== 'idle' || artistStudioLocked}
+                />
               </label>
               <label className='file-button secondary-file' data-disabled={assetAction !== 'idle' || artistStudioLocked}>
                 {assetAction === 'cover' ? <Disc3 size={16} className='spin' /> : <Upload size={16} />}
                 {assetAction === 'cover' ? 'Preparing cover…' : 'Add cover image'}
-                <input type='file' accept='image/*' onChange={onHandleCoverFile} disabled={assetAction !== 'idle' || artistStudioLocked} />
+                <input
+                  type='file'
+                  accept='image/*'
+                  data-testid='artist-cover-input'
+                  onChange={onHandleCoverFile}
+                  disabled={assetAction !== 'idle' || artistStudioLocked}
+                />
               </label>
             </div>
             <div className='asset-readiness'>
@@ -139,12 +151,19 @@ export function NewReleaseTab({
           <div className='wizard-panel fields-grid'>
             <label>
               <span>Title</span>
-              <input className='field' value={title} onChange={event => onSetTitle(event.target.value)} disabled={artistStudioLocked} />
+              <input
+                className='field'
+                data-testid='release-title-input'
+                value={title}
+                onChange={event => onSetTitle(event.target.value)}
+                disabled={artistStudioLocked}
+              />
             </label>
             <label>
               <span>Description</span>
               <textarea
                 className='field textarea-field'
+                data-testid='release-description-input'
                 value={description}
                 onChange={event => onSetDescription(event.target.value)}
                 disabled={artistStudioLocked}
@@ -160,6 +179,7 @@ export function NewReleaseTab({
                 <span>Listening door</span>
                 <select
                   className='field'
+                  data-testid='release-access-select'
                   value={accessMode}
                   onChange={event => onSetAccessMode(event.target.value as AccessMode)}
                   disabled={artistStudioLocked}
@@ -185,6 +205,7 @@ export function NewReleaseTab({
                 <input
                   className='field'
                   type='number'
+                  data-testid='release-price-input'
                   min={0}
                   step={0.1}
                   value={priceDot}
@@ -197,6 +218,7 @@ export function NewReleaseTab({
                 <input
                   className='field'
                   type='number'
+                  data-testid='release-royalty-input'
                   min={0}
                   max={10000}
                   step={25}
@@ -269,6 +291,7 @@ export function NewReleaseTab({
             <button
               className='primary-action compact-action'
               type='button'
+              data-testid='publish-release-button'
               onClick={onRegisterRights}
               disabled={isRegistering || artistStudioLocked || !canReviewRelease}
             >
