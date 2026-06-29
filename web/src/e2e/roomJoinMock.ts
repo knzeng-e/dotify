@@ -28,8 +28,6 @@ export const E2E_ROOM_PUBLIC_ID = 'e2e-room-public';
 export const E2E_ROOM_PROTECTED_TITLE = 'E2E Protected Room Track';
 export const E2E_ROOM_PUBLIC_TITLE = 'E2E Public Room Track';
 
-const STORAGE_KEY = 'dotify:e2e:room-join';
-
 // Two restrained aura covers so the host/listener cards render without remote assets.
 const PROTECTED_COVER =
   'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20640%20640%22%3E%3Crect%20width%3D%22640%22%20height%3D%22640%22%20fill%3D%22%23071a33%22/%3E%3Ccircle%20cx%3D%22200%22%20cy%3D%22210%22%20r%3D%22210%22%20fill%3D%22%2300E5A0%22%20opacity%3D%22.55%22/%3E%3C/svg%3E';
@@ -189,7 +187,6 @@ export function recordRoomJoinE2eKeyRequest(authorized: boolean) {
   const state = getRoomJoinE2eState();
   state.keyRequests += 1;
   if (!authorized) state.deniedKeyRequests += 1;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 // ── WebRTC test doubles ──────────────────────────────────────────────────────
