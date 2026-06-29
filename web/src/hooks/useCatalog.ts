@@ -687,7 +687,9 @@ export function useCatalog(deps: UseCatalogDeps) {
           ])
         )
       );
-      setCatalogPaidAccessByTrackId(Object.fromEntries(nextCatalog.map(track => [track.id, track.id === E2E_CLASSIC_TRACK.id && e2eClassicAccessGrantedRef.current])));
+      setCatalogPaidAccessByTrackId(
+        Object.fromEntries(nextCatalog.map(track => [track.id, track.id === E2E_CLASSIC_TRACK.id && e2eClassicAccessGrantedRef.current]))
+      );
       setCatalogStatus(
         nextCatalog.length > 0 ? `Loaded ${nextCatalog.length} deterministic e2e track${nextCatalog.length === 1 ? '' : 's'}` : 'No e2e tracks registered yet'
       );

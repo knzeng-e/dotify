@@ -276,9 +276,7 @@ export function useWallet() {
     // authoritative: the classic-unlock auto-connect must not override a scenario
     // (e.g. missing-wallet) that intentionally leaves the wallet disconnected.
     if (isArtistPublishE2eScenarioRequested()) {
-      return shouldAutoConnectArtistPublishE2eWallet()
-        ? { status: 'connected', wallet: createArtistPublishE2eWallet() }
-        : { status: 'disconnected' };
+      return shouldAutoConnectArtistPublishE2eWallet() ? { status: 'connected', wallet: createArtistPublishE2eWallet() } : { status: 'disconnected' };
     }
     if (isClassicUnlockE2e) return { status: 'connected', wallet: createClassicUnlockE2eWallet() };
     return { status: 'disconnected' };

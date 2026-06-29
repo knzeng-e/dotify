@@ -12,12 +12,7 @@
 //     Do NOT use an unrestricted Pinata JWT in production.
 // ---------------------------------------------------------------------------
 
-import {
-  getArtistPublishE2eCid,
-  getArtistPublishE2eScenario,
-  isArtistPublishE2e,
-  recordArtistPublishUploadFailure
-} from '../e2e/artistPublishMock';
+import { getArtistPublishE2eCid, getArtistPublishE2eScenario, isArtistPublishE2e, recordArtistPublishUploadFailure } from '../e2e/artistPublishMock';
 
 // Backend API base URL. When set, uploads are routed server-side.
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');

@@ -151,7 +151,13 @@ export function NewReleaseTab({
           <div className='wizard-panel fields-grid'>
             <label>
               <span>Title</span>
-              <input className='field' data-testid='release-title-input' value={title} onChange={event => onSetTitle(event.target.value)} disabled={artistStudioLocked} />
+              <input
+                className='field'
+                data-testid='release-title-input'
+                value={title}
+                onChange={event => onSetTitle(event.target.value)}
+                disabled={artistStudioLocked}
+              />
             </label>
             <label>
               <span>Description</span>
