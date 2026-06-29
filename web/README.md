@@ -131,6 +131,18 @@ npm run deploy:bulletin
 `build:bulletin` produces a single-file build via `vite-plugin-singlefile` so it
 can be distributed from a flat IPFS CID / DotNS record.
 
+## Tests
+
+```bash
+npm run test:signal
+npm run test:e2e
+```
+
+`test:e2e` runs Playwright against a deterministic Classic unlock mock mode. It
+seeds one paid Classic track, connects a test wallet, asserts preview-only
+state before payment, clicks the visible unlock action, and verifies full access
+after the mocked confirmation without requiring live funds, Pinata, or a chain.
+
 ## Current Limitations
 
 - Browser-side Pinata uploads are demo/local mode only. Production should set
@@ -142,7 +154,8 @@ can be distributed from a flat IPFS CID / DotNS record.
 - Proof of Personhood levels are contract storage controlled by the runtime
   registrar; live Individuality integration is not implemented yet.
 - The signaling server must be hosted separately for DotNS / Bulletin builds.
-- Frontend test coverage is missing for payment, unlock, preview, and room flows.
+- Frontend e2e coverage exists for the Classic preview/payment/unlock trust flow.
+  Artist publish, room join, and broader wallet/provider coverage are still open.
 
 ## Improvement Backlog
 
@@ -151,8 +164,8 @@ can be distributed from a flat IPFS CID / DotNS record.
    service.
 3. Replace bundled-content-secret protection with per-track key custody and
    wallet-signed key requests.
-4. Add Playwright or Vitest coverage for register, pay, preview, unlock, and
-   WebRTC room flows.
+4. Add Playwright or Vitest coverage for artist register/publish and WebRTC room
+   flows.
 5. Split `App.tsx` into focused modules for catalog, player, artist portal,
    rooms, and chain access.
 6. Add release draft persistence and edit flows for the `/artists` portal.

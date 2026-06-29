@@ -11,6 +11,7 @@
 		"dev": "vite --host 0.0.0.0 --port 5273",
 		"signal": "SIGNAL_PORT=8788 node server/signaling.mjs",
 		"test:signal": "node --test server/signaling.test.mjs",
+		"test:e2e": "playwright test",
 		"dev:listen": "concurrently -n signal,web -c magenta,cyan \"npm:signal\" \"npm:dev\"",
 		"build": "tsc -b && vite build",
 		"build:bulletin": "tsc -b && vite build --config vite.bulletin.config.ts",
@@ -42,6 +43,7 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.4",
+		"@playwright/test": "^1.61.1",
 		"@types/qrcode": "^1.5.6",
 		"@types/react": "^18.3.12",
 		"@types/react-dom": "^18.3.1",

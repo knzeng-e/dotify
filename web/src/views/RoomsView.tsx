@@ -236,16 +236,18 @@ export function RoomsView({
     <div className={variant === 'empty' ? 'rooms-empty-panel' : 'rooms-inline-panel'}>
       {action === 'start' ? (
         <>
-          <p>Pick a track, open the room, copy the link. Anyone can join — no wallet, no sign-up.</p>
-          <button className='primary-action wide room-action-submit' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
-            <SvgBroadcast size={16} />
-            Open room
-          </button>
+          <p>Pick a track, open the room, and share the link.</p>
+          <div className='room-action-body room-action-body-start'>
+            <button className='primary-action wide room-action-submit' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
+              <SvgBroadcast size={16} />
+              Open room
+            </button>
+          </div>
         </>
       ) : (
         <>
           <p>Paste the room code or link you received.</p>
-          <form className='session-form room-action-form' onSubmit={onJoinSession}>
+          <form className='session-form room-action-form room-action-body' onSubmit={onJoinSession}>
             <input
               className='field code-field room-action-field'
               value={joinCode}

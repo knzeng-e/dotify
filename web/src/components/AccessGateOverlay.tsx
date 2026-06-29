@@ -17,7 +17,7 @@ export function AccessGateOverlay({
     <Dialog
       className='access-gate'
       size='compact'
-      dataAttributes={{ action: gate.actionType, access: gate.track.accessMode }}
+      dataAttributes={{ action: gate.actionType, access: gate.track.accessMode, testid: 'access-warning' }}
       labelledBy='access-gate-title'
       describedBy='access-gate-message'
       onClose={onDismiss}
@@ -45,6 +45,7 @@ export function AccessGateOverlay({
           <button
             className='primary-action access-gate-primary'
             type='button'
+            data-testid='classic-unlock-button'
             onClick={onPay}
             aria-label={`Unlock ${gate.track.title} for ${gate.track.priceDot} DOT`}
           >

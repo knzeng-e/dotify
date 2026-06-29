@@ -8,6 +8,15 @@ import { fetchIpfsCid } from '../services/pinata';
 import { isKeyServiceConfigured, requestContentKey, type KeyRequestPurpose } from '../services/keyService';
 import { auraForTrack } from '../utils/aura';
 import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../utils/protectedAudio';
+import {
+  E2E_CLASSIC_AUDIO_URL,
+  E2E_CLASSIC_HASH,
+  E2E_CLASSIC_TRACK,
+  E2E_CLASSIC_TX_HASH,
+  getClassicUnlockE2eState,
+  isClassicUnlockE2e,
+  recordClassicUnlockFullKeyRequest
+} from '../e2e/classicUnlockMock';
 import type {
   AccessGate,
   AccessMode,
@@ -158,6 +167,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewOnlyRef = useRef(false);
   const previewLimitRef = useRef<number | null>(null);
+  const e2eClassicAccessGrantedRef = useRef(false);
   // Session cache of backend-delivered content keys: one wallet signature per
   // track per session, instead of one per playback (signature-fatigue rule).
   const contentKeysRef = useRef<Map<string, Uint8Array>>(new Map());
@@ -170,6 +180,9 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   async function checkTrackAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
+    if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
+      return e2eClassicAccessGrantedRef.current;
+    }
     if (track.source !== 'artist' || !track.id.includes(':')) return true;
     if (!listenerAddress) return false;
     const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
@@ -186,6 +199,9 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   async function checkTrackPaidAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
+    if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
+      return e2eClassicAccessGrantedRef.current;
+    }
     if (track.source !== 'artist' || !track.id.includes(':') || track.accessMode !== 'classic') return false;
     if (!listenerAddress) return false;
     const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
@@ -309,6 +325,12 @@ export function useCatalog(deps: UseCatalogDeps) {
    * bundle-derived key (which only decrypts demo-published tracks).
    */
   async function resolveServerContentKey(contentHash: `0x${string}`): Promise<Uint8Array | null> {
+    if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
+      const authorized = e2eClassicAccessGrantedRef.current;
+      recordClassicUnlockFullKeyRequest(authorized);
+      return authorized ? new Uint8Array(32).fill(7) : null;
+    }
+
     const cacheKey = contentHash.toLowerCase();
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
@@ -335,6 +357,13 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   async function fetchAndDecryptAudio(audioRef: string, gatewayUrl: string, contentHash: `0x${string}`, options: { previewOnly: boolean }): Promise<string> {
+    if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
+      if (options.previewOnly) return E2E_CLASSIC_AUDIO_URL;
+      const serverKey = await resolveServerContentKey(contentHash);
+      if (!serverKey) throw new Error('E2E full key request denied before payment.');
+      return E2E_CLASSIC_AUDIO_URL;
+    }
+
     const cacheKey = options.previewOnly ? `${audioRef}:preview` : audioRef;
     const cached = resolvedAudioSourcesRef.current.get(cacheKey);
     if (cached) return cached;
@@ -445,6 +474,30 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (!connectedWallet) {
       setAccessGate(buildAccessGateInfo(track));
       setShowWalletModal(true);
+      return;
+    }
+
+    if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
+      setAccessGate(null);
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Processing payment',
+        message: `Paying ${track.priceDot} DOT to unlock "${track.title}".`
+      });
+      await new Promise(resolve => window.setTimeout(resolve, 20));
+      e2eClassicAccessGrantedRef.current = true;
+      getClassicUnlockE2eState().paid = true;
+      previewOnlyRef.current = false;
+      previewLimitRef.current = null;
+      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+      setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+      setTransactionFeedback({
+        tone: 'success',
+        title: 'Access unlocked',
+        message: `Full playback of "${track.title}" is now available.`,
+        txHash: E2E_CLASSIC_TX_HASH
+      });
+      await selectTrack(track, undefined, undefined, undefined);
       return;
     }
 
@@ -602,6 +655,21 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
+    if (isClassicUnlockE2e) {
+      const nextCatalog = [E2E_CLASSIC_TRACK];
+      const hasAccess = e2eClassicAccessGrantedRef.current;
+      setCatalogTracks(nextCatalog);
+      setSelectedTrackId(previous => {
+        const preferredTrack = preferredTrackHash && preferredTrackHash.toLowerCase() === E2E_CLASSIC_TRACK.hash.toLowerCase() ? E2E_CLASSIC_TRACK : null;
+        if (preferredTrack) return preferredTrack.id;
+        return nextCatalog.some(track => track.id === previous) ? previous : E2E_CLASSIC_TRACK.id;
+      });
+      setCatalogAccessByTrackId({ [E2E_CLASSIC_TRACK.id]: hasAccess });
+      setCatalogPaidAccessByTrackId({ [E2E_CLASSIC_TRACK.id]: hasAccess });
+      setCatalogStatus('Loaded deterministic Classic unlock e2e track');
+      return nextCatalog;
+    }
+
     if (!directoryAddress) {
       setCatalogTracks([]);
       setSelectedTrackId('');

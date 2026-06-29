@@ -18,6 +18,7 @@ import type { PolkadotSigner } from 'polkadot-api';
 import { privateKeyToAccount } from 'viem/accounts';
 import { useState, useCallback, useEffect } from 'react';
 import { createWalletClient, http, custom, type WalletClient, type Chain } from 'viem';
+import { createClassicUnlockE2eWallet, isClassicUnlockE2e } from '../e2e/classicUnlockMock';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -264,9 +265,15 @@ async function withTimeout<T>(promise: Promise<T>, message: string): Promise<T> 
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useWallet() {
-  const [state, setState] = useState<WalletState>({ status: 'disconnected' });
+  const [state, setState] = useState<WalletState>(() =>
+    isClassicUnlockE2e ? { status: 'connected', wallet: createClassicUnlockE2eWallet() } : { status: 'disconnected' }
+  );
 
   const connectPasskey = useCallback(async () => {
+    if (isClassicUnlockE2e) {
+      setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
+      return;
+    }
     setState({ status: 'connecting', via: 'passkey' });
     try {
       const wallet = await withTimeout(passkeyConnect(), 'Passkey timed out. Check the browser prompt, then try again.');
@@ -278,6 +285,10 @@ export function useWallet() {
   }, []);
 
   const connectExtension = useCallback(async () => {
+    if (isClassicUnlockE2e) {
+      setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
+      return;
+    }
     setState({ status: 'connecting', via: 'extension' });
     try {
       const wallet = await withTimeout(extensionConnect(), 'Wallet connection timed out. Open your wallet, approve Dotify, then try again.');
@@ -289,6 +300,11 @@ export function useWallet() {
   }, []);
 
   const switchExtensionNetwork = useCallback(async (chain: Chain) => {
+    if (isClassicUnlockE2e) {
+      const wallet = createClassicUnlockE2eWallet();
+      setState({ status: 'connected', wallet });
+      return wallet;
+    }
     const wallet = await withTimeout(switchExtensionChain(chain), 'Network switch timed out. Check your wallet, then try again.');
     localStorage.setItem(LAST_METHOD_KEY, 'extension');
     setState({ status: 'connected', wallet });
@@ -296,11 +312,16 @@ export function useWallet() {
   }, []);
 
   const disconnect = useCallback(() => {
+    if (isClassicUnlockE2e) {
+      setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
+      return;
+    }
     localStorage.removeItem(LAST_METHOD_KEY);
     setState({ status: 'disconnected' });
   }, []);
 
   useEffect(() => {
+    if (isClassicUnlockE2e) return;
     let cancelled = false;
     const lastMethod = localStorage.getItem(LAST_METHOD_KEY) as WalletMethod | null;
     if (lastMethod !== 'extension' && lastMethod !== 'passkey') return;
@@ -337,6 +358,7 @@ export function useWallet() {
   }, []);
 
   useEffect(() => {
+    if (isClassicUnlockE2e) return;
     const ethereum = getEthereumProvider();
     if (!ethereum?.on || !ethereum.removeListener) return;
     const provider = ethereum;

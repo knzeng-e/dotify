@@ -260,7 +260,11 @@ export function PlayerView({
             <h2>{streamTitle}</h2>
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : hostName || 'Room'}</span>
             <div className='access-badges'>
-              <span className='access-chip' data-tone={needsTrackAccess ? 'preview' : 'ready'}>
+              <span
+                className='access-chip'
+                data-tone={needsTrackAccess ? 'preview' : 'ready'}
+                data-testid={needsTrackAccess ? 'preview-player-state' : effectiveAccessMode === 'classic' ? 'full-playback-state' : undefined}
+              >
                 {accessStatusLabel}
               </span>
               <span className='access-chip'>{accessPriceLabel}</span>
