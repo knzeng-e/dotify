@@ -13,15 +13,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
 import type { CatalogTrack, Mode, PlayerState } from '../types';
-
-export type AudioStatus =
-  | 'idle' //            nothing selected yet
-  | 'preparing' //       source set, decoding / loading metadata
-  | 'autoplay-blocked' // play() was rejected; a tap is needed
-  | 'ready' //           host source loaded and capturable ("Hosting")
-  | 'playing' //         sound is actually playing
-  | 'joining' //         room listener waiting for the live stream
-  | 'no-audio'; //       genuine failure or missing source
+import type { AudioStatus } from '../features/player/playbackStatus';
 
 export type PlaybackControls = ReturnType<typeof usePlayback>;
 
@@ -323,25 +315,4 @@ export function usePlayback(deps: UsePlaybackDeps) {
     requestAutoplay,
     markNoAudio
   };
-}
-
-export function playbackStatusLabel(status: AudioStatus, mode: Mode): string {
-  switch (status) {
-    case 'preparing':
-      return 'Preparing audio';
-    case 'autoplay-blocked':
-      return 'Tap play to start';
-    case 'joining':
-      return 'Joining live audio';
-    case 'no-audio':
-      return 'No audio available';
-    case 'playing':
-      return mode === 'host' ? 'Playing' : 'In sync';
-    case 'ready':
-      return mode === 'host' ? 'Hosting' : 'Connected';
-    case 'idle':
-      return '';
-    default:
-      return mode === 'host' ? 'Hosting' : 'Ready';
-  }
 }
