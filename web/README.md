@@ -159,7 +159,8 @@ src/
   features/   # domain logic grouped by product surface
     access/   # track access policy predicates (pure, unit-tested)
     rooms/    # room share-link + presence helpers (pure, unit-tested)
-    ...       # catalog, player, artist-studio, wallet, uploads (incremental)
+    catalog/  # track model: TrackInfo mapping, runtime-id parsing (pure, unit-tested)
+    ...       # player, artist-studio, wallet, uploads (incremental)
   components/ # presentational UI
   views/      # page-level compositions
   hooks/      # stateful orchestration (useCatalog, useSession, ...)
@@ -172,10 +173,12 @@ Pure domain logic lives in `features/*` with co-located `*.test.ts` files and no
 DOM or chain dependencies; helpers that read `window.location` accept an explicit
 argument so they stay testable. Extraction is incremental and behavior-preserving:
 each module is wired back into the existing hooks/views without changing product
-behavior. So far `features/access/accessPolicy.ts` (the policy-managed-track
-predicate, previously duplicated across `App.tsx`, `useCatalog.ts`, and
-`PlayerView.tsx`) and `features/rooms/roomState.ts` (share-link parsing/building
-and room presence count) are extracted and tested.
+behavior. So far the extracted, tested modules are `features/access/accessPolicy.ts`
+(the policy-managed-track predicate, previously duplicated across `App.tsx`,
+`useCatalog.ts`, and `PlayerView.tsx`), `features/rooms/roomState.ts` (share-link
+parsing/building and room presence count), and `features/catalog/trackModel.ts`
+(`TrackInfo` mapping and runtime-id parsing, previously inline in `App.tsx` and
+duplicated across `useCatalog.ts` and `ReleasesTab.tsx`).
 
 ## Current Limitations
 

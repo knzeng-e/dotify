@@ -91,4 +91,9 @@ This ticket is being delivered as a series of small, behavior-preserving PRs (pe
 - Rewired callers (`App.tsx`, `useSession.ts`, `useCatalog.ts`, `PlayerView.tsx`, `RoomsView.tsx`, `ListenView.tsx`, `ArtistProfileView.tsx`) to use the extracted helpers with no behavior change. Verified by the existing Playwright suite (10/10 green).
 - Documented the target module structure in `web/README.md`.
 
-Deliberately deferred to follow-up PRs (to keep each diff reviewable and low-risk): moving the existing hooks/views/components into the full `features/* + shared/* + app/*` tree, and extracting the player, catalog, artist-studio, wallet, and uploads feature modules. `App.tsx` slimming continues across those PRs.
+Second PR on `refactor/frontend-catalog-module` (stacked on the foundation PR):
+
+- Added `features/catalog/trackModel.ts` - `catalogTrackToTrackInfo` and `isTrackManagedByArtist` (lifted out of `App.tsx`) and `runtimeAddressFromTrackId` (dedupes the `id.split(':')[0]` parsing previously repeated in three `useCatalog.ts` sites and `ReleasesTab.tsx`). Co-located `trackModel.test.ts`.
+- Rewired `App.tsx` (drops the two inline mappers), `useCatalog.ts` (uses the runtime-id helper with fail-closed guards), and `ReleasesTab.tsx` (drops its local copy).
+
+Deliberately deferred to follow-up PRs (to keep each diff reviewable and low-risk): moving the existing hooks/views/components into the full `features/* + shared/* + app/*` tree, and extracting the player, artist-studio, wallet, and uploads feature modules. `App.tsx` slimming continues across those PRs.

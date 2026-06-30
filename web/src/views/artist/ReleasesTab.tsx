@@ -3,11 +3,8 @@ import { EndpointRow } from '../../components/ui/EndpointRow';
 import { PanelTitle } from '../../components/ui/PanelTitle';
 import { getBlockscoutAddressUrl } from '../../utils/explorer';
 import { accessModeLabel, shorten } from '../../utils/format';
+import { runtimeAddressFromTrackId } from '../../features/catalog/trackModel';
 import type { CatalogTrack } from '../../types';
-
-function getRuntimeAddress(track: CatalogTrack) {
-  return track.source === 'artist' && track.id.includes(':') ? (track.id.split(':')[0] as `0x${string}`) : null;
-}
 
 type ReleasesTabProps = {
   artistTracks: CatalogTrack[];
@@ -22,7 +19,7 @@ function releaseDomId(trackId: string) {
 
 export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, onOpenTrack }: ReleasesTabProps) {
   const selectedRelease = artistTracks.find(track => track.id === selectedReleaseId) ?? artistTracks[0] ?? null;
-  const runtimeAddress = selectedRelease ? getRuntimeAddress(selectedRelease) : null;
+  const runtimeAddress = selectedRelease ? runtimeAddressFromTrackId(selectedRelease) : null;
   const selectedDomId = selectedRelease ? releaseDomId(selectedRelease.id) : 'empty';
 
   return (
