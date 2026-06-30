@@ -13,6 +13,7 @@ import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from
 import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
 import { makeEncryptedAudioRef } from '../utils/protectedAudio';
 import { chainMismatchMessage } from '../features/wallet/network';
+import { localAudioRef, priceDotForAccessMode } from '../features/catalog/trackModel';
 import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../utils/format';
 import {
   createArtistPublishE2eTrack,
@@ -429,7 +430,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         artistName: artistName.trim() || 'Unknown artist',
         description: description.trim(),
         accessMode,
-        priceDot: accessMode === 'classic' ? priceDot : '0',
+        priceDot: priceDotForAccessMode(accessMode, priceDot),
         requiredPersonhood: accessMode === 'human-free' ? personhoodLevel : 'None',
         zone: 'Studio'
       },
@@ -440,7 +441,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       settlement: {
         target: 'evm',
         royaltyBps,
-        pricePlanck: dotToPlanck(accessMode === 'classic' ? priceDot : '0').toString()
+        pricePlanck: dotToPlanck(priceDotForAccessMode(accessMode, priceDot)).toString()
       }
     };
   }
@@ -635,7 +636,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       }
 
       const walletClient = await getActiveWalletClient();
-      const ipfsAudioRef = resolvedAudioCID ? makeEncryptedAudioRef(resolvedAudioCID) : `dotify:local:${fileHash}`;
+      const ipfsAudioRef = resolvedAudioCID ? makeEncryptedAudioRef(resolvedAudioCID) : localAudioRef(fileHash);
       const ipfsCoverRef = resolvedCoverCID ? `ipfs://${resolvedCoverCID}` : `dotify:cover:${fileHash}`;
 
       setRightsStatus('Submitting rights transaction');
@@ -660,7 +661,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
             metadataRef: ipfsMetadataRef,
             artistContractRef: `dotify:self-certified:${fileHash}`,
             accessMode: accessMode === 'human-free' ? 0 : 1,
-            pricePlanck: dotToPlanck(accessMode === 'classic' ? priceDot : '0'),
+            pricePlanck: dotToPlanck(priceDotForAccessMode(accessMode, priceDot)),
             requiredPersonhood: accessMode === 'human-free' ? (personhoodLevel === 'DIM2' ? 2 : 1) : 0
           },
           royaltyRecipients,

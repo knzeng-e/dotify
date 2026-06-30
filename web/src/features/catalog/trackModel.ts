@@ -3,7 +3,17 @@
 // Extracted from App.tsx (mappers) and de-duplicated from useCatalog/ReleasesTab
 // (runtime-id parsing) so track-shape logic lives in one tested place.
 
-import type { CatalogTrack, TrackInfo } from '../../types';
+import type { AccessMode, CatalogTrack, TrackInfo } from '../../types';
+
+/** Price shown/charged for a track: the set price for Classic, free otherwise. */
+export function priceDotForAccessMode(accessMode: AccessMode, priceDot: string): string {
+  return accessMode === 'classic' ? priceDot : '0';
+}
+
+/** The local (pre-IPFS) audio reference for a track hash. */
+export function localAudioRef(hash: string): string {
+  return `dotify:local:${hash}`;
+}
 
 /** Project a catalog track into the lighter TrackInfo broadcast/shared shape. */
 export function catalogTrackToTrackInfo(track: CatalogTrack): TrackInfo {

@@ -36,7 +36,7 @@ main
 | 2 | #41 | `refactor/frontend-catalog-module` | `features/catalog/trackModel` (TrackInfo mapping, `isTrackManagedByArtist`, runtime-id parser) | Open (review) |
 | 3 | #42 | `refactor/frontend-player-module` | `features/player/playbackStatus` (`AudioStatus`, status label, transport progress) | Open (review) |
 | 4 | #43 | `refactor/frontend-wallet-module` | `features/wallet/network` (`parseChainId`, `toEip155ChainId`, `getProviderErrorCode`, `chainMismatchMessage` dedupe across App + useArtistConsole) | Open (review) |
-| 5 | - | `refactor/frontend-uploads-module` | `features/uploads` - `UploadState` model + pure upload/asset helpers (filename, CID refs, audio/cover prep status); slim `App.tsx` `handleAudioFile`/`handleCoverFile` | Planned |
+| 5 | #44 | `refactor/frontend-uploads-module` | `features/uploads/uploadModel` (draft TrackInfo, title-from-filename, upload-status transitions) + `priceDotForAccessMode`/`localAudioRef` dedupe in `trackModel`; slim `App.tsx` `handleAudioFile`/`handleCoverFile` | Open (review) |
 | 6 | - | `refactor/frontend-runtime-module` | `features/runtime` - `ArtistRuntime` model + pure artist registration/royalty parsing helpers extracted from `useArtistConsole.ts` | Planned |
 | 7 | - | `refactor/frontend-artist-studio-module` | `features/artist-studio` - release-form validation/derivation (`canReviewRelease`, royalty bps, access-mode rules) pulled out of `App.tsx`/`useArtistConsole` | Planned |
 | 8 | - | `refactor/frontend-app-shell` | Introduce `app/` (App.tsx shell, `routes.tsx`, `providers.tsx`); move view routing + history/popstate + nav model out of the monolith. `App.tsx` becomes composition only | Planned |

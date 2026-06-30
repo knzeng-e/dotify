@@ -162,7 +162,8 @@ src/
     catalog/  # track model: TrackInfo mapping, runtime-id parsing (pure, unit-tested)
     player/   # playback status labels + transport progress (pure, unit-tested)
     wallet/   # EIP-1193 chain helpers + chain-mismatch message (pure, unit-tested)
-    ...       # artist-studio, uploads, runtime (incremental)
+    uploads/  # draft track model + upload status transitions (pure, unit-tested)
+    ...       # artist-studio, runtime (incremental)
   components/ # presentational UI
   views/      # page-level compositions
   hooks/      # stateful orchestration (useCatalog, useSession, ...)
@@ -185,7 +186,10 @@ duplicated across `useCatalog.ts` and `ReleasesTab.tsx`), and
 transport progress math, previously in `usePlayback.ts` and `PlayerView.tsx`), and
 `features/wallet/network.ts` (EIP-1193 chain-id parsing/encoding, provider error
 codes, and the chain-mismatch message previously duplicated in `App.tsx` and
-`useArtistConsole.ts`).
+`useArtistConsole.ts`), and `features/uploads/uploadModel.ts` (the draft-track
+builder, title-from-filename rule, and upload-status transitions pulled out of
+`App.tsx`, plus `priceDotForAccessMode`/`localAudioRef` in `trackModel.ts` that
+de-duplicate the price and local-ref logic shared with `useArtistConsole.ts`).
 
 ## Current Limitations
 
