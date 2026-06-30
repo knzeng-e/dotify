@@ -26,7 +26,8 @@ import { Dialog } from '../components/Dialog';
 import { formatTime } from '../utils/format';
 import { isPolicyManagedTrack } from '../features/access/accessPolicy';
 import { roomPresenceCount } from '../features/rooms/roomState';
-import { playbackStatusLabel, type PlaybackControls } from '../hooks/usePlayback';
+import { playbackStatusLabel, transportProgressPercent } from '../features/player/playbackStatus';
+import { type PlaybackControls } from '../hooks/usePlayback';
 import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, SessionAction, TrackInfo } from '../types';
 import { useEffect, useState, type CSSProperties } from 'react';
 
@@ -111,7 +112,7 @@ export function PlayerView({
 
   const { transport, status } = playback;
   const transportDuration = transport.duration || trackInfo?.duration || selectedTrack?.duration || 0;
-  const transportProgress = transportDuration > 0 ? Math.min(100, Math.max(0, (transport.currentTime / transportDuration) * 100)) : 0;
+  const transportProgress = transportProgressPercent(transport.currentTime, transportDuration);
   const transportProgressStyle = { '--progress': `${transportProgress}%` } as CSSProperties;
   const isBusy = status === 'preparing' || status === 'joining';
   const isOnAir = !isBusy && transport.playing;

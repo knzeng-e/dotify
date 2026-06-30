@@ -5,7 +5,8 @@
 
 import { LockKeyhole, Maximize2, Pause, Play, Radio, Repeat2, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import type { CSSProperties } from 'react';
-import { playbackStatusLabel, type PlaybackControls } from '../hooks/usePlayback';
+import { playbackStatusLabel } from '../features/player/playbackStatus';
+import { type PlaybackControls } from '../hooks/usePlayback';
 import type { CatalogTrack, Mode, TrackInfo } from '../types';
 
 type PlayerDockProps = {

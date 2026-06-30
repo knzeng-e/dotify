@@ -160,7 +160,8 @@ src/
     access/   # track access policy predicates (pure, unit-tested)
     rooms/    # room share-link + presence helpers (pure, unit-tested)
     catalog/  # track model: TrackInfo mapping, runtime-id parsing (pure, unit-tested)
-    ...       # player, artist-studio, wallet, uploads (incremental)
+    player/   # playback status labels + transport progress (pure, unit-tested)
+    ...       # artist-studio, wallet, uploads (incremental)
   components/ # presentational UI
   views/      # page-level compositions
   hooks/      # stateful orchestration (useCatalog, useSession, ...)
@@ -178,7 +179,9 @@ behavior. So far the extracted, tested modules are `features/access/accessPolicy
 `useCatalog.ts`, and `PlayerView.tsx`), `features/rooms/roomState.ts` (share-link
 parsing/building and room presence count), and `features/catalog/trackModel.ts`
 (`TrackInfo` mapping and runtime-id parsing, previously inline in `App.tsx` and
-duplicated across `useCatalog.ts` and `ReleasesTab.tsx`).
+duplicated across `useCatalog.ts` and `ReleasesTab.tsx`), and
+`features/player/playbackStatus.ts` (the `AudioStatus` model, status labels, and
+transport progress math, previously in `usePlayback.ts` and `PlayerView.tsx`).
 
 ## Current Limitations
 
