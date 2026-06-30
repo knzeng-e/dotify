@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { createRoomJoinE2eCaptureStream, isRoomJoinE2e, roomJoinE2eIceServers } from '../e2e/roomJoinMock';
+import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../utils/format';
 import type {
   CapturableMediaElement,
@@ -32,15 +33,6 @@ const iceServers: RTCIceServer[] = isRoomJoinE2e
       { urls: 'stun:stun.l.google.com:19302' },
       ...(TURN_URL ? [{ urls: TURN_URL, username: TURN_USERNAME, credential: TURN_CREDENTIAL } satisfies RTCIceServer] : [])
     ];
-
-// Join links use the hash route #/rooms/<roomId> so they survive static
-// hosting (GitHub Pages, IPFS gateways) without server-side rewrites.
-function getSessionLink(roomId: string) {
-  if (!roomId) return '';
-  const url = new URL(window.location.href);
-  url.hash = `/rooms/${roomId}`;
-  return url.toString();
-}
 
 // Hosts must show liveness to the signaling server; rooms with silent hosts
 // are swept server-side to avoid zombie rooms.
@@ -719,7 +711,7 @@ export function useSession(deps: UseSessionDeps) {
   }, [mode, roomId]);
 
   async function copySessionLink() {
-    const link = getSessionLink(roomId);
+    const link = buildSessionLink(roomId);
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
@@ -805,17 +797,6 @@ export function useSession(deps: UseSessionDeps) {
     removeListener,
     socketEmit,
     destroySession,
-    sessionLink: getSessionLink(roomId)
+    sessionLink: buildSessionLink(roomId)
   };
-}
-
-export function getInitialRoomCode() {
-  // Preferred share-link form: #/rooms/<roomId>
-  const hashPath = window.location.hash.split('?')[0] ?? '';
-  const roomsMatch = hashPath.match(/\/rooms\/([A-Za-z0-9]{4,12})/);
-  if (roomsMatch) return roomsMatch[1].toUpperCase();
-
-  // Legacy form: #/?room=<roomId> (older shared links keep working)
-  const hashQuery = window.location.hash.split('?')[1] ?? '';
-  return new URLSearchParams(hashQuery).get('room')?.toUpperCase() ?? '';
 }

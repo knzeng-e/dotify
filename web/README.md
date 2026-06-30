@@ -134,15 +134,48 @@ can be distributed from a flat IPFS CID / DotNS record.
 ## Tests
 
 ```bash
-npm run test:signal
-npm run test:e2e
+npm run test:unit     # Vitest - pure domain logic (access policy, room state)
+npm run test:signal   # node:test - signaling server lifecycle
+npm run test:e2e      # Playwright - deterministic trust flows
 ```
 
+`test:unit` runs Vitest over the extracted pure modules under `src/features/*`
+(currently access policy and room state).
+
 `test:e2e` runs Playwright against deterministic mock modes. It covers Classic
-preview/payment/unlock and artist runtime creation plus release publication
-without requiring live funds, Pinata, or a chain. Artist publish coverage also
-asserts missing wallet, wrong network, upload failure, and transaction failure
-states.
+preview/payment/unlock, artist runtime creation plus release publication, and
+the listening-room join + host-access playback flow, without requiring live
+funds, Pinata, or a chain. Artist publish coverage also asserts missing wallet,
+wrong network, upload failure, and transaction failure states.
+
+## Frontend Structure
+
+The frontend is migrating from an `App.tsx`-centric shell toward feature modules
+so logic can be unit-tested and evolved in isolation (backlog ticket 08). The
+target shape is:
+
+```txt
+src/
+  features/   # domain logic grouped by product surface
+    access/   # track access policy predicates (pure, unit-tested)
+    rooms/    # room share-link + presence helpers (pure, unit-tested)
+    ...       # catalog, player, artist-studio, wallet, uploads (incremental)
+  components/ # presentational UI
+  views/      # page-level compositions
+  hooks/      # stateful orchestration (useCatalog, useSession, ...)
+  services/   # IPFS, key service
+  config/     # chain + deployment config
+  utils/      # framework-agnostic helpers
+```
+
+Pure domain logic lives in `features/*` with co-located `*.test.ts` files and no
+DOM or chain dependencies; helpers that read `window.location` accept an explicit
+argument so they stay testable. Extraction is incremental and behavior-preserving:
+each module is wired back into the existing hooks/views without changing product
+behavior. So far `features/access/accessPolicy.ts` (the policy-managed-track
+predicate, previously duplicated across `App.tsx`, `useCatalog.ts`, and
+`PlayerView.tsx`) and `features/rooms/roomState.ts` (share-link parsing/building
+and room presence count) are extracted and tested.
 
 ## Current Limitations
 
@@ -155,8 +188,8 @@ states.
 - Proof of Personhood levels are contract storage controlled by the runtime
   registrar; live Individuality integration is not implemented yet.
 - The signaling server must be hosted separately for DotNS / Bulletin builds.
-- Frontend e2e coverage exists for the Classic preview/payment/unlock and artist
-  publish trust flows. Room join and broader wallet/provider coverage are still
+- Frontend e2e coverage exists for the Classic preview/payment/unlock, artist
+  publish, and room join trust flows. Broader wallet/provider coverage is still
   open.
 
 ## Improvement Backlog
