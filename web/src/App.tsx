@@ -23,7 +23,9 @@ import { WalletModal, WalletStatusPill } from './components/WalletModal';
 import { TransactionModal } from './components/TransactionModal';
 
 import { useCatalog } from './hooks/useCatalog';
-import { useSession, getInitialRoomCode } from './hooks/useSession';
+import { useSession } from './hooks/useSession';
+import { getInitialRoomCode } from './features/rooms/roomState';
+import { trackHasAccess } from './features/access/accessPolicy';
 import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole';
 import { usePlayback } from './hooks/usePlayback';
 
@@ -296,9 +298,7 @@ export default function App() {
 
   // ── Derived values ────────────────────────────────────────────────────────────
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
-  const selectedTrackHasAccess = selectedTrack
-    ? selectedTrack.source !== 'artist' || !selectedTrack.id.includes(':') || catalog.catalogAccessByTrackId[selectedTrack.id] === true
-    : false;
+  const selectedTrackHasAccess = selectedTrack ? trackHasAccess(selectedTrack, catalog.catalogAccessByTrackId) : false;
   const artistTracks = catalog.catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
   const streamTitle = catalog.trackInfo?.title || selectedTrack?.title || title;
   const streamArtist = catalog.trackInfo?.artist || selectedTrack?.artist || artistName;

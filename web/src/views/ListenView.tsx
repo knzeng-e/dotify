@@ -2,6 +2,7 @@ import { BadgeCheck, CircleCheckBig, Disc3, Headphones, KeyRound, Library, Radio
 import { PanelTitle } from '../components/ui/PanelTitle';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../utils/format';
+import { roomPresenceCount } from '../features/rooms/roomState';
 import type { CatalogTrack, OpenRoom } from '../types';
 
 type ListenViewProps = {
@@ -28,7 +29,7 @@ export function ListenView({
   onStartRoom
 }: ListenViewProps) {
   const featured = catalogTracks[0];
-  const totalListening = openRooms.reduce((total, room) => total + room.listenerCount + 1, 0);
+  const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
   const artistCount = new Set(catalogTracks.map(track => track.artist)).size;
   const leadRoom = openRooms[0];
   const heroRoom = leadRoom?.track ? leadRoom : null;
@@ -65,7 +66,7 @@ export function ListenView({
                 {heroRoom ? (
                   <>
                     <AvatarStack names={roomPresenceNames(heroRoom.hostName, heroRoom.listenerCount, heroRoom.roomId)} max={4} size={28} />
-                    <small>{heroRoom.listenerCount + 1} listening</small>
+                    <small>{roomPresenceCount(heroRoom.listenerCount, true)} listening</small>
                   </>
                 ) : featured ? (
                   <small>{catalogAccessLabel(featured)}</small>
@@ -180,7 +181,7 @@ export function ListenView({
                   <small>{room.hostName} hosts</small>
                   <span className='home-room-presence'>
                     <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={24} />
-                    <small>{room.listenerCount + 1} listening</small>
+                    <small>{roomPresenceCount(room.listenerCount, true)} listening</small>
                   </span>
                 </span>
                 <span className='home-room-join'>

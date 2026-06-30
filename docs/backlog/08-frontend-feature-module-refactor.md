@@ -79,3 +79,16 @@ web/src/
 ## Senior-engineer notes
 
 Refactor like a surgeon, not like a decorator. Preserve behavior first. Then make the system easier to evolve. The goal is not prettier folders; the goal is lower production risk.
+
+## Delivery notes (incremental - foundation PR)
+
+This ticket is being delivered as a series of small, behavior-preserving PRs (per the "refactor in small commits or PRs" constraint). First PR on `refactor/frontend-feature-modules`:
+
+- Added a unit-test runner (Vitest) - `npm run test:unit` - and `web/vitest.config.ts`. Pure-logic tests live co-located as `*.test.ts`.
+- Introduced `web/src/features/` with the two domains the acceptance criteria call out for isolated tests:
+  - `features/access/accessPolicy.ts` - `isPolicyManagedTrack`, `trackHasAccess`, `trackNeedsAccess`, `playbackModeForAccess`. Centralizes the policy-managed-track predicate previously duplicated in `App.tsx`, `useCatalog.ts`, and `PlayerView.tsx`.
+  - `features/rooms/roomState.ts` - `getInitialRoomCode`, `buildSessionLink` (re-homed from `useSession`), and `roomPresenceCount`. URL-reading helpers accept an explicit argument so they are testable without a DOM.
+- Rewired callers (`App.tsx`, `useSession.ts`, `useCatalog.ts`, `PlayerView.tsx`, `RoomsView.tsx`, `ListenView.tsx`, `ArtistProfileView.tsx`) to use the extracted helpers with no behavior change. Verified by the existing Playwright suite (10/10 green).
+- Documented the target module structure in `web/README.md`.
+
+Deliberately deferred to follow-up PRs (to keep each diff reviewable and low-risk): moving the existing hooks/views/components into the full `features/* + shared/* + app/*` tree, and extracting the player, catalog, artist-studio, wallet, and uploads feature modules. `App.tsx` slimming continues across those PRs.

@@ -2,6 +2,7 @@ import { BadgeCheck, Headphones, Radio, UsersRound } from 'lucide-react';
 import { useMemo, type CSSProperties, type KeyboardEvent } from 'react';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../utils/format';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
+import { roomPresenceCount } from '../features/rooms/roomState';
 import type { CatalogTrack, OpenRoom } from '../types';
 
 type ArtistProfileViewProps = {
@@ -55,7 +56,7 @@ export function ArtistProfileView({
   const leadTrack = artistTracks[0];
   // Honesty rule: only show stats backed by real data. Track count comes from
   // the on-chain registry; there is no follower system yet, so none is shown.
-  const activeListeners = liveRooms.reduce((total, room) => total + room.listenerCount + 1, 0);
+  const activeListeners = liveRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
   const verified = artistTracks.some(track => track.source === 'artist' || track.artistAddress);
 
   function handleTrackKeyDown(event: KeyboardEvent<HTMLElement>, track: CatalogTrack) {
@@ -126,7 +127,7 @@ export function ArtistProfileView({
                     <small>{room.hostName} hosts</small>
                     <span className='home-room-presence'>
                       <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={24} />
-                      <small>{room.listenerCount + 1} listening</small>
+                      <small>{roomPresenceCount(room.listenerCount, true)} listening</small>
                     </span>
                   </span>
                   <span className='artist-live-pill'>Join</span>

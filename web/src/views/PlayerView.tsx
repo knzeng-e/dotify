@@ -24,6 +24,8 @@ import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
 import { formatTime } from '../utils/format';
+import { isPolicyManagedTrack } from '../features/access/accessPolicy';
+import { roomPresenceCount } from '../features/rooms/roomState';
 import { playbackStatusLabel, type PlaybackControls } from '../hooks/usePlayback';
 import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, SessionAction, TrackInfo } from '../types';
 import { useEffect, useState, type CSSProperties } from 'react';
@@ -114,14 +116,14 @@ export function PlayerView({
   const isBusy = status === 'preparing' || status === 'joining';
   const isOnAir = !isBusy && transport.playing;
   const statusLabel = isOnAir ? 'ON AIR' : playbackStatusLabel(status, mode);
-  const isManagedTrack = Boolean(selectedTrack && selectedTrack.source === 'artist' && selectedTrack.id.includes(':'));
+  const isManagedTrack = Boolean(selectedTrack && isPolicyManagedTrack(selectedTrack));
   const needsTrackAccess = Boolean(selectedTrack && isManagedTrack && !selectedTrackHasAccess);
   const showPreviewAction = Boolean(needsTrackAccess && selectedTrack);
   const showWideStatus = Boolean(selectedTrack && !showPreviewAction);
   const accessStatusLabel = needsTrackAccess ? 'Preview mode' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
   const accessPriceLabel = effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT` : 'Unlocked for this wallet') : 'Human pass';
   const previewCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full track' : 'Check access';
-  const roomPresenceCount = roomId ? listenerCount + 1 : 0;
+  const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
   const disconnectedListeners = listeners.filter(listener => listener.status === 'disconnected');
   const showManualAudioStart = Boolean(
@@ -172,7 +174,7 @@ export function PlayerView({
             <span className='live-dot' />
             Live
           </span>
-          <span className='room-header-meta'>{mode === 'host' ? `${roomPresenceCount} in the room` : `with ${hostName || 'the host'}`}</span>
+          <span className='room-header-meta'>{mode === 'host' ? `${presenceCount} in the room` : `with ${hostName || 'the host'}`}</span>
           {/* Honest room playback mode ('full' or the 42% 'preview' fallback),
               exposed as a non-visual metadata hook; the visible preview cue lives
               in the rooms list and session status. */}
@@ -209,7 +211,7 @@ export function PlayerView({
         <div className='room-promise-strip' aria-label='Room access model'>
           <span>
             <Users size={14} />
-            {roomPresenceCount} present
+            {presenceCount} present
           </span>
           <span>
             <KeyRound size={14} />

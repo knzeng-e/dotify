@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
+import { roomPresenceCount } from '../features/rooms/roomState';
 import type { OpenRoom, SessionAction } from '../types';
 
 // ── Inline SVG icons ────────────────────────────────────────────────────────
@@ -155,7 +156,7 @@ export function RoomsView({
   const [action, setAction] = useState<RoomAction>('start');
   const [isActionPickerOpen, setIsActionPickerOpen] = useState(false);
   const actionPickerRef = useRef<HTMLDivElement | null>(null);
-  const totalListening = openRooms.reduce((total, room) => total + room.listenerCount + 1, 0);
+  const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
   const isJoining = sessionAction === 'joining';
   const selectedAction = ROOM_ACTIONS.find(item => item.value === action) ?? ROOM_ACTIONS[0];
 
@@ -331,7 +332,7 @@ export function RoomsView({
                     </strong>
                     <span className='home-room-presence'>
                       <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={24} />
-                      <small>{room.listenerCount + 1} listening</small>
+                      <small>{roomPresenceCount(room.listenerCount, true)} listening</small>
                     </span>
                   </span>
                   <span className='room-live-side'>
