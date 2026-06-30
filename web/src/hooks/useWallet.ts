@@ -26,6 +26,7 @@ import {
   shouldAutoConnectArtistPublishE2eWallet
 } from '../e2e/artistPublishMock';
 import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
+import { getProviderErrorCode, parseChainId, toEip155ChainId } from '../features/wallet/network';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -153,25 +154,6 @@ type EIP1193 = {
 
 function getEthereumProvider() {
   return (window as unknown as Record<string, unknown>).ethereum as EIP1193 | undefined;
-}
-
-function parseChainId(value: unknown) {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value !== 'string') return undefined;
-  const parsed = value.startsWith('0x') ? Number.parseInt(value, 16) : Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function toEip155ChainId(chainId: number) {
-  return `0x${chainId.toString(16)}`;
-}
-
-function getProviderErrorCode(error: unknown) {
-  if (!error || typeof error !== 'object' || !('code' in error)) return undefined;
-  const code = (error as { code?: unknown }).code;
-  if (typeof code === 'number') return code;
-  if (typeof code === 'string') return Number.parseInt(code, 10);
-  return undefined;
 }
 
 async function walletFromExtensionAddress(ethereum: EIP1193, evmAddress: `0x${string}`): Promise<ConnectedWallet> {
