@@ -32,7 +32,8 @@ once again, stack them and merge bottom-up.
 | 5 | #44 | `refactor/frontend-uploads-module` | `features/uploads/uploadModel` (draft TrackInfo, title-from-filename, upload-status transitions) + `priceDotForAccessMode`/`localAudioRef` dedupe in `trackModel`; slim `App.tsx` `handleAudioFile`/`handleCoverFile` | Merged |
 | 6 | #45 | `refactor/frontend-runtime-module` | `features/runtime/accessEncoding` - bidirectional access-mode / personhood codecs (encode in useArtistConsole, decode in useCatalog) | Merged |
 | 7 | #46 | `refactor/frontend-artist-studio-module` | `features/artist-studio/releaseForm` - wizard step machine + `canReviewRelease` + artist setup/lock derivations; dedupe `NewReleaseTab`'s step list | Open (review) |
-| 8 | - | `refactor/frontend-app-shell` | Introduce `app/` (App.tsx shell, `routes.tsx`, `providers.tsx`); move view routing + history/popstate + nav model out of the monolith. `App.tsx` becomes composition only | Planned |
+| 8 | #47 | `refactor/frontend-app-routing` | Introduce `app/routing.ts` - pure view/route + history/popstate helpers pulled out of `App.tsx` (view guard, initial view, artist-portal path, popstate resolution) | Open (review) |
+| 8b | - | `refactor/frontend-app-shell` | Decompose `App.tsx`'s render tree into route components + a providers/context boundary so `App.tsx` is composition-only. Large; scope carefully | Planned |
 | 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/` (`ui`, `config`, `errors`, `hooks`, `types`, `utils`); relocate existing `components/ui`, `config`, `utils`, `types.ts` with import updates | Planned |
 
 ## Acceptance criteria coverage (ticket 08)
@@ -41,7 +42,8 @@ once again, stack them and merge bottom-up.
 - [x] Room-state logic has isolated tests (PR1).
 - [x] Typed domain models introduced incrementally: AccessMode (PR1), RoomState (PR1),
       Track (PR2), PlaybackState (PR3), UploadState (PR5), ArtistRuntime access encoding (PR6).
-- [ ] `App.tsx` becomes an app composition shell, not the business-logic container (PR8).
+- [~] `App.tsx` becomes an app composition shell: routing/history helpers extracted (PR8);
+      full render-tree/providers decomposition still pending (PR8b).
 - [x] TypeScript remains strict (each PR builds under `tsc -b`).
 - [x] README documents the new frontend module structure (PR1+).
 - [ ] Full `features/* + shared/* + app/*` tree in place (PR8/PR9).
