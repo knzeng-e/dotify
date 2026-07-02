@@ -156,7 +156,7 @@ target shape is:
 
 ```txt
 src/
-  app/        # app-level routing/history helpers (pure, unit-tested)
+  app/        # app-level routing/history + navigation model (pure, unit-tested)
   features/   # domain logic grouped by product surface
     access/   # track access policy predicates (pure, unit-tested)
     rooms/    # room share-link + presence helpers (pure, unit-tested)
@@ -199,7 +199,9 @@ codecs between the app model and the on-chain uint8s, previously inline in
 `canReviewRelease`, and the artist setup/lock derivations, pulled out of `App.tsx`
 and de-duplicated with `NewReleaseTab.tsx`'s local step list), and
 `app/routing.ts` (the view enum guard, initial-view, artist-portal-path, and
-history/popstate resolution helpers, pulled out of `App.tsx`).
+history/popstate resolution helpers, pulled out of `App.tsx`), and
+`app/navigation.ts` (the static `VIEW_COPY` and `NAV_ITEMS` nav model, with
+handlers still attached in `App.tsx`).
 
 ## Current Limitations
 

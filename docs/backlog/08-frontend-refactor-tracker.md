@@ -33,6 +33,7 @@ once again, stack them and merge bottom-up.
 | 6 | #45 | `refactor/frontend-runtime-module` | `features/runtime/accessEncoding` - bidirectional access-mode / personhood codecs (encode in useArtistConsole, decode in useCatalog) | Merged |
 | 7 | #46 | `refactor/frontend-artist-studio-module` | `features/artist-studio/releaseForm` - wizard step machine + `canReviewRelease` + artist setup/lock derivations; dedupe `NewReleaseTab`'s step list | Open (review) |
 | 8 | #47 | `refactor/frontend-app-routing` | Introduce `app/routing.ts` - pure view/route + history/popstate helpers pulled out of `App.tsx` (view guard, initial view, artist-portal path, popstate resolution) | Open (review) |
+| 8a | #48 | `refactor/frontend-app-navigation` | Introduce `app/navigation.ts` - static `VIEW_COPY` + `NAV_ITEMS` nav model pulled out of `App.tsx` (handlers stay in App) | Open (review) |
 | 8b | - | `refactor/frontend-app-shell` | Decompose `App.tsx`'s render tree into route components + a providers/context boundary so `App.tsx` is composition-only. Large; scope carefully | Planned |
 | 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/` (`ui`, `config`, `errors`, `hooks`, `types`, `utils`); relocate existing `components/ui`, `config`, `utils`, `types.ts` with import updates | Planned |
 
