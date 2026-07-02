@@ -113,4 +113,6 @@ Eighth PR on `refactor/frontend-app-routing` (stacked on the artist-studio PR): 
 
 Additional PR on `refactor/frontend-app-navigation` (stacked on the app-routing PR): introduced `app/navigation.ts` with the static `VIEW_COPY` and `NAV_ITEMS` nav model (handlers stay in `App.tsx`, since they close over navigation + session). This completes the "nav model" part of the original PR8 scope.
 
+Additional PR on `refactor/frontend-primary-nav`: extracted `components/PrimaryNav.tsx` (`SideRail` + `BottomNav`), de-duplicating the two inline nav renders in `App.tsx` (desktop rail + mobile tab bar) into one item-driven component.
+
 The running plan and status for the remaining PRs lives in `docs/backlog/08-frontend-refactor-tracker.md`. Remaining there: the full `App.tsx` render-tree/providers decomposition (PR8b) and the `shared/` tree relocation (PR9), both broad structural moves best done one at a time against an up-to-date `main`.

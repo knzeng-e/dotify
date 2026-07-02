@@ -1,4 +1,4 @@
-import { Disc3, PanelLeftClose, PanelLeftOpen, Link as LinkIcon } from 'lucide-react';
+import { Disc3, Link as LinkIcon } from 'lucide-react';
 
 import { AuraBackground } from './components/AuraBackground';
 import { PlayerDock } from './components/PlayerDock';
@@ -38,6 +38,7 @@ import {
 } from './features/artist-studio/releaseForm';
 import { historyStateObject, initialView, isArtistPortalPath, viewFromHistoryState } from './app/routing';
 import { NAV_ITEMS, VIEW_COPY } from './app/navigation';
+import { BottomNav, SideRail } from './components/PrimaryNav';
 import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole';
 import { usePlayback } from './hooks/usePlayback';
 
@@ -817,32 +818,7 @@ export default function App() {
 
         {walletModal}
 
-        <nav className='side-rail' data-collapsed={railCollapsed} aria-label='Library navigation'>
-          <button
-            className='side-rail-toggle'
-            type='button'
-            onClick={() => setRailCollapsed(value => !value)}
-            aria-label={railCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-            title={railCollapsed ? 'Expand' : 'Collapse'}
-          >
-            {railCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-          </button>
-          <div className='side-rail-items'>
-            {navItems.map(item => (
-              <button
-                key={item.view}
-                className='side-rail-item'
-                type='button'
-                data-active={activeView === item.view}
-                onClick={item.onSelect}
-                title={item.label}
-              >
-                <item.icon size={20} />
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
+        <SideRail items={navItems} activeView={activeView} collapsed={railCollapsed} onToggleCollapsed={() => setRailCollapsed(value => !value)} />
 
         <div className='app-content' id='top'>
           <main className={`content content-${activeView}`}>
@@ -1021,14 +997,7 @@ export default function App() {
           />
         )}
 
-        <nav className='bottom-nav' aria-label='Main navigation'>
-          {navItems.map(item => (
-            <button key={item.view} className='bottom-nav-item' type='button' data-active={activeView === item.view} onClick={item.onSelect}>
-              <item.icon size={22} />
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
+        <BottomNav items={navItems} activeView={activeView} />
       </div>
     </>
   );
