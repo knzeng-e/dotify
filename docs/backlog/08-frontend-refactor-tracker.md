@@ -38,7 +38,7 @@ open at once, stack and merge bottom-up.
 | 8d | #50 | `refactor/frontend-artist-portal-shell` | Extract `views/ArtistPortalView` - the /artists shell (topbar + layout + modal slots); artist content + modals passed in as nodes | Merged |
 | 8e | #51 | `refactor/frontend-topbar` | Extract shared `components/TopBar` (brand + wallet pill) used by both the listener shell and `ArtistPortalView` | Open (review) |
 | 8b-1 | - | `refactor/frontend-providers-foundation` | `AppProviders` scaffold + `UiFeedbackProvider` + `WalletProvider`; TopBar, WalletModal, TransactionModal consume contexts | Done on branch (checks green; App.tsx 986 -> 859) |
-| 8b-2 | - | `refactor/frontend-providers-navigation` | `NavigationProvider`; popstate/history effects move out of `App.tsx` | Planned |
+| 8b-2 | - | `refactor/frontend-providers-navigation` | `NavigationProvider`; popstate/history effects move out of `App.tsx` | Done on branch (checks green; App.tsx 859 -> 832) |
 | 8b-3 | - | `refactor/frontend-providers-release-form` | `ReleaseFormProvider` incl. Bulletin manifest-ref relocation; delete the `artistConsoleBulletinRef` hack + the 8-setter injection into `useCatalog` | Planned |
 | 8b-4 | - | `refactor/frontend-providers-catalog-session` | `CatalogProvider` + `SessionProvider`; ListenView, RoomsView, YouView, room modals consume contexts | Planned |
 | 8b-5 | - | `refactor/frontend-providers-studio-playback` | `ArtistStudioProvider` (mounted in `ArtistPortalView`) + `PlaybackProvider` (actions/transport context split); `App.tsx` lands as a composition shell | Planned |

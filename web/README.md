@@ -213,8 +213,12 @@ active EVM/Substrate identity, the frozen RPC endpoint, `getActiveWalletClient`,
 and the network-switch flow); `AppProviders` composes them in `main.tsx`. Each
 accessor (`useUiFeedback`, `useWalletContext`) fails closed by throwing outside
 its provider. `TopBar`, `WalletModal`, and `TransactionModal` read this state
-from context instead of prop drilling. Later steps add navigation, release-form,
-catalog, session, artist-studio, and playback providers.
+from context instead of prop drilling. `NavigationProvider` (`useNavigation`)
+then owns the shell's route/view state (active view, artist-portal open, public
+artist profile, rail collapse) plus `navigateToView`, `openArtistStudio`, and the
+popstate/history integration, so route state is no longer threaded into
+`useCatalog`/`useSession` and the views. Later steps add release-form, catalog,
+session, artist-studio, and playback providers.
 
 ## Current Limitations
 
