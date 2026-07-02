@@ -11,6 +11,7 @@
 		"dev": "vite --host 0.0.0.0 --port 5273",
 		"signal": "SIGNAL_PORT=8788 node server/signaling.mjs",
 		"test:signal": "node --test server/signaling.test.mjs",
+		"test:unit": "vitest run",
 		"test:e2e": "playwright test",
 		"dev:listen": "concurrently -n signal,web -c magenta,cyan \"npm:signal\" \"npm:dev\"",
 		"build": "tsc -b && vite build",
@@ -61,6 +62,7 @@
 		"typescript": "~5.6.2",
 		"typescript-eslint": "^8.58.1",
 		"vite": "^6.0.1",
-		"vite-plugin-singlefile": "^2.3.3"
+		"vite-plugin-singlefile": "^2.3.3",
+		"vitest": "^3.2.6"
 	}
 }

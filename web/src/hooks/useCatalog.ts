@@ -8,6 +8,7 @@ import { fetchIpfsCid } from '../services/pinata';
 import { isKeyServiceConfigured, requestContentKey, type KeyRequestPurpose } from '../services/keyService';
 import { auraForTrack } from '../utils/aura';
 import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../utils/protectedAudio';
+import { isPolicyManagedTrack, playbackModeForAccess } from '../features/access/accessPolicy';
 import {
   E2E_CLASSIC_AUDIO_URL,
   E2E_CLASSIC_HASH,
@@ -213,7 +214,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (isRoomJoinE2eTrack(track)) {
       return !track.id.includes(':') || roomJoinE2eHostHasAccess();
     }
-    if (track.source !== 'artist' || !track.id.includes(':')) return true;
+    if (!isPolicyManagedTrack(track)) return true;
     if (!listenerAddress) return false;
     const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
     try {
@@ -238,7 +239,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (isRoomJoinE2eTrack(track)) {
       return track.id.includes(':') && roomJoinE2eHostHasAccess();
     }
-    if (track.source !== 'artist' || !track.id.includes(':') || track.accessMode !== 'classic') return false;
+    if (!isPolicyManagedTrack(track) || track.accessMode !== 'classic') return false;
     if (!listenerAddress) return false;
     const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
     try {
@@ -468,12 +469,12 @@ export function useCatalog(deps: UseCatalogDeps) {
     let audioUrl: string | null = null;
     let playbackMode: RoomPlaybackMode = 'full';
 
-    if (track.source === 'artist' && track.id.includes(':')) {
+    if (isPolicyManagedTrack(track)) {
       const hasAccess = await checkTrackAccess(track, listenerEvmAddress);
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
       const previewOnly = !hasAccess;
       previewOnlyRef.current = previewOnly;
-      playbackMode = previewOnly ? 'preview' : 'full';
+      playbackMode = playbackModeForAccess(hasAccess);
 
       if (previewOnly) {
         setAccessGate(buildAccessGateInfo(track));
