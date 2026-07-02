@@ -111,4 +111,6 @@ Seventh PR on `refactor/frontend-artist-studio-module`: added `features/artist-s
 
 Eighth PR on `refactor/frontend-app-routing` (stacked on the artist-studio PR): introduced `app/routing.ts` with the pure view/route + history/popstate helpers (`isDotifyView`, `initialView`, `isArtistPortalPath`, `historyStateObject`, `viewFromHistoryState`) pulled out of `App.tsx`, with tests. App now passes the window values in at the call sites.
 
+Additional PR on `refactor/frontend-app-navigation` (stacked on the app-routing PR): introduced `app/navigation.ts` with the static `VIEW_COPY` and `NAV_ITEMS` nav model (handlers stay in `App.tsx`, since they close over navigation + session). This completes the "nav model" part of the original PR8 scope.
+
 The running plan and status for the remaining PRs lives in `docs/backlog/08-frontend-refactor-tracker.md`. Remaining there: the full `App.tsx` render-tree/providers decomposition (PR8b) and the `shared/` tree relocation (PR9), both broad structural moves best done one at a time against an up-to-date `main`.

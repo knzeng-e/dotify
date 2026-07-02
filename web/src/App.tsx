@@ -1,4 +1,4 @@
-import { Disc3, Headphones, PanelLeftClose, PanelLeftOpen, Radio, UserRound, Link as LinkIcon } from 'lucide-react';
+import { Disc3, PanelLeftClose, PanelLeftOpen, Link as LinkIcon } from 'lucide-react';
 
 import { AuraBackground } from './components/AuraBackground';
 import { PlayerDock } from './components/PlayerDock';
@@ -37,6 +37,7 @@ import {
   previousReleaseStep
 } from './features/artist-studio/releaseForm';
 import { historyStateObject, initialView, isArtistPortalPath, viewFromHistoryState } from './app/routing';
+import { NAV_ITEMS, VIEW_COPY } from './app/navigation';
 import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole';
 import { usePlayback } from './hooks/usePlayback';
 
@@ -53,13 +54,6 @@ import type { AccessMode, ArtistTab, AssetAction, CatalogTrack, PersonhoodLevel,
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
-
-const viewCopy: Record<View, { title: string; eyebrow: string }> = {
-  listen: { title: 'Now', eyebrow: 'Live rooms' },
-  player: { title: 'Listen', eyebrow: 'Catalog and player' },
-  rooms: { title: 'Rooms', eyebrow: 'Join or create' },
-  you: { title: 'Account', eyebrow: 'Wallet and artist space' }
-};
 
 function getInitialView(): View {
   return initialView(Boolean(getInitialRoomCode()));
@@ -265,7 +259,7 @@ export default function App() {
   const artistStudioLocked = deriveArtistStudioLocked(artistRegistrationAvailable, hasArtistRuntime);
   const canReviewRelease = deriveCanReviewRelease({ fileHash: catalog.fileHash, title, audioSource: catalog.audioSource });
   const artistSetupState = deriveArtistSetupState(Boolean(connectedWallet), hasArtistRuntime);
-  const currentPage = viewCopy[activeView];
+  const currentPage = VIEW_COPY[activeView];
 
   // ── Effects ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -667,21 +661,13 @@ export default function App() {
   );
 
   // Shared navigation model: rendered as a bottom tab bar on mobile and a
-  // collapsible left rail on desktop. Same handlers, one source of truth.
-  const navItems: Array<{ view: View; label: string; icon: typeof Headphones; onSelect: () => void }> = [
-    { view: 'listen', label: 'Now', icon: Headphones, onSelect: () => navigateToView('listen') },
-    { view: 'player', label: 'Listen', icon: Disc3, onSelect: () => navigateToView('player') },
-    {
-      view: 'rooms',
-      label: 'Rooms',
-      icon: Radio,
-      onSelect: () => {
-        navigateToView('rooms');
-        session.requestOpenRooms(true);
-      }
-    },
-    { view: 'you', label: 'Account', icon: UserRound, onSelect: () => navigateToView('you') }
-  ];
+  // collapsible left rail on desktop. Static entries live in app/navigation;
+  // the handler is attached here since it closes over navigation + session.
+  function handleNavSelect(view: View) {
+    navigateToView(view);
+    if (view === 'rooms') session.requestOpenRooms(true);
+  }
+  const navItems = NAV_ITEMS.map(item => ({ ...item, onSelect: () => handleNavSelect(item.view) }));
 
   if (isArtistPortal) {
     return (
