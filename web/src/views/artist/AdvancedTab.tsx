@@ -1,9 +1,9 @@
 import { BadgeCheck, LockKeyhole } from 'lucide-react';
-import { PanelTitle } from '../../components/ui/PanelTitle';
-import { EndpointRow } from '../../components/ui/EndpointRow';
-import { getBlockscoutAddressUrl } from '../../utils/explorer';
-import { shorten } from '../../utils/format';
-import type { TrackInfo } from '../../types';
+import { PanelTitle } from '../../shared/ui/PanelTitle';
+import { EndpointRow } from '../../shared/ui/EndpointRow';
+import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
+import { shorten } from '../../shared/utils/format';
+import type { TrackInfo } from '../../shared/types';
 
 type AdvancedTabProps = {
   factoryAddress: `0x${string}` | undefined;

@@ -1,9 +1,9 @@
 import { BadgeCheck, CircleCheckBig, Disc3, Headphones, KeyRound, Library, Radio, Share2, ShieldCheck, Users, Wallet } from 'lucide-react';
-import { PanelTitle } from '../components/ui/PanelTitle';
+import { PanelTitle } from '../shared/ui/PanelTitle';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
-import { catalogAccessAriaLabel, catalogAccessLabel } from '../utils/format';
+import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
 import { roomPresenceCount } from '../features/rooms/roomState';
-import type { CatalogTrack, OpenRoom } from '../types';
+import type { CatalogTrack, OpenRoom } from '../shared/types';
 
 type ListenViewProps = {
   catalogTracks: CatalogTrack[];

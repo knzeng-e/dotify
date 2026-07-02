@@ -6,7 +6,7 @@
 // shape - view id, label, and icon.
 
 import { Disc3, Headphones, Radio, UserRound, type LucideIcon } from 'lucide-react';
-import type { View } from '../types';
+import type { View } from '../shared/types';
 
 /** Page title + eyebrow for each main view. */
 export const VIEW_COPY: Record<View, { title: string; eyebrow: string }> = {

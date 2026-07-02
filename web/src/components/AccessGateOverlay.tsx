@@ -1,6 +1,6 @@
 import { LockKeyhole } from 'lucide-react';
 import { Dialog } from './Dialog';
-import type { AccessGate } from '../types';
+import type { AccessGate } from '../shared/types';
 
 export function AccessGateOverlay({
   gate,

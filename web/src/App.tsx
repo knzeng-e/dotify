@@ -5,10 +5,10 @@ import { PlayerDock } from './components/PlayerDock';
 import { PersistentAudio } from './components/PersistentAudio';
 import { CreateRoomModal } from './components/CreateRoomModal';
 import { JoinRoomModal } from './components/JoinRoomModal';
-import { applyAura, auraForTrack, auraForName } from './utils/aura';
+import { applyAura, auraForTrack, auraForName } from './shared/utils/aura';
 
-import { hashFileWithBytes } from './utils/hash';
-import { deployments } from './config/deployments';
+import { hashFileWithBytes } from './shared/utils/hash';
+import { deployments } from './shared/config/deployments';
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { uploadFileToPinata, uploadProtectedAudio } from './services/pinata';
@@ -23,7 +23,7 @@ import {
   usePlaybackContext
 } from './app/providers';
 
-import { Metric } from './components/ui/Metric';
+import { Metric } from './shared/ui/Metric';
 import { WalletModal } from './components/WalletModal';
 import { TopBar } from './components/TopBar';
 import { TransactionModal } from './components/TransactionModal';
@@ -51,7 +51,7 @@ import { ArtistPortalView } from './views/ArtistPortalView';
 import { ArtistConsole } from './views/artist/ArtistConsole';
 import { ArtistOnboarding } from './views/artist/ArtistOnboarding';
 
-import type { CatalogTrack, RoomPlaybackMode, View } from './types';
+import type { CatalogTrack, RoomPlaybackMode, View } from './shared/types';
 
 // ── App ────────────────────────────────────────────────────────────────────────
 

@@ -7,7 +7,7 @@ import { LockKeyhole, Maximize2, Pause, Play, Radio, Repeat2, Shuffle, SkipBack,
 import type { CSSProperties } from 'react';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { type PlaybackControls } from '../hooks/usePlayback';
-import type { CatalogTrack, Mode, TrackInfo } from '../types';
+import type { CatalogTrack, Mode, TrackInfo } from '../shared/types';
 
 type PlayerDockProps = {
   track: CatalogTrack | undefined;

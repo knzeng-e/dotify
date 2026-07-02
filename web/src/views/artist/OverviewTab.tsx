@@ -1,7 +1,7 @@
 import { BadgeCheck, Disc3, Heart, KeyRound, LockKeyhole, RefreshCw, Upload } from 'lucide-react';
 import { Avatar } from '../../components/Presence';
-import { catalogAccessLabel, formatPaymentDate, formatWeiAsDot, shorten } from '../../utils/format';
-import type { CatalogTrack, RoyaltyPayment } from '../../types';
+import { catalogAccessLabel, formatPaymentDate, formatWeiAsDot, shorten } from '../../shared/utils/format';
+import type { CatalogTrack, RoyaltyPayment } from '../../shared/types';
 
 type OverviewTabProps = {
   artistName: string;

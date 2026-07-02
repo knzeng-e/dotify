@@ -1,7 +1,7 @@
 import { createWalletClient, http } from 'viem';
 import type { Chain } from 'viem';
 import type { ConnectedWallet } from '../hooks/useWallet';
-import type { CatalogTrack } from '../types';
+import type { CatalogTrack } from '../shared/types';
 
 export const isClassicUnlockE2e = import.meta.env.VITE_E2E_CLASSIC_UNLOCK === 'true';
 

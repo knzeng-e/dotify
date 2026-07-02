@@ -13,7 +13,7 @@
 
 import { createContext, useContext, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type ReactNode, type SetStateAction } from 'react';
 import { DEFAULT_TRACK_TITLE } from '../../features/uploads/uploadModel';
-import type { AccessMode, ArtistTab, AssetAction, PersonhoodLevel, ReleaseStep } from '../../types';
+import type { AccessMode, ArtistTab, AssetAction, PersonhoodLevel, ReleaseStep } from '../../shared/types';
 
 const DEFAULT_DESCRIPTION = 'Describe the story, rights context, and intended audience for this track.';
 

@@ -17,18 +17,18 @@ import {
   VolumeX,
   X
 } from 'lucide-react';
-import { PanelTitle } from '../components/ui/PanelTitle';
-import { EndpointRow } from '../components/ui/EndpointRow';
+import { PanelTitle } from '../shared/ui/PanelTitle';
+import { EndpointRow } from '../shared/ui/EndpointRow';
 import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
-import { formatTime } from '../utils/format';
+import { formatTime } from '../shared/utils/format';
 import { isPolicyManagedTrack } from '../features/access/accessPolicy';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import { playbackStatusLabel, transportProgressPercent } from '../features/player/playbackStatus';
 import { type PlaybackControls } from '../hooks/usePlayback';
-import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, SessionAction, TrackInfo } from '../types';
+import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, SessionAction, TrackInfo } from '../shared/types';
 import { useEffect, useState, type CSSProperties } from 'react';
 
 type PlayerViewProps = {

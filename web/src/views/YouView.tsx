@@ -1,6 +1,6 @@
 import { ArrowRight, ExternalLink, KeyRound, Mic2, Music2, Power, Sparkles, Users, Wallet } from 'lucide-react';
-import { formatWeiAsDot, shortenAddress } from '../utils/format';
-import { getBlockscoutAddressUrl } from '../utils/explorer';
+import { formatWeiAsDot, shortenAddress } from '../shared/utils/format';
+import { getBlockscoutAddressUrl } from '../shared/utils/explorer';
 import type { WalletState } from '../hooks/useWallet';
 
 type AccountSupportedArtist = { artist: string; artistAddress?: `0x${string}`; trackCount: number };

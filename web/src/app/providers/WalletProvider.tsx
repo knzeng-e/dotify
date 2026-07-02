@@ -14,8 +14,8 @@ import type { PolkadotSigner } from 'polkadot-api';
 
 import { useWallet, type ConnectedWallet, type WalletState } from '../../hooks/useWallet';
 import { devAccounts, type DevAccount } from '../../hooks/useDevAccounts';
-import { getDefaultEthRpcUrl } from '../../config/network';
-import { resolveEvmChain, getWalletClient } from '../../config/contracts';
+import { getDefaultEthRpcUrl } from '../../shared/config/network';
+import { resolveEvmChain, getWalletClient } from '../../shared/config/contracts';
 import { chainMismatchMessage } from '../../features/wallet/network';
 import { useUiFeedback } from './UiFeedbackProvider';
 

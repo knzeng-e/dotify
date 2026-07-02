@@ -5,7 +5,7 @@
 // throws outside the provider rather than returning a silent no-op.
 
 import { createContext, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
-import type { TransactionFeedback } from '../../types';
+import type { TransactionFeedback } from '../../shared/types';
 
 type UiFeedbackValue = {
   transactionFeedback: TransactionFeedback | null;

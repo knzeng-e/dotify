@@ -7,7 +7,7 @@
 
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { useCatalog } from '../../hooks/useCatalog';
-import { deployments } from '../../config/deployments';
+import { deployments } from '../../shared/config/deployments';
 import { useWalletContext } from './WalletProvider';
 import { useUiFeedback } from './UiFeedbackProvider';
 import { useNavigation } from './NavigationProvider';

@@ -1,10 +1,10 @@
 import { BadgeCheck, ExternalLink, Library, Play, ShieldCheck } from 'lucide-react';
-import { EndpointRow } from '../../components/ui/EndpointRow';
-import { PanelTitle } from '../../components/ui/PanelTitle';
-import { getBlockscoutAddressUrl } from '../../utils/explorer';
-import { accessModeLabel, shorten } from '../../utils/format';
+import { EndpointRow } from '../../shared/ui/EndpointRow';
+import { PanelTitle } from '../../shared/ui/PanelTitle';
+import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
+import { accessModeLabel, shorten } from '../../shared/utils/format';
 import { runtimeAddressFromTrackId } from '../../features/catalog/trackModel';
-import type { CatalogTrack } from '../../types';
+import type { CatalogTrack } from '../../shared/types';
 
 type ReleasesTabProps = {
   artistTracks: CatalogTrack[];

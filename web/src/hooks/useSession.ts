@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { createRoomJoinE2eCaptureStream, isRoomJoinE2e, roomJoinE2eIceServers } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
-import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../utils/format';
+import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
 import type {
   CapturableMediaElement,
   CreateRoomResponse,
@@ -16,7 +16,7 @@ import type {
   SessionAction,
   SocketStatus,
   TrackInfo
-} from '../types';
+} from '../shared/types';
 import type { FormEvent } from 'react';
 
 // STUN alone fails silently behind symmetric NAT; configure a TURN relay for

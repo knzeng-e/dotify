@@ -222,7 +222,7 @@ export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentH
     return ref.startsWith('dotify:enc:ipfs://') ? ref.slice('dotify:enc:ipfs://'.length) : ref;
   }
 
-  const { encryptTrackAudio } = await import('../utils/protectedAudio');
+  const { encryptTrackAudio } = await import('../shared/utils/protectedAudio');
   const encrypted = await encryptTrackAudio(audio.bytes, contentHash);
   const encFile = new File([encrypted as BlobPart], `${audio.name}.enc`, { type: 'application/octet-stream' });
   return uploadFileToPinata(encFile, encFile.name, { app: 'dotify', type: 'audio', encrypted: 'true' });

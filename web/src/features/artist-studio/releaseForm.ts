@@ -3,7 +3,7 @@
 // Pure rules pulled out of App.tsx (and de-duplicated with NewReleaseTab's local
 // step list) so the wizard navigation and gating are testable in isolation.
 
-import type { ReleaseStep } from '../../types';
+import type { ReleaseStep } from '../../shared/types';
 
 /** Ordered release wizard steps. Labels match what the studio renders. */
 export const RELEASE_STEPS: Array<{ id: ReleaseStep; label: string }> = [

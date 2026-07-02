@@ -6,7 +6,7 @@
 // These helpers centralize the predicate that was previously duplicated across
 // App.tsx, useCatalog.ts, and PlayerView.tsx.
 
-import type { CatalogTrack, RoomPlaybackMode } from '../../types';
+import type { CatalogTrack, RoomPlaybackMode } from '../../shared/types';
 
 /** True when the track sits behind an artist runtime access policy. */
 export function isPolicyManagedTrack(track: Pick<CatalogTrack, 'source' | 'id'>): boolean {

@@ -8,7 +8,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { historyStateObject, initialView, isArtistPortalPath, viewFromHistoryState } from '../routing';
 import { getInitialRoomCode } from '../../features/rooms/roomState';
-import type { View } from '../../types';
+import type { View } from '../../shared/types';
 
 function getInitialView(): View {
   return initialView(Boolean(getInitialRoomCode()));

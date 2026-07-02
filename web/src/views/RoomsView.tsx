@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { roomPresenceCount } from '../features/rooms/roomState';
-import type { OpenRoom, SessionAction } from '../types';
+import type { OpenRoom, SessionAction } from '../shared/types';
 
 // ── Inline SVG icons ────────────────────────────────────────────────────────
 function SvgBroadcast({ size }: { size: number }) {

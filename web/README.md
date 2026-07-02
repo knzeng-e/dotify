@@ -167,13 +167,22 @@ src/
     uploads/  # draft track model + upload status transitions (pure, unit-tested)
     runtime/  # access-policy encode/decode between app model and chain (pure, unit-tested)
     artist-studio/  # release wizard step machine + studio-state derivations (pure, unit-tested)
-  components/ # presentational UI
+  components/ # presentational UI (shells, modals, dock, nav)
   views/      # page-level compositions
   hooks/      # stateful orchestration (useCatalog, useSession, ...)
   services/   # IPFS, key service
-  config/     # chain + deployment config
-  utils/      # framework-agnostic helpers
+  shared/     # cross-cutting building blocks
+    ui/       # presentational primitives (Metric, StatusPill, ...)
+    config/   # chain + deployment config
+    utils/    # framework-agnostic helpers
+    types.ts  # shared domain types
 ```
+
+The `shared/` tree is in place (`ui`, `config`, `utils`, `types.ts` relocated
+from `components/ui`, `config`, `utils`, and `types.ts`). Its `errors/` and
+`hooks/` subfolders from the original target are not created yet; the stateful
+hooks remain under `hooks/` as orchestration, and a dedicated `errors/` module
+is introduced when there is shared error handling to hold.
 
 Pure domain logic lives in `features/*` with co-located `*.test.ts` files and no
 DOM or chain dependencies; helpers that read `window.location` accept an explicit

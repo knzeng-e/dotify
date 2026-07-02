@@ -8,14 +8,14 @@ import {
   artistRuntimeFactoryAbi,
   artistDirectoryAbi,
   musicRegistryAbi
-} from '../config/contracts';
+} from '../shared/config/contracts';
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
 import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
-import { makeEncryptedAudioRef } from '../utils/protectedAudio';
+import { makeEncryptedAudioRef } from '../shared/utils/protectedAudio';
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
-import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../utils/format';
+import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../shared/utils/format';
 import {
   createArtistPublishE2eTrack,
   E2E_ARTIST_PROFILE_TX_HASH,
@@ -29,7 +29,7 @@ import {
   publishArtistPublishE2eTrack,
   recordArtistPublishTransactionFailure
 } from '../e2e/artistPublishMock';
-import type { AccessMode, CatalogTrack, PersonhoodLevel, RoyaltyPayment, TransactionFeedback } from '../types';
+import type { AccessMode, CatalogTrack, PersonhoodLevel, RoyaltyPayment, TransactionFeedback } from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
 import type { PolkadotSigner } from 'polkadot-api';
 

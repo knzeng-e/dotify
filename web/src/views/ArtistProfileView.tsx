@@ -1,9 +1,9 @@
 import { BadgeCheck, Headphones, Radio, UsersRound } from 'lucide-react';
 import { useMemo, type CSSProperties, type KeyboardEvent } from 'react';
-import { catalogAccessAriaLabel, catalogAccessLabel } from '../utils/format';
+import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { roomPresenceCount } from '../features/rooms/roomState';
-import type { CatalogTrack, OpenRoom } from '../types';
+import type { CatalogTrack, OpenRoom } from '../shared/types';
 
 type ArtistProfileViewProps = {
   artistName: string;

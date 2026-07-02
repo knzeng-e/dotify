@@ -1,8 +1,8 @@
 import { BadgeCheck, Disc3, ExternalLink, FileAudio, LockKeyhole, RefreshCw, Sparkles, Wallet } from 'lucide-react';
 import { useState } from 'react';
-import { getBlockscoutAddressUrl } from '../../utils/explorer';
-import { shorten } from '../../utils/format';
-import type { CatalogTrack } from '../../types';
+import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
+import { shorten } from '../../shared/utils/format';
+import type { CatalogTrack } from '../../shared/types';
 
 type ArtistOnboardingProps = {
   activeEvmAddress: `0x${string}`;

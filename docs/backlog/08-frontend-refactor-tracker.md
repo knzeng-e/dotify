@@ -42,7 +42,7 @@ open at once, stack and merge bottom-up.
 | 8b-3 | - | `refactor/frontend-providers-release-form` | `ReleaseFormProvider` incl. Bulletin manifest-ref relocation; delete the `artistConsoleBulletinRef` hack | Done on branch (checks green; App.tsx 832 -> 845, see note) |
 | 8b-4 | - | `refactor/frontend-providers-catalog-session` | `CatalogProvider` + `SessionProvider` wrap `useCatalog`/`useSession`; catalog + one-link-join effects move in | Done on branch (checks green; App.tsx 845 -> 762) |
 | 8b-5 | - | `refactor/frontend-providers-studio-playback` | `ArtistStudioProvider` + `PlaybackProvider` wrap `useArtistConsole`/`usePlayback` + the open-track/preview handlers; App owns no hooks/state | Done on branch (checks green; App.tsx 762 -> 675; two deferrals, see notes) |
-| 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/` (`ui`, `config`, `errors`, `hooks`, `types`, `utils`); relocate existing `components/ui`, `config`, `utils`, `types.ts` with import updates | Planned |
+| 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/`; relocate `components/ui` -> `shared/ui`, `config` -> `shared/config`, `utils` -> `shared/utils`, `types.ts` -> `shared/types.ts` with import updates | Done on branch (checks green; 15 renames + 47 import edits, +101/-101) |
 
 ## Acceptance criteria coverage (ticket 08)
 
@@ -57,7 +57,10 @@ open at once, stack and merge bottom-up.
       directly instead of large prop lists (deferred follow-up).
 - [x] TypeScript remains strict (each PR builds under `tsc -b`).
 - [x] README documents the new frontend module structure (PR1+).
-- [ ] Full `features/* + shared/* + app/*` tree in place (PR8/PR9).
+- [x] Full `features/* + shared/* + app/*` tree in place: `features/*` (PR1-7),
+      `app/*` incl. `app/providers/*` (PR8, PR8b), and `shared/{ui,config,utils,types}`
+      (PR9). `shared/errors` and `shared/hooks` are intentionally not created yet
+      (no shared error module; stateful hooks stay under `hooks/`).
 
 ## Notes / decisions
 

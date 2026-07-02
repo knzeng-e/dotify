@@ -5,8 +5,8 @@
 // draft TrackInfo shape, and the human-readable upload-status transitions.
 
 import { localAudioRef, priceDotForAccessMode } from '../catalog/trackModel';
-import { stripExtension } from '../../utils/format';
-import type { AccessMode, PersonhoodLevel, TrackInfo } from '../../types';
+import { stripExtension } from '../../shared/utils/format';
+import type { AccessMode, PersonhoodLevel, TrackInfo } from '../../shared/types';
 
 /** Placeholder title for a fresh release before the artist names it. */
 export const DEFAULT_TRACK_TITLE = 'Untitled jam';

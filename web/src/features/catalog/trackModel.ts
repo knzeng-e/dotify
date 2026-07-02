@@ -3,7 +3,7 @@
 // Extracted from App.tsx (mappers) and de-duplicated from useCatalog/ReleasesTab
 // (runtime-id parsing) so track-shape logic lives in one tested place.
 
-import type { AccessMode, CatalogTrack, TrackInfo } from '../../types';
+import type { AccessMode, CatalogTrack, TrackInfo } from '../../shared/types';
 
 /** Price shown/charged for a track: the set price for Classic, free otherwise. */
 export function priceDotForAccessMode(accessMode: AccessMode, priceDot: string): string {

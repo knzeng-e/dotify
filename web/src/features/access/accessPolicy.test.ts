@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CatalogTrack } from '../../types';
+import type { CatalogTrack } from '../../shared/types';
 import { isPolicyManagedTrack, playbackModeForAccess, trackHasAccess, trackNeedsAccess } from './accessPolicy';
 
 type TrackShape = Pick<CatalogTrack, 'source' | 'id'>;

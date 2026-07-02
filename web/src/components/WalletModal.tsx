@@ -1,9 +1,9 @@
 import { ExternalLink, KeyRound, LockKeyhole, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
 import { Dialog } from './Dialog';
 import type { WalletState } from '../hooks/useWallet';
-import type { CatalogTrack } from '../types';
-import { getBlockscoutAddressUrl } from '../utils/explorer';
-import { shortenAddress } from '../utils/format';
+import type { CatalogTrack } from '../shared/types';
+import { getBlockscoutAddressUrl } from '../shared/utils/explorer';
+import { shortenAddress } from '../shared/utils/format';
 import { useWalletContext } from '../app/providers/WalletProvider';
 import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
 
