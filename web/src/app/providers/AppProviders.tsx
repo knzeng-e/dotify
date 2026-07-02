@@ -4,7 +4,9 @@
 // wallet identity everything else reads from, then navigation (route/view state
 // and history), then the release-form draft that catalog + artist console share,
 // then the catalog (on-chain tracks + access) and the session (WebRTC rooms) that
-// streams it. Later steps (8b-5) add the artist-studio and playback providers.
+// streams it, then the artist studio (runtime/rights/royalties) and the playback
+// layer (media transport + open-track/preview handlers). With this stack in place
+// App.tsx owns no hooks or business state - it composes providers and renders.
 
 import type { ReactNode } from 'react';
 import { UiFeedbackProvider } from './UiFeedbackProvider';
@@ -13,6 +15,8 @@ import { NavigationProvider } from './NavigationProvider';
 import { ReleaseFormProvider } from './ReleaseFormProvider';
 import { CatalogProvider } from './CatalogProvider';
 import { SessionProvider } from './SessionProvider';
+import { ArtistStudioProvider } from './ArtistStudioProvider';
+import { PlaybackProvider } from './PlaybackProvider';
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
@@ -21,7 +25,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <NavigationProvider>
           <ReleaseFormProvider>
             <CatalogProvider>
-              <SessionProvider>{children}</SessionProvider>
+              <SessionProvider>
+                <ArtistStudioProvider>
+                  <PlaybackProvider>{children}</PlaybackProvider>
+                </ArtistStudioProvider>
+              </SessionProvider>
             </CatalogProvider>
           </ReleaseFormProvider>
         </NavigationProvider>

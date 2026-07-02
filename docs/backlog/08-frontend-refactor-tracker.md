@@ -41,7 +41,7 @@ open at once, stack and merge bottom-up.
 | 8b-2 | - | `refactor/frontend-providers-navigation` | `NavigationProvider`; popstate/history effects move out of `App.tsx` | Done on branch (checks green; App.tsx 859 -> 832) |
 | 8b-3 | - | `refactor/frontend-providers-release-form` | `ReleaseFormProvider` incl. Bulletin manifest-ref relocation; delete the `artistConsoleBulletinRef` hack | Done on branch (checks green; App.tsx 832 -> 845, see note) |
 | 8b-4 | - | `refactor/frontend-providers-catalog-session` | `CatalogProvider` + `SessionProvider` wrap `useCatalog`/`useSession`; catalog + one-link-join effects move in | Done on branch (checks green; App.tsx 845 -> 762) |
-| 8b-5 | - | `refactor/frontend-providers-studio-playback` | `ArtistStudioProvider` (mounted in `ArtistPortalView`) + `PlaybackProvider` (actions/transport context split); `App.tsx` lands as a composition shell | Planned |
+| 8b-5 | - | `refactor/frontend-providers-studio-playback` | `ArtistStudioProvider` + `PlaybackProvider` wrap `useArtistConsole`/`usePlayback` + the open-track/preview handlers; App owns no hooks/state | Done on branch (checks green; App.tsx 762 -> 675; two deferrals, see notes) |
 | 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/` (`ui`, `config`, `errors`, `hooks`, `types`, `utils`); relocate existing `components/ui`, `config`, `utils`, `types.ts` with import updates | Planned |
 
 ## Acceptance criteria coverage (ticket 08)
@@ -50,8 +50,11 @@ open at once, stack and merge bottom-up.
 - [x] Room-state logic has isolated tests (PR1).
 - [x] Typed domain models introduced incrementally: AccessMode (PR1), RoomState (PR1),
       Track (PR2), PlaybackState (PR3), UploadState (PR5), ArtistRuntime access encoding (PR6).
-- [~] `App.tsx` becomes an app composition shell: routing/history helpers extracted (PR8);
-      full render-tree/providers decomposition still pending (PR8b).
+- [~] `App.tsx` becomes an app composition shell: providers/context boundary complete
+      (PR8b-1..8b-5) - App owns no feature hooks and no business state, reading everything
+      from the provider stack (986 -> 675 lines). Remaining: extract the listener render
+      tree into shell components + have `ArtistConsole`/`PlayerView` consume context
+      directly instead of large prop lists (deferred follow-up).
 - [x] TypeScript remains strict (each PR builds under `tsc -b`).
 - [x] README documents the new frontend module structure (PR1+).
 - [ ] Full `features/* + shared/* + app/*` tree in place (PR8/PR9).
@@ -89,3 +92,18 @@ open at once, stack and merge bottom-up.
   separate `bulletinManifestRef` state). Relocating it into `ReleaseFormProvider`
   is therefore a pure no-op-preserving move; it stays a write sink until a reader
   is introduced.
+- 8b-5 deferrals (both intentional, noted in code + `web/README.md`):
+  (1) `ArtistStudioProvider` mounts in the shared stack, not inside
+  `ArtistPortalView`. Mounting it there - so listener sessions skip the
+  runtime/royalty work - first needs `ArtistConsole` to consume the context
+  directly instead of the ~50 props App still forwards. Behavior matches today
+  (the hook already ran every session).
+  (2) `PlaybackProvider` exposes transport + actions in one context. The
+  fast-ticking transport/actions split from the design is an optimization to make
+  only if profiling shows wasteful re-renders; deferred to avoid premature
+  complexity.
+- Providers/context boundary (PR8b) is complete: App.tsx calls no feature hooks and
+  owns no business state. It still holds three modal/wizard `useState`s
+  (`createRoomOpen`, `joinRoomOpen`, `pendingArtistTrack`), a few coordinating
+  handlers/effects, and the full render tree; extracting the render tree into shell
+  components is the next follow-up (candidate for after PR9).

@@ -8,3 +8,5 @@ export { NavigationProvider, useNavigation } from './NavigationProvider';
 export { ReleaseFormProvider, useReleaseForm } from './ReleaseFormProvider';
 export { CatalogProvider, useCatalogContext } from './CatalogProvider';
 export { SessionProvider, useSessionContext } from './SessionProvider';
+export { ArtistStudioProvider, useArtistStudio } from './ArtistStudioProvider';
+export { PlaybackProvider, usePlaybackContext } from './PlaybackProvider';
