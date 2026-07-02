@@ -222,8 +222,13 @@ then owns the artist release draft and shared identity fields (title, descriptio
 artist name, price, royalty split, access mode, personhood level, cover file,
 Bulletin toggle, upload action, studio tab, wizard step) plus the Bulletin manifest
 ref, which retires the write-only `artistConsoleBulletinRef` hack that App.tsx
-carried "to break a circular dependency". Later steps add catalog, session,
-artist-studio, and playback providers.
+carried "to break a circular dependency". `CatalogProvider` (`useCatalogContext`)
+and `SessionProvider` (`useSessionContext`) then wrap the `useCatalog` and
+`useSession` hooks: the hooks keep their dependency-injection signatures, the
+wiring App.tsx used to do moves into the providers, and the catalog-owned effects
+(load the on-chain catalog, sync per-track access) and the one-link room-join
+effect move with them. This removes the catalog/session prop drilling into the
+views. Later steps add artist-studio and playback providers.
 
 ## Current Limitations
 

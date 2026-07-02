@@ -6,3 +6,5 @@ export { UiFeedbackProvider, useUiFeedback } from './UiFeedbackProvider';
 export { WalletProvider, useWalletContext } from './WalletProvider';
 export { NavigationProvider, useNavigation } from './NavigationProvider';
 export { ReleaseFormProvider, useReleaseForm } from './ReleaseFormProvider';
+export { CatalogProvider, useCatalogContext } from './CatalogProvider';
+export { SessionProvider, useSessionContext } from './SessionProvider';
