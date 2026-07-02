@@ -17,28 +17,21 @@ Keep this file updated as PRs land so the work can be resumed at any time.
 
 ## Stack / merge order
 
-PRs are stacked; merge bottom-up. Once a lower PR merges to `main`, retarget (or
-rebase) the next one onto `main`.
-
-```
-main
-└─ #40 refactor/frontend-feature-modules    (foundation: vitest + access + rooms)
-   └─ #41 refactor/frontend-catalog-module   (catalog track model)
-      └─ #42 refactor/frontend-player-module  (player playback status)
-         └─ (next) refactor/frontend-wallet-module ...
-```
+PRs 1-6 (#40-#45) are merged to `main`. Remaining PRs now branch directly from
+`main` (no stacking needed while the queue is short). If several are opened at
+once again, stack them and merge bottom-up.
 
 ## PRs
 
 | # | PR | Branch | Scope | Status |
 |---|----|--------|-------|--------|
-| 1 | #40 | `refactor/frontend-feature-modules` | Vitest infra + `features/access/accessPolicy` + `features/rooms/roomState` | Open (review) |
-| 2 | #41 | `refactor/frontend-catalog-module` | `features/catalog/trackModel` (TrackInfo mapping, `isTrackManagedByArtist`, runtime-id parser) | Open (review) |
-| 3 | #42 | `refactor/frontend-player-module` | `features/player/playbackStatus` (`AudioStatus`, status label, transport progress) | Open (review) |
-| 4 | #43 | `refactor/frontend-wallet-module` | `features/wallet/network` (`parseChainId`, `toEip155ChainId`, `getProviderErrorCode`, `chainMismatchMessage` dedupe across App + useArtistConsole) | Open (review) |
-| 5 | #44 | `refactor/frontend-uploads-module` | `features/uploads/uploadModel` (draft TrackInfo, title-from-filename, upload-status transitions) + `priceDotForAccessMode`/`localAudioRef` dedupe in `trackModel`; slim `App.tsx` `handleAudioFile`/`handleCoverFile` | Open (review) |
-| 6 | #45 | `refactor/frontend-runtime-module` | `features/runtime/accessEncoding` - bidirectional access-mode / personhood codecs (encode in useArtistConsole, decode in useCatalog) | Open (review) |
-| 7 | - | `refactor/frontend-artist-studio-module` | `features/artist-studio` - release-form validation/derivation (`canReviewRelease`, royalty bps, access-mode rules) pulled out of `App.tsx`/`useArtistConsole` | Planned |
+| 1 | #40 | `refactor/frontend-feature-modules` | Vitest infra + `features/access/accessPolicy` + `features/rooms/roomState` | Merged |
+| 2 | #41 | `refactor/frontend-catalog-module` | `features/catalog/trackModel` (TrackInfo mapping, `isTrackManagedByArtist`, runtime-id parser) | Merged |
+| 3 | #42 | `refactor/frontend-player-module` | `features/player/playbackStatus` (`AudioStatus`, status label, transport progress) | Merged |
+| 4 | #43 | `refactor/frontend-wallet-module` | `features/wallet/network` (`parseChainId`, `toEip155ChainId`, `getProviderErrorCode`, `chainMismatchMessage` dedupe across App + useArtistConsole) | Merged |
+| 5 | #44 | `refactor/frontend-uploads-module` | `features/uploads/uploadModel` (draft TrackInfo, title-from-filename, upload-status transitions) + `priceDotForAccessMode`/`localAudioRef` dedupe in `trackModel`; slim `App.tsx` `handleAudioFile`/`handleCoverFile` | Merged |
+| 6 | #45 | `refactor/frontend-runtime-module` | `features/runtime/accessEncoding` - bidirectional access-mode / personhood codecs (encode in useArtistConsole, decode in useCatalog) | Merged |
+| 7 | #46 | `refactor/frontend-artist-studio-module` | `features/artist-studio/releaseForm` - wizard step machine + `canReviewRelease` + artist setup/lock derivations; dedupe `NewReleaseTab`'s step list | Open (review) |
 | 8 | - | `refactor/frontend-app-shell` | Introduce `app/` (App.tsx shell, `routes.tsx`, `providers.tsx`); move view routing + history/popstate + nav model out of the monolith. `App.tsx` becomes composition only | Planned |
 | 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/` (`ui`, `config`, `errors`, `hooks`, `types`, `utils`); relocate existing `components/ui`, `config`, `utils`, `types.ts` with import updates | Planned |
 
@@ -47,7 +40,7 @@ main
 - [x] Access logic has isolated tests (PR1).
 - [x] Room-state logic has isolated tests (PR1).
 - [x] Typed domain models introduced incrementally: AccessMode (PR1), RoomState (PR1),
-      Track (PR2), PlaybackState (PR3); ArtistRuntime + UploadState pending (PR5/PR6).
+      Track (PR2), PlaybackState (PR3), UploadState (PR5), ArtistRuntime access encoding (PR6).
 - [ ] `App.tsx` becomes an app composition shell, not the business-logic container (PR8).
 - [x] TypeScript remains strict (each PR builds under `tsc -b`).
 - [x] README documents the new frontend module structure (PR1+).
