@@ -66,6 +66,17 @@ Delivered on `main`: album-aura engine (`web/src/utils/aura.ts`, `components/Aur
 
 Deferred (needs a backend channel or separate design asset, deliberately not faked): room chat / "say something" (no Socket.IO message relay yet - see #15); persisted room mood; the custom Dotify logo (`design/Dotify-design/Dotify - Logo.html`).
 
+## Strategic improvement plan
+
+`improvement-plan.md` tracks the July 2026 review of the implementation
+against the product/technical/philosophical memory and the Polkadot/Parity
+principles Dotify claims. It sequences the remaining spine work (Now), the
+differentiating moves (Next: real Individuality integration, statement-store
+presence, Triangle host citizenship), and the social-depth work (Later).
+Nothing in Next or Later starts before the spine is green. The PR8b
+providers/context boundary for ticket 08 is designed in
+`08b-providers-design.md`.
+
 ## Current room access doctrine
 
 Dotify distinguishes direct file access from room presence.
