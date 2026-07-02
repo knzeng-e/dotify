@@ -164,7 +164,7 @@ src/
     wallet/   # EIP-1193 chain helpers + chain-mismatch message (pure, unit-tested)
     uploads/  # draft track model + upload status transitions (pure, unit-tested)
     runtime/  # access-policy encode/decode between app model and chain (pure, unit-tested)
-    ...       # artist-studio (incremental)
+    artist-studio/  # release wizard step machine + studio-state derivations (pure, unit-tested)
   components/ # presentational UI
   views/      # page-level compositions
   hooks/      # stateful orchestration (useCatalog, useSession, ...)
@@ -191,9 +191,12 @@ codes, and the chain-mismatch message previously duplicated in `App.tsx` and
 builder, title-from-filename rule, and upload-status transitions pulled out of
 `App.tsx`, plus `priceDotForAccessMode`/`localAudioRef` in `trackModel.ts` that
 de-duplicate the price and local-ref logic shared with `useArtistConsole.ts`),
-and `features/runtime/accessEncoding.ts` (bidirectional access-mode / personhood
+`features/runtime/accessEncoding.ts` (bidirectional access-mode / personhood
 codecs between the app model and the on-chain uint8s, previously inline in
-`useArtistConsole.ts` (encode) and `useCatalog.ts` (decode)).
+`useArtistConsole.ts` (encode) and `useCatalog.ts` (decode)), and
+`features/artist-studio/releaseForm.ts` (the release wizard step machine,
+`canReviewRelease`, and the artist setup/lock derivations, pulled out of `App.tsx`
+and de-duplicated with `NewReleaseTab.tsx`'s local step list).
 
 ## Current Limitations
 

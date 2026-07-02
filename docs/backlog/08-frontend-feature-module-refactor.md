@@ -107,4 +107,6 @@ Fifth PR on `refactor/frontend-uploads-module`: added `features/uploads/uploadMo
 
 Sixth PR on `refactor/frontend-runtime-module`: added `features/runtime/accessEncoding.ts` (bidirectional access-mode / personhood codecs) and replaced the inline uint8 encoding in `useArtistConsole.ts` (register) and decoding in `useCatalog.ts` (catalog load).
 
-The running plan and status for the remaining PRs lives in `docs/backlog/08-frontend-refactor-tracker.md`. Deliberately deferred there: the full `features/* + shared/* + app/*` tree move and the artist-studio feature module. `App.tsx` slimming continues across those PRs.
+Seventh PR on `refactor/frontend-artist-studio-module`: added `features/artist-studio/releaseForm.ts` (release wizard step machine `RELEASE_STEPS`/`nextReleaseStep`/`previousReleaseStep`, `canReviewRelease`, `artistSetupState`, `artistStudioLocked`). Slimmed `App.tsx`'s release derivations and step-nav, and de-duplicated the wizard step list that `NewReleaseTab.tsx` had defined locally.
+
+The running plan and status for the remaining PRs lives in `docs/backlog/08-frontend-refactor-tracker.md`. Remaining there are the two structural moves: the `app/` shell (PR8) and the `shared/` tree (PR9), which relocate files across the codebase. `App.tsx` becomes a pure composition shell in PR8.

@@ -29,6 +29,13 @@ import { trackHasAccess } from './features/access/accessPolicy';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from './features/catalog/trackModel';
 import { chainMismatchMessage } from './features/wallet/network';
 import { DEFAULT_TRACK_TITLE, buildDraftTrackInfo, nextTitleFromUpload, uploadStatusMessage } from './features/uploads/uploadModel';
+import {
+  artistSetupState as deriveArtistSetupState,
+  artistStudioLocked as deriveArtistStudioLocked,
+  canReviewRelease as deriveCanReviewRelease,
+  nextReleaseStep,
+  previousReleaseStep
+} from './features/artist-studio/releaseForm';
 import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole';
 import { usePlayback } from './hooks/usePlayback';
 
@@ -52,13 +59,6 @@ const viewCopy: Record<View, { title: string; eyebrow: string }> = {
   rooms: { title: 'Rooms', eyebrow: 'Join or create' },
   you: { title: 'Account', eyebrow: 'Wallet and artist space' }
 };
-
-const releaseStepsConfig: Array<{ id: ReleaseStep; label: string }> = [
-  { id: 'assets', label: 'Assets' },
-  { id: 'metadata', label: 'Metadata' },
-  { id: 'access', label: 'Access' },
-  { id: 'review', label: 'Review' }
-];
 
 function isDotifyView(value: unknown): value is View {
   return value === 'listen' || value === 'player' || value === 'rooms' || value === 'you';
@@ -273,10 +273,10 @@ export default function App() {
   const uniqueRoyaltyListeners = new Set(artistConsole.royaltyPayments.map(payment => payment.listener.toLowerCase())).size;
   const paidRoyaltyTracks = new Set(artistConsole.royaltyPayments.map(payment => payment.trackHash.toLowerCase())).size;
   const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
-  const artistStudioLocked = artistRegistrationAvailable && !artistConsole.artistRuntimeAddress;
-  const releaseStepIndex = releaseStepsConfig.findIndex(step => step.id === releaseStep);
-  const canReviewRelease = Boolean(catalog.fileHash && title.trim() && catalog.audioSource);
-  const artistSetupState = connectedWallet ? (artistConsole.artistRuntimeAddress ? 'Ready' : 'Registration needed') : 'Wallet needed';
+  const hasArtistRuntime = Boolean(artistConsole.artistRuntimeAddress);
+  const artistStudioLocked = deriveArtistStudioLocked(artistRegistrationAvailable, hasArtistRuntime);
+  const canReviewRelease = deriveCanReviewRelease({ fileHash: catalog.fileHash, title, audioSource: catalog.audioSource });
+  const artistSetupState = deriveArtistSetupState(Boolean(connectedWallet), hasArtistRuntime);
   const currentPage = viewCopy[activeView];
 
   // ── Effects ───────────────────────────────────────────────────────────────────
@@ -501,13 +501,11 @@ export default function App() {
 
   // ── Step navigation ───────────────────────────────────────────────────────────
   function goToPreviousReleaseStep() {
-    const previousStep = releaseStepsConfig[Math.max(0, releaseStepIndex - 1)]?.id;
-    if (previousStep) setReleaseStep(previousStep);
+    setReleaseStep(previousReleaseStep(releaseStep));
   }
 
   function goToNextReleaseStep() {
-    const nextStep = releaseStepsConfig[Math.min(releaseStepsConfig.length - 1, releaseStepIndex + 1)]?.id;
-    if (nextStep) setReleaseStep(nextStep);
+    setReleaseStep(nextReleaseStep(releaseStep));
   }
 
   // ── Helpers bridging hooks ─────────────────────────────────────────────────────

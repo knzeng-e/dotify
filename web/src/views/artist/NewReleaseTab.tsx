@@ -3,15 +3,9 @@ import { PanelTitle } from '../../components/ui/PanelTitle';
 import { EndpointRow } from '../../components/ui/EndpointRow';
 import { accessModeLabelFromState, shorten } from '../../utils/format';
 import { devAccounts } from '../../hooks/useDevAccounts';
+import { RELEASE_STEPS } from '../../features/artist-studio/releaseForm';
 import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseStep } from '../../types';
 import type { ChangeEvent } from 'react';
-
-const releaseSteps: Array<{ id: ReleaseStep; label: string }> = [
-  { id: 'assets', label: 'Assets' },
-  { id: 'metadata', label: 'Details' },
-  { id: 'access', label: 'Access' },
-  { id: 'review', label: 'Review' }
-];
 
 type NewReleaseTabProps = {
   releaseStep: ReleaseStep;
@@ -88,7 +82,7 @@ export function NewReleaseTab({
   onSetBulletinAccountIndex,
   onRegisterRights
 }: NewReleaseTabProps) {
-  const releaseStepIndex = releaseSteps.findIndex(step => step.id === releaseStep);
+  const releaseStepIndex = RELEASE_STEPS.findIndex(step => step.id === releaseStep);
 
   return (
     <section className='content-grid release-workbench-grid'>
@@ -96,11 +90,11 @@ export function NewReleaseTab({
         <PanelTitle
           icon={FileAudio}
           title='New release'
-          meta={artistStudioLocked ? 'create profile first' : (releaseSteps[releaseStepIndex]?.label ?? 'draft')}
+          meta={artistStudioLocked ? 'create profile first' : (RELEASE_STEPS[releaseStepIndex]?.label ?? 'draft')}
         />
 
         <div className='release-stepper' aria-label='Release steps'>
-          {releaseSteps.map((step, index) => (
+          {RELEASE_STEPS.map((step, index) => (
             <button key={step.id} type='button' data-active={releaseStep === step.id} onClick={() => onSetReleaseStep(step.id)}>
               <span>{index + 1}</span>
               {step.label}
