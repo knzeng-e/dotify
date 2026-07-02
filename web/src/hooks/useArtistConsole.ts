@@ -14,6 +14,7 @@ import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type Doti
 import { makeEncryptedAudioRef } from '../utils/protectedAudio';
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode } from '../features/catalog/trackModel';
+import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
 import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../utils/format';
 import {
   createArtistPublishE2eTrack,
@@ -431,7 +432,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         description: description.trim(),
         accessMode,
         priceDot: priceDotForAccessMode(accessMode, priceDot),
-        requiredPersonhood: accessMode === 'human-free' ? personhoodLevel : 'None',
+        requiredPersonhood: manifestRequiredPersonhood(accessMode, personhoodLevel),
         zone: 'Studio'
       },
       royalties: royaltyRecipients.map((recipient, index) => ({
@@ -660,9 +661,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
             audioRef: ipfsAudioRef,
             metadataRef: ipfsMetadataRef,
             artistContractRef: `dotify:self-certified:${fileHash}`,
-            accessMode: accessMode === 'human-free' ? 0 : 1,
+            accessMode: encodeAccessMode(accessMode),
             pricePlanck: dotToPlanck(priceDotForAccessMode(accessMode, priceDot)),
-            requiredPersonhood: accessMode === 'human-free' ? (personhoodLevel === 'DIM2' ? 2 : 1) : 0
+            requiredPersonhood: encodeRequiredPersonhood(accessMode, personhoodLevel)
           },
           royaltyRecipients,
           royaltyShares

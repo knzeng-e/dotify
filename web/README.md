@@ -163,7 +163,8 @@ src/
     player/   # playback status labels + transport progress (pure, unit-tested)
     wallet/   # EIP-1193 chain helpers + chain-mismatch message (pure, unit-tested)
     uploads/  # draft track model + upload status transitions (pure, unit-tested)
-    ...       # artist-studio, runtime (incremental)
+    runtime/  # access-policy encode/decode between app model and chain (pure, unit-tested)
+    ...       # artist-studio (incremental)
   components/ # presentational UI
   views/      # page-level compositions
   hooks/      # stateful orchestration (useCatalog, useSession, ...)
@@ -189,7 +190,10 @@ codes, and the chain-mismatch message previously duplicated in `App.tsx` and
 `useArtistConsole.ts`), and `features/uploads/uploadModel.ts` (the draft-track
 builder, title-from-filename rule, and upload-status transitions pulled out of
 `App.tsx`, plus `priceDotForAccessMode`/`localAudioRef` in `trackModel.ts` that
-de-duplicate the price and local-ref logic shared with `useArtistConsole.ts`).
+de-duplicate the price and local-ref logic shared with `useArtistConsole.ts`),
+and `features/runtime/accessEncoding.ts` (bidirectional access-mode / personhood
+codecs between the app model and the on-chain uint8s, previously inline in
+`useArtistConsole.ts` (encode) and `useCatalog.ts` (decode)).
 
 ## Current Limitations
 
