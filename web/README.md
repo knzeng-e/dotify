@@ -245,20 +245,28 @@ it reads from the contexts and composes the render tree.
 
 The render tree is then split by shell. `views/ListenerShell.tsx` holds the entire
 listener-facing tree (top bar, nav rail, page views, player dock, room modals) plus
-the listener-only UI state and handlers; it is self-contained, consuming the
-provider stack directly so `App.tsx` renders `<ListenerShell />` with no props.
-`views/ArtistPortalView.tsx` is the other shell. `App.tsx` is now a thin switch
-between the two (plus the global aura/living-light/cleanup effects and the artist
-release handlers/effects), down from ~990 lines to under 400. The
-"artists backed / tracks unlocked" rollup both shells show is a pure, tested helper
-(`features/wallet/supportSummary.ts`).
+the listener-only UI state and handlers. `views/ArtistShell.tsx` holds the artist
+portal content (the release studio or onboarding) plus the artist upload handlers,
+wizard-step navigation, studio-state derivations, and the two artist-portal-gated
+effects (royalty refresh, stored-name sync on entry), rendered inside
+`views/ArtistPortalView.tsx`. Both shells are self-contained, consuming the provider
+stack directly. `App.tsx` is now a thin switch between them (`isArtistPortal ?
+<ArtistShell /> : <ListenerShell />`) plus the handful of effects that span both
+shells: cleanup, the living-light body classes, the aura engine, and the
+artist-identity seeds (initial name sync, runtime resolution) that also feed the
+listener account view. It is under 80 lines, down from ~990 at the start of ticket 08.
 
-Remaining follow-ups, intentionally deferred: move the artist release handlers and
-effects out of `App.tsx` into an artist shell (so App is a pure switch), have
-`ArtistConsole`/`PlayerView` consume context directly instead of receiving large
-prop lists, and split `PlaybackProvider` into a separate fast-ticking transport
-context. The last is an optimization to make only if profiling shows the transport
-updates re-render the tree wastefully.
+Two cross-shell pieces are shared, not duplicated: the "artists backed / tracks
+unlocked" rollup is a pure, tested helper (`features/wallet/supportSummary.ts`), and
+the wallet + transaction modals both shells show are rendered through
+`components/AccountWalletModal.tsx` (the context adapter for the presentational
+`WalletModal`).
+
+Remaining follow-ups, intentionally deferred: have `ArtistConsole`/`PlayerView`
+consume context directly instead of receiving large prop lists, and split
+`PlaybackProvider` into a separate fast-ticking transport context. The last is an
+optimization to make only if profiling shows the transport updates re-render the
+tree wastefully.
 
 ## Current Limitations
 

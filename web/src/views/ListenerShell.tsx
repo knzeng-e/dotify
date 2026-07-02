@@ -13,7 +13,7 @@ import { PlayerDock } from '../components/PlayerDock';
 import { CreateRoomModal } from '../components/CreateRoomModal';
 import { JoinRoomModal } from '../components/JoinRoomModal';
 import { TopBar } from '../components/TopBar';
-import { WalletModal } from '../components/WalletModal';
+import { AccountWalletModal } from '../components/AccountWalletModal';
 import { TransactionModal } from '../components/TransactionModal';
 import { BottomNav, SideRail } from '../components/PrimaryNav';
 import { Metric } from '../shared/ui/Metric';
@@ -117,28 +117,7 @@ export function ListenerShell() {
       <div className='app-shell'>
         <TopBar brandHref='#top' brandAriaLabel='Dotify' onBrandClick={() => setPublicArtistName(null)} navAriaLabel='Navigation' />
 
-        <WalletModal
-          supportingCount={supportedArtists.length}
-          unlockedCount={paidTracks.length}
-          supportedArtists={supportedArtists}
-          paidTracks={paidTracks.map(track => ({
-            id: track.id,
-            title: track.title,
-            artist: track.artist,
-            artistAddress: track.artistAddress,
-            priceDot: track.priceDot,
-            hash: track.hash
-          }))}
-          onOpenAccountDetails={() => {
-            setShowWalletModal(false);
-            navigateToView('you');
-            window.requestAnimationFrame(() => {
-              window.requestAnimationFrame(() => {
-                document.getElementById('account-dashboard-title')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-              });
-            });
-          }}
-        />
+        <AccountWalletModal />
 
         <SideRail items={navItems} activeView={activeView} collapsed={railCollapsed} onToggleCollapsed={() => setRailCollapsed(value => !value)} />
 
