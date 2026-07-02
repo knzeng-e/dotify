@@ -156,6 +156,7 @@ target shape is:
 
 ```txt
 src/
+  app/        # app-level routing/history helpers (pure, unit-tested)
   features/   # domain logic grouped by product surface
     access/   # track access policy predicates (pure, unit-tested)
     rooms/    # room share-link + presence helpers (pure, unit-tested)
@@ -196,7 +197,9 @@ codecs between the app model and the on-chain uint8s, previously inline in
 `useArtistConsole.ts` (encode) and `useCatalog.ts` (decode)), and
 `features/artist-studio/releaseForm.ts` (the release wizard step machine,
 `canReviewRelease`, and the artist setup/lock derivations, pulled out of `App.tsx`
-and de-duplicated with `NewReleaseTab.tsx`'s local step list).
+and de-duplicated with `NewReleaseTab.tsx`'s local step list), and
+`app/routing.ts` (the view enum guard, initial-view, artist-portal-path, and
+history/popstate resolution helpers, pulled out of `App.tsx`).
 
 ## Current Limitations
 

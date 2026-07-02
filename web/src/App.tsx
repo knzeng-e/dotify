@@ -36,6 +36,7 @@ import {
   nextReleaseStep,
   previousReleaseStep
 } from './features/artist-studio/releaseForm';
+import { historyStateObject, initialView, isArtistPortalPath, viewFromHistoryState } from './app/routing';
 import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole';
 import { usePlayback } from './hooks/usePlayback';
 
@@ -60,21 +61,8 @@ const viewCopy: Record<View, { title: string; eyebrow: string }> = {
   you: { title: 'Account', eyebrow: 'Wallet and artist space' }
 };
 
-function isDotifyView(value: unknown): value is View {
-  return value === 'listen' || value === 'player' || value === 'rooms' || value === 'you';
-}
-
 function getInitialView(): View {
-  return getInitialRoomCode() ? 'rooms' : 'listen';
-}
-
-function isArtistPortalPath() {
-  return window.location.pathname.replace(/\/$/, '') === '/artists';
-}
-
-function getHistoryStateObject(): Record<string, unknown> {
-  const currentState = window.history.state;
-  return currentState && typeof currentState === 'object' ? (currentState as Record<string, unknown>) : {};
+  return initialView(Boolean(getInitialRoomCode()));
 }
 
 // ── App ────────────────────────────────────────────────────────────────────────
@@ -82,7 +70,7 @@ function getHistoryStateObject(): Record<string, unknown> {
 export default function App() {
   // ── View routing ─────────────────────────────────────────────────────────────
   const [activeView, setActiveView] = useState<View>(() => getInitialView());
-  const [isArtistPortal, setIsArtistPortal] = useState(() => isArtistPortalPath());
+  const [isArtistPortal, setIsArtistPortal] = useState(() => isArtistPortalPath(window.location.pathname));
   const [publicArtistName, setPublicArtistName] = useState<string | null>(null);
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
   const [joinRoomOpen, setJoinRoomOpen] = useState(false);
@@ -141,7 +129,7 @@ export default function App() {
   function navigateToView(nextView: View, options: { replace?: boolean } = {}) {
     setPublicArtistName(null);
     setActiveView(nextView);
-    const nextState = { ...getHistoryStateObject(), dotifyView: nextView };
+    const nextState = { ...historyStateObject(window.history.state), dotifyView: nextView };
     if (options.replace || activeView === nextView) {
       window.history.replaceState(nextState, '', window.location.href);
       return;
@@ -152,7 +140,7 @@ export default function App() {
   function handleOpenArtistStudio() {
     setPublicArtistName(null);
     setIsArtistPortal(true);
-    const nextState = { ...getHistoryStateObject(), dotifyView: activeView };
+    const nextState = { ...historyStateObject(window.history.state), dotifyView: activeView };
     if (isArtistPortal) {
       window.history.replaceState(nextState, '', '/artists');
     } else {
@@ -305,11 +293,10 @@ export default function App() {
   }, [publicArtistName, catalog.trackInfo, catalog.selectedTrackId, catalog.catalogTracks]);
 
   useEffect(() => {
-    window.history.replaceState({ ...getHistoryStateObject(), dotifyView: getInitialView() }, '', window.location.href);
+    window.history.replaceState({ ...historyStateObject(window.history.state), dotifyView: getInitialView() }, '', window.location.href);
     const onPopState = (event: PopStateEvent) => {
-      setIsArtistPortal(isArtistPortalPath());
-      const stateView = (event.state as { dotifyView?: unknown } | null)?.dotifyView;
-      setActiveView(isDotifyView(stateView) ? stateView : getInitialView());
+      setIsArtistPortal(isArtistPortalPath(window.location.pathname));
+      setActiveView(viewFromHistoryState(event.state, getInitialView()));
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
@@ -531,7 +518,7 @@ export default function App() {
   function handleOpenTrack(track: CatalogTrack) {
     setPublicArtistName(null);
     if (isArtistPortal) {
-      const nextState = { ...getHistoryStateObject(), dotifyView: 'player' };
+      const nextState = { ...historyStateObject(window.history.state), dotifyView: 'player' };
       setIsArtistPortal(false);
       setActiveView('player');
       window.history.pushState(nextState, '', '/');

@@ -109,4 +109,6 @@ Sixth PR on `refactor/frontend-runtime-module`: added `features/runtime/accessEn
 
 Seventh PR on `refactor/frontend-artist-studio-module`: added `features/artist-studio/releaseForm.ts` (release wizard step machine `RELEASE_STEPS`/`nextReleaseStep`/`previousReleaseStep`, `canReviewRelease`, `artistSetupState`, `artistStudioLocked`). Slimmed `App.tsx`'s release derivations and step-nav, and de-duplicated the wizard step list that `NewReleaseTab.tsx` had defined locally.
 
-The running plan and status for the remaining PRs lives in `docs/backlog/08-frontend-refactor-tracker.md`. Remaining there are the two structural moves: the `app/` shell (PR8) and the `shared/` tree (PR9), which relocate files across the codebase. `App.tsx` becomes a pure composition shell in PR8.
+Eighth PR on `refactor/frontend-app-routing` (stacked on the artist-studio PR): introduced `app/routing.ts` with the pure view/route + history/popstate helpers (`isDotifyView`, `initialView`, `isArtistPortalPath`, `historyStateObject`, `viewFromHistoryState`) pulled out of `App.tsx`, with tests. App now passes the window values in at the call sites.
+
+The running plan and status for the remaining PRs lives in `docs/backlog/08-frontend-refactor-tracker.md`. Remaining there: the full `App.tsx` render-tree/providers decomposition (PR8b) and the `shared/` tree relocation (PR9), both broad structural moves best done one at a time against an up-to-date `main`.
