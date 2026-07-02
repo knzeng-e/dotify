@@ -105,4 +105,6 @@ Fourth PR on `refactor/frontend-wallet-module`: added `features/wallet/network.t
 
 Fifth PR on `refactor/frontend-uploads-module`: added `features/uploads/uploadModel.ts` (`buildDraftTrackInfo`, `nextTitleFromUpload`, `DEFAULT_TRACK_TITLE`, `uploadStatusMessage`) and extended `features/catalog/trackModel.ts` with `priceDotForAccessMode` + `localAudioRef`. Slimmed `App.tsx`'s `handleAudioFile`/`handleCoverFile` and de-duplicated the access-mode price (4 sites) and local-audio-ref (2 sites) across `App.tsx` and `useArtistConsole.ts`.
 
-The running plan and status for the remaining PRs lives in `docs/backlog/08-frontend-refactor-tracker.md`. Deliberately deferred there: the full `features/* + shared/* + app/*` tree move and the artist-studio + runtime feature modules. `App.tsx` slimming continues across those PRs.
+Sixth PR on `refactor/frontend-runtime-module`: added `features/runtime/accessEncoding.ts` (bidirectional access-mode / personhood codecs) and replaced the inline uint8 encoding in `useArtistConsole.ts` (register) and decoding in `useCatalog.ts` (catalog load).
+
+The running plan and status for the remaining PRs lives in `docs/backlog/08-frontend-refactor-tracker.md`. Deliberately deferred there: the full `features/* + shared/* + app/*` tree move and the artist-studio feature module. `App.tsx` slimming continues across those PRs.

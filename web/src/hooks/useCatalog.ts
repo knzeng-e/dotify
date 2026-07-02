@@ -10,6 +10,7 @@ import { auraForTrack } from '../utils/aura';
 import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../utils/protectedAudio';
 import { isPolicyManagedTrack, playbackModeForAccess } from '../features/access/accessPolicy';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
+import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
 import {
   E2E_CLASSIC_AUDIO_URL,
   E2E_CLASSIC_HASH,
@@ -699,10 +700,10 @@ export function useCatalog(deps: UseCatalogDeps) {
           royaltyBps: Number(track.royaltyBps),
           txHash: undefined,
           durationLabel: 'ready',
-          accessMode: (track.accessMode === 1 ? 'classic' : 'human-free') as AccessMode,
+          accessMode: decodeAccessMode(Number(track.accessMode)),
           source: 'artist' as const,
           royaltySplits: royaltySplits.filter((split): split is RoyaltySplit => Boolean(split)),
-          personhoodLevel: track.requiredPersonhood === 2 ? 'DIM2' : 'DIM1',
+          personhoodLevel: decodePersonhood(Number(track.requiredPersonhood)),
           zone: 'Registry',
           encrypted,
           registeredAtBlock: Number(track.registeredAtBlock)
