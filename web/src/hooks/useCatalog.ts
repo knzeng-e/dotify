@@ -9,6 +9,7 @@ import { isKeyServiceConfigured, requestContentKey, type KeyRequestPurpose } fro
 import { auraForTrack } from '../utils/aura';
 import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../utils/protectedAudio';
 import { isPolicyManagedTrack, playbackModeForAccess } from '../features/access/accessPolicy';
+import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import {
   E2E_CLASSIC_AUDIO_URL,
   E2E_CLASSIC_HASH,
@@ -216,7 +217,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
     if (!isPolicyManagedTrack(track)) return true;
     if (!listenerAddress) return false;
-    const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
+    const runtimeAddress = runtimeAddressFromTrackId(track);
+    if (!runtimeAddress) return false;
     try {
       return (await getPublicClient(ethRpcUrl).readContract({
         address: runtimeAddress,
@@ -241,7 +243,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
     if (!isPolicyManagedTrack(track) || track.accessMode !== 'classic') return false;
     if (!listenerAddress) return false;
-    const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
+    const runtimeAddress = runtimeAddressFromTrackId(track);
+    if (!runtimeAddress) return false;
     try {
       return (await getPublicClient(ethRpcUrl).readContract({
         address: runtimeAddress,
@@ -555,10 +558,12 @@ export function useCatalog(deps: UseCatalogDeps) {
       return;
     }
 
+    const runtimeAddress = runtimeAddressFromTrackId(track);
+    if (!runtimeAddress) return;
+
     const { musicRoyaltiesAbi, getPublicClient: getClient } = await import('../config/contracts');
     const { dotToPlanck } = await import('../utils/format');
 
-    const runtimeAddress = track.id.split(':')[0] as `0x${string}`;
     const priceWei = dotToPlanck(track.priceDot);
 
     setAccessGate(null);

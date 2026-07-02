@@ -26,6 +26,7 @@ import { useCatalog } from './hooks/useCatalog';
 import { useSession } from './hooks/useSession';
 import { getInitialRoomCode } from './features/rooms/roomState';
 import { trackHasAccess } from './features/access/accessPolicy';
+import { catalogTrackToTrackInfo, isTrackManagedByArtist } from './features/catalog/trackModel';
 import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole';
 import { usePlayback } from './hooks/usePlayback';
 
@@ -82,33 +83,9 @@ function isArtistPortalPath() {
   return window.location.pathname.replace(/\/$/, '') === '/artists';
 }
 
-function catalogTrackToTrackInfo(track: CatalogTrack): TrackInfo {
-  return {
-    title: track.title,
-    artist: track.artist,
-    hash: track.hash,
-    bulletinRef: track.bulletinRef,
-    duration: track.duration ?? 0,
-    updatedAt: Date.now(),
-    imageRef: track.imageRef,
-    audioRef: track.audioRef,
-    metadataRef: track.metadataRef,
-    description: track.description,
-    accessMode: track.accessMode,
-    priceDot: track.priceDot,
-    personhoodLevel: track.personhoodLevel
-  };
-}
-
 function getHistoryStateObject(): Record<string, unknown> {
   const currentState = window.history.state;
   return currentState && typeof currentState === 'object' ? (currentState as Record<string, unknown>) : {};
-}
-
-function isTrackManagedByArtist(track: CatalogTrack, artistAddress: `0x${string}`, artistName: string) {
-  if (track.source !== 'artist') return false;
-  if (track.artistAddress) return track.artistAddress.toLowerCase() === artistAddress.toLowerCase();
-  return track.artist === artistName;
 }
 
 // ── App ────────────────────────────────────────────────────────────────────────
