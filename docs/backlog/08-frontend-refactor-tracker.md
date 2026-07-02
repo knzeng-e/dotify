@@ -17,9 +17,9 @@ Keep this file updated as PRs land so the work can be resumed at any time.
 
 ## Stack / merge order
 
-PRs 1-8c (#40-#49) are merged to `main`. PR 8d (#50, artist-portal shell) is
-open, branched from `main`. Remaining PRs branch directly from `main`; if several
-are open at once, stack and merge bottom-up.
+PRs 1-8d (#40-#50) are merged to `main`. PR 8e (#51, shared TopBar) is open,
+branched from `main`. Remaining PRs branch directly from `main`; if several are
+open at once, stack and merge bottom-up.
 
 ## PRs
 
@@ -35,7 +35,8 @@ are open at once, stack and merge bottom-up.
 | 8 | #47 | `refactor/frontend-app-routing` | Introduce `app/routing.ts` - pure view/route + history/popstate helpers pulled out of `App.tsx` (view guard, initial view, artist-portal path, popstate resolution) | Merged |
 | 8a | #48 | `refactor/frontend-app-navigation` | Introduce `app/navigation.ts` - static `VIEW_COPY` + `NAV_ITEMS` nav model pulled out of `App.tsx` (handlers stay in App) | Merged |
 | 8c | #49 | `refactor/frontend-primary-nav` | Extract `components/PrimaryNav` (`SideRail` + `BottomNav`) - dedupes the two inline nav renders in `App.tsx` | Merged |
-| 8d | #50 | `refactor/frontend-artist-portal-shell` | Extract `views/ArtistPortalView` - the /artists shell (topbar + layout + modal slots); artist content + modals passed in as nodes | Open (review) |
+| 8d | #50 | `refactor/frontend-artist-portal-shell` | Extract `views/ArtistPortalView` - the /artists shell (topbar + layout + modal slots); artist content + modals passed in as nodes | Merged |
+| 8e | #51 | `refactor/frontend-topbar` | Extract shared `components/TopBar` (brand + wallet pill) used by both the listener shell and `ArtistPortalView` | Open (review) |
 | 8b | - | `refactor/frontend-app-shell` | Decompose the listener render tree + a providers/context boundary so `App.tsx` is composition-only. Large; scope carefully | Planned |
 | 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/` (`ui`, `config`, `errors`, `hooks`, `types`, `utils`); relocate existing `components/ui`, `config`, `utils`, `types.ts` with import updates | Planned |
 

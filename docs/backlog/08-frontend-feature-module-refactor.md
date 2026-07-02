@@ -115,4 +115,6 @@ Additional PR on `refactor/frontend-app-navigation` (stacked on the app-routing 
 
 App-shell decomposition PRs (branched from `main`): `refactor/frontend-primary-nav` extracted `components/PrimaryNav` (`SideRail` + `BottomNav`), de-duplicating the two inline nav renders (desktop rail + mobile tab bar) into one item-driven component. `refactor/frontend-artist-portal-shell` extracted `views/ArtistPortalView` - the /artists screen chrome (topbar + layout + modal slots) - passing the artist content (`ArtistConsole` / `ArtistOnboarding`) and the wallet / transaction modals in as nodes so the large prop lists stay in `App.tsx`; only the layout moved out.
 
+`refactor/frontend-topbar` extracted a shared `components/TopBar` (Dotify brand + wallet status pill) now used by both the listener shell and `ArtistPortalView`, de-duplicating the two near-identical inline headers.
+
 The running plan and status for the remaining PRs lives in `docs/backlog/08-frontend-refactor-tracker.md`. Remaining there: decomposing the listener render tree behind a providers/context boundary so `App.tsx` is composition-only (PR8b) and the `shared/` tree relocation (PR9), both broad structural moves best done one at a time against an up-to-date `main`.

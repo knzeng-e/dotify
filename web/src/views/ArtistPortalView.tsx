@@ -3,10 +3,9 @@
 // transaction modals are passed in as nodes, so the large prop lists stay in
 // App.tsx where the state lives; only the layout moved out of the monolith.
 
-import { Disc3 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { AuraBackground } from '../components/AuraBackground';
-import { WalletStatusPill } from '../components/WalletModal';
+import { TopBar } from '../components/TopBar';
 import type { WalletState } from '../hooks/useWallet';
 
 type ArtistPortalViewProps = {
@@ -23,20 +22,19 @@ export function ArtistPortalView({ walletState, onShowWallet, onDisconnect, wall
     <>
       <AuraBackground />
       <div className='app-shell artist-portal-shell'>
-        <header className='topbar artist-portal-topbar'>
-          <a className='brand' href='/' aria-label='Dotify home'>
-            <span className='brand-mark'>
-              <Disc3 size={21} />
-            </span>
-            <span>Dotify</span>
+        <TopBar
+          className='artist-portal-topbar'
+          brandHref='/'
+          brandAriaLabel='Dotify home'
+          navAriaLabel='Artist portal actions'
+          walletState={walletState}
+          onShowWallet={onShowWallet}
+          onDisconnect={onDisconnect}
+        >
+          <a className='artist-entry-link' href='/'>
+            Listener app
           </a>
-          <nav className='nav-pills' aria-label='Artist portal actions'>
-            <a className='artist-entry-link' href='/'>
-              Listener app
-            </a>
-            <WalletStatusPill state={walletState} onClick={onShowWallet} onDisconnect={onDisconnect} />
-          </nav>
-        </header>
+        </TopBar>
 
         {walletModal}
 
