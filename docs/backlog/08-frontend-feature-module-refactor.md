@@ -96,4 +96,9 @@ Second PR on `refactor/frontend-catalog-module` (stacked on the foundation PR):
 - Added `features/catalog/trackModel.ts` - `catalogTrackToTrackInfo` and `isTrackManagedByArtist` (lifted out of `App.tsx`) and `runtimeAddressFromTrackId` (dedupes the `id.split(':')[0]` parsing previously repeated in three `useCatalog.ts` sites and `ReleasesTab.tsx`). Co-located `trackModel.test.ts`.
 - Rewired `App.tsx` (drops the two inline mappers), `useCatalog.ts` (uses the runtime-id helper with fail-closed guards), and `ReleasesTab.tsx` (drops its local copy).
 
-Deliberately deferred to follow-up PRs (to keep each diff reviewable and low-risk): moving the existing hooks/views/components into the full `features/* + shared/* + app/*` tree, and extracting the player, artist-studio, wallet, and uploads feature modules. `App.tsx` slimming continues across those PRs.
+Third PR on `refactor/frontend-player-module` (stacked on the catalog PR):
+
+- Added `features/player/playbackStatus.ts` - the `AudioStatus` model, `playbackStatusLabel` (moved from `usePlayback.ts`), and `transportProgressPercent` (extracted from `PlayerView.tsx`'s inline math). Co-located `playbackStatus.test.ts`.
+- Rewired `usePlayback.ts` (imports the `AudioStatus` type), `PlayerView.tsx` (label + progress helper), and `PlayerDock.tsx` (label). No behavior change.
+
+Deliberately deferred to follow-up PRs (to keep each diff reviewable and low-risk): moving the existing hooks/views/components into the full `features/* + shared/* + app/*` tree, and extracting the artist-studio, wallet, and uploads feature modules. `App.tsx` slimming continues across those PRs.
