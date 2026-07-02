@@ -157,6 +157,7 @@ target shape is:
 ```txt
 src/
   app/        # app-level routing/history + navigation model (pure, unit-tested)
+    providers/  # React context stack: UI feedback, wallet identity, ... (composition root)
   features/   # domain logic grouped by product surface
     access/   # track access policy predicates (pure, unit-tested)
     rooms/    # room share-link + presence helpers (pure, unit-tested)
@@ -202,6 +203,18 @@ and de-duplicated with `NewReleaseTab.tsx`'s local step list), and
 history/popstate resolution helpers, pulled out of `App.tsx`), and
 `app/navigation.ts` (the static `VIEW_COPY` and `NAV_ITEMS` nav model, with
 handlers still attached in `App.tsx`).
+
+Alongside the pure modules, `App.tsx` is being decomposed behind a React context
+stack under `app/providers/` (backlog `08b-providers-design.md`), so the shell
+becomes composition-only rather than the state container. The first providers
+own UI feedback (`UiFeedbackProvider`: the transaction modal + wallet-modal
+visibility) and wallet identity (`WalletProvider`: `useWallet` plus the derived
+active EVM/Substrate identity, the frozen RPC endpoint, `getActiveWalletClient`,
+and the network-switch flow); `AppProviders` composes them in `main.tsx`. Each
+accessor (`useUiFeedback`, `useWalletContext`) fails closed by throwing outside
+its provider. `TopBar`, `WalletModal`, and `TransactionModal` read this state
+from context instead of prop drilling. Later steps add navigation, release-form,
+catalog, session, artist-studio, and playback providers.
 
 ## Current Limitations
 

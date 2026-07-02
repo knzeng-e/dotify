@@ -6,31 +6,19 @@
 import type { ReactNode } from 'react';
 import { AuraBackground } from '../components/AuraBackground';
 import { TopBar } from '../components/TopBar';
-import type { WalletState } from '../hooks/useWallet';
 
 type ArtistPortalViewProps = {
-  walletState: WalletState;
-  onShowWallet: () => void;
-  onDisconnect: () => void;
   walletModal: ReactNode;
   transactionModal: ReactNode;
   children: ReactNode;
 };
 
-export function ArtistPortalView({ walletState, onShowWallet, onDisconnect, walletModal, transactionModal, children }: ArtistPortalViewProps) {
+export function ArtistPortalView({ walletModal, transactionModal, children }: ArtistPortalViewProps) {
   return (
     <>
       <AuraBackground />
       <div className='app-shell artist-portal-shell'>
-        <TopBar
-          className='artist-portal-topbar'
-          brandHref='/'
-          brandAriaLabel='Dotify home'
-          navAriaLabel='Artist portal actions'
-          walletState={walletState}
-          onShowWallet={onShowWallet}
-          onDisconnect={onDisconnect}
-        >
+        <TopBar className='artist-portal-topbar' brandHref='/' brandAriaLabel='Dotify home' navAriaLabel='Artist portal actions'>
           <a className='artist-entry-link' href='/'>
             Listener app
           </a>

@@ -37,7 +37,11 @@ open at once, stack and merge bottom-up.
 | 8c | #49 | `refactor/frontend-primary-nav` | Extract `components/PrimaryNav` (`SideRail` + `BottomNav`) - dedupes the two inline nav renders in `App.tsx` | Merged |
 | 8d | #50 | `refactor/frontend-artist-portal-shell` | Extract `views/ArtistPortalView` - the /artists shell (topbar + layout + modal slots); artist content + modals passed in as nodes | Merged |
 | 8e | #51 | `refactor/frontend-topbar` | Extract shared `components/TopBar` (brand + wallet pill) used by both the listener shell and `ArtistPortalView` | Open (review) |
-| 8b | - | `refactor/frontend-app-shell` | Decompose the listener render tree + a providers/context boundary so `App.tsx` is composition-only. Large; scope carefully | Planned |
+| 8b-1 | - | `refactor/frontend-providers-foundation` | `AppProviders` scaffold + `UiFeedbackProvider` + `WalletProvider`; TopBar, WalletModal, TransactionModal consume contexts | Done on branch (checks green; App.tsx 986 -> 859) |
+| 8b-2 | - | `refactor/frontend-providers-navigation` | `NavigationProvider`; popstate/history effects move out of `App.tsx` | Planned |
+| 8b-3 | - | `refactor/frontend-providers-release-form` | `ReleaseFormProvider` incl. Bulletin manifest-ref relocation; delete the `artistConsoleBulletinRef` hack + the 8-setter injection into `useCatalog` | Planned |
+| 8b-4 | - | `refactor/frontend-providers-catalog-session` | `CatalogProvider` + `SessionProvider`; ListenView, RoomsView, YouView, room modals consume contexts | Planned |
+| 8b-5 | - | `refactor/frontend-providers-studio-playback` | `ArtistStudioProvider` (mounted in `ArtistPortalView`) + `PlaybackProvider` (actions/transport context split); `App.tsx` lands as a composition shell | Planned |
 | 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/` (`ui`, `config`, `errors`, `hooks`, `types`, `utils`); relocate existing `components/ui`, `config`, `utils`, `types.ts` with import updates | Planned |
 
 ## Acceptance criteria coverage (ticket 08)
@@ -62,3 +66,13 @@ open at once, stack and merge bottom-up.
   as-is to preserve its exact user-facing text.
 - Scope per PR is intentionally small so each diff is reviewable and the e2e net
   stays meaningful. Do not bundle the tree-move (PR8/PR9) with logic extraction.
+- PR8b (`refactor/frontend-app-shell`) is designed in `08b-providers-design.md`
+  and delivered as the five stacked rows 8b-1..8b-5 above, which supersede the
+  original single 8b row. Provider order, ownership table, the
+  manifest-ref relocation, and acceptance criteria live in that design doc.
+- 8b-1 transitional boundary: `WalletModal` reads wallet + UI-feedback state from
+  context but still takes the catalog-derived support summary (backed artists,
+  unlocked tracks) and `onOpenAccountDetails` as props, because catalog and
+  navigation are not yet provider-owned. Those props are removed in 8b-4 (catalog)
+  once `CatalogProvider` exists. Both modals self-gate on their provider state and
+  are rendered unconditionally by the shell.
