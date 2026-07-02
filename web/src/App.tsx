@@ -9,14 +9,10 @@ import { applyAura, auraForTrack, auraForName } from './utils/aura';
 
 import { hashFileWithBytes } from './utils/hash';
 import { deployments } from './config/deployments';
-import { devAccounts } from './hooks/useDevAccounts';
-import { getDefaultEthRpcUrl } from './config/network';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { resolveEvmChain, getWalletClient } from './config/contracts';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { uploadFileToPinata, uploadProtectedAudio } from './services/pinata';
-import { useWallet } from './hooks/useWallet';
-import { zeroAddress } from 'viem';
+import { useWalletContext, useUiFeedback } from './app/providers';
 
 import { Metric } from './components/ui/Metric';
 import { WalletModal } from './components/WalletModal';
@@ -28,7 +24,6 @@ import { useSession } from './hooks/useSession';
 import { getInitialRoomCode } from './features/rooms/roomState';
 import { trackHasAccess } from './features/access/accessPolicy';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from './features/catalog/trackModel';
-import { chainMismatchMessage } from './features/wallet/network';
 import { DEFAULT_TRACK_TITLE, buildDraftTrackInfo, nextTitleFromUpload, uploadStatusMessage } from './features/uploads/uploadModel';
 import {
   artistSetupState as deriveArtistSetupState,
@@ -52,7 +47,7 @@ import { ArtistPortalView } from './views/ArtistPortalView';
 import { ArtistConsole } from './views/artist/ArtistConsole';
 import { ArtistOnboarding } from './views/artist/ArtistOnboarding';
 
-import type { AccessMode, ArtistTab, AssetAction, CatalogTrack, PersonhoodLevel, ReleaseStep, RoomPlaybackMode, TransactionFeedback, View } from './types';
+import type { AccessMode, ArtistTab, AssetAction, CatalogTrack, PersonhoodLevel, ReleaseStep, RoomPlaybackMode, View } from './types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -78,45 +73,35 @@ export default function App() {
 
   // ── Shared state (release form, identity) ────────────────────────────────────
   const [priceDot, setPriceDot] = useState('0.5');
-  const [ethRpcUrl] = useState(getDefaultEthRpcUrl);
-  const [expectedChainId, setExpectedChainId] = useState<number | null>(null);
   const [title, setTitle] = useState(DEFAULT_TRACK_TITLE);
   const [royaltyBps, setRoyaltyBps] = useState(7000);
   const [artistName, setArtistName] = useState('');
-  const [bulletinAccountIndex, setBulletinAccountIndex] = useState(0);
   const [accessMode, setAccessMode] = useState<AccessMode>('human-free');
   const [assetAction, setAssetAction] = useState<AssetAction>('idle');
   const [uploadToBulletinEnabled, setUploadToBulletinEnabled] = useState(false);
   const [personhoodLevel, setPersonhoodLevel] = useState<PersonhoodLevel>('DIM1');
-  const [showWalletModal, setShowWalletModal] = useState(false);
-  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
   const [description, setDescription] = useState('Describe the story, rights context, and intended audience for this track.');
-  const [transactionFeedback, setTransactionFeedback] = useState<TransactionFeedback | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
 
-  // ── Wallet ───────────────────────────────────────────────────────────────────
+  // ── Wallet + UI feedback (provider-owned) ─────────────────────────────────────
+  // Wallet identity, the frozen RPC endpoint, getActiveWalletClient, and the
+  // transaction/wallet-modal state now live in the provider stack (see
+  // app/providers). App reads them here and passes them into the feature hooks
+  // and views exactly as before.
+  const { setTransactionFeedback, setShowWalletModal } = useUiFeedback();
   const {
-    state: walletState,
-    connectPasskey,
-    connectExtension,
-    switchExtensionNetwork,
-    disconnect: disconnectWallet,
-    hasPrfSupport,
-    hasStoredPasskey,
-    forgetPasskey
-  } = useWallet();
-  const connectedWallet = walletState.status === 'connected' ? walletState.wallet : null;
-
-  const currentBulletinAccount = devAccounts[bulletinAccountIndex];
-
-  const activeEvmAddress = connectedWallet?.evmAddress ?? zeroAddress;
-  const listenerEvmAddress = connectedWallet?.evmAddress ?? null;
-  // Bulletin signing fails closed in production builds: dev accounts (Alice,
-  // Bob, ...) use a universally known mnemonic and must never become a hidden
-  // fallback signer outside local development (CLAUDE.md security posture).
-  const devBulletinFallback = import.meta.env.DEV ? currentBulletinAccount : null;
-  const activeSubstrateAddress = connectedWallet ? (connectedWallet.substrateAddress ?? null) : (devBulletinFallback?.address ?? null);
-  const activeSubstrateSigner = connectedWallet ? (connectedWallet.substrateSigner ?? null) : (devBulletinFallback?.signer ?? null);
+    walletState,
+    connectedWallet,
+    activeEvmAddress,
+    listenerEvmAddress,
+    activeSubstrateAddress,
+    activeSubstrateSigner,
+    ethRpcUrl,
+    bulletinAccountIndex,
+    setBulletinAccountIndex,
+    getActiveWalletClient,
+    disconnect: disconnectWallet
+  } = useWalletContext();
   const activeArtistDefaultName = 'Dotify Artist';
 
   const factoryAddress = deployments.factory;
@@ -144,18 +129,6 @@ export default function App() {
       window.history.pushState(nextState, '', '/artists');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  // ── getActiveWalletClient (defined before hooks that need it) ─────────────────
-  async function getActiveWalletClient(): Promise<Awaited<ReturnType<typeof getWalletClient>>> {
-    if (!connectedWallet) {
-      throw new Error('Connect a wallet before signing this transaction.');
-    }
-    const chain = await resolveEvmChain(ethRpcUrl);
-    if (connectedWallet.chainId !== undefined && connectedWallet.chainId !== chain.id) {
-      throw new Error(chainMismatchMessage(chain.id, connectedWallet.chainId));
-    }
-    return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
   }
 
   // Use a ref to break the circular dependency between catalog and artistConsole
@@ -298,33 +271,6 @@ export default function App() {
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
-
-  useEffect(() => {
-    if (!transactionFeedback || transactionFeedback.tone === 'pending') return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setTransactionFeedback(null);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [transactionFeedback]);
-
-  useEffect(() => {
-    if (walletState.status === 'connected') setShowWalletModal(false);
-  }, [walletState.status]);
-
-  useEffect(() => {
-    let cancelled = false;
-    resolveEvmChain(ethRpcUrl)
-      .then(chain => {
-        if (!cancelled) setExpectedChainId(chain.id);
-      })
-      .catch(() => {
-        if (!cancelled) setExpectedChainId(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [ethRpcUrl]);
 
   useEffect(() => {
     void catalog.refreshCatalogFromRegistry();
@@ -549,42 +495,6 @@ export default function App() {
     setCreateRoomOpen(true);
   }
 
-  async function handleSwitchNetwork() {
-    if (!connectedWallet || connectedWallet.method !== 'extension') {
-      setTransactionFeedback({
-        tone: 'error',
-        title: 'Wallet app required',
-        message: 'Only browser wallet connections can switch networks from Dotify.'
-      });
-      return;
-    }
-
-    setIsSwitchingNetwork(true);
-    try {
-      const chain = await resolveEvmChain(ethRpcUrl);
-      setExpectedChainId(chain.id);
-      setTransactionFeedback({
-        tone: 'pending',
-        title: 'Switch network',
-        message: `Confirm the network switch to chain ${chain.id} in your wallet.`
-      });
-      await switchExtensionNetwork(chain);
-      setTransactionFeedback({
-        tone: 'success',
-        title: 'Network ready',
-        message: `Your wallet is now connected to chain ${chain.id}.`
-      });
-    } catch (error) {
-      setTransactionFeedback({
-        tone: 'error',
-        title: 'Network switch failed',
-        message: error instanceof Error ? error.message : 'Open your wallet and switch to the expected network, then try again.'
-      });
-    } finally {
-      setIsSwitchingNetwork(false);
-    }
-  }
-
   function handleJoinRoomFromProfile(roomId: string) {
     setPublicArtistName(null);
     session.joinRoom(roomId);
@@ -610,11 +520,11 @@ export default function App() {
       .values()
   );
 
-  const walletModal = showWalletModal && (
+  // Connection state, actions, and visibility come from context; App supplies
+  // only the catalog-derived support summary and the account-details nav jump.
+  // Both modals self-gate on their provider state, so they render unconditionally.
+  const walletModal = (
     <WalletModal
-      state={walletState}
-      hasPrfSupport={hasPrfSupport}
-      hasStoredPasskey={hasStoredPasskey}
       supportingCount={supportedArtists.length}
       unlockedCount={paidTracks.length}
       supportedArtists={supportedArtists}
@@ -626,19 +536,6 @@ export default function App() {
         priceDot: track.priceDot,
         hash: track.hash
       }))}
-      expectedChainId={expectedChainId}
-      isSwitchingNetwork={isSwitchingNetwork}
-      onPasskey={() => {
-        void connectPasskey();
-      }}
-      onExtension={() => {
-        void connectExtension();
-      }}
-      onSwitchNetwork={() => {
-        void handleSwitchNetwork();
-      }}
-      onForgetPasskey={forgetPasskey}
-      onDisconnect={disconnectWallet}
       onOpenAccountDetails={() => {
         setShowWalletModal(false);
         navigateToView('you');
@@ -648,20 +545,10 @@ export default function App() {
           });
         });
       }}
-      onClose={() => setShowWalletModal(false)}
     />
   );
 
-  const transactionModal = transactionFeedback && (
-    <TransactionModal
-      feedback={transactionFeedback}
-      onClose={() => {
-        if (transactionFeedback.tone !== 'pending') {
-          setTransactionFeedback(null);
-        }
-      }}
-    />
-  );
+  const transactionModal = <TransactionModal />;
 
   // Shared navigation model: rendered as a bottom tab bar on mobile and a
   // collapsible left rail on desktop. Static entries live in app/navigation;
@@ -674,13 +561,7 @@ export default function App() {
 
   if (isArtistPortal) {
     return (
-      <ArtistPortalView
-        walletState={walletState}
-        onShowWallet={() => setShowWalletModal(true)}
-        onDisconnect={disconnectWallet}
-        walletModal={walletModal}
-        transactionModal={transactionModal}
-      >
+      <ArtistPortalView walletModal={walletModal} transactionModal={transactionModal}>
         {connectedWallet && artistConsole.artistRuntimeAddress ? (
           <ArtistConsole
             artistTab={artistTab}
@@ -788,15 +669,7 @@ export default function App() {
         onEmitPlayerState={session.emitPlayerState}
       />
       <div className='app-shell'>
-        <TopBar
-          brandHref='#top'
-          brandAriaLabel='Dotify'
-          onBrandClick={() => setPublicArtistName(null)}
-          navAriaLabel='Navigation'
-          walletState={walletState}
-          onShowWallet={() => setShowWalletModal(true)}
-          onDisconnect={disconnectWallet}
-        />
+        <TopBar brandHref='#top' brandAriaLabel='Dotify' onBrandClick={() => setPublicArtistName(null)} navAriaLabel='Navigation' />
 
         {walletModal}
 

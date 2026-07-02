@@ -4,6 +4,8 @@ import type { WalletState } from '../hooks/useWallet';
 import type { CatalogTrack } from '../types';
 import { getBlockscoutAddressUrl } from '../utils/explorer';
 import { shortenAddress } from '../utils/format';
+import { useWalletContext } from '../app/providers/WalletProvider';
+import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
 
 type WalletSupportedArtist = Pick<CatalogTrack, 'artist' | 'artistAddress'> & { trackCount: number };
 type WalletPaidTrack = Pick<CatalogTrack, 'id' | 'title' | 'artist' | 'artistAddress' | 'priceDot' | 'hash'>;
@@ -30,41 +32,45 @@ export function WalletStatusPill({ state, onClick, onDisconnect }: { state: Wall
   );
 }
 
+// Wallet connection + account modal. Connection state, the connect/switch/forget
+// actions, and modal visibility come from context; the catalog-derived support
+// summary (backed artists, unlocked tracks) is still passed as props until the
+// catalog provider lands (PR8b-4), and onOpenAccountDetails stays a prop because
+// it needs navigation the shell still owns.
 export function WalletModal({
-  state,
-  hasPrfSupport,
-  hasStoredPasskey,
   supportingCount = 0,
   unlockedCount = 0,
   supportedArtists = [],
   paidTracks = [],
-  expectedChainId = null,
-  isSwitchingNetwork = false,
-  onPasskey,
-  onExtension,
-  onSwitchNetwork,
-  onForgetPasskey,
-  onDisconnect,
-  onOpenAccountDetails,
-  onClose
+  onOpenAccountDetails
 }: {
-  state: WalletState;
-  hasPrfSupport: boolean;
-  hasStoredPasskey: boolean;
   supportingCount?: number;
   unlockedCount?: number;
   supportedArtists?: WalletSupportedArtist[];
   paidTracks?: WalletPaidTrack[];
-  expectedChainId?: number | null;
-  isSwitchingNetwork?: boolean;
-  onPasskey: () => void;
-  onExtension: () => void;
-  onSwitchNetwork?: () => void;
-  onForgetPasskey: () => void;
-  onDisconnect?: () => void;
   onOpenAccountDetails?: () => void;
-  onClose: () => void;
 }) {
+  const {
+    walletState: state,
+    hasPrfSupport,
+    hasStoredPasskey,
+    expectedChainId,
+    isSwitchingNetwork,
+    connectPasskey,
+    connectExtension,
+    switchNetwork,
+    forgetPasskey: onForgetPasskey,
+    disconnect: onDisconnect
+  } = useWalletContext();
+  const { showWalletModal, setShowWalletModal } = useUiFeedback();
+
+  if (!showWalletModal) return null;
+
+  const onClose = () => setShowWalletModal(false);
+  const onPasskey = () => void connectPasskey();
+  const onExtension = () => void connectExtension();
+  const onSwitchNetwork = () => void switchNetwork();
+
   if (state.status === 'connected') {
     const { wallet } = state;
     const identityAddress = wallet.substrateAddress ?? wallet.evmAddress;

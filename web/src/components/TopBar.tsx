@@ -1,12 +1,15 @@
 // Top bar - the shared app header (Dotify brand + wallet status pill), used by
 // both the listener shell and the artist portal. Extracted from the two nearly
 // identical inline headers; callers vary the brand link, labels, and any extra
-// nav content (e.g. the artist portal's "Listener app" link) via props.
+// nav content (e.g. the artist portal's "Listener app" link) via props. Wallet
+// status and the connect/disconnect actions come from context, so no caller
+// threads wallet state through this component.
 
 import { Disc3 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { WalletStatusPill } from './WalletModal';
-import type { WalletState } from '../hooks/useWallet';
+import { useWalletContext } from '../app/providers/WalletProvider';
+import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
 
 type TopBarProps = {
   className?: string;
@@ -14,14 +17,14 @@ type TopBarProps = {
   brandAriaLabel: string;
   onBrandClick?: () => void;
   navAriaLabel: string;
-  walletState: WalletState;
-  onShowWallet: () => void;
-  onDisconnect: () => void;
   /** Extra nav-pills content rendered before the wallet pill. */
   children?: ReactNode;
 };
 
-export function TopBar({ className, brandHref, brandAriaLabel, onBrandClick, navAriaLabel, walletState, onShowWallet, onDisconnect, children }: TopBarProps) {
+export function TopBar({ className, brandHref, brandAriaLabel, onBrandClick, navAriaLabel, children }: TopBarProps) {
+  const { walletState, disconnect } = useWalletContext();
+  const { setShowWalletModal } = useUiFeedback();
+
   return (
     <header className={className ? `topbar ${className}` : 'topbar'}>
       <a className='brand' href={brandHref} aria-label={brandAriaLabel} onClick={onBrandClick}>
@@ -32,7 +35,7 @@ export function TopBar({ className, brandHref, brandAriaLabel, onBrandClick, nav
       </a>
       <nav className='nav-pills' aria-label={navAriaLabel}>
         {children}
-        <WalletStatusPill state={walletState} onClick={onShowWallet} onDisconnect={onDisconnect} />
+        <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnect} />
       </nav>
     </header>
   );

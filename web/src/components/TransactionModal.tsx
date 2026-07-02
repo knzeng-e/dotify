@@ -1,11 +1,17 @@
 import { CircleAlert, CircleCheckBig, Disc3, X } from 'lucide-react';
 import { Dialog } from './Dialog';
-import type { TransactionFeedback } from '../types';
 import { getBlockscoutTxUrl } from '../utils/explorer';
 import { shorten } from '../utils/format';
+import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
 
-export function TransactionModal({ feedback, onClose }: { feedback: TransactionFeedback; onClose: () => void }) {
+export function TransactionModal() {
+  const { transactionFeedback: feedback, setTransactionFeedback } = useUiFeedback();
+  if (!feedback) return null;
+
   const dismissible = feedback.tone !== 'pending';
+  const onClose = () => {
+    if (feedback.tone !== 'pending') setTransactionFeedback(null);
+  };
   const Icon = feedback.tone === 'pending' ? Disc3 : feedback.tone === 'success' ? CircleCheckBig : CircleAlert;
 
   return (
