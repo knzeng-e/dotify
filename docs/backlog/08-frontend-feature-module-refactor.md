@@ -101,4 +101,8 @@ Third PR on `refactor/frontend-player-module` (stacked on the catalog PR):
 - Added `features/player/playbackStatus.ts` - the `AudioStatus` model, `playbackStatusLabel` (moved from `usePlayback.ts`), and `transportProgressPercent` (extracted from `PlayerView.tsx`'s inline math). Co-located `playbackStatus.test.ts`.
 - Rewired `usePlayback.ts` (imports the `AudioStatus` type), `PlayerView.tsx` (label + progress helper), and `PlayerDock.tsx` (label). No behavior change.
 
-Deliberately deferred to follow-up PRs (to keep each diff reviewable and low-risk): moving the existing hooks/views/components into the full `features/* + shared/* + app/*` tree, and extracting the artist-studio, wallet, and uploads feature modules. `App.tsx` slimming continues across those PRs.
+Fourth PR on `refactor/frontend-wallet-module`: added `features/wallet/network.ts` (`parseChainId`, `toEip155ChainId`, `getProviderErrorCode` moved from `useWallet.ts`; `chainMismatchMessage` deduping the identical string in `App.tsx` + `useArtistConsole.ts`) and the PR tracker `docs/backlog/08-frontend-refactor-tracker.md`.
+
+Fifth PR on `refactor/frontend-uploads-module`: added `features/uploads/uploadModel.ts` (`buildDraftTrackInfo`, `nextTitleFromUpload`, `DEFAULT_TRACK_TITLE`, `uploadStatusMessage`) and extended `features/catalog/trackModel.ts` with `priceDotForAccessMode` + `localAudioRef`. Slimmed `App.tsx`'s `handleAudioFile`/`handleCoverFile` and de-duplicated the access-mode price (4 sites) and local-audio-ref (2 sites) across `App.tsx` and `useArtistConsole.ts`.
+
+The running plan and status for the remaining PRs lives in `docs/backlog/08-frontend-refactor-tracker.md`. Deliberately deferred there: the full `features/* + shared/* + app/*` tree move and the artist-studio + runtime feature modules. `App.tsx` slimming continues across those PRs.

@@ -28,6 +28,7 @@ import { getInitialRoomCode } from './features/rooms/roomState';
 import { trackHasAccess } from './features/access/accessPolicy';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from './features/catalog/trackModel';
 import { chainMismatchMessage } from './features/wallet/network';
+import { DEFAULT_TRACK_TITLE, buildDraftTrackInfo, nextTitleFromUpload, uploadStatusMessage } from './features/uploads/uploadModel';
 import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole';
 import { usePlayback } from './hooks/usePlayback';
 
@@ -39,20 +40,7 @@ import { ArtistProfileView } from './views/ArtistProfileView';
 import { ArtistConsole } from './views/artist/ArtistConsole';
 import { ArtistOnboarding } from './views/artist/ArtistOnboarding';
 
-import { stripExtension } from './utils/format';
-
-import type {
-  AccessMode,
-  ArtistTab,
-  AssetAction,
-  CatalogTrack,
-  PersonhoodLevel,
-  ReleaseStep,
-  RoomPlaybackMode,
-  TrackInfo,
-  TransactionFeedback,
-  View
-} from './types';
+import type { AccessMode, ArtistTab, AssetAction, CatalogTrack, PersonhoodLevel, ReleaseStep, RoomPlaybackMode, TransactionFeedback, View } from './types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -107,7 +95,7 @@ export default function App() {
   const [priceDot, setPriceDot] = useState('0.5');
   const [ethRpcUrl] = useState(getDefaultEthRpcUrl);
   const [expectedChainId, setExpectedChainId] = useState<number | null>(null);
-  const [title, setTitle] = useState('Untitled jam');
+  const [title, setTitle] = useState(DEFAULT_TRACK_TITLE);
   const [royaltyBps, setRoyaltyBps] = useState(7000);
   const [artistName, setArtistName] = useState('');
   const [bulletinAccountIndex, setBulletinAccountIndex] = useState(0);
@@ -427,13 +415,13 @@ export default function App() {
     if (!file) return;
 
     setAssetAction('audio');
-    artistConsole.setRightsStatus('Hashing audio');
+    artistConsole.setRightsStatus(uploadStatusMessage('audio', 'preparing'));
     catalog.setAudioCID('');
     catalog.audioUploadRef.current = null;
 
     try {
       const result = await hashFileWithBytes(file);
-      const nextTitle = title.trim() === 'Untitled jam' ? stripExtension(file.name) : title;
+      const nextTitle = nextTitleFromUpload(title, file.name);
       const nextUrl = URL.createObjectURL(file);
       catalog.objectUrlsRef.current.add(nextUrl);
 
@@ -441,22 +429,18 @@ export default function App() {
       catalog.setFileHash(result.hash);
       setTitle(nextTitle);
       catalog.setSelectedTrackId('draft-upload');
-      artistConsole.setRightsStatus('Audio ready - uploading to IPFS...');
+      artistConsole.setRightsStatus(uploadStatusMessage('audio', 'uploading'));
 
-      const trackInfoObj: TrackInfo = {
-        title: nextTitle.trim() || 'Untitled',
-        artist: artistName.trim() || 'Unknown artist',
+      const trackInfoObj = buildDraftTrackInfo({
+        title: nextTitle,
+        artist: artistName,
         hash: result.hash,
-        bulletinRef: '',
-        duration: 0,
-        updatedAt: Date.now(),
         imageRef: catalog.coverSource,
-        audioRef: `dotify:local:${result.hash}`,
         description,
         accessMode,
-        priceDot: accessMode === 'classic' ? priceDot : '0',
+        priceDot,
         personhoodLevel
-      };
+      });
       catalog.setTrackInfo(trackInfoObj);
       session.socketEmit('room:track', trackInfoObj);
 
@@ -465,11 +449,11 @@ export default function App() {
       const uploadPromise = uploadProtectedAudio({ bytes: result.bytes, name: file.name, mime: file.type }, result.hash)
         .then(cid => {
           catalog.setAudioCID(cid);
-          artistConsole.setRightsStatus('Audio ready - protected and uploaded to IPFS');
+          artistConsole.setRightsStatus(uploadStatusMessage('audio', 'uploaded'));
           return cid;
         })
         .catch(() => {
-          artistConsole.setRightsStatus('Audio ready (IPFS upload failed - will retry on register)');
+          artistConsole.setRightsStatus(uploadStatusMessage('audio', 'failed'));
           return '';
         });
       catalog.audioUploadRef.current = uploadPromise;
@@ -485,7 +469,7 @@ export default function App() {
     const file = event.target.files?.[0];
     if (!file) return;
     setAssetAction('cover');
-    artistConsole.setRightsStatus('Preparing cover image');
+    artistConsole.setRightsStatus(uploadStatusMessage('cover', 'preparing'));
     catalog.setCoverCID('');
     catalog.coverUploadRef.current = null;
 
@@ -494,16 +478,16 @@ export default function App() {
       catalog.objectUrlsRef.current.add(nextUrl);
       catalog.setCoverSource(nextUrl);
       setCoverFile(file);
-      artistConsole.setRightsStatus('Cover ready - uploading to IPFS...');
+      artistConsole.setRightsStatus(uploadStatusMessage('cover', 'uploading'));
 
       const uploadPromise = uploadFileToPinata(file, file.name, { app: 'dotify', type: 'cover' })
         .then(cid => {
           catalog.setCoverCID(cid);
-          artistConsole.setRightsStatus('Cover ready - uploaded to IPFS');
+          artistConsole.setRightsStatus(uploadStatusMessage('cover', 'uploaded'));
           return cid;
         })
         .catch(() => {
-          artistConsole.setRightsStatus('Cover ready (IPFS upload failed - will retry on register)');
+          artistConsole.setRightsStatus(uploadStatusMessage('cover', 'failed'));
           return '';
         });
       catalog.coverUploadRef.current = uploadPromise;

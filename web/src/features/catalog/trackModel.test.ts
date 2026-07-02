@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogTrack } from '../../types';
-import { catalogTrackToTrackInfo, isTrackManagedByArtist, runtimeAddressFromTrackId } from './trackModel';
+import { catalogTrackToTrackInfo, isTrackManagedByArtist, localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from './trackModel';
 
 const baseTrack: CatalogTrack = {
   id: '0xRuntime:0xHash',
@@ -61,6 +61,19 @@ describe('isTrackManagedByArtist', () => {
 
   it('is false for non-artist sources', () => {
     expect(isTrackManagedByArtist({ ...baseTrack, source: 'seed' }, '0x00000000000000000000000000000000000000aa', 'Nova')).toBe(false);
+  });
+});
+
+describe('priceDotForAccessMode', () => {
+  it('keeps the price for classic and zeroes it otherwise', () => {
+    expect(priceDotForAccessMode('classic', '0.5')).toBe('0.5');
+    expect(priceDotForAccessMode('human-free', '0.5')).toBe('0');
+  });
+});
+
+describe('localAudioRef', () => {
+  it('builds the local audio ref for a hash', () => {
+    expect(localAudioRef('0xabc')).toBe('dotify:local:0xabc');
   });
 });
 
