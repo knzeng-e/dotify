@@ -5,3 +5,4 @@ export { AppProviders } from './AppProviders';
 export { UiFeedbackProvider, useUiFeedback } from './UiFeedbackProvider';
 export { WalletProvider, useWalletContext } from './WalletProvider';
 export { NavigationProvider, useNavigation } from './NavigationProvider';
+export { ReleaseFormProvider, useReleaseForm } from './ReleaseFormProvider';

@@ -9,10 +9,10 @@ import { applyAura, auraForTrack, auraForName } from './utils/aura';
 
 import { hashFileWithBytes } from './utils/hash';
 import { deployments } from './config/deployments';
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { uploadFileToPinata, uploadProtectedAudio } from './services/pinata';
-import { useWalletContext, useUiFeedback, useNavigation } from './app/providers';
+import { useWalletContext, useUiFeedback, useNavigation, useReleaseForm } from './app/providers';
 
 import { Metric } from './components/ui/Metric';
 import { WalletModal } from './components/WalletModal';
@@ -24,7 +24,7 @@ import { useSession } from './hooks/useSession';
 import { getInitialRoomCode } from './features/rooms/roomState';
 import { trackHasAccess } from './features/access/accessPolicy';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from './features/catalog/trackModel';
-import { DEFAULT_TRACK_TITLE, buildDraftTrackInfo, nextTitleFromUpload, uploadStatusMessage } from './features/uploads/uploadModel';
+import { buildDraftTrackInfo, nextTitleFromUpload, uploadStatusMessage } from './features/uploads/uploadModel';
 import {
   artistSetupState as deriveArtistSetupState,
   artistStudioLocked as deriveArtistStudioLocked,
@@ -47,7 +47,7 @@ import { ArtistPortalView } from './views/ArtistPortalView';
 import { ArtistConsole } from './views/artist/ArtistConsole';
 import { ArtistOnboarding } from './views/artist/ArtistOnboarding';
 
-import type { AccessMode, ArtistTab, AssetAction, CatalogTrack, PersonhoodLevel, ReleaseStep, RoomPlaybackMode, View } from './types';
+import type { CatalogTrack, RoomPlaybackMode, View } from './types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -60,20 +60,37 @@ export default function App() {
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
   const [joinRoomOpen, setJoinRoomOpen] = useState(false);
   const [pendingArtistTrack, setPendingArtistTrack] = useState<CatalogTrack | null>(null);
-  const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
-  const [releaseStep, setReleaseStep] = useState<ReleaseStep>('assets');
 
-  // ── Shared state (release form, identity) ────────────────────────────────────
-  const [priceDot, setPriceDot] = useState('0.5');
-  const [title, setTitle] = useState(DEFAULT_TRACK_TITLE);
-  const [royaltyBps, setRoyaltyBps] = useState(7000);
-  const [artistName, setArtistName] = useState('');
-  const [accessMode, setAccessMode] = useState<AccessMode>('human-free');
-  const [assetAction, setAssetAction] = useState<AssetAction>('idle');
-  const [uploadToBulletinEnabled, setUploadToBulletinEnabled] = useState(false);
-  const [personhoodLevel, setPersonhoodLevel] = useState<PersonhoodLevel>('DIM1');
-  const [description, setDescription] = useState('Describe the story, rights context, and intended audience for this track.');
-  const [coverFile, setCoverFile] = useState<File | null>(null);
+  // ── Release form + identity (provider-owned) ─────────────────────────────────
+  // The release draft and shared identity fields live in ReleaseFormProvider;
+  // App reads them here and passes them into the feature hooks and views.
+  const {
+    title,
+    setTitle,
+    description,
+    setDescription,
+    artistName,
+    setArtistName,
+    priceDot,
+    setPriceDot,
+    royaltyBps,
+    setRoyaltyBps,
+    accessMode,
+    setAccessMode,
+    personhoodLevel,
+    setPersonhoodLevel,
+    coverFile,
+    setCoverFile,
+    uploadToBulletinEnabled,
+    setUploadToBulletinEnabled,
+    assetAction,
+    setAssetAction,
+    artistTab,
+    setArtistTab,
+    releaseStep,
+    setReleaseStep,
+    bulletinManifestRef
+  } = useReleaseForm();
 
   // ── Wallet + UI feedback (provider-owned) ─────────────────────────────────────
   // Wallet identity, the frozen RPC endpoint, getActiveWalletClient, and the
@@ -114,10 +131,6 @@ export default function App() {
     openArtistStudio
   } = useNavigation();
 
-  // Use a ref to break the circular dependency between catalog and artistConsole
-  // (catalog needs setBulletinManifestRef, artistConsole owns bulletinManifestRef state).
-  const artistConsoleBulletinRef = useRef('');
-
   // ── Catalog hook ─────────────────────────────────────────────────────────────
   const catalog = useCatalog({
     ethRpcUrl,
@@ -130,7 +143,7 @@ export default function App() {
     navigateToView,
     getActiveWalletClient,
     setBulletinManifestRef: ref => {
-      artistConsoleBulletinRef.current = ref;
+      bulletinManifestRef.current = ref;
     },
     setAccessMode,
     setPriceDot,
@@ -300,13 +313,13 @@ export default function App() {
       return;
     }
     setArtistName(previous => (previous.trim() && previous !== 'Dotify Artist' ? previous : activeArtistDefaultName));
-  }, [activeArtistDefaultName, activeEvmAddress]);
+  }, [activeArtistDefaultName, activeEvmAddress, setArtistName]);
 
   useEffect(() => {
     if (!isArtistPortal) return;
     const storedName = getStoredArtistName(activeEvmAddress);
     if (storedName) setArtistName(storedName);
-  }, [activeView, isArtistPortal, activeEvmAddress]);
+  }, [activeView, isArtistPortal, activeEvmAddress, setArtistName]);
 
   useEffect(() => {
     void artistConsole.refreshArtistRuntime();

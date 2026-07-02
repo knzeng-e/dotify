@@ -217,8 +217,13 @@ from context instead of prop drilling. `NavigationProvider` (`useNavigation`)
 then owns the shell's route/view state (active view, artist-portal open, public
 artist profile, rail collapse) plus `navigateToView`, `openArtistStudio`, and the
 popstate/history integration, so route state is no longer threaded into
-`useCatalog`/`useSession` and the views. Later steps add release-form, catalog,
-session, artist-studio, and playback providers.
+`useCatalog`/`useSession` and the views. `ReleaseFormProvider` (`useReleaseForm`)
+then owns the artist release draft and shared identity fields (title, description,
+artist name, price, royalty split, access mode, personhood level, cover file,
+Bulletin toggle, upload action, studio tab, wizard step) plus the Bulletin manifest
+ref, which retires the write-only `artistConsoleBulletinRef` hack that App.tsx
+carried "to break a circular dependency". Later steps add catalog, session,
+artist-studio, and playback providers.
 
 ## Current Limitations
 
