@@ -27,6 +27,7 @@ import { useSession } from './hooks/useSession';
 import { getInitialRoomCode } from './features/rooms/roomState';
 import { trackHasAccess } from './features/access/accessPolicy';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from './features/catalog/trackModel';
+import { chainMismatchMessage } from './features/wallet/network';
 import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole';
 import { usePlayback } from './hooks/usePlayback';
 
@@ -179,7 +180,7 @@ export default function App() {
     }
     const chain = await resolveEvmChain(ethRpcUrl);
     if (connectedWallet.chainId !== undefined && connectedWallet.chainId !== chain.id) {
-      throw new Error(`Switch your wallet to chain ${chain.id}. Your wallet is currently on chain ${connectedWallet.chainId}.`);
+      throw new Error(chainMismatchMessage(chain.id, connectedWallet.chainId));
     }
     return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
   }

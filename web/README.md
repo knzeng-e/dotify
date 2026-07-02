@@ -161,7 +161,8 @@ src/
     rooms/    # room share-link + presence helpers (pure, unit-tested)
     catalog/  # track model: TrackInfo mapping, runtime-id parsing (pure, unit-tested)
     player/   # playback status labels + transport progress (pure, unit-tested)
-    ...       # artist-studio, wallet, uploads (incremental)
+    wallet/   # EIP-1193 chain helpers + chain-mismatch message (pure, unit-tested)
+    ...       # artist-studio, uploads, runtime (incremental)
   components/ # presentational UI
   views/      # page-level compositions
   hooks/      # stateful orchestration (useCatalog, useSession, ...)
@@ -181,7 +182,10 @@ parsing/building and room presence count), and `features/catalog/trackModel.ts`
 (`TrackInfo` mapping and runtime-id parsing, previously inline in `App.tsx` and
 duplicated across `useCatalog.ts` and `ReleasesTab.tsx`), and
 `features/player/playbackStatus.ts` (the `AudioStatus` model, status labels, and
-transport progress math, previously in `usePlayback.ts` and `PlayerView.tsx`).
+transport progress math, previously in `usePlayback.ts` and `PlayerView.tsx`), and
+`features/wallet/network.ts` (EIP-1193 chain-id parsing/encoding, provider error
+codes, and the chain-mismatch message previously duplicated in `App.tsx` and
+`useArtistConsole.ts`).
 
 ## Current Limitations
 

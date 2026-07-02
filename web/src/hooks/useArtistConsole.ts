@@ -12,6 +12,7 @@ import {
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
 import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
 import { makeEncryptedAudioRef } from '../utils/protectedAudio';
+import { chainMismatchMessage } from '../features/wallet/network';
 import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../utils/format';
 import {
   createArtistPublishE2eTrack,
@@ -139,7 +140,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     }
     const chain = await resolveEvmChain(ethRpcUrl);
     if (connectedWallet.chainId !== undefined && connectedWallet.chainId !== chain.id) {
-      throw new Error(`Switch your wallet to chain ${chain.id}. Your wallet is currently on chain ${connectedWallet.chainId}.`);
+      throw new Error(chainMismatchMessage(chain.id, connectedWallet.chainId));
     }
     return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
   }
