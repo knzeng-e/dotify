@@ -47,6 +47,7 @@ import { PlayerView } from './views/PlayerView';
 import { RoomsView } from './views/RoomsView';
 import { YouView } from './views/YouView';
 import { ArtistProfileView } from './views/ArtistProfileView';
+import { ArtistPortalView } from './views/ArtistPortalView';
 import { ArtistConsole } from './views/artist/ArtistConsole';
 import { ArtistOnboarding } from './views/artist/ArtistOnboarding';
 
@@ -672,121 +673,103 @@ export default function App() {
 
   if (isArtistPortal) {
     return (
-      <>
-        <AuraBackground />
-        <div className='app-shell artist-portal-shell'>
-          <header className='topbar artist-portal-topbar'>
-            <a className='brand' href='/' aria-label='Dotify home'>
-              <span className='brand-mark'>
-                <Disc3 size={21} />
-              </span>
-              <span>Dotify</span>
-            </a>
-            <nav className='nav-pills' aria-label='Artist portal actions'>
-              <a className='artist-entry-link' href='/'>
-                Listener app
-              </a>
-              <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnectWallet} />
-            </nav>
-          </header>
-
-          {walletModal}
-
-          <main className='artist-portal-main'>
-            {connectedWallet && artistConsole.artistRuntimeAddress ? (
-              <ArtistConsole
-                artistTab={artistTab}
-                onSetArtistTab={setArtistTab}
-                artistName={artistName}
-                activeEvmAddress={activeEvmAddress}
-                artistRuntimeAddress={artistConsole.artistRuntimeAddress}
-                artistRegistrationStatus={artistConsole.artistRegistrationStatus}
-                isRegisteringArtist={artistConsole.isRegisteringArtist}
-                isRefreshingArtistRuntime={artistConsole.isRefreshingArtistRuntime}
-                artistRegistrationAvailable={artistRegistrationAvailable}
-                artistSetupState={artistSetupState}
-                artistTracks={artistTracks}
-                connectedWallet={connectedWallet}
-                onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
-                onRegisterArtist={artistConsole.registerArtist}
-                onRefreshArtistRuntime={() => {
-                  void artistConsole.refreshArtistRuntime(true);
-                }}
-                onShowWalletModal={() => setShowWalletModal(true)}
-                releaseStep={releaseStep}
-                artistStudioLocked={artistStudioLocked}
-                assetAction={assetAction}
-                audioSource={catalog.audioSource}
-                fileHash={catalog.fileHash}
-                coverSource={catalog.coverSource}
-                coverCID={catalog.coverCID}
-                title={title}
-                description={description}
-                accessMode={accessMode}
-                personhoodLevel={personhoodLevel}
-                priceDot={priceDot}
-                royaltyBps={royaltyBps}
-                uploadToBulletinEnabled={uploadToBulletinEnabled}
-                rightsStatus={artistConsole.rightsStatus}
-                isRegistering={artistConsole.isRegistering}
-                canReviewRelease={canReviewRelease}
-                activeSubstrateAddress={activeSubstrateAddress}
-                bulletinAccountIndex={bulletinAccountIndex}
-                onSetReleaseStep={setReleaseStep}
-                onGoToPreviousStep={goToPreviousReleaseStep}
-                onGoToNextStep={goToNextReleaseStep}
-                onHandleAudioFile={handleAudioFile}
-                onHandleCoverFile={handleCoverFile}
-                onSetTitle={setTitle}
-                onSetDescription={setDescription}
-                onSetAccessMode={setAccessMode}
-                onSetPersonhoodLevel={setPersonhoodLevel}
-                onSetPriceDot={setPriceDot}
-                onSetRoyaltyBps={setRoyaltyBps}
-                onSetUploadToBulletinEnabled={setUploadToBulletinEnabled}
-                onSetBulletinAccountIndex={setBulletinAccountIndex}
-                onRegisterRights={artistConsole.registerRights}
-                onOpenTrack={handleOpenTrack}
-                royaltyPayments={artistConsole.royaltyPayments}
-                royaltyStatus={artistConsole.royaltyStatus}
-                isRefreshingRoyalties={artistConsole.isRefreshingRoyalties}
-                expandedRoyaltyPaymentId={artistConsole.expandedRoyaltyPaymentId}
-                totalRoyaltyWei={totalRoyaltyWei}
-                uniqueRoyaltyListeners={uniqueRoyaltyListeners}
-                paidRoyaltyTracks={paidRoyaltyTracks}
-                onSetExpandedRoyaltyPaymentId={artistConsole.setExpandedRoyaltyPaymentId}
-                onRefreshRoyalties={() => {
-                  void artistConsole.refreshArtistRoyalties(true);
-                }}
-                factoryAddress={factoryAddress}
-                directoryAddress={directoryAddress}
-                audioCID={catalog.audioCID}
-                bulletinManifestRef={artistConsole.bulletinManifestRef}
-                trackInfo={catalog.trackInfo}
-              />
-            ) : (
-              <ArtistOnboarding
-                activeEvmAddress={activeEvmAddress}
-                artistName={artistName}
-                artistRegistrationStatus={artistConsole.artistRegistrationStatus}
-                isRegisteringArtist={artistConsole.isRegisteringArtist}
-                isRefreshingArtistRuntime={artistConsole.isRefreshingArtistRuntime}
-                artistRegistrationAvailable={artistRegistrationAvailable}
-                connectedWallet={connectedWallet}
-                onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
-                onRegisterArtist={artistConsole.registerArtist}
-                onRefreshArtistRuntime={() => {
-                  void artistConsole.refreshArtistRuntime(true);
-                }}
-                onShowWalletModal={() => setShowWalletModal(true)}
-                artistTracks={connectedWallet ? artistTracks : []}
-              />
-            )}
-          </main>
-
-          {transactionModal}
-        </div>
-      </>
+      <ArtistPortalView
+        walletState={walletState}
+        onShowWallet={() => setShowWalletModal(true)}
+        onDisconnect={disconnectWallet}
+        walletModal={walletModal}
+        transactionModal={transactionModal}
+      >
+        {connectedWallet && artistConsole.artistRuntimeAddress ? (
+          <ArtistConsole
+            artistTab={artistTab}
+            onSetArtistTab={setArtistTab}
+            artistName={artistName}
+            activeEvmAddress={activeEvmAddress}
+            artistRuntimeAddress={artistConsole.artistRuntimeAddress}
+            artistRegistrationStatus={artistConsole.artistRegistrationStatus}
+            isRegisteringArtist={artistConsole.isRegisteringArtist}
+            isRefreshingArtistRuntime={artistConsole.isRefreshingArtistRuntime}
+            artistRegistrationAvailable={artistRegistrationAvailable}
+            artistSetupState={artistSetupState}
+            artistTracks={artistTracks}
+            connectedWallet={connectedWallet}
+            onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
+            onRegisterArtist={artistConsole.registerArtist}
+            onRefreshArtistRuntime={() => {
+              void artistConsole.refreshArtistRuntime(true);
+            }}
+            onShowWalletModal={() => setShowWalletModal(true)}
+            releaseStep={releaseStep}
+            artistStudioLocked={artistStudioLocked}
+            assetAction={assetAction}
+            audioSource={catalog.audioSource}
+            fileHash={catalog.fileHash}
+            coverSource={catalog.coverSource}
+            coverCID={catalog.coverCID}
+            title={title}
+            description={description}
+            accessMode={accessMode}
+            personhoodLevel={personhoodLevel}
+            priceDot={priceDot}
+            royaltyBps={royaltyBps}
+            uploadToBulletinEnabled={uploadToBulletinEnabled}
+            rightsStatus={artistConsole.rightsStatus}
+            isRegistering={artistConsole.isRegistering}
+            canReviewRelease={canReviewRelease}
+            activeSubstrateAddress={activeSubstrateAddress}
+            bulletinAccountIndex={bulletinAccountIndex}
+            onSetReleaseStep={setReleaseStep}
+            onGoToPreviousStep={goToPreviousReleaseStep}
+            onGoToNextStep={goToNextReleaseStep}
+            onHandleAudioFile={handleAudioFile}
+            onHandleCoverFile={handleCoverFile}
+            onSetTitle={setTitle}
+            onSetDescription={setDescription}
+            onSetAccessMode={setAccessMode}
+            onSetPersonhoodLevel={setPersonhoodLevel}
+            onSetPriceDot={setPriceDot}
+            onSetRoyaltyBps={setRoyaltyBps}
+            onSetUploadToBulletinEnabled={setUploadToBulletinEnabled}
+            onSetBulletinAccountIndex={setBulletinAccountIndex}
+            onRegisterRights={artistConsole.registerRights}
+            onOpenTrack={handleOpenTrack}
+            royaltyPayments={artistConsole.royaltyPayments}
+            royaltyStatus={artistConsole.royaltyStatus}
+            isRefreshingRoyalties={artistConsole.isRefreshingRoyalties}
+            expandedRoyaltyPaymentId={artistConsole.expandedRoyaltyPaymentId}
+            totalRoyaltyWei={totalRoyaltyWei}
+            uniqueRoyaltyListeners={uniqueRoyaltyListeners}
+            paidRoyaltyTracks={paidRoyaltyTracks}
+            onSetExpandedRoyaltyPaymentId={artistConsole.setExpandedRoyaltyPaymentId}
+            onRefreshRoyalties={() => {
+              void artistConsole.refreshArtistRoyalties(true);
+            }}
+            factoryAddress={factoryAddress}
+            directoryAddress={directoryAddress}
+            audioCID={catalog.audioCID}
+            bulletinManifestRef={artistConsole.bulletinManifestRef}
+            trackInfo={catalog.trackInfo}
+          />
+        ) : (
+          <ArtistOnboarding
+            activeEvmAddress={activeEvmAddress}
+            artistName={artistName}
+            artistRegistrationStatus={artistConsole.artistRegistrationStatus}
+            isRegisteringArtist={artistConsole.isRegisteringArtist}
+            isRefreshingArtistRuntime={artistConsole.isRefreshingArtistRuntime}
+            artistRegistrationAvailable={artistRegistrationAvailable}
+            connectedWallet={connectedWallet}
+            onUpdateArtistName={name => artistConsole.updateArtistName(name, setArtistName)}
+            onRegisterArtist={artistConsole.registerArtist}
+            onRefreshArtistRuntime={() => {
+              void artistConsole.refreshArtistRuntime(true);
+            }}
+            onShowWalletModal={() => setShowWalletModal(true)}
+            artistTracks={connectedWallet ? artistTracks : []}
+          />
+        )}
+      </ArtistPortalView>
     );
   }
 
