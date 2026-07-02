@@ -12,7 +12,7 @@ import { deployments } from './config/deployments';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { uploadFileToPinata, uploadProtectedAudio } from './services/pinata';
-import { useWalletContext, useUiFeedback } from './app/providers';
+import { useWalletContext, useUiFeedback, useNavigation } from './app/providers';
 
 import { Metric } from './components/ui/Metric';
 import { WalletModal } from './components/WalletModal';
@@ -32,7 +32,7 @@ import {
   nextReleaseStep,
   previousReleaseStep
 } from './features/artist-studio/releaseForm';
-import { historyStateObject, initialView, isArtistPortalPath, viewFromHistoryState } from './app/routing';
+import { historyStateObject } from './app/routing';
 import { NAV_ITEMS, VIEW_COPY } from './app/navigation';
 import { BottomNav, SideRail } from './components/PrimaryNav';
 import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole';
@@ -53,21 +53,13 @@ import type { AccessMode, ArtistTab, AssetAction, CatalogTrack, PersonhoodLevel,
 
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 
-function getInitialView(): View {
-  return initialView(Boolean(getInitialRoomCode()));
-}
-
 // ── App ────────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  // ── View routing ─────────────────────────────────────────────────────────────
-  const [activeView, setActiveView] = useState<View>(() => getInitialView());
-  const [isArtistPortal, setIsArtistPortal] = useState(() => isArtistPortalPath(window.location.pathname));
-  const [publicArtistName, setPublicArtistName] = useState<string | null>(null);
+  // ── Modal + wizard state ──────────────────────────────────────────────────────
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
   const [joinRoomOpen, setJoinRoomOpen] = useState(false);
   const [pendingArtistTrack, setPendingArtistTrack] = useState<CatalogTrack | null>(null);
-  const [railCollapsed, setRailCollapsed] = useState(false);
   const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
   const [releaseStep, setReleaseStep] = useState<ReleaseStep>('assets');
 
@@ -107,29 +99,20 @@ export default function App() {
   const factoryAddress = deployments.factory;
   const directoryAddress = deployments.directory;
 
-  // ── Navigation ────────────────────────────────────────────────────────────────
-  function navigateToView(nextView: View, options: { replace?: boolean } = {}) {
-    setPublicArtistName(null);
-    setActiveView(nextView);
-    const nextState = { ...historyStateObject(window.history.state), dotifyView: nextView };
-    if (options.replace || activeView === nextView) {
-      window.history.replaceState(nextState, '', window.location.href);
-      return;
-    }
-    window.history.pushState(nextState, '', window.location.href);
-  }
-
-  function handleOpenArtistStudio() {
-    setPublicArtistName(null);
-    setIsArtistPortal(true);
-    const nextState = { ...historyStateObject(window.history.state), dotifyView: activeView };
-    if (isArtistPortal) {
-      window.history.replaceState(nextState, '', '/artists');
-    } else {
-      window.history.pushState(nextState, '', '/artists');
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  // ── Navigation (provider-owned) ───────────────────────────────────────────────
+  // Route/view state and history integration now live in NavigationProvider.
+  const {
+    activeView,
+    setActiveView,
+    isArtistPortal,
+    setIsArtistPortal,
+    publicArtistName,
+    setPublicArtistName,
+    railCollapsed,
+    setRailCollapsed,
+    navigateToView,
+    openArtistStudio
+  } = useNavigation();
 
   // Use a ref to break the circular dependency between catalog and artistConsole
   // (catalog needs setBulletinManifestRef, artistConsole owns bulletinManifestRef state).
@@ -261,16 +244,6 @@ export default function App() {
     const activeTrack = catalog.trackInfo ?? catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId) ?? null;
     applyAura(auraForTrack(activeTrack));
   }, [publicArtistName, catalog.trackInfo, catalog.selectedTrackId, catalog.catalogTracks]);
-
-  useEffect(() => {
-    window.history.replaceState({ ...historyStateObject(window.history.state), dotifyView: getInitialView() }, '', window.location.href);
-    const onPopState = (event: PopStateEvent) => {
-      setIsArtistPortal(isArtistPortalPath(window.location.pathname));
-      setActiveView(viewFromHistoryState(event.state, getInitialView()));
-    };
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
-  }, []);
 
   useEffect(() => {
     void catalog.refreshCatalogFromRegistry();
@@ -786,7 +759,7 @@ export default function App() {
                       priceDot: track.priceDot,
                       hash: track.hash
                     }))}
-                    onOpenArtistStudio={handleOpenArtistStudio}
+                    onOpenArtistStudio={openArtistStudio}
                     onShowWalletModal={() => setShowWalletModal(true)}
                     onDisconnectWallet={disconnectWallet}
                   />
