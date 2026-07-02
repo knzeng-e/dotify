@@ -12,16 +12,13 @@ import { deployments } from './config/deployments';
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { uploadFileToPinata, uploadProtectedAudio } from './services/pinata';
-import { useWalletContext, useUiFeedback, useNavigation, useReleaseForm } from './app/providers';
+import { useWalletContext, useUiFeedback, useNavigation, useReleaseForm, useCatalogContext, useSessionContext } from './app/providers';
 
 import { Metric } from './components/ui/Metric';
 import { WalletModal } from './components/WalletModal';
 import { TopBar } from './components/TopBar';
 import { TransactionModal } from './components/TransactionModal';
 
-import { useCatalog } from './hooks/useCatalog';
-import { useSession } from './hooks/useSession';
-import { getInitialRoomCode } from './features/rooms/roomState';
 import { trackHasAccess } from './features/access/accessPolicy';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from './features/catalog/trackModel';
 import { buildDraftTrackInfo, nextTitleFromUpload, uploadStatusMessage } from './features/uploads/uploadModel';
@@ -48,10 +45,6 @@ import { ArtistConsole } from './views/artist/ArtistConsole';
 import { ArtistOnboarding } from './views/artist/ArtistOnboarding';
 
 import type { CatalogTrack, RoomPlaybackMode, View } from './types';
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 
 // ── App ────────────────────────────────────────────────────────────────────────
 
@@ -88,8 +81,7 @@ export default function App() {
     artistTab,
     setArtistTab,
     releaseStep,
-    setReleaseStep,
-    bulletinManifestRef
+    setReleaseStep
   } = useReleaseForm();
 
   // ── Wallet + UI feedback (provider-owned) ─────────────────────────────────────
@@ -102,13 +94,11 @@ export default function App() {
     walletState,
     connectedWallet,
     activeEvmAddress,
-    listenerEvmAddress,
     activeSubstrateAddress,
     activeSubstrateSigner,
     ethRpcUrl,
     bulletinAccountIndex,
     setBulletinAccountIndex,
-    getActiveWalletClient,
     disconnect: disconnectWallet
   } = useWalletContext();
   const activeArtistDefaultName = 'Dotify Artist';
@@ -131,41 +121,11 @@ export default function App() {
     openArtistStudio
   } = useNavigation();
 
-  // ── Catalog hook ─────────────────────────────────────────────────────────────
-  const catalog = useCatalog({
-    ethRpcUrl,
-    listenerEvmAddress,
-    connectedWallet,
-    directoryAddress,
-    setShowWalletModal,
-    setTransactionFeedback,
-    setTitle,
-    navigateToView,
-    getActiveWalletClient,
-    setBulletinManifestRef: ref => {
-      bulletinManifestRef.current = ref;
-    },
-    setAccessMode,
-    setPriceDot,
-    setPersonhoodLevel,
-    setArtistName,
-    setDescription
-  });
-
-  // ── Session hook ──────────────────────────────────────────────────────────────
-  const session = useSession({
-    signalUrl,
-    hostAddress: listenerEvmAddress,
-    audioSource: catalog.audioSource,
-    trackInfo: catalog.trackInfo,
-    setTrackInfo: catalog.setTrackInfo,
-    setPlayerState: catalog.setPlayerState,
-    localAudioRef: catalog.localAudioRef as React.RefObject<HTMLAudioElement>,
-    objectUrlsRef: catalog.objectUrlsRef,
-    resolvedAudioSourcesRef: catalog.resolvedAudioSourcesRef,
-    navigateToView,
-    setAudioSource: catalog.setAudioSource
-  });
+  // ── Catalog + session (provider-owned) ────────────────────────────────────────
+  // useCatalog and useSession now live in CatalogProvider/SessionProvider, which
+  // do the wiring App used to do. App reads their values here.
+  const catalog = useCatalogContext();
+  const session = useSessionContext();
 
   // ── Artist portal hook ────────────────────────────────────────────────────────
   const artistConsole = useArtistConsole({
@@ -259,52 +219,9 @@ export default function App() {
   }, [publicArtistName, catalog.trackInfo, catalog.selectedTrackId, catalog.catalogTracks]);
 
   useEffect(() => {
-    void catalog.refreshCatalogFromRegistry();
-  }, [directoryAddress, ethRpcUrl]);
-
-  // One-link join: a guest landing on a #/rooms/<id> share link joins the
-  // room immediately. No wallet, no signature, no payment: room access is
-  // host-based and the guest only receives the ephemeral WebRTC stream.
-  //
-  // Re-attempt while not yet in a room rather than latching a one-shot ref:
-  // under React StrictMode the mount/unmount/remount cycle tears the first
-  // socket down before it connects, and a latched ref would leave the guest
-  // permanently unconnected on the surviving mount.
-  useEffect(() => {
-    const initialRoomCode = getInitialRoomCode();
-    if (!initialRoomCode || session.roomId) return;
-    session.joinRoom(initialRoomCode);
-    // Run once per mount; the share-link code is read from the URL at mount time.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     if (!isArtistPortal || artistTab !== 'royalties') return;
     void artistConsole.refreshArtistRoyalties();
   }, [activeView, isArtistPortal, artistTab, artistConsole.artistRuntimeAddress, ethRpcUrl, catalog.catalogTracks.length, activeEvmAddress, artistName]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function refreshCatalogAccess() {
-      if (catalog.catalogTracks.length === 0) {
-        catalog.setCatalogAccessByTrackId({});
-        catalog.setCatalogPaidAccessByTrackId({});
-        return;
-      }
-      const [accessEntries, paidEntries] = await Promise.all([
-        Promise.all(catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackAccess(track, listenerEvmAddress)] as const)),
-        Promise.all(catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackPaidAccess(track, listenerEvmAddress)] as const))
-      ]);
-      if (!cancelled) {
-        catalog.setCatalogAccessByTrackId(Object.fromEntries(accessEntries));
-        catalog.setCatalogPaidAccessByTrackId(Object.fromEntries(paidEntries));
-      }
-    }
-    void refreshCatalogAccess();
-    return () => {
-      cancelled = true;
-    };
-  }, [catalog.catalogTracks, ethRpcUrl, listenerEvmAddress]);
 
   useEffect(() => {
     const storedName = getStoredArtistName(activeEvmAddress);

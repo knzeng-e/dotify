@@ -40,7 +40,7 @@ open at once, stack and merge bottom-up.
 | 8b-1 | - | `refactor/frontend-providers-foundation` | `AppProviders` scaffold + `UiFeedbackProvider` + `WalletProvider`; TopBar, WalletModal, TransactionModal consume contexts | Done on branch (checks green; App.tsx 986 -> 859) |
 | 8b-2 | - | `refactor/frontend-providers-navigation` | `NavigationProvider`; popstate/history effects move out of `App.tsx` | Done on branch (checks green; App.tsx 859 -> 832) |
 | 8b-3 | - | `refactor/frontend-providers-release-form` | `ReleaseFormProvider` incl. Bulletin manifest-ref relocation; delete the `artistConsoleBulletinRef` hack | Done on branch (checks green; App.tsx 832 -> 845, see note) |
-| 8b-4 | - | `refactor/frontend-providers-catalog-session` | `CatalogProvider` + `SessionProvider`; ListenView, RoomsView, YouView, room modals consume contexts | Planned |
+| 8b-4 | - | `refactor/frontend-providers-catalog-session` | `CatalogProvider` + `SessionProvider` wrap `useCatalog`/`useSession`; catalog + one-link-join effects move in | Done on branch (checks green; App.tsx 845 -> 762) |
 | 8b-5 | - | `refactor/frontend-providers-studio-playback` | `ArtistStudioProvider` (mounted in `ArtistPortalView`) + `PlaybackProvider` (actions/transport context split); `App.tsx` lands as a composition shell | Planned |
 | 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/` (`ui`, `config`, `errors`, `hooks`, `types`, `utils`); relocate existing `components/ui`, `config`, `utils`, `types.ts` with import updates | Planned |
 
