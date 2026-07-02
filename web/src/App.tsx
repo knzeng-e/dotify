@@ -1,4 +1,4 @@
-import { Disc3, Link as LinkIcon } from 'lucide-react';
+import { Link as LinkIcon } from 'lucide-react';
 
 import { AuraBackground } from './components/AuraBackground';
 import { PlayerDock } from './components/PlayerDock';
@@ -19,7 +19,8 @@ import { useWallet } from './hooks/useWallet';
 import { zeroAddress } from 'viem';
 
 import { Metric } from './components/ui/Metric';
-import { WalletModal, WalletStatusPill } from './components/WalletModal';
+import { WalletModal } from './components/WalletModal';
+import { TopBar } from './components/TopBar';
 import { TransactionModal } from './components/TransactionModal';
 
 import { useCatalog } from './hooks/useCatalog';
@@ -787,17 +788,15 @@ export default function App() {
         onEmitPlayerState={session.emitPlayerState}
       />
       <div className='app-shell'>
-        <header className='topbar'>
-          <a className='brand' href='#top' aria-label='Dotify' onClick={() => setPublicArtistName(null)}>
-            <span className='brand-mark'>
-              <Disc3 size={21} />
-            </span>
-            <span>Dotify</span>
-          </a>
-          <nav className='nav-pills' aria-label='Navigation'>
-            <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnectWallet} />
-          </nav>
-        </header>
+        <TopBar
+          brandHref='#top'
+          brandAriaLabel='Dotify'
+          onBrandClick={() => setPublicArtistName(null)}
+          navAriaLabel='Navigation'
+          walletState={walletState}
+          onShowWallet={() => setShowWalletModal(true)}
+          onDisconnect={disconnectWallet}
+        />
 
         {walletModal}
 
