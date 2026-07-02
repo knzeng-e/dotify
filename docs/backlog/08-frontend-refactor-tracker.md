@@ -39,7 +39,7 @@ open at once, stack and merge bottom-up.
 | 8e | #51 | `refactor/frontend-topbar` | Extract shared `components/TopBar` (brand + wallet pill) used by both the listener shell and `ArtistPortalView` | Open (review) |
 | 8b-1 | - | `refactor/frontend-providers-foundation` | `AppProviders` scaffold + `UiFeedbackProvider` + `WalletProvider`; TopBar, WalletModal, TransactionModal consume contexts | Done on branch (checks green; App.tsx 986 -> 859) |
 | 8b-2 | - | `refactor/frontend-providers-navigation` | `NavigationProvider`; popstate/history effects move out of `App.tsx` | Done on branch (checks green; App.tsx 859 -> 832) |
-| 8b-3 | - | `refactor/frontend-providers-release-form` | `ReleaseFormProvider` incl. Bulletin manifest-ref relocation; delete the `artistConsoleBulletinRef` hack + the 8-setter injection into `useCatalog` | Planned |
+| 8b-3 | - | `refactor/frontend-providers-release-form` | `ReleaseFormProvider` incl. Bulletin manifest-ref relocation; delete the `artistConsoleBulletinRef` hack | Done on branch (checks green; App.tsx 832 -> 845, see note) |
 | 8b-4 | - | `refactor/frontend-providers-catalog-session` | `CatalogProvider` + `SessionProvider`; ListenView, RoomsView, YouView, room modals consume contexts | Planned |
 | 8b-5 | - | `refactor/frontend-providers-studio-playback` | `ArtistStudioProvider` (mounted in `ArtistPortalView`) + `PlaybackProvider` (actions/transport context split); `App.tsx` lands as a composition shell | Planned |
 | 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/` (`ui`, `config`, `errors`, `hooks`, `types`, `utils`); relocate existing `components/ui`, `config`, `utils`, `types.ts` with import updates | Planned |
@@ -76,3 +76,16 @@ open at once, stack and merge bottom-up.
   navigation are not yet provider-owned. Those props are removed in 8b-4 (catalog)
   once `CatalogProvider` exists. Both modals self-gate on their provider state and
   are rendered unconditionally by the shell.
+- 8b-2/8b-3 approach: providers own state; App still reads from context and passes
+  values into the still-in-App feature hooks (`useCatalog`/`useSession`/
+  `useArtistConsole`). The hook signatures stay unchanged (pure dependency
+  injection); the wiring relocates into `CatalogProvider`/`SessionProvider`/
+  `ArtistStudioProvider` in 8b-4/8b-5, which is what shrinks App to a shell. So
+  App.tsx can tick up slightly in a step (8b-3: 832 -> 845, a 28-line context
+  destructure replacing 10 `useState` lines) before dropping sharply once the
+  hooks move behind providers.
+- 8b-3 finding: `artistConsoleBulletinRef` was write-only (catalog wrote it via
+  `setBulletinManifestRef`, nothing read it - the artist console shows its own
+  separate `bulletinManifestRef` state). Relocating it into `ReleaseFormProvider`
+  is therefore a pure no-op-preserving move; it stays a write sink until a reader
+  is introduced.
