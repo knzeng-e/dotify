@@ -43,6 +43,7 @@ open at once, stack and merge bottom-up.
 | 8b-4 | - | `refactor/frontend-providers-catalog-session` | `CatalogProvider` + `SessionProvider` wrap `useCatalog`/`useSession`; catalog + one-link-join effects move in | Done on branch (checks green; App.tsx 845 -> 762) |
 | 8b-5 | - | `refactor/frontend-providers-studio-playback` | `ArtistStudioProvider` + `PlaybackProvider` wrap `useArtistConsole`/`usePlayback` + the open-track/preview handlers; App owns no hooks/state | Done on branch (checks green; App.tsx 762 -> 675; two deferrals, see notes) |
 | 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/`; relocate `components/ui` -> `shared/ui`, `config` -> `shared/config`, `utils` -> `shared/utils`, `types.ts` -> `shared/types.ts` with import updates | Done on branch (checks green; 15 renames + 47 import edits, +101/-101) |
+| 10 | - | `refactor/frontend-listener-shell` | Extract `views/ListenerShell` (full listener render tree, self-contained via context) + `features/wallet/supportSummary` (tested); App becomes a thin shell switch | Done on branch (checks green; App.tsx 675 -> 377) |
 
 ## Acceptance criteria coverage (ticket 08)
 
@@ -51,10 +52,12 @@ open at once, stack and merge bottom-up.
 - [x] Typed domain models introduced incrementally: AccessMode (PR1), RoomState (PR1),
       Track (PR2), PlaybackState (PR3), UploadState (PR5), ArtistRuntime access encoding (PR6).
 - [~] `App.tsx` becomes an app composition shell: providers/context boundary complete
-      (PR8b-1..8b-5) - App owns no feature hooks and no business state, reading everything
-      from the provider stack (986 -> 675 lines). Remaining: extract the listener render
-      tree into shell components + have `ArtistConsole`/`PlayerView` consume context
-      directly instead of large prop lists (deferred follow-up).
+      (PR8b-1..8b-5) and the listener render tree extracted into `views/ListenerShell`
+      (PR10). App owns no feature hooks and no business state; it is now a thin switch
+      between `ListenerShell` and `ArtistPortalView` plus the global effects and the
+      artist release handlers/effects (986 -> 377 lines). Remaining: move the artist
+      handlers/effects into an artist shell (pure switch) and have `ArtistConsole`/
+      `PlayerView` consume context instead of large prop lists (deferred follow-up).
 - [x] TypeScript remains strict (each PR builds under `tsc -b`).
 - [x] README documents the new frontend module structure (PR1+).
 - [x] Full `features/* + shared/* + app/*` tree in place: `features/*` (PR1-7),
