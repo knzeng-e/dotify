@@ -12,7 +12,16 @@ import { deployments } from './config/deployments';
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { uploadFileToPinata, uploadProtectedAudio } from './services/pinata';
-import { useWalletContext, useUiFeedback, useNavigation, useReleaseForm, useCatalogContext, useSessionContext } from './app/providers';
+import {
+  useWalletContext,
+  useUiFeedback,
+  useNavigation,
+  useReleaseForm,
+  useCatalogContext,
+  useSessionContext,
+  useArtistStudio,
+  usePlaybackContext
+} from './app/providers';
 
 import { Metric } from './components/ui/Metric';
 import { WalletModal } from './components/WalletModal';
@@ -29,11 +38,9 @@ import {
   nextReleaseStep,
   previousReleaseStep
 } from './features/artist-studio/releaseForm';
-import { historyStateObject } from './app/routing';
 import { NAV_ITEMS, VIEW_COPY } from './app/navigation';
 import { BottomNav, SideRail } from './components/PrimaryNav';
-import { useArtistConsole, getStoredArtistName } from './hooks/useArtistConsole';
-import { usePlayback } from './hooks/usePlayback';
+import { getStoredArtistName } from './hooks/useArtistConsole';
 
 import { ListenView } from './views/ListenView';
 import { PlayerView } from './views/PlayerView';
@@ -56,7 +63,7 @@ export default function App() {
 
   // ── Release form + identity (provider-owned) ─────────────────────────────────
   // The release draft and shared identity fields live in ReleaseFormProvider;
-  // App reads them here and passes them into the feature hooks and views.
+  // App reads what the views and its remaining handlers/effects need.
   const {
     title,
     setTitle,
@@ -72,7 +79,6 @@ export default function App() {
     setAccessMode,
     personhoodLevel,
     setPersonhoodLevel,
-    coverFile,
     setCoverFile,
     uploadToBulletinEnabled,
     setUploadToBulletinEnabled,
@@ -85,17 +91,14 @@ export default function App() {
   } = useReleaseForm();
 
   // ── Wallet + UI feedback (provider-owned) ─────────────────────────────────────
-  // Wallet identity, the frozen RPC endpoint, getActiveWalletClient, and the
-  // transaction/wallet-modal state now live in the provider stack (see
-  // app/providers). App reads them here and passes them into the feature hooks
-  // and views exactly as before.
-  const { setTransactionFeedback, setShowWalletModal } = useUiFeedback();
+  // Wallet identity and the transaction/wallet-modal state live in the provider
+  // stack (see app/providers). App reads only what its views and effects need.
+  const { setShowWalletModal } = useUiFeedback();
   const {
     walletState,
     connectedWallet,
     activeEvmAddress,
     activeSubstrateAddress,
-    activeSubstrateSigner,
     ethRpcUrl,
     bulletinAccountIndex,
     setBulletinAccountIndex,
@@ -108,18 +111,8 @@ export default function App() {
 
   // ── Navigation (provider-owned) ───────────────────────────────────────────────
   // Route/view state and history integration now live in NavigationProvider.
-  const {
-    activeView,
-    setActiveView,
-    isArtistPortal,
-    setIsArtistPortal,
-    publicArtistName,
-    setPublicArtistName,
-    railCollapsed,
-    setRailCollapsed,
-    navigateToView,
-    openArtistStudio
-  } = useNavigation();
+  const { activeView, isArtistPortal, publicArtistName, setPublicArtistName, railCollapsed, setRailCollapsed, navigateToView, openArtistStudio } =
+    useNavigation();
 
   // ── Catalog + session (provider-owned) ────────────────────────────────────────
   // useCatalog and useSession now live in CatalogProvider/SessionProvider, which
@@ -127,54 +120,12 @@ export default function App() {
   const catalog = useCatalogContext();
   const session = useSessionContext();
 
-  // ── Artist portal hook ────────────────────────────────────────────────────────
-  const artistConsole = useArtistConsole({
-    activeEvmAddress,
-    connectedWallet,
-    ethRpcUrl,
-    factoryAddress,
-    directoryAddress,
-    fileHash: catalog.fileHash,
-    title,
-    artistName,
-    description,
-    accessMode,
-    priceDot,
-    personhoodLevel,
-    royaltyBps,
-    audioSource: catalog.audioSource,
-    coverFile,
-    audioCID: catalog.audioCID,
-    coverCID: catalog.coverCID,
-    coverSource: catalog.coverSource,
-    activeSubstrateAddress,
-    activeSubstrateSigner,
-    artistTracks: [] as CatalogTrack[], // will be updated via derived below, but needed for initial call
-    setTransactionFeedback,
-    refreshCatalogFromRegistry: catalog.refreshCatalogFromRegistry,
-    setAudioCID: catalog.setAudioCID,
-    setCoverCID: catalog.setCoverCID,
-    uploadToBulletinEnabled,
-    audioUploadRef: catalog.audioUploadRef,
-    coverUploadRef: catalog.coverUploadRef
-  });
-
-  // ── Persistent playback layer ────────────────────────────────────────────────
-  // Owns the media elements + transport state so sound survives tab changes.
-  // handleOpenTrack / handleEnforcePreviewCutoff are hoisted function decls.
-  const playback = usePlayback({
-    mode: session.mode,
-    localAudioRef: catalog.localAudioRef,
-    remoteAudioRef: session.remoteAudioRef,
-    audioSource: catalog.audioSource,
-    remoteReady: session.remoteReady,
-    localStreamReady: session.localStreamReady,
-    playerState: catalog.playerState,
-    catalogTracks: catalog.catalogTracks,
-    selectedTrackId: catalog.selectedTrackId,
-    onOpenTrack: handleOpenTrack,
-    onEmitPlayerState: session.emitPlayerState
-  });
+  // ── Artist studio + playback (provider-owned) ─────────────────────────────────
+  // useArtistConsole and usePlayback now live in ArtistStudioProvider/
+  // PlaybackProvider, which also owns the royalty summary and the open-track /
+  // prepare-stream / preview-cutoff handlers. App reads their values here.
+  const { artistConsole, totalRoyaltyWei, uniqueRoyaltyListeners, paidRoyaltyTracks } = useArtistStudio();
+  const { playback, openTrack, prepareLocalStream, enforcePreviewCutoff } = usePlaybackContext();
 
   // ── Derived values ────────────────────────────────────────────────────────────
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
@@ -183,9 +134,6 @@ export default function App() {
   const streamTitle = catalog.trackInfo?.title || selectedTrack?.title || title;
   const streamArtist = catalog.trackInfo?.artist || selectedTrack?.artist || artistName;
   const activeListeners = session.listeners.filter(listener => listener.status === 'connected').length;
-  const totalRoyaltyWei = artistConsole.royaltyPayments.reduce((total, payment) => total + payment.amountWei, 0n);
-  const uniqueRoyaltyListeners = new Set(artistConsole.royaltyPayments.map(payment => payment.listener.toLowerCase())).size;
-  const paidRoyaltyTracks = new Set(artistConsole.royaltyPayments.map(payment => payment.trackHash.toLowerCase())).size;
   const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
   const hasArtistRuntime = Boolean(artistConsole.artistRuntimeAddress);
   const artistStudioLocked = deriveArtistStudioLocked(artistRegistrationAvailable, hasArtistRuntime);
@@ -341,41 +289,6 @@ export default function App() {
     setReleaseStep(nextReleaseStep(releaseStep));
   }
 
-  // ── Helpers bridging hooks ─────────────────────────────────────────────────────
-  function handlePrepareLocalStream() {
-    void session.prepareLocalStream(catalog.audioSource, catalog.trackInfo);
-  }
-
-  function handleEnforcePreviewCutoff() {
-    const hostingRoom = session.mode === 'host' && Boolean(session.roomId);
-    catalog.enforcePreviewCutoff(catalog.catalogTracks, catalog.selectedTrackId, {
-      // Room doctrine: an unauthorized host streams the 42% preview and the
-      // playlist auto-advances instead of stalling the room.
-      onPreviewEnded: hostingRoom
-        ? (_ended, nextTrack) => {
-            if (nextTrack) {
-              void catalog.selectTrack(nextTrack, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
-            }
-          }
-        : undefined
-    });
-  }
-
-  function handleOpenTrack(track: CatalogTrack) {
-    setPublicArtistName(null);
-    if (isArtistPortal) {
-      const nextState = { ...historyStateObject(window.history.state), dotifyView: 'player' };
-      setIsArtistPortal(false);
-      setActiveView('player');
-      window.history.pushState(nextState, '', '/');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      void catalog.selectTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
-      return;
-    }
-
-    void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
-  }
-
   function handleOpenArtistProfile(name: string) {
     setPublicArtistName(name);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -518,7 +431,7 @@ export default function App() {
             onSetUploadToBulletinEnabled={setUploadToBulletinEnabled}
             onSetBulletinAccountIndex={setBulletinAccountIndex}
             onRegisterRights={artistConsole.registerRights}
-            onOpenTrack={handleOpenTrack}
+            onOpenTrack={openTrack}
             royaltyPayments={artistConsole.royaltyPayments}
             royaltyStatus={artistConsole.royaltyStatus}
             isRefreshingRoyalties={artistConsole.isRefreshingRoyalties}
@@ -566,9 +479,9 @@ export default function App() {
         localAudioRef={catalog.localAudioRef}
         remoteAudioRef={session.remoteAudioRef}
         playback={playback}
-        onPrepareLocalStream={handlePrepareLocalStream}
+        onPrepareLocalStream={prepareLocalStream}
         onSetupPreviewLimit={catalog.setupPreviewLimit}
-        onEnforcePreviewCutoff={handleEnforcePreviewCutoff}
+        onEnforcePreviewCutoff={enforcePreviewCutoff}
         onEmitPlayerState={session.emitPlayerState}
       />
       <div className='app-shell'>
@@ -587,7 +500,7 @@ export default function App() {
                 openRooms={session.openRooms}
                 catalogAccessByTrackId={catalog.catalogAccessByTrackId}
                 onBack={() => setPublicArtistName(null)}
-                onOpenTrack={handleOpenTrack}
+                onOpenTrack={openTrack}
                 onOpenArtistRoom={handleOpenArtistRoom}
                 onJoinRoom={handleJoinRoomFromProfile}
               />
@@ -612,7 +525,7 @@ export default function App() {
                     openRooms={session.openRooms}
                     selectedTrackId={catalog.selectedTrackId}
                     catalogAccessByTrackId={catalog.catalogAccessByTrackId}
-                    onOpenTrack={handleOpenTrack}
+                    onOpenTrack={openTrack}
                     onOpenArtist={handleOpenArtistProfile}
                     onJoinRoom={session.joinRoom}
                     onStartRoom={() => setCreateRoomOpen(true)}

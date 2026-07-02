@@ -228,7 +228,17 @@ and `SessionProvider` (`useSessionContext`) then wrap the `useCatalog` and
 wiring App.tsx used to do moves into the providers, and the catalog-owned effects
 (load the on-chain catalog, sync per-track access) and the one-link room-join
 effect move with them. This removes the catalog/session prop drilling into the
-views. Later steps add artist-studio and playback providers.
+views. Finally `ArtistStudioProvider` (`useArtistStudio`) wraps `useArtistConsole`
+plus the royalty summary, and `PlaybackProvider` (`usePlaybackContext`) wraps
+`usePlayback` and owns the cross-domain open-track / prepare-stream / preview-cutoff
+handlers. With that, `App.tsx` calls no feature hooks and owns no business state:
+it reads from the contexts and composes the render tree.
+
+Two follow-ups are intentionally deferred: extracting the listener render tree into
+shell components (and having `ArtistConsole`/`PlayerView` consume context directly
+instead of receiving large prop lists), and splitting `PlaybackProvider` into a
+separate fast-ticking transport context. The second is an optimization to make only
+if profiling shows the transport updates re-render the tree wastefully.
 
 ## Current Limitations
 
