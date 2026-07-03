@@ -35,7 +35,6 @@ import {
   useArtistStudio
 } from '../app/providers';
 import { NAV_ITEMS, VIEW_COPY } from '../app/navigation';
-import { trackHasAccess } from '../features/access/accessPolicy';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from '../features/catalog/trackModel';
 import { deriveSupportSummary } from '../features/wallet/supportSummary';
 import { getStoredArtistName } from '../hooks/useArtistConsole';
@@ -50,7 +49,7 @@ export function ListenerShell() {
   const { activeView, publicArtistName, setPublicArtistName, railCollapsed, setRailCollapsed, navigateToView, openArtistStudio } = useNavigation();
   const { walletState, activeEvmAddress, disconnect: disconnectWallet } = useWalletContext();
   const { setShowWalletModal } = useUiFeedback();
-  const { title, artistName, accessMode, priceDot } = useReleaseForm();
+  const { artistName } = useReleaseForm();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
 
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
@@ -58,10 +57,7 @@ export function ListenerShell() {
   const [pendingArtistTrack, setPendingArtistTrack] = useState<CatalogTrack | null>(null);
 
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
-  const selectedTrackHasAccess = selectedTrack ? trackHasAccess(selectedTrack, catalog.catalogAccessByTrackId) : false;
   const artistTracks = catalog.catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
-  const streamTitle = catalog.trackInfo?.title || selectedTrack?.title || title;
-  const streamArtist = catalog.trackInfo?.artist || selectedTrack?.artist || artistName;
   const activeListeners = session.listeners.filter(listener => listener.status === 'connected').length;
   const currentPage = VIEW_COPY[activeView];
   const { paidTracks, supportedArtists } = deriveSupportSummary(catalog.catalogTracks, catalog.catalogPaidAccessByTrackId);
@@ -162,44 +158,7 @@ export function ListenerShell() {
                   />
                 )}
 
-                {activeView === 'player' && (
-                  <PlayerView
-                    trackInfo={catalog.trackInfo}
-                    selectedTrack={selectedTrack}
-                    coverSource={catalog.coverSource}
-                    accessGate={catalog.accessGate}
-                    playback={playback}
-                    mode={session.mode}
-                    hostName={session.hostName}
-                    roomId={session.roomId}
-                    sessionLink={session.sessionLink}
-                    sessionAction={session.sessionAction}
-                    sessionStatus={session.sessionStatus}
-                    listenerCount={session.listenerCount}
-                    listeners={session.listeners}
-                    remoteReady={session.remoteReady}
-                    localStreamReady={session.localStreamReady}
-                    roomPlaybackMode={session.roomPlaybackMode}
-                    error={session.error}
-                    streamTitle={streamTitle}
-                    streamArtist={streamArtist}
-                    selectedTrackHasAccess={selectedTrackHasAccess}
-                    accessMode={accessMode}
-                    priceDot={priceDot}
-                    onShowCreateModal={() => setCreateRoomOpen(true)}
-                    onShowJoinModal={() => setJoinRoomOpen(true)}
-                    onLeaveSession={session.leaveSession}
-                    onRetryRoomAudio={session.requestRoomAudio}
-                    onCopySessionLink={session.copySessionLink}
-                    onSetAccessGate={catalog.setAccessGate}
-                    onPayForTrackAccess={track => {
-                      void catalog.payForTrackAccess(track);
-                    }}
-                    onShowWalletModal={() => setShowWalletModal(true)}
-                    onNavigateToListen={() => navigateToView('listen')}
-                    onOpenArtist={handleOpenArtistProfile}
-                  />
-                )}
+                {activeView === 'player' && <PlayerView onShowCreateModal={() => setCreateRoomOpen(true)} onShowJoinModal={() => setJoinRoomOpen(true)} />}
 
                 {activeView === 'rooms' && (
                   <RoomsView
