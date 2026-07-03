@@ -267,12 +267,18 @@ lists. `views/PlayerView.tsx` reads its track/session/playback state from
 `useCatalogContext`/`useSessionContext`/`usePlaybackContext` (plus navigation, UI
 feedback, and the release-form draft), so `ListenerShell` renders it with just the
 two room-modal triggers whose open state it owns (down from ~30 props to 2).
+`views/artist/ArtistConsole.tsx` and `views/artist/ArtistOnboarding.tsx` do the
+same: the console reads context and owns the upload handlers + studio derivations,
+distributing to its presentational studio tabs (OverviewTab, NewReleaseTab, ...)
+which keep their prop interfaces. As a result `ArtistShell` collapses to the two
+portal-gated effects plus a prop-free `<ArtistConsole /> | <ArtistOnboarding />`
+switch (~34 lines).
 
-Remaining follow-ups, intentionally deferred: give `ArtistConsole` the same
-treatment (it and its studio tabs still take a large prop list from `ArtistShell`),
-and split `PlaybackProvider` into a separate fast-ticking transport context. The
-last is an optimization to make only if profiling shows the transport updates
-re-render the tree wastefully.
+Remaining follow-up, intentionally deferred: split `PlaybackProvider` into a
+separate fast-ticking transport context. That is an optimization to make only if
+profiling shows the transport updates re-render the tree wastefully. The studio
+tabs beneath `ArtistConsole` remain presentational (fed by the console), which is
+appropriate component composition rather than shell-level prop drilling.
 
 ## Current Limitations
 

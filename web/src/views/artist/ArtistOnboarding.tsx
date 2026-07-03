@@ -2,38 +2,29 @@ import { BadgeCheck, Disc3, ExternalLink, FileAudio, LockKeyhole, RefreshCw, Spa
 import { useState } from 'react';
 import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
 import { shorten } from '../../shared/utils/format';
-import type { CatalogTrack } from '../../shared/types';
+import { deployments } from '../../shared/config/deployments';
+import { isTrackManagedByArtist } from '../../features/catalog/trackModel';
+import { useReleaseForm, useWalletContext, useUiFeedback, useCatalogContext, useArtistStudio } from '../../app/providers';
 
-type ArtistOnboardingProps = {
-  activeEvmAddress: `0x${string}`;
-  artistName: string;
-  artistRegistrationStatus: string;
-  isRegisteringArtist: boolean;
-  isRefreshingArtistRuntime: boolean;
-  artistRegistrationAvailable: boolean;
-  connectedWallet: { label: string } | null;
-  onUpdateArtistName: (name: string) => void;
-  onRegisterArtist: () => void;
-  onRefreshArtistRuntime: () => void;
-  onShowWalletModal: () => void;
-  artistTracks: CatalogTrack[];
-};
+// Self-contained via context, mirroring ArtistConsole.
+export function ArtistOnboarding() {
+  const { artistName, setArtistName } = useReleaseForm();
+  const { connectedWallet, activeEvmAddress } = useWalletContext();
+  const { setShowWalletModal } = useUiFeedback();
+  const catalog = useCatalogContext();
+  const { artistConsole } = useArtistStudio();
 
-export function ArtistOnboarding(props: ArtistOnboardingProps) {
-  const {
-    activeEvmAddress,
-    artistName,
-    artistRegistrationStatus,
-    isRegisteringArtist,
-    isRefreshingArtistRuntime,
-    artistRegistrationAvailable,
-    connectedWallet,
-    onUpdateArtistName,
-    onRegisterArtist,
-    onRefreshArtistRuntime,
-    onShowWalletModal,
-    artistTracks
-  } = props;
+  const artistRegistrationStatus = artistConsole.artistRegistrationStatus;
+  const isRegisteringArtist = artistConsole.isRegisteringArtist;
+  const isRefreshingArtistRuntime = artistConsole.isRefreshingArtistRuntime;
+  const artistRegistrationAvailable = Boolean(deployments.factory && deployments.directory);
+  const artistTracks = connectedWallet ? catalog.catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName)) : [];
+  const onUpdateArtistName = (name: string) => artistConsole.updateArtistName(name, setArtistName);
+  const onRegisterArtist = artistConsole.registerArtist;
+  const onRefreshArtistRuntime = () => {
+    void artistConsole.refreshArtistRuntime(true);
+  };
+  const onShowWalletModal = () => setShowWalletModal(true);
 
   const [consented, setConsented] = useState(false);
   const needsWallet = !connectedWallet;
