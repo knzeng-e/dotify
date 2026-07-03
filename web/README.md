@@ -243,11 +243,22 @@ plus the royalty summary, and `PlaybackProvider` (`usePlaybackContext`) wraps
 handlers. With that, `App.tsx` calls no feature hooks and owns no business state:
 it reads from the contexts and composes the render tree.
 
-Two follow-ups are intentionally deferred: extracting the listener render tree into
-shell components (and having `ArtistConsole`/`PlayerView` consume context directly
-instead of receiving large prop lists), and splitting `PlaybackProvider` into a
-separate fast-ticking transport context. The second is an optimization to make only
-if profiling shows the transport updates re-render the tree wastefully.
+The render tree is then split by shell. `views/ListenerShell.tsx` holds the entire
+listener-facing tree (top bar, nav rail, page views, player dock, room modals) plus
+the listener-only UI state and handlers; it is self-contained, consuming the
+provider stack directly so `App.tsx` renders `<ListenerShell />` with no props.
+`views/ArtistPortalView.tsx` is the other shell. `App.tsx` is now a thin switch
+between the two (plus the global aura/living-light/cleanup effects and the artist
+release handlers/effects), down from ~990 lines to under 400. The
+"artists backed / tracks unlocked" rollup both shells show is a pure, tested helper
+(`features/wallet/supportSummary.ts`).
+
+Remaining follow-ups, intentionally deferred: move the artist release handlers and
+effects out of `App.tsx` into an artist shell (so App is a pure switch), have
+`ArtistConsole`/`PlayerView` consume context directly instead of receiving large
+prop lists, and split `PlaybackProvider` into a separate fast-ticking transport
+context. The last is an optimization to make only if profiling shows the transport
+updates re-render the tree wastefully.
 
 ## Current Limitations
 
