@@ -1,0 +1,3 @@
+# Auto-generated ABI bindings (see contracts/evm/scripts/generate-abis.mjs).
+# tsc still typechecks these; they are machine output so we do not format them.
+src/generated/

@@ -5,7 +5,7 @@ import eslintConfigPrettier from "eslint-config-prettier";
 
 export default tseslint.config(
 	{
-		ignores: ["dist/**", "dist-bulletin/**", "node_modules/**", ".papi/**", "tsconfig.tsbuildinfo"],
+		ignores: ["dist/**", "dist-bulletin/**", "node_modules/**", ".papi/**", "tsconfig.tsbuildinfo", "src/generated/**"],
 	},
 	js.configs.recommended,
 	...tseslint.configs.recommended,

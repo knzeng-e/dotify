@@ -40,7 +40,7 @@ Do not add ornamental product features until the following spine is stable:
 | `07-room-join-e2e-coverage.md` | #8 | Delivered (see delivery notes in the ticket) | Room join and host-access playback end-to-end coverage |
 | `18-production-preview-assets.md` | #27 | Open | Separate preview assets for server-keyed protected tracks |
 | `08-frontend-feature-module-refactor.md` | #9 | In progress (foundation PR: vitest + access/room feature modules) | Frontend feature-module refactor |
-| `09-generated-abi-bindings.md` | #10 | Open | Generated ABI bindings |
+| `09-generated-abi-bindings.md` | #10 | Delivered (see delivery notes in the ticket) | Generated ABI bindings |
 
 ## Sprint 2 — Product hardening and philosophical differentiation
 
