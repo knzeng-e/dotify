@@ -262,11 +262,17 @@ the wallet + transaction modals both shells show are rendered through
 `components/AccountWalletModal.tsx` (the context adapter for the presentational
 `WalletModal`).
 
-Remaining follow-ups, intentionally deferred: have `ArtistConsole`/`PlayerView`
-consume context directly instead of receiving large prop lists, and split
-`PlaybackProvider` into a separate fast-ticking transport context. The last is an
-optimization to make only if profiling shows the transport updates re-render the
-tree wastefully.
+Page-level views then consume context directly rather than taking large prop
+lists. `views/PlayerView.tsx` reads its track/session/playback state from
+`useCatalogContext`/`useSessionContext`/`usePlaybackContext` (plus navigation, UI
+feedback, and the release-form draft), so `ListenerShell` renders it with just the
+two room-modal triggers whose open state it owns (down from ~30 props to 2).
+
+Remaining follow-ups, intentionally deferred: give `ArtistConsole` the same
+treatment (it and its studio tabs still take a large prop list from `ArtistShell`),
+and split `PlaybackProvider` into a separate fast-ticking transport context. The
+last is an optimization to make only if profiling shows the transport updates
+re-render the tree wastefully.
 
 ## Current Limitations
 

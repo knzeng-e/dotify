@@ -24,87 +24,64 @@ import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
 import { formatTime } from '../shared/utils/format';
-import { isPolicyManagedTrack } from '../features/access/accessPolicy';
+import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import { playbackStatusLabel, transportProgressPercent } from '../features/player/playbackStatus';
-import { type PlaybackControls } from '../hooks/usePlayback';
-import type { AccessGate, AccessMode, CatalogTrack, ListenerRecord, Mode, SessionAction, TrackInfo } from '../shared/types';
+import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
+import type { CatalogTrack } from '../shared/types';
 import { useEffect, useState, type CSSProperties } from 'react';
 
+// The player page reads its track/session/playback state from context. The only
+// props are the two room-modal triggers, whose open state lives in ListenerShell.
 type PlayerViewProps = {
-  // Track/audio state
-  trackInfo: TrackInfo | null;
-  selectedTrack: CatalogTrack | undefined;
-  coverSource: string;
-  accessGate: AccessGate | null;
-  // Shared persistent playback
-  playback: PlaybackControls;
-  // Session state
-  mode: Mode;
-  hostName: string;
-  roomId: string;
-  sessionLink: string;
-  sessionAction: SessionAction;
-  sessionStatus: string;
-  listenerCount: number;
-  listeners: ListenerRecord[];
-  remoteReady: boolean;
-  localStreamReady: boolean;
-  roomPlaybackMode: 'full' | 'preview';
-  error: string | null;
-  // Derived display values
-  streamTitle: string;
-  streamArtist: string;
-  selectedTrackHasAccess: boolean;
-  accessMode: AccessMode;
-  priceDot: string;
-  // Callbacks
   onShowCreateModal: () => void;
   onShowJoinModal: () => void;
-  onLeaveSession: () => void;
-  onRetryRoomAudio: () => void;
-  onCopySessionLink: () => void;
-  onSetAccessGate: (gate: AccessGate | null) => void;
-  onPayForTrackAccess: (track: CatalogTrack) => void;
-  onShowWalletModal: () => void;
-  onNavigateToListen: () => void;
-  onOpenArtist: (artistName: string) => void;
 };
 
-export function PlayerView({
-  trackInfo,
-  selectedTrack,
-  coverSource,
-  accessGate,
-  playback,
-  mode,
-  hostName,
-  roomId,
-  sessionLink,
-  sessionAction,
-  sessionStatus,
-  listenerCount,
-  listeners,
-  remoteReady,
-  localStreamReady,
-  roomPlaybackMode,
-  error,
-  streamTitle,
-  streamArtist,
-  selectedTrackHasAccess,
-  accessMode,
-  priceDot,
-  onShowCreateModal,
-  onShowJoinModal,
-  onLeaveSession,
-  onRetryRoomAudio,
-  onCopySessionLink,
-  onSetAccessGate,
-  onPayForTrackAccess,
-  onShowWalletModal,
-  onNavigateToListen,
-  onOpenArtist
-}: PlayerViewProps) {
+export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewProps) {
+  const catalog = useCatalogContext();
+  const session = useSessionContext();
+  const { playback } = usePlaybackContext();
+  const { setShowWalletModal } = useUiFeedback();
+  const { navigateToView, setPublicArtistName } = useNavigation();
+  const { title, artistName, accessMode, priceDot } = useReleaseForm();
+
+  const trackInfo = catalog.trackInfo;
+  const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
+  const coverSource = catalog.coverSource;
+  const accessGate = catalog.accessGate;
+  const {
+    mode,
+    hostName,
+    roomId,
+    sessionLink,
+    sessionAction,
+    sessionStatus,
+    listenerCount,
+    listeners,
+    remoteReady,
+    localStreamReady,
+    roomPlaybackMode,
+    error
+  } = session;
+  const streamTitle = trackInfo?.title || selectedTrack?.title || title;
+  const streamArtist = trackInfo?.artist || selectedTrack?.artist || artistName;
+  const selectedTrackHasAccess = selectedTrack ? trackHasAccess(selectedTrack, catalog.catalogAccessByTrackId) : false;
+
+  const onLeaveSession = session.leaveSession;
+  const onRetryRoomAudio = session.requestRoomAudio;
+  const onCopySessionLink = session.copySessionLink;
+  const onSetAccessGate = catalog.setAccessGate;
+  const onPayForTrackAccess = (track: CatalogTrack) => {
+    void catalog.payForTrackAccess(track);
+  };
+  const onShowWalletModal = () => setShowWalletModal(true);
+  const onNavigateToListen = () => navigateToView('listen');
+  const onOpenArtist = (name: string) => {
+    setPublicArtistName(name);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const effectiveAccessMode = trackInfo?.accessMode ?? selectedTrack?.accessMode ?? accessMode;
   const effectivePriceDot = trackInfo?.priceDot ?? selectedTrack?.priceDot ?? priceDot;
   const [reactions, setReactions] = useState<Array<{ id: number; emoji: string; x: number }>>([]);

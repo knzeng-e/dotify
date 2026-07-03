@@ -45,6 +45,7 @@ open at once, stack and merge bottom-up.
 | 9 | - | `refactor/frontend-shared-tree` | Introduce `shared/`; relocate `components/ui` -> `shared/ui`, `config` -> `shared/config`, `utils` -> `shared/utils`, `types.ts` -> `shared/types.ts` with import updates | Done on branch (checks green; 15 renames + 47 import edits, +101/-101) |
 | 10 | - | `refactor/frontend-listener-shell` | Extract `views/ListenerShell` (full listener render tree, self-contained via context) + `features/wallet/supportSummary` (tested); App becomes a thin shell switch | Done on branch (checks green; App.tsx 675 -> 377) |
 | 11 | - | `refactor/frontend-artist-shell` | Extract `views/ArtistShell` (artist portal content + handlers + gated effects) + `components/AccountWalletModal`; App is now a pure switch (69 lines) | Done on branch (checks green; App.tsx 377 -> 69) |
+| 12 | - | `refactor/frontend-playerview-context` | `PlayerView` consumes context directly (catalog/session/playback/nav/ui/release-form); ~30 props -> 2 modal triggers | Done on branch (checks green) |
 
 ## Acceptance criteria coverage (ticket 08)
 
