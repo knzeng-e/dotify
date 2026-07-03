@@ -16,7 +16,7 @@ import { historyStateObject } from '../routing';
 import { useNavigation } from './NavigationProvider';
 import { useCatalogContext } from './CatalogProvider';
 import { useSessionContext } from './SessionProvider';
-import type { CatalogTrack } from '../../types';
+import type { CatalogTrack } from '../../shared/types';
 
 type PlaybackValue = {
   playback: ReturnType<typeof usePlayback>;

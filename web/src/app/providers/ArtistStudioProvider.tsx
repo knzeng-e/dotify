@@ -13,12 +13,12 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useArtistConsole } from '../../hooks/useArtistConsole';
-import { deployments } from '../../config/deployments';
+import { deployments } from '../../shared/config/deployments';
 import { useWalletContext } from './WalletProvider';
 import { useUiFeedback } from './UiFeedbackProvider';
 import { useReleaseForm } from './ReleaseFormProvider';
 import { useCatalogContext } from './CatalogProvider';
-import type { CatalogTrack } from '../../types';
+import type { CatalogTrack } from '../../shared/types';
 
 type ArtistStudioValue = {
   artistConsole: ReturnType<typeof useArtistConsole>;

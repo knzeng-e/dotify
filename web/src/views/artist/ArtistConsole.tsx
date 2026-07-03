@@ -1,10 +1,10 @@
-import type { ArtistTab, CatalogTrack, RoyaltyPayment, TrackInfo } from '../../types';
-import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseStep } from '../../types';
+import type { ArtistTab, CatalogTrack, RoyaltyPayment, TrackInfo } from '../../shared/types';
+import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseStep } from '../../shared/types';
 import { useEffect, useState, type ChangeEvent, type CSSProperties } from 'react';
 import { BadgeCheck, ExternalLink } from 'lucide-react';
-import { getBlockscoutAddressUrl } from '../../utils/explorer';
-import { shorten } from '../../utils/format';
-import { auraForName } from '../../utils/aura';
+import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
+import { shorten } from '../../shared/utils/format';
+import { auraForName } from '../../shared/utils/aura';
 import { OverviewTab } from './OverviewTab';
 import { NewReleaseTab } from './NewReleaseTab';
 import { ReleasesTab } from './ReleasesTab';

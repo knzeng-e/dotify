@@ -4,7 +4,7 @@
 // path + history.state). These helpers hold the pure decisions so they are
 // testable without a DOM; App.tsx passes the window values in.
 
-import type { View } from '../types';
+import type { View } from '../shared/types';
 
 /** Type guard for the four main app views. */
 export function isDotifyView(value: unknown): value is View {

@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
-import type { CatalogTrack, Mode, PlayerState } from '../types';
+import type { CatalogTrack, Mode, PlayerState } from '../shared/types';
 import type { AudioStatus } from '../features/player/playbackStatus';
 
 export type PlaybackControls = ReturnType<typeof usePlayback>;

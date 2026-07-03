@@ -1,10 +1,10 @@
 import { BadgeCheck, Disc3, FileAudio, Library, LockKeyhole, Upload } from 'lucide-react';
-import { PanelTitle } from '../../components/ui/PanelTitle';
-import { EndpointRow } from '../../components/ui/EndpointRow';
-import { accessModeLabelFromState, shorten } from '../../utils/format';
+import { PanelTitle } from '../../shared/ui/PanelTitle';
+import { EndpointRow } from '../../shared/ui/EndpointRow';
+import { accessModeLabelFromState, shorten } from '../../shared/utils/format';
 import { devAccounts } from '../../hooks/useDevAccounts';
 import { RELEASE_STEPS } from '../../features/artist-studio/releaseForm';
-import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseStep } from '../../types';
+import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseStep } from '../../shared/types';
 import type { ChangeEvent } from 'react';
 
 type NewReleaseTabProps = {

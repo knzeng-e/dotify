@@ -1,6 +1,6 @@
 import { Disc3, Headphones, X } from 'lucide-react';
 import { Dialog } from './Dialog';
-import type { SessionAction } from '../types';
+import type { SessionAction } from '../shared/types';
 
 type JoinRoomModalProps = {
   displayName: string;

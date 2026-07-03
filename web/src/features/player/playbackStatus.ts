@@ -3,7 +3,7 @@
 // Extracted from usePlayback (status type + label) and PlayerView (transport
 // progress math) so the presentational mapping is testable without React.
 
-import type { Mode } from '../../types';
+import type { Mode } from '../../shared/types';
 
 export type AudioStatus =
   | 'idle' //            nothing selected yet

@@ -1,7 +1,7 @@
 import type { Chain } from 'viem';
 import { createWalletClient, http } from 'viem';
 import type { ConnectedWallet } from '../hooks/useWallet';
-import type { AccessMode, CatalogTrack, PersonhoodLevel } from '../types';
+import type { AccessMode, CatalogTrack, PersonhoodLevel } from '../shared/types';
 
 export const isArtistPublishE2e = import.meta.env.VITE_E2E_ARTIST_PUBLISH === 'true';
 

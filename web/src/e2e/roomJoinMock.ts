@@ -15,7 +15,7 @@
 // wallet, and never request or receive a content key. This mock exposes a
 // per-context content-key counter so the spec can assert that boundary.
 
-import type { CatalogTrack } from '../types';
+import type { CatalogTrack } from '../shared/types';
 
 export const isRoomJoinE2e = import.meta.env.VITE_E2E_ROOM_JOIN === 'true';
 

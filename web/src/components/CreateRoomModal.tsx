@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import { Dialog } from './Dialog';
-import type { CatalogTrack } from '../types';
+import type { CatalogTrack } from '../shared/types';
 
 function SvgBroadcast({ size }: { size: number }) {
   return (

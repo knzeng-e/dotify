@@ -1,7 +1,7 @@
 import { CircleAlert, CircleCheckBig, Disc3, X } from 'lucide-react';
 import { Dialog } from './Dialog';
-import { getBlockscoutTxUrl } from '../utils/explorer';
-import { shorten } from '../utils/format';
+import { getBlockscoutTxUrl } from '../shared/utils/explorer';
+import { shorten } from '../shared/utils/format';
 import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
 
 export function TransactionModal() {

@@ -4,7 +4,7 @@
 // room feels populated and people stay distinguishable.
 
 import type { CSSProperties } from 'react';
-import { hashHue } from '../utils/aura';
+import { hashHue } from '../shared/utils/aura';
 
 type AvatarProps = {
   name: string;

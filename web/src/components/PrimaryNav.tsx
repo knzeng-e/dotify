@@ -3,7 +3,7 @@
 // from App.tsx, where the two renders were duplicated inline.
 
 import { PanelLeftClose, PanelLeftOpen, type LucideIcon } from 'lucide-react';
-import type { View } from '../types';
+import type { View } from '../shared/types';
 
 export type PrimaryNavItem = { view: View; label: string; icon: LucideIcon; onSelect: () => void };
 

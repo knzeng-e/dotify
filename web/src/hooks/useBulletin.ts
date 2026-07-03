@@ -1,5 +1,5 @@
-import { hashBytes } from '../utils/hash';
-import { BULLETIN_WS_URL } from '../config/network';
+import { hashBytes } from '../shared/utils/hash';
+import { BULLETIN_WS_URL } from '../shared/config/network';
 import { createChainClient } from '@polkadot-apps/chain-client';
 import { bulletin } from '@polkadot-apps/descriptors/bulletin';
 import { Binary, Enum, type PolkadotSigner, type TypedApi } from 'polkadot-api';

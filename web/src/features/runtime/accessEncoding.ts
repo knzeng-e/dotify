@@ -5,7 +5,7 @@
 // duplicated across useArtistConsole (encode, on register) and useCatalog
 // (decode, on catalog load).
 
-import type { AccessMode, PersonhoodLevel } from '../../types';
+import type { AccessMode, PersonhoodLevel } from '../../shared/types';
 
 /** Access mode -> chain uint8 (human-free = 0, classic = 1). */
 export function encodeAccessMode(accessMode: AccessMode): number {

@@ -1,10 +1,10 @@
 import { ChevronDown, CircleCheckBig, Disc3, RefreshCw, Wallet } from 'lucide-react';
-import { PanelTitle } from '../../components/ui/PanelTitle';
-import { EndpointRow } from '../../components/ui/EndpointRow';
-import { Metric } from '../../components/ui/Metric';
-import { getBlockscoutAddressUrl, getBlockscoutBlockUrl, getBlockscoutTxUrl } from '../../utils/explorer';
-import { formatPaymentDate, formatWeiAsDot, shorten } from '../../utils/format';
-import type { RoyaltyPayment } from '../../types';
+import { PanelTitle } from '../../shared/ui/PanelTitle';
+import { EndpointRow } from '../../shared/ui/EndpointRow';
+import { Metric } from '../../shared/ui/Metric';
+import { getBlockscoutAddressUrl, getBlockscoutBlockUrl, getBlockscoutTxUrl } from '../../shared/utils/explorer';
+import { formatPaymentDate, formatWeiAsDot, shorten } from '../../shared/utils/format';
+import type { RoyaltyPayment } from '../../shared/types';
 
 type RoyaltiesTabProps = {
   royaltyPayments: RoyaltyPayment[];

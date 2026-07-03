@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react';
 import { getGatewayUrl } from '../services/pinata';
-import { ensureContract, getPublicClient, artistDirectoryAbi, musicRegistryAbi, musicAccessAbi, musicRoyaltiesAbi } from '../config/contracts';
-import { encodeAudioBufferPreviewAsWav } from '../utils/audio';
-import { decryptAudio, hexToBytes } from '../utils/crypto';
-import { formatWeiAsDot } from '../utils/format';
+import { ensureContract, getPublicClient, artistDirectoryAbi, musicRegistryAbi, musicAccessAbi, musicRoyaltiesAbi } from '../shared/config/contracts';
+import { encodeAudioBufferPreviewAsWav } from '../shared/utils/audio';
+import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
+import { formatWeiAsDot } from '../shared/utils/format';
 import { fetchIpfsCid } from '../services/pinata';
 import { isKeyServiceConfigured, requestContentKey, type KeyRequestPurpose } from '../services/keyService';
-import { auraForTrack } from '../utils/aura';
-import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../utils/protectedAudio';
+import { auraForTrack } from '../shared/utils/aura';
+import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../shared/utils/protectedAudio';
 import { isPolicyManagedTrack, playbackModeForAccess } from '../features/access/accessPolicy';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
@@ -43,7 +43,7 @@ import type {
   RoyaltySplit,
   TrackInfo,
   TransactionFeedback
-} from '../types';
+} from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
 
 type AudioContextWindow = Window &
@@ -131,7 +131,7 @@ export type UseCatalogDeps = {
   setShowWalletModal: (show: boolean) => void;
   setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
   navigateToView: (view: 'listen' | 'player' | 'rooms') => void;
-  getActiveWalletClient: () => Promise<Awaited<ReturnType<typeof import('../config/contracts').getWalletClient>>>;
+  getActiveWalletClient: () => Promise<Awaited<ReturnType<typeof import('../shared/config/contracts').getWalletClient>>>;
   setBulletinManifestRef: (ref: string) => void;
   setAccessMode: (mode: AccessMode) => void;
   setPriceDot: (price: string) => void;
@@ -562,8 +562,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     const runtimeAddress = runtimeAddressFromTrackId(track);
     if (!runtimeAddress) return;
 
-    const { musicRoyaltiesAbi, getPublicClient: getClient } = await import('../config/contracts');
-    const { dotToPlanck } = await import('../utils/format');
+    const { musicRoyaltiesAbi, getPublicClient: getClient } = await import('../shared/config/contracts');
+    const { dotToPlanck } = await import('../shared/utils/format');
 
     const priceWei = dotToPlanck(track.priceDot);
 

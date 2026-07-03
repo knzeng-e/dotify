@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CatalogTrack } from '../../types';
+import type { CatalogTrack } from '../../shared/types';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist, localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from './trackModel';
 
 const baseTrack: CatalogTrack = {
