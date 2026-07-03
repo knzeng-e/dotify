@@ -7,7 +7,7 @@ primary_region = "ams"
 [env]
   API_PORT = "8790"
   NODE_ENV = "production"
-  PASEO_ASSET_HUB_RPC = "https://services.polkadothub-rpc.com/testnet"
+  PASEO_ASSET_HUB_RPC = "https://eth-rpc-testnet.polkadot.io/"
   DOTIFY_FACTORY_ADDRESS = "0x74ba85c2b29d2acb3777b9b3ca26c286945cae3c"
   DOTIFY_DIRECTORY_ADDRESS = "0xdd92194909df3dc5c3d254b53f7283d025c35d8c"
   DOTIFY_CHAIN_ID = "420420417"
@@ -24,4 +24,3 @@ primary_region = "ams"
   cpu_kind = "shared"
   cpus = 1
   memory = "512mb"
-

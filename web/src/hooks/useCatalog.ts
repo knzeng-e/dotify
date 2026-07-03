@@ -9,6 +9,7 @@ import { isKeyServiceConfigured, requestContentKey, type KeyRequestPurpose } fro
 import { auraForTrack } from '../shared/utils/aura';
 import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../shared/utils/protectedAudio';
 import { isPolicyManagedTrack, playbackModeForAccess } from '../features/access/accessPolicy';
+import { catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
 import {
@@ -808,11 +809,10 @@ export function useCatalog(deps: UseCatalogDeps) {
       );
       return nextCatalog;
     } catch (catalogError) {
-      const message = catalogError instanceof Error ? catalogError.message : 'Unable to load registry catalog';
       console.warn('Failed to load registry catalog', catalogError);
       setCatalogTracks([]);
       setSelectedTrackId('');
-      setCatalogStatus(message);
+      setCatalogStatus(catalogLoadFailureStatus(catalogError));
       return [];
     }
   }

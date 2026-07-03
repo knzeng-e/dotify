@@ -70,10 +70,12 @@ Default ports:
 | Signaling     | <http://localhost:8788>                        |
 | Backend API   | <http://localhost:8790>                        |
 | Bulletin RPC  | `wss://paseo-bulletin-rpc.polkadot.io`         |
-| Asset Hub RPC | <https://services.polkadothub-rpc.com/testnet> |
+| Asset Hub RPC | <https://eth-rpc-testnet.polkadot.io/>        |
 
 The app talks to Paseo Bulletin and Asset Hub directly from the browser. A local
 Ethereum node or local Substrate node is not required to run the demo.
+If the public Asset Hub RPC is unavailable, set `VITE_ETH_RPC_URL` in
+`web/.env.local` to a compatible Paseo Asset Hub EVM RPC endpoint.
 
 ### Running the backend API
 

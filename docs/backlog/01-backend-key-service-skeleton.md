@@ -74,7 +74,7 @@ services/api/
 ```txt
 API_PORT=8790
 API_ORIGIN=http://localhost:5273
-PASEO_ASSET_HUB_RPC=https://services.polkadothub-rpc.com/testnet
+PASEO_ASSET_HUB_RPC=https://eth-rpc-testnet.polkadot.io/
 DOTIFY_FACTORY_ADDRESS=
 DOTIFY_DIRECTORY_ADDRESS=
 DOTIFY_CHAIN_ID=420420417
