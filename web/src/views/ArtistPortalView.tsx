@@ -1,19 +1,15 @@
-// Artist portal shell - the /artists screen chrome (topbar + layout + modal
-// slots). The artist content (ArtistConsole / ArtistOnboarding) and the wallet /
-// transaction modals are passed in as nodes, so the large prop lists stay in
-// App.tsx where the state lives; only the layout moved out of the monolith.
+// Artist portal shell - the /artists screen chrome (topbar + layout + modals).
+// The artist content (ArtistConsole / ArtistOnboarding) is passed in as children;
+// the wallet + transaction modals are self-contained (context-driven), so they
+// render here directly rather than being threaded down from App.
 
 import type { ReactNode } from 'react';
 import { AuraBackground } from '../components/AuraBackground';
 import { TopBar } from '../components/TopBar';
+import { AccountWalletModal } from '../components/AccountWalletModal';
+import { TransactionModal } from '../components/TransactionModal';
 
-type ArtistPortalViewProps = {
-  walletModal: ReactNode;
-  transactionModal: ReactNode;
-  children: ReactNode;
-};
-
-export function ArtistPortalView({ walletModal, transactionModal, children }: ArtistPortalViewProps) {
+export function ArtistPortalView({ children }: { children: ReactNode }) {
   return (
     <>
       <AuraBackground />
@@ -24,11 +20,11 @@ export function ArtistPortalView({ walletModal, transactionModal, children }: Ar
           </a>
         </TopBar>
 
-        {walletModal}
+        <AccountWalletModal />
 
         <main className='artist-portal-main'>{children}</main>
 
-        {transactionModal}
+        <TransactionModal />
       </div>
     </>
   );
