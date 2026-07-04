@@ -29,7 +29,7 @@ import { roomPresenceCount } from '../features/rooms/roomState';
 import { playbackStatusLabel, transportProgressPercent } from '../features/player/playbackStatus';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 // The player page reads its track/session/playback state from context. The only
 // props are the two room-modal triggers, whose open state lives in ListenerShell.
@@ -116,6 +116,23 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     setReactions(current => [...current, { id, emoji, x }]);
     window.setTimeout(() => setReactions(current => current.filter(reaction => reaction.id !== id)), 2600);
   }
+
+  // Unlock ritual (Constellation phase C): when THIS track's real access flips
+  // from needed to granted, a ring of light travels the cover once. Keyed off
+  // the access map transition, never off status strings.
+  const [ritualKey, setRitualKey] = useState(0);
+  const previousAccessRef = useRef<{ trackId: string; needed: boolean } | null>(null);
+  useEffect(() => {
+    const trackId = selectedTrack?.id ?? null;
+    const previous = previousAccessRef.current;
+    if (trackId && previous && previous.trackId === trackId && previous.needed && !needsTrackAccess) {
+      setRitualKey(Date.now());
+      const timer = window.setTimeout(() => setRitualKey(0), 1400);
+      previousAccessRef.current = { trackId, needed: needsTrackAccess };
+      return () => window.clearTimeout(timer);
+    }
+    previousAccessRef.current = trackId ? { trackId, needed: needsTrackAccess } : null;
+  }, [selectedTrack?.id, needsTrackAccess]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -220,6 +237,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   </span>
                 ))}
               </span>
+              {ritualKey !== 0 && <span className='unlock-ritual' key={ritualKey} aria-hidden='true' />}
             </div>
             <div className={`audio-stack${showPreviewAction ? ' has-preview-action' : ''}${showWideStatus ? ' has-wide-status' : ''}`}>
               <div className='remote-state' data-active={transport.playing} data-busy={isBusy}>

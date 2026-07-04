@@ -11,13 +11,16 @@ type ReleasesTabProps = {
   selectedReleaseId: string | null;
   onSelectRelease: (releaseId: string) => void;
   onOpenTrack: (track: CatalogTrack) => void;
+  /** Into orbit (Constellation phase C): id of a release that just landed on
+   * chain while the console was open; its card plays a one-shot arrival. */
+  arrivedReleaseId?: string | null;
 };
 
 function releaseDomId(trackId: string) {
   return trackId.replace(/[^a-zA-Z0-9_-]/g, '-');
 }
 
-export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, onOpenTrack }: ReleasesTabProps) {
+export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, onOpenTrack, arrivedReleaseId = null }: ReleasesTabProps) {
   const selectedRelease = artistTracks.find(track => track.id === selectedReleaseId) ?? artistTracks[0] ?? null;
   const runtimeAddress = selectedRelease ? runtimeAddressFromTrackId(selectedRelease) : null;
   const selectedDomId = selectedRelease ? releaseDomId(selectedRelease.id) : 'empty';
@@ -41,6 +44,7 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
                   aria-selected={selected}
                   aria-controls='release-detail-panel'
                   data-active={selected}
+                  data-arrived={track.id === arrivedReleaseId}
                   key={track.id}
                   onClick={() => onSelectRelease(track.id)}
                 >

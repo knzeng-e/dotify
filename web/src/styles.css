@@ -8904,3 +8904,221 @@ code,
     display: none;
   }
 }
+
+/* ── Constellation phase C: micro-moments ──────────────────────────────────────
+   Spec: docs/design/dotify-constellation-ux.md (surfaces C/D/E). One loading
+   vocabulary (dot birth), the unlock ritual on real access transitions,
+   aura-tinted reaction petals, and the release "into orbit" arrival. All
+   trigger off real state; reduced motion gets static dignity. */
+
+/* Dot birth: scattered particles converge into a sphere that lights up. */
+.dot-birth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1.6rem 0;
+}
+
+.dot-birth-field {
+  position: relative;
+  width: var(--birth-size, 64px);
+  height: var(--birth-size, 64px);
+}
+
+.dot-birth[data-size='inline'] .dot-birth-field {
+  --birth-size: 28px;
+  --birth-spread: 16px;
+}
+
+.dot-birth[data-size='panel'] .dot-birth-field {
+  --birth-size: 64px;
+  --birth-spread: 34px;
+}
+
+.dot-birth[data-size='full'] .dot-birth-field {
+  --birth-size: 120px;
+  --birth-spread: 62px;
+}
+
+.dot-birth[data-size='full'] {
+  min-height: 40vh;
+  justify-content: center;
+}
+
+.dot-birth-field i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--aura-accent, var(--color-primary)) 85%, #ffffff);
+  animation: dot-converge 1.7s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: calc(var(--p) * -1.7s);
+}
+
+@keyframes dot-converge {
+  0% {
+    transform: rotate(calc(var(--p) * 1turn)) translateX(var(--birth-spread, 34px)) scale(1);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: rotate(calc(var(--p) * 1turn + 70deg)) translateX(2px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.dot-birth-core {
+  position: absolute;
+  inset: 30%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, color-mix(in srgb, var(--aura-a, var(--color-primary)) 75%, #ffffff), color-mix(in srgb, var(--aura-b, var(--color-primary)) 60%, #0a182c));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--aura-accent, var(--color-primary)) 45%, transparent);
+  animation: dot-birth-breathe 1.7s ease-in-out infinite;
+}
+
+@keyframes dot-birth-breathe {
+  0%,
+  100% {
+    transform: scale(0.92);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.dot-birth-label {
+  font-size: 0.8rem;
+  color: var(--fg-tertiary);
+}
+
+/* Unlock ritual: a ring of light travels the cover once when THIS track's
+   access genuinely flips from needed to granted. */
+.unlock-ritual {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.unlock-ritual::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid var(--aura-accent, var(--color-primary));
+  animation: ritual-ring 1.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.unlock-ritual::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle, color-mix(in srgb, var(--aura-a, var(--color-primary)) 34%, transparent), transparent 70%);
+  animation: ritual-flood 1.3s ease-out both;
+}
+
+@keyframes ritual-ring {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.06);
+    opacity: 0;
+  }
+}
+
+@keyframes ritual-flood {
+  0% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Reaction petals: the emoji rides inside an aura-tinted petal of light. */
+.room-reaction {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 56px;
+}
+
+.room-reaction::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50% 50% 46% 46% / 58% 58% 42% 42%;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--aura-a, var(--color-primary)) 55%, transparent), color-mix(in srgb, var(--aura-b, var(--color-primary)) 22%, transparent) 68%, transparent);
+  filter: blur(1px);
+  z-index: -1;
+}
+
+/* Into orbit: a release that just landed on chain takes its place. */
+.release-tab[data-arrived='true'] {
+  animation: release-orbit-in 1.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes release-orbit-in {
+  0% {
+    transform: translateY(16px) scale(0.94);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+  45% {
+    box-shadow: 0 0 26px color-mix(in srgb, var(--aura-accent, var(--color-primary)) 42%, transparent);
+  }
+  100% {
+    transform: none;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot-birth-field i {
+    display: none;
+  }
+
+  .dot-birth-core {
+    animation: none;
+  }
+
+  .unlock-ritual::before,
+  .unlock-ritual::after {
+    animation-duration: 0.01s;
+  }
+
+  .room-reaction {
+    animation: react-fade 1.2s ease-out forwards;
+  }
+
+  .release-tab[data-arrived='true'] {
+    animation: none;
+  }
+}
+
+@keyframes react-fade {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
