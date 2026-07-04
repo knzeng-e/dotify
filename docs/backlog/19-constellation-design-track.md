@@ -51,3 +51,17 @@ honesty rule throughout.
   `docs/index.html` intentionally not updated yet: the public visual identity
   (tokens, palette) is unchanged by the prototype; alignment happens when the
   direction ships product-wide.
+- Phase B prototyped on branch `design/constellation-phase-b`: new
+  `web/src/components/SkyOfRooms.tsx`, rendered in `RoomsView` above the
+  existing board when rooms exist. Each open room is a dot-sphere (cover core,
+  real-aura halo) laid out on a deterministic golden-angle spiral with
+  roomId-hashed jitter; the halo pulses only when `playerState.playing` is
+  genuinely true; one petal orbits per real presence (visual cap 10, true
+  count always printed); rooms with no track are embers; `playbackMode:
+  'preview'` shows an honest tag. Joining is entering the halo: the sphere
+  grows and floods for 420 ms before `onJoinRoom` fires (immediately under
+  reduced motion). DOM + CSS only, no OGL: at realistic room counts the
+  dependency was not justified (decision recorded in the design doc); the sky
+  is hidden on mobile and reduced motion where the card grid below remains the
+  complete experience. Verified with the full gate (72 unit, 10/10 e2e) plus
+  live two-page screenshots (host room + viewer sky, hover and join-flood).

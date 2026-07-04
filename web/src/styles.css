@@ -8722,3 +8722,185 @@ code,
     outline-offset: 3px;
   }
 }
+
+/* ── Constellation phase B: The Sky of rooms ───────────────────────────────────
+   Spec: docs/design/dotify-constellation-ux.md (surface B). Open rooms as
+   dot-spheres in the navy sky: aura halo, honest pulse (only when the host's
+   broadcast player state is playing), one orbiting petal per real presence,
+   embers for rooms with no track. Joining = entering the halo. Hidden on
+   mobile and reduced motion; the card grid below stays the full experience. */
+
+.sky {
+  position: relative;
+  height: clamp(300px, 42vh, 430px);
+  border-radius: 14px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 120%, rgba(19, 39, 65, 0.55), transparent 60%),
+    linear-gradient(180deg, rgba(5, 13, 26, 0.4), rgba(5, 13, 26, 0.95));
+}
+
+.sky-dot {
+  position: absolute;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  margin: calc(var(--dot-size) / -2) 0 0 calc(var(--dot-size) / -2);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--fg-primary);
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sky-dot:hover:not(:disabled),
+.sky-dot:focus-visible {
+  transform: scale(1.08);
+  z-index: 4;
+}
+
+.sky-dot:focus-visible {
+  outline: 2px solid var(--dot-accent);
+  outline-offset: 6px;
+  border-radius: 50%;
+}
+
+.sky-halo {
+  position: absolute;
+  inset: -34%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--dot-a) 42%, transparent), color-mix(in srgb, var(--dot-b) 16%, transparent) 55%, transparent 74%);
+  filter: blur(6px);
+  transition:
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Honest pulse: only rooms whose host playback is live breathe. */
+.sky-dot[data-live='true'] .sky-halo {
+  animation: sky-breathe 3.4s ease-in-out infinite;
+}
+
+@keyframes sky-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.16);
+    opacity: 1;
+  }
+}
+
+/* Entering the halo: the sphere grows and its light floods before joining. */
+.sky-dot[data-joining='true'] {
+  z-index: 6;
+  transform: scale(1.35);
+}
+
+.sky-dot[data-joining='true'] .sky-halo {
+  transform: scale(3.4);
+  opacity: 1;
+  filter: blur(2px);
+}
+
+.sky-core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: radial-gradient(circle at 34% 30%, color-mix(in srgb, var(--dot-a) 62%, #0a182c), #0a182c 78%);
+  box-shadow:
+    inset 0 0 0 1px rgba(246, 251, 255, 0.12),
+    0 10px 26px rgba(2, 8, 18, 0.6);
+}
+
+.sky-core img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Embers: open rooms with genuinely no track loaded. Present, but unlit. */
+.sky-dot[data-ember='true'] .sky-halo {
+  background: radial-gradient(circle, rgba(170, 195, 216, 0.14), transparent 70%);
+  filter: blur(4px);
+}
+
+.sky-dot[data-ember='true'] .sky-core {
+  background: radial-gradient(circle at 34% 30%, #16304c, #0a182c 80%);
+  opacity: 0.7;
+}
+
+/* Presence petals: one per real connected presence, slow shared orbit. */
+.sky-orbit {
+  position: absolute;
+  inset: 0;
+  animation: sky-orbit-turn linear infinite;
+  pointer-events: none;
+}
+
+.sky-orbit i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dot-accent) 80%, #ffffff);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--dot-accent) 70%, transparent);
+}
+
+@keyframes sky-orbit-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sky-label {
+  position: absolute;
+  top: calc(100% + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: max-content;
+  max-width: 180px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.sky-label strong {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sky-label span {
+  font-size: 0.72rem;
+  color: var(--fg-tertiary);
+}
+
+.sky-label em {
+  font-style: normal;
+  color: var(--color-amber);
+}
+
+/* Fallback doctrine: the sky is an enhancement. Small screens and reduced
+   motion get the card grid alone, which is the complete experience. */
+@media (max-width: 860px) {
+  .sky {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky {
+    display: none;
+  }
+}

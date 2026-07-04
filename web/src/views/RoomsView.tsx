@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
+import { SkyOfRooms } from '../components/SkyOfRooms';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import type { OpenRoom, SessionAction } from '../shared/types';
 
@@ -305,73 +306,84 @@ export function RoomsView({
           </button>
         </div>
       ) : (
-        /* ── Rooms present: board layout ───────────────────────────────── */
-        <div className='rooms-board'>
-          <div className='doc-panel rooms-live-panel'>
-            <div className='panel-title'>
-              <span className='panel-title-icon'>
-                <SvgBroadcast size={15} />
-              </span>
-              <span className='panel-title-text'>Happening now</span>
-              <span className='panel-title-meta'>{openRooms.length} open</span>
+        /* ── Rooms present: the Sky (Constellation phase B hero) above the
+              board. On mobile and reduced motion the sky is hidden by CSS and
+              the card grid below remains the full experience. ───────────── */
+        <>
+          <SkyOfRooms rooms={openRooms} sessionAction={sessionAction} onJoinRoom={onJoinRoom} />
+          <div className='rooms-board'>
+            <div className='doc-panel rooms-live-panel'>
+              <div className='panel-title'>
+                <span className='panel-title-icon'>
+                  <SvgBroadcast size={15} />
+                </span>
+                <span className='panel-title-text'>Happening now</span>
+                <span className='panel-title-meta'>{openRooms.length} open</span>
+              </div>
+              <div className='room-card-grid'>
+                {openRooms.map(room => (
+                  <button
+                    className='room-live-card'
+                    type='button'
+                    key={room.roomId}
+                    onClick={() => onJoinRoom(room.roomId)}
+                    disabled={sessionAction !== 'idle'}
+                  >
+                    <span className='room-live-art' aria-hidden='true'>
+                      {room.track?.imageRef && <img src={room.track.imageRef} alt='' crossOrigin='anonymous' />}
+                    </span>
+                    <span className='room-live-main'>
+                      <span className='room-live-kicker'>
+                        <span className='live-dot' />
+                        {room.hostName} hosts
+                      </span>
+                      <strong>
+                        {room.track?.title ?? 'Audio session'}
+                        {room.playbackMode === 'preview' && <em className='room-preview-chip'> preview</em>}
+                      </strong>
+                      <span className='home-room-presence'>
+                        <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={24} />
+                        <small>{roomPresenceCount(room.listenerCount, true)} listening</small>
+                      </span>
+                    </span>
+                    <span className='room-live-side'>
+                      <code>{room.roomId}</code>
+                      <span>
+                        {isJoining ? <SvgSpinner size={16} /> : <SvgHeadphones size={16} />}
+                        {isJoining ? 'Joining...' : 'Join'}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className='room-card-grid'>
-              {openRooms.map(room => (
-                <button className='room-live-card' type='button' key={room.roomId} onClick={() => onJoinRoom(room.roomId)} disabled={sessionAction !== 'idle'}>
-                  <span className='room-live-art' aria-hidden='true'>
-                    {room.track?.imageRef && <img src={room.track.imageRef} alt='' crossOrigin='anonymous' />}
-                  </span>
-                  <span className='room-live-main'>
-                    <span className='room-live-kicker'>
-                      <span className='live-dot' />
-                      {room.hostName} hosts
-                    </span>
-                    <strong>
-                      {room.track?.title ?? 'Audio session'}
-                      {room.playbackMode === 'preview' && <em className='room-preview-chip'> preview</em>}
-                    </strong>
-                    <span className='home-room-presence'>
-                      <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={24} />
-                      <small>{roomPresenceCount(room.listenerCount, true)} listening</small>
-                    </span>
-                  </span>
-                  <span className='room-live-side'>
-                    <code>{room.roomId}</code>
-                    <span>
-                      {isJoining ? <SvgSpinner size={16} /> : <SvgHeadphones size={16} />}
-                      {isJoining ? 'Joining...' : 'Join'}
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
 
-          <aside className='doc-panel rooms-join-panel'>
-            <div className='rooms-action-stack'>
-              {renderActionPicker('rooms-side-action')}
-              {renderActionPanel('side')}
-            </div>
-            <button className='secondary-action' type='button' onClick={onRefreshRooms} disabled={isRefreshingRooms}>
-              <SvgRefresh size={15} spinning={isRefreshingRooms} />
-              {isRefreshingRooms ? 'Refreshing...' : 'Refresh rooms'}
-            </button>
-            <div className='rooms-doctrine-card'>
-              <SvgKey size={16} />
-              <div>
-                <strong>Host-led rooms</strong>
-                <span>The host opens the room and keeps the music moving for everyone inside.</span>
+            <aside className='doc-panel rooms-join-panel'>
+              <div className='rooms-action-stack'>
+                {renderActionPicker('rooms-side-action')}
+                {renderActionPanel('side')}
               </div>
-            </div>
-            <div className='rooms-doctrine-card'>
-              <SvgUsers size={16} />
-              <div>
-                <strong>One shared door</strong>
-                <span>A room should feel as simple as entering through a shared link.</span>
+              <button className='secondary-action' type='button' onClick={onRefreshRooms} disabled={isRefreshingRooms}>
+                <SvgRefresh size={15} spinning={isRefreshingRooms} />
+                {isRefreshingRooms ? 'Refreshing...' : 'Refresh rooms'}
+              </button>
+              <div className='rooms-doctrine-card'>
+                <SvgKey size={16} />
+                <div>
+                  <strong>Host-led rooms</strong>
+                  <span>The host opens the room and keeps the music moving for everyone inside.</span>
+                </div>
               </div>
-            </div>
-          </aside>
-        </div>
+              <div className='rooms-doctrine-card'>
+                <SvgUsers size={16} />
+                <div>
+                  <strong>One shared door</strong>
+                  <span>A room should feel as simple as entering through a shared link.</span>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </>
       )}
     </section>
   );
