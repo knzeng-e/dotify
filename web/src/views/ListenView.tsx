@@ -1,5 +1,6 @@
 import { BadgeCheck, CircleCheckBig, Disc3, Headphones, KeyRound, Library, Radio, Share2, ShieldCheck, Users, Wallet } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
+import { StageRail } from '../components/StageRail';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
 import { roomPresenceCount } from '../features/rooms/roomState';
@@ -131,6 +132,11 @@ export function ListenView({
           </div>
         </div>
       </div>
+
+      {/* Constellation phase A: the catalog on stage (aura lamp + unlocked glare).
+          The dense catalogue grid below remains the library view and keeps the
+          e2e-load-bearing track-card selectors. */}
+      <StageRail tracks={catalogTracks} accessByTrackId={catalogAccessByTrackId} selectedTrackId={selectedTrackId} onOpenTrack={onOpenTrack} />
 
       <section className='commons-path' aria-label='Shared listening state'>
         <div className='commons-step'>
