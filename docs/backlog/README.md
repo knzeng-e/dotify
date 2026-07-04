@@ -61,6 +61,7 @@ Presentational UX work derived from `design/Dotify-design/` (the "Living Light" 
 | `15-immersive-room-parity.md` | Delivered, chat deferred | Room code pill + copy, access chips, sync note; chat omitted until a Socket.IO channel exists |
 | `16-wallet-connected-identity-card.md` | Delivered on `main` | Calm connected-wallet identity card with real, non-fabricated stats |
 | `17-artist-studio-living-light-parity.md` | Delivered on `main` | Studio identity header, metric cards, sovereignty card, releases + support showcase |
+| `19-constellation-design-track.md` | Phase A prototyped (see delivery notes) | Constellation direction: The Stage (aura lamp rail), Sky of rooms, micro-moments (`docs/design/dotify-constellation-ux.md`) |
 
 Delivered on `main`: album-aura engine (`web/src/utils/aura.ts`, `components/AuraBackground.tsx`), aura-colored cover fallbacks (`hooks/useCatalog.ts`), presence avatars (`components/Presence.tsx`), player dock (`components/PlayerDock.tsx`), create-room sheet (`components/CreateRoomModal.tsx`), immersive-room cover-glow/EQ/reactions/header/sync-note (`views/PlayerView.tsx`), wallet connected card (`components/WalletModal.tsx`), studio showcase (`views/artist/ArtistConsole.tsx` + `OverviewTab.tsx`), Hanken-only app type with system mono for code, featured aura hero on Home, and the Living Light stylesheet block in `web/src/styles.css`. The old node/warp `AmbientCanvas` / `StarfieldCanvas` are removed.
 
