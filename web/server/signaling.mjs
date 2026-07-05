@@ -14,10 +14,21 @@
 // host heartbeat, per-room listener cap, structured lifecycle logs, and a
 // status endpoint exposing public room metadata.
 
+import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
-import { createRoomId, normalizeRoomId, sanitizeAddress, sanitizePlayerState, sanitizeText, sanitizeTrack } from './signaling-utils.mjs';
+import {
+  createRoomId,
+  createWindowLimiter,
+  normalizeRoomId,
+  sanitizeAddress,
+  sanitizeChatText,
+  sanitizePlayerState,
+  sanitizeReactionEmoji,
+  sanitizeText,
+  sanitizeTrack
+} from './signaling-utils.mjs';
 
 export const defaultConfig = {
   port: 8788,
@@ -31,6 +42,11 @@ export const defaultConfig = {
   hostHeartbeatTimeoutMs: 120_000,
   sweepIntervalMs: 30_000,
   maxListenersPerRoom: 24,
+  // Social layer: in-memory chat history per room (dies with the room; never
+  // exposed on /status) and fail-silent per-socket rate limits.
+  chatHistoryLimit: 50,
+  chatRateLimit: { limit: 5, windowMs: 5_000 },
+  reactionRateLimit: { limit: 10, windowMs: 5_000 },
   logger: line => console.log(line)
 };
 
@@ -57,6 +73,8 @@ export function startSignalingServer(overrides = {}) {
   const config = { ...defaultConfig, ...overrides };
   const rooms = new Map();
   const startedAt = Date.now();
+  const chatLimiter = createWindowLimiter(config.chatRateLimit.limit, config.chatRateLimit.windowMs);
+  const reactionLimiter = createWindowLimiter(config.reactionRateLimit.limit, config.reactionRateLimit.windowMs);
 
   function logEvent(event, fields = {}) {
     config.logger(JSON.stringify({ at: new Date().toISOString(), app: 'dotify-signal', event, ...fields }));
@@ -169,6 +187,9 @@ export function startSignalingServer(overrides = {}) {
         hostAddress: sanitizeAddress(payload.hostAddress),
         listeners: new Map(),
         track: sanitizeTrack(payload.track),
+        // In-room chat only: capped ring buffer, wiped with the room, never
+        // included in publicRoom()/status.
+        chat: [],
         playerState: null,
         playbackMode: payload.playbackMode === 'preview' ? 'preview' : 'full',
         createdAt: Date.now(),
@@ -220,6 +241,7 @@ export function startSignalingServer(overrides = {}) {
         track: room.track,
         playerState: room.playerState,
         playbackMode: room.playbackMode,
+        chatHistory: room.chat,
         expiresAt: room.createdAt + config.roomTtlMs
       });
 
@@ -271,6 +293,51 @@ export function startSignalingServer(overrides = {}) {
     socket.on('host:heartbeat', () => {
       const room = getHostedRoom(socket);
       if (room) touchHost(room);
+    });
+
+    // Social layer: reactions and chat are open to every room participant
+    // (host and listeners alike). Malformed or over-limit events are dropped
+    // silently -- fail closed, no error channel to probe.
+    socket.on('room:reaction', (payload = {}) => {
+      const participant = getParticipant(socket);
+      if (!participant) return;
+      if (!reactionLimiter.allow(socket.id)) return;
+
+      const emoji = sanitizeReactionEmoji(payload.emoji);
+      if (!emoji) return;
+
+      if (participant.role === 'host') touchHost(participant.room);
+      io.to(participant.roomId).emit('room:reaction', {
+        id: randomUUID(),
+        emoji,
+        senderId: socket.id,
+        senderName: participant.displayName,
+        ts: Date.now()
+      });
+    });
+
+    socket.on('room:chat', (payload = {}) => {
+      const participant = getParticipant(socket);
+      if (!participant) return;
+      if (!chatLimiter.allow(socket.id)) return;
+
+      const text = sanitizeChatText(payload.text);
+      if (!text) return;
+
+      if (participant.role === 'host') touchHost(participant.room);
+      const message = {
+        id: randomUUID(),
+        text,
+        senderId: socket.id,
+        senderName: participant.displayName,
+        ts: Date.now()
+      };
+
+      participant.room.chat.push(message);
+      if (participant.room.chat.length > config.chatHistoryLimit) {
+        participant.room.chat.shift();
+      }
+      io.to(participant.roomId).emit('room:chat', message);
     });
 
     socket.on('webrtc:offer', (payload = {}) => {
@@ -336,6 +403,27 @@ export function startSignalingServer(overrides = {}) {
     return room?.hostId === socket.id ? room : null;
   }
 
+  // Resolve the socket to a verified room participant (host or listener).
+  // Returns null for sockets that claim a room they are not actually in.
+  function getParticipant(socket) {
+    const roomId = socket.data.roomId;
+    const room = rooms.get(roomId);
+    if (!room) return null;
+
+    if (socket.data.role === 'host' && room.hostId === socket.id) {
+      return { room, roomId, role: 'host', displayName: room.hostName };
+    }
+
+    if (socket.data.role === 'listener') {
+      const listener = room.listeners.get(socket.id);
+      if (listener) {
+        return { room, roomId, role: 'listener', displayName: listener.displayName };
+      }
+    }
+
+    return null;
+  }
+
   function leaveRoom(socket) {
     const roomId = socket.data.roomId;
     const role = socket.data.role;
@@ -370,6 +458,8 @@ export function startSignalingServer(overrides = {}) {
   function clearSocketRoom(socket) {
     socket.data.roomId = undefined;
     socket.data.role = undefined;
+    chatLimiter.clear(socket.id);
+    reactionLimiter.clear(socket.id);
   }
 
   return {

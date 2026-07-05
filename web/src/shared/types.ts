@@ -115,6 +115,25 @@ export type OpenRoom = {
 
 export type CreateRoomResponse = { ok: true; roomId: string; hostName: string; expiresAt?: number } | { ok: false; error: string };
 
+// Social layer message shapes. Deliberately transport-agnostic: nothing in
+// here knows about sockets, so a Statement Store presence layer can adopt
+// the same shapes later (see docs/backlog/20-room-social-layer.md).
+export type RoomChatMessage = {
+  id: string;
+  text: string;
+  senderId: string;
+  senderName: string;
+  ts: number;
+};
+
+export type RoomReactionEvent = {
+  id: string;
+  emoji: string;
+  senderId: string;
+  senderName: string;
+  ts: number;
+};
+
 export type JoinRoomResponse =
   | {
       ok: true;
@@ -125,6 +144,7 @@ export type JoinRoomResponse =
       track: TrackInfo | null;
       playerState: PlayerState | null;
       playbackMode?: RoomPlaybackMode;
+      chatHistory?: RoomChatMessage[];
       expiresAt?: number;
     }
   | { ok: false; error: string; code?: string };

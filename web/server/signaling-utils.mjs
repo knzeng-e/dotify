@@ -55,6 +55,54 @@ export function sanitizeTrack(track) {
   };
 }
 
+// Curated room reaction language. Keep in sync with ROOM_REACTIONS in
+// web/src/shared/social.ts (the client copy). The bar is a designed set,
+// not an open emoji picker.
+export const ROOM_REACTION_EMOJI = ['❤️', '\u{1F525}', '\u{1F33F}', '✨', '\u{1F64C}', '\u{1F979}'];
+
+export const CHAT_TEXT_MAX_LENGTH = 280;
+
+export function sanitizeReactionEmoji(value) {
+  const text = String(value ?? '').trim();
+  return ROOM_REACTION_EMOJI.includes(text) ? text : null;
+}
+
+export function sanitizeChatText(value, maxLength = CHAT_TEXT_MAX_LENGTH) {
+  // Chat is single-line by design: collapse whitespace runs (including
+  // newlines) and strip non-printable control characters.
+  const text = String(value ?? '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, maxLength)
+    .trim();
+  return text || null;
+}
+
+// Fixed-window rate limiter. Social events fail closed and silent: past the
+// limit we drop, we do not queue or error back.
+export function createWindowLimiter(limit, windowMs) {
+  const buckets = new Map();
+  return {
+    allow(key, now = Date.now()) {
+      const bucket = buckets.get(key);
+      if (!bucket || now - bucket.start >= windowMs) {
+        buckets.set(key, { start: now, count: 1 });
+        return true;
+      }
+      if (bucket.count >= limit) {
+        return false;
+      }
+      bucket.count += 1;
+      return true;
+    },
+    clear(key) {
+      buckets.delete(key);
+    }
+  };
+}
+
 export function sanitizePlayerState(state) {
   if (!state || typeof state !== 'object') {
     return null;

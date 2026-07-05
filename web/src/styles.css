@@ -4569,7 +4569,7 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
   100% { opacity: 0; transform: translateY(-200px) scale(1) rotate(10deg); }
 }
 
-.room-react-bar { display: flex; gap: 0.5rem; margin-top: 0.9rem; }
+.room-chat-reactions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
 .room-react-btn {
   display: grid;
   place-items: center;
@@ -6631,8 +6631,7 @@ code,
 .content-player .access-badges,
 .content-player .track-description,
 .content-player .player-transport,
-.content-player .room-sync-note,
-.content-player .room-react-bar {
+.content-player .room-sync-note {
   order: 3;
 }
 
@@ -7746,8 +7745,7 @@ code,
   max-width: 64rem;
 }
 
-.content-player .room-sync-note,
-.content-player .room-react-bar {
+.content-player .room-sync-note {
   order: 5;
 }
 
@@ -8002,8 +8000,7 @@ code,
   -webkit-line-clamp: 2;
 }
 
-.content-player .player-view-grid.player-room-mode .room-sync-note,
-.content-player .player-view-grid.player-room-mode .room-react-bar {
+.content-player .player-view-grid.player-room-mode .room-sync-note {
   display: none;
 }
 
@@ -8089,7 +8086,8 @@ code,
   }
 
   .content-player .player-view-grid.player-room-mode .player-lower-grid {
-    grid-template-columns: minmax(0, 1.3fr) minmax(17rem, 0.48fr);
+    /* session presence | room chat | current track */
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.78fr) minmax(15rem, 0.45fr);
     gap: 0.85rem;
     width: min(100%, 112rem);
     margin: 0 auto;
@@ -9120,5 +9118,161 @@ code,
   }
   100% {
     opacity: 0;
+  }
+}
+
+/* ── Room social layer: broadcast petals + chat aside ─────────────────────────
+   Reactions and chat are relayed by the signaling server; every petal and
+   message rendered here maps to a real event from a real person in the room. */
+
+/* Attributed petals: the emoji rides the aura petal, the sender's initials
+   ride below it in their name-hashed hue (same mechanic as presence avatars). */
+.room-reaction {
+  grid-template-rows: auto auto;
+  align-content: center;
+  justify-items: center;
+  row-gap: 2px;
+}
+
+.room-reaction-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.room-reaction-sender {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: hsl(var(--petal-hue, 210) 68% 40% / 0.92);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.room-reaction[data-self='true'] .room-reaction-sender {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.65);
+}
+
+/* Chat aside */
+.room-chat-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.room-chat-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 21rem;
+  min-height: 8rem;
+  overflow-y: auto;
+  padding-right: 0.3rem;
+  overscroll-behavior: contain;
+}
+
+.room-chat-empty {
+  margin: auto 0;
+  color: var(--fg-tertiary);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.room-chat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.room-chat-row .ava {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.room-chat-body {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.room-chat-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.room-chat-name {
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.room-chat-row[data-self='true'] .room-chat-name::after {
+  content: ' · you';
+  color: var(--fg-tertiary);
+  font-weight: 500;
+}
+
+.room-chat-time {
+  color: var(--fg-tertiary);
+  font-size: 0.66rem;
+}
+
+.room-chat-text {
+  overflow-wrap: anywhere;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.room-chat-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+
+.room-chat-form .field {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.room-chat-send {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.6rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: transform 140ms ease, background 140ms ease;
+}
+
+.room-chat-send:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.room-chat-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Between 760px and 980px the room grid is two columns: the chat rides the
+   second column beside the session panel; the context panel flows below. */
+
+@media (prefers-reduced-motion: reduce) {
+  .room-chat-list {
+    scroll-behavior: auto;
+  }
+
+  .room-react-btn:hover,
+  .room-chat-send:hover:not(:disabled) {
+    transform: none;
   }
 }
