@@ -1,5 +1,5 @@
 import type { ArtistTab, CatalogTrack } from '../../shared/types';
-import { useEffect, useState, type ChangeEvent, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
 import { BadgeCheck, ExternalLink } from 'lucide-react';
 import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
 import { shorten } from '../../shared/utils/format';
@@ -229,6 +229,25 @@ export function ArtistConsole() {
       .replace(/^\.+|\.+$/g, '') || 'artist';
   const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(artistTracks[0]?.id ?? null);
 
+  // Into orbit (Constellation phase C): when a new release id appears in the
+  // artist's on-chain catalog while the console is open, its card plays a
+  // one-shot arrival. Structural id diff, never status-string matching; the
+  // first observation only seeds the known set so nothing animates on mount.
+  const [arrivedReleaseId, setArrivedReleaseId] = useState<string | null>(null);
+  const knownReleaseIdsRef = useRef<Set<string> | null>(null);
+  const releaseIdsKey = artistTracks.map(track => track.id).join('|');
+  useEffect(() => {
+    const known = knownReleaseIdsRef.current;
+    knownReleaseIdsRef.current = new Set(artistTracks.map(track => track.id));
+    if (!known) return;
+    const fresh = artistTracks.find(track => !known.has(track.id));
+    if (!fresh) return;
+    setArrivedReleaseId(fresh.id);
+    const timer = window.setTimeout(() => setArrivedReleaseId(null), 1600);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [releaseIdsKey]);
+
   useEffect(() => {
     if (artistTracks.length === 0) {
       setSelectedReleaseId(null);
@@ -356,7 +375,13 @@ export function ArtistConsole() {
       )}
 
       {artistTab === 'releases' && (
-        <ReleasesTab artistTracks={artistTracks} selectedReleaseId={selectedReleaseId} onSelectRelease={setSelectedReleaseId} onOpenTrack={onOpenTrack} />
+        <ReleasesTab
+          artistTracks={artistTracks}
+          selectedReleaseId={selectedReleaseId}
+          onSelectRelease={setSelectedReleaseId}
+          onOpenTrack={onOpenTrack}
+          arrivedReleaseId={arrivedReleaseId}
+        />
       )}
 
       {artistTab === 'royalties' && (

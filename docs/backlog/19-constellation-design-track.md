@@ -65,3 +65,18 @@ honesty rule throughout.
   is hidden on mobile and reduced motion where the card grid below remains the
   complete experience. Verified with the full gate (72 unit, 10/10 e2e) plus
   live two-page screenshots (host room + viewer sky, hover and join-flood).
+- Phase C prototyped on branch `design/constellation-phase-c`, four
+  micro-moments, all keyed off real state (no status-string matching):
+  (1) `web/src/components/DotBirth.tsx`, the single loading vocabulary
+  (particles converge into a lit sphere, three sizes, aura-colored), wired to
+  the catalog's genuine loading state in `ListenView`; terminal states stay
+  plain text. (2) The unlock ritual in `PlayerView`: when the selected track's
+  real access flips from needed to granted (access-map transition), a ring of
+  aura light travels the cover once. (3) Reaction petals: the room reaction
+  emojis now rise inside aura-tinted petals (CSS only). (4) Into orbit: when a
+  new release id appears in the artist's on-chain catalog while the console is
+  open (structural id diff, first observation only seeds), its card in
+  `ReleasesTab` plays a one-shot arrival. Reduced motion: particles hidden with
+  a static core, near-instant ritual, fade-only reactions, no arrival motion.
+  Verified with the full gate plus a mid-flight screenshot of the unlock
+  ritual on the seeded classic-unlock flow.
