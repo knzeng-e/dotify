@@ -51,3 +51,32 @@ honesty rule throughout.
   `docs/index.html` intentionally not updated yet: the public visual identity
   (tokens, palette) is unchanged by the prototype; alignment happens when the
   direction ships product-wide.
+- Phase B prototyped on branch `design/constellation-phase-b`: new
+  `web/src/components/SkyOfRooms.tsx`, rendered in `RoomsView` above the
+  existing board when rooms exist. Each open room is a dot-sphere (cover core,
+  real-aura halo) laid out on a deterministic golden-angle spiral with
+  roomId-hashed jitter; the halo pulses only when `playerState.playing` is
+  genuinely true; one petal orbits per real presence (visual cap 10, true
+  count always printed); rooms with no track are embers; `playbackMode:
+  'preview'` shows an honest tag. Joining is entering the halo: the sphere
+  grows and floods for 420 ms before `onJoinRoom` fires (immediately under
+  reduced motion). DOM + CSS only, no OGL: at realistic room counts the
+  dependency was not justified (decision recorded in the design doc); the sky
+  is hidden on mobile and reduced motion where the card grid below remains the
+  complete experience. Verified with the full gate (72 unit, 10/10 e2e) plus
+  live two-page screenshots (host room + viewer sky, hover and join-flood).
+- Phase C prototyped on branch `design/constellation-phase-c`, four
+  micro-moments, all keyed off real state (no status-string matching):
+  (1) `web/src/components/DotBirth.tsx`, the single loading vocabulary
+  (particles converge into a lit sphere, three sizes, aura-colored), wired to
+  the catalog's genuine loading state in `ListenView`; terminal states stay
+  plain text. (2) The unlock ritual in `PlayerView`: when the selected track's
+  real access flips from needed to granted (access-map transition), a ring of
+  aura light travels the cover once. (3) Reaction petals: the room reaction
+  emojis now rise inside aura-tinted petals (CSS only). (4) Into orbit: when a
+  new release id appears in the artist's on-chain catalog while the console is
+  open (structural id diff, first observation only seeds), its card in
+  `ReleasesTab` plays a one-shot arrival. Reduced motion: particles hidden with
+  a static core, near-instant ritual, fade-only reactions, no arrival motion.
+  Verified with the full gate plus a mid-flight screenshot of the unlock
+  ritual on the seeded classic-unlock flow.

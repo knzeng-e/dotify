@@ -147,8 +147,15 @@ One vocabulary declined everywhere, instead of a zoo of loaders:
 | Phase | Surface | Content | WebGL |
 | --- | --- | --- | --- |
 | A | Listen | Stage rail: arc + aura lamp + unlocked glare | none (CSS + rAF) |
-| B | Rooms | Sky of rooms: dot-spheres + presence orbits, grid fallback | one lazy OGL canvas |
+| B | Rooms | Sky of rooms: dot-spheres + presence orbits, grid fallback | none (see note) |
 | C | Cross | Dot-birth loader, unlock ritual, reaction petals, studio orbit | none |
+
+Phase B note: the original plan allowed one lazy OGL canvas. The prototype
+showed DOM + CSS covers the visual completely at realistic room counts
+(tens, not thousands of points), so the dependency and single-file-bundle
+weight were not justified. OGL remains the designated escape hatch if the sky
+ever needs hundreds of simultaneous points (for example filaments once the
+ambassador data exists).
 
 `docs/index.html` (the public page) follows when a phase changes the outward
 visual identity, per the GitHub Pages alignment rule.
