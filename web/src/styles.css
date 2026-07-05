@@ -8496,3 +8496,629 @@ code,
     display: none;
   }
 }
+
+/* ── Constellation phase A: The Stage (aura lamp rail) ─────────────────────────
+   Spec: docs/design/dotify-constellation-ux.md (surface A). One hero effect for
+   the Listen view: covers on a shallow arc, an aura-colored lamp cone over the
+   lit track, the rest dimming, and a glare sweep reserved for unlocked tracks.
+   Pure presentation: no fabricated data, reduced-motion gets a static state. */
+
+.stage {
+  position: relative;
+  margin: 0.5rem 0 0.25rem;
+  padding: 4.25rem 0 1.9rem;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(5, 13, 26, 0.35), rgba(5, 13, 26, 0.92));
+}
+
+/* The lamp: a cone of the lit track's aura descending from above the rail.
+   Positioned by JS (translateX to the lit card's center). */
+.stage-lamp {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0;
+  pointer-events: none;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1;
+}
+
+.stage-lamp-cone {
+  position: absolute;
+  top: 0;
+  left: -150px;
+  width: 300px;
+  height: 90%;
+  clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, var(--lamp-accent), transparent 82%);
+  opacity: 0.34;
+  filter: blur(2px);
+}
+
+.stage-lamp-glow {
+  position: absolute;
+  top: 12%;
+  left: -170px;
+  width: 340px;
+  height: 76%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--lamp-a) 34%, transparent), transparent 72%);
+  filter: blur(14px);
+}
+
+.stage-rail {
+  position: relative;
+  display: flex;
+  justify-content: safe center;
+  gap: 1.15rem;
+  padding: 0 clamp(1.25rem, 6vw, 4rem);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  z-index: 2;
+}
+
+.stage-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.stage-card {
+  flex: 0 0 auto;
+  width: 172px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg-primary);
+  text-align: left;
+  cursor: pointer;
+  scroll-snap-align: center;
+  transform: translateY(var(--arc-y, 0px)) rotate(var(--arc-rot, 0deg)) scale(var(--arc-scale, 1));
+  transform-origin: 50% 100%;
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The theater rule: when one work is on stage, the others recede. */
+.stage-card:not([data-lit='true']) {
+  opacity: 0.42;
+  filter: saturate(0.55) brightness(0.75);
+}
+
+.stage-card[data-lit='true'] {
+  opacity: 1;
+  filter: none;
+}
+
+.stage-cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-surface-container-low);
+  box-shadow: 0 18px 34px rgba(2, 8, 18, 0.55);
+}
+
+.stage-card[data-lit='true'] .stage-cover {
+  box-shadow:
+    0 22px 44px rgba(2, 8, 18, 0.6),
+    0 0 34px color-mix(in srgb, var(--card-a) 36%, transparent);
+}
+
+.stage-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* The glare: holographic sweep reserved for genuinely unlocked tracks. */
+.stage-glare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 32%, rgba(246, 251, 255, 0.34) 47%, color-mix(in srgb, var(--card-accent) 40%, transparent) 52%, transparent 68%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.stage-card[data-unlocked='true'][data-lit='true'] .stage-glare {
+  animation: stage-glare-sweep 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes stage-glare-sweep {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+
+.stage-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.14rem;
+  min-width: 0;
+}
+
+.stage-copy strong {
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stage-copy span {
+  color: var(--fg-secondary);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stage-copy small {
+  margin-top: 0.24rem;
+  font-size: 0.72rem;
+  color: var(--fg-tertiary);
+}
+
+.stage-copy small[data-access='granted'] {
+  color: var(--dotify-cyan);
+}
+
+/* The stage floor: a faint pool of the lit aura under the rail. */
+.stage-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3.4rem;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--lamp-b) 12%, transparent));
+  pointer-events: none;
+}
+
+.stage-card:focus-visible {
+  outline: 2px solid var(--lamp-accent, var(--color-primary));
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+@media (max-width: 860px) {
+  .stage {
+    padding-top: 3.1rem;
+  }
+
+  .stage-card {
+    width: 132px;
+  }
+}
+
+/* Dignified static state: no arc, no lamp travel, no sweep; the lit work keeps
+   an aura outline so the meaning survives without the motion. */
+@media (prefers-reduced-motion: reduce) {
+  .stage-lamp {
+    transition: none;
+  }
+
+  .stage-card {
+    transform: none;
+    transition: none;
+  }
+
+  .stage-card[data-unlocked='true'][data-lit='true'] .stage-glare {
+    animation: none;
+    transform: translateX(0);
+    opacity: 0.25;
+  }
+
+  .stage-card[data-lit='true'] .stage-cover {
+    outline: 2px solid color-mix(in srgb, var(--card-a) 70%, transparent);
+    outline-offset: 3px;
+  }
+}
+
+/* ── Constellation phase B: The Sky of rooms ───────────────────────────────────
+   Spec: docs/design/dotify-constellation-ux.md (surface B). Open rooms as
+   dot-spheres in the navy sky: aura halo, honest pulse (only when the host's
+   broadcast player state is playing), one orbiting petal per real presence,
+   embers for rooms with no track. Joining = entering the halo. Hidden on
+   mobile and reduced motion; the card grid below stays the full experience. */
+
+.sky {
+  position: relative;
+  height: clamp(300px, 42vh, 430px);
+  border-radius: 14px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 120%, rgba(19, 39, 65, 0.55), transparent 60%),
+    linear-gradient(180deg, rgba(5, 13, 26, 0.4), rgba(5, 13, 26, 0.95));
+}
+
+.sky-dot {
+  position: absolute;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  margin: calc(var(--dot-size) / -2) 0 0 calc(var(--dot-size) / -2);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--fg-primary);
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sky-dot:hover:not(:disabled),
+.sky-dot:focus-visible {
+  transform: scale(1.08);
+  z-index: 4;
+}
+
+.sky-dot:focus-visible {
+  outline: 2px solid var(--dot-accent);
+  outline-offset: 6px;
+  border-radius: 50%;
+}
+
+.sky-halo {
+  position: absolute;
+  inset: -34%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--dot-a) 42%, transparent), color-mix(in srgb, var(--dot-b) 16%, transparent) 55%, transparent 74%);
+  filter: blur(6px);
+  transition:
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Honest pulse: only rooms whose host playback is live breathe. */
+.sky-dot[data-live='true'] .sky-halo {
+  animation: sky-breathe 3.4s ease-in-out infinite;
+}
+
+@keyframes sky-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.16);
+    opacity: 1;
+  }
+}
+
+/* Entering the halo: the sphere grows and its light floods before joining. */
+.sky-dot[data-joining='true'] {
+  z-index: 6;
+  transform: scale(1.35);
+}
+
+.sky-dot[data-joining='true'] .sky-halo {
+  transform: scale(3.4);
+  opacity: 1;
+  filter: blur(2px);
+}
+
+.sky-core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: radial-gradient(circle at 34% 30%, color-mix(in srgb, var(--dot-a) 62%, #0a182c), #0a182c 78%);
+  box-shadow:
+    inset 0 0 0 1px rgba(246, 251, 255, 0.12),
+    0 10px 26px rgba(2, 8, 18, 0.6);
+}
+
+.sky-core img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Embers: open rooms with genuinely no track loaded. Present, but unlit. */
+.sky-dot[data-ember='true'] .sky-halo {
+  background: radial-gradient(circle, rgba(170, 195, 216, 0.14), transparent 70%);
+  filter: blur(4px);
+}
+
+.sky-dot[data-ember='true'] .sky-core {
+  background: radial-gradient(circle at 34% 30%, #16304c, #0a182c 80%);
+  opacity: 0.7;
+}
+
+/* Presence petals: one per real connected presence, slow shared orbit. */
+.sky-orbit {
+  position: absolute;
+  inset: 0;
+  animation: sky-orbit-turn linear infinite;
+  pointer-events: none;
+}
+
+.sky-orbit i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dot-accent) 80%, #ffffff);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--dot-accent) 70%, transparent);
+}
+
+@keyframes sky-orbit-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sky-label {
+  position: absolute;
+  top: calc(100% + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: max-content;
+  max-width: 180px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.sky-label strong {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sky-label span {
+  font-size: 0.72rem;
+  color: var(--fg-tertiary);
+}
+
+.sky-label em {
+  font-style: normal;
+  color: var(--color-amber);
+}
+
+/* Fallback doctrine: the sky is an enhancement. Small screens and reduced
+   motion get the card grid alone, which is the complete experience. */
+@media (max-width: 860px) {
+  .sky {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky {
+    display: none;
+  }
+}
+
+/* ── Constellation phase C: micro-moments ──────────────────────────────────────
+   Spec: docs/design/dotify-constellation-ux.md (surfaces C/D/E). One loading
+   vocabulary (dot birth), the unlock ritual on real access transitions,
+   aura-tinted reaction petals, and the release "into orbit" arrival. All
+   trigger off real state; reduced motion gets static dignity. */
+
+/* Dot birth: scattered particles converge into a sphere that lights up. */
+.dot-birth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1.6rem 0;
+}
+
+.dot-birth-field {
+  position: relative;
+  width: var(--birth-size, 64px);
+  height: var(--birth-size, 64px);
+}
+
+.dot-birth[data-size='inline'] .dot-birth-field {
+  --birth-size: 28px;
+  --birth-spread: 16px;
+}
+
+.dot-birth[data-size='panel'] .dot-birth-field {
+  --birth-size: 64px;
+  --birth-spread: 34px;
+}
+
+.dot-birth[data-size='full'] .dot-birth-field {
+  --birth-size: 120px;
+  --birth-spread: 62px;
+}
+
+.dot-birth[data-size='full'] {
+  min-height: 40vh;
+  justify-content: center;
+}
+
+.dot-birth-field i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--aura-accent, var(--color-primary)) 85%, #ffffff);
+  animation: dot-converge 1.7s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: calc(var(--p) * -1.7s);
+}
+
+@keyframes dot-converge {
+  0% {
+    transform: rotate(calc(var(--p) * 1turn)) translateX(var(--birth-spread, 34px)) scale(1);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: rotate(calc(var(--p) * 1turn + 70deg)) translateX(2px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.dot-birth-core {
+  position: absolute;
+  inset: 30%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, color-mix(in srgb, var(--aura-a, var(--color-primary)) 75%, #ffffff), color-mix(in srgb, var(--aura-b, var(--color-primary)) 60%, #0a182c));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--aura-accent, var(--color-primary)) 45%, transparent);
+  animation: dot-birth-breathe 1.7s ease-in-out infinite;
+}
+
+@keyframes dot-birth-breathe {
+  0%,
+  100% {
+    transform: scale(0.92);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.dot-birth-label {
+  font-size: 0.8rem;
+  color: var(--fg-tertiary);
+}
+
+/* Unlock ritual: a ring of light travels the cover once when THIS track's
+   access genuinely flips from needed to granted. */
+.unlock-ritual {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.unlock-ritual::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid var(--aura-accent, var(--color-primary));
+  animation: ritual-ring 1.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.unlock-ritual::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle, color-mix(in srgb, var(--aura-a, var(--color-primary)) 34%, transparent), transparent 70%);
+  animation: ritual-flood 1.3s ease-out both;
+}
+
+@keyframes ritual-ring {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.06);
+    opacity: 0;
+  }
+}
+
+@keyframes ritual-flood {
+  0% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Reaction petals: the emoji rides inside an aura-tinted petal of light. */
+.room-reaction {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 56px;
+}
+
+.room-reaction::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50% 50% 46% 46% / 58% 58% 42% 42%;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--aura-a, var(--color-primary)) 55%, transparent), color-mix(in srgb, var(--aura-b, var(--color-primary)) 22%, transparent) 68%, transparent);
+  filter: blur(1px);
+  z-index: -1;
+}
+
+/* Into orbit: a release that just landed on chain takes its place. */
+.release-tab[data-arrived='true'] {
+  animation: release-orbit-in 1.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes release-orbit-in {
+  0% {
+    transform: translateY(16px) scale(0.94);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+  45% {
+    box-shadow: 0 0 26px color-mix(in srgb, var(--aura-accent, var(--color-primary)) 42%, transparent);
+  }
+  100% {
+    transform: none;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot-birth-field i {
+    display: none;
+  }
+
+  .dot-birth-core {
+    animation: none;
+  }
+
+  .unlock-ritual::before,
+  .unlock-ritual::after {
+    animation-duration: 0.01s;
+  }
+
+  .room-reaction {
+    animation: react-fade 1.2s ease-out forwards;
+  }
+
+  .release-tab[data-arrived='true'] {
+    animation: none;
+  }
+}
+
+@keyframes react-fade {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

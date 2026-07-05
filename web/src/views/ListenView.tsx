@@ -1,5 +1,7 @@
 import { BadgeCheck, CircleCheckBig, Disc3, Headphones, KeyRound, Library, Radio, Share2, ShieldCheck, Users, Wallet } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
+import { StageRail } from '../components/StageRail';
+import { DotBirth } from '../components/DotBirth';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
 import { roomPresenceCount } from '../features/rooms/roomState';
@@ -132,6 +134,11 @@ export function ListenView({
         </div>
       </div>
 
+      {/* Constellation phase A: the catalog on stage (aura lamp + unlocked glare).
+          The dense catalogue grid below remains the library view and keeps the
+          e2e-load-bearing track-card selectors. */}
+      <StageRail tracks={catalogTracks} accessByTrackId={catalogAccessByTrackId} selectedTrackId={selectedTrackId} onOpenTrack={onOpenTrack} />
+
       <section className='commons-path' aria-label='Shared listening state'>
         <div className='commons-step'>
           <span>1</span>
@@ -239,6 +246,10 @@ export function ListenView({
                   </div>
                 );
               })
+            ) : /* Dot birth only while the registry load is genuinely in flight;
+                 terminal states (empty registry, failures) stay plain text. */
+            catalogStatus === 'Loading registry catalog' ? (
+              <DotBirth size='panel' label={catalogStatus} />
             ) : (
               <div className='empty-state'>{catalogStatus}</div>
             )}
