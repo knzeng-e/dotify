@@ -111,6 +111,24 @@ from each artist `SmartRuntime`. Artist registration calls
 `ArtistRuntimeFactory.createRuntime`; release registration calls
 `musicRegRegister` on the artist runtime.
 
+Contract ABIs are generated from the Hardhat artifacts, not hand-maintained.
+`src/generated/contracts/` holds one auto-generated module per contract
+(`artistDirectoryAbi`, `artistRuntimeFactoryAbi`, `musicRegistryAbi`,
+`musicRoyaltiesAbi`, `musicAccessAbi`, `musicNFTAbi`); `src/shared/config/contracts.ts`
+re-exports them so callers import from one place. Regenerate after any contract
+change:
+
+```bash
+cd ../contracts/evm
+npm run generate:abis   # hardhat compile + write web/src/generated/contracts
+```
+
+The generated files are committed and excluded from lint/format (they are machine
+output) but still typechecked, so a contract signature change that is not
+regenerated surfaces as a TypeScript error. CI (`ci-evm`) regenerates and fails on
+drift. `SmartRuntime` is a diamond: the app calls it through the facet ABIs above
+at the runtime address, so it needs no separate binding.
+
 Bulletin Chain interactions use the PAPI descriptors in `.papi/` and can publish
 compact metadata JSON as an additional availability layer. Regenerate descriptors
 with:

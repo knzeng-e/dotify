@@ -67,3 +67,30 @@ or equivalent repo-level script.
 ## Senior-engineer notes
 
 ABI drift is a silent killer. Make the interface boundary boring, generated, and reviewable.
+
+## Delivery notes
+
+Delivered on branch `feat/generated-abi-bindings`.
+
+- `contracts/evm/scripts/generate-abis.mjs` reads the Hardhat artifacts and writes
+  viem-typed `as const` ABI modules into `web/src/generated/contracts/` (six
+  modules + an `index.ts` barrel), each with the `Auto-generated. Do not edit`
+  header. Plain Node ESM: no ts-node or Hardhat runtime needed, since it only
+  reads artifact JSON. Command: `npm run generate:abis` in `contracts/evm`
+  (`hardhat compile && node scripts/generate-abis.mjs`).
+- Covered contracts (the ones the frontend calls): `ArtistDirectory`,
+  `ArtistRuntimeFactory`, and the `MusicRegistry/Royalties/Access/NFT` pallet
+  facets. `SmartRuntime` is a diamond and is called through those facet ABIs at
+  the runtime address, so it needs no separate binding; extend `CONTRACTS` in the
+  script to add more.
+- `web/src/shared/config/contracts.ts` dropped its six hand-maintained ABI blocks
+  and now re-exports the generated modules under the same names, so `useCatalog`
+  and `useArtistConsole` are unchanged. The generated (full) ABIs are supersets of
+  the previously curated subsets; the frontend builds and the 10 e2e specs pass
+  unchanged.
+- Generated files are committed, excluded from ESLint/Prettier (machine output)
+  but still typechecked by `tsc`, so an un-regenerated signature change fails the
+  web build. `ci-evm` regenerates and runs `git diff --exit-code -- web/src/generated`
+  to fail on drift; its path filter now also watches `web/src/generated/**`.
+- Verified: `generate:abis` clean, then in `web/` tsc + lint (0 errors) + build +
+  fmt:check + 72 unit tests + 10/10 Playwright e2e all green.

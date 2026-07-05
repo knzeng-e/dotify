@@ -5,11 +5,13 @@ on:
     branches: [main, master]
     paths:
       - "contracts/evm/**"
+      - "web/src/generated/**"
       - ".github/workflows/ci-evm.yml"
   pull_request:
     branches: [main, master]
     paths:
       - "contracts/evm/**"
+      - "web/src/generated/**"
       - ".github/workflows/ci-evm.yml"
 
 concurrency:
@@ -34,3 +36,10 @@ jobs:
       - run: npm run fmt:check
       - run: npm run compile
       - run: npm test
+      # Fail if the committed frontend ABI bindings are stale relative to the
+      # compiled contracts (drift guard for ticket 09).
+      - name: Check generated ABI bindings are up to date
+        run: npm run generate:abis
+      - name: Fail on ABI drift
+        working-directory: .
+        run: git diff --exit-code -- web/src/generated
