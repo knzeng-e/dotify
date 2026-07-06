@@ -23,6 +23,10 @@ export type TrackInfo = {
   updatedAt: number;
   imageRef?: string;
   audioRef?: string;
+  // Separate, unencrypted 42% preview asset (ticket 18). Present for
+  // server-keyed protected tracks so unauthorized playback has an honest
+  // preview without the full-track content key.
+  previewRef?: string;
   priceDot?: string;
   bulletinRef: string;
   metadataRef?: string;
@@ -52,6 +56,9 @@ export type CatalogTrack = {
   artist: string;
   artistAddress?: `0x${string}`;
   audioRef: string;
+  // Separate unencrypted 42% preview asset ref (ticket 18); empty when the
+  // track has no published preview (demo/local tracks slice one at playback).
+  previewRef?: string;
   imageRef: string;
   priceDot: string;
   localUrl?: string;

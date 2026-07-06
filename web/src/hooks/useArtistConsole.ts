@@ -10,7 +10,15 @@ import {
   musicRegistryAbi
 } from '../shared/config/contracts';
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
-import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
+import {
+  isBackendConfigured,
+  uploadFileToPinata,
+  uploadJsonToPinata,
+  uploadPreviewToBackend,
+  uploadProtectedAudio,
+  type DotifyTrackManifest
+} from '../services/pinata';
+import { generateWavPreview } from '../shared/utils/audio';
 import { makeEncryptedAudioRef } from '../shared/utils/protectedAudio';
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode } from '../features/catalog/trackModel';
@@ -415,7 +423,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     royaltyRecipients: `0x${string}`[],
     royaltyShares: number[],
     resolvedAudioCID: string,
-    resolvedCoverCID: string
+    resolvedCoverCID: string,
+    resolvedPreviewCID: string
   ): DotifyTrackManifest {
     return {
       schema: 'dotify.track.v1',
@@ -423,7 +432,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       assets: {
         audioCID: resolvedAudioCID,
         coverCID: resolvedCoverCID,
-        encrypted: true
+        encrypted: true,
+        // Separate unencrypted 42% preview asset (ticket 18); omitted when no
+        // preview was published (demo mode, or preview generation failed).
+        ...(resolvedPreviewCID ? { previewCID: resolvedPreviewCID } : {})
       },
       track: {
         contentHash,
@@ -496,17 +508,26 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       }
 
       setRightsStatus('Awaiting IPFS uploads…');
-      const [resolvedAudioCID, resolvedCoverCID] = await Promise.all([
+      // Raw audio bytes feed the protected (server-encrypted) upload and, in
+      // backend mode, a separate unencrypted 42% preview asset (ticket 18) so
+      // unauthorized playback has an honest preview without the full-track key.
+      const rawAudioBlob = audioSource ? await fetch(audioSource).then(r => r.blob()) : null;
+      const rawAudioBytes = rawAudioBlob ? new Uint8Array(await rawAudioBlob.arrayBuffer()) : null;
+      const shouldPublishPreview = isBackendConfigured() && !isArtistPublishE2e && Boolean(rawAudioBytes);
+
+      const [resolvedAudioCID, resolvedCoverCID, resolvedPreviewCID] = await Promise.all([
         audioUploadRef.current ??
-          (audioSource
-            ? fetch(audioSource)
-                .then(r => r.blob())
-                .then(async blob => {
-                  const bytes = new Uint8Array(await blob.arrayBuffer());
-                  return uploadProtectedAudio({ bytes, name: title || 'audio', mime: blob.type }, fileHash);
-                })
+          (rawAudioBytes
+            ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash)
             : Promise.resolve('')),
-        coverUploadRef.current ?? (coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }) : Promise.resolve(''))
+        coverUploadRef.current ?? (coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }) : Promise.resolve('')),
+        shouldPublishPreview && rawAudioBytes
+          ? generateWavPreview(rawAudioBytes)
+              .then(previewBytes => uploadPreviewToBackend(previewBytes, `${title || 'audio'}-preview`))
+              // A missing preview is not fatal: publish continues without one
+              // (playback falls back to the demo path for that track).
+              .catch(() => '')
+          : Promise.resolve('')
       ]);
 
       if (resolvedAudioCID) setAudioCID(resolvedAudioCID);
@@ -514,7 +535,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       const royaltyRecipients = [activeEvmAddress];
       const royaltyShares = [royaltyBps];
-      const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID);
+      const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID, resolvedPreviewCID);
 
       setRightsStatus('Publishing manifest to IPFS…');
       setTransactionFeedback({

@@ -26,6 +26,7 @@ export function catalogTrackToTrackInfo(track: CatalogTrack): TrackInfo {
     updatedAt: Date.now(),
     imageRef: track.imageRef,
     audioRef: track.audioRef,
+    previewRef: track.previewRef,
     metadataRef: track.metadataRef,
     description: track.description,
     accessMode: track.accessMode,
