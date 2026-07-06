@@ -41,8 +41,8 @@ Where it falls short of its own standards:
 
 | Item | Tracking | Status |
 | --- | --- | --- |
-| PR8b providers/context boundary (5 stacked PRs) | `08b-providers-design.md`, tracker rows 8b-1..8b-5 | Planned |
-| PR9 `shared/` tree relocation | `08-frontend-refactor-tracker.md` | Planned |
+| PR8b providers/context boundary (5 stacked PRs) | `08b-providers-design.md`, tracker rows 8b-1..8b-5 | Delivered on `main` |
+| PR9 `shared/` tree relocation | `08-frontend-refactor-tracker.md` | Delivered on `main` |
 | PR10 split mega-hooks (`useCatalog`, `useSession`, `useArtistConsole`) along their `features/*` seams | propose as follow-up rows in the ticket 08 tracker after 8b lands | Proposed |
 | Generated ABI bindings | `09-generated-abi-bindings.md` (#10) | Delivered (`feat/generated-abi-bindings`) |
 | Observability and health checks on the key service | `10-observability-health-checks.md` (#11) | Open |

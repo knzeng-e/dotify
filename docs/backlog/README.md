@@ -39,7 +39,7 @@ Do not add ornamental product features until the following spine is stable:
 | `06-artist-publish-e2e-coverage.md` | #7 | Delivered on `main` | Artist publish end-to-end coverage |
 | `07-room-join-e2e-coverage.md` | #8 | Delivered (see delivery notes in the ticket) | Room join and host-access playback end-to-end coverage |
 | `18-production-preview-assets.md` | #27 | Open | Separate preview assets for server-keyed protected tracks |
-| `08-frontend-feature-module-refactor.md` | #9 | In progress (foundation PR: vitest + access/room feature modules) | Frontend feature-module refactor |
+| `08-frontend-feature-module-refactor.md` | #9 | Delivered on `main` | Frontend feature-module refactor |
 | `09-generated-abi-bindings.md` | #10 | Delivered (see delivery notes in the ticket) | Generated ABI bindings |
 
 ## Sprint 2 — Product hardening and philosophical differentiation
@@ -62,8 +62,8 @@ Presentational UX work derived from `design/Dotify-design/` (the "Living Light" 
 | `16-wallet-connected-identity-card.md` | Delivered on `main` | Calm connected-wallet identity card with real, non-fabricated stats |
 | `17-artist-studio-living-light-parity.md` | Delivered on `main` | Studio identity header, metric cards, sovereignty card, releases + support showcase |
 | `19-constellation-design-track.md` | Phases A-C prototyped (see delivery notes) | Constellation direction: The Stage (aura lamp rail), Sky of rooms, micro-moments (`docs/design/dotify-constellation-ux.md`) |
-| `20-room-social-layer.md` | Delivered on `feat/room-social-layer` | Broadcast reactions (attributed petals) + in-room chat over the signaling relay; 50-message in-room history, rate-limited, fail closed |
-| `21-room-collaborative-queue.md` | Delivered on `feat/room-collaborative-queue` | Collaborative request queue with host veto: any participant proposes a track, the whole room sees the attributed queue, the host vetoes/clears; full-list broadcast, capped, rate-limited, off `/status`, honest (intent, not auto-play) |
+| `20-room-social-layer.md` | Delivered on `main` (PR #67) | Broadcast reactions (attributed petals) + in-room chat over the signaling relay; 50-message in-room history, rate-limited, fail closed |
+| `21-room-collaborative-queue.md` | In review (issue #69, PR #68) on `feat/room-collaborative-queue` | Collaborative request queue with host veto: any participant proposes a track, the whole room sees the attributed queue, the host vetoes/clears; full-list broadcast, capped, rate-limited, off `/status`, honest (intent, not auto-play) |
 
 Delivered on `main`: album-aura engine (`web/src/utils/aura.ts`, `components/AuraBackground.tsx`), aura-colored cover fallbacks (`hooks/useCatalog.ts`), presence avatars (`components/Presence.tsx`), player dock (`components/PlayerDock.tsx`), create-room sheet (`components/CreateRoomModal.tsx`), immersive-room cover-glow/EQ/reactions/header/sync-note (`views/PlayerView.tsx`), wallet connected card (`components/WalletModal.tsx`), studio showcase (`views/artist/ArtistConsole.tsx` + `OverviewTab.tsx`), Hanken-only app type with system mono for code, featured aura hero on Home, and the Living Light stylesheet block in `web/src/styles.css`. The old node/warp `AmbientCanvas` / `StarfieldCanvas` are removed.
 
