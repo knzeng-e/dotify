@@ -379,6 +379,150 @@ describe('room social layer', () => {
     assert.equal(server.rooms.get(created.roomId).chat.length, 0);
   });
 
+  it('broadcasts the request queue to the room with attribution and replays it to late joiners', async () => {
+    const host = connectClient();
+    const created = await createRoom(host, { displayName: 'Ada' });
+
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Gabe' });
+
+    const hostSees = new Promise(resolve => host.once('room:requests', resolve));
+    listener.emit('room:request', { text: '  play  some  Fela  ' });
+    const queue = await hostSees;
+
+    assert.equal(queue.length, 1);
+    assert.equal(queue[0].text, 'play some Fela', 'text is sanitized to a single line');
+    assert.equal(queue[0].senderName, 'Gabe');
+    assert.equal(typeof queue[0].id, 'string');
+    assert.equal(typeof queue[0].ts, 'number');
+
+    const late = connectClient();
+    await once(late, 'connect');
+    const joined = await emitAck(late, 'room:join', { roomId: created.roomId, displayName: 'Late' });
+    assert.equal(joined.ok, true);
+    assert.equal(joined.requests.length, 1);
+    assert.equal(joined.requests[0].text, 'play some Fela');
+  });
+
+  it('lets only the host veto or clear requests; listener veto/clear are ignored', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Gabe' });
+
+    const filled = new Promise(resolve => {
+      host.on('room:requests', queue => {
+        if (queue.length === 2) resolve(queue);
+      });
+    });
+    listener.emit('room:request', { text: 'first' });
+    listener.emit('room:request', { text: 'second' });
+    const queue = await filled;
+    const target = queue.find(request => request.text === 'first');
+
+    // A listener cannot veto or clear: neither emits a broadcast.
+    const listenerMutations = collect(host, 'room:requests');
+    listener.emit('room:request:remove', { id: target.id });
+    listener.emit('room:request:clear');
+    assert.equal((await listenerMutations).length, 0, 'listener veto/clear are ignored');
+
+    // The host veto removes exactly the targeted request.
+    const afterRemove = await new Promise(resolve => {
+      host.once('room:requests', resolve);
+      host.emit('room:request:remove', { id: target.id });
+    });
+    assert.deepEqual(
+      afterRemove.map(request => request.text),
+      ['second']
+    );
+
+    // The host clear empties the queue.
+    const afterClear = await new Promise(resolve => {
+      host.once('room:requests', resolve);
+      host.emit('room:request:clear');
+    });
+    assert.equal(afterClear.length, 0);
+  });
+
+  it('ignores requests from sockets that are not room participants', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    const outsider = connectClient();
+    await once(outsider, 'connect');
+
+    const hostSees = collect(host, 'room:requests');
+    outsider.emit('room:request', { text: 'let me pick' });
+
+    assert.equal((await hostSees).length, 0);
+    assert.equal(server.rooms.get(created.roomId).requests.length, 0);
+  });
+
+  it('rate limits requests per socket, dropping silently past the window limit', async () => {
+    await server.close();
+    server = startSignalingServer({ port: 0, host: '127.0.0.1', requestRateLimit: { limit: 2, windowMs: 5_000 }, logger: () => {} });
+    port = await server.listen();
+
+    const host = connectClient();
+    const created = await createRoom(host);
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+
+    const hostSees = collect(host, 'room:requests');
+    for (let i = 1; i <= 4; i += 1) {
+      listener.emit('room:request', { text: `burst ${i}` });
+    }
+    const broadcasts = await hostSees;
+
+    // Every add rebroadcasts the full list; only 2 adds survive the window.
+    const final = broadcasts.at(-1) ?? [];
+    assert.equal(final.length, 2);
+    assert.deepEqual(
+      final.map(request => request.text),
+      ['burst 1', 'burst 2']
+    );
+  });
+
+  it('caps the request queue at the configured limit, dropping further adds silently', async () => {
+    await server.close();
+    server = startSignalingServer({ port: 0, host: '127.0.0.1', requestQueueLimit: 3, requestRateLimit: { limit: 100, windowMs: 5_000 }, logger: () => {} });
+    port = await server.listen();
+
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    const capped = new Promise(resolve => {
+      const seen = [];
+      host.on('room:requests', queue => {
+        seen.push(queue.length);
+        // Give a beat for any (dropped) extra adds to NOT arrive.
+        setTimeout(() => resolve(seen), 60);
+      });
+    });
+    for (let i = 1; i <= 5; i += 1) {
+      host.emit('room:request', { text: `item ${i}` });
+    }
+    await capped;
+    assert.equal(server.rooms.get(created.roomId).requests.length, 3);
+  });
+
+  it('keeps the request queue out of the public status endpoint', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    host.emit('room:request', { text: 'a private wish' });
+    await collect(host, 'room:requests');
+
+    const res = await fetch(`http://127.0.0.1:${port}/status`);
+    const body = await res.json();
+    const room = body.rooms.find(r => r.roomId === created.roomId);
+    assert.ok(room);
+    assert.equal(room.requests, undefined);
+    assert.equal(JSON.stringify(body).includes('a private wish'), false);
+  });
+
   it('throttles join churn per network address so reconnects cannot reset per-socket budgets', async () => {
     await server.close();
     server = startSignalingServer({ port: 0, host: '127.0.0.1', joinRateLimit: { limit: 2, windowMs: 10_000 }, logger: () => {} });

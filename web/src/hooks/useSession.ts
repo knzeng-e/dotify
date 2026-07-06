@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { createRoomJoinE2eCaptureStream, isRoomJoinE2e, roomJoinE2eIceServers } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
-import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH } from '../shared/social';
+import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
 import type {
   CapturableMediaElement,
@@ -16,6 +16,7 @@ import type {
   RoomChatMessage,
   RoomPlaybackMode,
   RoomReactionEvent,
+  RoomRequest,
   SessionAction,
   SocketStatus,
   TrackInfo
@@ -95,6 +96,9 @@ export function useSession(deps: UseSessionDeps) {
   // turns into rising petals.
   const [chatMessages, setChatMessages] = useState<RoomChatMessage[]>([]);
   const [reactionFeed, setReactionFeed] = useState<RoomReactionEvent[]>([]);
+  // Collaborative request queue: server-authoritative full-list broadcast,
+  // so the client only ever mirrors what the room actually holds.
+  const [requestQueue, setRequestQueue] = useState<RoomRequest[]>([]);
 
   const roomIdRef = useRef('');
   const hostIdRef = useRef('');
@@ -174,6 +178,7 @@ export function useSession(deps: UseSessionDeps) {
     setRoomPlaybackMode('full');
     setChatMessages([]);
     setReactionFeed([]);
+    setRequestQueue([]);
     setRemoteReady(false);
     setSessionAction('idle');
     setSessionStatus(status);
@@ -288,6 +293,9 @@ export function useSession(deps: UseSessionDeps) {
     socket.on('room:reaction', (reaction: RoomReactionEvent) => {
       if (!reaction || typeof reaction.emoji !== 'string' || typeof reaction.id !== 'string') return;
       setReactionFeed(previous => [...previous.slice(-19), reaction]);
+    });
+    socket.on('room:requests', (requests: RoomRequest[]) => {
+      setRequestQueue(Array.isArray(requests) ? requests.slice(-REQUEST_QUEUE_CLIENT_LIMIT) : []);
     });
 
     socketRef.current = socket;
@@ -626,6 +634,7 @@ export function useSession(deps: UseSessionDeps) {
         setRoomPlaybackMode(playbackMode);
         setChatMessages([]);
         setReactionFeed([]);
+        setRequestQueue([]);
         setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
         requestOpenRooms();
       },
@@ -670,6 +679,7 @@ export function useSession(deps: UseSessionDeps) {
         setListenerCount(response.listenerCount);
         setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
         setChatMessages(response.chatHistory ?? []);
+        setRequestQueue(response.requests ?? []);
         setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
         requestOpenRooms();
       },
@@ -699,6 +709,7 @@ export function useSession(deps: UseSessionDeps) {
       setListenerCount(response.listenerCount);
       setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
       setChatMessages(response.chatHistory ?? []);
+      setRequestQueue(response.requests ?? []);
       setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
     });
   }
@@ -765,6 +776,27 @@ export function useSession(deps: UseSessionDeps) {
     socketRef.current?.emit('room:reaction', { emoji });
   }
 
+  // Collaborative request queue. Any participant proposes; the server appends,
+  // caps, and rebroadcasts the full list. Host-only veto/clear are ignored by
+  // the server for non-hosts, so we do not gate them here beyond the room
+  // guard -- the server is the authority.
+  function sendRoomRequest(text: string) {
+    if (!roomIdRef.current) return;
+    const trimmed = text.trim().slice(0, REQUEST_TEXT_MAX_LENGTH);
+    if (!trimmed) return;
+    socketRef.current?.emit('room:request', { text: trimmed });
+  }
+
+  function removeRoomRequest(id: string) {
+    if (!roomIdRef.current || !id) return;
+    socketRef.current?.emit('room:request:remove', { id });
+  }
+
+  function clearRoomRequests() {
+    if (!roomIdRef.current) return;
+    socketRef.current?.emit('room:request:clear');
+  }
+
   function destroySession() {
     socketRef.current?.emit('room:leave');
     socketRef.current?.disconnect();
@@ -800,6 +832,7 @@ export function useSession(deps: UseSessionDeps) {
     roomPlaybackMode,
     chatMessages,
     reactionFeed,
+    requestQueue,
     // Refs
     roomIdRef,
     hostIdRef,
@@ -840,6 +873,9 @@ export function useSession(deps: UseSessionDeps) {
     socketEmit,
     sendChatMessage,
     sendRoomReaction,
+    sendRoomRequest,
+    removeRoomRequest,
+    clearRoomRequests,
     destroySession,
     sessionLink: buildSessionLink(roomId)
   };

@@ -19,6 +19,7 @@ import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
 import {
+  REQUEST_TEXT_MAX_LENGTH,
   clientKey,
   createRoomId,
   createWindowLimiter,
@@ -48,6 +49,12 @@ export const defaultConfig = {
   chatHistoryLimit: 50,
   chatRateLimit: { limit: 5, windowMs: 5_000 },
   reactionRateLimit: { limit: 10, windowMs: 5_000 },
+  // Collaborative request queue: every participant can propose a track to
+  // hear next; the host vetoes or clears. Lives in the room Map like chat
+  // (dies with the room, never on /status). The queue is intent, not
+  // playback -- the server never claims it auto-plays.
+  requestQueueLimit: 20,
+  requestRateLimit: { limit: 5, windowMs: 10_000 },
   // Join/reconnect throttle keyed by network address. Chat and reaction
   // limits stay per-socket so co-located listeners each keep their own budget
   // (Dotify's core scenario is people physically together on one network).
@@ -89,6 +96,7 @@ export function startSignalingServer(overrides = {}) {
   const startedAt = Date.now();
   const chatLimiter = createWindowLimiter(config.chatRateLimit.limit, config.chatRateLimit.windowMs);
   const reactionLimiter = createWindowLimiter(config.reactionRateLimit.limit, config.reactionRateLimit.windowMs);
+  const requestLimiter = createWindowLimiter(config.requestRateLimit.limit, config.requestRateLimit.windowMs);
   // Keyed by network address, never cleared on disconnect (that is the point):
   // a reconnect from the same address keeps consuming the same join budget.
   const joinLimiter = createWindowLimiter(config.joinRateLimit.limit, config.joinRateLimit.windowMs);
@@ -207,6 +215,8 @@ export function startSignalingServer(overrides = {}) {
         // In-room chat only: capped ring buffer, wiped with the room, never
         // included in publicRoom()/status.
         chat: [],
+        // Collaborative request queue: same in-room-only doctrine as chat.
+        requests: [],
         playerState: null,
         playbackMode: payload.playbackMode === 'preview' ? 'preview' : 'full',
         createdAt: Date.now(),
@@ -269,6 +279,7 @@ export function startSignalingServer(overrides = {}) {
         playerState: room.playerState,
         playbackMode: room.playbackMode,
         chatHistory: room.chat,
+        requests: room.requests,
         expiresAt: room.createdAt + config.roomTtlMs
       });
 
@@ -365,6 +376,57 @@ export function startSignalingServer(overrides = {}) {
         participant.room.chat.shift();
       }
       io.to(participant.roomId).emit('room:chat', message);
+    });
+
+    // Collaborative request queue. Any participant proposes a track to hear
+    // next; the host vetoes or clears. Every mutation broadcasts the full
+    // list (room:requests) so the queue has a single server-authoritative
+    // render path, exactly like chat -- no optimistic divergence.
+    socket.on('room:request', (payload = {}) => {
+      const participant = getParticipant(socket);
+      if (!participant) return;
+      if (!requestLimiter.allow(socket.id)) return;
+
+      const text = sanitizeChatText(payload.text, REQUEST_TEXT_MAX_LENGTH);
+      if (!text) return;
+      // When the queue is full we drop silently (fail closed); the host
+      // vetoes or clears to make room. No error channel to probe.
+      if (participant.room.requests.length >= config.requestQueueLimit) return;
+
+      if (participant.role === 'host') touchHost(participant.room);
+      participant.room.requests.push({
+        id: randomUUID(),
+        text,
+        senderId: socket.id,
+        senderName: participant.displayName,
+        ts: Date.now()
+      });
+      io.to(participant.roomId).emit('room:requests', participant.room.requests);
+    });
+
+    // Host veto: remove one request by id. Host-only.
+    socket.on('room:request:remove', (payload = {}) => {
+      const room = getHostedRoom(socket);
+      if (!room) return;
+
+      touchHost(room);
+      const id = typeof payload.id === 'string' ? payload.id : null;
+      if (!id) return;
+      const next = room.requests.filter(request => request.id !== id);
+      if (next.length === room.requests.length) return;
+      room.requests = next;
+      io.to(socket.data.roomId).emit('room:requests', room.requests);
+    });
+
+    // Host clears the whole queue. Host-only.
+    socket.on('room:request:clear', () => {
+      const room = getHostedRoom(socket);
+      if (!room) return;
+
+      touchHost(room);
+      if (room.requests.length === 0) return;
+      room.requests = [];
+      io.to(socket.data.roomId).emit('room:requests', room.requests);
     });
 
     socket.on('webrtc:offer', (payload = {}) => {

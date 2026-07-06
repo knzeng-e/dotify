@@ -60,7 +60,7 @@ Where it falls short of its own standards:
 
 | Item | Tracking | Status |
 | --- | --- | --- |
-| Rooms as an actual village square: collaborative queue with host veto, lightweight reactions rendered through the aura engine, and provenance trails (which room and host a listener met a track through) as the substrate for the ambassador model without referral mechanics | `12-ambassador-social-propagation-model.md` (#13) + new room-social ticket | Proposed |
+| Rooms as an actual village square: collaborative queue with host veto, lightweight reactions rendered through the aura engine, and provenance trails (which room and host a listener met a track through) as the substrate for the ambassador model without referral mechanics | `12-ambassador-social-propagation-model.md` (#13); collaborative request queue with host veto delivered in `21-room-collaborative-queue.md` | Collaborative queue delivered (first slice); aura-rendered reactions and provenance trails still proposed |
 | Aura-driven discovery: browse rooms and tracks by light and mood rather than lists | new ticket | Proposed |
 | Key-delivery decentralization path: documented then implemented route away from the single `CONTENT_KEY_MASTER_SECRET`, e.g. per-artist key derivation anchored to the SmartRuntime, or threshold key shares across independent key-service instances | new ticket | Proposed |
 | UX polish pass: landing hero that drops a visitor into a live (or curated ambient) room within one click; a warmer unlock moment showing the actual on-chain royalty split; a feedback queue replacing the single transaction toast | new ticket | Proposed |

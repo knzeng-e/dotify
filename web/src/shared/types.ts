@@ -134,6 +134,17 @@ export type RoomReactionEvent = {
   ts: number;
 };
 
+// A collaborative request: a participant proposes a track to hear next. Text
+// intent, attributed to a real display name; the host vetoes or clears.
+// Transport-agnostic like the other social shapes.
+export type RoomRequest = {
+  id: string;
+  text: string;
+  senderId: string;
+  senderName: string;
+  ts: number;
+};
+
 export type JoinRoomResponse =
   | {
       ok: true;
@@ -145,6 +156,7 @@ export type JoinRoomResponse =
       playerState: PlayerState | null;
       playbackMode?: RoomPlaybackMode;
       chatHistory?: RoomChatMessage[];
+      requests?: RoomRequest[];
       expiresAt?: number;
     }
   | { ok: false; error: string; code?: string };
