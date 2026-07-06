@@ -11,13 +11,10 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSessionContext } from '../app/providers';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { CHAT_TEXT_MAX_LENGTH, ROOM_REACTIONS } from '../shared/social';
+import { formatClockTime } from '../shared/utils/format';
 import { Avatar } from './Presence';
 
 const REACTION_LABELS = ['heart', 'fire', 'leaf', 'sparkle', 'raise', 'tear'];
-
-function formatClock(ts: number) {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
 
 export function RoomChat() {
   const session = useSessionContext();
@@ -62,7 +59,7 @@ export function RoomChat() {
               <div className='room-chat-body'>
                 <span className='room-chat-meta'>
                   <span className='room-chat-name'>{message.senderName}</span>
-                  <span className='room-chat-time'>{formatClock(message.ts)}</span>
+                  <span className='room-chat-time'>{formatClockTime(message.ts)}</span>
                 </span>
                 <span className='room-chat-text'>{message.text}</span>
               </div>

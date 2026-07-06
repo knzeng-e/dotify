@@ -494,18 +494,19 @@ describe('room social layer', () => {
     const host = connectClient();
     const created = await createRoom(host);
 
-    const capped = new Promise(resolve => {
-      const seen = [];
-      host.on('room:requests', queue => {
-        seen.push(queue.length);
-        // Give a beat for any (dropped) extra adds to NOT arrive.
-        setTimeout(() => resolve(seen), 60);
-      });
-    });
+    const broadcasts = collect(host, 'room:requests');
     for (let i = 1; i <= 5; i += 1) {
       host.emit('room:request', { text: `item ${i}` });
     }
-    await capped;
+    const seen = await broadcasts;
+
+    // Only the first 3 adds broadcast; adds 4 and 5 hit the cap and are dropped
+    // silently (no broadcast, no error), so the queue holds exactly 3.
+    assert.equal(seen.length, 3);
+    assert.deepEqual(
+      seen.at(-1).map(request => request.text),
+      ['item 1', 'item 2', 'item 3']
+    );
     assert.equal(server.rooms.get(created.roomId).requests.length, 3);
   });
 

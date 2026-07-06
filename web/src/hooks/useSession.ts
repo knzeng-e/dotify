@@ -295,7 +295,10 @@ export function useSession(deps: UseSessionDeps) {
       setReactionFeed(previous => [...previous.slice(-19), reaction]);
     });
     socket.on('room:requests', (requests: RoomRequest[]) => {
-      setRequestQueue(Array.isArray(requests) ? requests.slice(-REQUEST_QUEUE_CLIENT_LIMIT) : []);
+      // Full-list broadcast: guard each item's shape before accepting, matching
+      // the per-message validation the chat handler above uses.
+      const valid = Array.isArray(requests) ? requests.filter(request => request && typeof request.id === 'string' && typeof request.text === 'string') : [];
+      setRequestQueue(valid.slice(-REQUEST_QUEUE_CLIENT_LIMIT));
     });
 
     socketRef.current = socket;

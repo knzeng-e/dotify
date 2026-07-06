@@ -13,11 +13,8 @@ import { useState, type FormEvent } from 'react';
 import { useSessionContext } from '../app/providers';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { REQUEST_TEXT_MAX_LENGTH } from '../shared/social';
+import { formatClockTime } from '../shared/utils/format';
 import { Avatar } from './Presence';
-
-function formatClock(ts: number) {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
 
 export function RoomRequests() {
   const session = useSessionContext();
@@ -61,7 +58,7 @@ export function RoomRequests() {
               <div className='room-chat-body'>
                 <span className='room-chat-meta'>
                   <span className='room-chat-name'>{request.senderName}</span>
-                  <span className='room-chat-time'>{formatClock(request.ts)}</span>
+                  <span className='room-chat-time'>{formatClockTime(request.ts)}</span>
                 </span>
                 <span className='room-chat-text'>{request.text}</span>
               </div>
