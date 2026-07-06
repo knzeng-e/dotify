@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { io as ioClient } from 'socket.io-client';
 import { startSignalingServer } from './signaling.mjs';
+import { clientKey, createWindowLimiter } from './signaling-utils.mjs';
 
 let server;
 let port;
@@ -378,6 +379,33 @@ describe('room social layer', () => {
     assert.equal(server.rooms.get(created.roomId).chat.length, 0);
   });
 
+  it('throttles join churn per network address so reconnects cannot reset per-socket budgets', async () => {
+    await server.close();
+    server = startSignalingServer({ port: 0, host: '127.0.0.1', joinRateLimit: { limit: 2, windowMs: 10_000 }, logger: () => {} });
+    port = await server.listen();
+
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    // Each rejoin is a fresh socket id but the same loopback address -- the
+    // exact disconnect/rejoin move an attacker would use to reset limits.
+    const first = connectClient();
+    await once(first, 'connect');
+    assert.equal((await emitAck(first, 'room:join', { roomId: created.roomId })).ok, true);
+
+    const second = connectClient();
+    await once(second, 'connect');
+    assert.equal((await emitAck(second, 'room:join', { roomId: created.roomId })).ok, true);
+
+    // Third join from the same address within the window is refused even
+    // though it is a brand-new socket id.
+    const third = connectClient();
+    await once(third, 'connect');
+    const throttled = await emitAck(third, 'room:join', { roomId: created.roomId });
+    assert.equal(throttled.ok, false);
+    assert.equal(throttled.code, 'JOIN_THROTTLED');
+  });
+
   it('keeps chat out of the public status endpoint', async () => {
     const host = connectClient();
     const created = await createRoom(host);
@@ -390,5 +418,37 @@ describe('room social layer', () => {
     assert.ok(room);
     assert.equal(room.chat, undefined);
     assert.equal(JSON.stringify(body).includes('private to the room'), false);
+  });
+});
+
+describe('window limiter', () => {
+  it('drops buckets whose window has fully elapsed so durable keys stay bounded', () => {
+    const limiter = createWindowLimiter(3, 1_000);
+    assert.equal(limiter.allow('1.2.3.4', 0), true);
+    assert.equal(limiter.allow('5.6.7.8', 0), true);
+    assert.equal(limiter.size(), 2);
+
+    limiter.prune(500); // still inside the window: nothing dropped
+    assert.equal(limiter.size(), 2);
+
+    limiter.prune(1_500); // window elapsed for both keys
+    assert.equal(limiter.size(), 0);
+  });
+});
+
+describe('clientKey', () => {
+  it('uses the raw socket address by default and ignores x-forwarded-for', () => {
+    const socket = { handshake: { address: '10.0.0.9', headers: { 'x-forwarded-for': '1.1.1.1' } } };
+    assert.equal(clientKey(socket), '10.0.0.9');
+  });
+
+  it('reads the first forwarded hop only when trustProxy is enabled', () => {
+    const socket = { handshake: { address: '10.0.0.9', headers: { 'x-forwarded-for': '1.1.1.1, 2.2.2.2' } } };
+    assert.equal(clientKey(socket, { trustProxy: true }), '1.1.1.1');
+  });
+
+  it('falls back to unknown when no address is present', () => {
+    assert.equal(clientKey({ handshake: {} }), 'unknown');
+    assert.equal(clientKey(undefined), 'unknown');
   });
 });

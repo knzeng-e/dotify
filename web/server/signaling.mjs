@@ -19,6 +19,7 @@ import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
 import {
+  clientKey,
   createRoomId,
   createWindowLimiter,
   normalizeRoomId,
@@ -47,6 +48,18 @@ export const defaultConfig = {
   chatHistoryLimit: 50,
   chatRateLimit: { limit: 5, windowMs: 5_000 },
   reactionRateLimit: { limit: 10, windowMs: 5_000 },
+  // Join/reconnect throttle keyed by network address. Chat and reaction
+  // limits stay per-socket so co-located listeners each keep their own budget
+  // (Dotify's core scenario is people physically together on one network).
+  // This throttle caps the reconnect-churn that would otherwise let a client
+  // reset its per-socket budget by disconnecting and rejoining with a fresh
+  // socket id. Generous by design: honest crowds arriving together stay well
+  // under it. Best-effort dampening, not a hard identity guarantee.
+  joinRateLimit: { limit: 15, windowMs: 10_000 },
+  // Only trust x-forwarded-for for the client key when a reverse proxy is
+  // guaranteed to set it. Off by default (raw socket address) so a bare demo
+  // deployment cannot be spoofed via a forged header.
+  trustProxy: false,
   logger: line => console.log(line)
 };
 
@@ -65,7 +78,8 @@ export function readConfigFromEnv(env = process.env) {
             .filter(Boolean),
     roomTtlMs: Number(env.SIGNAL_ROOM_TTL_MS ?? defaultConfig.roomTtlMs),
     hostHeartbeatTimeoutMs: Number(env.SIGNAL_HOST_TIMEOUT_MS ?? defaultConfig.hostHeartbeatTimeoutMs),
-    maxListenersPerRoom: Number(env.SIGNAL_MAX_LISTENERS ?? defaultConfig.maxListenersPerRoom)
+    maxListenersPerRoom: Number(env.SIGNAL_MAX_LISTENERS ?? defaultConfig.maxListenersPerRoom),
+    trustProxy: /^(1|true|yes)$/i.test(String(env.SIGNAL_TRUST_PROXY ?? '').trim())
   };
 }
 
@@ -75,6 +89,9 @@ export function startSignalingServer(overrides = {}) {
   const startedAt = Date.now();
   const chatLimiter = createWindowLimiter(config.chatRateLimit.limit, config.chatRateLimit.windowMs);
   const reactionLimiter = createWindowLimiter(config.reactionRateLimit.limit, config.reactionRateLimit.windowMs);
+  // Keyed by network address, never cleared on disconnect (that is the point):
+  // a reconnect from the same address keeps consuming the same join budget.
+  const joinLimiter = createWindowLimiter(config.joinRateLimit.limit, config.joinRateLimit.windowMs);
 
   function logEvent(event, fields = {}) {
     config.logger(JSON.stringify({ at: new Date().toISOString(), app: 'dotify-signal', event, ...fields }));
@@ -208,6 +225,16 @@ export function startSignalingServer(overrides = {}) {
 
     socket.on('room:join', (payload = {}, reply) => {
       leaveRoom(socket);
+
+      // Throttle join/reconnect churn per network address. Anonymous listeners
+      // give us no durable per-user identity, so without this a client could
+      // reset its per-socket chat/reaction budget just by disconnecting and
+      // rejoining with a fresh socket id. This is the only limiter keyed by
+      // address rather than socket id, so it survives that reconnect.
+      if (!joinLimiter.allow(clientKey(socket, { trustProxy: config.trustProxy }))) {
+        reply?.({ ok: false, error: 'Too many join attempts. Please wait a moment.', code: 'JOIN_THROTTLED' });
+        return;
+      }
 
       const roomId = normalizeRoomId(payload.roomId);
       const room = rooms.get(roomId);
@@ -380,6 +407,9 @@ export function startSignalingServer(overrides = {}) {
   // Sweep: enforce room TTL and host liveness so zombie rooms cannot pile up.
   const sweepTimer = setInterval(() => {
     const now = Date.now();
+    // Reclaim expired join-throttle buckets (keyed by address, never cleared
+    // on disconnect) so the limiter Map stays bounded.
+    joinLimiter.prune(now);
     for (const [roomId, room] of rooms) {
       if (now - room.createdAt > config.roomTtlMs) {
         closeRoom(roomId, room, 'Room expired', 'room:expired');
