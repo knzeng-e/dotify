@@ -24,7 +24,7 @@ import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomChat } from '../components/RoomChat';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
-import { hashHue } from '../shared/utils/aura';
+import { hashHue, initialsFor } from '../shared/utils/aura';
 import { formatTime } from '../shared/utils/format';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
 import { roomPresenceCount } from '../features/rooms/roomState';
@@ -264,7 +264,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                     style={{ left: `${reaction.x}%`, '--petal-hue': hashHue(reaction.senderName) } as CSSProperties}
                   >
                     <span className='room-reaction-emoji'>{reaction.emoji}</span>
-                    <span className='room-reaction-sender'>{(reaction.senderName || '?').slice(0, 2).toUpperCase()}</span>
+                    <span className='room-reaction-sender'>{initialsFor(reaction.senderName)}</span>
                   </span>
                 ))}
               </span>

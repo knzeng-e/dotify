@@ -20,6 +20,12 @@ export const RESTING_AURA: Aura = {
   accent: 'hsl(150 84% 60%)'
 };
 
+// Two-letter initials for presence avatars and reaction tags. Kept here beside
+// the other name-derived display helpers so both call sites share one rule.
+export function initialsFor(name: string | null | undefined): string {
+  return (name || '?').slice(0, 2).toUpperCase();
+}
+
 export function hashHue(value: string): number {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) {
