@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { createRoomJoinE2eCaptureStream, isRoomJoinE2e, roomJoinE2eIceServers } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
+import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
 import type {
   CapturableMediaElement,
@@ -12,7 +13,9 @@ import type {
   OpenRoom,
   PeerStatus,
   PlayerState,
+  RoomChatMessage,
   RoomPlaybackMode,
+  RoomReactionEvent,
   SessionAction,
   SocketStatus,
   TrackInfo
@@ -87,6 +90,11 @@ export function useSession(deps: UseSessionDeps) {
   // Host-declared playback mode for the room: 'preview' when the host lacks
   // access to the current protected track and streams the 42% fallback.
   const [roomPlaybackMode, setRoomPlaybackMode] = useState<'full' | 'preview'>('full');
+  // Room social layer. Chat mirrors the server's capped in-room history;
+  // the reaction feed keeps a short sliding window that the player view
+  // turns into rising petals.
+  const [chatMessages, setChatMessages] = useState<RoomChatMessage[]>([]);
+  const [reactionFeed, setReactionFeed] = useState<RoomReactionEvent[]>([]);
 
   const roomIdRef = useRef('');
   const hostIdRef = useRef('');
@@ -164,6 +172,8 @@ export function useSession(deps: UseSessionDeps) {
     listenersRef.current = [];
     setListenerCount(0);
     setRoomPlaybackMode('full');
+    setChatMessages([]);
+    setReactionFeed([]);
     setRemoteReady(false);
     setSessionAction('idle');
     setSessionStatus(status);
@@ -267,6 +277,17 @@ export function useSession(deps: UseSessionDeps) {
     });
     socket.on('peer:connected', (payload: { from: string }) => {
       upsertListenerStatus(payload.from, 'connected');
+    });
+
+    // Social layer: the server is the source of truth (it sanitizes,
+    // rate-limits, and buffers); the client only mirrors what it relays.
+    socket.on('room:chat', (message: RoomChatMessage) => {
+      if (!message || typeof message.text !== 'string' || typeof message.id !== 'string') return;
+      setChatMessages(previous => [...previous, message].slice(-CHAT_CLIENT_LIMIT));
+    });
+    socket.on('room:reaction', (reaction: RoomReactionEvent) => {
+      if (!reaction || typeof reaction.emoji !== 'string' || typeof reaction.id !== 'string') return;
+      setReactionFeed(previous => [...previous.slice(-19), reaction]);
     });
 
     socketRef.current = socket;
@@ -603,6 +624,8 @@ export function useSession(deps: UseSessionDeps) {
         listenersRef.current = [];
         setListenerCount(0);
         setRoomPlaybackMode(playbackMode);
+        setChatMessages([]);
+        setReactionFeed([]);
         setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
         requestOpenRooms();
       },
@@ -646,6 +669,7 @@ export function useSession(deps: UseSessionDeps) {
         setPlayerState(response.playerState);
         setListenerCount(response.listenerCount);
         setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
+        setChatMessages(response.chatHistory ?? []);
         setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
         requestOpenRooms();
       },
@@ -674,6 +698,7 @@ export function useSession(deps: UseSessionDeps) {
       setPlayerState(response.playerState);
       setListenerCount(response.listenerCount);
       setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
+      setChatMessages(response.chatHistory ?? []);
       setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
     });
   }
@@ -725,6 +750,21 @@ export function useSession(deps: UseSessionDeps) {
     socketRef.current?.emit(event, data);
   }
 
+  // Social layer sends. The server validates, rate-limits, and echoes back to
+  // the whole room (sender included), so local state only updates on receipt:
+  // one render path, no optimistic divergence.
+  function sendChatMessage(text: string) {
+    if (!roomIdRef.current) return;
+    const trimmed = text.trim().slice(0, CHAT_TEXT_MAX_LENGTH);
+    if (!trimmed) return;
+    socketRef.current?.emit('room:chat', { text: trimmed });
+  }
+
+  function sendRoomReaction(emoji: string) {
+    if (!roomIdRef.current) return;
+    socketRef.current?.emit('room:reaction', { emoji });
+  }
+
   function destroySession() {
     socketRef.current?.emit('room:leave');
     socketRef.current?.disconnect();
@@ -758,6 +798,8 @@ export function useSession(deps: UseSessionDeps) {
     setLocalStreamReady,
     isRefreshingRooms,
     roomPlaybackMode,
+    chatMessages,
+    reactionFeed,
     // Refs
     roomIdRef,
     hostIdRef,
@@ -796,6 +838,8 @@ export function useSession(deps: UseSessionDeps) {
     upsertListenerStatus,
     removeListener,
     socketEmit,
+    sendChatMessage,
+    sendRoomReaction,
     destroySession,
     sessionLink: buildSessionLink(roomId)
   };

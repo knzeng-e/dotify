@@ -94,6 +94,7 @@ socket.emit('room:join', {
   track: TrackInfo | null;
   playerState: PlayerState | null;
   playbackMode?: 'full' | 'preview';
+  chatHistory?: RoomChatMessage[];   // Up to the last 50 in-room messages
   expiresAt?: number;
 }
 
@@ -222,6 +223,64 @@ socket.on('listener:left', (payload: {
 ```
 
 On receipt, the host closes and removes the peer connection for that listener.
+
+---
+
+## Room social events
+
+Reactions and chat are open to every room participant (host and listeners).
+The server is the source of truth: it validates, rate-limits per socket
+(defaults: 10 reactions / 5 messages per 5-second window), and echoes the
+event to the whole room, sender included. Malformed or over-limit events are
+dropped silently (fail closed, no error channel to probe). Chat lives only in
+the room: the server keeps at most the last 50 messages in memory, replays
+them in the `room:join` ack, and wipes them when the room closes. Nothing is
+persisted and nothing appears on the public `/status` endpoint.
+
+### `room:reaction`
+
+**Direction:** Client (any participant) → Server → Whole room
+
+Broadcasts one of the six curated reaction emoji. The allowlist lives in
+`web/server/signaling-utils.mjs` (`ROOM_REACTION_EMOJI`) with a client mirror
+in `web/src/shared/social.ts` (`ROOM_REACTIONS`).
+
+```typescript
+// Emit
+socket.emit('room:reaction', { emoji: string });
+
+// Whole room receives (sender included)
+socket.on('room:reaction', (reaction: {
+  id: string;          // Server-assigned UUID
+  emoji: string;
+  senderId: string;    // Sender's socket ID
+  senderName: string;  // Sender's display name
+  ts: number;          // Unix ms timestamp
+}) => { ... });
+```
+
+---
+
+### `room:chat`
+
+**Direction:** Client (any participant) → Server → Whole room
+
+Sends a chat message to the room. The server sanitizes the text to a single
+line (max 280 characters) and appends it to the room's in-memory history.
+
+```typescript
+// Emit
+socket.emit('room:chat', { text: string });
+
+// Whole room receives (sender included)
+socket.on('room:chat', (message: {
+  id: string;          // Server-assigned UUID
+  text: string;        // Sanitized, single line, <= 280 chars
+  senderId: string;
+  senderName: string;
+  ts: number;
+}) => { ... });
+```
 
 ---
 

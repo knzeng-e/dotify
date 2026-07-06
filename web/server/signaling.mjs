@@ -14,10 +14,22 @@
 // host heartbeat, per-room listener cap, structured lifecycle logs, and a
 // status endpoint exposing public room metadata.
 
+import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
-import { createRoomId, normalizeRoomId, sanitizeAddress, sanitizePlayerState, sanitizeText, sanitizeTrack } from './signaling-utils.mjs';
+import {
+  clientKey,
+  createRoomId,
+  createWindowLimiter,
+  normalizeRoomId,
+  sanitizeAddress,
+  sanitizeChatText,
+  sanitizePlayerState,
+  sanitizeReactionEmoji,
+  sanitizeText,
+  sanitizeTrack
+} from './signaling-utils.mjs';
 
 export const defaultConfig = {
   port: 8788,
@@ -31,6 +43,23 @@ export const defaultConfig = {
   hostHeartbeatTimeoutMs: 120_000,
   sweepIntervalMs: 30_000,
   maxListenersPerRoom: 24,
+  // Social layer: in-memory chat history per room (dies with the room; never
+  // exposed on /status) and fail-silent per-socket rate limits.
+  chatHistoryLimit: 50,
+  chatRateLimit: { limit: 5, windowMs: 5_000 },
+  reactionRateLimit: { limit: 10, windowMs: 5_000 },
+  // Join/reconnect throttle keyed by network address. Chat and reaction
+  // limits stay per-socket so co-located listeners each keep their own budget
+  // (Dotify's core scenario is people physically together on one network).
+  // This throttle caps the reconnect-churn that would otherwise let a client
+  // reset its per-socket budget by disconnecting and rejoining with a fresh
+  // socket id. Generous by design: honest crowds arriving together stay well
+  // under it. Best-effort dampening, not a hard identity guarantee.
+  joinRateLimit: { limit: 15, windowMs: 10_000 },
+  // Only trust x-forwarded-for for the client key when a reverse proxy is
+  // guaranteed to set it. Off by default (raw socket address) so a bare demo
+  // deployment cannot be spoofed via a forged header.
+  trustProxy: false,
   logger: line => console.log(line)
 };
 
@@ -49,7 +78,8 @@ export function readConfigFromEnv(env = process.env) {
             .filter(Boolean),
     roomTtlMs: Number(env.SIGNAL_ROOM_TTL_MS ?? defaultConfig.roomTtlMs),
     hostHeartbeatTimeoutMs: Number(env.SIGNAL_HOST_TIMEOUT_MS ?? defaultConfig.hostHeartbeatTimeoutMs),
-    maxListenersPerRoom: Number(env.SIGNAL_MAX_LISTENERS ?? defaultConfig.maxListenersPerRoom)
+    maxListenersPerRoom: Number(env.SIGNAL_MAX_LISTENERS ?? defaultConfig.maxListenersPerRoom),
+    trustProxy: /^(1|true|yes)$/i.test(String(env.SIGNAL_TRUST_PROXY ?? '').trim())
   };
 }
 
@@ -57,6 +87,11 @@ export function startSignalingServer(overrides = {}) {
   const config = { ...defaultConfig, ...overrides };
   const rooms = new Map();
   const startedAt = Date.now();
+  const chatLimiter = createWindowLimiter(config.chatRateLimit.limit, config.chatRateLimit.windowMs);
+  const reactionLimiter = createWindowLimiter(config.reactionRateLimit.limit, config.reactionRateLimit.windowMs);
+  // Keyed by network address, never cleared on disconnect (that is the point):
+  // a reconnect from the same address keeps consuming the same join budget.
+  const joinLimiter = createWindowLimiter(config.joinRateLimit.limit, config.joinRateLimit.windowMs);
 
   function logEvent(event, fields = {}) {
     config.logger(JSON.stringify({ at: new Date().toISOString(), app: 'dotify-signal', event, ...fields }));
@@ -169,6 +204,9 @@ export function startSignalingServer(overrides = {}) {
         hostAddress: sanitizeAddress(payload.hostAddress),
         listeners: new Map(),
         track: sanitizeTrack(payload.track),
+        // In-room chat only: capped ring buffer, wiped with the room, never
+        // included in publicRoom()/status.
+        chat: [],
         playerState: null,
         playbackMode: payload.playbackMode === 'preview' ? 'preview' : 'full',
         createdAt: Date.now(),
@@ -187,6 +225,16 @@ export function startSignalingServer(overrides = {}) {
 
     socket.on('room:join', (payload = {}, reply) => {
       leaveRoom(socket);
+
+      // Throttle join/reconnect churn per network address. Anonymous listeners
+      // give us no durable per-user identity, so without this a client could
+      // reset its per-socket chat/reaction budget just by disconnecting and
+      // rejoining with a fresh socket id. This is the only limiter keyed by
+      // address rather than socket id, so it survives that reconnect.
+      if (!joinLimiter.allow(clientKey(socket, { trustProxy: config.trustProxy }))) {
+        reply?.({ ok: false, error: 'Too many join attempts. Please wait a moment.', code: 'JOIN_THROTTLED' });
+        return;
+      }
 
       const roomId = normalizeRoomId(payload.roomId);
       const room = rooms.get(roomId);
@@ -220,6 +268,7 @@ export function startSignalingServer(overrides = {}) {
         track: room.track,
         playerState: room.playerState,
         playbackMode: room.playbackMode,
+        chatHistory: room.chat,
         expiresAt: room.createdAt + config.roomTtlMs
       });
 
@@ -273,6 +322,51 @@ export function startSignalingServer(overrides = {}) {
       if (room) touchHost(room);
     });
 
+    // Social layer: reactions and chat are open to every room participant
+    // (host and listeners alike). Malformed or over-limit events are dropped
+    // silently -- fail closed, no error channel to probe.
+    socket.on('room:reaction', (payload = {}) => {
+      const participant = getParticipant(socket);
+      if (!participant) return;
+      if (!reactionLimiter.allow(socket.id)) return;
+
+      const emoji = sanitizeReactionEmoji(payload.emoji);
+      if (!emoji) return;
+
+      if (participant.role === 'host') touchHost(participant.room);
+      io.to(participant.roomId).emit('room:reaction', {
+        id: randomUUID(),
+        emoji,
+        senderId: socket.id,
+        senderName: participant.displayName,
+        ts: Date.now()
+      });
+    });
+
+    socket.on('room:chat', (payload = {}) => {
+      const participant = getParticipant(socket);
+      if (!participant) return;
+      if (!chatLimiter.allow(socket.id)) return;
+
+      const text = sanitizeChatText(payload.text);
+      if (!text) return;
+
+      if (participant.role === 'host') touchHost(participant.room);
+      const message = {
+        id: randomUUID(),
+        text,
+        senderId: socket.id,
+        senderName: participant.displayName,
+        ts: Date.now()
+      };
+
+      participant.room.chat.push(message);
+      if (participant.room.chat.length > config.chatHistoryLimit) {
+        participant.room.chat.shift();
+      }
+      io.to(participant.roomId).emit('room:chat', message);
+    });
+
     socket.on('webrtc:offer', (payload = {}) => {
       routePeerMessage(payload.targetId, 'webrtc:offer', { from: socket.id, offer: payload.offer });
     });
@@ -313,6 +407,9 @@ export function startSignalingServer(overrides = {}) {
   // Sweep: enforce room TTL and host liveness so zombie rooms cannot pile up.
   const sweepTimer = setInterval(() => {
     const now = Date.now();
+    // Reclaim expired join-throttle buckets (keyed by address, never cleared
+    // on disconnect) so the limiter Map stays bounded.
+    joinLimiter.prune(now);
     for (const [roomId, room] of rooms) {
       if (now - room.createdAt > config.roomTtlMs) {
         closeRoom(roomId, room, 'Room expired', 'room:expired');
@@ -334,6 +431,27 @@ export function startSignalingServer(overrides = {}) {
   function getHostedRoom(socket) {
     const room = rooms.get(socket.data.roomId);
     return room?.hostId === socket.id ? room : null;
+  }
+
+  // Resolve the socket to a verified room participant (host or listener).
+  // Returns null for sockets that claim a room they are not actually in.
+  function getParticipant(socket) {
+    const roomId = socket.data.roomId;
+    const room = rooms.get(roomId);
+    if (!room) return null;
+
+    if (socket.data.role === 'host' && room.hostId === socket.id) {
+      return { room, roomId, role: 'host', displayName: room.hostName };
+    }
+
+    if (socket.data.role === 'listener') {
+      const listener = room.listeners.get(socket.id);
+      if (listener) {
+        return { room, roomId, role: 'listener', displayName: listener.displayName };
+      }
+    }
+
+    return null;
   }
 
   function leaveRoom(socket) {
@@ -370,6 +488,8 @@ export function startSignalingServer(overrides = {}) {
   function clearSocketRoom(socket) {
     socket.data.roomId = undefined;
     socket.data.role = undefined;
+    chatLimiter.clear(socket.id);
+    reactionLimiter.clear(socket.id);
   }
 
   return {

@@ -21,8 +21,10 @@ import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
 import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
+import { RoomChat } from '../components/RoomChat';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
+import { hashHue, initialsFor } from '../shared/utils/aura';
 import { formatTime } from '../shared/utils/format';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
 import { roomPresenceCount } from '../features/rooms/roomState';
@@ -84,7 +86,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
 
   const effectiveAccessMode = trackInfo?.accessMode ?? selectedTrack?.accessMode ?? accessMode;
   const effectivePriceDot = trackInfo?.priceDot ?? selectedTrack?.priceDot ?? priceDot;
-  const [reactions, setReactions] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
+  const [reactions, setReactions] = useState<Array<{ id: string; emoji: string; x: number; senderName: string; self: boolean }>>([]);
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
 
   const { transport, status } = playback;
@@ -109,13 +111,36 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   );
   const showAudioRetry = Boolean(mode === 'listener' && roomId && (!remoteReady || status === 'no-audio'));
 
-  // Local ambient reactions over the cover (visual delight, not broadcast).
-  function sendReaction(emoji: string) {
-    const id = Date.now() + Math.random();
-    const x = 20 + Math.random() * 60;
-    setReactions(current => [...current, { id, emoji, x }]);
-    window.setTimeout(() => setReactions(current => current.filter(reaction => reaction.id !== id)), 2600);
-  }
+  // Broadcast reactions: petals rise from real room:reaction events relayed by
+  // the signaling server (sender included -- the echo is the single render
+  // path). Each petal carries the sender's initials and name-hashed hue, in
+  // line with the Constellation honesty rule.
+  const seenReactionIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const selfId = session.socketRef.current?.id;
+    const fresh = session.reactionFeed.filter(reaction => !seenReactionIdsRef.current.has(reaction.id));
+    if (fresh.length === 0) return;
+
+    const petals = fresh.map(reaction => {
+      seenReactionIdsRef.current.add(reaction.id);
+      return {
+        id: reaction.id,
+        emoji: reaction.emoji,
+        x: 20 + Math.random() * 60,
+        senderName: reaction.senderName,
+        self: reaction.senderId === selfId
+      };
+    });
+    if (seenReactionIdsRef.current.size > 200) {
+      seenReactionIdsRef.current = new Set(session.reactionFeed.map(reaction => reaction.id));
+    }
+
+    setReactions(current => [...current, ...petals]);
+    const petalIds = new Set(petals.map(petal => petal.id));
+    window.setTimeout(() => setReactions(current => current.filter(petal => !petalIds.has(petal.id))), 2600);
+    // The feed is the only real input; socketRef is a stable ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.reactionFeed]);
 
   // Unlock ritual (Constellation phase C): when THIS track's real access flips
   // from needed to granted, a ring of light travels the cover once. Keyed off
@@ -232,8 +257,14 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               </span>
               <span className='room-reactions' aria-hidden='true'>
                 {reactions.map(reaction => (
-                  <span className='room-reaction' key={reaction.id} style={{ left: `${reaction.x}%` }}>
-                    {reaction.emoji}
+                  <span
+                    className='room-reaction'
+                    key={reaction.id}
+                    data-self={reaction.self || undefined}
+                    style={{ left: `${reaction.x}%`, '--petal-hue': hashHue(reaction.senderName) } as CSSProperties}
+                  >
+                    <span className='room-reaction-emoji'>{reaction.emoji}</span>
+                    <span className='room-reaction-sender'>{initialsFor(reaction.senderName)}</span>
                   </span>
                 ))}
               </span>
@@ -379,18 +410,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               </p>
             )}
 
-            {roomId && (
-              <div className='room-react-bar' aria-label='Send a reaction to the room'>
-                {['heart', 'fire', 'leaf', 'sparkle', 'raise', 'tear'].map((key, index) => {
-                  const emoji = ['❤️', '🔥', '🌿', '✨', '🙌', '🥹'][index];
-                  return (
-                    <button className='room-react-btn' type='button' key={key} onClick={() => sendReaction(emoji)} aria-label={`React ${key}`}>
-                      {emoji}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            {/* The reaction bar lives in the RoomChat aside now: broadcast
+                reactions and chat share one social cluster. */}
           </div>
 
           {accessGate && (
@@ -588,6 +609,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             </p>
           )}
         </div>
+
+        {roomId && <RoomChat />}
 
         <div className='doc-panel player-context-panel'>
           <PanelTitle icon={Library} title='Current track' meta={needsTrackAccess ? 'Preview mode' : 'Ready to play'} />

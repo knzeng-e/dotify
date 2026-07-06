@@ -58,14 +58,15 @@ Presentational UX work derived from `design/Dotify-design/` (the "Living Light" 
 | --- | --- | --- |
 | `13-living-light-design-foundation.md` | Delivered on `main` | Aura engine, presence, dock, immersive-room presence, hero/typography/cover-fallback polish |
 | `14-one-link-room-creation-sheet.md` | Delivered on `main` | "As easy as sharing a link" room-create sheet over the existing createSession |
-| `15-immersive-room-parity.md` | Delivered, chat deferred | Room code pill + copy, access chips, sync note; chat omitted until a Socket.IO channel exists |
+| `15-immersive-room-parity.md` | Delivered (chat via #20) | Room code pill + copy, access chips, sync note; the deferred chatter aside landed with `20-room-social-layer.md` |
 | `16-wallet-connected-identity-card.md` | Delivered on `main` | Calm connected-wallet identity card with real, non-fabricated stats |
 | `17-artist-studio-living-light-parity.md` | Delivered on `main` | Studio identity header, metric cards, sovereignty card, releases + support showcase |
 | `19-constellation-design-track.md` | Phases A-C prototyped (see delivery notes) | Constellation direction: The Stage (aura lamp rail), Sky of rooms, micro-moments (`docs/design/dotify-constellation-ux.md`) |
+| `20-room-social-layer.md` | Delivered on `feat/room-social-layer` | Broadcast reactions (attributed petals) + in-room chat over the signaling relay; 50-message in-room history, rate-limited, fail closed |
 
 Delivered on `main`: album-aura engine (`web/src/utils/aura.ts`, `components/AuraBackground.tsx`), aura-colored cover fallbacks (`hooks/useCatalog.ts`), presence avatars (`components/Presence.tsx`), player dock (`components/PlayerDock.tsx`), create-room sheet (`components/CreateRoomModal.tsx`), immersive-room cover-glow/EQ/reactions/header/sync-note (`views/PlayerView.tsx`), wallet connected card (`components/WalletModal.tsx`), studio showcase (`views/artist/ArtistConsole.tsx` + `OverviewTab.tsx`), Hanken-only app type with system mono for code, featured aura hero on Home, and the Living Light stylesheet block in `web/src/styles.css`. The old node/warp `AmbientCanvas` / `StarfieldCanvas` are removed.
 
-Deferred (needs a backend channel or separate design asset, deliberately not faked): room chat / "say something" (no Socket.IO message relay yet - see #15); persisted room mood; the custom Dotify logo (`design/Dotify-design/Dotify - Logo.html`).
+Deferred (needs a backend channel or separate design asset, deliberately not faked): persisted room mood; the custom Dotify logo (`design/Dotify-design/Dotify - Logo.html`). Room chat / "say something" is no longer deferred: `20-room-social-layer.md` wired reactions and chat over the signaling relay.
 
 ## Strategic improvement plan
 

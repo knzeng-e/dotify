@@ -55,6 +55,89 @@ export function sanitizeTrack(track) {
   };
 }
 
+// Curated room reaction language. Keep in sync with ROOM_REACTIONS in
+// web/src/shared/social.ts (the client copy). The bar is a designed set,
+// not an open emoji picker.
+export const ROOM_REACTION_EMOJI = ['❤️', '\u{1F525}', '\u{1F33F}', '✨', '\u{1F64C}', '\u{1F979}'];
+
+export const CHAT_TEXT_MAX_LENGTH = 280;
+
+export function sanitizeReactionEmoji(value) {
+  const text = String(value ?? '').trim();
+  return ROOM_REACTION_EMOJI.includes(text) ? text : null;
+}
+
+export function sanitizeChatText(value, maxLength = CHAT_TEXT_MAX_LENGTH) {
+  // Chat is single-line by design: collapse whitespace runs (including
+  // newlines) and strip non-printable control characters.
+  const text = String(value ?? '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, maxLength)
+    .trim();
+  return text || null;
+}
+
+// Fixed-window rate limiter. Social events fail closed and silent: past the
+// limit we drop, we do not queue or error back.
+export function createWindowLimiter(limit, windowMs) {
+  const buckets = new Map();
+  return {
+    allow(key, now = Date.now()) {
+      const bucket = buckets.get(key);
+      if (!bucket || now - bucket.start >= windowMs) {
+        buckets.set(key, { start: now, count: 1 });
+        return true;
+      }
+      if (bucket.count >= limit) {
+        return false;
+      }
+      bucket.count += 1;
+      return true;
+    },
+    clear(key) {
+      buckets.delete(key);
+    },
+    // Drop buckets whose window has fully elapsed. The server sweep calls this
+    // for limiters keyed by a durable identity (e.g. network address) that we
+    // deliberately never clear() on disconnect, so their Map cannot grow
+    // unbounded over the process lifetime.
+    prune(now = Date.now()) {
+      for (const [key, bucket] of buckets) {
+        if (now - bucket.start >= windowMs) {
+          buckets.delete(key);
+        }
+      }
+    },
+    // Introspection aid (tests, health): number of live buckets.
+    size() {
+      return buckets.size;
+    }
+  };
+}
+
+// Resolve a durable-ish network identity for a socket. Anonymous listeners
+// carry no wallet, signature, or account, so the network address is the only
+// durable signal we can throttle on. Behind a trusted reverse proxy (hosted
+// signaling), the real client sits in the first x-forwarded-for hop; we read
+// it ONLY when trustProxy is on, because that header is client-spoofable
+// unless a proxy is guaranteed to overwrite it. This is best-effort abuse
+// dampening, NOT an identity guarantee: co-located clients behind one NAT
+// share a key, which is why message limits stay per-socket and only join
+// churn is throttled per address.
+export function clientKey(socket, { trustProxy = false } = {}) {
+  if (trustProxy) {
+    const forwarded = socket?.handshake?.headers?.['x-forwarded-for'];
+    if (typeof forwarded === 'string' && forwarded.length > 0) {
+      const first = forwarded.split(',')[0].trim();
+      if (first) return first;
+    }
+  }
+  return socket?.handshake?.address || 'unknown';
+}
+
 export function sanitizePlayerState(state) {
   if (!state || typeof state !== 'object') {
     return null;
