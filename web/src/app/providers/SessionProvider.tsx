@@ -6,6 +6,7 @@
 
 import { createContext, useContext, useEffect, type ReactNode, type RefObject } from 'react';
 import { useSession } from '../../hooks/useSession';
+import { isRoomJoinE2e } from '../../e2e/roomJoinMock';
 import { getInitialRoomCode } from '../../features/rooms/roomState';
 import { getStoredDisplayName } from '../../features/identity/walletIdentity';
 import { useWalletContext } from './WalletProvider';
@@ -37,9 +38,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setAudioSource: catalog.setAudioSource
   });
 
-  // One-link join: a guest landing on a #/rooms/<id> share link joins the room
-  // immediately. No wallet, no signature, no payment: room access is host-based
-  // and the guest only receives the ephemeral WebRTC stream.
+  // One-link join: a guest landing on a #/rooms/<id> share link walks into the
+  // room. No wallet, no signature, no payment: room access is host-based and
+  // the guest only receives the ephemeral WebRTC stream.
+  //
+  // Meet-style arrival: a guest with a remembered name (wallet-scoped or the
+  // per-browser guest login) joins straight away under that name; a first-time
+  // guest gets the join sheet to pick one instead of being auto-labeled
+  // "Listener". Deterministic e2e keeps the direct auto-join.
   //
   // Re-attempt while not yet in a room rather than latching a one-shot ref: under
   // React StrictMode the mount/unmount/remount cycle tears the first socket down
@@ -48,7 +54,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initialRoomCode = getInitialRoomCode();
     if (!initialRoomCode || session.roomId) return;
-    session.joinRoom(initialRoomCode);
+
+    if (isRoomJoinE2e) {
+      session.joinRoom(initialRoomCode);
+      return;
+    }
+
+    const remembered = getStoredDisplayName(listenerEvmAddress);
+    if (remembered) {
+      session.setDisplayName(remembered);
+      session.joinRoom(initialRoomCode);
+      return;
+    }
+    session.setPendingJoinCode(initialRoomCode);
     // Run once per mount; the share-link code is read from the URL at mount time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

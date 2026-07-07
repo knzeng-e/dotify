@@ -5,7 +5,7 @@
 // shell (see ArtistPortalView); App switches between the two.
 
 import { Link as LinkIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { AuraBackground } from '../components/AuraBackground';
 import { PersistentAudio } from '../components/PersistentAudio';
@@ -55,6 +55,13 @@ export function ListenerShell() {
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
   const [joinRoomOpen, setJoinRoomOpen] = useState(false);
   const [pendingArtistTrack, setPendingArtistTrack] = useState<CatalogTrack | null>(null);
+
+  // A share-link/QR arrival with no remembered name waits in pendingJoinCode:
+  // open the join sheet (code already pre-filled from the URL) so the guest
+  // picks a name before entering the room, instead of landing as "Listener".
+  useEffect(() => {
+    if (session.pendingJoinCode) setJoinRoomOpen(true);
+  }, [session.pendingJoinCode]);
 
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
   const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
@@ -250,7 +257,10 @@ export function ListenerShell() {
               setJoinRoomOpen(false);
               session.joinRoom(code);
             }}
-            onClose={() => setJoinRoomOpen(false)}
+            onClose={() => {
+              setJoinRoomOpen(false);
+              session.setPendingJoinCode(null);
+            }}
           />
         )}
 

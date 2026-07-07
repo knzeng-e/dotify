@@ -43,10 +43,15 @@ export function isChosenDisplayName(value: string | null | undefined): boolean {
   return clean.length > 0 && clean !== DEFAULT_DISPLAY_NAME;
 }
 
+// Guests (no wallet) still deserve a remembered login: their chosen name is
+// stored under a per-browser guest key, so the next room join pre-fills it.
+// When they later connect a wallet, the wallet-scoped name takes precedence
+// (callers pass the address, which wins over the guest fallback).
+const GUEST_KEY = 'guest';
+
 export function getStoredDisplayName(address: string | null | undefined): string | null {
-  if (!address) return null;
   try {
-    const stored = window.localStorage.getItem(storageKey(address));
+    const stored = window.localStorage.getItem(storageKey(address || GUEST_KEY));
     const clean = sanitizeDisplayName(stored);
     return clean || null;
   } catch {
@@ -54,14 +59,14 @@ export function getStoredDisplayName(address: string | null | undefined): string
   }
 }
 
-// Persist a chosen name for an address. No-ops for the untouched default so a
-// connected user who never edited the field is not recorded as "Listener".
+// Persist a chosen name for an address, or under the per-browser guest key
+// when no wallet is connected. No-ops for the untouched default so a user who
+// never edited the field is not recorded as "Listener".
 export function storeDisplayName(address: string | null | undefined, value: string): void {
-  if (!address) return;
   const clean = sanitizeDisplayName(value);
   if (!isChosenDisplayName(clean)) return;
   try {
-    window.localStorage.setItem(storageKey(address), clean);
+    window.localStorage.setItem(storageKey(address || GUEST_KEY), clean);
   } catch {
     // Ignore storage failures (private browsing, quota, restricted contexts).
   }

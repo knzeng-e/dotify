@@ -63,3 +63,26 @@ On two devices/tabs, host + listener:
    the loop boundary with no silence.
 4. Host play/pause/seek repeatedly: the listener is not disconnected/rebuilt each
    time (no repeated "Connecting..." blips).
+
+## Follow-up: Meet-grade track switching (replaceTrack)
+
+The first pass renegotiated every listener peer on a track change (close peer,
+new offer/answer, full ICE). That works but costs seconds of silence per
+listener and fails hard if any ICE step glitches - exactly the "desync" a
+listener perceives when the host skips tracks.
+
+The follow-up switches tracks the way Zoom/Meet do: when a listener's
+RTCPeerConnection is already connected, the host swaps the audio track in place
+with `RTCRtpSender.replaceTrack(newTrack)` - no renegotiation, no ICE restart,
+no teardown, no perceptible gap. Full offer/answer remains only for listeners
+without a usable connection (fresh joiners, failed peers), where it is
+genuinely required. Manual QA item 2 becomes: the room should switch tracks
+with no audible gap and no "Connecting..." blip on connected listeners.
+
+## Follow-up: Meet-style arrival for link/QR guests
+
+A guest with a remembered name (wallet-scoped or the per-browser guest login)
+walks straight into the room under that name. A first-time guest gets the join
+sheet (room code pre-filled from the URL) to pick a name before entering,
+instead of being auto-labeled "Listener". The deterministic room-join e2e keeps
+the direct auto-join path.
