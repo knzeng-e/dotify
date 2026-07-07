@@ -493,6 +493,15 @@ export function useCatalog(deps: UseCatalogDeps) {
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void
   ): Promise<RoomPlaybackMode> {
+    // Stop the outgoing track immediately. Resolving the new source (access
+    // check + decrypt/fetch) is async, so without this the old audio keeps
+    // playing for the whole gap while the cover and title already show the new
+    // track. The new source autoplays once it loads.
+    const outgoingAudio = localAudioRef.current;
+    if (outgoingAudio && !outgoingAudio.paused) {
+      outgoingAudio.pause();
+    }
+
     setSelectedTrackId(track.id);
     setTitle(track.title);
     setArtistName(track.artist);

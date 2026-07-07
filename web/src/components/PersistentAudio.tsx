@@ -51,6 +51,12 @@ export function PersistentAudio({
         }}
         onPlay={() => {
           playback.syncFromAudio(localAudioRef.current);
+          // Re-run capture now that audio is actually flowing: a captureStream()
+          // taken at loadedmetadata can have no live track yet. This is a cheap
+          // no-op once the current source is already streaming (guarded in
+          // prepareLocalStream), so it only does work when the room would
+          // otherwise be left with a silent or stale stream.
+          void onPrepareLocalStream();
           onEmitPlayerState(true);
           onEnforcePreviewCutoff();
         }}
