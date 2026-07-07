@@ -9319,10 +9319,35 @@ code,
 .create-room-preview,
 .wallet-stats > div,
 .artist-entry-link,
-.release-focus-cover {
+.release-focus-cover,
+/* Siblings that share .doc-panel's exact base rule: de-border them too so a
+   metric tile beside a panel reads as the same glass, not a hairline box. */
+.metric,
+.rooms-live-panel,
+.rooms-join-panel {
   border-color: transparent;
   background: var(--surface-lit);
   box-shadow: var(--shadow-float);
+}
+
+/* Hero and room cards keep their bespoke aura/gradient backgrounds and their
+   own shadows; they only shed the hairline so they stop reading as framed
+   boxes at the now-larger radius. "Light replaces the line" applies to their
+   edges, not their identity. */
+.home-listening-hero,
+.artist-profile-hero,
+.room-live-card,
+.commons-step,
+.commons-live-join,
+.solo-room-invite {
+  border-color: transparent;
+}
+
+/* The player cover simulated its edge with a 1px inset ring in box-shadow
+   (not a border, so the rules above miss it). Keep the aura glow, drop the
+   ring. */
+.player-view-grid .cover {
+  box-shadow: 0 34px 86px -48px rgba(41, 232, 122, 0.7);
 }
 
 .doc-panel {
@@ -9368,7 +9393,16 @@ code,
   background: var(--surface-deep);
   backdrop-filter: blur(26px) saturate(1.25);
   box-shadow: var(--shadow-float);
-  padding: 1.5rem;
+}
+
+/* Roomier padding only where there is room: on wider viewports. The mobile
+   media rules above set a compact padding, and this block sits after them at
+   equal specificity, so an unconditional padding here would silently win and
+   crowd the tightest screens. Gate it on min-width instead. */
+@media (min-width: 761px) {
+  .modal-card {
+    padding: 1.5rem;
+  }
 }
 
 /* ── Floating layers become deep glass, not framed bars ──────────────────── */
@@ -9479,13 +9513,23 @@ code,
   animation: li-rise var(--dur-flow) var(--ease-soft) both;
 }
 
-/* Stagger the first ranks so a view opens like a room lighting up. */
+/* Stagger the ranks so a view opens like a room lighting up. Content grids
+   hold a handful of panels; cover the realistic range so it reads as one
+   cascade rather than "the first few animate, the rest snap." */
 .content-grid > :nth-child(2) {
   animation-delay: 60ms;
 }
 
 .content-grid > :nth-child(3) {
   animation-delay: 120ms;
+}
+
+.content-grid > :nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.content-grid > :nth-child(n + 5) {
+  animation-delay: 240ms;
 }
 
 /* ── Quiet scrollbars for in-room lists ──────────────────────────────────── */
