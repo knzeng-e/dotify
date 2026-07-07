@@ -159,6 +159,15 @@ export function usePlayback(deps: UsePlaybackDeps) {
     setStatus(previous => (previous === 'playing' ? previous : 'ready'));
   }, [mode, localStreamReady]);
 
+  // Repeat via the element's native `loop`, not a manual replay on `ended`.
+  // Native loop seeks back without ever firing `ended`, so the captureStream()
+  // audio track never goes to `ended` and the room keeps hearing the looped
+  // track. Manual replay-on-ended used to silence the WebRTC stream on loop.
+  useEffect(() => {
+    const audio = localAudioRef.current;
+    if (audio) audio.loop = repeatEnabled;
+  }, [repeatEnabled, localAudioRef]);
+
   const applyMuted = useCallback(
     (next: boolean) => {
       setMutedState(next);
@@ -248,6 +257,10 @@ export function usePlayback(deps: UsePlaybackDeps) {
     (audio: HTMLAudioElement) => {
       syncFromAudio(audio);
       if (repeatEnabled) {
+        // Listener-only path now: the host element loops natively (audio.loop =
+        // repeatEnabled) so it never fires `ended` while repeat is on. This
+        // manual replay only reaches the listener's remote element, whose
+        // MediaStream can still end; it keeps that element cycling.
         audio.currentTime = 0;
         void audio.play().catch(() => undefined);
         return;
