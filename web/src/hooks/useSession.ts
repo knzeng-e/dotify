@@ -88,10 +88,6 @@ export function useSession(deps: UseSessionDeps) {
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('offline');
   const [joinCode, setJoinCode] = useState(() => getInitialRoomCode());
   const [displayName, setDisplayName] = useState('Listener');
-  // A share-link/QR room code waiting on a display name: instead of silently
-  // auto-joining as "Listener", the shell opens the join sheet so the guest
-  // picks a name first (Meet-style lobby step). Cleared on join.
-  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
   const [localStreamReady, setLocalStreamReady] = useState(false);
   const [isRefreshingRooms, setIsRefreshingRooms] = useState(false);
   // Host-declared playback mode for the room: 'preview' when the host lacks
@@ -488,30 +484,10 @@ export function useSession(deps: UseSessionDeps) {
       setSessionStatus(roomIdRef.current ? 'Live' : 'Audio ready');
       socketRef.current?.emit('room:track', track);
 
-      // Propagate the new audio to every listener. Meet-grade fast path: when a
-      // listener's peer connection is already up, swap the audio track in place
-      // with RTCRtpSender.replaceTrack - no renegotiation, no ICE restart, no
-      // teardown, so the room switches tracks with zero perceptible gap. Full
-      // offer/answer only for listeners without a usable connection (fresh
-      // joiners, failed peers), where it is genuinely needed.
-      const newAudioTrack = stream.getAudioTracks()[0] ?? null;
-      await Promise.all(
-        listenersRef.current.map(async listener => {
-          const peer = hostPeersRef.current.get(listener.id);
-          const sender = peer?.getSenders().find(candidate => candidate.track?.kind === 'audio');
-          const connectionAlive = peer && (peer.connectionState === 'connected' || peer.connectionState === 'connecting');
-          if (peer && sender && newAudioTrack && connectionAlive) {
-            try {
-              await sender.replaceTrack(newAudioTrack);
-              upsertListenerStatus(listener.id, getPeerStatus(peer.connectionState));
-              return;
-            } catch {
-              // Fall through to a full renegotiation for this listener only.
-            }
-          }
-          await createOfferForListener(listener.id);
-        })
-      );
+      // Re-offer every listener with the new stream. On a track change this is a
+      // full renegotiation (new MediaStream), which is how the room hears the
+      // new track; existing listeners transition through a brief reconnect.
+      await Promise.all(listenersRef.current.map(listener => createOfferForListener(listener.id)));
     } catch (streamError) {
       setError(streamError instanceof Error ? streamError.message : 'Audio capture unavailable in this browser');
       setSessionStatus('Capture unavailable');
@@ -735,7 +711,6 @@ export function useSession(deps: UseSessionDeps) {
     // for the untouched default, so link/QR guests joining as "Listener" are
     // not recorded. A silent reconnect goes through rejoinRoom, not here.
     storeDisplayName(hostAddress, displayName);
-    setPendingJoinCode(null);
     changeMode('listener');
     setSessionAction('joining');
     navigateToView('player');
@@ -911,8 +886,6 @@ export function useSession(deps: UseSessionDeps) {
     setJoinCode,
     displayName,
     setDisplayName,
-    pendingJoinCode,
-    setPendingJoinCode,
     localStreamReady,
     setLocalStreamReady,
     isRefreshingRooms,
