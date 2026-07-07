@@ -9336,3 +9336,286 @@ code,
     transform: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIVING INTERFACE - the room replaces the dashboard.
+
+   Design intent (docs/design/dotify-living-interface.md): Dotify is a lit
+   room, not a control panel. Light replaces the line: panels stop declaring
+   their edges with borders and instead separate through tonal layering and
+   the aura's color. Geometry relaxes (generous radii, more air), floating
+   layers become deep glass, chat becomes a conversation, and motion breathes
+   on one easing curve. Purely presentational: no behavior, markup semantics,
+   or copy change. Honesty rule intact - every lit pixel still maps to real
+   state (the aura is the playing track, bubbles are real people).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Geometry relaxes: soft, human curvature instead of console corners. */
+  --radius-default: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 18px;
+  --radius-container: 22px;
+  --radius-nested: 16px;
+  --radius-small: 12px;
+
+  /* One breath: a single easing curve and two tempos for the whole app. */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-quick: 160ms;
+  --dur-flow: 420ms;
+
+  /* Depth without lines: layered light instead of hairline borders. */
+  --shadow-float: 0 30px 80px -48px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --surface-lit: linear-gradient(168deg, color-mix(in oklab, var(--aura-a, #123) 8%, rgba(11, 25, 47, 0.72)), rgba(7, 17, 34, 0.58));
+  --surface-deep: linear-gradient(178deg, color-mix(in oklab, var(--aura-b, #123) 6%, rgba(9, 21, 41, 0.88)), rgba(6, 14, 28, 0.85));
+}
+
+/* ── Surfaces breathe: panels lose their frames, gain layered light ──────── */
+
+.doc-panel,
+.cover-card,
+.catalogue-card,
+.create-room-preview,
+.wallet-stats > div,
+.artist-entry-link,
+.release-focus-cover,
+/* Siblings that share .doc-panel's exact base rule: de-border them too so a
+   metric tile beside a panel reads as the same glass, not a hairline box. */
+.metric,
+.rooms-live-panel,
+.rooms-join-panel {
+  border-color: transparent;
+  background: var(--surface-lit);
+  box-shadow: var(--shadow-float);
+}
+
+/* Hero and room cards keep their bespoke aura/gradient backgrounds and their
+   own shadows; they only shed the hairline so they stop reading as framed
+   boxes at the now-larger radius. "Light replaces the line" applies to their
+   edges, not their identity. */
+.home-listening-hero,
+.artist-profile-hero,
+.room-live-card,
+.commons-step,
+.commons-live-join,
+.solo-room-invite {
+  border-color: transparent;
+}
+
+/* The player cover simulated its edge with a 1px inset ring in box-shadow
+   (not a border, so the rules above miss it). Keep the aura glow, drop the
+   ring. */
+.player-view-grid .cover {
+  box-shadow: 0 34px 86px -48px rgba(41, 232, 122, 0.7);
+}
+
+.doc-panel {
+  border-radius: var(--radius-container);
+  padding: 1.35rem;
+}
+
+.content-grid {
+  gap: 1.3rem;
+}
+
+.panel-title {
+  margin-bottom: 1.15rem;
+}
+
+.panel-title span {
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.catalogue-card {
+  border-radius: var(--radius-nested);
+  padding: 0.8rem;
+  transition:
+    background var(--dur-quick) var(--ease-soft),
+    box-shadow var(--dur-quick) var(--ease-soft),
+    transform var(--dur-quick) var(--ease-soft);
+}
+
+.catalogue-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 38px 90px -50px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+.home-featured {
+  border-color: transparent;
+  box-shadow: 0 44px 110px -56px color-mix(in oklab, var(--aura-a, #000) 42%, rgba(0, 0, 0, 0.9)), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.modal-card {
+  border-color: transparent;
+  border-radius: var(--radius-container);
+  background: var(--surface-deep);
+  backdrop-filter: blur(26px) saturate(1.25);
+  box-shadow: var(--shadow-float);
+}
+
+/* Roomier padding only where there is room: on wider viewports. The mobile
+   media rules above set a compact padding, and this block sits after them at
+   equal specificity, so an unconditional padding here would silently win and
+   crowd the tightest screens. Gate it on min-width instead. */
+@media (min-width: 761px) {
+  .modal-card {
+    padding: 1.5rem;
+  }
+}
+
+/* ── Floating layers become deep glass, not framed bars ──────────────────── */
+
+.topbar {
+  border-bottom-color: transparent;
+  background: linear-gradient(180deg, rgba(5, 13, 26, 0.92), rgba(5, 13, 26, 0.55) 78%, rgba(5, 13, 26, 0));
+  box-shadow: none;
+  backdrop-filter: blur(22px) saturate(1.15);
+}
+
+.player-dock-inner {
+  border-color: transparent;
+  border-radius: calc(var(--radius-container) + 4px);
+  background: linear-gradient(172deg, color-mix(in oklab, var(--aura-a, #123) 10%, rgba(8, 18, 38, 0.86)), rgba(6, 14, 30, 0.82));
+  box-shadow: 0 34px 90px -44px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.bottom-nav {
+  border-top-color: transparent;
+  background: linear-gradient(0deg, rgba(5, 13, 26, 0.97), rgba(5, 13, 26, 0.82));
+  box-shadow: 0 -18px 48px -32px rgba(0, 0, 0, 0.8);
+}
+
+.side-rail-item {
+  transition:
+    background var(--dur-quick) var(--ease-soft),
+    color var(--dur-quick) var(--ease-soft);
+}
+
+.side-rail-item[data-active='true'] {
+  background: color-mix(in oklab, var(--aura-accent, var(--dotify-cyan)) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--aura-accent, var(--dotify-cyan)) 22%, transparent);
+}
+
+/* ── The chat becomes a conversation, not a log panel ────────────────────── */
+
+.room-chat-row {
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.room-chat-body {
+  max-width: 86%;
+  border-radius: 18px 18px 18px 6px;
+  background: rgba(255, 255, 255, 0.055);
+  padding: 0.5rem 0.75rem 0.55rem;
+}
+
+.room-chat-row[data-self='true'] {
+  flex-direction: row-reverse;
+}
+
+.room-chat-row[data-self='true'] .room-chat-body {
+  border-radius: 18px 18px 6px 18px;
+  background: color-mix(in oklab, var(--aura-accent, var(--dotify-cyan)) 14%, rgba(255, 255, 255, 0.04));
+}
+
+.room-chat-row[data-self='true'] .room-chat-meta {
+  justify-content: flex-end;
+}
+
+.room-chat-list {
+  gap: 0.75rem;
+}
+
+/* Request queue (lands with the collaborative-queue PR; dormant until then):
+   it stays a curated list, not a dialogue, but sheds its chrome. The host
+   veto rests quiet until intent shows. */
+.room-req-row .room-chat-body {
+  max-width: none;
+  border-radius: var(--radius-nested);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.room-req-veto {
+  opacity: 0.55;
+}
+
+.room-req-row:hover .room-req-veto,
+.room-req-veto:focus-visible {
+  opacity: 1;
+}
+
+.room-react-btn,
+.room-chat-send {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ── Motion breathes: one entrance, one lift, zero under reduced motion ──── */
+
+@keyframes li-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.doc-panel,
+.home-featured,
+.catalogue-card,
+.modal-card {
+  animation: li-rise var(--dur-flow) var(--ease-soft) both;
+}
+
+/* Stagger the ranks so a view opens like a room lighting up. Content grids
+   hold a handful of panels; cover the realistic range so it reads as one
+   cascade rather than "the first few animate, the rest snap." */
+.content-grid > :nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.content-grid > :nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.content-grid > :nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.content-grid > :nth-child(n + 5) {
+  animation-delay: 240ms;
+}
+
+/* ── Quiet scrollbars for in-room lists ──────────────────────────────────── */
+
+.room-chat-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.room-chat-list::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.room-chat-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doc-panel,
+  .home-featured,
+  .catalogue-card,
+  .modal-card {
+    animation: none;
+  }
+
+  .catalogue-card:hover {
+    transform: none;
+  }
+}

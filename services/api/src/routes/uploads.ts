@@ -7,9 +7,10 @@ import { PinataError, PinataUnconfiguredError, pinFileToPinata, pinJsonToPinata 
 // ---------------------------------------------------------------------------
 // Size limits
 // ---------------------------------------------------------------------------
-const AUDIO_MAX_BYTES = 50 * 1024 * 1024; // 50 MB
-const COVER_MAX_BYTES = 5 * 1024 * 1024;  //  5 MB
-const META_MAX_BYTES  = 50 * 1024;         // 50 KB
+const AUDIO_MAX_BYTES   = 50 * 1024 * 1024; // 50 MB
+const COVER_MAX_BYTES   =  5 * 1024 * 1024; //  5 MB
+const META_MAX_BYTES    = 50 * 1024;        // 50 KB
+const PREVIEW_MAX_BYTES = 25 * 1024 * 1024; // 25 MB (a mono WAV 42% preview)
 
 // ---------------------------------------------------------------------------
 // MIME allowlists
@@ -49,6 +50,11 @@ const dotifyManifestSchema = z.object({
     audioCID: z.string().min(1),
     coverCID: z.string(),
     encrypted: z.boolean().optional(),
+    // Optional separate, unencrypted 42% preview asset (ticket 18). Lets an
+    // unauthorized listener/host hear the intended preview without ever
+    // receiving the full-track content key. Intentionally playable; it is not
+    // a full-track protection boundary.
+    previewCID: z.string().optional(),
   }),
   track: z.object({
     contentHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
@@ -244,6 +250,65 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
         new Uint8Array(fileBuffer),
         filename,
         { app: 'dotify', type: 'cover' },
+      );
+    } catch (err) {
+      return handleUploadError(err, reply);
+    }
+
+    return reply.status(200).send({ ref: `ipfs://${cid}` });
+  });
+
+  /**
+   * POST /api/uploads/preview
+   *
+   * Accepts multipart form data:
+   *   preview - a short (42%) audio preview file (required)
+   *
+   * Pins the preview UNENCRYPTED and returns its IPFS ref. Unlike /audio, the
+   * preview is intentionally playable by anyone: it carries no full-track
+   * bytes and no content key. The full track stays server-encrypted and
+   * wallet-gated (see /audio and the key-request route). See ticket 18.
+   *
+   * Returns: { ref: "ipfs://<CID>" }
+   *
+   * TODO: add content moderation before pinning (this serves unencrypted,
+   * publicly playable audio, same exposure as /cover and /audio).
+   */
+  app.post('/preview', async (request: FastifyRequest, reply: FastifyReply) => {
+    let fileBuffer: Buffer | undefined;
+    let fileMime = '';
+    let filename = 'preview';
+
+    try {
+      for await (const part of request.parts({ limits: { fileSize: PREVIEW_MAX_BYTES, files: 1 } })) {
+        if (part.type === 'file' && part.fieldname === 'preview') {
+          fileMime = part.mimetype;
+          filename = part.filename || filename;
+          fileBuffer = await part.toBuffer();
+        }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('file size limit') || msg.includes('FST_MULTIPART')) {
+        return badRequest(reply, `Preview file exceeds the ${PREVIEW_MAX_BYTES / 1024 / 1024} MB limit.`);
+      }
+      throw err;
+    }
+
+    if (!fileBuffer || fileBuffer.length === 0) {
+      return badRequest(reply, 'No preview file received. Include the file as field "preview".');
+    }
+
+    if (!ALLOWED_AUDIO_MIMES.has(fileMime)) {
+      return badRequest(reply, `MIME type "${fileMime}" is not an accepted audio format.`);
+    }
+
+    let cid: string;
+    try {
+      cid = await pinFileToPinata(
+        new Uint8Array(fileBuffer),
+        filename,
+        { app: 'dotify', type: 'preview' },
       );
     } catch (err) {
       return handleUploadError(err, reply);
