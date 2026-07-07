@@ -6,7 +6,7 @@ import { defineChain } from 'viem';
 const ROOT_DIR = path.resolve(__dirname, '../../..');
 
 export const DEPLOYMENTS_JSON = path.resolve(ROOT_DIR, 'deployments.json');
-export const DEPLOYMENTS_TS = path.resolve(ROOT_DIR, 'web/src/config/deployments.ts');
+export const DEPLOYMENTS_TS = path.resolve(ROOT_DIR, 'web/src/shared/config/deployments.ts');
 
 export const POLKADOT_TESTNET_CHAIN = defineChain({
   id: 420420417,

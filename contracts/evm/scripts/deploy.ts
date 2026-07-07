@@ -11,7 +11,7 @@
  *
  * Outputs:
  *   - deployments.json   (source of truth for addresses)
- *   - web/src/config/deployments.ts  (TypeScript constants for the DApp)
+ *   - web/src/shared/config/deployments.ts  (TypeScript constants for the DApp)
  *   - automatic explorer verification through the Hardhat verification backends enabled for the target network
  */
 
