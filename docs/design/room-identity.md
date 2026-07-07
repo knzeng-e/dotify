@@ -28,8 +28,10 @@ Three layers, delivered independently:
 `SessionProvider` wires it:
 - On wallet connect, the session display name is pre-filled from the address's
   stored name. A guest with no wallet keeps whatever they typed.
-- When a connected user sets a real name (not the untouched "Listener"
-  default), it is persisted back to their address for next time.
+- On room create/join submit (`useSession.createSession` / `joinRoom`), a real
+  chosen name (not the untouched "Listener" default) is persisted back to the
+  connected address. Persisting on submit, not reactively on the field's
+  onChange, avoids writing partial names to storage while the user types.
 
 Net effect: a connected user picks their pseudonym once; it then pre-fills room
 create and join everywhere, on this browser.

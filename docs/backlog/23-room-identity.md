@@ -29,8 +29,11 @@ posture argues against.
   `sanitizeDisplayName`, `isChosenDisplayName`, per-address
   `getStoredDisplayName` / `storeDisplayName` over localStorage.
 - `SessionProvider` pre-fills the session display name from the connected
-  wallet's stored name on connect, and persists a chosen name (not the untouched
-  default) back to the address. The name then pre-fills room create/join.
+  wallet's stored name on connect. A chosen name (not the untouched default) is
+  persisted back to the address on room create/join submit
+  (`useSession.createSession` / `joinRoom`) - on submit, not reactively on the
+  field's onChange, so partial names are never written while typing. The name
+  then pre-fills the next room create/join.
 
 ## Constraints
 
