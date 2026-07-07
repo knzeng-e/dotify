@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { createRoomJoinE2eCaptureStream, isRoomJoinE2e, roomJoinE2eIceServers } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
+import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
 import type {
@@ -114,6 +115,10 @@ export function useSession(deps: UseSessionDeps) {
   // actually changes (track skip/next), never on every play/pause/seek, so a
   // live listener is not torn down and rebuilt for no reason.
   const capturedSourceRef = useRef<string | null>(null);
+  // Counts consecutive capture attempts that produced no live track for a
+  // source, so a genuinely trackless asset (unsupported codec, silent file)
+  // surfaces a failure instead of retrying forever on every play event.
+  const captureAttemptRef = useRef<CaptureAttempt>({ source: null, count: 0 });
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastPlayerStateEmitRef = useRef(0);
   function upsertListener(listener: ListenerRecord) {
@@ -167,6 +172,7 @@ export function useSession(deps: UseSessionDeps) {
     closeListenerPeer();
     localStreamRef.current = null;
     capturedSourceRef.current = null;
+    captureAttemptRef.current = { source: null, count: 0 };
     setLocalStreamReady(false);
   }
 
@@ -435,14 +441,27 @@ export function useSession(deps: UseSessionDeps) {
       // This is what makes play/pause/seek cheap: they re-trigger this path but
       // must not rebuild every listener peer. Only a real source change
       // (skip/next/loop-into-new-track) falls through to re-capture.
-      if (capturedSourceRef.current === currentAudioSource && streamHasLiveAudio(localStreamRef.current)) {
+      if (shouldReuseCapture(capturedSourceRef.current, currentAudioSource, streamHasLiveAudio(localStreamRef.current))) {
         return;
       }
 
       const stream = captureAudioStream(audio);
-      // No live track yet (captured before playback started): keep the old
-      // stream, do not offer silence. onPlay re-triggers this once audio flows.
-      if (!streamHasLiveAudio(stream)) return;
+      if (!streamHasLiveAudio(stream)) {
+        // No live track yet. This is normal for the first attempt (captured at
+        // loadedmetadata, before playback), so we keep the old stream and let
+        // onPlay retry. But a source that never yields a track (unsupported
+        // codec, genuinely silent asset) would retry forever; after a few
+        // attempts, surface the failure instead of leaving a silent player.
+        const { attempt, exhausted } = nextCaptureAttempt(captureAttemptRef.current, currentAudioSource);
+        captureAttemptRef.current = attempt;
+        if (exhausted) {
+          setError('Audio capture is unavailable for this track in this browser.');
+          setSessionStatus('Capture unavailable');
+        }
+        return;
+      }
+      // A live track appeared: clear the trackless-attempt counter.
+      captureAttemptRef.current = { source: null, count: 0 };
 
       const track: TrackInfo = {
         ...(currentTrackInfo ?? {

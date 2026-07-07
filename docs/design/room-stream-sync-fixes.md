@@ -13,7 +13,11 @@ Two contributing causes:
    playing, so a transient zero-track capture aborted the whole host stream and
    no offer was ever sent. Fix: capture no longer throws on zero tracks; the
    caller checks for a live track instead and retries on `play`
-   (`PersistentAudio` now also calls `onPrepareLocalStream` in `onPlay`).
+   (`PersistentAudio` now also calls `onPrepareLocalStream` in `onPlay`). To
+   avoid retrying a genuinely trackless source forever (unsupported codec,
+   silent asset), a bounded counter (`nextCaptureAttempt`, ceiling
+   `MAX_CAPTURE_ATTEMPTS`) surfaces "Capture unavailable" after a few attempts
+   for the same source; a live track resets it.
 2. Genuine browser autoplay policy: a listener with no user gesture cannot
    auto-start audio. This already surfaces as `autoplay-blocked` with a "Start
    audio" control in `PlayerView`; unchanged here. It is expected mobile

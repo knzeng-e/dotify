@@ -257,6 +257,10 @@ export function usePlayback(deps: UsePlaybackDeps) {
     (audio: HTMLAudioElement) => {
       syncFromAudio(audio);
       if (repeatEnabled) {
+        // Listener-only path now: the host element loops natively (audio.loop =
+        // repeatEnabled) so it never fires `ended` while repeat is on. This
+        // manual replay only reaches the listener's remote element, whose
+        // MediaStream can still end; it keeps that element cycling.
         audio.currentTime = 0;
         void audio.play().catch(() => undefined);
         return;
