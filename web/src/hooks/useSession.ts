@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { createRoomJoinE2eCaptureStream, isRoomJoinE2e, roomJoinE2eIceServers } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
+import { storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
@@ -658,6 +659,10 @@ export function useSession(deps: UseSessionDeps) {
 
   function createSession(currentTrackInfo: TrackInfo | null, playbackMode: RoomPlaybackMode = 'full', event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
+    // Persist the chosen name on submit (not on every keystroke): storeDisplayName
+    // no-ops for the untouched default, so a connected host is remembered without
+    // recording a partial name typed into the create sheet.
+    storeDisplayName(hostAddress, displayName);
     setSessionAction('creating');
     changeMode('host');
     navigateToView('player');
@@ -702,6 +707,10 @@ export function useSession(deps: UseSessionDeps) {
       return;
     }
 
+    // Persist the chosen name on a real join (not on every keystroke). No-ops
+    // for the untouched default, so link/QR guests joining as "Listener" are
+    // not recorded. A silent reconnect goes through rejoinRoom, not here.
+    storeDisplayName(hostAddress, displayName);
     changeMode('listener');
     setSessionAction('joining');
     navigateToView('player');
