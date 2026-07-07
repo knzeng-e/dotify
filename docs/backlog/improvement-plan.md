@@ -41,8 +41,8 @@ Where it falls short of its own standards:
 
 | Item | Tracking | Status |
 | --- | --- | --- |
-| PR8b providers/context boundary (5 stacked PRs) | `08b-providers-design.md`, tracker rows 8b-1..8b-5 | Planned |
-| PR9 `shared/` tree relocation | `08-frontend-refactor-tracker.md` | Planned |
+| PR8b providers/context boundary (5 stacked PRs) | `08b-providers-design.md`, tracker rows 8b-1..8b-5 | Delivered on `main` |
+| PR9 `shared/` tree relocation | `08-frontend-refactor-tracker.md` | Delivered on `main` |
 | PR10 split mega-hooks (`useCatalog`, `useSession`, `useArtistConsole`) along their `features/*` seams | propose as follow-up rows in the ticket 08 tracker after 8b lands | Proposed |
 | Generated ABI bindings | `09-generated-abi-bindings.md` (#10) | Delivered (`feat/generated-abi-bindings`) |
 | Observability and health checks on the key service | `10-observability-health-checks.md` (#11) | Open |
@@ -60,7 +60,7 @@ Where it falls short of its own standards:
 
 | Item | Tracking | Status |
 | --- | --- | --- |
-| Rooms as an actual village square: collaborative queue with host veto, lightweight reactions rendered through the aura engine, and provenance trails (which room and host a listener met a track through) as the substrate for the ambassador model without referral mechanics | `12-ambassador-social-propagation-model.md` (#13) + new room-social ticket | Proposed |
+| Rooms as an actual village square: collaborative queue with host veto, lightweight reactions rendered through the aura engine, and provenance trails (which room and host a listener met a track through) as the substrate for the ambassador model without referral mechanics | `12-ambassador-social-propagation-model.md` (#13); collaborative request queue with host veto delivered in `21-room-collaborative-queue.md` | Collaborative queue delivered (first slice); aura-rendered reactions and provenance trails still proposed |
 | Aura-driven discovery: browse rooms and tracks by light and mood rather than lists | new ticket | Proposed |
 | Key-delivery decentralization path: documented then implemented route away from the single `CONTENT_KEY_MASTER_SECRET`, e.g. per-artist key derivation anchored to the SmartRuntime, or threshold key shares across independent key-service instances | new ticket | Proposed |
 | UX polish pass: landing hero that drops a visitor into a live (or curated ambient) room within one click; a warmer unlock moment showing the actual on-chain royalty split; a feedback queue replacing the single transaction toast | new ticket | Proposed |

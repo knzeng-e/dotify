@@ -95,6 +95,7 @@ socket.emit('room:join', {
   playerState: PlayerState | null;
   playbackMode?: 'full' | 'preview';
   chatHistory?: RoomChatMessage[];   // Up to the last 50 in-room messages
+  requests?: RoomRequest[];          // Current collaborative request queue
   expiresAt?: number;
 }
 
@@ -228,14 +229,16 @@ On receipt, the host closes and removes the peer connection for that listener.
 
 ## Room social events
 
-Reactions and chat are open to every room participant (host and listeners).
-The server is the source of truth: it validates, rate-limits per socket
-(defaults: 10 reactions / 5 messages per 5-second window), and echoes the
-event to the whole room, sender included. Malformed or over-limit events are
-dropped silently (fail closed, no error channel to probe). Chat lives only in
-the room: the server keeps at most the last 50 messages in memory, replays
-them in the `room:join` ack, and wipes them when the room closes. Nothing is
-persisted and nothing appears on the public `/status` endpoint.
+Reactions, chat, and the collaborative request queue are open to every room
+participant (host and listeners); queue veto is host-only. The server is the
+source of truth: it validates, rate-limits per socket (defaults: 10 reactions /
+5 messages / 5 requests per window), and broadcasts to the whole room, sender
+included. Malformed, over-limit, non-participant, or non-host-veto events are
+dropped silently (fail closed, no error channel to probe). Chat and the queue
+live only in the room: the server keeps at most the last 50 messages and 20
+requests in memory, replays them in the `room:join` ack, and wipes them when
+the room closes. Nothing is persisted and nothing appears on the public
+`/status` endpoint.
 
 ### `room:reaction`
 
@@ -280,6 +283,50 @@ socket.on('room:chat', (message: {
   senderName: string;
   ts: number;
 }) => { ... });
+```
+
+---
+
+### `room:request`
+
+**Direction:** Client (any participant) → Server → Whole room
+
+Proposes a track to hear next in the collaborative request queue. The server
+sanitizes the text to a single line (max 120 characters), appends it to the
+room's in-memory queue (capped at 20; further adds are dropped silently),
+rate-limits per socket, and rebroadcasts the full queue via `room:requests`.
+The queue is intent, not playback: the server never claims a request plays
+itself.
+
+```typescript
+// Emit
+socket.emit('room:request', { text: string });
+
+// Whole room receives the full queue after every change (single render path)
+socket.on('room:requests', (queue: Array<{
+  id: string;          // Server-assigned UUID
+  text: string;        // Sanitized, single line, <= 120 chars
+  senderId: string;
+  senderName: string;
+  ts: number;
+}>) => { ... });
+```
+
+---
+
+### `room:request:remove` / `room:request:clear`
+
+**Direction:** Host → Server → Whole room
+
+Host-only veto. `room:request:remove` drops one request by id;
+`room:request:clear` empties the queue. Both are ignored for non-host sockets
+(fail closed, no error channel). Each successful change rebroadcasts the full
+queue via `room:requests`.
+
+```typescript
+// Emit (host only)
+socket.emit('room:request:remove', { id: string });
+socket.emit('room:request:clear');
 ```
 
 ---

@@ -9266,6 +9266,66 @@ code,
 /* Between 760px and 980px the room grid is two columns: the chat rides the
    second column beside the session panel; the context panel flows below. */
 
+/* The social column stacks chat and the collaborative request queue in the
+   single middle cell of the room grid, so adding the queue does not disturb
+   the session | social | current-track column layout. */
+.room-social-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+}
+
+/* Collaborative request queue. Reuses the room-chat visual language; the
+   only additions are the host veto control and the clear action. */
+.panel-title-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.room-req-clear {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--fg-secondary);
+  cursor: pointer;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 650;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.room-req-clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--fg-primary);
+}
+
+.room-req-row {
+  align-items: center;
+}
+
+.room-req-veto {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  margin-left: auto;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--fg-tertiary);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.room-req-veto:hover {
+  border-color: var(--border-default);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fg-primary);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .room-chat-list {
     scroll-behavior: auto;

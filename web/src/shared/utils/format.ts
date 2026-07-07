@@ -35,6 +35,11 @@ export function formatBlockTimestampMs(timestamp: bigint | undefined) {
   return timestamp === undefined ? null : Number(timestamp) * 1000;
 }
 
+// Short wall-clock (HH:MM) for room social timestamps (chat, request queue).
+export function formatClockTime(ts: number) {
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 export function formatPaymentDate(timestampMs: number | null) {
   if (timestampMs === null) return 'Date unavailable';
   return new Intl.DateTimeFormat(undefined, {

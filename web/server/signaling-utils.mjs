@@ -62,6 +62,10 @@ export const ROOM_REACTION_EMOJI = ['❤️', '\u{1F525}', '\u{1F33F}', '✨', '
 
 export const CHAT_TEXT_MAX_LENGTH = 280;
 
+// A room request is a short "play this" line, not a paragraph. Shorter than
+// chat so the shared queue stays a scannable list of intents.
+export const REQUEST_TEXT_MAX_LENGTH = 120;
+
 export function sanitizeReactionEmoji(value) {
   const text = String(value ?? '').trim();
   return ROOM_REACTION_EMOJI.includes(text) ? text : null;

@@ -22,6 +22,7 @@ import { EndpointRow } from '../shared/ui/EndpointRow';
 import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomChat } from '../components/RoomChat';
+import { RoomRequests } from '../components/RoomRequests';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
 import { hashHue, initialsFor } from '../shared/utils/aura';
@@ -610,7 +611,12 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           )}
         </div>
 
-        {roomId && <RoomChat />}
+        {roomId && (
+          <div className='room-social-column'>
+            <RoomChat />
+            <RoomRequests />
+          </div>
+        )}
 
         <div className='doc-panel player-context-panel'>
           <PanelTitle icon={Library} title='Current track' meta={needsTrackAccess ? 'Preview mode' : 'Ready to play'} />
