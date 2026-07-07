@@ -1,8 +1,12 @@
-export function encodeAudioBufferPreviewAsWav(audioBuffer: AudioBuffer, frameCount: number) {
-  const channelCount = audioBuffer.numberOfChannels;
-  const sampleRate = audioBuffer.sampleRate;
-  const bytesPerSample = 2;
-  const dataSize = frameCount * channelCount * bytesPerSample;
+const BYTES_PER_SAMPLE = 2;
+
+// Allocate a WAV buffer and write its canonical 44-byte 16-bit PCM header for
+// the given shape. Returns the buffer plus a DataView so the caller writes the
+// PCM body starting at byte 44. Shared by the stereo and mono encoders below so
+// the header layout cannot drift between them.
+function createWavWithHeader(frameCount: number, channelCount: number, sampleRate: number) {
+  const blockAlign = channelCount * BYTES_PER_SAMPLE;
+  const dataSize = frameCount * blockAlign;
   const bytes = new Uint8Array(44 + dataSize);
   const view = new DataView(bytes.buffer);
 
@@ -14,18 +18,30 @@ export function encodeAudioBufferPreviewAsWav(audioBuffer: AudioBuffer, frameCou
   view.setUint16(20, 1, true);
   view.setUint16(22, channelCount, true);
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * channelCount * bytesPerSample, true);
-  view.setUint16(32, channelCount * bytesPerSample, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
   view.setUint16(34, 16, true);
   writeAscii(view, 36, 'data');
   view.setUint32(40, dataSize, true);
 
+  return { bytes, view };
+}
+
+// Clamp a float sample to the 16-bit signed PCM range.
+function pcm16(sample: number) {
+  const clamped = Math.max(-1, Math.min(1, sample));
+  return clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff;
+}
+
+export function encodeAudioBufferPreviewAsWav(audioBuffer: AudioBuffer, frameCount: number) {
+  const channelCount = audioBuffer.numberOfChannels;
+  const { bytes, view } = createWavWithHeader(frameCount, channelCount, audioBuffer.sampleRate);
+
   let offset = 44;
   for (let frame = 0; frame < frameCount; frame += 1) {
     for (let channel = 0; channel < channelCount; channel += 1) {
-      const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[frame] ?? 0));
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-      offset += bytesPerSample;
+      view.setInt16(offset, pcm16(audioBuffer.getChannelData(channel)[frame] ?? 0), true);
+      offset += BYTES_PER_SAMPLE;
     }
   }
 
@@ -37,25 +53,7 @@ export function encodeAudioBufferPreviewAsWav(audioBuffer: AudioBuffer, frameCou
 // while staying dependency-free 16-bit PCM WAV.
 export function encodeAudioBufferPreviewAsMonoWav(audioBuffer: AudioBuffer, frameCount: number) {
   const channelCount = audioBuffer.numberOfChannels;
-  const sampleRate = audioBuffer.sampleRate;
-  const bytesPerSample = 2;
-  const dataSize = frameCount * bytesPerSample;
-  const bytes = new Uint8Array(44 + dataSize);
-  const view = new DataView(bytes.buffer);
-
-  writeAscii(view, 0, 'RIFF');
-  view.setUint32(4, 36 + dataSize, true);
-  writeAscii(view, 8, 'WAVE');
-  writeAscii(view, 12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * bytesPerSample, true);
-  view.setUint16(32, bytesPerSample, true);
-  view.setUint16(34, 16, true);
-  writeAscii(view, 36, 'data');
-  view.setUint32(40, dataSize, true);
+  const { bytes, view } = createWavWithHeader(frameCount, 1, audioBuffer.sampleRate);
 
   const channels: Float32Array[] = [];
   for (let channel = 0; channel < channelCount; channel += 1) {
@@ -68,9 +66,8 @@ export function encodeAudioBufferPreviewAsMonoWav(audioBuffer: AudioBuffer, fram
     for (let channel = 0; channel < channelCount; channel += 1) {
       mixed += channels[channel][frame] ?? 0;
     }
-    const sample = Math.max(-1, Math.min(1, channelCount > 0 ? mixed / channelCount : 0));
-    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-    offset += bytesPerSample;
+    view.setInt16(offset, pcm16(channelCount > 0 ? mixed / channelCount : 0), true);
+    offset += BYTES_PER_SAMPLE;
   }
 
   return bytes;

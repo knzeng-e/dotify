@@ -61,6 +61,13 @@ slicer). The full-track key boundary is unchanged and stays server-authoritative
   cutoff logic treats a standalone preview asset as already-42% (plays it in
   full; the gate/auto-advance fire at its natural end). Falls back to the demo
   decrypt-and-slice path when a track has no published preview asset.
+- Where the preview ref lives: the manifest (`assets.previewCID`) is the single
+  source. The runtime catalog is built from on-chain records without fetching
+  each manifest, so the preview ref is resolved lazily at playback rather than
+  carried on the in-memory track model. A `previewRef` field on the track model
+  was intentionally not added: nothing reads it (room listeners get the WebRTC
+  stream, never a file), and populating it would force a manifest fetch for
+  every track at catalog load, including tracks never played.
 - The preview path uses no content key, no decryption, and no
   `VITE_CONTENT_SECRET`. Room listeners still receive only the WebRTC stream.
 
@@ -70,7 +77,7 @@ teaser and never exposes the full-track key). Server-side transcoding is a
 possible future hardening, and would also yield smaller compressed previews.
 
 Tests: backend `uploads.test.ts` (preview route validation + manifest
-`previewCID` schema); frontend `trackModel` preview-ref mapping and the mono WAV
-encoder (`audio.test.ts`). The end-to-end denied-playback flows (individual,
+`previewCID` schema); frontend mono WAV encoder (`audio.test.ts`). The
+end-to-end denied-playback flows (individual,
 room-host, key-service-unavailable) are covered by the design but a dedicated
 Playwright spec is deferred (the e2e harness needs the full stack).

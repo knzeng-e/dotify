@@ -45,11 +45,6 @@ describe('catalogTrackToTrackInfo', () => {
     });
     expect(typeof info.updatedAt).toBe('number');
   });
-
-  it('carries the preview asset ref into the broadcast shape (ticket 18)', () => {
-    expect(catalogTrackToTrackInfo({ ...baseTrack, previewRef: 'ipfs://preview' }).previewRef).toBe('ipfs://preview');
-    expect(catalogTrackToTrackInfo(baseTrack).previewRef).toBeUndefined();
-  });
 });
 
 describe('isTrackManagedByArtist', () => {

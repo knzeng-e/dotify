@@ -270,6 +270,9 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
    * wallet-gated (see /audio and the key-request route). See ticket 18.
    *
    * Returns: { ref: "ipfs://<CID>" }
+   *
+   * TODO: add content moderation before pinning (this serves unencrypted,
+   * publicly playable audio, same exposure as /cover and /audio).
    */
   app.post('/preview', async (request: FastifyRequest, reply: FastifyReply) => {
     let fileBuffer: Buffer | undefined;
