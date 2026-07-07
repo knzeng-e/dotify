@@ -159,6 +159,107 @@ npm run deploy:bulletin
 `build:bulletin` produces a single-file build via `vite-plugin-singlefile` so it
 can be distributed from a flat IPFS CID / DotNS record.
 
+### Production Deploy: Netlify + Fly
+
+Dotify's production web app is a static Vite build, but listening rooms require
+a separately hosted Socket.IO signaling server. Deploy the signaling server
+first, then build the frontend with `VITE_SIGNAL_URL` pointing at that public
+server.
+
+#### 1. Deploy the signaling server on Fly
+
+The signaling server lives in `server/signaling.mjs` and is packaged by
+`Dockerfile.signal`.
+
+```bash
+flyctl deploy -c fly.signal.toml
+flyctl status -c fly.signal.toml
+curl -s https://dotify-signal.fly.dev/health
+```
+
+Keep the signaling service on one active machine unless a shared Socket.IO
+adapter is added. Rooms, chat, reactions, and request queues are in memory; with
+multiple active machines, two browsers can connect to different room maps.
+
+```bash
+flyctl scale count 1 -c fly.signal.toml --yes
+```
+
+Fly variables come from `fly.signal.toml`:
+
+- `SIGNAL_PORT=8788`
+- `SIGNAL_HOST=0.0.0.0`
+- `SIGNAL_ROOM_TTL_MS=21600000`
+- `SIGNAL_HOST_TIMEOUT_MS=120000`
+- `SIGNAL_MAX_LISTENERS=24`
+- `SIGNAL_ORIGINS`: set this explicitly for production frontend origins when
+  the public URL is stable.
+
+Health endpoints:
+
+- `/health`: process health, uptime, room count, listener count.
+- `/status`: public room metadata, current track, playback mode, and listener
+  count. It deliberately omits chat history and request text.
+
+#### 2. Deploy the frontend on Netlify
+
+For a repo-root Netlify site, set:
+
+- Base directory: `web`
+- Build command: `npm run build`
+- Publish directory: `web/dist`
+- Node version: `22`
+
+Required production environment variables:
+
+- `VITE_SIGNAL_URL=https://dotify-signal.fly.dev`
+- `VITE_DOTIFY_API_URL=<public backend API URL>` for server-side uploads and
+  wallet-signed key delivery.
+- `VITE_PINATA_GATEWAY=<public IPFS gateway>`
+- `VITE_IPFS_READ_GATEWAYS=<comma-separated gateway list>`
+
+Recommended for reliable rooms:
+
+- `VITE_TURN_URL`
+- `VITE_TURN_USERNAME`
+- `VITE_TURN_CREDENTIAL`
+
+Do not set unrestricted Pinata credentials in Netlify. `VITE_PINATA_JWT` is
+browser-exposed and is for restricted local/demo uploads only. Do not treat
+`VITE_CONTENT_SECRET` as a production content-key boundary; production playback
+should use the backend key service.
+
+#### 3. Production smoke checks
+
+After deploying both services:
+
+```bash
+curl -s https://dotify-signal.fly.dev/health
+curl -s https://dotify-signal.fly.dev/status
+```
+
+Then verify the user flow in two browser contexts or devices:
+
+1. Open the Netlify app and create a room from a playable track.
+2. Copy the `#/rooms/<roomId>` link and open it as a guest.
+3. Confirm the guest joins without wallet/signature prompts.
+4. Send one chat message and one reaction; both browsers should receive the
+   server echo.
+5. Start playback; if audio negotiation fails across networks, configure TURN.
+
+### Production Troubleshooting
+
+| Symptom                                                                      | Likely cause                                                                                                              | Check                                                                                                 | Fix                                                                                                                                   |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend shows `Signal server unavailable`                                   | `VITE_SIGNAL_URL` points to the wrong host, the Fly app is down, or `SIGNAL_ORIGINS` blocks the frontend origin.          | Browser console, Netlify env vars, `curl -s <signal-url>/health`, `flyctl status -c fly.signal.toml`. | Set `VITE_SIGNAL_URL` to the HTTPS Fly URL, redeploy Netlify, start/redeploy Fly, and add the Netlify origin to `SIGNAL_ORIGINS`.     |
+| Room creation works locally but not in production                            | Netlify was built without the production signaling URL.                                                                   | Inspect the deployed JS env by trying to create a room; the UI error includes the signal URL.         | Set `VITE_SIGNAL_URL` in Netlify and trigger a fresh frontend deploy.                                                                 |
+| Guests can join, but chat, reactions, or requests do not appear for everyone | The Fly signaling image is stale, or more than one active Fly machine is serving separate in-memory room maps.            | `flyctl status -c fly.signal.toml`; compare image name and active machine count.                      | Run `flyctl deploy -c fly.signal.toml`, then `flyctl scale count 1 -c fly.signal.toml --yes` until a shared Socket.IO adapter exists. |
+| `/health` works but `/status` shows rooms split or missing                   | Multiple signaling instances are active without shared state.                                                             | `flyctl status -c fly.signal.toml`.                                                                   | Keep one active machine for the current in-memory signaling design.                                                                   |
+| Listener joins but audio never starts                                        | WebRTC cannot establish a media path across the host/listener networks. Signaling can be healthy while audio still fails. | Chat/reactions work, but the listener stays in a connecting/no-audio state.                           | Configure a TURN relay with `VITE_TURN_URL`, `VITE_TURN_USERNAME`, and `VITE_TURN_CREDENTIAL`, then redeploy Netlify.                 |
+| Production upload or full-track playback fails                               | Backend API is missing or cannot release keys.                                                                            | Check `VITE_DOTIFY_API_URL`, backend `/health`, and browser network requests to key/upload endpoints. | Deploy/fix the backend API and keep `PINATA_JWT` plus `CONTENT_KEY_MASTER_SECRET` server-side.                                        |
+| Unauthorized preview fails for server-keyed tracks                           | The track was published without a separate preview asset.                                                                 | Inspect the track manifest for `assets.previewCID`.                                                   | Publish/regenerate a preview asset for production-protected tracks.                                                                   |
+| A room disappears while the host tab is open                                 | Host heartbeat stopped, the host disconnected, or the room TTL expired.                                                   | Fly logs and `/status`; defaults are 120 seconds heartbeat timeout and 6 hours TTL.                   | Keep the host tab awake/reconnected, or adjust `SIGNAL_HOST_TIMEOUT_MS` / `SIGNAL_ROOM_TTL_MS` deliberately.                          |
+
 ## Tests
 
 ```bash
