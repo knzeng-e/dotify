@@ -109,6 +109,11 @@ export function useSession(deps: UseSessionDeps) {
   const hostPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const pendingIceCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const localStreamRef = useRef<MediaStream | null>(null);
+  // Which audioSource the current local stream was captured from. Capturing is
+  // idempotent per source: we only (re)capture and renegotiate when the source
+  // actually changes (track skip/next), never on every play/pause/seek, so a
+  // live listener is not torn down and rebuilt for no reason.
+  const capturedSourceRef = useRef<string | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastPlayerStateEmitRef = useRef(0);
   function upsertListener(listener: ListenerRecord) {
@@ -161,6 +166,7 @@ export function useSession(deps: UseSessionDeps) {
     closeHostPeers();
     closeListenerPeer();
     localStreamRef.current = null;
+    capturedSourceRef.current = null;
     setLocalStreamReady(false);
   }
 
@@ -380,8 +386,15 @@ export function useSession(deps: UseSessionDeps) {
     const capturable = audio as CapturableMediaElement;
     const stream = capturable.captureStream?.() ?? capturable.mozCaptureStream?.();
     if (!stream) throw new Error('captureStream() is not supported by this browser.');
-    if (stream.getAudioTracks().length === 0) throw new Error('No audio track detected.');
+    // Do NOT throw when there is no audio track yet: capture can legitimately
+    // run before the element starts producing audio (e.g. at loadedmetadata,
+    // before play). The caller checks for a live track and retries on play,
+    // rather than failing the whole room with "no audio track".
     return stream;
+  }
+
+  function streamHasLiveAudio(stream: MediaStream | null): boolean {
+    return Boolean(stream && stream.getAudioTracks().some(track => track.readyState === 'live'));
   }
 
   async function ensureCapturableAudioSource(source: string) {
@@ -418,7 +431,19 @@ export function useSession(deps: UseSessionDeps) {
         return;
       }
 
+      // Already streaming this exact source with a live track? Do nothing.
+      // This is what makes play/pause/seek cheap: they re-trigger this path but
+      // must not rebuild every listener peer. Only a real source change
+      // (skip/next/loop-into-new-track) falls through to re-capture.
+      if (capturedSourceRef.current === currentAudioSource && streamHasLiveAudio(localStreamRef.current)) {
+        return;
+      }
+
       const stream = captureAudioStream(audio);
+      // No live track yet (captured before playback started): keep the old
+      // stream, do not offer silence. onPlay re-triggers this once audio flows.
+      if (!streamHasLiveAudio(stream)) return;
+
       const track: TrackInfo = {
         ...(currentTrackInfo ?? {
           title: 'Untitled',
@@ -433,11 +458,15 @@ export function useSession(deps: UseSessionDeps) {
       };
 
       localStreamRef.current = stream;
+      capturedSourceRef.current = currentAudioSource;
       setLocalStreamReady(true);
       setTrackInfo(track);
       setSessionStatus(roomIdRef.current ? 'Live' : 'Audio ready');
       socketRef.current?.emit('room:track', track);
 
+      // Re-offer every listener with the new stream. On a track change this is a
+      // full renegotiation (new MediaStream), which is how the room hears the
+      // new track; existing listeners transition through a brief reconnect.
       await Promise.all(listenersRef.current.map(listener => createOfferForListener(listener.id)));
     } catch (streamError) {
       setError(streamError instanceof Error ? streamError.message : 'Audio capture unavailable in this browser');
