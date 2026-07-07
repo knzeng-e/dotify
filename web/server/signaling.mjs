@@ -552,6 +552,7 @@ export function startSignalingServer(overrides = {}) {
     socket.data.role = undefined;
     chatLimiter.clear(socket.id);
     reactionLimiter.clear(socket.id);
+    requestLimiter.clear(socket.id);
   }
 
   return {
