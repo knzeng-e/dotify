@@ -11,7 +11,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test src/services/replayProtection.test.ts src/services/signatures.test.ts src/routes/keys.test.ts"
+    "test": "node --import tsx --test src/services/replayProtection.test.ts src/services/signatures.test.ts src/routes/keys.test.ts src/routes/uploads.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",

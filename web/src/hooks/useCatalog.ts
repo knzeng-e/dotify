@@ -182,6 +182,10 @@ export function useCatalog(deps: UseCatalogDeps) {
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewOnlyRef = useRef(false);
   const previewLimitRef = useRef<number | null>(null);
+  // True when the current preview source is a standalone published preview
+  // asset (already the 42% cut) rather than the full track capped at playback
+  // time. Governs how the cutoff limit is computed (ticket 18).
+  const previewAssetRef = useRef(false);
   const e2eClassicAccessGrantedRef = useRef(false);
   // Session cache of backend-delivered content keys: one wallet signature per
   // track per session, instead of one per playback (signature-fatigue rule).
@@ -300,7 +304,10 @@ export function useCatalog(deps: UseCatalogDeps) {
   function setupPreviewLimit() {
     const audio = localAudioRef.current;
     if (!audio || !previewOnlyRef.current || !Number.isFinite(audio.duration)) return;
-    previewLimitRef.current = audio.duration * PREVIEW_RATIO;
+    // A standalone preview asset is already the 42% cut: play it in full and
+    // let the gate/auto-advance fire at its natural end. A cutoff preview
+    // plays the full track and stops at 42%.
+    previewLimitRef.current = previewAssetRef.current ? audio.duration : audio.duration * PREVIEW_RATIO;
   }
 
   function enforcePreviewCutoff(
@@ -358,6 +365,40 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     const sourceBytes = new Uint8Array(await response.arrayBuffer());
     return createPreviewAudioObjectUrl(sourceBytes, previewCacheKey);
+  }
+
+  /**
+   * Resolve the standalone, unencrypted 42% preview asset for a track (ticket
+   * 18), or null when the track has no published preview (demo/local tracks,
+   * or Bulletin-only manifests). The preview CID lives in the track manifest
+   * (assets.previewCID), which is not on-chain, so it is fetched lazily -- only
+   * when a preview is actually needed -- from the IPFS metadata ref, and the
+   * resulting object URL is cached and tracked for cleanup. Playing it needs no
+   * content key and no content secret; the full track stays server-encrypted.
+   */
+  async function resolvePreviewAssetUrl(track: CatalogTrack): Promise<string | null> {
+    const cacheKey = `${track.hash}:preview-asset`;
+    const cached = resolvedAudioSourcesRef.current.get(cacheKey);
+    if (cached) return cached;
+
+    const metadataRef = track.metadataRef;
+    if (!metadataRef || !metadataRef.startsWith('ipfs://')) return null;
+
+    const manifestResponse = await fetchIpfsCid(metadataRef.slice('ipfs://'.length));
+    if (!manifestResponse.ok) return null;
+    const manifest = (await manifestResponse.json()) as { assets?: { previewCID?: string } };
+    const previewCID = manifest.assets?.previewCID;
+    if (!previewCID) return null;
+
+    const previewResponse = await fetchIpfsCid(previewCID);
+    if (!previewResponse.ok) return null;
+    const previewBytes = new Uint8Array(await previewResponse.arrayBuffer());
+    // Same-origin object URL so the host can capture it into the room stream
+    // (a tainted cross-origin media element cannot be captured).
+    const objectUrl = URL.createObjectURL(new Blob([previewBytes as BlobPart], { type: 'audio/wav' }));
+    objectUrlsRef.current.add(objectUrl);
+    resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
+    return objectUrl;
   }
 
   /**
@@ -467,6 +508,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setAccessGate(null);
     previewOnlyRef.current = false;
     previewLimitRef.current = null;
+    previewAssetRef.current = false;
     // A socketEmit callback means this selection streams into a room: the
     // signer is the host, and only the host needs to satisfy the policy.
     keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
@@ -487,18 +529,30 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
 
     if (track.localUrl) {
-      audioUrl = track.encrypted
-        ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, { previewOnly: playbackMode === 'preview' }).catch(() => null)
-        : await resolvePlayableAudioSource(track.localUrl, track.audioRef, { previewOnly: playbackMode === 'preview' }).catch(() => null);
+      const wantsPreview = playbackMode === 'preview';
+      // Preferred preview path for server-keyed protected tracks: a separate,
+      // unencrypted published asset. No content key, no decryption, no content
+      // secret. Falls back to the demo decrypt-and-slice path when a track has
+      // no published preview asset (local/demo tracks).
+      const previewAssetUrl = wantsPreview ? await resolvePreviewAssetUrl(track).catch(() => null) : null;
 
-      if (playbackMode === 'full' && !audioUrl && track.encrypted) {
-        // Access is granted but the key or decryption failed. Say so plainly
-        // instead of leaving a silent dead player.
-        setTransactionFeedback({
-          tone: 'error',
-          title: 'Protected playback unavailable',
-          message: 'Your access checks out, but the content key could not be obtained or used. The key service may be unreachable; try again shortly.'
-        });
+      if (previewAssetUrl) {
+        previewAssetRef.current = true;
+        audioUrl = previewAssetUrl;
+      } else {
+        audioUrl = track.encrypted
+          ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, { previewOnly: wantsPreview }).catch(() => null)
+          : await resolvePlayableAudioSource(track.localUrl, track.audioRef, { previewOnly: wantsPreview }).catch(() => null);
+
+        if (playbackMode === 'full' && !audioUrl && track.encrypted) {
+          // Access is granted but the key or decryption failed. Say so plainly
+          // instead of leaving a silent dead player.
+          setTransactionFeedback({
+            tone: 'error',
+            title: 'Protected playback unavailable',
+            message: 'Your access checks out, but the content key could not be obtained or used. The key service may be unreachable; try again shortly.'
+          });
+        }
       }
     }
 

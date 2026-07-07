@@ -92,8 +92,18 @@ Registered tracks use two access modes:
 
 Before playback, the frontend calls `musicAccCanAccess(contentHash, listener)`.
 If access is granted, the encrypted IPFS audio is decrypted and the full track is
-loaded. If access is denied, the app creates a separate 42% preview audio object
-and shows an unlock warning:
+loaded. If access is denied, the app plays a 42% preview and shows an unlock
+warning:
+
+- For server-keyed production tracks, the browser cannot derive the key, so it
+  plays a separate, unencrypted preview asset published with the track
+  (`assets.previewCID` in the manifest, generated client-side at publish). This
+  needs no content key and no `VITE_CONTENT_SECRET`. See
+  `docs/security/content-key-delivery-threat-model.md` for the boundary.
+- For demo/local tracks, the browser decrypts with the bundle-derived demo key
+  and slices 42% at playback time.
+
+Denial specifics:
 
 - Users without a connected wallet receive preview-only playback and are asked
   to sign in before full access can be checked.
