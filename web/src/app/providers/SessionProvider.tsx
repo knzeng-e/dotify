@@ -7,6 +7,7 @@
 import { createContext, useContext, useEffect, type ReactNode, type RefObject } from 'react';
 import { useSession } from '../../hooks/useSession';
 import { getInitialRoomCode } from '../../features/rooms/roomState';
+import { getStoredDisplayName, isChosenDisplayName, storeDisplayName } from '../../features/identity/walletIdentity';
 import { useWalletContext } from './WalletProvider';
 import { useNavigation } from './NavigationProvider';
 import { useCatalogContext } from './CatalogProvider';
@@ -51,6 +52,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // Run once per mount; the share-link code is read from the URL at mount time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Wallet identity (off-chain): a connected wallet carries its chosen display
+  // name, so the user never retypes it. On connect, pre-fill the session name
+  // from the address's stored name; a guest with no wallet keeps whatever they
+  // typed. See features/identity/walletIdentity.ts.
+  const setDisplayName = session.setDisplayName;
+  useEffect(() => {
+    const stored = getStoredDisplayName(listenerEvmAddress);
+    if (stored) setDisplayName(stored);
+    // Re-run only when the connected address changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listenerEvmAddress]);
+
+  // Persist a chosen name back to the connected wallet so the next session
+  // pre-fills it. No-ops for the untouched default (storeDisplayName guards).
+  const displayName = session.displayName;
+  useEffect(() => {
+    if (listenerEvmAddress && isChosenDisplayName(displayName)) {
+      storeDisplayName(listenerEvmAddress, displayName);
+    }
+  }, [listenerEvmAddress, displayName]);
 
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }
