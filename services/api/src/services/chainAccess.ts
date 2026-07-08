@@ -68,7 +68,8 @@ export type AccessDenialCode =
   | 'TRACK_NOT_FOUND'
   | 'AMBIGUOUS_RUNTIME'
   | 'LISTENER_ACCESS_REQUIRED'
-  | 'HOST_ACCESS_REQUIRED';
+  | 'HOST_ACCESS_REQUIRED'
+  | 'NOT_FREE';
 
 export type TrackAccessRequest = {
   contentHash: string;
@@ -183,6 +184,47 @@ export async function checkTrackAccess(request: TrackAccessRequest): Promise<Tra
       return request.purpose === 'room_host'
         ? { allowed: false, code: 'HOST_ACCESS_REQUIRED', reason: 'The room host does not satisfy this track\'s access policy.' }
         : { allowed: false, code: 'LISTENER_ACCESS_REQUIRED', reason: 'This listener does not satisfy this track\'s access policy.' };
+    }
+
+    return { allowed: true, runtime };
+  } catch {
+    return { allowed: false, code: 'RPC_UNAVAILABLE', reason: 'Access checks are unavailable: chain RPC request failed.' };
+  }
+}
+
+/**
+ * Check whether `contentHash` is publicly listenable (access mode Free), with
+ * no requester identity at all.
+ *
+ * Probe: musicAccCanAccess(contentHash, address(0)). The zero address is never
+ * the artist, never the NFT owner, never paid, never personhood-verified - so
+ * the call returns true if and only if the track's current mode grants access
+ * to everyone (Free). Same fail-closed rules as checkTrackAccess.
+ */
+export async function checkPublicAccess(contentHash: string): Promise<TrackAccessResult> {
+  const client = getClient();
+  if (!client || !config.DOTIFY_DIRECTORY_ADDRESS) {
+    return { allowed: false, code: 'RPC_UNAVAILABLE', reason: 'Access checks are unavailable: chain RPC or directory is not configured.' };
+  }
+
+  try {
+    const { runtime, ambiguous } = await resolveRuntime(client, contentHash);
+    if (ambiguous) {
+      return { allowed: false, code: 'AMBIGUOUS_RUNTIME', reason: 'Track is claimed by multiple runtimes; refusing to pick one.' };
+    }
+    if (!runtime) {
+      return { allowed: false, code: 'TRACK_NOT_FOUND', reason: 'Track is not registered in any artist runtime.' };
+    }
+
+    const publiclyListenable = (await client.readContract({
+      address: runtime,
+      abi: musicAccessAbi,
+      functionName: 'musicAccCanAccess',
+      args: [contentHash as `0x${string}`, ZERO_ADDRESS as Address],
+    })) as boolean;
+
+    if (!publiclyListenable) {
+      return { allowed: false, code: 'NOT_FREE', reason: 'This track is not free; its access policy requires payment or verification.' };
     }
 
     return { allowed: true, runtime };

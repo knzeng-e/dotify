@@ -14,6 +14,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
+  checkPublicAccess as defaultCheckPublicAccess,
   checkTrackAccess as defaultCheckTrackAccess,
   type TrackAccessRequest,
   type TrackAccessResult,
@@ -24,8 +25,6 @@ import {
   type KeySignatureRequest,
   type SignatureVerification,
 } from '../services/signatures.js';
-
-const PREVIEW_RATIO = 0.42;
 
 const paramsSchema = z.object({
   contentHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid content hash'),
@@ -47,12 +46,14 @@ const keyRequestBodySchema = signedBodySchema.extend({
 export type KeyRouteDeps = {
   verifySignedRequest: (request: KeySignatureRequest) => Promise<SignatureVerification>;
   checkTrackAccess: (request: TrackAccessRequest) => Promise<TrackAccessResult>;
+  checkPublicAccess: (contentHash: string) => Promise<TrackAccessResult>;
   deriveContentKey: (contentHash: string) => ContentKeyResult;
 };
 
 const defaultDeps: KeyRouteDeps = {
   verifySignedRequest: defaultVerifySignedRequest,
   checkTrackAccess: defaultCheckTrackAccess,
+  checkPublicAccess: defaultCheckPublicAccess,
   deriveContentKey: defaultDeriveContentKey,
 };
 
@@ -66,12 +67,14 @@ function validationError(reply: FastifyReply, error: string, issues: z.ZodIssue[
   });
 }
 
+// Access model v2 (ticket 24 P1): a denial carries the reason and the action
+// the user can take - never a degraded playback mode. The 42% preview framing
+// (playbackMode/previewRatio) is retired; unauthorized playback is an unlock
+// CTA, not a truncated file.
 function deniedResponse(denial: Extract<TrackAccessResult, { allowed: false }>, purpose: 'individual' | 'room_host') {
   const accessRequired = denial.code === 'HOST_ACCESS_REQUIRED' || denial.code === 'LISTENER_ACCESS_REQUIRED';
   return {
     access: 'denied' as const,
-    playbackMode: 'preview' as const,
-    previewRatio: PREVIEW_RATIO,
     reason: denial.code,
     message: denial.reason,
     hostAction: accessRequired
@@ -128,12 +131,41 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
       return reply.status(200).send({
         access: 'allowed' as const,
         playbackMode: 'full' as const,
-        previewRatio: PREVIEW_RATIO,
         contentKey: key.contentKey,
         runtime: access.runtime,
       });
     });
 
+    // Free-track key delivery (access model v2): no signature, no wallet, no
+    // session. The service verifies on-chain that the track's CURRENT mode
+    // grants access to everyone (musicAccCanAccess with the zero address) and
+    // only then releases the key. Free must feel free - but the check is
+    // still chain-authoritative and fail-closed, so a track flipped back to
+    // paid stops being served here on the next request. Covered by the
+    // API-wide rate limit.
+    app.post('/:contentHash/free-key', async (request: FastifyRequest, reply: FastifyReply) => {
+      const params = paramsSchema.safeParse(request.params);
+      if (!params.success) {
+        return validationError(reply, 'Invalid key request path', params.error.issues);
+      }
+
+      const access = await deps.checkPublicAccess(params.data.contentHash);
+      if (!access.allowed) {
+        return reply.status(200).send(deniedResponse(access, 'individual'));
+      }
+
+      const key = deps.deriveContentKey(params.data.contentHash);
+      if (!key.ok) {
+        return reply.status(503).send({ error: key.reason, code: key.code });
+      }
+
+      return reply.status(200).send({
+        access: 'allowed' as const,
+        playbackMode: 'full' as const,
+        contentKey: key.contentKey,
+        runtime: access.runtime,
+      });
+    });
   };
 }
 

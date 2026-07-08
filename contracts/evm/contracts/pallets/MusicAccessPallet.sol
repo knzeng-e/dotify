@@ -73,6 +73,9 @@ contract MusicAccessPallet {
     if (listener == track.artist) return true;
     if (LibMusicNFT.store().ownerOf[track.tokenId] == listener) return true;
 
+    // Free: everyone may listen; the policy is the whole gate.
+    if (track.accessMode == LibMusicRegistry.AccessMode.Free) return true;
+
     if (track.accessMode == LibMusicRegistry.AccessMode.HumanFree) {
       return LibMusicAccess.hasRequiredPersonhood(as_, listener, track.requiredPersonhood);
     }

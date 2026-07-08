@@ -16,6 +16,43 @@ export const musicRegistryAbi = [
         "internalType": "address",
         "name": "artist",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "enum LibMusicRegistry.AccessMode",
+        "name": "accessMode",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "pricePlanck",
+        "type": "uint128"
+      },
+      {
+        "indexed": false,
+        "internalType": "enum LibMusicRegistry.PersonhoodLevel",
+        "name": "requiredPersonhood",
+        "type": "uint8"
+      }
+    ],
+    "name": "TrackAccessModeChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "contentHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "artist",
+        "type": "address"
       }
     ],
     "name": "TrackDeactivated",
@@ -399,6 +436,34 @@ export const musicRegistryAbi = [
       }
     ],
     "name": "musicRegRegister",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "contentHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "enum LibMusicRegistry.AccessMode",
+        "name": "accessMode",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint128",
+        "name": "pricePlanck",
+        "type": "uint128"
+      },
+      {
+        "internalType": "enum LibMusicRegistry.PersonhoodLevel",
+        "name": "requiredPersonhood",
+        "type": "uint8"
+      }
+    ],
+    "name": "musicRegSetAccessMode",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

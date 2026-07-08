@@ -26,7 +26,7 @@ import { toFunctionSelector } from 'viem';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FacetCutAction = { Add: 0, Replace: 1, Remove: 2 } as const;
-const AccessMode = { HumanFree: 0, Classic: 1 } as const;
+const AccessMode = { HumanFree: 0, Classic: 1, Free: 2 } as const;
 const PersonhoodLevel = { None: 0, DIM1: 1, DIM2: 2 } as const;
 const ZERO_ADDR = '0x0000000000000000000000000000000000000000' as const;
 
@@ -375,6 +375,146 @@ describe('Artist SmartRuntime — music pallets', () => {
     await artistNft.write.musicNFTTransfer([1n, other.account.address]);
 
     expect((await nft.read.musicNFTOwnerOf([1n])).toLowerCase()).to.equal(other.account.address.toLowerCase());
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Suite: Access model v2 - Free mode and artist-driven mode changes
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Access model v2 - Free mode + musicRegSetAccessMode', () => {
+  const trackAccessModeChangedEvent = parseAbiItem(
+    'event TrackAccessModeChanged(bytes32 indexed contentHash, address indexed artist, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood)'
+  );
+
+  // No chai-as-promised in this suite: assert reverts via the house pattern.
+  async function expectRevert(promise: Promise<unknown>, fragment: string) {
+    try {
+      await promise;
+      expect.fail('Should have reverted');
+    } catch (e: unknown) {
+      expect((e as Error).message).to.include(fragment);
+    }
+  }
+
+  async function withArtistRuntime() {
+    const ctx = await loadFixture(deployDotifySystemFixture);
+    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistA } });
+    await factoryAsA.write.createRuntime();
+    const runtimeAddr = (await ctx.directory.read.runtimeOf([ctx.artistA.account.address])) as `0x${string}`;
+
+    const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtimeAddr);
+    const royalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', runtimeAddr);
+    const access = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr);
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', runtimeAddr, { client: { wallet: ctx.artistA } });
+
+    return { ...ctx, runtimeAddr, registry, royalties, access, artistRegistry };
+  }
+
+  it('registers a Free track (no price, no personhood) and everyone can access it', async () => {
+    const { artistRegistry, access, listener, other, royaltyRecip } = await withArtistRuntime();
+
+    await artistRegistry.write.musicRegRegister([
+      sampleRegistration({ accessMode: AccessMode.Free, pricePlanck: 0n, requiredPersonhood: PersonhoodLevel.None }),
+      [royaltyRecip.account.address],
+      [10_000]
+    ]);
+
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(true);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, other.account.address])).to.equal(true);
+  });
+
+  it('normalizes price and personhood to zero for Free registrations', async () => {
+    const { artistRegistry, registry, royaltyRecip } = await withArtistRuntime();
+
+    await artistRegistry.write.musicRegRegister([
+      sampleRegistration({ accessMode: AccessMode.Free, pricePlanck: parseEther('1'), requiredPersonhood: PersonhoodLevel.DIM2 }),
+      [royaltyRecip.account.address],
+      [10_000]
+    ]);
+
+    const [track] = await registry.read.musicRegGetTrack([TRACK_HASH]);
+    expect(track.accessMode).to.equal(AccessMode.Free);
+    expect(track.pricePlanck).to.equal(0n);
+    expect(track.requiredPersonhood).to.equal(PersonhoodLevel.None);
+  });
+
+  it('rejects payment for a Free track', async () => {
+    const { artistRegistry, royalties, listener, royaltyRecip } = await withArtistRuntime();
+
+    await artistRegistry.write.musicRegRegister([
+      sampleRegistration({ accessMode: AccessMode.Free, pricePlanck: 0n }),
+      [royaltyRecip.account.address],
+      [10_000]
+    ]);
+
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    await expectRevert(listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: parseEther('0.5') }), 'not a Classic track');
+  });
+
+  it('artist flips Classic -> Free without re-registering; past buyers survive a flip back', async () => {
+    const PRICE = parseEther('0.5');
+    const { artistRegistry, royalties, access, listener, other, royaltyRecip } = await withArtistRuntime();
+
+    await artistRegistry.write.musicRegRegister([sampleRegistration({ pricePlanck: PRICE }), [royaltyRecip.account.address], [10_000]]);
+
+    // Listener buys while Classic; `other` never pays.
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, other.account.address])).to.equal(false);
+
+    // Flip to Free: everyone can listen, ciphertext untouched (same record).
+    await artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Free, 0n, PersonhoodLevel.None]);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, other.account.address])).to.equal(true);
+
+    // Flip back to Classic: the past buyer keeps access, the stranger loses it.
+    await artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Classic, PRICE, PersonhoodLevel.None]);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(true);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, other.account.address])).to.equal(false);
+  });
+
+  it('only the artist can change the access mode', async () => {
+    const { artistRegistry, registry, other, royaltyRecip } = await withArtistRuntime();
+
+    await artistRegistry.write.musicRegRegister([sampleRegistration(), [royaltyRecip.account.address], [10_000]]);
+
+    const otherRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: other } });
+    await expectRevert(otherRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Free, 0n, PersonhoodLevel.None]), 'not artist');
+  });
+
+  it('validates the new policy on mode change (Classic price, HumanFree personhood)', async () => {
+    const { artistRegistry, royaltyRecip } = await withArtistRuntime();
+
+    await artistRegistry.write.musicRegRegister([sampleRegistration(), [royaltyRecip.account.address], [10_000]]);
+
+    await expectRevert(artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Classic, 0n, PersonhoodLevel.None]), 'Classic requires price');
+    await expectRevert(
+      artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.HumanFree, 0n, PersonhoodLevel.None]),
+      'HumanFree requires personhood level'
+    );
+  });
+
+  it('rejects mode changes on inactive tracks and emits the change event', async () => {
+    const { artistRegistry, publicClient, royaltyRecip, runtimeAddr } = await withArtistRuntime();
+
+    await artistRegistry.write.musicRegRegister([sampleRegistration(), [royaltyRecip.account.address], [10_000]]);
+
+    const hash = await artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Free, 0n, PersonhoodLevel.None]);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const logs = await publicClient.getLogs({
+      address: runtimeAddr,
+      event: trackAccessModeChangedEvent,
+      fromBlock: receipt.blockNumber,
+      toBlock: receipt.blockNumber
+    });
+    expect(logs.length).to.equal(1);
+    expect(logs[0].args.accessMode).to.equal(AccessMode.Free);
+
+    await artistRegistry.write.musicRegDeactivate([TRACK_HASH]);
+    await expectRevert(
+      artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Classic, parseEther('1'), PersonhoodLevel.None]),
+      'inactive'
+    );
   });
 });
 
