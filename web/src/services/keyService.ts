@@ -15,18 +15,18 @@ const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.rep
 
 export type KeyRequestPurpose = 'individual' | 'room_host';
 
+// Access model v2 (ticket 24 P1): a denial names the reason and the action the
+// listener can take. There is no degraded playback mode - the preview doctrine
+// is retired.
 export type ContentKeyResponse =
   | {
       access: 'allowed';
       playbackMode: 'full';
-      previewRatio: number;
       contentKey: `0x${string}`;
       runtime: `0x${string}`;
     }
   | {
       access: 'denied';
-      playbackMode: 'preview';
-      previewRatio: number;
       reason: string;
       message: string;
       hostAction: { type: 'unlock' | 'personhood' | 'none'; label: string };
@@ -147,6 +147,31 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
 
   if (!res.ok) {
     const { message, code } = await parseError(res, `Key request failed (${res.status})`);
+    throw new KeyServiceError(message, code);
+  }
+
+  return (await res.json()) as ContentKeyResponse;
+}
+
+/**
+ * Request the content key for a Free track. No wallet, no signature, no
+ * session: the backend verifies on-chain that the track's current access mode
+ * grants access to everyone, and only then releases the key. Free must feel
+ * free - a guest without a wallet can play a Free track.
+ */
+export async function requestFreeContentKey(contentHash: `0x${string}`): Promise<ContentKeyResponse> {
+  if (!API_URL) {
+    throw new KeyServiceError('Backend key service is not configured (VITE_DOTIFY_API_URL).', 'KEY_SERVICE_NOT_CONFIGURED');
+  }
+
+  const res = await fetch(`${API_URL}/api/tracks/${contentHash}/free-key`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+  });
+
+  if (!res.ok) {
+    const { message, code } = await parseError(res, `Free key request failed (${res.status})`);
     throw new KeyServiceError(message, code);
   }
 

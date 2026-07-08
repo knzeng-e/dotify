@@ -31,7 +31,7 @@ const PIN_FILE_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
 const PIN_JSON_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
 const PIN_LIST_URL = 'https://api.pinata.cloud/data/pinList';
 
-export type AccessMode = 'human-free' | 'classic';
+export type AccessMode = 'human-free' | 'classic' | 'free';
 export type PersonhoodLevel = 'DIM1' | 'DIM2';
 
 export interface DotifyTrackManifest {
@@ -41,7 +41,8 @@ export interface DotifyTrackManifest {
     audioCID: string;
     coverCID: string;
     encrypted?: boolean; // audio bytes are AES-256-GCM encrypted before upload
-    previewCID?: string; // separate, unencrypted 42% preview asset (ticket 18)
+    // previewCID existed for the retired 42% preview assets (ticket 18);
+    // already-pinned manifests may still carry it, new manifests never do.
   };
   track: {
     contentHash: string;
@@ -163,32 +164,6 @@ export async function uploadCoverToBackend(file: File): Promise<string> {
 
   const data = (await res.json()) as { ref: string };
   // Strip "ipfs://" prefix — callers add it themselves (matches uploadFileToPinata return format).
-  return data.ref.startsWith('ipfs://') ? data.ref.slice(7) : data.ref;
-}
-
-/**
- * Upload a 42% preview asset (unencrypted) through the backend.
- *
- * The preview is generated in the artist's browser from the raw audio and is
- * intentionally playable by anyone: it carries no full-track bytes and no
- * content key. The full track remains server-encrypted and wallet-gated.
- *
- * @returns CID string (without ipfs:// prefix), matching the other upload helpers.
- */
-export async function uploadPreviewToBackend(previewBytes: Uint8Array, name: string): Promise<string> {
-  if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
-
-  const form = new FormData();
-  form.append('preview', new File([previewBytes as BlobPart], `${name}.wav`, { type: 'audio/wav' }), `${name}.wav`);
-
-  const res = await fetch(`${API_URL}/api/uploads/preview`, { method: 'POST', body: form });
-
-  if (!res.ok) {
-    const msg = await parseBackendError(res, `Preview upload failed (${res.status})`);
-    throw new Error(msg);
-  }
-
-  const data = (await res.json()) as { ref: string };
   return data.ref.startsWith('ipfs://') ? data.ref.slice(7) : data.ref;
 }
 

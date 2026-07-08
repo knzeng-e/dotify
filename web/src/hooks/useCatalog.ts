@@ -1,14 +1,13 @@
 import { useRef, useState } from 'react';
 import { getGatewayUrl } from '../services/pinata';
 import { ensureContract, getPublicClient, artistDirectoryAbi, musicRegistryAbi, musicAccessAbi, musicRoyaltiesAbi } from '../shared/config/contracts';
-import { encodeAudioBufferPreviewAsWav } from '../shared/utils/audio';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot } from '../shared/utils/format';
 import { fetchIpfsCid } from '../services/pinata';
-import { isKeyServiceConfigured, requestContentKey, type KeyRequestPurpose } from '../services/keyService';
+import { isKeyServiceConfigured, requestContentKey, requestFreeContentKey, type KeyRequestPurpose } from '../services/keyService';
 import { auraForTrack } from '../shared/utils/aura';
 import { decryptTrackAudio, isEncryptedAudioRef, encryptedRefToCID } from '../shared/utils/protectedAudio';
-import { isPolicyManagedTrack, playbackModeForAccess } from '../features/access/accessPolicy';
+import { isPolicyManagedTrack } from '../features/access/accessPolicy';
 import { catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
@@ -47,12 +46,6 @@ import type {
 } from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
 
-type AudioContextWindow = Window &
-  typeof globalThis & {
-    webkitAudioContext?: typeof AudioContext;
-  };
-
-const PREVIEW_RATIO = 0.42;
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
 
 function escapeSvgText(value: string): string {
@@ -180,12 +173,6 @@ export function useCatalog(deps: UseCatalogDeps) {
   const audioUploadRef = useRef<Promise<string> | null>(null);
   const coverUploadRef = useRef<Promise<string> | null>(null);
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
-  const previewOnlyRef = useRef(false);
-  const previewLimitRef = useRef<number | null>(null);
-  // True when the current preview source is a standalone published preview
-  // asset (already the 42% cut) rather than the full track capped at playback
-  // time. Governs how the cutoff limit is computed (ticket 18).
-  const previewAssetRef = useRef(false);
   const e2eClassicAccessGrantedRef = useRef(false);
   // Session cache of backend-delivered content keys: one wallet signature per
   // track per session, instead of one per playback (signature-fatigue rule).
@@ -222,15 +209,18 @@ export function useCatalog(deps: UseCatalogDeps) {
       return !track.id.includes(':') || roomJoinE2eHostHasAccess();
     }
     if (!isPolicyManagedTrack(track)) return true;
-    if (!listenerAddress) return false;
     const runtimeAddress = runtimeAddressFromTrackId(track);
     if (!runtimeAddress) return false;
     try {
+      // Guests probe with the zero address: it is never the artist, an owner,
+      // a buyer, or personhood-verified, so the read answers true only when
+      // the track's current mode grants access to everyone (Free). This is
+      // what lets a walletless visitor play Free tracks (access model v2).
       return (await getPublicClient(ethRpcUrl).readContract({
         address: runtimeAddress,
         abi: musicAccessAbi,
         functionName: 'musicAccCanAccess',
-        args: [track.hash, listenerAddress]
+        args: [track.hash, listenerAddress ?? zeroAddress]
       })) as boolean;
     } catch {
       return false;
@@ -263,13 +253,16 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
   }
 
+  // Access model v2: no preview - a locked track is an honest, clearly named
+  // door (pay / verify humanity / sign in), and free tracks and rooms are the
+  // discovery surface.
   function buildAccessGateInfo(track: CatalogTrack): AccessGate {
     if (!connectedWallet) {
       if (track.accessMode === 'classic') {
         return {
           track,
           title: 'Unlock full song',
-          message: `"${track.title}" is available as a preview. Unlock the full track for ${track.priceDot} DOT and support the artist directly.`,
+          message: `"${track.title}" unlocks for ${track.priceDot} DOT, paid directly to the artist. Connect a wallet to unlock it.`,
           hint: 'No platform account needed. Confirm once from your wallet.',
           actionType: 'signin'
         };
@@ -277,7 +270,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       return {
         track,
         title: 'Listener pass needed',
-        message: `"${track.title}" is protected by the artist. Preview 42% now, or connect your pass to listen in full.`,
+        message: `"${track.title}" is free for verified humans. Connect your pass to listen.`,
         hint: 'Dotify only checks whether the door should open.',
         actionType: 'signin'
       };
@@ -287,7 +280,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       return {
         track,
         title: 'Listener pass needed',
-        message: `"${track.title}" needs the right listener pass. You can preview 42% now.`,
+        message: `"${track.title}" is free for verified humans. Verify once to listen in full.`,
         hint: 'No profile is created for this check.',
         actionType: 'personhood'
       };
@@ -295,110 +288,10 @@ export function useCatalog(deps: UseCatalogDeps) {
     return {
       track,
       title: 'Unlock full song',
-      message: `"${track.title}" unlocks after a ${track.priceDot} DOT payment. You can preview 42% now.`,
+      message: `"${track.title}" unlocks after a ${track.priceDot} DOT payment, paid directly to the artist.`,
       hint: 'Your support goes directly to the artist.',
       actionType: 'payment'
     };
-  }
-
-  function setupPreviewLimit() {
-    const audio = localAudioRef.current;
-    if (!audio || !previewOnlyRef.current || !Number.isFinite(audio.duration)) return;
-    // A standalone preview asset is already the 42% cut: play it in full and
-    // let the gate/auto-advance fire at its natural end. A cutoff preview
-    // plays the full track and stops at 42%.
-    previewLimitRef.current = previewAssetRef.current ? audio.duration : audio.duration * PREVIEW_RATIO;
-  }
-
-  function enforcePreviewCutoff(
-    catalogTracksSnapshot: CatalogTrack[],
-    selectedTrackIdSnapshot: string,
-    options: { onPreviewEnded?: (endedTrack: CatalogTrack, nextTrack: CatalogTrack | null) => void } = {}
-  ) {
-    const audio = localAudioRef.current;
-    const limit = previewLimitRef.current;
-    if (!audio || limit === null || audio.paused) return;
-    if (audio.currentTime >= limit) {
-      audio.pause();
-      const trackIndex = catalogTracksSnapshot.findIndex(t => t.id === selectedTrackIdSnapshot);
-      const track = trackIndex >= 0 ? catalogTracksSnapshot[trackIndex] : null;
-      if (!track) return;
-      setAccessGate(buildAccessGateInfo(track));
-      if (options.onPreviewEnded) {
-        // Room doctrine: an unauthorized host streams the 42% preview, sees a
-        // discreet unlock CTA, and the playlist auto-advances. The caller
-        // decides whether a room is live and what "next" means.
-        const nextTrack = catalogTracksSnapshot.length > 1 ? catalogTracksSnapshot[(trackIndex + 1) % catalogTracksSnapshot.length] : null;
-        options.onPreviewEnded(track, nextTrack);
-      }
-    }
-  }
-
-  async function createPreviewAudioObjectUrl(audioBytes: Uint8Array, cacheKey: string): Promise<string> {
-    const AudioContextCtor = window.AudioContext ?? (window as AudioContextWindow).webkitAudioContext;
-    if (!AudioContextCtor) throw new Error('Audio previews are not supported in this browser.');
-
-    const audioContext = new AudioContextCtor();
-    try {
-      const audioData = audioBytes.buffer.slice(audioBytes.byteOffset, audioBytes.byteOffset + audioBytes.byteLength);
-      const audioBuffer = await audioContext.decodeAudioData(audioData);
-      const previewFrameCount = Math.max(1, Math.floor(audioBuffer.length * PREVIEW_RATIO));
-      const previewBytes = encodeAudioBufferPreviewAsWav(audioBuffer, previewFrameCount);
-      const objectUrl = URL.createObjectURL(new Blob([previewBytes], { type: 'audio/wav' }));
-      objectUrlsRef.current.add(objectUrl);
-      resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
-      return objectUrl;
-    } finally {
-      await audioContext.close();
-    }
-  }
-
-  async function resolvePlayableAudioSource(source: string, cacheKey: string, options: { previewOnly: boolean }): Promise<string> {
-    if (!options.previewOnly) return source;
-
-    const previewCacheKey = `${cacheKey}:preview`;
-    const cached = resolvedAudioSourcesRef.current.get(previewCacheKey);
-    if (cached) return cached;
-
-    const response = await fetch(source);
-    if (!response.ok) throw new Error(`Unable to fetch preview audio (${response.status})`);
-
-    const sourceBytes = new Uint8Array(await response.arrayBuffer());
-    return createPreviewAudioObjectUrl(sourceBytes, previewCacheKey);
-  }
-
-  /**
-   * Resolve the standalone, unencrypted 42% preview asset for a track (ticket
-   * 18), or null when the track has no published preview (demo/local tracks,
-   * or Bulletin-only manifests). The preview CID lives in the track manifest
-   * (assets.previewCID), which is not on-chain, so it is fetched lazily -- only
-   * when a preview is actually needed -- from the IPFS metadata ref, and the
-   * resulting object URL is cached and tracked for cleanup. Playing it needs no
-   * content key and no content secret; the full track stays server-encrypted.
-   */
-  async function resolvePreviewAssetUrl(track: CatalogTrack): Promise<string | null> {
-    const cacheKey = `${track.hash}:preview-asset`;
-    const cached = resolvedAudioSourcesRef.current.get(cacheKey);
-    if (cached) return cached;
-
-    const metadataRef = track.metadataRef;
-    if (!metadataRef || !metadataRef.startsWith('ipfs://')) return null;
-
-    const manifestResponse = await fetchIpfsCid(metadataRef.slice('ipfs://'.length));
-    if (!manifestResponse.ok) return null;
-    const manifest = (await manifestResponse.json()) as { assets?: { previewCID?: string } };
-    const previewCID = manifest.assets?.previewCID;
-    if (!previewCID) return null;
-
-    const previewResponse = await fetchIpfsCid(previewCID);
-    if (!previewResponse.ok) return null;
-    const previewBytes = new Uint8Array(await previewResponse.arrayBuffer());
-    // Same-origin object URL so the host can capture it into the room stream
-    // (a tainted cross-origin media element cannot be captured).
-    const objectUrl = URL.createObjectURL(new Blob([previewBytes as BlobPart], { type: 'audio/wav' }));
-    objectUrlsRef.current.add(objectUrl);
-    resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
-    return objectUrl;
   }
 
   /**
@@ -447,24 +340,42 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
   }
 
-  async function fetchAndDecryptAudio(audioRef: string, gatewayUrl: string, contentHash: `0x${string}`, options: { previewOnly: boolean }): Promise<string> {
+  /**
+   * Obtain the content key for a Free track: no wallet, no signature. The
+   * backend re-verifies the mode on-chain before releasing anything, so this
+   * cannot open a paid or human-gated track.
+   */
+  async function resolveFreeContentKey(contentHash: `0x${string}`): Promise<Uint8Array | null> {
+    const cacheKey = contentHash.toLowerCase();
+    const cached = contentKeysRef.current.get(cacheKey);
+    if (cached) return cached;
+    if (!isKeyServiceConfigured()) return null;
+
+    try {
+      const response = await requestFreeContentKey(contentHash);
+      if (response.access !== 'allowed') return null;
+      const keyBytes = hexToBytes(response.contentKey);
+      contentKeysRef.current.set(cacheKey, keyBytes);
+      return keyBytes;
+    } catch {
+      return null;
+    }
+  }
+
+  async function fetchAndDecryptAudio(audioRef: string, gatewayUrl: string, contentHash: `0x${string}`, accessMode: AccessMode): Promise<string> {
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
-      if (options.previewOnly) return E2E_CLASSIC_AUDIO_URL;
       const serverKey = await resolveServerContentKey(contentHash);
       if (!serverKey) throw new Error('E2E full key request denied before payment.');
       return E2E_CLASSIC_AUDIO_URL;
     }
 
     if (isRoomJoinE2eProtectedHash(contentHash)) {
-      // Preview skips the key request entirely (host lacks access); full
-      // playback records the host key request via resolveServerContentKey.
-      if (options.previewOnly) return E2E_ROOM_AUDIO_URL;
       const serverKey = await resolveServerContentKey(contentHash);
       if (!serverKey) throw new Error('E2E room host is not authorized for full playback.');
       return E2E_ROOM_AUDIO_URL;
     }
 
-    const cacheKey = options.previewOnly ? `${audioRef}:preview` : audioRef;
+    const cacheKey = audioRef;
     const cached = resolvedAudioSourcesRef.current.get(cacheKey);
     if (cached) return cached;
 
@@ -472,13 +383,11 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (!response.ok) throw new Error(`Unable to fetch encrypted audio (${response.status})`);
 
     const encryptedBytes = new Uint8Array(await response.arrayBuffer());
-    // Preview-only playback skips the key request: the backend would deny it
-    // anyway, and we avoid a pointless wallet signature prompt.
-    const serverKey = options.previewOnly ? null : await resolveServerContentKey(contentHash);
+    // Free tracks fetch their key without a wallet or signature; everything
+    // else goes through the signed request. Both fall back to the demo
+    // bundle-derived key, which only decrypts demo-published tracks.
+    const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash) : await resolveServerContentKey(contentHash);
     const clearBytes = serverKey ? await decryptAudio(encryptedBytes, serverKey) : await decryptTrackAudio(encryptedBytes, contentHash);
-    if (options.previewOnly) {
-      return createPreviewAudioObjectUrl(clearBytes, cacheKey);
-    }
 
     const blob = new Blob([clearBytes]);
     const objectUrl = URL.createObjectURL(blob);
@@ -515,53 +424,35 @@ export function useCatalog(deps: UseCatalogDeps) {
     setTrackInfo(createTrackInfoFromCatalog(track));
     setPlayerState(null);
     setAccessGate(null);
-    previewOnlyRef.current = false;
-    previewLimitRef.current = null;
-    previewAssetRef.current = false;
     // A socketEmit callback means this selection streams into a room: the
     // signer is the host, and only the host needs to satisfy the policy.
     keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
 
+    // Access model v2: access is binary. An authorized listener plays the full
+    // track; an unauthorized one gets the access gate and no audio at all. The
+    // 42% preview is retired.
     let audioUrl: string | null = null;
-    let playbackMode: RoomPlaybackMode = 'full';
+    let hasAccess = true;
 
     if (isPolicyManagedTrack(track)) {
-      const hasAccess = await checkTrackAccess(track, listenerEvmAddress);
+      hasAccess = await checkTrackAccess(track, listenerEvmAddress);
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
-      const previewOnly = !hasAccess;
-      previewOnlyRef.current = previewOnly;
-      playbackMode = playbackModeForAccess(hasAccess);
-
-      if (previewOnly) {
+      if (!hasAccess) {
         setAccessGate(buildAccessGateInfo(track));
       }
     }
 
-    if (track.localUrl) {
-      const wantsPreview = playbackMode === 'preview';
-      // Preferred preview path for server-keyed protected tracks: a separate,
-      // unencrypted published asset. No content key, no decryption, no content
-      // secret. Falls back to the demo decrypt-and-slice path when a track has
-      // no published preview asset (local/demo tracks).
-      const previewAssetUrl = wantsPreview ? await resolvePreviewAssetUrl(track).catch(() => null) : null;
+    if (hasAccess && track.localUrl) {
+      audioUrl = track.encrypted ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, track.accessMode).catch(() => null) : track.localUrl;
 
-      if (previewAssetUrl) {
-        previewAssetRef.current = true;
-        audioUrl = previewAssetUrl;
-      } else {
-        audioUrl = track.encrypted
-          ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, { previewOnly: wantsPreview }).catch(() => null)
-          : await resolvePlayableAudioSource(track.localUrl, track.audioRef, { previewOnly: wantsPreview }).catch(() => null);
-
-        if (playbackMode === 'full' && !audioUrl && track.encrypted) {
-          // Access is granted but the key or decryption failed. Say so plainly
-          // instead of leaving a silent dead player.
-          setTransactionFeedback({
-            tone: 'error',
-            title: 'Protected playback unavailable',
-            message: 'Your access checks out, but the content key could not be obtained or used. The key service may be unreachable; try again shortly.'
-          });
-        }
+      if (!audioUrl && track.encrypted) {
+        // Access is granted but the key or decryption failed. Say so plainly
+        // instead of leaving a silent dead player.
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Protected playback unavailable',
+          message: 'Your access checks out, but the content key could not be obtained or used. The key service may be unreachable; try again shortly.'
+        });
       }
     }
 
@@ -574,12 +465,12 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     if (socketEmit) {
       socketEmit('room:track', createTrackInfoFromCatalog(track));
-      // Host-based room access: declare honestly whether the room hears the
-      // full track or the 42% preview fallback.
-      socketEmit('room:playback-mode', { playbackMode });
+      // Rooms always carry the full track: a host who cannot play a track
+      // streams nothing (kept on the wire for protocol compatibility).
+      socketEmit('room:playback-mode', { playbackMode: 'full' });
     }
 
-    return playbackMode;
+    return 'full';
   }
 
   async function openTrack(
@@ -609,8 +500,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       await new Promise(resolve => window.setTimeout(resolve, 20));
       e2eClassicAccessGrantedRef.current = true;
       getClassicUnlockE2eState().paid = true;
-      previewOnlyRef.current = false;
-      previewLimitRef.current = null;
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback({
@@ -650,8 +539,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Payment submitted.', txHash });
       await getClient(ethRpcUrl).waitForTransactionReceipt({ hash: txHash });
 
-      previewOnlyRef.current = false;
-      previewLimitRef.current = null;
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback({ tone: 'success', title: 'Access unlocked', message: `Full playback of "${track.title}" is now available.`, txHash });
@@ -919,20 +806,14 @@ export function useCatalog(deps: UseCatalogDeps) {
     audioUploadRef,
     coverUploadRef,
     localAudioRef,
-    previewOnlyRef,
-    previewLimitRef,
     // Functions
     selectTrack,
     openTrack,
     checkTrackAccess,
     checkTrackPaidAccess,
     buildAccessGateInfo,
-    setupPreviewLimit,
-    enforcePreviewCutoff,
     payForTrackAccess,
     fetchAndDecryptAudio,
-    resolvePlayableAudioSource,
-    createPreviewAudioObjectUrl,
     refreshCatalogFromRegistry,
     fetchDirectoryEntries,
     fetchRuntimeCatalog,

@@ -13,7 +13,7 @@ Dotify is not a Spotify clone. Dotify is a decentralized cultural social hub whe
 Do not add ornamental product features until the following spine is stable:
 
 1. An artist can publish a rights-managed encrypted track.
-2. A listener can access preview-only playback when unauthorized.
+2. An unauthorized listener gets an honest unlock gate (and Free tracks play for everyone).
 3. A listener can pay/unlock a Classic track.
 4. Full audio keys are never bundled into the frontend.
 5. A host can create a public listening room.
@@ -38,7 +38,7 @@ Do not add ornamental product features until the following spine is stable:
 | `05-classic-unlock-e2e-coverage.md` | #6 | Delivered on `main` | Classic unlock end-to-end coverage |
 | `06-artist-publish-e2e-coverage.md` | #7 | Delivered on `main` | Artist publish end-to-end coverage |
 | `07-room-join-e2e-coverage.md` | #8 | Delivered (see delivery notes in the ticket) | Room join and host-access playback end-to-end coverage |
-| `18-production-preview-assets.md` | #27 | Open | Separate preview assets for server-keyed protected tracks |
+| `18-production-preview-assets.md` | #27 | Retired by ticket 24 P1 (delivered, then consciously removed with the preview doctrine) | Separate preview assets for server-keyed protected tracks |
 | `08-frontend-feature-module-refactor.md` | #9 | Delivered on `main` | Frontend feature-module refactor |
 | `09-generated-abi-bindings.md` | #10 | Delivered (see delivery notes in the ticket) | Generated ABI bindings |
 
@@ -74,7 +74,7 @@ Deferred (needs a backend channel or separate design asset, deliberately not fak
 
 | Backlog doc | Status | Goal |
 | --- | --- | --- |
-| `24-access-streaming-v2.md` | Proposed (design in `docs/design/dotify-v2-access-and-streaming.md`) | Remove the 42% preview; three-mode artist policy (free / paid / human-free via Proof of Personhood); sign-once session auth for key delivery; encrypted chunked streaming (`dotify.audio.v2`) for fast starts; Polkadot App stack citizenship (Triangle, PoP, Coinage, DotNS, Statement Store) |
+| `24-access-streaming-v2.md` | P1 delivered on `feat/access-v2-p1` + `feat/access-v2-p1b`; P2+ open (design in `docs/design/dotify-v2-access-and-streaming.md`) | Remove the 42% preview; three-mode artist policy (free / paid / human-free via Proof of Personhood); sign-once session auth for key delivery; encrypted chunked streaming (`dotify.audio.v2`) for fast starts; Polkadot App stack citizenship (Triangle, PoP, Coinage, DotNS, Statement Store) |
 
 Once approved, ticket 24's P1 supersedes the preview-based rows above (the
 42% doctrine and the ticket 18 preview assets are consciously retired by it).
@@ -98,9 +98,7 @@ Dotify distinguishes direct file access from room presence.
 - Room playback: only the host must satisfy the track access policy.
 - Room listeners do not need to connect a wallet, sign, pay, or prove access merely to listen inside a room.
 - Room listeners never receive the encrypted source file or content key; they receive only the ephemeral WebRTC stream.
-- If an unauthorized host selects a protected track, Dotify plays the 42% preview, shows a discreet host-facing unlock/personhood CTA, then auto-advances to the next playlist track.
-
-Current implementation caveat: server-keyed production tracks do not yet publish a separate preview asset, so unauthorized preview playback for those tracks cannot be guaranteed without falling back to demo-mode decryption. `18-production-preview-assets.md` tracks the missing production path.
+- If an unauthorized host selects a protected track, nothing streams: the host sees the unlock/personhood CTA and moves the room to a track they can play. The 42% preview is retired (ticket 24 P1).
 
 ## Engineering bar
 

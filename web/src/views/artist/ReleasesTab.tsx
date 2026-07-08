@@ -55,7 +55,9 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
                       {accessModeLabel(track)} / {track.durationLabel}
                     </small>
                   </span>
-                  <span className='release-tab-access'>{track.accessMode === 'classic' ? `${track.priceDot} DOT` : track.personhoodLevel}</span>
+                  <span className='release-tab-access'>
+                    {track.accessMode === 'classic' ? `${track.priceDot} DOT` : track.accessMode === 'free' ? 'Free' : track.personhoodLevel}
+                  </span>
                 </button>
               );
             })
@@ -83,7 +85,13 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
               <p className='release-artist-line'>{selectedRelease.artist}</p>
               <div className='access-badges'>
                 <span className='access-chip'>{accessModeLabel(selectedRelease)}</span>
-                <span className='access-chip'>{selectedRelease.accessMode === 'classic' ? `${selectedRelease.priceDot} DOT` : 'Listener pass'}</span>
+                <span className='access-chip'>
+                  {selectedRelease.accessMode === 'classic'
+                    ? `${selectedRelease.priceDot} DOT`
+                    : selectedRelease.accessMode === 'free'
+                      ? 'Free'
+                      : 'Listener pass'}
+                </span>
                 <span className='access-chip access-chip-trust'>
                   <BadgeCheck size={13} />
                   Artist controlled
@@ -110,7 +118,16 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
           </div>
 
           <div className='release-detail-grid'>
-            <EndpointRow label='Access' value={selectedRelease.accessMode === 'classic' ? `${selectedRelease.priceDot} DOT` : 'Listener pass required'} />
+            <EndpointRow
+              label='Access'
+              value={
+                selectedRelease.accessMode === 'classic'
+                  ? `${selectedRelease.priceDot} DOT`
+                  : selectedRelease.accessMode === 'free'
+                    ? 'Free for everyone'
+                    : 'Listener pass required'
+              }
+            />
             <EndpointRow label='Royalty total' value={`${selectedRelease.royaltyBps} bps`} />
             <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />
             <EndpointRow label='Encrypted audio' value={selectedRelease.encrypted ? 'yes' : 'no'} />

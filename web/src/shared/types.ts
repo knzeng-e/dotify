@@ -1,7 +1,7 @@
 export type Mode = 'host' | 'listener';
 export type PersonhoodLevel = 'DIM1' | 'DIM2';
 export type View = 'listen' | 'player' | 'rooms' | 'you';
-export type AccessMode = 'human-free' | 'classic';
+export type AccessMode = 'human-free' | 'classic' | 'free';
 export type SocketStatus = 'offline' | 'connecting' | 'online' | 'error';
 export type PeerStatus = 'waiting' | 'connecting' | 'connected' | 'disconnected';
 export type SessionAction = 'idle' | 'creating' | 'joining';

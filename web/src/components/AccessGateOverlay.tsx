@@ -58,7 +58,7 @@ export function AccessGateOverlay({
           </button>
         )}
         <button className='secondary-action' type='button' onClick={onDismiss}>
-          Stay in preview
+          Not now
         </button>
       </div>
     </Dialog>

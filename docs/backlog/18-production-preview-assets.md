@@ -81,3 +81,11 @@ Tests: backend `uploads.test.ts` (preview route validation + manifest
 end-to-end denied-playback flows (individual,
 room-host, key-service-unavailable) are covered by the design but a dedicated
 Playwright spec is deferred (the e2e harness needs the full stack).
+
+## Retirement (access model v2)
+
+Ticket 24 P1 removed the preview doctrine entirely: no 42% assets are
+generated or consumed anymore, `/api/uploads/preview` is gone, and denials are
+unlock CTAs instead of degraded playback. Already-pinned preview assets and
+`previewCID` manifest fields are simply ignored. This ticket stays as the
+historical record of the delivered-then-retired path.

@@ -65,28 +65,6 @@ const validManifest = {
   settlement: { target: 'evm', royaltyBps: 700, pricePlanck: '1' },
 };
 
-describe('POST /api/uploads/preview', () => {
-  it('rejects a request with no preview file', async () => {
-    const server = await buildApp();
-    const res = await server.inject({ method: 'POST', url: '/api/uploads/preview', headers: multipartHeaders(), payload: multipartField('note', 'x') });
-    assert.equal(res.statusCode, 400);
-    assert.match(res.json().error, /No preview file/i);
-  });
-
-  it('rejects a preview with a non-audio MIME type', async () => {
-    const server = await buildApp();
-    const res = await server.inject({ method: 'POST', url: '/api/uploads/preview', headers: multipartHeaders(), payload: multipartFile('preview', 'p.txt', 'text/plain', 'hello') });
-    assert.equal(res.statusCode, 400);
-    assert.match(res.json().error, /not an accepted audio format/i);
-  });
-
-  it('accepts a WAV preview and reaches the pin step (503 without Pinata configured)', async () => {
-    const server = await buildApp();
-    const res = await server.inject({ method: 'POST', url: '/api/uploads/preview', headers: multipartHeaders(), payload: multipartFile('preview', 'p.wav', 'audio/wav', 'RIFFxxxxWAVE') });
-    assert.equal(res.statusCode, 503); // validation passed, pinning unavailable
-  });
-});
-
 describe('POST /api/uploads/metadata (previewCID schema)', () => {
   it('accepts a manifest carrying assets.previewCID', async () => {
     const server = await buildApp();

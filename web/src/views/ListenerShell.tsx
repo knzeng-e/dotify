@@ -38,14 +38,14 @@ import { NAV_ITEMS, VIEW_COPY } from '../app/navigation';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from '../features/catalog/trackModel';
 import { deriveSupportSummary } from '../features/wallet/supportSummary';
 import { getStoredArtistName } from '../hooks/useArtistConsole';
-import type { CatalogTrack, RoomPlaybackMode, View } from '../shared/types';
+import type { CatalogTrack, View } from '../shared/types';
 
 const DEFAULT_ARTIST_NAME = 'Dotify Artist';
 
 export function ListenerShell() {
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const { playback, openTrack, prepareLocalStream, enforcePreviewCutoff } = usePlaybackContext();
+  const { playback, openTrack, prepareLocalStream } = usePlaybackContext();
   const { activeView, publicArtistName, setPublicArtistName, railCollapsed, setRailCollapsed, navigateToView, openArtistStudio } = useNavigation();
   const { walletState, activeEvmAddress, disconnect: disconnectWallet } = useWalletContext();
   const { setShowWalletModal } = useUiFeedback();
@@ -68,12 +68,11 @@ export function ListenerShell() {
   }
 
   // Opens the room after the user has confirmed their display name in the modal.
+  // Access model v2: rooms always carry the full track; a host who cannot play
+  // the chosen track opens the room without a stream and sees the access gate.
   async function executeArtistRoom(track: CatalogTrack) {
-    const playbackMode = await catalog.openTrack(track).catch((): RoomPlaybackMode => {
-      catalog.previewOnlyRef.current = true;
-      return 'preview';
-    });
-    session.createSession(catalogTrackToTrackInfo(track), playbackMode);
+    await catalog.openTrack(track).catch(() => undefined);
+    session.createSession(catalogTrackToTrackInfo(track), 'full');
   }
 
   // Entry point from artist profile / room cards - opens CreateRoomModal so the
@@ -106,8 +105,6 @@ export function ListenerShell() {
         remoteAudioRef={session.remoteAudioRef}
         playback={playback}
         onPrepareLocalStream={prepareLocalStream}
-        onSetupPreviewLimit={catalog.setupPreviewLimit}
-        onEnforcePreviewCutoff={enforcePreviewCutoff}
         onEmitPlayerState={session.emitPlayerState}
       />
       <div className='app-shell'>
