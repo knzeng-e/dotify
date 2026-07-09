@@ -57,6 +57,10 @@ function tokenHmacKey(): Buffer | null {
   return Buffer.from(hkdfSync('sha256', ikm, Buffer.alloc(0), HKDF_INFO, 32));
 }
 
+export function isSessionAuthConfigured(): boolean {
+  return tokenHmacKey() !== null;
+}
+
 function b64url(data: Buffer | string): string {
   return Buffer.from(data).toString('base64url');
 }

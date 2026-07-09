@@ -8,7 +8,7 @@
 // universally known mnemonic and must never become a hidden fallback signer
 // outside local development, so devBulletinFallback is gated on import.meta.env.DEV.
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { zeroAddress } from 'viem';
 import type { PolkadotSigner } from 'polkadot-api';
 
@@ -69,10 +69,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // P2): revoke the server-side token and forget the stored one, so a shared
   // machine does not keep listening rights after the wallet leaves.
   const connectedAddress = connectedWallet?.evmAddress;
+  const lastConnectedAddressRef = useRef<`0x${string}` | null>(null);
   const disconnect = useCallback(() => {
     if (connectedAddress) void signOutOfDotifySession(connectedAddress);
     disconnectWalletOnly();
   }, [connectedAddress, disconnectWalletOnly]);
+
+  // Wallet extensions can disconnect or switch accounts outside Dotify's own
+  // disconnect button. Revoke the session for the address that just left.
+  useEffect(() => {
+    const previousAddress = lastConnectedAddressRef.current;
+    const currentAddress = connectedAddress ?? null;
+    if (previousAddress && previousAddress.toLowerCase() !== currentAddress?.toLowerCase()) {
+      void signOutOfDotifySession(previousAddress);
+    }
+    lastConnectedAddressRef.current = currentAddress;
+  }, [connectedAddress]);
 
   const currentBulletinAccount = devAccounts[bulletinAccountIndex];
   const activeEvmAddress = connectedWallet?.evmAddress ?? zeroAddress;

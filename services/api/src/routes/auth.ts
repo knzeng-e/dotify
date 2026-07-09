@@ -12,6 +12,7 @@ import {
   type SignatureVerification
 } from '../services/signatures.js';
 import {
+  isSessionAuthConfigured as defaultIsSessionAuthConfigured,
   issueSessionToken as defaultIssueSessionToken,
   revokeSessionToken as defaultRevokeSessionToken,
   type IssuedSession
@@ -36,12 +37,14 @@ const logoutRequestSchema = z.object({
 
 export type AuthRouteDeps = {
   verifySignInRequest: (request: SignInRequest) => Promise<SignatureVerification>;
+  isSessionAuthConfigured: () => boolean;
   issueSessionToken: (address: `0x${string}`, chainId: number) => IssuedSession;
   revokeSessionToken: (token: string) => boolean;
 };
 
 const defaultDeps: AuthRouteDeps = {
   verifySignInRequest: defaultVerifySignInRequest,
+  isSessionAuthConfigured: defaultIsSessionAuthConfigured,
   issueSessionToken: defaultIssueSessionToken,
   revokeSessionToken: defaultRevokeSessionToken
 };
@@ -64,6 +67,20 @@ export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
         return validationError(reply, 'Invalid nonce request', parsed.error.issues);
       }
       return createWalletNonceChallenge(parsed.data);
+    });
+
+    // Capability check used by clients before prompting for the SIGN_IN
+    // signature. Older backends return 404 for this route; unconfigured current
+    // backends return 503, so the client can fall back without signature churn.
+    app.get('/session', async (_request: FastifyRequest, reply: FastifyReply) => {
+      if (!deps.isSessionAuthConfigured()) {
+        return reply.status(503).send({
+          available: false,
+          error: 'Session auth is unavailable: the key service master secret is not configured.',
+          code: 'SESSION_NOT_CONFIGURED'
+        });
+      }
+      return reply.status(200).send({ available: true });
     });
 
     // Sign in once: exchange a wallet signature over the SIGN_IN challenge for

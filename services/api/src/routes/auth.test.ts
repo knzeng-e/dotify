@@ -18,6 +18,7 @@ function sessionBody(overrides: Record<string, unknown> = {}) {
 
 const happyDeps: AuthRouteDeps = {
   verifySignInRequest: async () => ({ valid: true }),
+  isSessionAuthConfigured: () => true,
   issueSessionToken: () => ({ ok: true, token: 'payload.signature', expiresAt: new Date(Date.now() + 1000).toISOString() }),
   revokeSessionToken: () => true
 };
@@ -33,6 +34,24 @@ async function buildApp(deps: Partial<AuthRouteDeps> = {}): Promise<FastifyInsta
 afterEach(async () => {
   if (app) await app.close();
   app = null;
+});
+
+describe('GET /api/auth/session', () => {
+  it('advertises session auth before the client prompts for SIGN_IN', async () => {
+    const server = await buildApp();
+    const response = await server.inject({ method: 'GET', url: '/api/auth/session' });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().available, true);
+  });
+
+  it('returns 503 when sessions are unavailable so clients can fall back unsigned', async () => {
+    const server = await buildApp({ isSessionAuthConfigured: () => false });
+    const response = await server.inject({ method: 'GET', url: '/api/auth/session' });
+
+    assert.equal(response.statusCode, 503);
+    assert.equal(response.json().code, 'SESSION_NOT_CONFIGURED');
+  });
 });
 
 describe('POST /api/auth/session', () => {

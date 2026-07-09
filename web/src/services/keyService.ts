@@ -112,22 +112,29 @@ type StoredSession = { token: string; expiresAt: string };
 
 // Refresh slightly early so a token never expires mid-request.
 const SESSION_REFRESH_MARGIN_MS = 60_000;
+let sessionCapability: 'unknown' | 'available' | 'unavailable' = 'unknown';
 
 function sessionStorageKey(address: string): string {
   return `dotify:session:${address.toLowerCase()}`;
 }
 
-function getStoredSession(address: string): StoredSession | null {
+function readStoredSession(address: string, options: { requireFresh: boolean }): StoredSession | null {
   try {
     const raw = window.localStorage.getItem(sessionStorageKey(address));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredSession;
     if (typeof parsed.token !== 'string' || typeof parsed.expiresAt !== 'string') return null;
-    if (Date.parse(parsed.expiresAt) - SESSION_REFRESH_MARGIN_MS <= Date.now()) return null;
+    const expiresAtMs = Date.parse(parsed.expiresAt);
+    if (!Number.isFinite(expiresAtMs)) return null;
+    if (options.requireFresh && expiresAtMs - SESSION_REFRESH_MARGIN_MS <= Date.now()) return null;
     return parsed;
   } catch {
     return null;
   }
+}
+
+function getStoredSession(address: string): StoredSession | null {
+  return readStoredSession(address, { requireFresh: true });
 }
 
 function storeSession(address: string, session: StoredSession): void {
@@ -145,6 +152,25 @@ export function clearStoredSession(address: string): void {
   } catch {
     // ignore
   }
+}
+
+async function isDotifySessionAvailable(): Promise<boolean> {
+  if (!API_URL) return false;
+  if (sessionCapability === 'available') return true;
+  if (sessionCapability === 'unavailable') return false;
+
+  const res = await fetch(`${API_URL}/api/auth/session`, { method: 'GET' });
+  if (res.ok) {
+    sessionCapability = 'available';
+    return true;
+  }
+  if (res.status === 404 || res.status === 503) {
+    sessionCapability = 'unavailable';
+    return false;
+  }
+
+  const { message, code } = await parseError(res, `Session capability check failed (${res.status})`);
+  throw new KeyServiceError(message, code);
 }
 
 /**
@@ -176,6 +202,7 @@ export async function ensureDotifySession(walletClient: WalletClient, chainId: n
 
   const stored = getStoredSession(account.address);
   if (stored) return stored.token;
+  if (!(await isDotifySessionAvailable())) return null;
 
   const { nonce, expiresAt } = await requestNonce(account.address, chainId);
   const signature = await walletClient.signMessage({
@@ -191,7 +218,10 @@ export async function ensureDotifySession(walletClient: WalletClient, chainId: n
 
   // 404 (older backend) or 503 (session auth unconfigured): fall back to the
   // per-request signed path rather than failing playback.
-  if (res.status === 404 || res.status === 503) return null;
+  if (res.status === 404 || res.status === 503) {
+    sessionCapability = 'unavailable';
+    return null;
+  }
   if (!res.ok) {
     const { message, code } = await parseError(res, `Sign-in failed (${res.status})`);
     throw new KeyServiceError(message, code);
@@ -204,7 +234,7 @@ export async function ensureDotifySession(walletClient: WalletClient, chainId: n
 
 /** Sign out: revoke the session server-side and forget the stored token. */
 export async function signOutOfDotifySession(address: string): Promise<void> {
-  const stored = getStoredSession(address);
+  const stored = readStoredSession(address, { requireFresh: false });
   clearStoredSession(address);
   if (!API_URL || !stored) return;
   try {
