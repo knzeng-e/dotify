@@ -178,6 +178,7 @@ export function NewReleaseTab({
                   onChange={event => onSetAccessMode(event.target.value as AccessMode)}
                   disabled={artistStudioLocked}
                 >
+                  <option value='free'>Free for everyone</option>
                   <option value='human-free'>Listener pass</option>
                   <option value='classic'>Paid unlock</option>
                 </select>
@@ -258,9 +259,11 @@ export function NewReleaseTab({
               <span>Keep a public release archive</span>
             </label>
             <div className='rights-status'>
-              {accessMode === 'human-free'
-                ? 'Listener pass means the full song can open without ad-style profiles.'
-                : 'Paid unlock means listeners see the price first and support goes directly to the artist.'}
+              {accessMode === 'free'
+                ? 'Free means anyone can play the full song, wallet or not. You can change the door later without re-uploading.'
+                : accessMode === 'human-free'
+                  ? 'Listener pass means the full song can open without ad-style profiles.'
+                  : 'Paid unlock means listeners see the price first and support goes directly to the artist.'}
             </div>
           </div>
         )}
@@ -269,7 +272,10 @@ export function NewReleaseTab({
           <div className='wizard-panel release-review'>
             <EndpointRow label='Track' value={title.trim() || 'Untitled'} />
             <EndpointRow label='Artist' value={artistName.trim() || 'Unknown artist'} />
-            <EndpointRow label='Access' value={accessMode === 'classic' ? `${priceDot} DOT` : `Human verified ${personhoodLevel}`} />
+            <EndpointRow
+              label='Access'
+              value={accessMode === 'classic' ? `${priceDot} DOT` : accessMode === 'free' ? 'Free for everyone' : `Human verified ${personhoodLevel}`}
+            />
             <EndpointRow label='Royalty' value={`${royaltyBps} bps`} />
             <EndpointRow label='Metadata' value='IPFS canonical manifest' />
             <EndpointRow label='Archive' value={uploadToBulletinEnabled ? 'Bulletin enabled' : 'Off'} />
@@ -314,7 +320,7 @@ export function NewReleaseTab({
             <p>{description || 'Add a short release note to help listeners understand the world behind this track.'}</p>
             <div className='access-badges'>
               <span>{accessModeLabelFromState(accessMode)}</span>
-              <span>{accessMode === 'classic' ? `${priceDot} DOT` : 'Listener pass'}</span>
+              <span>{accessMode === 'classic' ? `${priceDot} DOT` : accessMode === 'free' ? 'Free' : 'Listener pass'}</span>
             </div>
           </div>
         </div>

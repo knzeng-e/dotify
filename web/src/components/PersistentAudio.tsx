@@ -15,21 +15,10 @@ type PersistentAudioProps = {
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   playback: PlaybackControls;
   onPrepareLocalStream: () => void;
-  onSetupPreviewLimit: () => void;
-  onEnforcePreviewCutoff: () => void;
   onEmitPlayerState: (force: boolean) => void;
 };
 
-export function PersistentAudio({
-  audioSource,
-  localAudioRef,
-  remoteAudioRef,
-  playback,
-  onPrepareLocalStream,
-  onSetupPreviewLimit,
-  onEnforcePreviewCutoff,
-  onEmitPlayerState
-}: PersistentAudioProps) {
+export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, playback, onPrepareLocalStream, onEmitPlayerState }: PersistentAudioProps) {
   // Keep the mute flag applied to whichever element exists at any moment.
   useEffect(() => {
     if (localAudioRef.current) localAudioRef.current.muted = playback.muted;
@@ -47,7 +36,6 @@ export function PersistentAudio({
         onLoadedMetadata={() => {
           playback.handleHostLoadedMetadata(localAudioRef.current!);
           void onPrepareLocalStream();
-          onSetupPreviewLimit();
         }}
         onPlay={() => {
           playback.syncFromAudio(localAudioRef.current);
@@ -58,7 +46,6 @@ export function PersistentAudio({
           // otherwise be left with a silent or stale stream.
           void onPrepareLocalStream();
           onEmitPlayerState(true);
-          onEnforcePreviewCutoff();
         }}
         onPause={() => {
           playback.syncFromAudio(localAudioRef.current);
@@ -71,7 +58,6 @@ export function PersistentAudio({
         onTimeUpdate={() => {
           playback.syncFromAudio(localAudioRef.current);
           onEmitPlayerState(false);
-          onEnforcePreviewCutoff();
         }}
         onEnded={event => playback.handleEnded(event.currentTarget)}
         onError={() => {

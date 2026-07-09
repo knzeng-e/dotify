@@ -62,3 +62,42 @@ P0 once approved (it redefines the production spine's access rules).
 - Coinage settlement implementation (tracked as its own design once the rail
   is evaluated).
 - Absolute DRM claims - the non-DRM statement in the threat model stands.
+
+## Delivery notes
+
+P1 delivered in two stacked PRs:
+
+- P1a (`feat/access-v2-p1`): contracts + key service. `AccessMode.Free`
+  (appended, storage-safe), artist-only `musicRegSetAccessMode` (mode changes
+  without re-upload; past buyers survive flips), Free branch in
+  `musicAccCanAccess`, factory selector routing, ABI regen, 8 hardhat tests.
+  Key service: `checkPublicAccess` (zero-address probe), unauthenticated
+  `POST /:contentHash/free-key` (rate-limited, chain-verified, fail-closed),
+  denials stripped of the preview framing. 4 new API tests.
+- P1b (`feat/access-v2-p1b`): web + preview deletion. `free` mode in types,
+  encoding, publish UI (third door option + review copy), labels. Guests probe
+  access with the zero address, so Free tracks play with no wallet;
+  `requestFreeContentKey` fetches their key without a signature. Deleted: the
+  42% slicing/cutoff/preview-asset machinery in useCatalog, the preview wiring
+  in PlaybackProvider/PersistentAudio/ListenerShell, the WAV preview encoders
+  (`shared/utils/audio.ts`), `uploadPreviewToBackend` + publish-time preview
+  generation, and the API `/api/uploads/preview` route. Unauthorized playback
+  is the unlock gate, no audio. Room hosts without access stream nothing and
+  move the room to a playable track; the room playback-mode wire protocol
+  stays (always 'full') for compatibility and is scheduled for removal with
+  the signaling cleanup. e2e specs rewritten to the v2 expectations
+  (locked-not-preview, no-stream-for-unauthorized-host) - they need a local
+  Playwright run to confirm.
+
+P2 delivered (`feat/access-v2-p2`, stacked on P1b):
+
+- Key service: `sessionTokens.ts` (HMAC tokens HKDF-derived from the master
+  secret, 24h TTL, constant-time verify, jti revocation), SIGN_IN message +
+  `verifySignInRequest` in signatures.ts, `POST /api/auth/session` +
+  `/api/auth/logout`, and a session-token path on the key-request route (the
+  on-chain check still runs per request). 13 new API tests (37 total).
+- Web: `ensureDotifySession` (one signature, token stored per address with a
+  refresh margin), key requests ride the token with a single re-sign retry on
+  401 and a clean fallback to per-request signing for backends without
+  session support; wallet disconnect signs the session out server-side.
+- Threat model updated with the session-auth boundary.

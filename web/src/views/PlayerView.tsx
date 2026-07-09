@@ -99,11 +99,18 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const statusLabel = isOnAir ? 'ON AIR' : playbackStatusLabel(status, mode);
   const isManagedTrack = Boolean(selectedTrack && isPolicyManagedTrack(selectedTrack));
   const needsTrackAccess = Boolean(selectedTrack && isManagedTrack && !selectedTrackHasAccess);
-  const showPreviewAction = Boolean(needsTrackAccess && selectedTrack);
-  const showWideStatus = Boolean(selectedTrack && !showPreviewAction);
-  const accessStatusLabel = needsTrackAccess ? 'Preview mode' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
-  const accessPriceLabel = effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT` : 'Unlocked for this wallet') : 'Human pass';
-  const previewCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full track' : 'Check access';
+  const showUnlockAction = Boolean(needsTrackAccess && selectedTrack);
+  const showWideStatus = Boolean(selectedTrack && !showUnlockAction);
+  const accessStatusLabel = needsTrackAccess ? 'Locked' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
+  const accessPriceLabel =
+    effectiveAccessMode === 'classic'
+      ? needsTrackAccess
+        ? `${effectivePriceDot} DOT`
+        : 'Unlocked for this wallet'
+      : effectiveAccessMode === 'free'
+        ? 'Free for everyone'
+        : 'Human pass';
+  const unlockCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full track' : 'Check access';
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
   const disconnectedListeners = listeners.filter(listener => listener.status === 'disconnected');
@@ -196,8 +203,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             Live
           </span>
           <span className='room-header-meta'>{mode === 'host' ? `${presenceCount} in the room` : `with ${hostName || 'the host'}`}</span>
-          {/* Honest room playback mode ('full' or the 42% 'preview' fallback),
-              exposed as a non-visual metadata hook; the visible preview cue lives
+          {/* Room playback mode metadata hook (always 'full' since access model
+              v2 retired the preview; kept for wire compatibility); the visible cue lives
               in the rooms list and session status. */}
           <span
             data-testid='room-playback-mode'
@@ -271,7 +278,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               </span>
               {ritualKey !== 0 && <span className='unlock-ritual' key={ritualKey} aria-hidden='true' />}
             </div>
-            <div className={`audio-stack${showPreviewAction ? ' has-preview-action' : ''}${showWideStatus ? ' has-wide-status' : ''}`}>
+            <div className={`audio-stack${showUnlockAction ? ' has-unlock-action' : ''}${showWideStatus ? ' has-wide-status' : ''}`}>
               <div className='remote-state' data-active={transport.playing} data-busy={isBusy}>
                 {isBusy ? (
                   <span className='remote-state-dots' aria-hidden='true'>
@@ -286,9 +293,9 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 )}
                 <span>{statusLabel}</span>
               </div>
-              {showPreviewAction && selectedTrack && (
+              {showUnlockAction && selectedTrack && (
                 <button
-                  className='preview-cover-action'
+                  className='unlock-cover-action'
                   type='button'
                   onClick={() => {
                     if (effectiveAccessMode === 'classic') {
@@ -299,7 +306,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   }}
                 >
                   <KeyRound size={16} />
-                  {previewCtaLabel}
+                  {unlockCtaLabel}
                 </button>
               )}
             </div>
@@ -316,8 +323,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             <div className='access-badges'>
               <span
                 className='access-chip'
-                data-tone={needsTrackAccess ? 'preview' : 'ready'}
-                data-testid={needsTrackAccess ? 'preview-player-state' : effectiveAccessMode === 'classic' ? 'full-playback-state' : undefined}
+                data-tone={needsTrackAccess ? 'locked' : 'ready'}
+                data-testid={needsTrackAccess ? 'locked-player-state' : effectiveAccessMode === 'classic' ? 'full-playback-state' : undefined}
               >
                 {accessStatusLabel}
               </span>
@@ -619,7 +626,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         )}
 
         <div className='doc-panel player-context-panel'>
-          <PanelTitle icon={Library} title='Current track' meta={needsTrackAccess ? 'Preview mode' : 'Ready to play'} />
+          <PanelTitle icon={Library} title='Current track' meta={needsTrackAccess ? 'Locked' : 'Ready to play'} />
           <div className='stack-list'>
             <EndpointRow label='Artist' value={streamArtist} />
             <EndpointRow

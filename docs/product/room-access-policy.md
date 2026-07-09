@@ -19,11 +19,11 @@ Room playback is **host-access based**.
 
 | Track type | Host access | Room behavior | Listener wallet required? |
 | --- | --- | --- | --- |
-| Public / unrestricted | Not required | Full stream | No |
+| Free / unrestricted | Not required | Full stream | No |
 | Classic protected | Host paid/unlocked | Full stream | No |
-| Classic protected | Host not unlocked | 42% preview + host unlock CTA + auto-advance | No |
+| Classic protected | Host not unlocked | No protected stream + host unlock CTA; host switches to a playable track | No |
 | Human Free protected | Host satisfies personhood | Full stream | No |
-| Human Free protected | Host lacks personhood | 42% preview + host personhood CTA + auto-advance | No |
+| Human Free protected | Host lacks personhood | No protected stream + host personhood CTA; host switches to a playable track | No |
 
 ## Room metadata
 
@@ -32,7 +32,7 @@ Room metadata should expose enough information for the UI and tests without leak
 Recommended shape:
 
 ```ts
-type RoomPlaybackMode = 'full' | 'preview';
+type RoomPlaybackMode = 'full' | 'preview'; // preview is legacy wire compatibility only
 
 type RoomMetadata = {
   roomId: string;
@@ -57,18 +57,17 @@ type RoomMetadata = {
 If a host attempts to stream a protected track without access:
 
 1. Dotify does not block or destroy the room.
-2. Dotify plays the 42% preview.
+2. Dotify withholds the protected stream; no preview audio is generated.
 3. Dotify shows a discreet host-facing CTA:
    - `Unlock full stream` for Classic tracks;
    - `Verify personhood` for Human Free tracks.
-4. Dotify updates room metadata to `playbackMode: preview`.
-5. Dotify auto-advances to the next playlist track when the preview ends.
-6. Room guests keep listening without wallet interruption.
+4. Dotify keeps room metadata wire-compatible (`playbackMode: full`) while no protected audio is streamed.
+5. The host can switch to a track they can play, including Free tracks.
+6. Room guests stay in the room without wallet interruption.
 
-Implementation note: for tracks encrypted with the backend-held production key,
-the 42% preview requires a separate preview asset published with the track. The
+Implementation note: access model v2 retired the 42% preview boundary. The
 browser must not receive or derive the full-track production key merely to build
-a preview. See `docs/backlog/18-production-preview-assets.md`.
+a teaser.
 
 ## Listener rule
 
