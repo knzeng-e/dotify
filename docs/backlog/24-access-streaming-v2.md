@@ -88,3 +88,16 @@ P1 delivered in two stacked PRs:
   the signaling cleanup. e2e specs rewritten to the v2 expectations
   (locked-not-preview, no-stream-for-unauthorized-host) - they need a local
   Playwright run to confirm.
+
+P2 delivered (`feat/access-v2-p2`, stacked on P1b):
+
+- Key service: `sessionTokens.ts` (HMAC tokens HKDF-derived from the master
+  secret, 24h TTL, constant-time verify, jti revocation), SIGN_IN message +
+  `verifySignInRequest` in signatures.ts, `POST /api/auth/session` +
+  `/api/auth/logout`, and a session-token path on the key-request route (the
+  on-chain check still runs per request). 13 new API tests (37 total).
+- Web: `ensureDotifySession` (one signature, token stored per address with a
+  refresh margin), key requests ride the token with a single re-sign retry on
+  401 and a clean fallback to per-request signing for backends without
+  session support; wallet disconnect signs the session out server-side.
+- Threat model updated with the session-auth boundary.

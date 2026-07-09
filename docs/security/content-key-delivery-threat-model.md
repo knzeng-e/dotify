@@ -145,6 +145,28 @@ degraded playback mode - an unauthorized listener gets a reason plus an unlock
 CTA and no audio. Already-pinned manifests may still carry `previewCID`; the
 field is ignored and no new manifests produce it.
 
+## Session auth: sign once, listen freely (ticket 24 P2)
+
+One SIWE-style SIGN_IN signature (nonce + expiry + replay protection, same
+fail-closed order as key requests) exchanges for a bearer session token
+(~24h). Later key requests carry the token instead of a fresh signature.
+
+Properties and boundaries:
+
+- The token proves identity only. Every key request still runs the on-chain
+  access check for its own track against the token's address - a token never
+  grants access by itself.
+- Tokens are HMAC-SHA256 over a strict two-claim-shape payload; the HMAC key
+  is HKDF-derived from CONTENT_KEY_MASTER_SECRET with a dedicated info label,
+  so token keys and content keys never share bytes and no new secret exists.
+- A stolen token is bounded by TTL, server-side revocation (logout, also
+  triggered by wallet disconnect in the app), and the fact that it can only
+  fetch keys the address could already obtain.
+- Revocation is an in-memory jti blocklist: process-lifetime, matching the
+  single-instance deployment. Scale-out needs a shared store first.
+- If the master secret is unconfigured, session auth returns 503 and clients
+  fall back to the per-request signed path (fail closed, never open).
+
 ## Logging rules
 
 Never log:
