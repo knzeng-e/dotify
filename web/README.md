@@ -69,8 +69,9 @@ The production protection boundary is the backend API:
 
 - Pinata credentials stay server-side.
 - Content keys are derived from `CONTENT_KEY_MASTER_SECRET`.
-- Full-track key delivery requires a wallet-signed request and an on-chain
-  access check.
+- Full-track key delivery requires a signed-in session (one wallet signature
+  per ~24h) or a wallet-signed request, plus an on-chain access check on
+  every key request.
 - Room guests never receive keys; only an authorized host may request a
   `room_host` key.
 
@@ -84,29 +85,26 @@ The fallback browser-only protection model is best-effort:
 
 ## Access Policy
 
-Registered tracks use two access modes:
+Registered tracks use three artist-chosen access modes (changeable on-chain at
+any time via `musicRegSetAccessMode`, without re-uploading the audio):
 
+- `Free`: playable by everyone, wallet or not. The key service releases the
+  content key without authentication after re-verifying the mode on-chain.
 - `Human free`: available to accounts whose on-chain personhood level satisfies
   the track requirement (`DIM1` or `DIM2`).
 - `Classic`: paid access in DOT through `musicRoyPayAccess`.
 
-Before playback, the frontend calls `musicAccCanAccess(contentHash, listener)`.
-If access is granted, the encrypted IPFS audio is decrypted and the full track is
-loaded. If access is denied, the app plays a 42% preview and shows an unlock
-warning:
-
-- For server-keyed production tracks, the browser cannot derive the key, so it
-  plays a separate, unencrypted preview asset published with the track
-  (`assets.previewCID` in the manifest, generated client-side at publish). This
-  needs no content key and no `VITE_CONTENT_SECRET`. See
-  `docs/security/content-key-delivery-threat-model.md` for the boundary.
-- For demo/local tracks, the browser decrypts with the bundle-derived demo key
-  and slices 42% at playback time.
+Before playback, the frontend calls `musicAccCanAccess(contentHash, listener)`
+(guests probe with the zero address, which only Free tracks grant). If access
+is granted, the encrypted IPFS audio is decrypted and the full track is loaded.
+If access is denied, nothing plays: the app shows an honest unlock gate naming
+the door (pay, verify humanity, or sign in). The 42% preview is retired
+(access model v2, `docs/design/dotify-v2-access-and-streaming.md`).
 
 Denial specifics:
 
-- Users without a connected wallet receive preview-only playback and are asked
-  to sign in before full access can be checked.
+- Users without a connected wallet can play Free tracks; for gated tracks they
+  are asked to sign in before access can be checked.
 - Human free tracks instruct the listener to verify personhood.
 - Classic tracks show a payment action and retry playback after the transaction
   confirms.
