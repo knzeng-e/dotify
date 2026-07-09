@@ -37,12 +37,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setAudioSource: catalog.setAudioSource
   });
 
-  // One-link join: a guest landing on a #/rooms/<id> share link joins the room
-  // immediately. No wallet, no signature, no payment: room access is host-based
-  // and the guest only receives the ephemeral WebRTC stream. If a name is
-  // remembered (wallet-scoped or the per-browser guest login), the guest joins
-  // under it; otherwise they enter as "Listener" and can be renamed later. The
-  // guest is never blocked from hearing the room behind a form.
+  // One-link join: a guest landing on a #/rooms/<id> share link joins
+  // immediately only when a wallet-scoped or guest name is already remembered.
+  // First-time link guests are prompted by ListenerShell to pick their room
+  // name before joining, so the host does not see the untouched "Listener"
+  // default as a real participant identity.
   //
   // Re-attempt while not yet in a room rather than latching a one-shot ref: under
   // React StrictMode the mount/unmount/remount cycle tears the first socket down
@@ -52,8 +51,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const initialRoomCode = getInitialRoomCode();
     if (!initialRoomCode || session.roomId) return;
     const remembered = getStoredDisplayName(listenerEvmAddress);
-    if (remembered) session.setDisplayName(remembered);
-    session.joinRoom(initialRoomCode, remembered ? { displayName: remembered } : undefined);
+    if (!remembered) return;
+    session.setDisplayName(remembered);
+    session.joinRoom(initialRoomCode, { displayName: remembered });
     // Run once per mount; the share-link code is read from the URL at mount time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

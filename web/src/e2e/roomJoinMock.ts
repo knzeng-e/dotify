@@ -37,7 +37,7 @@ const PUBLIC_COVER =
 // A deterministic 2s 8-bit/8kHz silent WAV, built once at module load (pure,
 // no Date/random). It gives the host a real, finite-duration local source so
 // playback progresses deterministically for the room specs.
-function buildSilentWavDataUrl(): string {
+function buildSilentWavDataUrl(fillValue = 128): string {
   const sampleRate = 8000;
   const seconds = 2;
   const dataLen = sampleRate * seconds; // 8-bit mono
@@ -59,14 +59,16 @@ function buildSilentWavDataUrl(): string {
   view.setUint16(34, 8, true); // bits per sample
   writeAscii(36, 'data');
   view.setUint32(40, dataLen, true);
-  bytes.fill(128, 44); // unsigned 8-bit silence
+  bytes.fill(fillValue, 44); // unsigned 8-bit near-silence
 
   let binary = '';
   for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
   return `data:audio/wav;base64,${btoa(binary)}`;
 }
 
-export const E2E_ROOM_AUDIO_URL = buildSilentWavDataUrl();
+export const E2E_ROOM_PUBLIC_AUDIO_URL = buildSilentWavDataUrl(128);
+export const E2E_ROOM_PROTECTED_AUDIO_URL = buildSilentWavDataUrl(129);
+export const E2E_ROOM_AUDIO_URL = E2E_ROOM_PUBLIC_AUDIO_URL;
 
 export const E2E_ROOM_PROTECTED_TRACK: CatalogTrack = {
   id: `${E2E_ROOM_RUNTIME}:${E2E_ROOM_PROTECTED_HASH}`,
@@ -77,7 +79,7 @@ export const E2E_ROOM_PROTECTED_TRACK: CatalogTrack = {
   audioRef: 'dotify:enc:ipfs://room-join-e2e-protected',
   imageRef: PROTECTED_COVER,
   priceDot: '0.5',
-  localUrl: E2E_ROOM_AUDIO_URL,
+  localUrl: E2E_ROOM_PROTECTED_AUDIO_URL,
   duration: 2,
   hash: E2E_ROOM_PROTECTED_HASH,
   description: 'A deterministic protected track used by the room-join e2e flow.',
@@ -102,7 +104,7 @@ export const E2E_ROOM_PUBLIC_TRACK: CatalogTrack = {
   audioRef: `dotify:local:${E2E_ROOM_PUBLIC_ID}`,
   imageRef: PUBLIC_COVER,
   priceDot: '0',
-  localUrl: E2E_ROOM_AUDIO_URL,
+  localUrl: E2E_ROOM_PUBLIC_AUDIO_URL,
   duration: 2,
   hash: '0xb0b0000000000000000000000000000000000000000000000000000000000002',
   description: 'A deterministic public track used by the room-join e2e flow.',
@@ -166,6 +168,8 @@ export type RoomJoinE2eState = {
   scenario: RoomJoinE2eScenario;
   keyRequests: number;
   deniedKeyRequests: number;
+  offers: number;
+  replaceTrackSwaps: number;
 };
 
 declare global {
@@ -176,9 +180,11 @@ declare global {
 
 export function getRoomJoinE2eState(): RoomJoinE2eState {
   if (typeof window === 'undefined') {
-    return { scenario: 'public', keyRequests: 0, deniedKeyRequests: 0 };
+    return { scenario: 'public', keyRequests: 0, deniedKeyRequests: 0, offers: 0, replaceTrackSwaps: 0 };
   }
-  window.__DOTIFY_E2E_ROOM_JOIN__ ??= { scenario: getRoomJoinE2eScenario(), keyRequests: 0, deniedKeyRequests: 0 };
+  window.__DOTIFY_E2E_ROOM_JOIN__ ??= { scenario: getRoomJoinE2eScenario(), keyRequests: 0, deniedKeyRequests: 0, offers: 0, replaceTrackSwaps: 0 };
+  window.__DOTIFY_E2E_ROOM_JOIN__.offers ??= 0;
+  window.__DOTIFY_E2E_ROOM_JOIN__.replaceTrackSwaps ??= 0;
   return window.__DOTIFY_E2E_ROOM_JOIN__;
 }
 
@@ -187,6 +193,16 @@ export function recordRoomJoinE2eKeyRequest(authorized: boolean) {
   const state = getRoomJoinE2eState();
   state.keyRequests += 1;
   if (!authorized) state.deniedKeyRequests += 1;
+}
+
+export function recordRoomJoinE2eOffer() {
+  if (typeof window === 'undefined') return;
+  getRoomJoinE2eState().offers += 1;
+}
+
+export function recordRoomJoinE2eReplaceTrack() {
+  if (typeof window === 'undefined') return;
+  getRoomJoinE2eState().replaceTrackSwaps += 1;
 }
 
 // ── WebRTC test doubles ──────────────────────────────────────────────────────

@@ -27,8 +27,10 @@ Two contributing causes:
 
 - Track change / next: on a new source the element fires `loadedmetadata`, which
   re-runs `prepareLocalStream`. That now re-captures the new `MediaStream` and
-  renegotiates every listener. The previous throw-on-zero-tracks could make this
-  silently fail; fixed as in A.
+  swaps the outgoing audio sender with `RTCRtpSender.replaceTrack()` for each
+  connected listener. If a browser rejects the sender swap, the host falls back
+  to a one-listener renegotiation instead of leaving that listener silent. The
+  previous throw-on-zero-tracks could make this silently fail; fixed as in A.
 - Loop / replay: repeat was implemented by replaying on the `ended` event. When
   an element fires `ended`, its `captureStream()` audio track ends too, so the
   room went silent on loop. Fix: repeat now uses the element's native `loop`
@@ -43,13 +45,24 @@ the old source kept playing while the UI already showed the new track. Fix:
 `selectTrack` pauses the current element immediately at the top; the new source
 autoplays once it loads.
 
-## Efficiency: no peer churn on play/pause/seek
+## Efficiency: no peer churn on play/pause/seek/next
 
 `prepareLocalStream` is triggered by several element events. It now records which
 `audioSource` the live stream was captured from (`capturedSourceRef`) and skips
 re-capture/renegotiation when the source is unchanged and the stream still has a
-live track. Only a real source change re-offers listeners. This removes the
-teardown/rebuild that a naive re-capture on every event would cause.
+live track. A real source change uses `replaceTrack()` on the existing peer
+senders, so the listener keeps the same WebRTC session during a normal next/skip
+flow. Full renegotiation remains only as the per-listener fallback when
+`replaceTrack()` fails or no sender exists yet. This removes the teardown/rebuild
+that a naive re-capture on every event would cause.
+
+## Link/QR names
+
+Guests landing on a `#/rooms/<id>` link no longer auto-join under the untouched
+default "Listener" name. If a wallet-scoped or guest display name is already
+remembered, the one-link join remains immediate. Otherwise the join modal opens
+with the room code prefilled and requires the guest to pick their visible room
+name before the host sees them in the listener list.
 
 ## Manual QA (required - these are browser-timing behaviors, not unit-testable)
 
@@ -64,12 +77,10 @@ On two devices/tabs, host + listener:
 4. Host play/pause/seek repeatedly: the listener is not disconnected/rebuilt each
    time (no repeated "Connecting..." blips).
 
-## Reverted follow-ups (needs browser-verified re-approach)
+## Follow-ups
 
-A `replaceTrack`-based track switch (Meet-style, no renegotiation) and a
-name-gated lobby for link/QR arrivals were tried and reverted: they regressed a
-real deployment (listeners lost audio, host felt heavier) and could not be
-verified without a browser here. Track changes stay on the full-renegotiation
-path (correct, if not seamless); link/QR guests auto-join immediately under a
-remembered name, never blocked behind a form. Any future Meet-grade switching or
-lobby step must be validated in a real two-device session before landing.
+The Playwright room spec covers the deterministic browser path: protected to
+public track switching increments the `replaceTrack` counter without creating a
+second WebRTC offer, and first-time share-link guests must choose a room name.
+Still validate on two real devices before production release, especially on
+mobile browsers where autoplay policy and `captureStream()` behavior can differ.

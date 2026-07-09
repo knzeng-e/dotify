@@ -22,7 +22,7 @@ import {
 } from '../e2e/classicUnlockMock';
 import { getArtistPublishE2eTracks, isArtistPublishE2e, isArtistPublishE2eTrack } from '../e2e/artistPublishMock';
 import {
-  E2E_ROOM_AUDIO_URL,
+  E2E_ROOM_PROTECTED_AUDIO_URL,
   getRoomJoinE2eTracks,
   isRoomJoinE2e,
   isRoomJoinE2eContext,
@@ -373,7 +373,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (isRoomJoinE2eProtectedHash(contentHash)) {
       const serverKey = await resolveServerContentKey(contentHash);
       if (!serverKey) throw new Error('E2E room host is not authorized for full playback.');
-      return E2E_ROOM_AUDIO_URL;
+      return E2E_ROOM_PROTECTED_AUDIO_URL;
     }
 
     const cacheKey = audioRef;
