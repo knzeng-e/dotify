@@ -511,10 +511,7 @@ describe('Access model v2 - Free mode + musicRegSetAccessMode', () => {
     expect(logs[0].args.accessMode).to.equal(AccessMode.Free);
 
     await artistRegistry.write.musicRegDeactivate([TRACK_HASH]);
-    await expectRevert(
-      artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Classic, parseEther('1'), PersonhoodLevel.None]),
-      'inactive'
-    );
+    await expectRevert(artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Classic, parseEther('1'), PersonhoodLevel.None]), 'inactive');
   });
 });
 
