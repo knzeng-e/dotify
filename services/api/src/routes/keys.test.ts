@@ -16,15 +16,18 @@ function baseBody(overrides: Record<string, unknown> = {}) {
     chainId: 420420417,
     expiresAt: new Date(Date.now() + 60_000).toISOString(),
     purpose: 'individual',
-    ...overrides,
+    ...overrides
   };
 }
 
+const SESSION_ADDRESS = '0x3333333333333333333333333333333333333333' as const;
+
 const allowAll: KeyRouteDeps = {
   verifySignedRequest: async () => ({ valid: true }),
+  verifySessionToken: () => ({ valid: true, address: SESSION_ADDRESS, chainId: 420420417, jti: 'jti-1' }),
   checkTrackAccess: async () => ({ allowed: true, runtime: RUNTIME }),
   checkPublicAccess: async () => ({ allowed: true, runtime: RUNTIME }),
-  deriveContentKey: () => ({ ok: true, contentKey: KEY }),
+  deriveContentKey: () => ({ ok: true, contentKey: KEY })
 };
 
 let app: FastifyInstance | null = null;
@@ -46,7 +49,7 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
     const response = await server.inject({
       method: 'POST',
       url: `/api/tracks/${CONTENT_HASH}/key-request`,
-      payload: baseBody(),
+      payload: baseBody()
     });
 
     assert.equal(response.statusCode, 200);
@@ -62,7 +65,7 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
     const response = await server.inject({
       method: 'POST',
       url: `/api/tracks/${CONTENT_HASH}/key-request`,
-      payload: baseBody({ purpose: 'room_listener' }),
+      payload: baseBody({ purpose: 'room_listener' })
     });
 
     assert.equal(response.statusCode, 400);
@@ -70,12 +73,12 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
 
   it('returns 401 with the verification code on an invalid signature', async () => {
     const server = await buildApp({
-      verifySignedRequest: async () => ({ valid: false, code: 'SIGNATURE_INVALID', reason: 'bad signature' }),
+      verifySignedRequest: async () => ({ valid: false, code: 'SIGNATURE_INVALID', reason: 'bad signature' })
     });
     const response = await server.inject({
       method: 'POST',
       url: `/api/tracks/${CONTENT_HASH}/key-request`,
-      payload: baseBody(),
+      payload: baseBody()
     });
 
     assert.equal(response.statusCode, 401);
@@ -84,12 +87,12 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
 
   it('answers a denied individual listener with an unlock CTA, never a key or a preview mode', async () => {
     const server = await buildApp({
-      checkTrackAccess: async () => ({ allowed: false, code: 'LISTENER_ACCESS_REQUIRED', reason: 'no access' }),
+      checkTrackAccess: async () => ({ allowed: false, code: 'LISTENER_ACCESS_REQUIRED', reason: 'no access' })
     });
     const response = await server.inject({
       method: 'POST',
       url: `/api/tracks/${CONTENT_HASH}/key-request`,
-      payload: baseBody(),
+      payload: baseBody()
     });
 
     assert.equal(response.statusCode, 200);
@@ -105,12 +108,12 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
 
   it('answers an unauthorized room host with an unlock CTA, not a hard failure', async () => {
     const server = await buildApp({
-      checkTrackAccess: async () => ({ allowed: false, code: 'HOST_ACCESS_REQUIRED', reason: 'host lacks access' }),
+      checkTrackAccess: async () => ({ allowed: false, code: 'HOST_ACCESS_REQUIRED', reason: 'host lacks access' })
     });
     const response = await server.inject({
       method: 'POST',
       url: `/api/tracks/${CONTENT_HASH}/key-request`,
-      payload: baseBody({ purpose: 'room_host' }),
+      payload: baseBody({ purpose: 'room_host' })
     });
 
     assert.equal(response.statusCode, 200);
@@ -124,12 +127,12 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
 
   it('fails closed when the chain RPC is unavailable', async () => {
     const server = await buildApp({
-      checkTrackAccess: async () => ({ allowed: false, code: 'RPC_UNAVAILABLE', reason: 'rpc down' }),
+      checkTrackAccess: async () => ({ allowed: false, code: 'RPC_UNAVAILABLE', reason: 'rpc down' })
     });
     const response = await server.inject({
       method: 'POST',
       url: `/api/tracks/${CONTENT_HASH}/key-request`,
-      payload: baseBody(),
+      payload: baseBody()
     });
 
     assert.equal(response.statusCode, 200);
@@ -142,16 +145,70 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
 
   it('returns 503 when the key vault is not configured', async () => {
     const server = await buildApp({
-      deriveContentKey: () => ({ ok: false, code: 'KEY_SERVICE_NOT_CONFIGURED', reason: 'no master secret' }),
+      deriveContentKey: () => ({ ok: false, code: 'KEY_SERVICE_NOT_CONFIGURED', reason: 'no master secret' })
     });
     const response = await server.inject({
       method: 'POST',
       url: `/api/tracks/${CONTENT_HASH}/key-request`,
-      payload: baseBody(),
+      payload: baseBody()
     });
 
     assert.equal(response.statusCode, 503);
     assert.equal(response.json().code, 'KEY_SERVICE_NOT_CONFIGURED');
+  });
+});
+
+describe('POST /api/tracks/:contentHash/key-request (session token path)', () => {
+  it('delivers the key for a valid session without any signature', async () => {
+    let checkedRequester = '';
+    const server = await buildApp({
+      checkTrackAccess: async request => {
+        checkedRequester = request.requester;
+        return { allowed: true, runtime: RUNTIME };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: { sessionToken: 'a'.repeat(32), purpose: 'individual' }
+    });
+
+    assert.equal(response.statusCode, 200);
+    const body = response.json();
+    assert.equal(body.access, 'allowed');
+    assert.equal(body.contentKey, KEY);
+    // The on-chain check ran against the token's address, not client input.
+    assert.equal(checkedRequester, SESSION_ADDRESS);
+  });
+
+  it('rejects an invalid or expired session with 401 and its code', async () => {
+    const server = await buildApp({
+      verifySessionToken: () => ({ valid: false, code: 'SESSION_EXPIRED', reason: 'Session has expired. Sign in again.' })
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: { sessionToken: 'a'.repeat(32), purpose: 'individual' }
+    });
+
+    assert.equal(response.statusCode, 401);
+    assert.equal(response.json().code, 'SESSION_EXPIRED');
+  });
+
+  it('still answers a denied session-based request with the unlock CTA, never a key', async () => {
+    const server = await buildApp({
+      checkTrackAccess: async () => ({ allowed: false, code: 'LISTENER_ACCESS_REQUIRED', reason: 'no access' })
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: { sessionToken: 'a'.repeat(32), purpose: 'individual' }
+    });
+
+    assert.equal(response.statusCode, 200);
+    const body = response.json();
+    assert.equal(body.access, 'denied');
+    assert.equal(body.contentKey, undefined);
   });
 });
 
@@ -161,7 +218,7 @@ describe('POST /api/tracks/:contentHash/free-key', () => {
     const response = await server.inject({
       method: 'POST',
       url: `/api/tracks/${CONTENT_HASH}/free-key`,
-      payload: {},
+      payload: {}
     });
 
     assert.equal(response.statusCode, 200);
@@ -173,12 +230,12 @@ describe('POST /api/tracks/:contentHash/free-key', () => {
 
   it('refuses a non-free track: denial, no key, and the signed route stays the only path', async () => {
     const server = await buildApp({
-      checkPublicAccess: async () => ({ allowed: false, code: 'NOT_FREE', reason: 'policy requires payment' }),
+      checkPublicAccess: async () => ({ allowed: false, code: 'NOT_FREE', reason: 'policy requires payment' })
     });
     const response = await server.inject({
       method: 'POST',
       url: `/api/tracks/${CONTENT_HASH}/free-key`,
-      payload: {},
+      payload: {}
     });
 
     assert.equal(response.statusCode, 200);
@@ -190,12 +247,12 @@ describe('POST /api/tracks/:contentHash/free-key', () => {
 
   it('fails closed when the chain RPC is unavailable', async () => {
     const server = await buildApp({
-      checkPublicAccess: async () => ({ allowed: false, code: 'RPC_UNAVAILABLE', reason: 'rpc down' }),
+      checkPublicAccess: async () => ({ allowed: false, code: 'RPC_UNAVAILABLE', reason: 'rpc down' })
     });
     const response = await server.inject({
       method: 'POST',
       url: `/api/tracks/${CONTENT_HASH}/free-key`,
-      payload: {},
+      payload: {}
     });
 
     assert.equal(response.json().access, 'denied');
@@ -207,7 +264,7 @@ describe('POST /api/tracks/:contentHash/free-key', () => {
     const response = await server.inject({
       method: 'POST',
       url: '/api/tracks/not-a-hash/free-key',
-      payload: {},
+      payload: {}
     });
 
     assert.equal(response.statusCode, 400);

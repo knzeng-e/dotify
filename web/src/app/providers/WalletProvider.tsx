@@ -12,6 +12,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { zeroAddress } from 'viem';
 import type { PolkadotSigner } from 'polkadot-api';
 
+import { signOutOfDotifySession } from '../../services/keyService';
 import { useWallet, type ConnectedWallet, type WalletState } from '../../hooks/useWallet';
 import { devAccounts, type DevAccount } from '../../hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from '../../shared/config/network';
@@ -51,7 +52,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     connectPasskey,
     connectExtension,
     switchExtensionNetwork,
-    disconnect,
+    disconnect: disconnectWalletOnly,
     hasPrfSupport,
     hasStoredPasskey,
     forgetPasskey
@@ -63,6 +64,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [bulletinAccountIndex, setBulletinAccountIndex] = useState(0);
 
   const connectedWallet = walletState.status === 'connected' ? walletState.wallet : null;
+
+  // Disconnecting the wallet also signs out of the Dotify session (ticket 24
+  // P2): revoke the server-side token and forget the stored one, so a shared
+  // machine does not keep listening rights after the wallet leaves.
+  const connectedAddress = connectedWallet?.evmAddress;
+  const disconnect = useCallback(() => {
+    if (connectedAddress) void signOutOfDotifySession(connectedAddress);
+    disconnectWalletOnly();
+  }, [connectedAddress, disconnectWalletOnly]);
+
   const currentBulletinAccount = devAccounts[bulletinAccountIndex];
   const activeEvmAddress = connectedWallet?.evmAddress ?? zeroAddress;
   const listenerEvmAddress = connectedWallet?.evmAddress ?? null;

@@ -18,7 +18,7 @@ import { consumeNonce, issueNonce } from './replayProtection.js';
 // 'room_listener' deliberately does not exist: room listeners never receive
 // content keys, they only receive the host's ephemeral WebRTC stream.
 export type KeyRequestPurpose = 'individual' | 'room_host';
-export type SignedAction = 'REQUEST_CONTENT_KEY';
+export type SignedAction = 'REQUEST_CONTENT_KEY' | 'SIGN_IN';
 
 export type NonceChallengeRequest = {
   address: string;
@@ -45,9 +45,7 @@ export type KeySignatureRequest = SignedRequestPayload & {
   signature: string;
 };
 
-export type SignatureVerification =
-  | { valid: true }
-  | { valid: false; code: string; reason: string };
+export type SignatureVerification = { valid: true } | { valid: false; code: string; reason: string };
 
 /**
  * Canonical EIP-191 message for a Dotify signed request.
@@ -63,8 +61,71 @@ export function buildSignedRequestMessage(payload: SignedRequestPayload): string
     `Requester: ${payload.requester.toLowerCase()}`,
     `Chain ID: ${payload.chainId}`,
     `Nonce: ${payload.nonce}`,
-    `Expires At: ${payload.expiresAt}`,
+    `Expires At: ${payload.expiresAt}`
   ].join('\n');
+}
+
+export type SignInPayload = {
+  requester: string;
+  chainId: number;
+  nonce: string;
+  expiresAt: string;
+};
+
+export type SignInRequest = SignInPayload & {
+  signature: string;
+};
+
+/**
+ * Canonical EIP-191 message for the one-per-session Dotify sign-in
+ * (ticket 24 P2). Must stay byte-identical with the frontend builder
+ * (web/src/services/keyService.ts). Deliberately track-free: signing in
+ * grants nothing by itself - every key request still passes the on-chain
+ * access check for its own track.
+ */
+export function buildSignInMessage(payload: SignInPayload): string {
+  return [
+    'Dotify sign-in',
+    'App: Dotify',
+    'Action: SIGN_IN',
+    `Requester: ${payload.requester.toLowerCase()}`,
+    `Chain ID: ${payload.chainId}`,
+    `Nonce: ${payload.nonce}`,
+    `Expires At: ${payload.expiresAt}`
+  ].join('\n');
+}
+
+/**
+ * Verify a sign-in request: expiry, signature, then nonce consumption -
+ * the same fail-closed order as verifySignedRequest.
+ */
+export async function verifySignInRequest(request: SignInRequest): Promise<SignatureVerification> {
+  const expiresAtMs = Date.parse(request.expiresAt);
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+    return { valid: false, code: 'EXPIRED_SESSION', reason: 'Sign-in challenge has expired. Request a new one.' };
+  }
+
+  let signatureValid = false;
+  try {
+    signatureValid = await verifyMessage({
+      address: request.requester as `0x${string}`,
+      message: buildSignInMessage(request),
+      signature: request.signature as `0x${string}`
+    });
+  } catch {
+    signatureValid = false;
+  }
+
+  if (!signatureValid) {
+    return { valid: false, code: 'SIGNATURE_INVALID', reason: 'Wallet signature does not match the sign-in payload.' };
+  }
+
+  const nonce = consumeNonce(request.nonce, request.requester);
+  if (!nonce.ok) {
+    return { valid: false, code: nonce.code, reason: nonce.reason };
+  }
+
+  return { valid: true };
 }
 
 /** Issue a wallet nonce challenge bound to the address and chain. */
@@ -92,7 +153,7 @@ export async function verifySignedRequest(request: KeySignatureRequest): Promise
     signatureValid = await verifyMessage({
       address: request.requester as `0x${string}`,
       message,
-      signature: request.signature as `0x${string}`,
+      signature: request.signature as `0x${string}`
     });
   } catch {
     signatureValid = false;

@@ -100,10 +100,137 @@ export type ContentKeyRequest = {
   chainId: number;
 };
 
+// ---------------------------------------------------------------------------
+// Session: sign once, listen freely (ticket 24 P2).
+//
+// One SIWE-style signature opens a ~24h session; the token (identity only,
+// never access) then rides every key request instead of a fresh signature.
+// The backend re-checks the on-chain policy per track on every request.
+// ---------------------------------------------------------------------------
+
+type StoredSession = { token: string; expiresAt: string };
+
+// Refresh slightly early so a token never expires mid-request.
+const SESSION_REFRESH_MARGIN_MS = 60_000;
+
+function sessionStorageKey(address: string): string {
+  return `dotify:session:${address.toLowerCase()}`;
+}
+
+function getStoredSession(address: string): StoredSession | null {
+  try {
+    const raw = window.localStorage.getItem(sessionStorageKey(address));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredSession;
+    if (typeof parsed.token !== 'string' || typeof parsed.expiresAt !== 'string') return null;
+    if (Date.parse(parsed.expiresAt) - SESSION_REFRESH_MARGIN_MS <= Date.now()) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function storeSession(address: string, session: StoredSession): void {
+  try {
+    window.localStorage.setItem(sessionStorageKey(address), JSON.stringify(session));
+  } catch {
+    // Storage unavailable: the session still works for this page lifetime via
+    // the per-request fallback; nothing to do.
+  }
+}
+
+export function clearStoredSession(address: string): void {
+  try {
+    window.localStorage.removeItem(sessionStorageKey(address));
+  } catch {
+    // ignore
+  }
+}
+
 /**
- * Request the content key for a track. The wallet signs one structured
- * message per request (nonces are single-use). Callers should cache delivered
- * keys for the session to avoid signature fatigue.
+ * Canonical EIP-191 sign-in message. MUST stay byte-identical with the
+ * backend builder (services/api/src/services/signatures.ts).
+ */
+function buildSignInMessage(payload: { requester: string; chainId: number; nonce: string; expiresAt: string }): string {
+  return [
+    'Dotify sign-in',
+    'App: Dotify',
+    'Action: SIGN_IN',
+    `Requester: ${payload.requester.toLowerCase()}`,
+    `Chain ID: ${payload.chainId}`,
+    `Nonce: ${payload.nonce}`,
+    `Expires At: ${payload.expiresAt}`
+  ].join('\n');
+}
+
+/**
+ * Ensure a live Dotify session for the connected wallet: reuse the stored
+ * token when fresh, otherwise sign the one sign-in message and exchange it.
+ * Returns null when the backend does not support sessions (older deployment
+ * or unconfigured), so callers fall back to per-request signing.
+ */
+export async function ensureDotifySession(walletClient: WalletClient, chainId: number): Promise<string | null> {
+  if (!API_URL) return null;
+  const account = walletClient.account;
+  if (!account) return null;
+
+  const stored = getStoredSession(account.address);
+  if (stored) return stored.token;
+
+  const { nonce, expiresAt } = await requestNonce(account.address, chainId);
+  const signature = await walletClient.signMessage({
+    account,
+    message: buildSignInMessage({ requester: account.address, chainId, nonce, expiresAt })
+  });
+
+  const res = await fetch(`${API_URL}/api/auth/session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address: account.address, signature, nonce, chainId, expiresAt })
+  });
+
+  // 404 (older backend) or 503 (session auth unconfigured): fall back to the
+  // per-request signed path rather than failing playback.
+  if (res.status === 404 || res.status === 503) return null;
+  if (!res.ok) {
+    const { message, code } = await parseError(res, `Sign-in failed (${res.status})`);
+    throw new KeyServiceError(message, code);
+  }
+
+  const body = (await res.json()) as { sessionToken: string; expiresAt: string };
+  storeSession(account.address, { token: body.sessionToken, expiresAt: body.expiresAt });
+  return body.sessionToken;
+}
+
+/** Sign out: revoke the session server-side and forget the stored token. */
+export async function signOutOfDotifySession(address: string): Promise<void> {
+  const stored = getStoredSession(address);
+  clearStoredSession(address);
+  if (!API_URL || !stored) return;
+  try {
+    await fetch(`${API_URL}/api/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionToken: stored.token })
+    });
+  } catch {
+    // Best-effort: the local token is already gone and the server token expires.
+  }
+}
+
+async function requestKeyWithSession(contentHash: `0x${string}`, purpose: KeyRequestPurpose, sessionToken: string): Promise<Response> {
+  return fetch(`${API_URL}/api/tracks/${contentHash}/key-request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionToken, purpose })
+  });
+}
+
+/**
+ * Request the content key for a track. Preferred path: the one-per-session
+ * token (no signature per listen). A stale/revoked session retries once with
+ * a fresh sign-in; backends without session support fall back to the
+ * per-request signed message.
  */
 export async function requestContentKey(request: ContentKeyRequest): Promise<ContentKeyResponse> {
   if (!API_URL) {
@@ -115,6 +242,27 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
     throw new KeyServiceError('Wallet client has no active account.', 'WALLET_REQUIRED');
   }
 
+  let sessionToken = await ensureDotifySession(request.walletClient, request.chainId);
+  if (sessionToken) {
+    let res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
+    if (res.status === 401) {
+      // Expired or revoked server-side: one fresh sign-in, then retry once.
+      clearStoredSession(account.address);
+      sessionToken = await ensureDotifySession(request.walletClient, request.chainId);
+      if (sessionToken) {
+        res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
+      }
+    }
+    if (sessionToken) {
+      if (!res.ok) {
+        const { message, code } = await parseError(res, `Key request failed (${res.status})`);
+        throw new KeyServiceError(message, code);
+      }
+      return (await res.json()) as ContentKeyResponse;
+    }
+  }
+
+  // Legacy per-request signed path (backend without session support).
   const { nonce, expiresAt } = await requestNonce(account.address, request.chainId);
 
   const payload: SignedRequestPayload = {
