@@ -6,7 +6,7 @@
 // These helpers centralize the predicate that was previously duplicated across
 // App.tsx, useCatalog.ts, and PlayerView.tsx.
 
-import type { CatalogTrack, RoomPlaybackMode } from '../../shared/types';
+import type { CatalogTrack } from '../../shared/types';
 
 /** True when the track sits behind an artist runtime access policy. */
 export function isPolicyManagedTrack(track: Pick<CatalogTrack, 'source' | 'id'>): boolean {
@@ -23,12 +23,7 @@ export function trackHasAccess(track: Pick<CatalogTrack, 'source' | 'id'>, acces
   return accessByTrackId[track.id] === true;
 }
 
-/** Whether the listener should be shown the preview/unlock affordance. */
+/** Whether the listener should be shown the unlock affordance. */
 export function trackNeedsAccess(track: Pick<CatalogTrack, 'source' | 'id'>, hasAccess: boolean): boolean {
   return isPolicyManagedTrack(track) && !hasAccess;
-}
-
-/** Honest playback mode for a given access decision. */
-export function playbackModeForAccess(hasAccess: boolean): RoomPlaybackMode {
-  return hasAccess ? 'full' : 'preview';
 }

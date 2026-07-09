@@ -22,7 +22,7 @@ export function ArtistShell() {
   useEffect(() => {
     if (artistTab !== 'royalties') return;
     void artistConsole.refreshArtistRoyalties();
-  }, [artistTab, artistConsole.artistRuntimeAddress, ethRpcUrl, catalog.catalogTracks.length, activeEvmAddress, artistName]);
+  }, [artistTab, artistConsole.artistRuntimeAddress, ethRpcUrl, catalog.allCatalogTracks.length, activeEvmAddress, artistName]);
 
   // Re-sync the stored artist name on entering the portal / switching accounts.
   useEffect(() => {

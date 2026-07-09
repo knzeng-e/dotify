@@ -73,7 +73,7 @@ export function ListenView({
                 ) : featured ? (
                   <small>{catalogAccessLabel(featured)}</small>
                 ) : (
-                  <small>Preview first</small>
+                  <small>Free to discover</small>
                 )}
               </span>
             </span>
@@ -144,7 +144,7 @@ export function ListenView({
           <span>1</span>
           <div>
             <strong>Sound</strong>
-            <small>Preview first</small>
+            <small>Free to discover</small>
           </div>
         </div>
         <div className='commons-step'>
@@ -206,7 +206,7 @@ export function ListenView({
       <section className='content-grid catalog-home-grid'>
         <div className='doc-panel catalogue-panel catalogue-home-panel'>
           <PanelTitle icon={Library} title='Browse catalog' meta={`${catalogTracks.length} tracks`} />
-          <p className='catalogue-intro'>Preview releases, join listening rooms, and support artists without losing the music-first flow.</p>
+          <p className='catalogue-intro'>Play free releases, join listening rooms, and support artists without losing the music-first flow.</p>
           <div className='catalogue-grid'>
             {catalogTracks.length > 0 ? (
               catalogTracks.map(track => {
@@ -233,7 +233,7 @@ export function ListenView({
                       <button className='artist-text-button' type='button' onClick={() => onOpenArtist(track.artist)}>
                         {track.artist}
                       </button>
-                      <span className='catalogue-card-description'>{track.description || 'A release you can preview, share, and unlock on Dotify.'}</span>
+                      <span className='catalogue-card-description'>{track.description || 'A release you can play, share, and support on Dotify.'}</span>
                     </span>
                     <span
                       className='catalogue-access-line'
@@ -260,8 +260,8 @@ export function ListenView({
           <PanelTitle icon={BadgeCheck} title='Listening doors' meta='simple entry' />
           <div className='principle-list'>
             <div>
-              <strong>Preview first</strong>
-              <span>Every listener can discover before deciding how to unlock.</span>
+              <strong>Free to discover</strong>
+              <span>Free tracks and live rooms let you hear the music before any unlock.</span>
             </div>
             <div>
               <strong>Support artists directly</strong>

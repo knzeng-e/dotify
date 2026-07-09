@@ -90,7 +90,7 @@ test('protected room with authorized host: host gets the key, listener streams f
 
     // The host satisfied the policy and received a content key.
     const hostState = await readRoomJoinState(host);
-    expect((hostState?.keyRequests ?? 0)).toBeGreaterThanOrEqual(1);
+    expect(hostState?.keyRequests ?? 0).toBeGreaterThanOrEqual(1);
     expect(hostState?.deniedKeyRequests ?? 0).toBe(0);
 
     const listener = await joinAsListener(listenerContext, roomId);
@@ -107,35 +107,37 @@ test('protected room with authorized host: host gets the key, listener streams f
   }
 });
 
-test('protected room with unauthorized host: preview fallback then auto-advance, listener never keyed', async ({ browser }) => {
+test('protected room with unauthorized host: no stream, no keys, host moves to a public track', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();
   try {
     const host = await hostContext.newPage();
     const roomId = await openHostRoom(host, 'protected-unauthorized', PROTECTED_TITLE);
 
-    // Unauthorized host streams the 42% preview; the room declares it honestly
-    // and the host sees a discreet unlock CTA (the access gate).
-    await expect(host.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'preview');
+    // Access model v2: there is no preview fallback. An unauthorized host
+    // streams nothing at all - the unlock gate is the whole answer - and no
+    // content key was ever requested for the locked track.
     await expect(host.getByTestId('access-warning')).toBeVisible();
-    // The host was never granted a content key for the protected track.
     const hostState = await readRoomJoinState(host);
     expect(hostState?.keyRequests ?? 0).toBe(0);
 
+    // The listener can be in the room, but with no stream they are connected,
+    // not in sync.
     const listener = await joinAsListener(listenerContext, roomId);
-    await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
-    await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'preview');
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('Connecting...', { timeout: 20_000 });
 
-    // Dismiss the host's unlock CTA and start playback. The host stays in preview
-    // (e2e disables autoplay), so starting it now drives the 42% cutoff and the
-    // deterministic auto-advance to the next (public) track.
+    // The host dismisses the gate and moves the room to the public track;
+    // playback starts on the explicit Play (e2e disables autoplay).
     await host.keyboard.press('Escape');
+    await host.getByRole('button', { name: 'Next track' }).click();
     await host.getByRole('button', { name: 'Play', exact: true }).click();
 
-    // Auto-advance: the room moves to the public track and full playback.
-    await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full', { timeout: 20_000 });
+    // The room now streams the public track in full.
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
     await expect(listener.locator('.track-copy h2')).toHaveText(PUBLIC_TITLE, { timeout: 20_000 });
 
+    // The locked track never produced a key request, for host or listener.
     const listenerState = await readRoomJoinState(listener);
     expect(listenerState?.keyRequests ?? 0).toBe(0);
   } finally {

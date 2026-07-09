@@ -7,14 +7,18 @@
 
 import type { AccessMode, PersonhoodLevel } from '../../shared/types';
 
-/** Access mode -> chain uint8 (human-free = 0, classic = 1). */
+/** Access mode -> chain uint8 (human-free = 0, classic = 1, free = 2). */
 export function encodeAccessMode(accessMode: AccessMode): number {
-  return accessMode === 'human-free' ? 0 : 1;
+  if (accessMode === 'human-free') return 0;
+  if (accessMode === 'classic') return 1;
+  return 2;
 }
 
-/** Chain uint8 -> access mode (1 = classic, anything else = human-free). */
+/** Chain uint8 -> access mode (1 = classic, 2 = free, anything else = human-free). */
 export function decodeAccessMode(value: number): AccessMode {
-  return value === 1 ? 'classic' : 'human-free';
+  if (value === 1) return 'classic';
+  if (value === 2) return 'free';
+  return 'human-free';
 }
 
 /** Personhood level -> chain uint8 (DIM2 = 2, DIM1 = 1). */

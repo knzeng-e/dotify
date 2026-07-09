@@ -98,7 +98,7 @@ export function ArtistConsole() {
   const audioCID = catalog.audioCID;
   const trackInfo = catalog.trackInfo;
 
-  const artistTracks = catalog.catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
+  const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
   const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
   const hasArtistRuntime = Boolean(artistConsole.artistRuntimeAddress);
   const artistStudioLocked = deriveArtistStudioLocked(artistRegistrationAvailable, hasArtistRuntime);
@@ -122,6 +122,8 @@ export function ArtistConsole() {
   };
   const onShowWalletModal = () => setShowWalletModal(true);
   const onRegisterRights = artistConsole.registerRights;
+  const onUpdateReleaseAccessMode = artistConsole.updateReleaseAccessMode;
+  const onSetReleaseActive = artistConsole.setReleaseActive;
   const onSetExpandedRoyaltyPaymentId = artistConsole.setExpandedRoyaltyPaymentId;
   const onRefreshRoyalties = () => {
     void artistConsole.refreshArtistRoyalties(true);
@@ -380,6 +382,9 @@ export function ArtistConsole() {
           selectedReleaseId={selectedReleaseId}
           onSelectRelease={setSelectedReleaseId}
           onOpenTrack={onOpenTrack}
+          onUpdateReleaseAccessMode={onUpdateReleaseAccessMode}
+          onSetReleaseActive={onSetReleaseActive}
+          releaseActionId={artistConsole.releaseActionId}
           arrivedReleaseId={arrivedReleaseId}
         />
       )}

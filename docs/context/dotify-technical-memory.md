@@ -37,9 +37,8 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
   `VITE_CONTENT_SECRET` is not a production key boundary.
 - Pinata uploads from the browser are unsafe for public production; use the
   backend API when `VITE_DOTIFY_API_URL` is configured.
-- Server-keyed production tracks still need a separate preview asset; without
-  one, unauthorized listeners and unauthorized room hosts cannot reliably hear
-  the promised 42% preview without the full-track key.
+- Access model v2 retired the separate preview asset path. Denied listeners and
+  unauthorized room hosts receive an unlock/personhood CTA and no audio.
 - Proof of Personhood is currently mocked/dev-operated.
 - Public rooms require hosted signaling.
 - Room guests do not receive keys/source files, but WebRTC audio heard by guests can still be recorded outside Dotify.
@@ -57,14 +56,14 @@ Production readiness means the following must work reliably:
 3. Artist uploads protected audio through a backend boundary.
 4. Artist registers a track on-chain.
 5. Listener sees track in catalog.
-6. Unauthorized individual listener receives only preview.
+6. Unauthorized individual listener receives no audio and an unlock/personhood CTA.
 7. Classic listener pays and unlocks individual full playback.
 8. Backend releases a temporary content key only after wallet signature and access check.
 9. Host creates room from playable track.
 10. Room guest joins through a simple link without wallet/signature.
 11. Protected room playback checks host access only.
 12. Room guests never receive content keys or source files.
-13. Production protected tracks publish a separate preview asset for denied access states.
+13. Free tracks play without wallet/signature after the backend verifies the on-chain Free mode.
 14. Critical flows are covered by tests.
 
 ## Backend direction
@@ -77,8 +76,8 @@ Introduce a lean backend service for:
 - nonce/replay protection;
 - access checks against SmartRuntime;
 - room host key requests;
-- preview-mode responses for unauthorized hosts;
-- preview-asset generation or validation for server-keyed protected tracks;
+- denial responses without keys for unauthorized hosts;
+- Free-track unauthenticated key delivery after on-chain zero-address verification;
 - health and version endpoints;
 - future WebAuthn backend support.
 
@@ -124,7 +123,7 @@ Rooms must become production-stable:
 - simple user language;
 - no wallet requirement for room guests;
 - host-based access metadata;
-- preview fallback and auto-advance when host lacks protected-track access.
+- no protected stream plus host CTA when host lacks protected-track access.
 
 Room UX should be benchmarked against Spotify Jam and Jukebox Duo for low friction.
 
@@ -177,10 +176,10 @@ Add deterministic tests for:
 - room join;
 - room guest no-wallet join;
 - authorized host full protected stream;
-- unauthorized host preview fallback;
+- unauthorized host no-stream fallback;
 - listener never receives room content keys;
 - access-state logic;
-- preview/full playback state;
+- locked/full playback state;
 - signature verification;
 - key request failure modes;
 - upload failure modes;

@@ -18,7 +18,7 @@ export function ArtistOnboarding() {
   const isRegisteringArtist = artistConsole.isRegisteringArtist;
   const isRefreshingArtistRuntime = artistConsole.isRefreshingArtistRuntime;
   const artistRegistrationAvailable = Boolean(deployments.factory && deployments.directory);
-  const artistTracks = connectedWallet ? catalog.catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName)) : [];
+  const artistTracks = connectedWallet ? catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName)) : [];
   const onUpdateArtistName = (name: string) => artistConsole.updateArtistName(name, setArtistName);
   const onRegisterArtist = artistConsole.registerArtist;
   const onRefreshArtistRuntime = () => {

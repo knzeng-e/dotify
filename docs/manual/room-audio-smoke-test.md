@@ -37,9 +37,9 @@ another actually hearing the same track in sync, with no wallet friction for the
    the host hears full audio and the listener hears the full stream without any key
    prompt.
 6. **Protected track, unauthorized host** - host a protected track the host lacks access
-   to. Confirm the host sees the discreet unlock CTA, the room plays the 42% preview, and
-   the playlist auto-advances when the preview ends. The listener is never asked for a
-   wallet or key.
+   to. Confirm the host sees the discreet unlock CTA, no protected audio streams, and
+   the listener is never asked for a wallet or key. Then switch the host to a playable
+   track and confirm the room resumes normally.
 7. **Host leaves** - close the host tab/app. Confirm the listener sees a clear "host left"
    / "room closed" state rather than a frozen player.
 

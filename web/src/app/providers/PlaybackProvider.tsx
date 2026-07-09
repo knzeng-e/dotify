@@ -22,7 +22,6 @@ type PlaybackValue = {
   playback: ReturnType<typeof usePlayback>;
   openTrack: (track: CatalogTrack) => void;
   prepareLocalStream: () => void;
-  enforcePreviewCutoff: () => void;
 };
 
 const PlaybackContext = createContext<PlaybackValue | null>(null);
@@ -34,21 +33,6 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
 
   function handlePrepareLocalStream() {
     void session.prepareLocalStream(catalog.audioSource, catalog.trackInfo);
-  }
-
-  function handleEnforcePreviewCutoff() {
-    const hostingRoom = session.mode === 'host' && Boolean(session.roomId);
-    catalog.enforcePreviewCutoff(catalog.catalogTracks, catalog.selectedTrackId, {
-      // Room doctrine: an unauthorized host streams the 42% preview and the
-      // playlist auto-advances instead of stalling the room.
-      onPreviewEnded: hostingRoom
-        ? (_ended, nextTrack) => {
-            if (nextTrack) {
-              void catalog.selectTrack(nextTrack, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
-            }
-          }
-        : undefined
-    });
   }
 
   function handleOpenTrack(track: CatalogTrack) {
@@ -81,8 +65,8 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   });
 
   const value = useMemo<PlaybackValue>(
-    () => ({ playback, openTrack: handleOpenTrack, prepareLocalStream: handlePrepareLocalStream, enforcePreviewCutoff: handleEnforcePreviewCutoff }),
-    // handleOpenTrack/handlePrepareLocalStream/handleEnforcePreviewCutoff are
+    () => ({ playback, openTrack: handleOpenTrack, prepareLocalStream: handlePrepareLocalStream }),
+    // handleOpenTrack/handlePrepareLocalStream are
     // recreated each render (as they were in App); they read live catalog/session
     // state, so memoizing on `playback` alone keeps the value fresh without churn.
     // eslint-disable-next-line react-hooks/exhaustive-deps

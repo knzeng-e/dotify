@@ -14,7 +14,8 @@ library LibMusicRegistry {
 
   enum AccessMode {
     HumanFree, // 0 — gated by proof-of-personhood, free to listen
-    Classic // 1 — gated by on-chain payment
+    Classic, // 1 - gated by on-chain payment
+    Free // 2 - playable by everyone, no gate (appended: storage-safe)
   }
 
   enum PersonhoodLevel {

@@ -80,7 +80,7 @@ Room playback is host-access based.
 - Room full playback checks the host's access.
 - Room guests join without wallet/signature requirements.
 - Room guests receive only the WebRTC stream.
-- Unauthorized hosts should get 42% preview fallback, a discreet host CTA, and auto-advance.
+- Unauthorized hosts should get a discreet host CTA and no protected audio; the room stays open so the host can switch to a playable track.
 
 Do not “secure” rooms by killing the social flow.
 

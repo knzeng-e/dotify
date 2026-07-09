@@ -98,8 +98,8 @@ sequenceDiagram
     API-->>H: Temporary content key
     H-->>G: WebRTC full stream
   else host denied
-    API-->>H: Preview-mode response
-    H-->>G: WebRTC preview stream
+    API-->>H: Denied response, no key
+    H-->>G: No protected stream
   end
 ```
 
@@ -115,7 +115,7 @@ Room guests do not receive a key. They receive only the WebRTC media stream.
 | --- | --- |
 | Guest tries to fetch source file | Guest has no content key and no key request path. |
 | Guest records WebRTC stream | Not prevented. This is outside Dotify's distribution-access protection. |
-| Unauthorized host tries protected track | Backend returns preview-mode response, no key. |
+| Unauthorized host tries protected track | Backend returns a denial response, no key, and the host streams no protected audio. |
 | Host shares decrypted audio outside Dotify | Not fully preventable once host is authorized. Document boundary. |
 | Malicious client claims purpose=room_host for guest | Signature requester is checked; room listeners are not given key-delivery UI/path. |
 
@@ -127,33 +127,45 @@ Dotify protects access to full source files and content keys. It does not preven
 
 Do not describe Dotify as perfect DRM.
 
-## Preview asset boundary
+## Access modes and the retired preview boundary
 
-Denied access responses advertise `playbackMode: preview`. Production tracks
-encrypted with the backend-held key publish a separate preview asset so the
-browser can play the 42% preview without ever receiving the full-track key
-(ticket 18).
+Access model v2 (ticket 24) gives every track an artist-chosen mode:
 
-How it works:
+- `free`: the key service releases the content key with no authentication
+  (POST /free-key). The backend still verifies the mode on-chain first
+  (musicAccCanAccess probed with the zero address), so a track flipped back to
+  a gated mode stops being served immediately. Encryption of free tracks is a
+  policy hinge, not secrecy: the artist can change the door later without
+  re-uploading, and IPFS never holds clear audio.
+- `classic` (paid) and `human-free` (Proof of Personhood): wallet-signed key
+  requests with the on-chain check, unchanged.
 
-- At publish, the artist's browser generates a mono 16-bit WAV of the first 42%
-  of the raw audio and uploads it, unencrypted, via `POST /api/uploads/preview`.
-  The manifest records it as `assets.previewCID`.
-- On a denied listen (no wallet, personhood/payment not satisfied, or the key
-  service is unavailable) and for an unauthorized room host, the client resolves
-  `previewCID` from the manifest and plays that asset directly. No content key,
-  no decryption, and no `VITE_CONTENT_SECRET` are involved in the preview path.
-- The full track stays server-encrypted and wallet-gated. Room listeners still
-  receive only the ephemeral WebRTC stream, never the preview file or a key.
+The 42% preview assets (ticket 18) are retired: denials no longer carry a
+degraded playback mode - an unauthorized listener gets a reason plus an unlock
+CTA and no audio. Already-pinned manifests may still carry `previewCID`; the
+field is ignored and no new manifests produce it.
 
-Preview assets are intentionally playable. They protect the full source file by
-being incomplete, not by being secret. Preview generation is client-side and so
-is not authoritative: a malicious artist could publish a misleading preview,
-which only affects their own track's teaser and never exposes the full-track
-key. Server-side transcoding is a possible future hardening.
+## Session auth: sign once, listen freely (ticket 24 P2)
 
-Demo/local tracks (no backend) keep the older browser-side path: decrypt with
-the bundle-derived demo key, then slice 42% at playback time.
+One SIWE-style SIGN_IN signature (nonce + expiry + replay protection, same
+fail-closed order as key requests) exchanges for a bearer session token
+(~24h). Later key requests carry the token instead of a fresh signature.
+
+Properties and boundaries:
+
+- The token proves identity only. Every key request still runs the on-chain
+  access check for its own track against the token's address - a token never
+  grants access by itself.
+- Tokens are HMAC-SHA256 over a strict two-claim-shape payload; the HMAC key
+  is HKDF-derived from CONTENT_KEY_MASTER_SECRET with a dedicated info label,
+  so token keys and content keys never share bytes and no new secret exists.
+- A stolen token is bounded by TTL, server-side revocation (logout, also
+  triggered by wallet disconnect in the app), and the fact that it can only
+  fetch keys the address could already obtain.
+- Revocation is an in-memory jti blocklist: process-lifetime, matching the
+  single-instance deployment. Scale-out needs a shared store first.
+- If the master secret is unconfigured, session auth returns 503 and clients
+  fall back to the per-request signed path (fail closed, never open).
 
 ## Logging rules
 
@@ -202,7 +214,6 @@ Before merging key-delivery changes, verify:
 - nonce replay is rejected;
 - chain access is checked server-side;
 - room listener key path does not exist;
-- unauthorized host receives preview-mode response;
-- server-keyed protected tracks have a preview asset before public production use;
+- unauthorized host receives a denial response and no content key;
 - docs do not claim absolute DRM;
 - tests cover denied, allowed, replay, and RPC failure paths.

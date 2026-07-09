@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogTrack } from '../../shared/types';
-import { isPolicyManagedTrack, playbackModeForAccess, trackHasAccess, trackNeedsAccess } from './accessPolicy';
+import { isPolicyManagedTrack, trackHasAccess, trackNeedsAccess } from './accessPolicy';
 
 type TrackShape = Pick<CatalogTrack, 'source' | 'id'>;
 
@@ -40,12 +40,5 @@ describe('trackNeedsAccess', () => {
     expect(trackNeedsAccess(managed, false)).toBe(true);
     expect(trackNeedsAccess(managed, true)).toBe(false);
     expect(trackNeedsAccess(freeLocal, false)).toBe(false);
-  });
-});
-
-describe('playbackModeForAccess', () => {
-  it('maps access to full and denial to preview', () => {
-    expect(playbackModeForAccess(true)).toBe('full');
-    expect(playbackModeForAccess(false)).toBe('preview');
   });
 });

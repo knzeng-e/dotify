@@ -2283,6 +2283,36 @@ audio {
   margin-top: 1rem;
 }
 
+.release-access-editor {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1.1fr) minmax(7rem, 0.8fr) minmax(7rem, 0.8fr) auto;
+  gap: 0.65rem;
+  align-items: end;
+  border: 1px solid var(--border-divider);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.7rem;
+}
+
+.release-editor-field {
+  display: grid;
+  gap: 0.34rem;
+  min-width: 0;
+}
+
+.release-editor-field span {
+  color: var(--fg-tertiary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.release-access-editor .compact-action {
+  min-height: 2.45rem;
+  white-space: nowrap;
+}
+
 .release-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3280,6 +3310,10 @@ audio {
 
   .release-focus-cover {
     width: min(18rem, 100%);
+  }
+
+  .release-access-editor {
+    grid-template-columns: 1fr;
   }
 
   .player-stage,
@@ -6093,7 +6127,7 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
   }
 }
 
-/* Honest room metadata: a room streaming the 42% preview fallback says so. */
+/* Legacy wire cue: retained while the room protocol still accepts preview. */
 .room-preview-chip {
   font-style: normal;
   font-size: 0.62rem;
@@ -7711,7 +7745,7 @@ code,
   flex-wrap: nowrap;
 }
 
-.content-player .cover-card .audio-stack.has-preview-action {
+.content-player .cover-card .audio-stack.has-unlock-action {
   justify-content: space-between;
 }
 
@@ -7762,7 +7796,7 @@ code,
   text-transform: none;
 }
 
-.content-player .access-badges .access-chip[data-tone='preview'] {
+.content-player .access-badges .access-chip[data-tone='locked'] {
   border-color: rgba(240, 180, 41, 0.28);
   background: rgba(240, 180, 41, 0.1);
   color: #f0d58a;
@@ -7831,7 +7865,7 @@ code,
   }
 }
 
-.preview-cover-action {
+.unlock-cover-action {
   display: inline-flex;
   flex: 0 1 auto;
   min-width: 0;
@@ -7860,7 +7894,7 @@ code,
     transform 150ms ease;
 }
 
-.preview-cover-action:hover {
+.unlock-cover-action:hover {
   border-color: rgba(134, 247, 213, 0.78);
   background:
     linear-gradient(180deg, rgba(145, 255, 220, 1), rgba(0, 229, 160, 0.94)),
@@ -7870,7 +7904,7 @@ code,
   transform: translateY(-1px);
 }
 
-.preview-cover-action:focus-visible {
+.unlock-cover-action:focus-visible {
   outline: 2px solid #00e5a0;
   outline-offset: 3px;
 }
@@ -7964,7 +7998,7 @@ code,
   }
 
   .content-player .remote-state,
-  .preview-cover-action {
+  .unlock-cover-action {
     min-height: 2.45rem;
     padding-right: 0.68rem;
     padding-left: 0.68rem;
@@ -8051,7 +8085,7 @@ code,
   }
 
   .content-player .player-view-grid.player-room-mode .remote-state,
-  .content-player .player-view-grid.player-room-mode .preview-cover-action {
+  .content-player .player-view-grid.player-room-mode .unlock-cover-action {
     min-height: 2.35rem;
     padding-right: 0.7rem;
     padding-left: 0.7rem;

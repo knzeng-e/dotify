@@ -41,7 +41,7 @@ A host turns listening into a social event.
 
 The host creates a room, plays a track, and shares a link/code. The room is the social heart of Dotify.
 
-For protected room playback, access is checked against the host. If the host is authorized, the host may receive the temporary content key and stream full audio. If the host is unauthorized, Dotify should keep the room alive, stream the 42% preview, show a discreet host-facing CTA, and auto-advance.
+For protected room playback, access is checked against the host. If the host is authorized, the host may receive the temporary content key and stream full audio. If the host is unauthorized, Dotify should keep the room alive, show a discreet host-facing CTA, stream no protected audio, and let the host switch to a playable track.
 
 ### Artist
 
@@ -130,7 +130,7 @@ Dotify distinguishes direct file access from room presence.
 - Room playback: the host must satisfy the access policy before receiving a temporary content key.
 - Room guests receive WebRTC media only.
 - Room guests must not be forced to connect a wallet or sign merely to listen.
-- If the host lacks access to a protected track, the room should continue in 42% preview mode with a host-facing unlock/personhood CTA.
+- If the host lacks access to a protected track, the room should stay open with a host-facing unlock/personhood CTA and no protected audio stream.
 
 This is the compromise: protect the artist's source-file distribution without killing the social flow.
 

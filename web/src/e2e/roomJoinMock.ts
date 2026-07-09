@@ -36,7 +36,7 @@ const PUBLIC_COVER =
 
 // A deterministic 2s 8-bit/8kHz silent WAV, built once at module load (pure,
 // no Date/random). It gives the host a real, finite-duration local source so
-// playback progresses and the 42% preview cutoff can fire for auto-advance.
+// playback progresses deterministically for the room specs.
 function buildSilentWavDataUrl(): string {
   const sampleRate = 8000;
   const seconds = 2;
@@ -118,7 +118,7 @@ export const E2E_ROOM_PUBLIC_TRACK: CatalogTrack = {
   registeredAtBlock: 1
 };
 
-// Ordered [protected, public] so the unauthorized-preview scenario auto-advances
+// Ordered [protected, public] so the unauthorized-host scenario skips forward
 // from the protected track (index 0) to the public track (index 1).
 export function getRoomJoinE2eTracks(): CatalogTrack[] {
   return [E2E_ROOM_PROTECTED_TRACK, E2E_ROOM_PUBLIC_TRACK];

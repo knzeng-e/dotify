@@ -47,6 +47,15 @@ contract MusicRegistryPallet {
   );
 
   event TrackDeactivated(bytes32 indexed contentHash, address indexed artist);
+  event TrackReactivated(bytes32 indexed contentHash, address indexed artist);
+
+  event TrackAccessModeChanged(
+    bytes32 indexed contentHash,
+    address indexed artist,
+    LibMusicRegistry.AccessMode accessMode,
+    uint128 pricePlanck,
+    LibMusicRegistry.PersonhoodLevel requiredPersonhood
+  );
 
   // -------------------------------------------------------------------------
   // Write functions
@@ -91,6 +100,37 @@ contract MusicRegistryPallet {
     emit TrackRegistered(reg.contentHash, tokenId, msg.sender, reg.title, reg.accessMode, track.pricePlanck, track.requiredPersonhood);
   }
 
+  /// @notice Change a track's access policy without re-uploading or re-pinning
+  ///         anything: the ciphertext and CID never change, only the key-release
+  ///         policy recorded here (Dotify v2 access model). Artist-only.
+  ///
+  ///         Past paid access is never revoked: a listener who bought a Classic
+  ///         track keeps access through the paidAccess record even if the mode
+  ///         later changes and changes back.
+  /// @param contentHash         The track to update.
+  /// @param accessMode          New mode: HumanFree, Classic, or Free.
+  /// @param pricePlanck         New price; required > 0 for Classic, stored as 0 otherwise.
+  /// @param requiredPersonhood  Required level for HumanFree, stored as None otherwise.
+  function musicRegSetAccessMode(
+    bytes32 contentHash,
+    LibMusicRegistry.AccessMode accessMode,
+    uint128 pricePlanck,
+    LibMusicRegistry.PersonhoodLevel requiredPersonhood
+  ) external {
+    LibMusicRegistry.Storage storage rs = LibMusicRegistry.store();
+    LibMusicRegistry.requireExists(rs, contentHash);
+    LibMusicRegistry.TrackRecord storage track = rs.tracks[contentHash];
+    require(track.artist == msg.sender, 'MusicRegistry: not artist');
+    require(track.active, 'MusicRegistry: inactive');
+    _validateAccessPolicy(accessMode, pricePlanck, requiredPersonhood);
+
+    track.accessMode = accessMode;
+    track.pricePlanck = accessMode == LibMusicRegistry.AccessMode.Classic ? pricePlanck : 0;
+    track.requiredPersonhood = accessMode == LibMusicRegistry.AccessMode.HumanFree ? requiredPersonhood : LibMusicRegistry.PersonhoodLevel.None;
+
+    emit TrackAccessModeChanged(contentHash, msg.sender, accessMode, track.pricePlanck, track.requiredPersonhood);
+  }
+
   /// @notice Deactivate a track. Only the original artist can call this.
   ///         Deactivation prevents new access grants but does not revoke past payments.
   function musicRegDeactivate(bytes32 contentHash) external {
@@ -101,6 +141,19 @@ contract MusicRegistryPallet {
 
     rs.tracks[contentHash].active = false;
     emit TrackDeactivated(contentHash, msg.sender);
+  }
+
+  /// @notice Reactivate a previously deactivated track. Only the original
+  ///         artist can call this; the existing access policy and payment
+  ///         history are preserved.
+  function musicRegReactivate(bytes32 contentHash) external {
+    LibMusicRegistry.Storage storage rs = LibMusicRegistry.store();
+    LibMusicRegistry.requireExists(rs, contentHash);
+    require(rs.tracks[contentHash].artist == msg.sender, 'MusicRegistry: not artist');
+    require(!rs.tracks[contentHash].active, 'MusicRegistry: already active');
+
+    rs.tracks[contentHash].active = true;
+    emit TrackReactivated(contentHash, msg.sender);
   }
 
   // -------------------------------------------------------------------------
@@ -152,10 +205,21 @@ contract MusicRegistryPallet {
     require(bytes(reg.metadataRef).length > 0, 'MusicRegistry: missing metadata ref');
     require(bytes(reg.artistContractRef).length > 0, 'MusicRegistry: missing artist contract ref');
     require(rs.tracks[reg.contentHash].artist == address(0), 'MusicRegistry: already registered');
-    require(reg.accessMode == LibMusicRegistry.AccessMode.HumanFree || reg.pricePlanck > 0, 'MusicRegistry: Classic requires price');
-    require(
-      reg.accessMode == LibMusicRegistry.AccessMode.Classic || reg.requiredPersonhood != LibMusicRegistry.PersonhoodLevel.None,
-      'MusicRegistry: HumanFree requires personhood level'
-    );
+    _validateAccessPolicy(reg.accessMode, reg.pricePlanck, reg.requiredPersonhood);
+  }
+
+  /// @dev Mode-specific policy validation, shared by registration and mode
+  ///      changes. Free has no requirements: no price, no personhood.
+  function _validateAccessPolicy(
+    LibMusicRegistry.AccessMode accessMode,
+    uint128 pricePlanck,
+    LibMusicRegistry.PersonhoodLevel requiredPersonhood
+  ) private pure {
+    if (accessMode == LibMusicRegistry.AccessMode.Classic) {
+      require(pricePlanck > 0, 'MusicRegistry: Classic requires price');
+    } else if (accessMode == LibMusicRegistry.AccessMode.HumanFree) {
+      require(requiredPersonhood != LibMusicRegistry.PersonhoodLevel.None, 'MusicRegistry: HumanFree requires personhood level');
+    }
+    // Free: nothing to validate.
   }
 }

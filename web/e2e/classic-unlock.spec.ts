@@ -16,7 +16,7 @@ async function readClassicUnlockState(page: Page) {
   return page.evaluate(() => window.__DOTIFY_E2E_CLASSIC_UNLOCK__ as ClassicUnlockE2eState | undefined);
 }
 
-test('Classic unlock stays preview-only before payment and unlocks full playback after payment', async ({ page }) => {
+test('Classic track stays locked before payment and unlocks full playback after payment', async ({ page }) => {
   await page.goto('/');
 
   const trackCard = page.getByTestId('track-card');
@@ -25,7 +25,7 @@ test('Classic unlock stays preview-only before payment and unlocks full playback
 
   await page.getByTestId('track-card-open').click();
 
-  await expect(page.getByTestId('preview-player-state')).toContainText('Preview mode');
+  await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
   await expect(page.getByTestId('access-warning')).toContainText('Unlock full song');
   await expect(page.getByTestId('access-warning')).toContainText('0.5 DOT');
 

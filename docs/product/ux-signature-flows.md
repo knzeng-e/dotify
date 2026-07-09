@@ -15,11 +15,12 @@ Dotify must avoid wallet pop-up fatigue. Wallet prompts should appear only when 
 | Context | Wallet required? | Signature required? | Transaction required? |
 | --- | --- | --- | --- |
 | Browse catalog | No | No | No |
-| Play preview | No | No | No |
+| Play Free track | No | No | No |
 | Join room as listener | No | No | No |
 | Listen to host stream | No | No | No |
-| Individual full playback | Yes | Yes, off-chain key request | Only if access requires payment |
-| Room host full playback | Yes | Yes, off-chain key request | Only if access requires payment |
+| Classic individual playback | Yes | Maybe session signature + key request | Only if not already unlocked |
+| Human Free individual playback | Yes | Maybe session signature + personhood check | No, unless proving/linking personhood requires one |
+| Room host protected playback | Yes | Maybe session signature + key request | Only if access requires payment |
 | Classic unlock | Yes | Maybe session signature + payment tx | Yes |
 | Human Free unlock | Yes | Maybe session signature | No, unless proving/linking personhood requires one |
 | Artist publishing | Yes | Yes/transaction depending on step | Yes for runtime/register actions |
@@ -49,8 +50,8 @@ sequenceDiagram
     UI->>UI: Decrypt locally
     UI-->>L: Full playback
   else denied
-    API-->>UI: Preview-mode response
-    UI-->>L: 42% preview + unlock/personhood CTA
+    API-->>UI: Denied response, no key
+    UI-->>L: Unlock/personhood CTA, no audio
   end
 ```
 
@@ -80,13 +81,12 @@ sequenceDiagram
     UI-->>G: No wallet required
     RTC-->>G: Ephemeral audio stream
   else host denied
-    API-->>UI: Preview-mode response
-    UI->>UI: Host plays 42% preview
+    API-->>UI: Denied response, no key
+    UI-->>H: Discreet unlock/personhood CTA
+    UI->>RTC: No protected stream
     G->>UI: Join room link
     UI-->>G: No wallet required
-    RTC-->>G: Ephemeral preview stream
-    UI-->>H: Discreet unlock/personhood CTA
-    UI->>UI: Auto-advance after preview
+    UI-->>G: Room remains open until host picks a playable track
   end
 ```
 
@@ -130,8 +130,8 @@ sequenceDiagram
     API-->>UI: Temporary content key
     UI-->>L: Full playback
   else insufficient or unavailable
-    API-->>UI: Preview-mode response
-    UI-->>L: 42% preview + personhood CTA
+    API-->>UI: Denied response, no key
+    UI-->>L: Personhood CTA, no audio
   end
 ```
 
@@ -160,18 +160,17 @@ sequenceDiagram
 ## UX principles
 
 - Browsing must never require a wallet.
-- Preview playback must never require a wallet.
+- Free playback must never require a wallet.
 - Room listening as a guest must never require a wallet.
-- Full individual playback requires access verification.
-- Full host room playback requires host access verification.
+- Classic and Human Free individual playback require access verification.
+- Protected host room playback requires host access verification.
 - Money movement still requires an explicit wallet transaction.
 - Artist publishing must be explicit and reviewable.
 - Dotify should prefer one session-level off-chain signature where feasible, not a signature per track.
 
-Current implementation caveat: production tracks encrypted with the
-backend-held content key still need a separate preview asset before denied
-individual playback and denied room-host playback can reliably produce the 42%
-preview without exposing the full-track key.
+Current implementation note: access model v2 retired the 42% preview. Denied
+individual playback and denied room-host playback receive an unlock/personhood
+CTA and no audio; already-pinned `previewCID` manifest fields are ignored.
 
 ## Non-goals
 
