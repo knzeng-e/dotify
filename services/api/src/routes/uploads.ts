@@ -58,7 +58,7 @@ const dotifyManifestSchema = z.object({
     title: z.string().min(1).max(200),
     artistName: z.string().min(1).max(200),
     description: z.string().max(2000),
-    accessMode: z.enum(['human-free', 'classic']),
+    accessMode: z.enum(['human-free', 'classic', 'free']),
     priceDot: z.string(),
     requiredPersonhood: z.string(),
     zone: z.string(),

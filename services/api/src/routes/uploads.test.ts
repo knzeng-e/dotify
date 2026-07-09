@@ -73,6 +73,25 @@ describe('POST /api/uploads/metadata (previewCID schema)', () => {
     assert.equal(res.statusCode, 503);
   });
 
+  it('accepts a Free access-mode manifest', async () => {
+    const server = await buildApp();
+    const freeManifest = {
+      ...validManifest,
+      assets: { ...validManifest.assets, previewCID: undefined },
+      track: {
+        ...validManifest.track,
+        accessMode: 'free',
+        priceDot: '0',
+        requiredPersonhood: 'None',
+      },
+      settlement: { ...validManifest.settlement, pricePlanck: '0' },
+    };
+
+    const res = await server.inject({ method: 'POST', url: '/api/uploads/metadata', payload: freeManifest });
+    // Passed schema validation (would be 400 otherwise), reached the pin step.
+    assert.equal(res.statusCode, 503);
+  });
+
   it('rejects a manifest with a non-string previewCID', async () => {
     const server = await buildApp();
     const bad = { ...validManifest, assets: { ...validManifest.assets, previewCID: 123 } };

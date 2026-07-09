@@ -98,8 +98,8 @@ sequenceDiagram
     API-->>H: Temporary content key
     H-->>G: WebRTC full stream
   else host denied
-    API-->>H: Preview-mode response
-    H-->>G: WebRTC preview stream
+    API-->>H: Denied response, no key
+    H-->>G: No protected stream
   end
 ```
 
@@ -115,7 +115,7 @@ Room guests do not receive a key. They receive only the WebRTC media stream.
 | --- | --- |
 | Guest tries to fetch source file | Guest has no content key and no key request path. |
 | Guest records WebRTC stream | Not prevented. This is outside Dotify's distribution-access protection. |
-| Unauthorized host tries protected track | Backend returns preview-mode response, no key. |
+| Unauthorized host tries protected track | Backend returns a denial response, no key, and the host streams no protected audio. |
 | Host shares decrypted audio outside Dotify | Not fully preventable once host is authorized. Document boundary. |
 | Malicious client claims purpose=room_host for guest | Signature requester is checked; room listeners are not given key-delivery UI/path. |
 
@@ -214,6 +214,6 @@ Before merging key-delivery changes, verify:
 - nonce replay is rejected;
 - chain access is checked server-side;
 - room listener key path does not exist;
-- unauthorized host receives preview-mode response;
+- unauthorized host receives a denial response and no content key;
 - docs do not claim absolute DRM;
 - tests cover denied, allowed, replay, and RPC failure paths.

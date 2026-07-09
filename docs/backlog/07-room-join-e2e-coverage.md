@@ -53,9 +53,8 @@ Room listeners should be able to join and listen without wallet interruption. Pr
 - Host lacks access to protected track.
 - Dotify does not block the room.
 - Host sees discreet unlock/personhood CTA.
-- Host streams 42% preview.
-- Room metadata reports `playbackMode: preview`.
-- Playlist auto-advances after preview ends.
+- Host streams no protected audio.
+- Room metadata remains wire-compatible while the host chooses a playable track.
 - Listener is not asked to connect a wallet.
 - Listener never receives content key.
 
@@ -79,8 +78,8 @@ Room listeners should be able to join and listen without wallet interruption. Pr
 - Listener can join via link without wallet/signature.
 - Public full stream scenario is covered.
 - Protected track + authorized host full stream scenario is covered.
-- Protected track + unauthorized host preview fallback scenario is covered.
-- Preview fallback auto-advance is covered.
+- Protected track + unauthorized host no-stream fallback scenario is covered.
+- Host switch to a playable track after denial is covered.
 - Listeners never receive content keys.
 - Test does not require public internet.
 - Test fails on zombie-room behavior.
@@ -111,7 +110,7 @@ Delivered on `test/room-join-e2e`.
 
 - **Public track** - host opens a room; a listener joins via the bare `#/rooms/<id>` link in a fresh context with no wallet (the connect affordance is still present); the listener reaches `In sync` over real WebRTC; room `playbackMode: full`; the listener never requests a content key.
 - **Protected track, authorized host** - the host satisfies the policy and a content key is delivered to the host (key-request counter >= 1); the listener streams `full` with zero key requests.
-- **Protected track, unauthorized host** - the room declares `playbackMode: preview`, the host sees the discreet unlock CTA (access gate), no key is delivered, and the playlist auto-advances to the next (public) track, flipping the room to `full`. The listener is never keyed.
+- **Protected track, unauthorized host** - the host sees the discreet unlock CTA (access gate), no key is delivered, no protected stream is sent, and moving to the next public track resumes `full` room playback. The listener is never keyed.
 - **Host disconnect** - closing the host context removes the room server-side (no zombie) and the listener sees a clear closed state; the room code disappears from the listener UI.
 
 ### Key-delivery boundary

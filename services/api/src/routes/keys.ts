@@ -3,8 +3,8 @@
 // POST /api/tracks/:contentHash/key-request
 //   Wallet-signed request for a per-track content key. The signature, replay
 //   protection, and on-chain access policy are all enforced server-side; a
-//   denial is answered with a preview-mode response (the room is a doorway,
-//   not a wallet checkpoint), never with the key.
+//   denial is answered with an unlock/personhood CTA response, never with the
+//   key.
 //
 // Note there is intentionally no publish-time key endpoint: artists upload
 // raw audio to /api/uploads/audio and the backend encrypts server-side, so
@@ -157,7 +157,7 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
 
       if (!access.allowed) {
         // Denial is a normal product state, not a transport error: the
-        // listener (or room host) falls back to the 42% preview.
+        // listener (or room host) sees the next valid action, never a key.
         return reply.status(200).send(deniedResponse(access, body.data.purpose));
       }
 

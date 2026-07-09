@@ -68,6 +68,7 @@ describe('priceDotForAccessMode', () => {
   it('keeps the price for classic and zeroes it otherwise', () => {
     expect(priceDotForAccessMode('classic', '0.5')).toBe('0.5');
     expect(priceDotForAccessMode('human-free', '0.5')).toBe('0');
+    expect(priceDotForAccessMode('free', '0.5')).toBe('0');
   });
 });
 

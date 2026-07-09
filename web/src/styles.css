@@ -6093,7 +6093,7 @@ button.player-dock-chip:hover { background: rgba(255, 255, 255, 0.14); color: #f
   }
 }
 
-/* Honest room metadata: a room streaming the 42% preview fallback says so. */
+/* Legacy wire cue: retained while the room protocol still accepts preview. */
 .room-preview-chip {
   font-style: normal;
   font-size: 0.62rem;

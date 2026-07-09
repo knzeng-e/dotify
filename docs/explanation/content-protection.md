@@ -126,7 +126,7 @@ The backend verifies:
 - runtime access through `musicAccCanAccess`.
 
 If access is allowed, the backend returns the per-track key. If access is
-denied or ambiguous, it returns a preview-mode response instead of a key.
+denied or ambiguous, it returns a denial reason and no key.
 
 ### Decryption pipeline
 
@@ -141,17 +141,18 @@ authorized key available?
         |
         +-- yes --> decrypt full audio -> Blob URL -> <audio>
         |
-        +-- no  --> create 42% preview -> Blob URL -> <audio>
+        +-- no  --> show unlock/personhood CTA, no audio
 ```
 
 The clear audio is not persisted. It exists as an in-memory Blob/Object URL and
 is revoked during normal cleanup.
 
-### Preview truncation
+### Denied playback
 
-For restricted tracks in preview mode, Dotify re-encodes only the first 42% of
-the decoded audio as a WAV object URL. This keeps the social room alive without
-delivering a full-track key to an unauthorized listener or host.
+Access model v2 retired the 42% preview path. Restricted tracks never use the
+full encrypted audio to synthesize a teaser for denied users. Direct listeners
+see the appropriate unlock/personhood CTA; unauthorized room hosts stream no
+protected audio until they unlock, verify, or choose a playable track.
 
 ### Encrypted audio ref format
 

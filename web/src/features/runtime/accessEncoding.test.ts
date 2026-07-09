@@ -5,8 +5,10 @@ describe('access mode codec', () => {
   it('encodes and decodes round-trip', () => {
     expect(encodeAccessMode('human-free')).toBe(0);
     expect(encodeAccessMode('classic')).toBe(1);
+    expect(encodeAccessMode('free')).toBe(2);
     expect(decodeAccessMode(0)).toBe('human-free');
     expect(decodeAccessMode(1)).toBe('classic');
+    expect(decodeAccessMode(2)).toBe('free');
   });
 
   it('decodes unknown values as human-free', () => {
@@ -32,6 +34,7 @@ describe('encodeRequiredPersonhood', () => {
     expect(encodeRequiredPersonhood('human-free', 'DIM2')).toBe(2);
     expect(encodeRequiredPersonhood('human-free', 'DIM1')).toBe(1);
     expect(encodeRequiredPersonhood('classic', 'DIM2')).toBe(0);
+    expect(encodeRequiredPersonhood('free', 'DIM2')).toBe(0);
   });
 });
 
@@ -39,5 +42,6 @@ describe('manifestRequiredPersonhood', () => {
   it('uses the level for human-free and None for classic', () => {
     expect(manifestRequiredPersonhood('human-free', 'DIM2')).toBe('DIM2');
     expect(manifestRequiredPersonhood('classic', 'DIM2')).toBe('None');
+    expect(manifestRequiredPersonhood('free', 'DIM2')).toBe('None');
   });
 });

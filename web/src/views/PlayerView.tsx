@@ -102,7 +102,14 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const showUnlockAction = Boolean(needsTrackAccess && selectedTrack);
   const showWideStatus = Boolean(selectedTrack && !showUnlockAction);
   const accessStatusLabel = needsTrackAccess ? 'Locked' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
-  const accessPriceLabel = effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT` : 'Unlocked for this wallet') : 'Human pass';
+  const accessPriceLabel =
+    effectiveAccessMode === 'classic'
+      ? needsTrackAccess
+        ? `${effectivePriceDot} DOT`
+        : 'Unlocked for this wallet'
+      : effectiveAccessMode === 'free'
+        ? 'Free for everyone'
+        : 'Human pass';
   const unlockCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full track' : 'Check access';
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
