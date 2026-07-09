@@ -18,7 +18,6 @@ import { useWalletContext } from './WalletProvider';
 import { useUiFeedback } from './UiFeedbackProvider';
 import { useReleaseForm } from './ReleaseFormProvider';
 import { useCatalogContext } from './CatalogProvider';
-import type { CatalogTrack } from '../../shared/types';
 
 type ArtistStudioValue = {
   artistConsole: ReturnType<typeof useArtistConsole>;
@@ -56,7 +55,7 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     coverSource: catalog.coverSource,
     activeSubstrateAddress,
     activeSubstrateSigner,
-    artistTracks: [] as CatalogTrack[], // artist-owned tracks are derived in App for the views; the hook only needs a seed
+    artistTracks: catalog.allCatalogTracks,
     setTransactionFeedback,
     refreshCatalogFromRegistry: catalog.refreshCatalogFromRegistry,
     setAudioCID: catalog.setAudioCID,

@@ -155,6 +155,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   } = deps;
 
   const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>([]);
+  const [allCatalogTracks, setAllCatalogTracks] = useState<CatalogTrack[]>([]);
   const [catalogStatus, setCatalogStatus] = useState('Loading registry catalog');
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
@@ -600,10 +601,6 @@ export function useCatalog(deps: UseCatalogDeps) {
           args: [hash]
         })) as [OnchainTrackRecord, `0x${string}`];
 
-        if (!track.active) {
-          return null;
-        }
-
         const imageRef = resolveVisualAssetRef(track.imageRef, track.title);
         const encrypted = isEncryptedAudioRef(track.audioRef);
         const localUrl = resolveAudioAssetRef(track.audioRef);
@@ -652,6 +649,7 @@ export function useCatalog(deps: UseCatalogDeps) {
           txHash: undefined,
           durationLabel: 'ready',
           accessMode: decodeAccessMode(Number(track.accessMode)),
+          active: track.active,
           source: 'artist' as const,
           royaltySplits: royaltySplits.filter((split): split is RoyaltySplit => Boolean(split)),
           personhoodLevel: decodePersonhood(Number(track.requiredPersonhood)),
@@ -668,6 +666,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
     if (isClassicUnlockE2e || isArtistPublishE2e || isRoomJoinE2e) {
       const nextCatalog = getDeterministicE2eCatalogTracks();
+      setAllCatalogTracks(nextCatalog);
       setCatalogTracks(nextCatalog);
       setSelectedTrackId(previous => {
         const preferredTrack = preferredTrackHash ? (nextCatalog.find(track => track.hash.toLowerCase() === preferredTrackHash.toLowerCase()) ?? null) : null;
@@ -695,6 +694,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     if (!directoryAddress) {
       setCatalogTracks([]);
+      setAllCatalogTracks([]);
       setSelectedTrackId('');
       setCatalogStatus('Registry directory not configured');
       return [];
@@ -706,6 +706,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       const directoryExists = await ensureContract(directoryAddress, ethRpcUrl);
       if (!directoryExists) {
         setCatalogTracks([]);
+        setAllCatalogTracks([]);
         setSelectedTrackId('');
         setCatalogStatus('Registry directory unavailable');
         return [];
@@ -720,6 +721,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
       if (artistCount === 0n) {
         setCatalogTracks([]);
+        setAllCatalogTracks([]);
         setSelectedTrackId('');
         setCatalogStatus('No tracks registered on this directory yet');
         return [];
@@ -736,7 +738,7 @@ export function useCatalog(deps: UseCatalogDeps) {
           }
         })
       );
-      const nextCatalog = runtimeCatalogs
+      const allTracks = runtimeCatalogs
         .flat()
         .sort((left, right) => {
           if (left.registeredAtBlock !== right.registeredAtBlock) {
@@ -745,7 +747,9 @@ export function useCatalog(deps: UseCatalogDeps) {
           return left.title.localeCompare(right.title);
         })
         .map(({ registeredAtBlock: _registeredAtBlock, ...track }): CatalogTrack => track);
+      const nextCatalog = allTracks.filter(track => track.active !== false);
 
+      setAllCatalogTracks(allTracks);
       setCatalogTracks(nextCatalog);
       setSelectedTrackId(previous => {
         const preferredTrack = preferredTrackHash ? nextCatalog.find(track => track.hash.toLowerCase() === preferredTrackHash.toLowerCase()) : null;
@@ -761,6 +765,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     } catch (catalogError) {
       console.warn('Failed to load registry catalog', catalogError);
       setCatalogTracks([]);
+      setAllCatalogTracks([]);
       setSelectedTrackId('');
       setCatalogStatus(catalogLoadFailureStatus(catalogError));
       return [];
@@ -777,6 +782,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   return {
     // State
     catalogTracks,
+    allCatalogTracks,
     catalogStatus,
     selectedTrackId,
     setSelectedTrackId,

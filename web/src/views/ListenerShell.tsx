@@ -57,7 +57,7 @@ export function ListenerShell() {
   const [pendingArtistTrack, setPendingArtistTrack] = useState<CatalogTrack | null>(null);
 
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
-  const artistTracks = catalog.catalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
+  const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
   const activeListeners = session.listeners.filter(listener => listener.status === 'connected').length;
   const currentPage = VIEW_COPY[activeView];
   const { paidTracks, supportedArtists } = deriveSupportSummary(catalog.catalogTracks, catalog.catalogPaidAccessByTrackId);

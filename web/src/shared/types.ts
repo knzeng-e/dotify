@@ -64,6 +64,7 @@ export type CatalogTrack = {
   txHash?: `0x${string}`;
   durationLabel: string;
   accessMode: AccessMode;
+  active?: boolean;
   source: 'seed' | 'artist';
   royaltySplits: RoyaltySplit[];
   personhoodLevel: PersonhoodLevel;

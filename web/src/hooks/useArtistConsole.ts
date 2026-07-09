@@ -13,7 +13,7 @@ import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from
 import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
 import { makeEncryptedAudioRef } from '../shared/utils/protectedAudio';
 import { chainMismatchMessage } from '../features/wallet/network';
-import { localAudioRef, priceDotForAccessMode } from '../features/catalog/trackModel';
+import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
 import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../shared/utils/format';
 import {
@@ -133,6 +133,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const [expandedRoyaltyPaymentId, setExpandedRoyaltyPaymentId] = useState<string | null>(null);
   const [bulletinManifestRef, setBulletinManifestRef] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [releaseActionId, setReleaseActionId] = useState<string | null>(null);
 
   const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
 
@@ -700,6 +701,128 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     }
   }
 
+  async function updateReleaseAccessMode(track: CatalogTrack, nextAccessMode: AccessMode, nextPriceDot: string, nextPersonhoodLevel: PersonhoodLevel) {
+    if (!connectedWallet) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Wallet required',
+        message: 'Connect the artist wallet before updating this release.'
+      });
+      return;
+    }
+    if (track.active === false) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Release inactive',
+        message: 'Reactivate this release before changing its access policy.'
+      });
+      return;
+    }
+
+    const runtimeAddress = runtimeAddressFromTrackId(track);
+    if (!runtimeAddress) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Artist runtime missing',
+        message: 'This release is not linked to an artist SmartRuntime.'
+      });
+      return;
+    }
+
+    setReleaseActionId(`${track.id}:access`);
+    try {
+      const walletClient = await getActiveWalletClient();
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Updating access',
+        message: `Changing "${track.title}" access policy.`
+      });
+      const txHash = await walletClient.writeContract({
+        address: runtimeAddress,
+        abi: musicRegistryAbi,
+        functionName: 'musicRegSetAccessMode',
+        args: [
+          track.hash,
+          encodeAccessMode(nextAccessMode),
+          dotToPlanck(priceDotForAccessMode(nextAccessMode, nextPriceDot)),
+          encodeRequiredPersonhood(nextAccessMode, nextPersonhoodLevel)
+        ]
+      });
+      setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Access update submitted.', txHash });
+      await getPublicClient(ethRpcUrl).waitForTransactionReceipt({ hash: txHash });
+      await refreshCatalogFromRegistry(track.hash);
+      setTransactionFeedback({
+        tone: 'success',
+        title: 'Access updated',
+        message: `"${track.title}" now uses the selected access policy.`,
+        txHash
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Access update failed';
+      setTransactionFeedback({ tone: 'error', title: 'Access update failed', message });
+    } finally {
+      setReleaseActionId(null);
+    }
+  }
+
+  async function setReleaseActive(track: CatalogTrack, active: boolean) {
+    if (!connectedWallet) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Wallet required',
+        message: 'Connect the artist wallet before updating this release.'
+      });
+      return;
+    }
+
+    const runtimeAddress = runtimeAddressFromTrackId(track);
+    if (!runtimeAddress) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Artist runtime missing',
+        message: 'This release is not linked to an artist SmartRuntime.'
+      });
+      return;
+    }
+
+    setReleaseActionId(`${track.id}:active`);
+    try {
+      const walletClient = await getActiveWalletClient();
+      setTransactionFeedback({
+        tone: 'pending',
+        title: active ? 'Reactivating release' : 'Deactivating release',
+        message: `${active ? 'Reactivating' : 'Deactivating'} "${track.title}".`
+      });
+      const txHash = active
+        ? await walletClient.writeContract({
+            address: runtimeAddress,
+            abi: musicRegistryAbi,
+            functionName: 'musicRegReactivate',
+            args: [track.hash]
+          })
+        : await walletClient.writeContract({
+            address: runtimeAddress,
+            abi: musicRegistryAbi,
+            functionName: 'musicRegDeactivate',
+            args: [track.hash]
+          });
+      setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Release status update submitted.', txHash });
+      await getPublicClient(ethRpcUrl).waitForTransactionReceipt({ hash: txHash });
+      await refreshCatalogFromRegistry(track.hash);
+      setTransactionFeedback({
+        tone: 'success',
+        title: active ? 'Release reactivated' : 'Release deactivated',
+        message: active ? `"${track.title}" is back in the public catalog.` : `"${track.title}" is hidden from playback and access grants.`,
+        txHash
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Release status update failed';
+      setTransactionFeedback({ tone: 'error', title: 'Release update failed', message });
+    } finally {
+      setReleaseActionId(null);
+    }
+  }
+
   function updateArtistName(nextName: string, setArtistName: (name: string) => void) {
     setArtistName(nextName);
     if (connectedWallet) {
@@ -723,11 +846,14 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     bulletinManifestRef,
     setBulletinManifestRef,
     isRegistering,
+    releaseActionId,
     artistRegistrationAvailable,
     // Functions
     registerArtist,
     refreshArtistRuntime,
     registerRights,
+    updateReleaseAccessMode,
+    setReleaseActive,
     refreshArtistRoyalties,
     createRightsManifest,
     getActiveWalletClient,

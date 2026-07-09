@@ -47,6 +47,7 @@ contract MusicRegistryPallet {
   );
 
   event TrackDeactivated(bytes32 indexed contentHash, address indexed artist);
+  event TrackReactivated(bytes32 indexed contentHash, address indexed artist);
 
   event TrackAccessModeChanged(
     bytes32 indexed contentHash,
@@ -140,6 +141,19 @@ contract MusicRegistryPallet {
 
     rs.tracks[contentHash].active = false;
     emit TrackDeactivated(contentHash, msg.sender);
+  }
+
+  /// @notice Reactivate a previously deactivated track. Only the original
+  ///         artist can call this; the existing access policy and payment
+  ///         history are preserved.
+  function musicRegReactivate(bytes32 contentHash) external {
+    LibMusicRegistry.Storage storage rs = LibMusicRegistry.store();
+    LibMusicRegistry.requireExists(rs, contentHash);
+    require(rs.tracks[contentHash].artist == msg.sender, 'MusicRegistry: not artist');
+    require(!rs.tracks[contentHash].active, 'MusicRegistry: already active');
+
+    rs.tracks[contentHash].active = true;
+    emit TrackReactivated(contentHash, msg.sender);
   }
 
   // -------------------------------------------------------------------------

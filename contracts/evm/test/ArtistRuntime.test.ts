@@ -386,6 +386,7 @@ describe('Access model v2 - Free mode + musicRegSetAccessMode', () => {
   const trackAccessModeChangedEvent = parseAbiItem(
     'event TrackAccessModeChanged(bytes32 indexed contentHash, address indexed artist, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood)'
   );
+  const trackReactivatedEvent = parseAbiItem('event TrackReactivated(bytes32 indexed contentHash, address indexed artist)');
 
   // No chai-as-promised in this suite: assert reverts via the house pattern.
   async function expectRevert(promise: Promise<unknown>, fragment: string) {
@@ -512,6 +513,40 @@ describe('Access model v2 - Free mode + musicRegSetAccessMode', () => {
 
     await artistRegistry.write.musicRegDeactivate([TRACK_HASH]);
     await expectRevert(artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Classic, parseEther('1'), PersonhoodLevel.None]), 'inactive');
+  });
+
+  it('lets the artist reactivate an inactive track and keeps the existing policy', async () => {
+    const { artistRegistry, registry, access, publicClient, royaltyRecip, runtimeAddr, listener, other } = await withArtistRuntime();
+
+    await artistRegistry.write.musicRegRegister([
+      sampleRegistration({ accessMode: AccessMode.Free, pricePlanck: 0n, requiredPersonhood: PersonhoodLevel.None }),
+      [royaltyRecip.account.address],
+      [10_000]
+    ]);
+
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(true);
+    await expectRevert(artistRegistry.write.musicRegReactivate([TRACK_HASH]), 'already active');
+    await artistRegistry.write.musicRegDeactivate([TRACK_HASH]);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(false);
+
+    const otherRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: other } });
+    await expectRevert(otherRegistry.write.musicRegReactivate([TRACK_HASH]), 'not artist');
+
+    const hash = await artistRegistry.write.musicRegReactivate([TRACK_HASH]);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const logs = await publicClient.getLogs({
+      address: runtimeAddr,
+      event: trackReactivatedEvent,
+      fromBlock: receipt.blockNumber,
+      toBlock: receipt.blockNumber
+    });
+    expect(logs.length).to.equal(1);
+    expect(logs[0].args.contentHash).to.equal(TRACK_HASH);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(true);
+
+    const [track] = await artistRegistry.read.musicRegGetTrack([TRACK_HASH]);
+    expect(track.active).to.equal(true);
+    expect(track.accessMode).to.equal(AccessMode.Free);
   });
 });
 
@@ -710,7 +745,7 @@ describe('MusicRoyaltiesPallet — payment security', () => {
     expect(await access.read.musicAccHasPaid([TRACK_HASH2, evil.address])).to.equal(false);
   });
 
-  it('musicAccCanAccess returns false after musicRegDeactivate (fail-closed on inactive track)', async () => {
+  it('musicAccCanAccess returns false after musicRegDeactivate and restores after musicRegReactivate', async () => {
     const PRICE = parseEther('0.5');
     const { registry, royalties, access, artistA, listener, royaltyRecip } = await withArtistRuntime();
 
@@ -728,6 +763,9 @@ describe('MusicRoyaltiesPallet — payment security', () => {
     expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(false);
     // Payment record itself is preserved (deactivation does not refund/revoke history).
     expect(await access.read.musicAccHasPaid([TRACK_HASH, listener.account.address])).to.equal(true);
+
+    await artistRegistry.write.musicRegReactivate([TRACK_HASH]);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(true);
   });
 });
 

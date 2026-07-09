@@ -2283,6 +2283,36 @@ audio {
   margin-top: 1rem;
 }
 
+.release-access-editor {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1.1fr) minmax(7rem, 0.8fr) minmax(7rem, 0.8fr) auto;
+  gap: 0.65rem;
+  align-items: end;
+  border: 1px solid var(--border-divider);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.7rem;
+}
+
+.release-editor-field {
+  display: grid;
+  gap: 0.34rem;
+  min-width: 0;
+}
+
+.release-editor-field span {
+  color: var(--fg-tertiary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.release-access-editor .compact-action {
+  min-height: 2.45rem;
+  white-space: nowrap;
+}
+
 .release-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3280,6 +3310,10 @@ audio {
 
   .release-focus-cover {
     width: min(18rem, 100%);
+  }
+
+  .release-access-editor {
+    grid-template-columns: 1fr;
   }
 
   .player-stage,

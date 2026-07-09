@@ -1,16 +1,20 @@
-import { BadgeCheck, ExternalLink, Library, Play, ShieldCheck } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { BadgeCheck, ExternalLink, Library, Play, Power, PowerOff, Save, ShieldCheck } from 'lucide-react';
 import { EndpointRow } from '../../shared/ui/EndpointRow';
 import { PanelTitle } from '../../shared/ui/PanelTitle';
 import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
 import { accessModeLabel, shorten } from '../../shared/utils/format';
 import { runtimeAddressFromTrackId } from '../../features/catalog/trackModel';
-import type { CatalogTrack } from '../../shared/types';
+import type { AccessMode, CatalogTrack, PersonhoodLevel } from '../../shared/types';
 
 type ReleasesTabProps = {
   artistTracks: CatalogTrack[];
   selectedReleaseId: string | null;
   onSelectRelease: (releaseId: string) => void;
   onOpenTrack: (track: CatalogTrack) => void;
+  onUpdateReleaseAccessMode: (track: CatalogTrack, accessMode: AccessMode, priceDot: string, personhoodLevel: PersonhoodLevel) => void;
+  onSetReleaseActive: (track: CatalogTrack, active: boolean) => void;
+  releaseActionId: string | null;
   /** Into orbit (Constellation phase C): id of a release that just landed on
    * chain while the console was open; its card plays a one-shot arrival. */
   arrivedReleaseId?: string | null;
@@ -20,10 +24,48 @@ function releaseDomId(trackId: string) {
   return trackId.replace(/[^a-zA-Z0-9_-]/g, '-');
 }
 
-export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, onOpenTrack, arrivedReleaseId = null }: ReleasesTabProps) {
+export function ReleasesTab({
+  artistTracks,
+  selectedReleaseId,
+  onSelectRelease,
+  onOpenTrack,
+  onUpdateReleaseAccessMode,
+  onSetReleaseActive,
+  releaseActionId,
+  arrivedReleaseId = null
+}: ReleasesTabProps) {
   const selectedRelease = artistTracks.find(track => track.id === selectedReleaseId) ?? artistTracks[0] ?? null;
   const runtimeAddress = selectedRelease ? runtimeAddressFromTrackId(selectedRelease) : null;
   const selectedDomId = selectedRelease ? releaseDomId(selectedRelease.id) : 'empty';
+  const [draftAccessMode, setDraftAccessMode] = useState<AccessMode>(selectedRelease?.accessMode ?? 'human-free');
+  const [draftPriceDot, setDraftPriceDot] = useState(selectedRelease?.priceDot ?? '0');
+  const [draftPersonhoodLevel, setDraftPersonhoodLevel] = useState<PersonhoodLevel>(selectedRelease?.personhoodLevel ?? 'DIM1');
+
+  useEffect(() => {
+    if (!selectedRelease) return;
+    setDraftAccessMode(selectedRelease.accessMode);
+    setDraftPriceDot(selectedRelease.priceDot);
+    setDraftPersonhoodLevel(selectedRelease.personhoodLevel);
+  }, [selectedRelease]);
+
+  const selectedReleaseActive = selectedRelease?.active !== false;
+  const accessActionId = selectedRelease ? `${selectedRelease.id}:access` : '';
+  const activeActionId = selectedRelease ? `${selectedRelease.id}:active` : '';
+  const isAccessBusy = releaseActionId === accessActionId;
+  const isActiveBusy = releaseActionId === activeActionId;
+  const isBusy = Boolean(releaseActionId);
+  const hasPolicyChanges =
+    Boolean(selectedRelease) &&
+    (draftAccessMode !== selectedRelease.accessMode ||
+      draftPriceDot.trim() !== selectedRelease.priceDot ||
+      draftPersonhoodLevel !== selectedRelease.personhoodLevel);
+  const canSavePolicy = Boolean(selectedRelease && selectedReleaseActive && hasPolicyChanges && !isBusy);
+
+  function handleAccessSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedRelease || !canSavePolicy) return;
+    onUpdateReleaseAccessMode(selectedRelease, draftAccessMode, draftPriceDot.trim() || '0', draftPersonhoodLevel);
+  }
 
   return (
     <section className='content-grid releases-grid release-console-grid'>
@@ -56,7 +98,13 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
                     </small>
                   </span>
                   <span className='release-tab-access'>
-                    {track.accessMode === 'classic' ? `${track.priceDot} DOT` : track.accessMode === 'free' ? 'Free' : track.personhoodLevel}
+                    {track.active === false
+                      ? 'Inactive'
+                      : track.accessMode === 'classic'
+                        ? `${track.priceDot} DOT`
+                        : track.accessMode === 'free'
+                          ? 'Free'
+                          : track.personhoodLevel}
                   </span>
                 </button>
               );
@@ -92,6 +140,9 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
                       ? 'Free'
                       : 'Listener pass'}
                 </span>
+                <span className='access-chip' data-tone={selectedReleaseActive ? 'ready' : 'locked'}>
+                  {selectedReleaseActive ? 'Active' : 'Inactive'}
+                </span>
                 <span className='access-chip access-chip-trust'>
                   <BadgeCheck size={13} />
                   Artist controlled
@@ -103,7 +154,7 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
               </div>
               <p className='release-description'>{selectedRelease.description}</p>
               <div className='release-actions release-primary-actions'>
-                <button className='primary-action compact-action' type='button' onClick={() => onOpenTrack(selectedRelease)}>
+                <button className='primary-action compact-action' type='button' onClick={() => onOpenTrack(selectedRelease)} disabled={!selectedReleaseActive}>
                   <Play size={15} />
                   Open track
                 </button>
@@ -113,9 +164,62 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
                     Artist record
                   </a>
                 )}
+                <button
+                  className='secondary-action compact-action'
+                  type='button'
+                  disabled={isBusy}
+                  onClick={() => onSetReleaseActive(selectedRelease, !selectedReleaseActive)}
+                >
+                  {selectedReleaseActive ? <PowerOff size={15} /> : <Power size={15} />}
+                  {isActiveBusy ? 'Updating' : selectedReleaseActive ? 'Deactivate' : 'Reactivate'}
+                </button>
               </div>
             </div>
           </div>
+
+          <form className='release-access-editor' onSubmit={handleAccessSubmit}>
+            <label className='release-editor-field'>
+              <span>Access mode</span>
+              <select
+                className='field'
+                value={draftAccessMode}
+                onChange={event => setDraftAccessMode(event.target.value as AccessMode)}
+                disabled={!selectedReleaseActive || isBusy}
+              >
+                <option value='human-free'>Human pass</option>
+                <option value='classic'>Classic paid</option>
+                <option value='free'>Free</option>
+              </select>
+            </label>
+            <label className='release-editor-field'>
+              <span>Price DOT</span>
+              <input
+                className='field'
+                type='number'
+                min='0'
+                step='0.0001'
+                value={draftPriceDot}
+                onChange={event => setDraftPriceDot(event.target.value)}
+                disabled={draftAccessMode !== 'classic' || !selectedReleaseActive || isBusy}
+              />
+            </label>
+            <label className='release-editor-field'>
+              <span>Pass level</span>
+              <select
+                className='field'
+                value={draftPersonhoodLevel}
+                onChange={event => setDraftPersonhoodLevel(event.target.value as PersonhoodLevel)}
+                disabled={draftAccessMode !== 'human-free' || !selectedReleaseActive || isBusy}
+              >
+                <option value='DIM1'>DIM1</option>
+                <option value='DIM2'>DIM2</option>
+              </select>
+            </label>
+            <button className='primary-action compact-action' type='submit' disabled={!canSavePolicy}>
+              <Save size={15} />
+              {isAccessBusy ? 'Saving' : 'Save access'}
+            </button>
+          </form>
 
           <div className='release-detail-grid'>
             <EndpointRow
@@ -131,6 +235,7 @@ export function ReleasesTab({ artistTracks, selectedReleaseId, onSelectRelease, 
             <EndpointRow label='Royalty total' value={`${selectedRelease.royaltyBps} bps`} />
             <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />
             <EndpointRow label='Encrypted audio' value={selectedRelease.encrypted ? 'yes' : 'no'} />
+            <EndpointRow label='Status' value={selectedReleaseActive ? 'active' : 'inactive'} />
             <EndpointRow label='Content hash' value={<code className='release-ref-code'>{selectedRelease.hash}</code>} />
             <EndpointRow
               label='Artist record'
