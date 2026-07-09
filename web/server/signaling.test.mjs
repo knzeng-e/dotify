@@ -204,6 +204,37 @@ describe('signaling server', () => {
     assert.equal(typeof payload.listenerId, 'string');
   });
 
+  it('lets a listener rename themselves and notifies the host', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+
+    const renamed = once(host, 'listener:renamed');
+    const response = await emitAck(listener, 'room:rename', { displayName: '  Nina  ' });
+    const payload = await renamed;
+
+    assert.equal(response.ok, true);
+    assert.equal(response.displayName, 'Nina');
+    assert.equal(payload.displayName, 'Nina');
+    assert.equal(server.rooms.get(created.roomId).listeners.get(listener.id).displayName, 'Nina');
+  });
+
+  it('rejects default listener rename values', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+
+    const response = await emitAck(listener, 'room:rename', { displayName: 'Listener' });
+    assert.equal(response.ok, false);
+    assert.equal(server.rooms.get(created.roomId).listeners.get(listener.id).displayName, 'Guest');
+  });
+
   it('expires rooms past their TTL', async () => {
     await server.close();
     server = startSignalingServer({ port: 0, host: '127.0.0.1', roomTtlMs: 50, sweepIntervalMs: 20, logger: () => {} });

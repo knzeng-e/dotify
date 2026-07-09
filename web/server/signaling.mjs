@@ -318,6 +318,39 @@ export function startSignalingServer(overrides = {}) {
       emitRooms();
     });
 
+    socket.on('room:rename', (payload = {}, reply) => {
+      const participant = getParticipant(socket);
+      if (!participant) {
+        reply?.({ ok: false, error: 'Not in a room.' });
+        return;
+      }
+
+      const displayName = sanitizeText(payload.displayName, '', 32);
+      if (!displayName || displayName === 'Listener') {
+        reply?.({ ok: false, error: 'Choose a room name first.' });
+        return;
+      }
+
+      if (participant.role === 'host') {
+        participant.room.hostName = displayName;
+        touchHost(participant.room);
+        io.to(participant.roomId).emit('host:renamed', { displayName });
+        emitRooms();
+        reply?.({ ok: true, displayName });
+        return;
+      }
+
+      const listener = participant.room.listeners.get(socket.id);
+      if (!listener) {
+        reply?.({ ok: false, error: 'Listener not found.' });
+        return;
+      }
+
+      listener.displayName = displayName;
+      io.to(participant.room.hostId).emit('listener:renamed', { listenerId: socket.id, displayName });
+      reply?.({ ok: true, displayName });
+    });
+
     socket.on('player:state', state => {
       const room = getHostedRoom(socket);
       if (!room) return;

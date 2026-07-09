@@ -8,7 +8,7 @@ import {
   roomJoinE2eIceServers
 } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
-import { storeDisplayName } from '../features/identity/walletIdentity';
+import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
@@ -272,6 +272,16 @@ export function useSession(deps: UseSessionDeps) {
       hostPeersRef.current.delete(payload.listenerId);
       removeListener(payload.listenerId);
       setListenerCount(payload.listenerCount);
+    });
+    socket.on('listener:renamed', (payload: { listenerId: string; displayName: string }) => {
+      setListeners(previous => {
+        const next = previous.map(listener => (listener.id === payload.listenerId ? { ...listener, displayName: payload.displayName } : listener));
+        listenersRef.current = next;
+        return next;
+      });
+    });
+    socket.on('host:renamed', (payload: { displayName: string }) => {
+      setHostName(payload.displayName);
     });
     socket.on('room:listener-count', (payload: { listenerCount: number }) => {
       setListenerCount(payload.listenerCount);
@@ -812,6 +822,30 @@ export function useSession(deps: UseSessionDeps) {
     joinRoom(joinCode);
   }
 
+  function updateDisplayName(nextDisplayName: string) {
+    const clean = sanitizeDisplayName(nextDisplayName);
+    setDisplayName(clean);
+    if (!isChosenDisplayName(clean)) {
+      setError('Choose a room name first.');
+      return;
+    }
+
+    storeDisplayName(hostAddress, clean);
+    if (!roomIdRef.current) return;
+
+    const socket = connectSocket();
+    socket
+      .timeout(SIGNAL_ACK_TIMEOUT_MS)
+      .emit('room:rename', { displayName: clean }, (error: Error | null, response: { ok: boolean; displayName?: string; error?: string } | undefined) => {
+        if (error || !response?.ok) {
+          setError(response?.error ?? 'Unable to update room name.');
+          return;
+        }
+        setDisplayName(response.displayName ?? clean);
+        setError(null);
+      });
+  }
+
   function requestRoomAudio() {
     if (modeRef.current !== 'listener' || !roomIdRef.current) return;
 
@@ -944,6 +978,7 @@ export function useSession(deps: UseSessionDeps) {
     createSession,
     joinRoom,
     joinSession,
+    updateDisplayName,
     requestRoomAudio,
     leaveSession,
     createHostPeer,

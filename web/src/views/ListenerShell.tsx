@@ -5,7 +5,7 @@
 // shell (see ArtistPortalView); App switches between the two.
 
 import { Link as LinkIcon } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 import { AuraBackground } from '../components/AuraBackground';
 import { PersistentAudio } from '../components/PersistentAudio';
@@ -36,7 +36,7 @@ import {
 } from '../app/providers';
 import { NAV_ITEMS, VIEW_COPY } from '../app/navigation';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from '../features/catalog/trackModel';
-import { getStoredDisplayName } from '../features/identity/walletIdentity';
+import { getStoredDisplayName, isChosenDisplayName } from '../features/identity/walletIdentity';
 import { getInitialRoomCode } from '../features/rooms/roomState';
 import { deriveSupportSummary } from '../features/wallet/supportSummary';
 import { getStoredArtistName } from '../hooks/useArtistConsole';
@@ -85,8 +85,17 @@ export function ListenerShell() {
   // Access model v2: rooms always carry the full track; a host who cannot play
   // the chosen track opens the room without a stream and sees the access gate.
   async function executeArtistRoom(track: CatalogTrack) {
+    const trackInfo = catalogTrackToTrackInfo(track);
+    const isCurrentReadyTrack = track.id === catalog.selectedTrackId && Boolean(catalog.audioSource);
+    if (isCurrentReadyTrack) {
+      if (!playback.transport.playing) void playback.togglePlay();
+      prepareLocalStream();
+      session.createSession(trackInfo, 'full');
+      return;
+    }
+
     await catalog.openTrack(track).catch(() => undefined);
-    session.createSession(catalogTrackToTrackInfo(track), 'full');
+    session.createSession(trackInfo, 'full');
   }
 
   // Entry point from artist profile / room cards - opens CreateRoomModal so the
@@ -99,7 +108,23 @@ export function ListenerShell() {
 
   function handleJoinRoomFromProfile(roomId: string) {
     setPublicArtistName(null);
-    session.joinRoom(roomId);
+    handleJoinRoomRequest(roomId);
+  }
+
+  function handleJoinRoomRequest(roomId: string) {
+    session.setJoinCode(roomId);
+    if (isChosenDisplayName(session.displayName)) {
+      session.joinRoom(roomId);
+      return;
+    }
+
+    session.setDisplayName('');
+    setJoinRoomOpen(true);
+  }
+
+  function handleJoinSession(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    handleJoinRoomRequest(session.joinCode);
   }
 
   // Shared navigation model: rendered as a bottom tab bar on mobile and a
@@ -164,7 +189,7 @@ export function ListenerShell() {
                     catalogAccessByTrackId={catalog.catalogAccessByTrackId}
                     onOpenTrack={openTrack}
                     onOpenArtist={handleOpenArtistProfile}
-                    onJoinRoom={session.joinRoom}
+                    onJoinRoom={handleJoinRoomRequest}
                     onStartRoom={() => setCreateRoomOpen(true)}
                   />
                 )}
@@ -178,8 +203,8 @@ export function ListenerShell() {
                     sessionAction={session.sessionAction}
                     isRefreshingRooms={session.isRefreshingRooms}
                     onSetJoinCode={session.setJoinCode}
-                    onJoinRoom={session.joinRoom}
-                    onJoinSession={session.joinSession}
+                    onJoinRoom={handleJoinRoomRequest}
+                    onJoinSession={handleJoinSession}
                     onRefreshRooms={() => session.requestOpenRooms(true)}
                     onStartRoom={() => setCreateRoomOpen(true)}
                   />

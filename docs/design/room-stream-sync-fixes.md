@@ -62,7 +62,10 @@ Guests landing on a `#/rooms/<id>` link no longer auto-join under the untouched
 default "Listener" name. If a wallet-scoped or guest display name is already
 remembered, the one-link join remains immediate. Otherwise the join modal opens
 with the room code prefilled and requires the guest to pick their visible room
-name before the host sees them in the listener list.
+name before the host sees them in the listener list. Older localStorage entries
+that stored the literal default "Listener" are ignored and cleared. Once inside,
+a listener can rename themselves from the room panel; the signaling server
+updates the listener record and notifies the host live.
 
 ## Manual QA (required - these are browser-timing behaviors, not unit-testable)
 

@@ -67,6 +67,12 @@ describe('store/getStoredDisplayName', () => {
     expect(getStoredDisplayName(ADDRESS)).toBeNull();
   });
 
+  it('ignores and clears a default name left by older builds', () => {
+    window.localStorage.setItem('dotify:display-name:guest', DEFAULT_DISPLAY_NAME);
+    expect(getStoredDisplayName(null)).toBeNull();
+    expect(window.localStorage.getItem('dotify:display-name:guest')).toBeNull();
+  });
+
   it('sanitizes on the way in', () => {
     storeDisplayName(ADDRESS, '  Gabe   ');
     expect(getStoredDisplayName(ADDRESS)).toBe('Gabe');

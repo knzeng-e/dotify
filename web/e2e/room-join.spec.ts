@@ -83,7 +83,7 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     expect(roomId).toMatch(/[A-Z0-9]{4,}/);
     await expect(host.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
 
-    const listener = await joinAsListener(listenerContext, roomId, { displayName: 'Nomad' });
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Listener', displayName: 'Nomad' });
 
     // Guest joins with no wallet: the connect affordance is still present.
     await expect(listener.getByRole('button', { name: 'Connect' })).toBeVisible();
@@ -91,6 +91,10 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
     await expect(host.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
+
+    await listener.getByLabel('Your room name').fill('Nia');
+    await listener.getByRole('button', { name: 'Update room name' }).click();
+    await expect(host.locator('.listener-list')).toContainText('Nia', { timeout: 20_000 });
 
     // Key-delivery boundary: the listener never requested a content key.
     const listenerState = await readRoomJoinState(listener);

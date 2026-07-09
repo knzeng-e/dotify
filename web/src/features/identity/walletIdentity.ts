@@ -51,9 +51,14 @@ const GUEST_KEY = 'guest';
 
 export function getStoredDisplayName(address: string | null | undefined): string | null {
   try {
-    const stored = window.localStorage.getItem(storageKey(address || GUEST_KEY));
+    const key = storageKey(address || GUEST_KEY);
+    const stored = window.localStorage.getItem(key);
     const clean = sanitizeDisplayName(stored);
-    return clean || null;
+    if (!isChosenDisplayName(clean)) {
+      if (stored) window.localStorage.removeItem(key);
+      return null;
+    }
+    return clean;
   } catch {
     return null;
   }

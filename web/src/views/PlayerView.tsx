@@ -1,5 +1,6 @@
 import {
   Copy,
+  Check,
   Headphones,
   KeyRound,
   Library,
@@ -28,6 +29,7 @@ import { Dialog } from '../components/Dialog';
 import { hashHue, initialsFor } from '../shared/utils/aura';
 import { formatTime } from '../shared/utils/format';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
+import { isChosenDisplayName } from '../features/identity/walletIdentity';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import { playbackStatusLabel, transportProgressPercent } from '../features/player/playbackStatus';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
@@ -62,6 +64,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     sessionStatus,
     listenerCount,
     listeners,
+    displayName,
     remoteReady,
     localStreamReady,
     roomPlaybackMode,
@@ -72,6 +75,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const selectedTrackHasAccess = selectedTrack ? trackHasAccess(selectedTrack, catalog.catalogAccessByTrackId) : false;
 
   const onLeaveSession = session.leaveSession;
+  const onSetDisplayName = session.setDisplayName;
+  const onUpdateDisplayName = session.updateDisplayName;
   const onRetryRoomAudio = session.requestRoomAudio;
   const onCopySessionLink = session.copySessionLink;
   const onSetAccessGate = catalog.setAccessGate;
@@ -585,6 +590,31 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   <i data-status='waiting' />
                 )}
               </div>
+
+              <form
+                className='room-name-form'
+                onSubmit={event => {
+                  event.preventDefault();
+                  onUpdateDisplayName(displayName);
+                }}
+              >
+                <label className='create-room-label' htmlFor='room-display-name'>
+                  Your room name
+                </label>
+                <div className='room-name-row'>
+                  <input
+                    id='room-display-name'
+                    className='field'
+                    value={displayName}
+                    onChange={event => onSetDisplayName(event.target.value)}
+                    maxLength={32}
+                    autoComplete='nickname'
+                  />
+                  <button className='secondary-action icon-action' type='submit' disabled={!isChosenDisplayName(displayName)} aria-label='Update room name'>
+                    <Check size={16} />
+                  </button>
+                </div>
+              </form>
 
               <p className='room-doctrine-note'>You are listening with the host. The link is enough to be here.</p>
 
