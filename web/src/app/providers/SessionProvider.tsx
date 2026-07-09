@@ -53,7 +53,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (!initialRoomCode || session.roomId) return;
     const remembered = getStoredDisplayName(listenerEvmAddress);
     if (remembered) session.setDisplayName(remembered);
-    session.joinRoom(initialRoomCode);
+    session.joinRoom(initialRoomCode, remembered ? { displayName: remembered } : undefined);
     // Run once per mount; the share-link code is read from the URL at mount time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

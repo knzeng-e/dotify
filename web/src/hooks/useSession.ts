@@ -700,17 +700,18 @@ export function useSession(deps: UseSessionDeps) {
     );
   }
 
-  function joinRoom(roomCode: string) {
+  function joinRoom(roomCode: string, options: { displayName?: string } = {}) {
     const normalizedRoomId = normalizeRoomCode(roomCode);
     if (!normalizedRoomId) {
       setError('Room code required');
       return;
     }
+    const joinDisplayName = options.displayName ?? displayName;
 
     // Persist the chosen name on a real join (not on every keystroke). No-ops
     // for the untouched default, so link/QR guests joining as "Listener" are
     // not recorded. A silent reconnect goes through rejoinRoom, not here.
-    storeDisplayName(hostAddress, displayName);
+    storeDisplayName(hostAddress, joinDisplayName);
     changeMode('listener');
     setSessionAction('joining');
     navigateToView('player');
@@ -720,7 +721,7 @@ export function useSession(deps: UseSessionDeps) {
 
     emitAckWhenConnected<JoinRoomResponse>(
       'room:join',
-      { roomId: normalizedRoomId, displayName },
+      { roomId: normalizedRoomId, displayName: joinDisplayName },
       (response: JoinRoomResponse) => {
         setSessionAction('idle');
         if (!response.ok) {
