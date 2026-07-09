@@ -63,3 +63,13 @@ On two devices/tabs, host + listener:
    the loop boundary with no silence.
 4. Host play/pause/seek repeatedly: the listener is not disconnected/rebuilt each
    time (no repeated "Connecting..." blips).
+
+## Reverted follow-ups (needs browser-verified re-approach)
+
+A `replaceTrack`-based track switch (Meet-style, no renegotiation) and a
+name-gated lobby for link/QR arrivals were tried and reverted: they regressed a
+real deployment (listeners lost audio, host felt heavier) and could not be
+verified without a browser here. Track changes stay on the full-renegotiation
+path (correct, if not seamless); link/QR guests auto-join immediately under a
+remembered name, never blocked behind a form. Any future Meet-grade switching or
+lobby step must be validated in a real two-device session before landing.

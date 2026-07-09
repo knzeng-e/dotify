@@ -72,8 +72,27 @@ describe('store/getStoredDisplayName', () => {
     expect(getStoredDisplayName(ADDRESS)).toBe('Gabe');
   });
 
-  it('returns null for a missing address or no stored value', () => {
+  it('returns null when nothing is stored', () => {
     expect(getStoredDisplayName(null)).toBeNull();
     expect(getStoredDisplayName(ADDRESS)).toBeNull();
+  });
+
+  it('remembers a guest login under the per-browser guest key', () => {
+    storeDisplayName(null, 'Nomad');
+    expect(getStoredDisplayName(null)).toBe('Nomad');
+    // A wallet-scoped name is independent of the guest one.
+    expect(getStoredDisplayName(ADDRESS)).toBeNull();
+  });
+
+  it('prefers the wallet-scoped name over the guest name for a connected address', () => {
+    storeDisplayName(null, 'Nomad');
+    storeDisplayName(ADDRESS, 'Ada');
+    expect(getStoredDisplayName(ADDRESS)).toBe('Ada');
+    expect(getStoredDisplayName(null)).toBe('Nomad');
+  });
+
+  it('does not record the untouched default as a guest login either', () => {
+    storeDisplayName(null, DEFAULT_DISPLAY_NAME);
+    expect(getStoredDisplayName(null)).toBeNull();
   });
 });

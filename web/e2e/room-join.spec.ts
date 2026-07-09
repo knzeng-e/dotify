@@ -48,7 +48,12 @@ async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: stri
 
 // Listener: open the bare #/rooms/<id> share link (no e2eRoom param) in a fresh
 // context. App auto-joins on mount with no wallet interaction.
-async function joinAsListener(context: BrowserContext, roomId: string) {
+async function joinAsListener(context: BrowserContext, roomId: string, storedDisplayName?: string) {
+  if (storedDisplayName) {
+    await context.addInitScript(name => {
+      window.localStorage.setItem('dotify:display-name:guest', name);
+    }, storedDisplayName);
+  }
   const page = await context.newPage();
   await page.goto(`/#/rooms/${roomId}`);
   return page;
@@ -63,13 +68,14 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     expect(roomId).toMatch(/[A-Z0-9]{4,}/);
     await expect(host.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
 
-    const listener = await joinAsListener(listenerContext, roomId);
+    const listener = await joinAsListener(listenerContext, roomId, 'Nomad');
 
     // Guest joins with no wallet: the connect affordance is still present.
     await expect(listener.getByRole('button', { name: 'Connect' })).toBeVisible();
     // Real WebRTC stream reaches the listener.
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
+    await expect(host.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
 
     // Key-delivery boundary: the listener never requested a content key.
     const listenerState = await readRoomJoinState(listener);
