@@ -57,6 +57,13 @@ import type { ConnectedWallet } from './useWallet';
 
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
 
+class AudioV2ChunkAuthenticationError extends Error {
+  constructor(readonly cause: unknown) {
+    super('DAV2 chunk authentication failed');
+    this.name = 'AudioV2ChunkAuthenticationError';
+  }
+}
+
 function escapeSvgText(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -180,6 +187,8 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   const objectUrlsRef = useRef<Set<string>>(new Set());
   const resolvedAudioSourcesRef = useRef<Map<string, string>>(new Map());
+  const audioSourceRef = useRef<string | null>(null);
+  const audioV2FallbacksRef = useRef<Set<string>>(new Set());
   const audioUploadRef = useRef<Promise<string> | null>(null);
   const coverUploadRef = useRef<Promise<string> | null>(null);
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -193,6 +202,20 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   function internalSetFileHash(hash: `0x${string}` | '') {
     setFileHashState(hash);
+  }
+
+  function setResolvedAudioSource(source: string | null) {
+    audioSourceRef.current = source;
+    setAudioSource(source);
+  }
+
+  function retireAudioV2MseObjectUrl(audioRef: string, objectUrl: string) {
+    if (resolvedAudioSourcesRef.current.get(audioRef) === objectUrl) {
+      resolvedAudioSourcesRef.current.delete(audioRef);
+    }
+    if (objectUrlsRef.current.delete(objectUrl)) {
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+    }
   }
 
   function getDeterministicE2eCatalogTracks() {
@@ -457,13 +480,50 @@ export function useCatalog(deps: UseCatalogDeps) {
     for (const chunk of parsed.header.chunks) {
       const chunkStart = parsed.bodyOffset + audioV2ChunkBodyOffset(parsed.header, chunk.index);
       const encrypted = await fetchAudioV2Range(cid, chunkStart, chunkStart + chunk.encryptedLength - 1);
-      const clear = await decryptAudioV2Chunk(parsed.header, chunk.index, encrypted, key);
+      let clear: Uint8Array;
+      try {
+        clear = await decryptAudioV2Chunk(parsed.header, chunk.index, encrypted, key);
+      } catch (error) {
+        throw new AudioV2ChunkAuthenticationError(error);
+      }
       await appendSourceBuffer(sourceBuffer, clear);
     }
     if (mediaSource.readyState === 'open') mediaSource.endOfStream();
   }
 
-  function createAudioV2MseSource(cid: string, parsed: ParsedAudioV2, key: Uint8Array): string {
+  async function fetchAndDecryptAudioV2Blob(cid: string, key: Uint8Array): Promise<string> {
+    const response = await fetchIpfsCid(cid);
+    if (!response.ok) throw new Error(`Unable to fetch DAV2 audio (${response.status})`);
+    const decrypted = await decryptAudioV2Container(new Uint8Array(await response.arrayBuffer()), key);
+    const blob = new Blob([decrypted.bytes], { type: decrypted.mediaMime });
+    return URL.createObjectURL(blob);
+  }
+
+  async function recoverAudioV2MseFailure(audioRef: string, cid: string, key: Uint8Array, failedObjectUrl: string, error: unknown) {
+    if (audioV2FallbacksRef.current.has(audioRef)) return;
+    if (audioSourceRef.current !== failedObjectUrl) return;
+
+    audioV2FallbacksRef.current.add(audioRef);
+    try {
+      console.warn('DAV2 streaming failed, falling back to full decrypt', error);
+      const fallbackUrl = await fetchAndDecryptAudioV2Blob(cid, key);
+      objectUrlsRef.current.add(fallbackUrl);
+      resolvedAudioSourcesRef.current.set(audioRef, fallbackUrl);
+
+      if (audioSourceRef.current === failedObjectUrl) {
+        setResolvedAudioSource(fallbackUrl);
+      }
+
+      retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
+    } catch (fallbackError) {
+      console.warn('DAV2 full decrypt fallback failed', fallbackError);
+      retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
+    } finally {
+      audioV2FallbacksRef.current.delete(audioRef);
+    }
+  }
+
+  function createAudioV2MseSource(audioRef: string, cid: string, parsed: ParsedAudioV2, key: Uint8Array): string {
     if (!canStreamAudioV2WithMse(parsed.header)) throw new Error('DAV2 MSE streaming unsupported for this media type');
 
     const mediaSource = new MediaSource();
@@ -475,7 +535,12 @@ export function useCatalog(deps: UseCatalogDeps) {
         return pumpAudioV2ToMediaSource(mediaSource, sourceBuffer, cid, parsed, key);
       })
       .catch(error => {
-        console.warn('DAV2 streaming failed', error);
+        if (!(error instanceof AudioV2ChunkAuthenticationError)) {
+          void recoverAudioV2MseFailure(audioRef, cid, key, objectUrl, error);
+        } else {
+          console.warn('DAV2 chunk authentication failed', error);
+          retireAudioV2MseObjectUrl(audioRef, objectUrl);
+        }
         if (mediaSource.readyState === 'open') {
           try {
             mediaSource.endOfStream('decode');
@@ -493,16 +558,12 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     try {
       const parsed = await fetchAudioV2Header(cid);
-      return createAudioV2MseSource(cid, parsed, key);
+      return createAudioV2MseSource(audioRef, cid, parsed, key);
     } catch (streamError) {
       console.warn('DAV2 streaming unavailable, falling back to full decrypt', streamError);
     }
 
-    const response = await fetchIpfsCid(cid);
-    if (!response.ok) throw new Error(`Unable to fetch DAV2 audio (${response.status})`);
-    const decrypted = await decryptAudioV2Container(new Uint8Array(await response.arrayBuffer()), key);
-    const blob = new Blob([decrypted.bytes], { type: decrypted.mediaMime });
-    return URL.createObjectURL(blob);
+    return fetchAndDecryptAudioV2Blob(cid, key);
   }
 
   async function fetchAndDecryptAudio(audioRef: string, gatewayUrl: string, contentHash: `0x${string}`, accessMode: AccessMode): Promise<string> {
@@ -607,7 +668,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
     }
 
-    setAudioSource(audioUrl);
+    setResolvedAudioSource(audioUrl);
 
     if (!audioUrl) {
       if (setLocalStreamReady) setLocalStreamReady(false);
@@ -941,7 +1002,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     catalogPaidAccessByTrackId,
     setCatalogPaidAccessByTrackId,
     audioSource,
-    setAudioSource,
+    setAudioSource: setResolvedAudioSource,
     trackInfo,
     setTrackInfo,
     coverSource,

@@ -74,8 +74,9 @@ The web client resolves refs in this order:
 2. For v2 refs, try Range requests against configured IPFS gateways.
 3. If the browser supports `MediaSource.isTypeSupported(header.mediaMime)`,
    decrypt chunks and append them to a `SourceBuffer`.
-4. If Range or MSE is unavailable before streaming starts, fetch the full
-   encrypted object, decrypt it, and play from a Blob URL.
+4. If Range or MSE is unavailable before streaming starts, or a recoverable
+   gateway/MSE append error happens while streaming, fetch the full encrypted
+   object, decrypt it, and play from a Blob URL.
 5. If any chunk fails authentication, stop playback and surface a protected
    playback error.
 
