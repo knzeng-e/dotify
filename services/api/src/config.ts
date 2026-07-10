@@ -47,6 +47,9 @@ const envSchema = z.object({
   ),
   // Pinata JWT — must stay server-side only. Never expose in frontend env.
   PINATA_JWT: optionalNonEmptyString,
+  // Deploy-time commit SHA surfaced by /version (set by CI/Docker builds; the
+  // service falls back to `git rev-parse HEAD` in dev checkouts).
+  GIT_COMMIT_SHA: optionalNonEmptyString,
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
 

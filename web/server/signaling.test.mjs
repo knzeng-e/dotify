@@ -83,6 +83,23 @@ describe('signaling server', () => {
     assert.ok(room.expiresAt > room.createdAt);
   });
 
+  it('exposes counts and non-secret configuration on the health endpoint', async () => {
+    const host = connectClient();
+    await createRoom(host, { track: { title: 'Night Drive', artist: 'Ada' } });
+
+    const res = await fetch(`http://127.0.0.1:${port}/health`);
+    const body = await res.json();
+
+    assert.equal(body.ok, true);
+    assert.equal(typeof body.uptimeSeconds, 'number');
+    assert.equal(body.rooms, 1);
+    assert.equal(body.listeners, 0);
+    assert.equal(body.allowedOrigins, '*');
+    assert.equal(typeof body.roomTtlMs, 'number');
+    assert.equal(typeof body.hostHeartbeatTimeoutMs, 'number');
+    assert.equal(body.maxListenersPerRoom, 2);
+  });
+
   it('honors preview playback mode at room creation', async () => {
     const host = connectClient();
     const created = await createRoom(host, {

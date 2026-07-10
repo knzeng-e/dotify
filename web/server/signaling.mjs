@@ -142,7 +142,13 @@ export function startSignalingServer(overrides = {}) {
         app: 'dotify',
         uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
         rooms: rooms.size,
-        listeners: listenerTotal
+        listeners: listenerTotal,
+        // Non-secret configuration echo (ticket 10): lets an operator confirm
+        // which origin policy and room lifetimes a deployment is running.
+        allowedOrigins: config.origins,
+        roomTtlMs: config.roomTtlMs,
+        hostHeartbeatTimeoutMs: config.hostHeartbeatTimeoutMs,
+        maxListenersPerRoom: config.maxListenersPerRoom
       });
       return;
     }

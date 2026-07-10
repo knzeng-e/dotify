@@ -110,6 +110,28 @@ frontend bundle.
 **Demo/local mode** (no backend): set `VITE_PINATA_JWT` in `web/.env.local` with
 a restricted upload-only Pinata token. Do not use an unrestricted token in demos.
 
+**Inspecting API health**:
+
+| Endpoint            | Purpose                                                                      |
+| ------------------- | ---------------------------------------------------------------------------- |
+| `GET /health`       | Liveness: process status, uptime, package version. Never touches the chain.  |
+| `GET /version`      | Package version plus the deploy commit SHA when known                        |
+| `GET /health/ready` | Readiness diagnostics; answers `503` when key delivery cannot work           |
+
+The commit SHA comes from the `GIT_COMMIT_SHA` env variable, falling back to
+`git rev-parse HEAD` in dev checkouts.
+
+`/health/ready` checks, without ever echoing secret values: master-secret and
+Pinata configuration (booleans only), RPC reachability and chain-ID match,
+artist-directory readability, and factory code presence.
+
+Every response carries an `x-request-id` header (echoed from a well-formed
+incoming `x-request-id`, otherwise generated) that matches the structured log
+line for that request, and error responses share one typed envelope:
+`{ error, code, requestId }`. Authorization headers, session tokens, and
+signatures are redacted from request logs; secrets never appear in health
+output.
+
 ### Running the signaling server (hosted rooms)
 
 The signaling server coordinates room discovery and WebRTC SDP/ICE exchange.
@@ -146,9 +168,10 @@ would drop active WebSocket rooms without a clean `room:closed` broadcast.
 | `SIGNAL_HOST_TIMEOUT_MS` | 120 s     | Close rooms whose host stops heartbeating                      |
 | `SIGNAL_MAX_LISTENERS`   | 24        | Per-room listener cap                                          |
 
-`GET /health` reports uptime plus room and listener counts; `GET /status`
-exposes public room metadata (current track, playback mode, host-based access
-flags, expiry).
+`GET /health` reports uptime, room and listener counts, and a non-secret
+configuration echo (allowed origins, room TTL, host heartbeat timeout,
+per-room listener cap); `GET /status` exposes public room metadata (current
+track, playback mode, host-based access flags, expiry).
 
 **Host-based room access.** Rooms never become a wallet checkpoint:
 

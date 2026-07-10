@@ -46,7 +46,7 @@ Do not add ornamental product features until the following spine is stable:
 
 | Backlog doc | GitHub issue | Status | Goal |
 | --- | --- | --- | --- |
-| `10-observability-health-checks.md` | #11 | Open | Observability and health checks |
+| `10-observability-health-checks.md` | #11 | Backend + signaling slice delivered (see delivery notes); frontend surface open | Observability and health checks |
 | `11-proof-of-personhood-integration-research.md` | #12 | Open | Proof of Personhood integration research |
 | `12-ambassador-social-propagation-model.md` | #13 | Open | Ambassador and social propagation model |
 
