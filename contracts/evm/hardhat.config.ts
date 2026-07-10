@@ -3,7 +3,16 @@ import '@nomicfoundation/hardhat-viem';
 import '@nomicfoundation/hardhat-verify';
 
 const config: HardhatUserConfig = {
-  solidity: '0.8.28',
+  solidity: {
+    version: '0.8.28',
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      },
+      viaIR: true
+    }
+  },
   networks: {
     local: {
       url: process.env.ETH_RPC_HTTP || 'http://127.0.0.1:8545',

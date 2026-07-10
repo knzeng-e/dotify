@@ -1,14 +1,14 @@
 {
-  "factory": "0x38dba15b7296ca9d3544c9f996e8e1898ad42ca5",
-  "directory": "0x7f8bb68d2a451f330880b7bf9237bc3521158d9a",
-  "initializer": "0x2ae93335bf8d2fdaab1a92f2471c566bbef5d15b",
+  "factory": "0xa710efb574ae3ec92c121ac9f0bd21e7702209c2",
+  "directory": "0xb28714d2179f07ff7b8c6c57be88c461a0cf2677",
+  "initializer": "0x67628fb1fbd73d94c2b135c05685896f8204a493",
   "pallets": {
-    "cutPallet": "0x6bd12e3845e5fffdb623ba8e530860196d27cadd",
-    "loupePallet": "0xab3929d0212d7c4cd8269c658c334ac888a0130f",
-    "ownershipPallet": "0x06c01959a0d37ec56c05746bc52478b9c43ac235",
-    "registryPallet": "0x8d08096a2d334d69774b36f018dfb2c4942d9c82",
-    "nftPallet": "0xd14a9ff2456d3b102c60f4214d8c97fc07390ead",
-    "royaltiesPallet": "0xd9e046deabcf1660b2cac608768ee751ba3d79dd",
-    "accessPallet": "0xd61ac65c0fecfb83108f6e374a57fff9c692901d"
+    "cutPallet": "0x0eb770a3356cc702f74863f687e5f2199cb139be",
+    "loupePallet": "0x0d1fdfaae8bc6c7e00dd5a66dd233585e651f53e",
+    "ownershipPallet": "0xe290818ffad4f789ccf977e13d23fd3a4fe1c7ff",
+    "registryPallet": "0x1035e84060afb9467998eb5fd9fee0e2a9bd4a69",
+    "nftPallet": "0x94d4aa7b2173fff5d41a648a8ea723a6dbd93b69",
+    "royaltiesPallet": "0xb3a292ba5869178abac9e5fc88161fd9aa192110",
+    "accessPallet": "0xd8cfb50764a25d1f2ea767256575369bd3893102"
   }
 }

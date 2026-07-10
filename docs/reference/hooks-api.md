@@ -212,7 +212,7 @@ const artist = useArtistConsole({
 
 | Function                      | Signature                                              | Description                                                                                        |
 | ----------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `registerArtist`              | `() => Promise<void>`                                  | Deploy a SmartRuntime for the active address via `ArtistRuntimeFactory`.                           |
+| `registerArtist`              | `() => Promise<void>`                                  | Bootstrap and finalize a SmartRuntime for the active address via `ArtistRuntimeFactory`.            |
 | `refreshArtistRuntime`        | `(showBusy?: boolean) => Promise<0x${string} \| null>` | Check `ArtistDirectory` for the active address. Updates `artistRuntimeAddress`.                    |
 | `registerRights`              | `() => Promise<void>`                                  | Full release publish flow: IPFS upload → optional Bulletin → `musicRegRegister()`.                 |
 | `refreshArtistRoyalties`      | `(showBusy?: boolean) => Promise<void>`                | Fetch all `MusicRoyAccessPaid` logs for the artist's runtime.                                      |

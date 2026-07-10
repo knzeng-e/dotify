@@ -164,6 +164,16 @@ Controls the visual state of the `TransactionModal`.
 
 ---
 
+### `TransactionFeedbackStepStatus`
+
+```typescript
+type TransactionFeedbackStepStatus = 'complete' | 'active' | 'submitted' | 'upcoming';
+```
+
+Controls an optional transaction roadmap inside the `TransactionModal`.
+
+---
+
 ## Object types
 
 ### `RoyaltySplit`
@@ -331,10 +341,16 @@ type TransactionFeedback = {
   title: string;
   message: string;
   txHash?: `0x${string}`; // Present after transaction submission
+  steps?: {
+    label: string;
+    detail: string;
+    status: TransactionFeedbackStepStatus;
+    txHash?: `0x${string}`;
+  }[];
 };
 ```
 
-Drives the `TransactionModal`. Set to `{ tone: 'pending' }` before submitting a transaction, then updated to `'success'` or `'error'` after confirmation.
+Drives the `TransactionModal`. Set to `{ tone: 'pending' }` before submitting a transaction, then updated to `'success'` or `'error'` after confirmation. `steps` is optional and is used for multi-approval flows such as staged artist runtime bootstrap. A step-level `txHash` should be attached only after that step is confirmed.
 
 ---
 
