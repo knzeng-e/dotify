@@ -65,7 +65,8 @@ with the room code prefilled and requires the guest to pick their visible room
 name before the host sees them in the listener list. Older localStorage entries
 that stored the literal default "Listener" are ignored and cleared. Once inside,
 a listener can rename themselves from the room panel; the signaling server
-updates the listener record and notifies the host live.
+updates the listener record and broadcasts the room roster to every participant
+live, so hosts and listeners see the same people.
 
 ## Manual QA (required - these are browser-timing behaviors, not unit-testable)
 

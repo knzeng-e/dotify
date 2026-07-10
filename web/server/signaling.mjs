@@ -187,6 +187,20 @@ export function startSignalingServer(overrides = {}) {
     io.emit('rooms:updated', publicRooms());
   }
 
+  function listenerRoster(room) {
+    return Array.from(room.listeners.values()).map(listener => ({
+      id: listener.id,
+      displayName: listener.displayName
+    }));
+  }
+
+  function emitListenerRoster(roomId, room) {
+    io.to(roomId).emit('room:listeners', {
+      listenerCount: room.listeners.size,
+      listeners: listenerRoster(room)
+    });
+  }
+
   function closeRoom(roomId, room, reason, event) {
     io.to(roomId).emit('room:closed', { reason });
     rooms.delete(roomId);
@@ -280,6 +294,7 @@ export function startSignalingServer(overrides = {}) {
         playbackMode: room.playbackMode,
         chatHistory: room.chat,
         requests: room.requests,
+        listeners: listenerRoster(room),
         expiresAt: room.createdAt + config.roomTtlMs
       });
 
@@ -289,6 +304,7 @@ export function startSignalingServer(overrides = {}) {
         listenerCount
       });
       io.to(roomId).emit('room:listener-count', { listenerCount });
+      emitListenerRoster(roomId, room);
       emitRooms();
     });
 
@@ -347,7 +363,8 @@ export function startSignalingServer(overrides = {}) {
       }
 
       listener.displayName = displayName;
-      io.to(participant.room.hostId).emit('listener:renamed', { listenerId: socket.id, displayName });
+      io.to(participant.roomId).emit('listener:renamed', { listenerId: socket.id, displayName });
+      emitListenerRoster(participant.roomId, participant.room);
       reply?.({ ok: true, displayName });
     });
 
@@ -573,6 +590,7 @@ export function startSignalingServer(overrides = {}) {
       logEvent('room:left', { roomId, listenerId: socket.id, listenerCount });
       io.to(room.hostId).emit('listener:left', { listenerId: socket.id, listenerCount });
       io.to(roomId).emit('room:listener-count', { listenerCount });
+      emitListenerRoster(roomId, room);
       emitRooms();
     }
 

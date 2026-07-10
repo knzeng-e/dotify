@@ -21,6 +21,7 @@ import type {
   OpenRoom,
   PeerStatus,
   PlayerState,
+  RoomPresenceListener,
   RoomChatMessage,
   RoomPlaybackMode,
   RoomReactionEvent,
@@ -154,6 +155,23 @@ export function useSession(deps: UseSessionDeps) {
     });
   }
 
+  function applyListenerRoster(roster: RoomPresenceListener[]) {
+    setListeners(previous => {
+      const previousById = new Map(previous.map(listener => [listener.id, listener]));
+      const next = roster.map(listener => {
+        const current = previousById.get(listener.id);
+        return {
+          id: listener.id,
+          displayName: listener.displayName,
+          status: current?.status ?? (modeRef.current === 'host' && localStreamRef.current ? 'connecting' : 'connected')
+        };
+      });
+      listenersRef.current = next;
+      return next;
+    });
+    setListenerCount(roster.length);
+  }
+
   function closeListenerPeer() {
     listenerPeerRef.current?.close();
     listenerPeerRef.current = null;
@@ -279,6 +297,10 @@ export function useSession(deps: UseSessionDeps) {
         listenersRef.current = next;
         return next;
       });
+    });
+    socket.on('room:listeners', (payload: { listenerCount: number; listeners: RoomPresenceListener[] }) => {
+      applyListenerRoster(Array.isArray(payload.listeners) ? payload.listeners : []);
+      setListenerCount(payload.listenerCount);
     });
     socket.on('host:renamed', (payload: { displayName: string }) => {
       setHostName(payload.displayName);
@@ -779,7 +801,11 @@ export function useSession(deps: UseSessionDeps) {
         setHostName(response.hostName);
         setTrackInfo(response.track);
         setPlayerState(response.playerState);
-        setListenerCount(response.listenerCount);
+        if (response.listeners) {
+          applyListenerRoster(response.listeners);
+        } else {
+          setListenerCount(response.listenerCount);
+        }
         setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
         setChatMessages(response.chatHistory ?? []);
         setRequestQueue(response.requests ?? []);
@@ -809,7 +835,11 @@ export function useSession(deps: UseSessionDeps) {
       setHostName(response.hostName);
       setTrackInfo(response.track);
       setPlayerState(response.playerState);
-      setListenerCount(response.listenerCount);
+      if (response.listeners) {
+        applyListenerRoster(response.listeners);
+      } else {
+        setListenerCount(response.listenerCount);
+      }
       setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
       setChatMessages(response.chatHistory ?? []);
       setRequestQueue(response.requests ?? []);

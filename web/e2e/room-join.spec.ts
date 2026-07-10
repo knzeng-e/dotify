@@ -77,6 +77,7 @@ async function joinAsListener(context: BrowserContext, roomId: string, options: 
 test('public room: listener joins via link, hears full playback, no wallet, no content key', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();
+  const secondListenerContext = await browser.newContext();
   try {
     const host = await hostContext.newPage();
     const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE);
@@ -92,9 +93,18 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
     await expect(host.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
 
+    const secondListener = await joinAsListener(secondListenerContext, roomId, { displayName: 'Zed' });
+    await expect(secondListener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await expect(host.locator('.listener-list')).toContainText('Zed', { timeout: 20_000 });
+    await expect(listener.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
+    await expect(listener.locator('.listener-list')).toContainText('Zed', { timeout: 20_000 });
+    await expect(secondListener.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
+    await expect(secondListener.locator('.listener-list')).toContainText('Zed', { timeout: 20_000 });
+
     await listener.getByLabel('Your room name').fill('Nia');
     await listener.getByRole('button', { name: 'Update room name' }).click();
     await expect(host.locator('.listener-list')).toContainText('Nia', { timeout: 20_000 });
+    await expect(secondListener.locator('.listener-list')).toContainText('Nia', { timeout: 20_000 });
 
     // Key-delivery boundary: the listener never requested a content key.
     const listenerState = await readRoomJoinState(listener);
@@ -102,6 +112,7 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
   } finally {
     await hostContext.close();
     await listenerContext.close();
+    await secondListenerContext.close();
   }
 });
 

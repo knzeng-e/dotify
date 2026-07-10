@@ -212,14 +212,54 @@ describe('signaling server', () => {
     await once(listener, 'connect');
     await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
 
+    const other = connectClient();
+    await once(other, 'connect');
+    await emitAck(other, 'room:join', { roomId: created.roomId, displayName: 'Other' });
+
     const renamed = once(host, 'listener:renamed');
+    const peerRenamed = once(other, 'listener:renamed');
     const response = await emitAck(listener, 'room:rename', { displayName: '  Nina  ' });
     const payload = await renamed;
+    const peerPayload = await peerRenamed;
 
     assert.equal(response.ok, true);
     assert.equal(response.displayName, 'Nina');
     assert.equal(payload.displayName, 'Nina');
+    assert.equal(peerPayload.displayName, 'Nina');
     assert.equal(server.rooms.get(created.roomId).listeners.get(listener.id).displayName, 'Nina');
+  });
+
+  it('broadcasts the listener roster to every participant', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    const first = connectClient();
+    await once(first, 'connect');
+    const firstJoined = await emitAck(first, 'room:join', { roomId: created.roomId, displayName: 'Nia' });
+    assert.deepEqual(
+      firstJoined.listeners.map(listener => listener.displayName),
+      ['Nia']
+    );
+
+    const second = connectClient();
+    await once(second, 'connect');
+    const firstRoster = once(first, 'room:listeners');
+    const hostRoster = once(host, 'room:listeners');
+    const secondJoined = await emitAck(second, 'room:join', { roomId: created.roomId, displayName: 'Kev' });
+    const [firstPayload, hostPayload] = await Promise.all([firstRoster, hostRoster]);
+
+    assert.deepEqual(
+      secondJoined.listeners.map(listener => listener.displayName),
+      ['Nia', 'Kev']
+    );
+    assert.deepEqual(
+      firstPayload.listeners.map(listener => listener.displayName),
+      ['Nia', 'Kev']
+    );
+    assert.deepEqual(
+      hostPayload.listeners.map(listener => listener.displayName),
+      ['Nia', 'Kev']
+    );
   });
 
   it('rejects default listener rename values', async () => {

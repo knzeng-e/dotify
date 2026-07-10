@@ -45,6 +45,8 @@ export type ListenerRecord = {
   displayName: string;
 };
 
+export type RoomPresenceListener = Pick<ListenerRecord, 'id' | 'displayName'>;
+
 export type CatalogTrack = {
   id: string;
   zone: string;
@@ -158,6 +160,7 @@ export type JoinRoomResponse =
       playbackMode?: RoomPlaybackMode;
       chatHistory?: RoomChatMessage[];
       requests?: RoomRequest[];
+      listeners?: RoomPresenceListener[];
       expiresAt?: number;
     }
   | { ok: false; error: string; code?: string };

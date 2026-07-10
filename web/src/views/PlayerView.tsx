@@ -119,6 +119,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
   const disconnectedListeners = listeners.filter(listener => listener.status === 'disconnected');
+  const ownSocketId = session.socketRef.current?.id;
   const showManualAudioStart = Boolean(
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
   );
@@ -590,6 +591,37 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   <i data-status='waiting' />
                 )}
               </div>
+
+              {activeListeners.length > 0 && (
+                <div className='listener-list'>
+                  {activeListeners.map(listener => {
+                    const isSelf = listener.id === ownSocketId;
+                    return (
+                      <div className='list-row' key={listener.id}>
+                        <div className='room-person-main'>
+                          <Avatar name={listener.displayName} size={34} />
+                          <div>
+                            <strong>
+                              {listener.displayName}
+                              {isSelf && <span className='room-person-tag'>you</span>}
+                            </strong>
+                            <span>{listener.status === 'connected' ? 'In the room' : 'Connecting...'}</span>
+                          </div>
+                        </div>
+                        {listener.status === 'connected' ? (
+                          <span className='room-eq' aria-hidden='true'>
+                            <i />
+                            <i />
+                            <i />
+                          </span>
+                        ) : (
+                          <i data-status='connecting' />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               <form
                 className='room-name-form'
