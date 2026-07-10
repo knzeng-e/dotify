@@ -1,4 +1,5 @@
 import { BadgeCheck, Disc3, FileAudio, Library, LockKeyhole, Upload } from 'lucide-react';
+import { CoverImage } from '../../components/CoverImage';
 import { PanelTitle } from '../../shared/ui/PanelTitle';
 import { EndpointRow } from '../../shared/ui/EndpointRow';
 import { accessModeLabelFromState, shorten } from '../../shared/utils/format';
@@ -312,7 +313,7 @@ export function NewReleaseTab({
         <PanelTitle icon={Library} title='Release preview' meta={accessModeLabelFromState(accessMode)} />
         <div className='release-preview-card'>
           <div className='release-preview-cover'>
-            <img src={coverSource} alt='' crossOrigin='anonymous' />
+            <CoverImage src={coverSource} alt='' />
           </div>
           <div className='release-preview-copy'>
             <span className='release-preview-artist'>{artistName || 'Artist'}</span>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { CoverImage } from '../components/CoverImage';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { SkyOfRooms } from '../components/SkyOfRooms';
 import { roomPresenceCount } from '../features/rooms/roomState';
@@ -330,7 +331,7 @@ export function RoomsView({
                     disabled={sessionAction !== 'idle'}
                   >
                     <span className='room-live-art' aria-hidden='true'>
-                      {room.track?.imageRef && <img src={room.track.imageRef} alt='' crossOrigin='anonymous' />}
+                      {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' />}
                     </span>
                     <span className='room-live-main'>
                       <span className='room-live-kicker'>

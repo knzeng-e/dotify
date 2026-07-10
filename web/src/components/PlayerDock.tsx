@@ -5,6 +5,7 @@
 
 import { LockKeyhole, Maximize2, Pause, Play, Radio, Repeat2, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import type { CSSProperties } from 'react';
+import { CoverImage } from './CoverImage';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { type PlaybackControls } from '../hooks/usePlayback';
 import type { CatalogTrack, Mode, TrackInfo } from '../shared/types';
@@ -44,7 +45,7 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, o
       <div className='player-dock-inner'>
         <div className='player-dock-track'>
           <button className='player-dock-art' type='button' onClick={onOpenPlayer} aria-label={`Open ${title} in the player`}>
-            {cover && <img src={cover} alt='' crossOrigin='anonymous' />}
+            {cover && <CoverImage src={cover} alt='' />}
           </button>
           <div className='player-dock-meta'>
             <button className='player-dock-title' type='button' onClick={onOpenPlayer} title={`Open ${title}`}>

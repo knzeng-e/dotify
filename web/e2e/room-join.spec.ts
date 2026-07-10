@@ -65,7 +65,7 @@ async function joinAsListener(context: BrowserContext, roomId: string, options: 
   const page = await context.newPage();
   await page.goto(`/#/rooms/${roomId}`);
   if (options.displayName) {
-    await expect(page.getByRole('heading', { name: 'Enter the same listening moment' })).toBeVisible();
+    await expect(page.locator('#join-room-title')).toHaveText('Enter the same listening moment');
     await expect(page.getByLabel('Room code')).toHaveValue(roomId);
     await expect(page.getByRole('button', { name: 'Join room' })).toBeDisabled();
     await page.getByLabel('Your name in the room').fill(options.displayName);

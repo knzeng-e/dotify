@@ -1,4 +1,5 @@
 import { BadgeCheck, Disc3, Heart, KeyRound, LockKeyhole, RefreshCw, Upload } from 'lucide-react';
+import { CoverImage } from '../../components/CoverImage';
 import { Avatar } from '../../components/Presence';
 import { catalogAccessLabel, formatPaymentDate, formatWeiAsDot, shorten } from '../../shared/utils/format';
 import type { CatalogTrack, RoyaltyPayment } from '../../shared/types';
@@ -77,7 +78,7 @@ export function OverviewTab({
           {artistTracks.length > 0 ? (
             artistTracks.map(track => (
               <button className='studio-release-row' type='button' key={track.id} onClick={() => onOpenRelease(track)}>
-                <img src={track.imageRef} alt='' crossOrigin='anonymous' />
+                <CoverImage src={track.imageRef} alt='' />
                 <span className='studio-release-meta'>
                   <strong>{track.title}</strong>
                   <small>{catalogAccessLabel(track)}</small>

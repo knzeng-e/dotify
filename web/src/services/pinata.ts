@@ -88,6 +88,24 @@ export function getGatewayUrls(cid: string): string[] {
   return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
 }
 
+function extractIpfsPath(ref: string): string | null {
+  if (ref.startsWith('ipfs://')) {
+    return ref.slice('ipfs://'.length);
+  }
+
+  const match = ref.match(/\/ipfs\/([^?#]+)/);
+  return match?.[1] ?? null;
+}
+
+export function getGatewayUrlsForAssetRef(assetRef: string): string[] {
+  const ipfsPath = extractIpfsPath(assetRef);
+  if (!ipfsPath) return assetRef ? [assetRef] : [];
+
+  const fallbackUrls = getGatewayUrls(ipfsPath);
+  if (!assetRef.startsWith('http://') && !assetRef.startsWith('https://')) return fallbackUrls;
+  return Array.from(new Set([assetRef, ...fallbackUrls]));
+}
+
 export async function fetchIpfsCid(cid: string): Promise<Response> {
   let lastError: unknown;
 

@@ -18,6 +18,7 @@
 // (CSS) and the existing room card grid below remains the full experience.
 
 import { useState } from 'react';
+import { CoverImage } from './CoverImage';
 import { auraForTrack, hashHue } from '../shared/utils/aura';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import type { OpenRoom, SessionAction } from '../shared/types';
@@ -98,7 +99,7 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
           >
             <span className='sky-halo' aria-hidden='true' />
             <span className='sky-core' aria-hidden='true'>
-              {room.track?.imageRef && <img src={room.track.imageRef} alt='' crossOrigin='anonymous' loading='lazy' />}
+              {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' loading='lazy' />}
             </span>
             {petals > 0 && (
               <span className='sky-orbit' aria-hidden='true' style={{ animationDuration: `${orbitSeconds}s` }}>

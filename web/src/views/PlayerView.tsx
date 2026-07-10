@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
+import { CoverImage } from '../components/CoverImage';
 import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomChat } from '../components/RoomChat';
@@ -262,7 +263,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <div className={'room-cover-glow' + (transport.playing ? ' on' : '')} aria-hidden='true' />
           <div className='cover-card'>
             <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
-              <img src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' crossOrigin='anonymous' />
+              <CoverImage src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' />
               <span className='sound-bars' aria-hidden='true'>
                 <i />
                 <i />
