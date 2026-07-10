@@ -1,5 +1,7 @@
 import { Disc3, Headphones, X } from 'lucide-react';
+import type { FormEvent } from 'react';
 import { Dialog } from './Dialog';
+import { isChosenDisplayName } from '../features/identity/walletIdentity';
 import type { SessionAction } from '../shared/types';
 
 type JoinRoomModalProps = {
@@ -14,10 +16,12 @@ type JoinRoomModalProps = {
 
 export function JoinRoomModal({ displayName, joinCode, sessionAction, onSetDisplayName, onSetJoinCode, onJoin, onClose }: JoinRoomModalProps) {
   const isJoining = sessionAction === 'joining';
+  const hasChosenName = isChosenDisplayName(displayName);
+  const hasPrefilledCode = Boolean(joinCode.trim());
 
-  function handleSubmit(event: React.FormEvent) {
+  function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (joinCode.trim()) onJoin(joinCode.trim());
+    if (joinCode.trim() && hasChosenName) onJoin(joinCode.trim());
   }
 
   return (
@@ -48,6 +52,7 @@ export function JoinRoomModal({ displayName, joinCode, sessionAction, onSetDispl
           placeholder='How should people see you?'
           maxLength={32}
           autoComplete='nickname'
+          autoFocus={hasPrefilledCode}
         />
 
         <label className='create-room-label' htmlFor='join-room-code'>
@@ -61,11 +66,11 @@ export function JoinRoomModal({ displayName, joinCode, sessionAction, onSetDispl
           placeholder='ABC123'
           maxLength={12}
           autoComplete='off'
-          autoFocus
+          autoFocus={!hasPrefilledCode}
         />
 
         <div className='create-room-actions'>
-          <button className='primary-action wide' type='submit' disabled={isJoining || !joinCode.trim() || !displayName.trim()}>
+          <button className='primary-action wide' type='submit' disabled={isJoining || !joinCode.trim() || !hasChosenName}>
             {isJoining ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
             {isJoining ? 'Joining...' : 'Join room'}
           </button>

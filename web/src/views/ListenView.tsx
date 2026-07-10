@@ -1,5 +1,6 @@
 import { BadgeCheck, CircleCheckBig, Disc3, Headphones, KeyRound, Library, Radio, Share2, ShieldCheck, Users, Wallet } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
+import { CoverImage } from '../components/CoverImage';
 import { StageRail } from '../components/StageRail';
 import { DotBirth } from '../components/DotBirth';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
@@ -54,7 +55,7 @@ export function ListenView({
             aria-label={heroRoom ? `Join ${heroRoom.hostName}'s room` : `Open ${heroTrack.title} by ${heroTrack.artist}`}
           >
             <span className='home-live-art' aria-hidden='true'>
-              <img src={heroTrack.imageRef} alt='' crossOrigin='anonymous' />
+              <CoverImage src={heroTrack.imageRef} alt='' />
             </span>
             <span className='home-live-shade' aria-hidden='true' />
             <span className='home-live-copy'>
@@ -181,7 +182,7 @@ export function ListenView({
             openRooms.slice(0, 4).map(room => (
               <button className='home-room-card' type='button' key={room.roomId} onClick={() => onJoinRoom(room.roomId)}>
                 <span className='home-room-art' aria-hidden='true'>
-                  {room.track?.imageRef && <img src={room.track.imageRef} alt='' crossOrigin='anonymous' />}
+                  {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' />}
                 </span>
                 <span>
                   <strong>{room.track?.title ?? 'Audio session'}</strong>
@@ -218,7 +219,7 @@ export function ListenView({
                   // artist button can sit beside it without nesting interactives.
                   <div className='catalogue-card' data-selected={selectedTrackId === track.id} data-testid='track-card' key={track.id}>
                     <span className='catalogue-cover-frame'>
-                      <img className='catalogue-cover' src={track.imageRef} alt='' crossOrigin='anonymous' />
+                      <CoverImage className='catalogue-cover' src={track.imageRef} alt='' />
                     </span>
                     <span className='catalogue-card-copy'>
                       <button

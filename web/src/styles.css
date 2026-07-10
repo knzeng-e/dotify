@@ -2804,6 +2804,28 @@ audio {
   opacity: 0.78;
 }
 
+.room-name-form {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.room-name-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.75rem;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.room-name-row .field {
+  min-width: 0;
+}
+
+.room-name-row .secondary-action {
+  width: 2.75rem;
+  margin-top: 0;
+  padding: 0;
+}
+
 .room-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;

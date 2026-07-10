@@ -187,6 +187,20 @@ export function startSignalingServer(overrides = {}) {
     io.emit('rooms:updated', publicRooms());
   }
 
+  function listenerRoster(room) {
+    return Array.from(room.listeners.values()).map(listener => ({
+      id: listener.id,
+      displayName: listener.displayName
+    }));
+  }
+
+  function emitListenerRoster(roomId, room) {
+    io.to(roomId).emit('room:listeners', {
+      listenerCount: room.listeners.size,
+      listeners: listenerRoster(room)
+    });
+  }
+
   function closeRoom(roomId, room, reason, event) {
     io.to(roomId).emit('room:closed', { reason });
     rooms.delete(roomId);
@@ -280,6 +294,7 @@ export function startSignalingServer(overrides = {}) {
         playbackMode: room.playbackMode,
         chatHistory: room.chat,
         requests: room.requests,
+        listeners: listenerRoster(room),
         expiresAt: room.createdAt + config.roomTtlMs
       });
 
@@ -289,6 +304,7 @@ export function startSignalingServer(overrides = {}) {
         listenerCount
       });
       io.to(roomId).emit('room:listener-count', { listenerCount });
+      emitListenerRoster(roomId, room);
       emitRooms();
     });
 
@@ -316,6 +332,40 @@ export function startSignalingServer(overrides = {}) {
       }
       socket.to(socket.data.roomId).emit('room:playback-mode', { playbackMode });
       emitRooms();
+    });
+
+    socket.on('room:rename', (payload = {}, reply) => {
+      const participant = getParticipant(socket);
+      if (!participant) {
+        reply?.({ ok: false, error: 'Not in a room.' });
+        return;
+      }
+
+      const displayName = sanitizeText(payload.displayName, '', 32);
+      if (!displayName || displayName === 'Listener') {
+        reply?.({ ok: false, error: 'Choose a room name first.' });
+        return;
+      }
+
+      if (participant.role === 'host') {
+        participant.room.hostName = displayName;
+        touchHost(participant.room);
+        io.to(participant.roomId).emit('host:renamed', { displayName });
+        emitRooms();
+        reply?.({ ok: true, displayName });
+        return;
+      }
+
+      const listener = participant.room.listeners.get(socket.id);
+      if (!listener) {
+        reply?.({ ok: false, error: 'Listener not found.' });
+        return;
+      }
+
+      listener.displayName = displayName;
+      io.to(participant.roomId).emit('listener:renamed', { listenerId: socket.id, displayName });
+      emitListenerRoster(participant.roomId, participant.room);
+      reply?.({ ok: true, displayName });
     });
 
     socket.on('player:state', state => {
@@ -540,6 +590,7 @@ export function startSignalingServer(overrides = {}) {
       logEvent('room:left', { roomId, listenerId: socket.id, listenerCount });
       io.to(room.hostId).emit('listener:left', { listenerId: socket.id, listenerCount });
       io.to(roomId).emit('room:listener-count', { listenerCount });
+      emitListenerRoster(roomId, room);
       emitRooms();
     }
 

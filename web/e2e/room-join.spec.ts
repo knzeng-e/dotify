@@ -13,6 +13,8 @@ type RoomJoinE2eState = {
   scenario: string;
   keyRequests: number;
   deniedKeyRequests: number;
+  offers: number;
+  replaceTrackSwaps: number;
 };
 
 declare global {
@@ -46,29 +48,43 @@ async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: stri
   return (await roomCode.textContent())?.trim() ?? '';
 }
 
+type JoinAsListenerOptions = {
+  storedDisplayName?: string;
+  displayName?: string;
+};
+
 // Listener: open the bare #/rooms/<id> share link (no e2eRoom param) in a fresh
-// context. App auto-joins on mount with no wallet interaction.
-async function joinAsListener(context: BrowserContext, roomId: string, storedDisplayName?: string) {
-  if (storedDisplayName) {
+// context. A remembered name auto-joins; first-time guests must choose the name
+// the host will see before joining.
+async function joinAsListener(context: BrowserContext, roomId: string, options: JoinAsListenerOptions = {}) {
+  if (options.storedDisplayName) {
     await context.addInitScript(name => {
       window.localStorage.setItem('dotify:display-name:guest', name);
-    }, storedDisplayName);
+    }, options.storedDisplayName);
   }
   const page = await context.newPage();
   await page.goto(`/#/rooms/${roomId}`);
+  if (options.displayName) {
+    await expect(page.locator('#join-room-title')).toHaveText('Enter the same listening moment');
+    await expect(page.getByLabel('Room code')).toHaveValue(roomId);
+    await expect(page.getByRole('button', { name: 'Join room' })).toBeDisabled();
+    await page.getByLabel('Your name in the room').fill(options.displayName);
+    await page.getByRole('button', { name: 'Join room' }).click();
+  }
   return page;
 }
 
 test('public room: listener joins via link, hears full playback, no wallet, no content key', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();
+  const secondListenerContext = await browser.newContext();
   try {
     const host = await hostContext.newPage();
     const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE);
     expect(roomId).toMatch(/[A-Z0-9]{4,}/);
     await expect(host.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
 
-    const listener = await joinAsListener(listenerContext, roomId, 'Nomad');
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Listener', displayName: 'Nomad' });
 
     // Guest joins with no wallet: the connect affordance is still present.
     await expect(listener.getByRole('button', { name: 'Connect' })).toBeVisible();
@@ -77,12 +93,26 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
     await expect(host.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
 
+    const secondListener = await joinAsListener(secondListenerContext, roomId, { displayName: 'Zed' });
+    await expect(secondListener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await expect(host.locator('.listener-list')).toContainText('Zed', { timeout: 20_000 });
+    await expect(listener.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
+    await expect(listener.locator('.listener-list')).toContainText('Zed', { timeout: 20_000 });
+    await expect(secondListener.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
+    await expect(secondListener.locator('.listener-list')).toContainText('Zed', { timeout: 20_000 });
+
+    await listener.getByLabel('Your room name').fill('Nia');
+    await listener.getByRole('button', { name: 'Update room name' }).click();
+    await expect(host.locator('.listener-list')).toContainText('Nia', { timeout: 20_000 });
+    await expect(secondListener.locator('.listener-list')).toContainText('Nia', { timeout: 20_000 });
+
     // Key-delivery boundary: the listener never requested a content key.
     const listenerState = await readRoomJoinState(listener);
     expect(listenerState?.keyRequests ?? 0).toBe(0);
   } finally {
     await hostContext.close();
     await listenerContext.close();
+    await secondListenerContext.close();
   }
 });
 
@@ -99,10 +129,25 @@ test('protected room with authorized host: host gets the key, listener streams f
     expect(hostState?.keyRequests ?? 0).toBeGreaterThanOrEqual(1);
     expect(hostState?.deniedKeyRequests ?? 0).toBe(0);
 
-    const listener = await joinAsListener(listenerContext, roomId);
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Ada' });
     await expect(listener.getByRole('button', { name: 'Connect' })).toBeVisible();
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
+    await expect(host.locator('.listener-list')).toContainText('Ada', { timeout: 20_000 });
+
+    const stateBeforeSwitch = await readRoomJoinState(host);
+    expect(stateBeforeSwitch?.offers ?? 0).toBeGreaterThanOrEqual(1);
+    expect(stateBeforeSwitch?.replaceTrackSwaps ?? 0).toBe(0);
+
+    await host.getByRole('button', { name: 'Next track' }).click();
+    await host.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
+    await expect(listener.locator('.track-copy h2')).toHaveText(PUBLIC_TITLE, { timeout: 20_000 });
+
+    const stateAfterSwitch = await readRoomJoinState(host);
+    expect(stateAfterSwitch?.replaceTrackSwaps ?? 0).toBeGreaterThan(stateBeforeSwitch?.replaceTrackSwaps ?? 0);
+    expect(stateAfterSwitch?.offers ?? 0).toBe(stateBeforeSwitch?.offers ?? 0);
 
     // The listener never requested a key, even for a protected track.
     const listenerState = await readRoomJoinState(listener);
@@ -129,7 +174,7 @@ test('protected room with unauthorized host: no stream, no keys, host moves to a
 
     // The listener can be in the room, but with no stream they are connected,
     // not in sync.
-    const listener = await joinAsListener(listenerContext, roomId);
+    const listener = await joinAsListener(listenerContext, roomId, { displayName: 'Rin' });
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('Connecting...', { timeout: 20_000 });
 
     // The host dismisses the gate and moves the room to the public track;
@@ -159,7 +204,7 @@ test('host disconnect: the room is removed and the listener sees a clear closed 
     const host = await hostContext.newPage();
     const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE);
 
-    const listener = await joinAsListener(listenerContext, roomId);
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
 
     // Host leaves: closing the context disconnects the host socket, so the

@@ -1,5 +1,6 @@
 import { BadgeCheck, Headphones, Radio, UsersRound } from 'lucide-react';
 import { useMemo, type CSSProperties, type KeyboardEvent } from 'react';
+import { CoverImage } from '../components/CoverImage';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { roomPresenceCount } from '../features/rooms/roomState';
@@ -186,7 +187,7 @@ export function ArtistProfileView({
                   onKeyDown={event => handleTrackKeyDown(event, track)}
                   aria-label={`Open ${track.title} by ${track.artist}`}
                 >
-                  <img src={track.imageRef} alt='' crossOrigin='anonymous' />
+                  <CoverImage src={track.imageRef} alt='' />
                   <div>
                     <strong>{track.title}</strong>
                     <span>{track.description || 'A Dotify release ready for preview, rooms, and direct support.'}</span>

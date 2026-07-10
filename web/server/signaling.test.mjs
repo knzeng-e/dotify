@@ -204,6 +204,77 @@ describe('signaling server', () => {
     assert.equal(typeof payload.listenerId, 'string');
   });
 
+  it('lets a listener rename themselves and notifies the host', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+
+    const other = connectClient();
+    await once(other, 'connect');
+    await emitAck(other, 'room:join', { roomId: created.roomId, displayName: 'Other' });
+
+    const renamed = once(host, 'listener:renamed');
+    const peerRenamed = once(other, 'listener:renamed');
+    const response = await emitAck(listener, 'room:rename', { displayName: '  Nina  ' });
+    const payload = await renamed;
+    const peerPayload = await peerRenamed;
+
+    assert.equal(response.ok, true);
+    assert.equal(response.displayName, 'Nina');
+    assert.equal(payload.displayName, 'Nina');
+    assert.equal(peerPayload.displayName, 'Nina');
+    assert.equal(server.rooms.get(created.roomId).listeners.get(listener.id).displayName, 'Nina');
+  });
+
+  it('broadcasts the listener roster to every participant', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    const first = connectClient();
+    await once(first, 'connect');
+    const firstJoined = await emitAck(first, 'room:join', { roomId: created.roomId, displayName: 'Nia' });
+    assert.deepEqual(
+      firstJoined.listeners.map(listener => listener.displayName),
+      ['Nia']
+    );
+
+    const second = connectClient();
+    await once(second, 'connect');
+    const firstRoster = once(first, 'room:listeners');
+    const hostRoster = once(host, 'room:listeners');
+    const secondJoined = await emitAck(second, 'room:join', { roomId: created.roomId, displayName: 'Kev' });
+    const [firstPayload, hostPayload] = await Promise.all([firstRoster, hostRoster]);
+
+    assert.deepEqual(
+      secondJoined.listeners.map(listener => listener.displayName),
+      ['Nia', 'Kev']
+    );
+    assert.deepEqual(
+      firstPayload.listeners.map(listener => listener.displayName),
+      ['Nia', 'Kev']
+    );
+    assert.deepEqual(
+      hostPayload.listeners.map(listener => listener.displayName),
+      ['Nia', 'Kev']
+    );
+  });
+
+  it('rejects default listener rename values', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+
+    const response = await emitAck(listener, 'room:rename', { displayName: 'Listener' });
+    assert.equal(response.ok, false);
+    assert.equal(server.rooms.get(created.roomId).listeners.get(listener.id).displayName, 'Guest');
+  });
+
   it('expires rooms past their TTL', async () => {
     await server.close();
     server = startSignalingServer({ port: 0, host: '127.0.0.1', roomTtlMs: 50, sweepIntervalMs: 20, logger: () => {} });

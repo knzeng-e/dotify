@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { BadgeCheck, ExternalLink, Library, Play, Power, PowerOff, Save, ShieldCheck } from 'lucide-react';
+import { CoverImage } from '../../components/CoverImage';
 import { EndpointRow } from '../../shared/ui/EndpointRow';
 import { PanelTitle } from '../../shared/ui/PanelTitle';
 import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
@@ -90,7 +91,7 @@ export function ReleasesTab({
                   key={track.id}
                   onClick={() => onSelectRelease(track.id)}
                 >
-                  <img src={track.imageRef} alt='' crossOrigin='anonymous' />
+                  <CoverImage src={track.imageRef} alt='' />
                   <span className='release-tab-copy'>
                     <strong>{track.title}</strong>
                     <small>
@@ -119,7 +120,7 @@ export function ReleasesTab({
         <article className='doc-panel release-focus-panel' id='release-detail-panel' role='tabpanel' aria-labelledby={`release-tab-${selectedDomId}`}>
           <div className='release-focus-hero'>
             <div className='release-focus-cover'>
-              <img src={selectedRelease.imageRef} alt='' crossOrigin='anonymous' />
+              <CoverImage src={selectedRelease.imageRef} alt='' />
               <span className='sound-bars' aria-hidden='true'>
                 <i />
                 <i />

@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { createRoomJoinE2eCaptureStream, isRoomJoinE2e, roomJoinE2eIceServers } from '../e2e/roomJoinMock';
+import {
+  createRoomJoinE2eCaptureStream,
+  isRoomJoinE2e,
+  recordRoomJoinE2eOffer,
+  recordRoomJoinE2eReplaceTrack,
+  roomJoinE2eIceServers
+} from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
-import { storeDisplayName } from '../features/identity/walletIdentity';
+import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
@@ -15,6 +21,7 @@ import type {
   OpenRoom,
   PeerStatus,
   PlayerState,
+  RoomPresenceListener,
   RoomChatMessage,
   RoomPlaybackMode,
   RoomReactionEvent,
@@ -148,6 +155,23 @@ export function useSession(deps: UseSessionDeps) {
     });
   }
 
+  function applyListenerRoster(roster: RoomPresenceListener[]) {
+    setListeners(previous => {
+      const previousById = new Map(previous.map(listener => [listener.id, listener]));
+      const next = roster.map(listener => {
+        const current = previousById.get(listener.id);
+        return {
+          id: listener.id,
+          displayName: listener.displayName,
+          status: current?.status ?? (modeRef.current === 'host' && localStreamRef.current ? 'connecting' : 'connected')
+        };
+      });
+      listenersRef.current = next;
+      return next;
+    });
+    setListenerCount(roster.length);
+  }
+
   function closeListenerPeer() {
     listenerPeerRef.current?.close();
     listenerPeerRef.current = null;
@@ -266,6 +290,20 @@ export function useSession(deps: UseSessionDeps) {
       hostPeersRef.current.delete(payload.listenerId);
       removeListener(payload.listenerId);
       setListenerCount(payload.listenerCount);
+    });
+    socket.on('listener:renamed', (payload: { listenerId: string; displayName: string }) => {
+      setListeners(previous => {
+        const next = previous.map(listener => (listener.id === payload.listenerId ? { ...listener, displayName: payload.displayName } : listener));
+        listenersRef.current = next;
+        return next;
+      });
+    });
+    socket.on('room:listeners', (payload: { listenerCount: number; listeners: RoomPresenceListener[] }) => {
+      applyListenerRoster(Array.isArray(payload.listeners) ? payload.listeners : []);
+      setListenerCount(payload.listenerCount);
+    });
+    socket.on('host:renamed', (payload: { displayName: string }) => {
+      setHostName(payload.displayName);
     });
     socket.on('room:listener-count', (payload: { listenerCount: number }) => {
       setListenerCount(payload.listenerCount);
@@ -477,6 +515,7 @@ export function useSession(deps: UseSessionDeps) {
         updatedAt: Date.now()
       };
 
+      const previousStream = localStreamRef.current;
       localStreamRef.current = stream;
       capturedSourceRef.current = currentAudioSource;
       setLocalStreamReady(true);
@@ -484,14 +523,38 @@ export function useSession(deps: UseSessionDeps) {
       setSessionStatus(roomIdRef.current ? 'Live' : 'Audio ready');
       socketRef.current?.emit('room:track', track);
 
-      // Re-offer every listener with the new stream. On a track change this is a
-      // full renegotiation (new MediaStream), which is how the room hears the
-      // new track; existing listeners transition through a brief reconnect.
-      await Promise.all(listenersRef.current.map(listener => createOfferForListener(listener.id)));
+      await publishLocalStreamToListeners(stream);
+      if (previousStream && previousStream !== stream) {
+        for (const previousTrack of previousStream.getTracks()) previousTrack.stop();
+      }
     } catch (streamError) {
       setError(streamError instanceof Error ? streamError.message : 'Audio capture unavailable in this browser');
       setSessionStatus('Capture unavailable');
     }
+  }
+
+  async function publishLocalStreamToListeners(stream: MediaStream) {
+    const [audioTrack] = stream.getAudioTracks();
+    if (!audioTrack) return;
+
+    await Promise.all(
+      listenersRef.current.map(async listener => {
+        const peer = hostPeersRef.current.get(listener.id);
+        const sender = peer?.getSenders().find(candidate => candidate.track?.kind === 'audio');
+        if (peer && sender && peer.connectionState !== 'closed') {
+          try {
+            await sender.replaceTrack(audioTrack);
+            if (isRoomJoinE2e) recordRoomJoinE2eReplaceTrack();
+            upsertListenerStatus(listener.id, getPeerStatus(peer.connectionState));
+            return;
+          } catch (replaceError) {
+            console.warn('replaceTrack failed; renegotiating listener stream', replaceError);
+          }
+        }
+
+        await createOfferForListener(listener.id);
+      })
+    );
   }
 
   function emitPlayerState(force = false) {
@@ -551,6 +614,7 @@ export function useSession(deps: UseSessionDeps) {
     upsertListenerStatus(listenerId, 'connecting');
 
     try {
+      if (isRoomJoinE2e) recordRoomJoinE2eOffer();
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
       socketRef.current?.emit('webrtc:offer', {
@@ -737,7 +801,11 @@ export function useSession(deps: UseSessionDeps) {
         setHostName(response.hostName);
         setTrackInfo(response.track);
         setPlayerState(response.playerState);
-        setListenerCount(response.listenerCount);
+        if (response.listeners) {
+          applyListenerRoster(response.listeners);
+        } else {
+          setListenerCount(response.listenerCount);
+        }
         setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
         setChatMessages(response.chatHistory ?? []);
         setRequestQueue(response.requests ?? []);
@@ -767,7 +835,11 @@ export function useSession(deps: UseSessionDeps) {
       setHostName(response.hostName);
       setTrackInfo(response.track);
       setPlayerState(response.playerState);
-      setListenerCount(response.listenerCount);
+      if (response.listeners) {
+        applyListenerRoster(response.listeners);
+      } else {
+        setListenerCount(response.listenerCount);
+      }
       setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
       setChatMessages(response.chatHistory ?? []);
       setRequestQueue(response.requests ?? []);
@@ -778,6 +850,30 @@ export function useSession(deps: UseSessionDeps) {
   function joinSession(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     joinRoom(joinCode);
+  }
+
+  function updateDisplayName(nextDisplayName: string) {
+    const clean = sanitizeDisplayName(nextDisplayName);
+    setDisplayName(clean);
+    if (!isChosenDisplayName(clean)) {
+      setError('Choose a room name first.');
+      return;
+    }
+
+    storeDisplayName(hostAddress, clean);
+    if (!roomIdRef.current) return;
+
+    const socket = connectSocket();
+    socket
+      .timeout(SIGNAL_ACK_TIMEOUT_MS)
+      .emit('room:rename', { displayName: clean }, (error: Error | null, response: { ok: boolean; displayName?: string; error?: string } | undefined) => {
+        if (error || !response?.ok) {
+          setError(response?.error ?? 'Unable to update room name.');
+          return;
+        }
+        setDisplayName(response.displayName ?? clean);
+        setError(null);
+      });
   }
 
   function requestRoomAudio() {
@@ -912,6 +1008,7 @@ export function useSession(deps: UseSessionDeps) {
     createSession,
     joinRoom,
     joinSession,
+    updateDisplayName,
     requestRoomAudio,
     leaveSession,
     createHostPeer,

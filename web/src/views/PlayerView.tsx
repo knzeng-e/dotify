@@ -1,5 +1,6 @@
 import {
   Copy,
+  Check,
   Headphones,
   KeyRound,
   Library,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
+import { CoverImage } from '../components/CoverImage';
 import { Avatar } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomChat } from '../components/RoomChat';
@@ -28,6 +30,7 @@ import { Dialog } from '../components/Dialog';
 import { hashHue, initialsFor } from '../shared/utils/aura';
 import { formatTime } from '../shared/utils/format';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
+import { isChosenDisplayName } from '../features/identity/walletIdentity';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import { playbackStatusLabel, transportProgressPercent } from '../features/player/playbackStatus';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
@@ -62,6 +65,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     sessionStatus,
     listenerCount,
     listeners,
+    displayName,
     remoteReady,
     localStreamReady,
     roomPlaybackMode,
@@ -72,6 +76,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const selectedTrackHasAccess = selectedTrack ? trackHasAccess(selectedTrack, catalog.catalogAccessByTrackId) : false;
 
   const onLeaveSession = session.leaveSession;
+  const onSetDisplayName = session.setDisplayName;
+  const onUpdateDisplayName = session.updateDisplayName;
   const onRetryRoomAudio = session.requestRoomAudio;
   const onCopySessionLink = session.copySessionLink;
   const onSetAccessGate = catalog.setAccessGate;
@@ -114,6 +120,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
   const disconnectedListeners = listeners.filter(listener => listener.status === 'disconnected');
+  const ownSocketId = session.socketRef.current?.id;
   const showManualAudioStart = Boolean(
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
   );
@@ -256,7 +263,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <div className={'room-cover-glow' + (transport.playing ? ' on' : '')} aria-hidden='true' />
           <div className='cover-card'>
             <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
-              <img src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' crossOrigin='anonymous' />
+              <CoverImage src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' />
               <span className='sound-bars' aria-hidden='true'>
                 <i />
                 <i />
@@ -585,6 +592,62 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   <i data-status='waiting' />
                 )}
               </div>
+
+              {activeListeners.length > 0 && (
+                <div className='listener-list'>
+                  {activeListeners.map(listener => {
+                    const isSelf = listener.id === ownSocketId;
+                    return (
+                      <div className='list-row' key={listener.id}>
+                        <div className='room-person-main'>
+                          <Avatar name={listener.displayName} size={34} />
+                          <div>
+                            <strong>
+                              {listener.displayName}
+                              {isSelf && <span className='room-person-tag'>you</span>}
+                            </strong>
+                            <span>{listener.status === 'connected' ? 'In the room' : 'Connecting...'}</span>
+                          </div>
+                        </div>
+                        {listener.status === 'connected' ? (
+                          <span className='room-eq' aria-hidden='true'>
+                            <i />
+                            <i />
+                            <i />
+                          </span>
+                        ) : (
+                          <i data-status='connecting' />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <form
+                className='room-name-form'
+                onSubmit={event => {
+                  event.preventDefault();
+                  onUpdateDisplayName(displayName);
+                }}
+              >
+                <label className='create-room-label' htmlFor='room-display-name'>
+                  Your room name
+                </label>
+                <div className='room-name-row'>
+                  <input
+                    id='room-display-name'
+                    className='field'
+                    value={displayName}
+                    onChange={event => onSetDisplayName(event.target.value)}
+                    maxLength={32}
+                    autoComplete='nickname'
+                  />
+                  <button className='secondary-action icon-action' type='submit' disabled={!isChosenDisplayName(displayName)} aria-label='Update room name'>
+                    <Check size={16} />
+                  </button>
+                </div>
+              </form>
 
               <p className='room-doctrine-note'>You are listening with the host. The link is enough to be here.</p>
 

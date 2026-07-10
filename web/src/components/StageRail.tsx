@@ -12,6 +12,7 @@
 // catalogue grid; the stage uses its own stage-* testids so they stay unique.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { CoverImage } from './CoverImage';
 import { auraForTrack } from '../shared/utils/aura';
 import { catalogAccessLabel } from '../shared/utils/format';
 import type { CatalogTrack } from '../shared/types';
@@ -120,7 +121,7 @@ export function StageRail({ tracks, accessByTrackId, selectedTrackId, onOpenTrac
               onClick={() => onOpenTrack(track)}
             >
               <span className='stage-cover'>
-                <img src={track.imageRef} alt='' crossOrigin='anonymous' loading='lazy' />
+                <CoverImage src={track.imageRef} alt='' loading='lazy' />
                 <span className='stage-glare' aria-hidden='true' />
               </span>
               <span className='stage-copy'>

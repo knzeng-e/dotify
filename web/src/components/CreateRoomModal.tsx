@@ -5,6 +5,7 @@
 // fabricated URL); the room header then exposes the real Copy link.
 
 import { useState } from 'react';
+import { CoverImage } from './CoverImage';
 import { Dialog } from './Dialog';
 import type { CatalogTrack } from '../shared/types';
 
@@ -76,7 +77,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
 
       {picked && (
         <div className='create-room-preview'>
-          <img src={picked.imageRef} alt='' crossOrigin='anonymous' />
+          <CoverImage src={picked.imageRef} alt='' />
           <div>
             <strong>{picked.title}</strong>
             <span>{picked.artist}</span>
@@ -104,7 +105,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
                 aria-label={`Select ${track.title}`}
                 aria-pressed={picked?.id === track.id}
               >
-                <img src={track.imageRef} alt='' crossOrigin='anonymous' />
+                <CoverImage src={track.imageRef} alt='' />
               </button>
             ))}
           </div>
