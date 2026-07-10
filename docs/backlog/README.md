@@ -20,6 +20,8 @@ Do not add ornamental product features until the following spine is stable:
 6. A listener can join that room via a simple link without wallet friction.
 7. Protected room playback is host-access based: the host may receive the temporary content key; room listeners only receive the ephemeral WebRTC stream.
 8. Critical flows are covered by automated tests.
+9. The core listener journey meets explicit catalog, image, playback, and room-start performance budgets.
+10. Polkadot Product mode respects the Triangle Host boundary and declares every permission it needs.
 
 ## Sprint 0 — Production spine
 
@@ -48,7 +50,7 @@ Do not add ornamental product features until the following spine is stable:
 | --- | --- | --- | --- |
 | `10-observability-health-checks.md` | #11 | Backend + signaling slice delivered (see delivery notes); frontend surface open | Observability and health checks |
 | `11-proof-of-personhood-integration-research.md` | #12 | Open | Proof of Personhood integration research |
-| `12-ambassador-social-propagation-model.md` | #13 | Open | Ambassador and social propagation model |
+| `12-ambassador-social-propagation-model.md` | #13 | Expanded research scope | Cultural provenance, ambassador contract, transparent awards, anti-Sybil design, and optional recognition NFTs |
 
 ## Design track - Living Light experience
 
@@ -79,6 +81,33 @@ Deferred (needs a backend channel or separate design asset, deliberately not fak
 Ticket 24 supersedes the preview-based rows above: the 42% doctrine and the
 ticket 18 preview assets are consciously retired by access model v2.
 
+## Production UX, performance, and Polkadot Product track
+
+`25-polkadot-product-readiness-and-killer-dapp-roadmap.md` is the current umbrella plan. It turns the July 2026 audit into measurable production work and aligns Dotify with the official Polkadot Triangle / Product SDK / TrUAPI architecture.
+
+| GitHub issue | Priority | Goal | Depends on |
+| --- | --- | --- | --- |
+| #85 | P0 | Triangle/Product SDK compatibility layer with standalone browser adapter | #11, stable domain/provider seams |
+| #86 | P0 | Cached event-driven catalog read model | observability baseline |
+| #87 | P0 | Responsive cover pipeline and resilient IPFS delivery | backend uploads |
+| #88 | P0 | Pipelined DAV2 startup and sub-two-second first sound | #11 telemetry, key service |
+| #89 | P1 | TURN, WebRTC quality metrics, and SFU scale path | hosted signaling, #11 |
+| #90 | P1 | One-click shared listening and wallet-later onboarding | #86, #87, #88 |
+| #12 | P1 after research | Live Proof of Personhood / Product identity integration | #85 |
+| #13 | P2 research, then experiments | Provenance, ambassador contract, transparent awards, recognition NFTs | #12, #85, #86, #88, #90 |
+
+### Performance budgets
+
+| Metric | p75 target |
+| --- | ---: |
+| Useful shell | < 800 ms |
+| Hero cover cold mobile | < 1 s |
+| Free click-to-first-sound | < 1.5 s |
+| Authorized protected first sound | < 2 s |
+| Warm next-track transition | < 700 ms |
+| Room join-to-audio | < 1.5 s |
+| Room reconnect | < 3 s |
+
 ## Strategic improvement plan
 
 `improvement-plan.md` tracks the July 2026 review of the implementation
@@ -89,6 +118,8 @@ presence, Triangle host citizenship), and the social-depth work (Later).
 Nothing in Next or Later starts before the spine is green. The PR8b
 providers/context boundary for ticket 08 is designed in
 `08b-providers-design.md`.
+
+The newer ticket 25 roadmap refines that order with explicit performance budgets, Product SDK adapters, a room transport plan, and a value-before-wallet UX gate.
 
 ## Current room access doctrine
 
@@ -109,13 +140,23 @@ All implementation must be production-minded:
 - no hidden dev account signing in production paths;
 - typed APIs and explicit error states;
 - deterministic tests for critical flows;
-- small modules, not more monolithic `App.tsx` growth;
+- small modules, not more monolithic hook growth;
 - security assumptions documented in code and docs;
 - user-facing errors must be understandable without blockchain expertise;
-- room guests must not be forced through wallet bureaucracy merely to listen to a host stream.
+- room guests must not be forced through wallet bureaucracy merely to listen to a host stream;
+- Product mode must use the Host boundary rather than direct key, RPC, or undeclared network access;
+- TrUAPI/Product SDK dependencies must be pinned and isolated behind adapters;
+- every performance claim must be backed by p50/p75/p95 measurements;
+- no economic reward system ships before provenance, privacy, anti-Sybil, and abuse models exist.
 
 ## Recommended execution order
 
-Sprint 0, Classic unlock e2e coverage, and artist publish e2e coverage are delivered on `main`. Execute the remaining Sprint 1 items next. Do not start ambassador mechanics, awards, or advanced social graph work until deterministic tests, DAV2 playback validation, modularization, and ABI generation are stable.
+1. Finish #11 frontend observability and reconcile #33–#37 against deployed—not merely coded—production behavior.
+2. Execute #86, #87, and #88 as the performance spine.
+3. Build #85 and validate the Product in Polkadot Desktop and Polkadot Web before claiming Triangle compatibility.
+4. Execute #89 and #90 to make the social listening path reliable and nearly invisible.
+5. Promote #12 from research into a live Proof of Personhood build ticket.
+6. Implement Statement Store room discovery/presence/provenance before attempting SDP/ICE migration.
+7. Run #13 as a bounded research/experiment track: ambassador provenance first, transparent awards second, optional recognition NFTs last.
 
-The philosophical line is simple: make the social listening experience as frictionless as a shared link, while keeping the artist-owned runtime and access policy as the invisible foundation.
+The philosophical line is simple: make the social listening experience as frictionless as a shared link, keep the artist-owned runtime and access policy as the invisible foundation, and make the technology disappear so the human relation can appear.
