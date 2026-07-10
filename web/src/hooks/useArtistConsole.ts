@@ -10,7 +10,14 @@ import {
   musicRegistryAbi
 } from '../shared/config/contracts';
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
-import { protectedAudioUploadToCID, protectedAudioUploadToRef, uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
+import {
+  protectedAudioUploadToCID,
+  protectedAudioUploadToRef,
+  uploadFileToPinata,
+  uploadJsonToPinata,
+  uploadProtectedAudio,
+  type DotifyTrackManifest
+} from '../services/pinata';
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';

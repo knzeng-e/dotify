@@ -447,7 +447,13 @@ export function useCatalog(deps: UseCatalogDeps) {
     });
   }
 
-  async function pumpAudioV2ToMediaSource(mediaSource: MediaSource, sourceBuffer: SourceBuffer, cid: string, parsed: ParsedAudioV2, key: Uint8Array): Promise<void> {
+  async function pumpAudioV2ToMediaSource(
+    mediaSource: MediaSource,
+    sourceBuffer: SourceBuffer,
+    cid: string,
+    parsed: ParsedAudioV2,
+    key: Uint8Array
+  ): Promise<void> {
     for (const chunk of parsed.header.chunks) {
       const chunkStart = parsed.bodyOffset + audioV2ChunkBodyOffset(parsed.header, chunk.index);
       const encrypted = await fetchAudioV2Range(cid, chunkStart, chunkStart + chunk.encryptedLength - 1);
