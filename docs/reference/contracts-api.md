@@ -2,10 +2,16 @@
 
 All contracts are deployed on **Paseo Asset Hub** (`chainId 420420417`). Source lives in `Dotify/contracts/evm/contracts/`.
 
-**Live deployments:**
+**Configured deployments:**
 
-- `ArtistRuntimeFactory`: `0x74ba85c2b29d2acb3777b9b3ca26c286945cae3c`
-- `ArtistDirectory`: `0xdd92194909df3dc5c3d254b53f7283d025c35d8c`
+- `ArtistRuntimeFactory`: see `deployments.json`
+- `ArtistDirectory`: see `deployments.json`
+- `DotifyRuntimeInitializer`: see `deployments.json`
+
+After any contract change, redeploy with `npm run deploy:testnet` from
+`contracts/evm`. The deploy script rewrites both `deployments.json` and
+`web/src/shared/config/deployments.ts`; those files are the app's active address
+book.
 
 ---
 
@@ -13,7 +19,8 @@ All contracts are deployed on **Paseo Asset Hub** (`chainId 420420417`). Source 
 
 **File:** `contracts/ArtistRuntimeFactory.sol`
 
-Deploys and registers one `SmartRuntime` Diamond proxy per artist. Called once per artist; subsequent calls revert if the artist is already registered.
+Deploys and registers one `SmartRuntime` Diamond proxy per artist. Registration
+is staged to stay below Polkadot Hub EVM transaction weight limits.
 
 ### `createRuntime()`
 
@@ -21,17 +28,78 @@ Deploys and registers one `SmartRuntime` Diamond proxy per artist. Called once p
 function createRuntime() external returns (address runtime)
 ```
 
-Deploys a new `SmartRuntime` for `msg.sender`, registers it in `ArtistDirectory`, and initializes all music pallets.
+Starts artist runtime bootstrap. It deploys a minimal `SmartRuntime` shell owned
+temporarily by the factory, installs only `DiamondCutPallet`, records the shell
+in `pendingRuntimeOf`, and emits `ArtistRuntimeBootstrapStarted`.
 
-| Gas consideration | Notes                                                                                                                  |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| High gas usage    | Deploys a proxy + initialises 7 pallets. May hit the EVM weight limit on Polkadot Hub — see spec.md known limitations. |
+The runtime is not visible in `ArtistDirectory` until all bootstrap stages are
+complete.
 
 **Reverts if:**
 
 - `msg.sender` is already registered in `ArtistDirectory`.
+- `msg.sender` already has a pending runtime bootstrap.
 
-**Emits:** None directly. `ArtistDirectory` emits `ArtistRegistered`.
+**Emits:**
+
+- `ArtistRuntimeBootstrapStarted(address indexed artist, address indexed runtime)`
+- `ArtistRuntimeBootstrapStep(address indexed artist, address indexed runtime, uint8 indexed completedStage)`
+
+---
+
+### `installRuntimeStep()`
+
+```solidity
+function installRuntimeStep() external returns (uint8 completedStage)
+```
+
+Installs the next pending bootstrap stage for `msg.sender`.
+
+| Stage before call | Action performed |
+| --- | --- |
+| `1` | Install `DiamondLoupePallet` |
+| `2` | Install `OwnershipPallet` |
+| `3` | Install `MusicRegistryPallet` |
+| `4` | Install `MusicNFTPallet` |
+| `5` | Install `MusicRoyaltiesPallet` |
+| `6` | Install `MusicAccessPallet` |
+| `7` | Initialise access registrar, transfer ownership to the artist, register in `ArtistDirectory` |
+
+When the final step completes, `pendingRuntimeOf[msg.sender]` is cleared and
+`ArtistDirectory.runtimeOf(msg.sender)` becomes the runtime address.
+
+**Reverts if:**
+
+- `msg.sender` has no pending runtime bootstrap.
+- the stored bootstrap stage is invalid.
+
+**Emits:**
+
+- `ArtistRuntimeBootstrapStep(address indexed artist, address indexed runtime, uint8 indexed completedStage)`
+- `ArtistRuntimeCreated(address indexed artist, address indexed runtime)` on finalisation.
+- `ArtistDirectory.ArtistRegistered(address indexed artist, address indexed runtime)` on finalisation.
+
+---
+
+### `pendingRuntimeOf(address artist)`
+
+```solidity
+function pendingRuntimeOf(address artist) external view returns (address)
+```
+
+Returns the runtime shell currently being bootstrapped for `artist`, or
+`address(0)` when no bootstrap is pending.
+
+---
+
+### `pendingRuntimeStageOf(address artist)`
+
+```solidity
+function pendingRuntimeStageOf(address artist) external view returns (uint8)
+```
+
+Returns the last completed bootstrap stage. The next `installRuntimeStep()` call
+performs the following stage. A value of `0` means no bootstrap is pending.
 
 ---
 

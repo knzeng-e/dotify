@@ -1,5 +1,10 @@
 # 03 — Wallet-signed content-key requests for individual and host playback
 
+> Superseded note: ticket 24 access model v2 retired the preview fallback
+> described in this historical ticket. Current denied protected playback is a
+> gate with no audio; unauthorized hosts stream nothing until they select or
+> unlock a playable track.
+
 ## Sprint
 Sprint 0 — Production spine
 

@@ -33,10 +33,13 @@ import { MusicAccessPallet } from './pallets/MusicAccessPallet.sol';
 ///         Usage
 ///         ─────
 ///         1. Artist calls `createRuntime()`.
-///         2. Factory deploys a new SmartRuntime owned by `msg.sender`.
-///         3. All 7 pallets (3 core + 4 music) are wired in via `diamondCut`.
-///         4. The runtime address is registered in `ArtistDirectory`.
-///         5. Factory emits `ArtistRuntimeCreated` with the new runtime address.
+///         2. Factory deploys a new SmartRuntime owned by the factory and wired
+///            only with DiamondCutPallet.
+///         3. Artist calls `installRuntimeStep()` until the bootstrap is done.
+///            Each call installs one facet or finalises ownership.
+///         4. The final step initialises artist access, transfers ownership to
+///            the artist, registers the runtime in `ArtistDirectory`, and emits
+///            `ArtistRuntimeCreated`.
 contract ArtistRuntimeFactory {
   // -------------------------------------------------------------------------
   // Immutable references
@@ -60,7 +63,16 @@ contract ArtistRuntimeFactory {
   // Events
   // -------------------------------------------------------------------------
 
+  event ArtistRuntimeBootstrapStarted(address indexed artist, address indexed runtime);
+  event ArtistRuntimeBootstrapStep(address indexed artist, address indexed runtime, uint8 indexed completedStage);
   event ArtistRuntimeCreated(address indexed artist, address indexed runtime);
+
+  // -------------------------------------------------------------------------
+  // Bootstrap state
+  // -------------------------------------------------------------------------
+
+  mapping(address => address) public pendingRuntimeOf;
+  mapping(address => uint8) public pendingRuntimeStageOf;
 
   // -------------------------------------------------------------------------
   // Constructor
@@ -101,20 +113,77 @@ contract ArtistRuntimeFactory {
   // External — artist entry point
   // -------------------------------------------------------------------------
 
-  /// @notice Deploy a new SmartRuntime owned by `msg.sender`.
-  ///         Reverts if the caller already has a runtime in the directory.
+  /// @notice Start deploying a new SmartRuntime for `msg.sender`.
+  ///         The runtime is pending until `installRuntimeStep()` completes all
+  ///         bootstrap stages.
   /// @return runtime  The address of the newly deployed SmartRuntime.
   function createRuntime() external returns (address runtime) {
     require(directory.runtimeOf(msg.sender) == address(0), 'Factory: artist already has a runtime');
+    require(pendingRuntimeOf[msg.sender] == address(0), 'Factory: runtime bootstrap already pending');
 
-    IDiamondCut.FacetCut[] memory cuts = _buildCuts();
-    bytes memory initCalldata = abi.encodeWithSignature('initialize()');
+    IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](1);
+    cuts[0] = IDiamondCut.FacetCut(cutPallet, IDiamondCut.FacetCutAction.Add, _diamondCutSelectors());
 
-    SmartRuntime sr = new SmartRuntime(msg.sender, cuts, initContract, initCalldata);
+    SmartRuntime sr = new SmartRuntime(address(this), cuts, address(0), '');
     runtime = address(sr);
+    pendingRuntimeOf[msg.sender] = runtime;
+    pendingRuntimeStageOf[msg.sender] = 1;
 
-    directory.register(msg.sender, runtime);
-    emit ArtistRuntimeCreated(msg.sender, runtime);
+    emit ArtistRuntimeBootstrapStarted(msg.sender, runtime);
+    emit ArtistRuntimeBootstrapStep(msg.sender, runtime, 1);
+  }
+
+  /// @notice Install the next bootstrap stage for the caller's pending runtime.
+  ///         Reverts if no runtime bootstrap is pending.
+  /// @return completedStage  The completed stage number, or 0 after finalisation.
+  function installRuntimeStep() external returns (uint8 completedStage) {
+    address runtime = pendingRuntimeOf[msg.sender];
+    require(runtime != address(0), 'Factory: no pending runtime');
+
+    uint8 stage = pendingRuntimeStageOf[msg.sender];
+
+    if (stage == 1) {
+      _installCut(runtime, loupePallet, _diamondLoupeSelectors());
+      completedStage = 2;
+    } else if (stage == 2) {
+      _installCut(runtime, ownershipPallet, _ownershipSelectors());
+      completedStage = 3;
+    } else if (stage == 3) {
+      _installCut(runtime, registryPallet, _musicRegistrySelectors());
+      completedStage = 4;
+    } else if (stage == 4) {
+      _installCut(runtime, nftPallet, _musicNFTSelectors());
+      completedStage = 5;
+    } else if (stage == 5) {
+      _installCut(runtime, royaltiesPallet, _musicRoyaltiesSelectors());
+      completedStage = 6;
+    } else if (stage == 6) {
+      _installCut(runtime, accessPallet, _musicAccessSelectors());
+      completedStage = 7;
+    } else if (stage == 7) {
+      IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](0);
+      IDiamondCut(runtime).diamondCut(cuts, initContract, abi.encodeWithSignature('initializeFor(address)', msg.sender));
+      OwnershipPallet(runtime).transferOwnership(msg.sender);
+
+      delete pendingRuntimeOf[msg.sender];
+      delete pendingRuntimeStageOf[msg.sender];
+
+      directory.register(msg.sender, runtime);
+      emit ArtistRuntimeCreated(msg.sender, runtime);
+      emit ArtistRuntimeBootstrapStep(msg.sender, runtime, 0);
+      return 0;
+    } else {
+      revert('Factory: invalid bootstrap stage');
+    }
+
+    pendingRuntimeStageOf[msg.sender] = completedStage;
+    emit ArtistRuntimeBootstrapStep(msg.sender, runtime, completedStage);
+  }
+
+  function _installCut(address runtime, address facet, bytes4[] memory selectors) private {
+    IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](1);
+    cuts[0] = IDiamondCut.FacetCut(facet, IDiamondCut.FacetCutAction.Add, selectors);
+    IDiamondCut(runtime).diamondCut(cuts, address(0), '');
   }
 
   // -------------------------------------------------------------------------
@@ -129,17 +198,6 @@ contract ArtistRuntimeFactory {
   // -------------------------------------------------------------------------
   // Internal
   // -------------------------------------------------------------------------
-
-  function _buildCuts() private view returns (IDiamondCut.FacetCut[] memory cuts) {
-    cuts = new IDiamondCut.FacetCut[](7);
-    cuts[0] = IDiamondCut.FacetCut(cutPallet, IDiamondCut.FacetCutAction.Add, _diamondCutSelectors());
-    cuts[1] = IDiamondCut.FacetCut(loupePallet, IDiamondCut.FacetCutAction.Add, _diamondLoupeSelectors());
-    cuts[2] = IDiamondCut.FacetCut(ownershipPallet, IDiamondCut.FacetCutAction.Add, _ownershipSelectors());
-    cuts[3] = IDiamondCut.FacetCut(registryPallet, IDiamondCut.FacetCutAction.Add, _musicRegistrySelectors());
-    cuts[4] = IDiamondCut.FacetCut(nftPallet, IDiamondCut.FacetCutAction.Add, _musicNFTSelectors());
-    cuts[5] = IDiamondCut.FacetCut(royaltiesPallet, IDiamondCut.FacetCutAction.Add, _musicRoyaltiesSelectors());
-    cuts[6] = IDiamondCut.FacetCut(accessPallet, IDiamondCut.FacetCutAction.Add, _musicAccessSelectors());
-  }
 
   function _diamondCutSelectors() private pure returns (bytes4[] memory selectors) {
     selectors = new bytes4[](1);

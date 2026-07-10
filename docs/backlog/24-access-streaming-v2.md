@@ -28,7 +28,7 @@ P0 once approved (it redefines the production spine's access rules).
 | --- | --- |
 | P1 | Access model v2 (contracts + UI); delete the preview machinery |
 | P2 | Session auth in the key service (SIWE login, token key requests) |
-| P3 | Chunked container publish + MSE playback + v1 fallback |
+| P3 | Chunked container publish + MSE playback + v1 fallback + startup metrics |
 | P4 | Real PoP behind `human-free` (promotes ticket 11 to build) |
 | P5 | Triangle citizenship, DotNS, Statement Store presence |
 
@@ -51,7 +51,8 @@ P0 once approved (it redefines the production spine's access rules).
   with no wallet interaction; token TTL + revocation documented in the threat
   model.
 - P3: time-to-first-sound on a protected track is bounded by one chunk, not
-  the file; v1 assets still play.
+  the file; v1 assets still play; host startup emits source-to-first-audio
+  metrics for QA.
 - P4: `human-free` verified against real PoP status, no admin mock.
 - P5: Dotify runs inside a Triangle host with Host API signing and resolves
   under a `.dot` name.
@@ -86,8 +87,8 @@ P1 delivered in two stacked PRs:
   move the room to a playable track; the room playback-mode wire protocol
   stays (always 'full') for compatibility and is scheduled for removal with
   the signaling cleanup. e2e specs rewritten to the v2 expectations
-  (locked-not-preview, no-stream-for-unauthorized-host) - they need a local
-  Playwright run to confirm.
+  (locked-not-preview, no-stream-for-unauthorized-host) and covered by the
+  current deterministic Playwright suite.
 
 P2 delivered (`feat/access-v2-p2`, stacked on P1b):
 
@@ -101,3 +102,17 @@ P2 delivered (`feat/access-v2-p2`, stacked on P1b):
   401 and a clean fallback to per-request signing for backends without
   session support; wallet disconnect signs the session out server-side.
 - Threat model updated with the session-auth boundary.
+
+P3 first vertical slice delivered (`agent/audio-v2-p3`):
+
+- Backend: `/api/uploads/audio` now writes a single `DAV2` IPFS object and
+  returns `dotify:enc:v2:ipfs://<CID>`. The object keeps original media bytes,
+  stores a typed JSON header, and encrypts fixed-size chunks with AES-256-GCM.
+- Web: v2 refs request the backend-delivered content key, try Range + MSE
+  playback through configured IPFS gateways, and fall back to full-file decrypt
+  when Range or MSE is unavailable before streaming starts. v1 refs still play.
+- Artist publish: the registry stores the full encrypted audio ref while the
+  manifest keeps the raw CID field for compatibility.
+- QA: the host playback layer emits `dotify:host-audio-startup` events for
+  `source-selected`, `metadata-ready`, `first-audio`, and `error`. Browser and
+  gateway validation is still required before calling P3 release-ready.

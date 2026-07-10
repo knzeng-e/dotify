@@ -70,14 +70,14 @@ Delivered on `main`: album-aura engine (`web/src/utils/aura.ts`, `components/Aur
 
 Deferred (needs a backend channel or separate design asset, deliberately not faked): persisted room mood; the custom Dotify logo (`design/Dotify-design/Dotify - Logo.html`). Room chat / "say something" is no longer deferred: `20-room-social-layer.md` wired reactions and chat over the signaling relay.
 
-## Dotify v2 - strategic pivot (proposed)
+## Dotify v2 - strategic pivot
 
 | Backlog doc | Status | Goal |
 | --- | --- | --- |
-| `24-access-streaming-v2.md` | P1 delivered on `feat/access-v2-p1` + `feat/access-v2-p1b`; P2+ open (design in `docs/design/dotify-v2-access-and-streaming.md`) | Remove the 42% preview; three-mode artist policy (free / paid / human-free via Proof of Personhood); sign-once session auth for key delivery; encrypted chunked streaming (`dotify.audio.v2`) for fast starts; Polkadot App stack citizenship (Triangle, PoP, Coinage, DotNS, Statement Store) |
+| `24-access-streaming-v2.md` | P1/P2 delivered; P3 first vertical slice delivered with DAV2 refs, playback fallback, and startup metrics (design in `docs/design/dotify-v2-access-and-streaming.md`) | Remove the 42% preview; three-mode artist policy (free / paid / human-free via Proof of Personhood); sign-once session auth for key delivery; encrypted chunked streaming (`dotify.audio.v2`) for fast starts; Polkadot App stack citizenship (Triangle, PoP, Coinage, DotNS, Statement Store) |
 
-Once approved, ticket 24's P1 supersedes the preview-based rows above (the
-42% doctrine and the ticket 18 preview assets are consciously retired by it).
+Ticket 24 supersedes the preview-based rows above: the 42% doctrine and the
+ticket 18 preview assets are consciously retired by access model v2.
 
 ## Strategic improvement plan
 
@@ -116,6 +116,6 @@ All implementation must be production-minded:
 
 ## Recommended execution order
 
-Sprint 0, Classic unlock e2e coverage, and artist publish e2e coverage are delivered on `main`. Execute the remaining Sprint 1 items next. Do not start ambassador mechanics, awards, or advanced social graph work until deterministic tests, production previews, modularization, and ABI generation are stable.
+Sprint 0, Classic unlock e2e coverage, and artist publish e2e coverage are delivered on `main`. Execute the remaining Sprint 1 items next. Do not start ambassador mechanics, awards, or advanced social graph work until deterministic tests, DAV2 playback validation, modularization, and ABI generation are stable.
 
 The philosophical line is simple: make the social listening experience as frictionless as a shared link, while keeping the artist-owned runtime and access policy as the invisible foundation.

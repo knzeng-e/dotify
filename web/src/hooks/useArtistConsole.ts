@@ -10,8 +10,14 @@ import {
   musicRegistryAbi
 } from '../shared/config/contracts';
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
-import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
-import { makeEncryptedAudioRef } from '../shared/utils/protectedAudio';
+import {
+  protectedAudioUploadToCID,
+  protectedAudioUploadToRef,
+  uploadFileToPinata,
+  uploadJsonToPinata,
+  uploadProtectedAudio,
+  type DotifyTrackManifest
+} from '../services/pinata';
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
@@ -35,6 +41,57 @@ import type { PolkadotSigner } from 'polkadot-api';
 
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
 const musicRoyAccessPaidEvent = parseAbiItem('event MusicRoyAccessPaid(bytes32 indexed contentHash, address indexed listener, uint256 amount)');
+const runtimeBootstrapSteps = [
+  {
+    label: 'Claim your artist space',
+    detail: 'Create the on-chain home where your music and rights will live.'
+  },
+  {
+    label: 'Make the space findable',
+    detail: 'Let Dotify connect your wallet to the artist space listeners will discover.'
+  },
+  {
+    label: 'Keep creative control',
+    detail: 'Give your artist wallet the authority to care for this space over time.'
+  },
+  {
+    label: 'Open your music record',
+    detail: 'Prepare a public record for your tracks, artwork, stories, and listening choices.'
+  },
+  {
+    label: 'Attach ownership to music',
+    detail: 'Let each track carry an ownership record that can move with the work.'
+  },
+  {
+    label: 'Define how value flows',
+    detail: 'Prepare paid access and royalty splits so support reaches the right people.'
+  },
+  {
+    label: 'Choose listening conditions',
+    detail: 'Enable free, paid, and human-free access choices for each track.'
+  },
+  {
+    label: 'Own the artist space',
+    detail: 'Make your wallet responsible for the whole space, beyond the ownership of individual tracks.'
+  }
+] as const;
+
+function artistRuntimeBootstrapRoadmap(
+  activeIndex: number,
+  activeStatus: 'active' | 'submitted' | 'complete',
+  confirmedTxHashes: Partial<Record<number, `0x${string}`>> = {}
+): TransactionFeedback['steps'] {
+  return runtimeBootstrapSteps.map((step, index) => {
+    const status =
+      index < activeIndex || (index === activeIndex && activeStatus === 'complete') ? 'complete' : index === activeIndex ? activeStatus : 'upcoming';
+
+    return {
+      ...step,
+      status,
+      txHash: status === 'complete' ? confirmedTxHashes[index] : undefined
+    };
+  });
+}
 
 function createBulletinManifestRef(hash: `0x${string}`) {
   return `paseo-bulletin:dotify-manifest:${hash}`;
@@ -246,11 +303,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         markArtistPublishRuntimeCreated();
         setArtistRuntimeAddress(E2E_ARTIST_RUNTIME);
         setArtistRegistrationStatus('Artist registered');
-        setRightsStatus('Artist registered. Add audio and publish the first release.');
+        setRightsStatus('Artist registered. Add audio and publish the first track.');
         setTransactionFeedback({
           tone: 'success',
           title: 'Artist registered',
-          message: 'The artist signer now owns a personal SmartRuntime and can manage releases.',
+          message: 'The artist signer now owns a personal SmartRuntime and can publish music.',
           txHash: E2E_ARTIST_PROFILE_TX_HASH
         });
       } finally {
@@ -276,7 +333,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         setTransactionFeedback({
           tone: 'success',
           title: 'Artist already registered',
-          message: 'This signer already owns a SmartRuntime and can manage releases.'
+          message: 'This signer already owns a SmartRuntime and can publish music.'
         });
         return;
       }
@@ -294,33 +351,124 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       const walletClient = await getActiveWalletClient();
       const publicClient = getPublicClient(ethRpcUrl);
 
-      setArtistRegistrationStatus('Creating artist runtime');
-      const txHash = await walletClient.writeContract({
+      let pendingRuntime = (await publicClient.readContract({
         address: factoryAddress!,
         abi: artistRuntimeFactoryAbi,
-        functionName: 'createRuntime'
-      });
+        functionName: 'pendingRuntimeOf',
+        args: [activeEvmAddress]
+      })) as `0x${string}`;
 
-      setTransactionFeedback({
-        tone: 'pending',
-        title: 'Registering artist',
-        message: 'Creating the personal SmartRuntime for this artist signer.',
-        txHash
-      });
+      let txHash: `0x${string}` | undefined;
+      const confirmedBootstrapTxHashes: Partial<Record<number, `0x${string}`>> = {};
 
-      await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (pendingRuntime === zeroAddress) {
+        setArtistRegistrationStatus(runtimeBootstrapSteps[0].label);
+        setTransactionFeedback({
+          tone: 'pending',
+          title: 'Review artist registration',
+          message: `Your artist space is created through ${runtimeBootstrapSteps.length} clear approvals. Each one adds a precise commitment you can review before continuing.`,
+          steps: artistRuntimeBootstrapRoadmap(0, 'active')
+        });
+
+        txHash = await walletClient.writeContract({
+          address: factoryAddress!,
+          abi: artistRuntimeFactoryAbi,
+          functionName: 'createRuntime'
+        });
+
+        setTransactionFeedback({
+          tone: 'pending',
+          title: 'Registering artist',
+          message: 'Your artist space is being created on-chain. The next approval will appear after confirmation.',
+          txHash,
+          steps: artistRuntimeBootstrapRoadmap(0, 'submitted', confirmedBootstrapTxHashes)
+        });
+
+        await publicClient.waitForTransactionReceipt({ hash: txHash });
+        confirmedBootstrapTxHashes[0] = txHash;
+      } else {
+        const pendingStage = Number(
+          await publicClient.readContract({
+            address: factoryAddress!,
+            abi: artistRuntimeFactoryAbi,
+            functionName: 'pendingRuntimeStageOf',
+            args: [activeEvmAddress]
+          })
+        );
+        const pendingStepIndex = Math.max(1, Math.min(runtimeBootstrapSteps.length - 1, pendingStage));
+        setTransactionFeedback({
+          tone: 'pending',
+          title: 'Resuming artist registration',
+          message: `Continuing setup for ${shorten(pendingRuntime, 10)}. The next commitment is shown below.`,
+          steps: artistRuntimeBootstrapRoadmap(pendingStepIndex, 'active')
+        });
+      }
+
+      pendingRuntime = (await publicClient.readContract({
+        address: factoryAddress!,
+        abi: artistRuntimeFactoryAbi,
+        functionName: 'pendingRuntimeOf',
+        args: [activeEvmAddress]
+      })) as `0x${string}`;
+
+      while (pendingRuntime !== zeroAddress) {
+        const currentStage = Number(
+          await publicClient.readContract({
+            address: factoryAddress!,
+            abi: artistRuntimeFactoryAbi,
+            functionName: 'pendingRuntimeStageOf',
+            args: [activeEvmAddress]
+          })
+        );
+        const stepIndex = Math.max(1, Math.min(runtimeBootstrapSteps.length - 1, currentStage));
+        const step = runtimeBootstrapSteps[stepIndex];
+
+        setArtistRegistrationStatus(step.label);
+        setTransactionFeedback({
+          tone: 'pending',
+          title: 'Review artist registration',
+          message: `Approval ${stepIndex + 1}/${runtimeBootstrapSteps.length}: ${step.detail}`,
+          steps: artistRuntimeBootstrapRoadmap(stepIndex, 'active', confirmedBootstrapTxHashes)
+        });
+
+        txHash = await walletClient.writeContract({
+          address: factoryAddress!,
+          abi: artistRuntimeFactoryAbi,
+          functionName: 'installRuntimeStep'
+        });
+
+        setTransactionFeedback({
+          tone: 'pending',
+          title: 'Registering artist',
+          message: `${step.label} is being confirmed on-chain. The next approval will appear when this is done.`,
+          txHash,
+          steps: artistRuntimeBootstrapRoadmap(stepIndex, 'submitted', confirmedBootstrapTxHashes)
+        });
+
+        await publicClient.waitForTransactionReceipt({ hash: txHash });
+        confirmedBootstrapTxHashes[stepIndex] = txHash;
+
+        pendingRuntime = (await publicClient.readContract({
+          address: factoryAddress!,
+          abi: artistRuntimeFactoryAbi,
+          functionName: 'pendingRuntimeOf',
+          args: [activeEvmAddress]
+        })) as `0x${string}`;
+      }
+
       const runtimeAddress = await refreshArtistRuntime();
 
       if (!runtimeAddress) {
         throw new Error('Artist runtime was not indexed after confirmation');
       }
 
-      setRightsStatus('Artist registered. Add audio and publish the first release.');
+      setRightsStatus('Artist registered. Add audio and publish the first track.');
       setTransactionFeedback({
         tone: 'success',
         title: 'Artist registered',
-        message: 'The artist signer now owns a personal SmartRuntime and can manage releases.',
-        txHash
+        message: 'The artist signer now owns a personal SmartRuntime and can publish music.',
+        txHash,
+        steps: artistRuntimeBootstrapRoadmap(runtimeBootstrapSteps.length - 1, 'complete', confirmedBootstrapTxHashes)
       });
     } catch (registrationError) {
       const message = describeArtistRegistrationError(registrationError);
@@ -503,13 +651,15 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       const rawAudioBlob = audioSource ? await fetch(audioSource).then(r => r.blob()) : null;
       const rawAudioBytes = rawAudioBlob ? new Uint8Array(await rawAudioBlob.arrayBuffer()) : null;
 
-      const [resolvedAudioCID, resolvedCoverCID] = await Promise.all([
+      const [resolvedAudioUpload, resolvedCoverCID] = await Promise.all([
         audioUploadRef.current ??
           (rawAudioBytes
             ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash)
             : Promise.resolve('')),
         coverUploadRef.current ?? (coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }) : Promise.resolve(''))
       ]);
+      const resolvedAudioCID = resolvedAudioUpload ? protectedAudioUploadToCID(resolvedAudioUpload) : '';
+      const resolvedAudioRef = resolvedAudioUpload ? protectedAudioUploadToRef(resolvedAudioUpload) : '';
 
       if (resolvedAudioCID) setAudioCID(resolvedAudioCID);
       if (resolvedCoverCID) setCoverCID(resolvedCoverCID);
@@ -639,7 +789,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       }
 
       const walletClient = await getActiveWalletClient();
-      const ipfsAudioRef = resolvedAudioCID ? makeEncryptedAudioRef(resolvedAudioCID) : localAudioRef(fileHash);
+      const ipfsAudioRef = resolvedAudioRef || localAudioRef(fileHash);
       const ipfsCoverRef = resolvedCoverCID ? `ipfs://${resolvedCoverCID}` : `dotify:cover:${fileHash}`;
 
       setRightsStatus('Submitting rights transaction');

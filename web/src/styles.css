@@ -3104,6 +3104,111 @@ audio {
   line-height: 1.55;
 }
 
+.transaction-roadmap {
+  position: relative;
+  display: grid;
+  gap: 0.7rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.transaction-roadmap::before,
+.transaction-roadmap::after {
+  content: '';
+  position: absolute;
+  left: 0.9rem;
+  top: 0.95rem;
+  bottom: 0.95rem;
+  width: 2px;
+  border-radius: 999px;
+}
+
+.transaction-roadmap::before {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.transaction-roadmap::after {
+  background: linear-gradient(
+    180deg,
+    var(--dotify-cyan) 0%,
+    var(--dotify-green) 100%
+  );
+  transform: scaleY(var(--roadmap-progress-ratio, 0));
+  transform-origin: top;
+  transition: transform 260ms ease;
+}
+
+.transaction-roadmap li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.85rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.65rem;
+  min-height: 3rem;
+  padding: 0.05rem 0 0.1rem;
+}
+
+.transaction-roadmap-marker {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  height: 1.85rem;
+  width: 1.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: #09152d;
+  color: var(--fg-tertiary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  box-shadow: 0 0 0 4px rgba(9, 21, 45, 0.84);
+}
+
+.transaction-roadmap li[data-status='complete'] .transaction-roadmap-marker {
+  border-color: rgba(41, 232, 122, 0.5);
+  background: rgba(41, 232, 122, 0.16);
+  color: var(--dotify-green);
+}
+
+.transaction-roadmap li[data-status='active'] .transaction-roadmap-marker,
+.transaction-roadmap li[data-status='submitted'] .transaction-roadmap-marker {
+  border-color: rgba(147, 197, 253, 0.52);
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+}
+
+.transaction-roadmap-copy {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.transaction-roadmap-copy strong {
+  color: var(--fg-primary);
+  font-size: 0.86rem;
+  line-height: 1.25;
+}
+
+.transaction-roadmap li[data-status='upcoming'] .transaction-roadmap-copy strong {
+  color: var(--fg-secondary);
+}
+
+.transaction-roadmap-copy small {
+  color: var(--fg-secondary);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.transaction-roadmap-copy a {
+  width: fit-content;
+  margin-top: 0.12rem;
+  color: var(--dotify-cyan);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .wallet-options {
   display: grid;
   gap: 0.7rem;

@@ -41,8 +41,26 @@ npm run deploy:testnet
 The smart-runtime deployment flow:
 
 - deploys the shared pallets, initializer, directory, and factory;
-- writes `deployments.json` and `web/src/config/deployments.ts`;
+- writes `deployments.json` and `web/src/shared/config/deployments.ts`;
 - verifies the deployed contracts on Blockscout automatically on `polkadotTestnet`.
+
+The Polkadot Hub EVM deployment target uses Solidity optimizer + `viaIR`.
+Keep those settings enabled for testnet deployments.
+
+Artist runtime registration is intentionally multi-transaction on Polkadot Hub
+EVM:
+
+1. `ArtistRuntimeFactory.createRuntime()` deploys a minimal `SmartRuntime`
+   shell owned temporarily by the factory and wired only with `DiamondCutPallet`.
+2. The artist calls `installRuntimeStep()` repeatedly. Each transaction installs
+   exactly one additional pallet, or performs finalisation.
+3. The final step initialises the artist access registrar, transfers runtime
+   ownership to the artist, registers the runtime in `ArtistDirectory`, and
+   emits `ArtistRuntimeCreated`.
+
+This keeps each artist onboarding transaction below the chain's weight limits.
+Do not reintroduce a single transaction that deploys the runtime, installs all
+pallets, initialises access, and writes the directory entry at once.
 
 To rerun verification without redeploying:
 
@@ -61,15 +79,15 @@ npm test
 ## Current Notes
 
 - `ArtistRuntime.test.ts` covers the active smart-runtime / pallet system:
-  runtime creation, registration, paid access, royalty distribution,
+  staged runtime creation, registration, paid access, royalty distribution,
   personhood-gated access, NFT transfer gating, and runtime isolation.
 - `MusicRightsRegistry.sol` and `MusicRightsRegistry.test.ts` are legacy
   monolithic registry code kept in the repository for comparison. The web app
   uses the smart-runtime pallet ABI from `web/src/config/contracts.ts`.
-- The frontend currently performs access checks before playback and serves a
-  42% preview for unauthorized listeners. Contracts remain the source of truth
-  for `musicAccCanAccess` and `musicRoyPayAccess`; production-grade audio key
-  delivery should be added outside the public frontend bundle.
+- The frontend performs access checks before playback. Access model v2 retired
+  the 42% preview: denied protected playback is a gate with no protected audio.
+  Contracts remain the source of truth for `musicAccCanAccess` and
+  `musicRoyPayAccess`.
 
 ## Improvements
 

@@ -9,6 +9,7 @@ export type AssetAction = 'idle' | 'audio' | 'cover';
 export type ArtistTab = 'overview' | 'new' | 'releases' | 'royalties' | 'advanced';
 export type ReleaseStep = 'assets' | 'metadata' | 'access' | 'review';
 export type TransactionFeedbackTone = 'pending' | 'success' | 'error';
+export type TransactionFeedbackStepStatus = 'complete' | 'active' | 'submitted' | 'upcoming';
 
 export type RoyaltySplit = {
   label: string;
@@ -175,6 +176,12 @@ export type TransactionFeedback = {
   title: string;
   message: string;
   txHash?: `0x${string}`;
+  steps?: {
+    label: string;
+    detail: string;
+    status: TransactionFeedbackStepStatus;
+    txHash?: `0x${string}`;
+  }[];
 };
 
 export type AccessGate = {

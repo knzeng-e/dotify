@@ -10,9 +10,9 @@ pivot. It should answer four questions:
 3. What remains to build?
 4. Which decisions must be made before implementation resumes?
 
-It supersedes the 42% preview doctrine. Related reference docs may still mention
-preview behavior; those pages should be treated as stale until they are updated
-to match this plan.
+It supersedes the 42% preview doctrine. Reference docs should describe the
+access-v2 behavior in this document: denied protected playback is a gate, not a
+degraded audio stream.
 
 ## 1. Executive Summary
 
@@ -29,9 +29,12 @@ Dotify v2 changes the production spine in three ways:
    through the protected pipeline so the artist can change future key-release
    policy without changing the app's storage model.
 
-The next major unfinished piece is `dotify.audio.v2`: a chunked encrypted audio
-container intended to let playback start after the first appendable decrypted
-segment instead of after the whole file.
+The current implementation now includes the first `dotify.audio.v2` vertical
+slice: backend publish writes a chunked encrypted `DAV2` object, new registry
+refs use `dotify:enc:v2:ipfs://<CID>`, and the web player recognizes v2 refs
+with a Media Source Extensions path plus full-file fallback. Host playback now
+emits startup timing events; the remaining P3 work is browser/device validation
+against real gateways and media files.
 
 ## 2. Current Delivery State
 
@@ -40,8 +43,9 @@ segment instead of after the whole file.
 | Access model v2, P1 | Delivered | `free`, paid/classic, and `human-free` modes are modeled; preview playback is retired for production access denial. |
 | Session auth, P2 | Delivered | One sign-in session token can carry later key requests; legacy per-request signing remains as fallback. |
 | Free-track key delivery | Delivered | The backend verifies public access on-chain before releasing a key with no wallet or signature. |
+| Artist runtime bootstrap | Delivered | Polkadot Hub EVM registration is staged: `createRuntime()` creates a minimal shell, then `installRuntimeStep()` installs one pallet per transaction before final ownership transfer and directory registration. |
 | Room access doctrine | Delivered and preserved | Only the host needs access; listeners receive only the WebRTC stream. |
-| Chunked encrypted streaming, P3 | Open | v1 full-file encrypted blobs still play; v2 chunked publish/playback is not built. |
+| Chunked encrypted streaming, P3 | First vertical slice delivered | New backend uploads publish DAV2 refs; web playback supports v2 refs with v1 fallback. Startup metrics exist; browser/device validation remains. |
 | Real Proof of Personhood integration, P4 | Open | Current `human-free` remains structurally ready but not backed by the live platform source. |
 | Polkadot App / Triangle integration, P5 | Open | DotNS/Bulletin alignment exists conceptually; Product SDK, Host API signing, and Statement Store migration are future work. |
 
@@ -105,6 +109,29 @@ Policy changes must preserve these rules:
 - the room host's access is re-evaluated on track selection and when a selected
   track becomes unplayable.
 
+### Artist runtime registration
+
+Artist registration must not assume that Polkadot Hub EVM can execute a full
+diamond deployment in one transaction. The accepted flow is:
+
+1. `ArtistRuntimeFactory.createRuntime()` deploys the minimal runtime shell and
+   records it as pending.
+2. The UI calls `installRuntimeStep()` until `pendingRuntimeOf(artist)` returns
+   `address(0)`.
+3. Only the final step writes `ArtistDirectory.runtimeOf(artist)`.
+
+This makes interrupted wallet flows resumable. If an artist closes the app mid
+bootstrap, the next registration attempt should continue from
+`pendingRuntimeStageOf(artist)` rather than trying to deploy a second runtime.
+
+The UI must present this as an explicit approval roadmap. Before every wallet
+approval, the transaction modal names the commitment being made in human terms,
+shows the total number of approvals, and marks completed, submitted, active, and
+upcoming steps. The roadmap should read as a timeline with a path that fills as
+steps are confirmed. Per-step Blockscout links appear only after confirmation,
+so artists can immediately verify what they just approved. The purpose is
+consent clarity, not just progress feedback.
+
 ### Unauthorized playback
 
 Unauthorized individual playback is a gate, not audio:
@@ -161,7 +188,7 @@ v1 must remain playable indefinitely.
 
 ### v2: chunked encrypted audio
 
-P3 should introduce an explicit v2 reference, for example:
+P3 introduces an explicit v2 reference:
 
 ```txt
 audioRef = dotify:enc:v2:ipfs://<CID>
@@ -170,26 +197,31 @@ audioRef = dotify:enc:v2:ipfs://<CID>
 The file remains a single IPFS object and a single CID. Internally it contains a
 header plus independently encrypted chunks.
 
-Proposed container:
+Implemented container:
 
 ```txt
-header:
+prefix:
   magic "DAV2"
+  uint32_be JSON header length
+
+JSON header:
+  schema = "dotify.audio.v2"
   version = 1
   algorithm = "AES-256-GCM"
-  chunkSize
+  chunkSize = 512 KiB by default
   chunkCount
+  plaintextLength
   mediaMime
-  mediaCodecHint
-  contentHash
-  noncePrefix(4)
-  headerLength
+  contentHash = blake2b-256(raw audio)
+  noncePrefix = 8 random bytes, hex encoded
+  chunks[index] = { index, plainLength, encryptedLength }
 
 body:
   chunk[i] = AES-GCM(
     key,
-    nonce = noncePrefix || uint64_be(i),
-    aad = hash(headerWithoutMutableOffsets) || uint64_be(i) || plaintextLength,
+    nonce = noncePrefix || uint32_be(i),
+    aad = schema | version | contentHash | chunkSize | chunkCount |
+          plaintextLength | mediaMime | index | plainLength,
     plaintext = originalBytes[i]
   ) || tag(16)
 ```
@@ -204,6 +236,9 @@ Rules:
 - keep the original media bytes and codec; do not introduce ffmpeg or HLS in
   P3;
 - keep v1 fallback in the same resolver path.
+
+The exact reference contract lives in
+[`docs/reference/audio-v2-container.md`](../reference/audio-v2-container.md).
 
 Open technical risk: MSE does not promise that arbitrary byte chunks from every
 source container are appendable. P3 must validate the first supported media
@@ -231,8 +266,10 @@ Fallback:
 - if decryption fails for any chunk, stop playback and surface a protected
   media error. Do not skip corrupted chunks.
 
-Implementation note: P3 should measure time-to-first-sound, not just time to
-`loadedmetadata`. The product problem is audible dead air.
+Implementation note: the host playback layer emits
+`dotify:host-audio-startup` events for `source-selected`, `metadata-ready`,
+`first-audio`, and `error`. P3 release validation should use `first-audio`, not
+just `loadedmetadata`, because the product problem is audible dead air.
 
 ### v2 publish path
 
@@ -270,7 +307,7 @@ Out of scope for P3:
 - shared queue consensus;
 - Statement Store migration.
 
-Browser validation remains required before shipping P3:
+Browser validation remains required before marking P3 release-ready:
 
 - host starts a protected v2 track and room audio begins quickly;
 - host switches v1 -> v2 and v2 -> v1 tracks;
@@ -312,7 +349,7 @@ P5 should start with a capability matrix, not a rewrite.
 | --- | --- | --- | --- |
 | P1 | Delivered | Access model v2 in contracts, backend, and UI; remove preview playback. | Free tracks play with no wallet; unauthorized protected tracks show gates with no audio; artists can change future key-release policy without changing app flow. |
 | P2 | Delivered | Session auth for key service. | One signature opens a session; later protected listens do not prompt again; every key request still checks chain access. |
-| P3 | Open | `dotify.audio.v2` chunked container, publish path, playback path, v1 fallback. | Protected first sound is bounded by one chunk on supported browsers; v1 assets still play; fallback is visible and tested. |
+| P3 | First vertical slice delivered | `dotify.audio.v2` chunked container, publish path, playback path, v1 fallback, startup metrics. | New protected uploads produce v2 refs; v1 assets still play; browser/device validation must confirm time-to-first-sound. |
 | P4 | Open | Real Proof of Personhood integration for `human-free`. | No admin mock in production; denied PoP checks fail closed; UI explains the exact missing proof. |
 | P5 | Open | Triangle/Host API/Product SDK alignment and Statement Store design. | Dotify runs as a Host-compatible Product without assuming direct wallet/RPC access; room social state has a migration design. |
 
@@ -350,19 +387,17 @@ P5 should start with a capability matrix, not a rewrite.
 
 ## 11. Open Decisions
 
-Blocking before P3 implementation:
+Remaining before P3 release:
 
-1. **Chunk size.** Start with 256 KiB or 512 KiB, then tune with gateway latency
-   and time-to-first-sound data. The decision should be metric-driven.
-2. **Container prefix.** Confirm `dotify:enc:v2:ipfs://<CID>` fits contract
-   string limits and all serializers before publishing v2 assets.
-3. **MSE support matrix.** Decide the first supported media types, containers,
+1. **Chunk size.** The vertical slice starts at 512 KiB. Keep or tune it with
+   gateway latency and time-to-first-sound data.
+2. **MSE support matrix.** Decide the first supported media types, containers,
    and browsers. Do not design around codecs the current app cannot reliably
    append from decrypted chunks.
-4. **Gateway strategy.** Decide whether P3 depends on public gateways supporting
+3. **Gateway strategy.** Decide whether P3 depends on public gateways supporting
    Range + CORS, or whether the backend must provide a read-through fallback.
-5. **Instrumentation.** Define the exact metrics for dead air: source selected,
-   first byte, first decrypted chunk, `loadedmetadata`, first audible play.
+4. **Instrumentation persistence.** The client now emits startup events. Decide
+   whether production needs aggregation, dashboards, or only manual QA probes.
 
 Blocking before stronger policy-flip claims:
 
@@ -388,13 +423,13 @@ Blocking before P5:
 
 ## 12. Documentation Cleanup Queue
 
-After this plan is accepted, update the docs that still describe preview-era
-behavior:
+Keep these pages synchronized with this plan when behavior changes:
 
+- `README.md`;
+- `web/README.md`;
 - `docs/explanation/access-control-model.md`;
+- `docs/explanation/content-protection.md`;
+- `docs/reference/audio-v2-container.md`;
 - `docs/reference/hooks-api.md`;
 - `docs/reference/types.md`;
-- `README.md` sections that still say unauthorized hosts stream a 42% preview;
-- any backlog rows that mark P2 as open even though session auth has landed.
-
-This cleanup should be a docs-only PR unless implementation drift is found.
+- `docs/backlog/24-access-streaming-v2.md`.

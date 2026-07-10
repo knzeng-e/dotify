@@ -22,4 +22,8 @@ contract DotifyRuntimeInitializer {
   function initialize() external {
     LibMusicAccess.setPersonhoodRegistrar(LibMusicAccess.store(), LibDiamond.contractOwner());
   }
+
+  function initializeFor(address registrar) external {
+    LibMusicAccess.setPersonhoodRegistrar(LibMusicAccess.store(), registrar);
+  }
 }

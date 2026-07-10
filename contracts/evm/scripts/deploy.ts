@@ -6,7 +6,7 @@
  *      MusicRegistry, MusicNFT, MusicRoyalties, MusicAccess)
  *   2. DotifyRuntimeInitializer (bootstraps each new artist runtime)
  *   3. ArtistDirectory        (artist → SmartRuntime index)
- *   4. ArtistRuntimeFactory   (deploys a SmartRuntime per artist on demand)
+ *   4. ArtistRuntimeFactory   (bootstraps a staged SmartRuntime per artist)
  *   5. Wires the factory into the directory (setFactory)
  *
  * Outputs:
@@ -128,7 +128,7 @@ async function main() {
   console.log('\n✓ Dotify Smart Runtime deployed successfully!\n');
   console.log('  ArtistDirectory  :', directory.address);
   console.log('  ArtistRuntimeFactory:', factory.address);
-  console.log('\n  Artists can now call factory.createRuntime() to get their SmartRuntime.');
+  console.log('\n  Artists can now call factory.createRuntime(), then factory.installRuntimeStep() until finalized.');
 }
 
 main().catch(error => {

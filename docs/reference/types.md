@@ -148,8 +148,9 @@ The current step in the four-step new release wizard.
 type RoomPlaybackMode = 'full' | 'preview';
 ```
 
-Host-declared playback mode for a room. `preview` means the host is streaming
-the 42% fallback instead of full protected audio.
+Host-declared playback mode for a room. Access model v2 keeps the union for
+wire compatibility, but current hosts emit `full`; unauthorized hosts stream no
+protected audio rather than a preview fallback. `preview` is legacy.
 
 ---
 
@@ -160,6 +161,16 @@ type TransactionFeedbackTone = 'pending' | 'success' | 'error';
 ```
 
 Controls the visual state of the `TransactionModal`.
+
+---
+
+### `TransactionFeedbackStepStatus`
+
+```typescript
+type TransactionFeedbackStepStatus = 'complete' | 'active' | 'submitted' | 'upcoming';
+```
+
+Controls an optional transaction roadmap inside the `TransactionModal`.
 
 ---
 
@@ -188,7 +199,7 @@ type TrackInfo = {
   duration: number; // Seconds
   updatedAt: number; // Unix ms timestamp
   imageRef?: string; // URL or IPFS ref for cover image
-  audioRef?: string; // URL or IPFS ref for audio file
+  audioRef?: string; // URL, IPFS ref, or Dotify encrypted audio ref
   priceDot?: string; // Decimal DOT amount (Classic mode only)
   bulletinRef: string; // Bulletin archive ref, or empty string
   metadataRef?: string; // IPFS metadata ref (ipfs://<CID>)
@@ -228,7 +239,7 @@ type CatalogTrack = {
   source: 'seed' | 'artist';
   royaltySplits: RoyaltySplit[];
   personhoodLevel: PersonhoodLevel;
-  encrypted: boolean; // true if audioRef is a dotify:enc:ipfs:// ref
+  encrypted: boolean; // true if audioRef is dotify:enc:* (v1 or v2)
 };
 ```
 
@@ -330,10 +341,16 @@ type TransactionFeedback = {
   title: string;
   message: string;
   txHash?: `0x${string}`; // Present after transaction submission
+  steps?: {
+    label: string;
+    detail: string;
+    status: TransactionFeedbackStepStatus;
+    txHash?: `0x${string}`;
+  }[];
 };
 ```
 
-Drives the `TransactionModal`. Set to `{ tone: 'pending' }` before submitting a transaction, then updated to `'success'` or `'error'` after confirmation.
+Drives the `TransactionModal`. Set to `{ tone: 'pending' }` before submitting a transaction, then updated to `'success'` or `'error'` after confirmation. `steps` is optional and is used for multi-approval flows such as staged artist runtime bootstrap. A step-level `txHash` should be attached only after that step is confirmed.
 
 ---
 
@@ -349,7 +366,8 @@ type AccessGate = {
 };
 ```
 
-Displayed as the `AccessGateOverlay` when a listener hits the 42 % preview limit without access. `actionType` controls which CTA is shown:
+Displayed as the `AccessGateOverlay` when a listener lacks access and no
+protected audio should play. `actionType` controls which CTA is shown:
 
 | `actionType` | Shown when                         | CTA                                             |
 | ------------ | ---------------------------------- | ----------------------------------------------- |

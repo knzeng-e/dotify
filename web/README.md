@@ -247,16 +247,16 @@ Then verify the user flow in two browser contexts or devices:
 
 ### Production Troubleshooting
 
-| Symptom                                                                      | Likely cause                                                                                                              | Check                                                                                                 | Fix                                                                                                                                   |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Frontend shows `Signal server unavailable`                                   | `VITE_SIGNAL_URL` points to the wrong host, the Fly app is down, or `SIGNAL_ORIGINS` blocks the frontend origin.          | Browser console, Netlify env vars, `curl -s <signal-url>/health`, `flyctl status -c fly.signal.toml`. | Set `VITE_SIGNAL_URL` to the HTTPS Fly URL, redeploy Netlify, start/redeploy Fly, and add the Netlify origin to `SIGNAL_ORIGINS`.     |
-| Room creation works locally but not in production                            | Netlify was built without the production signaling URL.                                                                   | Inspect the deployed JS env by trying to create a room; the UI error includes the signal URL.         | Set `VITE_SIGNAL_URL` in Netlify and trigger a fresh frontend deploy.                                                                 |
-| Guests can join, but chat, reactions, or requests do not appear for everyone | The Fly signaling image is stale, or more than one active Fly machine is serving separate in-memory room maps.            | `flyctl status -c fly.signal.toml`; compare image name and active machine count.                      | Run `flyctl deploy -c fly.signal.toml`, then `flyctl scale count 1 -c fly.signal.toml --yes` until a shared Socket.IO adapter exists. |
-| `/health` works but `/status` shows rooms split or missing                   | Multiple signaling instances are active without shared state.                                                             | `flyctl status -c fly.signal.toml`.                                                                   | Keep one active machine for the current in-memory signaling design.                                                                   |
-| Listener joins but audio never starts                                        | WebRTC cannot establish a media path across the host/listener networks. Signaling can be healthy while audio still fails. | Chat/reactions work, but the listener stays in a connecting/no-audio state.                           | Configure a TURN relay with `VITE_TURN_URL`, `VITE_TURN_USERNAME`, and `VITE_TURN_CREDENTIAL`, then redeploy Netlify.                 |
-| Production upload or full-track playback fails                               | Backend API is missing or cannot release keys.                                                                            | Check `VITE_DOTIFY_API_URL`, backend `/health`, and browser network requests to key/upload endpoints. | Deploy/fix the backend API and keep `PINATA_JWT` plus `CONTENT_KEY_MASTER_SECRET` server-side.                                        |
-| Unauthorized preview fails for server-keyed tracks                           | The track was published without a separate preview asset.                                                                 | Inspect the track manifest for `assets.previewCID`.                                                   | Publish/regenerate a preview asset for production-protected tracks.                                                                   |
-| A room disappears while the host tab is open                                 | Host heartbeat stopped, the host disconnected, or the room TTL expired.                                                   | Fly logs and `/status`; defaults are 120 seconds heartbeat timeout and 6 hours TTL.                   | Keep the host tab awake/reconnected, or adjust `SIGNAL_HOST_TIMEOUT_MS` / `SIGNAL_ROOM_TTL_MS` deliberately.                          |
+| Symptom                                                                      | Likely cause                                                                                                                        | Check                                                                                                 | Fix                                                                                                                                   |
+| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend shows `Signal server unavailable`                                   | `VITE_SIGNAL_URL` points to the wrong host, the Fly app is down, or `SIGNAL_ORIGINS` blocks the frontend origin.                    | Browser console, Netlify env vars, `curl -s <signal-url>/health`, `flyctl status -c fly.signal.toml`. | Set `VITE_SIGNAL_URL` to the HTTPS Fly URL, redeploy Netlify, start/redeploy Fly, and add the Netlify origin to `SIGNAL_ORIGINS`.     |
+| Room creation works locally but not in production                            | Netlify was built without the production signaling URL.                                                                             | Inspect the deployed JS env by trying to create a room; the UI error includes the signal URL.         | Set `VITE_SIGNAL_URL` in Netlify and trigger a fresh frontend deploy.                                                                 |
+| Guests can join, but chat, reactions, or requests do not appear for everyone | The Fly signaling image is stale, or more than one active Fly machine is serving separate in-memory room maps.                      | `flyctl status -c fly.signal.toml`; compare image name and active machine count.                      | Run `flyctl deploy -c fly.signal.toml`, then `flyctl scale count 1 -c fly.signal.toml --yes` until a shared Socket.IO adapter exists. |
+| `/health` works but `/status` shows rooms split or missing                   | Multiple signaling instances are active without shared state.                                                                       | `flyctl status -c fly.signal.toml`.                                                                   | Keep one active machine for the current in-memory signaling design.                                                                   |
+| Listener joins but audio never starts                                        | WebRTC cannot establish a media path across the host/listener networks. Signaling can be healthy while audio still fails.           | Chat/reactions work, but the listener stays in a connecting/no-audio state.                           | Configure a TURN relay with `VITE_TURN_URL`, `VITE_TURN_USERNAME`, and `VITE_TURN_CREDENTIAL`, then redeploy Netlify.                 |
+| Production upload or full-track playback fails                               | Backend API is missing or cannot release keys.                                                                                      | Check `VITE_DOTIFY_API_URL`, backend `/health`, and browser network requests to key/upload endpoints. | Deploy/fix the backend API and keep `PINATA_JWT` plus `CONTENT_KEY_MASTER_SECRET` server-side.                                        |
+| Protected track takes too long to start                                      | The IPFS gateway cannot serve DAV2 Range requests quickly, MSE is unsupported for the media type, or the backend key route is slow. | Listen for `dotify:host-audio-startup` in the browser and inspect key/upload network requests.        | Try a different configured gateway, verify `VITE_DOTIFY_API_URL`, and decide whether a backend read-through gateway is needed.        |
+| A room disappears while the host tab is open                                 | Host heartbeat stopped, the host disconnected, or the room TTL expired.                                                             | Fly logs and `/status`; defaults are 120 seconds heartbeat timeout and 6 hours TTL.                   | Keep the host tab awake/reconnected, or adjust `SIGNAL_HOST_TIMEOUT_MS` / `SIGNAL_ROOM_TTL_MS` deliberately.                          |
 
 ## Tests
 
@@ -270,8 +270,8 @@ npm run test:e2e      # Playwright - deterministic trust flows
 (currently access policy and room state).
 
 `test:e2e` runs Playwright against deterministic mock modes. It covers Classic
-preview/payment/unlock, artist runtime creation plus release publication, and
-the listening-room join + host-access playback flow, without requiring live
+locked/access/payment behavior, artist runtime creation plus release
+publication, and the listening-room join + host-access playback flow, without requiring live
 funds, Pinata, or a chain. Artist publish coverage also asserts missing wallet,
 wrong network, upload failure, and transaction failure states.
 
@@ -366,7 +366,7 @@ wiring App.tsx used to do moves into the providers, and the catalog-owned effect
 effect move with them. This removes the catalog/session prop drilling into the
 views. Finally `ArtistStudioProvider` (`useArtistStudio`) wraps `useArtistConsole`
 plus the royalty summary, and `PlaybackProvider` (`usePlaybackContext`) wraps
-`usePlayback` and owns the cross-domain open-track / prepare-stream / preview-cutoff
+`usePlayback` and owns the cross-domain open-track / prepare-stream / host-startup
 handlers. With that, `App.tsx` calls no feature hooks and owns no business state:
 it reads from the contexts and composes the render tree.
 
@@ -418,7 +418,7 @@ appropriate component composition rather than shell-level prop drilling.
 - Proof of Personhood levels are contract storage controlled by the runtime
   registrar; live Individuality integration is not implemented yet.
 - The signaling server must be hosted separately for DotNS / Bulletin builds.
-- Frontend e2e coverage exists for the Classic preview/payment/unlock, artist
+- Frontend e2e coverage exists for the Classic locked/access/payment, artist
   publish, and room join trust flows. Broader wallet/provider coverage is still
   open.
 

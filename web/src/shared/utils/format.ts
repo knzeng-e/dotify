@@ -128,7 +128,7 @@ export function catalogAccessAriaLabel(track: CatalogTrack, hasAccess: boolean) 
 export function describeArtistRegistrationError(error: unknown) {
   const message = error instanceof Error ? error.message : 'Artist registration failed';
 
-  if (/consumes more than the allowed weight|proof_size|overweight_by/i.test(message)) {
+  if (/consumes more than the allowed weight|proof_size|overweight_by|Invalid Transaction Contract call|0x190f1b41/i.test(message)) {
     return 'Artist registration exceeds the current Polkadot Hub EVM weight limit. Redeploy the updated ArtistRuntimeFactory, then refresh the app deployment addresses before trying again.';
   }
 

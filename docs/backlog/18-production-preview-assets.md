@@ -1,5 +1,9 @@
 # 18 - Production preview assets for protected tracks
 
+> Retired by ticket 24 access model v2. Dotify no longer promises a 42% preview
+> for denied protected playback; denied listeners and unauthorized room hosts
+> get a clear gate and no protected audio.
+
 ## Sprint
 Sprint 1 - Stabilization and maintainability
 

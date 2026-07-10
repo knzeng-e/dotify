@@ -16,10 +16,13 @@ material in the backend API:
 1. The browser computes the audio content hash.
 2. The browser uploads the raw audio to the backend.
 3. The backend derives the per-track key from `CONTENT_KEY_MASTER_SECRET`.
-4. The backend encrypts the audio with AES-256-GCM and pins the encrypted bytes
-   to Pinata.
-5. A listener or room host receives a key only after a wallet-signed request and
-   a server-side runtime access check.
+4. The backend encrypts the audio with AES-256-GCM. New uploads use the
+   chunked `dotify.audio.v2` container; older v1 encrypted blobs remain
+   playable.
+5. The backend pins the encrypted bytes to Pinata.
+6. A Free listener receives a key only after the backend re-verifies public
+   runtime access. Gated listeners and room hosts receive a key only after a
+   signed session/key request and a server-side runtime access check.
 
 Room guests never receive content keys. They receive only the ephemeral WebRTC
 stream from the host.
@@ -74,17 +77,19 @@ Backend derives key:
 HKDF-SHA256(CONTENT_KEY_MASTER_SECRET, "dotify-content-key-v1:<contentHash>")
         |
         v
-Backend AES-256-GCM encrypts audio
+Backend AES-256-GCM encrypts audio as a DAV2 chunked container
         |
         v
 Encrypted bytes pinned to Pinata
         |
         v
-audioRef = "dotify:enc:ipfs://<CID>"
+audioRef = "dotify:enc:v2:ipfs://<CID>"
 ```
 
 The same backend derivation is used when an authorized key request succeeds, so
 the delivered per-track key decrypts bytes encrypted by the upload route.
+The exact `DAV2` binary layout and browser playback contract are documented in
+[audio-v2-container.md](../reference/audio-v2-container.md).
 
 ### Demo/local encryption pipeline
 
@@ -131,21 +136,28 @@ denied or ambiguous, it returns a denial reason and no key.
 ### Decryption pipeline
 
 ```txt
-audioRef = "dotify:enc:ipfs://<CID>"
+audioRef = "dotify:enc:v2:ipfs://<CID>"    # new uploads
+audioRef = "dotify:enc:ipfs://<CID>"       # legacy v1 uploads
         |
         v
-fetchIpfsCid(CID) with gateway fallback
+fetch IPFS bytes with gateway fallback
         |
         v
 authorized key available?
         |
-        +-- yes --> decrypt full audio -> Blob URL -> <audio>
+        +-- yes --> v2: Range fetch + decrypt chunks + MSE where supported
+        |           fallback: decrypt full audio -> Blob URL -> <audio>
         |
         +-- no  --> show unlock/personhood CTA, no audio
 ```
 
 The clear audio is not persisted. It exists as an in-memory Blob/Object URL and
 is revoked during normal cleanup.
+
+For room and host QA, the browser emits `dotify:host-audio-startup` events when
+the selected source is assigned, metadata becomes available, first audio starts,
+or startup fails. The important product metric is the `first-audio` elapsed
+time.
 
 ### Denied playback
 
@@ -156,10 +168,11 @@ protected audio until they unlock, verify, or choose a playable track.
 
 ### Encrypted audio ref format
 
-| Prefix                    | Meaning                                    |
-| ------------------------- | ------------------------------------------ |
-| `dotify:enc:ipfs://<CID>` | Encrypted audio on IPFS; fetch and decrypt |
-| `ipfs://<CID>`            | Plain IPFS ref                             |
-| `http[s]://...`           | Plain HTTP audio URL                       |
-| `blob:...`                | Local Object URL                           |
-| `dotify:local:<hash>`     | Local draft audio not yet uploaded         |
+| Prefix                       | Meaning                                             |
+| ---------------------------- | --------------------------------------------------- |
+| `dotify:enc:v2:ipfs://<CID>` | Chunked encrypted audio on IPFS (`DAV2`)            |
+| `dotify:enc:ipfs://<CID>`    | Legacy v1 encrypted audio on IPFS; fetch and decrypt |
+| `ipfs://<CID>`               | Plain IPFS ref                                      |
+| `http[s]://...`              | Plain HTTP audio URL                                |
+| `blob:...`                   | Local Object URL                                    |
+| `dotify:local:<hash>`        | Local draft audio not yet uploaded                  |

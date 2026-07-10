@@ -123,9 +123,9 @@ npm run test:e2e        # Playwright: deterministic Classic unlock and artist pu
 ```
 
 `npm run test:e2e` starts Vite in deterministic e2e mode. It seeds one Classic
-track, connects deterministic test wallets, verifies preview-only playback
-before Classic payment, and covers artist runtime creation plus release
-publication with mocked upload and transaction failure states.
+track, connects deterministic test wallets, verifies the locked gate before
+Classic payment, and covers artist runtime creation plus release publication
+with mocked upload and transaction failure states.
 
 For a public deployment, run `node server/signaling.mjs` on any Node 22 host
 and point the frontend at it with `VITE_SIGNAL_URL`.
@@ -155,8 +155,8 @@ flags, expiry).
 - A host creates a room and shares a join link (`#/rooms/<roomId>`) or code.
 - Guests join with the link alone: no wallet, no signature, no payment.
 - Only the host must satisfy a protected track's access policy. An authorized
-  host streams the full track; an unauthorized host streams the 42% preview,
-  sees a discreet unlock CTA, and the playlist auto-advances.
+  host streams the full track; an unauthorized host streams no protected audio
+  and sees the correct unlock/personhood CTA.
 - Guests receive only the ephemeral WebRTC stream, never content keys or
   encrypted source files. They can of course hear and record what is streamed;
   Dotify does not claim otherwise.
@@ -191,6 +191,8 @@ authorization failures.
 
 ## Access modes
 
+- **Free**: playable by everyone, wallet or not. The backend still verifies the
+  current runtime policy before releasing the content key.
 - **Human free**: free listening for addresses with Polkadot Proof of Personhood
   (DIM1 or DIM2). The contract gates NFT transfer to the same level.
 - **Classic**: paid access in DOT. The runtime records the price and distributes
@@ -202,21 +204,16 @@ for a live Individuality chain integration without blocking the prototype.
 ### Individual playback access
 
 For individual full-track playback, Dotify checks access before loading the
-registered track. In production mode, the frontend requests a backend-held
-content key with a wallet signature; the backend verifies the signature, rejects
-nonce replay, resolves the artist runtime, and calls `musicAccCanAccess` before
-releasing a per-track key. If access is denied, the UI falls back to preview
-mode and shows the action needed to unlock the whole track.
+registered track. Free tracks can play without a wallet: the frontend asks the
+backend for a free key, and the backend re-verifies the runtime policy before
+releasing it. Gated tracks use a signed session or signed key request; the
+backend verifies the requester, resolves the artist runtime, and calls
+`musicAccCanAccess` before releasing a per-track key. If access is denied, the
+UI shows the action needed to unlock the track and plays no protected audio.
 
-For registered artist tracks, users without a connected wallet are treated as
-unauthorized individual listeners and receive preview-only playback. Dev-account
-fallback must not grant full listener playback.
-
-Current preview caveat: server-keyed production tracks still need a separate
-preview asset. Demo/local tracks can slice a 42% preview from browser-decrypted
-bytes, but production tracks encrypted with the backend-held key cannot be
-previewed by an unauthorized browser unless a preview reference is published.
-See `docs/backlog/18-production-preview-assets.md`.
+For registered artist tracks, users without a connected wallet can play Free
+tracks. For gated tracks, they see a sign-in/unlock gate. Dev-account fallback
+must not grant full listener playback.
 
 ### Room playback access
 
@@ -229,15 +226,12 @@ Room playback uses **host-based access**.
   merely to listen inside a room.
 - Room listeners never receive the encrypted source file or content key; they
   receive only the ephemeral WebRTC media stream.
-- If the host lacks access to a protected track, Dotify should keep the room
-  alive, stream the 42% preview, show a discreet host-facing unlock/personhood
-  CTA, and auto-advance to the next playlist track when the preview ends.
+- If the host lacks access to a protected track, Dotify keeps the room alive
+  but streams no protected audio until the host unlocks, verifies, or selects a
+  playable track.
 
 This protects source-file distribution without turning the room into a wallet
 checkpoint.
-
-The same production preview caveat applies to rooms: unauthorized host preview
-fallback needs a publish-time preview asset for server-keyed tracks.
 
 ### Security boundary
 
@@ -265,8 +259,9 @@ See also:
   registration.
 - Backend upload/key service for server-side audio encryption and wallet-signed
   content-key requests, with demo/local browser encryption still available.
-- 42% preview playback for demo/local protected tracks; production preview
-  assets are still pending for server-keyed tracks.
+- Access model v2: Free tracks play without a wallet, gated tracks show a gate
+  with no preview fallback, and new production uploads use
+  `dotify:enc:v2:ipfs://<CID>` chunked encrypted audio.
 - Seed catalog with five tracks browsable on the Home view.
 - SmartRuntime music pallets: registration, NFT ownership, access checks, paid
   access, listen recording, royalty split storage, and transfer gating by
@@ -276,9 +271,9 @@ See also:
 
 - **Draft audio is session-only**: blob URLs are revoked on unmount before the
   release is registered. Registered releases rely on Pinata IPFS refs.
-- **Client-side protection is best-effort**: encrypted audio and preview gating
-  improve the demo, but `VITE_CONTENT_SECRET` is still only a local/demo
-  boundary. Production uploads and full-track playback should use
+- **Client-side protection is best-effort**: local/demo encrypted audio improves
+  development flows, but `VITE_CONTENT_SECRET` is still only a local/demo
+  boundary. Production uploads and protected playback should use
   `VITE_DOTIFY_API_URL` with the backend-held `CONTENT_KEY_MASTER_SECRET`.
 - **Wallet scope**: Dotify treats the connected EVM account as the primary
   artist and listener identity. Artist registration and release publication
@@ -290,10 +285,6 @@ See also:
   direct browser uploads only when `VITE_DOTIFY_API_URL` is unset. Production
   uploads use the backend API; see `services/api/.env.example` for server-side
   `PINATA_JWT` and `CONTENT_KEY_MASTER_SECRET`.
-- **Production preview asset gap**: production tracks encrypted with the
-  backend-held key need a separate preview asset before unauthorized listeners
-  and unauthorized room hosts can reliably hear the promised 42% preview.
-  Tracked in `docs/backlog/18-production-preview-assets.md`.
 - **Single-host rooms**: no multi-host or handoff logic. If the host closes the
   tab, the room ends.
 - **Room stream capture limits**: room guests do not receive keys/source files,
@@ -345,8 +336,8 @@ handle:
    network mismatch handling, and clear transaction preflight states.
 2. Harden and operate the backend upload/key service for public traffic:
    production CORS, secret rotation, monitoring, and rate limits.
-3. Publish separate preview assets for server-keyed protected tracks so
-   unauthorized previews do not depend on demo-mode decryption.
+3. Complete the browser/device validation matrix for DAV2 Range + MSE playback
+   and decide whether a backend read-through gateway is needed.
 4. Keep demo-mode browser-exposed Pinata/content secrets out of public
    deployments.
 5. Integrate live Proof of Personhood / Individuality data instead of manual
@@ -354,9 +345,8 @@ handle:
 6. Add a production artist dashboard on `/artists`: release drafts, edit
    metadata, royalty analytics, and profile verification state.
 7. Deploy and monitor a public signaling server for DotNS / Bulletin builds.
-8. Add remaining frontend tests for listening rooms; Classic
-   preview/payment/unlock and artist publish now have deterministic e2e
-   coverage.
+8. Add remaining frontend tests for listening rooms; Classic access/payment,
+   artist publish, and room join now have deterministic e2e coverage.
 9. Split the large React app into catalog, player, artist portal, rooms, and
    chain modules.
 10. Generate frontend ABI bindings from Hardhat artifacts.
