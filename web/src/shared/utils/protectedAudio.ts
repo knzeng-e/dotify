@@ -59,6 +59,7 @@ export async function decryptTrackAudio(packed: Uint8Array, contentHash: string)
 // ---------------------------------------------------------------------------
 
 const ENC_AUDIO_PREFIX = 'dotify:enc:ipfs://';
+const ENC_AUDIO_V2_PREFIX = 'dotify:enc:v2:ipfs://';
 
 /**
  * Build the on-chain audioRef for an encrypted IPFS upload.
@@ -68,12 +69,29 @@ export function makeEncryptedAudioRef(audioCID: string): string {
   return `${ENC_AUDIO_PREFIX}${audioCID}`;
 }
 
-/** Returns true when the audioRef was produced by makeEncryptedAudioRef. */
+/** Build the on-chain audioRef for a chunked encrypted IPFS upload. */
+export function makeEncryptedAudioV2Ref(audioCID: string): string {
+  return `${ENC_AUDIO_V2_PREFIX}${audioCID}`;
+}
+
+/** Normalize an upload response that may already be a full encrypted audio ref. */
+export function normalizeEncryptedAudioRef(audioRefOrCid: string): string {
+  if (isEncryptedAudioRef(audioRefOrCid)) return audioRefOrCid;
+  return makeEncryptedAudioRef(audioRefOrCid);
+}
+
+/** Returns true when the audioRef is any encrypted Dotify audio ref. */
 export function isEncryptedAudioRef(audioRef: string): boolean {
-  return audioRef.startsWith(ENC_AUDIO_PREFIX);
+  return audioRef.startsWith(ENC_AUDIO_PREFIX) || audioRef.startsWith(ENC_AUDIO_V2_PREFIX);
+}
+
+/** Returns true when the audioRef points to a chunked DAV2 encrypted asset. */
+export function isEncryptedAudioV2Ref(audioRef: string): boolean {
+  return audioRef.startsWith(ENC_AUDIO_V2_PREFIX);
 }
 
 /** Extract the raw IPFS CID from an encrypted audioRef. */
 export function encryptedRefToCID(audioRef: string): string {
+  if (audioRef.startsWith(ENC_AUDIO_V2_PREFIX)) return audioRef.slice(ENC_AUDIO_V2_PREFIX.length);
   return audioRef.slice(ENC_AUDIO_PREFIX.length);
 }

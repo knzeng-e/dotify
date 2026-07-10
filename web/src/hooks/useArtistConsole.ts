@@ -10,8 +10,7 @@ import {
   musicRegistryAbi
 } from '../shared/config/contracts';
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
-import { uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
-import { makeEncryptedAudioRef } from '../shared/utils/protectedAudio';
+import { protectedAudioUploadToCID, protectedAudioUploadToRef, uploadFileToPinata, uploadJsonToPinata, uploadProtectedAudio, type DotifyTrackManifest } from '../services/pinata';
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
@@ -503,13 +502,15 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       const rawAudioBlob = audioSource ? await fetch(audioSource).then(r => r.blob()) : null;
       const rawAudioBytes = rawAudioBlob ? new Uint8Array(await rawAudioBlob.arrayBuffer()) : null;
 
-      const [resolvedAudioCID, resolvedCoverCID] = await Promise.all([
+      const [resolvedAudioUpload, resolvedCoverCID] = await Promise.all([
         audioUploadRef.current ??
           (rawAudioBytes
             ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash)
             : Promise.resolve('')),
         coverUploadRef.current ?? (coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }) : Promise.resolve(''))
       ]);
+      const resolvedAudioCID = resolvedAudioUpload ? protectedAudioUploadToCID(resolvedAudioUpload) : '';
+      const resolvedAudioRef = resolvedAudioUpload ? protectedAudioUploadToRef(resolvedAudioUpload) : '';
 
       if (resolvedAudioCID) setAudioCID(resolvedAudioCID);
       if (resolvedCoverCID) setCoverCID(resolvedCoverCID);
@@ -639,7 +640,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       }
 
       const walletClient = await getActiveWalletClient();
-      const ipfsAudioRef = resolvedAudioCID ? makeEncryptedAudioRef(resolvedAudioCID) : localAudioRef(fileHash);
+      const ipfsAudioRef = resolvedAudioRef || localAudioRef(fileHash);
       const ipfsCoverRef = resolvedCoverCID ? `ipfs://${resolvedCoverCID}` : `dotify:cover:${fileHash}`;
 
       setRightsStatus('Submitting rights transaction');

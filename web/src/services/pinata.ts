@@ -13,6 +13,7 @@
 // ---------------------------------------------------------------------------
 
 import { getArtistPublishE2eCid, getArtistPublishE2eScenario, isArtistPublishE2e, recordArtistPublishUploadFailure } from '../e2e/artistPublishMock';
+import { encryptedRefToCID, normalizeEncryptedAudioRef } from '../shared/utils/protectedAudio';
 
 // Backend API base URL. When set, uploads are routed server-side.
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
@@ -141,7 +142,7 @@ async function parseBackendError(res: Response, fallback: string): Promise<strin
  *
  * @param rawFile     The original audio file as selected by the artist.
  * @param contentHash 0x-prefixed blake2b-256 hash of the raw audio bytes.
- * @returns           Full Dotify audio ref: "dotify:enc:ipfs://<CID>"
+ * @returns           Full Dotify audio ref: "dotify:enc:v2:ipfs://<CID>" for new backend uploads.
  */
 export async function uploadAudioToBackend(rawFile: File, contentHash: string): Promise<string> {
   if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
@@ -158,7 +159,7 @@ export async function uploadAudioToBackend(rawFile: File, contentHash: string): 
   }
 
   const data = (await res.json()) as { ref: string };
-  return data.ref; // "dotify:enc:ipfs://<CID>"
+  return data.ref;
 }
 
 /**
@@ -219,7 +220,7 @@ export type ProtectedAudioSource = {
 };
 
 /**
- * Upload protected audio for publication and return the encrypted-asset CID.
+ * Upload protected audio for publication and return the encrypted audio ref.
  *
  * Production (backend configured): the RAW audio goes to the backend, which
  * derives the per-track key server-side, encrypts, and pins. The content key
@@ -238,14 +239,22 @@ export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentH
 
   if (API_URL) {
     const rawFile = new File([audio.bytes as BlobPart], audio.name, { type: audio.mime || 'audio/mpeg' });
-    const ref = await uploadAudioToBackend(rawFile, contentHash);
-    return ref.startsWith('dotify:enc:ipfs://') ? ref.slice('dotify:enc:ipfs://'.length) : ref;
+    return uploadAudioToBackend(rawFile, contentHash);
   }
 
   const { encryptTrackAudio } = await import('../shared/utils/protectedAudio');
   const encrypted = await encryptTrackAudio(audio.bytes, contentHash);
   const encFile = new File([encrypted as BlobPart], `${audio.name}.enc`, { type: 'application/octet-stream' });
-  return uploadFileToPinata(encFile, encFile.name, { app: 'dotify', type: 'audio', encrypted: 'true' });
+  const cid = await uploadFileToPinata(encFile, encFile.name, { app: 'dotify', type: 'audio', encrypted: 'true' });
+  return normalizeEncryptedAudioRef(cid);
+}
+
+export function protectedAudioUploadToRef(refOrCid: string): string {
+  return normalizeEncryptedAudioRef(refOrCid);
+}
+
+export function protectedAudioUploadToCID(refOrCid: string): string {
+  return refOrCid.startsWith('dotify:enc:') ? encryptedRefToCID(refOrCid) : refOrCid;
 }
 
 // ---------------------------------------------------------------------------

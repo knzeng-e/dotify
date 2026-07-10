@@ -1,6 +1,6 @@
-import { createCipheriv, randomBytes } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { encryptAudioV2Container } from '../services/audioV2.js';
 import { deriveContentKeyBytes } from '../services/keyVault.js';
 import { PinataError, PinataUnconfiguredError, pinFileToPinata, pinJsonToPinata } from '../services/pinata.js';
 
@@ -81,21 +81,15 @@ const dotifyManifestSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Server-side AES-256-GCM encryption
+// Server-side encryption
 //
 // Key derivation lives in services/keyVault.ts and is shared with the
 // content-key delivery route: a key delivered after an access check MUST
 // decrypt bytes encrypted here.
-// Wire format: nonce(12) || ciphertext || authTag(16)
-//   — identical to the Web Crypto AES-GCM layout used by the frontend.
+// New production uploads use the chunked DAV2 container
+// (dotify:enc:v2:ipfs://<CID>). Legacy v1 refs remain playable through the
+// frontend fallback path.
 // ---------------------------------------------------------------------------
-function encryptAesGcm(plaintext: Buffer, key: Buffer): Buffer {
-  const nonce = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', key, nonce);
-  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  const authTag = cipher.getAuthTag(); // always 16 bytes
-  return Buffer.concat([nonce, ciphertext, authTag]);
-}
 
 // ---------------------------------------------------------------------------
 // Shared error helpers
@@ -129,7 +123,7 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
    * Encrypts audio server-side with HKDF-derived AES-256-GCM key, pins
    * the encrypted blob to Pinata, and returns the Dotify audio ref URI.
    *
-   * Returns: { ref: "dotify:enc:ipfs://<CID>", contentHash: string }
+   * Returns: { ref: "dotify:enc:v2:ipfs://<CID>", contentHash: string }
    *
    * TODO: add virus scanning / content moderation before pinning.
    */
@@ -177,7 +171,10 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
 
     let encrypted: Buffer;
     try {
-      encrypted = encryptAesGcm(fileBuffer, contentKey);
+      encrypted = encryptAudioV2Container(fileBuffer, contentKey, {
+        contentHash: hashCheck.data,
+        mediaMime: fileMime,
+      });
     } catch {
       request.log.error('Audio encryption failed');
       return reply.status(500).send({ error: 'Audio encryption failed.' });
@@ -187,15 +184,15 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
     try {
       cid = await pinFileToPinata(
         new Uint8Array(encrypted),
-        `${hashCheck.data.slice(2, 10)}.enc`,
-        { app: 'dotify', type: 'audio', encrypted: 'true', contentHash: hashCheck.data },
+        `${hashCheck.data.slice(2, 10)}.dav2`,
+        { app: 'dotify', type: 'audio', encrypted: 'true', container: 'dotify.audio.v2', contentHash: hashCheck.data },
       );
     } catch (err) {
       return handleUploadError(err, reply);
     }
 
     return reply.status(200).send({
-      ref: `dotify:enc:ipfs://${cid}`,
+      ref: `dotify:enc:v2:ipfs://${cid}`,
       contentHash: hashCheck.data,
     });
   });

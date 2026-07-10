@@ -29,9 +29,11 @@ Dotify v2 changes the production spine in three ways:
    through the protected pipeline so the artist can change future key-release
    policy without changing the app's storage model.
 
-The next major unfinished piece is `dotify.audio.v2`: a chunked encrypted audio
-container intended to let playback start after the first appendable decrypted
-segment instead of after the whole file.
+The current implementation now includes the first `dotify.audio.v2` vertical
+slice: backend publish writes a chunked encrypted `DAV2` object, new registry
+refs use `dotify:enc:v2:ipfs://<CID>`, and the web player recognizes v2 refs
+with a Media Source Extensions path plus full-file fallback. The remaining P3
+work is browser/device validation and performance instrumentation.
 
 ## 2. Current Delivery State
 
@@ -41,7 +43,7 @@ segment instead of after the whole file.
 | Session auth, P2 | Delivered | One sign-in session token can carry later key requests; legacy per-request signing remains as fallback. |
 | Free-track key delivery | Delivered | The backend verifies public access on-chain before releasing a key with no wallet or signature. |
 | Room access doctrine | Delivered and preserved | Only the host needs access; listeners receive only the WebRTC stream. |
-| Chunked encrypted streaming, P3 | Open | v1 full-file encrypted blobs still play; v2 chunked publish/playback is not built. |
+| Chunked encrypted streaming, P3 | First vertical slice delivered | New backend uploads publish DAV2 refs; web playback supports v2 refs with v1 fallback. Browser/device validation and metrics remain. |
 | Real Proof of Personhood integration, P4 | Open | Current `human-free` remains structurally ready but not backed by the live platform source. |
 | Polkadot App / Triangle integration, P5 | Open | DotNS/Bulletin alignment exists conceptually; Product SDK, Host API signing, and Statement Store migration are future work. |
 
@@ -182,13 +184,13 @@ header:
   mediaMime
   mediaCodecHint
   contentHash
-  noncePrefix(4)
+  noncePrefix(8)
   headerLength
 
 body:
   chunk[i] = AES-GCM(
     key,
-    nonce = noncePrefix || uint64_be(i),
+    nonce = noncePrefix || uint32_be(i),
     aad = hash(headerWithoutMutableOffsets) || uint64_be(i) || plaintextLength,
     plaintext = originalBytes[i]
   ) || tag(16)
@@ -312,7 +314,7 @@ P5 should start with a capability matrix, not a rewrite.
 | --- | --- | --- | --- |
 | P1 | Delivered | Access model v2 in contracts, backend, and UI; remove preview playback. | Free tracks play with no wallet; unauthorized protected tracks show gates with no audio; artists can change future key-release policy without changing app flow. |
 | P2 | Delivered | Session auth for key service. | One signature opens a session; later protected listens do not prompt again; every key request still checks chain access. |
-| P3 | Open | `dotify.audio.v2` chunked container, publish path, playback path, v1 fallback. | Protected first sound is bounded by one chunk on supported browsers; v1 assets still play; fallback is visible and tested. |
+| P3 | First vertical slice delivered | `dotify.audio.v2` chunked container, publish path, playback path, v1 fallback. | New protected uploads produce v2 refs; v1 assets still play; browser/device validation must confirm time-to-first-sound. |
 | P4 | Open | Real Proof of Personhood integration for `human-free`. | No admin mock in production; denied PoP checks fail closed; UI explains the exact missing proof. |
 | P5 | Open | Triangle/Host API/Product SDK alignment and Statement Store design. | Dotify runs as a Host-compatible Product without assuming direct wallet/RPC access; room social state has a migration design. |
 
@@ -354,14 +356,12 @@ Blocking before P3 implementation:
 
 1. **Chunk size.** Start with 256 KiB or 512 KiB, then tune with gateway latency
    and time-to-first-sound data. The decision should be metric-driven.
-2. **Container prefix.** Confirm `dotify:enc:v2:ipfs://<CID>` fits contract
-   string limits and all serializers before publishing v2 assets.
-3. **MSE support matrix.** Decide the first supported media types, containers,
+2. **MSE support matrix.** Decide the first supported media types, containers,
    and browsers. Do not design around codecs the current app cannot reliably
    append from decrypted chunks.
-4. **Gateway strategy.** Decide whether P3 depends on public gateways supporting
+3. **Gateway strategy.** Decide whether P3 depends on public gateways supporting
    Range + CORS, or whether the backend must provide a read-through fallback.
-5. **Instrumentation.** Define the exact metrics for dead air: source selected,
+4. **Instrumentation.** Define the exact metrics for dead air: source selected,
    first byte, first decrypted chunk, `loadedmetadata`, first audible play.
 
 Blocking before stronger policy-flip claims:

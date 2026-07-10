@@ -6,7 +6,7 @@ import { shorten } from '../../shared/utils/format';
 import { auraForName } from '../../shared/utils/aura';
 import { hashFileWithBytes } from '../../shared/utils/hash';
 import { deployments } from '../../shared/config/deployments';
-import { uploadFileToPinata, uploadProtectedAudio } from '../../services/pinata';
+import { protectedAudioUploadToCID, uploadFileToPinata, uploadProtectedAudio } from '../../services/pinata';
 import { buildDraftTrackInfo, nextTitleFromUpload, uploadStatusMessage } from '../../features/uploads/uploadModel';
 import {
   artistSetupState as deriveArtistSetupState,
@@ -166,10 +166,10 @@ export function ArtistConsole() {
       // Production: raw audio goes to the backend, which encrypts server-side
       // with the master-secret-derived key. Demo: browser-side encryption.
       const uploadPromise = uploadProtectedAudio({ bytes: result.bytes, name: file.name, mime: file.type }, result.hash)
-        .then(cid => {
-          catalog.setAudioCID(cid);
+        .then(audioUpload => {
+          catalog.setAudioCID(protectedAudioUploadToCID(audioUpload));
           artistConsole.setRightsStatus(uploadStatusMessage('audio', 'uploaded'));
-          return cid;
+          return audioUpload;
         })
         .catch(() => {
           artistConsole.setRightsStatus(uploadStatusMessage('audio', 'failed'));

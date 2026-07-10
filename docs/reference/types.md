@@ -228,7 +228,7 @@ type CatalogTrack = {
   source: 'seed' | 'artist';
   royaltySplits: RoyaltySplit[];
   personhoodLevel: PersonhoodLevel;
-  encrypted: boolean; // true if audioRef is a dotify:enc:ipfs:// ref
+  encrypted: boolean; // true if audioRef is a Dotify encrypted ref
 };
 ```
 
