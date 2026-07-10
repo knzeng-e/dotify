@@ -43,6 +43,7 @@ against real gateways and media files.
 | Access model v2, P1 | Delivered | `free`, paid/classic, and `human-free` modes are modeled; preview playback is retired for production access denial. |
 | Session auth, P2 | Delivered | One sign-in session token can carry later key requests; legacy per-request signing remains as fallback. |
 | Free-track key delivery | Delivered | The backend verifies public access on-chain before releasing a key with no wallet or signature. |
+| Artist runtime bootstrap | Delivered | Polkadot Hub EVM registration is staged: `createRuntime()` creates a minimal shell, then `installRuntimeStep()` installs one pallet per transaction before final ownership transfer and directory registration. |
 | Room access doctrine | Delivered and preserved | Only the host needs access; listeners receive only the WebRTC stream. |
 | Chunked encrypted streaming, P3 | First vertical slice delivered | New backend uploads publish DAV2 refs; web playback supports v2 refs with v1 fallback. Startup metrics exist; browser/device validation remains. |
 | Real Proof of Personhood integration, P4 | Open | Current `human-free` remains structurally ready but not backed by the live platform source. |
@@ -107,6 +108,29 @@ Policy changes must preserve these rules:
   metadata;
 - the room host's access is re-evaluated on track selection and when a selected
   track becomes unplayable.
+
+### Artist runtime registration
+
+Artist registration must not assume that Polkadot Hub EVM can execute a full
+diamond deployment in one transaction. The accepted flow is:
+
+1. `ArtistRuntimeFactory.createRuntime()` deploys the minimal runtime shell and
+   records it as pending.
+2. The UI calls `installRuntimeStep()` until `pendingRuntimeOf(artist)` returns
+   `address(0)`.
+3. Only the final step writes `ArtistDirectory.runtimeOf(artist)`.
+
+This makes interrupted wallet flows resumable. If an artist closes the app mid
+bootstrap, the next registration attempt should continue from
+`pendingRuntimeStageOf(artist)` rather than trying to deploy a second runtime.
+
+The UI must present this as an explicit approval roadmap. Before every wallet
+approval, the transaction modal names the commitment being made in human terms,
+shows the total number of approvals, and marks completed, submitted, active, and
+upcoming steps. The roadmap should read as a timeline with a path that fills as
+steps are confirmed. Per-step Blockscout links appear only after confirmation,
+so artists can immediately verify what they just approved. The purpose is
+consent clarity, not just progress feedback.
 
 ### Unauthorized playback
 

@@ -2,14 +2,17 @@
  * Dotify — Smart Runtime contract ABIs and viem client helpers.
  *
  * Architecture change: each artist owns a personal SmartRuntime.
- * The ArtistRuntimeFactory deploys one SmartRuntime per artist;
- * the ArtistDirectory indexes artist address → runtime address.
+ * The ArtistRuntimeFactory bootstraps one SmartRuntime per artist;
+ * the ArtistDirectory indexes only finalized artist address → runtime address.
  *
  * Contract interaction pattern:
  *
- *   // 1. Look up (or create) the artist's runtime
+ *   // 1. Look up (or bootstrap) the artist's runtime
  *   const runtime = await directory.runtimeOf(artistAddress)   // read
- *   if (runtime === ZERO_ADDR) await factory.createRuntime()   // write (once)
+ *   if (runtime === ZERO_ADDR) {
+ *     await factory.createRuntime()       // write: create shell
+ *     await factory.installRuntimeStep()  // write repeatedly until pendingRuntimeOf == ZERO_ADDR
+ *   }
  *
  *   // 2. Call music pallets on the runtime address
  *   await walletClient.writeContract({ address: runtime, abi: musicRegistryAbi, functionName: 'musicRegRegister', ... })

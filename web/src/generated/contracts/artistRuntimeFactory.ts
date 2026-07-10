@@ -69,6 +69,50 @@ export const artistRuntimeFactoryAbi = [
         "type": "address"
       }
     ],
+    "name": "ArtistRuntimeBootstrapStarted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "artist",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "runtime",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint8",
+        "name": "completedStage",
+        "type": "uint8"
+      }
+    ],
+    "name": "ArtistRuntimeBootstrapStep",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "artist",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "runtime",
+        "type": "address"
+      }
+    ],
     "name": "ArtistRuntimeCreated",
     "type": "event"
   },
@@ -139,6 +183,19 @@ export const artistRuntimeFactoryAbi = [
   },
   {
     "inputs": [],
+    "name": "installRuntimeStep",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "completedStage",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "loupePallet",
     "outputs": [
       {
@@ -171,6 +228,44 @@ export const artistRuntimeFactoryAbi = [
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "pendingRuntimeOf",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "pendingRuntimeStageOf",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",

@@ -128,16 +128,13 @@ async function createArtistRuntime(
   artist: Awaited<ReturnType<typeof hre.viem.getWalletClients>>[number]
 ) {
   const factoryAsArtist = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artist } });
-  const hash = await factoryAsArtist.write.createRuntime();
-  const publicClient = await hre.viem.getPublicClient();
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  await factoryAsArtist.write.createRuntime();
+  for (let i = 0; i < 7; i++) {
+    await factoryAsArtist.write.installRuntimeStep();
+  }
 
-  // Parse the ArtistRuntimeCreated event to get the runtime address
-  const factoryArtifact = await hre.artifacts.readArtifact('ArtistRuntimeFactory');
-  const logs = receipt.logs;
-  // ArtistRuntimeCreated(address indexed artist, address indexed runtime)
-  // topic[0] = keccak256("ArtistRuntimeCreated(address,address)")
-  const runtimeAddr = ('0x' + logs[logs.length - 1].topics[2]!.slice(26)) as `0x${string}`;
+  const runtimeAddr = (await factory.read.runtimeOf([artist.account.address])) as `0x${string}`;
+  expect(runtimeAddr).to.not.equal(ZERO_ADDR);
 
   return runtimeAddr;
 }
@@ -173,8 +170,7 @@ describe('ArtistRuntimeFactory — createRuntime()', () => {
   it('deploys a SmartRuntime and registers it in the directory', async () => {
     const { factory, directory, artistA } = await loadFixture(deployDotifySystemFixture);
 
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artistA } });
-    await factoryAsA.write.createRuntime();
+    await createArtistRuntime(factory, artistA);
 
     expect(await directory.read.artistCount()).to.equal(1n);
     const runtime = await directory.read.runtimeOf([artistA.account.address]);
@@ -184,19 +180,38 @@ describe('ArtistRuntimeFactory — createRuntime()', () => {
   it('factory.runtimeOf returns the same address as directory', async () => {
     const { factory, directory, artistA } = await loadFixture(deployDotifySystemFixture);
 
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artistA } });
-    await factoryAsA.write.createRuntime();
+    await createArtistRuntime(factory, artistA);
 
     const fromFactory = await factory.read.runtimeOf([artistA.account.address]);
     const fromDirectory = await directory.read.runtimeOf([artistA.account.address]);
     expect(fromFactory.toLowerCase()).to.equal(fromDirectory.toLowerCase());
   });
 
+  it('keeps a runtime pending until all bootstrap stages are installed', async () => {
+    const { factory, directory, artistA } = await loadFixture(deployDotifySystemFixture);
+
+    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artistA } });
+    await factoryAsA.write.createRuntime();
+
+    const pending = await factory.read.pendingRuntimeOf([artistA.account.address]);
+    expect(pending).to.not.equal(ZERO_ADDR);
+    expect(await factory.read.pendingRuntimeStageOf([artistA.account.address])).to.equal(1);
+    expect(await directory.read.runtimeOf([artistA.account.address])).to.equal(ZERO_ADDR);
+
+    for (let i = 0; i < 7; i++) {
+      await factoryAsA.write.installRuntimeStep();
+    }
+
+    expect(await factory.read.pendingRuntimeOf([artistA.account.address])).to.equal(ZERO_ADDR);
+    expect(await factory.read.pendingRuntimeStageOf([artistA.account.address])).to.equal(0);
+    expect((await directory.read.runtimeOf([artistA.account.address])).toLowerCase()).to.equal(pending.toLowerCase());
+  });
+
   it('rejects a second createRuntime() from the same artist', async () => {
     const { factory, artistA } = await loadFixture(deployDotifySystemFixture);
 
     const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artistA } });
-    await factoryAsA.write.createRuntime();
+    await createArtistRuntime(factory, artistA);
 
     try {
       await factoryAsA.write.createRuntime();
@@ -209,10 +224,8 @@ describe('ArtistRuntimeFactory — createRuntime()', () => {
   it('two different artists each get their own runtime', async () => {
     const { factory, directory, artistA, artistB } = await loadFixture(deployDotifySystemFixture);
 
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artistA } });
-    const factoryAsB = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artistB } });
-    await factoryAsA.write.createRuntime();
-    await factoryAsB.write.createRuntime();
+    await createArtistRuntime(factory, artistA);
+    await createArtistRuntime(factory, artistB);
 
     const runtimeA = await directory.read.runtimeOf([artistA.account.address]);
     const runtimeB = await directory.read.runtimeOf([artistB.account.address]);
@@ -229,8 +242,7 @@ describe('DotifyRuntimeInitializer — bootstrap', () => {
   it('sets personhood registrar to the artist (owner) on creation', async () => {
     const { factory, directory, artistA } = await loadFixture(deployDotifySystemFixture);
 
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artistA } });
-    await factoryAsA.write.createRuntime();
+    await createArtistRuntime(factory, artistA);
     const runtimeAddr = (await directory.read.runtimeOf([artistA.account.address])) as `0x${string}`;
 
     const access = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr);
@@ -241,8 +253,7 @@ describe('DotifyRuntimeInitializer — bootstrap', () => {
   it('owner can reassign the personhood registrar and the new registrar can grant levels', async () => {
     const { factory, directory, artistA, other, listener } = await loadFixture(deployDotifySystemFixture);
 
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artistA } });
-    await factoryAsA.write.createRuntime();
+    await createArtistRuntime(factory, artistA);
     const runtimeAddr = (await directory.read.runtimeOf([artistA.account.address])) as `0x${string}`;
 
     const artistAccess = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr, { client: { wallet: artistA } });
@@ -260,8 +271,7 @@ describe('DotifyRuntimeInitializer — bootstrap', () => {
   it('delegated registrar cannot rotate itself; only the owner can update the registrar', async () => {
     const { factory, directory, artistA, other, listener } = await loadFixture(deployDotifySystemFixture);
 
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artistA } });
-    await factoryAsA.write.createRuntime();
+    await createArtistRuntime(factory, artistA);
     const runtimeAddr = (await directory.read.runtimeOf([artistA.account.address])) as `0x${string}`;
 
     const artistAccess = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr, { client: { wallet: artistA } });
@@ -280,8 +290,7 @@ describe('DotifyRuntimeInitializer — bootstrap', () => {
   it('artist is also the SmartRuntime owner', async () => {
     const { factory, directory, artistA } = await loadFixture(deployDotifySystemFixture);
 
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artistA } });
-    await factoryAsA.write.createRuntime();
+    await createArtistRuntime(factory, artistA);
     const runtimeAddr = (await directory.read.runtimeOf([artistA.account.address])) as `0x${string}`;
 
     const ownership = await hre.viem.getContractAt('OwnershipPallet', runtimeAddr);
@@ -297,8 +306,7 @@ describe('DotifyRuntimeInitializer — bootstrap', () => {
 describe('Artist SmartRuntime — music pallets', () => {
   async function withArtistRuntime() {
     const ctx = await loadFixture(deployDotifySystemFixture);
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistA } });
-    await factoryAsA.write.createRuntime();
+    await createArtistRuntime(ctx.factory, ctx.artistA);
     const runtimeAddr = (await ctx.directory.read.runtimeOf([ctx.artistA.account.address])) as `0x${string}`;
 
     const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtimeAddr);
@@ -400,8 +408,7 @@ describe('Access model v2 - Free mode + musicRegSetAccessMode', () => {
 
   async function withArtistRuntime() {
     const ctx = await loadFixture(deployDotifySystemFixture);
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistA } });
-    await factoryAsA.write.createRuntime();
+    await createArtistRuntime(ctx.factory, ctx.artistA);
     const runtimeAddr = (await ctx.directory.read.runtimeOf([ctx.artistA.account.address])) as `0x${string}`;
 
     const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtimeAddr);
@@ -559,10 +566,8 @@ describe('Artist isolation', () => {
     const ctx = await loadFixture(deployDotifySystemFixture);
 
     // Create runtimes for both artists
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistA } });
-    const factoryAsB = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistB } });
-    await factoryAsA.write.createRuntime();
-    await factoryAsB.write.createRuntime();
+    await createArtistRuntime(ctx.factory, ctx.artistA);
+    await createArtistRuntime(ctx.factory, ctx.artistB);
 
     const runtimeAddrA = (await ctx.directory.read.runtimeOf([ctx.artistA.account.address])) as `0x${string}`;
     const runtimeAddrB = (await ctx.directory.read.runtimeOf([ctx.artistB.account.address])) as `0x${string}`;
@@ -579,10 +584,8 @@ describe('Artist isolation', () => {
   it('personhood granted on artist A has no effect on artist B', async () => {
     const ctx = await loadFixture(deployDotifySystemFixture);
 
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistA } });
-    const factoryAsB = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistB } });
-    await factoryAsA.write.createRuntime();
-    await factoryAsB.write.createRuntime();
+    await createArtistRuntime(ctx.factory, ctx.artistA);
+    await createArtistRuntime(ctx.factory, ctx.artistB);
 
     const runtimeAddrA = (await ctx.directory.read.runtimeOf([ctx.artistA.account.address])) as `0x${string}`;
     const runtimeAddrB = (await ctx.directory.read.runtimeOf([ctx.artistB.account.address])) as `0x${string}`;
@@ -606,8 +609,7 @@ describe('Forkless upgrade — artist replaces their MusicAccessPallet', () => {
     const ctx = await loadFixture(deployDotifySystemFixture);
     const { accessArtifact } = ctx;
 
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistA } });
-    await factoryAsA.write.createRuntime();
+    await createArtistRuntime(ctx.factory, ctx.artistA);
     const runtimeAddr = (await ctx.directory.read.runtimeOf([ctx.artistA.account.address])) as `0x${string}`;
 
     // Register a track first
@@ -643,8 +645,7 @@ describe('Forkless upgrade — artist replaces their MusicAccessPallet', () => {
 describe('MusicRoyaltiesPallet — payment security', () => {
   async function withArtistRuntime() {
     const ctx = await loadFixture(deployDotifySystemFixture);
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistA } });
-    await factoryAsA.write.createRuntime();
+    await createArtistRuntime(ctx.factory, ctx.artistA);
     const runtimeAddr = (await ctx.directory.read.runtimeOf([ctx.artistA.account.address])) as `0x${string}`;
 
     const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtimeAddr);
@@ -777,10 +778,8 @@ describe('ArtistDirectory — pagination', () => {
   it('artistsPage returns correct slices', async () => {
     const ctx = await loadFixture(deployDotifySystemFixture);
 
-    const factoryAsA = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistA } });
-    const factoryAsB = await hre.viem.getContractAt('ArtistRuntimeFactory', ctx.factory.address, { client: { wallet: ctx.artistB } });
-    await factoryAsA.write.createRuntime();
-    await factoryAsB.write.createRuntime();
+    await createArtistRuntime(ctx.factory, ctx.artistA);
+    await createArtistRuntime(ctx.factory, ctx.artistB);
 
     const [artists, runtimes] = await ctx.directory.read.artistsPage([0n, 10n]);
     expect(artists.length).to.equal(2);
