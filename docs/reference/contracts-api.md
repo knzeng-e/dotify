@@ -4,8 +4,9 @@ All contracts are deployed on **Paseo Asset Hub** (`chainId 420420417`). Source 
 
 **Live deployments:**
 
-- `ArtistRuntimeFactory`: `0x74ba85c2b29d2acb3777b9b3ca26c286945cae3c`
-- `ArtistDirectory`: `0xdd92194909df3dc5c3d254b53f7283d025c35d8c`
+- `ArtistRuntimeFactory`: `0x38dba15b7296ca9d3544c9f996e8e1898ad42ca5`
+- `ArtistDirectory`: `0x7f8bb68d2a451f330880b7bf9237bc3521158d9a`
+- `DotifyRuntimeInitializer`: `0x2ae93335bf8d2fdaab1a92f2471c566bbef5d15b`
 
 ---
 
@@ -25,7 +26,7 @@ Deploys a new `SmartRuntime` for `msg.sender`, registers it in `ArtistDirectory`
 
 | Gas consideration | Notes                                                                                                                  |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| High gas usage    | Deploys a proxy + initialises 7 pallets. May hit the EVM weight limit on Polkadot Hub — see spec.md known limitations. |
+| High gas usage    | Deploys a proxy + initialises 7 pallets. Compile testnet deployments with optimizer + `viaIR`; unoptimized factories may hit Polkadot Hub EVM transaction/weight limits. |
 
 **Reverts if:**
 

@@ -41,8 +41,13 @@ npm run deploy:testnet
 The smart-runtime deployment flow:
 
 - deploys the shared pallets, initializer, directory, and factory;
-- writes `deployments.json` and `web/src/config/deployments.ts`;
+- writes `deployments.json` and `web/src/shared/config/deployments.ts`;
 - verifies the deployed contracts on Blockscout automatically on `polkadotTestnet`.
+
+The Polkadot Hub EVM deployment target uses Solidity optimizer + `viaIR`.
+Keep those settings enabled for testnet deployments: `ArtistRuntimeFactory`
+embeds the `SmartRuntime` creation path, and an unoptimized factory can exceed
+the chain's runtime/weight limits when artists call `createRuntime()`.
 
 To rerun verification without redeploying:
 
@@ -66,10 +71,10 @@ npm test
 - `MusicRightsRegistry.sol` and `MusicRightsRegistry.test.ts` are legacy
   monolithic registry code kept in the repository for comparison. The web app
   uses the smart-runtime pallet ABI from `web/src/config/contracts.ts`.
-- The frontend currently performs access checks before playback and serves a
-  42% preview for unauthorized listeners. Contracts remain the source of truth
-  for `musicAccCanAccess` and `musicRoyPayAccess`; production-grade audio key
-  delivery should be added outside the public frontend bundle.
+- The frontend performs access checks before playback. Access model v2 retired
+  the 42% preview: denied protected playback is a gate with no protected audio.
+  Contracts remain the source of truth for `musicAccCanAccess` and
+  `musicRoyPayAccess`.
 
 ## Improvements
 
