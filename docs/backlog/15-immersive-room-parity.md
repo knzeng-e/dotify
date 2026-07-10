@@ -24,7 +24,7 @@ The room is `web/src/views/PlayerView.tsx` in `mode === 'host' | 'listener'`. Re
 
 ## Constraints
 
-- Preserve all session/WebRTC/access/preview-cutoff logic in `PlayerView`.
+- Preserve all session/WebRTC/access-gate logic in `PlayerView`.
 - Honesty rule: no UI element may imply social broadcast that is not actually wired (brief UX risk: "over-simplifying so access reads as a lie").
 - Room guests stay wallet-free.
 - Straight ASCII; hyphens only.
@@ -33,7 +33,7 @@ The room is `web/src/views/PlayerView.tsx` in `mode === 'host' | 'listener'`. Re
 
 - Room shows a copyable code pill, access chips, and a correct host/listener sync note.
 - Either chat broadcasts over Socket.IO, or the chat input is absent (no dead input).
-- Preview gating, host stream, and join-by-link still work.
+- Access gates, host stream, and join-by-link still work.
 
 ## Non-goals
 

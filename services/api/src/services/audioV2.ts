@@ -81,6 +81,8 @@ export function parseAudioV2Container(bytes: Uint8Array): ParsedAudioV2 {
   if (!Number.isSafeInteger(parsed.chunkSize) || parsed.chunkSize <= 0) throw new Error('Invalid DAV2 chunk size');
   if (!Number.isSafeInteger(parsed.chunkCount) || parsed.chunkCount <= 0) throw new Error('Invalid DAV2 chunk count');
   if (!Number.isSafeInteger(parsed.plaintextLength) || parsed.plaintextLength <= 0) throw new Error('Invalid DAV2 plaintext length');
+  if (!/^0x[0-9a-f]{64}$/i.test(parsed.contentHash)) throw new Error('Invalid DAV2 content hash');
+  if (typeof parsed.mediaMime !== 'string' || parsed.mediaMime.trim().length === 0) throw new Error('Invalid DAV2 media MIME');
   if (!/^[0-9a-f]{16}$/i.test(parsed.noncePrefix)) throw new Error('Invalid DAV2 nonce prefix');
   if (!Array.isArray(parsed.chunks) || parsed.chunks.length !== parsed.chunkCount) throw new Error('Invalid DAV2 chunk table');
 
@@ -109,7 +111,9 @@ export function encryptAudioV2Container(
   if (key.length !== 32) throw new Error('DAV2 encryption requires a 32-byte key');
 
   const chunkSize = options.chunkSize ?? DEFAULT_AUDIO_V2_CHUNK_SIZE;
+  if (!Number.isSafeInteger(chunkSize) || chunkSize <= 0) throw new Error('Invalid DAV2 chunk size');
   const chunkCount = Math.ceil(plaintext.length / chunkSize);
+  if (chunkCount > 0xffffffff) throw new Error('DAV2 chunk count is out of range');
   const noncePrefix = randomBytes(8);
 
   const header: AudioV2Header = {

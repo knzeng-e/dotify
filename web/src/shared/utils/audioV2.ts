@@ -40,7 +40,7 @@ function readMagic(bytes: Uint8Array): string {
 }
 
 function readUint32BE(bytes: Uint8Array, offset: number): number {
-  return (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+  return ((bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]) >>> 0;
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -84,6 +84,8 @@ function validateHeader(header: AudioV2Header, bodyLength?: number): void {
   if (!Number.isSafeInteger(header.chunkSize) || header.chunkSize <= 0) throw new Error('Invalid DAV2 chunk size');
   if (!Number.isSafeInteger(header.chunkCount) || header.chunkCount <= 0) throw new Error('Invalid DAV2 chunk count');
   if (!Number.isSafeInteger(header.plaintextLength) || header.plaintextLength <= 0) throw new Error('Invalid DAV2 plaintext length');
+  if (!/^0x[0-9a-f]{64}$/i.test(header.contentHash)) throw new Error('Invalid DAV2 content hash');
+  if (typeof header.mediaMime !== 'string' || header.mediaMime.trim().length === 0) throw new Error('Invalid DAV2 media MIME');
   if (!/^[0-9a-f]{16}$/i.test(header.noncePrefix)) throw new Error('Invalid DAV2 nonce prefix');
   if (!Array.isArray(header.chunks) || header.chunks.length !== header.chunkCount) throw new Error('Invalid DAV2 chunk table');
 

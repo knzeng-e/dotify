@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decryptAudioV2Container, parseAudioV2HeaderPrefix } from './audioV2';
+import { AudioV2HeaderIncompleteError, decryptAudioV2Container, parseAudioV2Container, parseAudioV2HeaderPrefix } from './audioV2';
 
 const CONTENT_HASH = `0x${'ab'.repeat(32)}`;
 const KEY = new Uint8Array(Array.from({ length: 32 }, () => 0xcd));
@@ -75,6 +75,27 @@ describe('audioV2 browser helpers', () => {
     const decrypted = await decryptAudioV2Container(container, KEY);
     expect(decrypted.mediaMime).toBe('audio/mpeg');
     expect(decrypted.bytes).toEqual(plaintext);
+  });
+
+  it('reports how many bytes are needed for an incomplete header', async () => {
+    const { container } = await makeContainer();
+    expect(() => parseAudioV2HeaderPrefix(container.slice(0, 12))).toThrow(AudioV2HeaderIncompleteError);
+  });
+
+  it('rejects a non-monotonic chunk table', async () => {
+    const { container } = await makeContainer();
+    const headerLength = new DataView(container.buffer, container.byteOffset + 4, 4).getUint32(0);
+    const header = JSON.parse(new TextDecoder().decode(container.slice(8, 8 + headerLength)));
+    header.chunks = [...header.chunks].reverse();
+    const headerBytes = encoder.encode(JSON.stringify(header));
+    const prefix = new Uint8Array([...encoder.encode('DAV2'), ...uint32be(headerBytes.length)]);
+    const body = container.slice(8 + headerLength);
+    const reorderedHeaderContainer = new Uint8Array(prefix.length + headerBytes.length + body.length);
+    reorderedHeaderContainer.set(prefix, 0);
+    reorderedHeaderContainer.set(headerBytes, prefix.length);
+    reorderedHeaderContainer.set(body, prefix.length + headerBytes.length);
+
+    expect(() => parseAudioV2Container(reorderedHeaderContainer)).toThrow(/Non-monotonic/);
   });
 
   it('rejects non-DAV2 bytes', () => {

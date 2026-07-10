@@ -47,6 +47,9 @@ export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, pl
           void onPrepareLocalStream();
           onEmitPlayerState(true);
         }}
+        onPlaying={() => {
+          playback.handleHostPlaying(localAudioRef.current!);
+        }}
         onPause={() => {
           playback.syncFromAudio(localAudioRef.current);
           onEmitPlayerState(true);
@@ -61,6 +64,7 @@ export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, pl
         }}
         onEnded={event => playback.handleEnded(event.currentTarget)}
         onError={() => {
+          playback.handleHostError();
           if (audioSource) playback.markNoAudio();
         }}
       />

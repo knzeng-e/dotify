@@ -31,6 +31,34 @@ type UsePlaybackDeps = {
   onEmitPlayerState: (force: boolean) => void;
 };
 
+type HostAudioStartup = {
+  source: string;
+  startedAt: number;
+  metadataReported: boolean;
+  firstAudioReported: boolean;
+  errorReported: boolean;
+};
+
+type HostAudioStartupMetric = {
+  phase: 'source-selected' | 'metadata-ready' | 'first-audio' | 'error';
+  source: string;
+  elapsedMs: number;
+  durationSeconds?: number;
+  timestamp: number;
+};
+
+function nowMs(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
+function publishHostAudioStartupMetric(detail: HostAudioStartupMetric): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('dotify:host-audio-startup', { detail }));
+  if (import.meta.env.DEV) {
+    console.info('[dotify.audio.startup]', detail);
+  }
+}
+
 export function usePlayback(deps: UsePlaybackDeps) {
   const {
     mode,
@@ -56,6 +84,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
   // When a track is opened/skipped we want sound to start as soon as the new
   // source is ready, without forcing the user to press play again.
   const autoplayIntentRef = useRef(false);
+  const hostStartupRef = useRef<HostAudioStartup | null>(null);
 
   // Latest-ref for onOpenTrack: the parent passes a fresh closure every render,
   // so reading it through a ref keeps skip/handleEnded callbacks stable.
@@ -110,9 +139,24 @@ export function usePlayback(deps: UsePlaybackDeps) {
   useEffect(() => {
     if (mode !== 'host') return;
     if (!audioSource) {
+      hostStartupRef.current = null;
       setStatus(previous => (previous === 'no-audio' ? previous : 'idle'));
       return;
     }
+    const startedAt = nowMs();
+    hostStartupRef.current = {
+      source: audioSource,
+      startedAt,
+      metadataReported: false,
+      firstAudioReported: false,
+      errorReported: false
+    };
+    publishHostAudioStartupMetric({
+      phase: 'source-selected',
+      source: audioSource,
+      elapsedMs: 0,
+      timestamp: Date.now()
+    });
     autoplayIntentRef.current = true;
     setStatus('preparing');
   }, [audioSource, mode]);
@@ -280,6 +324,17 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const handleHostLoadedMetadata = useCallback(
     (audio: HTMLAudioElement) => {
       syncFromAudio(audio);
+      const startup = hostStartupRef.current;
+      if (startup && !startup.metadataReported) {
+        startup.metadataReported = true;
+        publishHostAudioStartupMetric({
+          phase: 'metadata-ready',
+          source: startup.source,
+          elapsedMs: Number((nowMs() - startup.startedAt).toFixed(1)),
+          durationSeconds: Number.isFinite(audio.duration) ? audio.duration : undefined,
+          timestamp: Date.now()
+        });
+      }
       // E2E room-join keeps the host paused on load so the deterministic preview
       // -> auto-advance transition is driven explicitly by the test rather than
       // racing a sub-second autoplay window. Scope to room-join contexts only so
@@ -297,6 +352,35 @@ export function usePlayback(deps: UsePlaybackDeps) {
     },
     [syncFromAudio]
   );
+
+  const handleHostPlaying = useCallback(
+    (audio: HTMLAudioElement) => {
+      syncFromAudio(audio);
+      const startup = hostStartupRef.current;
+      if (!startup || startup.firstAudioReported) return;
+      startup.firstAudioReported = true;
+      publishHostAudioStartupMetric({
+        phase: 'first-audio',
+        source: startup.source,
+        elapsedMs: Number((nowMs() - startup.startedAt).toFixed(1)),
+        durationSeconds: Number.isFinite(audio.duration) ? audio.duration : undefined,
+        timestamp: Date.now()
+      });
+    },
+    [syncFromAudio]
+  );
+
+  const handleHostError = useCallback(() => {
+    const startup = hostStartupRef.current;
+    if (!startup || startup.errorReported) return;
+    startup.errorReported = true;
+    publishHostAudioStartupMetric({
+      phase: 'error',
+      source: startup.source,
+      elapsedMs: Number((nowMs() - startup.startedAt).toFixed(1)),
+      timestamp: Date.now()
+    });
+  }, []);
 
   const markNoAudio = useCallback(() => setStatus('no-audio'), []);
   const toggleRepeat = useCallback(() => setRepeatEnabled(value => !value), []);
@@ -325,6 +409,8 @@ export function usePlayback(deps: UsePlaybackDeps) {
     syncFromAudio,
     handleEnded,
     handleHostLoadedMetadata,
+    handleHostPlaying,
+    handleHostError,
     requestAutoplay,
     markNoAudio
   };

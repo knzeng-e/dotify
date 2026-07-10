@@ -27,6 +27,7 @@ Precise technical descriptions for developers integrating with or contributing t
 | [Hooks API](./reference/hooks-api.md) | `useCatalog`, `useSession`, `useArtistConsole` — all state, refs, and functions |
 | [Contracts API](./reference/contracts-api.md) | Smart contract function signatures, parameters, events, and price conversion |
 | [Socket.IO Events](./reference/socket-events.md) | Full event schema for the signaling server |
+| [Dotify Audio V2 Container](./reference/audio-v2-container.md) | `DAV2` encrypted audio layout, playback contract, and startup metrics |
 | [TypeScript Types](./reference/types.md) | All shared types with field descriptions |
 | [Environment Variables](./reference/environment-variables.md) | Every env var, default, security note, and where it is used |
 

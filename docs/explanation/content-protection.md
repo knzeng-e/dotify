@@ -20,8 +20,9 @@ material in the backend API:
    chunked `dotify.audio.v2` container; older v1 encrypted blobs remain
    playable.
 5. The backend pins the encrypted bytes to Pinata.
-6. A listener or room host receives a key only after a wallet-signed request and
-   a server-side runtime access check.
+6. A Free listener receives a key only after the backend re-verifies public
+   runtime access. Gated listeners and room hosts receive a key only after a
+   signed session/key request and a server-side runtime access check.
 
 Room guests never receive content keys. They receive only the ephemeral WebRTC
 stream from the host.
@@ -87,6 +88,8 @@ audioRef = "dotify:enc:v2:ipfs://<CID>"
 
 The same backend derivation is used when an authorized key request succeeds, so
 the delivered per-track key decrypts bytes encrypted by the upload route.
+The exact `DAV2` binary layout and browser playback contract are documented in
+[audio-v2-container.md](../reference/audio-v2-container.md).
 
 ### Demo/local encryption pipeline
 
@@ -150,6 +153,11 @@ authorized key available?
 
 The clear audio is not persisted. It exists as an in-memory Blob/Object URL and
 is revoked during normal cleanup.
+
+For room and host QA, the browser emits `dotify:host-audio-startup` events when
+the selected source is assigned, metadata becomes available, first audio starts,
+or startup fails. The important product metric is the `first-audio` elapsed
+time.
 
 ### Denied playback
 

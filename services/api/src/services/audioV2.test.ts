@@ -34,6 +34,26 @@ describe('dotify.audio.v2 container', () => {
     assert.throws(() => decryptAudioV2Container(container, KEY));
   });
 
+  it('rejects reordered encrypted chunks', () => {
+    const plaintext = Buffer.from('chunk-onechunk-two', 'utf8');
+    const container = encryptAudioV2Container(plaintext, KEY, {
+      contentHash: CONTENT_HASH,
+      mediaMime: 'audio/mpeg',
+      chunkSize: 9,
+    });
+    const parsed = parseAudioV2Container(container);
+    const firstStart = parsed.bodyOffset;
+    const firstEnd = firstStart + parsed.header.chunks[0].encryptedLength;
+    const secondEnd = firstEnd + parsed.header.chunks[1].encryptedLength;
+    const reordered = Buffer.concat([
+      container.subarray(0, parsed.bodyOffset),
+      container.subarray(firstEnd, secondEnd),
+      container.subarray(firstStart, firstEnd),
+    ]);
+
+    assert.throws(() => decryptAudioV2Container(reordered, KEY));
+  });
+
   it('rejects non-DAV2 input', () => {
     assert.throws(() => parseAudioV2Container(Buffer.from('not dav2')), /DAV2/);
   });
