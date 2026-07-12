@@ -733,11 +733,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       if (resolvedAudioCID) setAudioCID(resolvedAudioCID);
       if (resolvedCoverCID) setCoverCID(resolvedCoverCID);
 
-      const { recipients: royaltyRecipients, shares: royaltyShares, totalBps: totalRoyaltyBps } = resolveRoyaltySplits(
-        activeEvmAddress,
-        royaltyBps,
-        additionalRoyaltySplits
-      );
+      const {
+        recipients: royaltyRecipients,
+        shares: royaltyShares,
+        totalBps: totalRoyaltyBps
+      } = resolveRoyaltySplits(activeEvmAddress, royaltyBps, additionalRoyaltySplits);
       const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID);
 
       setRightsStatus('Publishing manifest to IPFS…');

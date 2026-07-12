@@ -39,19 +39,13 @@ describe('canReviewRelease', () => {
 
 describe('royalty split helpers', () => {
   it('totals the artist share and additional right holders in bps', () => {
-    const splits = [
-      { bps: 1500 },
-      { bps: 500 }
-    ];
+    const splits = [{ bps: 1500 }, { bps: 500 }];
     expect(royaltySplitTotal(7000, splits)).toBe(9000);
     expect(royaltySplitRemaining(7000, splits)).toBe(1000);
   });
 
   it('ignores invalid or negative draft values for display totals', () => {
-    const splits = [
-      { bps: Number.NaN },
-      { bps: -25 }
-    ];
+    const splits = [{ bps: Number.NaN }, { bps: -25 }];
     expect(royaltySplitTotal(7000, splits)).toBe(7000);
   });
 });
