@@ -105,7 +105,7 @@ function normalizeRoyaltyBps(value: number, label: string): number {
   }
   const bps = Math.trunc(value);
   if (bps < 0 || bps > 10_000) {
-    throw new Error(`${label} royalty share must be between 0 and 10000 bps.`);
+    throw new Error(`${label} royalty share must be between 0% and 100%.`);
   }
   return bps;
 }
@@ -127,7 +127,7 @@ function resolveRoyaltySplits(primaryRecipient: `0x${string}`, primaryBps: numbe
       throw new Error(`${label} has an invalid EVM address.`);
     }
     if (bps === 0) {
-      throw new Error(`${label} needs a royalty share above 0 bps, or remove the row.`);
+      throw new Error(`${label} needs a royalty share above 0%, or remove the row.`);
     }
     recipients.push(getAddress(recipient));
     shares.push(bps);
@@ -135,12 +135,24 @@ function resolveRoyaltySplits(primaryRecipient: `0x${string}`, primaryBps: numbe
 
   const totalBps = shares.reduce((total, bps) => total + bps, 0);
   if (totalBps <= 0) {
-    throw new Error('Royalty split must reserve at least 1 bps.');
+    throw new Error('Royalty split must reserve at least 0.01%.');
   }
   if (totalBps > 10_000) {
-    throw new Error('Royalty split cannot exceed 10000 bps.');
+    throw new Error('Royalty split cannot exceed 100%.');
   }
   return { recipients, shares, totalBps };
+}
+
+function resolveReleaseRoyaltySplits(
+  primaryRecipient: `0x${string}`,
+  accessMode: AccessMode,
+  primaryBps: number,
+  additionalSplits: ReleaseRoyaltySplitDraft[]
+) {
+  if (accessMode === 'free') {
+    return { recipients: [primaryRecipient], shares: [10_000], totalBps: 10_000 };
+  }
+  return resolveRoyaltySplits(primaryRecipient, primaryBps, additionalSplits);
 }
 
 function getStoredArtistName(address: `0x${string}`) {
@@ -737,7 +749,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         recipients: royaltyRecipients,
         shares: royaltyShares,
         totalBps: totalRoyaltyBps
-      } = resolveRoyaltySplits(activeEvmAddress, royaltyBps, additionalRoyaltySplits);
+      } = resolveReleaseRoyaltySplits(activeEvmAddress, accessMode, royaltyBps, additionalRoyaltySplits);
       const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID);
 
       setRightsStatus('Publishing manifest to IPFS…');

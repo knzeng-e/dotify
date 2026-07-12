@@ -66,11 +66,14 @@ remains in the
   attested factory/directory.
 - The publish form keeps the artist wallet as the primary rights holder and lets
   the artist add collaborators, producers, labels, or other EVM addresses with
-  basis-point shares.
-- Validate recipient addresses and reject royalty totals over `10000` bps before
+  percentage shares while keeping basis points as the internal runtime encoding.
+- Validate recipient addresses and reject royalty totals over 100% before
   upload/manifest publication/transaction submission.
 - Write the full recipient/share arrays to `musicRegRegister`, and reflect the
   total split in the IPFS rights manifest.
+- Existing releases display their payment split as read-only. Updating a
+  published split requires a future runtime method; the current ABI only exposes
+  split reads and payment distribution.
 
 ### Security hardening
 
@@ -91,7 +94,7 @@ remains in the
 - No user-facing source says `Preview - 42%` for a locked track.
 - An outsider cannot register into another artist's SmartRuntime.
 - The artist publish UI can add additional rights holders, rejects invalid EVM
-  addresses, rejects splits above `10000` bps, and publishes all recipients to
+  addresses, rejects splits above 100%, and publishes all recipients to
   the runtime.
 - An audio upload whose claimed hash differs from the received bytes is rejected
   before encryption/pinning.

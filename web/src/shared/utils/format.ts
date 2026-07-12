@@ -112,12 +112,12 @@ export function accessModeLabel(track: CatalogTrack) {
 
 export function accessModeLabelFromState(mode: AccessMode) {
   if (mode === 'free') return 'Free for everyone';
-  return mode === 'human-free' ? 'Listener pass' : 'Full song';
+  return mode === 'human-free' ? 'Free for verified humans' : 'Full song';
 }
 
 export function catalogAccessLabel(track: CatalogTrack) {
   if (track.accessMode === 'free') return 'Free for everyone';
-  return track.accessMode === 'classic' ? `${track.priceDot} DOT` : 'Free with listener pass';
+  return track.accessMode === 'classic' ? `${track.priceDot} DOT` : 'Free for verified humans';
 }
 
 export function catalogAccessAriaLabel(track: CatalogTrack, hasAccess: boolean) {

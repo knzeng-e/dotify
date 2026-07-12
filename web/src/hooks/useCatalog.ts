@@ -302,9 +302,9 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
       return {
         track,
-        title: 'Listener pass needed',
-        message: `"${track.title}" is free for verified humans. Connect your pass to listen.`,
-        hint: 'Dotify only checks whether the door should open.',
+        title: 'Verification needed',
+        message: `"${track.title}" is free for verified humans.`,
+        hint: 'Dotify only checks whether access should open.',
         actionType: 'signin'
       };
     }
@@ -312,7 +312,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (track.accessMode === 'human-free') {
       return {
         track,
-        title: 'Listener pass needed',
+        title: 'Verification needed',
         message: `"${track.title}" is free for verified humans. Verify once to listen in full.`,
         hint: 'No profile is created for this check.',
         actionType: 'personhood'

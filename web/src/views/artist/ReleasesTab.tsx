@@ -6,6 +6,7 @@ import { PanelTitle } from '../../shared/ui/PanelTitle';
 import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
 import { accessModeLabel, shorten } from '../../shared/utils/format';
 import { runtimeAddressFromTrackId } from '../../features/catalog/trackModel';
+import { formatRoyaltyPercent } from '../../features/artist-studio/releaseForm';
 import type { AccessMode, CatalogTrack, PersonhoodLevel } from '../../shared/types';
 
 type ReleasesTabProps = {
@@ -139,7 +140,7 @@ export function ReleasesTab({
                     ? `${selectedRelease.priceDot} DOT`
                     : selectedRelease.accessMode === 'free'
                       ? 'Free'
-                      : 'Listener pass'}
+                      : 'Free for verified humans'}
                 </span>
                 <span className='access-chip' data-tone={selectedReleaseActive ? 'ready' : 'locked'}>
                   {selectedReleaseActive ? 'Active' : 'Inactive'}
@@ -187,8 +188,8 @@ export function ReleasesTab({
                 onChange={event => setDraftAccessMode(event.target.value as AccessMode)}
                 disabled={!selectedReleaseActive || isBusy}
               >
-                <option value='human-free'>Human pass</option>
-                <option value='classic'>Classic paid</option>
+                <option value='human-free'>Free for verified humans</option>
+                <option value='classic'>Direct support</option>
                 <option value='free'>Free</option>
               </select>
             </label>
@@ -205,15 +206,15 @@ export function ReleasesTab({
               />
             </label>
             <label className='release-editor-field'>
-              <span>Pass level</span>
+              <span>Humanity verified level required</span>
               <select
                 className='field'
                 value={draftPersonhoodLevel}
                 onChange={event => setDraftPersonhoodLevel(event.target.value as PersonhoodLevel)}
                 disabled={draftAccessMode !== 'human-free' || !selectedReleaseActive || isBusy}
               >
-                <option value='DIM1'>DIM1</option>
-                <option value='DIM2'>DIM2</option>
+                <option value='DIM1'>Basic verification</option>
+                <option value='DIM2'>Extended verification</option>
               </select>
             </label>
             <button className='primary-action compact-action' type='submit' disabled={!canSavePolicy}>
@@ -230,10 +231,12 @@ export function ReleasesTab({
                   ? `${selectedRelease.priceDot} DOT`
                   : selectedRelease.accessMode === 'free'
                     ? 'Free for everyone'
-                    : 'Listener pass required'
+                    : selectedRelease.personhoodLevel === 'DIM2'
+                      ? 'Free for verified humans · extended'
+                      : 'Free for verified humans · basic'
               }
             />
-            <EndpointRow label='Royalty total' value={`${selectedRelease.royaltyBps} bps`} />
+            <EndpointRow label='Payment split' value={selectedRelease.accessMode === 'free' ? 'Not used for free access' : formatRoyaltyPercent(selectedRelease.royaltyBps)} />
             <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />
             <EndpointRow label='Encrypted audio' value={selectedRelease.encrypted ? 'yes' : 'no'} />
             <EndpointRow label='Status' value={selectedReleaseActive ? 'active' : 'inactive'} />
@@ -267,12 +270,15 @@ export function ReleasesTab({
           </div>
 
           <div className='release-splits'>
-            <strong>Royalty splits</strong>
+            <strong>Payment splits</strong>
+            <p className='release-split-note'>
+              Existing releases keep their current payment split. Updating it requires a runtime method that is not exposed by the current contracts.
+            </p>
             {selectedRelease.royaltySplits.length > 0 ? (
               selectedRelease.royaltySplits.map(split => (
                 <div className='release-split-row' key={`${selectedRelease.id}-${split.recipient}-${split.bps}`}>
                   <span>
-                    {split.label} / {split.bps} bps
+                    {split.label} / {formatRoyaltyPercent(split.bps)}
                   </span>
                   <a className='verify-link' href={getBlockscoutAddressUrl(split.recipient)} target='_blank' rel='noreferrer'>
                     {shorten(split.recipient, 12)}
@@ -280,7 +286,7 @@ export function ReleasesTab({
                 </div>
               ))
             ) : (
-              <span>No royalty splits indexed yet.</span>
+              <span>No payment splits indexed yet.</span>
             )}
           </div>
         </article>

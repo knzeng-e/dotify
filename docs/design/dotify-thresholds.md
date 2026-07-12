@@ -431,10 +431,10 @@ Artist                                   Studio
 │                           │            │ PUBLISH A WORK              │
 │ LIVE NOW                  │            │ 1 Audio ✓                   │
 │ Marée basse · 6 here      │            │ 2 Identity ✓                │
-│                           │            │ 3 Listening door            │
+│                           │            │ 3 Access                    │
 │ WORKS                     │            │ (•) Free for everyone       │
 │ cover title access door   │            │ ( ) Direct support [1.2]    │
-│ cover title access door   │            │ ( ) Verified human          │
+│ cover title access        │            │ ( ) Free for verified humans│
 │                           │            │ Preview: guest / solo / host│
 │ How control works ▾       │            │ [Back] [Value split →]      │
 └───────────────────────────┘            └─────────────────────────────┘

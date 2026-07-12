@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   artistSetupState,
+  formatRoyaltyPercent,
   artistStudioLocked,
   canReviewRelease,
   nextReleaseStep,
   previousReleaseStep,
   RELEASE_STEPS,
+  royaltyBpsToPercent,
+  royaltyPercentToBps,
   royaltySplitRemaining,
   royaltySplitTotal
 } from './releaseForm';
@@ -47,6 +50,14 @@ describe('royalty split helpers', () => {
   it('ignores invalid or negative draft values for display totals', () => {
     const splits = [{ bps: Number.NaN }, { bps: -25 }];
     expect(royaltySplitTotal(7000, splits)).toBe(7000);
+  });
+
+  it('converts internal bps to artist-facing percentages', () => {
+    expect(royaltyBpsToPercent(7000)).toBe(70);
+    expect(royaltyBpsToPercent(1234)).toBe(12.34);
+    expect(royaltyPercentToBps(12.34)).toBe(1234);
+    expect(formatRoyaltyPercent(7000)).toBe('70%');
+    expect(formatRoyaltyPercent(1234)).toBe('12.34%');
   });
 });
 

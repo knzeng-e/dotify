@@ -125,7 +125,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         : 'Opened for this wallet'
       : effectiveAccessMode === 'free'
         ? 'Free for everyone'
-        : 'Human pass';
+        : 'Free for verified humans';
   const unlockCtaLabel = effectiveAccessMode === 'classic' ? 'Support and open' : 'Check access';
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');

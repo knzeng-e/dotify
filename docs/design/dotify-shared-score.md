@@ -175,8 +175,8 @@ Primary measure: link open to first audible remote frame.
 2. Show real release, supporter, and royalty information.
 3. A new release follows Assets, Details, Access, and Review.
 4. The Access step includes the artist wallet share plus additional
-   rights-holder rows for collaborator/producer/label EVM addresses. The split
-   must stay at or below `10000` bps before publish.
+   rights-holder rows for collaborator/producer/label EVM addresses. The UI uses
+   percentages, while runtime publication keeps basis points internally.
 5. Upload and content identity are verified server-side in production mode.
 6. If the registry guard is not attested, creation and publication controls are
    disabled with the remediation reason; existing releases and royalty records

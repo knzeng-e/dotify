@@ -4,7 +4,14 @@ import { PanelTitle } from '../../shared/ui/PanelTitle';
 import { EndpointRow } from '../../shared/ui/EndpointRow';
 import { accessModeLabelFromState, shorten } from '../../shared/utils/format';
 import { devAccounts } from '../../hooks/useDevAccounts';
-import { RELEASE_STEPS, royaltySplitRemaining, royaltySplitTotal } from '../../features/artist-studio/releaseForm';
+import {
+  formatRoyaltyPercent,
+  RELEASE_STEPS,
+  royaltyBpsToPercent,
+  royaltyPercentToBps,
+  royaltySplitRemaining,
+  royaltySplitTotal
+} from '../../features/artist-studio/releaseForm';
 import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseRoyaltySplitDraft, ReleaseStep } from '../../shared/types';
 import type { ChangeEvent } from 'react';
 
@@ -96,7 +103,11 @@ export function NewReleaseTab({
   const releaseStepIndex = RELEASE_STEPS.findIndex(step => step.id === releaseStep);
   const totalRoyaltyBps = royaltySplitTotal(royaltyBps, additionalRoyaltySplits);
   const remainingRoyaltyBps = royaltySplitRemaining(royaltyBps, additionalRoyaltySplits);
-  const releaseCanPublish = canReviewRelease && remainingRoyaltyBps >= 0;
+  const isFreeAccess = accessMode === 'free';
+  const isListenerPassAccess = accessMode === 'human-free';
+  const isDirectSupportAccess = accessMode === 'classic';
+  const royaltyFieldsDisabled = artistStudioLocked || isFreeAccess;
+  const releaseCanPublish = canReviewRelease && (isFreeAccess || remainingRoyaltyBps >= 0);
 
   return (
     <section className='content-grid release-workbench-grid'>
@@ -186,7 +197,7 @@ export function NewReleaseTab({
           <div className='wizard-panel'>
             <div className='fields-grid'>
               <label>
-                <span>Listening door</span>
+                <span>Access</span>
                 <select
                   className='field'
                   data-testid='release-access-select'
@@ -195,20 +206,20 @@ export function NewReleaseTab({
                   disabled={artistStudioLocked}
                 >
                   <option value='free'>Free for everyone</option>
-                  <option value='human-free'>Listener pass</option>
+                  <option value='human-free'>Free for verified humans</option>
                   <option value='classic'>Direct support</option>
                 </select>
               </label>
               <label>
-                <span>Pass level</span>
+                <span>Humanity verified level required</span>
                 <select
                   className='field'
                   value={personhoodLevel}
                   onChange={event => onSetPersonhoodLevel(event.target.value as PersonhoodLevel)}
-                  disabled={artistStudioLocked}
+                  disabled={artistStudioLocked || !isListenerPassAccess}
                 >
-                  <option value='DIM1'>Basic pass</option>
-                  <option value='DIM2'>Extended pass</option>
+                  <option value='DIM1'>Basic verification</option>
+                  <option value='DIM2'>Extended verification</option>
                 </select>
               </label>
               <label>
@@ -221,21 +232,21 @@ export function NewReleaseTab({
                   step={0.1}
                   value={priceDot}
                   onChange={event => onSetPriceDot(event.target.value)}
-                  disabled={artistStudioLocked}
+                  disabled={artistStudioLocked || !isDirectSupportAccess}
                 />
               </label>
               <label>
-                <span>Artist share bps</span>
+                <span>Artist share (%)</span>
                 <input
                   className='field'
                   type='number'
                   data-testid='release-royalty-input'
                   min={0}
-                  max={10000}
-                  step={25}
-                  value={royaltyBps}
-                  onChange={event => onSetRoyaltyBps(Number(event.target.value))}
-                  disabled={artistStudioLocked}
+                  max={100}
+                  step={0.25}
+                  value={royaltyBpsToPercent(royaltyBps)}
+                  onChange={event => onSetRoyaltyBps(royaltyPercentToBps(Number(event.target.value)))}
+                  disabled={royaltyFieldsDisabled}
                 />
               </label>
               {uploadToBulletinEnabled &&
@@ -265,20 +276,24 @@ export function NewReleaseTab({
                   </label>
                 ))}
             </div>
-            <div className='royalty-split-editor'>
+            <div className='royalty-split-editor' data-disabled={royaltyFieldsDisabled}>
               <div className='royalty-split-head'>
                 <div>
-                  <strong>Rights holders</strong>
-                  <span>Add collaborators, producers, labels, or other addresses paid by the runtime split.</span>
+                  <strong>Payment split</strong>
+                  <span>
+                    {isFreeAccess
+                      ? 'No payment split is needed for free access.'
+                      : 'Add collaborators, producers, labels, or other addresses paid when listeners support this track.'}
+                  </span>
                 </div>
-                <button className='secondary-action compact-action' type='button' onClick={onAddRoyaltySplit} disabled={artistStudioLocked}>
+                <button className='secondary-action compact-action' type='button' onClick={onAddRoyaltySplit} disabled={royaltyFieldsDisabled}>
                   <Plus size={15} />
                   Add holder
                 </button>
               </div>
               <div className='royalty-primary-row'>
                 <span>Artist wallet</span>
-                <strong>{royaltyBps} bps</strong>
+                <strong>{isFreeAccess ? 'Not used for free access' : formatRoyaltyPercent(royaltyBps)}</strong>
               </div>
               {additionalRoyaltySplits.length > 0 && (
                 <div className='royalty-split-list'>
@@ -290,7 +305,7 @@ export function NewReleaseTab({
                           className='field'
                           value={split.label}
                           onChange={event => onUpdateRoyaltySplit(split.id, { label: event.target.value })}
-                          disabled={artistStudioLocked}
+                          disabled={royaltyFieldsDisabled}
                         />
                       </label>
                       <label>
@@ -301,20 +316,20 @@ export function NewReleaseTab({
                           placeholder='0x…'
                           value={split.recipient}
                           onChange={event => onUpdateRoyaltySplit(split.id, { recipient: event.target.value })}
-                          disabled={artistStudioLocked}
+                          disabled={royaltyFieldsDisabled}
                         />
                       </label>
                       <label>
-                        <span>Bps</span>
+                        <span>Share (%)</span>
                         <input
                           className='field'
                           type='number'
                           min={0}
-                          max={10000}
-                          step={25}
-                          value={split.bps}
-                          onChange={event => onUpdateRoyaltySplit(split.id, { bps: Number(event.target.value) })}
-                          disabled={artistStudioLocked}
+                          max={100}
+                          step={0.25}
+                          value={royaltyBpsToPercent(split.bps)}
+                          onChange={event => onUpdateRoyaltySplit(split.id, { bps: royaltyPercentToBps(Number(event.target.value)) })}
+                          disabled={royaltyFieldsDisabled}
                         />
                       </label>
                       <button
@@ -322,7 +337,7 @@ export function NewReleaseTab({
                         type='button'
                         aria-label={`Remove ${split.label || 'rights holder'}`}
                         onClick={() => onRemoveRoyaltySplit(split.id)}
-                        disabled={artistStudioLocked}
+                        disabled={royaltyFieldsDisabled}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -333,8 +348,11 @@ export function NewReleaseTab({
               <div className='royalty-split-total' data-over-limit={remainingRoyaltyBps < 0}>
                 <span>Total split</span>
                 <strong>
-                  {totalRoyaltyBps} / 10000 bps
-                  {remainingRoyaltyBps < 0 ? ' · over limit' : ` · ${remainingRoyaltyBps} bps left`}
+                  {isFreeAccess
+                    ? 'Not needed'
+                    : `${formatRoyaltyPercent(totalRoyaltyBps)} / 100%${
+                        remainingRoyaltyBps < 0 ? ' · over limit' : ` · ${formatRoyaltyPercent(remainingRoyaltyBps)} left`
+                      }`}
                 </strong>
               </div>
             </div>
@@ -349,9 +367,9 @@ export function NewReleaseTab({
             </label>
             <div className='rights-status'>
               {accessMode === 'free'
-                ? 'Free opens the full song immediately. You can change access later.'
+                ? 'Free opens the full song immediately. Price, verification, and payment split are not used.'
                 : accessMode === 'human-free'
-                  ? 'Listener pass opens the full song for verified listeners.'
+                  ? 'Free for verified humans uses proof of personhood. Basic is the default check; extended is stricter.'
                   : 'Direct support shows price and split before confirmation.'}
             </div>
           </div>
@@ -363,13 +381,24 @@ export function NewReleaseTab({
             <EndpointRow label='Artist' value={artistName.trim() || 'Unknown artist'} />
             <EndpointRow
               label='Access'
-              value={accessMode === 'classic' ? `${priceDot} DOT` : accessMode === 'free' ? 'Free for everyone' : `Human verified ${personhoodLevel}`}
+              value={
+                accessMode === 'classic'
+                  ? `${priceDot} DOT`
+                  : accessMode === 'free'
+                    ? 'Free for everyone'
+                    : personhoodLevel === 'DIM2'
+                      ? 'Free for verified humans · extended'
+                      : 'Free for verified humans · basic'
+              }
             />
-            <EndpointRow label='Royalty' value={`${totalRoyaltyBps} bps across ${additionalRoyaltySplits.length + 1} holder(s)`} />
+            <EndpointRow
+              label='Payment split'
+              value={isFreeAccess ? 'Not used for free access' : `${formatRoyaltyPercent(totalRoyaltyBps)} across ${additionalRoyaltySplits.length + 1} holder(s)`}
+            />
             <EndpointRow label='Metadata' value='IPFS canonical manifest' />
             <EndpointRow label='Archive' value={uploadToBulletinEnabled ? 'Bulletin enabled' : 'Off'} />
             {!canReviewRelease && <p className='error-box'>Add an audio file and title before publishing.</p>}
-            {remainingRoyaltyBps < 0 && <p className='error-box'>Reduce the royalty split to 10000 bps or less before publishing.</p>}
+            {!isFreeAccess && remainingRoyaltyBps < 0 && <p className='error-box'>Reduce the payment split to 100% or less before publishing.</p>}
           </div>
         )}
 
@@ -410,7 +439,7 @@ export function NewReleaseTab({
             <p>{description || 'Add a short release note to help listeners understand the world behind this track.'}</p>
             <div className='access-badges'>
               <span>{accessModeLabelFromState(accessMode)}</span>
-              <span>{accessMode === 'classic' ? `${priceDot} DOT` : accessMode === 'free' ? 'Free' : 'Listener pass'}</span>
+              <span>{accessMode === 'classic' ? `${priceDot} DOT` : accessMode === 'free' ? 'Free' : 'Free for verified humans'}</span>
             </div>
           </div>
         </div>
