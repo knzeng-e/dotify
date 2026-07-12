@@ -81,7 +81,7 @@ showcase, and the Living Light stylesheet block. PR #92 replaces the monolithic
 the listener landing destination to `Music`, and keeps the old node/warp
 `AmbientCanvas` / `StarfieldCanvas` removed.
 
-Deferred (needs a backend channel or separate design asset, deliberately not faked): persisted room mood; the custom Dotify logo (`design/Dotify-design/Dotify - Logo.html`). Room chat / "say something" is no longer deferred: `20-room-social-layer.md` wired reactions and chat over the signaling relay.
+Deferred (needs a backend channel, deliberately not faked): persisted room mood. The custom Dotify logo is now delivered as a Polkadot-inspired dotted orbit with a musical clef at its center, shared by the DApp and public project page. Room chat / "say something" is no longer deferred: `20-room-social-layer.md` wired reactions and chat over the signaling relay.
 
 ## Dotify v2 - strategic pivot
 

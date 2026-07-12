@@ -384,9 +384,11 @@ select:focus {
 
 @media (forced-colors: active) {
   .live-dot,
-  .brand-mark i,
+  .brand-mark-core,
+  .brand-mark-orbit ellipse,
+  .brand-mark-clef,
   .shared-score-line i,
   .now-presence-score i {
-    border: 1px solid CanvasText;
+    stroke: CanvasText;
   }
 }

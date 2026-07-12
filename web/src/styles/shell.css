@@ -36,48 +36,23 @@
 }
 
 .brand-mark {
-  position: relative;
-  display: grid;
-  width: 2.1rem;
-  height: 2.1rem;
-  grid-template-columns: repeat(3, 0.38rem);
-  align-items: center;
-  justify-content: center;
-  gap: 0.16rem;
-  border-radius: 0.7rem;
-  background: var(--night);
-  overflow: hidden;
-}
-
-.brand-mark::before {
-  position: absolute;
-  top: 50%;
-  right: 0.48rem;
-  left: 0.48rem;
-  height: 1px;
-  background: rgb(255 255 255 / 0.48);
-  content: '';
-}
-
-.brand-mark i {
-  position: relative;
-  z-index: 1;
   display: block;
-  width: 0.38rem;
-  height: 0.38rem;
-  border: 2px solid var(--night);
-  border-radius: 50%;
-  background: var(--action);
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  overflow: visible;
 }
 
-.brand-mark i:nth-child(2) {
-  background: #ffffff;
-  transform: translateY(-0.22rem);
+.brand-mark-core {
+  fill: var(--night);
 }
 
-.brand-mark i:nth-child(3) {
-  background: var(--artist);
-  transform: translateY(0.18rem);
+.brand-mark-orbit {
+  fill: #e6007a;
+}
+
+.brand-mark-clef {
+  fill: var(--ink);
 }
 
 .nav-pills,
