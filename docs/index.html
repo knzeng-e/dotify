@@ -3,773 +3,1614 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dotify — Shared listening, artist sovereignty, cultural connection</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <meta
+      name="description"
+      content="Dotify turns music into shared presence while artists retain control over access, rights, and value."
+    />
+    <meta name="theme-color" content="#f6f9fb" />
+    <title>Dotify — Music as shared presence</title>
     <style>
       :root {
-        color-scheme: dark;
-        --navy:  #050D1A;
-        --ink:   #071326;
-        --cyan:  #00E5A0;
-        --green: #B8F012;
-        --pink:  #E6007A;
-        --gold:  #F0B429;
-        --white: #fff;
-        --muted: rgba(216, 232, 244, 0.76);
-        --soft:  rgba(255, 255, 255, 0.08);
-        --border: rgba(101, 139, 165, 0.24);
-        --shadow-1: 0 8px 24px -18px rgba(0,0,0,0.56);
-        --shadow-2: 0 18px 48px -32px rgba(0,0,0,0.72);
-        --radius: 8px;
-        --radius-full: 9999px;
+        color-scheme: light;
+        --ink: #071426;
+        --navy: #0b2341;
+        --navy-soft: #123453;
+        --slate: #526274;
+        --slate-strong: #335067;
+        --canvas: #f6f9fb;
+        --surface: #ffffff;
+        --cyan: #00c2a8;
+        --cyan-hover: #00a991;
+        --cyan-soft: #e7fbf7;
+        --pink: #d10a66;
+        --pink-soft: #fce7f0;
+        --line: #d6e1e7;
+        --line-strong: #b6c6d0;
+        --warning: #7a4d00;
+        --warning-soft: #fff4dc;
+        --shadow-soft: 0 20px 50px -32px rgb(7 20 38 / 0.35);
+        --shadow-float: 0 32px 80px -48px rgb(7 20 38 / 0.48);
+        --radius-control: 0.75rem;
+        --radius-card: 1.25rem;
+        --radius-feature: 1.75rem;
+        --container: 77.5rem;
+        --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+        --font-sans: "Instrument Sans", "Avenir Next", "Segoe UI Variable", "Segoe UI", Helvetica, Arial, sans-serif;
+        --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
       }
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      *:focus-visible {
-        outline: 2px solid var(--cyan);
-        outline-offset: 3px;
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
       }
-      html { scroll-behavior: smooth; }
-      @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 6rem;
+      }
+
       body {
-        font-family: 'Hanken Grotesk', system-ui, sans-serif;
-        background:
-          linear-gradient(180deg, rgba(0,229,160,0.055), transparent 26rem),
-          linear-gradient(145deg, rgba(230,0,122,0.055), transparent 34rem),
-          #050D1A;
-        color: var(--white);
+        margin: 0;
+        min-width: 20rem;
+        overflow-x: hidden;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        font-size: 1rem;
         line-height: 1.6;
-        min-height: 100vh;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
       }
 
-      /* ── Top nav ── */
-      .top-nav {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        border-bottom: 1px solid var(--border);
-        background: rgba(5,13,26,0.86);
-        backdrop-filter: blur(18px);
+      a {
+        color: inherit;
       }
-      .top-inner {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 22px;
-        width: min(1160px, calc(100% - 40px));
-        margin: 0 auto;
-        min-height: 68px;
+
+      img,
+      svg {
+        display: block;
+        max-width: 100%;
       }
-      .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-        color: var(--white);
-        font-family: 'Hanken Grotesk', system-ui, sans-serif;
-        font-size: 20px;
-        font-weight: 800;
+
+      button,
+      a {
+        -webkit-tap-highlight-color: transparent;
       }
-      .brand-dot {
-        width: 34px; height: 34px;
-        border-radius: var(--radius);
+
+      :focus-visible {
+        outline: 3px solid var(--cyan);
+        outline-offset: 4px;
+      }
+
+      ::selection {
         background: var(--cyan);
-        color: var(--navy);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        font-weight: 900;
-        box-shadow: 0 0 28px rgba(0,229,160,0.34);
-      }
-      .nav-right {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .nav-right a {
-        display: inline-flex;
-        align-items: center;
-        min-height: 32px;
-        padding: 0 13px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: rgba(7,19,38,0.78);
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 800;
-        text-decoration: none;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        transition: background 150ms ease, color 150ms ease;
-      }
-      .nav-right a:hover {
-        background: var(--cyan);
-        color: var(--navy);
+        color: var(--ink);
       }
 
-      /* ── Layout ── */
-      main {
-        width: min(1160px, calc(100% - 40px));
-        margin: 0 auto;
-      }
-
-      /* ── Hero ── */
-      .hero-section {
-        display: grid;
-        grid-template-columns: minmax(0,1fr) minmax(360px,0.86fr);
-        min-height: calc(100vh - 68px);
-        align-items: center;
-        gap: 46px;
-        padding: 56px 0 42px;
-      }
-      .hero-copy { display: flex; flex-direction: column; }
-      .eyebrow {
-        display: inline-flex;
-        align-items: center;
-        min-height: 34px;
-        padding: 0 13px;
-        border: 1px solid rgba(200,255,77,0.26);
-        border-radius: var(--radius-full);
-        background: rgba(200,255,77,0.08);
-        color: var(--green);
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        width: fit-content;
-        margin-bottom: 20px;
-      }
-      .hero-copy h1 {
-        font-family: 'Hanken Grotesk', system-ui, sans-serif;
-        font-size: clamp(3rem, 8vw, 6.4rem);
-        font-weight: 800;
-        line-height: 0.95;
-        color: var(--white);
-        margin-bottom: 24px;
-      }
-      .hero-copy p {
-        font-size: 1.08rem;
-        color: var(--muted);
-        line-height: 1.7;
-        max-width: 520px;
-      }
-      .hero-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 32px;
-      }
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        min-height: 44px;
-        padding: 0 18px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
+      .skip-link {
+        position: fixed;
+        z-index: 100;
+        top: 0.75rem;
+        left: 0.75rem;
+        transform: translateY(-160%);
+        border-radius: var(--radius-control);
+        background: var(--navy);
+        color: #ffffff;
+        padding: 0.7rem 1rem;
         font-weight: 700;
-        font-size: 0.9rem;
         text-decoration: none;
-        cursor: pointer;
-        transition: background 150ms ease, color 150ms ease, transform 100ms ease;
+        transition: transform 160ms var(--ease);
       }
-      .btn:hover { transform: translateY(-1px); }
-      .btn-primary {
-        background: var(--cyan);
-        color: var(--navy);
-        border-color: var(--cyan);
-        box-shadow: 0 0 24px rgba(0,229,160,0.28);
-      }
-      .btn-primary:hover { background: #37f8bd; }
-      .btn-secondary {
-        background: rgba(7,19,38,0.72);
-        color: var(--white);
-      }
-      .btn-secondary:hover { background: rgba(7,19,38,0.92); }
 
-      /* ── Hero visual (canvas container) ── */
-      .hero-visual {
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .shell {
+        width: min(var(--container), calc(100% - 2.5rem));
+        margin-inline: auto;
+      }
+
+      .site-header {
         position: relative;
-        height: 520px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: rgba(7,19,38,0.58);
-        overflow: hidden;
-        box-shadow: 0 28px 80px rgba(0,0,0,0.28);
-      }
-      .hero-visual canvas {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-      }
-      .visual-caption {
-        position: absolute;
-        bottom: 22px;
-        left: 22px;
-        right: 22px;
-        display: grid;
-        gap: 4px;
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: var(--radius);
-        background: rgba(5,13,26,0.78);
-        padding: 14px;
+        z-index: 20;
+        border-bottom: 1px solid rgb(182 198 208 / 0.72);
+        background: rgb(246 249 251 / 0.92);
         backdrop-filter: blur(16px);
       }
-      .visual-caption strong {
-        color: var(--white);
-        font-size: 0.92rem;
-        font-weight: 700;
-      }
-      .visual-caption span {
-        color: var(--muted);
-        font-size: 0.82rem;
+
+      .masthead {
+        min-height: 5rem;
+        display: grid;
+        grid-template-columns: minmax(9rem, 1fr) auto minmax(9rem, 1fr);
+        align-items: center;
+        gap: 1.5rem;
       }
 
-      /* ── Section bands ── */
-      .section-band {
-        padding: 72px 0;
-        border-top: 1px solid rgba(255,255,255,0.08);
-      }
-      .section-head {
-        margin-bottom: 28px;
-      }
-      .section-head h2 {
-        font-family: 'Hanken Grotesk', system-ui, sans-serif;
-        font-size: clamp(2rem, 4vw, 3.2rem);
-        font-weight: 800;
-        line-height: 1.05;
-        color: var(--white);
-      }
-      .section-head p {
-        margin-top: 12px;
-        color: var(--muted);
-        font-size: 1.06rem;
-        max-width: 640px;
+      .brand {
+        min-height: 2.75rem;
+        width: fit-content;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+        color: var(--ink);
+        font-size: 1.125rem;
+        font-weight: 750;
+        letter-spacing: -0.02em;
+        text-decoration: none;
       }
 
-      /* ── Card grid (3-up) ── */
-      .card-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0,1fr));
-        gap: 16px;
-      }
-      .info-card {
-        display: grid;
-        align-content: start;
-        gap: 10px;
-        min-height: 210px;
-        padding: 22px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: rgba(7,19,38,0.58);
-      }
-      .info-card h3 {
-        color: var(--white);
-        font-size: 1.08rem;
-        font-weight: 700;
-      }
-      .info-card p {
-        color: var(--muted);
-        font-size: 0.92rem;
-        line-height: 1.6;
+      .brand-mark {
+        width: 2rem;
+        height: 2rem;
       }
 
-      /* ── Flow steps (4-up) ── */
-      .flow-steps {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0,1fr));
-        gap: 14px;
+      .site-nav {
+        display: flex;
+        justify-content: center;
+        gap: clamp(1rem, 2.5vw, 2.25rem);
       }
-      .flow-step {
-        display: grid;
-        align-content: start;
-        gap: 14px;
-        padding: 20px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: rgba(7,19,38,0.58);
+
+      .site-nav a {
+        min-height: 2.75rem;
+        display: inline-flex;
+        align-items: center;
+        color: var(--slate-strong);
+        font-size: 0.875rem;
+        font-weight: 650;
+        text-decoration: none;
+        transition: color 160ms var(--ease);
       }
-      .flow-step .step-badge {
+
+      .site-nav a:hover {
+        color: var(--ink);
+      }
+
+      .header-action {
+        justify-self: end;
+      }
+
+      .button {
+        min-height: 3rem;
+        width: fit-content;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 34px;
-        height: 34px;
-        border-radius: var(--radius-full);
-        background: var(--green);
-        color: var(--navy);
-        font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
-        font-size: 0.88rem;
-        font-weight: 900;
-      }
-      .flow-step h3 {
-        color: var(--white);
-        font-size: 0.98rem;
-        font-weight: 700;
-      }
-      .flow-step p {
-        color: var(--muted);
-        font-size: 0.86rem;
-        line-height: 1.6;
-      }
-
-      /* ── Value list ── */
-      .value-list {
-        display: grid;
-        gap: 12px;
-      }
-      .value-row {
-        display: grid;
-        grid-template-columns: 280px 1fr;
-        gap: 24px;
-        align-items: start;
-        padding: 24px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: rgba(7,19,38,0.58);
-      }
-      .value-row strong {
-        color: var(--white);
-        font-size: 1rem;
-        font-weight: 700;
-      }
-      .value-row p {
-        color: var(--muted);
-        font-size: 0.92rem;
-        line-height: 1.6;
-      }
-
-      /* ── Manifesto ── */
-      .manifesto-band {
-        padding: 76px 0;
-        border-top: 1px solid rgba(255,255,255,0.08);
+        gap: 0.55rem;
+        border: 1px solid transparent;
+        border-radius: var(--radius-control);
+        padding: 0.7rem 1.05rem;
+        font-size: 0.925rem;
+        font-weight: 750;
+        line-height: 1.2;
         text-align: center;
-      }
-      .manifesto-band blockquote {
-        font-size: clamp(1.5rem, 4vw, 3rem);
-        font-weight: 400;
-        line-height: 1.18;
-        color: var(--white);
-        max-width: 900px;
-        margin: 0 auto;
-        list-style: none;
-      }
-      .manifesto-band cite {
-        display: block;
-        margin-top: 24px;
-        color: var(--gold);
-        font-size: 0.88rem;
-        font-weight: 600;
-        font-style: normal;
-        letter-spacing: 0.04em;
+        text-decoration: none;
+        transition:
+          background-color 160ms var(--ease),
+          border-color 160ms var(--ease),
+          color 160ms var(--ease),
+          transform 160ms var(--ease);
       }
 
-      /* ── Footer ── */
-      .site-footer {
+      .button:hover {
+        transform: translateY(-2px);
+      }
+
+      .button-primary {
+        background: var(--cyan);
+        color: var(--ink);
+      }
+
+      .button-primary:hover {
+        background: var(--cyan-hover);
+      }
+
+      .button-secondary {
+        border-color: var(--line-strong);
+        background: var(--surface);
+        color: var(--ink);
+      }
+
+      .button-secondary:hover {
+        border-color: var(--ink);
+      }
+
+      .button-dark {
+        background: var(--navy);
+        color: #ffffff;
+      }
+
+      .button-dark:hover {
+        background: var(--navy-soft);
+      }
+
+      .arrow {
+        display: inline-block;
+        font-size: 1.1em;
+        line-height: 1;
+        transition: transform 160ms var(--ease);
+      }
+
+      .button:hover .arrow,
+      .text-link:hover .arrow,
+      .resource-link:hover .arrow {
+        transform: translateX(0.2rem);
+      }
+
+      .hero {
+        position: relative;
+        isolation: isolate;
+        padding: clamp(4.75rem, 10vw, 8.5rem) 0 clamp(4.5rem, 8vw, 7rem);
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset: 0;
+        background:
+          radial-gradient(circle at 9% 28%, rgb(0 194 168 / 0.12), transparent 20rem),
+          radial-gradient(circle at 92% 14%, rgb(209 10 102 / 0.075), transparent 18rem);
+        pointer-events: none;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        column-gap: clamp(1rem, 2vw, 2rem);
+        row-gap: 1.75rem;
+        align-items: start;
+      }
+
+      .hero-kicker {
+        grid-column: 1 / 4;
+        margin: 0.65rem 0 0;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 24px;
-        min-height: 92px;
-        border-top: 1px solid rgba(255,255,255,0.08);
-        padding: 0;
-      }
-      .site-footer p {
-        color: var(--muted);
-        font-size: 0.86rem;
-      }
-      .site-footer div {
-        display: flex;
-        gap: 16px;
-      }
-      .site-footer a {
-        color: var(--muted);
-        font-size: 0.84rem;
-        text-decoration: none;
-        transition: color 150ms ease;
-      }
-      .site-footer a:hover { color: var(--cyan); }
-
-      /* ── Responsive ── */
-      @media (max-width: 900px) {
-        .top-inner { width: min(1160px, calc(100% - 28px)); min-height: 60px; gap: 12px; }
-        .hero-section { grid-template-columns: 1fr; min-height: auto; padding: 54px 0 48px; gap: 36px; }
-        .hero-visual { min-height: 380px; height: auto; }
-        .section-band { padding: 56px 0; }
-        .card-grid { grid-template-columns: 1fr; }
-        .flow-steps { grid-template-columns: 1fr 1fr; }
-        .value-row { grid-template-columns: 1fr; gap: 6px; }
-        main { width: min(1160px, calc(100% - 28px)); }
-      }
-      @media (max-width: 560px) {
-        .hero-visual { min-height: 320px; }
-        .hero-copy h1 { font-size: clamp(2.55rem, 14vw, 4rem); }
-        .flow-steps { grid-template-columns: 1fr; }
-        .visual-caption { bottom: 12px; left: 12px; right: 12px; }
-        .site-footer { flex-direction: column; align-items: flex-start; }
-      }
-
-      /* Thresholds - selected product direction. The public page now mirrors
-         the warm editorial app layer while retaining Dotify's deep-blue trust
-         color, cyan action, and restrained Polkadot pink. */
-      :root {
-        color-scheme: light;
-        --navy: #101a2d;
-        --ink: #111d31;
-        --cyan: #00b98e;
-        --green: #257a57;
-        --pink: #e6007a;
-        --gold: #f2b35d;
-        --white: #111d31;
-        --muted: #5e6674;
-        --soft: rgba(17, 29, 49, 0.055);
-        --border: rgba(17, 29, 49, 0.14);
-        --shadow-1: 0 20px 54px -42px rgba(17,29,49,0.38);
-        --shadow-2: 0 34px 84px -52px rgba(17,29,49,0.48);
-        --radius: 18px;
-      }
-      body {
-        background:
-          radial-gradient(circle at 88% 8%, rgba(85,184,198,0.14), transparent 29rem),
-          #f3efe5;
-        color: var(--ink);
-      }
-      .top-nav {
-        border-bottom-color: var(--border);
-        background: rgba(255,250,240,0.9);
-      }
-      .brand { color: var(--ink); }
-      .brand-dot {
-        border-radius: 50% 50% 11px 11px;
-        background: var(--navy);
-        color: #fffaf0;
-        box-shadow: none;
-      }
-      .nav-right a {
-        border-radius: 999px;
-        background: rgba(255,255,255,0.44);
-        color: var(--ink);
-      }
-      .nav-right a:hover { background: var(--cyan); color: #041a14; }
-      .eyebrow {
-        border-color: rgba(230,0,122,0.18);
-        background: rgba(230,0,122,0.07);
+        gap: 0.65rem;
         color: var(--pink);
+        font-size: 0.82rem;
+        font-weight: 760;
+        letter-spacing: 0.02em;
       }
-      .hero-copy h1,
-      .section-head h2 {
-        font-family: Iowan Old Style, Baskerville, Times New Roman, serif;
+
+      .hero-kicker::before {
+        content: "";
+        width: 1.75rem;
+        height: 2px;
+        flex: 0 0 auto;
+        background: var(--pink);
+      }
+
+      .hero h1 {
+        grid-column: 3 / 13;
+        margin: 0;
+        max-width: 10.5ch;
+        font-size: clamp(3.4rem, 7.4vw, 6.8rem);
+        font-weight: 680;
+        letter-spacing: -0.068em;
+        line-height: 0.96;
+        text-wrap: balance;
+      }
+
+      .hero h1 span {
+        position: relative;
+        white-space: nowrap;
+      }
+
+      .hero h1 span::after {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        right: -0.03em;
+        bottom: 0.04em;
+        left: 0.02em;
+        height: 0.11em;
+        border-radius: 999px;
+        background: var(--cyan);
+      }
+
+      .hero-intro {
+        grid-column: 7 / 13;
+        margin: 0.25rem 0 0;
+        max-width: 38rem;
+        color: var(--slate-strong);
+        font-size: clamp(1.125rem, 1.7vw, 1.35rem);
+        line-height: 1.6;
+      }
+
+      .hero-actions {
+        grid-column: 7 / 13;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .hero-note {
+        grid-column: 7 / 13;
+        margin: -0.3rem 0 0;
+        color: var(--slate);
+        font-size: 0.875rem;
+      }
+
+      .score-figure {
+        margin: 0;
+        padding-bottom: clamp(5rem, 10vw, 8.5rem);
+      }
+
+      .score-board {
+        position: relative;
+        overflow: hidden;
+        border-radius: var(--radius-feature);
+        background: var(--navy);
+        color: #ffffff;
+        box-shadow: var(--shadow-float);
+      }
+
+      .score-board::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          to bottom,
+          transparent 0,
+          transparent 4.25rem,
+          rgb(255 255 255 / 0.065) 4.25rem,
+          rgb(255 255 255 / 0.065) calc(4.25rem + 1px)
+        );
+        pointer-events: none;
+      }
+
+      .score-head {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: start;
+        gap: 1.5rem;
+        border-bottom: 1px solid rgb(255 255 255 / 0.12);
+        padding: clamp(1.5rem, 4vw, 2.5rem);
+      }
+
+      .score-label {
+        margin: 0 0 0.4rem;
+        color: var(--cyan);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .score-head h2 {
+        margin: 0;
+        font-size: clamp(1.75rem, 3.5vw, 3rem);
+        font-weight: 620;
+        letter-spacing: -0.045em;
+        line-height: 1.08;
+      }
+
+      .score-disclosure {
+        margin: 0.25rem 0 0;
+        border: 1px solid rgb(255 255 255 / 0.18);
+        border-radius: 999px;
+        padding: 0.4rem 0.7rem;
+        color: rgb(255 255 255 / 0.72);
+        font-size: 0.75rem;
+        white-space: nowrap;
+      }
+
+      .score-lanes {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .score-lanes::before {
+        content: "";
+        position: absolute;
+        top: 3.15rem;
+        right: 12.5%;
+        left: 12.5%;
+        height: 2px;
+        background: linear-gradient(90deg, var(--cyan), rgb(0 194 168 / 0.22));
+      }
+
+      .score-lanes li {
+        position: relative;
+        min-height: 15.25rem;
+        padding: 2.25rem clamp(1.25rem, 2.5vw, 2rem) 2rem;
+      }
+
+      .score-lanes li + li {
+        border-left: 1px solid rgb(255 255 255 / 0.12);
+      }
+
+      .score-index {
+        position: relative;
+        z-index: 1;
+        width: 1.85rem;
+        height: 1.85rem;
+        display: grid;
+        place-items: center;
+        border: 5px solid var(--navy);
+        border-radius: 50%;
+        background: var(--cyan);
         color: var(--ink);
-        font-weight: 600;
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        font-weight: 800;
+        box-shadow: 0 0 0 1px rgb(0 194 168 / 0.45);
+      }
+
+      .score-lanes h3 {
+        margin: 2.25rem 0 0.45rem;
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      .score-lanes p {
+        margin: 0;
+        color: rgb(255 255 255 / 0.7);
+        font-size: 0.93rem;
+        line-height: 1.65;
+      }
+
+      .score-figure figcaption {
+        max-width: 58rem;
+        margin: 1rem 0 0;
+        color: var(--slate);
+        font-size: 0.8rem;
+      }
+
+      .section {
+        padding: clamp(5rem, 10vw, 8rem) 0;
+      }
+
+      .section-rule {
+        border-top: 1px solid var(--line);
+      }
+
+      .section-kicker {
+        margin: 0 0 1.25rem;
+        color: var(--pink);
+        font-size: 0.82rem;
+        font-weight: 760;
+      }
+
+      .section-title {
+        margin: 0;
+        max-width: 14ch;
+        font-size: clamp(2.55rem, 5vw, 5rem);
+        font-weight: 650;
+        letter-spacing: -0.06em;
+        line-height: 1;
+        text-wrap: balance;
+      }
+
+      .section-lead {
+        max-width: 42rem;
+        margin: 1.5rem 0 0;
+        color: var(--slate-strong);
+        font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+      }
+
+      .journey-head {
+        display: grid;
+        grid-template-columns: minmax(0, 7fr) minmax(18rem, 4fr);
+        gap: clamp(2rem, 6vw, 7rem);
+        align-items: end;
+      }
+
+      .journey-head .section-lead {
+        margin: 0 0 0.35rem;
+      }
+
+      .journey {
+        counter-reset: journey;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: clamp(3.5rem, 7vw, 6rem) 0 0;
+        padding: 0;
+        border-top: 1px solid var(--line-strong);
+        list-style: none;
+      }
+
+      .journey li {
+        counter-increment: journey;
+        position: relative;
+        padding: 3.25rem clamp(1.25rem, 3vw, 2.75rem) 0 0;
+      }
+
+      .journey li::before {
+        content: "0" counter(journey);
+        position: absolute;
+        top: -1rem;
+        left: 0;
+        min-width: 2rem;
+        border: 5px solid var(--canvas);
+        border-radius: 999px;
+        background: var(--ink);
+        color: #ffffff;
+        padding: 0.2rem 0.45rem;
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .journey h3 {
+        margin: 0 0 0.65rem;
+        font-size: clamp(1.35rem, 2.25vw, 1.75rem);
+        letter-spacing: -0.035em;
+      }
+
+      .journey p {
+        max-width: 22rem;
+        margin: 0;
+        color: var(--slate);
+      }
+
+      .relationship {
+        display: grid;
+        grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+        gap: clamp(3rem, 8vw, 9rem);
+        align-items: start;
+      }
+
+      .relationship-copy {
+        position: sticky;
+        top: 7rem;
+      }
+
+      .relationship-copy .section-title {
+        max-width: 10ch;
+      }
+
+      .relationship-list {
+        margin: 0;
+        border-top: 1px solid var(--line-strong);
+      }
+
+      .relationship-item {
+        display: grid;
+        grid-template-columns: 5rem minmax(0, 1fr);
+        gap: 1.5rem;
+        border-bottom: 1px solid var(--line);
+        padding: clamp(2rem, 4vw, 3rem) 0;
+      }
+
+      .relationship-item dt {
+        color: var(--pink);
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        font-weight: 750;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .relationship-item dd {
+        margin: 0;
+      }
+
+      .relationship-item h3 {
+        margin: 0 0 0.6rem;
+        font-size: clamp(1.35rem, 2vw, 1.75rem);
+        font-weight: 680;
+        letter-spacing: -0.035em;
+      }
+
+      .relationship-item p {
+        max-width: 38rem;
+        margin: 0;
+        color: var(--slate);
+      }
+
+      .trust-section {
+        position: relative;
+        overflow: hidden;
+        background: var(--navy);
+        color: #ffffff;
+      }
+
+      .trust-section::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(115deg, transparent 50%, rgb(0 194 168 / 0.08)),
+          repeating-linear-gradient(
+            90deg,
+            transparent 0,
+            transparent calc(8.333% - 1px),
+            rgb(255 255 255 / 0.035) calc(8.333% - 1px),
+            rgb(255 255 255 / 0.035) 8.333%
+          );
+        pointer-events: none;
+      }
+
+      .trust-inner {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+        gap: clamp(3rem, 8vw, 8rem);
+      }
+
+      .trust-intro .section-kicker {
+        color: var(--cyan);
+      }
+
+      .trust-intro .section-title {
+        max-width: 11ch;
+      }
+
+      .trust-intro .section-lead {
+        color: rgb(255 255 255 / 0.7);
+      }
+
+      .trust-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem 1.5rem;
+        margin-top: 2rem;
+      }
+
+      .text-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        color: var(--cyan);
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.25em;
+      }
+
+      .trust-ledger {
+        margin: 0;
+        border-top: 1px solid rgb(255 255 255 / 0.22);
+      }
+
+      .trust-row {
+        display: grid;
+        grid-template-columns: 9.5rem minmax(0, 1fr);
+        gap: 1.5rem;
+        border-bottom: 1px solid rgb(255 255 255 / 0.16);
+        padding: 1.75rem 0;
+      }
+
+      .trust-row dt {
+        color: var(--cyan);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+
+      .trust-row dd {
+        margin: 0;
+        color: rgb(255 255 255 / 0.76);
+      }
+
+      .production-note {
+        margin-top: 2.25rem;
+        border: 1px solid rgb(255 255 255 / 0.18);
+        border-left: 4px solid var(--cyan);
+        border-radius: 0 var(--radius-card) var(--radius-card) 0;
+        background: rgb(255 255 255 / 0.07);
+        padding: 1.35rem 1.5rem;
+      }
+
+      .production-note strong {
+        display: block;
+        margin-bottom: 0.35rem;
+        color: #ffffff;
+      }
+
+      .production-note p {
+        margin: 0;
+        color: rgb(255 255 255 / 0.7);
+        font-size: 0.9rem;
+      }
+
+      .horizon {
+        display: grid;
+        grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+        gap: clamp(3rem, 8vw, 9rem);
+        align-items: start;
+      }
+
+      .horizon-copy .section-title {
+        max-width: 9ch;
+      }
+
+      .horizon-list {
+        position: relative;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .horizon-list::before {
+        content: "";
+        position: absolute;
+        top: 0.8rem;
+        bottom: 0.8rem;
+        left: 0.43rem;
+        width: 1px;
+        background: var(--line-strong);
+      }
+
+      .horizon-list li {
+        position: relative;
+        padding: 0 0 clamp(2.25rem, 5vw, 3.75rem) 3rem;
+      }
+
+      .horizon-list li:last-child {
+        padding-bottom: 0;
+      }
+
+      .horizon-list li::before {
+        content: "";
+        position: absolute;
+        top: 0.45rem;
+        left: 0;
+        width: 0.9rem;
+        height: 0.9rem;
+        border: 3px solid var(--canvas);
+        border-radius: 50%;
+        background: var(--cyan);
+        box-shadow: 0 0 0 1px var(--cyan-hover);
+      }
+
+      .horizon-list li:nth-child(2)::before {
+        background: var(--pink);
+        box-shadow: 0 0 0 1px var(--pink);
+      }
+
+      .horizon-list li:nth-child(3)::before {
+        background: var(--surface);
+        box-shadow: 0 0 0 1px var(--line-strong);
+      }
+
+      .horizon-label {
+        margin: 0 0 0.45rem;
+        color: var(--slate);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .horizon-list h3 {
+        margin: 0 0 0.55rem;
+        font-size: 1.45rem;
+        letter-spacing: -0.035em;
+      }
+
+      .horizon-list p {
+        max-width: 40rem;
+        margin: 0;
+        color: var(--slate);
+      }
+
+      .manifesto {
+        padding: 0 0 clamp(5rem, 10vw, 8rem);
+      }
+
+      .manifesto-panel {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(0, 8fr) minmax(15rem, 3fr);
+        gap: 2.5rem;
+        align-items: end;
+        border-radius: var(--radius-feature);
+        background: var(--cyan-soft);
+        padding: clamp(2rem, 6vw, 5.25rem);
+      }
+
+      .manifesto-panel::after {
+        content: "";
+        position: absolute;
+        right: -7rem;
+        bottom: -7rem;
+        width: 18rem;
+        height: 18rem;
+        border: 1px solid rgb(0 169 145 / 0.35);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 2.5rem rgb(0 194 168 / 0.08),
+          0 0 0 5rem rgb(0 194 168 / 0.055);
+        pointer-events: none;
+      }
+
+      .manifesto blockquote {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        max-width: 16ch;
+        font-size: clamp(2.3rem, 5.2vw, 5.25rem);
+        font-weight: 650;
+        letter-spacing: -0.06em;
+        line-height: 1.02;
+      }
+
+      .manifesto blockquote em {
+        color: var(--pink);
+        font-style: normal;
+      }
+
+      .manifesto-side {
+        position: relative;
+        z-index: 1;
+      }
+
+      .manifesto-side p {
+        margin: 0 0 1.5rem;
+        color: var(--slate-strong);
+      }
+
+      .resources {
+        padding: clamp(4.5rem, 8vw, 6.5rem) 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .resources-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 2rem;
+        align-items: end;
+        margin-bottom: 2.5rem;
+      }
+
+      .resources h2 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.5rem);
+        font-weight: 650;
         letter-spacing: -0.05em;
+        line-height: 1.05;
       }
-      .hero-copy p,
-      .section-head p,
-      .info-card p,
-      .flow-step p,
-      .value-row p,
-      .site-footer p,
-      .site-footer a { color: var(--muted); }
-      .btn { border-radius: 12px; }
-      .btn-primary { background: var(--cyan); color: #041a14; border-color: var(--cyan); box-shadow: none; }
-      .btn-primary:hover { background: #16cba0; }
-      .btn-secondary { background: rgba(255,255,255,0.48); color: var(--ink); }
-      .btn-secondary:hover { background: #fffaf0; }
-      .hero-visual {
-        border: 0;
-        border-radius: 50% 50% 28px 28px / 15% 15% 28px 28px;
-        background: var(--navy);
-        box-shadow: var(--shadow-2);
+
+      .resources-head p {
+        max-width: 29rem;
+        margin: 0;
+        color: var(--slate);
       }
-      .visual-caption {
-        border-color: rgba(255,255,255,0.14);
-        border-radius: 16px;
-        background: rgba(16,26,45,0.8);
+
+      .resource-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 0;
+        padding: 0;
+        border-top: 1px solid var(--line-strong);
+        list-style: none;
       }
-      .visual-caption strong { color: #fffaf0; }
-      .visual-caption span { color: rgba(255,250,240,0.7); }
-      .section-band,
-      .manifesto-band,
-      .site-footer { border-color: var(--border); }
-      .info-card,
-      .flow-step,
-      .value-row {
-        border-color: var(--border);
-        border-radius: 24px;
-        background: #fffaf0;
-        box-shadow: var(--shadow-1);
+
+      .resource-list li:nth-child(odd) {
+        border-right: 1px solid var(--line);
       }
-      .info-card h3,
-      .flow-step h3,
-      .value-row strong { color: var(--ink); }
-      .flow-step .step-badge { background: #f9e2be; color: #7b4b0c; }
-      .manifesto-band {
-        margin: 24px 0;
-        border: 0;
-        border-radius: 44px 44px 24px 24px;
-        background: var(--navy);
-        padding-inline: clamp(20px, 5vw, 64px);
+
+      .resource-list li {
+        border-bottom: 1px solid var(--line);
       }
-      .manifesto-band blockquote {
-        color: #fffaf0;
-        font-family: Iowan Old Style, Baskerville, Times New Roman, serif;
+
+      .resource-link {
+        min-height: 8.5rem;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1.5rem;
+        align-items: start;
+        padding: 1.75rem clamp(1.25rem, 3vw, 2.5rem) 1.75rem 0;
+        text-decoration: none;
       }
-      .manifesto-band cite { color: #f2b35d; }
+
+      .resource-list li:nth-child(even) .resource-link {
+        padding-left: clamp(1.25rem, 3vw, 2.5rem);
+      }
+
+      .resource-link strong {
+        display: block;
+        margin-bottom: 0.35rem;
+        font-size: 1.2rem;
+        letter-spacing: -0.025em;
+      }
+
+      .resource-link span:not(.arrow) {
+        display: block;
+        color: var(--slate);
+        font-size: 0.9rem;
+      }
+
+      .resource-link .arrow {
+        color: var(--pink);
+        font-size: 1.3rem;
+      }
+
+      .site-footer {
+        background: var(--ink);
+        color: #ffffff;
+      }
+
+      .footer-inner {
+        min-height: 11rem;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 2rem;
+        align-items: center;
+      }
+
+      .footer-copy {
+        max-width: 32rem;
+      }
+
+      .footer-copy strong {
+        display: block;
+        margin-bottom: 0.4rem;
+        font-size: 1.3rem;
+      }
+
+      .footer-copy p {
+        margin: 0;
+        color: rgb(255 255 255 / 0.65);
+        font-size: 0.9rem;
+      }
+
+      .footer-nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 1rem 1.5rem;
+      }
+
+      .footer-nav a {
+        min-height: 2.75rem;
+        display: inline-flex;
+        align-items: center;
+        color: rgb(255 255 255 / 0.78);
+        font-size: 0.875rem;
+        font-weight: 650;
+        text-underline-offset: 0.25em;
+      }
+
+      .footer-nav a:hover {
+        color: var(--cyan);
+      }
+
+      @media (max-width: 68rem) {
+        .masthead {
+          grid-template-columns: 1fr auto;
+        }
+
+        .site-nav {
+          display: none;
+        }
+
+        .hero-kicker {
+          grid-column: 1 / 5;
+        }
+
+        .hero h1 {
+          grid-column: 2 / 13;
+        }
+
+        .hero-intro,
+        .hero-actions,
+        .hero-note {
+          grid-column: 6 / 13;
+        }
+
+        .score-lanes {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .score-lanes::before {
+          display: none;
+        }
+
+        .score-lanes li:nth-child(3) {
+          border-left: 0;
+          border-top: 1px solid rgb(255 255 255 / 0.12);
+        }
+
+        .score-lanes li:nth-child(4) {
+          border-top: 1px solid rgb(255 255 255 / 0.12);
+        }
+
+        .score-index {
+          border-width: 0;
+        }
+
+        .relationship,
+        .trust-inner,
+        .horizon {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 3.5rem;
+        }
+
+        .relationship-copy {
+          position: static;
+        }
+      }
+
+      @media (max-width: 48rem) {
+        .shell {
+          width: min(100% - 2rem, var(--container));
+        }
+
+        .masthead {
+          min-height: 4.5rem;
+          gap: 1rem;
+        }
+
+        .header-action {
+          min-height: 2.75rem;
+          padding-inline: 0.8rem;
+          font-size: 0.82rem;
+        }
+
+        .hero {
+          padding-top: 4rem;
+        }
+
+        .hero-grid {
+          grid-template-columns: 1fr;
+          gap: 1.5rem;
+        }
+
+        .hero-kicker,
+        .hero h1,
+        .hero-intro,
+        .hero-actions,
+        .hero-note {
+          grid-column: 1;
+        }
+
+        .hero h1 {
+          font-size: clamp(3.15rem, 15vw, 5rem);
+        }
+
+        .hero-intro {
+          margin-top: 0.25rem;
+        }
+
+        .score-head {
+          grid-template-columns: 1fr;
+        }
+
+        .score-disclosure {
+          width: fit-content;
+          white-space: normal;
+        }
+
+        .score-lanes {
+          grid-template-columns: 1fr;
+        }
+
+        .score-lanes li {
+          min-height: 0;
+          display: grid;
+          grid-template-columns: 2rem minmax(0, 1fr);
+          column-gap: 1rem;
+          padding: 1.5rem;
+        }
+
+        .score-lanes li + li,
+        .score-lanes li:nth-child(3),
+        .score-lanes li:nth-child(4) {
+          border-top: 1px solid rgb(255 255 255 / 0.12);
+          border-left: 0;
+        }
+
+        .score-lanes h3 {
+          margin: 0;
+        }
+
+        .score-lanes p {
+          grid-column: 2;
+          margin-top: 0.4rem;
+        }
+
+        .journey-head {
+          grid-template-columns: 1fr;
+          gap: 1.25rem;
+        }
+
+        .journey-head .section-lead {
+          margin-top: 0;
+        }
+
+        .journey {
+          grid-template-columns: 1fr;
+          gap: 2.5rem;
+          border-top: 0;
+          border-left: 1px solid var(--line-strong);
+          margin-left: 0.65rem;
+        }
+
+        .journey li {
+          padding: 0 0 0 2.25rem;
+        }
+
+        .journey li::before {
+          top: 0;
+          left: -1.05rem;
+        }
+
+        .relationship-item,
+        .trust-row {
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+        }
+
+        .manifesto-panel,
+        .resources-head,
+        .footer-inner {
+          grid-template-columns: 1fr;
+        }
+
+        .manifesto-panel {
+          align-items: start;
+        }
+
+        .resources-head {
+          display: grid;
+          align-items: start;
+        }
+
+        .resource-list {
+          grid-template-columns: 1fr;
+        }
+
+        .resource-list li:nth-child(odd) {
+          border-right: 0;
+        }
+
+        .resource-list li:nth-child(even) .resource-link {
+          padding-left: 0;
+        }
+
+        .resource-link {
+          min-height: 0;
+          padding-block: 1.5rem;
+        }
+
+        .footer-inner {
+          align-items: start;
+          padding-block: 2.75rem;
+        }
+
+        .footer-nav {
+          justify-content: flex-start;
+        }
+      }
+
+      @media (max-width: 30rem) {
+        .brand-mark {
+          width: 1.8rem;
+          height: 1.8rem;
+        }
+
+        .header-action-prefix {
+          display: none;
+        }
+
+        .hero-actions {
+          display: grid;
+        }
+
+        .hero-actions .button {
+          width: 100%;
+        }
+
+        .relationship-item {
+          grid-template-columns: 1fr;
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
-        .btn:hover { transform: none; }
+        html {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      @media (forced-colors: active) {
+        .score-board,
+        .trust-section,
+        .site-footer,
+        .button {
+          border: 1px solid CanvasText;
+        }
+
+        .score-board::before,
+        .trust-section::before,
+        .manifesto-panel::after,
+        .hero::before {
+          display: none;
+        }
+      }
+
+      @media print {
+        .site-header,
+        .hero-actions,
+        .footer-nav {
+          display: none;
+        }
+
+        body {
+          background: #ffffff;
+        }
+
+        .score-board,
+        .trust-section,
+        .site-footer {
+          color: var(--ink);
+          background: #ffffff;
+          box-shadow: none;
+        }
       }
     </style>
   </head>
   <body>
-    <nav class="top-nav" aria-label="Dotify project navigation">
-      <div class="top-inner">
-        <a class="brand" href="./index.html">
-          <span class="brand-dot">&#9679;</span>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <header class="site-header">
+      <div class="masthead shell">
+        <a class="brand" href="./index.html" aria-label="Dotify home">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <rect width="32" height="32" rx="10" fill="#071426" />
+            <circle cx="9" cy="16" r="3.25" fill="#00c2a8" />
+            <circle cx="23" cy="9" r="2.6" fill="#d10a66" />
+            <circle cx="23" cy="23" r="2.6" fill="#ffffff" />
+            <path d="M12 14.6 20.4 10M12 17.4 20.4 22" stroke="#ffffff" stroke-width="1.5" />
+          </svg>
           <span>Dotify</span>
         </a>
-        <div class="nav-right">
-          <a href="Dotify_presentation.pptx">Deck</a>
-          <a href="backlog/README.md">Backlog</a>
-          <a href="context/README.md">Memory</a>
-        </div>
+
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="#listening">Shared listening</a>
+          <a href="#artists">Artist sovereignty</a>
+          <a href="#trust">Invisible trust</a>
+        </nav>
+
+        <a class="button button-primary header-action" href="design/dotify-shared-score.md">
+          <span class="header-action-label"><span class="header-action-prefix">Product </span>Blueprint</span>
+          <span class="arrow" aria-hidden="true">&#8599;</span>
+        </a>
       </div>
-    </nav>
+    </header>
 
-    <main>
-      <section class="hero-section">
-        <div class="hero-copy">
-          <span class="eyebrow">Dotify / Thresholds &middot; Polkadot</span>
-          <h1>Every work can open a space.</h1>
-          <p>
-            Open a link, enter a real listening moment, and meet an artist through
-            human presence. Rights, keys, and value stay trustworthy underneath.
+    <main id="main-content">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-grid shell">
+          <p class="hero-kicker">A signal commons for music</p>
+          <h1 id="hero-title">Music becomes a place when people hear it <span>together.</span></h1>
+          <p class="hero-intro">
+            Dotify turns a simple link into a shared listening moment, while artist-owned
+            runtimes keep access, rights, and value under the artist's control.
           </p>
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="design/dotify-thresholds.md">Explore the product blueprint</a>
-            <a class="btn btn-secondary" href="Dotify_presentation.pptx">Open the presentation</a>
-            <a class="btn btn-secondary" href="backlog/README.md">Production backlog</a>
+          <div class="hero-actions" aria-label="Project resources">
+            <a class="button button-dark" href="design/dotify-shared-score.md">
+              Explore the experience
+              <span class="arrow" aria-hidden="true">&#8594;</span>
+            </a>
+            <a class="button button-secondary" href="Dotify_presentation.pptx">
+              Open the project deck
+              <span class="arrow" aria-hidden="true">&#8599;</span>
+            </a>
           </div>
-        </div>
-        <aside class="hero-visual" aria-label="Dotify music network visualization">
-          <canvas id="flow-canvas"></canvas>
-          <div class="visual-caption">
-            <strong>open a work &rarr; share its threshold &rarr; listen together</strong>
-            <span>The guest meets the music and the people before the wallet.</span>
-          </div>
-        </aside>
-      </section>
-
-      <section class="section-band">
-        <div class="section-head">
-          <h2>Not a Spotify clone</h2>
-          <p>
-            A streaming feed optimizes individual consumption. Dotify starts with a work,
-            lets someone open a shared space around it, and keeps the artist in control.
-          </p>
-        </div>
-        <div class="card-grid">
-          <article class="info-card">
-            <h3>For listeners</h3>
-            <p>Open a shared link, see who welcomes you, and hear the same moment without an account or wallet checkpoint.</p>
-          </article>
-          <article class="info-card">
-            <h3>For artists</h3>
-            <p>Publish through an artist-owned SmartRuntime and choose how each listening door opens, how value splits, and how the work travels.</p>
-          </article>
-          <article class="info-card">
-            <h3>For communities</h3>
-            <p>Turn isolated listening into temporary cultural commons without building an advertising profile or an infinite social feed.</p>
-          </article>
+          <p class="hero-note">A production-readiness project on Polkadot's Paseo testnet.</p>
         </div>
       </section>
 
-      <section class="section-band">
-        <div class="section-head">
-          <h2>Production spine before spectacle</h2>
-          <p>The first Thresholds slice joins product clarity to enforceable boundaries: room guests stay wallet-free, public room payloads omit protected source references, and the backend verifies the audio identity it encrypts. Artist publication remains paused while the deployed owner boundary is remediated.</p>
+      <figure class="score-figure shell" aria-labelledby="score-title">
+        <div class="score-board">
+          <div class="score-head">
+            <div>
+              <p class="score-label">Shared Score / 01</p>
+              <h2 id="score-title">One work. Four parts. One human moment.</h2>
+            </div>
+            <p class="score-disclosure">Relationship model — not live room data</p>
+          </div>
+
+          <ol class="score-lanes">
+            <li>
+              <span class="score-index">01</span>
+              <h3>The artist defines</h3>
+              <p>The work, its access policy, and its value flows begin in an artist-owned SmartRuntime.</p>
+            </li>
+            <li>
+              <span class="score-index">02</span>
+              <h3>The host opens</h3>
+              <p>A listener creates a temporary room around a work and becomes responsible for protected access.</p>
+            </li>
+            <li>
+              <span class="score-index">03</span>
+              <h3>The link travels</h3>
+              <p>The invitation carries the room context without turning entry into a wallet ritual.</p>
+            </li>
+            <li>
+              <span class="score-index">04</span>
+              <h3>People arrive</h3>
+              <p>Guests share the host's ephemeral audio stream and discover the artist through presence.</p>
+            </li>
+          </ol>
         </div>
-        <div class="flow-steps">
-          <div class="flow-step">
-            <span class="step-badge">01</span>
-            <h3>Enter and hear</h3>
-            <p>A room link resolves real host, work, and presence metadata before the guest chooses a local name and enters.</p>
+        <figcaption>
+          This diagram explains Dotify's product relationship. It does not represent an active room,
+          participant count, or current network state.
+        </figcaption>
+      </figure>
+
+      <section class="section section-rule" id="listening" aria-labelledby="listening-title">
+        <div class="shell">
+          <div class="journey-head">
+            <div>
+              <p class="section-kicker">The social core</p>
+              <h2 class="section-title" id="listening-title">One link. One moment. No ceremony.</h2>
+            </div>
+            <p class="section-lead">
+              The room is not a feature beside the player. It is the place where listening becomes
+              relation and discovery happens through another person.
+            </p>
           </div>
-          <div class="flow-step">
-            <span class="step-badge">02</span>
-            <h3>Protect the work</h3>
-            <p>Room guests receive the ephemeral host stream, never a content key or protected source reference. Individual key release follows a server-side access decision.</p>
+
+          <ol class="journey">
+            <li>
+              <h3>Open a room</h3>
+              <p>The host chooses a work and opens a temporary listening space around it.</p>
+            </li>
+            <li>
+              <h3>Share the threshold</h3>
+              <p>The room link resolves its real host, work, and presence context before entry.</p>
+            </li>
+            <li>
+              <h3>Listen together</h3>
+              <p>A guest chooses a local room name and joins the WebRTC stream without wallet or key access.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section section-rule" id="artists" aria-labelledby="artists-title">
+        <div class="relationship shell">
+          <div class="relationship-copy">
+            <p class="section-kicker">Artist sovereignty</p>
+            <h2 class="section-title" id="artists-title">The platform should never swallow the artist.</h2>
+            <p class="section-lead">
+              Shared listening matters only if the people who make the work remain in control of how it circulates.
+            </p>
           </div>
-          <div class="flow-step">
-            <span class="step-badge">03</span>
-            <h3>Preserve sovereignty</h3>
-            <p>The source now restricts registration to the runtime owner. New runtime creation and release registration stay paused until existing runtimes, the future factory/directory, and catalog continuity are all verified.</p>
+
+          <dl class="relationship-list">
+            <div class="relationship-item">
+              <dt>Catalog</dt>
+              <dd>
+                <h3>A runtime that belongs to the artist</h3>
+                <p>
+                  Dotify's active contract model gives each artist a personal SmartRuntime instead of
+                  placing every catalog decision inside one platform-owned contract.
+                </p>
+              </dd>
+            </div>
+            <div class="relationship-item">
+              <dt>Access</dt>
+              <dd>
+                <h3>Doors the artist can define</h3>
+                <p>
+                  Free and paid Classic access are explicit product policies. Human-free access remains
+                  future work until real, privacy-respecting Proof of Personhood is integrated.
+                </p>
+              </dd>
+            </div>
+            <div class="relationship-item">
+              <dt>Value</dt>
+              <dd>
+                <h3>Rights and splits that can be audited</h3>
+                <p>
+                  Runtime rules keep royalties, collaborator shares, and access decisions inspectable
+                  without making chain mechanics the listener's first experience.
+                </p>
+              </dd>
+            </div>
+            <div class="relationship-item">
+              <dt>Circulation</dt>
+              <dd>
+                <h3>Presence without source-file distribution</h3>
+                <p>
+                  A room guest hears the host's temporary media stream. Protected source references and
+                  content keys stay outside public room state.
+                </p>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="section trust-section" id="trust" aria-labelledby="trust-title">
+        <div class="trust-inner shell">
+          <div class="trust-intro">
+            <p class="section-kicker">Invisible trust</p>
+            <h2 class="section-title" id="trust-title">Infrastructure belongs in the guarantee.</h2>
+            <p class="section-lead">
+              Wallet signatures, encrypted delivery, WebRTC boundaries, and on-chain policy do real work
+              behind the experience. They should make listening safer, not more bureaucratic.
+            </p>
+            <div class="trust-links">
+              <a class="text-link" href="explanation/access-control-model.md">
+                Access model <span class="arrow" aria-hidden="true">&#8594;</span>
+              </a>
+              <a class="text-link" href="explanation/content-protection.md">
+                Content protection <span class="arrow" aria-hidden="true">&#8594;</span>
+              </a>
+            </div>
           </div>
-          <div class="flow-step">
-            <span class="step-badge">04</span>
-            <h3>Prove critical flows</h3>
-            <p>Contracts, API, signaling, unit, and deterministic browser tests cover the functional spine; real-device WebRTC and DAV2 validation remain release evidence.</p>
+
+          <div>
+            <dl class="trust-ledger">
+              <div class="trust-row">
+                <dt>Individual play</dt>
+                <dd>
+                  The backend verifies a signed request, resolves the artist runtime, and checks access
+                  before temporary key delivery.
+                </dd>
+              </div>
+              <div class="trust-row">
+                <dt>Protected room</dt>
+                <dd>
+                  Access is checked against the host. Room guests receive the ephemeral WebRTC stream,
+                  never the protected source file or content key.
+                </dd>
+              </div>
+              <div class="trust-row">
+                <dt>Publication</dt>
+                <dd>
+                  The source-level owner boundary and regression coverage exist, but production writes
+                  remain closed until the deployed registry path is remediated.
+                </dd>
+              </div>
+            </dl>
+
+            <aside class="production-note" aria-labelledby="production-gate-title">
+              <strong id="production-gate-title">Production gate — publication is quarantined</strong>
+              <p>
+                The deployed registry facet and existing runtimes must be remediated and re-audited before
+                artist publication is enabled. This page does not imply that an on-chain remediation has occurred.
+                <a class="text-link" href="operations/registry-facet-remediation.md">Read the operator runbook</a>.
+              </p>
+            </aside>
           </div>
         </div>
       </section>
 
-      <section class="section-band">
-        <div class="section-head">
-          <h2>Design principles</h2>
+      <section class="section" aria-labelledby="horizon-title">
+        <div class="horizon shell">
+          <div class="horizon-copy">
+            <p class="section-kicker">Production before spectacle</p>
+            <h2 class="section-title" id="horizon-title">The calm surface needs a strong spine.</h2>
+          </div>
+
+          <ol class="horizon-list">
+            <li>
+              <p class="horizon-label">Delivered in the repository</p>
+              <h3>Core access, upload, room, and test paths</h3>
+              <p>
+                Server-side uploads and key delivery, wallet-signed access requests, hosted signaling,
+                room links, and deterministic critical-flow tests form the current production spine.
+              </p>
+            </li>
+            <li>
+              <p class="horizon-label">Current gate</p>
+              <h3>Remediate the live registry boundary</h3>
+              <p>
+                The owner-safe facet, dry-run tooling, and operator plan exist. Deployment, owner-signed
+                runtime upgrades, migration, and final audit still require explicit operational approval.
+              </p>
+            </li>
+            <li>
+              <p class="horizon-label">Sequenced later</p>
+              <h3>Personhood and cultural transmission, only when real</h3>
+              <p>
+                Proof of Personhood, consented provenance, and ambassador mechanics remain future work.
+                Dotify will not represent them as active capabilities before their foundations exist.
+              </p>
+            </li>
+          </ol>
         </div>
-        <div class="value-list">
-          <div class="value-row">
-            <strong>The link is the threshold</strong>
-            <p>Show the host, work, real presence, and sound state first. Ask for identity or confirmation only when the chosen action requires it.</p>
-          </div>
-          <div class="value-row">
-            <strong>Fail closed on access</strong>
-            <p>Ambiguous access decisions deny playback. No silent fallbacks. The policy is the truth.</p>
-          </div>
-          <div class="value-row">
-            <strong>Invisible complexity</strong>
-            <p>The user sees a shared link. The infrastructure handles keys, chains, and access policy underneath.</p>
-          </div>
-          <div class="value-row">
-            <strong>Artist sovereignty</strong>
-            <p>Artists publish through runtimes they own. No platform intermediary controls the terms of access.</p>
-          </div>
-          <div class="value-row">
-            <strong>Repository memory</strong>
-            <p>Context lives in <code style="font-family:ui-monospace,'SFMono-Regular',Consolas,monospace;background:rgba(0,229,160,0.12);color:#00E5A0;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/backlog/</code> and <code style="font-family:ui-monospace,'SFMono-Regular',Consolas,monospace;background:rgba(0,229,160,0.12);color:#00E5A0;padding:2px 6px;border-radius:6px;font-size:0.88em">docs/context/</code>. AI agents must read AGENTS.md or CLAUDE.md before implementing.</p>
+      </section>
+
+      <section class="manifesto" aria-labelledby="manifesto-title">
+        <div class="manifesto-panel shell">
+          <blockquote id="manifesto-title">
+            A shared link is the front door. <em>Artist sovereignty</em> is the foundation.
+          </blockquote>
+          <div class="manifesto-side">
+            <p>
+              Dotify is not a Spotify clone. It is a cultural social hub where music can reopen a commons
+              between people without dispossessing the artist.
+            </p>
+            <a class="button button-dark" href="context/dotify-philosophical-north-star.md">
+              Read the north star
+              <span class="arrow" aria-hidden="true">&#8594;</span>
+            </a>
           </div>
         </div>
       </section>
 
-      <div class="manifesto-band">
-        <blockquote>
-          The blockchain belongs in the guarantees. The music, the artist,
-          and the people belong at the threshold.
-        </blockquote>
-        <cite>Dotify / Muzinga &mdash; Polkadot Builder Program, Lisbon 2026</cite>
-      </div>
+      <section class="resources" aria-labelledby="resources-title">
+        <div class="shell">
+          <div class="resources-head">
+            <h2 id="resources-title">Explore the work</h2>
+            <p>Product direction, implementation boundaries, and current delivery status live in the repository.</p>
+          </div>
 
-      <footer class="site-footer">
-        <p>Dotify &mdash; Decentralized shared listening &middot; Built on Polkadot</p>
-        <div>
-          <a href="https://github.com/knzeng-e/dotify-dashboard">Dashboard</a>
-          <a href="https://knzeng-e.github.io/dotify-dashboard/">Live preview</a>
-          <a href="backlog/README.md">Backlog</a>
-          <a href="context/README.md">Memory</a>
+          <ul class="resource-list">
+            <li>
+              <a class="resource-link" href="design/dotify-shared-score.md">
+                <span>
+                  <strong>Shared Score experience</strong>
+                  <span>Clean-sheet UI direction, journeys, real capability boundaries, and delivery rules.</span>
+                </span>
+                <span class="arrow" aria-hidden="true">&#8594;</span>
+              </a>
+            </li>
+            <li>
+              <a class="resource-link" href="explanation/architecture-overview.md">
+                <span>
+                  <strong>Architecture overview</strong>
+                  <span>How the frontend, API, signaling, storage, and runtimes fit together.</span>
+                </span>
+                <span class="arrow" aria-hidden="true">&#8594;</span>
+              </a>
+            </li>
+            <li>
+              <a class="resource-link" href="backlog/README.md">
+                <span>
+                  <strong>Production backlog</strong>
+                  <span>Delivered work, active gates, and deliberately deferred capabilities.</span>
+                </span>
+                <span class="arrow" aria-hidden="true">&#8594;</span>
+              </a>
+            </li>
+            <li>
+              <a class="resource-link" href="Dotify_presentation.pptx">
+                <span>
+                  <strong>Project presentation</strong>
+                  <span>The downloadable Dotify presentation deck.</span>
+                </span>
+                <span class="arrow" aria-hidden="true">&#8599;</span>
+              </a>
+            </li>
+          </ul>
         </div>
-      </footer>
+      </section>
     </main>
 
-    <script>
-      (function () {
-        var canvas = document.getElementById('flow-canvas');
-        if (!canvas || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-        var ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        var NODES = [
-          { x: 0.5,  y: 0.24, r: 22, color: '#00E5A0', label: 'Host',     phase: 0   },
-          { x: 0.22, y: 0.56, r: 15, color: '#F0B429', label: 'Listener', phase: 1.2 },
-          { x: 0.78, y: 0.56, r: 15, color: '#F0B429', label: 'Listener', phase: 2.4 },
-          { x: 0.5,  y: 0.72, r: 14, color: '#B8F012', label: 'Artist',   phase: 3.1 },
-        ];
-        var CONNS = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
-        var frame = 0;
-        var raf;
-
-        function resize() {
-          var rect = canvas.parentElement.getBoundingClientRect();
-          canvas.width  = rect.width  || 600;
-          canvas.height = rect.height || 520;
-        }
-        resize();
-        window.addEventListener('resize', resize);
-
-        function draw() {
-          var W = canvas.width;
-          var H = canvas.height;
-          ctx.clearRect(0, 0, W, H);
-
-          // Background radial glow
-          var bg = ctx.createRadialGradient(W*0.5, H*0.4, 0, W*0.5, H*0.4, W*0.55);
-          bg.addColorStop(0,   'rgba(0,229,160,0.14)');
-          bg.addColorStop(0.45,'rgba(184,240,18,0.06)');
-          bg.addColorStop(1,   'rgba(5,13,26,0)');
-          ctx.fillStyle = bg;
-          ctx.fillRect(0, 0, W, H);
-
-          // Positions
-          var pos = NODES.map(function(n) {
-            return { x: W*n.x, y: H*n.y };
-          });
-
-          // Connection lines
-          CONNS.forEach(function(c) {
-            var i = c[0]; var j = c[1];
-            var isArtist = NODES[i].color === '#B8F012' || NODES[j].color === '#B8F012';
-            ctx.beginPath();
-            ctx.moveTo(pos[i].x, pos[i].y);
-            ctx.lineTo(pos[j].x, pos[j].y);
-            ctx.strokeStyle = isArtist ? 'rgba(184,240,18,0.28)' : 'rgba(0,229,160,0.22)';
-            ctx.lineWidth   = isArtist ? 2 : 3;
-            ctx.stroke();
-          });
-
-          // Nodes
-          NODES.forEach(function(n, i) {
-            var pulse = 1 + Math.sin(frame * 0.035 + n.phase) * 0.08;
-            var x = pos[i].x;
-            var y = pos[i].y;
-            var r = n.r * pulse;
-
-            // Outer glow ring
-            ctx.beginPath();
-            ctx.arc(x, y, r * 1.9, 0, Math.PI * 2);
-            ctx.fillStyle = n.color + '18';
-            ctx.fill();
-
-            // Node body with glow
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.shadowColor = n.color;
-            ctx.shadowBlur  = 24;
-            ctx.fillStyle   = n.color + '33';
-            ctx.fill();
-            ctx.shadowBlur  = 0;
-
-            // Centre dot
-            ctx.beginPath();
-            ctx.arc(x, y, r * 0.42, 0, Math.PI * 2);
-            ctx.fillStyle = n.color + '77';
-            ctx.fill();
-
-            // Orbiting particles (3 per node)
-            for (var p = 0; p < 3; p++) {
-              var angle = (frame * 0.018 + n.phase + p * 2.09) % (Math.PI * 2);
-              var pr    = n.r * 1.7;
-              ctx.beginPath();
-              ctx.arc(x + Math.cos(angle)*pr, y + Math.sin(angle)*pr, 2.8, 0, Math.PI*2);
-              ctx.fillStyle = p === 0 ? '#E6007A' : '#ffffff';
-              ctx.globalAlpha = p === 0 ? 0.72 : 0.5;
-              ctx.fill();
-              ctx.globalAlpha = 1;
-            }
-
-            // Label
-            ctx.font      = '600 13px Hanken Grotesk, system-ui, sans-serif';
-            ctx.fillStyle = 'rgba(255,255,255,0.72)';
-            ctx.textAlign = 'center';
-            ctx.fillText(n.label, x, y + r * 1.9 + 18);
-          });
-
-          frame++;
-          raf = requestAnimationFrame(draw);
-        }
-
-        draw();
-      })();
-    </script>
+    <footer class="site-footer">
+      <div class="footer-inner shell">
+        <div class="footer-copy">
+          <strong>Dotify</strong>
+          <p>Make music social again without dispossessing the artist.</p>
+        </div>
+        <nav class="footer-nav" aria-label="Project links">
+          <a href="https://github.com/knzeng-e/dotify">GitHub repository</a>
+          <a href="context/README.md">Project memory</a>
+          <a href="backlog/25-thresholds-functional-v1.md">Current production-readiness ticket</a>
+        </nav>
+      </div>
+    </footer>
   </body>
 </html>

@@ -11,12 +11,15 @@ By uploading tracks to Dotify, artists opt into using their work as an
 instrument of human connection while retaining control over catalog, rights, and
 monetization through their own artist runtime.
 
-![](./assets/images/Dotify_Home.png)
+The current clean-sheet interface direction is documented in
+[Dotify Shared Score](docs/design/dotify-shared-score.md). It keeps the proven
+room, playback, wallet, and artist flows while replacing the historical visual
+shell rather than restyling it.
 
 ## What it does
 
-- **Home**: artist-grouped music discovery, track artwork, descriptions, access
-  mode badges, a policy-aware player, and room-hosting controls.
+- **Now**: real open rooms first, then a finite catalog, policy-aware listening,
+  and one-step room hosting without a permanent player navigation tab.
 - **Rooms**: open listening rooms plus manual room-code entry. Room guests should
   be able to join and listen without wallet friction.
 - **Artist portal**: a dedicated `/artists` onboarding and studio surface where

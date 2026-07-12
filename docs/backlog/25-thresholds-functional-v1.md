@@ -11,20 +11,23 @@ blocked by the production spine and explicit consent/anti-abuse designs.
 
 ## Objective
 
-Turn the selected `Thresholds` concept into a functional first slice without
-rewriting the proven standalone domain:
+Preserve the functional Thresholds slice while rebuilding its UI from a blank
+canvas as `Shared Score`, without rewriting the proven standalone domain:
 
 - a room share link shows real host/work/presence metadata before entry;
 - `Now` discovers live rooms without waiting for a navigation click;
-- the visual hierarchy is warm, editorial, and spatial rather than a dark
-  dashboard/constellation;
+- the visual hierarchy is precise, editorial, and temporal rather than a dark
+  dashboard, constellation, or restyle of the historical shell;
 - paid denial is an honest closed door with no retired 42-percent preview claim;
 - the invisible guarantees behind publishing, upload identity, and WebRTC relay
   are hardened and tested.
 
-Full product, architecture, wireframe, security, accessibility, performance,
-test, and phased-backlog rationale:
-[`docs/design/dotify-thresholds.md`](../design/dotify-thresholds.md).
+Current UI system, information architecture, wireframes, accessibility,
+performance, and capability mapping:
+[`docs/design/dotify-shared-score.md`](../design/dotify-shared-score.md).
+The original product, architecture, security, test, and phased-backlog rationale
+remains in the
+[`Thresholds blueprint`](../design/dotify-thresholds.md).
 
 ## Scope
 
@@ -40,14 +43,17 @@ test, and phased-backlog rationale:
 
 ### Presentation
 
-- Add a separately reviewable `thresholds.css` layer loaded after the historical
-  styles.
-- Replace the app-wide galaxy/lights-down body mode with the Thresholds body
-  mode while retaining track aura variables as real work identity.
-- Use a warm matte canvas, deep-blue listening apertures, cyan actions, and
-  restrained Polkadot pink.
-- Remove the Constellation Stage/Sky from this direction; the finite catalog and
-  literal room cards remain accessible.
+- Remove the historical stylesheet and the layered `thresholds.css` override;
+  load one modular Shared Score design system as the only visual foundation.
+- Replace the rail and four-destination shell with a horizontal desktop header,
+  three intentional destinations (`Now`, `Rooms`, `You`), and a contextual
+  player opened from a work, room, or persistent score dock.
+- Use a warm neutral canvas, deep-blue listening stage, cyan actions, restrained
+  artist pink, thin score rules, and album art as the primary local colour.
+- Remove Constellation Stage/Sky, permanent aura backgrounds, global metrics,
+  and the inline artist-onboarding theme from the rendered experience.
+- Keep the finite catalog, real room cards, literal access states, and clear
+  empty/error/loading states accessible.
 - Retain all load-bearing e2e selectors and behavior.
 
 ### Security hardening
@@ -128,10 +134,11 @@ Current completion matrix:
 
 ## Delivery notes
 
-The functional slice and source-level hardening are implemented in the current
-worktree. The ticket stays `In progress` because the deployment gate above is
-not satisfied; no commit, PR, or on-chain mutation is part of this worktree
-delivery yet.
+The functional slice and source-level hardening are isolated on
+`feat/dotify-thresholds-prod-readiness` in draft PR #92. Shared Score is the
+clean-sheet corrective UI pass on the same ticket branch. The ticket stays `In
+progress` because the deployment gate above is not satisfied; no on-chain
+mutation is part of this delivery.
 
 Validation evidence (2026-07-12):
 
@@ -146,8 +153,8 @@ Validation evidence (2026-07-12):
   shape, and stable plan digest;
 - deterministic browser flows: 11/11, including delayed room resolution,
   unavailable links, and wallet-free guest boundaries;
-- production web build, artist-quarantine browser smoke, and desktop/mobile
-  no-overflow visual smoke: passed;
+- production web build, artist-quarantine browser smoke, and Shared Score
+  desktop/mobile/reflow no-overflow visual smoke: passed;
 - live registry snapshot: completed read-only at block `10877675`; intentional
   exit code `2` while `0/2` runtimes and the factory remain unsafe. A final
   rerun of the stricter fail-closed task was blocked by the execution

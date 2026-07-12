@@ -50,9 +50,13 @@ Do not add ornamental product features until the following spine is stable:
 | `11-proof-of-personhood-integration-research.md` | #12 | Open | Proof of Personhood integration research |
 | `12-ambassador-social-propagation-model.md` | #13 | Open | Ambassador and social propagation model |
 
-## Design track - Living Light experience
+## Design track - experience evolution
 
 Presentational UX work derived from `design/Dotify-design/` (the "Living Light" prototype and redesign brief). This track is parallelizable with the spine and must not block or destabilize it: behavior is preserved and the aura is pure presentation. Honesty rule applies throughout - no UI element may imply a capability (persisted mood, broadcast chat, fabricated stats) the backend does not have.
+
+Shared Score now supersedes the historical Living Light, Constellation, Living
+Interface, and layered Thresholds presentation. Those tickets remain design
+history; they are not loaded as the current app foundation.
 
 | Backlog doc | Status | Goal |
 | --- | --- | --- |
@@ -65,7 +69,7 @@ Presentational UX work derived from `design/Dotify-design/` (the "Living Light" 
 | `20-room-social-layer.md` | Delivered on `main` (PR #67) | Broadcast reactions (attributed petals) + in-room chat over the signaling relay; 50-message in-room history, rate-limited, fail closed |
 | `22-living-interface.md` | Delivered on `design/living-interface` | Living Interface: borders replaced by aura-tinted tonal layering, relaxed geometry, deep-glass floating layers, conversational chat bubbles, one breathing motion curve (`docs/design/dotify-living-interface.md`) |
 | `23-room-identity.md` | Layer 1 delivered on `feat/room-identity` | A pseudonym set once per wallet: off-chain per-address display name, auto-filled into room create/join; Layer 2 (link/QR join step) and on-chain handle registry are future (`docs/design/room-identity.md`) |
-| `25-thresholds-functional-v1.md` | In progress - publication quarantined, 0/2 runtime hotfixes | Selected `Thresholds` direction: real room-link threshold, warm editorial listening hierarchy, retired-preview copy cleanup, and production-spine security hardening (`docs/design/dotify-thresholds.md`) |
+| `25-thresholds-functional-v1.md` | In progress - Shared Score UI delivered; publication quarantined, 0/2 runtime hotfixes | Clean-sheet `Shared Score` interface over the real room-link threshold, retired-preview copy cleanup, and production-spine security hardening (`docs/design/dotify-shared-score.md`; original rationale in `docs/design/dotify-thresholds.md`) |
 
 Delivered on `main`: album-aura engine (`web/src/utils/aura.ts`, `components/AuraBackground.tsx`), aura-colored cover fallbacks (`hooks/useCatalog.ts`), presence avatars (`components/Presence.tsx`), player dock (`components/PlayerDock.tsx`), create-room sheet (`components/CreateRoomModal.tsx`), immersive-room cover-glow/EQ/reactions/header/sync-note (`views/PlayerView.tsx`), wallet connected card (`components/WalletModal.tsx`), studio showcase (`views/artist/ArtistConsole.tsx` + `OverviewTab.tsx`), Hanken-only app type with system mono for code, featured aura hero on Home, and the Living Light stylesheet block in `web/src/styles.css`. The old node/warp `AmbientCanvas` / `StarfieldCanvas` are removed.
 

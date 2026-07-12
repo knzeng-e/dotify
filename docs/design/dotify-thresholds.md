@@ -1,7 +1,9 @@
 # Dotify Thresholds - product and implementation blueprint
 
-Status: selected direction and functional-v1 blueprint.  
-Last reviewed: 2026-07-11.
+Status: product, security, and functional-v1 blueprint retained; visual and
+compositional direction superseded by
+[`dotify-shared-score.md`](./dotify-shared-score.md).
+Last reviewed: 2026-07-12.
 
 This document translates Dotify's product, technical, and philosophical north
 stars into a coherent experience. It is intentionally broader than a visual
@@ -13,6 +15,11 @@ The non-negotiable outcome is simple:
 > A person opens a link, hears a shared musical moment, perceives who is there,
 > and only meets wallets or chain operations when they choose an action that
 > needs them.
+
+The candidate exploration and implementation rationale below remain useful
+history. They are not the current UI specification. Shared Score replaces the
+layered Thresholds presentation with a clean-sheet shell, contextual player,
+and one coherent design system while preserving these product invariants.
 
 ## 1. Three candidate concepts
 
@@ -67,7 +74,7 @@ infographic, surveillance map, or decorative shader.
 
 **Difference.** Discovery is a human path rather than an algorithmic ranking.
 
-### C. Thresholds - selected
+### C. Thresholds - selected for functional v1, now visually superseded
 
 **Metaphor.** A work opens a space. A room link is its threshold. The artist's
 access policy describes how the durable listening door opens.
@@ -107,8 +114,10 @@ welcome, support, transmit - rather than inventory to consume.
 | Accessibility and performance | Good | Risky | Excellent |
 | Progressive migration | Good | Difficult | Excellent |
 
-Thresholds wins because it works before provenance, ambassadors, live Proof of
-Personhood, or a Product SDK integration exist. It can be honest on day one.
+Thresholds was selected for the functional-v1 implementation because it works
+before provenance, ambassadors, live Proof of Personhood, or a Product SDK
+integration exist. Shared Score now supersedes its visual composition while
+keeping the honest link-entry and access-policy behavior.
 
 ## 2. Product invariants
 
@@ -236,7 +245,7 @@ The result language stays identical. On a sensitive action:
 - missing capability gives a product-level alternative, never a raw TrUAPI,
   viem, RPC, or wallet-provider error.
 
-## 5. Interaction and visual system
+## 5. Historical interaction and visual system - superseded
 
 Thresholds is warm night architecture, not literal doors or rooms. Large matte
 fields create calm. A cover behaves as an aperture: local work color can light
