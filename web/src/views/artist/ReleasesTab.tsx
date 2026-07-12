@@ -236,7 +236,10 @@ export function ReleasesTab({
                       : 'Free for verified humans · basic'
               }
             />
-            <EndpointRow label='Payment split' value={selectedRelease.accessMode === 'free' ? 'Not used for free access' : formatRoyaltyPercent(selectedRelease.royaltyBps)} />
+            <EndpointRow
+              label='Payment split'
+              value={selectedRelease.accessMode === 'free' ? 'Not used for free access' : formatRoyaltyPercent(selectedRelease.royaltyBps)}
+            />
             <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />
             <EndpointRow label='Encrypted audio' value={selectedRelease.encrypted ? 'yes' : 'no'} />
             <EndpointRow label='Status' value={selectedReleaseActive ? 'active' : 'inactive'} />

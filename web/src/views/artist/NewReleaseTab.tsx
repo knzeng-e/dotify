@@ -393,7 +393,9 @@ export function NewReleaseTab({
             />
             <EndpointRow
               label='Payment split'
-              value={isFreeAccess ? 'Not used for free access' : `${formatRoyaltyPercent(totalRoyaltyBps)} across ${additionalRoyaltySplits.length + 1} holder(s)`}
+              value={
+                isFreeAccess ? 'Not used for free access' : `${formatRoyaltyPercent(totalRoyaltyBps)} across ${additionalRoyaltySplits.length + 1} holder(s)`
+              }
             />
             <EndpointRow label='Metadata' value='IPFS canonical manifest' />
             <EndpointRow label='Archive' value={uploadToBulletinEnabled ? 'Bulletin enabled' : 'Off'} />
