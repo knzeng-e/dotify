@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { fetchIpfsCid, getGatewayUrl, getGatewayUrls } from '../services/pinata';
+import { fetchAssetRef, fetchIpfsCid, getGatewayUrl, getGatewayUrls } from '../services/pinata';
 import { ensureContract, getPublicClient, artistDirectoryAbi, musicRegistryAbi, musicAccessAbi, musicRoyaltiesAbi } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot } from '../shared/utils/format';
@@ -592,8 +592,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       return objectUrl;
     }
 
-    const response = isEncryptedAudioRef(audioRef) ? await fetchIpfsCid(encryptedRefToCID(audioRef)) : await fetch(gatewayUrl);
-    if (!response.ok) throw new Error(`Unable to fetch encrypted audio (${response.status})`);
+    const response = isEncryptedAudioRef(audioRef) ? await fetchIpfsCid(encryptedRefToCID(audioRef)) : await fetchAssetRef(audioRef || gatewayUrl);
+    if (!response.ok) throw new Error(`Unable to fetch audio (${response.status})`);
 
     const encryptedBytes = new Uint8Array(await response.arrayBuffer());
     // Free tracks fetch their key without a wallet or signature; everything
