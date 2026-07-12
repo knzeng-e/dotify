@@ -1,43 +1,29 @@
-// Primary navigation - the shared nav rendered two ways from one item list:
-// a collapsible left rail on desktop and a bottom tab bar on mobile. Extracted
-// from App.tsx, where the two renders were duplicated inline.
+// Primary navigation is rendered as calm inline navigation on desktop and a
+// thumb-reachable bottom bar on mobile. Both variants share the same real view
+// model and accessible names.
 
-import { PanelLeftClose, PanelLeftOpen, type LucideIcon } from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
 import type { View } from '../shared/types';
 
 export type PrimaryNavItem = { view: View; label: string; icon: LucideIcon; onSelect: () => void };
 
-export function SideRail({
-  items,
-  activeView,
-  collapsed,
-  onToggleCollapsed
-}: {
-  items: readonly PrimaryNavItem[];
-  activeView: View;
-  collapsed: boolean;
-  onToggleCollapsed: () => void;
-}) {
+export function DesktopNav({ items, activeView }: { items: readonly PrimaryNavItem[]; activeView: View }) {
   return (
-    <nav className='side-rail' data-collapsed={collapsed} aria-label='Library navigation'>
-      <button
-        className='side-rail-toggle'
-        type='button'
-        onClick={onToggleCollapsed}
-        aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
-        title={collapsed ? 'Expand' : 'Collapse'}
-      >
-        {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-      </button>
-      <div className='side-rail-items'>
-        {items.map(item => (
-          <button key={item.view} className='side-rail-item' type='button' data-active={activeView === item.view} onClick={item.onSelect} title={item.label}>
-            <item.icon size={20} />
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </div>
-    </nav>
+    <div className='desktop-nav' aria-label='Main sections'>
+      {items.map(item => (
+        <button
+          key={item.view}
+          className='desktop-nav-item'
+          type='button'
+          data-active={activeView === item.view}
+          aria-current={activeView === item.view ? 'page' : undefined}
+          onClick={item.onSelect}
+        >
+          <item.icon size={17} aria-hidden='true' />
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -45,8 +31,15 @@ export function BottomNav({ items, activeView }: { items: readonly PrimaryNavIte
   return (
     <nav className='bottom-nav' aria-label='Main navigation'>
       {items.map(item => (
-        <button key={item.view} className='bottom-nav-item' type='button' data-active={activeView === item.view} onClick={item.onSelect}>
-          <item.icon size={22} />
+        <button
+          key={item.view}
+          className='bottom-nav-item'
+          type='button'
+          data-active={activeView === item.view}
+          aria-current={activeView === item.view ? 'page' : undefined}
+          onClick={item.onSelect}
+        >
+          <item.icon size={21} aria-hidden='true' />
           <span>{item.label}</span>
         </button>
       ))}

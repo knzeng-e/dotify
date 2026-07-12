@@ -1,0 +1,138 @@
+:root {
+  color-scheme: light;
+
+  --font-interface: 'Instrument Sans', Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-editorial: 'Newsreader', Iowan Old Style, Baskerville, Georgia, serif;
+  --font-code: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+
+  --canvas: #f6f7f3;
+  --canvas-deep: #eef1ee;
+  --surface: #ffffff;
+  --surface-soft: #f0f2ef;
+  --surface-cool: #edf3f5;
+  --ink: #081426;
+  --ink-soft: #405064;
+  --muted: #687586;
+  --line: #d8dfe2;
+  --line-strong: #bac6cb;
+  --night: #0a203b;
+  --night-raised: #102b4d;
+  --night-soft: #173655;
+  --action: #00b99e;
+  --action-hover: #009f88;
+  --action-soft: #ddf8f2;
+  --signal: #3159d9;
+  --signal-soft: #e8edff;
+  --artist: #cc0d67;
+  --artist-soft: #fbe7f0;
+  --presence: #d2634b;
+  --presence-soft: #faebe6;
+  --success: #177253;
+  --success-soft: #e1f4eb;
+  --warning: #9a5c08;
+  --warning-soft: #fff1d8;
+  --danger: #ae2b2b;
+  --danger-soft: #fde9e7;
+  --focus: #1d5cf0;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --radius-full: 999px;
+
+  --shadow-float: 0 24px 60px -38px rgb(8 20 38 / 0.42);
+  --shadow-dialog: 0 32px 100px -34px rgb(8 20 38 / 0.58);
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-state: 260ms;
+
+  --container: 80rem;
+  --content-pad: clamp(1.25rem, 3vw, 2.5rem);
+  --header-height: 4.75rem;
+  --dock-height: 5.8rem;
+
+  /* Compatibility aliases for the functional components that predate this
+     visual system. They map to Shared Score tokens rather than a legacy theme. */
+  --color-primary: var(--action);
+  --color-secondary: var(--signal);
+  --color-tertiary: var(--artist);
+  --color-background: var(--canvas);
+  --color-surface-container-lowest: var(--surface);
+  --color-surface-container-low: var(--surface-soft);
+  --color-surface-container: var(--canvas-deep);
+  --color-surface-container-high: #e3e8e6;
+  --color-surface-container-highest: #d7dfdc;
+  --color-on-primary: var(--ink);
+  --color-on-primary-container: var(--ink);
+  --color-primary-container: var(--action);
+  --color-secondary-container: var(--signal-soft);
+  --color-tertiary-container: var(--artist-soft);
+  --color-navy: var(--night);
+  --color-ink: var(--ink);
+  --color-cyan: var(--action);
+  --color-glacier: var(--action);
+  --color-amber: var(--presence);
+  --color-green: var(--success);
+  --dotify-cyan: var(--action);
+  --dotify-cyan-dim: var(--action-soft);
+  --dotify-green: var(--success);
+  --dotify-green-dim: var(--success-soft);
+  --dotify-green-border: #a8d7c6;
+  --dotify-pink: var(--artist);
+  --dotify-pink-dim: var(--artist-soft);
+  --dotify-pink-border: #efbfd3;
+  --fg-primary: var(--ink);
+  --fg-primary-inverted: #ffffff;
+  --fg-secondary: var(--ink-soft);
+  --fg-secondary-hover: var(--ink);
+  --fg-tertiary: var(--muted);
+  --bg-surface-main: var(--canvas);
+  --bg-surface-container: var(--surface);
+  --bg-surface-nested: var(--surface-soft);
+  --bg-surface-overlay: var(--surface);
+  --bg-selection-container-hover: var(--action-soft);
+  --bg-selection-container-active: #c9f2e9;
+  --bg-action-primary: var(--action);
+  --bg-action-primary-hover: var(--action-hover);
+  --bg-action-secondary: var(--surface-soft);
+  --bg-action-secondary-hover: #e3e7e4;
+  --bg-navigation: var(--surface);
+  --bg-navigation-soft: var(--surface-soft);
+  --border-default: var(--line);
+  --border-divider: var(--line);
+  --border-active: var(--signal);
+  --border-success: var(--success);
+  --border-warning: var(--warning);
+  --focus-ring: var(--focus);
+  --surface-lit: var(--surface);
+  --surface-deep: var(--surface-soft);
+  --radius-default: var(--radius-sm);
+  --radius-container: var(--radius-xl);
+  --radius-nested: var(--radius-lg);
+  --radius-small: var(--radius-sm);
+  --ease-soft: var(--ease);
+  --dur-quick: var(--duration-fast);
+  --dur-flow: var(--duration-state);
+}

@@ -1,9 +1,8 @@
 import type { ArtistTab, CatalogTrack } from '../../shared/types';
-import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { BadgeCheck, ExternalLink } from 'lucide-react';
 import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
 import { shorten } from '../../shared/utils/format';
-import { auraForName } from '../../shared/utils/aura';
 import { hashFileWithBytes } from '../../shared/utils/hash';
 import { deployments } from '../../shared/config/deployments';
 import { protectedAudioUploadToCID, uploadFileToPinata, uploadProtectedAudio } from '../../services/pinata';
@@ -224,7 +223,6 @@ export function ArtistConsole() {
   const onGoToPreviousStep = () => setReleaseStep(previousReleaseStep(releaseStep));
   const onGoToNextStep = () => setReleaseStep(nextReleaseStep(releaseStep));
 
-  const studioAura = auraForName(artistName);
   const studioHandle =
     artistName
       .toLowerCase()
@@ -268,11 +266,7 @@ export function ArtistConsole() {
   return (
     <section className='artist-console'>
       <header className='studio-head'>
-        <span
-          className='studio-avatar'
-          aria-hidden='true'
-          style={{ '--aura-a': studioAura.a, '--aura-b': studioAura.b, '--aura-accent': studioAura.accent } as CSSProperties}
-        />
+        <span className='studio-avatar' aria-hidden='true' />
         <div className='studio-id'>
           <h1>
             {artistName}

@@ -5,7 +5,6 @@
 // status and the connect/disconnect actions come from context, so no caller
 // threads wallet state through this component.
 
-import { Disc3 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { WalletStatusPill } from './WalletModal';
 import { useWalletContext } from '../app/providers/WalletProvider';
@@ -27,16 +26,20 @@ export function TopBar({ className, brandHref, brandAriaLabel, onBrandClick, nav
 
   return (
     <header className={className ? `topbar ${className}` : 'topbar'}>
-      <a className='brand' href={brandHref} aria-label={brandAriaLabel} onClick={onBrandClick}>
-        <span className='brand-mark'>
-          <Disc3 size={21} />
-        </span>
-        <span>Dotify</span>
-      </a>
-      <nav className='nav-pills' aria-label={navAriaLabel}>
-        {children}
-        <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnect} />
-      </nav>
+      <div className='topbar-inner'>
+        <a className='brand' href={brandHref} aria-label={brandAriaLabel} onClick={onBrandClick}>
+          <span className='brand-mark' aria-hidden='true'>
+            <i />
+            <i />
+            <i />
+          </span>
+          <span>Dotify</span>
+        </a>
+        <nav className='nav-pills' aria-label={navAriaLabel}>
+          {children}
+          <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnect} />
+        </nav>
+      </div>
     </header>
   );
 }

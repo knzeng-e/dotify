@@ -7,7 +7,6 @@
 import { Link as LinkIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
-import { AuraBackground } from '../components/AuraBackground';
 import { PersistentAudio } from '../components/PersistentAudio';
 import { PlayerDock } from '../components/PlayerDock';
 import { CreateRoomModal } from '../components/CreateRoomModal';
@@ -15,8 +14,7 @@ import { JoinRoomModal } from '../components/JoinRoomModal';
 import { TopBar } from '../components/TopBar';
 import { AccountWalletModal } from '../components/AccountWalletModal';
 import { TransactionModal } from '../components/TransactionModal';
-import { BottomNav, SideRail } from '../components/PrimaryNav';
-import { Metric } from '../shared/ui/Metric';
+import { BottomNav, DesktopNav } from '../components/PrimaryNav';
 
 import { ListenView } from './ListenView';
 import { PlayerView } from './PlayerView';
@@ -34,7 +32,7 @@ import {
   useReleaseForm,
   useArtistStudio
 } from '../app/providers';
-import { NAV_ITEMS, VIEW_COPY } from '../app/navigation';
+import { NAV_ITEMS } from '../app/navigation';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from '../features/catalog/trackModel';
 import { getStoredDisplayName, isChosenDisplayName } from '../features/identity/walletIdentity';
 import { getInitialRoomCode } from '../features/rooms/roomState';
@@ -49,7 +47,7 @@ export function ListenerShell() {
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { playback, openTrack, prepareLocalStream } = usePlaybackContext();
-  const { activeView, publicArtistName, setPublicArtistName, railCollapsed, setRailCollapsed, navigateToView, openArtistStudio } = useNavigation();
+  const { activeView, publicArtistName, setPublicArtistName, navigateToView, openArtistStudio } = useNavigation();
   const { walletState, activeEvmAddress, listenerEvmAddress, disconnect: disconnectWallet } = useWalletContext();
   const { setShowWalletModal } = useUiFeedback();
   const { artistName } = useReleaseForm();
@@ -62,8 +60,6 @@ export function ListenerShell() {
 
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
   const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
-  const activeListeners = session.listeners.filter(listener => listener.status === 'connected').length;
-  const currentPage = VIEW_COPY[activeView];
   const { paidTracks, supportedArtists } = deriveSupportSummary(catalog.catalogTracks, catalog.catalogPaidAccessByTrackId);
   const roomId = session.roomId;
   const setSessionDisplayName = session.setDisplayName;
@@ -160,7 +156,6 @@ export function ListenerShell() {
 
   return (
     <>
-      <AuraBackground />
       <PersistentAudio
         audioSource={catalog.audioSource}
         localAudioRef={catalog.localAudioRef}
@@ -170,14 +165,17 @@ export function ListenerShell() {
         onEmitPlayerState={session.emitPlayerState}
       />
       <div className='app-shell'>
-        <TopBar brandHref='#top' brandAriaLabel='Dotify' onBrandClick={() => setPublicArtistName(null)} navAriaLabel='Navigation' />
+        <a className='skip-link' href='#main-content'>
+          Skip to content
+        </a>
+        <TopBar brandHref='#main-content' brandAriaLabel='Dotify home' onBrandClick={() => setPublicArtistName(null)} navAriaLabel='Primary navigation'>
+          <DesktopNav items={navItems} activeView={activeView} />
+        </TopBar>
 
         <AccountWalletModal />
 
-        <SideRail items={navItems} activeView={activeView} collapsed={railCollapsed} onToggleCollapsed={() => setRailCollapsed(value => !value)} />
-
-        <div className='app-content' id='top'>
-          <main className={`content content-${activeView}`}>
+        <div className='app-content'>
+          <main className={`content content-${activeView}`} id='main-content'>
             {publicArtistName ? (
               <ArtistProfileView
                 artistName={publicArtistName}
@@ -191,18 +189,6 @@ export function ListenerShell() {
               />
             ) : (
               <>
-                <section className='page-head'>
-                  <div className='page-copy'>
-                    <p className='eyebrow'>{currentPage.eyebrow}</p>
-                    <h1>{currentPage.title}</h1>
-                  </div>
-                  <div className='head-metrics'>
-                    <Metric label='tracks' value={catalog.catalogTracks.length.toString()} />
-                    <Metric label='rooms' value={session.openRooms.length.toString()} />
-                    <Metric label='listeners' value={`${activeListeners}/${session.listenerCount}`} />
-                  </div>
-                </section>
-
                 {activeView === 'listen' && (
                   <ListenView
                     catalogTracks={catalog.catalogTracks}

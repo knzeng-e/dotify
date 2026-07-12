@@ -1,7 +1,8 @@
 import { ArrowRight, ExternalLink, KeyRound, Mic2, Music2, Power, Sparkles, Users, Wallet } from 'lucide-react';
-import { formatWeiAsDot, shortenAddress } from '../shared/utils/format';
-import { getBlockscoutAddressUrl } from '../shared/utils/explorer';
+
 import type { WalletState } from '../hooks/useWallet';
+import { getBlockscoutAddressUrl } from '../shared/utils/explorer';
+import { formatWeiAsDot, shortenAddress } from '../shared/utils/format';
 
 type AccountSupportedArtist = { artist: string; artistAddress?: `0x${string}`; trackCount: number };
 type AccountUnlockedTrack = { id: string; title: string; artist: string; priceDot: string; hash: `0x${string}` };
@@ -43,114 +44,31 @@ export function YouView({
 
   return (
     <section className='you-view' aria-labelledby='you-view-title'>
-      <div className='you-hero'>
-        <p className='eyebrow'>Account</p>
-        <h2 id='you-view-title'>My account</h2>
-        <p>Your opened works, supported artists, and artist space in one place.</p>
-      </div>
+      <header className='you-hero'>
+        <p className='eyebrow'>Your private space</p>
+        <h2 id='you-view-title'>Your music, on your terms.</h2>
+        <p>Keep the works you opened and the artists you supported close. A confirmation method stays secondary until you choose an action that needs it.</p>
+      </header>
 
-      <div className='you-grid'>
-        <section className='you-panel wallet-pass-panel' aria-label='Wallet'>
-          <div className='you-panel-head'>
-            <span className='you-panel-icon'>
-              <Wallet size={18} />
-            </span>
-            <div>
-              <strong>{wallet ? wallet.label : 'No wallet connected'}</strong>
-              <span>{isConnected ? 'Ready when a chosen action needs confirmation' : 'Connect only when you choose to support a work'}</span>
-            </div>
-          </div>
-
-          {isConnected ? (
-            <>
-              <code className='you-address'>{shortenAddress(identityAddress)}</code>
-              <div className='you-stats'>
-                <a className='you-stat-link' href='#account-unlocked-tracks'>
-                  <strong className='tnum'>{unlockedTrackCount}</strong>
-                  <span>Works opened</span>
-                </a>
-                <a className='you-stat-link' href='#account-artists-backed'>
-                  <strong className='tnum'>{supportedArtistCount}</strong>
-                  <span>Artists backed</span>
-                </a>
-              </div>
-            </>
-          ) : (
-            <p className='you-muted'>
-              Listen to rooms through shared links without an account. Choose a confirmation method only when you support and open a protected work.
-            </p>
-          )}
-
-          <div className='you-actions'>
-            <button className='primary-action compact-action' type='button' onClick={onShowWalletModal}>
-              <KeyRound size={16} />
-              {isConnected ? 'Manage wallet' : 'Connect wallet'}
-            </button>
-            {isConnected && (
-              <button className='secondary-action compact-action' type='button' onClick={onDisconnectWallet}>
-                <Power size={16} />
-                Disconnect
-              </button>
-            )}
-          </div>
-        </section>
-
-        {isArtist ? (
-          <button className='you-panel artist-studio-card' type='button' onClick={onOpenArtistStudio} aria-label={`Open ${artistName} Studio`}>
-            <div className='you-panel-head'>
-              <span className='you-panel-icon lime'>
-                <Mic2 size={18} />
-              </span>
-              <div>
-                <strong>{artistName}</strong>
-                <span>Your Artist Studio</span>
-              </div>
-              <ArrowRight className='you-card-arrow' size={18} />
-            </div>
-            <div className='you-stats'>
-              <div>
-                <strong className='tnum'>{artistReleaseCount}</strong>
-                <span>releases</span>
-              </div>
-              <div>
-                <strong className='tnum'>{earnedDot}</strong>
-                <span>DOT earned</span>
-              </div>
-            </div>
-            <code className='you-address'>{shortenAddress(artistRuntimeAddress!)}</code>
-            <span className='you-studio-cta'>
-              Open Studio
-              <ArrowRight size={15} />
-            </span>
-          </button>
-        ) : (
-          <button className='you-panel artist-setup-card' type='button' onClick={onOpenArtistStudio} aria-label='Set up your artist space'>
-            <div className='you-panel-head'>
-              <span className='you-panel-icon lime'>
-                <Sparkles size={18} />
-              </span>
-              <div>
-                <strong>Become an artist</strong>
-                <span>{isConnected ? 'Ready to set up' : 'Set up your space'}</span>
-              </div>
-              <ArrowRight className='you-card-arrow' size={18} />
-            </div>
-            <p className='you-muted'>Publish your music, host listening rooms, and get paid directly. Setting up your artist space takes a minute.</p>
-            <span className='you-studio-cta'>
-              Set up artist space
-              <ArrowRight size={15} />
-            </span>
-          </button>
-        )}
-
+      <div className='you-layout'>
         <section className='you-panel account-dashboard' aria-labelledby='account-dashboard-title'>
           <div className='account-dashboard-head'>
             <span className='you-panel-icon'>
-              <Users size={18} />
+              <Music2 size={18} />
             </span>
             <div>
-              <h3 id='account-dashboard-title'>Account dashboard</h3>
-              <p>Music and artist support Dotify can show for this wallet.</p>
+              <h3 id='account-dashboard-title'>Your music</h3>
+              <p>Only support and access that Dotify can show for this wallet appears here.</p>
+            </div>
+            <div className='account-summary' aria-label='Music summary'>
+              <span>
+                <strong className='tnum'>{unlockedTrackCount}</strong>
+                works opened
+              </span>
+              <span>
+                <strong className='tnum'>{supportedArtistCount}</strong>
+                artists supported
+              </span>
             </div>
           </div>
 
@@ -175,14 +93,14 @@ export function YouView({
                   ))}
                 </div>
               ) : (
-                <p className='account-empty'>Works you support and open will appear here.</p>
+                <p className='account-empty'>Works you deliberately support and open will appear here.</p>
               )}
             </section>
 
             <section className='account-detail-section' id='account-artists-backed' tabIndex={-1} aria-labelledby='account-artists-title'>
               <div className='account-detail-title'>
                 <Users size={16} />
-                <h4 id='account-artists-title'>Artists backed</h4>
+                <h4 id='account-artists-title'>Artists supported</h4>
               </div>
               {supportedArtists.length > 0 ? (
                 <div className='account-detail-list'>
@@ -209,11 +127,92 @@ export function YouView({
                   ))}
                 </div>
               ) : (
-                <p className='account-empty'>Artists you back will appear here.</p>
+                <p className='account-empty'>Artists you choose to support will appear here.</p>
               )}
             </section>
           </div>
         </section>
+
+        <aside className='you-side' aria-label='Your artist and confirmation spaces'>
+          {isArtist ? (
+            <button className='you-panel artist-studio-card' type='button' onClick={onOpenArtistStudio} aria-label={`Open ${artistName} Studio`}>
+              <div className='you-panel-head'>
+                <span className='you-panel-icon lime'>
+                  <Mic2 size={18} />
+                </span>
+                <div>
+                  <strong>{artistName}</strong>
+                  <span>Your artist space</span>
+                </div>
+                <ArrowRight className='you-card-arrow' size={18} />
+              </div>
+              <div className='you-stats'>
+                <div>
+                  <strong className='tnum'>{artistReleaseCount}</strong>
+                  <span>releases</span>
+                </div>
+                <div>
+                  <strong className='tnum'>{earnedDot}</strong>
+                  <span>DOT received</span>
+                </div>
+              </div>
+              <code className='you-address'>{shortenAddress(artistRuntimeAddress!)}</code>
+              <span className='you-studio-cta'>
+                Open Studio
+                <ArrowRight size={15} />
+              </span>
+            </button>
+          ) : (
+            <button className='you-panel artist-setup-card' type='button' onClick={onOpenArtistStudio} aria-label='Set up your artist space'>
+              <div className='you-panel-head'>
+                <span className='you-panel-icon lime'>
+                  <Sparkles size={18} />
+                </span>
+                <div>
+                  <strong>Artist space</strong>
+                  <span>{isConnected ? 'Ready to set up' : 'Available when useful'}</span>
+                </div>
+                <ArrowRight className='you-card-arrow' size={18} />
+              </div>
+              <p className='you-muted'>Publish works under your own access terms, host rooms, and see direct support without giving the platform ownership.</p>
+              <span className='you-studio-cta'>
+                Explore the artist space
+                <ArrowRight size={15} />
+              </span>
+            </button>
+          )}
+
+          <section className='you-panel wallet-pass-panel' aria-label='Confirmation method'>
+            <div className='you-panel-head'>
+              <span className='you-panel-icon'>
+                <Wallet size={18} />
+              </span>
+              <div>
+                <strong>{wallet ? wallet.label : 'No confirmation method connected'}</strong>
+                <span>{isConnected ? 'Ready only when a chosen action needs it' : 'Rooms and open listening remain available'}</span>
+              </div>
+            </div>
+
+            {isConnected ? (
+              <code className='you-address'>{shortenAddress(identityAddress)}</code>
+            ) : (
+              <p className='you-muted'>Join room links without an account. Connect only to support an artist or open durable access to a protected work.</p>
+            )}
+
+            <div className='you-actions'>
+              <button className='primary-action compact-action' type='button' onClick={onShowWalletModal}>
+                <KeyRound size={16} />
+                {isConnected ? 'Manage' : 'Choose a method'}
+              </button>
+              {isConnected && (
+                <button className='secondary-action compact-action' type='button' onClick={onDisconnectWallet}>
+                  <Power size={16} />
+                  Disconnect
+                </button>
+              )}
+            </div>
+          </section>
+        </aside>
       </div>
     </section>
   );

@@ -1,0 +1,698 @@
+@media (max-width: 72rem) {
+  .now-hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .now-side {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr);
+    gap: 2rem;
+  }
+
+  .now-presence {
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  .now-actions,
+  .now-wallet-note {
+    grid-column: 1 / -1;
+  }
+
+  .catalogue-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .room-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .player-room-mode .player-lower-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .player-room-mode .player-context-panel {
+    grid-column: 1 / -1;
+  }
+
+  .player-dock-inner {
+    grid-template-columns: minmax(12rem, 0.9fr) minmax(17rem, 1.2fr) auto;
+  }
+
+  .player-dock-chip {
+    display: none;
+  }
+
+  .artist-release-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .release-console-grid,
+  .release-workbench-grid,
+  .royalties-grid,
+  .artist-overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .release-preview-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 60rem) {
+  .now-intro,
+  .rooms-intro,
+  .artist-claim-hero {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 2rem;
+  }
+
+  .now-intro > p,
+  .rooms-intro-copy {
+    max-width: 42rem;
+  }
+
+  .home-room-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .room-entry-grid,
+  .you-grid,
+  .you-layout,
+  .account-detail-grid,
+  .artist-profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-dashboard {
+    grid-column: auto;
+  }
+
+  .player-stage {
+    grid-template-columns: minmax(16rem, 0.85fr) minmax(22rem, 1.15fr);
+  }
+
+  .player-main-column {
+    padding: 2.25rem;
+  }
+
+  .track-copy h2 {
+    font-size: clamp(3rem, 6vw, 4.7rem);
+  }
+
+  .player-transport {
+    grid-template-columns: 1fr auto;
+  }
+
+  .transport-progress {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .player-lower-grid,
+  .player-room-mode .player-lower-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .player-context-panel {
+    grid-column: 1 / -1;
+  }
+
+  .player-dock-modebtn,
+  .player-dock-mutebtn {
+    display: none;
+  }
+
+  .console-tabs {
+    grid-template-columns: repeat(5, minmax(8rem, 1fr));
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .release-access-editor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .release-access-editor > button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 48rem) {
+  :root {
+    --content-pad: 1rem;
+    --header-height: 4.25rem;
+    --dock-height: 4.55rem;
+    --mobile-nav-height: 4.55rem;
+  }
+
+  body::before {
+    background-size: 100% 4.5rem;
+  }
+
+  .topbar-inner {
+    min-height: var(--header-height);
+  }
+
+  .desktop-nav {
+    display: none;
+  }
+
+  .nav-pills {
+    margin-left: auto;
+  }
+
+  .status-pill,
+  .wallet-pill {
+    min-height: 2.55rem;
+    padding-inline: 0.75rem;
+  }
+
+  .wallet-pill span {
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .content,
+  .artist-portal-main {
+    padding-top: 2.5rem;
+    padding-bottom: calc(var(--dock-height) + var(--mobile-nav-height) + 3.25rem + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 55;
+    display: grid;
+    height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--line-strong);
+    background: rgb(255 255 255 / 0.96);
+    padding: 0.25rem 0.75rem env(safe-area-inset-bottom);
+    backdrop-filter: blur(20px);
+  }
+
+  .bottom-nav-item {
+    position: relative;
+    display: flex;
+    min-height: 3.8rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.66rem;
+    font-weight: 650;
+  }
+
+  .bottom-nav-item[data-active='true'] {
+    color: var(--ink);
+  }
+
+  .bottom-nav-item[data-active='true']::before {
+    position: absolute;
+    top: 0.15rem;
+    width: 1.5rem;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--action);
+    content: '';
+  }
+
+  .player-dock {
+    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
+  }
+
+  .player-dock-inner {
+    min-height: var(--dock-height);
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.6rem;
+    padding: 0.5rem var(--content-pad);
+  }
+
+  .player-dock-art {
+    width: 3.4rem;
+    height: 3.4rem;
+  }
+
+  .player-dock-center {
+    display: block;
+  }
+
+  .player-dock-controls > *:not(.player-dock-play),
+  .player-dock-scrub,
+  .player-dock-right {
+    display: none;
+  }
+
+  .player-dock-play {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .floating-link {
+    right: 0.75rem;
+    bottom: calc(var(--mobile-nav-height) + var(--dock-height) + 0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .listen-home,
+  .rooms-landing {
+    gap: 4.5rem;
+  }
+
+  .now-intro h1,
+  .rooms-intro h1,
+  .artist-claim-copy h1 {
+    font-size: clamp(3.25rem, 15vw, 5rem);
+  }
+
+  .now-intro > p,
+  .rooms-intro-copy > p {
+    font-size: var(--text-base);
+  }
+
+  .moment-feature,
+  .moment-feature-empty {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .moment-art,
+  .quiet-signal {
+    min-height: min(82vw, 28rem);
+  }
+
+  .quiet-signal {
+    border-right: 0;
+    border-bottom: 1px solid rgb(255 255 255 / 0.1);
+  }
+
+  .moment-copy {
+    padding: 2rem 1.5rem 2.25rem;
+  }
+
+  .moment-copy h2 {
+    font-size: clamp(3rem, 14vw, 4.6rem);
+  }
+
+  .now-side {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .now-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .now-wallet-note {
+    grid-column: auto;
+  }
+
+  .section-heading {
+    align-items: start;
+  }
+
+  .section-heading h2 {
+    font-size: 2.6rem;
+  }
+
+  .section-heading > span {
+    max-width: 9rem;
+    text-align: right;
+  }
+
+  .home-room-strip,
+  .catalogue-grid,
+  .trust-line,
+  .room-doctrine {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trust-line > div + div,
+  .room-doctrine > div + div {
+    border-top: 1px solid var(--line-strong);
+    border-left: 0;
+  }
+
+  .catalogue-card-copy {
+    min-height: 8.5rem;
+  }
+
+  .live-empty,
+  .rooms-empty-state {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .live-empty > button,
+  .rooms-empty-state > button {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .room-entry-grid,
+  .room-entry-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .room-entry-card > .primary-action,
+  .room-entry-card > .session-form {
+    grid-column: auto;
+  }
+
+  .room-entry-icon {
+    margin-bottom: -0.5rem;
+  }
+
+  .room-action-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .room-action-submit {
+    width: 100%;
+  }
+
+  .player-stage {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .player-cover-column {
+    padding: 1.25rem;
+  }
+
+  .cover-card {
+    width: min(100%, 26rem);
+  }
+
+  .player-main-column {
+    padding: 2rem 1.25rem 2.4rem;
+  }
+
+  .track-copy h2 {
+    font-size: clamp(3.15rem, 14vw, 5rem);
+  }
+
+  .player-transport {
+    grid-template-columns: 1fr auto;
+  }
+
+  .transport-progress {
+    grid-column: 1 / -1;
+  }
+
+  .transport-actions button:nth-child(n + 2) {
+    display: none;
+  }
+
+  .room-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .room-code-pill {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .room-copy-btn {
+    margin-left: auto;
+  }
+
+  .room-promise-strip {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .solo-room-invite {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .solo-room-invite > button {
+    width: 100%;
+  }
+
+  .player-lower-grid,
+  .player-room-mode .player-lower-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .player-context-panel {
+    grid-column: auto;
+  }
+
+  .you-grid,
+  .you-layout,
+  .account-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-summary {
+    width: 100%;
+    margin-left: 0;
+    border-top: 1px solid var(--line);
+    padding-top: 0.75rem;
+  }
+
+  .artist-profile-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .artist-profile-avatar {
+    width: 6rem;
+    height: 6rem;
+    font-size: 1.75rem;
+  }
+
+  .artist-profile-copy h1 {
+    font-size: clamp(3.4rem, 15vw, 5.5rem);
+  }
+
+  .artist-release-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .studio-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .studio-id h1 {
+    font-size: 3.2rem;
+  }
+
+  .console-tabs {
+    margin-inline: calc(var(--content-pad) * -1);
+    padding-inline: var(--content-pad);
+  }
+
+  .studio-metric-row,
+  .asset-actions,
+  .asset-readiness,
+  .fields-grid,
+  .release-stepper,
+  .royalty-summary-grid,
+  .release-detail-grid,
+  .royalty-details,
+  .artist-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .release-stepper {
+    border: 1px solid var(--line);
+  }
+
+  .release-stepper button {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+  }
+
+  .release-stepper button:last-child {
+    border-bottom: 0;
+  }
+
+  .release-focus-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .release-access-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .release-access-editor > button {
+    grid-column: auto;
+  }
+
+  .release-split-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .release-split-row > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .modal-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .modal-card,
+  .modal-card[data-size='compact'],
+  .modal-card[data-size='wide'] {
+    width: 100%;
+    max-height: 92vh;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 1.25rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  .modal-copy h2 {
+    font-size: 2.7rem;
+  }
+
+  .create-room-preview,
+  .room-threshold-preview {
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+  }
+
+  .create-room-preview > img,
+  .room-threshold-art {
+    width: 5.5rem;
+  }
+
+  .wallet-activity {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 31rem) {
+  .brand > span:last-child {
+    display: none;
+  }
+
+  .wallet-pill span {
+    max-width: 5.5rem;
+  }
+
+  .now-intro h1,
+  .rooms-intro h1,
+  .artist-claim-copy h1 {
+    font-size: clamp(2.9rem, 15vw, 4rem);
+  }
+
+  .home-room-card {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .home-room-art {
+    width: 4.5rem;
+  }
+
+  .room-live-card {
+    min-height: 0;
+    grid-template-columns: 5rem minmax(0, 1fr);
+  }
+
+  .room-live-art {
+    width: 5rem;
+    min-height: 5.8rem;
+  }
+
+  .room-live-side {
+    grid-column: 1 / -1;
+    min-height: 2.4rem;
+    flex-direction: row;
+    align-items: center;
+    border-top: 1px solid var(--line);
+    padding: 0.6rem 0 0;
+  }
+
+  .room-entry-card {
+    padding: 1.25rem;
+  }
+
+  .room-entry-card h3 {
+    font-size: 2.15rem;
+  }
+
+  .player-transport {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .transport-cluster,
+  .transport-actions {
+    justify-content: center;
+  }
+
+  .transport-actions {
+    grid-row: 3;
+  }
+
+  .player-dock-track {
+    gap: 0.55rem;
+  }
+
+  .player-dock-art {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .player-dock-meta button:last-child {
+    display: none;
+  }
+
+  .artist-release-card {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .artist-release-card > img {
+    width: 4.5rem;
+  }
+
+  .modal-actions,
+  .create-room-actions {
+    display: grid;
+  }
+
+  .modal-actions > *,
+  .create-room-actions > * {
+    width: 100%;
+  }
+}
+
+@media (hover: none) {
+  .catalogue-card-action {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --line: #9ca9b1;
+    --line-strong: #65737e;
+    --muted: #475565;
+  }
+
+  .primary-action,
+  .status-pill,
+  .catalogue-card,
+  .home-room-card,
+  .room-live-card,
+  .doc-panel,
+  .you-panel {
+    border-width: 2px;
+  }
+}

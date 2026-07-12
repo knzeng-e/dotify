@@ -1,11 +1,11 @@
-import { BadgeCheck, CircleCheckBig, Disc3, Headphones, KeyRound, Library, Radio, Share2, ShieldCheck, Users, Wallet } from 'lucide-react';
-import { PanelTitle } from '../shared/ui/PanelTitle';
+import { ArrowRight, CircleCheckBig, Headphones, KeyRound, Library, Radio, ShieldCheck, Users, Wallet } from 'lucide-react';
+import type { CSSProperties } from 'react';
+
 import { CoverImage } from '../components/CoverImage';
-import { StageRail } from '../components/StageRail';
 import { DotBirth } from '../components/DotBirth';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
-import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
 import { roomPresenceCount } from '../features/rooms/roomState';
+import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
 import type { CatalogTrack, OpenRoom } from '../shared/types';
 
 type ListenViewProps = {
@@ -33,248 +33,257 @@ export function ListenView({
 }: ListenViewProps) {
   const featured = catalogTracks[0];
   const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
-  const artistCount = new Set(catalogTracks.map(track => track.artist)).size;
-  const leadRoom = openRooms[0];
-  const heroRoom = leadRoom?.track ? leadRoom : null;
-  const heroTrack = heroRoom?.track ?? featured;
+  const leadRoom = openRooms.find(room => room.track) ?? null;
+  const heroTrack = leadRoom?.track ?? featured ?? null;
+  const presenceMarks = Math.min(totalListening, 7);
 
   return (
-    <section className='listen-home'>
-      <div className='listen-hero'>
-        {heroTrack && (
-          <button
-            className='home-live-feature'
-            type='button'
-            onClick={() => {
-              if (heroRoom) {
-                onJoinRoom(heroRoom.roomId);
-                return;
-              }
-              if (featured) onOpenTrack(featured);
-            }}
-            aria-label={heroRoom ? `Enter and listen in ${heroRoom.hostName}'s room` : `Enter the work ${heroTrack.title} by ${heroTrack.artist}`}
-          >
-            <span className='home-live-art' aria-hidden='true'>
-              <CoverImage src={heroTrack.imageRef} alt='' />
-            </span>
-            <span className='home-live-shade' aria-hidden='true' />
-            <span className='home-live-copy'>
-              <span className='home-live-kicker'>
-                <span className='live-dot' />
-                {heroRoom ? 'An open room' : 'A work ready to open'}
-              </span>
-              <strong>{heroTrack.title}</strong>
-              <span>{heroRoom ? `${heroRoom.hostName} hosts` : heroTrack.artist}</span>
-              <span className='home-live-presence'>
-                {heroRoom ? (
-                  <>
-                    <AvatarStack names={roomPresenceNames(heroRoom.hostName, heroRoom.listenerCount, heroRoom.roomId)} max={4} size={28} />
-                    <small>{roomPresenceCount(heroRoom.listenerCount, true)} listening</small>
-                  </>
-                ) : featured ? (
-                  <small>{catalogAccessLabel(featured)}</small>
-                ) : (
-                  <small>Free to discover</small>
-                )}
-              </span>
-            </span>
-            <span className='home-live-cta'>
-              {heroRoom ? <Headphones size={17} /> : <Disc3 size={17} />}
-              {heroRoom ? 'Enter and listen' : 'Enter the work'}
-            </span>
-          </button>
-        )}
+    <section className='listen-home' aria-labelledby='now-title'>
+      <header className='now-intro'>
+        <div>
+          <p className='eyebrow'>Shared listening, happening now</p>
+          <h1 id='now-title'>Music is better when someone brings you in.</h1>
+        </div>
+        <p>Enter a live room, or begin with a work and open the same moment to someone else. A room guest can listen before a wallet is ever useful.</p>
+      </header>
 
-        <div className='home-listening-hero'>
-          <div className='home-listening-copy'>
-            <p className='eyebrow'>
-              <span className='live-dot' />
-              {totalListening} listening together now
-            </p>
-            <h2>Every work can open a space.</h2>
-            <p>Listen on your own, then welcome people into the same musical moment with one link.</p>
-            <div className='home-hero-trust-row' aria-label='Dotify trust model'>
-              <span>
-                <KeyRound size={14} /> The artist defines each door
-              </span>
-              <span>
-                <ShieldCheck size={14} /> Rights stay understandable
-              </span>
-              <span>
-                <Users size={14} /> Guests enter without a wallet
+      <div className='now-hero-grid'>
+        {heroTrack ? (
+          <article className='moment-feature' data-live={Boolean(leadRoom)}>
+            <div className='moment-art'>
+              <CoverImage src={heroTrack.imageRef} alt='' />
+              <span className='moment-status'>
+                <span className='live-dot' />
+                {leadRoom ? 'Room open' : 'Ready to listen'}
               </span>
             </div>
+            <div className='moment-copy'>
+              <span className='moment-kicker'>{leadRoom ? `${leadRoom.hostName} welcomes you` : 'Begin with a work'}</span>
+              <h2>{heroTrack.title}</h2>
+              <p>{heroTrack.artist}</p>
+
+              <div
+                className='shared-score'
+                aria-label={leadRoom ? `${roomPresenceCount(leadRoom.listenerCount, true)} people in this room` : 'Solo listening ready'}
+              >
+                <span className='shared-score-line' aria-hidden='true'>
+                  {Array.from({ length: leadRoom ? Math.min(roomPresenceCount(leadRoom.listenerCount, true), 7) : 1 }, (_, index) => (
+                    <i key={index} style={{ '--mark-index': index } as CSSProperties} />
+                  ))}
+                </span>
+                <span>{leadRoom ? `${roomPresenceCount(leadRoom.listenerCount, true)} listening on one timeline` : 'Your listening can become a room'}</span>
+              </div>
+
+              <button
+                className='primary-action moment-primary'
+                type='button'
+                onClick={() => {
+                  if (leadRoom) {
+                    onJoinRoom(leadRoom.roomId);
+                    return;
+                  }
+                  if (featured) onOpenTrack(featured);
+                }}
+              >
+                {leadRoom ? <Headphones size={18} /> : <ArrowRight size={18} />}
+                {leadRoom ? 'Enter and listen' : 'Open this work'}
+              </button>
+            </div>
+          </article>
+        ) : (
+          <section className='moment-feature moment-feature-empty' aria-labelledby='quiet-title'>
+            <div className='quiet-signal' aria-hidden='true'>
+              <span />
+              <i />
+              <i />
+              <i />
+            </div>
+            <div className='moment-copy'>
+              <span className='moment-kicker'>The commons is quiet</span>
+              <h2 id='quiet-title'>Open the first listening room.</h2>
+              <p>Choose a work when the catalog is available, then share one simple link.</p>
+              <button className='primary-action moment-primary' type='button' onClick={onStartRoom}>
+                <Radio size={18} />
+                Open the first room
+              </button>
+            </div>
+          </section>
+        )}
+
+        <aside className='now-side' aria-label='How Dotify rooms work'>
+          <div className='now-side-copy'>
+            <span className='section-index'>01 / A shared moment</span>
+            <h2>One timeline. Real people. No audience machinery.</h2>
+            <p>The host carries the music. Everyone else joins the moment through an ephemeral room stream.</p>
           </div>
-          <div className='home-listening-actions'>
-            <button className='primary-action compact-action' type='button' onClick={onStartRoom}>
-              <Radio size={16} />
+
+          <div className='now-presence' aria-label={`${totalListening} people listening across ${openRooms.length} rooms`}>
+            <div className='now-presence-score' aria-hidden='true'>
+              <span />
+              {Array.from({ length: presenceMarks }, (_, index) => (
+                <i key={index} style={{ '--presence-index': index } as CSSProperties} />
+              ))}
+            </div>
+            <dl className='now-facts'>
+              <div>
+                <dt>Open rooms</dt>
+                <dd>{openRooms.length}</dd>
+              </div>
+              <div>
+                <dt>Listening now</dt>
+                <dd>{totalListening}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className='now-actions'>
+            <button className='primary-action' type='button' onClick={onStartRoom}>
+              <Radio size={17} />
               Open a room
             </button>
             {featured && (
-              <button className='secondary-action compact-action' type='button' onClick={() => onOpenTrack(featured)}>
-                <Headphones size={16} />
+              <button className='secondary-action' type='button' onClick={() => onOpenTrack(featured)}>
+                <Headphones size={17} />
                 Listen on my own
               </button>
             )}
-            <span>The link is the threshold. The music stays central.</span>
-            <div className='home-hero-stats' aria-label='Live Dotify state'>
-              <strong className='tnum'>
-                {openRooms.length}
-                <small>rooms</small>
-              </strong>
-              <strong className='tnum'>
-                {totalListening}
-                <small>listeners</small>
-              </strong>
-              <strong className='tnum'>
-                {artistCount}
-                <small>artists</small>
-              </strong>
-            </div>
           </div>
-        </div>
+          <p className='now-wallet-note'>Listen first. Confirm an identity only when an action truly needs it.</p>
+        </aside>
       </div>
 
-      {/* Constellation phase A: the catalog on stage (aura lamp + unlocked glare).
-          The dense catalogue grid below remains the library view and keeps the
-          e2e-load-bearing track-card selectors. */}
-      <StageRail tracks={catalogTracks} accessByTrackId={catalogAccessByTrackId} selectedTrackId={selectedTrackId} onOpenTrack={onOpenTrack} />
+      <section className='live-section' aria-labelledby='live-section-title'>
+        <div className='section-heading'>
+          <div>
+            <span className='section-index'>02 / Presence</span>
+            <h2 id='live-section-title'>Open rooms</h2>
+          </div>
+          <span>{openRooms.length > 0 ? `${totalListening} listening together` : 'Nothing live right now'}</span>
+        </div>
 
-      <section className='commons-path' aria-label='Shared listening state'>
-        <div className='commons-step'>
-          <span>1</span>
-          <div>
-            <strong>Sound</strong>
-            <small>Free to discover</small>
-          </div>
-        </div>
-        <div className='commons-step'>
-          <span>2</span>
-          <div>
-            <strong>Room</strong>
-            <small>Host-led</small>
-          </div>
-        </div>
-        <div className='commons-step'>
-          <span>3</span>
-          <div>
-            <strong>Link</strong>
-            <small>Join together</small>
-          </div>
-        </div>
-        {leadRoom ? (
-          <button className='commons-live-join' type='button' onClick={() => onJoinRoom(leadRoom.roomId)}>
-            <Headphones size={16} />
-            Join {leadRoom.hostName}
-          </button>
-        ) : (
-          <button className='commons-live-join' type='button' onClick={onStartRoom}>
-            <Share2 size={16} />
-            Create room
-          </button>
-        )}
-      </section>
-
-      <section className='doc-panel happening-panel'>
-        <PanelTitle icon={Radio} title='Open now' meta={`${openRooms.length} live`} />
-        <div className='home-room-strip'>
-          {openRooms.length > 0 ? (
-            openRooms.slice(0, 4).map(room => (
+        {openRooms.length > 0 ? (
+          <div className='home-room-strip'>
+            {openRooms.slice(0, 6).map(room => (
               <button className='home-room-card' type='button' key={room.roomId} onClick={() => onJoinRoom(room.roomId)}>
                 <span className='home-room-art' aria-hidden='true'>
                   {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' />}
                 </span>
-                <span>
+                <span className='home-room-copy'>
+                  <span className='home-room-host'>{room.hostName} hosts</span>
                   <strong>{room.track?.title ?? 'Audio session'}</strong>
-                  <small>{room.hostName} hosts</small>
+                  <span>{room.track?.artist ?? 'Live on Dotify'}</span>
                   <span className='home-room-presence'>
-                    <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={24} />
-                    <small>{roomPresenceCount(room.listenerCount, true)} listening</small>
+                    <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={25} />
+                    <small>{roomPresenceCount(room.listenerCount, true)} here</small>
                   </span>
                 </span>
                 <span className='home-room-join'>
-                  <Headphones size={14} />
                   Enter
+                  <ArrowRight size={15} />
                 </span>
               </button>
-            ))
+            ))}
+          </div>
+        ) : (
+          <div className='live-empty'>
+            <span className='live-empty-mark' aria-hidden='true' />
+            <div>
+              <strong>No room is open yet.</strong>
+              <span>Choose a work and welcome the first shared moment.</span>
+            </div>
+            <button className='secondary-action' type='button' onClick={onStartRoom}>
+              Open the first room
+            </button>
+          </div>
+        )}
+      </section>
+
+      <section className='catalogue-section' aria-labelledby='works-title'>
+        <div className='section-heading'>
+          <div>
+            <span className='section-index'>03 / Works</span>
+            <h2 id='works-title'>Start with the music</h2>
+          </div>
+          <span>{catalogTracks.length} available</span>
+        </div>
+
+        <p className='catalogue-intro'>Open works play without ceremony. Protected works explain the artist's terms before asking you to confirm anything.</p>
+
+        <div className='catalogue-grid'>
+          {catalogTracks.length > 0 ? (
+            catalogTracks.map(track => {
+              const hasCatalogAccess = catalogAccessByTrackId[track.id] === true;
+              const accessGranted = track.accessMode === 'free' || hasCatalogAccess;
+
+              return (
+                <article className='catalogue-card' data-selected={selectedTrackId === track.id} data-testid='track-card' key={track.id}>
+                  <span className='catalogue-cover-frame'>
+                    <CoverImage className='catalogue-cover' src={track.imageRef} alt='' />
+                    <span className='catalogue-card-action' aria-hidden='true'>
+                      <Headphones size={18} />
+                    </span>
+                  </span>
+                  <div className='catalogue-card-copy'>
+                    <button
+                      className='catalogue-card-open'
+                      type='button'
+                      data-testid='track-card-open'
+                      aria-label={`Open ${track.title} by ${track.artist}`}
+                      onClick={() => void onOpenTrack(track)}
+                    >
+                      {track.title}
+                    </button>
+                    <button className='artist-text-button' type='button' onClick={() => onOpenArtist(track.artist)}>
+                      {track.artist}
+                    </button>
+                    <p className='catalogue-card-description'>{track.description || 'A work ready for listening, rooms, and direct artist support.'}</p>
+                  </div>
+                  <div
+                    className='catalogue-access-line'
+                    data-access={accessGranted ? 'granted' : 'locked'}
+                    aria-label={catalogAccessAriaLabel(track, hasCatalogAccess)}
+                  >
+                    <span>
+                      {accessGranted ? <CircleCheckBig size={15} /> : track.accessMode === 'classic' ? <Wallet size={15} /> : <KeyRound size={15} />}
+                      {catalogAccessLabel(track)}
+                    </span>
+                    <ArrowRight size={15} aria-hidden='true' />
+                  </div>
+                </article>
+              );
+            })
+          ) : catalogStatus === 'Loading registry catalog' ? (
+            <DotBirth size='panel' label={catalogStatus} />
           ) : (
-            <div className='empty-state'>No open rooms yet.</div>
+            <div className='catalogue-empty'>
+              <Library size={20} />
+              <span>{catalogStatus}</span>
+            </div>
           )}
         </div>
       </section>
 
-      <section className='content-grid catalog-home-grid'>
-        <div className='doc-panel catalogue-panel catalogue-home-panel'>
-          <PanelTitle icon={Library} title='Works ready to open' meta={`${catalogTracks.length} tracks`} />
-          <p className='catalogue-intro'>
-            Begin with the work. Open listening stays immediate; protected listening names the real action before asking for a wallet.
-          </p>
-          <div className='catalogue-grid'>
-            {catalogTracks.length > 0 ? (
-              catalogTracks.map(track => {
-                const hasCatalogAccess = catalogAccessByTrackId[track.id] === true;
-
-                return (
-                  // Plain container: the primary "open track" action is a real
-                  // button whose ::after stretches over the whole card, so the
-                  // artist button can sit beside it without nesting interactives.
-                  <div className='catalogue-card' data-selected={selectedTrackId === track.id} data-testid='track-card' key={track.id}>
-                    <span className='catalogue-cover-frame'>
-                      <CoverImage className='catalogue-cover' src={track.imageRef} alt='' />
-                    </span>
-                    <span className='catalogue-card-copy'>
-                      <button
-                        className='catalogue-card-open'
-                        type='button'
-                        data-testid='track-card-open'
-                        aria-label={`Open ${track.title} by ${track.artist}`}
-                        onClick={() => void onOpenTrack(track)}
-                      >
-                        {track.title}
-                      </button>
-                      <button className='artist-text-button' type='button' onClick={() => onOpenArtist(track.artist)}>
-                        {track.artist}
-                      </button>
-                      <span className='catalogue-card-description'>{track.description || 'A release you can play, share, and support on Dotify.'}</span>
-                    </span>
-                    <span
-                      className='catalogue-access-line'
-                      data-access={hasCatalogAccess ? 'granted' : 'locked'}
-                      aria-label={catalogAccessAriaLabel(track, hasCatalogAccess)}
-                    >
-                      {hasCatalogAccess ? <CircleCheckBig size={15} /> : <Wallet size={15} />}
-                      <span>{catalogAccessLabel(track)}</span>
-                    </span>
-                  </div>
-                );
-              })
-            ) : /* Dot birth only while the registry load is genuinely in flight;
-                 terminal states (empty registry, failures) stay plain text. */
-            catalogStatus === 'Loading registry catalog' ? (
-              <DotBirth size='panel' label={catalogStatus} />
-            ) : (
-              <div className='empty-state'>{catalogStatus}</div>
-            )}
-          </div>
+      <section className='trust-line' aria-label='Dotify principles'>
+        <div>
+          <Users size={20} />
+          <span>
+            <strong>Presence before profile</strong>
+            Enter a room without a wallet wall.
+          </span>
         </div>
-
-        <div className='doc-panel home-principles-panel'>
-          <PanelTitle icon={BadgeCheck} title='Listening doors' meta='simple entry' />
-          <div className='principle-list'>
-            <div>
-              <strong>Free to discover</strong>
-              <span>Free works and live rooms let you hear the music before any confirmation.</span>
-            </div>
-            <div>
-              <strong>Support artists directly</strong>
-              <span>When a release has a price, its terms are shown before you support and open it.</span>
-            </div>
-            <div>
-              <strong>No profile wall</strong>
-              <span>Some doors can open without turning listeners into ad profiles.</span>
-            </div>
-          </div>
+        <div>
+          <ShieldCheck size={20} />
+          <span>
+            <strong>Artist terms stay visible</strong>
+            Each work names how it opens.
+          </span>
+        </div>
+        <div>
+          <KeyRound size={20} />
+          <span>
+            <strong>Trust stays underneath</strong>
+            The infrastructure protects without taking over.
+          </span>
         </div>
       </section>
     </section>
