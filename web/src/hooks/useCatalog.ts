@@ -294,9 +294,9 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (track.accessMode === 'classic') {
         return {
           track,
-          title: 'Support and open this work',
-          message: `"${track.title}" opens for ${track.priceDot} DOT. See what you receive and how the artist configured the split before choosing a confirmation method.`,
-          hint: 'No platform account is needed. Nothing is sent until you confirm.',
+          title: 'Support and open this track',
+          message: `"${track.title}" opens for ${track.priceDot} DOT. Review the split before confirming.`,
+          hint: 'Nothing is sent until you confirm.',
           actionType: 'signin'
         };
       }
@@ -320,7 +320,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
     return {
       track,
-      title: 'Support and open this work',
+      title: 'Support and open this track',
       message: `"${track.title}" opens after ${track.priceDot} DOT of support. Review the artist-defined split before confirming.`,
       hint: 'The artist-owned runtime distributes the confirmed amount.',
       actionType: 'payment'

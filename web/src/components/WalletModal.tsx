@@ -87,7 +87,7 @@ export function WalletModal({
         </div>
         <div className='modal-copy'>
           <p className='modal-eyebrow'>Account</p>
-          <h2 id='wallet-modal-title'>Connected, on your terms</h2>
+          <h2 id='wallet-modal-title'>Connected</h2>
         </div>
 
         <div className='wallet-identity'>
@@ -121,7 +121,7 @@ export function WalletModal({
         <div className='wallet-stats'>
           <div>
             <strong className='tnum'>{unlockedCount}</strong>
-            <span>work{unlockedCount === 1 ? '' : 's'} opened</span>
+            <span>track{unlockedCount === 1 ? '' : 's'} opened</span>
           </div>
           <div>
             <strong className='tnum'>{supportingCount}</strong>
@@ -148,7 +148,7 @@ export function WalletModal({
                     <span>
                       <strong>{artist.artist}</strong>
                       <small>
-                        {artist.trackCount} opened work{artist.trackCount === 1 ? '' : 's'}
+                        {artist.trackCount} opened track{artist.trackCount === 1 ? '' : 's'}
                       </small>
                     </span>
                     {artist.artistAddress && (
@@ -174,7 +174,7 @@ export function WalletModal({
           <section className='wallet-activity-section'>
             <h3>
               <Music2 size={15} />
-              Works opened
+              Tracks opened
             </h3>
             {paidTracks.length > 0 ? (
               <div className='wallet-activity-list'>
@@ -192,7 +192,7 @@ export function WalletModal({
                 {paidTracks.length > 5 && <p className='wallet-empty'>+{paidTracks.length - 5} more - view all in account details</p>}
               </div>
             ) : (
-              <p className='wallet-empty'>No supported and opened works found in the indexed catalog.</p>
+              <p className='wallet-empty'>No opened tracks found in the indexed catalog.</p>
             )}
           </section>
         </div>
@@ -203,9 +203,7 @@ export function WalletModal({
           </span>
           <span className='wallet-option-copy'>
             <strong>You hold your keys</strong>
-            <small id='wallet-modal-desc'>
-              Dotify never sees your recovery phrase. Opening a work and supporting an artist stay approved by you, on your device.
-            </small>
+            <small id='wallet-modal-desc'>Approvals stay on your device.</small>
           </span>
         </div>
 
@@ -250,10 +248,8 @@ export function WalletModal({
       </div>
       <div className='modal-copy'>
         <p className='modal-eyebrow'>Account</p>
-        <h2 id='wallet-modal-title'>Your wallet, quietly</h2>
-        <p id='wallet-modal-desc'>
-          Use Dotify without creating a platform account. Your wallet opens paid or protected releases while rooms stay easy to join.
-        </p>
+        <h2 id='wallet-modal-title'>Connect wallet</h2>
+        <p id='wallet-modal-desc'>Use a wallet for paid or protected releases.</p>
       </div>
 
       {state.status === 'error' && <p className='error-box'>{state.message}</p>}
@@ -274,7 +270,7 @@ export function WalletModal({
               <strong>
                 {state.status === 'needs-reconnect' && state.via === 'passkey' ? 'Reconnect passkey' : hasStoredPasskey ? 'Use passkey' : 'Create passkey'}
               </strong>
-              <small>Use this device without a recovery phrase prompt.</small>
+              <small>Use this device.</small>
             </span>
           </button>
         )}
@@ -285,7 +281,7 @@ export function WalletModal({
           </span>
           <span className='wallet-option-copy'>
             <strong>Use wallet app</strong>
-            <small>Bring your existing wallet when a confirmation is needed.</small>
+            <small>Use an existing wallet.</small>
           </span>
         </button>
 

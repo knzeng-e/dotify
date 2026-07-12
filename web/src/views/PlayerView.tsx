@@ -260,11 +260,11 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           </span>
           <span>
             <KeyRound size={14} />
-            Host keeps the music flowing
+            Host stream
           </span>
           <span>
             <ShieldCheck size={14} />
-            Guests just join and listen
+            Live room
           </span>
         </div>
       )}

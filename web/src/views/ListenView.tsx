@@ -45,7 +45,7 @@ export function ListenView({
           <p className='eyebrow'>Shared listening, happening now</p>
           <h1 id='now-title'>Music is better when someone brings you in.</h1>
         </div>
-        <p>Enter a live room, or start with a track and open the same moment to someone else. A room guest can listen before a wallet is ever useful.</p>
+        <p>Enter a live room, or start one from a track.</p>
       </header>
 
       <div className='now-hero-grid'>
@@ -59,7 +59,7 @@ export function ListenView({
               </span>
             </div>
             <div className='moment-copy'>
-              <span className='moment-kicker'>{leadRoom ? `${leadRoom.hostName} welcomes you` : 'Start with a track'}</span>
+              <span className='moment-kicker'>{leadRoom ? `${leadRoom.hostName} welcomes you` : 'Start with music'}</span>
               <h2>{heroTrack.title}</h2>
               <p>{heroTrack.artist}</p>
 
@@ -72,7 +72,7 @@ export function ListenView({
                     <i key={index} style={{ '--mark-index': index } as CSSProperties} />
                   ))}
                 </span>
-                <span>{leadRoom ? `${roomPresenceCount(leadRoom.listenerCount, true)} listening on one timeline` : 'Your listening can become a room'}</span>
+                <span>{leadRoom ? `${roomPresenceCount(leadRoom.listenerCount, true)} listening on one timeline` : 'Ready to become a room'}</span>
               </div>
 
               <button
@@ -102,7 +102,7 @@ export function ListenView({
             <div className='moment-copy'>
               <span className='moment-kicker'>The commons is quiet</span>
               <h2 id='quiet-title'>Open the first listening room.</h2>
-              <p>Choose a track when the catalog is available, then share one simple link.</p>
+              <p>Choose a track, then share the link.</p>
               <button className='primary-action moment-primary' type='button' onClick={onStartRoom}>
                 <Radio size={18} />
                 Open the first room
@@ -111,11 +111,11 @@ export function ListenView({
           </section>
         )}
 
-        <aside className='now-side' aria-label='How Dotify rooms work'>
+        <aside className='now-side' aria-label='Rooms'>
           <div className='now-side-copy'>
-            <span className='section-index'>01 / A shared moment</span>
-            <h2>One timeline. Real people. No audience machinery.</h2>
-            <p>The host carries the music. Everyone else joins the moment through an ephemeral room stream.</p>
+            <span className='section-index'>01 / Rooms</span>
+            <h2>Live rooms and tracks.</h2>
+            <p>Open a room, or listen solo and invite people later.</p>
           </div>
 
           <div className='now-presence' aria-label={`${totalListening} people listening across ${openRooms.length} rooms`}>
@@ -149,7 +149,7 @@ export function ListenView({
               </button>
             )}
           </div>
-          <p className='now-wallet-note'>Listen first. Confirm an identity only when an action truly needs it.</p>
+          <p className='now-wallet-note'>Start listening. Share when ready.</p>
         </aside>
       </div>
 
@@ -190,7 +190,7 @@ export function ListenView({
             <span className='live-empty-mark' aria-hidden='true' />
             <div>
               <strong>No room is open yet.</strong>
-              <span>Choose a track and welcome the first shared moment.</span>
+              <span>Choose a track and open a room.</span>
             </div>
             <button className='secondary-action' type='button' onClick={onStartRoom}>
               Open the first room
@@ -208,7 +208,7 @@ export function ListenView({
           <span>{catalogTracks.length} available</span>
         </div>
 
-        <p className='catalogue-intro'>Open tracks play without ceremony. Protected tracks explain the artist's terms before asking you to confirm anything.</p>
+        <p className='catalogue-intro'>Open tracks play immediately. Protected tracks show the artist's terms first.</p>
 
         <div className='catalogue-grid'>
           {catalogTracks.length > 0 ? (
@@ -274,22 +274,22 @@ export function ListenView({
         <div>
           <Users size={20} />
           <span>
-            <strong>Presence before profile</strong>
-            Enter a room without a wallet wall.
+            <strong>Rooms are easy</strong>
+            Enter, listen, stay present.
           </span>
         </div>
         <div>
           <ShieldCheck size={20} />
           <span>
-            <strong>Artist terms stay visible</strong>
-            Each track names how it opens.
+            <strong>Terms stay visible</strong>
+            Price, access, and split stay clear.
           </span>
         </div>
         <div>
           <KeyRound size={20} />
           <span>
-            <strong>Trust stays underneath</strong>
-            The infrastructure protects without taking over.
+            <strong>Proof stays behind</strong>
+            Runtime and IPFS details stay available when needed.
           </span>
         </div>
       </section>

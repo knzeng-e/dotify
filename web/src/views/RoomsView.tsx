@@ -38,10 +38,10 @@ export function RoomsView({
       <header className='rooms-intro'>
         <div>
           <p className='eyebrow'>Listening rooms</p>
-          <h1 id='rooms-title'>Enter the same musical moment.</h1>
+          <h1 id='rooms-title'>Live listening rooms.</h1>
         </div>
         <div className='rooms-intro-copy'>
-          <p>A room is a live stream carried by its host. The link is enough for a guest to arrive, choose a local name, and listen.</p>
+          <p>Open a room from a track, or join with a code.</p>
           <dl className='rooms-summary'>
             <div>
               <dt>Open rooms</dt>
@@ -114,7 +114,7 @@ export function RoomsView({
             </span>
             <div>
               <strong>No room is open right now.</strong>
-              <p>Start with a work and welcome the first shared moment.</p>
+              <p>Choose a track and open a room.</p>
             </div>
             <button className='secondary-action' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
               <Radio size={17} />
@@ -127,8 +127,8 @@ export function RoomsView({
       <section className='room-entry-section' aria-labelledby='room-entry-title'>
         <div className='section-heading'>
           <div>
-            <span className='section-index'>02 / Begin</span>
-            <h2 id='room-entry-title'>Bring people in, or follow a link.</h2>
+            <span className='section-index'>02 / Rooms</span>
+            <h2 id='room-entry-title'>Start or join.</h2>
           </div>
         </div>
 
@@ -138,9 +138,9 @@ export function RoomsView({
               <Radio size={21} />
             </span>
             <div>
-              <span className='room-entry-label'>Host a moment</span>
-              <h3>Open a room around a work.</h3>
-              <p>Choose music you can play, name the room presence, then share one link.</p>
+              <span className='room-entry-label'>Host</span>
+              <h3>Open a room from a track.</h3>
+              <p>Choose music, name the room, share the link.</p>
             </div>
             <button className='primary-action' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
               Open a room
@@ -155,7 +155,7 @@ export function RoomsView({
             <div>
               <span className='room-entry-label'>Join someone</span>
               <h3>Use the room code or link you received.</h3>
-              <p>No wallet is required to listen to the host's ephemeral stream.</p>
+              <p>Enter with a room code or link.</p>
             </div>
             <form className='session-form room-action-form' onSubmit={onJoinSession}>
               <label htmlFor='room-code-input'>Room code or link</label>

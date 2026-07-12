@@ -72,7 +72,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
       <div className='modal-copy'>
         <p className='modal-eyebrow'>Start a room</p>
         <h2 id='create-room-title'>As easy as sharing a link</h2>
-        <p>Open a room and share the link. Anyone can join and listen - no wallet, no sign-up.</p>
+        <p>Open a room and share the link.</p>
       </div>
 
       {picked && (
@@ -134,7 +134,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
           Cancel
         </button>
       </div>
-      <p className='create-room-foot'>You host. Guests just listen - only you need access to the track.</p>
+      <p className='create-room-foot'>You host the track. Guests hear the room stream.</p>
     </Dialog>
   );
 }

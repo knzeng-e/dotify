@@ -38,8 +38,7 @@ remains in the
 
 - Load public room summaries when the listener shell mounts.
 - Resolve the room targeted by `#/rooms/<roomId>`.
-- Present its host, track, real presence count, room code, and wallet-free
-  promise in the existing join dialog.
+- Present its host, track, real presence count, and room code before entry.
 - Preserve the deliberate first-time pseudonym step and remembered-name
   auto-join behavior.
 - Preserve the real Socket.IO/WebRTC path and listener no-key invariant.
@@ -187,7 +186,7 @@ Validation evidence (2026-07-12):
   hotfix, state preservation, calldata
   shape, and stable plan digest;
 - deterministic browser flows: 11/11, including delayed room resolution,
-  unavailable links, and wallet-free guest boundaries;
+  unavailable links, and guest-entry boundaries;
 - production web build and local docs/code whitespace check: passed;
 - publication-safety browser smoke and prior Shared Score desktop/mobile/reflow
   no-overflow visual smoke: passed before the final royalty/spacing polish;

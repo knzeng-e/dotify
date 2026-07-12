@@ -229,7 +229,7 @@ export function useSession(deps: UseSessionDeps) {
 
     const socket = io(signalUrl, {
       autoConnect: false,
-      transports: ['websocket', 'polling']
+      transports: ['polling', 'websocket']
     });
 
     socket.on('connect', () => {
@@ -249,7 +249,7 @@ export function useSession(deps: UseSessionDeps) {
       setSocketStatus('error');
       setSessionAction('idle');
       setIsRefreshingRooms(false);
-      setError(`Signal server unavailable: ${signalUrl}`);
+      setError('Room service unavailable.');
     });
     socket.on('disconnect', () => {
       setSocketStatus('offline');
@@ -761,7 +761,7 @@ export function useSession(deps: UseSessionDeps) {
         requestOpenRooms();
       },
       () => {
-        clearRoomState('Error', 'Signal server did not confirm room creation.', { closePeers: false });
+        clearRoomState('Error', 'Room service unavailable.', { closePeers: false });
       }
     );
   }
@@ -815,7 +815,7 @@ export function useSession(deps: UseSessionDeps) {
         requestOpenRooms();
       },
       () => {
-        clearRoomState('Error', 'Signal server did not confirm room join.', { closePeers: false });
+        clearRoomState('Error', 'Room service unavailable.', { closePeers: false });
       }
     );
   }

@@ -46,8 +46,8 @@ export function YouView({
     <section className='you-view' aria-labelledby='you-view-title'>
       <header className='you-hero'>
         <p className='eyebrow'>Your private space</p>
-        <h2 id='you-view-title'>Your music, on your terms.</h2>
-        <p>Keep the works you opened and the artists you supported close. A confirmation method stays secondary until you choose an action that needs it.</p>
+        <h2 id='you-view-title'>Your music.</h2>
+        <p>Keep opened tracks, supported artists, and your artist space close.</p>
       </header>
 
       <div className='you-layout'>
@@ -63,7 +63,7 @@ export function YouView({
             <div className='account-summary' aria-label='Music summary'>
               <span>
                 <strong className='tnum'>{unlockedTrackCount}</strong>
-                works opened
+                tracks opened
               </span>
               <span>
                 <strong className='tnum'>{supportedArtistCount}</strong>
@@ -76,7 +76,7 @@ export function YouView({
             <section className='account-detail-section' id='account-unlocked-tracks' tabIndex={-1} aria-labelledby='account-unlocked-title'>
               <div className='account-detail-title'>
                 <Music2 size={16} />
-                <h4 id='account-unlocked-title'>Works opened</h4>
+                <h4 id='account-unlocked-title'>Tracks opened</h4>
               </div>
               {unlockedTracks.length > 0 ? (
                 <div className='account-detail-list'>
@@ -93,7 +93,7 @@ export function YouView({
                   ))}
                 </div>
               ) : (
-                <p className='account-empty'>Works you deliberately support and open will appear here.</p>
+                <p className='account-empty'>Tracks you support and open will appear here.</p>
               )}
             </section>
 
@@ -109,7 +109,7 @@ export function YouView({
                       <span>
                         <strong>{artist.artist}</strong>
                         <small>
-                          {artist.trackCount} opened work{artist.trackCount === 1 ? '' : 's'}
+                          {artist.trackCount} opened track{artist.trackCount === 1 ? '' : 's'}
                         </small>
                       </span>
                       {artist.artistAddress && (
@@ -174,7 +174,7 @@ export function YouView({
                 </div>
                 <ArrowRight className='you-card-arrow' size={18} />
               </div>
-              <p className='you-muted'>Publish works under your own access terms, host rooms, and see direct support without giving the platform ownership.</p>
+              <p className='you-muted'>Publish tracks, host rooms, and receive direct support.</p>
               <span className='you-studio-cta'>
                 Explore the artist space
                 <ArrowRight size={15} />
@@ -188,15 +188,15 @@ export function YouView({
                 <Wallet size={18} />
               </span>
               <div>
-                <strong>{wallet ? wallet.label : 'No confirmation method connected'}</strong>
-                <span>{isConnected ? 'Ready only when a chosen action needs it' : 'Rooms and open listening remain available'}</span>
+                <strong>{wallet ? wallet.label : 'No wallet connected'}</strong>
+                <span>{isConnected ? 'Ready for protected actions' : 'Connect for support or protected access'}</span>
               </div>
             </div>
 
             {isConnected ? (
               <code className='you-address'>{shortenAddress(identityAddress)}</code>
             ) : (
-              <p className='you-muted'>Join room links without an account. Connect only to support an artist or open durable access to a protected work.</p>
+              <p className='you-muted'>Connect to support an artist or open protected access.</p>
             )}
 
             <div className='you-actions'>

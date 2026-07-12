@@ -86,7 +86,7 @@ grammar without inventing social graphs, provenance, waveforms, or activity.
 2. A guest receives WebRTC media only, never a content key or protected source
    reference.
 3. Individual protected playback fails closed and states the exact next action.
-4. A Free track remains wallet-free after the backend verifies the live policy.
+4. A Free track opens immediately after the backend verifies the live policy.
 5. Paid access has no degraded preview. The listener either has access or hears
    no protected audio.
 6. Presence, progress, reactions, support, and royalty data are shown only when
@@ -298,7 +298,7 @@ controls; parenthesized labels are status.
 │ [Start audio] only when browser requires   │ reactions requests │
 │                                            │ [Send]              │
 ├────────────────────────────────────────────┴────────────────────┤
-│ Guests hear the host stream. No wallet or content key required.│
+│ Guests hear the host stream.                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -426,7 +426,7 @@ precedence over the form whenever a deployment is not attested.
 | --------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | Finite catalog on Music | Runtime catalog plus seed tracks                             | Do not imply an indexed, infinite, or personalized feed                                                 |
 | Live room rows        | Socket.IO open-room state, track, player state, host, count    | Show only returned data; public payload contains no host wallet or protected ref                        |
-| One-link room entry   | Canonical hash link, room resolution, local display name       | Guest remains wallet-free and room-unavailable is a first-class state                                   |
+| One-link room entry   | Canonical hash link, room resolution, local display name       | Guest entry is direct and room-unavailable is a first-class state                                       |
 | Shared room audio     | Host `captureStream` to WebRTC peers                           | Single host; no handoff or SFU; host departure ends the room                                            |
 | Room conversation     | Attributed chat, reactions, and track requests                 | No fabricated activity, persistent community, or moderation claim                                       |
 | Free playback         | Backend verifies current Free policy before key delivery       | Service availability and on-chain policy remain authoritative                                           |

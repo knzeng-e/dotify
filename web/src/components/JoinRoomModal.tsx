@@ -45,21 +45,15 @@ export function JoinRoomModal({
     if (!isResolving && !isUnavailable && joinCode.trim() && hasChosenName) onJoin(joinCode.trim());
   }
 
-  const eyebrow = room ? 'A live room is open' : isResolving ? 'Opening the threshold' : isUnavailable ? 'Room unavailable' : 'Join a room';
-  const title = room
-    ? `${room.hostName} welcomes you`
-    : isResolving
-      ? 'Finding this room'
-      : isUnavailable
-        ? 'This room is unavailable'
-        : 'Enter the same listening moment';
+  const eyebrow = room ? 'Live room' : isResolving ? 'Finding room' : isUnavailable ? 'Room unavailable' : 'Join a room';
+  const title = room ? `${room.hostName} welcomes you` : isResolving ? 'Finding this room' : isUnavailable ? 'This room is unavailable' : 'Join a room';
   const description = room
-    ? `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here. Choose a room name, then enter with no account or wallet.`
+    ? `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here. Choose a name to enter.`
     : isResolving
-      ? 'Loading the host, work, and live presence before you enter.'
+      ? 'Loading host, track, and presence.'
       : isUnavailable
-        ? 'This listening moment may have ended, expired, or cannot be reached right now.'
-        : 'Paste a room code or link. No wallet, no sign-up - just listen.';
+        ? 'This room may have ended or expired.'
+        : 'Paste a room code or link.';
 
   return (
     <Dialog className='join-room-modal' labelledBy='join-room-title' describedBy='join-room-description' onClose={onClose}>
@@ -150,7 +144,6 @@ export function JoinRoomModal({
           </button>
         </div>
       </form>
-      {room && <p className='room-threshold-footnote'>The host opens the music. Guests receive only the live room stream.</p>}
     </Dialog>
   );
 }

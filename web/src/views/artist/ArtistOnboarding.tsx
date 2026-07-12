@@ -95,7 +95,7 @@ export function ArtistOnboarding() {
         <div className='philosophy-commitment'>
           <p className='philosophy-statement'>
             Dotify is not only a streaming platform. It is a cultural social hub, a place where music becomes the reason people gather in real time. When you
-            upload a track, it enters a shared space where listeners can tune in together, inhabiting the same moment around your work.
+            upload a track, it enters a shared space where listeners can tune in together.
           </p>
           <p className='philosophy-statement'>
             You keep full control of your catalog, rights, and monetization. What you are offering is a presence. Your music as an instrument of direct human

@@ -349,10 +349,10 @@ export function NewReleaseTab({
             </label>
             <div className='rights-status'>
               {accessMode === 'free'
-                ? 'Free means anyone can play the full song, wallet or not. You can change the door later without re-uploading.'
+                ? 'Free opens the full song immediately. You can change access later.'
                 : accessMode === 'human-free'
-                  ? 'Listener pass means the full song can open without ad-style profiles.'
-                  : 'Direct support means listeners see the price and value split before they confirm and open the track.'}
+                  ? 'Listener pass opens the full song for verified listeners.'
+                  : 'Direct support shows price and split before confirmation.'}
             </div>
           </div>
         )}
