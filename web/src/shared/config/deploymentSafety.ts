@@ -2,19 +2,19 @@ import { deployments } from './deployments';
 
 export const registryOwnerGuardAttestation = {
   chainId: 420420417,
-  factory: '0x824ea33000e5e2ca9ddad030befa7331b38c41ce',
-  directory: '0x7f90d15b5ec5f3a668e4dc14def3fe1c876dde0c',
-  auditedBlock: 10_877_675,
-  auditedBlockHash: null,
-  factoryDirectoryPairingVerified: false,
-  existingRuntimeCoverage: { protected: 0, total: 2 },
-  existingTrackAudit: { ownerMatched: 3, total: 3 },
+  factory: '0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d',
+  directory: '0xda2761fea6f0871ed44ec719860fddb51b115be8',
+  auditedBlock: 10_904_607,
+  auditedBlockHash: '0x7eacbb1e0ee963a8e732239990403c4836e56d64af8151b830eb341ba3c505af',
+  factoryDirectoryPairingVerified: true,
+  existingRuntimeCoverage: { protected: 0, total: 0 },
+  existingTrackAudit: { ownerMatched: 0, total: 0 },
   pendingRuntimeDiscoveryComplete: true,
   pendingRuntimeCount: 0,
-  futureFactoryUsesOwnerGuard: false,
+  futureFactoryUsesOwnerGuard: true,
   correctedRegistryCodeHash: '0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788',
-  futureFactoryRegistryCodeHash: null,
-  catalogCutoverReady: false
+  futureFactoryRegistryCodeHash: '0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788',
+  catalogCutoverReady: true
 } as const;
 
 export type ArtistPublicationSafetyInput = {
@@ -47,7 +47,7 @@ export type ArtistPublicationSafety = {
 };
 
 export const ARTIST_PUBLICATION_QUARANTINE_MESSAGE =
-  'Artist publishing is temporarily paused while the Paseo registry owner guard and future-runtime migration are completed. Existing listening, rooms, and release controls remain available.';
+  'Artist publishing is temporarily paused because the configured Paseo deployment is not covered by the checked-in owner-guard attestation. Existing listening, rooms, and release controls remain available.';
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 
@@ -73,16 +73,24 @@ export function resolveArtistPublicationSafety(input: ArtistPublicationSafetyInp
   const addressesMatch =
     normalizedAddress(input.configuredFactory) === normalizedAddress(input.attestedFactory) &&
     normalizedAddress(input.configuredDirectory) === normalizedAddress(input.attestedDirectory);
+  const freshCatalogCutover =
+    input.catalogCutoverReady &&
+    input.totalRuntimeCount === 0 &&
+    input.protectedRuntimeCount === 0 &&
+    input.totalTrackCount === 0 &&
+    input.ownerMatchedTrackCount === 0;
   const existingRuntimesProtected =
-    Number.isSafeInteger(input.totalRuntimeCount) &&
-    input.totalRuntimeCount > 0 &&
-    Number.isSafeInteger(input.protectedRuntimeCount) &&
-    input.protectedRuntimeCount === input.totalRuntimeCount;
+    freshCatalogCutover ||
+    (Number.isSafeInteger(input.totalRuntimeCount) &&
+      input.totalRuntimeCount > 0 &&
+      Number.isSafeInteger(input.protectedRuntimeCount) &&
+      input.protectedRuntimeCount === input.totalRuntimeCount);
   const existingTracksAudited =
-    Number.isSafeInteger(input.totalTrackCount) &&
-    input.totalTrackCount > 0 &&
-    Number.isSafeInteger(input.ownerMatchedTrackCount) &&
-    input.ownerMatchedTrackCount === input.totalTrackCount;
+    freshCatalogCutover ||
+    (Number.isSafeInteger(input.totalTrackCount) &&
+      input.totalTrackCount > 0 &&
+      Number.isSafeInteger(input.ownerMatchedTrackCount) &&
+      input.ownerMatchedTrackCount === input.totalTrackCount);
   const auditedBlockHashComplete = /^0x[0-9a-f]{64}$/i.test(input.auditedBlockHash ?? '');
   const futureFactoryCodeHashMatches =
     /^0x[0-9a-f]{64}$/i.test(input.correctedRegistryCodeHash) &&

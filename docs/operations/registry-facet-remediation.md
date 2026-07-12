@@ -2,10 +2,17 @@
 
 ## Purpose
 
-This runbook repairs the deployed `musicRegRegister` authorization boundary
+This runbook repairs the legacy `musicRegRegister` authorization boundary
 without moving existing SmartRuntime proxies or their storage.
 
-The configured Paseo system is **quarantined for artist publication** until all
+> Active deployment status, 2026-07-12: new artist publication has moved to the
+> fresh factory `0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d` and directory
+> `0xda2761fea6f0871ed44ec719860fddb51b115be8`. Read-only audit at finalized
+> block `10904607` verified the corrected registry facet hash and found zero
+> finalized or pending runtimes. The legacy deployment below remains documented
+> for historical evidence and should not be reused for new publication.
+
+The legacy Paseo system is **quarantined for artist publication** until all
 three gates are complete:
 
 1. every existing runtime routes `musicRegRegister` to the corrected facet;
@@ -19,17 +26,17 @@ remain available while publication is paused.
 
 Read-only audit at Paseo block `10877675` on 2026-07-12:
 
-| Surface | Current state |
-| --- | --- |
-| Chain ID | `420420417` |
-| Factory | `0x824ea33000e5e2ca9ddad030befa7331b38c41ce` |
-| Directory | `0x7f90d15b5ec5f3a668e4dc14def3fe1c876dde0c` |
-| Factory registry facet | `0xfd24ad42d86f71852e6ce40ac455a560060a4d8d` |
-| Deployed facet code hash | `0xb22fe0b30db36cd8afdabe1ec8a9abff5259fc71d965c884911c8ea2e302adec` |
+| Surface                    | Current state                                                        |
+| -------------------------- | -------------------------------------------------------------------- |
+| Chain ID                   | `420420417`                                                          |
+| Legacy factory             | `0x824ea33000e5e2ca9ddad030befa7331b38c41ce`                         |
+| Legacy directory           | `0x7f90d15b5ec5f3a668e4dc14def3fe1c876dde0c`                         |
+| Factory registry facet     | `0xfd24ad42d86f71852e6ce40ac455a560060a4d8d`                         |
+| Deployed facet code hash   | `0xb22fe0b30db36cd8afdabe1ec8a9abff5259fc71d965c884911c8ea2e302adec` |
 | Corrected source code hash | `0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788` |
-| Finalized runtimes | 2, both still vulnerable |
-| Pending runtimes found | 0 |
-| Existing tracks | 3/3 owned by their runtime owner; no obvious outsider injection |
+| Finalized runtimes         | 2, both still vulnerable                                             |
+| Pending runtimes found     | 0                                                                    |
+| Existing tracks            | 3/3 owned by their runtime owner; no obvious outsider injection      |
 
 An outsider `eth_call` can still simulate a successful registration on both
 finalized runtimes. The call is read-only and was never broadcast.
@@ -260,20 +267,22 @@ deploy and record a candidate without modifying `deployments.json` or
 Prefer a `DirectoryV2` import/migration design with validation and idempotence.
 Do not silently abandon the existing catalog by switching to an empty directory.
 
-## 8. Completion gate
+## 8. Legacy completion gate
 
-Publication may reopen only when all boxes are true:
+Legacy publication may reopen only when all boxes are true:
 
 - [ ] Corrected facet deployed and source-verified.
 - [ ] Existing runtime `0x8E02…3bb4` upgraded and verified.
 - [ ] Existing runtime `0x1bc1…8F55` upgraded and verified.
 - [x] Existing tracks audited: 3/3 currently match runtime owners.
 - [x] No pending runtime found at audit block `10877675`.
-- [ ] Candidate factory/directory deployed without changing active config.
-- [ ] Canary runtime and outsider rejection verified.
-- [ ] Existing catalog migration/import verified.
-- [ ] Active address cutover and production smoke tests completed.
-- [ ] Deployment safety attestation updated from verified evidence.
+- [x] Fresh factory/directory deployed for new publication.
+- [x] Fresh factory/directory audit verified.
+- [ ] Existing catalog migration/import verified for the legacy catalog.
+- [ ] Legacy active address cutover and production smoke tests completed.
+- [x] Deployment safety attestation updated from verified evidence for the
+      fresh active deployment.
 
-Until then, ticket 25 remains `In progress` and all public documentation must
-describe the configured deployment as unsafe for new artist publication.
+Until then, the legacy deployment remains unsafe for new artist publication.
+The fresh active deployment is covered by the checked-in publication safety
+attestation.

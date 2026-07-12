@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { useArtistConsole, type UseArtistConsoleDeps } from './useArtistConsole';
 
 describe('useArtistConsole publication guard', () => {
-  it('stops profile and release publication before wallet or upload work on a quarantined public deployment', async () => {
+  it('stops profile and release publication before wallet or upload work when public deployment safety is unresolved', async () => {
     const setTransactionFeedback = vi.fn<UseArtistConsoleDeps['setTransactionFeedback']>();
     const refreshCatalogFromRegistry = vi.fn<UseArtistConsoleDeps['refreshCatalogFromRegistry']>(async () => []);
     const setAudioCID = vi.fn<UseArtistConsoleDeps['setAudioCID']>();
@@ -14,7 +14,7 @@ describe('useArtistConsole publication guard', () => {
       activeEvmAddress: '0x0000000000000000000000000000000000000001',
       connectedWallet: null,
       ethRpcUrl: 'https://eth-rpc-testnet.polkadot.io/',
-      currentChainId: 420420417,
+      currentChainId: null,
       factoryAddress: '0x824ea33000e5e2ca9ddad030befa7331b38c41ce',
       directoryAddress: '0x7f90d15b5ec5f3a668e4dc14def3fe1c876dde0c',
       fileHash: '0x1111111111111111111111111111111111111111111111111111111111111111',

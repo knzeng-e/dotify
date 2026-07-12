@@ -63,14 +63,14 @@ make a quiet solo or artist workflow feel secondary.
 
 ### Decision
 
-| Criterion | Shared Score | Listening Desk | Live Assembly |
-| --- | --- | --- | --- |
-| Link to first sound | Strong | Medium | Strong |
-| Solo and room continuity | Strong | Medium | Medium |
-| Artist sovereignty | Strong | Strong | Medium |
-| Uses only real data | Strong | Strong | Medium |
-| Professional visual clarity | Strong | Strong | Medium |
-| Accessibility and performance | Strong | Strong | Medium |
+| Criterion                     | Shared Score | Listening Desk | Live Assembly |
+| ----------------------------- | ------------ | -------------- | ------------- |
+| Link to first sound           | Strong       | Medium         | Strong        |
+| Solo and room continuity      | Strong       | Medium         | Medium        |
+| Artist sovereignty            | Strong       | Strong         | Medium        |
+| Uses only real data           | Strong       | Strong         | Medium        |
+| Professional visual clarity   | Strong       | Strong         | Medium        |
+| Accessibility and performance | Strong       | Strong         | Medium        |
 
 Shared Score is selected because it gives every existing surface one coherent
 grammar without inventing social graphs, provenance, waveforms, or activity.
@@ -91,20 +91,20 @@ grammar without inventing social graphs, provenance, waveforms, or activity.
    status unless a text label and accessible state communicate the same fact.
 8. Chain, key, storage, and transaction details use progressive disclosure.
 9. Dotify describes distribution protection honestly and never claims DRM.
-10. Artist publication remains visibly paused wherever the deployed registry
-    boundary is not safe.
+10. Artist publication remains fail-closed wherever the configured registry
+    path is not covered by a checked-in owner-guard attestation.
 
 ## 4. Information architecture
 
 ### Primary surfaces
 
-| Surface | User question | Primary content | Primary action |
-| --- | --- | --- | --- |
-| **Now** | What can I hear now? | Live rooms, featured work, finite catalog | Enter room or play work |
-| **Room** | Who am I hearing this with? | Current work, shared time, host, real presence | Start audio or share room |
-| **Player** | What am I listening to? | Work, transport, access state, artist | Play, support, or open room |
-| **You** | What belongs to this wallet? | Connection, opened works, backed artists, studio entry | Connect/manage wallet |
-| **Studio** | How do I manage my work? | Runtime, releases, royalties, proofs | Review or publish when safe |
+| Surface    | User question                | Primary content                                        | Primary action              |
+| ---------- | ---------------------------- | ------------------------------------------------------ | --------------------------- |
+| **Now**    | What can I hear now?         | Live rooms, featured work, finite catalog              | Enter room or play work     |
+| **Room**   | Who am I hearing this with?  | Current work, shared time, host, real presence         | Start audio or share room   |
+| **Player** | What am I listening to?      | Work, transport, access state, artist                  | Play, support, or open room |
+| **You**    | What belongs to this wallet? | Connection, opened works, backed artists, studio entry | Connect/manage wallet       |
+| **Studio** | How do I manage my work?     | Runtime, releases, royalties, proofs                   | Review or publish when safe |
 
 Desktop uses a calm horizontal header for `Now`, `Rooms`, and `You`. Mobile
 uses the same three destinations in a bottom bar. `Player` is contextual: it
@@ -171,7 +171,7 @@ Primary measure: link open to first audible remote frame.
 2. Show real release, supporter, and royalty information.
 3. A new release follows Assets, Details, Access, and Review.
 4. Upload and content identity are verified server-side in production mode.
-5. During the current registry quarantine, creation and publication controls are
+5. If the registry guard is not attested, creation and publication controls are
    disabled with the remediation reason; existing releases and royalty records
    remain readable.
 
@@ -336,6 +336,7 @@ analytics as activity.
 ┌─────────────────────────────────────────────────────────────────┐
 │ AICHA STUDIO                           existing works available │
 │ ! New artist profiles and releases are temporarily paused.     │
+│   This deployment is not covered by the owner-guard attestation.│
 ├─────────────────────────────────────────────────────────────────┤
 │ Overview | New release | Releases | Royalties | Advanced        │
 ├───────────────────────────────────────┬─────────────────────────┤
@@ -404,21 +405,21 @@ the happy path.
 
 ## 11. Capability mapping and current limits
 
-| Shared Score promise | Current capability | Product constraint |
-| --- | --- | --- |
-| Finite catalog on Now | Runtime catalog plus seed tracks | Do not imply an indexed, infinite, or personalized feed |
-| Live room rows | Socket.IO open-room state, track, player state, host, count | Show only returned data; public payload contains no host wallet or protected ref |
-| One-link room entry | Canonical hash link, room resolution, local display name | Guest remains wallet-free and room-unavailable is a first-class state |
-| Shared room audio | Host `captureStream` to WebRTC peers | Single host; no handoff or SFU; host departure ends the room |
-| Room conversation | Attributed chat, reactions, and track requests | No fabricated activity, persistent community, or moderation claim |
-| Free playback | Backend verifies current Free policy before key delivery | Service availability and on-chain policy remain authoritative |
-| Paid playback | Classic payment, access re-check, royalty distribution | No preview fallback; display exact transaction failure |
-| Human free | Contract-level personhood mode and UI states | Live Individuality/Proof of Personhood is not integrated; label beta/upcoming |
-| Protected delivery | Server upload, encryption, signed session/key request | Browser secrets are demo-only; do not claim DRM |
-| DAV2 streaming | First Range/MSE vertical slice and fallback metrics | Real-browser, container, gateway, and device matrix remains release work |
-| You | Connected wallet, opened works, backed artists, artist runtime | No platform profile, cloud account, or cross-device history is implied |
-| Studio reads | Runtime, releases, royalties, transaction and archive proofs | New runtime creation and release publication are quarantined on the current deployment |
-| Artist sovereignty | Artist-owned SmartRuntime model and owner-only source fix | Deployed runtimes are not yet remediated; never describe the live owner boundary as complete |
+| Shared Score promise  | Current capability                                             | Product constraint                                                                                      |
+| --------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Finite catalog on Now | Runtime catalog plus seed tracks                               | Do not imply an indexed, infinite, or personalized feed                                                 |
+| Live room rows        | Socket.IO open-room state, track, player state, host, count    | Show only returned data; public payload contains no host wallet or protected ref                        |
+| One-link room entry   | Canonical hash link, room resolution, local display name       | Guest remains wallet-free and room-unavailable is a first-class state                                   |
+| Shared room audio     | Host `captureStream` to WebRTC peers                           | Single host; no handoff or SFU; host departure ends the room                                            |
+| Room conversation     | Attributed chat, reactions, and track requests                 | No fabricated activity, persistent community, or moderation claim                                       |
+| Free playback         | Backend verifies current Free policy before key delivery       | Service availability and on-chain policy remain authoritative                                           |
+| Paid playback         | Classic payment, access re-check, royalty distribution         | No preview fallback; display exact transaction failure                                                  |
+| Human free            | Contract-level personhood mode and UI states                   | Live Individuality/Proof of Personhood is not integrated; label beta/upcoming                           |
+| Protected delivery    | Server upload, encryption, signed session/key request          | Browser secrets are demo-only; do not claim DRM                                                         |
+| DAV2 streaming        | First Range/MSE vertical slice and fallback metrics            | Real-browser, container, gateway, and device matrix remains release work                                |
+| You                   | Connected wallet, opened works, backed artists, artist runtime | No platform profile, cloud account, or cross-device history is implied                                  |
+| Studio reads          | Runtime, releases, royalties, transaction and archive proofs   | New runtime creation and release publication fail closed when the configured deployment is not attested |
+| Artist sovereignty    | Artist-owned SmartRuntime model and owner-only source fix      | The active fresh deployment is attested; legacy runtimes remain remediation history                     |
 
 The following remain out of scope and must not appear as active UI: Product
 SDK/TrUAPI host integration, live Proof of Personhood, SFU, host handoff,
@@ -436,8 +437,8 @@ objects.
 4. Ship in this order: shell and primitives, Now, Player, Room, You, then Studio.
 5. Validate desktop and mobile, keyboard, screen reader, reduced motion,
    forced-colors, browser console, two-device WebRTC, and DAV2 media cases.
-6. Publication remains fail-closed until the registry remediation runbook is
-   completed and a fresh live audit confirms the deployed boundary.
+6. Publication remains fail-closed unless the configured deployment is covered
+   by the checked-in deployment safety attestation.
 
 Shared Score succeeds when Dotify feels calm and obvious before it feels
 technical: the work leads, people share one real moment, and the infrastructure

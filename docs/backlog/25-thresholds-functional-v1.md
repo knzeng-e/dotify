@@ -97,15 +97,26 @@ remains in the
 Those remain sequenced in the design blueprint and must not be implied by the
 functional-v1 interface.
 
-## Deployment blocker
+## Deployment status
 
-The source-level owner check and outsider regression test are implemented, but
-the configured Paseo factory still points to the previously deployed registry
-pallet. Existing runtimes route the registration selector to that old facet.
-The acceptance criterion is therefore local/test-level only until the factory
-and directory are replaced **and** each existing runtime is explicitly upgraded
-by its owner. No on-chain deployment is part of this ticket without separate
-approval.
+The source-level owner check and outsider regression test are implemented, and
+the active Paseo configuration now points to a fresh factory/directory whose
+registry facet matches the corrected owner-only `musicRegRegister` source.
+Artist publication is open on this active deployment.
+
+Read-only audit at finalized Paseo block `10904607` verified:
+
+- factory: `0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d`;
+- directory: `0xda2761fea6f0871ed44ec719860fddb51b115be8`;
+- registry facet: `0x76ac102f448fbab9a7ea9efe4450878c01aabc8d`;
+- corrected registry code hash:
+  `0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788`;
+- factory/directory pairing: verified;
+- finalized runtimes: `0`;
+- pending runtimes: `0`.
+
+The previous deployment remains legacy evidence and must not be reused for new
+publication.
 
 Read-only audit at Paseo block `10877675` found two finalized runtimes, no
 pending runtime, and three existing tracks whose recorded artist and NFT owner
@@ -123,28 +134,30 @@ corrected facet, generate a state-bound owner plan, simulate the cut, and verify
 state plus outsider rejection after execution. See
 [`docs/operations/registry-facet-remediation.md`](../operations/registry-facet-remediation.md).
 
-Current completion matrix:
+Legacy completion matrix:
 
 - existing runtimes protected: `0/2`;
 - existing tracks audited: `3/3` owner-matched;
 - pending runtimes found: `0` at the audit block;
 - corrected facet deployment: pending explicit approval;
-- future factory/directory canary: pending;
-- existing-catalog migration and active cutover: pending.
+- future factory/directory canary: superseded by the fresh active deployment;
+- existing-catalog migration and active cutover: not applied to the legacy
+  deployment.
 
 ## Delivery notes
 
 The functional slice and source-level hardening are isolated on
 `feat/dotify-thresholds-prod-readiness` in draft PR #92. Shared Score is the
-clean-sheet corrective UI pass on the same ticket branch. The ticket stays `In
-progress` because the deployment gate above is not satisfied; no on-chain
-mutation is part of this delivery.
+clean-sheet corrective UI pass on the same ticket branch. Artist publication is
+open on the fresh active deployment described above; the legacy remediation
+work remains documented separately.
 
 Validation evidence (2026-07-12):
 
 - web lint: 0 errors (3 existing hook-dependency warnings);
-- web unit: 132/132, including production publication-quarantine gates and
-  handler-level proof that blocked writes stop before wallet/upload side effects;
+- web unit: 133/133, including the fresh-deployment attestation gate and
+  handler-level proof that unresolved public safety stops writes before
+  wallet/upload side effects;
 - signaling: 42/42;
 - API: 64/64 plus typecheck and build;
 - contracts/tooling: 44/44 plus formatting check, including task-level audit
@@ -153,11 +166,10 @@ Validation evidence (2026-07-12):
   shape, and stable plan digest;
 - deterministic browser flows: 11/11, including delayed room resolution,
   unavailable links, and wallet-free guest boundaries;
-- production web build, artist-quarantine browser smoke, and Shared Score
+- production web build, publication-safety browser smoke, and Shared Score
   desktop/mobile/reflow no-overflow visual smoke: passed;
-- live registry snapshot: completed read-only at block `10877675`; intentional
-  exit code `2` while `0/2` runtimes and the factory remain unsafe. A final
-  rerun of the stricter fail-closed task was blocked by the execution
-  environment's network quota and remains an operator prerequisite;
+- live registry snapshot: completed read-only at finalized block `10904607`;
+  the active factory/directory pair, corrected registry code hash, zero
+  finalized runtimes, and zero pending runtimes passed the audit;
 - corrected-facet deployment task: Paseo dry-run passed; no transaction sent;
 - repository diff whitespace check: passed.

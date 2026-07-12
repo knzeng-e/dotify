@@ -41,19 +41,19 @@ iteration can move signaling to statement-store style infrastructure.
 
 ## Deployed
 
-**EVM factory** — `0x824ea33000e5e2ca9ddad030befa7331b38c41ce` (Paseo Asset Hub, chainId 420420417)
+**EVM factory** — `0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d` (Paseo Asset Hub, chainId 420420417)
 
-**EVM directory** — `0x7f90d15b5ec5f3a668e4dc14def3fe1c876dde0c`
+**EVM directory** — `0xda2761fea6f0871ed44ec719860fddb51b115be8`
 
-> **Testnet security status (2026-07-12):** the configured factory and its
-> existing runtimes still route `musicRegRegister` to a registry pallet deployed
-> before the runtime-owner check was added. The source and contract tests now
-> reject outsider registration, but this guarantee is **not deployed yet**.
-> Hosted production builds quarantine new runtime creation and release
-> registration. Existing runtimes must be owner-upgraded and the immutable
-> factory/directory generation must be
-> replaced with catalog continuity before publication reopens. Follow the
-> [registry remediation runbook](docs/operations/registry-facet-remediation.md).
+> **Testnet security status (2026-07-12):** artist publication is open on the
+> configured factory/directory above. Read-only audit at finalized block
+> `10904607` verified the factory/directory pairing, found no finalized or
+> pending runtimes, and confirmed that the configured registry facet hash matches
+> the source-level owner-only `musicRegRegister` implementation
+> (`0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788`).
+> The previous Paseo deployment remains documented in the
+> [registry remediation runbook](docs/operations/registry-facet-remediation.md)
+> as legacy evidence and must not be reused for new publication.
 
 **Bulletin CID** — `bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny`
 
@@ -76,14 +76,14 @@ onboarding and studio flow is available at `http://localhost:5273/artists`.
 
 Default ports:
 
-| Service       | URL                                            |
-| ------------- | ---------------------------------------------- |
-| Frontend      | <http://localhost:5273>                        |
-| Artist portal | <http://localhost:5273/artists>                |
-| Signaling     | <http://localhost:8788>                        |
-| Backend API   | <http://localhost:8790>                        |
-| Bulletin RPC  | `wss://paseo-bulletin-rpc.polkadot.io`         |
-| Asset Hub RPC | <https://eth-rpc-testnet.polkadot.io/>        |
+| Service       | URL                                    |
+| ------------- | -------------------------------------- |
+| Frontend      | <http://localhost:5273>                |
+| Artist portal | <http://localhost:5273/artists>        |
+| Signaling     | <http://localhost:8788>                |
+| Backend API   | <http://localhost:8790>                |
+| Bulletin RPC  | `wss://paseo-bulletin-rpc.polkadot.io` |
+| Asset Hub RPC | <https://eth-rpc-testnet.polkadot.io/> |
 
 The app talks to Paseo Bulletin and Asset Hub directly from the browser. A local
 Ethereum node or local Substrate node is not required to run the demo.
@@ -125,11 +125,11 @@ a restricted upload-only Pinata token. Do not use an unrestricted token in demos
 
 **Inspecting API health**:
 
-| Endpoint            | Purpose                                                                      |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `GET /health`       | Liveness: process status, uptime, package version. Never touches the chain.  |
-| `GET /version`      | Package version plus the deploy commit SHA when known                        |
-| `GET /health/ready` | Readiness diagnostics; answers `503` when key delivery cannot work           |
+| Endpoint            | Purpose                                                                     |
+| ------------------- | --------------------------------------------------------------------------- |
+| `GET /health`       | Liveness: process status, uptime, package version. Never touches the chain. |
+| `GET /version`      | Package version plus the deploy commit SHA when known                       |
+| `GET /health/ready` | Readiness diagnostics; answers `503` when key delivery cannot work          |
 
 The commit SHA comes from the `GIT_COMMIT_SHA` env variable, falling back to
 `git rev-parse HEAD` in dev checkouts.
@@ -387,6 +387,6 @@ handle:
    chain modules.
 10. Generate frontend ABI bindings from Hardhat artifacts.
 11. Add deployment smoke tests for DotNS/Bulletin CIDs, IPFS gateway fallback,
-   and contract address availability.
+    and contract address availability.
 12. Improve room resilience with host handoff, reconnect recovery, and explicit
     room expiry.

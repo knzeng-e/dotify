@@ -91,9 +91,9 @@ describe('resolveArtistPublicationSafety', () => {
 
   it.each([
     ['an unprotected runtime', { protectedRuntimeCount: 1 }],
-    ['an empty runtime audit', { protectedRuntimeCount: 0, totalRuntimeCount: 0 }],
+    ['an empty runtime audit before catalog cutover', { protectedRuntimeCount: 0, totalRuntimeCount: 0, catalogCutoverReady: false }],
     ['an owner-mismatched track', { ownerMatchedTrackCount: 2 }],
-    ['an empty track audit', { ownerMatchedTrackCount: 0, totalTrackCount: 0 }],
+    ['an empty track audit before catalog cutover', { ownerMatchedTrackCount: 0, totalTrackCount: 0, catalogCutoverReady: false }],
     ['a missing audit block', { auditedBlock: 0 }],
     ['a missing audit block hash', { auditedBlockHash: null }],
     ['an unverified factory/directory pairing', { factoryDirectoryPairingVerified: false }],
@@ -108,5 +108,20 @@ describe('resolveArtistPublicationSafety', () => {
 
   it('reopens the attested public deployment only when every proof is complete', () => {
     expect(resolveArtistPublicationSafety(safeInput)).toEqual({ quarantined: false, reason: '' });
+  });
+
+  it('reopens an attested fresh deployment with no finalized or pending runtimes', () => {
+    expect(
+      resolveArtistPublicationSafety({
+        ...safeInput,
+        protectedRuntimeCount: 0,
+        totalRuntimeCount: 0,
+        ownerMatchedTrackCount: 0,
+        totalTrackCount: 0,
+        pendingRuntimeDiscoveryComplete: true,
+        pendingRuntimeCount: 0,
+        catalogCutoverReady: true
+      })
+    ).toEqual({ quarantined: false, reason: '' });
   });
 });

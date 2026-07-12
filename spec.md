@@ -113,21 +113,21 @@ derivation remain local/demo paths only.
 
 ## 5. Repository Layout
 
-| Path | Responsibility |
-| --- | --- |
-| `README.md` | project overview, current deployment, run instructions |
-| `web/` | React frontend, signaling server, Bulletin deploy scripts |
-| `web/src/App.tsx` | main app shell and current product workflows |
-| `web/src/services/pinata.ts` | backend-mediated uploads, demo Pinata uploads, and IPFS gateway fallback reads |
-| `web/src/services/keyService.ts` | wallet-signed nonce and content-key request client |
-| `web/src/utils/crypto.ts` | AES-256-GCM helpers |
-| `web/src/utils/protectedAudio.ts` | demo/local encrypted audio refs and deterministic browser key derivation |
-| `web/server/signaling.mjs` | Socket.IO signaling server |
-| `services/api/` | Fastify backend for health, uploads, nonces, key delivery, and access checks |
-| `contracts/evm/` | Hardhat project for smart-runtime contracts |
-| `contracts/evm/contracts/` | Solidity contracts, pallets, libraries |
-| `contracts/evm/scripts/deploy.ts` | local/testnet deployment script |
-| `deployments.json` | current deployed factory, directory, initializer, and pallet addresses |
+| Path                              | Responsibility                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| `README.md`                       | project overview, current deployment, run instructions                         |
+| `web/`                            | React frontend, signaling server, Bulletin deploy scripts                      |
+| `web/src/App.tsx`                 | main app shell and current product workflows                                   |
+| `web/src/services/pinata.ts`      | backend-mediated uploads, demo Pinata uploads, and IPFS gateway fallback reads |
+| `web/src/services/keyService.ts`  | wallet-signed nonce and content-key request client                             |
+| `web/src/utils/crypto.ts`         | AES-256-GCM helpers                                                            |
+| `web/src/utils/protectedAudio.ts` | demo/local encrypted audio refs and deterministic browser key derivation       |
+| `web/server/signaling.mjs`        | Socket.IO signaling server                                                     |
+| `services/api/`                   | Fastify backend for health, uploads, nonces, key delivery, and access checks   |
+| `contracts/evm/`                  | Hardhat project for smart-runtime contracts                                    |
+| `contracts/evm/contracts/`        | Solidity contracts, pallets, libraries                                         |
+| `contracts/evm/scripts/deploy.ts` | local/testnet deployment script                                                |
+| `deployments.json`                | current deployed factory, directory, initializer, and pallet addresses         |
 
 ## 6. Smart Contract Specification
 
@@ -142,17 +142,18 @@ Dotify uses an EVM smart-runtime system on Paseo Asset Hub.
 
 Current testnet deployment:
 
-- factory: `0x824ea33000e5e2ca9ddad030befa7331b38c41ce`
-- directory: `0x7f90d15b5ec5f3a668e4dc14def3fe1c876dde0c`
+- factory: `0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d`
+- directory: `0xda2761fea6f0871ed44ec719860fddb51b115be8`
 - chain: Paseo Asset Hub, chainId `420420417`
 
-Security status: these configured addresses predate the owner-only
-`musicRegRegister` fix now present in source and tests. The deployed registry
-pallet bytecode and existing runtime selector routes still allow outsider
-registration. Hosted runtime creation and release registration are quarantined
-until three separate gates pass: owner-led hotfixes for every existing runtime,
-a corrected future factory/directory canary, and an existing-catalog
-migration/cutover. The operator procedure is
+Security status: these configured addresses point to a fresh factory/directory
+whose registry facet matches the source-level owner-only `musicRegRegister`
+implementation. Read-only audit at finalized block `10904607` verified the
+factory/directory pairing, the corrected registry code hash
+`0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788`, zero
+finalized runtimes, and zero pending runtimes. New artist runtime creation and
+release registration are therefore enabled for this deployment. The legacy
+quarantined deployment and its remediation procedure remain documented in
 [`docs/operations/registry-facet-remediation.md`](docs/operations/registry-facet-remediation.md).
 
 ### 6.2 Runtime Pallets
@@ -405,32 +406,32 @@ The listener browser:
 
 Important browser-exposed variables:
 
-| Variable | Purpose |
-| --- | --- |
-| `VITE_SIGNAL_URL` | Socket.IO signaling server URL |
-| `VITE_LOCAL_WS_URL` | local Substrate websocket URL |
-| `VITE_LOCAL_ETH_RPC_URL` | local EVM RPC URL |
-| `VITE_BULLETIN_WS_URL` | Paseo Bulletin Chain RPC |
-| `VITE_PINATA_JWT` | restricted Pinata JWT for browser demo uploads |
-| `VITE_PINATA_GATEWAY` | primary IPFS gateway |
-| `VITE_IPFS_READ_GATEWAYS` | comma-separated IPFS read fallbacks |
-| `VITE_DOTIFY_API_URL` | backend API URL for production uploads and wallet-signed key requests |
-| `VITE_CONTENT_SECRET` | optional demo/local 32-byte hex content-key derivation secret; never a production boundary |
+| Variable                  | Purpose                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------ |
+| `VITE_SIGNAL_URL`         | Socket.IO signaling server URL                                                             |
+| `VITE_LOCAL_WS_URL`       | local Substrate websocket URL                                                              |
+| `VITE_LOCAL_ETH_RPC_URL`  | local EVM RPC URL                                                                          |
+| `VITE_BULLETIN_WS_URL`    | Paseo Bulletin Chain RPC                                                                   |
+| `VITE_PINATA_JWT`         | restricted Pinata JWT for browser demo uploads                                             |
+| `VITE_PINATA_GATEWAY`     | primary IPFS gateway                                                                       |
+| `VITE_IPFS_READ_GATEWAYS` | comma-separated IPFS read fallbacks                                                        |
+| `VITE_DOTIFY_API_URL`     | backend API URL for production uploads and wallet-signed key requests                      |
+| `VITE_CONTENT_SECRET`     | optional demo/local 32-byte hex content-key derivation secret; never a production boundary |
 
 Server/script variables:
 
-| Variable | Purpose |
-| --- | --- |
-| `SIGNAL_PORT` | local signaling server port |
-| `SIGNAL_ORIGINS` | allowed frontend origins for signaling |
-| `API_PORT` | backend API port |
-| `API_ORIGIN` | frontend origin allowed by backend CORS |
-| `PASEO_ASSET_HUB_RPC` | backend RPC endpoint for access checks |
-| `DOTIFY_DIRECTORY_ADDRESS` | backend ArtistDirectory address for runtime lookup |
-| `DOTIFY_CHAIN_ID` | chain ID expected in signed key requests |
-| `PINATA_JWT` | backend-only Pinata credential |
-| `CONTENT_KEY_MASTER_SECRET` | backend-only content-key derivation secret |
-| `BULLETIN_ACCOUNT` | dev account used by Bulletin deploy script |
+| Variable                    | Purpose                                            |
+| --------------------------- | -------------------------------------------------- |
+| `SIGNAL_PORT`               | local signaling server port                        |
+| `SIGNAL_ORIGINS`            | allowed frontend origins for signaling             |
+| `API_PORT`                  | backend API port                                   |
+| `API_ORIGIN`                | frontend origin allowed by backend CORS            |
+| `PASEO_ASSET_HUB_RPC`       | backend RPC endpoint for access checks             |
+| `DOTIFY_DIRECTORY_ADDRESS`  | backend ArtistDirectory address for runtime lookup |
+| `DOTIFY_CHAIN_ID`           | chain ID expected in signed key requests           |
+| `PINATA_JWT`                | backend-only Pinata credential                     |
+| `CONTENT_KEY_MASTER_SECRET` | backend-only content-key derivation secret         |
+| `BULLETIN_ACCOUNT`          | dev account used by Bulletin deploy script         |
 
 ## 11. Wallet And Passkey Design
 
