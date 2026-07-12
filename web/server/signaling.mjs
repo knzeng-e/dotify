@@ -24,7 +24,6 @@ import {
   createRoomId,
   createWindowLimiter,
   normalizeRoomId,
-  sanitizeAddress,
   sanitizeChatText,
   sanitizePlayerState,
   sanitizeReactionEmoji,
@@ -171,7 +170,6 @@ export function startSignalingServer(overrides = {}) {
       roomId,
       title: room.track?.title ?? 'Listening room',
       hostName: room.hostName,
-      hostAddress: room.hostAddress,
       track: room.track,
       playerState: room.playerState,
       playbackMode: room.playbackMode,
@@ -229,7 +227,6 @@ export function startSignalingServer(overrides = {}) {
       const room = {
         hostId: socket.id,
         hostName: sanitizeText(payload.displayName, 'Host', 32),
-        hostAddress: sanitizeAddress(payload.hostAddress),
         listeners: new Map(),
         track: sanitizeTrack(payload.track),
         // In-room chat only: capped ring buffer, wiped with the room, never
@@ -248,7 +245,7 @@ export function startSignalingServer(overrides = {}) {
       socket.data.role = 'host';
       socket.join(roomId);
 
-      logEvent('room:created', { roomId, hostName: room.hostName, hostAddress: room.hostAddress, track: room.track?.title ?? null });
+      logEvent('room:created', { roomId, hostName: room.hostName, track: room.track?.title ?? null });
       reply?.({ ok: true, roomId, hostName: room.hostName, expiresAt: room.createdAt + config.roomTtlMs });
       emitRooms();
     });
@@ -486,19 +483,19 @@ export function startSignalingServer(overrides = {}) {
     });
 
     socket.on('webrtc:offer', (payload = {}) => {
-      routePeerMessage(payload.targetId, 'webrtc:offer', { from: socket.id, offer: payload.offer });
+      routePeerMessage(socket, payload.targetId, 'webrtc:offer', { from: socket.id, offer: payload.offer }, 'host', 'listener');
     });
 
     socket.on('webrtc:answer', (payload = {}) => {
-      routePeerMessage(payload.targetId, 'webrtc:answer', { from: socket.id, answer: payload.answer });
+      routePeerMessage(socket, payload.targetId, 'webrtc:answer', { from: socket.id, answer: payload.answer }, 'listener', 'host');
     });
 
     socket.on('webrtc:ice-candidate', (payload = {}) => {
-      routePeerMessage(payload.targetId, 'webrtc:ice-candidate', { from: socket.id, candidate: payload.candidate });
+      routePeerMessage(socket, payload.targetId, 'webrtc:ice-candidate', { from: socket.id, candidate: payload.candidate });
     });
 
     socket.on('peer:connected', (payload = {}) => {
-      routePeerMessage(payload.targetId, 'peer:connected', { from: socket.id });
+      routePeerMessage(socket, payload.targetId, 'peer:connected', { from: socket.id }, 'listener', 'host');
     });
 
     socket.on('listener:ready', () => {
@@ -540,10 +537,21 @@ export function startSignalingServer(overrides = {}) {
   }, config.sweepIntervalMs);
   sweepTimer.unref?.();
 
-  function routePeerMessage(targetId, eventName, message) {
-    if (typeof targetId === 'string' && targetId) {
-      io.to(targetId).emit(eventName, message);
-    }
+  function routePeerMessage(sourceSocket, targetId, eventName, message, expectedSourceRole, expectedTargetRole) {
+    if (typeof targetId !== 'string' || !targetId) return;
+
+    const source = getParticipant(sourceSocket);
+    if (!source || !sourceSocket.rooms.has(source.roomId)) return;
+    if (expectedSourceRole && source.role !== expectedSourceRole) return;
+
+    const targetSocket = io.sockets.sockets.get(targetId);
+    if (!targetSocket || !targetSocket.rooms.has(source.roomId)) return;
+
+    const target = getParticipant(targetSocket);
+    if (!target || target.roomId !== source.roomId || target.role === source.role) return;
+    if (expectedTargetRole && target.role !== expectedTargetRole) return;
+
+    targetSocket.emit(eventName, message);
   }
 
   function getHostedRoom(socket) {

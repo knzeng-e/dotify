@@ -104,7 +104,6 @@ export type OpenRoom = {
   roomId: string;
   title?: string;
   hostName: string;
-  hostAddress?: string | null;
   createdAt: number;
   expiresAt?: number;
   listenerCount: number;

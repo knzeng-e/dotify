@@ -4535,6 +4535,16 @@ body::before { display: none; }
   opacity: 0.92;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
 }
+.ava-anonymous {
+  background: color-mix(in srgb, var(--surface-elevated, #263449) 82%, #fff 18%);
+}
+.ava-anonymous-mark {
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.72;
+}
 .ava-host { box-shadow: 0 0 0 2px #111416, 0 0 0 4px var(--aura-accent); }
 .ava-you { box-shadow: 0 0 0 2px #111416, 0 0 0 3px var(--color-cyan); }
 .ava-more {

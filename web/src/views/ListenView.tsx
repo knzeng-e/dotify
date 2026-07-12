@@ -52,7 +52,7 @@ export function ListenView({
               }
               if (featured) onOpenTrack(featured);
             }}
-            aria-label={heroRoom ? `Join ${heroRoom.hostName}'s room` : `Open ${heroTrack.title} by ${heroTrack.artist}`}
+            aria-label={heroRoom ? `Enter and listen in ${heroRoom.hostName}'s room` : `Enter the work ${heroTrack.title} by ${heroTrack.artist}`}
           >
             <span className='home-live-art' aria-hidden='true'>
               <CoverImage src={heroTrack.imageRef} alt='' />
@@ -61,7 +61,7 @@ export function ListenView({
             <span className='home-live-copy'>
               <span className='home-live-kicker'>
                 <span className='live-dot' />
-                {heroRoom ? 'Live now' : 'Featured live-ready'}
+                {heroRoom ? 'An open room' : 'A work ready to open'}
               </span>
               <strong>{heroTrack.title}</strong>
               <span>{heroRoom ? `${heroRoom.hostName} hosts` : heroTrack.artist}</span>
@@ -80,7 +80,7 @@ export function ListenView({
             </span>
             <span className='home-live-cta'>
               {heroRoom ? <Headphones size={17} /> : <Disc3 size={17} />}
-              {heroRoom ? 'Join room' : 'Open player'}
+              {heroRoom ? 'Enter and listen' : 'Enter the work'}
             </span>
           </button>
         )}
@@ -91,32 +91,32 @@ export function ListenView({
               <span className='live-dot' />
               {totalListening} listening together now
             </p>
-            <h2>Make the track a place.</h2>
-            <p>Start with a song, open a room, and let people join the same listening moment.</p>
+            <h2>Every work can open a space.</h2>
+            <p>Listen on your own, then welcome people into the same musical moment with one link.</p>
             <div className='home-hero-trust-row' aria-label='Dotify trust model'>
               <span>
-                <KeyRound size={14} /> Artists stay in control
+                <KeyRound size={14} /> The artist defines each door
               </span>
               <span>
-                <ShieldCheck size={14} /> Clear listening doors
+                <ShieldCheck size={14} /> Rights stay understandable
               </span>
               <span>
-                <Users size={14} /> Guests just listen
+                <Users size={14} /> Guests enter without a wallet
               </span>
             </div>
           </div>
           <div className='home-listening-actions'>
             <button className='primary-action compact-action' type='button' onClick={onStartRoom}>
               <Radio size={16} />
-              Start a room
+              Open a room
             </button>
             {featured && (
               <button className='secondary-action compact-action' type='button' onClick={() => onOpenTrack(featured)}>
                 <Headphones size={16} />
-                Listen solo
+                Listen on my own
               </button>
             )}
-            <span>Room links ready to share.</span>
+            <span>The link is the threshold. The music stays central.</span>
             <div className='home-hero-stats' aria-label='Live Dotify state'>
               <strong className='tnum'>
                 {openRooms.length}
@@ -176,7 +176,7 @@ export function ListenView({
       </section>
 
       <section className='doc-panel happening-panel'>
-        <PanelTitle icon={Radio} title='Happening now' meta={`${openRooms.length} live`} />
+        <PanelTitle icon={Radio} title='Open now' meta={`${openRooms.length} live`} />
         <div className='home-room-strip'>
           {openRooms.length > 0 ? (
             openRooms.slice(0, 4).map(room => (
@@ -194,7 +194,7 @@ export function ListenView({
                 </span>
                 <span className='home-room-join'>
                   <Headphones size={14} />
-                  Join
+                  Enter
                 </span>
               </button>
             ))
@@ -206,8 +206,10 @@ export function ListenView({
 
       <section className='content-grid catalog-home-grid'>
         <div className='doc-panel catalogue-panel catalogue-home-panel'>
-          <PanelTitle icon={Library} title='Browse catalog' meta={`${catalogTracks.length} tracks`} />
-          <p className='catalogue-intro'>Play free releases, join listening rooms, and support artists without losing the music-first flow.</p>
+          <PanelTitle icon={Library} title='Works ready to open' meta={`${catalogTracks.length} tracks`} />
+          <p className='catalogue-intro'>
+            Begin with the work. Open listening stays immediate; protected listening names the real action before asking for a wallet.
+          </p>
           <div className='catalogue-grid'>
             {catalogTracks.length > 0 ? (
               catalogTracks.map(track => {
@@ -262,11 +264,11 @@ export function ListenView({
           <div className='principle-list'>
             <div>
               <strong>Free to discover</strong>
-              <span>Free tracks and live rooms let you hear the music before any unlock.</span>
+              <span>Free works and live rooms let you hear the music before any confirmation.</span>
             </div>
             <div>
               <strong>Support artists directly</strong>
-              <span>When a release has a price, it is shown before you unlock.</span>
+              <span>When a release has a price, its terms are shown before you support and open it.</span>
             </div>
             <div>
               <strong>No profile wall</strong>

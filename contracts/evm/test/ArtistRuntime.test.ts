@@ -20,6 +20,7 @@ import { expect } from 'chai';
 import hre from 'hardhat';
 import { keccak256, toBytes, parseAbiItem, parseEther, type Abi, type AbiFunction } from 'viem';
 import { toFunctionSelector } from 'viem';
+import { MUSIC_REGISTRY_REGISTER_SELECTOR, buildRegistryHotfixCalldata, registrySelectorsFromAbi } from '../scripts/registryUpgrade';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -330,6 +331,23 @@ describe('Artist SmartRuntime — music pallets', () => {
     expect(owner.toLowerCase()).to.equal(artistA.account.address.toLowerCase());
   });
 
+  it('rejects track registration from a non-owner without creating registry or NFT state', async () => {
+    const { registry, nft, artistA, other, royaltyRecip } = await withArtistRuntime();
+
+    const outsiderRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: other } });
+    try {
+      await outsiderRegistry.write.musicRegRegister([sampleRegistration(), [royaltyRecip.account.address], [10_000]]);
+      expect.fail('Should have reverted');
+    } catch (e: unknown) {
+      expect((e as Error).message).to.include('LibDiamond: not owner');
+    }
+
+    expect(await registry.read.musicRegIsRegistered([TRACK_HASH])).to.equal(false);
+    expect(await registry.read.musicRegTrackCount()).to.equal(0n);
+    expect(await nft.read.musicNFTBalanceOf([artistA.account.address])).to.equal(0n);
+    expect(await nft.read.musicNFTBalanceOf([other.account.address])).to.equal(0n);
+  });
+
   it('listener pays for access and royalties are distributed', async () => {
     const PRICE = parseEther('0.5');
     const { registry, royalties, access, artistA, listener, royaltyRecip, publicClient } = await withArtistRuntime();
@@ -604,7 +622,7 @@ describe('Artist isolation', () => {
 // Suite: Forkless upgrade — artist replaces their own music pallet
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('Forkless upgrade — artist replaces their MusicAccessPallet', () => {
+describe('Forkless upgrade — artist replaces their music pallets', () => {
   it('replaces access pallet without losing track registry state', async () => {
     const ctx = await loadFixture(deployDotifySystemFixture);
     const { accessArtifact } = ctx;
@@ -635,6 +653,113 @@ describe('Forkless upgrade — artist replaces their MusicAccessPallet', () => {
     const access = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr);
     expect(await access.read.musicAccCanAccess([TRACK_HASH, ctx.artistA.account.address])).to.equal(true);
     expect(await access.read.musicAccCanAccess([TRACK_HASH, ctx.listener.account.address])).to.equal(false);
+  });
+
+  it('hotfixes only musicRegRegister, preserves runtime state, and rejects outsider registration', async () => {
+    const ctx = await loadFixture(deployDotifySystemFixture);
+    await createArtistRuntime(ctx.factory, ctx.artistA);
+    const runtimeAddr = (await ctx.directory.read.runtimeOf([ctx.artistA.account.address])) as `0x${string}`;
+    const price = parseEther('0.5');
+
+    const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtimeAddr, { client: { wallet: ctx.artistA } });
+    const nft = await hre.viem.getContractAt('MusicNFTPallet', runtimeAddr);
+    const royalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', runtimeAddr);
+    const access = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr);
+    const loupe = await hre.viem.getContractAt('DiamondLoupePallet', runtimeAddr);
+
+    await registry.write.musicRegRegister([sampleRegistration({ pricePlanck: price }), [ctx.royaltyRecip.account.address], [8_000]]);
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', runtimeAddr, { client: { wallet: ctx.listener } });
+    await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: price });
+
+    async function readState() {
+      const [track, tokenOwner] = await registry.read.musicRegGetTrack([TRACK_HASH]);
+      const [splitRecipient, splitBps] = await royalties.read.musicRoySplitAt([TRACK_HASH, 0n]);
+      return {
+        registered: await registry.read.musicRegIsRegistered([TRACK_HASH]),
+        active: await registry.read.musicRegIsActive([TRACK_HASH]),
+        trackCount: await registry.read.musicRegTrackCount(),
+        firstHash: await registry.read.musicRegTrackHashAtIndex([0n]),
+        track,
+        tokenOwner: tokenOwner.toLowerCase(),
+        nftOwner: (await nft.read.musicNFTOwnerOf([1n])).toLowerCase(),
+        artistNftBalance: await nft.read.musicNFTBalanceOf([ctx.artistA.account.address]),
+        splitCount: await royalties.read.musicRoySplitCount([TRACK_HASH]),
+        splitRecipient: splitRecipient.toLowerCase(),
+        splitBps,
+        totalBps: await royalties.read.musicRoyTotalBps([TRACK_HASH]),
+        hasPaid: await access.read.musicAccHasPaid([TRACK_HASH, ctx.listener.account.address]),
+        canAccess: await access.read.musicAccCanAccess([TRACK_HASH, ctx.listener.account.address])
+      };
+    }
+
+    const before = await readState();
+    expect(before.registered).to.equal(true);
+    expect(before.active).to.equal(true);
+    expect(before.trackCount).to.equal(1n);
+    expect(before.firstHash).to.equal(TRACK_HASH);
+    expect(before.tokenOwner).to.equal(ctx.artistA.account.address.toLowerCase());
+    expect(before.nftOwner).to.equal(ctx.artistA.account.address.toLowerCase());
+    expect(before.artistNftBalance).to.equal(1n);
+    expect(before.splitRecipient).to.equal(ctx.royaltyRecip.account.address.toLowerCase());
+    expect(before.splitBps).to.equal(8_000);
+    expect(before.totalBps).to.equal(8_000);
+    expect(before.hasPaid).to.equal(true);
+    expect(before.canAccess).to.equal(true);
+
+    const registrySelectors = registrySelectorsFromAbi(ctx.registryArtifact.abi as Abi);
+    const routesBefore = new Map<string, string>();
+    for (const selector of registrySelectors) {
+      routesBefore.set(selector.selector, (await loupe.read.facetAddress([selector.selector])).toLowerCase());
+    }
+
+    // Reproduce the deployed defect with a test-only facet that accepts this
+    // selector from any caller, while keeping the already-seeded catalogue.
+    const unsafeRegistry = await hre.viem.deployContract('UnsafeMusicRegistryRegisterMock');
+    const cut = await hre.viem.getContractAt('DiamondCutPallet', runtimeAddr, { client: { wallet: ctx.artistA } });
+    await cut.write.diamondCut([
+      [
+        {
+          facetAddress: unsafeRegistry.address,
+          action: FacetCutAction.Replace,
+          functionSelectors: [MUSIC_REGISTRY_REGISTER_SELECTOR]
+        }
+      ],
+      ZERO_ADDR,
+      '0x'
+    ]);
+    const outsiderUnsafeRegistry = await hre.viem.getContractAt('UnsafeMusicRegistryRegisterMock', runtimeAddr, {
+      client: { wallet: ctx.other }
+    });
+    await outsiderUnsafeRegistry.write.musicRegRegister([sampleRegistration({ contentHash: TRACK_HASH2 }), [ctx.royaltyRecip.account.address], [10_000]]);
+    expect((await loupe.read.facetAddress([MUSIC_REGISTRY_REGISTER_SELECTOR])).toLowerCase()).to.equal(unsafeRegistry.address.toLowerCase());
+    expect(await registry.read.musicRegIsRegistered([TRACK_HASH2])).to.equal(false);
+    expect(await readState()).to.deep.equal(before);
+
+    const replacement = await hre.viem.deployContract('MusicRegistryPallet');
+    const cutArtifact = await hre.artifacts.readArtifact('DiamondCutPallet');
+    const calldata = buildRegistryHotfixCalldata(cutArtifact.abi as Abi, replacement.address);
+    const transactionHash = await ctx.artistA.sendTransaction({ account: ctx.artistA.account, to: runtimeAddr, data: calldata });
+    await ctx.publicClient.waitForTransactionReceipt({ hash: transactionHash });
+
+    expect((await loupe.read.facetAddress([MUSIC_REGISTRY_REGISTER_SELECTOR])).toLowerCase()).to.equal(replacement.address.toLowerCase());
+    for (const selector of registrySelectors.filter(entry => entry.selector !== MUSIC_REGISTRY_REGISTER_SELECTOR)) {
+      expect((await loupe.read.facetAddress([selector.selector])).toLowerCase()).to.equal(routesBefore.get(selector.selector));
+    }
+    expect(await readState()).to.deep.equal(before);
+
+    const outsiderRegistry = await hre.viem.getContractAt('MusicRegistryPallet', runtimeAddr, { client: { wallet: ctx.other } });
+    try {
+      await outsiderRegistry.write.musicRegRegister([sampleRegistration({ contentHash: TRACK_HASH2 }), [ctx.royaltyRecip.account.address], [10_000]]);
+      expect.fail('Should have reverted');
+    } catch (error: unknown) {
+      expect((error as Error).message).to.include('LibDiamond: not owner');
+    }
+
+    expect(await registry.read.musicRegIsRegistered([TRACK_HASH2])).to.equal(false);
+    expect(await registry.read.musicRegTrackCount()).to.equal(1n);
+    expect(await nft.read.musicNFTBalanceOf([ctx.other.account.address])).to.equal(0n);
+    expect(await royalties.read.musicRoySplitCount([TRACK_HASH2])).to.equal(0n);
+    expect(await readState()).to.deep.equal(before);
   });
 });
 

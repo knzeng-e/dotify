@@ -10,10 +10,10 @@ import type { View } from '../shared/types';
 
 /** Page title + eyebrow for each main view. */
 export const VIEW_COPY: Record<View, { title: string; eyebrow: string }> = {
-  listen: { title: 'Now', eyebrow: 'Live rooms' },
-  player: { title: 'Listen', eyebrow: 'Catalog and player' },
-  rooms: { title: 'Rooms', eyebrow: 'Join or create' },
-  you: { title: 'Account', eyebrow: 'Wallet and artist space' }
+  listen: { title: 'Now', eyebrow: 'Open moments' },
+  player: { title: 'Listen', eyebrow: 'Work and room' },
+  rooms: { title: 'Rooms', eyebrow: 'Enter or welcome' },
+  you: { title: 'You', eyebrow: 'Music and privacy' }
 };
 
 export type NavItem = { view: View; label: string; icon: LucideIcon };
@@ -23,5 +23,5 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { view: 'listen', label: 'Now', icon: Headphones },
   { view: 'player', label: 'Listen', icon: Disc3 },
   { view: 'rooms', label: 'Rooms', icon: Radio },
-  { view: 'you', label: 'Account', icon: UserRound }
+  { view: 'you', label: 'You', icon: UserRound }
 ];

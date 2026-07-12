@@ -4,9 +4,12 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { resetNonceStore } from './replayProtection.js';
 import {
   buildSignedRequestMessage,
+  buildSignInMessage,
   createWalletNonceChallenge,
+  verifySignInRequest,
   verifySignedRequest,
-  type SignedRequestPayload,
+  type SignInPayload,
+  type SignedRequestPayload
 } from './signatures.js';
 
 // Hardhat dev key 0; test-only, publicly known.
@@ -25,7 +28,7 @@ async function signedPayload(overrides: Partial<SignedRequestPayload> = {}) {
     chainId: CHAIN_ID,
     nonce: challenge.nonce,
     expiresAt: challenge.expiresAt,
-    ...overrides,
+    ...overrides
   };
   const signature = await signer.signMessage({ message: buildSignedRequestMessage(payload) });
   return { payload, signature };
@@ -77,7 +80,7 @@ describe('verifySignedRequest', () => {
       requester: signer.address,
       chainId: CHAIN_ID,
       nonce: challenge.nonce,
-      expiresAt: challenge.expiresAt,
+      expiresAt: challenge.expiresAt
     };
     const signature = await other.signMessage({ message: buildSignedRequestMessage(payload) });
     const result = await verifySignedRequest({ ...payload, signature });
@@ -97,5 +100,28 @@ describe('verifySignedRequest', () => {
     const result = await verifySignedRequest({ ...payload, signature: '0x1234' });
     assert.equal(result.valid, false);
     assert.equal(!result.valid && result.code, 'SIGNATURE_INVALID');
+  });
+
+  it('rejects a correctly signed key request for a different chain', async () => {
+    const { payload, signature } = await signedPayload({ chainId: CHAIN_ID + 1 });
+    const result = await verifySignedRequest({ ...payload, signature });
+
+    assert.equal(result.valid, false);
+    assert.equal(!result.valid && result.code, 'CHAIN_ID_MISMATCH');
+  });
+
+  it('rejects a correctly signed sign-in for a different chain', async () => {
+    const challenge = createWalletNonceChallenge({ address: signer.address, chainId: CHAIN_ID });
+    const payload: SignInPayload = {
+      requester: signer.address,
+      chainId: CHAIN_ID + 1,
+      nonce: challenge.nonce,
+      expiresAt: challenge.expiresAt
+    };
+    const signature = await signer.signMessage({ message: buildSignInMessage(payload) });
+    const result = await verifySignInRequest({ ...payload, signature });
+
+    assert.equal(result.valid, false);
+    assert.equal(!result.valid && result.code, 'CHAIN_ID_MISMATCH');
   });
 });

@@ -294,9 +294,9 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (track.accessMode === 'classic') {
         return {
           track,
-          title: 'Unlock full song',
-          message: `"${track.title}" unlocks for ${track.priceDot} DOT, paid directly to the artist. Connect a wallet to unlock it.`,
-          hint: 'No platform account needed. Confirm once from your wallet.',
+          title: 'Support and open this work',
+          message: `"${track.title}" opens for ${track.priceDot} DOT. See what you receive and how the artist configured the split before choosing a confirmation method.`,
+          hint: 'No platform account is needed. Nothing is sent until you confirm.',
           actionType: 'signin'
         };
       }
@@ -320,9 +320,9 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
     return {
       track,
-      title: 'Unlock full song',
-      message: `"${track.title}" unlocks after a ${track.priceDot} DOT payment, paid directly to the artist.`,
-      hint: 'Your support goes directly to the artist.',
+      title: 'Support and open this work',
+      message: `"${track.title}" opens after ${track.priceDot} DOT of support. Review the artist-defined split before confirming.`,
+      hint: 'The artist-owned runtime distributes the confirmed amount.',
       actionType: 'payment'
     };
   }
@@ -706,8 +706,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       setAccessGate(null);
       setTransactionFeedback({
         tone: 'pending',
-        title: 'Processing payment',
-        message: `Paying ${track.priceDot} DOT to unlock "${track.title}".`
+        title: 'Support being confirmed',
+        message: `Confirming ${track.priceDot} DOT of support to open "${track.title}".`
       });
       await new Promise(resolve => window.setTimeout(resolve, 20));
       e2eClassicAccessGrantedRef.current = true;
@@ -716,8 +716,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback({
         tone: 'success',
-        title: 'Access unlocked',
-        message: `Full playback of "${track.title}" is now available.`,
+        title: 'Work opened',
+        message: `Full listening for "${track.title}" is now available to this wallet.`,
         txHash: E2E_CLASSIC_TX_HASH
       });
       await selectTrack(track, undefined, undefined, undefined);
@@ -735,8 +735,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     setAccessGate(null);
     setTransactionFeedback({
       tone: 'pending',
-      title: 'Processing payment',
-      message: `Paying ${track.priceDot} DOT to unlock "${track.title}".`
+      title: 'Support being confirmed',
+      message: `Confirming ${track.priceDot} DOT of support to open "${track.title}".`
     });
 
     try {
@@ -753,7 +753,12 @@ export function useCatalog(deps: UseCatalogDeps) {
 
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setTransactionFeedback({ tone: 'success', title: 'Access unlocked', message: `Full playback of "${track.title}" is now available.`, txHash });
+      setTransactionFeedback({
+        tone: 'success',
+        title: 'Work opened',
+        message: `Full listening for "${track.title}" is now available to this wallet.`,
+        txHash
+      });
       await selectTrack(track, undefined, undefined, undefined);
     } catch (payError) {
       const message = payError instanceof Error ? payError.message : 'Payment failed';

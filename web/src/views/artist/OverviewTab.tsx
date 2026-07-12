@@ -70,9 +70,9 @@ export function OverviewTab({
         <div className='doc-panel studio-releases-panel'>
           <div className='studio-panel-head'>
             <p className='studio-section-title'>Your releases</p>
-            <button className='secondary-action compact-action' type='button' onClick={() => onSetArtistTab('new')}>
+            <button className='secondary-action compact-action' type='button' onClick={() => onSetArtistTab('new')} disabled={!artistRegistrationAvailable}>
               <Upload size={15} />
-              New release
+              {artistRegistrationAvailable ? 'New release' : 'Publishing paused'}
             </button>
           </div>
           {artistTracks.length > 0 ? (
@@ -98,7 +98,7 @@ export function OverviewTab({
                 <Avatar name={payment.listener} size={36} />
                 <div className='studio-support-meta'>
                   <strong>{shorten(payment.listener, 12)}</strong>
-                  <span>unlocked {payment.trackTitle}</span>
+                  <span>supported and opened {payment.trackTitle}</span>
                 </div>
                 <div className='studio-support-amount'>
                   <strong>+{payment.amountDot} DOT</strong>
@@ -107,7 +107,7 @@ export function OverviewTab({
               </div>
             ))
           ) : (
-            <div className='empty-state'>No paid unlock recorded yet.</div>
+            <div className='empty-state'>No paid support recorded yet.</div>
           )}
         </div>
       </div>
@@ -155,9 +155,9 @@ export function OverviewTab({
               Use my wallet
             </button>
           ) : artistRuntimeAddress ? (
-            <button className='primary-action wide' type='button' onClick={() => onSetArtistTab('new')}>
+            <button className='primary-action wide' type='button' onClick={() => onSetArtistTab('new')} disabled={!artistRegistrationAvailable}>
               <Upload size={16} />
-              Publish a release
+              {artistRegistrationAvailable ? 'Publish a release' : 'Publishing paused'}
             </button>
           ) : (
             <button className='primary-action wide' type='button' onClick={onRegisterArtist} disabled={isRegisteringArtist || !artistRegistrationAvailable}>
@@ -169,7 +169,7 @@ export function OverviewTab({
             className='secondary-action'
             type='button'
             onClick={onRefreshArtistRuntime}
-            disabled={isRefreshingArtistRuntime || !artistRegistrationAvailable}
+            disabled={isRefreshingArtistRuntime || (!artistRegistrationAvailable && !artistRuntimeAddress)}
           >
             {isRefreshingArtistRuntime ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
             {isRefreshingArtistRuntime ? 'Refreshing...' : 'Refresh status'}

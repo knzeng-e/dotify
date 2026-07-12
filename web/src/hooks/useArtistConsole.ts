@@ -21,6 +21,7 @@ import {
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
+import { resolveConfiguredArtistPublicationSafety } from '../shared/config/deploymentSafety';
 import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../shared/utils/format';
 import {
   createArtistPublishE2eTrack,
@@ -31,6 +32,7 @@ import {
   getArtistPublishE2eScenario,
   getArtistPublishE2eState,
   isArtistPublishE2e,
+  isArtistPublishE2eScenarioRequested,
   markArtistPublishRuntimeCreated,
   publishArtistPublishE2eTrack,
   recordArtistPublishTransactionFailure
@@ -123,6 +125,7 @@ export type UseArtistConsoleDeps = {
   activeEvmAddress: `0x${string}`;
   connectedWallet: ConnectedWallet | null;
   ethRpcUrl: string;
+  currentChainId: number | null;
   factoryAddress: `0x${string}` | undefined;
   directoryAddress: `0x${string}` | undefined;
   fileHash: `0x${string}` | '';
@@ -155,6 +158,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     activeEvmAddress,
     connectedWallet,
     ethRpcUrl,
+    currentChainId,
     factoryAddress,
     directoryAddress,
     fileHash,
@@ -192,7 +196,14 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const [isRegistering, setIsRegistering] = useState(false);
   const [releaseActionId, setReleaseActionId] = useState<string | null>(null);
 
-  const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
+  const artistPublicationSafety = resolveConfiguredArtistPublicationSafety({
+    explicitE2e: import.meta.env.DEV && isArtistPublishE2eScenarioRequested(),
+    rpcUrl: ethRpcUrl,
+    currentChainId
+  });
+  const artistPublicationQuarantined = artistPublicationSafety.quarantined;
+  const artistRegistrationConfigured = Boolean(factoryAddress && directoryAddress);
+  const artistRegistrationAvailable = artistRegistrationConfigured && !artistPublicationQuarantined;
 
   async function getActiveWalletClient(): Promise<Awaited<ReturnType<typeof getWalletClient>>> {
     if (!connectedWallet) {
@@ -225,7 +236,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       return null;
     }
 
-    if (!artistRegistrationAvailable) {
+    if (!artistRegistrationConfigured) {
       setArtistRuntimeAddress(null);
       setArtistRegistrationStatus('Artist runtime contracts are not deployed yet.');
       return null;
@@ -254,7 +265,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       if (runtimeAddress === zeroAddress) {
         setArtistRuntimeAddress(null);
-        setArtistRegistrationStatus('Artist not registered yet');
+        setArtistRegistrationStatus(artistPublicationQuarantined ? artistPublicationSafety.reason : 'Artist not registered yet');
         return null;
       }
 
@@ -274,6 +285,12 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   }
 
   async function registerArtist() {
+    if (artistPublicationQuarantined) {
+      setArtistRegistrationStatus(artistPublicationSafety.reason);
+      setTransactionFeedback({ tone: 'error', title: 'Artist publishing paused', message: artistPublicationSafety.reason });
+      return;
+    }
+
     if (!connectedWallet) {
       setTransactionFeedback({
         tone: 'error',
@@ -597,6 +614,12 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   }
 
   async function registerRights() {
+    if (artistPublicationQuarantined) {
+      setRightsStatus('Artist publishing temporarily paused');
+      setTransactionFeedback({ tone: 'error', title: 'Artist publishing paused', message: artistPublicationSafety.reason });
+      return;
+    }
+
     if (!connectedWallet) {
       setRightsStatus('Connect your wallet before publishing');
       setTransactionFeedback({
@@ -998,6 +1021,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     isRegistering,
     releaseActionId,
     artistRegistrationAvailable,
+    artistRegistrationConfigured,
+    artistPublicationQuarantined,
+    artistPublicationQuarantineReason: artistPublicationSafety.reason,
     // Functions
     registerArtist,
     refreshArtistRuntime,

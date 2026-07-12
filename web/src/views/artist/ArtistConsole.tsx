@@ -99,9 +99,10 @@ export function ArtistConsole() {
   const trackInfo = catalog.trackInfo;
 
   const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
-  const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
+  const artistRegistrationAvailable = artistConsole.artistRegistrationAvailable;
+  const artistPublicationQuarantined = artistConsole.artistPublicationQuarantined;
   const hasArtistRuntime = Boolean(artistConsole.artistRuntimeAddress);
-  const artistStudioLocked = deriveArtistStudioLocked(artistRegistrationAvailable, hasArtistRuntime);
+  const artistStudioLocked = artistPublicationQuarantined || deriveArtistStudioLocked(artistRegistrationAvailable, hasArtistRuntime);
   const canReviewRelease = deriveCanReviewRelease({ fileHash, title, audioSource });
   const artistSetupState = deriveArtistSetupState(Boolean(connectedWallet), hasArtistRuntime);
 
@@ -296,6 +297,13 @@ export function ArtistConsole() {
         </div>
       </header>
 
+      {artistPublicationQuarantined && (
+        <div className='artist-publication-quarantine' role='status'>
+          <strong>New artist profiles and releases are paused.</strong>
+          <span>{artistConsole.artistPublicationQuarantineReason}</span>
+        </div>
+      )}
+
       <div className='console-tabs' role='tablist' aria-label='Artist console'>
         {artistTabs.map(tab => (
           <button
@@ -340,6 +348,7 @@ export function ArtistConsole() {
         <NewReleaseTab
           releaseStep={releaseStep}
           artistStudioLocked={artistStudioLocked}
+          publicationQuarantined={artistPublicationQuarantined}
           assetAction={assetAction}
           audioSource={audioSource}
           fileHash={fileHash}

@@ -13,6 +13,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { checkDotifyChainId } from '../services/chainDomain.js';
 import {
   checkPublicAccess as defaultCheckPublicAccess,
   checkTrackAccess as defaultCheckTrackAccess,
@@ -107,6 +108,11 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
           return reply.status(401).send({ error: session.reason, code: session.code });
         }
 
+        const domain = checkDotifyChainId(session.chainId);
+        if (!domain.ok) {
+          return reply.status(401).send({ error: domain.reason, code: domain.code });
+        }
+
         const access = await deps.checkTrackAccess({
           contentHash: params.data.contentHash,
           requester: session.address,
@@ -132,6 +138,11 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
       const body = keyRequestBodySchema.safeParse(request.body);
       if (!body.success) {
         return validationError(reply, 'Invalid key request body', body.error.issues);
+      }
+
+      const domain = checkDotifyChainId(body.data.chainId);
+      if (!domain.ok) {
+        return reply.status(401).send({ error: domain.reason, code: domain.code });
       }
 
       const signature = await deps.verifySignedRequest({

@@ -278,8 +278,8 @@ export function RoomsView({
             <span className='live-dot' />
             Live rooms
           </p>
-          <h2>Enter the same listening moment.</h2>
-          <p>Join by link or code. The host chooses the music; everyone else enters the same listening moment.</p>
+          <h2>Every shared link opens a musical space.</h2>
+          <p>See who welcomes you, enter without a wallet, and hear the moment carried by the host.</p>
         </div>
         <div className='rooms-hero-stats'>
           <div>
@@ -372,14 +372,14 @@ export function RoomsView({
                 <SvgKey size={16} />
                 <div>
                   <strong>Host-led rooms</strong>
-                  <span>The host opens the room and keeps the music moving for everyone inside.</span>
+                  <span>The host opens the music and keeps it moving for everyone inside.</span>
                 </div>
               </div>
               <div className='rooms-doctrine-card'>
                 <SvgUsers size={16} />
                 <div>
-                  <strong>One shared door</strong>
-                  <span>A room should feel as simple as entering through a shared link.</span>
+                  <strong>The link is the threshold</strong>
+                  <span>Guests see the host, the work, and the real presence before they enter.</span>
                 </div>
               </div>
             </aside>

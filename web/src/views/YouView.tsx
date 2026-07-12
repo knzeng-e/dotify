@@ -46,7 +46,7 @@ export function YouView({
       <div className='you-hero'>
         <p className='eyebrow'>Account</p>
         <h2 id='you-view-title'>My account</h2>
-        <p>Your unlocked music, backed artists, and artist space in one place.</p>
+        <p>Your opened works, supported artists, and artist space in one place.</p>
       </div>
 
       <div className='you-grid'>
@@ -57,7 +57,7 @@ export function YouView({
             </span>
             <div>
               <strong>{wallet ? wallet.label : 'No wallet connected'}</strong>
-              <span>{isConnected ? 'Ready when a release needs confirmation' : 'Connect only when you choose to unlock'}</span>
+              <span>{isConnected ? 'Ready when a chosen action needs confirmation' : 'Connect only when you choose to support a work'}</span>
             </div>
           </div>
 
@@ -67,7 +67,7 @@ export function YouView({
               <div className='you-stats'>
                 <a className='you-stat-link' href='#account-unlocked-tracks'>
                   <strong className='tnum'>{unlockedTrackCount}</strong>
-                  <span>Tracks unlocked</span>
+                  <span>Works opened</span>
                 </a>
                 <a className='you-stat-link' href='#account-artists-backed'>
                   <strong className='tnum'>{supportedArtistCount}</strong>
@@ -76,7 +76,9 @@ export function YouView({
               </div>
             </>
           ) : (
-            <p className='you-muted'>Listen to rooms through shared links without an account. Unlock a protected release only when you choose to.</p>
+            <p className='you-muted'>
+              Listen to rooms through shared links without an account. Choose a confirmation method only when you support and open a protected work.
+            </p>
           )}
 
           <div className='you-actions'>
@@ -156,7 +158,7 @@ export function YouView({
             <section className='account-detail-section' id='account-unlocked-tracks' tabIndex={-1} aria-labelledby='account-unlocked-title'>
               <div className='account-detail-title'>
                 <Music2 size={16} />
-                <h4 id='account-unlocked-title'>Tracks unlocked</h4>
+                <h4 id='account-unlocked-title'>Works opened</h4>
               </div>
               {unlockedTracks.length > 0 ? (
                 <div className='account-detail-list'>
@@ -173,7 +175,7 @@ export function YouView({
                   ))}
                 </div>
               ) : (
-                <p className='account-empty'>Tracks you unlock will appear here.</p>
+                <p className='account-empty'>Works you support and open will appear here.</p>
               )}
             </section>
 
@@ -189,7 +191,7 @@ export function YouView({
                       <span>
                         <strong>{artist.artist}</strong>
                         <small>
-                          {artist.trackCount} unlocked track{artist.trackCount === 1 ? '' : 's'}
+                          {artist.trackCount} opened work{artist.trackCount === 1 ? '' : 's'}
                         </small>
                       </span>
                       {artist.artistAddress && (

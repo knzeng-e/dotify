@@ -1,7 +1,7 @@
 // Playback provider - wraps the usePlayback hook (media elements + transport
 // state that survives tab changes) and owns the three cross-domain handlers it
 // and PersistentAudio need: open a track (catalog select/open + route to the
-// player), prepare the local host stream, and enforce the preview cutoff. Those
+// player) and prepare the local host stream. Those
 // coordinate catalog + session + navigation, so they live here below all three.
 // Fail closed: the accessor throws outside the provider.
 //

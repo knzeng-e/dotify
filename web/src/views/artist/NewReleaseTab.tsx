@@ -11,6 +11,7 @@ import type { ChangeEvent } from 'react';
 type NewReleaseTabProps = {
   releaseStep: ReleaseStep;
   artistStudioLocked: boolean;
+  publicationQuarantined: boolean;
   assetAction: AssetAction;
   audioSource: string | null;
   fileHash: `0x${string}` | '';
@@ -49,6 +50,7 @@ type NewReleaseTabProps = {
 export function NewReleaseTab({
   releaseStep,
   artistStudioLocked,
+  publicationQuarantined,
   assetAction,
   audioSource,
   fileHash,
@@ -91,7 +93,9 @@ export function NewReleaseTab({
         <PanelTitle
           icon={FileAudio}
           title='New release'
-          meta={artistStudioLocked ? 'create profile first' : (RELEASE_STEPS[releaseStepIndex]?.label ?? 'draft')}
+          meta={
+            publicationQuarantined ? 'publishing paused' : artistStudioLocked ? 'create profile first' : (RELEASE_STEPS[releaseStepIndex]?.label ?? 'draft')
+          }
         />
 
         <div className='release-stepper' aria-label='Release steps'>
@@ -181,7 +185,7 @@ export function NewReleaseTab({
                 >
                   <option value='free'>Free for everyone</option>
                   <option value='human-free'>Listener pass</option>
-                  <option value='classic'>Paid unlock</option>
+                  <option value='classic'>Direct support</option>
                 </select>
               </label>
               <label>
@@ -264,7 +268,7 @@ export function NewReleaseTab({
                 ? 'Free means anyone can play the full song, wallet or not. You can change the door later without re-uploading.'
                 : accessMode === 'human-free'
                   ? 'Listener pass means the full song can open without ad-style profiles.'
-                  : 'Paid unlock means listeners see the price first and support goes directly to the artist.'}
+                  : 'Direct support means listeners see the price and value split before they confirm and open the work.'}
             </div>
           </div>
         )}
@@ -297,7 +301,7 @@ export function NewReleaseTab({
               disabled={isRegistering || artistStudioLocked || !canReviewRelease}
             >
               {isRegistering ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
-              {isRegistering ? 'Publishing…' : artistStudioLocked ? 'Create profile first' : 'Publish release'}
+              {isRegistering ? 'Publishing…' : publicationQuarantined ? 'Publishing paused' : artistStudioLocked ? 'Create profile first' : 'Publish release'}
             </button>
           ) : (
             <button className='primary-action compact-action' type='button' onClick={onGoToNextStep}>

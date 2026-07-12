@@ -37,7 +37,6 @@ type RoomPlaybackMode = 'full' | 'preview'; // preview is legacy wire compatibil
 type RoomMetadata = {
   roomId: string;
   title: string;
-  hostAddress?: `0x${string}`;
   hostDisplayName?: string;
   currentTrack?: {
     title: string;
@@ -51,6 +50,10 @@ type RoomMetadata = {
   createdAt: string;
 };
 ```
+
+Public room payloads deliberately omit wallet addresses, `audioRef`, and
+source-bearing manifest references. The cover, title, artist, host pseudonym,
+access label, real presence, and playback state are sufficient to enter a room.
 
 ## Unauthorized host fallback
 

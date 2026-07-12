@@ -65,9 +65,9 @@ function shouldMaterializeRemoteSource(source: string) {
 
 export type UseSessionDeps = {
   signalUrl: string;
-  // Optional wallet address of the host, surfaced in public room metadata.
-  // Never used for listener access: rooms are host-access based.
-  hostAddress?: string | null;
+  // Optional local identity key used only to remember a display name on this
+  // browser. It never crosses the anonymous room signaling boundary.
+  identityAddress?: string | null;
   audioSource: string | null;
   trackInfo: TrackInfo | null;
   setTrackInfo: (info: TrackInfo | null) => void;
@@ -80,7 +80,8 @@ export type UseSessionDeps = {
 };
 
 export function useSession(deps: UseSessionDeps) {
-  const { signalUrl, hostAddress, setTrackInfo, setPlayerState, localAudioRef, objectUrlsRef, resolvedAudioSourcesRef, navigateToView, setAudioSource } = deps;
+  const { signalUrl, identityAddress, setTrackInfo, setPlayerState, localAudioRef, objectUrlsRef, resolvedAudioSourcesRef, navigateToView, setAudioSource } =
+    deps;
 
   const [roomId, setRoomId] = useState('');
   const [hostName, setHostName] = useState('');
@@ -97,8 +98,9 @@ export function useSession(deps: UseSessionDeps) {
   const [displayName, setDisplayName] = useState('Listener');
   const [localStreamReady, setLocalStreamReady] = useState(false);
   const [isRefreshingRooms, setIsRefreshingRooms] = useState(false);
-  // Host-declared playback mode for the room: 'preview' when the host lacks
-  // access to the current protected track and streams the 42% fallback.
+  // `preview` is retained only for backward-compatible signaling payloads.
+  // Access model v2 creates and updates current rooms in `full` mode; a host
+  // without access sends no protected audio.
   const [roomPlaybackMode, setRoomPlaybackMode] = useState<'full' | 'preview'>('full');
   // Room social layer. Chat mirrors the server's capped in-room history;
   // the reaction feed keeps a short sliding window that the player view
@@ -726,7 +728,7 @@ export function useSession(deps: UseSessionDeps) {
     // Persist the chosen name on submit (not on every keystroke): storeDisplayName
     // no-ops for the untouched default, so a connected host is remembered without
     // recording a partial name typed into the create sheet.
-    storeDisplayName(hostAddress, displayName);
+    storeDisplayName(identityAddress, displayName);
     setSessionAction('creating');
     changeMode('host');
     navigateToView('player');
@@ -736,7 +738,7 @@ export function useSession(deps: UseSessionDeps) {
 
     emitAckWhenConnected<CreateRoomResponse>(
       'room:create',
-      { displayName, track: currentTrackInfo, hostAddress: hostAddress ?? null, playbackMode },
+      { displayName, track: currentTrackInfo, playbackMode },
       (response: CreateRoomResponse) => {
         setSessionAction('idle');
         if (!response.ok) {
@@ -775,7 +777,7 @@ export function useSession(deps: UseSessionDeps) {
     // Persist the chosen name on a real join (not on every keystroke). No-ops
     // for the untouched default, so link/QR guests joining as "Listener" are
     // not recorded. A silent reconnect goes through rejoinRoom, not here.
-    storeDisplayName(hostAddress, joinDisplayName);
+    storeDisplayName(identityAddress, joinDisplayName);
     changeMode('listener');
     setSessionAction('joining');
     navigateToView('player');
@@ -860,7 +862,7 @@ export function useSession(deps: UseSessionDeps) {
       return;
     }
 
-    storeDisplayName(hostAddress, clean);
+    storeDisplayName(identityAddress, clean);
     if (!roomIdRef.current) return;
 
     const socket = connectSocket();

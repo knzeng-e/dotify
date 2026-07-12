@@ -40,6 +40,7 @@ import { getStoredDisplayName, isChosenDisplayName } from '../features/identity/
 import { getInitialRoomCode } from '../features/rooms/roomState';
 import { deriveSupportSummary } from '../features/wallet/supportSummary';
 import { getStoredArtistName } from '../hooks/useArtistConsole';
+import { normalizeRoomCode } from '../shared/utils/format';
 import type { CatalogTrack, View } from '../shared/types';
 
 const DEFAULT_ARTIST_NAME = 'Dotify Artist';
@@ -66,6 +67,28 @@ export function ListenerShell() {
   const { paidTracks, supportedArtists } = deriveSupportSummary(catalog.catalogTracks, catalog.catalogPaidAccessByTrackId);
   const roomId = session.roomId;
   const setSessionDisplayName = session.setDisplayName;
+  const initialRoomCode = getInitialRoomCode();
+  const targetRoomCode = initialRoomCode || normalizeRoomCode(session.joinCode);
+  const thresholdRoom = session.openRooms.find(room => room.roomId === targetRoomCode);
+  const thresholdState =
+    !initialRoomCode || roomId
+      ? 'idle'
+      : thresholdRoom
+        ? 'ready'
+        : session.socketStatus === 'error' || (session.socketStatus === 'online' && !session.isRefreshingRooms)
+          ? 'unavailable'
+          : 'resolving';
+  const isRoomGuest = session.mode === 'listener' && Boolean(roomId);
+
+  // `Now` and room share links need real live metadata before the person takes
+  // an action. Connecting here is read-only: it lists public room summaries and
+  // never touches a wallet, key route, or protected source.
+  useEffect(() => {
+    session.requestOpenRooms(true);
+    // The session facade owns socket lifecycle; this initial discovery should
+    // run once per mounted listener shell, not whenever the facade object moves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const initialRoomCode = getInitialRoomCode();
@@ -253,7 +276,9 @@ export function ListenerShell() {
             playback={playback}
             mode={session.mode}
             roomId={session.roomId}
-            locked={Boolean(selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true)}
+            locked={Boolean(
+              !isRoomGuest && selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true
+            )}
             onOpenPlayer={() => navigateToView('player')}
             onOpenArtist={handleOpenArtistProfile}
             onStartRoom={() => setCreateRoomOpen(true)}
@@ -282,6 +307,8 @@ export function ListenerShell() {
           <JoinRoomModal
             displayName={session.displayName}
             joinCode={session.joinCode}
+            room={thresholdRoom}
+            thresholdState={thresholdState}
             sessionAction={session.sessionAction}
             onSetDisplayName={session.setDisplayName}
             onSetJoinCode={session.setJoinCode}

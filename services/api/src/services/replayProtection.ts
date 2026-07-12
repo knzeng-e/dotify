@@ -27,7 +27,11 @@ export type IssuedNonce = {
 
 export type NonceConsumption =
   | { ok: true }
-  | { ok: false; code: 'NONCE_UNKNOWN' | 'NONCE_REUSED' | 'NONCE_EXPIRED' | 'NONCE_ADDRESS_MISMATCH'; reason: string };
+  | {
+      ok: false;
+      code: 'NONCE_UNKNOWN' | 'NONCE_REUSED' | 'NONCE_EXPIRED' | 'NONCE_ADDRESS_MISMATCH' | 'NONCE_CHAIN_MISMATCH';
+      reason: string;
+    };
 
 const nonces = new Map<string, NonceRecord>();
 
@@ -48,17 +52,18 @@ export function issueNonce(address: string, chainId: number): IssuedNonce {
     address: address.toLowerCase(),
     chainId,
     expiresAtMs,
-    used: false,
+    used: false
   });
 
   return { nonce, expiresAt: new Date(expiresAtMs).toISOString() };
 }
 
 /**
- * Consume a nonce for `address`. Succeeds at most once per nonce.
- * Unknown, expired, reused, or address-mismatched nonces are rejected.
+ * Consume a nonce for `address` and `chainId`. Succeeds at most once per
+ * nonce. Unknown, expired, reused, address-mismatched, or chain-mismatched
+ * nonces are rejected.
  */
-export function consumeNonce(nonce: string, address: string): NonceConsumption {
+export function consumeNonce(nonce: string, address: string, chainId: number): NonceConsumption {
   const now = Date.now();
   const record = nonces.get(nonce);
 
@@ -74,6 +79,9 @@ export function consumeNonce(nonce: string, address: string): NonceConsumption {
   }
   if (record.address !== address.toLowerCase()) {
     return { ok: false, code: 'NONCE_ADDRESS_MISMATCH', reason: 'Nonce was issued to a different address.' };
+  }
+  if (record.chainId !== chainId) {
+    return { ok: false, code: 'NONCE_CHAIN_MISMATCH', reason: 'Nonce was issued for a different network. Request a new challenge.' };
   }
 
   record.used = true;

@@ -34,10 +34,12 @@ export default function App() {
     };
   }, []);
 
-  // Locked Living Light direction: aurora ambient + lights-down listening.
+  // Thresholds direction: a warm editorial commons where a work opens a space.
+  // The aura variables still carry real track identity, but no longer render a
+  // permanent galaxy/console backdrop.
   useEffect(() => {
-    document.body.classList.add('ambient-aurora', 'lights-down');
-    return () => document.body.classList.remove('ambient-aurora', 'lights-down');
+    document.body.classList.add('dotify-thresholds');
+    return () => document.body.classList.remove('dotify-thresholds');
   }, []);
 
   // Aura engine: paint the whole field with the active track (or artist) light.

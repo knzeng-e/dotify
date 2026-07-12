@@ -2,7 +2,6 @@ import { BadgeCheck, Disc3, ExternalLink, FileAudio, LockKeyhole, RefreshCw, Spa
 import { useState } from 'react';
 import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
 import { shorten } from '../../shared/utils/format';
-import { deployments } from '../../shared/config/deployments';
 import { isTrackManagedByArtist } from '../../features/catalog/trackModel';
 import { useReleaseForm, useWalletContext, useUiFeedback, useCatalogContext, useArtistStudio } from '../../app/providers';
 
@@ -17,7 +16,10 @@ export function ArtistOnboarding() {
   const artistRegistrationStatus = artistConsole.artistRegistrationStatus;
   const isRegisteringArtist = artistConsole.isRegisteringArtist;
   const isRefreshingArtistRuntime = artistConsole.isRefreshingArtistRuntime;
-  const artistRegistrationAvailable = Boolean(deployments.factory && deployments.directory);
+  const artistRegistrationConfigured = artistConsole.artistRegistrationConfigured;
+  const artistRegistrationAvailable = artistConsole.artistRegistrationAvailable;
+  const artistPublicationQuarantined = artistConsole.artistPublicationQuarantined;
+  const artistPublicationQuarantineReason = artistConsole.artistPublicationQuarantineReason;
   const artistTracks = connectedWallet ? catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName)) : [];
   const onUpdateArtistName = (name: string) => artistConsole.updateArtistName(name, setArtistName);
   const onRegisterArtist = artistConsole.registerArtist;
@@ -29,10 +31,20 @@ export function ArtistOnboarding() {
   const [consented, setConsented] = useState(false);
   const needsWallet = !connectedWallet;
   const canRegister = Boolean(artistRegistrationAvailable && connectedWallet && artistName.trim() && consented && !isRegisteringArtist);
-  const registrationStatus = connectedWallet ? artistRegistrationStatus : 'Connect your wallet to claim an artist profile.';
+  const registrationStatus = artistPublicationQuarantined
+    ? artistPublicationQuarantineReason
+    : connectedWallet
+      ? artistRegistrationStatus
+      : 'Connect your wallet to claim an artist profile.';
 
   return (
     <div className='artist-onboarding'>
+      {artistPublicationQuarantined && (
+        <div className='artist-publication-quarantine' role='status'>
+          <strong>Artist publishing is temporarily paused.</strong>
+          <span>{artistPublicationQuarantineReason}</span>
+        </div>
+      )}
       <section className='artist-claim-hero' aria-labelledby='artist-claim-title'>
         <div className='artist-claim-copy'>
           <div className='artist-claim-kicker'>
@@ -160,7 +172,7 @@ export function ArtistOnboarding() {
                 className='secondary-action compact-action'
                 type='button'
                 onClick={onRefreshArtistRuntime}
-                disabled={isRefreshingArtistRuntime || !artistRegistrationAvailable || !connectedWallet}
+                disabled={isRefreshingArtistRuntime || !artistRegistrationConfigured || !connectedWallet}
               >
                 {isRefreshingArtistRuntime ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
                 {isRefreshingArtistRuntime ? 'Refreshing...' : 'Refresh status'}
@@ -183,6 +195,25 @@ export function ArtistOnboarding() {
         .artist-onboarding {
           width: 100%;
           color: var(--fg-primary);
+        }
+
+        .artist-publication-quarantine {
+          display: grid;
+          gap: 0.35rem;
+          max-width: 72rem;
+          margin: 1rem auto 0;
+          border: 1px solid rgba(230, 0, 122, 0.2);
+          border-radius: 16px;
+          background: rgba(230, 0, 122, 0.07);
+          padding: 1rem 1.15rem;
+        }
+
+        .artist-publication-quarantine strong {
+          color: var(--color-pink);
+        }
+
+        .artist-publication-quarantine span {
+          color: var(--fg-secondary);
         }
 
         .onboarding-container {

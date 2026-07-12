@@ -2,16 +2,29 @@
 
 All contracts are deployed on **Paseo Asset Hub** (`chainId 420420417`). Source lives in `Dotify/contracts/evm/contracts/`.
 
+> **Pre-fix deployment warning (2026-07-12):** this reference describes the
+> current source contract. The configured Paseo factory and indexed runtimes
+> still use the registry facet deployed before `musicRegRegister` became
+> runtime-owner-only. The caller rule below is therefore not true on those
+> addresses yet. Existing artist owners must hotfix the registration selector,
+> and the system also needs a corrected factory/directory generation plus
+> catalog migration before publication is production-safe. See the
+> [registry remediation runbook](../operations/registry-facet-remediation.md).
+
 **Configured deployments:**
 
 - `ArtistRuntimeFactory`: see `deployments.json`
 - `ArtistDirectory`: see `deployments.json`
 - `DotifyRuntimeInitializer`: see `deployments.json`
 
-After any contract change, redeploy with `npm run deploy:testnet` from
-`contracts/evm`. The deploy script rewrites both `deployments.json` and
-`web/src/shared/config/deployments.ts`; those files are the app's active address
-book.
+Do not use a full system redeploy for a live-runtime facet hotfix. Follow the
+owner-led remediation runbook; its tooling never rewrites active address files.
+The repository does not yet contain the candidate-only deployment and catalog
+import tooling required for a new system generation. The existing
+`npm run deploy:testnet` command rewrites both `deployments.json` and
+`web/src/shared/config/deployments.ts`; do not use it as a candidate deployment
+command. Build and validate the migration tooling described in the runbook
+before any separately approved active-address cutover.
 
 ---
 
@@ -181,7 +194,9 @@ function musicRegRegister(
 
 Registers a new track. Mints an NFT via `MusicNFTPallet` and stores royalty splits in `MusicRoyaltiesPallet`.
 
-**Caller must be:** Runtime owner (the artist).
+**Caller must be in current source:** Runtime owner (the artist). This is
+contract-tested locally, including a one-selector state-preserving hotfix, but
+not yet deployed to the configured Paseo runtimes; see the warning above.
 
 **Reverts if:**
 

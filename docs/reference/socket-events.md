@@ -55,7 +55,6 @@ Creates a new room. The caller becomes the host.
 // Emit
 socket.emit('room:create', {
   displayName: string,
-  hostAddress?: string | null,
   track: TrackInfo | null,
   playbackMode?: 'full' | 'preview',
 }, (response: CreateRoomResponse) => { ... });
@@ -138,6 +137,10 @@ socket.on('room:closed', (payload: { reason?: string }) => { ... });
 
 Updates the track being played in the room. Displayed in the Rooms list and the listener's now-playing panel.
 
+The server emits a public room-track snapshot only. It strips `audioRef`,
+`metadataRef`, and other source-bearing manifest references before storage or
+broadcast; listeners obtain sound exclusively through WebRTC.
+
 ```typescript
 // Host emits
 socket.emit('room:track', track /* TrackInfo | null */);
@@ -152,8 +155,9 @@ socket.on('room:track', (track: TrackInfo | null) => { ... });
 
 **Direction:** Client (host) → Server → Listeners
 
-Updates the host-declared room playback mode. `preview` means the host is
-streaming the 42% fallback because full access was not available.
+Updates the host-declared room playback mode. Current access-v2 rooms use
+`full`; a host without access sends no protected audio. `preview` remains an
+accepted legacy wire value only and must not be treated as a product promise.
 
 ```typescript
 // Host emits
@@ -162,6 +166,13 @@ socket.emit('room:playback-mode', { playbackMode: 'full' | 'preview' });
 // Listener receives
 socket.on('room:playback-mode', (payload: { playbackMode?: 'full' | 'preview' }) => { ... });
 ```
+
+## Peer relay authorization
+
+`webrtc:offer`, `webrtc:answer`, `webrtc:ice-candidate`, and
+`peer:connected` are relayed only between the verified host and one verified
+listener in the same room. Outsiders, cross-room targets, listener-to-listener
+targets, and protocol-invalid directions are dropped.
 
 ---
 

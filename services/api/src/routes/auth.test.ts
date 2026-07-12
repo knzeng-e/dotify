@@ -54,6 +54,21 @@ describe('GET /api/auth/session', () => {
   });
 });
 
+describe('POST /api/auth/nonce', () => {
+  it('rejects a challenge request for a different chain', async () => {
+    const server = await buildApp();
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/auth/nonce',
+      payload: { address: ADDRESS, chainId: 420420418 }
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().code, 'CHAIN_ID_MISMATCH');
+    assert.match(response.json().error, /wrong network/i);
+  });
+});
+
 describe('POST /api/auth/session', () => {
   it('exchanges a valid sign-in signature for a session token', async () => {
     const server = await buildApp();
@@ -89,6 +104,31 @@ describe('POST /api/auth/session', () => {
     const server = await buildApp();
     const response = await server.inject({ method: 'POST', url: '/api/auth/session', payload: sessionBody({ address: 'not-an-address' }) });
     assert.equal(response.statusCode, 400);
+  });
+
+  it('rejects a different-chain sign-in before verification or token issuance', async () => {
+    let verificationCalled = false;
+    let issuanceCalled = false;
+    const server = await buildApp({
+      verifySignInRequest: async () => {
+        verificationCalled = true;
+        return { valid: true };
+      },
+      issueSessionToken: () => {
+        issuanceCalled = true;
+        return { ok: true, token: 'payload.signature', expiresAt: new Date(Date.now() + 1000).toISOString() };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/auth/session',
+      payload: sessionBody({ chainId: 420420418 })
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().code, 'CHAIN_ID_MISMATCH');
+    assert.equal(verificationCalled, false);
+    assert.equal(issuanceCalled, false);
   });
 });
 

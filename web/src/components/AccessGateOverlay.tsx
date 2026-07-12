@@ -13,6 +13,9 @@ export function AccessGateOverlay({
   onPay?: () => void;
   onSignIn?: () => void;
 }) {
+  const configuredSplitBps = gate.track.royaltySplits.reduce((total, split) => total + split.bps, 0);
+  const artistRemainderBps = Math.max(0, 10_000 - configuredSplitBps);
+
   return (
     <Dialog
       className='access-gate'
@@ -35,10 +38,35 @@ export function AccessGateOverlay({
         <p className='access-gate-hint'>{gate.hint}</p>
       </div>
       {gate.track.accessMode === 'classic' && (
-        <div className='access-gate-price' aria-label={`Unlock price ${gate.track.priceDot} DOT`}>
-          <span>Full song</span>
-          <strong>{gate.track.priceDot} DOT</strong>
-        </div>
+        <section className='access-gate-receipt' aria-label={`Support summary for ${gate.track.title}`}>
+          <div className='access-gate-price' aria-label={`Support amount ${gate.track.priceDot} DOT`}>
+            <span>Total support</span>
+            <strong>{gate.track.priceDot} DOT</strong>
+          </div>
+          <dl>
+            <div>
+              <dt>You receive</dt>
+              <dd>Durable listening access for this wallet</dd>
+            </div>
+            {gate.track.royaltySplits.map((split, index) => (
+              <div key={`${split.recipient}-${index}`}>
+                <dt>{split.label || `Collaborator ${index + 1}`}</dt>
+                <dd>{(split.bps / 100).toFixed(split.bps % 100 === 0 ? 0 : 2)}%</dd>
+              </div>
+            ))}
+            {artistRemainderBps > 0 && (
+              <div>
+                <dt>Original artist remainder</dt>
+                <dd>{(artistRemainderBps / 100).toFixed(artistRemainderBps % 100 === 0 ? 0 : 2)}%</dd>
+              </div>
+            )}
+            <div>
+              <dt>Network fee</dt>
+              <dd>Shown by your confirmation method</dd>
+            </div>
+          </dl>
+          <p>The artist-owned runtime applies this split when the support is confirmed.</p>
+        </section>
       )}
       <div className='access-gate-actions'>
         {gate.actionType === 'payment' && onPay && (
@@ -47,9 +75,9 @@ export function AccessGateOverlay({
             type='button'
             data-testid='classic-unlock-button'
             onClick={onPay}
-            aria-label={`Unlock ${gate.track.title} for ${gate.track.priceDot} DOT`}
+            aria-label={`Support the artist and open ${gate.track.title} for ${gate.track.priceDot} DOT`}
           >
-            Unlock listening
+            Support and open - {gate.track.priceDot} DOT
           </button>
         )}
         {gate.actionType === 'signin' && onSignIn && (

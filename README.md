@@ -38,9 +38,19 @@ iteration can move signaling to statement-store style infrastructure.
 
 ## Deployed
 
-**EVM factory** — `0x74ba85c2b29d2acb3777b9b3ca26c286945cae3c` (Paseo Asset Hub, chainId 420420417)
+**EVM factory** — `0x824ea33000e5e2ca9ddad030befa7331b38c41ce` (Paseo Asset Hub, chainId 420420417)
 
-**EVM directory** — `0xdd92194909df3dc5c3d254b53f7283d025c35d8c`
+**EVM directory** — `0x7f90d15b5ec5f3a668e4dc14def3fe1c876dde0c`
+
+> **Testnet security status (2026-07-12):** the configured factory and its
+> existing runtimes still route `musicRegRegister` to a registry pallet deployed
+> before the runtime-owner check was added. The source and contract tests now
+> reject outsider registration, but this guarantee is **not deployed yet**.
+> Hosted production builds quarantine new runtime creation and release
+> registration. Existing runtimes must be owner-upgraded and the immutable
+> factory/directory generation must be
+> replaced with catalog continuity before publication reopens. Follow the
+> [registry remediation runbook](docs/operations/registry-facet-remediation.md).
 
 **Bulletin CID** — `bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny`
 

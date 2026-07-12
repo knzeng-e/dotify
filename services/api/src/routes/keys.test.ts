@@ -156,6 +156,31 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
     assert.equal(response.statusCode, 503);
     assert.equal(response.json().code, 'KEY_SERVICE_NOT_CONFIGURED');
   });
+
+  it('rejects a signed request for a different chain before verification or access checks', async () => {
+    let verificationCalled = false;
+    let accessChecked = false;
+    const server = await buildApp({
+      verifySignedRequest: async () => {
+        verificationCalled = true;
+        return { valid: true };
+      },
+      checkTrackAccess: async () => {
+        accessChecked = true;
+        return { allowed: true, runtime: RUNTIME };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: baseBody({ chainId: 420420418 })
+    });
+
+    assert.equal(response.statusCode, 401);
+    assert.equal(response.json().code, 'CHAIN_ID_MISMATCH');
+    assert.equal(verificationCalled, false);
+    assert.equal(accessChecked, false);
+  });
 });
 
 describe('POST /api/tracks/:contentHash/key-request (session token path)', () => {
@@ -209,6 +234,32 @@ describe('POST /api/tracks/:contentHash/key-request (session token path)', () =>
     const body = response.json();
     assert.equal(body.access, 'denied');
     assert.equal(body.contentKey, undefined);
+  });
+
+  it('rejects a session for a different chain before access checks or key derivation', async () => {
+    let accessChecked = false;
+    let keyDerived = false;
+    const server = await buildApp({
+      verifySessionToken: () => ({ valid: true, address: SESSION_ADDRESS, chainId: 420420418, jti: 'wrong-chain' }),
+      checkTrackAccess: async () => {
+        accessChecked = true;
+        return { allowed: true, runtime: RUNTIME };
+      },
+      deriveContentKey: () => {
+        keyDerived = true;
+        return { ok: true, contentKey: KEY };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: { sessionToken: 'a'.repeat(32), purpose: 'individual' }
+    });
+
+    assert.equal(response.statusCode, 401);
+    assert.equal(response.json().code, 'CHAIN_ID_MISMATCH');
+    assert.equal(accessChecked, false);
+    assert.equal(keyDerived, false);
   });
 });
 

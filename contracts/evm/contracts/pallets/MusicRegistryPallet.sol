@@ -66,6 +66,8 @@ contract MusicRegistryPallet {
   /// @param recipients  Royalty recipient addresses (at least one required).
   /// @param bps         Basis points for each recipient; must sum to ≤ 10 000.
   function musicRegRegister(TrackRegistration calldata reg, address[] calldata recipients, uint16[] calldata bps) external {
+    LibDiamond.enforceIsContractOwner();
+
     LibMusicRegistry.Storage storage rs = LibMusicRegistry.store();
     _validateRegistration(rs, reg);
 

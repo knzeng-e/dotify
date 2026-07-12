@@ -159,7 +159,7 @@ export function ArtistProfileView({
             </div>
             <div>
               <strong>Direct support</strong>
-              <span>When a release has a price, listeners see it before unlocking.</span>
+              <span>When a release has a price, listeners see its terms before supporting and opening it.</span>
             </div>
           </div>
         </section>
@@ -190,7 +190,7 @@ export function ArtistProfileView({
                   <CoverImage src={track.imageRef} alt='' />
                   <div>
                     <strong>{track.title}</strong>
-                    <span>{track.description || 'A Dotify release ready for preview, rooms, and direct support.'}</span>
+                    <span>{track.description || 'A Dotify release ready for listening rooms and direct support.'}</span>
                     <small aria-label={catalogAccessAriaLabel(track, hasCatalogAccess)}>{catalogAccessLabel(track)}</small>
                   </div>
                 </article>

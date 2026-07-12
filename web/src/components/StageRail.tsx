@@ -127,7 +127,7 @@ export function StageRail({ tracks, accessByTrackId, selectedTrackId, onOpenTrac
               <span className='stage-copy'>
                 <strong>{track.title}</strong>
                 <span>{track.artist}</span>
-                <small data-access={unlocked ? 'granted' : 'locked'}>{unlocked ? 'Unlocked for this wallet' : catalogAccessLabel(track)}</small>
+                <small data-access={unlocked ? 'granted' : 'locked'}>{unlocked ? 'Opened for this wallet' : catalogAccessLabel(track)}</small>
               </span>
             </button>
           );

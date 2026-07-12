@@ -411,6 +411,116 @@
         .visual-caption { bottom: 12px; left: 12px; right: 12px; }
         .site-footer { flex-direction: column; align-items: flex-start; }
       }
+
+      /* Thresholds - selected product direction. The public page now mirrors
+         the warm editorial app layer while retaining Dotify's deep-blue trust
+         color, cyan action, and restrained Polkadot pink. */
+      :root {
+        color-scheme: light;
+        --navy: #101a2d;
+        --ink: #111d31;
+        --cyan: #00b98e;
+        --green: #257a57;
+        --pink: #e6007a;
+        --gold: #f2b35d;
+        --white: #111d31;
+        --muted: #5e6674;
+        --soft: rgba(17, 29, 49, 0.055);
+        --border: rgba(17, 29, 49, 0.14);
+        --shadow-1: 0 20px 54px -42px rgba(17,29,49,0.38);
+        --shadow-2: 0 34px 84px -52px rgba(17,29,49,0.48);
+        --radius: 18px;
+      }
+      body {
+        background:
+          radial-gradient(circle at 88% 8%, rgba(85,184,198,0.14), transparent 29rem),
+          #f3efe5;
+        color: var(--ink);
+      }
+      .top-nav {
+        border-bottom-color: var(--border);
+        background: rgba(255,250,240,0.9);
+      }
+      .brand { color: var(--ink); }
+      .brand-dot {
+        border-radius: 50% 50% 11px 11px;
+        background: var(--navy);
+        color: #fffaf0;
+        box-shadow: none;
+      }
+      .nav-right a {
+        border-radius: 999px;
+        background: rgba(255,255,255,0.44);
+        color: var(--ink);
+      }
+      .nav-right a:hover { background: var(--cyan); color: #041a14; }
+      .eyebrow {
+        border-color: rgba(230,0,122,0.18);
+        background: rgba(230,0,122,0.07);
+        color: var(--pink);
+      }
+      .hero-copy h1,
+      .section-head h2 {
+        font-family: Iowan Old Style, Baskerville, Times New Roman, serif;
+        color: var(--ink);
+        font-weight: 600;
+        letter-spacing: -0.05em;
+      }
+      .hero-copy p,
+      .section-head p,
+      .info-card p,
+      .flow-step p,
+      .value-row p,
+      .site-footer p,
+      .site-footer a { color: var(--muted); }
+      .btn { border-radius: 12px; }
+      .btn-primary { background: var(--cyan); color: #041a14; border-color: var(--cyan); box-shadow: none; }
+      .btn-primary:hover { background: #16cba0; }
+      .btn-secondary { background: rgba(255,255,255,0.48); color: var(--ink); }
+      .btn-secondary:hover { background: #fffaf0; }
+      .hero-visual {
+        border: 0;
+        border-radius: 50% 50% 28px 28px / 15% 15% 28px 28px;
+        background: var(--navy);
+        box-shadow: var(--shadow-2);
+      }
+      .visual-caption {
+        border-color: rgba(255,255,255,0.14);
+        border-radius: 16px;
+        background: rgba(16,26,45,0.8);
+      }
+      .visual-caption strong { color: #fffaf0; }
+      .visual-caption span { color: rgba(255,250,240,0.7); }
+      .section-band,
+      .manifesto-band,
+      .site-footer { border-color: var(--border); }
+      .info-card,
+      .flow-step,
+      .value-row {
+        border-color: var(--border);
+        border-radius: 24px;
+        background: #fffaf0;
+        box-shadow: var(--shadow-1);
+      }
+      .info-card h3,
+      .flow-step h3,
+      .value-row strong { color: var(--ink); }
+      .flow-step .step-badge { background: #f9e2be; color: #7b4b0c; }
+      .manifesto-band {
+        margin: 24px 0;
+        border: 0;
+        border-radius: 44px 44px 24px 24px;
+        background: var(--navy);
+        padding-inline: clamp(20px, 5vw, 64px);
+      }
+      .manifesto-band blockquote {
+        color: #fffaf0;
+        font-family: Iowan Old Style, Baskerville, Times New Roman, serif;
+      }
+      .manifesto-band cite { color: #f2b35d; }
+      @media (prefers-reduced-motion: reduce) {
+        .btn:hover { transform: none; }
+      }
     </style>
   </head>
   <body>
@@ -431,23 +541,23 @@
     <main>
       <section class="hero-section">
         <div class="hero-copy">
-          <span class="eyebrow">Dotify / Muzinga &middot; Polkadot spirit</span>
-          <h1>Let the music connect the dots.</h1>
+          <span class="eyebrow">Dotify / Thresholds &middot; Polkadot</span>
+          <h1>Every work can open a space.</h1>
           <p>
-            A decentralized cultural social hub for real-time shared listening,
-            artist-owned smart runtimes, protected audio access, and human-centered music discovery.
+            Open a link, enter a real listening moment, and meet an artist through
+            human presence. Rights, keys, and value stay trustworthy underneath.
           </p>
           <div class="hero-actions">
-            <a class="btn btn-primary" href="Dotify_presentation.pptx">Open the presentation</a>
+            <a class="btn btn-primary" href="design/dotify-thresholds.md">Explore the product blueprint</a>
+            <a class="btn btn-secondary" href="Dotify_presentation.pptx">Open the presentation</a>
             <a class="btn btn-secondary" href="backlog/README.md">Production backlog</a>
-            <a class="btn btn-secondary" href="context/README.md">Project memory</a>
           </div>
         </div>
         <aside class="hero-visual" aria-label="Dotify music network visualization">
           <canvas id="flow-canvas"></canvas>
           <div class="visual-caption">
-            <strong>create a room &rarr; share a link &rarr; listen together</strong>
-            <span>Host, listeners, and artist connected in real time.</span>
+            <strong>open a work &rarr; share its threshold &rarr; listen together</strong>
+            <span>The guest meets the music and the people before the wallet.</span>
           </div>
         </aside>
       </section>
@@ -456,51 +566,51 @@
         <div class="section-head">
           <h2>Not a Spotify clone</h2>
           <p>
-            Spotify optimizes individual consumption. Dotify optimizes shared musical presence,
-            artist sovereignty, and cultural transmission.
+            A streaming feed optimizes individual consumption. Dotify starts with a work,
+            lets someone open a shared space around it, and keeps the artist in control.
           </p>
         </div>
         <div class="card-grid">
           <article class="info-card">
             <h3>For listeners</h3>
-            <p>Discover music through people, not only algorithms. Join a room and enter the same listening moment.</p>
+            <p>Open a shared link, see who welcomes you, and hear the same moment without an account or wallet checkpoint.</p>
           </article>
           <article class="info-card">
             <h3>For artists</h3>
-            <p>Publish through artist-owned SmartRuntimes with access policy, royalties, and protected audio references.</p>
+            <p>Publish through an artist-owned SmartRuntime and choose how each listening door opens, how value splits, and how the work travels.</p>
           </article>
           <article class="info-card">
             <h3>For communities</h3>
-            <p>Turn isolated listening into a living cultural commons where music travels through human presence.</p>
+            <p>Turn isolated listening into temporary cultural commons without building an advertising profile or an infinite social feed.</p>
           </article>
         </div>
       </section>
 
       <section class="section-band">
         <div class="section-head">
-          <h2>Production spine</h2>
-          <p>Keys, access, and room infrastructure are in place. The current focus: the v2 access model (free, paid, or free-for-humans, chosen by the artist and changeable on-chain), fast encrypted streaming, and keeping the experience simple enough to feel human.</p>
+          <h2>Production spine before spectacle</h2>
+          <p>The first Thresholds slice joins product clarity to enforceable boundaries: room guests stay wallet-free, public room payloads omit protected source references, and the backend verifies the audio identity it encrypts. Artist publication remains paused while the deployed owner boundary is remediated.</p>
         </div>
         <div class="flow-steps">
           <div class="flow-step">
             <span class="step-badge">01</span>
-            <h3>Secure keys</h3>
-            <p>Delivered. Pinata uploads and content-key delivery live behind a backend boundary; audio is encrypted server-side.</p>
+            <h3>Enter and hear</h3>
+            <p>A room link resolves real host, work, and presence metadata before the guest chooses a local name and enters.</p>
           </div>
           <div class="flow-step">
             <span class="step-badge">02</span>
-            <h3>Unlock access</h3>
-            <p>Delivered. Wallet-signed key requests with replay protection and on-chain access checks before full playback.</p>
+            <h3>Protect the work</h3>
+            <p>Room guests receive the ephemeral host stream, never a content key or protected source reference. Individual key release follows a server-side access decision.</p>
           </div>
           <div class="flow-step">
             <span class="step-badge">03</span>
-            <h3>Stabilize rooms</h3>
-            <p>Delivered. Hosted signaling with one-link joins, heartbeats, expiry, and reconnect states.</p>
+            <h3>Preserve sovereignty</h3>
+            <p>The source now restricts registration to the runtime owner. New runtime creation and release registration stay paused until existing runtimes, the future factory/directory, and catalog continuity are all verified.</p>
           </div>
           <div class="flow-step">
             <span class="step-badge">04</span>
-            <h3>Test critical flows</h3>
-            <p>In progress. Classic unlock, artist publish, and room join have deterministic e2e coverage; the v2 access model (no previews, three artist-chosen doors) is landing now.</p>
+            <h3>Prove critical flows</h3>
+            <p>Contracts, API, signaling, unit, and deterministic browser tests cover the functional spine; real-device WebRTC and DAV2 validation remain release evidence.</p>
           </div>
         </div>
       </section>
@@ -510,6 +620,10 @@
           <h2>Design principles</h2>
         </div>
         <div class="value-list">
+          <div class="value-row">
+            <strong>The link is the threshold</strong>
+            <p>Show the host, work, real presence, and sound state first. Ask for identity or confirmation only when the chosen action requires it.</p>
+          </div>
           <div class="value-row">
             <strong>Fail closed on access</strong>
             <p>Ambiguous access decisions deny playback. No silent fallbacks. The policy is the truth.</p>
@@ -531,8 +645,8 @@
 
       <div class="manifesto-band">
         <blockquote>
-          Dotify must be as simple as a shared link, as alive as a listening room,
-          as fair as an auditable access policy, and as deep as a cultural commons.
+          The blockchain belongs in the guarantees. The music, the artist,
+          and the people belong at the threshold.
         </blockquote>
         <cite>Dotify / Muzinga &mdash; Polkadot Builder Program, Lisbon 2026</cite>
       </div>
