@@ -12,15 +12,18 @@ blocked by the production spine and explicit consent/anti-abuse designs.
 ## Objective
 
 Preserve the functional Thresholds slice while rebuilding its UI from a blank
-canvas as `Shared Score`, without rewriting the proven standalone domain:
+canvas as `Shared Score` amended by the track-driven Living Light presentation,
+without rewriting the proven standalone domain:
 
-- a room share link shows real host/work/presence metadata before entry;
-- `Now` discovers live rooms without waiting for a navigation click;
-- the visual hierarchy is precise, editorial, and temporal rather than a dark
-  dashboard, constellation, or restyle of the historical shell;
+- a room share link shows real host, track, and presence metadata before entry;
+- `Music` discovers live rooms without waiting for a navigation click;
+- the visual hierarchy is a deep listening room lit by real track/artist aura,
+  not a dashboard, fake constellation, or restyle of the historical shell;
 - paid denial is an honest closed door with no retired 42-percent preview claim;
 - the invisible guarantees behind publishing, upload identity, and WebRTC relay
-  are hardened and tested.
+  are hardened and tested;
+- artist publishing stays open on the fresh attested deployment and supports
+  multi-recipient royalty splits in the release workflow.
 
 Current UI system, information architecture, wireframes, accessibility,
 performance, and capability mapping:
@@ -35,7 +38,7 @@ remains in the
 
 - Load public room summaries when the listener shell mounts.
 - Resolve the room targeted by `#/rooms/<roomId>`.
-- Present its host, work, real presence count, room code, and wallet-free
+- Present its host, track, real presence count, room code, and wallet-free
   promise in the existing join dialog.
 - Preserve the deliberate first-time pseudonym step and remembered-name
   auto-join behavior.
@@ -44,17 +47,31 @@ remains in the
 ### Presentation
 
 - Remove the historical stylesheet and the layered `thresholds.css` override;
-  load one modular Shared Score design system as the only visual foundation.
+  load one modular design system with Shared Score structure and Living Light
+  presentation as the current visual foundation.
 - Replace the rail and four-destination shell with a horizontal desktop header,
-  three intentional destinations (`Now`, `Rooms`, `You`), and a contextual
-  player opened from a work, room, or persistent score dock.
-- Use a warm neutral canvas, deep-blue listening stage, cyan actions, restrained
-  artist pink, thin score rules, and album art as the primary local colour.
-- Remove Constellation Stage/Sky, permanent aura backgrounds, global metrics,
-  and the inline artist-onboarding theme from the rendered experience.
+  three intentional destinations (`Music`, `Rooms`, `You`), and a contextual
+  player opened from a track, room, or persistent player dock.
+- Use a deep navy listening canvas, cyan actions, restrained Polkadot pink,
+  white-on-blue surfaces, thin score rules, and track/artist aura as the primary
+  local colour.
+- Retire the redundant `Now` Stage rail in favor of the catalog grid. Keep the
+  rooms sky only where it reflects real open-room data, not fabricated activity.
 - Keep the finite catalog, real room cards, literal access states, and clear
   empty/error/loading states accessible.
 - Retain all load-bearing e2e selectors and behavior.
+
+### Artist publication and value split
+
+- Keep artist runtime creation and release publication enabled only on the fresh
+  attested factory/directory.
+- The publish form keeps the artist wallet as the primary rights holder and lets
+  the artist add collaborators, producers, labels, or other EVM addresses with
+  basis-point shares.
+- Validate recipient addresses and reject royalty totals over `10000` bps before
+  upload/manifest publication/transaction submission.
+- Write the full recipient/share arrays to `musicRegRegister`, and reflect the
+  total split in the IPFS rights manifest.
 
 ### Security hardening
 
@@ -67,13 +84,16 @@ remains in the
 
 ## Acceptance criteria
 
-- A first-time share-link guest sees the host and live work before joining,
+- A first-time share-link guest sees the host and live track before joining,
   chooses a room name, and enters via `Enter and listen`.
-- Live rooms load on `Now` without wallet or key-service activity.
+- Live rooms load on `Music` without wallet or key-service activity.
 - The deterministic room e2e still proves remote WebRTC audio and zero listener
   key requests.
-- No user-facing source says `Preview - 42%` for a locked work.
+- No user-facing source says `Preview - 42%` for a locked track.
 - An outsider cannot register into another artist's SmartRuntime.
+- The artist publish UI can add additional rights holders, rejects invalid EVM
+  addresses, rejects splits above `10000` bps, and publishes all recipients to
+  the runtime.
 - An audio upload whose claimed hash differs from the received bytes is rejected
   before encryption/pinning.
 - Wrong-chain credentials are rejected before access checks or key derivation.
@@ -147,15 +167,17 @@ Legacy completion matrix:
 ## Delivery notes
 
 The functional slice and source-level hardening are isolated on
-`feat/dotify-thresholds-prod-readiness` in draft PR #92. Shared Score is the
-clean-sheet corrective UI pass on the same ticket branch. Artist publication is
-open on the fresh active deployment described above; the legacy remediation
-work remains documented separately.
+`feat/dotify-thresholds-prod-readiness` in PR #92. Shared Score remains the
+information architecture and honesty model; the rendered presentation is the
+track-driven Living Light layer. Artist publication is open on the fresh active
+deployment described above; the legacy remediation work remains documented
+separately.
 
 Validation evidence (2026-07-12):
 
 - web lint: 0 errors (3 existing hook-dependency warnings);
-- web unit: 133/133, including the fresh-deployment attestation gate and
+- web unit: 136/136, including the fresh-deployment attestation gate, royalty
+  split helper coverage, navigation terminology, and
   handler-level proof that unresolved public safety stops writes before
   wallet/upload side effects;
 - signaling: 42/42;
@@ -166,8 +188,9 @@ Validation evidence (2026-07-12):
   shape, and stable plan digest;
 - deterministic browser flows: 11/11, including delayed room resolution,
   unavailable links, and wallet-free guest boundaries;
-- production web build, publication-safety browser smoke, and Shared Score
-  desktop/mobile/reflow no-overflow visual smoke: passed;
+- production web build and local docs/code whitespace check: passed;
+- publication-safety browser smoke and prior Shared Score desktop/mobile/reflow
+  no-overflow visual smoke: passed before the final royalty/spacing polish;
 - live registry snapshot: completed read-only at finalized block `10904607`;
   the active factory/directory pair, corrected registry code hash, zero
   finalized runtimes, and zero pending runtimes passed the audit;

@@ -16,9 +16,9 @@ Dotify currently uses:
 
 ## Active product surfaces
 
-### Home / Listen
+### Music / Listen
 
-Catalog browsing, track cards, artwork, description, access badges, player, room-hosting controls.
+Catalog browsing, track cards, artwork, description, access badges, player, room-hosting controls, and real open-room discovery.
 
 ### Rooms
 
@@ -28,7 +28,7 @@ Room playback is host-access based: the host may receive a temporary content key
 
 ### Artist portal
 
-Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication, metadata, royalty inputs, access mode configuration, on-chain registration.
+Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication, metadata, primary artist share plus additional rights-holder royalty splits, access mode configuration, on-chain registration.
 
 ## Current important limitations
 
@@ -42,8 +42,10 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
 - Proof of Personhood is currently mocked/dev-operated.
 - Public rooms require hosted signaling.
 - Room guests do not receive keys/source files, but WebRTC audio heard by guests can still be recorded outside Dotify.
-- `App.tsx` is still too monolithic.
-- Frontend/e2e coverage is missing or insufficient.
+- `App.tsx` is now a thin shell switch; the remaining frontend risk is targeted
+  provider/view profiling rather than wholesale extraction.
+- Frontend/e2e coverage exists for the core Classic unlock, artist publish, and
+  room join trust flows; broader wallet-provider/device coverage remains open.
 - Legacy registry paths should be archived or removed.
 - ABI drift risk exists if frontend contract ABIs are manually maintained.
 

@@ -6,13 +6,14 @@ track NFT rights.
 
 Visible product areas:
 
-- `Home`: artist-grouped catalog browsing, track artwork, descriptions, access
+- `Music`: artist-grouped catalog browsing, track artwork, descriptions, access
   badges, policy-aware player, and room hosting.
 - `Rooms`: open room discovery and room-code entry.
 - `/artists`: dedicated artist onboarding and studio flow for artist runtime
-  creation, audio upload, cover upload, royalty splits, Human free / Classic
-  mode selection, Pinata IPFS pinning, optional Bulletin Chain metadata
-  publication, and contract registration.
+  creation, audio upload, cover upload, primary artist share plus additional
+  rights-holder royalty splits, Human free / Classic mode selection, Pinata IPFS
+  pinning, optional Bulletin Chain metadata publication, and contract
+  registration.
 
 ## Run Locally
 
@@ -355,7 +356,8 @@ artist profile, rail collapse) plus `navigateToView`, `openArtistStudio`, and th
 popstate/history integration, so route state is no longer threaded into
 `useCatalog`/`useSession` and the views. `ReleaseFormProvider` (`useReleaseForm`)
 then owns the artist release draft and shared identity fields (title, description,
-artist name, price, royalty split, access mode, personhood level, cover file,
+artist name, price, primary artist share, additional rights-holder royalty
+splits, access mode, personhood level, cover file,
 Bulletin toggle, upload action, studio tab, wizard step) plus the Bulletin manifest
 ref, which retires the write-only `artistConsoleBulletinRef` hack that App.tsx
 carried "to break a circular dependency". `CatalogProvider` (`useCatalogContext`)

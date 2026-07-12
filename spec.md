@@ -20,9 +20,9 @@ The core product promise is:
 
 ## 2. Product Areas
 
-### 2.1 Home / Listen
+### 2.1 Music / Listen
 
-The Home view provides:
+The Music view provides:
 
 - artist-grouped catalog browsing;
 - track artwork, title, artist, description, price, and access mode badges;
@@ -48,7 +48,8 @@ The dedicated `/artists` portal provides:
 - artist runtime creation;
 - audio upload;
 - cover upload;
-- title, description, access mode, price, personhood level, and royalty inputs;
+- title, description, access mode, price, personhood level, primary artist
+  share, and additional rights-holder royalty inputs;
 - server-side audio encryption and Pinata IPFS upload when the backend is configured;
 - canonical IPFS metadata publication;
 - optional advanced Bulletin Chain archival publication;
@@ -341,7 +342,7 @@ If access is denied:
 2. The player shows the exact missing condition: sign in, support/pay, or verify
    personhood.
 3. A room remains open if its host lacks access, but it streams no protected
-   audio until the host unlocks, verifies, or selects a playable work.
+   audio until the host unlocks, verifies, or selects a playable track.
 4. Room guests are never asked to satisfy the host's access policy.
 
 Warning behavior:
@@ -653,7 +654,7 @@ The project reaches a coherent public testnet MVP when:
 - an external artist can connect a real wallet and create a runtime;
 - the artist can upload, encrypt, pin, and register a track;
 - an external listener can browse the registered catalog;
-- a Free work reaches first sound without a wallet;
+- a Free track reaches first sound without a wallet;
 - a Classic listener can pay and unlock full playback;
 - a Human free listener can unlock based on a live personhood source;
 - unauthorized listeners receive no protected audio and see the exact access

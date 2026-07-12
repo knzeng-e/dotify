@@ -21,14 +21,14 @@ the experience.
 
 The outcome should be immediately understandable:
 
-> One work, one shared timeline, and the people hearing it together.
+> One track, one shared timeline, and the people hearing it together.
 
 ## 2. Three concepts
 
 ### A. Shared Score — selected
 
-**Idea.** A listening moment is represented as a score shared by a work, a host,
-and the people present. Time is the organizing axis. The work is the lead line;
+**Idea.** A listening moment is represented as a score shared by a track, a host,
+and the people present. Time is the organizing axis. The track is the lead line;
 presence, access, conversation, and support are quieter supporting lines.
 
 **UI expression.** Precise editorial typography, restrained rules, aligned
@@ -86,12 +86,12 @@ grammar without inventing social graphs, provenance, waveforms, or activity.
 2. A guest receives WebRTC media only, never a content key or protected source
    reference.
 3. Individual protected playback fails closed and states the exact next action.
-4. A Free work remains wallet-free after the backend verifies the live policy.
+4. A Free track remains wallet-free after the backend verifies the live policy.
 5. Paid access has no degraded preview. The listener either has access or hears
    no protected audio.
 6. Presence, progress, reactions, support, and royalty data are shown only when
    they come from real application state.
-7. Album art identifies a work. Decorative color must not encode policy or
+7. Album art identifies a track. Decorative color must not encode policy or
    status unless a text label and accessible state communicate the same fact.
 8. Chain, key, storage, and transaction details use progressive disclosure.
 9. Dotify describes distribution protection honestly and never claims DRM.
@@ -104,15 +104,15 @@ grammar without inventing social graphs, provenance, waveforms, or activity.
 
 | Surface    | User question                | Primary content                                        | Primary action              |
 | ---------- | ---------------------------- | ------------------------------------------------------ | --------------------------- |
-| **Now**    | What can I hear now?         | Live rooms, featured work, finite catalog              | Enter room or play work     |
-| **Room**   | Who am I hearing this with?  | Current work, shared time, host, real presence         | Start audio or share room   |
-| **Player** | What am I listening to?      | Work, transport, access state, artist                  | Play, support, or open room |
-| **You**    | What belongs to this wallet? | Connection, opened works, backed artists, studio entry | Connect/manage wallet       |
+| **Music**  | What can I hear now?         | Live rooms, featured track, finite catalog             | Enter room or play track    |
+| **Room**   | Who am I hearing this with?  | Current track, shared time, host, real presence        | Start audio or share room   |
+| **Player** | What am I listening to?      | Track, transport, access state, artist                 | Play, support, or open room |
+| **You**    | What belongs to this wallet? | Connection, opened tracks, backed artists, studio entry | Connect/manage wallet       |
 | **Studio** | How do I manage my work?     | Runtime, releases, royalties, proofs                   | Review or publish when safe |
 
-Desktop uses a calm horizontal header for `Now`, `Rooms`, and `You`. Mobile
+Desktop uses a calm horizontal header for `Music`, `Rooms`, and `You`. Mobile
 uses the same three destinations in a bottom bar. `Player` is contextual: it
-opens from a work, a room, or the persistent score dock instead of competing
+opens from a track, a room, or the persistent player dock instead of competing
 as a permanent destination. `Studio` stays a distinct artist workspace at
 `/artists`. A canonical `#/rooms/<roomId>` link bypasses general discovery and
 opens the room entry state directly.
@@ -133,7 +133,7 @@ Every surface follows the same hierarchy:
 
 1. Parse the room link and connect to signaling in parallel.
 2. Show room resolution, unavailable, or ready state without a blank screen.
-3. In the ready state, show the real host, work, presence count, and room code.
+3. In the ready state, show the real host, track, presence count, and room code.
 4. Ask for a local display name only if none is remembered.
 5. `Enter and listen` supplies the browser interaction needed for audio.
 6. Join the room and negotiate WebRTC without wallet, upload, key, or chain
@@ -142,18 +142,18 @@ Every surface follows the same hierarchy:
 
 Primary measure: link open to first audible remote frame.
 
-### 5.2 Work to solo listening
+### 5.2 Track to solo listening
 
-1. Opening a work moves to Player and keeps the persistent dock available.
+1. Opening a track moves to Player and keeps the persistent dock available.
 2. Free playback starts after the server policy check.
-3. A protected work shows `Listening closed`, the exact terms, and one action.
+3. A protected track shows `Listening closed`, the exact terms, and one action.
 4. Successful access changes the state to `Ready to listen`; it does not trigger
    a decorative celebration that hides transport feedback.
 
 ### 5.3 Solo listening to room
 
-1. `Open a room` uses the current playable work by default.
-2. The host chooses a room name and confirms the work.
+1. `Open a room` uses the current playable track by default.
+2. The host chooses a room name and confirms the track.
 3. Dotify creates the room, then exposes its copyable link, code, and QR.
 4. The host remains the only participant whose access controls the stream.
 5. If host access is denied, the room remains open with no protected stream and
@@ -174,8 +174,11 @@ Primary measure: link open to first audible remote frame.
 1. Connect a real wallet and resolve the existing runtime.
 2. Show real release, supporter, and royalty information.
 3. A new release follows Assets, Details, Access, and Review.
-4. Upload and content identity are verified server-side in production mode.
-5. If the registry guard is not attested, creation and publication controls are
+4. The Access step includes the artist wallet share plus additional
+   rights-holder rows for collaborator/producer/label EVM addresses. The split
+   must stay at or below `10000` bps before publish.
+5. Upload and content identity are verified server-side in production mode.
+6. If the registry guard is not attested, creation and publication controls are
    disabled with the remediation reason; existing releases and royalty records
    remain readable.
 
@@ -207,7 +210,7 @@ nothing.
 ### Shared-score grammar
 
 - A 4 px base grid and an 8 px spacing rhythm keep metadata aligned.
-- One-pixel horizontal rules group work, time, presence, and terms into lanes.
+- One-pixel horizontal rules group track, time, presence, and terms into lanes.
 - A playhead appears only when real `playerState` or local transport time exists.
 - A waveform appears only if real waveform data is implemented later.
 - Live state uses a labelled dot plus `Live`; motion is not the sole signal.
@@ -218,7 +221,7 @@ nothing.
 - Use Instrument Sans for interface language and Newsreader for a restrained
   editorial hierarchy. Both load with `font-display: swap` and robust system
   fallbacks; self-hosting is the production target.
-- The editorial face is limited to page, work, artist, and section titles. It
+- The editorial face is limited to page, track, artist, and section titles. It
   never appears in controls, form labels, status messages, or technical proof.
 - Page title: fluid 52–106 px desktop and 46–80 px mobile, with short line
   lengths; body remains 16/25 and metadata 12–14/18.
@@ -240,10 +243,10 @@ nothing.
 
 ### Components
 
-- **Work row:** artwork, title, artist, access label, duration, one action.
-- **Room row:** work, host, real presence, sound state, progress when known.
+- **Track row:** artwork, title, artist, access label, duration, one action.
+- **Room row:** track, host, real presence, sound state, progress when known.
 - **Status chip:** icon, literal text, and semantic tone; never color alone.
-- **Player dock:** current work, play/pause, real progress, volume, open-player.
+- **Player dock:** current track, play/pause, real progress, volume, open-player.
 - **Access sheet:** terms and next action; never blocks a room guest.
 - **Presence list:** host first, then connected and connecting listeners.
 - **Social lane:** real chat, attributed reactions, and track requests.
@@ -256,20 +259,20 @@ nothing.
 The wireframes describe hierarchy, not final styling. Bracketed labels are
 controls; parenthesized labels are status.
 
-### Now
+### Music
 
 ```text
 ┌──────────┬──────────────────────────────────────────────────────┐
-│ DOTIFY   │ NOW                                  [Wallet status] │
+│ DOTIFY   │ MUSIC                                [Wallet status] │
 │          ├──────────────────────────────────────────────────────┤
-│ Now   ●  │ Live now                               3 rooms       │
-│ Listen   │ ┌────┬───────────────────────────┬──────────┬──────┐ │
+│ Music ●  │ Live now                               3 rooms       │
+│ Rooms    │ ┌────┬───────────────────────────┬──────────┬──────┐ │
 │ Rooms    │ │art │ Marée basse · Aicha      │ 5 here   │Enter │ │
 │ You      │ │    │ hosted by Nia · 01:24    │ (Live)   │      │ │
 │          │ └────┴───────────────────────────┴──────────┴──────┘ │
 │          │ ───────────────────── real progress ───────●──────  │
 │          │                                                      │
-│          │ Works                                                │
+│          │ Tracks                                               │
 │          │ ┌────┐ Title / artist / Free             [Play]     │
 │          │ └────┘ short description                            │
 │          │ ┌────┐ Title / artist / 1.2 DOT          [Open]     │
@@ -301,13 +304,13 @@ controls; parenthesized labels are status.
 
 Host transport replaces `following the host` with familiar play, seek, and
 queue controls. Guest transport never suggests that the guest controls the
-host. On mobile, People and Room notes become two tabs below the work.
+host. On mobile, People and Room notes become two tabs below the track.
 
 ### Player
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│ Dotify                 Now  Rooms  You              Confirmation │
+│ Dotify              Music  Rooms  You               Confirmation │
 ├─────────────────────────────────────────────────────────────────┤
 │ ┌──────────────┐  Marée basse                                   │
 │ │              │  Aicha                                         │
@@ -328,11 +331,11 @@ host. On mobile, People and Room notes become two tabs below the work.
 │ YOUR MUSIC, ON YOUR TERMS                                       │
 ├────────────────────────────────────────┬────────────────────────┤
 │ Your music                             │ Artist space           │
-│ 3 works opened · 2 artists supported   │ Aicha · 2 releases     │
+│ 3 tracks opened · 2 artists supported  │ Aicha · 2 releases     │
 │                                        │ [Open Studio]          │
-│ Works opened       Artists supported   ├────────────────────────┤
-│ Title · artist     Artist · 2 works    │ Confirmation method    │
-│ Title · artist     Artist · 1 work     │ ready only when useful │
+│ Tracks opened      Artists supported   ├────────────────────────┤
+│ Title · artist     Artist · 2 tracks   │ Confirmation method    │
+│ Title · artist     Artist · 1 track    │ ready only when useful │
 │                                        │ [Manage]               │
 └────────────────────────────────────────┴────────────────────────┘
 ```
@@ -345,9 +348,8 @@ analytics as activity.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│ AICHA STUDIO                           existing works available │
-│ ! New artist profiles and releases are temporarily paused.     │
-│   This deployment is not covered by the owner-guard attestation.│
+│ AICHA STUDIO                          publication open          │
+│ Runtime verified on the active factory/directory.               │
 ├─────────────────────────────────────────────────────────────────┤
 │ Overview | New release | Releases | Royalties | Advanced        │
 ├───────────────────────────────────────┬─────────────────────────┤
@@ -356,14 +358,15 @@ analytics as activity.
 │ Your releases                         │ [Open explorer]         │
 │ ┌────┐ Marée basse · Paid    [Open]  │                         │
 │ └────┘                                │ Publishing              │
-│ Latest support                        │ (Paused — remediation)  │
-│ listener · work · amount · tx         │ [Read why]              │
+│ Latest support                        │ Runtime ready           │
+│ listener · track · amount · tx        │ [Publish release]       │
 └───────────────────────────────────────┴─────────────────────────┘
 ```
 
-When publication is safe, `New release` uses a linear stepper: Assets, Details,
-Access, Review. The quarantine banner and disabled state take precedence over
-the happy path.
+`New release` uses a linear stepper: Assets, Details, Access, Review. The Access
+step includes the listening door, price, primary artist share, and additional
+rights-holder split rows. The quarantine banner and disabled state take
+precedence over the form whenever a deployment is not attested.
 
 ## 8. Accessibility
 
@@ -421,7 +424,7 @@ the happy path.
 
 | Shared Score promise  | Current capability                                             | Product constraint                                                                                      |
 | --------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Finite catalog on Now | Runtime catalog plus seed tracks                               | Do not imply an indexed, infinite, or personalized feed                                                 |
+| Finite catalog on Music | Runtime catalog plus seed tracks                             | Do not imply an indexed, infinite, or personalized feed                                                 |
 | Live room rows        | Socket.IO open-room state, track, player state, host, count    | Show only returned data; public payload contains no host wallet or protected ref                        |
 | One-link room entry   | Canonical hash link, room resolution, local display name       | Guest remains wallet-free and room-unavailable is a first-class state                                   |
 | Shared room audio     | Host `captureStream` to WebRTC peers                           | Single host; no handoff or SFU; host departure ends the room                                            |
@@ -431,8 +434,8 @@ the happy path.
 | Human free            | Contract-level personhood mode and UI states                   | Live Individuality/Proof of Personhood is not integrated; label beta/upcoming                           |
 | Protected delivery    | Server upload, encryption, signed session/key request          | Browser secrets are demo-only; do not claim DRM                                                         |
 | DAV2 streaming        | First Range/MSE vertical slice and fallback metrics            | Real-browser, container, gateway, and device matrix remains release work                                |
-| You                   | Connected wallet, opened works, backed artists, artist runtime | No platform profile, cloud account, or cross-device history is implied                                  |
-| Studio reads          | Runtime, releases, royalties, transaction and archive proofs   | New runtime creation and release publication fail closed when the configured deployment is not attested |
+| You                   | Connected wallet, opened tracks, backed artists, artist runtime | No platform profile, cloud account, or cross-device history is implied                                  |
+| Studio reads/writes   | Runtime, releases, royalties, transaction and archive proofs, multi-recipient split publication | New runtime creation and release publication fail closed when the configured deployment is not attested |
 | Artist sovereignty    | Artist-owned SmartRuntime model and owner-only source fix      | The active fresh deployment is attested; legacy runtimes remain remediation history                     |
 
 The following remain out of scope and must not appear as active UI: Product
@@ -446,14 +449,14 @@ objects.
 1. Implement the design as tokens and small components; do not grow business
    logic inside presentational views.
 2. Preserve room, wallet, playback, upload, and contract behavior while making
-   Player contextual and reducing primary navigation to Now, Rooms, and You.
+   Player contextual and reducing primary navigation to Music, Rooms, and You.
 3. Preserve load-bearing test selectors or migrate tests in the same change.
-4. Ship in this order: shell and primitives, Now, Player, Room, You, then Studio.
+4. Ship in this order: shell and primitives, Music, Player, Room, You, then Studio.
 5. Validate desktop and mobile, keyboard, screen reader, reduced motion,
    forced-colors, browser console, two-device WebRTC, and DAV2 media cases.
 6. Publication remains fail-closed unless the configured deployment is covered
    by the checked-in deployment safety attestation.
 
 Shared Score succeeds when Dotify feels calm and obvious before it feels
-technical: the work leads, people share one real moment, and the infrastructure
+technical: the track leads, people share one real moment, and the infrastructure
 quietly proves the terms.

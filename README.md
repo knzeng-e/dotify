@@ -19,13 +19,14 @@ aura lights the whole field (`web/src/styles/aura.css`).
 
 ## What it does
 
-- **Now**: real open rooms first, then a finite catalog, policy-aware listening,
+- **Music**: real open rooms first, then a finite catalog, policy-aware listening,
   and one-step room hosting without a permanent player navigation tab.
 - **Rooms**: open listening rooms plus manual room-code entry. Room guests should
   be able to join and listen without wallet friction.
 - **Artist portal**: a dedicated `/artists` onboarding and studio surface where
   artists connect a wallet, create their runtime, upload releases, configure
-  access, and manage royalty records outside the listener-first app shell.
+  access, add additional rights holders for royalty splits, and manage royalty
+  records outside the listener-first app shell.
 
 ## Path chosen
 
@@ -299,7 +300,7 @@ See also:
 - Access model v2: Free tracks play without a wallet, gated tracks show a gate
   with no preview fallback, and new production uploads use
   `dotify:enc:v2:ipfs://<CID>` chunked encrypted audio.
-- Seed catalog with five tracks browsable on the Home view.
+- Seed catalog with five tracks browsable on the Music view.
 - SmartRuntime music pallets: registration, NFT ownership, access checks, paid
   access, listen recording, royalty split storage, and transfer gating by
   personhood level.

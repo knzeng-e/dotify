@@ -17,7 +17,7 @@ Dotify is not a Spotify clone. It should borrow the best UX lessons from Spotify
 
 ## Core promise
 
-Artists can publish works while retaining control over catalog, rights, royalties, and access policy.
+Artists can publish tracks while retaining control over catalog, rights, royalties, and access policy.
 
 Listeners can discover and listen through a familiar player experience.
 
@@ -47,7 +47,7 @@ For protected room playback, access is checked against the host. If the host is 
 
 An artist publishes music through an artist-owned SmartRuntime.
 
-The artist should feel that they are not merely uploading content into a platform, but defining how their work circulates, who can access it, and how value flows back to contributors.
+The artist should feel that they are not merely uploading content into a platform, but defining how their music circulates, who can access it, and how value flows back to contributors.
 
 ### Ambassador
 
@@ -136,10 +136,11 @@ This is the compromise: protect the artist's source-file distribution without ki
 
 ## Product priorities
 
-### Now
+### Music / now
 
 - protected Classic unlock;
 - artist publish flow;
+- additional rights-holder royalty splits during publish;
 - public hosted rooms;
 - simple join link;
 - host-based room access;
