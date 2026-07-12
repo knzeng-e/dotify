@@ -157,7 +157,7 @@ Always run typecheck, lint, and build after making code changes; report results 
 
 When a change affects public product positioning, roadmap, production priorities, architecture narrative, presentation links, visual identity, or the philosophical framing of Dotify, update `docs/index.html` in the same PR.
 
-Keep the page visually aligned with the DApp theme from `web/src/styles.css`: Dotify Light Console, deep blue core, cyan action accents, restrained Polkadot pink, white surfaces, and clear low-friction product language.
+Keep the page visually aligned with the DApp theme from `web/src/styles/` (tokens.css and aura.css): Dotify Night Console, deep navy canvas, track-driven Living Light aura, electric cyan action accents, restrained Polkadot pink, glass chrome, and clear low-friction product language.
 
 Do not let the page drift into generic crypto landing-page aesthetics.
 

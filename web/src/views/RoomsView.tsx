@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 
 import { CoverImage } from '../components/CoverImage';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
+import { SkyOfRooms } from '../components/SkyOfRooms';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import type { OpenRoom, SessionAction } from '../shared/types';
 
@@ -65,6 +66,8 @@ export function RoomsView({
             {isRefreshingRooms ? 'Refreshing' : 'Refresh'}
           </button>
         </div>
+
+        {openRooms.length > 0 && <SkyOfRooms rooms={openRooms} sessionAction={sessionAction} onJoinRoom={onJoinRoom} />}
 
         {openRooms.length > 0 ? (
           <div className='room-card-grid'>

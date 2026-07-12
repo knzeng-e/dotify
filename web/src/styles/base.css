@@ -27,7 +27,7 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background-image: linear-gradient(rgb(8 20 38 / 0.025) 1px, transparent 1px);
+  background-image: linear-gradient(rgb(210 228 255 / 0.03) 1px, transparent 1px);
   background-size: 100% 5.5rem;
   content: '';
   pointer-events: none;
@@ -110,7 +110,7 @@ code,
 }
 
 ::selection {
-  background: #bfece3;
+  background: rgb(0 229 160 / 0.32);
   color: var(--ink);
 }
 
@@ -128,7 +128,7 @@ code,
   padding: 0.65rem 1rem;
   border-radius: var(--radius-sm);
   background: var(--ink);
-  color: #ffffff;
+  color: var(--canvas);
   font-weight: 700;
   text-decoration: none;
   transform: translateY(-160%);
@@ -196,15 +196,17 @@ code,
 .primary-action {
   border: 1px solid var(--action);
   background: var(--action);
-  color: var(--ink);
+  color: var(--on-action);
   padding: 0.75rem 1.05rem;
+  box-shadow: 0 0 18px rgb(0 229 160 / 0.22);
 }
 
 .primary-action:hover:not(:disabled) {
   border-color: var(--action-hover);
   background: var(--action-hover);
-  color: #ffffff;
+  color: var(--on-action);
   transform: translateY(-1px);
+  box-shadow: 0 0 26px rgb(0 229 160 / 0.34);
 }
 
 .secondary-action,
@@ -219,7 +221,7 @@ code,
 .icon-action:hover:not(:disabled) {
   border-color: var(--ink);
   background: var(--ink);
-  color: #ffffff;
+  color: var(--canvas);
 }
 
 .text-action,
@@ -270,20 +272,20 @@ textarea.field {
 
 .field::placeholder,
 .textarea-field::placeholder {
-  color: #83909e;
+  color: #6f84a0;
 }
 
 .field:hover,
 .textarea-field:hover,
 select:hover {
-  border-color: #8d9ba5;
+  border-color: rgb(148 178 215 / 0.52);
 }
 
 .field:focus,
 .textarea-field:focus,
 select:focus {
   border-color: var(--signal);
-  box-shadow: 0 0 0 3px rgb(49 89 217 / 0.13);
+  box-shadow: 0 0 0 3px rgb(125 155 255 / 0.18);
   outline: 0;
 }
 
@@ -324,15 +326,15 @@ select:focus {
 }
 
 .error-box {
-  border-color: #efb6b2;
+  border-color: rgb(255 125 114 / 0.4);
   background: var(--danger-soft);
   color: var(--danger);
 }
 
 .info-box {
-  border-color: #bbcbf4;
+  border-color: rgb(125 155 255 / 0.38);
   background: var(--signal-soft);
-  color: #193887;
+  color: #bccdff;
 }
 
 .live-dot {
@@ -367,13 +369,6 @@ select:focus {
   to {
     transform: rotate(360deg);
   }
-}
-
-.aura-bg,
-.grain,
-.stage-rail,
-.sky {
-  display: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

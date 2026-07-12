@@ -4,7 +4,9 @@ import type { CSSProperties } from 'react';
 import { CoverImage } from '../components/CoverImage';
 import { DotBirth } from '../components/DotBirth';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
+import { StageRail } from '../components/StageRail';
 import { roomPresenceCount } from '../features/rooms/roomState';
+import { auraStyleForTrack } from '../shared/utils/aura';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
 import type { CatalogTrack, OpenRoom } from '../shared/types';
 
@@ -49,7 +51,7 @@ export function ListenView({
 
       <div className='now-hero-grid'>
         {heroTrack ? (
-          <article className='moment-feature' data-live={Boolean(leadRoom)}>
+          <article className='moment-feature' data-live={Boolean(leadRoom)} style={auraStyleForTrack(heroTrack) as CSSProperties}>
             <div className='moment-art'>
               <CoverImage src={heroTrack.imageRef} alt='' />
               <span className='moment-status'>
@@ -209,6 +211,10 @@ export function ListenView({
 
         <p className='catalogue-intro'>Open works play without ceremony. Protected works explain the artist's terms before asking you to confirm anything.</p>
 
+        {catalogTracks.length > 0 && (
+          <StageRail tracks={catalogTracks} accessByTrackId={catalogAccessByTrackId} selectedTrackId={selectedTrackId} onOpenTrack={onOpenTrack} />
+        )}
+
         <div className='catalogue-grid'>
           {catalogTracks.length > 0 ? (
             catalogTracks.map(track => {
@@ -216,7 +222,13 @@ export function ListenView({
               const accessGranted = track.accessMode === 'free' || hasCatalogAccess;
 
               return (
-                <article className='catalogue-card' data-selected={selectedTrackId === track.id} data-testid='track-card' key={track.id}>
+                <article
+                  className='catalogue-card'
+                  data-selected={selectedTrackId === track.id}
+                  data-testid='track-card'
+                  key={track.id}
+                  style={auraStyleForTrack(track) as CSSProperties}
+                >
                   <span className='catalogue-cover-frame'>
                     <CoverImage className='catalogue-cover' src={track.imageRef} alt='' />
                     <span className='catalogue-card-action' aria-hidden='true'>

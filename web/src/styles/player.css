@@ -20,7 +20,7 @@
   gap: 0.5rem;
   border-radius: var(--radius-full);
   background: var(--presence-soft);
-  color: #8c3020;
+  color: #ffb39a;
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.055em;
@@ -220,7 +220,7 @@
 .unlock-cover-action {
   border-color: rgb(255 255 255 / 0.2);
   background: #ffffff;
-  color: var(--ink);
+  color: var(--canvas);
   text-transform: none;
 }
 
@@ -330,13 +330,13 @@
 }
 
 .access-chip[data-tone='locked'] {
-  border-color: #e7c893;
+  border-color: rgb(240 180 41 / 0.42);
   background: var(--warning-soft);
-  color: #754100;
+  color: var(--warning);
 }
 
 .access-chip[data-tone='ready'] {
-  border-color: #add9c9;
+  border-color: rgb(0 229 160 / 0.35);
   background: var(--success-soft);
   color: var(--success);
 }
@@ -382,7 +382,7 @@
   width: 3rem;
   height: 3rem;
   background: var(--ink);
-  color: #ffffff;
+  color: var(--canvas);
 }
 
 .transport-actions button[data-active='true'] {
@@ -853,7 +853,7 @@ input[type='range']::-moz-range-thumb {
   min-height: 3rem;
   border-radius: var(--radius-sm);
   background: var(--ink);
-  color: #ffffff;
+  color: var(--canvas);
   padding: 0;
 }
 
@@ -971,7 +971,7 @@ input[type='range']::-moz-range-thumb {
   left: 0;
   z-index: 50;
   border-top: 1px solid var(--line-strong);
-  background: rgb(255 255 255 / 0.94);
+  background: rgb(7 16 32 / 0.82);
   backdrop-filter: blur(20px) saturate(1.08);
 }
 
@@ -1068,7 +1068,7 @@ input[type='range']::-moz-range-thumb {
   width: 2.75rem;
   height: 2.75rem;
   background: var(--ink);
-  color: #ffffff;
+  color: var(--canvas);
 }
 
 .player-dock-scrub {
@@ -1117,7 +1117,7 @@ button.player-dock-chip:hover,
 .player-dock-cta {
   border-color: var(--action);
   background: var(--action);
-  color: var(--ink);
+  color: var(--on-action);
 }
 
 .player-dock-status {
@@ -1126,7 +1126,7 @@ button.player-dock-chip:hover,
   bottom: 100%;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   background: var(--ink);
-  color: #ffffff;
+  color: var(--canvas);
   font-size: var(--text-xs);
   padding: 0.35rem 0.65rem;
 }

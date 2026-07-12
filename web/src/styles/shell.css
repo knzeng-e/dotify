@@ -7,8 +7,8 @@
   top: 0;
   z-index: 70;
   min-height: var(--header-height);
-  border-bottom: 1px solid rgb(8 20 38 / 0.09);
-  background: rgb(246 247 243 / 0.92);
+  border-bottom: 1px solid rgb(210 228 255 / 0.09);
+  background: rgb(5 13 26 / 0.72);
   backdrop-filter: blur(18px) saturate(1.08);
 }
 
@@ -151,7 +151,7 @@ button.wallet-pill:hover {
 }
 
 .wallet-pill[data-tone='green'] {
-  border-color: #add9c9;
+  border-color: rgb(0 229 160 / 0.35);
   background: var(--success-soft);
 }
 
@@ -170,7 +170,7 @@ button.wallet-pill:hover {
 .wallet-pill-disconnect {
   min-width: 2rem;
   justify-content: center;
-  border-left: 1px solid rgb(8 20 38 / 0.12);
+  border-left: 1px solid rgb(210 228 255 / 0.14);
   margin-left: 0.5rem;
   padding-left: 0.5rem;
 }
@@ -275,5 +275,5 @@ button.wallet-pill:hover {
 .artist-entry-link:hover {
   border-color: var(--ink);
   background: var(--ink);
-  color: #ffffff;
+  color: var(--canvas);
 }

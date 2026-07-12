@@ -1,6 +1,10 @@
 # Dotify Shared Score
 
-Status: selected UI/UX direction and implementation specification.
+Status: selected UI/UX direction and implementation specification, amended by
+the Living Light addendum (2026-07-12): the Shared Score structure, journeys,
+and honesty rules stay authoritative, while the presentation layer moved from
+the flat light console to an immersive dark canvas lit by the active track's
+aura (see section 6 and `web/src/styles/aura.css`).
 Last reviewed: 2026-07-12.
 
 ## 1. Purpose
@@ -177,21 +181,28 @@ Primary measure: link open to first audible remote frame.
 
 ## 6. Visual and interaction system
 
-### Foundation
+### Foundation (Living Light amendment, 2026-07-12)
 
-- **Canvas:** warm neutral `#F6F7F3`; primary surface `#FFFFFF`.
-- **Ink:** `#081426`; secondary text `#405064`; subtle rule `#D8DFE2`.
-- **Core:** deep blue `#0A203B` for listening stages and structural trust.
-- **Action:** cyan `#00B99E`; hover `#009F88`; deep-ink label text.
-- **Polkadot accent:** `#CC0D67`, limited to artist provenance and a small
-  number of high-value markers, never the default CTA.
-- **Semantic:** success `#13795B`, warning `#9A5B00`, danger `#B42318`.
-- Album artwork may introduce local color inside the artwork boundary. It does
-  not recolor the full application shell.
+- **Canvas:** deep navy `#050D1A` over `#03080F`; raised surfaces `#0C1A30`
+  and `#12233D`.
+- **Ink:** near-white `#F2F8FF`; secondary text `#B9C8DC`; subtle rules are
+  translucent light (`rgb(148 178 215 / 0.16)`).
+- **Core:** deep blue `#0A203B` remains the bounded listening-stage surface.
+- **Action:** electric cyan `#00E5A0`; hover `#33F0B8`; deep-navy label text.
+- **Polkadot accent:** `#FF4FA3` (brightened for dark contrast), limited to
+  artist provenance and a small number of high-value markers, never the
+  default CTA.
+- **Semantic:** success `#3FE0AB`, warning `#F0B429`, danger `#FF7D72`.
+- **Aura:** the `--aura-*` variables are rewritten per track by the aura
+  engine (`web/src/shared/utils/aura.ts`); a resting deep-blue light shows
+  when nothing plays. The whole field, the player stage, the featured moment,
+  and the dock ride this light.
 
-The default is flat, high-contrast, and quiet. Avoid glassmorphism, star fields,
-ambient canvases, glow clouds, fabricated playback motion, and ornamental
-gradients.
+The default is an immersive listening room: a dark canvas, glass chrome, and
+a track-driven ambient aura. The honesty rule is unchanged - every glow maps
+to real state (the selected or playing track, a live room, a genuine unlock).
+Avoid fabricated playback motion, fake waveforms, and decoration that maps to
+nothing.
 
 ### Shared-score grammar
 
@@ -378,8 +389,9 @@ the happy path.
   ambient decoration.
 - Use opacity and transform only: 120 ms control feedback, 180 ms panels, 240 ms
   route continuity. No motion should block input.
-- Real playback progress may move continuously. A generic background, fake
-  waveform, or fake equalizer may not.
+- Real playback progress may move continuously. The ambient aura may drift
+  slowly because it is driven by the real active track; a fake waveform or
+  fake equalizer may not move at all.
 - Reactions animate only from real room events and remain attributed.
 - Under `prefers-reduced-motion: reduce`, remove travel and scaling; retain
   immediate state changes and static reaction entries.
@@ -388,7 +400,9 @@ the happy path.
 
 ## 10. Performance
 
-- No WebGL, canvas background, or 3D dependency in the core experience.
+- No WebGL, canvas element, or 3D dependency in the core experience. The
+  ambient aura and constellation surfaces are CSS gradients and transforms
+  only, and reduced motion disables the drift.
 - Load the two display-swap font families without blocking first paint; self-host
   and subset the adopted production faces before a public performance sign-off.
 - Reserve image dimensions to keep CLS below 0.1; serve responsive artwork and

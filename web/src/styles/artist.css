@@ -428,9 +428,9 @@ button.you-panel:hover {
 .artist-publication-quarantine {
   display: grid;
   gap: 0.2rem;
-  border-color: #e6c383;
+  border-color: rgb(240 180 41 / 0.42);
   background: var(--warning-soft);
-  color: #684000;
+  color: var(--warning);
 }
 
 .artist-publication-quarantine span {
@@ -601,7 +601,7 @@ button.you-panel:hover {
   place-items: center;
   border-radius: 50%;
   background: var(--ink);
-  color: #ffffff;
+  color: var(--canvas);
   font-family: var(--font-code);
   font-size: var(--text-xs);
 }

@@ -192,7 +192,7 @@
     height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
     grid-template-columns: repeat(3, 1fr);
     border-top: 1px solid var(--line-strong);
-    background: rgb(255 255 255 / 0.96);
+    background: rgb(7 16 32 / 0.88);
     padding: 0.25rem 0.75rem env(safe-area-inset-bottom);
     backdrop-filter: blur(20px);
   }
@@ -681,9 +681,9 @@
 
 @media (prefers-contrast: more) {
   :root {
-    --line: #9ca9b1;
-    --line-strong: #65737e;
-    --muted: #475565;
+    --line: #7d92ad;
+    --line-strong: #a7bbd4;
+    --muted: #aebfd6;
   }
 
   .primary-action,

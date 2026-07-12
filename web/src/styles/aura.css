@@ -1,0 +1,595 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   LIVING LIGHT - the track-driven aura engine.
+   The music is the light: applyAura() (shared/utils/aura.ts) rewrites the
+   --aura-* variables per track and every aura-aware surface lights up at once.
+   This sheet is imported LAST so its immersive overrides win over the flat
+   component sheets. Honesty rule: every glow maps to real state - the resting
+   aura when nothing plays, a track's own hue when it does, live pulses only
+   when playback is genuinely live.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* The aura drives the whole field: the page background follows whatever is
+   playing, drifting slowly over the deep navy canvas. */
+body {
+  background:
+    radial-gradient(46rem 36rem at 14% 2%, color-mix(in oklab, var(--aura-a) calc(20% * var(--aura-strength)), transparent), transparent 66%),
+    radial-gradient(42rem 34rem at 90% 12%, color-mix(in oklab, var(--aura-b) calc(13% * var(--aura-strength)), transparent), transparent 70%),
+    radial-gradient(48rem 38rem at 76% 98%, color-mix(in oklab, var(--aura-accent) calc(10% * var(--aura-strength)), transparent), transparent 74%),
+    linear-gradient(180deg, #071120 0%, var(--canvas) 40%, var(--canvas-deep) 100%);
+  transition: background 900ms ease;
+}
+
+.app-shell {
+  position: relative;
+  z-index: 2;
+  isolation: isolate;
+}
+
+/* Drifting aura halos behind everything. */
+.aura-bg {
+  position: fixed;
+  inset: -12%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(44% 40% at 18% 8%, color-mix(in oklab, var(--aura-a) 58%, transparent), transparent 70%),
+    radial-gradient(48% 48% at 86% 14%, color-mix(in oklab, var(--aura-b) 44%, transparent), transparent 72%),
+    radial-gradient(58% 54% at 72% 96%, color-mix(in oklab, var(--aura-accent) 32%, transparent), transparent 75%);
+  opacity: calc(0.55 * var(--aura-strength));
+  filter: blur(9px) saturate(1.22);
+  transition:
+    background 900ms ease,
+    opacity 900ms ease;
+  animation: aura-drift 22s ease-in-out infinite alternate;
+}
+
+@keyframes aura-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(0, -2.4%, 0) scale(1.06);
+  }
+}
+
+/* Fine grain so the soft gradients never band. */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Aura-aware surfaces ────────────────────────────────────────────────────
+   Each of these carries either the global light (the playing track) or a
+   locally scoped light via auraStyleForTrack() inline variables. */
+
+/* Featured moment on the Now page: lit by its own track's aura. */
+.moment-feature {
+  background:
+    radial-gradient(120% 130% at 12% 0%, color-mix(in oklab, var(--aura-a) 30%, transparent), transparent 62%),
+    radial-gradient(110% 120% at 95% 92%, color-mix(in oklab, var(--aura-b) 22%, transparent), transparent 66%),
+    var(--night);
+  transition: background 900ms ease;
+}
+
+/* Catalogue cards glow softly in their own light on approach. */
+.catalogue-card:hover,
+.catalogue-card:focus-within {
+  border-color: color-mix(in oklab, var(--aura-accent) 62%, var(--line-strong));
+  box-shadow:
+    var(--shadow-float),
+    0 0 30px color-mix(in oklab, var(--aura-a) 22%, transparent);
+}
+
+/* The player stage: the cover column is bathed in the playing track's light. */
+.player-cover-column {
+  background:
+    radial-gradient(120% 90% at 20% 0%, color-mix(in oklab, var(--aura-a) 32%, transparent), transparent 70%),
+    radial-gradient(120% 100% at 85% 100%, color-mix(in oklab, var(--aura-b) 24%, transparent), transparent 72%),
+    var(--night);
+  transition: background 900ms ease;
+}
+
+/* Breathing cover glow, only while playback is genuinely live. */
+.cover[data-playing='true'] {
+  animation: cover-pulse 3.6s ease-in-out infinite;
+}
+
+@keyframes cover-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 35px 80px -36px rgb(0 0 0 / 0.78),
+      0 0 34px color-mix(in oklab, var(--aura-accent) 30%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 35px 80px -36px rgb(0 0 0 / 0.78),
+      0 0 64px color-mix(in oklab, var(--aura-accent) 52%, transparent);
+  }
+}
+
+/* The persistent dock rides on a thin line of the playing light. */
+.player-dock {
+  border-top-color: color-mix(in oklab, var(--aura-accent) 36%, var(--line-strong));
+  box-shadow: 0 -18px 60px -38px color-mix(in oklab, var(--aura-a) 55%, transparent);
+  transition:
+    border-color 900ms ease,
+    box-shadow 900ms ease;
+}
+
+/* ── The Stage (aura lamp rail) ─────────────────────────────────────────────
+   The catalog as a stage: covers on a shallow arc, an aura lamp cone lighting
+   the focused work while the rest recede, a glare sweep reserved for tracks
+   the wallet has genuinely unlocked. Rendered by components/StageRail.tsx. */
+
+.stage {
+  position: relative;
+  margin: 0.5rem 0 0.25rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgb(5 13 26 / 0.35), rgb(5 13 26 / 0.92));
+  padding: 4.25rem 0 1.9rem;
+  overflow: hidden;
+}
+
+.stage-lamp {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 0;
+  height: 100%;
+  pointer-events: none;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stage-lamp-cone {
+  position: absolute;
+  top: 0;
+  left: -150px;
+  width: 300px;
+  height: 90%;
+  clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, var(--lamp-accent), transparent 82%);
+  opacity: 0.34;
+  filter: blur(2px);
+}
+
+.stage-lamp-glow {
+  position: absolute;
+  top: 12%;
+  left: -170px;
+  width: 340px;
+  height: 76%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--lamp-a) 34%, transparent), transparent 72%);
+  filter: blur(14px);
+}
+
+.stage-rail {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: safe center;
+  gap: 1.15rem;
+  padding: 0 clamp(1.25rem, 6vw, 4rem);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.stage-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.stage-card {
+  display: flex;
+  width: 172px;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0.6rem;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  padding: 0;
+  text-align: left;
+  scroll-snap-align: center;
+  transform: translateY(var(--arc-y, 0px)) rotate(var(--arc-rot, 0deg)) scale(var(--arc-scale, 1));
+  transform-origin: 50% 100%;
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The theater rule: when one work is on stage, the others recede. */
+.stage-card:not([data-lit='true']) {
+  opacity: 0.42;
+  filter: saturate(0.55) brightness(0.75);
+}
+
+.stage-card[data-lit='true'] {
+  opacity: 1;
+  filter: none;
+}
+
+.stage-cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  background: var(--night-raised);
+  overflow: hidden;
+  box-shadow: 0 18px 34px rgb(2 8 18 / 0.55);
+}
+
+.stage-card[data-lit='true'] .stage-cover {
+  box-shadow:
+    0 22px 44px rgb(2 8 18 / 0.6),
+    0 0 34px color-mix(in srgb, var(--card-a) 36%, transparent);
+}
+
+.stage-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The glare: holographic sweep reserved for genuinely unlocked tracks. */
+.stage-glare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 32%, rgb(246 251 255 / 0.34) 47%, color-mix(in srgb, var(--card-accent) 40%, transparent) 52%, transparent 68%);
+  pointer-events: none;
+  transform: translateX(-120%);
+}
+
+.stage-card[data-unlocked='true'][data-lit='true'] .stage-glare {
+  animation: stage-glare-sweep 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes stage-glare-sweep {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+
+.stage-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.14rem;
+}
+
+.stage-copy strong {
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-copy span {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-copy small {
+  margin-top: 0.24rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.stage-copy small[data-access='granted'] {
+  color: var(--action);
+}
+
+/* The stage floor: a faint pool of the lit aura under the rail. */
+.stage-floor {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3.4rem;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--lamp-b) 12%, transparent));
+  pointer-events: none;
+}
+
+.stage-card:focus-visible {
+  border-radius: var(--radius-sm);
+  outline: 2px solid var(--lamp-accent, var(--action));
+  outline-offset: 4px;
+}
+
+@media (max-width: 860px) {
+  .stage {
+    padding-top: 3.1rem;
+  }
+
+  .stage-card {
+    width: 132px;
+  }
+}
+
+/* ── The Sky of rooms ───────────────────────────────────────────────────────
+   Open rooms as dot-spheres in the navy sky: aura halo, honest pulse (only
+   when the host's broadcast player state is live), one orbiting petal per real
+   presence, embers for rooms with no track. Joining = entering the halo.
+   Rendered by components/SkyOfRooms.tsx; the card grid below remains the
+   complete experience on mobile and reduced motion. */
+
+.sky {
+  position: relative;
+  height: clamp(300px, 42vh, 430px);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(ellipse at 50% 120%, rgb(19 39 65 / 0.55), transparent 60%),
+    linear-gradient(180deg, rgb(5 13 26 / 0.4), rgb(5 13 26 / 0.95));
+  overflow: hidden;
+}
+
+.sky-dot {
+  position: absolute;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  margin: calc(var(--dot-size) / -2) 0 0 calc(var(--dot-size) / -2);
+  border: 0;
+  background: none;
+  color: var(--ink);
+  padding: 0;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sky-dot:hover:not(:disabled),
+.sky-dot:focus-visible {
+  z-index: 4;
+  transform: scale(1.08);
+}
+
+.sky-dot:focus-visible {
+  border-radius: 50%;
+  outline: 2px solid var(--dot-accent);
+  outline-offset: 6px;
+}
+
+.sky-halo {
+  position: absolute;
+  inset: -34%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--dot-a) 42%, transparent), color-mix(in srgb, var(--dot-b) 16%, transparent) 55%, transparent 74%);
+  filter: blur(6px);
+  transition:
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Honest pulse: only rooms whose host playback is live breathe. */
+.sky-dot[data-live='true'] .sky-halo {
+  animation: sky-breathe 3.4s ease-in-out infinite;
+}
+
+@keyframes sky-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.16);
+    opacity: 1;
+  }
+}
+
+/* Entering the halo: the sphere grows and its light floods before joining. */
+.sky-dot[data-joining='true'] {
+  z-index: 6;
+  transform: scale(1.35);
+}
+
+.sky-dot[data-joining='true'] .sky-halo {
+  opacity: 1;
+  filter: blur(2px);
+  transform: scale(3.4);
+}
+
+.sky-core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, color-mix(in srgb, var(--dot-a) 62%, #0a182c), #0a182c 78%);
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px rgb(246 251 255 / 0.12),
+    0 10px 26px rgb(2 8 18 / 0.6);
+}
+
+.sky-core img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Embers: open rooms with genuinely no track loaded. Present, but unlit. */
+.sky-dot[data-ember='true'] .sky-halo {
+  background: radial-gradient(circle, rgb(170 195 216 / 0.14), transparent 70%);
+  filter: blur(4px);
+}
+
+.sky-dot[data-ember='true'] .sky-core {
+  background: radial-gradient(circle at 34% 30%, #16304c, #0a182c 80%);
+  opacity: 0.7;
+}
+
+/* Presence petals: one per real connected presence, slow shared orbit. */
+.sky-orbit {
+  position: absolute;
+  inset: 0;
+  animation: sky-orbit-turn linear infinite;
+  pointer-events: none;
+}
+
+.sky-orbit i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dot-accent) 80%, #ffffff);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--dot-accent) 70%, transparent);
+}
+
+@keyframes sky-orbit-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sky-label {
+  position: absolute;
+  top: calc(100% + 16px);
+  left: 50%;
+  display: flex;
+  width: max-content;
+  max-width: 180px;
+  flex-direction: column;
+  gap: 0.1rem;
+  pointer-events: none;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.sky-label strong {
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sky-label span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.sky-label em {
+  color: var(--presence);
+  font-style: normal;
+}
+
+/* Fallback doctrine: the sky is an enhancement. Small screens and reduced
+   motion get the card grid alone, which is the complete experience. */
+@media (max-width: 860px) {
+  .sky {
+    display: none;
+  }
+}
+
+/* ── Unlock ritual ──────────────────────────────────────────────────────────
+   A ring of the track's own light travels the cover once when THIS track's
+   access genuinely flips from needed to granted. Replaces the flat confirm
+   ring from player.css. */
+
+.unlock-ritual {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border: 0;
+  border-radius: inherit;
+  animation: none;
+  pointer-events: none;
+}
+
+.unlock-ritual::before {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--aura-accent, var(--action));
+  border-radius: inherit;
+  animation: ritual-ring 1.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  content: '';
+}
+
+.unlock-ritual::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle, color-mix(in srgb, var(--aura-a, var(--action)) 34%, transparent), transparent 70%);
+  animation: ritual-flood 1.3s ease-out both;
+  content: '';
+}
+
+@keyframes ritual-ring {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes ritual-flood {
+  0% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── Motion dignity ─────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .aura-bg {
+    animation: none;
+  }
+
+  body {
+    transition: none;
+  }
+
+  .sky {
+    display: none;
+  }
+
+  .stage-lamp {
+    transition: none;
+  }
+
+  .stage-card {
+    transform: none;
+    transition: none;
+  }
+
+  .stage-card[data-unlocked='true'][data-lit='true'] .stage-glare {
+    animation: none;
+    opacity: 0.25;
+    transform: translateX(0);
+  }
+
+  .stage-card[data-lit='true'] .stage-cover {
+    outline: 2px solid color-mix(in srgb, var(--card-a) 70%, transparent);
+    outline-offset: 3px;
+  }
+
+  .cover[data-playing='true'] {
+    animation: none;
+  }
+}

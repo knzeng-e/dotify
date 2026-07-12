@@ -7,6 +7,7 @@
 import { Link as LinkIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
+import { AuraBackground } from '../components/AuraBackground';
 import { PersistentAudio } from '../components/PersistentAudio';
 import { PlayerDock } from '../components/PlayerDock';
 import { CreateRoomModal } from '../components/CreateRoomModal';
@@ -164,6 +165,7 @@ export function ListenerShell() {
         onPrepareLocalStream={prepareLocalStream}
         onEmitPlayerState={session.emitPlayerState}
       />
+      <AuraBackground />
       <div className='app-shell'>
         <a className='skip-link' href='#main-content'>
           Skip to content

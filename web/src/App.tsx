@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { deployments } from './shared/config/deployments';
+import { applyAura, auraForName, auraForTrack } from './shared/utils/aura';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { getStoredArtistName } from './hooks/useArtistConsole';
 import { useNavigation, useCatalogContext, useSessionContext, useArtistStudio, useWalletContext, useReleaseForm } from './app/providers';
@@ -16,7 +17,7 @@ import { ArtistShell } from './views/ArtistShell';
 const DEFAULT_ARTIST_NAME = 'Dotify Artist';
 
 export default function App() {
-  const { isArtistPortal } = useNavigation();
+  const { isArtistPortal, publicArtistName } = useNavigation();
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { artistConsole } = useArtistStudio();
@@ -33,13 +34,24 @@ export default function App() {
     };
   }, []);
 
-  // Shared Score is a clean-sheet interface. Track colour may still inform
-  // local artwork accents, but the app no longer inherits the former galaxy,
-  // console, or layered Thresholds presentation.
+  // Shared Score structure, Living Light presentation: the layout grammar of
+  // the Shared Score redesign stays, and the whole field is bathed in the
+  // active track's aura (styles/aura.css).
   useEffect(() => {
     document.body.classList.add('dotify-shared-score');
     return () => document.body.classList.remove('dotify-shared-score');
   }, []);
+
+  // Aura engine: paint the whole field with the active track (or artist) light.
+  // Falls back to the resting deep-blue aura when nothing is selected.
+  useEffect(() => {
+    if (publicArtistName) {
+      applyAura(auraForName(publicArtistName));
+      return;
+    }
+    const activeTrack = catalog.trackInfo ?? catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId) ?? null;
+    applyAura(auraForTrack(activeTrack));
+  }, [publicArtistName, catalog.trackInfo, catalog.selectedTrackId, catalog.catalogTracks]);
 
   // Seed the artist identity from storage on wallet change. This runs in both
   // shells: the listener account view shows the artist name/runtime too.

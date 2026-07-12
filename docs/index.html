@@ -7,29 +7,29 @@
       name="description"
       content="Dotify turns music into shared presence while artists retain control over access, rights, and value."
     />
-    <meta name="theme-color" content="#f6f9fb" />
+    <meta name="theme-color" content="#050d1a" />
     <title>Dotify — Music as shared presence</title>
     <style>
       :root {
-        color-scheme: light;
-        --ink: #071426;
+        color-scheme: dark;
+        --ink: #f2f8ff;
         --navy: #0b2341;
         --navy-soft: #123453;
-        --slate: #526274;
-        --slate-strong: #335067;
-        --canvas: #f6f9fb;
-        --surface: #ffffff;
-        --cyan: #00c2a8;
-        --cyan-hover: #00a991;
-        --cyan-soft: #e7fbf7;
-        --pink: #d10a66;
-        --pink-soft: #fce7f0;
-        --line: #d6e1e7;
-        --line-strong: #b6c6d0;
-        --warning: #7a4d00;
-        --warning-soft: #fff4dc;
-        --shadow-soft: 0 20px 50px -32px rgb(7 20 38 / 0.35);
-        --shadow-float: 0 32px 80px -48px rgb(7 20 38 / 0.48);
+        --slate: #a6b6c9;
+        --slate-strong: #c3d2e2;
+        --canvas: #050d1a;
+        --surface: #0c1a30;
+        --cyan: #00e5a0;
+        --cyan-hover: #33f0b8;
+        --cyan-soft: rgb(0 229 160 / 0.14);
+        --pink: #ff4fa3;
+        --pink-soft: rgb(230 0 122 / 0.16);
+        --line: rgb(148 178 215 / 0.18);
+        --line-strong: rgb(148 178 215 / 0.34);
+        --warning: #f0b429;
+        --warning-soft: rgb(240 180 41 / 0.14);
+        --shadow-soft: 0 20px 50px -32px rgb(0 0 0 / 0.7);
+        --shadow-float: 0 32px 80px -48px rgb(0 0 0 / 0.8);
         --radius-control: 0.75rem;
         --radius-card: 1.25rem;
         --radius-feature: 1.75rem;
@@ -115,8 +115,8 @@
       .site-header {
         position: relative;
         z-index: 20;
-        border-bottom: 1px solid rgb(182 198 208 / 0.72);
-        background: rgb(246 249 251 / 0.92);
+        border-bottom: 1px solid rgb(210 228 255 / 0.1);
+        background: rgb(5 13 26 / 0.85);
         backdrop-filter: blur(16px);
       }
 
@@ -250,8 +250,8 @@
         z-index: -1;
         inset: 0;
         background:
-          radial-gradient(circle at 9% 28%, rgb(0 194 168 / 0.12), transparent 20rem),
-          radial-gradient(circle at 92% 14%, rgb(209 10 102 / 0.075), transparent 18rem);
+          radial-gradient(circle at 9% 28%, rgb(0 229 160 / 0.16), transparent 20rem),
+          radial-gradient(circle at 92% 14%, rgb(255 79 163 / 0.1), transparent 18rem);
         pointer-events: none;
       }
 
@@ -536,7 +536,7 @@
         border: 5px solid var(--canvas);
         border-radius: 999px;
         background: var(--ink);
-        color: #ffffff;
+        color: var(--canvas);
         padding: 0.2rem 0.45rem;
         font-family: var(--font-mono);
         font-size: 0.65rem;
@@ -934,7 +934,7 @@
       }
 
       .site-footer {
-        background: var(--ink);
+        background: var(--navy);
         color: #ffffff;
       }
 
@@ -1257,7 +1257,7 @@
         .score-board,
         .trust-section,
         .site-footer {
-          color: var(--ink);
+          color: #071426;
           background: #ffffff;
           box-shadow: none;
         }

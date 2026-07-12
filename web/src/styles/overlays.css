@@ -4,7 +4,7 @@
   z-index: 200;
   display: grid;
   place-items: center;
-  background: rgb(8 20 38 / 0.68);
+  background: rgb(2 7 15 / 0.74);
   padding: 1rem;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -13,7 +13,7 @@
 .modal-card {
   width: min(100%, 31rem);
   max-height: min(90vh, 52rem);
-  border: 1px solid rgb(255 255 255 / 0.28);
+  border: 1px solid rgb(255 255 255 / 0.14);
   border-radius: var(--radius-lg);
   background: var(--surface);
   color: var(--ink);
@@ -122,7 +122,7 @@
 .modal-action {
   border: 1px solid var(--ink);
   background: var(--ink);
-  color: #ffffff;
+  color: var(--canvas);
   padding: 0.75rem 1rem;
 }
 
@@ -496,7 +496,7 @@
   gap: 0.45rem;
   border-radius: var(--radius-sm);
   background: var(--ink);
-  color: #ffffff;
+  color: var(--canvas);
 }
 
 .wallet-stats {
@@ -617,7 +617,7 @@
 }
 
 .wallet-option-primary {
-  border-color: #add9c9;
+  border-color: rgb(0 229 160 / 0.35);
   background: var(--action-soft);
 }
 
@@ -711,6 +711,7 @@
   width: min(92vw, 46rem);
   max-height: 92vh;
   background: #ffffff;
+  color: var(--night);
 }
 
 .room-qr-projector-close {

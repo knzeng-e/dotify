@@ -561,7 +561,7 @@
 
 .catalogue-card[data-selected='true'] {
   border-color: var(--signal);
-  box-shadow: 0 0 0 2px rgb(49 89 217 / 0.12);
+  box-shadow: 0 0 0 2px rgb(125 155 255 / 0.22);
 }
 
 .catalogue-cover-frame {
@@ -767,7 +767,7 @@
 
 .ava-more {
   background: var(--ink);
-  color: #ffffff;
+  color: var(--canvas);
 }
 
 .dot-birth {

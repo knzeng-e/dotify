@@ -11,10 +11,11 @@ By uploading tracks to Dotify, artists opt into using their work as an
 instrument of human connection while retaining control over catalog, rights, and
 monetization through their own artist runtime.
 
-The current clean-sheet interface direction is documented in
-[Dotify Shared Score](docs/design/dotify-shared-score.md). It keeps the proven
-room, playback, wallet, and artist flows while replacing the historical visual
-shell rather than restyling it.
+The current interface direction is documented in
+[Dotify Shared Score](docs/design/dotify-shared-score.md), amended by the
+Living Light addendum: the Shared Score structure and honesty rules stay, and
+the presentation is an immersive dark listening room where the active track's
+aura lights the whole field (`web/src/styles/aura.css`).
 
 ## What it does
 
