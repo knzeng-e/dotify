@@ -13,7 +13,7 @@
 
 import { createContext, useContext, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type ReactNode, type SetStateAction } from 'react';
 import { DEFAULT_TRACK_TITLE } from '../../features/uploads/uploadModel';
-import type { AccessMode, ArtistTab, AssetAction, PersonhoodLevel, ReleaseStep } from '../../shared/types';
+import type { AccessMode, ArtistTab, AssetAction, PersonhoodLevel, ReleaseRoyaltySplitDraft, ReleaseStep } from '../../shared/types';
 
 const DEFAULT_DESCRIPTION = 'Describe the story, rights context, and intended audience for this track.';
 
@@ -28,6 +28,8 @@ type ReleaseFormValue = {
   setPriceDot: Dispatch<SetStateAction<string>>;
   royaltyBps: number;
   setRoyaltyBps: Dispatch<SetStateAction<number>>;
+  additionalRoyaltySplits: ReleaseRoyaltySplitDraft[];
+  setAdditionalRoyaltySplits: Dispatch<SetStateAction<ReleaseRoyaltySplitDraft[]>>;
   accessMode: AccessMode;
   setAccessMode: Dispatch<SetStateAction<AccessMode>>;
   personhoodLevel: PersonhoodLevel;
@@ -53,6 +55,7 @@ export function ReleaseFormProvider({ children }: { children: ReactNode }) {
   const [artistName, setArtistName] = useState('');
   const [priceDot, setPriceDot] = useState('0.5');
   const [royaltyBps, setRoyaltyBps] = useState(7000);
+  const [additionalRoyaltySplits, setAdditionalRoyaltySplits] = useState<ReleaseRoyaltySplitDraft[]>([]);
   const [accessMode, setAccessMode] = useState<AccessMode>('human-free');
   const [personhoodLevel, setPersonhoodLevel] = useState<PersonhoodLevel>('DIM1');
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -74,6 +77,8 @@ export function ReleaseFormProvider({ children }: { children: ReactNode }) {
       setPriceDot,
       royaltyBps,
       setRoyaltyBps,
+      additionalRoyaltySplits,
+      setAdditionalRoyaltySplits,
       accessMode,
       setAccessMode,
       personhoodLevel,
@@ -90,7 +95,21 @@ export function ReleaseFormProvider({ children }: { children: ReactNode }) {
       setReleaseStep,
       bulletinManifestRef
     }),
-    [title, description, artistName, priceDot, royaltyBps, accessMode, personhoodLevel, coverFile, uploadToBulletinEnabled, assetAction, artistTab, releaseStep]
+    [
+      title,
+      description,
+      artistName,
+      priceDot,
+      royaltyBps,
+      additionalRoyaltySplits,
+      accessMode,
+      personhoodLevel,
+      coverFile,
+      uploadToBulletinEnabled,
+      assetAction,
+      artistTab,
+      releaseStep
+    ]
   );
 
   return <ReleaseFormContext.Provider value={value}>{children}</ReleaseFormContext.Provider>;

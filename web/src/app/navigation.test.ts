@@ -15,7 +15,7 @@ describe('VIEW_COPY', () => {
 
 describe('NAV_ITEMS', () => {
   it('lists the three primary views in order with labels and icons', () => {
-    // The player is a contextual surface opened by a work, room, or dock. It
+    // The player is a contextual surface opened by a track, room, or dock. It
     // remains a valid routed view without competing with the three places a
     // listener deliberately navigates to.
     expect(NAV_ITEMS.map(item => item.view)).toEqual([...PRIMARY_VIEWS]);

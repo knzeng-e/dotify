@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { parseAbiItem } from 'viem';
+import { getAddress, isAddress, parseAbiItem } from 'viem';
 import {
   ensureContract,
   getPublicClient,
@@ -37,7 +37,7 @@ import {
   publishArtistPublishE2eTrack,
   recordArtistPublishTransactionFailure
 } from '../e2e/artistPublishMock';
-import type { AccessMode, CatalogTrack, PersonhoodLevel, RoyaltyPayment, TransactionFeedback } from '../shared/types';
+import type { AccessMode, CatalogTrack, PersonhoodLevel, ReleaseRoyaltySplitDraft, RoyaltyPayment, TransactionFeedback } from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
 import type { PolkadotSigner } from 'polkadot-api';
 
@@ -99,6 +99,50 @@ function createBulletinManifestRef(hash: `0x${string}`) {
   return `paseo-bulletin:dotify-manifest:${hash}`;
 }
 
+function normalizeRoyaltyBps(value: number, label: string): number {
+  if (!Number.isFinite(value)) {
+    throw new Error(`${label} royalty share must be a number.`);
+  }
+  const bps = Math.trunc(value);
+  if (bps < 0 || bps > 10_000) {
+    throw new Error(`${label} royalty share must be between 0 and 10000 bps.`);
+  }
+  return bps;
+}
+
+function resolveRoyaltySplits(primaryRecipient: `0x${string}`, primaryBps: number, additionalSplits: ReleaseRoyaltySplitDraft[]) {
+  const recipients: `0x${string}`[] = [primaryRecipient];
+  const shares: number[] = [normalizeRoyaltyBps(primaryBps, 'Artist')];
+
+  for (const split of additionalSplits) {
+    const label = split.label.trim() || 'Rights holder';
+    const recipient = split.recipient.trim();
+    const bps = normalizeRoyaltyBps(split.bps, label);
+    const emptyDraft = !recipient && bps === 0;
+    if (emptyDraft) continue;
+    if (!recipient) {
+      throw new Error(`${label} needs an EVM address.`);
+    }
+    if (!isAddress(recipient)) {
+      throw new Error(`${label} has an invalid EVM address.`);
+    }
+    if (bps === 0) {
+      throw new Error(`${label} needs a royalty share above 0 bps, or remove the row.`);
+    }
+    recipients.push(getAddress(recipient));
+    shares.push(bps);
+  }
+
+  const totalBps = shares.reduce((total, bps) => total + bps, 0);
+  if (totalBps <= 0) {
+    throw new Error('Royalty split must reserve at least 1 bps.');
+  }
+  if (totalBps > 10_000) {
+    throw new Error('Royalty split cannot exceed 10000 bps.');
+  }
+  return { recipients, shares, totalBps };
+}
+
 function getStoredArtistName(address: `0x${string}`) {
   try {
     return window.localStorage.getItem(getArtistNameStorageKey(address));
@@ -136,6 +180,7 @@ export type UseArtistConsoleDeps = {
   priceDot: string;
   personhoodLevel: PersonhoodLevel;
   royaltyBps: number;
+  additionalRoyaltySplits: ReleaseRoyaltySplitDraft[];
   audioSource: string | null;
   coverFile: File | null;
   audioCID: string;
@@ -169,6 +214,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     priceDot,
     personhoodLevel,
     royaltyBps,
+    additionalRoyaltySplits,
     audioSource,
     coverFile,
     activeSubstrateAddress,
@@ -607,7 +653,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       })),
       settlement: {
         target: 'evm',
-        royaltyBps,
+        royaltyBps: royaltyShares.reduce((total, bps) => total + bps, 0),
         pricePlanck: dotToPlanck(priceDotForAccessMode(accessMode, priceDot)).toString()
       }
     };
@@ -687,8 +733,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       if (resolvedAudioCID) setAudioCID(resolvedAudioCID);
       if (resolvedCoverCID) setCoverCID(resolvedCoverCID);
 
-      const royaltyRecipients = [activeEvmAddress];
-      const royaltyShares = [royaltyBps];
+      const { recipients: royaltyRecipients, shares: royaltyShares, totalBps: totalRoyaltyBps } = resolveRoyaltySplits(
+        activeEvmAddress,
+        royaltyBps,
+        additionalRoyaltySplits
+      );
       const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID);
 
       setRightsStatus('Publishing manifest to IPFS…');
@@ -719,7 +768,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           accessMode,
           priceDot,
           personhoodLevel,
-          royaltyBps,
+          royaltyBps: totalRoyaltyBps,
           audioCID: resolvedAudioCID,
           coverCID: resolvedCoverCID,
           metadataCID

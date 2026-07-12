@@ -512,6 +512,7 @@
   }
 
   .release-stepper button {
+    justify-content: flex-start;
     border-right: 0;
     border-bottom: 1px solid var(--line);
     text-align: left;
@@ -519,6 +520,21 @@
 
   .release-stepper button:last-child {
     border-bottom: 0;
+  }
+
+  .royalty-split-head,
+  .royalty-primary-row,
+  .royalty-split-total {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .royalty-split-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .royalty-split-remove {
+    justify-self: start;
   }
 
   .release-focus-hero {

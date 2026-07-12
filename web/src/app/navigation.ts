@@ -10,8 +10,8 @@ import type { View } from '../shared/types';
 
 /** Page title + eyebrow for each main view. */
 export const VIEW_COPY: Record<View, { title: string; eyebrow: string }> = {
-  listen: { title: 'Now', eyebrow: 'Open moments' },
-  player: { title: 'Listen', eyebrow: 'Work and room' },
+  listen: { title: 'Music', eyebrow: 'Listen together' },
+  player: { title: 'Player', eyebrow: 'Track and room' },
   rooms: { title: 'Rooms', eyebrow: 'Enter or welcome' },
   you: { title: 'You', eyebrow: 'Music and privacy' }
 };
@@ -20,7 +20,7 @@ export type NavItem = { view: View; label: string; icon: LucideIcon };
 
 /** Primary navigation entries, in display order. */
 export const NAV_ITEMS: readonly NavItem[] = [
-  { view: 'listen', label: 'Now', icon: Headphones },
+  { view: 'listen', label: 'Music', icon: Headphones },
   { view: 'rooms', label: 'Rooms', icon: Radio },
   { view: 'you', label: 'You', icon: UserRound }
 ];

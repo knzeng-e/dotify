@@ -17,6 +17,13 @@ export type RoyaltySplit = {
   bps: number;
 };
 
+export type ReleaseRoyaltySplitDraft = {
+  id: string;
+  label: string;
+  recipient: string;
+  bps: number;
+};
+
 export type TrackInfo = {
   title: string;
   artist: string;

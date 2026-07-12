@@ -4,7 +4,6 @@ import type { CSSProperties } from 'react';
 import { CoverImage } from '../components/CoverImage';
 import { DotBirth } from '../components/DotBirth';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
-import { StageRail } from '../components/StageRail';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import { auraStyleForTrack } from '../shared/utils/aura';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
@@ -46,7 +45,7 @@ export function ListenView({
           <p className='eyebrow'>Shared listening, happening now</p>
           <h1 id='now-title'>Music is better when someone brings you in.</h1>
         </div>
-        <p>Enter a live room, or begin with a work and open the same moment to someone else. A room guest can listen before a wallet is ever useful.</p>
+        <p>Enter a live room, or start with a track and open the same moment to someone else. A room guest can listen before a wallet is ever useful.</p>
       </header>
 
       <div className='now-hero-grid'>
@@ -60,7 +59,7 @@ export function ListenView({
               </span>
             </div>
             <div className='moment-copy'>
-              <span className='moment-kicker'>{leadRoom ? `${leadRoom.hostName} welcomes you` : 'Begin with a work'}</span>
+              <span className='moment-kicker'>{leadRoom ? `${leadRoom.hostName} welcomes you` : 'Start with a track'}</span>
               <h2>{heroTrack.title}</h2>
               <p>{heroTrack.artist}</p>
 
@@ -88,7 +87,7 @@ export function ListenView({
                 }}
               >
                 {leadRoom ? <Headphones size={18} /> : <ArrowRight size={18} />}
-                {leadRoom ? 'Enter and listen' : 'Open this work'}
+                {leadRoom ? 'Enter and listen' : 'Open this track'}
               </button>
             </div>
           </article>
@@ -103,7 +102,7 @@ export function ListenView({
             <div className='moment-copy'>
               <span className='moment-kicker'>The commons is quiet</span>
               <h2 id='quiet-title'>Open the first listening room.</h2>
-              <p>Choose a work when the catalog is available, then share one simple link.</p>
+              <p>Choose a track when the catalog is available, then share one simple link.</p>
               <button className='primary-action moment-primary' type='button' onClick={onStartRoom}>
                 <Radio size={18} />
                 Open the first room
@@ -191,7 +190,7 @@ export function ListenView({
             <span className='live-empty-mark' aria-hidden='true' />
             <div>
               <strong>No room is open yet.</strong>
-              <span>Choose a work and welcome the first shared moment.</span>
+              <span>Choose a track and welcome the first shared moment.</span>
             </div>
             <button className='secondary-action' type='button' onClick={onStartRoom}>
               Open the first room
@@ -200,20 +199,16 @@ export function ListenView({
         )}
       </section>
 
-      <section className='catalogue-section' aria-labelledby='works-title'>
+      <section className='catalogue-section' aria-labelledby='tracks-title'>
         <div className='section-heading'>
           <div>
-            <span className='section-index'>03 / Works</span>
-            <h2 id='works-title'>Start with the music</h2>
+            <span className='section-index'>03 / Tracks</span>
+            <h2 id='tracks-title'>Start with the music</h2>
           </div>
           <span>{catalogTracks.length} available</span>
         </div>
 
-        <p className='catalogue-intro'>Open works play without ceremony. Protected works explain the artist's terms before asking you to confirm anything.</p>
-
-        {catalogTracks.length > 0 && (
-          <StageRail tracks={catalogTracks} accessByTrackId={catalogAccessByTrackId} selectedTrackId={selectedTrackId} onOpenTrack={onOpenTrack} />
-        )}
+        <p className='catalogue-intro'>Open tracks play without ceremony. Protected tracks explain the artist's terms before asking you to confirm anything.</p>
 
         <div className='catalogue-grid'>
           {catalogTracks.length > 0 ? (
@@ -248,7 +243,7 @@ export function ListenView({
                     <button className='artist-text-button' type='button' onClick={() => onOpenArtist(track.artist)}>
                       {track.artist}
                     </button>
-                    <p className='catalogue-card-description'>{track.description || 'A work ready for listening, rooms, and direct artist support.'}</p>
+                    <p className='catalogue-card-description'>{track.description || 'A track ready for listening, rooms, and direct artist support.'}</p>
                   </div>
                   <div
                     className='catalogue-access-line'
@@ -287,7 +282,7 @@ export function ListenView({
           <ShieldCheck size={20} />
           <span>
             <strong>Artist terms stay visible</strong>
-            Each work names how it opens.
+            Each track names how it opens.
           </span>
         </div>
         <div>

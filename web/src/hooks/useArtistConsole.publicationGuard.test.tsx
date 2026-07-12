@@ -25,6 +25,7 @@ describe('useArtistConsole publication guard', () => {
       priceDot: '0',
       personhoodLevel: 'DIM1',
       royaltyBps: 10_000,
+      additionalRoyaltySplits: [],
       audioSource: null,
       coverFile: null,
       audioCID: '',

@@ -136,6 +136,8 @@
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-full);
   background: var(--surface);
@@ -148,6 +150,21 @@
 button.status-pill:hover,
 button.wallet-pill:hover {
   border-color: var(--ink);
+}
+
+.wallet-pill[data-tone='muted'] {
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--on-action);
+  box-shadow: 0 0 18px rgb(0 229 160 / 0.2);
+}
+
+button.wallet-pill[data-tone='muted']:hover {
+  border-color: var(--action-hover);
+  background: var(--action-hover);
+  color: var(--on-action);
+  box-shadow: 0 0 26px rgb(0 229 160 / 0.3);
+  transform: translateY(-1px);
 }
 
 .wallet-pill[data-tone='green'] {

@@ -30,6 +30,13 @@ import { ReleasesTab } from './ReleasesTab';
 import { RoyaltiesTab } from './RoyaltiesTab';
 import { AdvancedTab } from './AdvancedTab';
 
+function nextRoyaltySplitId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `split-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 const artistTabs: Array<{ id: ArtistTab; label: string; description: string }> = [
   { id: 'overview', label: 'Overview', description: 'Identity and next step' },
   { id: 'new', label: 'New Release', description: 'Publish under your own terms' },
@@ -53,6 +60,8 @@ export function ArtistConsole() {
     setPriceDot,
     royaltyBps,
     setRoyaltyBps,
+    additionalRoyaltySplits,
+    setAdditionalRoyaltySplits,
     accessMode,
     setAccessMode,
     personhoodLevel,
@@ -113,6 +122,22 @@ export function ArtistConsole() {
   const onSetPersonhoodLevel = setPersonhoodLevel;
   const onSetPriceDot = setPriceDot;
   const onSetRoyaltyBps = setRoyaltyBps;
+  const onAddRoyaltySplit = () =>
+    setAdditionalRoyaltySplits(current => [
+      ...current,
+      {
+        id: nextRoyaltySplitId(),
+        label: `Rights holder ${current.length + 1}`,
+        recipient: '',
+        bps: 0
+      }
+    ]);
+  const onUpdateRoyaltySplit = (id: string, patch: Partial<(typeof additionalRoyaltySplits)[number]>) => {
+    setAdditionalRoyaltySplits(current => current.map(split => (split.id === id ? { ...split, ...patch } : split)));
+  };
+  const onRemoveRoyaltySplit = (id: string) => {
+    setAdditionalRoyaltySplits(current => current.filter(split => split.id !== id));
+  };
   const onSetUploadToBulletinEnabled = setUploadToBulletinEnabled;
   const onSetBulletinAccountIndex = setBulletinAccountIndex;
   const onUpdateArtistName = (name: string) => artistConsole.updateArtistName(name, setArtistName);
@@ -354,6 +379,7 @@ export function ArtistConsole() {
           personhoodLevel={personhoodLevel}
           priceDot={priceDot}
           royaltyBps={royaltyBps}
+          additionalRoyaltySplits={additionalRoyaltySplits}
           uploadToBulletinEnabled={uploadToBulletinEnabled}
           rightsStatus={rightsStatus}
           isRegistering={isRegistering}
@@ -373,6 +399,9 @@ export function ArtistConsole() {
           onSetPersonhoodLevel={onSetPersonhoodLevel}
           onSetPriceDot={onSetPriceDot}
           onSetRoyaltyBps={onSetRoyaltyBps}
+          onAddRoyaltySplit={onAddRoyaltySplit}
+          onUpdateRoyaltySplit={onUpdateRoyaltySplit}
+          onRemoveRoyaltySplit={onRemoveRoyaltySplit}
           onSetUploadToBulletinEnabled={onSetUploadToBulletinEnabled}
           onSetBulletinAccountIndex={onSetBulletinAccountIndex}
           onRegisterRights={onRegisterRights}
