@@ -124,31 +124,32 @@ export function ListenView({
               </span>
             </div>
             <div className='moment-copy'>
-              <span className='moment-kicker'>Fresh from the catalog</span>
-              <h2>{featured.title}</h2>
-              <button className='moment-artist' type='button' onClick={() => onOpenArtist(featured.artist)}>
-                {featured.artist}
-              </button>
+              <div className='moment-copy-main'>
+                <span className='moment-kicker'>Fresh from the catalog</span>
+                <h2>{featured.title}</h2>
+                <button className='moment-artist' type='button' onClick={() => onOpenArtist(featured.artist)}>
+                  {featured.artist}
+                </button>
+              </div>
 
-              <div className='track-life-panel' aria-label={`Live activity for ${featured.title}`}>
+              <div
+                className='track-life-panel'
+                aria-label={`Live activity for ${featured.title}: ${featuredListening} total listeners, ${featuredRooms.length} rooms playing this track`}
+              >
                 <div className='track-life-summary'>
                   <span className='track-life-light' aria-hidden='true' />
                   <div>
                     <span>Track presence</span>
-                    <strong>{featuredRooms.length > 0 ? 'Playing live now' : featuredSoloListening > 0 ? 'Heard solo right now' : 'Ready for a room'}</strong>
+                    <strong>{featuredRooms.length > 0 ? 'Playing in rooms now' : featuredListening > 0 ? 'Listening now' : 'Ready for a room'}</strong>
                   </div>
                   <dl>
                     <div>
-                      <dt>Solo now</dt>
-                      <dd>{featuredSoloListening}</dd>
-                    </div>
-                    <div>
-                      <dt>Rooms playing this track</dt>
-                      <dd>{featuredRooms.length}</dd>
-                    </div>
-                    <div>
-                      <dt>Listening now</dt>
+                      <dt>current listeners</dt>
                       <dd>{featuredListening}</dd>
+                    </div>
+                    <div>
+                      <dt>Rooms playing</dt>
+                      <dd>{featuredRooms.length}</dd>
                     </div>
                   </dl>
                 </div>
@@ -188,13 +189,15 @@ export function ListenView({
               <i />
             </div>
             <div className='moment-copy'>
-              <span className='moment-kicker'>The commons is quiet</span>
-              <h2 id='quiet-title'>Open the first listening room.</h2>
-              <p>Choose a track, then share the link.</p>
-              <button className='primary-action moment-primary' type='button' onClick={() => onStartRoom()}>
-                <Radio size={18} />
-                Open the first room
-              </button>
+              <div className='moment-copy-main'>
+                <span className='moment-kicker'>The commons is quiet</span>
+                <h2 id='quiet-title'>Open the first listening room.</h2>
+                <p>Choose a track, then share the link.</p>
+                <button className='primary-action moment-primary' type='button' onClick={() => onStartRoom()}>
+                  <Radio size={18} />
+                  Open the first room
+                </button>
+              </div>
             </div>
           </section>
         )}

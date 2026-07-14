@@ -247,9 +247,9 @@ nothing.
 - **Room row:** track, host, real presence, sound state, progress when known.
 - **Status chip:** icon, literal text, and semantic tone; never color alone.
 - **Player dock:** current track, play/pause, real progress, volume, open-player.
-- **Featured track presence:** latest-track carousel, active solo count, rooms
-  currently playing that track, combined real-time listening total, and direct
-  solo / host / live-room actions.
+- **Featured track presence:** latest-track carousel, combined real-time
+  listening total across solo and room playback, rooms currently playing that
+  track, and direct solo / host / live-room actions.
 - **Room sky:** real room spheres in a pan-and-zoom camera with room-by-room
   recentering; the complete card list remains the mobile/reduced-motion path.
 - **Access sheet:** terms and next action; never blocks a room guest.

@@ -205,8 +205,8 @@ Validation evidence (2026-07-12):
 - repository diff whitespace check: passed.
 
 Follow-up validation (2026-07-14): the Music hero now uses the latest five
-registered tracks, reports active solo presence, rooms playing the selected
-track, and their combined listening total. The desktop room sky supports pan,
-zoom, room-by-room recentering, and reset while preserving the complete static
-room list on mobile/reduced motion. Signaling validation passes 45/45, including
-solo aggregation and cleanup; the production web build passes.
+registered tracks, reports the combined solo-plus-room listening total and the
+number of rooms currently playing the selected track. The desktop room sky
+supports pan, zoom, room-by-room recentering, and reset while preserving the
+complete static room list on mobile/reduced motion. Signaling validation passes
+45/45, including solo aggregation and cleanup; the production web build passes.

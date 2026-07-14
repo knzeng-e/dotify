@@ -37,6 +37,18 @@
   .release-preview-panel {
     position: static;
   }
+
+  .track-life-summary {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .track-life-summary dl {
+    width: 100%;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: start;
+    text-align: left;
+  }
 }
 
 @media (max-width: 60rem) {
@@ -289,7 +301,10 @@
   }
 
   .moment-copy {
-    padding: 2rem 1.5rem 2.25rem;
+    --moment-copy-pad-x: 1.5rem;
+    --moment-copy-pad-y: 2.25rem;
+
+    padding: 2rem var(--moment-copy-pad-x) var(--moment-copy-pad-y);
   }
 
   .moment-copy h2 {
@@ -327,17 +342,8 @@
     width: 100%;
   }
 
-  .track-life-summary {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
   .track-life-summary dl {
-    width: 100%;
-    grid-column: 1 / -1;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    justify-content: start;
     gap: 0.45rem;
-    text-align: left;
   }
 
   .track-life-summary dt {
