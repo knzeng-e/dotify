@@ -46,9 +46,9 @@ Do not add ornamental product features until the following spine is stable:
 
 | Backlog doc                                      | GitHub issue | Status                                                                          | Goal                                     |
 | ------------------------------------------------ | ------------ | ------------------------------------------------------------------------------- | ---------------------------------------- |
-| `10-observability-health-checks.md`              | #11          | Backend + signaling slice delivered (see delivery notes); frontend surface open | Observability and health checks          |
-| `11-proof-of-personhood-integration-research.md` | #12          | Open                                                                            | Proof of Personhood integration research |
-| `12-ambassador-social-propagation-model.md`      | #13          | Open                                                                            | Ambassador and social propagation model  |
+| `10-observability-health-checks.md`              | #11          | Backend + signaling slice delivered; frontend surface and production operation evidence open | Observability and health checks          |
+| `11-proof-of-personhood-integration-research.md` | #12          | Open - rewrite against current Product SDK / Individuality host APIs before build | Proof of Personhood integration research |
+| `12-ambassador-social-propagation-model.md`      | #13          | Open - keep last until provenance, consent, and anti-abuse foundations exist       | Ambassador and social propagation model  |
 
 ## Design track - experience evolution
 
@@ -71,7 +71,7 @@ specific pattern with real data.
 | `20-room-social-layer.md`                 | Delivered on `main` (PR #67)                                                                   | Broadcast reactions (attributed petals) + in-room chat over the signaling relay; 50-message in-room history, rate-limited, fail closed                                                                                                         |
 | `22-living-interface.md`                  | Delivered on `design/living-interface`                                                         | Living Interface: borders replaced by aura-tinted tonal layering, relaxed geometry, deep-glass floating layers, conversational chat bubbles, one breathing motion curve (`docs/design/dotify-living-interface.md`)                             |
 | `23-room-identity.md`                     | Layer 1 delivered on `feat/room-identity`                                                      | A pseudonym set once per wallet: off-chain per-address display name, auto-filled into room create/join; Layer 2 (link/QR join step) and on-chain handle registry are future (`docs/design/room-identity.md`)                                   |
-| `25-thresholds-functional-v1.md`          | In progress - Music UI/royalty split polish on PR #92; publication reopened on the fresh attested deployment | `Shared Score` IA with Living Light presentation over the real room-link threshold, retired-preview copy cleanup, multi-recipient royalty splits, and production-spine security hardening (`docs/design/dotify-shared-score.md`; original rationale in `docs/design/dotify-thresholds.md`) |
+| `25-thresholds-functional-v1.md`          | Delivered on `main` by merged PR #92; follow-up validation passed 2026-07-14 | `Shared Score` IA with Living Light presentation over the real room-link threshold, retired-preview copy cleanup, multi-recipient royalty splits, and production-spine security hardening (`docs/design/dotify-shared-score.md`; original rationale in `docs/design/dotify-thresholds.md`) |
 
 Delivered before the #92 consolidation: album-aura engine, aura-colored cover
 fallbacks, presence avatars, player dock, create-room sheet, immersive-room
@@ -87,7 +87,7 @@ Deferred (needs a backend channel, deliberately not faked): persisted room mood.
 
 | Backlog doc                 | Status                                                                                                                                                                | Goal                                                                                                                                                                                                                                                                                           |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `24-access-streaming-v2.md` | P1/P2 delivered; P3 first vertical slice delivered with DAV2 refs, playback fallback, and startup metrics (design in `docs/design/dotify-v2-access-and-streaming.md`) | Remove the 42% preview; three-mode artist policy (free / paid / human-free via Proof of Personhood); sign-once session auth for key delivery; encrypted chunked streaming (`dotify.audio.v2`) for fast starts; Polkadot App stack citizenship (Triangle, PoP, Coinage, DotNS, Statement Store) |
+| `24-access-streaming-v2.md` | P1/P2 delivered; P3 first vertical slice delivered with DAV2 refs, playback fallback, and startup metrics (design in `docs/design/dotify-v2-access-and-streaming.md`) | Remove the 42% preview; three-mode artist policy (free / paid / human-free via Proof of Personhood); sign-once session auth for key delivery; encrypted chunked streaming (`dotify.audio.v2`) for fast starts; Product SDK / Playground / Humanity feasibility as a later host-integration track |
 
 Ticket 24 supersedes the preview-based rows above: the 42% doctrine and the
 ticket 18 preview assets are consciously retired by access model v2.
@@ -95,13 +95,26 @@ ticket 18 preview assets are consciously retired by access model v2.
 ## Strategic improvement plan
 
 `improvement-plan.md` tracks the July 2026 review of the implementation
-against the product/technical/philosophical memory and the Polkadot/Parity
-principles Dotify claims. It sequences the remaining spine work (Music), the
-differentiating moves (Next: real Individuality integration, statement-store
-presence, Triangle host citizenship), and the social-depth work (Later).
-Nothing in Next or Later starts before the spine is green. The PR8b
-providers/context boundary for ticket 08 is designed in
-`08b-providers-design.md`.
+against the product/technical/philosophical memory and the current Parity
+Product SDK direction. The plan is now dual-mode: standalone web remains the
+first public listening path, while Product SDK / Playground / Humanity
+integration is a gated feasibility track. Nothing in that track may imply live
+Host, Statement Store, Product account, Humanity, or `.dot` deployment support
+until the relevant spike proves the current API, environment, and security
+boundary.
+
+The Product SDK evidence snapshot used for this replanning is
+`paritytech/product-sdk@2f359bba28ca72855207a0a519d4118b37b4438c`
+(`@parity/product-sdk` 0.17.0), fetched on 2026-07-14. It is explicitly
+prototype / reference / unaudited code. Paseo and Summit are the live preset
+environments; Product SDK contracts target `pallet-revive` / PolkaVM CDM flows,
+not Dotify's current viem + EVM RPC path; Statement Store is useful for small
+ephemeral presence, not full chat, SDP/ICE, durable media metadata, or guest
+reactions.
+
+The local backlog/project synchronization contract lives in `backlog.json` and
+is checked by `scripts/backlog-sync.mjs`. GitHub Project 5 owns workflow status;
+local Markdown owns scope, acceptance criteria, and delivery notes.
 
 ## Current room access doctrine
 
@@ -129,6 +142,23 @@ All implementation must be production-minded:
 
 ## Recommended execution order
 
-Sprint 0, Classic unlock e2e coverage, and artist publish e2e coverage are delivered on `main`. Execute the remaining Sprint 1 items next. Do not start ambassador mechanics, awards, or advanced social graph work until deterministic tests, DAV2 playback validation, modularization, and ABI generation are stable.
+Sprint 0, Sprint 1, ticket 24 P1/P2/P3 first slice, and ticket 25 are delivered
+on `main`. The remaining order is:
+
+1. Reconcile GitHub Project 5 with this local backlog and keep issue status in
+   the project, not scattered through prose.
+2. Finish standalone production operation: observability frontend, public API /
+   signaling deployment evidence, DAV2 real-browser and gateway validation, and
+   production wallet/device checks.
+3. Improve room resilience and shared-listening depth only where it preserves
+   the link-first guest doctrine.
+4. Run Product SDK feasibility spikes: Host capability detection, Product
+   account signing, resource allocation, PolkaVM/CDM contract portability,
+   Playground/Bulletin/DotNS deployment, and Statement Store presence.
+5. Build live Humanity / Individuality only after the research ticket proves a
+   privacy-preserving source, proof shape, address-binding story, and fallback
+   UX.
+6. Cut ambassador mechanics last, after provenance, consent, and anti-abuse are
+   designed.
 
 The philosophical line is simple: make the social listening experience as frictionless as a shared link, while keeping the artist-owned runtime and access policy as the invisible foundation.

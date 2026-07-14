@@ -173,12 +173,11 @@ Legacy completion matrix:
 
 ## Delivery notes
 
-The functional slice and source-level hardening are isolated on
-`feat/dotify-thresholds-prod-readiness` in PR #92. Shared Score remains the
-information architecture and honesty model; the rendered presentation is the
-track-driven Living Light layer. Artist publication is open on the fresh active
-deployment described above; the legacy remediation work remains documented
-separately.
+The functional slice and source-level hardening landed on `main` through merged
+PR #92. Shared Score remains the information architecture and honesty model; the
+rendered presentation is the track-driven Living Light layer. Artist
+publication is open on the fresh active deployment described above; the legacy
+remediation work remains documented separately.
 
 Validation evidence (2026-07-12):
 

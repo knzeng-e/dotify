@@ -1,0 +1,274 @@
+{
+  "$schema": "./backlog.schema.json",
+  "version": 1,
+  "repository": "knzeng-e/dotify",
+  "project": {
+    "owner": "knzeng-e",
+    "number": 5,
+    "url": "https://github.com/users/knzeng-e/projects/5",
+    "statusField": "Status",
+    "statusOptions": ["Todo", "In Progress", "In Review", "Done"],
+    "recommendedFields": {
+      "Priority": ["P0", "P1", "P2", "P3"],
+      "Track": [
+        "Production spine",
+        "Product SDK",
+        "Room reliability",
+        "Personhood",
+        "Cultural propagation",
+        "Design record"
+      ],
+      "Phase": ["Now", "Next", "Product feasibility", "Later", "Record"],
+      "Type": ["Work", "Research", "Epic", "Record"],
+      "Backlog doc": "text"
+    }
+  },
+  "policy": {
+    "localScopeSource": "Markdown docs under docs/backlog",
+    "workflowStatusSource": "GitHub Project 5",
+    "activeItemsNeedProjectCard": true,
+    "recordItemsNeedProjectCard": false,
+    "oneBranchAndPrPerBacklogItem": true
+  },
+  "items": [
+    {
+      "id": "01",
+      "doc": "docs/backlog/01-backend-key-service-skeleton.md",
+      "issue": 2,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Record"
+    },
+    {
+      "id": "02",
+      "doc": "docs/backlog/02-server-side-pinata-uploads.md",
+      "issue": 3,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Record"
+    },
+    {
+      "id": "03",
+      "doc": "docs/backlog/03-wallet-signed-content-key-requests.md",
+      "issue": 4,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Record"
+    },
+    {
+      "id": "04",
+      "doc": "docs/backlog/04-hosted-signaling-room-join-links.md",
+      "issue": 5,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Record"
+    },
+    {
+      "id": "05",
+      "doc": "docs/backlog/05-classic-unlock-e2e-coverage.md",
+      "issue": 6,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Record"
+    },
+    {
+      "id": "06",
+      "doc": "docs/backlog/06-artist-publish-e2e-coverage.md",
+      "issue": 7,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Record"
+    },
+    {
+      "id": "07",
+      "doc": "docs/backlog/07-room-join-e2e-coverage.md",
+      "issue": 8,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Record"
+    },
+    {
+      "id": "08",
+      "doc": "docs/backlog/08-frontend-feature-module-refactor.md",
+      "issue": 9,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record"
+    },
+    {
+      "id": "09",
+      "doc": "docs/backlog/09-generated-abi-bindings.md",
+      "issue": 10,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record"
+    },
+    {
+      "id": "10",
+      "doc": "docs/backlog/10-observability-health-checks.md",
+      "issue": 11,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now"
+    },
+    {
+      "id": "11",
+      "doc": "docs/backlog/11-proof-of-personhood-integration-research.md",
+      "issue": 12,
+      "kind": "research",
+      "priority": "P2",
+      "track": "Personhood",
+      "phase": "Product feasibility"
+    },
+    {
+      "id": "12",
+      "doc": "docs/backlog/12-ambassador-social-propagation-model.md",
+      "issue": 13,
+      "kind": "research",
+      "priority": "P3",
+      "track": "Cultural propagation",
+      "phase": "Later"
+    },
+    {
+      "id": "18",
+      "doc": "docs/backlog/18-production-preview-assets.md",
+      "issue": 27,
+      "kind": "record",
+      "priority": "P2",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Superseded by access model v2; keep as delivery history."
+    },
+    {
+      "id": "24",
+      "doc": "docs/backlog/24-access-streaming-v2.md",
+      "issue": null,
+      "kind": "epic",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Next"
+    },
+    {
+      "id": "25",
+      "doc": "docs/backlog/25-thresholds-functional-v1.md",
+      "issue": null,
+      "kind": "record",
+      "priority": "P0",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Delivered by merged PR #92."
+    },
+    {
+      "id": "production-wallet-support",
+      "doc": "README.md",
+      "issue": 33,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Triage as likely partly delivered; keep open only for missing injected-wallet evidence."
+    },
+    {
+      "id": "production-backend-uploads",
+      "doc": "docs/backlog/02-server-side-pinata-uploads.md",
+      "issue": 34,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Superseded by delivered ticket 02; public operation evidence is tracked by #11, #36, and #37."
+    },
+    {
+      "id": "production-key-custody",
+      "doc": "docs/backlog/03-wallet-signed-content-key-requests.md",
+      "issue": 35,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Superseded by delivered ticket 03 and access model v2; residual startup/custody performance is tracked by #88."
+    },
+    {
+      "id": "hosted-signaling-operation",
+      "doc": "docs/backlog/04-hosted-signaling-room-join-links.md",
+      "issue": 36,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Now"
+    },
+    {
+      "id": "production-env-validation",
+      "doc": "docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md",
+      "issue": 37,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Now"
+    },
+    {
+      "id": "product-sdk-roadmap",
+      "doc": "docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md",
+      "issue": 85,
+      "kind": "epic",
+      "priority": "P1",
+      "track": "Product SDK",
+      "phase": "Product feasibility"
+    },
+    {
+      "id": "catalog-read-model",
+      "doc": "docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md",
+      "issue": 86,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next"
+    },
+    {
+      "id": "cover-gateway-pipeline",
+      "doc": "docs/backlog/24-access-streaming-v2.md",
+      "issue": 87,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next"
+    },
+    {
+      "id": "dav2-startup",
+      "doc": "docs/backlog/24-access-streaming-v2.md",
+      "issue": 88,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Next"
+    },
+    {
+      "id": "turn-sfu-resilience",
+      "doc": "docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md",
+      "issue": 89,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Room reliability",
+      "phase": "Next"
+    },
+    {
+      "id": "value-before-wallet",
+      "doc": "docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md",
+      "issue": 90,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next"
+    }
+  ]
+}

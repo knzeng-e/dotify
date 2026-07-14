@@ -47,7 +47,13 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
 - Frontend/e2e coverage exists for the core Classic unlock, artist publish, and
   room join trust flows; broader wallet-provider/device coverage remains open.
 - Legacy registry paths should be archived or removed.
-- ABI drift risk exists if frontend contract ABIs are manually maintained.
+- Frontend contract ABIs are generated from Hardhat artifacts; generation must
+  stay checked so drift does not return.
+- Product SDK / Playground / Humanity integration is a progressive enhancement
+  track. The current verified Product SDK snapshot is prototype/reference/
+  unaudited, Host APIs require a compatible container, contracts target
+  `pallet-revive` / PolkaVM CDM flows, and Statement Store is constrained to
+  small signed ephemeral data.
 
 ## Production spine
 
@@ -67,6 +73,8 @@ Production readiness means the following must work reliably:
 12. Room guests never receive content keys or source files.
 13. Free tracks play without wallet/signature after the backend verifies the on-chain Free mode.
 14. Critical flows are covered by tests.
+15. Product-host features fail explicitly when the Host or permission is
+    unavailable; they do not silently fall back to demo secrets or bypass access.
 
 ## Backend direction
 
@@ -214,6 +222,10 @@ A fresh contributor should understand:
 - which environment variables are needed;
 - which flows are local demo only;
 - which flows are production-ready.
+
+Product-mode deployment is a separate readiness track. Playground/Bulletin/DotNS
+can make publication easier, but they do not replace backend upload validation,
+content-key custody, or room guest/source-key separation.
 
 ## Technical mantra
 

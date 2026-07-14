@@ -149,9 +149,13 @@ This is the compromise: protect the artist's source-file distribution without ki
 
 ### Next
 
-- Human free access through real Proof of Personhood;
-- room metadata, mood, chat/reactions;
-- collaborative queue;
+- standalone production operation: public API/signaling evidence, DAV2
+  validation, frontend health, and deployment smoke checks;
+- Product SDK / Playground feasibility as progressive enhancement, not a
+  blocker for first sound;
+- Human free access through real Humanity / Individuality after a
+  privacy-preserving source and address-binding design is proven;
+- room resilience, provenance, and consented social memory;
 - artist profile pages;
 - ambassador event model.
 
