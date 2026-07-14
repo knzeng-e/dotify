@@ -58,7 +58,7 @@ export function RoomsView({
       <section className='rooms-live-section' aria-labelledby='rooms-live-title'>
         <div className='section-heading'>
           <div>
-            <span className='section-index'>01 / Live</span>
+            <span className='section-index'>Live</span>
             <h2 id='rooms-live-title'>Happening now</h2>
           </div>
           <button className='text-action' type='button' onClick={onRefreshRooms} disabled={isRefreshingRooms}>
@@ -127,7 +127,7 @@ export function RoomsView({
       <section className='room-entry-section' aria-labelledby='room-entry-title'>
         <div className='section-heading'>
           <div>
-            <span className='section-index'>02 / Rooms</span>
+            <span className='section-index'>Rooms</span>
             <h2 id='room-entry-title'>Start or join.</h2>
           </div>
         </div>
@@ -138,8 +138,8 @@ export function RoomsView({
               <Radio size={21} />
             </span>
             <div>
-              <span className='room-entry-label'>Host</span>
-              <h3>Open a room from a track.</h3>
+              <span className='room-entry-label'>Host a listening room</span>
+              <h3>Open a new room.</h3>
               <p>Choose music, name the room, share the link.</p>
             </div>
             <button className='primary-action' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
@@ -153,7 +153,7 @@ export function RoomsView({
               <Link2 size={21} />
             </span>
             <div>
-              <span className='room-entry-label'>Join someone</span>
+              <span className='room-entry-label'>Join a room</span>
               <h3>Use the room code or link you received.</h3>
               <p>Enter with a room code or link.</p>
             </div>

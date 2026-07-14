@@ -1,5 +1,6 @@
 import { ArrowRight, CircleCheckBig, Headphones, KeyRound, Library, Radio, ShieldCheck, Users, Wallet } from 'lucide-react';
 import type { CSSProperties } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { CoverImage } from '../components/CoverImage';
 import { DotBirth } from '../components/DotBirth';
@@ -32,34 +33,80 @@ export function ListenView({
   onJoinRoom,
   onStartRoom
 }: ListenViewProps) {
-  const featured = catalogTracks[0];
+  const latestTracks = useMemo(() => catalogTracks.slice(0, 5), [catalogTracks]);
+  const latestTrackIds = latestTracks.map(track => track.id).join('|');
+  const [featuredIndex, setFeaturedIndex] = useState(0);
   const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
   const leadRoom = openRooms.find(room => room.track) ?? null;
+  const isShowingLiveRoom = Boolean(leadRoom);
+  const featured = latestTracks[featuredIndex] ?? latestTracks[0] ?? null;
   const heroTrack = leadRoom?.track ?? featured ?? null;
   const presenceMarks = Math.min(totalListening, 7);
+
+  useEffect(() => {
+    setFeaturedIndex(0);
+  }, [latestTrackIds]);
+
+  useEffect(() => {
+    if (isShowingLiveRoom || latestTracks.length <= 1) return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      setFeaturedIndex(currentIndex => (currentIndex + 1) % latestTracks.length);
+    }, 4600);
+
+    return () => window.clearInterval(intervalId);
+  }, [isShowingLiveRoom, latestTrackIds, latestTracks.length]);
 
   return (
     <section className='listen-home' aria-labelledby='now-title'>
       <header className='now-intro'>
         <div>
           <p className='eyebrow'>Shared listening, happening now</p>
-          <h1 id='now-title'>Music is better when someone brings you in.</h1>
+          <h1 id='now-title'>Let the Music connect the Dots.</h1>
         </div>
         <p>Enter a live room, or start one from a track.</p>
       </header>
 
       <div className='now-hero-grid'>
         {heroTrack ? (
-          <article className='moment-feature' data-live={Boolean(leadRoom)} style={auraStyleForTrack(heroTrack) as CSSProperties}>
+          <article className='moment-feature' data-live={isShowingLiveRoom} style={auraStyleForTrack(heroTrack) as CSSProperties}>
             <div className='moment-art'>
-              <CoverImage src={heroTrack.imageRef} alt='' />
+              {leadRoom ? (
+                <CoverImage src={heroTrack.imageRef} alt='' />
+              ) : (
+                <div className='moment-carousel' aria-label='Latest tracks'>
+                  <button className='moment-carousel-main' type='button' onClick={() => featured && onOpenTrack(featured)} aria-label={`Open ${featured?.title ?? 'selected track'}`}>
+                    {featured && <CoverImage src={featured.imageRef} alt='' />}
+                  </button>
+                  {latestTracks.length > 1 && (
+                    <div className='moment-carousel-rail' style={{ '--featured-index': featuredIndex } as CSSProperties}>
+                      <div className='moment-carousel-strip'>
+                        {latestTracks.map((track, index) => (
+                          <button
+                            className='moment-carousel-card'
+                            type='button'
+                            data-active={index === featuredIndex}
+                            key={track.id}
+                            onClick={() => setFeaturedIndex(index)}
+                            aria-label={`Feature ${track.title} by ${track.artist}`}
+                          >
+                            <CoverImage src={track.imageRef} alt='' />
+                            <span>{track.title}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <span className='moment-status'>
                 <span className='live-dot' />
-                {leadRoom ? 'Room open' : 'Ready to listen'}
+                {leadRoom ? 'Room open' : 'Latest tracks'}
               </span>
             </div>
             <div className='moment-copy'>
-              <span className='moment-kicker'>{leadRoom ? `${leadRoom.hostName} welcomes you` : 'Start with music'}</span>
+              <span className='moment-kicker'>{leadRoom ? `${leadRoom.hostName} welcomes you` : 'Fresh from the catalog'}</span>
               <h2>{heroTrack.title}</h2>
               <p>{heroTrack.artist}</p>
 
@@ -72,7 +119,7 @@ export function ListenView({
                     <i key={index} style={{ '--mark-index': index } as CSSProperties} />
                   ))}
                 </span>
-                <span>{leadRoom ? `${roomPresenceCount(leadRoom.listenerCount, true)} listening on one timeline` : 'Ready to become a room'}</span>
+                <span>{leadRoom ? `${roomPresenceCount(leadRoom.listenerCount, true)} listening on one timeline` : 'Choose a track, then make it a room'}</span>
               </div>
 
               <button
@@ -87,7 +134,7 @@ export function ListenView({
                 }}
               >
                 {leadRoom ? <Headphones size={18} /> : <ArrowRight size={18} />}
-                {leadRoom ? 'Enter and listen' : 'Open this track'}
+                {leadRoom ? 'Enter and listen' : 'Open selected track'}
               </button>
             </div>
           </article>
