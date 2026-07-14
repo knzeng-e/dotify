@@ -13,6 +13,7 @@ import {
   zeroAddress,
   type Abi,
   type Address,
+  type GetContractReturnType,
   type Hex,
   type PublicClient,
   type TransactionReceipt
@@ -864,7 +865,14 @@ function firstLine(value: string) {
   return value.split('\n')[0] ?? value;
 }
 
-async function getReadContract(hre: HardhatRuntimeEnvironment, publicClient: PublicClient, contractName: string, address: Address): Promise<any> {
+type ReadOnlyViemContract = GetContractReturnType<Abi, { public: PublicClient }, Address>;
+
+async function getReadContract(
+  hre: HardhatRuntimeEnvironment,
+  publicClient: PublicClient,
+  contractName: string,
+  address: Address
+): Promise<ReadOnlyViemContract> {
   const artifact = await hre.artifacts.readArtifact(contractName);
   return getContract({ address, abi: artifact.abi as Abi, client: { public: publicClient } });
 }

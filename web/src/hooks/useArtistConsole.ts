@@ -294,6 +294,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       return null;
     }
 
+    // This refresh is intentionally read-only even when publication is
+    // quarantined, so existing artist runtime state stays visible. Write paths
+    // must continue to gate on artistPublicationQuarantined or
+    // artistRegistrationAvailable before sending transactions.
     if (!artistRegistrationConfigured) {
       setArtistRuntimeAddress(null);
       setArtistRegistrationStatus('Artist runtime contracts are not deployed yet.');
