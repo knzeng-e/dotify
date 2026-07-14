@@ -103,20 +103,30 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const isBusy = status === 'preparing' || status === 'joining';
   const isOnAir = !isBusy && transport.playing;
   const statusLabel = isOnAir ? 'ON AIR' : playbackStatusLabel(status, mode);
+  const isRoomGuest = mode === 'listener' && Boolean(roomId);
   const isManagedTrack = Boolean(selectedTrack && isPolicyManagedTrack(selectedTrack));
-  const needsTrackAccess = Boolean(selectedTrack && isManagedTrack && !selectedTrackHasAccess);
+  const needsTrackAccess = Boolean(!isRoomGuest && selectedTrack && isManagedTrack && !selectedTrackHasAccess);
   const showUnlockAction = Boolean(needsTrackAccess && selectedTrack);
   const showWideStatus = Boolean(selectedTrack && !showUnlockAction);
-  const accessStatusLabel = needsTrackAccess ? 'Locked' : effectiveAccessMode === 'classic' ? 'Full track unlocked' : 'Ready to listen';
-  const accessPriceLabel =
-    effectiveAccessMode === 'classic'
+  const accessStatusLabel = isRoomGuest
+    ? remoteReady
+      ? 'Listening with the host'
+      : 'Waiting for the host'
+    : needsTrackAccess
+      ? 'Listening closed'
+      : effectiveAccessMode === 'classic'
+        ? 'Full track opened'
+        : 'Ready to listen';
+  const accessPriceLabel = isRoomGuest
+    ? 'Live room stream'
+    : effectiveAccessMode === 'classic'
       ? needsTrackAccess
         ? `${effectivePriceDot} DOT`
-        : 'Unlocked for this wallet'
+        : 'Opened for this wallet'
       : effectiveAccessMode === 'free'
         ? 'Free for everyone'
-        : 'Human pass';
-  const unlockCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock full track' : 'Check access';
+        : 'Free for verified humans';
+  const unlockCtaLabel = effectiveAccessMode === 'classic' ? 'Support and open' : 'Check access';
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
   const disconnectedListeners = listeners.filter(listener => listener.status === 'disconnected');
@@ -250,11 +260,11 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           </span>
           <span>
             <KeyRound size={14} />
-            Host keeps the music flowing
+            Host stream
           </span>
           <span>
             <ShieldCheck size={14} />
-            Guests just join and listen
+            Live room
           </span>
         </div>
       )}
@@ -305,11 +315,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   className='unlock-cover-action'
                   type='button'
                   onClick={() => {
-                    if (effectiveAccessMode === 'classic') {
-                      void onPayForTrackAccess(selectedTrack);
-                      return;
-                    }
-                    onShowWalletModal();
+                    onSetAccessGate(catalog.buildAccessGateInfo(selectedTrack));
                   }}
                 >
                   <KeyRound size={16} />
@@ -429,7 +435,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 reactions and chat share one social cluster. */}
           </div>
 
-          {accessGate && (
+          {accessGate && !isRoomGuest && (
             <AccessGateOverlay
               gate={accessGate}
               onDismiss={() => onSetAccessGate(null)}
@@ -689,14 +695,26 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         )}
 
         <div className='doc-panel player-context-panel'>
-          <PanelTitle icon={Library} title='Current track' meta={needsTrackAccess ? 'Locked' : 'Ready to play'} />
+          <PanelTitle
+            icon={Library}
+            title='Current track'
+            meta={isRoomGuest ? (remoteReady ? 'Room stream' : 'Waiting for host') : needsTrackAccess ? 'Locked' : 'Ready to play'}
+          />
           <div className='stack-list'>
             <EndpointRow label='Artist' value={streamArtist} />
             <EndpointRow
               label='Listen'
-              value={effectiveAccessMode === 'classic' ? (needsTrackAccess ? `${effectivePriceDot} DOT to unlock` : 'Full track ready') : 'Open in this room'}
+              value={
+                isRoomGuest
+                  ? 'Streamed by the host'
+                  : effectiveAccessMode === 'classic'
+                    ? needsTrackAccess
+                      ? `${effectivePriceDot} DOT to open`
+                      : 'Full track opened'
+                    : 'Open in this room'
+              }
             />
-            <EndpointRow label='Status' value={trackInfo?.metadataRef || selectedTrack?.metadataRef ? 'In the catalog' : 'Being prepared'} />
+            <EndpointRow label='Status' value={trackInfo?.hash || selectedTrack?.metadataRef ? 'In the catalog' : 'Being prepared'} />
           </div>
           <button className='secondary-action' type='button' onClick={onNavigateToListen}>
             Browse music

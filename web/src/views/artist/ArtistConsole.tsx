@@ -1,9 +1,8 @@
 import type { ArtistTab, CatalogTrack } from '../../shared/types';
-import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { BadgeCheck, ExternalLink } from 'lucide-react';
 import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
 import { shorten } from '../../shared/utils/format';
-import { auraForName } from '../../shared/utils/aura';
 import { hashFileWithBytes } from '../../shared/utils/hash';
 import { deployments } from '../../shared/config/deployments';
 import { protectedAudioUploadToCID, uploadFileToPinata, uploadProtectedAudio } from '../../services/pinata';
@@ -31,6 +30,13 @@ import { ReleasesTab } from './ReleasesTab';
 import { RoyaltiesTab } from './RoyaltiesTab';
 import { AdvancedTab } from './AdvancedTab';
 
+function nextRoyaltySplitId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `split-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 const artistTabs: Array<{ id: ArtistTab; label: string; description: string }> = [
   { id: 'overview', label: 'Overview', description: 'Identity and next step' },
   { id: 'new', label: 'New Release', description: 'Publish under your own terms' },
@@ -54,6 +60,8 @@ export function ArtistConsole() {
     setPriceDot,
     royaltyBps,
     setRoyaltyBps,
+    additionalRoyaltySplits,
+    setAdditionalRoyaltySplits,
     accessMode,
     setAccessMode,
     personhoodLevel,
@@ -99,9 +107,10 @@ export function ArtistConsole() {
   const trackInfo = catalog.trackInfo;
 
   const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
-  const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
+  const artistRegistrationAvailable = artistConsole.artistRegistrationAvailable;
+  const artistPublicationQuarantined = artistConsole.artistPublicationQuarantined;
   const hasArtistRuntime = Boolean(artistConsole.artistRuntimeAddress);
-  const artistStudioLocked = deriveArtistStudioLocked(artistRegistrationAvailable, hasArtistRuntime);
+  const artistStudioLocked = artistPublicationQuarantined || deriveArtistStudioLocked(artistRegistrationAvailable, hasArtistRuntime);
   const canReviewRelease = deriveCanReviewRelease({ fileHash, title, audioSource });
   const artistSetupState = deriveArtistSetupState(Boolean(connectedWallet), hasArtistRuntime);
 
@@ -113,6 +122,22 @@ export function ArtistConsole() {
   const onSetPersonhoodLevel = setPersonhoodLevel;
   const onSetPriceDot = setPriceDot;
   const onSetRoyaltyBps = setRoyaltyBps;
+  const onAddRoyaltySplit = () =>
+    setAdditionalRoyaltySplits(current => [
+      ...current,
+      {
+        id: nextRoyaltySplitId(),
+        label: `Rights holder ${current.length + 1}`,
+        recipient: '',
+        bps: 0
+      }
+    ]);
+  const onUpdateRoyaltySplit = (id: string, patch: Partial<(typeof additionalRoyaltySplits)[number]>) => {
+    setAdditionalRoyaltySplits(current => current.map(split => (split.id === id ? { ...split, ...patch } : split)));
+  };
+  const onRemoveRoyaltySplit = (id: string) => {
+    setAdditionalRoyaltySplits(current => current.filter(split => split.id !== id));
+  };
   const onSetUploadToBulletinEnabled = setUploadToBulletinEnabled;
   const onSetBulletinAccountIndex = setBulletinAccountIndex;
   const onUpdateArtistName = (name: string) => artistConsole.updateArtistName(name, setArtistName);
@@ -223,7 +248,6 @@ export function ArtistConsole() {
   const onGoToPreviousStep = () => setReleaseStep(previousReleaseStep(releaseStep));
   const onGoToNextStep = () => setReleaseStep(nextReleaseStep(releaseStep));
 
-  const studioAura = auraForName(artistName);
   const studioHandle =
     artistName
       .toLowerCase()
@@ -267,11 +291,7 @@ export function ArtistConsole() {
   return (
     <section className='artist-console'>
       <header className='studio-head'>
-        <span
-          className='studio-avatar'
-          aria-hidden='true'
-          style={{ '--aura-a': studioAura.a, '--aura-b': studioAura.b, '--aura-accent': studioAura.accent } as CSSProperties}
-        />
+        <span className='studio-avatar' aria-hidden='true' />
         <div className='studio-id'>
           <h1>
             {artistName}
@@ -295,6 +315,13 @@ export function ArtistConsole() {
           </div>
         </div>
       </header>
+
+      {artistPublicationQuarantined && (
+        <div className='artist-publication-quarantine' role='status'>
+          <strong>New artist profiles and releases are paused.</strong>
+          <span>{artistConsole.artistPublicationQuarantineReason}</span>
+        </div>
+      )}
 
       <div className='console-tabs' role='tablist' aria-label='Artist console'>
         {artistTabs.map(tab => (
@@ -340,6 +367,7 @@ export function ArtistConsole() {
         <NewReleaseTab
           releaseStep={releaseStep}
           artistStudioLocked={artistStudioLocked}
+          publicationQuarantined={artistPublicationQuarantined}
           assetAction={assetAction}
           audioSource={audioSource}
           fileHash={fileHash}
@@ -351,6 +379,7 @@ export function ArtistConsole() {
           personhoodLevel={personhoodLevel}
           priceDot={priceDot}
           royaltyBps={royaltyBps}
+          additionalRoyaltySplits={additionalRoyaltySplits}
           uploadToBulletinEnabled={uploadToBulletinEnabled}
           rightsStatus={rightsStatus}
           isRegistering={isRegistering}
@@ -370,6 +399,9 @@ export function ArtistConsole() {
           onSetPersonhoodLevel={onSetPersonhoodLevel}
           onSetPriceDot={onSetPriceDot}
           onSetRoyaltyBps={onSetRoyaltyBps}
+          onAddRoyaltySplit={onAddRoyaltySplit}
+          onUpdateRoyaltySplit={onUpdateRoyaltySplit}
+          onRemoveRoyaltySplit={onRemoveRoyaltySplit}
           onSetUploadToBulletinEnabled={onSetUploadToBulletinEnabled}
           onSetBulletinAccountIndex={onSetBulletinAccountIndex}
           onRegisterRights={onRegisterRights}

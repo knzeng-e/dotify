@@ -18,9 +18,16 @@ function avatarVars(name: string, size: number): CSSProperties {
 }
 
 export function Avatar({ name, size = 34, host = false, you = false }: AvatarProps) {
+  const isAnonymous = !name;
+
   return (
-    <span className={'ava' + (host ? ' ava-host' : '') + (you ? ' ava-you' : '')} style={avatarVars(name, size)} title={name} aria-hidden='true'>
-      <span className='ava-initials'>{initialsFor(name)}</span>
+    <span
+      className={'ava' + (host ? ' ava-host' : '') + (you ? ' ava-you' : '') + (isAnonymous ? ' ava-anonymous' : '')}
+      style={avatarVars(name, size)}
+      title={name || undefined}
+      aria-hidden='true'
+    >
+      {isAnonymous ? <span className='ava-anonymous-mark' /> : <span className='ava-initials'>{initialsFor(name)}</span>}
     </span>
   );
 }
@@ -31,13 +38,11 @@ type AvatarStackProps = {
   size?: number;
 };
 
-// Decorative presence for room cards: only the listener count is real, these
-// stand-in names seed the avatar hues so a busy room reads as populated.
-const PRESENCE_POOL = ['Amara', 'Tobias', 'Lena', 'Kwame', 'Sofia', 'Noor', 'Diego', 'Mei', 'Yara', 'Idris', 'Faye', 'Ravi'];
-
-export function roomPresenceNames(hostName: string, listenerCount: number, seed: string): string[] {
-  const offset = hashHue(seed || hostName || 'room') % PRESENCE_POOL.length;
-  const listeners = Array.from({ length: Math.max(0, listenerCount) }, (_, index) => PRESENCE_POOL[(offset + index) % PRESENCE_POOL.length]);
+// Room discovery exposes a real host name and a listener count, not a listener
+// roster. Keep the count visually legible with anonymous marks instead of
+// inventing people or initials that the signaling payload never supplied.
+export function roomPresenceNames(hostName: string, listenerCount: number, _seed: string): string[] {
+  const listeners = Array.from({ length: Math.max(0, listenerCount) }, () => '');
   return [hostName || 'Host', ...listeners];
 }
 
@@ -45,7 +50,7 @@ export function AvatarStack({ names, max = 4, size = 28 }: AvatarStackProps) {
   const shown = names.slice(0, max);
   const extra = names.length - shown.length;
   return (
-    <span className='ava-stack'>
+    <span className='ava-stack' aria-hidden='true'>
       {shown.map((name, index) => (
         <Avatar key={`${name}-${index}`} name={name} size={size} />
       ))}

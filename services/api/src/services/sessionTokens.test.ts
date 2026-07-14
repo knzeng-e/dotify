@@ -5,6 +5,7 @@ import { describe, it } from 'node:test';
 // module reads at import time - so set the env BEFORE dynamically importing.
 process.env.CONTENT_KEY_MASTER_SECRET = 'ab'.repeat(32);
 
+const { config } = await import('../config.js');
 const { issueSessionToken, verifySessionToken, revokeSessionToken, SESSION_TTL_MS } = await import('./sessionTokens.js');
 
 const ADDRESS = '0x1111111111111111111111111111111111111111' as const;
@@ -73,5 +74,28 @@ describe('sessionTokens', () => {
     assert.equal(verified.valid, false);
     if (verified.valid) return;
     assert.equal(verified.code, 'SESSION_REVOKED');
+  });
+
+  it('refuses to issue a session for a different chain', () => {
+    const issued = issueSessionToken(ADDRESS, CHAIN_ID + 1);
+    assert.equal(issued.ok, false);
+    assert.equal(!issued.ok && issued.code, 'CHAIN_ID_MISMATCH');
+  });
+
+  it('rejects an otherwise valid session token issued for a different chain', () => {
+    const expectedChainId = config.DOTIFY_CHAIN_ID;
+    config.DOTIFY_CHAIN_ID = CHAIN_ID + 1;
+    try {
+      const issued = issueSessionToken(ADDRESS, CHAIN_ID + 1);
+      assert.equal(issued.ok, true);
+      if (!issued.ok) return;
+
+      config.DOTIFY_CHAIN_ID = expectedChainId;
+      const verified = verifySessionToken(issued.token);
+      assert.equal(verified.valid, false);
+      assert.equal(!verified.valid && verified.code, 'CHAIN_ID_MISMATCH');
+    } finally {
+      config.DOTIFY_CHAIN_ID = expectedChainId;
+    }
   });
 });

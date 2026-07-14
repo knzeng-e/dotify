@@ -13,6 +13,7 @@
 
 import { verifyMessage } from 'viem';
 import { config } from '../config.js';
+import { checkDotifyChainId } from './chainDomain.js';
 import { consumeNonce, issueNonce } from './replayProtection.js';
 
 // 'room_listener' deliberately does not exist: room listeners never receive
@@ -100,6 +101,11 @@ export function buildSignInMessage(payload: SignInPayload): string {
  * the same fail-closed order as verifySignedRequest.
  */
 export async function verifySignInRequest(request: SignInRequest): Promise<SignatureVerification> {
+  const domain = checkDotifyChainId(request.chainId);
+  if (!domain.ok) {
+    return { valid: false, code: domain.code, reason: domain.reason };
+  }
+
   const expiresAtMs = Date.parse(request.expiresAt);
   if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
     return { valid: false, code: 'EXPIRED_SESSION', reason: 'Sign-in challenge has expired. Request a new one.' };
@@ -120,7 +126,7 @@ export async function verifySignInRequest(request: SignInRequest): Promise<Signa
     return { valid: false, code: 'SIGNATURE_INVALID', reason: 'Wallet signature does not match the sign-in payload.' };
   }
 
-  const nonce = consumeNonce(request.nonce, request.requester);
+  const nonce = consumeNonce(request.nonce, request.requester, request.chainId);
   if (!nonce.ok) {
     return { valid: false, code: nonce.code, reason: nonce.reason };
   }
@@ -130,7 +136,10 @@ export async function verifySignInRequest(request: SignInRequest): Promise<Signa
 
 /** Issue a wallet nonce challenge bound to the address and chain. */
 export function createWalletNonceChallenge(request: NonceChallengeRequest): NonceChallenge {
-  const chainId = request.chainId ?? config.DOTIFY_CHAIN_ID;
+  // The public route rejects an explicitly wrong chain. Always issue the
+  // actual challenge for the configured chain so internal callers cannot
+  // accidentally mint a cross-domain nonce.
+  const chainId = config.DOTIFY_CHAIN_ID;
   const issued = issueNonce(request.address, chainId);
   return { nonce: issued.nonce, expiresAt: issued.expiresAt, chainId };
 }
@@ -141,6 +150,11 @@ export function createWalletNonceChallenge(request: NonceChallengeRequest): Nonc
  * cannot burn a victim's nonce with a garbage signature.
  */
 export async function verifySignedRequest(request: KeySignatureRequest): Promise<SignatureVerification> {
+  const domain = checkDotifyChainId(request.chainId);
+  if (!domain.ok) {
+    return { valid: false, code: domain.code, reason: domain.reason };
+  }
+
   const expiresAtMs = Date.parse(request.expiresAt);
   if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
     return { valid: false, code: 'EXPIRED_SESSION', reason: 'Key request has expired. Request a new challenge.' };
@@ -163,7 +177,7 @@ export async function verifySignedRequest(request: KeySignatureRequest): Promise
     return { valid: false, code: 'SIGNATURE_INVALID', reason: 'Wallet signature does not match the request payload.' };
   }
 
-  const nonce = consumeNonce(request.nonce, request.requester);
+  const nonce = consumeNonce(request.nonce, request.requester, request.chainId);
   if (!nonce.ok) {
     return { valid: false, code: nonce.code, reason: nonce.reason };
   }

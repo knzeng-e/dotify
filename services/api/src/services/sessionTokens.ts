@@ -24,6 +24,7 @@
 
 import { createHmac, hkdfSync, randomUUID, timingSafeEqual } from 'node:crypto';
 import { config } from '../config.js';
+import { checkDotifyChainId } from './chainDomain.js';
 
 const HKDF_INFO = 'dotify-session-token-v1';
 const MIN_MASTER_SECRET_BYTES = 32;
@@ -37,11 +38,17 @@ export type SessionTokenPayload = {
   exp: number; // unix ms
 };
 
-export type IssuedSession = { ok: true; token: string; expiresAt: string } | { ok: false; code: 'SESSION_NOT_CONFIGURED'; reason: string };
+export type IssuedSession =
+  | { ok: true; token: string; expiresAt: string }
+  | { ok: false; code: 'SESSION_NOT_CONFIGURED' | 'CHAIN_ID_MISMATCH'; reason: string };
 
 export type SessionVerification =
   | { valid: true; address: `0x${string}`; chainId: number; jti: string }
-  | { valid: false; code: 'SESSION_NOT_CONFIGURED' | 'SESSION_INVALID' | 'SESSION_EXPIRED' | 'SESSION_REVOKED'; reason: string };
+  | {
+      valid: false;
+      code: 'SESSION_NOT_CONFIGURED' | 'SESSION_INVALID' | 'SESSION_EXPIRED' | 'SESSION_REVOKED' | 'CHAIN_ID_MISMATCH';
+      reason: string;
+    };
 
 // jti -> exp (ms). Pruned lazily on writes so it cannot grow past the set of
 // still-live revoked sessions.
@@ -77,6 +84,9 @@ function pruneRevoked(now: number): void {
 
 /** Issue a session token for a signed-in address. */
 export function issueSessionToken(address: `0x${string}`, chainId: number, now = Date.now()): IssuedSession {
+  const domain = checkDotifyChainId(chainId);
+  if (!domain.ok) return domain;
+
   const key = tokenHmacKey();
   if (!key) {
     return { ok: false, code: 'SESSION_NOT_CONFIGURED', reason: 'Session auth is unavailable: the key service master secret is not configured.' };
@@ -126,6 +136,11 @@ export function verifySessionToken(token: string, now = Date.now()): SessionVeri
     typeof payload.exp !== 'number'
   ) {
     return { valid: false, code: 'SESSION_INVALID', reason: 'Session token payload is missing required claims.' };
+  }
+
+  const domain = checkDotifyChainId(payload.chainId);
+  if (!domain.ok) {
+    return { valid: false, code: domain.code, reason: domain.reason };
   }
 
   if (payload.exp <= now) {

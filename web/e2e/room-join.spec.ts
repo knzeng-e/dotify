@@ -39,7 +39,7 @@ async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: stri
   // Open the room straight from the create-room modal so an unauthorized
   // protected track does not raise an access-gate overlay over the player
   // before the room exists. Pick the track inside the modal, then open.
-  await page.getByRole('button', { name: 'Start a room' }).click();
+  await page.getByRole('button', { name: 'Open a room' }).click();
   await page.getByRole('button', { name: `Select ${trackTitle}` }).click();
   await page.getByRole('button', { name: 'Open the room' }).click();
 
@@ -51,6 +51,7 @@ async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: stri
 type JoinAsListenerOptions = {
   storedDisplayName?: string;
   displayName?: string;
+  delaySignalMessagesMs?: number;
 };
 
 // Listener: open the bare #/rooms/<id> share link (no e2eRoom param) in a fresh
@@ -62,16 +63,36 @@ async function joinAsListener(context: BrowserContext, roomId: string, options: 
       window.localStorage.setItem('dotify:display-name:guest', name);
     }, options.storedDisplayName);
   }
+  if (options.delaySignalMessagesMs) {
+    await context.routeWebSocket(/\/socket\.io\//, webSocket => {
+      const server = webSocket.connectToServer();
+      server.onMessage(message => {
+        setTimeout(() => webSocket.send(message), options.delaySignalMessagesMs);
+      });
+    });
+  }
   const page = await context.newPage();
   await page.goto(`/#/rooms/${roomId}`);
+  if (options.delaySignalMessagesMs) {
+    await expect(page.locator('#join-room-title')).toHaveText('Finding this room');
+    await expect(page.getByRole('button', { name: 'Finding room...' })).toBeDisabled();
+  }
   if (options.displayName) {
-    await expect(page.locator('#join-room-title')).toHaveText('Enter the same listening moment');
-    await expect(page.getByLabel('Room code')).toHaveValue(roomId);
-    await expect(page.getByRole('button', { name: 'Join room' })).toBeDisabled();
+    await expect(page.locator('#join-room-title')).toContainText('welcomes you');
+    await expect(page.locator('.room-threshold-preview')).toBeVisible();
+    await expect(page.locator('.room-threshold-code')).toContainText(roomId);
+    await expect(page.getByRole('button', { name: 'Enter and listen' })).toBeDisabled();
     await page.getByLabel('Your name in the room').fill(options.displayName);
-    await page.getByRole('button', { name: 'Join room' }).click();
+    await page.getByRole('button', { name: 'Enter and listen' }).click();
   }
   return page;
+}
+
+async function expectRoomGuestAccessBoundary(page: Page) {
+  await expect(page.getByTestId('locked-player-state')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /support.*open|check access/i })).toHaveCount(0);
+  await expect(page.locator('.player-context-panel')).not.toContainText(/\bDOT\b|wallet/i);
+  await expect(page.locator('.access-badges')).toContainText('Live room stream');
 }
 
 test('public room: listener joins via link, hears full playback, no wallet, no content key', async ({ browser }) => {
@@ -84,13 +105,14 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     expect(roomId).toMatch(/[A-Z0-9]{4,}/);
     await expect(host.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
 
-    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Listener', displayName: 'Nomad' });
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Listener', displayName: 'Nomad', delaySignalMessagesMs: 500 });
 
     // Guest joins with no wallet: the connect affordance is still present.
     await expect(listener.getByRole('button', { name: 'Connect' })).toBeVisible();
     // Real WebRTC stream reaches the listener.
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
+    await expectRoomGuestAccessBoundary(listener);
     await expect(host.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
 
     const secondListener = await joinAsListener(secondListenerContext, roomId, { displayName: 'Zed' });
@@ -133,6 +155,7 @@ test('protected room with authorized host: host gets the key, listener streams f
     await expect(listener.getByRole('button', { name: 'Connect' })).toBeVisible();
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
+    await expectRoomGuestAccessBoundary(listener);
     await expect(host.locator('.listener-list')).toContainText('Ada', { timeout: 20_000 });
 
     const stateBeforeSwitch = await readRoomJoinState(host);
@@ -218,4 +241,14 @@ test('host disconnect: the room is removed and the listener sees a clear closed 
     await hostContext.close().catch(() => {});
     await listenerContext.close();
   }
+});
+
+test('missing room link stays unavailable and cannot be entered', async ({ page }) => {
+  const roomId = 'NOPE99';
+  await page.goto(`/#/rooms/${roomId}`);
+
+  await expect(page.locator('#join-room-title')).toHaveText('This room is unavailable');
+  await expect(page.locator('.room-threshold-code')).toContainText(roomId);
+  await expect(page.locator('.room-threshold-preview')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Room unavailable' })).toBeDisabled();
 });

@@ -3,7 +3,9 @@
 // Pure rules pulled out of App.tsx (and de-duplicated with NewReleaseTab's local
 // step list) so the wizard navigation and gating are testable in isolation.
 
-import type { ReleaseStep } from '../../shared/types';
+import type { ReleaseRoyaltySplitDraft, ReleaseStep } from '../../shared/types';
+
+export const ROYALTY_BPS_DENOMINATOR = 10_000;
 
 /** Ordered release wizard steps. Labels match what the studio renders. */
 export const RELEASE_STEPS: Array<{ id: ReleaseStep; label: string }> = [
@@ -33,6 +35,31 @@ export function previousReleaseStep(current: ReleaseStep): ReleaseStep {
 /** A release can reach review once it has a hashed audio file with a title. */
 export function canReviewRelease(input: { fileHash: string; title: string; audioSource: string | null }): boolean {
   return Boolean(input.fileHash && input.title.trim() && input.audioSource);
+}
+
+/** Total configured royalty basis points, including the artist's primary share. */
+export function royaltySplitTotal(primaryBps: number, additionalSplits: Pick<ReleaseRoyaltySplitDraft, 'bps'>[]): number {
+  return [primaryBps, ...additionalSplits.map(split => split.bps)].reduce((total, bps) => total + (Number.isFinite(bps) ? Math.max(0, Math.trunc(bps)) : 0), 0);
+}
+
+/** Remaining room before the on-chain royalty split reaches 100%. */
+export function royaltySplitRemaining(primaryBps: number, additionalSplits: Pick<ReleaseRoyaltySplitDraft, 'bps'>[]): number {
+  return ROYALTY_BPS_DENOMINATOR - royaltySplitTotal(primaryBps, additionalSplits);
+}
+
+/** Convert on-chain basis points to the percentage users configure. */
+export function royaltyBpsToPercent(bps: number): number {
+  return Number.isFinite(bps) ? Math.max(0, Math.trunc(bps)) / 100 : 0;
+}
+
+/** Convert a user-entered percentage to the on-chain basis-point integer. */
+export function royaltyPercentToBps(percent: number): number {
+  return Number.isFinite(percent) ? Math.round(Math.max(0, percent) * 100) : 0;
+}
+
+export function formatRoyaltyPercent(bps: number): string {
+  const percent = royaltyBpsToPercent(bps);
+  return `${percent.toFixed(percent % 1 === 0 ? 0 : 2)}%`;
 }
 
 export type ArtistSetupState = 'Ready' | 'Registration needed' | 'Wallet needed';

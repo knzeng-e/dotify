@@ -32,22 +32,34 @@ export function sanitizeAddress(value) {
   return /^0x[0-9a-fA-F]{40}$/.test(text) ? text.toLowerCase() : null;
 }
 
+// Catalog identity used by anonymous, ephemeral solo-presence events. Accept
+// only a full bytes32 hash so one noisy client cannot create arbitrary keys in
+// the in-memory aggregate map.
+export function sanitizeTrackHash(value) {
+  const text = String(value ?? '').trim();
+  return /^0x[0-9a-fA-F]{64}$/.test(text) ? text.toLowerCase() : null;
+}
+
 export function sanitizeTrack(track) {
   if (!track || typeof track !== 'object') {
     return null;
   }
 
+  const accessMode = ['free', 'classic', 'human-free'].includes(track.accessMode) ? track.accessMode : 'human-free';
+
   return {
     title: sanitizeText(track.title, 'Untitled', 120),
     artist: sanitizeText(track.artist, 'Unknown artist', 80),
     hash: sanitizeText(track.hash, '', 80),
-    bulletinRef: sanitizeText(track.bulletinRef, '', 120),
-    audioRef: sanitizeText(track.audioRef, '', 1000),
-    metadataRef: sanitizeText(track.metadataRef, '', 1000),
-    artistContractRef: sanitizeText(track.artistContractRef, '', 1000),
+    // TrackInfo crosses the public room and anonymous join boundaries. Source
+    // and manifest references are not needed for WebRTC playback: a manifest
+    // can reveal the encrypted audio CID even when audioRef itself is absent.
+    // Keep the required legacy bulletin field empty and omit every other
+    // source-bearing reference from signaling payloads.
+    bulletinRef: '',
     imageRef: sanitizeText(track.imageRef, '', 6000),
     description: sanitizeText(track.description, '', 500),
-    accessMode: track.accessMode === 'classic' ? 'classic' : 'human-free',
+    accessMode,
     priceDot: sanitizeText(track.priceDot, '0', 32),
     personhoodLevel: track.personhoodLevel === 'DIM2' ? 'DIM2' : 'DIM1',
     duration: Number.isFinite(track.duration) ? Number(track.duration) : 0,

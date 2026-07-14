@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { parseAbiItem } from 'viem';
+import { getAddress, isAddress, parseAbiItem } from 'viem';
 import {
   ensureContract,
   getPublicClient,
@@ -21,6 +21,7 @@ import {
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
+import { resolveConfiguredArtistPublicationSafety } from '../shared/config/deploymentSafety';
 import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../shared/utils/format';
 import {
   createArtistPublishE2eTrack,
@@ -31,11 +32,12 @@ import {
   getArtistPublishE2eScenario,
   getArtistPublishE2eState,
   isArtistPublishE2e,
+  isArtistPublishE2eScenarioRequested,
   markArtistPublishRuntimeCreated,
   publishArtistPublishE2eTrack,
   recordArtistPublishTransactionFailure
 } from '../e2e/artistPublishMock';
-import type { AccessMode, CatalogTrack, PersonhoodLevel, RoyaltyPayment, TransactionFeedback } from '../shared/types';
+import type { AccessMode, CatalogTrack, PersonhoodLevel, ReleaseRoyaltySplitDraft, RoyaltyPayment, TransactionFeedback } from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
 import type { PolkadotSigner } from 'polkadot-api';
 
@@ -97,6 +99,62 @@ function createBulletinManifestRef(hash: `0x${string}`) {
   return `paseo-bulletin:dotify-manifest:${hash}`;
 }
 
+function normalizeRoyaltyBps(value: number, label: string): number {
+  if (!Number.isFinite(value)) {
+    throw new Error(`${label} royalty share must be a number.`);
+  }
+  const bps = Math.trunc(value);
+  if (bps < 0 || bps > 10_000) {
+    throw new Error(`${label} royalty share must be between 0% and 100%.`);
+  }
+  return bps;
+}
+
+function resolveRoyaltySplits(primaryRecipient: `0x${string}`, primaryBps: number, additionalSplits: ReleaseRoyaltySplitDraft[]) {
+  const recipients: `0x${string}`[] = [primaryRecipient];
+  const shares: number[] = [normalizeRoyaltyBps(primaryBps, 'Artist')];
+
+  for (const split of additionalSplits) {
+    const label = split.label.trim() || 'Rights holder';
+    const recipient = split.recipient.trim();
+    const bps = normalizeRoyaltyBps(split.bps, label);
+    const emptyDraft = !recipient && bps === 0;
+    if (emptyDraft) continue;
+    if (!recipient) {
+      throw new Error(`${label} needs an EVM address.`);
+    }
+    if (!isAddress(recipient)) {
+      throw new Error(`${label} has an invalid EVM address.`);
+    }
+    if (bps === 0) {
+      throw new Error(`${label} needs a royalty share above 0%, or remove the row.`);
+    }
+    recipients.push(getAddress(recipient));
+    shares.push(bps);
+  }
+
+  const totalBps = shares.reduce((total, bps) => total + bps, 0);
+  if (totalBps <= 0) {
+    throw new Error('Royalty split must reserve at least 0.01%.');
+  }
+  if (totalBps > 10_000) {
+    throw new Error('Royalty split cannot exceed 100%.');
+  }
+  return { recipients, shares, totalBps };
+}
+
+function resolveReleaseRoyaltySplits(
+  primaryRecipient: `0x${string}`,
+  accessMode: AccessMode,
+  primaryBps: number,
+  additionalSplits: ReleaseRoyaltySplitDraft[]
+) {
+  if (accessMode === 'free') {
+    return { recipients: [primaryRecipient], shares: [10_000], totalBps: 10_000 };
+  }
+  return resolveRoyaltySplits(primaryRecipient, primaryBps, additionalSplits);
+}
+
 function getStoredArtistName(address: `0x${string}`) {
   try {
     return window.localStorage.getItem(getArtistNameStorageKey(address));
@@ -123,6 +181,7 @@ export type UseArtistConsoleDeps = {
   activeEvmAddress: `0x${string}`;
   connectedWallet: ConnectedWallet | null;
   ethRpcUrl: string;
+  currentChainId: number | null;
   factoryAddress: `0x${string}` | undefined;
   directoryAddress: `0x${string}` | undefined;
   fileHash: `0x${string}` | '';
@@ -133,6 +192,7 @@ export type UseArtistConsoleDeps = {
   priceDot: string;
   personhoodLevel: PersonhoodLevel;
   royaltyBps: number;
+  additionalRoyaltySplits: ReleaseRoyaltySplitDraft[];
   audioSource: string | null;
   coverFile: File | null;
   audioCID: string;
@@ -155,6 +215,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     activeEvmAddress,
     connectedWallet,
     ethRpcUrl,
+    currentChainId,
     factoryAddress,
     directoryAddress,
     fileHash,
@@ -165,6 +226,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     priceDot,
     personhoodLevel,
     royaltyBps,
+    additionalRoyaltySplits,
     audioSource,
     coverFile,
     activeSubstrateAddress,
@@ -192,7 +254,14 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const [isRegistering, setIsRegistering] = useState(false);
   const [releaseActionId, setReleaseActionId] = useState<string | null>(null);
 
-  const artistRegistrationAvailable = Boolean(factoryAddress && directoryAddress);
+  const artistPublicationSafety = resolveConfiguredArtistPublicationSafety({
+    explicitE2e: import.meta.env.DEV && isArtistPublishE2eScenarioRequested(),
+    rpcUrl: ethRpcUrl,
+    currentChainId
+  });
+  const artistPublicationQuarantined = artistPublicationSafety.quarantined;
+  const artistRegistrationConfigured = Boolean(factoryAddress && directoryAddress);
+  const artistRegistrationAvailable = artistRegistrationConfigured && !artistPublicationQuarantined;
 
   async function getActiveWalletClient(): Promise<Awaited<ReturnType<typeof getWalletClient>>> {
     if (!connectedWallet) {
@@ -225,7 +294,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       return null;
     }
 
-    if (!artistRegistrationAvailable) {
+    // This refresh is intentionally read-only even when publication is
+    // quarantined, so existing artist runtime state stays visible. Write paths
+    // must continue to gate on artistPublicationQuarantined or
+    // artistRegistrationAvailable before sending transactions.
+    if (!artistRegistrationConfigured) {
       setArtistRuntimeAddress(null);
       setArtistRegistrationStatus('Artist runtime contracts are not deployed yet.');
       return null;
@@ -254,7 +327,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       if (runtimeAddress === zeroAddress) {
         setArtistRuntimeAddress(null);
-        setArtistRegistrationStatus('Artist not registered yet');
+        setArtistRegistrationStatus(artistPublicationQuarantined ? artistPublicationSafety.reason : 'Artist not registered yet');
         return null;
       }
 
@@ -274,6 +347,12 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   }
 
   async function registerArtist() {
+    if (artistPublicationQuarantined) {
+      setArtistRegistrationStatus(artistPublicationSafety.reason);
+      setTransactionFeedback({ tone: 'error', title: 'Artist publishing paused', message: artistPublicationSafety.reason });
+      return;
+    }
+
     if (!connectedWallet) {
       setTransactionFeedback({
         tone: 'error',
@@ -590,13 +669,19 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       })),
       settlement: {
         target: 'evm',
-        royaltyBps,
+        royaltyBps: royaltyShares.reduce((total, bps) => total + bps, 0),
         pricePlanck: dotToPlanck(priceDotForAccessMode(accessMode, priceDot)).toString()
       }
     };
   }
 
   async function registerRights() {
+    if (artistPublicationQuarantined) {
+      setRightsStatus('Artist publishing temporarily paused');
+      setTransactionFeedback({ tone: 'error', title: 'Artist publishing paused', message: artistPublicationSafety.reason });
+      return;
+    }
+
     if (!connectedWallet) {
       setRightsStatus('Connect your wallet before publishing');
       setTransactionFeedback({
@@ -664,8 +749,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       if (resolvedAudioCID) setAudioCID(resolvedAudioCID);
       if (resolvedCoverCID) setCoverCID(resolvedCoverCID);
 
-      const royaltyRecipients = [activeEvmAddress];
-      const royaltyShares = [royaltyBps];
+      const {
+        recipients: royaltyRecipients,
+        shares: royaltyShares,
+        totalBps: totalRoyaltyBps
+      } = resolveReleaseRoyaltySplits(activeEvmAddress, accessMode, royaltyBps, additionalRoyaltySplits);
       const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID);
 
       setRightsStatus('Publishing manifest to IPFS…');
@@ -696,7 +784,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           accessMode,
           priceDot,
           personhoodLevel,
-          royaltyBps,
+          royaltyBps: totalRoyaltyBps,
           audioCID: resolvedAudioCID,
           coverCID: resolvedCoverCID,
           metadataCID
@@ -998,6 +1086,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     isRegistering,
     releaseActionId,
     artistRegistrationAvailable,
+    artistRegistrationConfigured,
+    artistPublicationQuarantined,
+    artistPublicationQuarantineReason: artistPublicationSafety.reason,
     // Functions
     registerArtist,
     refreshArtistRuntime,

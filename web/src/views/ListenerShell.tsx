@@ -15,8 +15,7 @@ import { JoinRoomModal } from '../components/JoinRoomModal';
 import { TopBar } from '../components/TopBar';
 import { AccountWalletModal } from '../components/AccountWalletModal';
 import { TransactionModal } from '../components/TransactionModal';
-import { BottomNav, SideRail } from '../components/PrimaryNav';
-import { Metric } from '../shared/ui/Metric';
+import { BottomNav, DesktopNav } from '../components/PrimaryNav';
 
 import { ListenView } from './ListenView';
 import { PlayerView } from './PlayerView';
@@ -34,12 +33,13 @@ import {
   useReleaseForm,
   useArtistStudio
 } from '../app/providers';
-import { NAV_ITEMS, VIEW_COPY } from '../app/navigation';
+import { NAV_ITEMS } from '../app/navigation';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from '../features/catalog/trackModel';
 import { getStoredDisplayName, isChosenDisplayName } from '../features/identity/walletIdentity';
 import { getInitialRoomCode } from '../features/rooms/roomState';
 import { deriveSupportSummary } from '../features/wallet/supportSummary';
 import { getStoredArtistName } from '../hooks/useArtistConsole';
+import { normalizeRoomCode } from '../shared/utils/format';
 import type { CatalogTrack, View } from '../shared/types';
 
 const DEFAULT_ARTIST_NAME = 'Dotify Artist';
@@ -48,7 +48,7 @@ export function ListenerShell() {
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { playback, openTrack, prepareLocalStream } = usePlaybackContext();
-  const { activeView, publicArtistName, setPublicArtistName, railCollapsed, setRailCollapsed, navigateToView, openArtistStudio } = useNavigation();
+  const { activeView, publicArtistName, setPublicArtistName, navigateToView, openArtistStudio } = useNavigation();
   const { walletState, activeEvmAddress, listenerEvmAddress, disconnect: disconnectWallet } = useWalletContext();
   const { setShowWalletModal } = useUiFeedback();
   const { artistName } = useReleaseForm();
@@ -61,11 +61,47 @@ export function ListenerShell() {
 
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
   const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
-  const activeListeners = session.listeners.filter(listener => listener.status === 'connected').length;
-  const currentPage = VIEW_COPY[activeView];
   const { paidTracks, supportedArtists } = deriveSupportSummary(catalog.catalogTracks, catalog.catalogPaidAccessByTrackId);
   const roomId = session.roomId;
   const setSessionDisplayName = session.setDisplayName;
+  const initialRoomCode = getInitialRoomCode();
+  const targetRoomCode = initialRoomCode || normalizeRoomCode(session.joinCode);
+  const thresholdRoom = session.openRooms.find(room => room.roomId === targetRoomCode);
+  const thresholdState =
+    !initialRoomCode || roomId
+      ? 'idle'
+      : thresholdRoom
+        ? 'ready'
+        : session.socketStatus === 'error' || (session.socketStatus === 'online' && !session.isRefreshingRooms)
+          ? 'unavailable'
+          : 'resolving';
+  const isRoomGuest = session.mode === 'listener' && Boolean(roomId);
+  const soloTrackHash = playback.transport.playing && !roomId ? (selectedTrack?.hash ?? null) : null;
+
+  useEffect(() => {
+    session.setSoloListeningTrack(soloTrackHash);
+    // The session facade owns reconnect replay for this ephemeral declaration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [soloTrackHash]);
+
+  useEffect(
+    () => () => {
+      session.setSoloListeningTrack(null);
+    },
+    // Unmount cleanup only; the current declaration is updated above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // `Now` and room share links need real live metadata before the person takes
+  // an action. Connecting here is read-only: it lists public room summaries and
+  // never touches a wallet, key route, or protected source.
+  useEffect(() => {
+    session.requestOpenRooms(true);
+    // The session facade owns socket lifecycle; this initial discovery should
+    // run once per mounted listener shell, not whenever the facade object moves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const initialRoomCode = getInitialRoomCode();
@@ -137,7 +173,6 @@ export function ListenerShell() {
 
   return (
     <>
-      <AuraBackground />
       <PersistentAudio
         audioSource={catalog.audioSource}
         localAudioRef={catalog.localAudioRef}
@@ -146,15 +181,19 @@ export function ListenerShell() {
         onPrepareLocalStream={prepareLocalStream}
         onEmitPlayerState={session.emitPlayerState}
       />
+      <AuraBackground />
       <div className='app-shell'>
-        <TopBar brandHref='#top' brandAriaLabel='Dotify' onBrandClick={() => setPublicArtistName(null)} navAriaLabel='Navigation' />
+        <a className='skip-link' href='#main-content'>
+          Skip to content
+        </a>
+        <TopBar brandHref='#main-content' brandAriaLabel='Dotify home' onBrandClick={() => setPublicArtistName(null)} navAriaLabel='Primary navigation'>
+          <DesktopNav items={navItems} activeView={activeView} />
+        </TopBar>
 
         <AccountWalletModal />
 
-        <SideRail items={navItems} activeView={activeView} collapsed={railCollapsed} onToggleCollapsed={() => setRailCollapsed(value => !value)} />
-
-        <div className='app-content' id='top'>
-          <main className={`content content-${activeView}`}>
+        <div className='app-content'>
+          <main className={`content content-${activeView}`} id='main-content'>
             {publicArtistName ? (
               <ArtistProfileView
                 artistName={publicArtistName}
@@ -168,29 +207,21 @@ export function ListenerShell() {
               />
             ) : (
               <>
-                <section className='page-head'>
-                  <div className='page-copy'>
-                    <p className='eyebrow'>{currentPage.eyebrow}</p>
-                    <h1>{currentPage.title}</h1>
-                  </div>
-                  <div className='head-metrics'>
-                    <Metric label='tracks' value={catalog.catalogTracks.length.toString()} />
-                    <Metric label='rooms' value={session.openRooms.length.toString()} />
-                    <Metric label='listeners' value={`${activeListeners}/${session.listenerCount}`} />
-                  </div>
-                </section>
-
                 {activeView === 'listen' && (
                   <ListenView
                     catalogTracks={catalog.catalogTracks}
                     catalogStatus={catalog.catalogStatus}
                     openRooms={session.openRooms}
+                    soloListeningByTrackHash={session.soloListeningByTrackHash}
                     selectedTrackId={catalog.selectedTrackId}
                     catalogAccessByTrackId={catalog.catalogAccessByTrackId}
                     onOpenTrack={openTrack}
                     onOpenArtist={handleOpenArtistProfile}
                     onJoinRoom={handleJoinRoomRequest}
-                    onStartRoom={() => setCreateRoomOpen(true)}
+                    onStartRoom={track => {
+                      setPendingArtistTrack(track ?? null);
+                      setCreateRoomOpen(true);
+                    }}
                   />
                 )}
 
@@ -253,7 +284,9 @@ export function ListenerShell() {
             playback={playback}
             mode={session.mode}
             roomId={session.roomId}
-            locked={Boolean(selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true)}
+            locked={Boolean(
+              !isRoomGuest && selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true
+            )}
             onOpenPlayer={() => navigateToView('player')}
             onOpenArtist={handleOpenArtistProfile}
             onStartRoom={() => setCreateRoomOpen(true)}
@@ -282,6 +315,8 @@ export function ListenerShell() {
           <JoinRoomModal
             displayName={session.displayName}
             joinCode={session.joinCode}
+            room={thresholdRoom}
+            thresholdState={thresholdState}
             sessionAction={session.sessionAction}
             onSetDisplayName={session.setDisplayName}
             onSetJoinCode={session.setJoinCode}

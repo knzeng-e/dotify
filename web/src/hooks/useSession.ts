@@ -27,6 +27,7 @@ import type {
   RoomReactionEvent,
   RoomRequest,
   SessionAction,
+  SoloListeningByTrackHash,
   SocketStatus,
   TrackInfo
 } from '../shared/types';
@@ -65,9 +66,9 @@ function shouldMaterializeRemoteSource(source: string) {
 
 export type UseSessionDeps = {
   signalUrl: string;
-  // Optional wallet address of the host, surfaced in public room metadata.
-  // Never used for listener access: rooms are host-access based.
-  hostAddress?: string | null;
+  // Optional local identity key used only to remember a display name on this
+  // browser. It never crosses the anonymous room signaling boundary.
+  identityAddress?: string | null;
   audioSource: string | null;
   trackInfo: TrackInfo | null;
   setTrackInfo: (info: TrackInfo | null) => void;
@@ -80,7 +81,8 @@ export type UseSessionDeps = {
 };
 
 export function useSession(deps: UseSessionDeps) {
-  const { signalUrl, hostAddress, setTrackInfo, setPlayerState, localAudioRef, objectUrlsRef, resolvedAudioSourcesRef, navigateToView, setAudioSource } = deps;
+  const { signalUrl, identityAddress, setTrackInfo, setPlayerState, localAudioRef, objectUrlsRef, resolvedAudioSourcesRef, navigateToView, setAudioSource } =
+    deps;
 
   const [roomId, setRoomId] = useState('');
   const [hostName, setHostName] = useState('');
@@ -92,13 +94,15 @@ export function useSession(deps: UseSessionDeps) {
   const [remoteReady, setRemoteReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openRooms, setOpenRooms] = useState<OpenRoom[]>([]);
+  const [soloListeningByTrackHash, setSoloListeningByTrackHash] = useState<SoloListeningByTrackHash>({});
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('offline');
   const [joinCode, setJoinCode] = useState(() => getInitialRoomCode());
   const [displayName, setDisplayName] = useState('Listener');
   const [localStreamReady, setLocalStreamReady] = useState(false);
   const [isRefreshingRooms, setIsRefreshingRooms] = useState(false);
-  // Host-declared playback mode for the room: 'preview' when the host lacks
-  // access to the current protected track and streams the 42% fallback.
+  // `preview` is retained only for backward-compatible signaling payloads.
+  // Access model v2 creates and updates current rooms in `full` mode; a host
+  // without access sends no protected audio.
   const [roomPlaybackMode, setRoomPlaybackMode] = useState<'full' | 'preview'>('full');
   // Room social layer. Chat mirrors the server's capped in-room history;
   // the reaction feed keeps a short sliding window that the player view
@@ -114,6 +118,7 @@ export function useSession(deps: UseSessionDeps) {
   const modeRef = useRef<Mode>(mode);
   const listenersRef = useRef<ListenerRecord[]>([]);
   const socketRef = useRef<Socket | null>(null);
+  const soloTrackHashRef = useRef<string | null>(null);
   const listenerPeerRef = useRef<RTCPeerConnection | null>(null);
   const hostPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const pendingIceCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
@@ -227,13 +232,16 @@ export function useSession(deps: UseSessionDeps) {
 
     const socket = io(signalUrl, {
       autoConnect: false,
-      transports: ['websocket', 'polling']
+      transports: ['polling', 'websocket']
     });
 
     socket.on('connect', () => {
       setSocketStatus('online');
       setError(null);
       socket.emit('rooms:list', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
+      if (soloTrackHashRef.current && !roomIdRef.current) {
+        socket.emit('presence:solo', { trackHash: soloTrackHashRef.current });
+      }
 
       // A listener whose socket dropped mid-session rejoins the same room
       // automatically (the server sees a fresh socket id, so a clean re-join
@@ -247,7 +255,7 @@ export function useSession(deps: UseSessionDeps) {
       setSocketStatus('error');
       setSessionAction('idle');
       setIsRefreshingRooms(false);
-      setError(`Signal server unavailable: ${signalUrl}`);
+      setError('Room service unavailable.');
     });
     socket.on('disconnect', () => {
       setSocketStatus('offline');
@@ -260,6 +268,19 @@ export function useSession(deps: UseSessionDeps) {
       }
     });
     socket.on('rooms:updated', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
+    socket.on('presence:solo:updated', (payload: unknown) => {
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        setSoloListeningByTrackHash({});
+        return;
+      }
+
+      const counts: SoloListeningByTrackHash = {};
+      for (const [trackHash, count] of Object.entries(payload)) {
+        if (!/^0x[0-9a-f]{64}$/.test(trackHash) || !Number.isSafeInteger(count) || Number(count) <= 0) continue;
+        counts[trackHash] = Number(count);
+      }
+      setSoloListeningByTrackHash(counts);
+    });
 
     socket.on('listener:joined', (payload: { listenerId: string; displayName: string; listenerCount: number }) => {
       upsertListener({
@@ -726,7 +747,7 @@ export function useSession(deps: UseSessionDeps) {
     // Persist the chosen name on submit (not on every keystroke): storeDisplayName
     // no-ops for the untouched default, so a connected host is remembered without
     // recording a partial name typed into the create sheet.
-    storeDisplayName(hostAddress, displayName);
+    storeDisplayName(identityAddress, displayName);
     setSessionAction('creating');
     changeMode('host');
     navigateToView('player');
@@ -736,7 +757,7 @@ export function useSession(deps: UseSessionDeps) {
 
     emitAckWhenConnected<CreateRoomResponse>(
       'room:create',
-      { displayName, track: currentTrackInfo, hostAddress: hostAddress ?? null, playbackMode },
+      { displayName, track: currentTrackInfo, playbackMode },
       (response: CreateRoomResponse) => {
         setSessionAction('idle');
         if (!response.ok) {
@@ -759,7 +780,7 @@ export function useSession(deps: UseSessionDeps) {
         requestOpenRooms();
       },
       () => {
-        clearRoomState('Error', 'Signal server did not confirm room creation.', { closePeers: false });
+        clearRoomState('Error', 'Room service unavailable.', { closePeers: false });
       }
     );
   }
@@ -775,7 +796,7 @@ export function useSession(deps: UseSessionDeps) {
     // Persist the chosen name on a real join (not on every keystroke). No-ops
     // for the untouched default, so link/QR guests joining as "Listener" are
     // not recorded. A silent reconnect goes through rejoinRoom, not here.
-    storeDisplayName(hostAddress, joinDisplayName);
+    storeDisplayName(identityAddress, joinDisplayName);
     changeMode('listener');
     setSessionAction('joining');
     navigateToView('player');
@@ -813,7 +834,7 @@ export function useSession(deps: UseSessionDeps) {
         requestOpenRooms();
       },
       () => {
-        clearRoomState('Error', 'Signal server did not confirm room join.', { closePeers: false });
+        clearRoomState('Error', 'Room service unavailable.', { closePeers: false });
       }
     );
   }
@@ -860,7 +881,7 @@ export function useSession(deps: UseSessionDeps) {
       return;
     }
 
-    storeDisplayName(hostAddress, clean);
+    storeDisplayName(identityAddress, clean);
     if (!roomIdRef.current) return;
 
     const socket = connectSocket();
@@ -916,6 +937,19 @@ export function useSession(deps: UseSessionDeps) {
 
   function socketEmit(event: string, data: unknown) {
     socketRef.current?.emit(event, data);
+  }
+
+  function setSoloListeningTrack(trackHash: string | null) {
+    const normalized = typeof trackHash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(trackHash) ? trackHash.toLowerCase() : null;
+    soloTrackHashRef.current = normalized;
+
+    if (normalized) {
+      const socket = connectSocket();
+      if (socket.connected) socket.emit('presence:solo', { trackHash: normalized });
+      return;
+    }
+
+    if (socketRef.current?.connected) socketRef.current.emit('presence:solo', { trackHash: null });
   }
 
   // Social layer sends. The server validates, rate-limits, and echoes back to
@@ -978,6 +1012,7 @@ export function useSession(deps: UseSessionDeps) {
     error,
     setError,
     openRooms,
+    soloListeningByTrackHash,
     socketStatus,
     joinCode,
     setJoinCode,
@@ -1029,6 +1064,7 @@ export function useSession(deps: UseSessionDeps) {
     upsertListenerStatus,
     removeListener,
     socketEmit,
+    setSoloListeningTrack,
     sendChatMessage,
     sendRoomReaction,
     sendRoomRequest,

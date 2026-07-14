@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { io as ioClient } from 'socket.io-client';
 import { startSignalingServer } from './signaling.mjs';
-import { clientKey, createWindowLimiter } from './signaling-utils.mjs';
+import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash } from './signaling-utils.mjs';
 
 let server;
 let port;
@@ -64,7 +64,7 @@ describe('signaling server', () => {
     assert.equal(joined.track.title, 'Night Drive');
   });
 
-  it('exposes host-based access metadata on the status endpoint', async () => {
+  it('exposes host-based access metadata without the self-declared host address', async () => {
     const host = connectClient();
     const created = await createRoom(host, {
       hostAddress: '0xAbCd00000000000000000000000000000000Ef12',
@@ -78,9 +78,111 @@ describe('signaling server', () => {
     assert.ok(room, 'room is listed');
     assert.equal(room.listenersNeedWalletAccess, false);
     assert.equal(room.hostAccessRequired, true);
-    assert.equal(room.hostAddress, '0xabcd00000000000000000000000000000000ef12');
+    assert.equal(room.hostAddress, undefined);
+    assert.equal(JSON.stringify(body).includes('0xAbCd00000000000000000000000000000000Ef12'), false);
     assert.equal(room.playbackMode, 'full');
     assert.ok(room.expiresAt > room.createdAt);
+  });
+
+  it('keeps source and manifest refs out of public summaries, join replies, and track broadcasts', async () => {
+    const sourceRef = 'dotify:enc:ipfs://private-source-cid';
+    const metadataRef = 'ipfs://manifest-that-reveals-source';
+    const bulletinRef = 'bulletin://rights-manifest';
+    const host = connectClient();
+    const created = await createRoom(host, {
+      track: { title: 'Source protected', artist: 'Ada', audioRef: sourceRef, metadataRef, bulletinRef, accessMode: 'free' }
+    });
+
+    const publicObserver = connectClient();
+    const rooms = await once(publicObserver, 'rooms:updated');
+    const publicRoom = rooms.find(room => room.roomId === created.roomId);
+    assert.ok(publicRoom, 'room is visible in public summaries');
+    assert.equal(publicRoom.track.accessMode, 'free');
+    assert.equal(publicRoom.track.audioRef, undefined);
+    assert.equal(publicRoom.track.metadataRef, undefined);
+    assert.equal(publicRoom.track.bulletinRef, '');
+    assert.equal(JSON.stringify(rooms).includes(sourceRef), false);
+    assert.equal(JSON.stringify(rooms).includes(metadataRef), false);
+    assert.equal(JSON.stringify(rooms).includes(bulletinRef), false);
+
+    const listener = connectClient();
+    await once(listener, 'connect');
+    const joined = await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+    assert.equal(joined.track.accessMode, 'free');
+    assert.equal(joined.track.audioRef, undefined);
+    assert.equal(joined.track.metadataRef, undefined);
+    assert.equal(joined.track.bulletinRef, '');
+    assert.equal(JSON.stringify(joined).includes(sourceRef), false);
+
+    const nextSourceRef = 'dotify:enc:ipfs://another-private-source';
+    const trackChanged = once(listener, 'room:track');
+    host.emit('room:track', {
+      title: 'Next source',
+      artist: 'Ada',
+      audioRef: nextSourceRef,
+      metadataRef: 'ipfs://next-manifest',
+      bulletinRef: 'bulletin://next-rights',
+      accessMode: 'classic'
+    });
+    const broadcastTrack = await trackChanged;
+    assert.equal(broadcastTrack.accessMode, 'classic');
+    assert.equal(broadcastTrack.audioRef, undefined);
+    assert.equal(broadcastTrack.metadataRef, undefined);
+    assert.equal(broadcastTrack.bulletinRef, '');
+    assert.equal(JSON.stringify(broadcastTrack).includes(nextSourceRef), false);
+
+    const res = await fetch(`http://127.0.0.1:${port}/status`);
+    const body = await res.json();
+    assert.equal(JSON.stringify(body).includes('private-source'), false);
+  });
+
+  it('exposes counts and non-secret configuration on the health endpoint', async () => {
+    const host = connectClient();
+    await createRoom(host, { track: { title: 'Night Drive', artist: 'Ada' } });
+
+    const res = await fetch(`http://127.0.0.1:${port}/health`);
+    const body = await res.json();
+
+    assert.equal(body.ok, true);
+    assert.equal(typeof body.uptimeSeconds, 'number');
+    assert.equal(body.rooms, 1);
+    assert.equal(body.listeners, 0);
+    assert.equal(body.soloListeners, 0);
+    assert.equal(body.allowedOrigins, '*');
+    assert.equal(typeof body.roomTtlMs, 'number');
+    assert.equal(typeof body.hostHeartbeatTimeoutMs, 'number');
+    assert.equal(body.maxListenersPerRoom, 2);
+  });
+
+  it('aggregates active solo listeners by track and removes stale declarations', async () => {
+    const trackHash = `0x${'ab'.repeat(32)}`;
+    const observer = connectClient();
+    const first = connectClient();
+    const second = connectClient();
+    await Promise.all([once(observer, 'connect'), once(first, 'connect'), once(second, 'connect')]);
+
+    const firstUpdate = once(observer, 'presence:solo:updated');
+    first.emit('presence:solo', { trackHash });
+    assert.deepEqual(await firstUpdate, { [trackHash]: 1 });
+
+    const secondUpdate = once(observer, 'presence:solo:updated');
+    second.emit('presence:solo', { trackHash: trackHash.toUpperCase().replace('0X', '0x') });
+    assert.deepEqual(await secondUpdate, { [trackHash]: 2 });
+
+    const disconnectedUpdate = once(observer, 'presence:solo:updated');
+    second.disconnect();
+    assert.deepEqual(await disconnectedUpdate, { [trackHash]: 1 });
+
+    const status = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    assert.deepEqual(status.soloListeningByTrackHash, { [trackHash]: 1 });
+
+    // Becoming a room host clears the same socket's solo declaration. One
+    // socket cannot inflate both sides of the combined listening total.
+    const roomTransition = once(observer, 'presence:solo:updated');
+    const created = await emitAck(first, 'room:create', { displayName: 'Host', track: { title: 'Night Drive', artist: 'Ada', hash: trackHash } });
+    assert.equal(created.ok, true);
+    assert.deepEqual(await roomTransition, {});
+    assert.equal(server.soloPresenceBySocket.size, 0);
   });
 
   it('honors preview playback mode at room creation', async () => {
@@ -327,6 +429,168 @@ function collect(socket, event, ms = 150) {
   socket.on(event, payload => received.push(payload));
   return new Promise(resolve => setTimeout(() => resolve(received), ms));
 }
+
+describe('peer signaling authorization', () => {
+  it('relays protocol-valid WebRTC messages only between a room host and listener', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+
+    const listenerOffers = collect(listener, 'webrtc:offer');
+    const hostAnswers = collect(host, 'webrtc:answer');
+    const listenerCandidates = collect(listener, 'webrtc:ice-candidate');
+    const hostCandidates = collect(host, 'webrtc:ice-candidate');
+    const hostConnections = collect(host, 'peer:connected');
+
+    host.emit('webrtc:offer', { targetId: listener.id, offer: { type: 'offer', sdp: 'host-offer' } });
+    listener.emit('webrtc:answer', { targetId: host.id, answer: { type: 'answer', sdp: 'listener-answer' } });
+    host.emit('webrtc:ice-candidate', { targetId: listener.id, candidate: { candidate: 'host-candidate' } });
+    listener.emit('webrtc:ice-candidate', { targetId: host.id, candidate: { candidate: 'listener-candidate' } });
+    listener.emit('peer:connected', { targetId: host.id });
+
+    const [offers, answers, listenerIce, hostIce, connections] = await Promise.all([
+      listenerOffers,
+      hostAnswers,
+      listenerCandidates,
+      hostCandidates,
+      hostConnections
+    ]);
+
+    assert.deepEqual(offers, [{ from: host.id, offer: { type: 'offer', sdp: 'host-offer' } }]);
+    assert.deepEqual(answers, [{ from: listener.id, answer: { type: 'answer', sdp: 'listener-answer' } }]);
+    assert.deepEqual(listenerIce, [{ from: host.id, candidate: { candidate: 'host-candidate' } }]);
+    assert.deepEqual(hostIce, [{ from: listener.id, candidate: { candidate: 'listener-candidate' } }]);
+    assert.deepEqual(connections, [{ from: listener.id }]);
+  });
+
+  it('drops peer messages whose source or target is not a room participant', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+    const outsider = connectClient();
+    await once(outsider, 'connect');
+
+    const hostOffers = collect(host, 'webrtc:offer');
+    const hostAnswers = collect(host, 'webrtc:answer');
+    const hostCandidates = collect(host, 'webrtc:ice-candidate');
+    const hostConnections = collect(host, 'peer:connected');
+    const listenerOffers = collect(listener, 'webrtc:offer');
+    const outsiderOffers = collect(outsider, 'webrtc:offer');
+    const outsiderAnswers = collect(outsider, 'webrtc:answer');
+    const outsiderCandidates = collect(outsider, 'webrtc:ice-candidate');
+    const outsiderConnections = collect(outsider, 'peer:connected');
+
+    outsider.emit('webrtc:offer', { targetId: listener.id, offer: { sdp: 'forged' } });
+    outsider.emit('webrtc:answer', { targetId: host.id, answer: { sdp: 'forged' } });
+    outsider.emit('webrtc:ice-candidate', { targetId: host.id, candidate: { candidate: 'forged' } });
+    outsider.emit('peer:connected', { targetId: host.id });
+    host.emit('webrtc:offer', { targetId: outsider.id, offer: { sdp: 'not-a-listener' } });
+    listener.emit('webrtc:answer', { targetId: outsider.id, answer: { sdp: 'not-a-host' } });
+    listener.emit('webrtc:ice-candidate', { targetId: outsider.id, candidate: { candidate: 'not-a-host' } });
+    listener.emit('peer:connected', { targetId: outsider.id });
+
+    const received = await Promise.all([
+      hostOffers,
+      hostAnswers,
+      hostCandidates,
+      hostConnections,
+      listenerOffers,
+      outsiderOffers,
+      outsiderAnswers,
+      outsiderCandidates,
+      outsiderConnections
+    ]);
+    assert.equal(
+      received.every(messages => messages.length === 0),
+      true
+    );
+  });
+
+  it('drops every peer message between listeners in the same room', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    const first = connectClient();
+    await once(first, 'connect');
+    await emitAck(first, 'room:join', { roomId: created.roomId, displayName: 'First' });
+    const second = connectClient();
+    await once(second, 'connect');
+    await emitAck(second, 'room:join', { roomId: created.roomId, displayName: 'Second' });
+
+    const offers = collect(second, 'webrtc:offer');
+    const answers = collect(second, 'webrtc:answer');
+    const candidates = collect(second, 'webrtc:ice-candidate');
+    const connections = collect(second, 'peer:connected');
+
+    first.emit('webrtc:offer', { targetId: second.id, offer: { sdp: 'listener-offer' } });
+    first.emit('webrtc:answer', { targetId: second.id, answer: { sdp: 'listener-answer' } });
+    first.emit('webrtc:ice-candidate', { targetId: second.id, candidate: { candidate: 'listener-candidate' } });
+    first.emit('peer:connected', { targetId: second.id });
+
+    const received = await Promise.all([offers, answers, candidates, connections]);
+    assert.equal(
+      received.every(messages => messages.length === 0),
+      true
+    );
+  });
+
+  it('drops every peer message sent across rooms', async () => {
+    const firstHost = connectClient();
+    const firstRoom = await createRoom(firstHost);
+    const firstListener = connectClient();
+    await once(firstListener, 'connect');
+    await emitAck(firstListener, 'room:join', { roomId: firstRoom.roomId, displayName: 'First listener' });
+
+    const secondHost = connectClient();
+    const secondRoom = await createRoom(secondHost);
+    const secondListener = connectClient();
+    await once(secondListener, 'connect');
+    await emitAck(secondListener, 'room:join', { roomId: secondRoom.roomId, displayName: 'Second listener' });
+
+    const offers = collect(secondListener, 'webrtc:offer');
+    const answers = collect(secondHost, 'webrtc:answer');
+    const hostCandidates = collect(secondHost, 'webrtc:ice-candidate');
+    const listenerCandidates = collect(secondListener, 'webrtc:ice-candidate');
+    const connections = collect(secondHost, 'peer:connected');
+
+    firstHost.emit('webrtc:offer', { targetId: secondListener.id, offer: { sdp: 'cross-room-offer' } });
+    firstListener.emit('webrtc:answer', { targetId: secondHost.id, answer: { sdp: 'cross-room-answer' } });
+    firstListener.emit('webrtc:ice-candidate', { targetId: secondHost.id, candidate: { candidate: 'cross-room-listener' } });
+    firstHost.emit('webrtc:ice-candidate', { targetId: secondListener.id, candidate: { candidate: 'cross-room-host' } });
+    firstListener.emit('peer:connected', { targetId: secondHost.id });
+
+    const received = await Promise.all([offers, answers, hostCandidates, listenerCandidates, connections]);
+    assert.equal(
+      received.every(messages => messages.length === 0),
+      true
+    );
+  });
+
+  it('drops offer, answer, and connected notifications sent in the wrong direction', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+
+    const hostOffers = collect(host, 'webrtc:offer');
+    const listenerAnswers = collect(listener, 'webrtc:answer');
+    const listenerConnections = collect(listener, 'peer:connected');
+
+    listener.emit('webrtc:offer', { targetId: host.id, offer: { sdp: 'wrong-direction' } });
+    host.emit('webrtc:answer', { targetId: listener.id, answer: { sdp: 'wrong-direction' } });
+    host.emit('peer:connected', { targetId: listener.id });
+
+    const received = await Promise.all([hostOffers, listenerAnswers, listenerConnections]);
+    assert.equal(
+      received.every(messages => messages.length === 0),
+      true
+    );
+  });
+});
 
 describe('room social layer', () => {
   it('broadcasts curated reactions to the whole room with sender attribution', async () => {
@@ -666,5 +930,40 @@ describe('clientKey', () => {
   it('falls back to unknown when no address is present', () => {
     assert.equal(clientKey({ handshake: {} }), 'unknown');
     assert.equal(clientKey(undefined), 'unknown');
+  });
+});
+
+describe('sanitizeTrack', () => {
+  it('preserves every supported access mode and strips source-bearing references', () => {
+    for (const accessMode of ['free', 'classic', 'human-free']) {
+      const track = sanitizeTrack({
+        accessMode,
+        audioRef: 'dotify:enc:ipfs://private-source',
+        metadataRef: 'ipfs://private-manifest',
+        bulletinRef: 'bulletin://private-rights'
+      });
+      assert.equal(track.accessMode, accessMode);
+      assert.equal(track.audioRef, undefined);
+      assert.equal(Object.hasOwn(track, 'audioRef'), false);
+      assert.equal(track.metadataRef, undefined);
+      assert.equal(Object.hasOwn(track, 'metadataRef'), false);
+      assert.equal(track.bulletinRef, '');
+    }
+  });
+
+  it('fails closed to human-free for unknown access modes', () => {
+    assert.equal(sanitizeTrack({ accessMode: 'surprise' }).accessMode, 'human-free');
+  });
+});
+
+describe('sanitizeTrackHash', () => {
+  it('accepts a bytes32 catalog identity and normalizes its case', () => {
+    const mixed = `0x${'Ab'.repeat(32)}`;
+    assert.equal(sanitizeTrackHash(mixed), mixed.toLowerCase());
+  });
+
+  it('rejects arbitrary aggregate keys', () => {
+    assert.equal(sanitizeTrackHash('Pyramides'), null);
+    assert.equal(sanitizeTrackHash('0xabc'), null);
   });
 });

@@ -58,9 +58,14 @@ Build the production spine first:
 
 ## Active ticket
 
-**Sprint 1 · Ticket 05** — Classic unlock end-to-end coverage (`docs/backlog/05-classic-unlock-e2e-coverage.md`)
+**Design track · Ticket 25** — Thresholds functional v1 (`docs/backlog/25-thresholds-functional-v1.md`)
 
-Sprint 0 spine tickets 01-04 are delivered; each ticket file carries delivery notes documenting the implemented design and its boundaries (key derivation, host-based room access, honest playback-mode metadata).
+The active PR also keeps the hosted signaling and observability surfaces from
+tickets 04/10 aligned with the current UI, and carries the registry owner-guard
+remediation runbook (`docs/operations/registry-facet-remediation.md`) as
+security evidence. The legacy Paseo deployment remains quarantined for new
+publication; active publication targets only the fresh attested
+factory/directory pair documented in ticket 25.
 
 ## Source of truth
 
@@ -157,7 +162,7 @@ Always run typecheck, lint, and build after making code changes; report results 
 
 When a change affects public product positioning, roadmap, production priorities, architecture narrative, presentation links, visual identity, or the philosophical framing of Dotify, update `docs/index.html` in the same PR.
 
-Keep the page visually aligned with the DApp theme from `web/src/styles.css`: Dotify Light Console, deep blue core, cyan action accents, restrained Polkadot pink, white surfaces, and clear low-friction product language.
+Keep the page visually aligned with the DApp theme from `web/src/styles/` (tokens.css and aura.css): Dotify Night Console, deep navy canvas, track-driven Living Light aura, electric cyan action accents, restrained Polkadot pink, glass chrome, and clear low-friction product language.
 
 Do not let the page drift into generic crypto landing-page aesthetics.
 

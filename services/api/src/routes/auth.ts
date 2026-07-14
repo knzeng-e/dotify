@@ -5,6 +5,8 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { config } from '../config.js';
+import { checkDotifyChainId } from '../services/chainDomain.js';
 import {
   createWalletNonceChallenge,
   verifySignInRequest as defaultVerifySignInRequest,
@@ -66,7 +68,12 @@ export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
       if (!parsed.success) {
         return validationError(reply, 'Invalid nonce request', parsed.error.issues);
       }
-      return createWalletNonceChallenge(parsed.data);
+      const chainId = parsed.data.chainId ?? config.DOTIFY_CHAIN_ID;
+      const domain = checkDotifyChainId(chainId);
+      if (!domain.ok) {
+        return reply.status(400).send({ error: domain.reason, code: domain.code });
+      }
+      return createWalletNonceChallenge({ address: parsed.data.address, chainId });
     });
 
     // Capability check used by clients before prompting for the SIGN_IN
@@ -89,6 +96,11 @@ export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
       const parsed = sessionRequestSchema.safeParse(request.body);
       if (!parsed.success) {
         return validationError(reply, 'Invalid session request', parsed.error.issues);
+      }
+
+      const domain = checkDotifyChainId(parsed.data.chainId);
+      if (!domain.ok) {
+        return reply.status(400).send({ error: domain.reason, code: domain.code });
       }
 
       const verification = await deps.verifySignInRequest({

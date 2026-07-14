@@ -25,7 +25,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const session = useSession({
     signalUrl,
-    hostAddress: listenerEvmAddress,
+    identityAddress: listenerEvmAddress,
     audioSource: catalog.audioSource,
     trackInfo: catalog.trackInfo,
     setTrackInfo: catalog.setTrackInfo,

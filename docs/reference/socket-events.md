@@ -55,7 +55,6 @@ Creates a new room. The caller becomes the host.
 // Emit
 socket.emit('room:create', {
   displayName: string,
-  hostAddress?: string | null,
   track: TrackInfo | null,
   playbackMode?: 'full' | 'preview',
 }, (response: CreateRoomResponse) => { ... });
@@ -138,6 +137,10 @@ socket.on('room:closed', (payload: { reason?: string }) => { ... });
 
 Updates the track being played in the room. Displayed in the Rooms list and the listener's now-playing panel.
 
+The server emits a public room-track snapshot only. It strips `audioRef`,
+`metadataRef`, and other source-bearing manifest references before storage or
+broadcast; listeners obtain sound exclusively through WebRTC.
+
 ```typescript
 // Host emits
 socket.emit('room:track', track /* TrackInfo | null */);
@@ -152,8 +155,9 @@ socket.on('room:track', (track: TrackInfo | null) => { ... });
 
 **Direction:** Client (host) → Server → Listeners
 
-Updates the host-declared room playback mode. `preview` means the host is
-streaming the 42% fallback because full access was not available.
+Updates the host-declared room playback mode. Current access-v2 rooms use
+`full`; a host without access sends no protected audio. `preview` remains an
+accepted legacy wire value only and must not be treated as a product promise.
 
 ```typescript
 // Host emits
@@ -162,6 +166,13 @@ socket.emit('room:playback-mode', { playbackMode: 'full' | 'preview' });
 // Listener receives
 socket.on('room:playback-mode', (payload: { playbackMode?: 'full' | 'preview' }) => { ... });
 ```
+
+## Peer relay authorization
+
+`webrtc:offer`, `webrtc:answer`, `webrtc:ice-candidate`, and
+`peer:connected` are relayed only between the verified host and one verified
+listener in the same room. Outsiders, cross-room targets, listener-to-listener
+targets, and protocol-invalid directions are dropped.
 
 ---
 
@@ -224,6 +235,43 @@ socket.on('listener:left', (payload: {
 ```
 
 On receipt, the host closes and removes the peer connection for that listener.
+
+---
+
+## Solo listening presence
+
+Solo presence is ephemeral and anonymous. The server stores at most one active
+track hash per connected socket and broadcasts only aggregate counts. A pause,
+track change, disconnect, or room create/join removes the previous declaration;
+one socket can never count as both solo and in-room presence.
+
+### `presence:solo`
+
+**Direction:** Client → Server
+
+Declares the bytes32 hash currently playing outside a room. `null` clears the
+declaration. Invalid hashes fail closed to a clear.
+
+```typescript
+socket.emit('presence:solo', { trackHash: `0x${string}` | null });
+```
+
+### `presence:solo:updated`
+
+**Direction:** Server → All clients
+
+Broadcasts the complete aggregate after a real change and sends a snapshot to
+each newly connected client.
+
+```typescript
+socket.on('presence:solo:updated', (counts: Record<string, number>) => {
+  // keys are normalized lowercase bytes32 track hashes
+});
+```
+
+`GET /status` exposes the same aggregate as
+`soloListeningByTrackHash`; `GET /health` exposes only the total
+`soloListeners` count. Neither endpoint exposes socket IDs or identity data.
 
 ---
 

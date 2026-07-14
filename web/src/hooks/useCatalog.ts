@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { fetchIpfsCid, getGatewayUrl, getGatewayUrls } from '../services/pinata';
+import { fetchAssetRef, fetchIpfsCid, getGatewayUrl, getGatewayUrls } from '../services/pinata';
 import { ensureContract, getPublicClient, artistDirectoryAbi, musicRegistryAbi, musicAccessAbi, musicRoyaltiesAbi } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot } from '../shared/utils/format';
@@ -294,17 +294,17 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (track.accessMode === 'classic') {
         return {
           track,
-          title: 'Unlock full song',
-          message: `"${track.title}" unlocks for ${track.priceDot} DOT, paid directly to the artist. Connect a wallet to unlock it.`,
-          hint: 'No platform account needed. Confirm once from your wallet.',
+          title: 'Support and open this track',
+          message: `"${track.title}" opens for ${track.priceDot} DOT. Review the split before confirming.`,
+          hint: 'Nothing is sent until you confirm.',
           actionType: 'signin'
         };
       }
       return {
         track,
-        title: 'Listener pass needed',
-        message: `"${track.title}" is free for verified humans. Connect your pass to listen.`,
-        hint: 'Dotify only checks whether the door should open.',
+        title: 'Verification needed',
+        message: `"${track.title}" is free for verified humans.`,
+        hint: 'Dotify only checks whether access should open.',
         actionType: 'signin'
       };
     }
@@ -312,7 +312,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (track.accessMode === 'human-free') {
       return {
         track,
-        title: 'Listener pass needed',
+        title: 'Verification needed',
         message: `"${track.title}" is free for verified humans. Verify once to listen in full.`,
         hint: 'No profile is created for this check.',
         actionType: 'personhood'
@@ -320,9 +320,9 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
     return {
       track,
-      title: 'Unlock full song',
-      message: `"${track.title}" unlocks after a ${track.priceDot} DOT payment, paid directly to the artist.`,
-      hint: 'Your support goes directly to the artist.',
+      title: 'Support and open this track',
+      message: `"${track.title}" opens after ${track.priceDot} DOT of support. Review the artist-defined split before confirming.`,
+      hint: 'The artist-owned runtime distributes the confirmed amount.',
       actionType: 'payment'
     };
   }
@@ -592,8 +592,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       return objectUrl;
     }
 
-    const response = isEncryptedAudioRef(audioRef) ? await fetchIpfsCid(encryptedRefToCID(audioRef)) : await fetch(gatewayUrl);
-    if (!response.ok) throw new Error(`Unable to fetch encrypted audio (${response.status})`);
+    const response = isEncryptedAudioRef(audioRef) ? await fetchIpfsCid(encryptedRefToCID(audioRef)) : await fetchAssetRef(audioRef || gatewayUrl);
+    if (!response.ok) throw new Error(`Unable to fetch audio (${response.status})`);
 
     const encryptedBytes = new Uint8Array(await response.arrayBuffer());
     // Free tracks fetch their key without a wallet or signature; everything
@@ -706,8 +706,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       setAccessGate(null);
       setTransactionFeedback({
         tone: 'pending',
-        title: 'Processing payment',
-        message: `Paying ${track.priceDot} DOT to unlock "${track.title}".`
+        title: 'Support being confirmed',
+        message: `Confirming ${track.priceDot} DOT of support to open "${track.title}".`
       });
       await new Promise(resolve => window.setTimeout(resolve, 20));
       e2eClassicAccessGrantedRef.current = true;
@@ -716,8 +716,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback({
         tone: 'success',
-        title: 'Access unlocked',
-        message: `Full playback of "${track.title}" is now available.`,
+        title: 'Work opened',
+        message: `Full listening for "${track.title}" is now available to this wallet.`,
         txHash: E2E_CLASSIC_TX_HASH
       });
       await selectTrack(track, undefined, undefined, undefined);
@@ -735,8 +735,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     setAccessGate(null);
     setTransactionFeedback({
       tone: 'pending',
-      title: 'Processing payment',
-      message: `Paying ${track.priceDot} DOT to unlock "${track.title}".`
+      title: 'Support being confirmed',
+      message: `Confirming ${track.priceDot} DOT of support to open "${track.title}".`
     });
 
     try {
@@ -753,7 +753,12 @@ export function useCatalog(deps: UseCatalogDeps) {
 
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setTransactionFeedback({ tone: 'success', title: 'Access unlocked', message: `Full playback of "${track.title}" is now available.`, txHash });
+      setTransactionFeedback({
+        tone: 'success',
+        title: 'Work opened',
+        message: `Full listening for "${track.title}" is now available to this wallet.`,
+        txHash
+      });
       await selectTrack(track, undefined, undefined, undefined);
     } catch (payError) {
       const message = payError instanceof Error ? payError.message : 'Payment failed';

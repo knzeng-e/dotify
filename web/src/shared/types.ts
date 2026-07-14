@@ -17,6 +17,13 @@ export type RoyaltySplit = {
   bps: number;
 };
 
+export type ReleaseRoyaltySplitDraft = {
+  id: string;
+  label: string;
+  recipient: string;
+  bps: number;
+};
+
 export type TrackInfo = {
   title: string;
   artist: string;
@@ -104,7 +111,6 @@ export type OpenRoom = {
   roomId: string;
   title?: string;
   hostName: string;
-  hostAddress?: string | null;
   createdAt: number;
   expiresAt?: number;
   listenerCount: number;
@@ -116,6 +122,8 @@ export type OpenRoom = {
   hostAccessRequired?: boolean;
   listenersNeedWalletAccess?: false;
 };
+
+export type SoloListeningByTrackHash = Record<string, number>;
 
 export type CreateRoomResponse = { ok: true; roomId: string; hostName: string; expiresAt?: number } | { ok: false; error: string };
 

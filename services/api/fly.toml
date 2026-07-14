@@ -5,11 +5,14 @@ primary_region = "ams"
   dockerfile = "Dockerfile"
 
 [env]
+  # Fresh attested Paseo deployment. Keep aligned with deployments.json and
+  # web/src/shared/config/deploymentSafety.ts so API diagnostics and access
+  # checks target the owner-guarded factory/directory pair.
   API_PORT = "8790"
   NODE_ENV = "production"
   PASEO_ASSET_HUB_RPC = "https://eth-rpc-testnet.polkadot.io/"
-  DOTIFY_FACTORY_ADDRESS = "0x74ba85c2b29d2acb3777b9b3ca26c286945cae3c"
-  DOTIFY_DIRECTORY_ADDRESS = "0xdd92194909df3dc5c3d254b53f7283d025c35d8c"
+  DOTIFY_FACTORY_ADDRESS = "0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d"
+  DOTIFY_DIRECTORY_ADDRESS = "0xda2761fea6f0871ed44ec719860fddb51b115be8"
   DOTIFY_CHAIN_ID = "420420417"
 
 [http_service]

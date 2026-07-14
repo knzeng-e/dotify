@@ -155,10 +155,10 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, o
         <div className='player-dock-right'>
           {locked ? (
             <>
-              <span className='player-dock-chip'>Preview - 42%</span>
+              <span className='player-dock-chip'>Listening closed</span>
               <button className='player-dock-cta' type='button' onClick={onOpenPlayer}>
                 <LockKeyhole size={15} />
-                Unlock
+                Open
               </button>
             </>
           ) : mode === 'listener' ? (

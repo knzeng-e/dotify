@@ -1,0 +1,154 @@
+/* Dotify Night Console - the immersive listening room palette.
+   Deep navy canvas, glass surfaces, electric cyan action light, and the
+   track-driven --aura-* variables that let whatever is playing cast its own
+   colored light into the whole interface (see aura.css and shared/utils/aura.ts).
+   Token NAMES are the stable contract: every sheet styles against these, so the
+   theme flips here, not per-component. */
+
+:root {
+  color-scheme: dark;
+
+  --font-interface: 'Instrument Sans', Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-editorial: 'Newsreader', Iowan Old Style, Baskerville, Georgia, serif;
+  --font-code: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+
+  --canvas: #050d1a;
+  --canvas-deep: #03080f;
+  --surface: #0c1a30;
+  --surface-soft: #12233d;
+  --surface-cool: #0e2136;
+  --ink: #f2f8ff;
+  --ink-soft: #b9c8dc;
+  --muted: #8397b0;
+  --line: rgb(148 178 215 / 0.16);
+  --line-strong: rgb(148 178 215 / 0.34);
+  --night: #0a203b;
+  --night-raised: #102b4d;
+  --night-soft: #173655;
+  --action: #00e5a0;
+  --action-hover: #33f0b8;
+  --action-soft: rgb(0 229 160 / 0.14);
+  --on-action: #04101f;
+  --signal: #7d9bff;
+  --signal-soft: rgb(93 125 250 / 0.16);
+  --artist: #ff4fa3;
+  --artist-soft: rgb(230 0 122 / 0.16);
+  --presence: #f5906e;
+  --presence-soft: rgb(240 144 110 / 0.14);
+  --success: #3fe0ab;
+  --success-soft: rgb(0 229 160 / 0.12);
+  --warning: #f0b429;
+  --warning-soft: rgb(240 180 41 / 0.14);
+  --danger: #ff7d72;
+  --danger-soft: rgb(255 110 100 / 0.14);
+  --focus: #6cb2ff;
+
+  /* Living Light: rewritten per track by applyAura(); resting deep-blue light
+     when nothing is playing (mirrors RESTING_AURA in shared/utils/aura.ts). */
+  --aura-a: hsl(207 42% 44%);
+  --aura-b: hsl(218 38% 38%);
+  --aura-accent: hsl(207 46% 50%);
+  --aura-hue: 207;
+  --aura-strength: 0.7;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --radius-full: 999px;
+
+  --shadow-float: 0 24px 60px -30px rgb(0 0 0 / 0.72);
+  --shadow-dialog: 0 32px 100px -30px rgb(0 0 0 / 0.82);
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-state: 260ms;
+
+  --container: 80rem;
+  --content-pad: clamp(1.25rem, 3vw, 2.5rem);
+  --header-height: 4.75rem;
+  --dock-height: 5.8rem;
+
+  /* Compatibility aliases for the functional components that predate this
+     visual system. They map to Night Console tokens rather than a legacy theme. */
+  --color-primary: var(--action);
+  --color-secondary: var(--signal);
+  --color-tertiary: var(--artist);
+  --color-background: var(--canvas);
+  --color-surface-container-lowest: var(--surface);
+  --color-surface-container-low: var(--surface-soft);
+  --color-surface-container: var(--canvas-deep);
+  --color-surface-container-high: #16294a;
+  --color-surface-container-highest: #1c325a;
+  --color-on-primary: var(--on-action);
+  --color-on-primary-container: var(--on-action);
+  --color-primary-container: var(--action);
+  --color-secondary-container: var(--signal-soft);
+  --color-tertiary-container: var(--artist-soft);
+  --color-navy: var(--night);
+  --color-ink: var(--ink);
+  --color-cyan: var(--action);
+  --color-glacier: var(--action);
+  --color-amber: var(--presence);
+  --color-green: var(--success);
+  --dotify-cyan: var(--action);
+  --dotify-cyan-dim: var(--action-soft);
+  --dotify-green: var(--success);
+  --dotify-green-dim: var(--success-soft);
+  --dotify-green-border: rgb(0 229 160 / 0.35);
+  --dotify-pink: var(--artist);
+  --dotify-pink-dim: var(--artist-soft);
+  --dotify-pink-border: rgb(230 0 122 / 0.42);
+  --fg-primary: var(--ink);
+  --fg-primary-inverted: var(--on-action);
+  --fg-secondary: var(--ink-soft);
+  --fg-secondary-hover: var(--ink);
+  --fg-tertiary: var(--muted);
+  --bg-surface-main: var(--canvas);
+  --bg-surface-container: var(--surface);
+  --bg-surface-nested: var(--surface-soft);
+  --bg-surface-overlay: var(--surface);
+  --bg-selection-container-hover: rgb(0 229 160 / 0.1);
+  --bg-selection-container-active: rgb(0 229 160 / 0.2);
+  --bg-action-primary: var(--action);
+  --bg-action-primary-hover: var(--action-hover);
+  --bg-action-secondary: var(--surface-soft);
+  --bg-action-secondary-hover: #1a3054;
+  --bg-navigation: var(--surface);
+  --bg-navigation-soft: var(--surface-soft);
+  --border-default: var(--line);
+  --border-divider: var(--line);
+  --border-active: var(--signal);
+  --border-success: var(--success);
+  --border-warning: var(--warning);
+  --focus-ring: var(--focus);
+  --surface-lit: var(--surface);
+  --surface-deep: var(--surface-soft);
+  --radius-default: var(--radius-sm);
+  --radius-container: var(--radius-xl);
+  --radius-nested: var(--radius-lg);
+  --radius-small: var(--radius-sm);
+  --ease-soft: var(--ease);
+  --dur-quick: var(--duration-fast);
+  --dur-flow: var(--duration-state);
+}

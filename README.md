@@ -11,17 +11,22 @@ By uploading tracks to Dotify, artists opt into using their work as an
 instrument of human connection while retaining control over catalog, rights, and
 monetization through their own artist runtime.
 
-![](./assets/images/Dotify_Home.png)
+The current interface direction is documented in
+[Dotify Shared Score](docs/design/dotify-shared-score.md), amended by the
+Living Light addendum: the Shared Score structure and honesty rules stay, and
+the presentation is an immersive dark listening room where the active track's
+aura lights the whole field (`web/src/styles/aura.css`).
 
 ## What it does
 
-- **Home**: artist-grouped music discovery, track artwork, descriptions, access
-  mode badges, a policy-aware player, and room-hosting controls.
+- **Music**: real open rooms first, then a finite catalog, policy-aware listening,
+  and one-step room hosting without a permanent player navigation tab.
 - **Rooms**: open listening rooms plus manual room-code entry. Room guests should
   be able to join and listen without wallet friction.
 - **Artist portal**: a dedicated `/artists` onboarding and studio surface where
   artists connect a wallet, create their runtime, upload releases, configure
-  access, and manage royalty records outside the listener-first app shell.
+  access, add additional rights holders for royalty splits, and manage royalty
+  records outside the listener-first app shell.
 
 ## Path chosen
 
@@ -38,9 +43,19 @@ iteration can move signaling to statement-store style infrastructure.
 
 ## Deployed
 
-**EVM factory** — `0x74ba85c2b29d2acb3777b9b3ca26c286945cae3c` (Paseo Asset Hub, chainId 420420417)
+**EVM factory** — `0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d` (Paseo Asset Hub, chainId 420420417)
 
-**EVM directory** — `0xdd92194909df3dc5c3d254b53f7283d025c35d8c`
+**EVM directory** — `0xda2761fea6f0871ed44ec719860fddb51b115be8`
+
+> **Testnet security status (2026-07-12):** artist publication is open on the
+> configured factory/directory above. Read-only audit at finalized block
+> `10904607` verified the factory/directory pairing, found no finalized or
+> pending runtimes, and confirmed that the configured registry facet hash matches
+> the source-level owner-only `musicRegRegister` implementation
+> (`0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788`).
+> The previous Paseo deployment remains documented in the
+> [registry remediation runbook](docs/operations/registry-facet-remediation.md)
+> as legacy evidence and must not be reused for new publication.
 
 **Bulletin CID** — `bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny`
 
@@ -63,14 +78,14 @@ onboarding and studio flow is available at `http://localhost:5273/artists`.
 
 Default ports:
 
-| Service       | URL                                            |
-| ------------- | ---------------------------------------------- |
-| Frontend      | <http://localhost:5273>                        |
-| Artist portal | <http://localhost:5273/artists>                |
-| Signaling     | <http://localhost:8788>                        |
-| Backend API   | <http://localhost:8790>                        |
-| Bulletin RPC  | `wss://paseo-bulletin-rpc.polkadot.io`         |
-| Asset Hub RPC | <https://eth-rpc-testnet.polkadot.io/>        |
+| Service       | URL                                    |
+| ------------- | -------------------------------------- |
+| Frontend      | <http://localhost:5273>                |
+| Artist portal | <http://localhost:5273/artists>        |
+| Signaling     | <http://localhost:8788>                |
+| Backend API   | <http://localhost:8790>                |
+| Bulletin RPC  | `wss://paseo-bulletin-rpc.polkadot.io` |
+| Asset Hub RPC | <https://eth-rpc-testnet.polkadot.io/> |
 
 The app talks to Paseo Bulletin and Asset Hub directly from the browser. A local
 Ethereum node or local Substrate node is not required to run the demo.
@@ -110,6 +125,28 @@ frontend bundle.
 **Demo/local mode** (no backend): set `VITE_PINATA_JWT` in `web/.env.local` with
 a restricted upload-only Pinata token. Do not use an unrestricted token in demos.
 
+**Inspecting API health**:
+
+| Endpoint            | Purpose                                                                     |
+| ------------------- | --------------------------------------------------------------------------- |
+| `GET /health`       | Liveness: process status, uptime, package version. Never touches the chain. |
+| `GET /version`      | Package version plus the deploy commit SHA when known                       |
+| `GET /health/ready` | Readiness diagnostics; answers `503` when key delivery cannot work          |
+
+The commit SHA comes from the `GIT_COMMIT_SHA` env variable, falling back to
+`git rev-parse HEAD` in dev checkouts.
+
+`/health/ready` checks, without ever echoing secret values: master-secret and
+Pinata configuration (booleans only), RPC reachability and chain-ID match,
+artist-directory readability, and factory code presence.
+
+Every response carries an `x-request-id` header (echoed from a well-formed
+incoming `x-request-id`, otherwise generated) that matches the structured log
+line for that request, and error responses share one typed envelope:
+`{ error, code, requestId }`. Authorization headers, session tokens, and
+signatures are redacted from request logs; secrets never appear in health
+output.
+
 ### Running the signaling server (hosted rooms)
 
 The signaling server coordinates room discovery and WebRTC SDP/ICE exchange.
@@ -146,9 +183,11 @@ would drop active WebSocket rooms without a clean `room:closed` broadcast.
 | `SIGNAL_HOST_TIMEOUT_MS` | 120 s     | Close rooms whose host stops heartbeating                      |
 | `SIGNAL_MAX_LISTENERS`   | 24        | Per-room listener cap                                          |
 
-`GET /health` reports uptime plus room and listener counts; `GET /status`
-exposes public room metadata (current track, playback mode, host-based access
-flags, expiry).
+`GET /health` reports uptime, room, in-room listener, and solo-listener counts, and a non-secret
+configuration echo (allowed origins, room TTL, host heartbeat timeout,
+per-room listener cap); `GET /status` exposes public room metadata (current
+track, playback mode, host-based access flags, expiry) and anonymous aggregate
+solo presence keyed by track hash.
 
 **Host-based room access.** Rooms never become a wallet checkpoint:
 
@@ -262,7 +301,7 @@ See also:
 - Access model v2: Free tracks play without a wallet, gated tracks show a gate
   with no preview fallback, and new production uploads use
   `dotify:enc:v2:ipfs://<CID>` chunked encrypted audio.
-- Seed catalog with five tracks browsable on the Home view.
+- Seed catalog with five tracks browsable on the Music view.
 - SmartRuntime music pallets: registration, NFT ownership, access checks, paid
   access, listen recording, royalty split storage, and transfer gating by
   personhood level.
@@ -351,6 +390,6 @@ handle:
    chain modules.
 10. Generate frontend ABI bindings from Hardhat artifacts.
 11. Add deployment smoke tests for DotNS/Bulletin CIDs, IPFS gateway fallback,
-   and contract address availability.
+    and contract address availability.
 12. Improve room resilience with host handoff, reconnect recovery, and explicit
     room expiry.

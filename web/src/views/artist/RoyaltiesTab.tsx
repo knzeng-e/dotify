@@ -136,7 +136,7 @@ export function RoyaltiesTab({
               );
             })
           ) : (
-            <div className='empty-state'>{artistRuntimeAddress ? 'No paid unlocks recorded yet.' : 'Create an artist profile before tracking payments.'}</div>
+            <div className='empty-state'>{artistRuntimeAddress ? 'No paid support recorded yet.' : 'Create an artist profile before tracking payments.'}</div>
           )}
         </div>
       </div>
@@ -146,7 +146,7 @@ export function RoyaltiesTab({
         <div className='principle-list'>
           <div>
             <strong>Payment history</strong>
-            <span>Every row is a listener unlocking one of your releases.</span>
+            <span>Every row is a listener supporting and opening one of your releases.</span>
           </div>
           <div>
             <strong>Listener record</strong>

@@ -123,6 +123,22 @@ export async function fetchIpfsCid(cid: string): Promise<Response> {
   throw lastError instanceof Error ? lastError : new Error(`Unable to fetch IPFS CID ${cid}`);
 }
 
+export async function fetchAssetRef(assetRef: string): Promise<Response> {
+  let lastError: unknown;
+
+  for (const url of getGatewayUrlsForAssetRef(assetRef)) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return response;
+      lastError = new Error(`Gateway ${url} returned ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`Unable to fetch asset ${assetRef}`);
+}
+
 // ---------------------------------------------------------------------------
 // Backend upload helpers
 // ---------------------------------------------------------------------------

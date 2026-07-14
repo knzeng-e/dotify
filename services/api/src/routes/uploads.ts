@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { blake2b } from '@noble/hashes/blake2';
 import { z } from 'zod';
 import { encryptAudioV2Container } from '../services/audioV2.js';
 import { deriveContentKeyBytes } from '../services/keyVault.js';
@@ -8,8 +9,8 @@ import { PinataError, PinataUnconfiguredError, pinFileToPinata, pinJsonToPinata 
 // Size limits
 // ---------------------------------------------------------------------------
 const AUDIO_MAX_BYTES = 50 * 1024 * 1024; // 50 MB
-const COVER_MAX_BYTES = 5 * 1024 * 1024;  //  5 MB
-const META_MAX_BYTES  = 50 * 1024;         // 50 KB
+const COVER_MAX_BYTES = 5 * 1024 * 1024; //  5 MB
+const META_MAX_BYTES = 50 * 1024; // 50 KB
 
 // ---------------------------------------------------------------------------
 // MIME allowlists
@@ -24,15 +25,10 @@ const ALLOWED_AUDIO_MIMES = new Set([
   'audio/aac',
   'audio/x-wav',
   'audio/x-m4a',
-  'audio/x-flac',
+  'audio/x-flac'
 ]);
 
-const ALLOWED_IMAGE_MIMES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-]);
+const ALLOWED_IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 // ---------------------------------------------------------------------------
 // Content hash format
@@ -51,7 +47,7 @@ const dotifyManifestSchema = z.object({
     encrypted: z.boolean().optional(),
     // Retired 42% preview asset (ticket 18, removed by access model v2).
     // Kept optional so already-pinned manifests still validate.
-    previewCID: z.string().optional(),
+    previewCID: z.string().optional()
   }),
   track: z.object({
     contentHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
@@ -61,23 +57,27 @@ const dotifyManifestSchema = z.object({
     accessMode: z.enum(['human-free', 'classic', 'free']),
     priceDot: z.string(),
     requiredPersonhood: z.string(),
-    zone: z.string(),
+    zone: z.string()
   }),
-  royalties: z.array(
-    z.object({
-      recipient: z.string().min(1),
-      bps: z.number().int().min(0).max(10000),
-    }),
-  ).max(20),
+  royalties: z
+    .array(
+      z.object({
+        recipient: z.string().min(1),
+        bps: z.number().int().min(0).max(10000)
+      })
+    )
+    .max(20),
   settlement: z.object({
     target: z.literal('evm'),
     royaltyBps: z.number().int().min(0).max(10000),
-    pricePlanck: z.string(),
+    pricePlanck: z.string()
   }),
-  evm: z.object({
-    txHash: z.string(),
-    contractAddress: z.string(),
-  }).optional(),
+  evm: z
+    .object({
+      txHash: z.string(),
+      contractAddress: z.string()
+    })
+    .optional()
 });
 
 // ---------------------------------------------------------------------------
@@ -112,7 +112,6 @@ function handleUploadError(error: unknown, reply: FastifyReply) {
 // Routes
 // ---------------------------------------------------------------------------
 export async function uploadRoutes(app: FastifyInstance): Promise<void> {
-
   /**
    * POST /api/uploads/audio
    *
@@ -162,10 +161,19 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
       return badRequest(reply, 'contentHash field is required and must be a 0x-prefixed 32-byte hex string.');
     }
 
+    // BLAKE2b-256 is parameterized to produce 32 bytes; it is not a truncated
+    // BLAKE2b-512 digest. Verify the caller's content identity against the
+    // exact multipart bytes before the hash can influence key derivation,
+    // encryption, or storage metadata.
+    const uploadedContentHash = `0x${Buffer.from(blake2b(fileBuffer, { dkLen: 32 })).toString('hex')}`;
+    if (uploadedContentHash !== hashCheck.data.toLowerCase()) {
+      return badRequest(reply, 'contentHash does not match the uploaded audio file. Select the file again and retry.');
+    }
+
     const contentKey = deriveContentKeyBytes(hashCheck.data);
     if (!contentKey) {
       return reply.status(503).send({
-        error: 'Server-side encryption is not configured. Set CONTENT_KEY_MASTER_SECRET (32+ bytes of hex).',
+        error: 'Server-side encryption is not configured. Set CONTENT_KEY_MASTER_SECRET (32+ bytes of hex).'
       });
     }
 
@@ -173,7 +181,7 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
     try {
       encrypted = encryptAudioV2Container(fileBuffer, contentKey, {
         contentHash: hashCheck.data,
-        mediaMime: fileMime,
+        mediaMime: fileMime
       });
     } catch {
       request.log.error('Audio encryption failed');
@@ -182,18 +190,20 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
 
     let cid: string;
     try {
-      cid = await pinFileToPinata(
-        new Uint8Array(encrypted),
-        `${hashCheck.data.slice(2, 10)}.dav2`,
-        { app: 'dotify', type: 'audio', encrypted: 'true', container: 'dotify.audio.v2', contentHash: hashCheck.data },
-      );
+      cid = await pinFileToPinata(new Uint8Array(encrypted), `${hashCheck.data.slice(2, 10)}.dav2`, {
+        app: 'dotify',
+        type: 'audio',
+        encrypted: 'true',
+        container: 'dotify.audio.v2',
+        contentHash: hashCheck.data
+      });
     } catch (err) {
       return handleUploadError(err, reply);
     }
 
     return reply.status(200).send({
       ref: `dotify:enc:v2:ipfs://${cid}`,
-      contentHash: hashCheck.data,
+      contentHash: hashCheck.data
     });
   });
 
@@ -240,11 +250,7 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
 
     let cid: string;
     try {
-      cid = await pinFileToPinata(
-        new Uint8Array(fileBuffer),
-        filename,
-        { app: 'dotify', type: 'cover' },
-      );
+      cid = await pinFileToPinata(new Uint8Array(fileBuffer), filename, { app: 'dotify', type: 'cover' });
     } catch (err) {
       return handleUploadError(err, reply);
     }
@@ -265,7 +271,7 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
     if (!parsed.success) {
       return reply.status(400).send({
         error: 'Invalid Dotify track manifest',
-        issues: parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message })),
+        issues: parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message }))
       });
     }
 
@@ -274,11 +280,7 @@ export async function uploadRoutes(app: FastifyInstance): Promise<void> {
 
     let cid: string;
     try {
-      cid = await pinJsonToPinata(
-        manifest,
-        name,
-        { app: 'dotify', type: 'track-metadata', contentHash: manifest.track.contentHash },
-      );
+      cid = await pinJsonToPinata(manifest, name, { app: 'dotify', type: 'track-metadata', contentHash: manifest.track.contentHash });
     } catch (err) {
       return handleUploadError(err, reply);
     }

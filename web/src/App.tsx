@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
-import { applyAura, auraForTrack, auraForName } from './shared/utils/aura';
 import { deployments } from './shared/config/deployments';
+import { applyAura, auraForName, auraForTrack } from './shared/utils/aura';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { getStoredArtistName } from './hooks/useArtistConsole';
 import { useNavigation, useCatalogContext, useSessionContext, useArtistStudio, useWalletContext, useReleaseForm } from './app/providers';
@@ -34,13 +34,16 @@ export default function App() {
     };
   }, []);
 
-  // Locked Living Light direction: aurora ambient + lights-down listening.
+  // Shared Score structure, Living Light presentation: the layout grammar of
+  // the Shared Score redesign stays, and the whole field is bathed in the
+  // active track's aura (styles/aura.css).
   useEffect(() => {
-    document.body.classList.add('ambient-aurora', 'lights-down');
-    return () => document.body.classList.remove('ambient-aurora', 'lights-down');
+    document.body.classList.add('dotify-shared-score');
+    return () => document.body.classList.remove('dotify-shared-score');
   }, []);
 
   // Aura engine: paint the whole field with the active track (or artist) light.
+  // Falls back to the resting deep-blue aura when nothing is selected.
   useEffect(() => {
     if (publicArtistName) {
       applyAura(auraForName(publicArtistName));
