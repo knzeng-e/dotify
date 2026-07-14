@@ -5,15 +5,14 @@ primary_region = "ams"
   dockerfile = "Dockerfile"
 
 [env]
-  # These Paseo addresses predate the owner-only musicRegRegister fix. Do not
-  # treat artist publication as production-safe until existing runtimes are
-  # owner-upgraded, the factory/directory generation is replaced, and catalog
-  # continuity through the cutover is verified.
+  # Fresh attested Paseo deployment. Keep aligned with deployments.json and
+  # web/src/shared/config/deploymentSafety.ts so API diagnostics and access
+  # checks target the owner-guarded factory/directory pair.
   API_PORT = "8790"
   NODE_ENV = "production"
   PASEO_ASSET_HUB_RPC = "https://eth-rpc-testnet.polkadot.io/"
-  DOTIFY_FACTORY_ADDRESS = "0x824ea33000e5e2ca9ddad030befa7331b38c41ce"
-  DOTIFY_DIRECTORY_ADDRESS = "0x7f90d15b5ec5f3a668e4dc14def3fe1c876dde0c"
+  DOTIFY_FACTORY_ADDRESS = "0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d"
+  DOTIFY_DIRECTORY_ADDRESS = "0xda2761fea6f0871ed44ec719860fddb51b115be8"
   DOTIFY_CHAIN_ID = "420420417"
 
 [http_service]
