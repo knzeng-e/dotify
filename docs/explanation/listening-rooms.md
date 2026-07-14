@@ -75,10 +75,11 @@ Once the WebRTC connection is established, the signaling server is no longer in 
 The signaling server (`server/signaling.mjs`) is a Socket.IO process that relays messages between peers by room membership. It does not inspect or store any content. Its only functions are:
 
 - Maintaining a registry of open rooms.
+- Maintaining an ephemeral, anonymous count of active solo listeners per track, with at most one active track per socket.
 - Routing SDP offers, answers, and ICE candidates between the correct peers.
-- Broadcasting `rooms:updated` to all connected clients when the room list changes.
+- Broadcasting `rooms:updated` when the room list changes and `presence:solo:updated` when solo presence changes.
 - Expiring rooms after their TTL and closing rooms whose host stops heartbeating.
-- Exposing `GET /health` and `GET /status` for uptime and public room metadata.
+- Exposing `GET /health` and `GET /status` for uptime, public room metadata, and anonymous solo-listening aggregates.
 
 See [socket-events.md](../reference/socket-events.md) for the full event schema.
 

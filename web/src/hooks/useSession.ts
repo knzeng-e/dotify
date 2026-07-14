@@ -27,6 +27,7 @@ import type {
   RoomReactionEvent,
   RoomRequest,
   SessionAction,
+  SoloListeningByTrackHash,
   SocketStatus,
   TrackInfo
 } from '../shared/types';
@@ -93,6 +94,7 @@ export function useSession(deps: UseSessionDeps) {
   const [remoteReady, setRemoteReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openRooms, setOpenRooms] = useState<OpenRoom[]>([]);
+  const [soloListeningByTrackHash, setSoloListeningByTrackHash] = useState<SoloListeningByTrackHash>({});
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('offline');
   const [joinCode, setJoinCode] = useState(() => getInitialRoomCode());
   const [displayName, setDisplayName] = useState('Listener');
@@ -116,6 +118,7 @@ export function useSession(deps: UseSessionDeps) {
   const modeRef = useRef<Mode>(mode);
   const listenersRef = useRef<ListenerRecord[]>([]);
   const socketRef = useRef<Socket | null>(null);
+  const soloTrackHashRef = useRef<string | null>(null);
   const listenerPeerRef = useRef<RTCPeerConnection | null>(null);
   const hostPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const pendingIceCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
@@ -236,6 +239,9 @@ export function useSession(deps: UseSessionDeps) {
       setSocketStatus('online');
       setError(null);
       socket.emit('rooms:list', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
+      if (soloTrackHashRef.current && !roomIdRef.current) {
+        socket.emit('presence:solo', { trackHash: soloTrackHashRef.current });
+      }
 
       // A listener whose socket dropped mid-session rejoins the same room
       // automatically (the server sees a fresh socket id, so a clean re-join
@@ -262,6 +268,19 @@ export function useSession(deps: UseSessionDeps) {
       }
     });
     socket.on('rooms:updated', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
+    socket.on('presence:solo:updated', (payload: unknown) => {
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        setSoloListeningByTrackHash({});
+        return;
+      }
+
+      const counts: SoloListeningByTrackHash = {};
+      for (const [trackHash, count] of Object.entries(payload)) {
+        if (!/^0x[0-9a-f]{64}$/.test(trackHash) || !Number.isSafeInteger(count) || Number(count) <= 0) continue;
+        counts[trackHash] = Number(count);
+      }
+      setSoloListeningByTrackHash(counts);
+    });
 
     socket.on('listener:joined', (payload: { listenerId: string; displayName: string; listenerCount: number }) => {
       upsertListener({
@@ -920,6 +939,19 @@ export function useSession(deps: UseSessionDeps) {
     socketRef.current?.emit(event, data);
   }
 
+  function setSoloListeningTrack(trackHash: string | null) {
+    const normalized = typeof trackHash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(trackHash) ? trackHash.toLowerCase() : null;
+    soloTrackHashRef.current = normalized;
+
+    if (normalized) {
+      const socket = connectSocket();
+      if (socket.connected) socket.emit('presence:solo', { trackHash: normalized });
+      return;
+    }
+
+    if (socketRef.current?.connected) socketRef.current.emit('presence:solo', { trackHash: null });
+  }
+
   // Social layer sends. The server validates, rate-limits, and echoes back to
   // the whole room (sender included), so local state only updates on receipt:
   // one render path, no optimistic divergence.
@@ -980,6 +1012,7 @@ export function useSession(deps: UseSessionDeps) {
     error,
     setError,
     openRooms,
+    soloListeningByTrackHash,
     socketStatus,
     joinCode,
     setJoinCode,
@@ -1031,6 +1064,7 @@ export function useSession(deps: UseSessionDeps) {
     upsertListenerStatus,
     removeListener,
     socketEmit,
+    setSoloListeningTrack,
     sendChatMessage,
     sendRoomReaction,
     sendRoomRequest,

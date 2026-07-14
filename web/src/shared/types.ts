@@ -123,6 +123,8 @@ export type OpenRoom = {
   listenersNeedWalletAccess?: false;
 };
 
+export type SoloListeningByTrackHash = Record<string, number>;
+
 export type CreateRoomResponse = { ok: true; roomId: string; hostName: string; expiresAt?: number } | { ok: false; error: string };
 
 // Social layer message shapes. Deliberately transport-agnostic: nothing in

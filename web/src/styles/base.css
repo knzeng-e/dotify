@@ -386,9 +386,7 @@ select:focus {
   .live-dot,
   .brand-mark-core,
   .brand-mark-orbit ellipse,
-  .brand-mark-clef,
-  .shared-score-line i,
-  .now-presence-score i {
+  .brand-mark-clef {
     stroke: CanvasText;
   }
 }

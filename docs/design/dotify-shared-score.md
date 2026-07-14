@@ -247,6 +247,11 @@ nothing.
 - **Room row:** track, host, real presence, sound state, progress when known.
 - **Status chip:** icon, literal text, and semantic tone; never color alone.
 - **Player dock:** current track, play/pause, real progress, volume, open-player.
+- **Featured track presence:** latest-track carousel, active solo count, rooms
+  currently playing that track, combined real-time listening total, and direct
+  solo / host / live-room actions.
+- **Room sky:** real room spheres in a pan-and-zoom camera with room-by-room
+  recentering; the complete card list remains the mobile/reduced-motion path.
 - **Access sheet:** terms and next action; never blocks a room guest.
 - **Presence list:** host first, then connected and connecting listeners.
 - **Social lane:** real chat, attributed reactions, and track requests.
@@ -385,6 +390,9 @@ precedence over the form whenever a deployment is not attested.
 - Do not announce every progress tick or decorative reaction.
 - All responsive layouts work at 200% zoom, 320 CSS px width, text-only zoom,
   keyboard-only input, and forced-colors mode.
+- The room sky supports pointer drag, wheel zoom, explicit controls, arrow-key
+  pan, `+`/`-` zoom, and `0`/`Home` reset; no room is discoverable only through
+  the spatial view.
 
 ## 9. Motion and sound
 

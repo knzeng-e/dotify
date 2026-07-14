@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { io as ioClient } from 'socket.io-client';
 import { startSignalingServer } from './signaling.mjs';
-import { clientKey, createWindowLimiter, sanitizeTrack } from './signaling-utils.mjs';
+import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash } from './signaling-utils.mjs';
 
 let server;
 let port;
@@ -147,10 +147,42 @@ describe('signaling server', () => {
     assert.equal(typeof body.uptimeSeconds, 'number');
     assert.equal(body.rooms, 1);
     assert.equal(body.listeners, 0);
+    assert.equal(body.soloListeners, 0);
     assert.equal(body.allowedOrigins, '*');
     assert.equal(typeof body.roomTtlMs, 'number');
     assert.equal(typeof body.hostHeartbeatTimeoutMs, 'number');
     assert.equal(body.maxListenersPerRoom, 2);
+  });
+
+  it('aggregates active solo listeners by track and removes stale declarations', async () => {
+    const trackHash = `0x${'ab'.repeat(32)}`;
+    const observer = connectClient();
+    const first = connectClient();
+    const second = connectClient();
+    await Promise.all([once(observer, 'connect'), once(first, 'connect'), once(second, 'connect')]);
+
+    const firstUpdate = once(observer, 'presence:solo:updated');
+    first.emit('presence:solo', { trackHash });
+    assert.deepEqual(await firstUpdate, { [trackHash]: 1 });
+
+    const secondUpdate = once(observer, 'presence:solo:updated');
+    second.emit('presence:solo', { trackHash: trackHash.toUpperCase().replace('0X', '0x') });
+    assert.deepEqual(await secondUpdate, { [trackHash]: 2 });
+
+    const disconnectedUpdate = once(observer, 'presence:solo:updated');
+    second.disconnect();
+    assert.deepEqual(await disconnectedUpdate, { [trackHash]: 1 });
+
+    const status = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    assert.deepEqual(status.soloListeningByTrackHash, { [trackHash]: 1 });
+
+    // Becoming a room host clears the same socket's solo declaration. One
+    // socket cannot inflate both sides of the combined listening total.
+    const roomTransition = once(observer, 'presence:solo:updated');
+    const created = await emitAck(first, 'room:create', { displayName: 'Host', track: { title: 'Night Drive', artist: 'Ada', hash: trackHash } });
+    assert.equal(created.ok, true);
+    assert.deepEqual(await roomTransition, {});
+    assert.equal(server.soloPresenceBySocket.size, 0);
   });
 
   it('honors preview playback mode at room creation', async () => {
@@ -921,5 +953,17 @@ describe('sanitizeTrack', () => {
 
   it('fails closed to human-free for unknown access modes', () => {
     assert.equal(sanitizeTrack({ accessMode: 'surprise' }).accessMode, 'human-free');
+  });
+});
+
+describe('sanitizeTrackHash', () => {
+  it('accepts a bytes32 catalog identity and normalizes its case', () => {
+    const mixed = `0x${'Ab'.repeat(32)}`;
+    assert.equal(sanitizeTrackHash(mixed), mixed.toLowerCase());
+  });
+
+  it('rejects arbitrary aggregate keys', () => {
+    assert.equal(sanitizeTrackHash('Pyramides'), null);
+    assert.equal(sanitizeTrackHash('0xabc'), null);
   });
 });

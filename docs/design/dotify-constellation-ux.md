@@ -78,6 +78,11 @@ toward the center like works facing an audience.
   someone's light.
 - Rooms with no playback are embers: small, dark, present but unlit. The
   manual room-code field stays, sober, always reachable.
+- The sky is a bounded navigable camera, not a clipped poster: desktop users
+  can drag to pan, wheel or use explicit controls to zoom, step through rooms
+  to recenter them, and reset to a safe overview. Arrow keys, `+`, `-`, `0`,
+  and `Home` expose the same movement without a pointer. The default overview
+  keeps each sphere and label inside the frame.
 - Filaments between spheres (cultural propagation made visible) are explicitly
   deferred until the ambassador model (ticket 12) gives them real data.
 - Mobile and reduced-motion fallback: a card grid with static halos. The sky is

@@ -238,6 +238,43 @@ On receipt, the host closes and removes the peer connection for that listener.
 
 ---
 
+## Solo listening presence
+
+Solo presence is ephemeral and anonymous. The server stores at most one active
+track hash per connected socket and broadcasts only aggregate counts. A pause,
+track change, disconnect, or room create/join removes the previous declaration;
+one socket can never count as both solo and in-room presence.
+
+### `presence:solo`
+
+**Direction:** Client → Server
+
+Declares the bytes32 hash currently playing outside a room. `null` clears the
+declaration. Invalid hashes fail closed to a clear.
+
+```typescript
+socket.emit('presence:solo', { trackHash: `0x${string}` | null });
+```
+
+### `presence:solo:updated`
+
+**Direction:** Server → All clients
+
+Broadcasts the complete aggregate after a real change and sends a snapshot to
+each newly connected client.
+
+```typescript
+socket.on('presence:solo:updated', (counts: Record<string, number>) => {
+  // keys are normalized lowercase bytes32 track hashes
+});
+```
+
+`GET /status` exposes the same aggregate as
+`soloListeningByTrackHash`; `GET /health` exposes only the total
+`soloListeners` count. Neither endpoint exposes socket IDs or identity data.
+
+---
+
 ## Room social events
 
 Reactions, chat, and the collaborative request queue are open to every room

@@ -76,6 +76,22 @@ export function ListenerShell() {
           ? 'unavailable'
           : 'resolving';
   const isRoomGuest = session.mode === 'listener' && Boolean(roomId);
+  const soloTrackHash = playback.transport.playing && !roomId ? (selectedTrack?.hash ?? null) : null;
+
+  useEffect(() => {
+    session.setSoloListeningTrack(soloTrackHash);
+    // The session facade owns reconnect replay for this ephemeral declaration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [soloTrackHash]);
+
+  useEffect(
+    () => () => {
+      session.setSoloListeningTrack(null);
+    },
+    // Unmount cleanup only; the current declaration is updated above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   // `Now` and room share links need real live metadata before the person takes
   // an action. Connecting here is read-only: it lists public room summaries and
@@ -196,12 +212,16 @@ export function ListenerShell() {
                     catalogTracks={catalog.catalogTracks}
                     catalogStatus={catalog.catalogStatus}
                     openRooms={session.openRooms}
+                    soloListeningByTrackHash={session.soloListeningByTrackHash}
                     selectedTrackId={catalog.selectedTrackId}
                     catalogAccessByTrackId={catalog.catalogAccessByTrackId}
                     onOpenTrack={openTrack}
                     onOpenArtist={handleOpenArtistProfile}
                     onJoinRoom={handleJoinRoomRequest}
-                    onStartRoom={() => setCreateRoomOpen(true)}
+                    onStartRoom={track => {
+                      setPendingArtistTrack(track ?? null);
+                      setCreateRoomOpen(true);
+                    }}
                   />
                 )}
 

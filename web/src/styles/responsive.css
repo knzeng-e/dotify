@@ -1,24 +1,4 @@
 @media (max-width: 72rem) {
-  .now-hero-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .now-side {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr);
-    gap: 2rem;
-  }
-
-  .now-presence {
-    margin-top: 0;
-    padding-top: 0;
-  }
-
-  .now-actions,
-  .now-wallet-note {
-    grid-column: 1 / -1;
-  }
-
   .catalogue-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -71,6 +51,15 @@
   .now-intro > p,
   .rooms-intro-copy {
     max-width: 42rem;
+  }
+
+  .presence-section-heading {
+    display: grid;
+    align-items: start;
+  }
+
+  .presence-command {
+    justify-content: space-between;
   }
 
   .home-room-strip {
@@ -289,6 +278,11 @@
     min-height: min(82vw, 28rem);
   }
 
+  .moment-art {
+    border-right: 0;
+    border-bottom: 1px solid rgb(255 255 255 / 0.1);
+  }
+
   .quiet-signal {
     border-right: 0;
     border-bottom: 1px solid rgb(255 255 255 / 0.1);
@@ -302,20 +296,6 @@
     font-size: clamp(3rem, 14vw, 4.6rem);
   }
 
-  .now-side {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 2rem;
-  }
-
-  .now-actions {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .now-wallet-note {
-    grid-column: auto;
-  }
-
   .section-heading {
     align-items: start;
   }
@@ -327,6 +307,46 @@
   .section-heading > span {
     max-width: 9rem;
     text-align: right;
+  }
+
+  .presence-command {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .presence-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .presence-facts > div {
+    min-width: 0;
+  }
+
+  .presence-command > .primary-action {
+    width: 100%;
+  }
+
+  .track-life-summary {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .track-life-summary dl {
+    width: 100%;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-content: start;
+    gap: 0.45rem;
+    text-align: left;
+  }
+
+  .track-life-summary dt {
+    font-size: 0.58rem;
+    overflow-wrap: anywhere;
+  }
+
+  .track-life-actions {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .home-room-strip,
@@ -352,7 +372,6 @@
     flex-direction: column;
   }
 
-  .live-empty > button,
   .rooms-empty-state > button {
     width: 100%;
     margin-left: 0;

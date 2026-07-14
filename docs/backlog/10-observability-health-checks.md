@@ -72,7 +72,7 @@ First slice delivered (`feat/observability-health-checks`): backend and signalin
 - Typed error envelope: `{ error, code, requestId }` from the global error and 404 handlers. Framework statuses are preserved (a rate-limit 429 or malformed-JSON 400 is no longer collapsed to 500). Handlers are registered before the route plugins because encapsulated Fastify scopes capture the handlers existing at registration time.
 - Structured logs: pino redaction for `authorization`/`cookie` headers and `sessionToken`/`signature` body fields; redaction is a guardrail, secrets are still never logged deliberately.
 - App assembly extracted to `src/app.ts` (`buildApp()`) so tests exercise the real wiring; `index.ts` only builds and listens.
-- Signaling `/health` now echoes non-secret config: allowed origins, room TTL, host heartbeat timeout, per-room listener cap, plus the existing room/listener counts and uptime.
+- Signaling `/health` now echoes non-secret config: allowed origins, room TTL, host heartbeat timeout, per-room listener cap, plus room, in-room listener, active solo-listener counts, and uptime. `/status` also exposes the anonymous per-track solo-presence aggregate used by the listening UI.
 - Tests: `routes/health.test.ts` (liveness, version, ready 200/503, no secret material) and `app.test.ts` (request-ID echo/generation, typed 404, preserved framework statuses); signaling health test added. README documents how to inspect health.
 
 Still open in this ticket (next slices):

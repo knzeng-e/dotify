@@ -143,8 +143,9 @@ Benchmark Jukebox Duo / Spotify Jam simplicity: room creation must feel like sha
   - per-room listener cap (`SIGNAL_MAX_LISTENERS`, default 24) with a `ROOM_FULL` rejection;
   - room metadata: roomId, title, hostName, hostAddress (optional, sanitized), current track, playerState, `playbackMode: full | preview`, `hostAccessRequired`, `listenersNeedWalletAccess: false`, createdAt, expiresAt, listenerCount;
   - structured JSON lifecycle logs (created/joined/left/closed/expired/host-timeout/playback-mode);
-  - `GET /health` (uptime, room/listener counts) and `GET /status` (public room metadata).
-- Integration tests: `web/server/signaling.test.mjs` (`npm run test:signal`) covering create/join, status metadata, playback-mode broadcast, listener cap, host-disconnect close, listener cleanup, TTL expiry, heartbeat timeout, health.
+  - ephemeral anonymous solo-listening presence, aggregated by track with at most one active track per socket and cleared when a socket pauses, disconnects, or enters a room;
+  - `GET /health` (uptime, room/in-room/solo-listener counts) and `GET /status` (public room metadata and anonymous solo-presence aggregate).
+- Integration tests: `web/server/signaling.test.mjs` (`npm run test:signal`) covering create/join, status metadata, playback-mode broadcast, listener cap, host-disconnect close, listener cleanup, solo-presence aggregation and cleanup, TTL expiry, heartbeat timeout, health.
 - Frontend:
   - share links use `#/rooms/<roomId>` (legacy `#/?room=` still parses); landing on a link auto-joins with zero wallet friction;
   - listener auto-rejoin after a socket reconnect ("Reconnecting" state); `room:closed` clears room state so dead rooms are not rejoined, with the reason ("Host left the room", "Room expired", "Host connection lost") surfaced;

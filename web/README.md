@@ -177,8 +177,9 @@ curl -s https://dotify-signal.fly.dev/health
 ```
 
 Keep the signaling service on one active machine unless a shared Socket.IO
-adapter is added. Rooms, chat, reactions, and request queues are in memory; with
-multiple active machines, two browsers can connect to different room maps.
+adapter is added. Rooms, solo-presence aggregates, chat, reactions, and request
+queues are in memory; with multiple active machines, two browsers can connect
+to different presence and room maps.
 
 ```bash
 flyctl scale count 1 -c fly.signal.toml --yes
@@ -196,9 +197,10 @@ Fly variables come from `fly.signal.toml`:
 
 Health endpoints:
 
-- `/health`: process health, uptime, room count, listener count.
-- `/status`: public room metadata, current track, playback mode, and listener
-  count. It deliberately omits chat history and request text.
+- `/health`: process health, uptime, room count, in-room listener count, and
+  active solo-listener count.
+- `/status`: public room metadata plus aggregate solo presence by track hash.
+  It deliberately omits socket identities, chat history, and request text.
 
 #### 2. Deploy the frontend on Netlify
 

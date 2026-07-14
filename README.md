@@ -183,10 +183,11 @@ would drop active WebSocket rooms without a clean `room:closed` broadcast.
 | `SIGNAL_HOST_TIMEOUT_MS` | 120 s     | Close rooms whose host stops heartbeating                      |
 | `SIGNAL_MAX_LISTENERS`   | 24        | Per-room listener cap                                          |
 
-`GET /health` reports uptime, room and listener counts, and a non-secret
+`GET /health` reports uptime, room, in-room listener, and solo-listener counts, and a non-secret
 configuration echo (allowed origins, room TTL, host heartbeat timeout,
 per-room listener cap); `GET /status` exposes public room metadata (current
-track, playback mode, host-based access flags, expiry).
+track, playback mode, host-based access flags, expiry) and anonymous aggregate
+solo presence keyed by track hash.
 
 **Host-based room access.** Rooms never become a wallet checkpoint:
 

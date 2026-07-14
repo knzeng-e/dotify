@@ -28,7 +28,8 @@ import {
   sanitizePlayerState,
   sanitizeReactionEmoji,
   sanitizeText,
-  sanitizeTrack
+  sanitizeTrack,
+  sanitizeTrackHash
 } from './signaling-utils.mjs';
 
 export const defaultConfig = {
@@ -92,6 +93,10 @@ export function readConfigFromEnv(env = process.env) {
 export function startSignalingServer(overrides = {}) {
   const config = { ...defaultConfig, ...overrides };
   const rooms = new Map();
+  // One ephemeral solo-listening declaration per connected socket. No wallet,
+  // address, IP, or durable profile is exposed; public clients receive only
+  // aggregate counts keyed by the catalog track hash.
+  const soloPresenceBySocket = new Map();
   const startedAt = Date.now();
   const chatLimiter = createWindowLimiter(config.chatRateLimit.limit, config.chatRateLimit.windowMs);
   const reactionLimiter = createWindowLimiter(config.reactionRateLimit.limit, config.reactionRateLimit.windowMs);
@@ -142,6 +147,7 @@ export function startSignalingServer(overrides = {}) {
         uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
         rooms: rooms.size,
         listeners: listenerTotal,
+        soloListeners: soloPresenceBySocket.size,
         // Non-secret configuration echo (ticket 10): lets an operator confirm
         // which origin policy and room lifetimes a deployment is running.
         allowedOrigins: config.origins,
@@ -153,7 +159,7 @@ export function startSignalingServer(overrides = {}) {
     }
 
     if (requestUrl.pathname === '/status') {
-      sendJson(request, response, 200, { rooms: publicRooms() });
+      sendJson(request, response, 200, { rooms: publicRooms(), soloListeningByTrackHash: publicSoloPresence() });
       return;
     }
 
@@ -191,6 +197,23 @@ export function startSignalingServer(overrides = {}) {
     io.emit('rooms:updated', publicRooms());
   }
 
+  function publicSoloPresence() {
+    const counts = {};
+    for (const trackHash of soloPresenceBySocket.values()) {
+      counts[trackHash] = (counts[trackHash] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  function emitSoloPresence() {
+    io.emit('presence:solo:updated', publicSoloPresence());
+  }
+
+  function clearSoloPresence(socket) {
+    if (!soloPresenceBySocket.delete(socket.id)) return;
+    emitSoloPresence();
+  }
+
   function listenerRoster(room) {
     return Array.from(room.listeners.values()).map(listener => ({
       id: listener.id,
@@ -219,6 +242,21 @@ export function startSignalingServer(overrides = {}) {
 
   io.on('connection', socket => {
     socket.emit('rooms:updated', publicRooms());
+    socket.emit('presence:solo:updated', publicSoloPresence());
+
+    socket.on('presence:solo', (payload = {}) => {
+      const trackHash = sanitizeTrackHash(payload.trackHash);
+      // A socket is either listening solo or participating in a room, never
+      // both. Null and invalid hashes clear the caller's own declaration.
+      if (!trackHash || socket.data.roomId) {
+        clearSoloPresence(socket);
+        return;
+      }
+
+      if (soloPresenceBySocket.get(socket.id) === trackHash) return;
+      soloPresenceBySocket.set(socket.id, trackHash);
+      emitSoloPresence();
+    });
 
     socket.on('room:create', (payload = {}, reply) => {
       leaveRoom(socket);
@@ -581,6 +619,7 @@ export function startSignalingServer(overrides = {}) {
   }
 
   function leaveRoom(socket) {
+    clearSoloPresence(socket);
     const roomId = socket.data.roomId;
     const role = socket.data.role;
     if (!roomId || !role) return;
@@ -624,6 +663,7 @@ export function startSignalingServer(overrides = {}) {
     httpServer,
     io,
     rooms,
+    soloPresenceBySocket,
     config,
     listen() {
       return new Promise(resolve => {

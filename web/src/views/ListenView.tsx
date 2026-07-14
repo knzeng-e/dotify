@@ -8,24 +8,32 @@ import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import { auraStyleForTrack } from '../shared/utils/aura';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
-import type { CatalogTrack, OpenRoom } from '../shared/types';
+import type { CatalogTrack, OpenRoom, SoloListeningByTrackHash } from '../shared/types';
 
 type ListenViewProps = {
   catalogTracks: CatalogTrack[];
   catalogStatus: string;
   openRooms: OpenRoom[];
+  soloListeningByTrackHash: SoloListeningByTrackHash;
   selectedTrackId: string;
   catalogAccessByTrackId: Record<string, boolean>;
   onOpenTrack: (track: CatalogTrack) => void;
   onOpenArtist: (artistName: string) => void;
   onJoinRoom: (roomId: string) => void;
-  onStartRoom: () => void;
+  onStartRoom: (track?: CatalogTrack) => void;
 };
+
+function roomPlaysTrack(room: OpenRoom, track: CatalogTrack): boolean {
+  if (!room.track) return false;
+  if (room.track.hash && track.hash) return room.track.hash.toLowerCase() === track.hash.toLowerCase();
+  return room.track.title === track.title && room.track.artist === track.artist;
+}
 
 export function ListenView({
   catalogTracks,
   catalogStatus,
   openRooms,
+  soloListeningByTrackHash,
   selectedTrackId,
   catalogAccessByTrackId,
   onOpenTrack,
@@ -36,19 +44,21 @@ export function ListenView({
   const latestTracks = useMemo(() => catalogTracks.slice(0, 5), [catalogTracks]);
   const latestTrackIds = latestTracks.map(track => track.id).join('|');
   const [featuredIndex, setFeaturedIndex] = useState(0);
+  const [carouselPaused, setCarouselPaused] = useState(false);
   const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
-  const leadRoom = openRooms.find(room => room.track) ?? null;
-  const isShowingLiveRoom = Boolean(leadRoom);
   const featured = latestTracks[featuredIndex] ?? latestTracks[0] ?? null;
-  const heroTrack = leadRoom?.track ?? featured ?? null;
-  const presenceMarks = Math.min(totalListening, 7);
+  const featuredRooms = useMemo(() => (featured ? openRooms.filter(room => roomPlaysTrack(room, featured)) : []), [featured, openRooms]);
+  const featuredRoomListening = featuredRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
+  const featuredSoloListening = featured ? (soloListeningByTrackHash[featured.hash.toLowerCase()] ?? 0) : 0;
+  const featuredListening = featuredRoomListening + featuredSoloListening;
+  const featuredRoom = featuredRooms[0] ?? null;
 
   useEffect(() => {
     setFeaturedIndex(0);
   }, [latestTrackIds]);
 
   useEffect(() => {
-    if (isShowingLiveRoom || latestTracks.length <= 1) return undefined;
+    if (latestTracks.length <= 1 || carouselPaused) return undefined;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
 
     const intervalId = window.setInterval(() => {
@@ -56,7 +66,7 @@ export function ListenView({
     }, 4600);
 
     return () => window.clearInterval(intervalId);
-  }, [isShowingLiveRoom, latestTrackIds, latestTracks.length]);
+  }, [carouselPaused, latestTrackIds, latestTracks.length]);
 
   return (
     <section className='listen-home' aria-labelledby='now-title'>
@@ -69,73 +79,104 @@ export function ListenView({
       </header>
 
       <div className='now-hero-grid'>
-        {heroTrack ? (
-          <article className='moment-feature' data-live={isShowingLiveRoom} style={auraStyleForTrack(heroTrack) as CSSProperties}>
+        {featured ? (
+          <article className='moment-feature' style={auraStyleForTrack(featured) as CSSProperties}>
             <div className='moment-art'>
-              {leadRoom ? (
-                <CoverImage src={heroTrack.imageRef} alt='' />
-              ) : (
-                <div className='moment-carousel' aria-label='Latest tracks'>
-                  <button className='moment-carousel-main' type='button' onClick={() => featured && onOpenTrack(featured)} aria-label={`Open ${featured?.title ?? 'selected track'}`}>
-                    {featured && <CoverImage src={featured.imageRef} alt='' />}
-                  </button>
-                  {latestTracks.length > 1 && (
-                    <div className='moment-carousel-rail' style={{ '--featured-index': featuredIndex } as CSSProperties}>
-                      <div className='moment-carousel-strip'>
-                        {latestTracks.map((track, index) => (
-                          <button
-                            className='moment-carousel-card'
-                            type='button'
-                            data-active={index === featuredIndex}
-                            key={track.id}
-                            onClick={() => setFeaturedIndex(index)}
-                            aria-label={`Feature ${track.title} by ${track.artist}`}
-                          >
-                            <CoverImage src={track.imageRef} alt='' />
-                            <span>{track.title}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div
+                className='moment-carousel'
+                aria-label='Latest tracks'
+                onMouseEnter={() => setCarouselPaused(true)}
+                onMouseLeave={() => setCarouselPaused(false)}
+                onFocus={() => setCarouselPaused(true)}
+                onBlur={event => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setCarouselPaused(false);
+                }}
+              >
+                <button
+                  className='moment-carousel-main'
+                  type='button'
+                  onClick={() => onOpenTrack(featured)}
+                  aria-label={`Listen to ${featured.title} by ${featured.artist}`}
+                >
+                  <CoverImage key={featured.id} src={featured.imageRef} alt='' />
+                </button>
+                {latestTracks.length > 1 && (
+                  <div className='moment-pagination' aria-label='Choose a featured track'>
+                    {latestTracks.map((track, index) => (
+                      <button
+                        className='moment-carousel-dot'
+                        type='button'
+                        data-active={index === featuredIndex}
+                        aria-current={index === featuredIndex ? 'true' : undefined}
+                        key={track.id}
+                        onClick={() => setFeaturedIndex(index)}
+                        aria-label={`Show ${track.title} by ${track.artist}`}
+                      >
+                        <span aria-hidden='true' />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <span className='moment-status'>
-                <span className='live-dot' />
-                {leadRoom ? 'Room open' : 'Latest tracks'}
+                <span className='moment-status-light' aria-hidden='true' />
+                Latest tracks
               </span>
             </div>
             <div className='moment-copy'>
-              <span className='moment-kicker'>{leadRoom ? `${leadRoom.hostName} welcomes you` : 'Fresh from the catalog'}</span>
-              <h2>{heroTrack.title}</h2>
-              <p>{heroTrack.artist}</p>
-
-              <div
-                className='shared-score'
-                aria-label={leadRoom ? `${roomPresenceCount(leadRoom.listenerCount, true)} people in this room` : 'Solo listening ready'}
-              >
-                <span className='shared-score-line' aria-hidden='true'>
-                  {Array.from({ length: leadRoom ? Math.min(roomPresenceCount(leadRoom.listenerCount, true), 7) : 1 }, (_, index) => (
-                    <i key={index} style={{ '--mark-index': index } as CSSProperties} />
-                  ))}
-                </span>
-                <span>{leadRoom ? `${roomPresenceCount(leadRoom.listenerCount, true)} listening on one timeline` : 'Choose a track, then make it a room'}</span>
-              </div>
-
-              <button
-                className='primary-action moment-primary'
-                type='button'
-                onClick={() => {
-                  if (leadRoom) {
-                    onJoinRoom(leadRoom.roomId);
-                    return;
-                  }
-                  if (featured) onOpenTrack(featured);
-                }}
-              >
-                {leadRoom ? <Headphones size={18} /> : <ArrowRight size={18} />}
-                {leadRoom ? 'Enter and listen' : 'Open selected track'}
+              <span className='moment-kicker'>Fresh from the catalog</span>
+              <h2>{featured.title}</h2>
+              <button className='moment-artist' type='button' onClick={() => onOpenArtist(featured.artist)}>
+                {featured.artist}
               </button>
+
+              <div className='track-life-panel' aria-label={`Live activity for ${featured.title}`}>
+                <div className='track-life-summary'>
+                  <span className='track-life-light' aria-hidden='true' />
+                  <div>
+                    <span>Track presence</span>
+                    <strong>{featuredRooms.length > 0 ? 'Playing live now' : featuredSoloListening > 0 ? 'Heard solo right now' : 'Ready for a room'}</strong>
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>Solo now</dt>
+                      <dd>{featuredSoloListening}</dd>
+                    </div>
+                    <div>
+                      <dt>Rooms playing this track</dt>
+                      <dd>{featuredRooms.length}</dd>
+                    </div>
+                    <div>
+                      <dt>Listening now</dt>
+                      <dd>{featuredListening}</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className='track-life-actions'>
+                  <button className='track-action track-action-primary' type='button' onClick={() => onOpenTrack(featured)}>
+                    <Headphones size={17} />
+                    Listen solo
+                  </button>
+                  <button className='track-action' type='button' onClick={() => onStartRoom(featured)}>
+                    <Radio size={17} />
+                    Play in a room
+                  </button>
+                </div>
+
+                {featuredRoom && (
+                  <button className='track-live-room' type='button' onClick={() => onJoinRoom(featuredRoom.roomId)}>
+                    <span>
+                      <AvatarStack names={roomPresenceNames(featuredRoom.hostName, featuredRoom.listenerCount, featuredRoom.roomId)} max={3} size={24} />
+                      <span>
+                        <strong>Join {featuredRoom.hostName}'s room</strong>
+                        <small>{roomPresenceCount(featuredRoom.listenerCount, true)} listening together</small>
+                      </span>
+                    </span>
+                    <ArrowRight size={16} aria-hidden='true' />
+                  </button>
+                )}
+              </div>
             </div>
           </article>
         ) : (
@@ -150,63 +191,37 @@ export function ListenView({
               <span className='moment-kicker'>The commons is quiet</span>
               <h2 id='quiet-title'>Open the first listening room.</h2>
               <p>Choose a track, then share the link.</p>
-              <button className='primary-action moment-primary' type='button' onClick={onStartRoom}>
+              <button className='primary-action moment-primary' type='button' onClick={() => onStartRoom()}>
                 <Radio size={18} />
                 Open the first room
               </button>
             </div>
           </section>
         )}
-
-        <aside className='now-side' aria-label='Rooms'>
-          <div className='now-side-copy'>
-            <span className='section-index'>01 / Rooms</span>
-            <h2>Live rooms and tracks.</h2>
-            <p>Open a room, or listen solo and invite people later.</p>
-          </div>
-
-          <div className='now-presence' aria-label={`${totalListening} people listening across ${openRooms.length} rooms`}>
-            <div className='now-presence-score' aria-hidden='true'>
-              <span />
-              {Array.from({ length: presenceMarks }, (_, index) => (
-                <i key={index} style={{ '--presence-index': index } as CSSProperties} />
-              ))}
-            </div>
-            <dl className='now-facts'>
-              <div>
-                <dt>Open rooms</dt>
-                <dd>{openRooms.length}</dd>
-              </div>
-              <div>
-                <dt>Listening now</dt>
-                <dd>{totalListening}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className='now-actions'>
-            <button className='primary-action' type='button' onClick={onStartRoom}>
-              <Radio size={17} />
-              Open a room
-            </button>
-            {featured && (
-              <button className='secondary-action' type='button' onClick={() => onOpenTrack(featured)}>
-                <Headphones size={17} />
-                Listen on my own
-              </button>
-            )}
-          </div>
-          <p className='now-wallet-note'>Start listening. Share when ready.</p>
-        </aside>
       </div>
 
       <section className='live-section' aria-labelledby='live-section-title'>
-        <div className='section-heading'>
+        <div className='section-heading presence-section-heading'>
           <div>
-            <span className='section-index'>02 / Presence</span>
+            <span className='section-index'>01 / Presence</span>
             <h2 id='live-section-title'>Open rooms</h2>
           </div>
-          <span>{openRooms.length > 0 ? `${totalListening} listening together` : 'Nothing live right now'}</span>
+          <div className='presence-command' aria-label={`${openRooms.length} open rooms, ${totalListening} people listening`}>
+            <dl className='presence-facts'>
+              <div>
+                <dt>Rooms</dt>
+                <dd>{openRooms.length}</dd>
+              </div>
+              <div>
+                <dt>In rooms now</dt>
+                <dd>{totalListening}</dd>
+              </div>
+            </dl>
+            <button className='primary-action' type='button' onClick={() => onStartRoom()}>
+              <Radio size={17} />
+              Open a room
+            </button>
+          </div>
         </div>
 
         {openRooms.length > 0 ? (
@@ -237,11 +252,8 @@ export function ListenView({
             <span className='live-empty-mark' aria-hidden='true' />
             <div>
               <strong>No room is open yet.</strong>
-              <span>Choose a track and open a room.</span>
+              <span>Choose a track above, or open a room from the catalog.</span>
             </div>
-            <button className='secondary-action' type='button' onClick={onStartRoom}>
-              Open the first room
-            </button>
           </div>
         )}
       </section>
@@ -249,7 +261,7 @@ export function ListenView({
       <section className='catalogue-section' aria-labelledby='tracks-title'>
         <div className='section-heading'>
           <div>
-            <span className='section-index'>03 / Tracks</span>
+            <span className='section-index'>02 / Tracks</span>
             <h2 id='tracks-title'>Start with the music</h2>
           </div>
           <span>{catalogTracks.length} available</span>

@@ -56,6 +56,9 @@ remains in the
   local colour.
 - Retire the redundant `Now` Stage rail in favor of the catalog grid. Keep the
   rooms sky only where it reflects real open-room data, not fabricated activity.
+- Make the featured-track activity panel reflect real ephemeral solo listeners
+  plus the real presence in rooms currently playing that track. Make the room
+  sky navigable and resettable whenever zoom or panning can crop a sphere.
 - Keep the finite catalog, real room cards, literal access states, and clear
   empty/error/loading states accessible.
 - Retain all load-bearing e2e selectors and behavior.
@@ -104,6 +107,8 @@ remains in the
 - Lint, unit, signaling, API, contract, build, and e2e checks are green.
 - Mobile, desktop, keyboard, reduced-motion, and browser-console smoke checks
   have no blocking issue.
+- Solo playback presence is removed on pause, disconnect, and room entry; a
+  socket cannot inflate both solo and room totals for the same moment.
 
 ## Non-goals
 
@@ -198,3 +203,10 @@ Validation evidence (2026-07-12):
   finalized runtimes, and zero pending runtimes passed the audit;
 - corrected-facet deployment task: Paseo dry-run passed; no transaction sent;
 - repository diff whitespace check: passed.
+
+Follow-up validation (2026-07-14): the Music hero now uses the latest five
+registered tracks, reports active solo presence, rooms playing the selected
+track, and their combined listening total. The desktop room sky supports pan,
+zoom, room-by-room recentering, and reset while preserving the complete static
+room list on mobile/reduced motion. Signaling validation passes 45/45, including
+solo aggregation and cleanup; the production web build passes.

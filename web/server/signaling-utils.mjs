@@ -32,6 +32,14 @@ export function sanitizeAddress(value) {
   return /^0x[0-9a-fA-F]{40}$/.test(text) ? text.toLowerCase() : null;
 }
 
+// Catalog identity used by anonymous, ephemeral solo-presence events. Accept
+// only a full bytes32 hash so one noisy client cannot create arbitrary keys in
+// the in-memory aggregate map.
+export function sanitizeTrackHash(value) {
+  const text = String(value ?? '').trim();
+  return /^0x[0-9a-fA-F]{64}$/.test(text) ? text.toLowerCase() : null;
+}
+
 export function sanitizeTrack(track) {
   if (!track || typeof track !== 'object') {
     return null;
