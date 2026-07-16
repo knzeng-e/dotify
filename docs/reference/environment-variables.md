@@ -26,6 +26,10 @@ production URLs are missing, if production URLs point at loopback or insecure
 origins, or if browser-bundled demo secrets such as `VITE_PINATA_JWT` or
 `VITE_CONTENT_SECRET` are present.
 
+Use `npm run smoke:production-env` from `web/` to verify the guard. The smoke
+check runs one missing-env build, one unsafe-secret build, and one safe public
+production build contract without printing real secret values.
+
 ---
 
 ### `VITE_DOTIFY_DEBUG_PANEL`

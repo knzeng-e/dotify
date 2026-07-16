@@ -215,7 +215,8 @@
       "kind": "work",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Now"
+      "phase": "Now",
+      "note": "Web build guard is covered by npm run smoke:production-env; keep open until deploy-host production variables are configured and evidence is attached."
     },
     {
       "id": "product-sdk-roadmap",

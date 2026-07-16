@@ -17,6 +17,7 @@
 		"build": "tsc -b && vite build",
 		"build:bulletin": "tsc -b && vite build --config vite.bulletin.config.ts",
 		"deploy:bulletin": "node scripts/deploy-bulletin.cjs",
+		"smoke:production-env": "node scripts/production-env-smoke.mjs",
 		"smoke:signal": "node scripts/signaling-smoke.mjs",
 		"lint": "eslint .",
 		"fmt": "prettier --write 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",
