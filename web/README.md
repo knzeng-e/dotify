@@ -245,7 +245,24 @@ After deploying both services:
 ```bash
 curl -s https://dotify-signal.fly.dev/health
 curl -s https://dotify-signal.fly.dev/status
+npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://<netlify-app>
 ```
+
+When `SIGNAL_ORIGINS` is explicit, also check that an unrelated browser origin
+is rejected at both the HTTP CORS and Socket.IO handshake layers:
+
+```bash
+npm run smoke:signal -- \
+  --url https://dotify-signal.fly.dev \
+  --origin https://<netlify-app> \
+  --denied-origin https://not-dotify.example
+```
+
+To validate the room create/join path without opening browsers, add `--room`.
+The command creates a temporary room, joins it as a guest, confirms
+`listenersNeedWalletAccess=false`, and disconnects both sockets. Paste the
+output into Project 5 issue #36 as hosted-signaling evidence after each public
+deployment.
 
 Then verify the user flow in two browser contexts or devices:
 
@@ -280,6 +297,7 @@ starting write flows.
 ```bash
 npm run test:unit     # Vitest - pure domain logic (access policy, room state)
 npm run test:signal   # node:test - signaling server lifecycle
+npm run smoke:signal  # operator smoke check for a local or hosted signal URL
 npm run test:e2e      # Playwright - deterministic trust flows
 ```
 

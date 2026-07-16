@@ -19,9 +19,10 @@ export default tseslint.config(
 		},
 	},
 	{
-		files: ["server/**/*.mjs", "scripts/**/*.cjs"],
+		files: ["server/**/*.mjs", "scripts/**/*.cjs", "scripts/**/*.mjs"],
 		languageOptions: {
 			globals: {
+				AbortController: "readonly",
 				BinaryType: "readonly",
 				Buffer: "readonly",
 				URL: "readonly",

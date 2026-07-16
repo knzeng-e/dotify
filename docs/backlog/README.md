@@ -149,7 +149,8 @@ on `main`. The remaining order is:
    the project, not scattered through prose.
 2. Finish standalone production operation: public API / signaling deployment
    evidence, DAV2 real-browser and gateway validation, and production wallet /
-   device checks.
+   device checks. Hosted signaling evidence for #36 now has a repo-native
+   `npm run smoke:signal` command.
 3. Improve room resilience and shared-listening depth only where it preserves
    the link-first guest doctrine.
 4. Run Product SDK feasibility spikes: Host capability detection, Product
