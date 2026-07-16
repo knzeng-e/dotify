@@ -41,6 +41,14 @@ artist addresses to their runtimes.
 **Socket.IO**: signaling for room discovery and SDP/ICE exchange. A future
 iteration can move signaling to statement-store style infrastructure.
 
+**Product SDK direction**: Dotify remains a standalone web app first. Product
+SDK / Playground / Humanity work is a progressive-enhancement track documented
+in
+[`docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md`](docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md).
+The current SDK snapshot is prototype/reference/unaudited and must be proven
+against Dotify's Host, key-delivery, room, and contract constraints before it
+becomes a production dependency.
+
 ## Deployed
 
 **EVM factory** — `0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d` (Paseo Asset Hub, chainId 420420417)
@@ -232,8 +240,10 @@ authorization failures.
 
 - **Free**: playable by everyone, wallet or not. The backend still verifies the
   current runtime policy before releasing the content key.
-- **Human free**: free listening for addresses with Polkadot Proof of Personhood
-  (DIM1 or DIM2). The contract gates NFT transfer to the same level.
+- **Human free**: free listening for addresses that satisfy the configured
+  Humanity / Individuality requirement. The current contract stores a
+  personhood level and gates NFT transfer to the same level, but the live source
+  and proof shape are still research.
 - **Classic**: paid access in DOT. The runtime records the price and distributes
   payments to configured royalty recipients on `musicRoyPayAccess`.
 
@@ -379,17 +389,19 @@ handle:
    and decide whether a backend read-through gateway is needed.
 4. Keep demo-mode browser-exposed Pinata/content secrets out of public
    deployments.
-5. Integrate live Proof of Personhood / Individuality data instead of manual
-   registrar writes.
+5. Run Product SDK feasibility spikes: Host detection, Product account signing,
+   resource allocation, Playground/Bulletin/DotNS deployment, and PolkaVM/CDM
+   contract portability.
 6. Add a production artist dashboard on `/artists`: release drafts, edit
    metadata, royalty analytics, and profile verification state.
 7. Deploy and monitor a public signaling server for DotNS / Bulletin builds.
-8. Add remaining frontend tests for listening rooms; Classic access/payment,
-   artist publish, and room join now have deterministic e2e coverage.
-9. Split the large React app into catalog, player, artist portal, rooms, and
-   chain modules.
-10. Generate frontend ABI bindings from Hardhat artifacts.
+8. Integrate live Humanity / Individuality data instead of manual registrar
+   writes, after the research ticket proves a privacy-preserving source and
+   address-binding story.
+9. Split the large catalog, session, artist, and player workflows behind domain
+   ports and application use cases.
+10. Keep generated frontend ABI bindings checked from Hardhat artifacts.
 11. Add deployment smoke tests for DotNS/Bulletin CIDs, IPFS gateway fallback,
-    and contract address availability.
+    API/signaling health, and contract address availability.
 12. Improve room resilience with host handoff, reconnect recovery, and explicit
     room expiry.

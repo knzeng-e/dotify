@@ -1,0 +1,57 @@
+name: Backlog sync
+
+on:
+  pull_request:
+    paths:
+      - "docs/backlog/**"
+      - "scripts/backlog-sync.mjs"
+      - ".github/workflows/backlog-sync.yml"
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Query GitHub Project 5 with gh"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+  schedule:
+    - cron: "17 8 * * 1"
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  offline:
+    name: Offline manifest check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node scripts/backlog-sync.mjs --check --offline
+
+  live:
+    name: Live Project 5 drift check
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' && (github.event_name == 'schedule' || inputs.live == 'true')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check required token
+        env:
+          PROJECT_SYNC_TOKEN: ${{ secrets.PROJECT_SYNC_TOKEN }}
+        run: |
+          if [ -z "$PROJECT_SYNC_TOKEN" ]; then
+            echo "PROJECT_SYNC_TOKEN is required for user-owned Project 5 checks."
+            exit 1
+          fi
+      - name: Query project drift
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_SYNC_TOKEN }}
+        run: node scripts/backlog-sync.mjs --check --live

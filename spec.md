@@ -1,6 +1,6 @@
 # Dotify Project Specification
 
-Last updated: 2026-07-12
+Last updated: 2026-07-14
 
 ## 1. Purpose
 
@@ -111,6 +111,14 @@ built as a single-file Bulletin/IPFS-friendly artifact.
 Production-sensitive upload and content-key operations live behind
 `services/api/`. Browser-side Pinata upload and `VITE_CONTENT_SECRET` key
 derivation remain local/demo paths only.
+
+Product SDK / Playground / Humanity integration is a progressive enhancement
+track, not a hard dependency for first sound. The current verified SDK snapshot
+(`@parity/product-sdk` 0.17.0 at
+`2f359bba28ca72855207a0a519d4118b37b4438c`) must be treated as
+prototype/reference/unaudited until Dotify proves Host capability detection,
+Product account signing, resource allocation, contract portability, and
+Statement Store constraints against the current app.
 
 ## 5. Repository Layout
 
@@ -632,20 +640,26 @@ npm test
 
 Priority improvements:
 
-1. Complete real-browser DAV2 Range/MSE and two-device room validation.
-2. Finish security hardening for publish intents, auth chain binding, durable
-   revocation, realtime reconnect, and short-lived TURN credentials.
-3. Move the large catalog, session, artist, and player workflows behind domain
-   ports and application use cases.
-4. Add a cacheable, paginated event-indexed catalog API.
-5. Harden production wallet support and passkey recovery across public flows.
-6. Add backend-backed WebAuthn registration, credential storage, and
-   discoverable passkey recovery.
-7. Integrate live Proof of Personhood / Individuality data.
-8. Operate and monitor public backend and signaling infrastructure for DotNS /
+1. Reconcile the local backlog with GitHub Project 5 and keep drift visible in
+   PR checks.
+2. Complete real-browser DAV2 Range/MSE and two-device room validation.
+3. Operate and monitor public backend and signaling infrastructure for DotNS /
    Bulletin builds.
-9. Archive or remove the legacy monolithic registry path.
-10. Add deployment smoke tests and finish frontend health surfaces.
+4. Finish security hardening for publish intents, auth chain binding, durable
+   revocation, realtime reconnect, and short-lived TURN credentials.
+5. Run Product SDK feasibility spikes for Host capability detection, Product
+   account signing, resource allocation, Playground/Bulletin/DotNS deployment,
+   Statement Store presence, and PolkaVM/CDM contract portability.
+6. Move the large catalog, session, artist, and player workflows behind domain
+   ports and application use cases.
+7. Add a cacheable, paginated event-indexed catalog API.
+8. Harden production wallet support and passkey recovery across public flows.
+9. Add backend-backed WebAuthn registration, credential storage, and
+   discoverable passkey recovery.
+10. Integrate live Humanity / Individuality data only after the research ticket
+    proves source, proof shape, privacy, and address binding.
+11. Archive or remove the legacy monolithic registry path.
+12. Add deployment smoke tests and finish frontend health surfaces.
 
 ## 16. Acceptance Criteria For MVP
 

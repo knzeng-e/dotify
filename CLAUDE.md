@@ -56,16 +56,23 @@ Build the production spine first:
 9. generated ABI bindings;
 10. observability and health checks.
 
-## Active ticket
+## Active execution focus
 
-**Design track · Ticket 25** — Thresholds functional v1 (`docs/backlog/25-thresholds-functional-v1.md`)
+Ticket 25 (`docs/backlog/25-thresholds-functional-v1.md`) is delivered on
+`main` by PR #92 and is now a delivery record, not the active ticket.
 
-The active PR also keeps the hosted signaling and observability surfaces from
-tickets 04/10 aligned with the current UI, and carries the registry owner-guard
-remediation runbook (`docs/operations/registry-facet-remediation.md`) as
-security evidence. The legacy Paseo deployment remains quarantined for new
-publication; active publication targets only the fresh attested
-factory/directory pair documented in ticket 25.
+The current "Now" work is the production operation and backlog-sync set:
+
+- `docs/backlog/10-observability-health-checks.md` / #11 - frontend health
+  surface and public operation evidence;
+- #36 - hosted signaling operation evidence for public rooms;
+- #37 - production environment validation and unsafe-secret guards.
+
+The immediate Product SDK planning track is
+`docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md` / #85.
+Treat Product SDK / Playground / Humanity work as a gated feasibility track and
+progressive enhancement until the relevant Host, contract-portability,
+Statement Store, and privacy boundaries are proven.
 
 ## Source of truth
 
