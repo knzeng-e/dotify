@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  ARTIST_PUBLICATION_QUARANTINE_MESSAGE,
-  isLoopbackRpcUrl,
-  resolveArtistPublicationSafety,
-  validateProductionEnvironment
-} from './deploymentSafety';
+import { ARTIST_PUBLICATION_QUARANTINE_MESSAGE, isLoopbackRpcUrl, resolveArtistPublicationSafety, validateProductionEnvironment } from './deploymentSafety';
 import type { ArtistPublicationSafetyInput } from './deploymentSafety';
 
 const safeInput: ArtistPublicationSafetyInput = {
