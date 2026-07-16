@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ARTIST_PUBLICATION_QUARANTINE_MESSAGE, isLoopbackRpcUrl, resolveArtistPublicationSafety } from './deploymentSafety';
+import { ARTIST_PUBLICATION_QUARANTINE_MESSAGE, isLoopbackRpcUrl, resolveArtistPublicationSafety, validateProductionEnvironment } from './deploymentSafety';
 import type { ArtistPublicationSafetyInput } from './deploymentSafety';
 
 const safeInput: ArtistPublicationSafetyInput = {
@@ -123,5 +123,79 @@ describe('resolveArtistPublicationSafety', () => {
         catalogCutoverReady: true
       })
     ).toEqual({ quarantined: false, reason: '' });
+  });
+});
+
+const validProductionEnv = {
+  VITE_DOTIFY_DEPLOYMENT: 'production',
+  VITE_SIGNAL_URL: 'https://dotify-signal.example',
+  VITE_DOTIFY_API_URL: 'https://dotify-api.example',
+  VITE_PINATA_GATEWAY: 'https://gateway.example',
+  VITE_IPFS_READ_GATEWAYS: 'https://paseo-ipfs.example,https://dweb.example'
+};
+
+describe('validateProductionEnvironment', () => {
+  it('keeps default demo builds usable without production infrastructure', () => {
+    expect(validateProductionEnvironment({})).toEqual({
+      mode: 'demo',
+      errors: [],
+      warnings: []
+    });
+  });
+
+  it('requires the production backend, signaling, and gateway URLs when production mode is explicit', () => {
+    expect(validateProductionEnvironment({ VITE_DOTIFY_DEPLOYMENT: 'production' }).errors).toEqual([
+      'VITE_SIGNAL_URL is required when VITE_DOTIFY_DEPLOYMENT=production.',
+      'VITE_DOTIFY_API_URL is required when VITE_DOTIFY_DEPLOYMENT=production.',
+      'VITE_PINATA_GATEWAY is required when VITE_DOTIFY_DEPLOYMENT=production.',
+      'VITE_IPFS_READ_GATEWAYS is required when VITE_DOTIFY_DEPLOYMENT=production.'
+    ]);
+  });
+
+  it('rejects browser-bundled upload and content-key secrets in production', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_PINATA_JWT: 'browser-token',
+        VITE_CONTENT_SECRET: `0x${'11'.repeat(32)}`
+      }).errors
+    ).toEqual([
+      'VITE_PINATA_JWT is browser-exposed and must not be set for production builds. Configure backend PINATA_JWT instead.',
+      'VITE_CONTENT_SECRET is bundled into the browser and must not be set for production builds. Use backend CONTENT_KEY_MASTER_SECRET.'
+    ]);
+  });
+
+  it('rejects loopback and insecure production endpoints', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_SIGNAL_URL: 'http://localhost:8788',
+        VITE_DOTIFY_API_URL: 'http://api.example',
+        VITE_PINATA_GATEWAY: 'https://127.0.0.1',
+        VITE_IPFS_READ_GATEWAYS: 'https://paseo-ipfs.example,http://dweb.example'
+      }).errors
+    ).toEqual([
+      'VITE_SIGNAL_URL must use https: or wss: in production.',
+      'VITE_SIGNAL_URL must not point at a loopback or .local host in production.',
+      'VITE_DOTIFY_API_URL must use https: in production.',
+      'VITE_PINATA_GATEWAY must not point at a loopback or .local host in production.',
+      'VITE_IPFS_READ_GATEWAYS must use https: in production.'
+    ]);
+  });
+
+  it('rejects mistyped deployment modes so production guards are not bypassed accidentally', () => {
+    expect(validateProductionEnvironment({ VITE_DOTIFY_DEPLOYMENT: 'prodction' })).toEqual({
+      mode: 'invalid',
+      errors: ['VITE_DOTIFY_DEPLOYMENT must be one of local, demo, preview, staging, or production.'],
+      warnings: []
+    });
+  });
+
+  it('accepts an explicit production environment that keeps secrets server-side', () => {
+    expect(validateProductionEnvironment(validProductionEnv)).toEqual({
+      mode: 'production',
+      errors: [],
+      warnings: []
+    });
   });
 });

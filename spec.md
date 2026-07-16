@@ -417,6 +417,7 @@ Important browser-exposed variables:
 
 | Variable                  | Purpose                                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------------------ |
+| `VITE_DOTIFY_DEPLOYMENT`  | build-time deployment safety mode; set `production` for public production builds            |
 | `VITE_SIGNAL_URL`         | Socket.IO signaling server URL                                                             |
 | `VITE_LOCAL_WS_URL`       | local Substrate websocket URL                                                              |
 | `VITE_LOCAL_ETH_RPC_URL`  | local EVM RPC URL                                                                          |
@@ -552,8 +553,17 @@ Production build:
 
 ```bash
 cd web
+VITE_DOTIFY_DEPLOYMENT=production \
+VITE_SIGNAL_URL=https://dotify-signal.example \
+VITE_DOTIFY_API_URL=https://dotify-api.example \
+VITE_PINATA_GATEWAY=https://gateway.example \
+VITE_IPFS_READ_GATEWAYS=https://paseo-ipfs.example,https://dweb.example \
 npm run build
 ```
+
+When `VITE_DOTIFY_DEPLOYMENT=production` is set, the build fails if required
+production URLs are missing, use loopback/insecure origins, or if
+`VITE_PINATA_JWT` / `VITE_CONTENT_SECRET` are present in the browser bundle.
 
 Bulletin/IPFS single-file build:
 

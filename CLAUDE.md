@@ -66,7 +66,9 @@ The current "Now" work is the production operation and backlog-sync set:
 - `docs/backlog/10-observability-health-checks.md` / #11 - frontend health
   surface and public operation evidence;
 - #36 - hosted signaling operation evidence for public rooms;
-- #37 - production environment validation and unsafe-secret guards.
+- #37 - production environment validation and unsafe-secret guards, implemented
+  in the active PR by the frontend production build guard; keep open until the
+  PR is merged and deploy-host production variables are configured.
 
 The immediate Product SDK planning track is
 `docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md` / #85.

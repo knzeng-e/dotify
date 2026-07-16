@@ -213,6 +213,7 @@ For a repo-root Netlify site, set:
 
 Required production environment variables:
 
+- `VITE_DOTIFY_DEPLOYMENT=production`
 - `VITE_SIGNAL_URL=https://dotify-signal.fly.dev`
 - `VITE_DOTIFY_API_URL=<public backend API URL>` for server-side uploads and
   wallet-signed key delivery.
@@ -229,6 +230,11 @@ Do not set unrestricted Pinata credentials in Netlify. `VITE_PINATA_JWT` is
 browser-exposed and is for restricted local/demo uploads only. Do not treat
 `VITE_CONTENT_SECRET` as a production content-key boundary; production playback
 should use the backend key service.
+
+With `VITE_DOTIFY_DEPLOYMENT=production`, the frontend build fails before
+deployment if the required production URLs are missing, point at loopback or
+insecure origins, or if `VITE_PINATA_JWT` / `VITE_CONTENT_SECRET` are present
+in the browser environment.
 
 #### 3. Production smoke checks
 

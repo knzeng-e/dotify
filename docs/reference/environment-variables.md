@@ -11,6 +11,23 @@ values for your environment.
 Variables prefixed with `VITE_` are bundled into the browser. Do not put secrets
 that must remain server-side here.
 
+### `VITE_DOTIFY_DEPLOYMENT`
+
+| Property     | Value                                      |
+| ------------ | ------------------------------------------ |
+| **Type**     | `local`, `demo`, `preview`, or `production` |
+| **Required** | Production deployments                     |
+| **Default**  | `demo`                                     |
+| **Example**  | `production`                               |
+
+Build-time deployment safety mode. Set `VITE_DOTIFY_DEPLOYMENT=production` for
+public production builds. In that mode, `npm run build` fails if required
+production URLs are missing, if production URLs point at loopback or insecure
+origins, or if browser-bundled demo secrets such as `VITE_PINATA_JWT` or
+`VITE_CONTENT_SECRET` are present.
+
+---
+
 ### `VITE_SIGNAL_URL`
 
 | Property     | Value                                                                            |

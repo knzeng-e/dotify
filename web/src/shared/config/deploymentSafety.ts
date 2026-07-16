@@ -143,3 +143,138 @@ export function resolveConfiguredArtistPublicationSafety(input: {
     catalogCutoverReady: registryOwnerGuardAttestation.catalogCutoverReady
   });
 }
+
+export type DeploymentMode = 'local' | 'demo' | 'production' | 'invalid';
+
+export type ProductionEnvironmentValidation = {
+  mode: DeploymentMode;
+  errors: string[];
+  warnings: string[];
+};
+
+type EnvironmentLike = Record<string, string | boolean | number | null | undefined>;
+
+const DEPLOYMENT_MODE_VALUES = {
+  local: new Set(['local', 'development', 'dev']),
+  demo: new Set(['demo', 'preview', 'staging', 'test']),
+  production: new Set(['production', 'prod'])
+} as const;
+
+const PRODUCTION_LOOPBACK_HOSTS = new Set([...LOOPBACK_HOSTS, '0.0.0.0']);
+
+function readEnvironmentValue(env: EnvironmentLike, key: string): string {
+  const value = env[key];
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+}
+
+export function resolveDeploymentMode(env: EnvironmentLike): DeploymentMode {
+  const rawMode = readEnvironmentValue(env, 'VITE_DOTIFY_DEPLOYMENT') || readEnvironmentValue(env, 'DOTIFY_DEPLOYMENT');
+  if (!rawMode) return 'demo';
+
+  const normalized = rawMode.toLowerCase();
+  if (DEPLOYMENT_MODE_VALUES.production.has(normalized)) return 'production';
+  if (DEPLOYMENT_MODE_VALUES.demo.has(normalized)) return 'demo';
+  if (DEPLOYMENT_MODE_VALUES.local.has(normalized)) return 'local';
+  return 'invalid';
+}
+
+function isLoopbackProductionHost(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return PRODUCTION_LOOPBACK_HOSTS.has(normalized) || normalized.endsWith('.local');
+}
+
+function validateUrl(
+  env: EnvironmentLike,
+  key: string,
+  options: {
+    required?: boolean;
+    protocols: string[];
+    errors: string[];
+  }
+): void {
+  const value = readEnvironmentValue(env, key);
+  if (!value) {
+    if (options.required) options.errors.push(`${key} is required when VITE_DOTIFY_DEPLOYMENT=production.`);
+    return;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    options.errors.push(`${key} must be an absolute URL.`);
+    return;
+  }
+
+  if (!options.protocols.includes(parsed.protocol)) {
+    options.errors.push(`${key} must use ${options.protocols.join(' or ')} in production.`);
+  }
+
+  if (isLoopbackProductionHost(parsed.hostname)) {
+    options.errors.push(`${key} must not point at a loopback or .local host in production.`);
+  }
+}
+
+function validateUrlList(
+  env: EnvironmentLike,
+  key: string,
+  options: {
+    required?: boolean;
+    protocols: string[];
+    errors: string[];
+  }
+): void {
+  const value = readEnvironmentValue(env, key);
+  if (!value) {
+    if (options.required) options.errors.push(`${key} is required when VITE_DOTIFY_DEPLOYMENT=production.`);
+    return;
+  }
+
+  for (const entry of value
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean)) {
+    validateUrl({ [key]: entry }, key, options);
+  }
+}
+
+export function validateProductionEnvironment(env: EnvironmentLike): ProductionEnvironmentValidation {
+  const mode = resolveDeploymentMode(env);
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (mode === 'invalid') {
+    errors.push('VITE_DOTIFY_DEPLOYMENT must be one of local, demo, preview, staging, or production.');
+    return { mode, errors, warnings };
+  }
+
+  if (mode !== 'production') return { mode, errors, warnings };
+
+  if (readEnvironmentValue(env, 'VITE_PINATA_JWT')) {
+    errors.push('VITE_PINATA_JWT is browser-exposed and must not be set for production builds. Configure backend PINATA_JWT instead.');
+  }
+
+  if (readEnvironmentValue(env, 'VITE_CONTENT_SECRET')) {
+    errors.push('VITE_CONTENT_SECRET is bundled into the browser and must not be set for production builds. Use backend CONTENT_KEY_MASTER_SECRET.');
+  }
+
+  validateUrl(env, 'VITE_SIGNAL_URL', { required: true, protocols: ['https:', 'wss:'], errors });
+  validateUrl(env, 'VITE_DOTIFY_API_URL', { required: true, protocols: ['https:'], errors });
+  validateUrl(env, 'VITE_PINATA_GATEWAY', { required: true, protocols: ['https:'], errors });
+  validateUrlList(env, 'VITE_IPFS_READ_GATEWAYS', { required: true, protocols: ['https:'], errors });
+  validateUrl(env, 'VITE_ETH_RPC_URL', { protocols: ['https:'], errors });
+  validateUrl(env, 'VITE_WS_URL', { protocols: ['wss:'], errors });
+  validateUrl(env, 'VITE_BULLETIN_WS_URL', { protocols: ['wss:'], errors });
+  validateUrl(env, 'VITE_BLOCKSCOUT_BASE_URL', { protocols: ['https:'], errors });
+  validateUrl(env, 'VITE_TURN_URL', { protocols: ['turn:', 'turns:'], errors });
+
+  return { mode, errors, warnings };
+}
+
+export function assertProductionEnvironment(env: EnvironmentLike): void {
+  const validation = validateProductionEnvironment(env);
+  if (validation.errors.length === 0) return;
+
+  throw new Error(['Dotify production environment validation failed:', ...validation.errors.map(error => `- ${error}`)].join('\n'));
+}
