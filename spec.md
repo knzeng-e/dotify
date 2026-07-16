@@ -418,6 +418,7 @@ Important browser-exposed variables:
 | Variable                  | Purpose                                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------------------ |
 | `VITE_DOTIFY_DEPLOYMENT`  | build-time deployment safety mode; set `production` for public production builds            |
+| `VITE_DOTIFY_DEBUG_PANEL` | optional flag that shows the read-only Production readiness panel under `You`                |
 | `VITE_SIGNAL_URL`         | Socket.IO signaling server URL                                                             |
 | `VITE_LOCAL_WS_URL`       | local Substrate websocket URL                                                              |
 | `VITE_LOCAL_ETH_RPC_URL`  | local EVM RPC URL                                                                          |

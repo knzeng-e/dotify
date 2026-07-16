@@ -13,18 +13,35 @@ that must remain server-side here.
 
 ### `VITE_DOTIFY_DEPLOYMENT`
 
-| Property     | Value                                      |
-| ------------ | ------------------------------------------ |
+| Property     | Value                                       |
+| ------------ | ------------------------------------------- |
 | **Type**     | `local`, `demo`, `preview`, or `production` |
-| **Required** | Production deployments                     |
-| **Default**  | `demo`                                     |
-| **Example**  | `production`                               |
+| **Required** | Production deployments                      |
+| **Default**  | `demo`                                      |
+| **Example**  | `production`                                |
 
 Build-time deployment safety mode. Set `VITE_DOTIFY_DEPLOYMENT=production` for
 public production builds. In that mode, `npm run build` fails if required
 production URLs are missing, if production URLs point at loopback or insecure
 origins, or if browser-bundled demo secrets such as `VITE_PINATA_JWT` or
 `VITE_CONTENT_SECRET` are present.
+
+---
+
+### `VITE_DOTIFY_DEBUG_PANEL`
+
+| Property     | Value             |
+| ------------ | ----------------- |
+| **Type**     | Boolean string    |
+| **Required** | No                |
+| **Default**  | `false`           |
+| **Example**  | `true`            |
+
+Enables the optional Production readiness panel under the `You` tab. The panel
+performs read-only checks for the backend readiness endpoint, signaling health,
+chain RPC, configured factory/directory contract code, wallet-chain mismatch,
+catalog status, and IPFS gateway reads. Leave this unset for ordinary listener
+deployments unless operators need in-app diagnostics.
 
 ---
 

@@ -33,6 +33,8 @@ Useful environment variables:
 - `VITE_SIGNAL_URL`: Socket.IO signaling server for listening rooms.
 - `VITE_DOTIFY_API_URL`: backend API for server-side uploads and
   wallet-signed content-key requests.
+- `VITE_DOTIFY_DEBUG_PANEL`: set to `true` to show the read-only Production
+  readiness panel under the `You` tab.
 - `VITE_LOCAL_WS_URL` / `VITE_LOCAL_ETH_RPC_URL`: local development endpoints.
 - `VITE_BULLETIN_WS_URL`: Paseo Bulletin Chain RPC.
 - `VITE_PINATA_JWT`: restricted browser-exposed Pinata JWT for demo uploads
@@ -253,6 +255,12 @@ Then verify the user flow in two browser contexts or devices:
 4. Send one chat message and one reaction; both browsers should receive the
    server echo.
 5. Start playback; if audio negotiation fails across networks, configure TURN.
+
+For operator smoke checks, temporarily set `VITE_DOTIFY_DEBUG_PANEL=true` and
+open `You -> Production readiness`. The panel checks backend readiness,
+signaling health, chain RPC, factory/directory contract code, wallet-chain
+mismatch, catalog status, and IPFS gateway reads without exposing secrets or
+starting write flows.
 
 ### Production Troubleshooting
 

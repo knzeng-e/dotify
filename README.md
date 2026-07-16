@@ -136,6 +136,11 @@ The web build then fails fast if required production URLs are missing, use
 loopback/insecure origins, or if `VITE_PINATA_JWT` / `VITE_CONTENT_SECRET` are
 present in the browser environment.
 
+Operators can also set `VITE_DOTIFY_DEBUG_PANEL=true` during smoke checks to
+show the read-only Production readiness panel under `You`. It checks backend
+readiness, signaling health, chain RPC, configured contracts, wallet-chain
+mismatch, catalog status, and IPFS gateway reads.
+
 **Demo/local mode** (no backend): set `VITE_PINATA_JWT` in `web/.env.local` with
 a restricted upload-only Pinata token. Do not use an unrestricted token in demos.
 

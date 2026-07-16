@@ -10,6 +10,7 @@ export type ArtistTab = 'overview' | 'new' | 'releases' | 'royalties' | 'advance
 export type ReleaseStep = 'assets' | 'metadata' | 'access' | 'review';
 export type TransactionFeedbackTone = 'pending' | 'success' | 'error';
 export type TransactionFeedbackStepStatus = 'complete' | 'active' | 'submitted' | 'upcoming';
+export type UiNoticeTone = 'info' | 'success' | 'error';
 
 export type RoyaltySplit = {
   label: string;
@@ -190,6 +191,13 @@ export type TransactionFeedback = {
     status: TransactionFeedbackStepStatus;
     txHash?: `0x${string}`;
   }[];
+};
+
+export type UiNotice = {
+  id: string;
+  tone: UiNoticeTone;
+  title: string;
+  message: string;
 };
 
 export type AccessGate = {

@@ -1,5 +1,6 @@
 import { ArrowRight, ExternalLink, KeyRound, Mic2, Music2, Power, Sparkles, Users, Wallet } from 'lucide-react';
 
+import { ProductionReadinessPanel, type ProductionReadinessPanelProps } from '../components/ProductionReadinessPanel';
 import type { WalletState } from '../hooks/useWallet';
 import { getBlockscoutAddressUrl } from '../shared/utils/explorer';
 import { formatWeiAsDot, shortenAddress } from '../shared/utils/format';
@@ -17,6 +18,7 @@ type YouViewProps = {
   supportedArtistCount: number;
   supportedArtists: AccountSupportedArtist[];
   unlockedTracks: AccountUnlockedTrack[];
+  productionReadiness: ProductionReadinessPanelProps | null;
   onOpenArtistStudio: () => void;
   onShowWalletModal: () => void;
   onDisconnectWallet: () => void;
@@ -32,6 +34,7 @@ export function YouView({
   supportedArtistCount,
   supportedArtists,
   unlockedTracks,
+  productionReadiness,
   onOpenArtistStudio,
   onShowWalletModal,
   onDisconnectWallet
@@ -212,6 +215,8 @@ export function YouView({
               )}
             </div>
           </section>
+
+          {productionReadiness && <ProductionReadinessPanel {...productionReadiness} />}
         </aside>
       </div>
     </section>

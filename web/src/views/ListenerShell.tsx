@@ -15,6 +15,7 @@ import { JoinRoomModal } from '../components/JoinRoomModal';
 import { TopBar } from '../components/TopBar';
 import { AccountWalletModal } from '../components/AccountWalletModal';
 import { TransactionModal } from '../components/TransactionModal';
+import { ToastRegion } from '../components/ToastRegion';
 import { BottomNav, DesktopNav } from '../components/PrimaryNav';
 
 import { ListenView } from './ListenView';
@@ -36,6 +37,7 @@ import {
 import { NAV_ITEMS } from '../app/navigation';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from '../features/catalog/trackModel';
 import { getStoredDisplayName, isChosenDisplayName } from '../features/identity/walletIdentity';
+import { isProductionReadinessPanelEnabled } from '../features/observability/productionReadiness';
 import { getInitialRoomCode } from '../features/rooms/roomState';
 import { deriveSupportSummary } from '../features/wallet/supportSummary';
 import { getStoredArtistName } from '../hooks/useArtistConsole';
@@ -49,7 +51,7 @@ export function ListenerShell() {
   const session = useSessionContext();
   const { playback, openTrack, prepareLocalStream } = usePlaybackContext();
   const { activeView, publicArtistName, setPublicArtistName, navigateToView, openArtistStudio } = useNavigation();
-  const { walletState, activeEvmAddress, listenerEvmAddress, disconnect: disconnectWallet } = useWalletContext();
+  const { walletState, activeEvmAddress, listenerEvmAddress, ethRpcUrl, expectedChainId, disconnect: disconnectWallet } = useWalletContext();
   const { setShowWalletModal } = useUiFeedback();
   const { artistName } = useReleaseForm();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
@@ -77,6 +79,8 @@ export function ListenerShell() {
           : 'resolving';
   const isRoomGuest = session.mode === 'listener' && Boolean(roomId);
   const soloTrackHash = playback.transport.playing && !roomId ? (selectedTrack?.hash ?? null) : null;
+  const showProductionReadinessPanel = isProductionReadinessPanelEnabled({ VITE_DOTIFY_DEBUG_PANEL: import.meta.env.VITE_DOTIFY_DEBUG_PANEL });
+  const connectedWallet = walletState.status === 'connected' ? walletState.wallet : null;
 
   useEffect(() => {
     session.setSoloListeningTrack(soloTrackHash);
@@ -258,6 +262,17 @@ export function ListenerShell() {
                       priceDot: track.priceDot,
                       hash: track.hash
                     }))}
+                    productionReadiness={
+                      showProductionReadinessPanel
+                        ? {
+                            catalogTracks: catalog.catalogTracks,
+                            catalogStatus: catalog.catalogStatus,
+                            ethRpcUrl,
+                            expectedChainId,
+                            walletChainId: connectedWallet?.chainId
+                          }
+                        : null
+                    }
                     onOpenArtistStudio={openArtistStudio}
                     onShowWalletModal={() => setShowWalletModal(true)}
                     onDisconnectWallet={disconnectWallet}
@@ -274,6 +289,7 @@ export function ListenerShell() {
             )}
 
             <TransactionModal />
+            <ToastRegion />
           </main>
         </div>
 
