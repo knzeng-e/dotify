@@ -22,6 +22,11 @@ concurrency:
 jobs:
   deploy:
     name: Deploy docs to GitHub Pages
+    # GitHub Pages is optional for this repo. When Pages is not enabled,
+    # actions/configure-pages fails the whole main CI run with "Get Pages site
+    # failed". Set repository variable ENABLE_GITHUB_PAGES=true after enabling
+    # Pages from GitHub Actions to turn this deployment back on.
+    if: ${{ vars.ENABLE_GITHUB_PAGES == 'true' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
