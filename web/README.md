@@ -238,6 +238,16 @@ deployment if the required production URLs are missing, point at loopback or
 insecure origins, or if `VITE_PINATA_JWT` / `VITE_CONTENT_SECRET` are present
 in the browser environment.
 
+Before changing Netlify/Fly production variables, run:
+
+```bash
+npm run smoke:production-env
+```
+
+The command exercises the build guard against missing production URLs,
+browser-exposed demo secrets, and a safe public production env. CI runs the
+same check for Project 5 issue #37.
+
 #### 3. Production smoke checks
 
 After deploying both services:
@@ -297,6 +307,7 @@ starting write flows.
 ```bash
 npm run test:unit     # Vitest - pure domain logic (access policy, room state)
 npm run test:signal   # node:test - signaling server lifecycle
+npm run smoke:production-env # production env guard evidence
 npm run smoke:signal  # operator smoke check for a local or hosted signal URL
 npm run test:e2e      # Playwright - deterministic trust flows
 ```

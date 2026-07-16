@@ -212,8 +212,9 @@ Recommended Project 5 fields:
   `web`'s `npm run smoke:signal` command for `/health`, `/status`, origin
   rejection, and optional temporary room create/join evidence.
 - #37: frontend production env validation and unsafe-secret guards are
-  implemented by the web build guard; keep open until the PR is merged and
-  deploy-host production variables are configured.
+  implemented by the web build guard and `web`'s
+  `npm run smoke:production-env`; keep open until deploy-host production
+  variables are configured and the smoke output is attached.
 - #85: split into Product SDK baseline, contract portability, Playground deploy,
   Statement Store presence, and integration adapter spikes.
 - #86: keep for cacheable catalog read model.

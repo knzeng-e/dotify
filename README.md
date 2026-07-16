@@ -136,6 +136,10 @@ The web build then fails fast if required production URLs are missing, use
 loopback/insecure origins, or if `VITE_PINATA_JWT` / `VITE_CONTENT_SECRET` are
 present in the browser environment.
 
+Run `cd web && npm run smoke:production-env` to verify the production build
+guard still fails closed for missing URLs and browser-exposed demo secrets while
+accepting a safe public production env contract.
+
 Operators can also set `VITE_DOTIFY_DEBUG_PANEL=true` during smoke checks to
 show the read-only Production readiness panel under `You`. It checks backend
 readiness, signaling health, chain RPC, configured contracts, wallet-chain
