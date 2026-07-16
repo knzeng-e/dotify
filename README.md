@@ -130,6 +130,12 @@ backend encrypts audio server-side and listeners obtain per-track keys through
 wallet-signed key requests; the production content key never ships in the
 frontend bundle.
 
+For public production builds, set `VITE_DOTIFY_DEPLOYMENT=production` alongside
+`VITE_DOTIFY_API_URL`, `VITE_SIGNAL_URL`, and the public IPFS gateway variables.
+The web build then fails fast if required production URLs are missing, use
+loopback/insecure origins, or if `VITE_PINATA_JWT` / `VITE_CONTENT_SECRET` are
+present in the browser environment.
+
 **Demo/local mode** (no backend): set `VITE_PINATA_JWT` in `web/.env.local` with
 a restricted upload-only Pinata token. Do not use an unrestricted token in demos.
 
@@ -324,6 +330,8 @@ See also:
   development flows, but `VITE_CONTENT_SECRET` is still only a local/demo
   boundary. Production uploads and protected playback should use
   `VITE_DOTIFY_API_URL` with the backend-held `CONTENT_KEY_MASTER_SECRET`.
+  Production frontend builds should set `VITE_DOTIFY_DEPLOYMENT=production` so
+  browser-bundled demo secrets fail the build.
 - **Wallet scope**: Dotify treats the connected EVM account as the primary
   artist and listener identity. Artist registration and release publication
   require a connected wallet; dev EVM accounts are not used as public fallback

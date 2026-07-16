@@ -6,8 +6,8 @@
 // Protection model:
 //   • IPFS stores only encrypted bytes — the raw CID is not playable.
 //   • The contentHash (cleartext identity) is used as key-derivation input, not stored separately.
-//   • VITE_CONTENT_SECRET is bundled in the JS (best-effort, not DRM). Set a real secret for
-//     production; defaults to an all-zero dev key when the env var is absent.
+//   • VITE_CONTENT_SECRET is bundled in the JS (best-effort, not DRM). It is demo/local only;
+//     production key delivery must use the backend service.
 //
 // Access policy (PoP / payment checks) is enforced separately at the call site.
 

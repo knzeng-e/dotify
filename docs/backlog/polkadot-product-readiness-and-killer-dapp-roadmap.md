@@ -209,8 +209,9 @@ Recommended Project 5 fields:
 - #34: duplicate/overlap with server-side Pinata upload and backend operation.
 - #35: duplicate/overlap with wallet-signed key requests and access v2.
 - #36: keep open for hosted signaling operation evidence.
-- #37: keep open for frontend production env validation and unsafe-secret
-  guards.
+- #37: frontend production env validation and unsafe-secret guards are
+  implemented by the web build guard; keep open until the PR is merged and
+  deploy-host production variables are configured.
 - #85: split into Product SDK baseline, contract portability, Playground deploy,
   Statement Store presence, and integration adapter spikes.
 - #86: keep for cacheable catalog read model.
