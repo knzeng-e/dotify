@@ -168,6 +168,9 @@ export function startSignalingServer(overrides = {}) {
   });
 
   const io = new Server(httpServer, {
+    allowRequest: (request, callback) => {
+      callback(null, isOriginAllowed(request.headers.origin));
+    },
     cors: { origin: config.origins === '*' ? '*' : config.origins, methods: ['GET', 'POST'] }
   });
 

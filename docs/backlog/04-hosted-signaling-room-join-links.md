@@ -164,3 +164,22 @@ Benchmark Jukebox Duo / Spotify Jam simplicity: room creation must feel like sha
 - The signaling server relays SDP/ICE and room metadata only; it cannot verify what audio the host actually streams. `playbackMode` is host-declared.
 - WebRTC listeners can hear and record the stream. The protection boundary remains: no content keys, no encrypted source files for listeners.
 - For reliable rooms across symmetric NAT, deploy a TURN relay (`VITE_TURN_URL`).
+
+## Operation evidence update (2026-07-17)
+
+Project 5 issue #36 remains the public deployment evidence tracker for this
+already-delivered room scope. The current implementation adds a repo-native
+operator smoke check:
+
+```bash
+cd web
+npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://<netlify-app> --room
+```
+
+Use `--denied-origin https://not-dotify.example` when `SIGNAL_ORIGINS` is
+explicit to prove that the deployment rejects unrelated browser origins for
+both HTTP CORS and Socket.IO handshakes.
+
+The smoke command verifies `/health`, `/status`, optional temporary room
+create/join, and the room doctrine invariant that guests do not need wallet
+access. Paste its output into #36 after each public signaling deployment.

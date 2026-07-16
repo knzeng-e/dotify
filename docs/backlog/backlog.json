@@ -205,7 +205,8 @@
       "kind": "work",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Now"
+      "phase": "Now",
+      "note": "PR branch adds npm run smoke:signal evidence flow for /health, /status, origin rejection, and optional room create/join."
     },
     {
       "id": "production-env-validation",

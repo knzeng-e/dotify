@@ -208,7 +208,9 @@ Recommended Project 5 fields:
 - #33: triage as likely delivered or narrowed by current wallet work.
 - #34: duplicate/overlap with server-side Pinata upload and backend operation.
 - #35: duplicate/overlap with wallet-signed key requests and access v2.
-- #36: keep open for hosted signaling operation evidence.
+- #36: keep open for hosted signaling operation evidence; the repo now has
+  `web`'s `npm run smoke:signal` command for `/health`, `/status`, origin
+  rejection, and optional temporary room create/join evidence.
 - #37: frontend production env validation and unsafe-secret guards are
   implemented by the web build guard; keep open until the PR is merged and
   deploy-host production variables are configured.
