@@ -46,7 +46,7 @@ Do not add ornamental product features until the following spine is stable:
 
 | Backlog doc                                      | GitHub issue | Status                                                                          | Goal                                     |
 | ------------------------------------------------ | ------------ | ------------------------------------------------------------------------------- | ---------------------------------------- |
-| `10-observability-health-checks.md`              | #11          | Backend + signaling slice delivered; frontend surface and production operation evidence open | Observability and health checks          |
+| `10-observability-health-checks.md`              | #11          | Backend, signaling, error boundary, toast notices, and env-gated frontend readiness panel delivered; public operation evidence open | Observability and health checks          |
 | `11-proof-of-personhood-integration-research.md` | #12          | Open - rewrite against current Product SDK / Individuality host APIs before build | Proof of Personhood integration research |
 | `12-ambassador-social-propagation-model.md`      | #13          | Open - keep last until provenance, consent, and anti-abuse foundations exist       | Ambassador and social propagation model  |
 
@@ -147,9 +147,9 @@ on `main`. The remaining order is:
 
 1. Reconcile GitHub Project 5 with this local backlog and keep issue status in
    the project, not scattered through prose.
-2. Finish standalone production operation: observability frontend, public API /
-   signaling deployment evidence, DAV2 real-browser and gateway validation, and
-   production wallet/device checks.
+2. Finish standalone production operation: public API / signaling deployment
+   evidence, DAV2 real-browser and gateway validation, and production wallet /
+   device checks.
 3. Improve room resilience and shared-listening depth only where it preserves
    the link-first guest doctrine.
 4. Run Product SDK feasibility spikes: Host capability detection, Product

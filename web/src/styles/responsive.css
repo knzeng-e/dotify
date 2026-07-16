@@ -488,6 +488,26 @@
     padding-top: 0.75rem;
   }
 
+  .readiness-meta,
+  .readiness-panel-head,
+  .readiness-panel .endpoint-row {
+    align-items: stretch;
+  }
+
+  .readiness-meta,
+  .readiness-panel .endpoint-row {
+    flex-direction: column;
+  }
+
+  .readiness-summary {
+    align-self: flex-start;
+  }
+
+  .readiness-check-value {
+    justify-items: start;
+    text-align: left;
+  }
+
   .artist-profile-hero {
     grid-template-columns: minmax(0, 1fr);
   }

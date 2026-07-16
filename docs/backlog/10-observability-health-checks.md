@@ -75,7 +75,27 @@ First slice delivered (`feat/observability-health-checks`): backend and signalin
 - Signaling `/health` now echoes non-secret config: allowed origins, room TTL, host heartbeat timeout, per-room listener cap, plus room, in-room listener, active solo-listener counts, and uptime. `/status` also exposes the anonymous per-track solo-presence aggregate used by the listening UI.
 - Tests: `routes/health.test.ts` (liveness, version, ready 200/503, no secret material) and `app.test.ts` (request-ID echo/generation, typed 404, preserved framework statuses); signaling health test added. README documents how to inspect health.
 
+Second frontend slice delivered (`feat/frontend-health-surface`):
+
+- App-level error boundary: render failures now show a clear recovery screen
+  instead of a blank app, while logging only the error message and React
+  component stack.
+- App-wide toast notices: `UiFeedbackProvider` owns a bounded notice queue and
+  `ToastRegion` renders concise accessible status messages without reusing the
+  transaction modal.
+- Env-gated readiness panel: `VITE_DOTIFY_DEBUG_PANEL=true` reveals
+  `You -> Production readiness`, a read-only operator panel that checks backend
+  `/health/ready`, signaling `/health`, chain RPC, wallet-chain mismatch,
+  factory/directory contract code, catalog status, and one catalog IPFS asset
+  through the gateway fallback chain.
+- Tests: `features/observability/productionReadiness.test.ts` covers panel
+  gating, health URL normalization, endpoint display redaction, IPFS probe
+  selection, and readiness summary logic.
+- Docs: environment reference and web production runbook document the debug
+  panel flag and smoke-check use.
+
 Still open in this ticket (next slices):
 
-- Frontend: error boundary, user-facing error/toast system for chain-ID mismatch / RPC unavailable / signaling unavailable / IPFS gateway fallback failures, optional env-gated debug panel. The frontend can now consume `/health/ready` and the signaling `/health` for honest status display.
-- Frontend chain/runtime startup diagnostics (factory/directory availability, runtime lookup, `musicAccCanAccess` read failure, IPFS metadata fetch failure surfacing).
+- Public operation evidence: capture real deployed API/signaling readiness,
+  browser/device wallet mismatch screenshots or logs, and gateway/DAV2 smoke
+  evidence before closing #11.
