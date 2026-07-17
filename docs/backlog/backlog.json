@@ -119,7 +119,8 @@
       "kind": "work",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Now"
+      "phase": "Record",
+      "note": "Closed in Project 5; backend/signaling/frontend readiness delivered. Public signaling/env evidence closed through #36/#37; DAV2/gateway evidence continues in #88."
     },
     {
       "id": "11",
@@ -172,11 +173,11 @@
       "id": "production-wallet-support",
       "doc": "README.md",
       "issue": 33,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "Triage as likely partly delivered; keep open only for missing injected-wallet evidence."
+      "phase": "Record",
+      "note": "Closed in Project 5 after public EVM injected-wallet, deployment, SmartRuntime publish, and wrong-chain recovery validation evidence."
     },
     {
       "id": "production-backend-uploads",
@@ -186,7 +187,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Record",
-      "note": "Superseded by delivered ticket 02; public operation evidence is tracked by #11, #36, and #37."
+      "note": "Closed as superseded by delivered ticket 02; backend upload endpoints and frontend backend upload routing exist on main."
     },
     {
       "id": "production-key-custody",
@@ -202,21 +203,21 @@
       "id": "hosted-signaling-operation",
       "doc": "docs/backlog/04-hosted-signaling-room-join-links.md",
       "issue": 36,
-      "kind": "work",
+      "kind": "record",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "PR branch adds npm run smoke:signal evidence flow for /health, /status, origin rejection, and optional room create/join."
+      "phase": "Record",
+      "note": "Closed in Project 5 after hosted signaling smoke evidence."
     },
     {
       "id": "production-env-validation",
       "doc": "docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md",
       "issue": 37,
-      "kind": "work",
+      "kind": "record",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "Web build guard is covered by npm run smoke:production-env; keep open until deploy-host production variables are configured and evidence is attached."
+      "phase": "Record",
+      "note": "Closed in Project 5 after #99 and manually checked production environment evidence."
     },
     {
       "id": "product-sdk-roadmap",
