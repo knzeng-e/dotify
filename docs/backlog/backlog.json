@@ -173,11 +173,11 @@
       "id": "production-wallet-support",
       "doc": "README.md",
       "issue": 33,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "Narrowed to public injected-wallet and device validation evidence; implementation exists on main."
+      "phase": "Record",
+      "note": "Closed in Project 5 after public EVM injected-wallet, deployment, SmartRuntime publish, and wrong-chain recovery validation evidence."
     },
     {
       "id": "production-backend-uploads",

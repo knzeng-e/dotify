@@ -146,12 +146,11 @@ Sprint 0, Sprint 1, ticket 24 P1/P2/P3 first slice, and ticket 25 are delivered
 on `main`. The remaining order is:
 
 1. Reconcile GitHub Project 5 with this local backlog and keep issue status in
-   the project, not scattered through prose. The remaining active Now item is
-   #33, narrowed to public wallet/device validation evidence.
+   the project, not scattered through prose. Public wallet/device validation is
+   closed through #33 and should stay a record.
 2. Finish standalone production operation: DAV2 real-browser and gateway
-   validation, backend read-through decisioning, and the remaining production
-   wallet/device evidence. Hosted signaling and production-env evidence are
-   closed through #36/#37.
+   validation plus backend read-through decisioning through #88. Hosted
+   signaling and production-env evidence are closed through #36/#37.
 3. Improve room resilience and shared-listening depth only where it preserves
    the link-first guest doctrine.
 4. Run Product SDK feasibility spikes: Host capability detection, Product

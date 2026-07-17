@@ -30,9 +30,10 @@ Where it falls short of its own standards:
    prototype/reference/unaudited, Host features require a compatible container,
    current contracts target PolkaVM/CDM via `pallet-revive`, and only Paseo /
    Summit presets are live.
-4. The standalone production path still needs public operation evidence:
-   backend readiness, hosted signaling, gateway behavior, DAV2 Range/MSE
-   validation, wallet/device checks, and deployment smoke tests.
+4. The standalone production path still needs first-sound operation evidence:
+   gateway behavior, DAV2 Range/MSE validation, and the backend read-through
+   decision. Backend readiness, hosted signaling, wallet/device checks, and
+   deployment smoke tests are now records.
 5. Frontend debt is now concentrated in large domain hooks and player/session
    flows, not `App.tsx`. ABI generation is delivered and must stay checked.
 6. UX gaps against the "invisible trust" bar: first sound still depends on
@@ -47,14 +48,14 @@ Where it falls short of its own standards:
 | PR9 `shared/` tree relocation | `08-frontend-refactor-tracker.md` | Delivered on `main` |
 | PR10 split mega-hooks (`useCatalog`, `useSession`, `useArtistConsole`) along their `features/*` seams | follow-up rows in the ticket 08 tracker or a new focused refactor ticket | Proposed |
 | Generated ABI bindings | `09-generated-abi-bindings.md` (#10) | Delivered |
-| Observability and health checks on the key service | `10-observability-health-checks.md` (#11) | Backend/signaling delivered; frontend and production operation evidence open |
+| Observability and health checks on the key service | `10-observability-health-checks.md` (#11) | Delivered; residual DAV2/gateway evidence moved to #88 |
 | Separate production preview assets | `18-production-preview-assets.md` (#27) | Retired by access model v2 |
 
 ## Next - standalone operation and listening depth
 
 | Item | Tracking | Status |
 | --- | --- | --- |
-| Public API/signaling operation evidence: readiness checks, frontend health surface, public env validation, CORS/origin hardening, unsafe-secret guards, and deployment smoke checks. | #11, #36, #37 | Active |
+| Public API/signaling operation evidence: readiness checks, frontend health surface, public env validation, CORS/origin hardening, unsafe-secret guards, and deployment smoke checks. | #11, #36, #37 | Delivered / Record |
 | DAV2 validation: real browser/container/gateway matrix, Range + MSE fallback behavior, first-sound metrics, and decision on backend read-through gateway. | #87, #88, `24-access-streaming-v2.md` | Active |
 | Room resilience: short-lived TURN credentials, reconnect/handoff policy, and optional SFU only when it protects the link-first guest doctrine. | #89 | Active |
 | Value-before-wallet onboarding: make public room links and first sound useful before asking for wallet state, while keeping protected source access fail-closed. | #90 | Active |

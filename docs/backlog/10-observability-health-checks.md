@@ -100,5 +100,5 @@ Closure note (2026-07-17):
   operator diagnostics are delivered on `main`.
 - Hosted signaling and production-env evidence were tracked to closure through
   #36 and #37.
-- Remaining wallet/device validation is narrowed to #33.
+- Public wallet/device validation was tracked to closure through #33.
 - Remaining DAV2/gateway first-sound evidence belongs to #88.

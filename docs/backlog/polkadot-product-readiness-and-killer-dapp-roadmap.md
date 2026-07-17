@@ -105,11 +105,12 @@ testnet users.
 
 - #11 frontend health/readiness, #36 hosted signaling evidence, and #37
   frontend public-env validation are delivered/closed.
-- Keep the remaining production-wallet task #33 narrowed to public
-  wallet/device validation evidence, not a rebuild of wallet support.
-- Validate DAV2 Range/MSE and fallback behavior across browsers and gateways.
+- #33 public injected-wallet/device validation is delivered/closed; Product
+  host/account integration remains scoped to #85, not reopened here.
+- Validate DAV2 Range/MSE and fallback behavior across browsers and gateways
+  through #88.
 - Decide whether a backend read-through gateway is needed for reliable first
-  sound.
+  sound through #88.
 - Keep demo-mode Pinata and content secrets out of public deployments.
 
 ### Phase 2 - Shared listening depth
@@ -206,9 +207,9 @@ Recommended Project 5 fields:
   host APIs before build.
 - #13: keep open but sequence last.
 - #27: mark superseded by access model v2.
-- #33: keep open only for public injected-wallet and device validation evidence.
-  Implementation already covers extension connection, chain switch/add-chain,
-  account/chain listeners, wrong-chain UI, and no public dev-account fallback.
+- #33: closed after public injected-wallet, deployment, SmartRuntime publish, and
+  wrong-chain recovery validation evidence. Product SDK host/account work remains
+  #85.
 - #34: closed/superseded by delivered ticket 02; Project 5 should keep it as a
   Done/Record card only.
 - #35: duplicate/overlap with wallet-signed key requests and access v2.
