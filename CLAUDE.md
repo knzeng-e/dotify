@@ -61,14 +61,13 @@ Build the production spine first:
 Ticket 25 (`docs/backlog/25-thresholds-functional-v1.md`) is delivered on
 `main` by PR #92 and is now a delivery record, not the active ticket.
 
-The current "Now" work is the production operation and backlog-sync set:
+The current "Now" work is #88: DAV2 browser/gateway validation plus the backend
+read-through decision for reliable first sound.
 
-- `docs/backlog/10-observability-health-checks.md` / #11 - frontend health
-  surface and public operation evidence;
-- #36 - hosted signaling operation evidence for public rooms;
-- #37 - production environment validation and unsafe-secret guards, implemented
-  in the active PR by the frontend production build guard; keep open until the
-  PR is merged and deploy-host production variables are configured.
+Keep #11, #36, and #37 as closed Record work. #11 delivered the readiness
+surfaces, with residual DAV2/gateway evidence moved to #88. #36 closed after
+hosted signaling evidence. #37 closed after #99 and manually checked production
+environment evidence.
 
 The immediate Product SDK planning track is
 `docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md` / #85.
