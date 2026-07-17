@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { fetchAssetRef, fetchIpfsCid, getGatewayUrl, getGatewayUrls } from '../services/pinata';
+import { fetchAssetRef, fetchIpfsCid, getGatewayUrl } from '../services/pinata';
 import { ensureContract, getPublicClient, artistDirectoryAbi, musicRegistryAbi, musicAccessAbi, musicRoyaltiesAbi } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot } from '../shared/utils/format';
@@ -18,6 +18,7 @@ import {
 } from '../shared/utils/audioV2';
 import { isPolicyManagedTrack } from '../features/access/accessPolicy';
 import { catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
+import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
 import {
@@ -61,6 +62,61 @@ class AudioV2ChunkAuthenticationError extends Error {
   constructor(readonly cause: unknown) {
     super('DAV2 chunk authentication failed');
     this.name = 'AudioV2ChunkAuthenticationError';
+  }
+}
+
+type AudioV2StartupPhase =
+  | 'key-authorized'
+  | 'gateway-selected'
+  | 'header-ready'
+  | 'first-range-ready'
+  | 'first-chunk-decrypted'
+  | 'first-chunk-appended'
+  | 'fallback'
+  | 'error';
+
+type AudioV2StartupContext = {
+  audioRef: string;
+  cid: string;
+  startedAt: number;
+};
+
+type AudioV2StartupMetric = {
+  phase: AudioV2StartupPhase;
+  audioRef: string;
+  cid: string;
+  elapsedMs: number;
+  timestamp: number;
+  gatewayUrl?: string;
+  rangeStart?: number;
+  rangeEnd?: number;
+  chunkIndex?: number;
+  hedged?: boolean;
+  fromCache?: boolean;
+  detail?: string;
+};
+
+function nowMs(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+function publishAudioV2StartupMetric(context: AudioV2StartupContext, metric: Omit<AudioV2StartupMetric, 'audioRef' | 'cid' | 'elapsedMs' | 'timestamp'>): void {
+  if (typeof window === 'undefined') return;
+  const detail: AudioV2StartupMetric = {
+    audioRef: context.audioRef,
+    cid: context.cid,
+    elapsedMs: Number((nowMs() - context.startedAt).toFixed(1)),
+    timestamp: Date.now(),
+    ...metric
+  };
+  window.dispatchEvent(new CustomEvent('dotify:dav2-startup', { detail }));
+  if (import.meta.env.DEV) {
+    console.info('[dotify.dav2.startup]', detail);
   }
 }
 
@@ -395,26 +451,33 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
   }
 
-  async function fetchAudioV2Range(cid: string, start: number, end: number): Promise<Uint8Array> {
-    let lastError: unknown;
-    for (const url of getGatewayUrls(cid)) {
-      try {
-        const response = await fetch(url, { headers: { Range: `bytes=${start}-${end}` } });
-        if (response.status === 206) return new Uint8Array(await response.arrayBuffer());
-        lastError = new Error(`Gateway ${url} did not serve a range (${response.status})`);
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw lastError instanceof Error ? lastError : new Error('Unable to fetch DAV2 range');
+  async function fetchAudioV2Range(cid: string, start: number, end: number, phase: AudioV2GatewayPhase): Promise<AudioV2RangeResult> {
+    return fetchAudioV2RangeThroughGateways(cid, start, end, { phase });
   }
 
-  async function fetchAudioV2Header(cid: string): Promise<ParsedAudioV2> {
+  async function fetchAudioV2Header(context: AudioV2StartupContext): Promise<ParsedAudioV2> {
     let rangeEnd = initialAudioV2HeaderRangeEnd();
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      const bytes = await fetchAudioV2Range(cid, 0, rangeEnd);
+      const range = await fetchAudioV2Range(context.cid, 0, rangeEnd, 'header');
+      publishAudioV2StartupMetric(context, {
+        phase: 'gateway-selected',
+        gatewayUrl: range.gatewayUrl,
+        rangeStart: 0,
+        rangeEnd,
+        hedged: range.hedged,
+        fromCache: range.fromCache
+      });
       try {
-        return parseAudioV2HeaderPrefix(bytes);
+        const parsed = parseAudioV2HeaderPrefix(range.bytes);
+        publishAudioV2StartupMetric(context, {
+          phase: 'header-ready',
+          gatewayUrl: range.gatewayUrl,
+          rangeStart: 0,
+          rangeEnd,
+          hedged: range.hedged,
+          fromCache: range.fromCache
+        });
+        return parsed;
       } catch (error) {
         if (error instanceof AudioV2HeaderIncompleteError && error.neededBytes - 1 > rangeEnd) {
           rangeEnd = error.neededBytes - 1;
@@ -473,20 +536,54 @@ export function useCatalog(deps: UseCatalogDeps) {
   async function pumpAudioV2ToMediaSource(
     mediaSource: MediaSource,
     sourceBuffer: SourceBuffer,
-    cid: string,
+    context: AudioV2StartupContext,
     parsed: ParsedAudioV2,
     key: Uint8Array
   ): Promise<void> {
     for (const chunk of parsed.header.chunks) {
       const chunkStart = parsed.bodyOffset + audioV2ChunkBodyOffset(parsed.header, chunk.index);
-      const encrypted = await fetchAudioV2Range(cid, chunkStart, chunkStart + chunk.encryptedLength - 1);
+      const chunkEnd = chunkStart + chunk.encryptedLength - 1;
+      const range = await fetchAudioV2Range(context.cid, chunkStart, chunkEnd, chunk.index === 0 ? 'first-chunk' : 'chunk');
+      if (chunk.index === 0) {
+        publishAudioV2StartupMetric(context, {
+          phase: 'first-range-ready',
+          gatewayUrl: range.gatewayUrl,
+          rangeStart: chunkStart,
+          rangeEnd: chunkEnd,
+          chunkIndex: chunk.index,
+          hedged: range.hedged,
+          fromCache: range.fromCache
+        });
+      }
       let clear: Uint8Array;
       try {
-        clear = await decryptAudioV2Chunk(parsed.header, chunk.index, encrypted, key);
+        clear = await decryptAudioV2Chunk(parsed.header, chunk.index, range.bytes, key);
       } catch (error) {
         throw new AudioV2ChunkAuthenticationError(error);
       }
+      if (chunk.index === 0) {
+        publishAudioV2StartupMetric(context, {
+          phase: 'first-chunk-decrypted',
+          gatewayUrl: range.gatewayUrl,
+          rangeStart: chunkStart,
+          rangeEnd: chunkEnd,
+          chunkIndex: chunk.index,
+          hedged: range.hedged,
+          fromCache: range.fromCache
+        });
+      }
       await appendSourceBuffer(sourceBuffer, clear);
+      if (chunk.index === 0) {
+        publishAudioV2StartupMetric(context, {
+          phase: 'first-chunk-appended',
+          gatewayUrl: range.gatewayUrl,
+          rangeStart: chunkStart,
+          rangeEnd: chunkEnd,
+          chunkIndex: chunk.index,
+          hedged: range.hedged,
+          fromCache: range.fromCache
+        });
+      }
     }
     if (mediaSource.readyState === 'open') mediaSource.endOfStream();
   }
@@ -499,13 +596,18 @@ export function useCatalog(deps: UseCatalogDeps) {
     return URL.createObjectURL(blob);
   }
 
-  async function recoverAudioV2MseFailure(audioRef: string, cid: string, key: Uint8Array, failedObjectUrl: string, error: unknown) {
+  async function recoverAudioV2MseFailure(context: AudioV2StartupContext, key: Uint8Array, failedObjectUrl: string, error: unknown) {
+    const { audioRef, cid } = context;
     if (audioV2FallbacksRef.current.has(audioRef)) return;
     if (audioSourceRef.current !== failedObjectUrl) return;
 
     audioV2FallbacksRef.current.add(audioRef);
     try {
       console.warn('DAV2 streaming failed, falling back to full decrypt', error);
+      publishAudioV2StartupMetric(context, {
+        phase: 'fallback',
+        detail: errorMessage(error)
+      });
       const fallbackUrl = await fetchAndDecryptAudioV2Blob(cid, key);
       objectUrlsRef.current.add(fallbackUrl);
       resolvedAudioSourcesRef.current.set(audioRef, fallbackUrl);
@@ -523,7 +625,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
   }
 
-  function createAudioV2MseSource(audioRef: string, cid: string, parsed: ParsedAudioV2, key: Uint8Array): string {
+  function createAudioV2MseSource(context: AudioV2StartupContext, parsed: ParsedAudioV2, key: Uint8Array): string {
     if (!canStreamAudioV2WithMse(parsed.header)) throw new Error('DAV2 MSE streaming unsupported for this media type');
 
     const mediaSource = new MediaSource();
@@ -532,14 +634,18 @@ export function useCatalog(deps: UseCatalogDeps) {
     void waitForMediaSourceOpen(mediaSource)
       .then(() => {
         const sourceBuffer = mediaSource.addSourceBuffer(parsed.header.mediaMime);
-        return pumpAudioV2ToMediaSource(mediaSource, sourceBuffer, cid, parsed, key);
+        return pumpAudioV2ToMediaSource(mediaSource, sourceBuffer, context, parsed, key);
       })
       .catch(error => {
         if (!(error instanceof AudioV2ChunkAuthenticationError)) {
-          void recoverAudioV2MseFailure(audioRef, cid, key, objectUrl, error);
+          void recoverAudioV2MseFailure(context, key, objectUrl, error);
         } else {
           console.warn('DAV2 chunk authentication failed', error);
-          retireAudioV2MseObjectUrl(audioRef, objectUrl);
+          publishAudioV2StartupMetric(context, {
+            phase: 'error',
+            detail: errorMessage(error)
+          });
+          retireAudioV2MseObjectUrl(context.audioRef, objectUrl);
         }
         if (mediaSource.readyState === 'open') {
           try {
@@ -553,17 +659,19 @@ export function useCatalog(deps: UseCatalogDeps) {
     return objectUrl;
   }
 
-  async function fetchAndDecryptAudioV2(audioRef: string, key: Uint8Array): Promise<string> {
-    const cid = encryptedRefToCID(audioRef);
-
+  async function fetchAndDecryptAudioV2(context: AudioV2StartupContext, key: Uint8Array): Promise<string> {
     try {
-      const parsed = await fetchAudioV2Header(cid);
-      return createAudioV2MseSource(audioRef, cid, parsed, key);
+      const parsed = await fetchAudioV2Header(context);
+      return createAudioV2MseSource(context, parsed, key);
     } catch (streamError) {
       console.warn('DAV2 streaming unavailable, falling back to full decrypt', streamError);
+      publishAudioV2StartupMetric(context, {
+        phase: 'fallback',
+        detail: errorMessage(streamError)
+      });
     }
 
-    return fetchAndDecryptAudioV2Blob(cid, key);
+    return fetchAndDecryptAudioV2Blob(context.cid, key);
   }
 
   async function fetchAndDecryptAudio(audioRef: string, gatewayUrl: string, contentHash: `0x${string}`, accessMode: AccessMode): Promise<string> {
@@ -583,15 +691,28 @@ export function useCatalog(deps: UseCatalogDeps) {
     const cached = resolvedAudioSourcesRef.current.get(cacheKey);
     if (cached) return cached;
 
-    const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash) : await resolveServerContentKey(contentHash);
     if (isEncryptedAudioV2Ref(audioRef)) {
-      if (!serverKey) throw new Error('DAV2 content key unavailable.');
-      const objectUrl = await fetchAndDecryptAudioV2(audioRef, serverKey);
+      const context: AudioV2StartupContext = {
+        audioRef,
+        cid: encryptedRefToCID(audioRef),
+        startedAt: nowMs()
+      };
+      const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash) : await resolveServerContentKey(contentHash);
+      if (!serverKey) {
+        publishAudioV2StartupMetric(context, {
+          phase: 'error',
+          detail: 'DAV2 content key unavailable.'
+        });
+        throw new Error('DAV2 content key unavailable.');
+      }
+      publishAudioV2StartupMetric(context, { phase: 'key-authorized' });
+      const objectUrl = await fetchAndDecryptAudioV2(context, serverKey);
       objectUrlsRef.current.add(objectUrl);
       resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
       return objectUrl;
     }
 
+    const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash) : await resolveServerContentKey(contentHash);
     const response = isEncryptedAudioRef(audioRef) ? await fetchIpfsCid(encryptedRefToCID(audioRef)) : await fetchAssetRef(audioRef || gatewayUrl);
     if (!response.ok) throw new Error(`Unable to fetch audio (${response.status})`);
 

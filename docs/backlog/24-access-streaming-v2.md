@@ -119,6 +119,18 @@ P3 first vertical slice delivered (`agent/audio-v2-p3`):
   `source-selected`, `metadata-ready`, `first-audio`, and `error`. Browser and
   gateway validation is still required before calling P3 release-ready.
 
+#88 startup hardening slice:
+
+- DAV2 Range reads now use bounded gateway requests, hedge the header and first
+  chunk against a second gateway when the first one stalls, and cache the
+  winning gateway per CID for the browser session.
+- The resolver emits `dotify:dav2-startup` events for key authorization,
+  gateway selection, header readiness, first range, first decrypt, first
+  append, fallback, and error phases.
+- Remaining #88 work: worker-based decryption, chunk read-ahead/pipelining,
+  first-chunk sizing experiments, the browser/device validation matrix, and the
+  backend read-through gateway decision.
+
 Product SDK replanning note (2026-07-14):
 
 - Product SDK (`@parity/product-sdk` 0.17.0 at
