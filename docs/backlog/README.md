@@ -46,7 +46,7 @@ Do not add ornamental product features until the following spine is stable:
 
 | Backlog doc                                      | GitHub issue | Status                                                                          | Goal                                     |
 | ------------------------------------------------ | ------------ | ------------------------------------------------------------------------------- | ---------------------------------------- |
-| `10-observability-health-checks.md`              | #11          | Backend, signaling, error boundary, toast notices, and env-gated frontend readiness panel delivered; public operation evidence open | Observability and health checks          |
+| `10-observability-health-checks.md`              | #11          | Delivered on `main`; public signaling/env evidence closed through #36/#37, DAV2/gateway evidence continues in #88 | Observability and health checks          |
 | `11-proof-of-personhood-integration-research.md` | #12          | Open - rewrite against current Product SDK / Individuality host APIs before build | Proof of Personhood integration research |
 | `12-ambassador-social-propagation-model.md`      | #13          | Open - keep last until provenance, consent, and anti-abuse foundations exist       | Ambassador and social propagation model  |
 
@@ -146,11 +146,12 @@ Sprint 0, Sprint 1, ticket 24 P1/P2/P3 first slice, and ticket 25 are delivered
 on `main`. The remaining order is:
 
 1. Reconcile GitHub Project 5 with this local backlog and keep issue status in
-   the project, not scattered through prose.
-2. Finish standalone production operation: public API / signaling deployment
-   evidence, DAV2 real-browser and gateway validation, and production wallet /
-   device checks. Hosted signaling evidence for #36 now has a repo-native
-   `npm run smoke:signal` command.
+   the project, not scattered through prose. The remaining active Now item is
+   #33, narrowed to public wallet/device validation evidence.
+2. Finish standalone production operation: DAV2 real-browser and gateway
+   validation, backend read-through decisioning, and the remaining production
+   wallet/device evidence. Hosted signaling and production-env evidence are
+   closed through #36/#37.
 3. Improve room resilience and shared-listening depth only where it preserves
    the link-first guest doctrine.
 4. Run Product SDK feasibility spikes: Host capability detection, Product

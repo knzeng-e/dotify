@@ -103,9 +103,10 @@ Goal: make the backlog truthful before new feature work.
 Goal: make the existing web/API/signaling stack reliable enough for public
 testnet users.
 
-- Finish #11 frontend health and production readiness surface.
-- Keep #36 and #37 focused on hosted signaling/API operation and frontend
-  public-env validation.
+- #11 frontend health/readiness, #36 hosted signaling evidence, and #37
+  frontend public-env validation are delivered/closed.
+- Keep the remaining production-wallet task #33 narrowed to public
+  wallet/device validation evidence, not a rebuild of wallet support.
 - Validate DAV2 Range/MSE and fallback behavior across browsers and gateways.
 - Decide whether a backend read-through gateway is needed for reliable first
   sound.
@@ -199,22 +200,21 @@ Recommended Project 5 fields:
 
 ## Current issue triage
 
-- #11: keep open/in progress for frontend health surface and public operation
-  evidence.
+- #11: closed; backend/signaling/frontend readiness surfaces are delivered.
+  Residual gateway/DAV2 operation evidence belongs to #88.
 - #12: keep open, rewrite around current Humanity / Individuality and Product
   host APIs before build.
 - #13: keep open but sequence last.
 - #27: mark superseded by access model v2.
-- #33: triage as likely delivered or narrowed by current wallet work.
-- #34: duplicate/overlap with server-side Pinata upload and backend operation.
+- #33: keep open only for public injected-wallet and device validation evidence.
+  Implementation already covers extension connection, chain switch/add-chain,
+  account/chain listeners, wrong-chain UI, and no public dev-account fallback.
+- #34: closed/superseded by delivered ticket 02; Project 5 should keep it as a
+  Done/Record card only.
 - #35: duplicate/overlap with wallet-signed key requests and access v2.
-- #36: keep open for hosted signaling operation evidence; the repo now has
-  `web`'s `npm run smoke:signal` command for `/health`, `/status`, origin
-  rejection, and optional temporary room create/join evidence.
-- #37: frontend production env validation and unsafe-secret guards are
-  implemented by the web build guard and `web`'s
-  `npm run smoke:production-env`; keep open until deploy-host production
-  variables are configured and the smoke output is attached.
+- #36: closed after hosted signaling operation evidence.
+- #37: closed after #99 and manually checked deploy-host production env
+  evidence.
 - #85: split into Product SDK baseline, contract portability, Playground deploy,
   Statement Store presence, and integration adapter spikes.
 - #86: keep for cacheable catalog read model.

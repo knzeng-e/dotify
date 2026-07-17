@@ -94,8 +94,11 @@ Second frontend slice delivered (`feat/frontend-health-surface`):
 - Docs: environment reference and web production runbook document the debug
   panel flag and smoke-check use.
 
-Still open in this ticket (next slices):
+Closure note (2026-07-17):
 
-- Public operation evidence: capture real deployed API/signaling readiness,
-  browser/device wallet mismatch screenshots or logs, and gateway/DAV2 smoke
-  evidence before closing #11.
+- #11 is closed in Project 5. Backend, signaling, frontend readiness, and
+  operator diagnostics are delivered on `main`.
+- Hosted signaling and production-env evidence were tracked to closure through
+  #36 and #37.
+- Remaining wallet/device validation is narrowed to #33.
+- Remaining DAV2/gateway first-sound evidence belongs to #88.
