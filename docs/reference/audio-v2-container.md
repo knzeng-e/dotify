@@ -71,7 +71,10 @@ The web client resolves refs in this order:
 
 1. Request the content key from the backend. Free tracks use the unauthenticated
    free-key path; gated tracks use the signed session path.
-2. For v2 refs, try Range requests against configured IPFS gateways.
+2. For v2 refs, try bounded Range requests against configured IPFS gateways.
+   Header and first-chunk reads are hedged to a second gateway when the first
+   one stalls, and the winning gateway is cached per CID for the browser
+   session.
 3. If the browser supports `MediaSource.isTypeSupported(header.mediaMime)`,
    decrypt chunks and append them to a `SourceBuffer`.
 4. If Range or MSE is unavailable before streaming starts, or a recoverable
@@ -85,7 +88,21 @@ full-file decrypt path.
 
 ## Startup Metrics
 
-The host playback layer emits a browser event for local validation:
+The DAV2 resolver emits a browser event for the pre-source startup path:
+
+```typescript
+window.addEventListener('dotify:dav2-startup', event => {
+  console.log(event.detail);
+});
+```
+
+Event phases are `key-authorized`, `gateway-selected`, `header-ready`,
+`first-range-ready`, `first-chunk-decrypted`, `first-chunk-appended`,
+`fallback`, and `error`. Details include the CID, selected gateway, range,
+chunk index, elapsed milliseconds, whether a hedge was launched, and whether
+the gateway came from the per-session winner cache.
+
+The host playback layer also emits a browser event for media-element startup:
 
 ```typescript
 window.addEventListener('dotify:host-audio-startup', event => {
@@ -93,7 +110,8 @@ window.addEventListener('dotify:host-audio-startup', event => {
 });
 ```
 
-Event phases are `source-selected`, `metadata-ready`, `first-audio`, and
+Host-audio phases are `source-selected`, `metadata-ready`, `first-audio`, and
 `error`. `elapsedMs` is measured from the moment the selected track receives a
-playable source. This is intended for room/manual QA and Playwright probes; it
-is not persisted by the backend yet.
+playable source. These events are intended for room/manual QA, Playwright
+probes, and the #88 backend read-through decision; they are not persisted by
+the backend yet.

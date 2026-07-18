@@ -107,15 +107,29 @@ export function getGatewayUrlsForAssetRef(assetRef: string): string[] {
   return Array.from(new Set([assetRef, ...fallbackUrls]));
 }
 
-export async function fetchIpfsCid(cid: string): Promise<Response> {
+type GatewayReadOptions = {
+  signal?: AbortSignal;
+};
+
+function throwIfGatewayReadAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  if (typeof DOMException !== 'undefined') throw new DOMException('IPFS gateway read cancelled', 'AbortError');
+  const error = new Error('IPFS gateway read cancelled');
+  error.name = 'AbortError';
+  throw error;
+}
+
+export async function fetchIpfsCid(cid: string, options: GatewayReadOptions = {}): Promise<Response> {
   let lastError: unknown;
 
   for (const url of getGatewayUrls(cid)) {
+    throwIfGatewayReadAborted(options.signal);
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: options.signal });
       if (response.ok) return response;
       lastError = new Error(`Gateway ${url} returned ${response.status}`);
     } catch (error) {
+      if (options.signal?.aborted) throw error;
       lastError = error;
     }
   }
@@ -123,15 +137,17 @@ export async function fetchIpfsCid(cid: string): Promise<Response> {
   throw lastError instanceof Error ? lastError : new Error(`Unable to fetch IPFS CID ${cid}`);
 }
 
-export async function fetchAssetRef(assetRef: string): Promise<Response> {
+export async function fetchAssetRef(assetRef: string, options: GatewayReadOptions = {}): Promise<Response> {
   let lastError: unknown;
 
   for (const url of getGatewayUrlsForAssetRef(assetRef)) {
+    throwIfGatewayReadAborted(options.signal);
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: options.signal });
       if (response.ok) return response;
       lastError = new Error(`Gateway ${url} returned ${response.status}`);
     } catch (error) {
+      if (options.signal?.aborted) throw error;
       lastError = error;
     }
   }

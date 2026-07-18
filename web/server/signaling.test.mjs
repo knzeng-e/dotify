@@ -241,6 +241,30 @@ describe('signaling server', () => {
     assert.equal(body.rooms.find(r => r.roomId === created.roomId).playbackMode, 'preview');
   });
 
+  it('broadcasts host stream-ready cues only to room listeners', async () => {
+    const host = connectClient();
+    const created = await createRoom(host, { track: { title: 'Aurora', artist: 'Ada' } });
+
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+
+    const outsider = connectClient();
+    await once(outsider, 'connect');
+
+    const listenerCues = collect(listener, 'room:stream-ready');
+    const hostCues = collect(host, 'room:stream-ready');
+    const outsiderCues = collect(outsider, 'room:stream-ready');
+
+    host.emit('room:stream-ready');
+    listener.emit('room:stream-ready');
+    outsider.emit('room:stream-ready');
+
+    assert.equal((await listenerCues).length, 1);
+    assert.equal((await hostCues).length, 0);
+    assert.equal((await outsiderCues).length, 0);
+  });
+
   it('rejects listeners beyond the per-room cap', async () => {
     const host = connectClient();
     const created = await createRoom(host);

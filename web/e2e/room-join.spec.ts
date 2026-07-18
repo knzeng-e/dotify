@@ -15,6 +15,9 @@ type RoomJoinE2eState = {
   deniedKeyRequests: number;
   offers: number;
   replaceTrackSwaps: number;
+  captureTrackStops: number;
+  streamReadySignals: number;
+  remotePlaybackCues: number;
 };
 
 declare global {
@@ -74,8 +77,15 @@ async function joinAsListener(context: BrowserContext, roomId: string, options: 
   const page = await context.newPage();
   await page.goto(`/#/rooms/${roomId}`);
   if (options.delaySignalMessagesMs) {
-    await expect(page.locator('#join-room-title')).toHaveText('Finding this room');
-    await expect(page.getByRole('button', { name: 'Finding room...' })).toBeDisabled();
+    // Socket.IO can satisfy the room lookup over its polling transport before
+    // the WebSocket delay is visible, so this delayed path may already have
+    // reached the join sheet. If the loading affordance is observable, it must
+    // still be disabled.
+    await expect(page.locator('#join-room-title')).toHaveText(/Finding this room|welcomes you/);
+    const findingButton = page.getByRole('button', { name: 'Finding room...' });
+    if (await findingButton.isVisible().catch(() => false)) {
+      await expect(findingButton).toBeDisabled();
+    }
   }
   if (options.displayName) {
     await expect(page.locator('#join-room-title')).toContainText('welcomes you');
@@ -93,6 +103,17 @@ async function expectRoomGuestAccessBoundary(page: Page) {
   await expect(page.getByRole('button', { name: /support.*open|check access/i })).toHaveCount(0);
   await expect(page.locator('.player-context-panel')).not.toContainText(/\bDOT\b|wallet/i);
   await expect(page.locator('.access-badges')).toContainText('Live room stream');
+}
+
+async function expectRemoteAudioPlaying(page: Page) {
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const audio = document.querySelectorAll<HTMLAudioElement>('audio.native-player-source')[1];
+        return Boolean(audio?.srcObject && !audio.paused && !audio.ended);
+      })
+    )
+    .toBe(true);
 }
 
 test('public room: listener joins via link, hears full playback, no wallet, no content key', async ({ browser }) => {
@@ -161,16 +182,38 @@ test('protected room with authorized host: host gets the key, listener streams f
     const stateBeforeSwitch = await readRoomJoinState(host);
     expect(stateBeforeSwitch?.offers ?? 0).toBeGreaterThanOrEqual(1);
     expect(stateBeforeSwitch?.replaceTrackSwaps ?? 0).toBe(0);
+    expect(stateBeforeSwitch?.captureTrackStops ?? 0).toBe(0);
 
     await host.getByRole('button', { name: 'Next track' }).click();
     await host.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
     await expect(listener.locator('.track-copy h2')).toHaveText(PUBLIC_TITLE, { timeout: 20_000 });
+    await expectRemoteAudioPlaying(listener);
 
     const stateAfterSwitch = await readRoomJoinState(host);
-    expect(stateAfterSwitch?.replaceTrackSwaps ?? 0).toBeGreaterThan(stateBeforeSwitch?.replaceTrackSwaps ?? 0);
-    expect(stateAfterSwitch?.offers ?? 0).toBe(stateBeforeSwitch?.offers ?? 0);
+    expect(stateAfterSwitch?.offers ?? 0).toBeGreaterThan(stateBeforeSwitch?.offers ?? 0);
+    expect(stateAfterSwitch?.replaceTrackSwaps ?? 0).toBeGreaterThanOrEqual(stateBeforeSwitch?.replaceTrackSwaps ?? 0);
+    expect(stateAfterSwitch?.captureTrackStops ?? 0).toBe(0);
+    expect(stateAfterSwitch?.streamReadySignals ?? 0).toBeGreaterThan(stateBeforeSwitch?.streamReadySignals ?? 0);
+
+    // Switch back as well: source changes renegotiate a fresh WebRTC offer.
+    // Same-source recapture may still use replaceTrack, but the room must never
+    // stop browser-owned capture tracks and leave the listener on silent media.
+    await host.getByRole('button', { name: 'Previous track' }).click();
+    await host.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await expect(listener.locator('.track-copy h2')).toHaveText(PROTECTED_TITLE, { timeout: 20_000 });
+    await expectRemoteAudioPlaying(listener);
+
+    const stateAfterReturn = await readRoomJoinState(host);
+    expect(stateAfterReturn?.offers ?? 0).toBeGreaterThan(stateAfterSwitch?.offers ?? 0);
+    expect(stateAfterReturn?.replaceTrackSwaps ?? 0).toBeGreaterThanOrEqual(stateAfterSwitch?.replaceTrackSwaps ?? 0);
+    expect(stateAfterReturn?.captureTrackStops ?? 0).toBe(0);
+    expect(stateAfterReturn?.streamReadySignals ?? 0).toBeGreaterThan(stateAfterSwitch?.streamReadySignals ?? 0);
+
+    const listenerAfterReturn = await readRoomJoinState(listener);
+    expect(listenerAfterReturn?.remotePlaybackCues ?? 0).toBeGreaterThan(0);
 
     // The listener never requested a key, even for a protected track.
     const listenerState = await readRoomJoinState(listener);

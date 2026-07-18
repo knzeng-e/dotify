@@ -4,7 +4,9 @@ import {
   createRoomJoinE2eCaptureStream,
   isRoomJoinE2e,
   recordRoomJoinE2eOffer,
+  recordRoomJoinE2eRemotePlaybackCue,
   recordRoomJoinE2eReplaceTrack,
+  recordRoomJoinE2eStreamReadySignal,
   roomJoinE2eIceServers
 } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
@@ -92,6 +94,7 @@ export function useSession(deps: UseSessionDeps) {
   const [sessionAction, setSessionAction] = useState<SessionAction>('idle');
   const [mode, setMode] = useState<Mode>(() => (getInitialRoomCode() ? 'listener' : 'host'));
   const [remoteReady, setRemoteReady] = useState(false);
+  const [remoteStreamVersion, setRemoteStreamVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [openRooms, setOpenRooms] = useState<OpenRoom[]>([]);
   const [soloListeningByTrackHash, setSoloListeningByTrackHash] = useState<SoloListeningByTrackHash>({});
@@ -124,10 +127,11 @@ export function useSession(deps: UseSessionDeps) {
   const pendingIceCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const localStreamRef = useRef<MediaStream | null>(null);
   // Which audioSource the current local stream was captured from. Capturing is
-  // idempotent per source: we only (re)capture and renegotiate when the source
-  // actually changes (track skip/next), never on every play/pause/seek, so a
-  // live listener is not torn down and rebuilt for no reason.
+  // idempotent per source: source changes renegotiate listeners onto a fresh
+  // receiver, while same-source play/pause/seek refreshes can stay on
+  // replaceTrack so a live listener is not rebuilt for every transport event.
   const capturedSourceRef = useRef<string | null>(null);
+  const captureStartedPausedRef = useRef(false);
   // Counts consecutive capture attempts that produced no live track for a
   // source, so a genuinely trackless asset (unsupported codec, silent file)
   // surfaces a failure instead of retrying forever on every play event.
@@ -187,6 +191,7 @@ export function useSession(deps: UseSessionDeps) {
       remoteAudio.srcObject = null;
     }
     setRemoteReady(false);
+    setRemoteStreamVersion(version => version + 1);
   }
 
   function closeHostPeers() {
@@ -202,6 +207,7 @@ export function useSession(deps: UseSessionDeps) {
     closeListenerPeer();
     localStreamRef.current = null;
     capturedSourceRef.current = null;
+    captureStartedPausedRef.current = false;
     captureAttemptRef.current = { source: null, count: 0 };
     setLocalStreamReady(false);
   }
@@ -222,9 +228,19 @@ export function useSession(deps: UseSessionDeps) {
     setReactionFeed([]);
     setRequestQueue([]);
     setRemoteReady(false);
+    setRemoteStreamVersion(version => version + 1);
     setSessionAction('idle');
     setSessionStatus(status);
     setError(errorMessage);
+  }
+
+  function cueRemotePlayback(status = 'Live') {
+    const remoteAudio = remoteAudioRef.current;
+    if (!remoteAudio?.srcObject) return;
+    setRemoteReady(true);
+    setRemoteStreamVersion(version => version + 1);
+    setSessionStatus(status);
+    if (isRoomJoinE2e) recordRoomJoinE2eRemotePlaybackCue();
   }
 
   function getSocket() {
@@ -354,6 +370,10 @@ export function useSession(deps: UseSessionDeps) {
     });
     socket.on('peer:connected', (payload: { from: string }) => {
       upsertListenerStatus(payload.from, 'connected');
+    });
+    socket.on('room:stream-ready', () => {
+      if (modeRef.current !== 'listener') return;
+      cueRemotePlayback('Live');
     });
 
     // Social layer: the server is the source of truth (it sanitizes,
@@ -501,7 +521,15 @@ export function useSession(deps: UseSessionDeps) {
       // This is what makes play/pause/seek cheap: they re-trigger this path but
       // must not rebuild every listener peer. Only a real source change
       // (skip/next/loop-into-new-track) falls through to re-capture.
-      if (shouldReuseCapture(capturedSourceRef.current, currentAudioSource, streamHasLiveAudio(localStreamRef.current))) {
+      if (
+        shouldReuseCapture(
+          capturedSourceRef.current,
+          currentAudioSource,
+          streamHasLiveAudio(localStreamRef.current),
+          captureStartedPausedRef.current,
+          audio.paused
+        )
+      ) {
         return;
       }
 
@@ -536,25 +564,32 @@ export function useSession(deps: UseSessionDeps) {
         updatedAt: Date.now()
       };
 
-      const previousStream = localStreamRef.current;
+      const previousCapturedSource = capturedSourceRef.current;
+      const shouldRenegotiateListeners = Boolean(previousCapturedSource && previousCapturedSource !== currentAudioSource);
+
       localStreamRef.current = stream;
       capturedSourceRef.current = currentAudioSource;
+      captureStartedPausedRef.current = audio.paused;
       setLocalStreamReady(true);
       setTrackInfo(track);
       setSessionStatus(roomIdRef.current ? 'Live' : 'Audio ready');
       socketRef.current?.emit('room:track', track);
 
-      await publishLocalStreamToListeners(stream);
-      if (previousStream && previousStream !== stream) {
-        for (const previousTrack of previousStream.getTracks()) previousTrack.stop();
-      }
+      await publishLocalStreamToListeners(stream, { renegotiate: shouldRenegotiateListeners });
+      // Do not stop tracks from an older captureStream() result here. Media
+      // element capture streams follow source selection: when <audio>.src
+      // changes, the browser can add the new source track to every existing
+      // captured stream before this replacement finishes. Stopping the old
+      // stream would then stop the newly selected source and leave listeners
+      // with a live-looking but silent sender. Once replaceTrack resolves, the
+      // previous stream is unreferenced and the browser can retire it.
     } catch (streamError) {
       setError(streamError instanceof Error ? streamError.message : 'Audio capture unavailable in this browser');
       setSessionStatus('Capture unavailable');
     }
   }
 
-  async function publishLocalStreamToListeners(stream: MediaStream) {
+  async function publishLocalStreamToListeners(stream: MediaStream, options: { renegotiate?: boolean } = {}) {
     const [audioTrack] = stream.getAudioTracks();
     if (!audioTrack) return;
 
@@ -562,6 +597,10 @@ export function useSession(deps: UseSessionDeps) {
       listenersRef.current.map(async listener => {
         const peer = hostPeersRef.current.get(listener.id);
         const sender = peer?.getSenders().find(candidate => candidate.track?.kind === 'audio');
+        if (options.renegotiate && peer?.connectionState !== 'closed') {
+          await createOfferForListener(listener.id);
+          return;
+        }
         if (peer && sender && peer.connectionState !== 'closed') {
           try {
             await sender.replaceTrack(audioTrack);
@@ -576,6 +615,11 @@ export function useSession(deps: UseSessionDeps) {
         await createOfferForListener(listener.id);
       })
     );
+
+    if (roomIdRef.current && listenersRef.current.length > 0) {
+      socketRef.current?.emit('room:stream-ready');
+      if (isRoomJoinE2e) recordRoomJoinE2eStreamReadySignal();
+    }
   }
 
   function emitPlayerState(force = false) {
@@ -657,8 +701,7 @@ export function useSession(deps: UseSessionDeps) {
       const [stream] = event.streams;
       if (remoteAudioRef.current && stream) {
         remoteAudioRef.current.srcObject = stream;
-        setRemoteReady(true);
-        setSessionStatus('Live');
+        cueRemotePlayback('Live');
         // Playback is triggered by usePlayback which correctly surfaces
         // 'autoplay-blocked' to the UI when the browser policy blocks autoplay.
       }
@@ -1009,6 +1052,7 @@ export function useSession(deps: UseSessionDeps) {
     sessionAction,
     mode,
     remoteReady,
+    remoteStreamVersion,
     error,
     setError,
     openRooms,

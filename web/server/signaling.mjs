@@ -422,6 +422,17 @@ export function startSignalingServer(overrides = {}) {
       emitRooms();
     });
 
+    // Host media transport is independent from metadata. When the host swaps
+    // or refreshes the WebRTC sender track, listeners may keep the same
+    // receiver but still need to restart their hidden audio element.
+    socket.on('room:stream-ready', () => {
+      const room = getHostedRoom(socket);
+      if (!room) return;
+
+      touchHost(room);
+      socket.to(socket.data.roomId).emit('room:stream-ready', { updatedAt: Date.now() });
+    });
+
     socket.on('host:heartbeat', () => {
       const room = getHostedRoom(socket);
       if (room) touchHost(room);

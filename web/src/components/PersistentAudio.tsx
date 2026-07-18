@@ -49,6 +49,10 @@ export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, pl
         }}
         onPlaying={() => {
           playback.handleHostPlaying(localAudioRef.current!);
+          // Some browsers expose a track at `play` before media frames are
+          // actually flowing. Re-check at `playing`; prepareLocalStream keeps
+          // this cheap when the current capture is already valid.
+          void onPrepareLocalStream();
         }}
         onPause={() => {
           playback.syncFromAudio(localAudioRef.current);
