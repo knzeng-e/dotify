@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AudioV2HeaderIncompleteError, decryptAudioV2Container, parseAudioV2Container, parseAudioV2HeaderPrefix } from './audioV2';
 
 const CONTENT_HASH = `0x${'ab'.repeat(32)}`;
@@ -67,14 +67,20 @@ async function makeContainer() {
 }
 
 describe('audioV2 browser helpers', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('parses and decrypts a DAV2 container', async () => {
     const { container, plaintext } = await makeContainer();
+    const importKeySpy = vi.spyOn(crypto.subtle, 'importKey');
     const parsed = parseAudioV2HeaderPrefix(container.slice(0, 1024));
     expect(parsed.header.mediaMime).toBe('audio/mpeg');
 
     const decrypted = await decryptAudioV2Container(container, KEY);
     expect(decrypted.mediaMime).toBe('audio/mpeg');
     expect(decrypted.bytes).toEqual(plaintext);
+    expect(importKeySpy).toHaveBeenCalledTimes(1);
   });
 
   it('reports how many bytes are needed for an incomplete header', async () => {

@@ -76,7 +76,8 @@ The web client resolves refs in this order:
    one stalls, and the winning gateway is cached per CID for the browser
    session.
 3. If the browser supports `MediaSource.isTypeSupported(header.mediaMime)`,
-   decrypt chunks and append them to a `SourceBuffer`.
+   import the content key once, prepare the current chunk plus two future chunks,
+   and append clear chunks to a `SourceBuffer` in strict index order.
 4. If Range or MSE is unavailable before streaming starts, or a recoverable
    gateway/MSE append error happens while streaming, fetch the full encrypted
    object, decrypt it, and play from a Blob URL.
@@ -85,6 +86,35 @@ The web client resolves refs in this order:
 
 Legacy refs with `dotify:enc:ipfs://<CID>` remain supported through the v1
 full-file decrypt path.
+
+## Range and MSE Boundary
+
+DAV2 chunk reads require `206 Partial Content`. A known encrypted chunk must
+return exactly the requested byte count. When `Content-Range` is visible through
+CORS, its start, end, and returned length must also match; otherwise the client
+tries another configured gateway before decrypting. Header ranges may be shorter
+only when a small object ends before the requested upper bound.
+
+The read-ahead window is deliberately small: the current chunk and two future
+chunks may be prepared, while only one clear chunk is appended at a time. Track
+selection cancellation aborts the pipeline and its in-flight gateway requests.
+This lowers dead air without turning public gateways into an unbounded fan-out
+or giving room guests any source/key access.
+
+MSE concatenates appends into a logical byte stream and retains incomplete input
+between appends. The underlying clear bytes must still conform to the MSE byte
+stream format registered for `mediaMime`. Browser type support is not a guarantee
+that a particular original upload is packaged correctly, so real-browser format
+validation and authenticated full-file recovery remain part of the production
+contract. DAV3 should normalize media segments only if DAV2 field metrics prove
+that original-file packaging is the remaining bottleneck.
+
+The current [W3C MSE byte-stream registry](https://w3c.github.io/mse-byte-stream-format-registry/)
+maps audio streaming formats for `audio/mpeg`, `audio/aac`, `audio/mp4`, and
+`audio/webm`; support still varies by browser, codec, and exact packaging.
+Uploads such as WAV, FLAC, or Ogg remain valid DAV2 assets but should use the
+authenticated full-file playback path unless the running browser explicitly
+accepts their MIME type and the real file passes append validation.
 
 ## Startup Metrics
 

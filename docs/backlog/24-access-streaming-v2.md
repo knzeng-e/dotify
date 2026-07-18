@@ -124,11 +124,19 @@ P3 first vertical slice delivered (`agent/audio-v2-p3`):
 - DAV2 Range reads now use bounded gateway requests, hedge the header and first
   chunk against a second gateway when the first one stalls, and cache the
   winning gateway per CID for the browser session.
+- MSE playback now prepares the current chunk plus two future chunks while the
+  current clear chunk is appended. Appends stay strictly ordered, track changes
+  abort the bounded pipeline, and at most three container chunks are in the
+  preparation window (about 1.5 MiB at the current 512 KiB default).
+- The browser imports the AES content key once per playback instead of once per
+  chunk. Known chunk ranges must return the exact byte count; truncated or
+  mismatched `206` responses retry another gateway instead of being
+  misclassified as a content-authentication failure.
 - The resolver emits `dotify:dav2-startup` events for key authorization,
   gateway selection, header readiness, first range, first decrypt, first
   append, fallback, and error phases.
-- Remaining #88 work: worker-based decryption, chunk read-ahead/pipelining,
-  first-chunk sizing experiments, the browser/device validation matrix, and the
+- Remaining #88 work: worker-based decryption, first-chunk sizing experiments,
+  the browser/device validation matrix, startup telemetry export, and the
   backend read-through gateway decision.
 
 Product SDK replanning note (2026-07-14):

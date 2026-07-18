@@ -88,6 +88,10 @@ audioRef = "dotify:enc:v2:ipfs://<CID>"
 
 The same backend derivation is used when an authorized key request succeeds, so
 the delivered per-track key decrypts bytes encrypted by the upload route.
+During MSE playback, the browser imports that temporary key once and prepares a
+bounded two-chunk look-ahead while appending clear chunks in order. This changes
+startup latency, not authorization: room guests still receive only the host's
+ephemeral WebRTC stream and never receive the key or source bytes.
 The exact `DAV2` binary layout and browser playback contract are documented in
 [audio-v2-container.md](../reference/audio-v2-container.md).
 
