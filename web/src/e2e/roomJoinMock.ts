@@ -171,6 +171,8 @@ export type RoomJoinE2eState = {
   offers: number;
   replaceTrackSwaps: number;
   captureTrackStops: number;
+  streamReadySignals: number;
+  remotePlaybackCues: number;
 };
 
 declare global {
@@ -181,7 +183,16 @@ declare global {
 
 export function getRoomJoinE2eState(): RoomJoinE2eState {
   if (typeof window === 'undefined') {
-    return { scenario: 'public', keyRequests: 0, deniedKeyRequests: 0, offers: 0, replaceTrackSwaps: 0, captureTrackStops: 0 };
+    return {
+      scenario: 'public',
+      keyRequests: 0,
+      deniedKeyRequests: 0,
+      offers: 0,
+      replaceTrackSwaps: 0,
+      captureTrackStops: 0,
+      streamReadySignals: 0,
+      remotePlaybackCues: 0
+    };
   }
   window.__DOTIFY_E2E_ROOM_JOIN__ ??= {
     scenario: getRoomJoinE2eScenario(),
@@ -189,11 +200,15 @@ export function getRoomJoinE2eState(): RoomJoinE2eState {
     deniedKeyRequests: 0,
     offers: 0,
     replaceTrackSwaps: 0,
-    captureTrackStops: 0
+    captureTrackStops: 0,
+    streamReadySignals: 0,
+    remotePlaybackCues: 0
   };
   window.__DOTIFY_E2E_ROOM_JOIN__.offers ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.replaceTrackSwaps ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.captureTrackStops ??= 0;
+  window.__DOTIFY_E2E_ROOM_JOIN__.streamReadySignals ??= 0;
+  window.__DOTIFY_E2E_ROOM_JOIN__.remotePlaybackCues ??= 0;
   return window.__DOTIFY_E2E_ROOM_JOIN__;
 }
 
@@ -212,6 +227,16 @@ export function recordRoomJoinE2eOffer() {
 export function recordRoomJoinE2eReplaceTrack() {
   if (typeof window === 'undefined') return;
   getRoomJoinE2eState().replaceTrackSwaps += 1;
+}
+
+export function recordRoomJoinE2eStreamReadySignal() {
+  if (typeof window === 'undefined') return;
+  getRoomJoinE2eState().streamReadySignals += 1;
+}
+
+export function recordRoomJoinE2eRemotePlaybackCue() {
+  if (typeof window === 'undefined') return;
+  getRoomJoinE2eState().remotePlaybackCues += 1;
 }
 
 // ── WebRTC test doubles ──────────────────────────────────────────────────────

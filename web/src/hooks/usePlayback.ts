@@ -23,6 +23,7 @@ type UsePlaybackDeps = {
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   audioSource: string | null;
   remoteReady: boolean;
+  remoteStreamVersion: number;
   localStreamReady: boolean;
   playerState: PlayerState | null;
   catalogTracks: CatalogTrack[];
@@ -66,6 +67,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     remoteAudioRef,
     audioSource,
     remoteReady,
+    remoteStreamVersion,
     localStreamReady,
     playerState,
     catalogTracks,
@@ -184,9 +186,10 @@ export function usePlayback(deps: UsePlaybackDeps) {
     }
   }, [mode, remoteReady]);
 
-  // Listener: as soon as the remote stream lands (remoteReady), attempt playback.
-  // Surfaces 'autoplay-blocked' so the UI shows "Tap play to start" instead of
-  // silent "In sync" when the browser blocks autoplay without user gesture.
+  // Listener: as soon as the remote stream lands or is refreshed, attempt
+  // playback. `remoteReady` can remain true across host track changes, so the
+  // monotonic stream version is what re-arms this after renegotiation or a
+  // sender-track replacement.
   useEffect(() => {
     if (mode !== 'listener' || !remoteReady) return;
     const audio = remoteAudioRef.current;
@@ -195,7 +198,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       .play()
       .then(() => setStatus('playing'))
       .catch(() => setStatus('autoplay-blocked'));
-  }, [mode, remoteReady, remoteAudioRef]);
+  }, [mode, remoteReady, remoteStreamVersion, remoteAudioRef]);
 
   // Host capture lifecycle feeds the "Hosting" ready state.
   useEffect(() => {
