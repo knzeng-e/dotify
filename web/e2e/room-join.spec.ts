@@ -16,6 +16,7 @@ type RoomJoinE2eState = {
   offers: number;
   replaceTrackSwaps: number;
   captureTrackStops: number;
+  webAudioCaptures: number;
   streamReadySignals: number;
   remotePlaybackCues: number;
 };
@@ -30,6 +31,7 @@ const PROTECTED_TITLE = 'E2E Protected Room Track';
 const PUBLIC_TITLE = 'E2E Public Room Track';
 
 type HostScenario = 'public' | 'protected-authorized' | 'protected-unauthorized';
+type HostCaptureMode = 'synthetic' | 'web-audio';
 
 async function readRoomJoinState(page: Page) {
   return page.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__);
@@ -37,8 +39,10 @@ async function readRoomJoinState(page: Page) {
 
 // Host: open a deterministic e2e track and broadcast it as a room. Returns the
 // server-assigned room code so a listener context can join via its share link.
-async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: string) {
-  await page.goto(`/?e2eRoom=${scenario}`);
+async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: string, options: { captureMode?: HostCaptureMode } = {}) {
+  const params = new URLSearchParams({ e2eRoom: scenario });
+  if (options.captureMode) params.set('e2eCapture', options.captureMode);
+  await page.goto(`/?${params.toString()}`);
   // Open the room straight from the create-room modal so an unauthorized
   // protected track does not raise an access-gate overlay over the player
   // before the room exists. Pick the track inside the modal, then open.
@@ -116,6 +120,13 @@ async function expectRemoteAudioPlaying(page: Page) {
     .toBe(true);
 }
 
+async function removeMediaElementCaptureSupport(context: BrowserContext) {
+  await context.addInitScript(() => {
+    Object.defineProperty(HTMLMediaElement.prototype, 'captureStream', { value: undefined, configurable: true });
+    Object.defineProperty(HTMLMediaElement.prototype, 'mozCaptureStream', { value: undefined, configurable: true });
+  });
+}
+
 test('public room: listener joins via link, hears full playback, no wallet, no content key', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();
@@ -156,6 +167,36 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await hostContext.close();
     await listenerContext.close();
     await secondListenerContext.close();
+  }
+});
+
+test('public room: mobile-style host without captureStream uses Web Audio capture', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const listenerContext = await browser.newContext();
+  try {
+    await removeMediaElementCaptureSupport(hostContext);
+    await removeMediaElementCaptureSupport(listenerContext);
+
+    const host = await hostContext.newPage();
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { captureMode: 'web-audio' });
+    await expect(host.getByTestId('session-error')).toHaveCount(0);
+
+    const hostState = await readRoomJoinState(host);
+    expect(hostState?.webAudioCaptures ?? 0).toBeGreaterThan(0);
+
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Mobile guest' });
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await expectRoomGuestAccessBoundary(listener);
+
+    await host.getByRole('button', { name: 'Play', exact: true }).click();
+    await expectRemoteAudioPlaying(listener);
+    await expect(listener.getByTestId('session-error')).toHaveCount(0);
+
+    const listenerState = await readRoomJoinState(listener);
+    expect(listenerState?.keyRequests ?? 0).toBe(0);
+  } finally {
+    await hostContext.close();
+    await listenerContext.close();
   }
 });
 

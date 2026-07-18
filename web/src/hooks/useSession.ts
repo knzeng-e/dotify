@@ -7,6 +7,8 @@ import {
   recordRoomJoinE2eRemotePlaybackCue,
   recordRoomJoinE2eReplaceTrack,
   recordRoomJoinE2eStreamReadySignal,
+  recordRoomJoinE2eWebAudioCapture,
+  shouldUseRoomJoinE2eSyntheticCapture,
   roomJoinE2eIceServers
 } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
@@ -54,6 +56,17 @@ const iceServers: RTCIceServer[] = isRoomJoinE2e
 // are swept server-side to avoid zombie rooms.
 const HOST_HEARTBEAT_INTERVAL_MS = 25_000;
 const SIGNAL_ACK_TIMEOUT_MS = 8_000;
+
+type AudioContextWindow = Window & { webkitAudioContext?: typeof AudioContext };
+
+type WebAudioElementCapture = {
+  context: AudioContext;
+  source: MediaElementAudioSourceNode;
+  destination: MediaStreamAudioDestinationNode;
+  stream: MediaStream;
+};
+
+const webAudioElementCaptures = new WeakMap<HTMLMediaElement, WebAudioElementCapture>();
 
 function shouldMaterializeRemoteSource(source: string) {
   if (!source) return false;
@@ -468,15 +481,39 @@ export function useSession(deps: UseSessionDeps) {
   function captureAudioStream(audio: HTMLMediaElement) {
     // E2E: stream a synthetic near-silent track instead of capturing the local
     // element, so the host always has a transmittable audio track in CI.
-    if (isRoomJoinE2e) return createRoomJoinE2eCaptureStream();
+    if (isRoomJoinE2e && shouldUseRoomJoinE2eSyntheticCapture()) return createRoomJoinE2eCaptureStream();
     const capturable = audio as CapturableMediaElement;
     const stream = capturable.captureStream?.() ?? capturable.mozCaptureStream?.();
-    if (!stream) throw new Error('captureStream() is not supported by this browser.');
+    if (stream) return stream;
+
+    const contextCtor = window.AudioContext ?? (window as AudioContextWindow).webkitAudioContext;
+    if (!contextCtor) {
+      throw new Error('This browser cannot host room audio streams. Join as a listener from this device, or host from a browser with WebRTC audio capture.');
+    }
+
+    const existing = webAudioElementCaptures.get(audio);
+    if (existing) {
+      void existing.context.resume().catch(() => undefined);
+      return existing.stream;
+    }
+
+    const context = new contextCtor();
+    const source = context.createMediaElementSource(audio);
+    const destination = context.createMediaStreamDestination();
+    source.connect(destination);
+    // Once a media element is routed through Web Audio, connect it back to the
+    // device output as well; otherwise the host may stream but stop hearing the
+    // local track on Safari/iOS-style fallback paths.
+    source.connect(context.destination);
+    const fallbackCapture = { context, source, destination, stream: destination.stream };
+    webAudioElementCaptures.set(audio, fallbackCapture);
+    void context.resume().catch(() => undefined);
+    if (isRoomJoinE2e) recordRoomJoinE2eWebAudioCapture();
     // Do NOT throw when there is no audio track yet: capture can legitimately
     // run before the element starts producing audio (e.g. at loadedmetadata,
     // before play). The caller checks for a live track and retries on play,
     // rather than failing the whole room with "no audio track".
-    return stream;
+    return fallbackCapture.stream;
   }
 
   function streamHasLiveAudio(stream: MediaStream | null): boolean {
@@ -507,6 +544,7 @@ export function useSession(deps: UseSessionDeps) {
 
   async function prepareLocalStream(currentAudioSource: string | null, currentTrackInfo: TrackInfo | null) {
     const audio = localAudioRef.current;
+    if (modeRef.current !== 'host') return;
     if (!audio || !currentAudioSource) return;
 
     try {
