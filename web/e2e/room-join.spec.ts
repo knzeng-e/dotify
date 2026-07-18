@@ -15,6 +15,7 @@ type RoomJoinE2eState = {
   deniedKeyRequests: number;
   offers: number;
   replaceTrackSwaps: number;
+  captureTrackStops: number;
 };
 
 declare global {
@@ -161,6 +162,7 @@ test('protected room with authorized host: host gets the key, listener streams f
     const stateBeforeSwitch = await readRoomJoinState(host);
     expect(stateBeforeSwitch?.offers ?? 0).toBeGreaterThanOrEqual(1);
     expect(stateBeforeSwitch?.replaceTrackSwaps ?? 0).toBe(0);
+    expect(stateBeforeSwitch?.captureTrackStops ?? 0).toBe(0);
 
     await host.getByRole('button', { name: 'Next track' }).click();
     await host.getByRole('button', { name: 'Play', exact: true }).click();
@@ -171,6 +173,20 @@ test('protected room with authorized host: host gets the key, listener streams f
     const stateAfterSwitch = await readRoomJoinState(host);
     expect(stateAfterSwitch?.replaceTrackSwaps ?? 0).toBeGreaterThan(stateBeforeSwitch?.replaceTrackSwaps ?? 0);
     expect(stateAfterSwitch?.offers ?? 0).toBe(stateBeforeSwitch?.offers ?? 0);
+    expect(stateAfterSwitch?.captureTrackStops ?? 0).toBe(0);
+
+    // Switch back as well: media-element capture streams can acquire the next
+    // source's track before replaceTrack completes. Dotify must not stop the
+    // previous stream's tracks, or this second transition becomes silent.
+    await host.getByRole('button', { name: 'Previous track' }).click();
+    await host.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await expect(listener.locator('.track-copy h2')).toHaveText(PROTECTED_TITLE, { timeout: 20_000 });
+
+    const stateAfterReturn = await readRoomJoinState(host);
+    expect(stateAfterReturn?.replaceTrackSwaps ?? 0).toBeGreaterThan(stateAfterSwitch?.replaceTrackSwaps ?? 0);
+    expect(stateAfterReturn?.offers ?? 0).toBe(stateBeforeSwitch?.offers ?? 0);
+    expect(stateAfterReturn?.captureTrackStops ?? 0).toBe(0);
 
     // The listener never requested a key, even for a protected track.
     const listenerState = await readRoomJoinState(listener);

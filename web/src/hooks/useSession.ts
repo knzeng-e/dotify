@@ -546,7 +546,6 @@ export function useSession(deps: UseSessionDeps) {
         updatedAt: Date.now()
       };
 
-      const previousStream = localStreamRef.current;
       localStreamRef.current = stream;
       capturedSourceRef.current = currentAudioSource;
       captureStartedPausedRef.current = audio.paused;
@@ -556,9 +555,13 @@ export function useSession(deps: UseSessionDeps) {
       socketRef.current?.emit('room:track', track);
 
       await publishLocalStreamToListeners(stream);
-      if (previousStream && previousStream !== stream) {
-        for (const previousTrack of previousStream.getTracks()) previousTrack.stop();
-      }
+      // Do not stop tracks from an older captureStream() result here. Media
+      // element capture streams follow source selection: when <audio>.src
+      // changes, the browser can add the new source track to every existing
+      // captured stream before this replacement finishes. Stopping the old
+      // stream would then stop the newly selected source and leave listeners
+      // with a live-looking but silent sender. Once replaceTrack resolves, the
+      // previous stream is unreferenced and the browser can retire it.
     } catch (streamError) {
       setError(streamError instanceof Error ? streamError.message : 'Audio capture unavailable in this browser');
       setSessionStatus('Capture unavailable');

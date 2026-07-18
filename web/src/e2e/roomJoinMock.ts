@@ -170,6 +170,7 @@ export type RoomJoinE2eState = {
   deniedKeyRequests: number;
   offers: number;
   replaceTrackSwaps: number;
+  captureTrackStops: number;
 };
 
 declare global {
@@ -180,11 +181,19 @@ declare global {
 
 export function getRoomJoinE2eState(): RoomJoinE2eState {
   if (typeof window === 'undefined') {
-    return { scenario: 'public', keyRequests: 0, deniedKeyRequests: 0, offers: 0, replaceTrackSwaps: 0 };
+    return { scenario: 'public', keyRequests: 0, deniedKeyRequests: 0, offers: 0, replaceTrackSwaps: 0, captureTrackStops: 0 };
   }
-  window.__DOTIFY_E2E_ROOM_JOIN__ ??= { scenario: getRoomJoinE2eScenario(), keyRequests: 0, deniedKeyRequests: 0, offers: 0, replaceTrackSwaps: 0 };
+  window.__DOTIFY_E2E_ROOM_JOIN__ ??= {
+    scenario: getRoomJoinE2eScenario(),
+    keyRequests: 0,
+    deniedKeyRequests: 0,
+    offers: 0,
+    replaceTrackSwaps: 0,
+    captureTrackStops: 0
+  };
   window.__DOTIFY_E2E_ROOM_JOIN__.offers ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.replaceTrackSwaps ??= 0;
+  window.__DOTIFY_E2E_ROOM_JOIN__.captureTrackStops ??= 0;
   return window.__DOTIFY_E2E_ROOM_JOIN__;
 }
 
@@ -231,5 +240,13 @@ export function createRoomJoinE2eCaptureStream(): MediaStream {
   const destination = e2eAudioContext.createMediaStreamDestination();
   oscillator.connect(gain).connect(destination);
   oscillator.start();
+  const [track] = destination.stream.getAudioTracks();
+  if (track) {
+    const stop = track.stop.bind(track);
+    track.stop = () => {
+      getRoomJoinE2eState().captureTrackStops += 1;
+      stop();
+    };
+  }
   return destination.stream;
 }
