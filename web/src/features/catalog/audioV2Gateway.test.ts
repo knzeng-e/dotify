@@ -95,4 +95,26 @@ describe('audioV2 gateway range fetching', () => {
     expect(result.bytes).toEqual(new Uint8Array([5]));
     expect(result.gatewayUrl).toBe(FALLBACK);
   });
+
+  it('stops gateway retries when the parent signal is aborted', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn<typeof fetch>(
+      (_url, init) =>
+        new Promise<Response>((_, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true });
+        })
+    );
+
+    const resultPromise = fetchAudioV2RangeThroughGateways(CID, 0, 8, {
+      fetchImpl: fetchMock,
+      getGatewayUrlsForCid: () => [PRIMARY, FALLBACK, THIRD],
+      hedge: false,
+      signal: controller.signal
+    });
+
+    controller.abort();
+
+    await expect(resultPromise).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });

@@ -64,6 +64,17 @@ function formatError(error: unknown): string {
   return String(error);
 }
 
+function createAbortError(): Error {
+  if (typeof DOMException !== 'undefined') return new DOMException('DAV2 gateway range request cancelled', 'AbortError');
+  const error = new Error('DAV2 gateway range request cancelled');
+  error.name = 'AbortError';
+  return error;
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw createAbortError();
+}
+
 function makeRangeAttempt(
   id: number,
   gatewayUrl: string,
@@ -130,6 +141,8 @@ export function getCachedAudioV2Gateway(cid: string): string | undefined {
 }
 
 export async function fetchAudioV2RangeThroughGateways(cid: string, start: number, end: number, options: RangeFetchOptions = {}): Promise<AudioV2RangeResult> {
+  throwIfAborted(options.signal);
+
   const phase = options.phase ?? 'chunk';
   const timeoutMs = options.timeoutMs ?? DEFAULT_RANGE_TIMEOUT_MS;
   const hedgeDelayMs = options.hedgeDelayMs ?? DEFAULT_HEDGE_DELAY_MS;
@@ -161,17 +174,23 @@ export async function fetchAudioV2RangeThroughGateways(cid: string, start: numbe
   launch();
 
   while (active.size > 0) {
+    throwIfAborted(options.signal);
+
     const canLaunchHedge = shouldHedge && active.size < MAX_PARALLEL_HEDGED_RANGES && nextGatewayIndex < ordered.length;
     const raceItems: Array<Promise<AttemptOutcome | { hedge: true }>> = Array.from(active.values()).map(attempt => attempt.promise);
+    let hedgeTimerId: ReturnType<typeof setTimeout> | undefined;
     if (canLaunchHedge) {
       raceItems.push(
         new Promise<{ hedge: true }>(resolve => {
-          setTimeout(() => resolve({ hedge: true }), hedgeDelayMs);
+          hedgeTimerId = setTimeout(() => resolve({ hedge: true }), hedgeDelayMs);
         })
       );
     }
 
     const outcome = await Promise.race(raceItems);
+    if (hedgeTimerId) clearTimeout(hedgeTimerId);
+    throwIfAborted(options.signal);
+
     if ('hedge' in outcome) {
       hedged = true;
       launch();
