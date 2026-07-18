@@ -18,6 +18,16 @@ Conceptual documents that help you understand why Dotify works the way it does.
 
 ---
 
+## Book
+
+A long-form companion text for learning from Dotify as it is built.
+
+| Document | Audience | Summary |
+|---|---|---|
+| [Dotify Book Charter](./book/README.md) | Developers, builders, artists | Working table of contents and evidence standard for the companion book |
+
+---
+
 ## Reference
 
 Precise technical descriptions for developers integrating with or contributing to Dotify.
@@ -39,3 +49,4 @@ Precise technical descriptions for developers integrating with or contributing t
 - [contracts/README.md](../contracts/README.md) — contract architecture and deployment
 - [web/README.md](../web/README.md) — frontend local setup and build commands
 - [CLAUDE.md](../../CLAUDE.md) — repository commands and development guidance
+- [Book charter](./book/README.md) — how the companion book will connect product, code, and culture
