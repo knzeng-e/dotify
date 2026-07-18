@@ -128,6 +128,7 @@ export function useSession(deps: UseSessionDeps) {
   // actually changes (track skip/next), never on every play/pause/seek, so a
   // live listener is not torn down and rebuilt for no reason.
   const capturedSourceRef = useRef<string | null>(null);
+  const captureStartedPausedRef = useRef(false);
   // Counts consecutive capture attempts that produced no live track for a
   // source, so a genuinely trackless asset (unsupported codec, silent file)
   // surfaces a failure instead of retrying forever on every play event.
@@ -202,6 +203,7 @@ export function useSession(deps: UseSessionDeps) {
     closeListenerPeer();
     localStreamRef.current = null;
     capturedSourceRef.current = null;
+    captureStartedPausedRef.current = false;
     captureAttemptRef.current = { source: null, count: 0 };
     setLocalStreamReady(false);
   }
@@ -501,7 +503,15 @@ export function useSession(deps: UseSessionDeps) {
       // This is what makes play/pause/seek cheap: they re-trigger this path but
       // must not rebuild every listener peer. Only a real source change
       // (skip/next/loop-into-new-track) falls through to re-capture.
-      if (shouldReuseCapture(capturedSourceRef.current, currentAudioSource, streamHasLiveAudio(localStreamRef.current))) {
+      if (
+        shouldReuseCapture(
+          capturedSourceRef.current,
+          currentAudioSource,
+          streamHasLiveAudio(localStreamRef.current),
+          captureStartedPausedRef.current,
+          audio.paused
+        )
+      ) {
         return;
       }
 
@@ -539,6 +549,7 @@ export function useSession(deps: UseSessionDeps) {
       const previousStream = localStreamRef.current;
       localStreamRef.current = stream;
       capturedSourceRef.current = currentAudioSource;
+      captureStartedPausedRef.current = audio.paused;
       setLocalStreamReady(true);
       setTrackInfo(track);
       setSessionStatus(roomIdRef.current ? 'Live' : 'Audio ready');

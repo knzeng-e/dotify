@@ -8,9 +8,17 @@
 // failure instead of retrying silently forever.
 
 // A capture is reusable when it was taken from the exact current source and its
-// track is still live. Only a real source change (skip/next) forces a rebuild.
-export function shouldReuseCapture(capturedSource: string | null, currentSource: string, hasLiveAudio: boolean): boolean {
-  return capturedSource === currentSource && hasLiveAudio;
+// track is still live. A capture taken while the media element was paused is
+// reused only while the element is still paused; once playback starts, recapture
+// so listeners are not left on a pre-playback live-but-silent stream.
+export function shouldReuseCapture(
+  capturedSource: string | null,
+  currentSource: string,
+  hasLiveAudio: boolean,
+  capturedWhilePaused = false,
+  currentPaused = false
+): boolean {
+  return capturedSource === currentSource && hasLiveAudio && (!capturedWhilePaused || currentPaused);
 }
 
 export type CaptureAttempt = { source: string | null; count: number };

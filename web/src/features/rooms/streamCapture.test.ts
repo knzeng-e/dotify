@@ -17,6 +17,14 @@ describe('shouldReuseCapture', () => {
   it('does not reuse before anything has been captured', () => {
     expect(shouldReuseCapture(null, 'blob:a', true)).toBe(false);
   });
+
+  it('does not reuse a paused capture once playback starts', () => {
+    expect(shouldReuseCapture('blob:a', 'blob:a', true, true, false)).toBe(false);
+  });
+
+  it('reuses a paused capture while playback is still paused', () => {
+    expect(shouldReuseCapture('blob:a', 'blob:a', true, true, true)).toBe(true);
+  });
 });
 
 describe('nextCaptureAttempt', () => {
