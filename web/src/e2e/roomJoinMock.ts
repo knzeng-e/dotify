@@ -171,6 +171,8 @@ export type RoomJoinE2eState = {
   offers: number;
   replaceTrackSwaps: number;
   captureTrackStops: number;
+  webAudioCaptures: number;
+  webAudioMonitorGain: number;
   streamReadySignals: number;
   remotePlaybackCues: number;
 };
@@ -190,6 +192,8 @@ export function getRoomJoinE2eState(): RoomJoinE2eState {
       offers: 0,
       replaceTrackSwaps: 0,
       captureTrackStops: 0,
+      webAudioCaptures: 0,
+      webAudioMonitorGain: 1,
       streamReadySignals: 0,
       remotePlaybackCues: 0
     };
@@ -201,12 +205,16 @@ export function getRoomJoinE2eState(): RoomJoinE2eState {
     offers: 0,
     replaceTrackSwaps: 0,
     captureTrackStops: 0,
+    webAudioCaptures: 0,
+    webAudioMonitorGain: 1,
     streamReadySignals: 0,
     remotePlaybackCues: 0
   };
   window.__DOTIFY_E2E_ROOM_JOIN__.offers ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.replaceTrackSwaps ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.captureTrackStops ??= 0;
+  window.__DOTIFY_E2E_ROOM_JOIN__.webAudioCaptures ??= 0;
+  window.__DOTIFY_E2E_ROOM_JOIN__.webAudioMonitorGain ??= 1;
   window.__DOTIFY_E2E_ROOM_JOIN__.streamReadySignals ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.remotePlaybackCues ??= 0;
   return window.__DOTIFY_E2E_ROOM_JOIN__;
@@ -229,6 +237,16 @@ export function recordRoomJoinE2eReplaceTrack() {
   getRoomJoinE2eState().replaceTrackSwaps += 1;
 }
 
+export function recordRoomJoinE2eWebAudioCapture() {
+  if (typeof window === 'undefined') return;
+  getRoomJoinE2eState().webAudioCaptures += 1;
+}
+
+export function recordRoomJoinE2eWebAudioMonitorGain(gain: number) {
+  if (typeof window === 'undefined') return;
+  getRoomJoinE2eState().webAudioMonitorGain = gain;
+}
+
 export function recordRoomJoinE2eStreamReadySignal() {
   if (typeof window === 'undefined') return;
   getRoomJoinE2eState().streamReadySignals += 1;
@@ -245,6 +263,11 @@ export function recordRoomJoinE2eRemotePlaybackCue() {
 // Chromium connect over host candidates with zero network dependency.
 export function roomJoinE2eIceServers(): RTCIceServer[] {
   return [];
+}
+
+export function shouldUseRoomJoinE2eSyntheticCapture() {
+  if (!isRoomJoinE2e || typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('e2eCapture') !== 'web-audio';
 }
 
 let e2eAudioContext: AudioContext | null = null;
