@@ -8,6 +8,7 @@ import {
   recordRoomJoinE2eReplaceTrack,
   recordRoomJoinE2eStreamReadySignal,
   recordRoomJoinE2eWebAudioCapture,
+  recordRoomJoinE2eWebAudioMonitorGain,
   shouldUseRoomJoinE2eSyntheticCapture,
   roomJoinE2eIceServers
 } from '../e2e/roomJoinMock';
@@ -63,10 +64,17 @@ type WebAudioElementCapture = {
   context: AudioContext;
   source: MediaElementAudioSourceNode;
   destination: MediaStreamAudioDestinationNode;
+  monitorGain: GainNode;
   stream: MediaStream;
 };
 
 const webAudioElementCaptures = new WeakMap<HTMLMediaElement, WebAudioElementCapture>();
+
+function syncWebAudioMonitorGain(audio: HTMLMediaElement, capture: WebAudioElementCapture) {
+  const gain = audio.muted ? 0 : audio.volume;
+  capture.monitorGain.gain.value = Number.isFinite(gain) ? gain : 1;
+  if (isRoomJoinE2e) recordRoomJoinE2eWebAudioMonitorGain(capture.monitorGain.gain.value);
+}
 
 function shouldMaterializeRemoteSource(source: string) {
   if (!source) return false;
@@ -493,6 +501,7 @@ export function useSession(deps: UseSessionDeps) {
 
     const existing = webAudioElementCaptures.get(audio);
     if (existing) {
+      syncWebAudioMonitorGain(audio, existing);
       void existing.context.resume().catch(() => undefined);
       return existing.stream;
     }
@@ -500,12 +509,15 @@ export function useSession(deps: UseSessionDeps) {
     const context = new contextCtor();
     const source = context.createMediaElementSource(audio);
     const destination = context.createMediaStreamDestination();
+    const monitorGain = context.createGain();
     source.connect(destination);
-    // Once a media element is routed through Web Audio, connect it back to the
-    // device output as well; otherwise the host may stream but stop hearing the
-    // local track on Safari/iOS-style fallback paths.
-    source.connect(context.destination);
-    const fallbackCapture = { context, source, destination, stream: destination.stream };
+    // Once a media element is routed through Web Audio, monitor it locally too.
+    // The WebRTC leg is connected before this gain, so host mute only affects
+    // the host's local output and never silences room listeners.
+    source.connect(monitorGain).connect(context.destination);
+    const fallbackCapture = { context, source, destination, monitorGain, stream: destination.stream };
+    syncWebAudioMonitorGain(audio, fallbackCapture);
+    audio.addEventListener('volumechange', () => syncWebAudioMonitorGain(audio, fallbackCapture));
     webAudioElementCaptures.set(audio, fallbackCapture);
     void context.resume().catch(() => undefined);
     if (isRoomJoinE2e) recordRoomJoinE2eWebAudioCapture();

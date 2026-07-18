@@ -17,6 +17,7 @@ type RoomJoinE2eState = {
   replaceTrackSwaps: number;
   captureTrackStops: number;
   webAudioCaptures: number;
+  webAudioMonitorGain: number;
   streamReadySignals: number;
   remotePlaybackCues: number;
 };
@@ -191,6 +192,13 @@ test('public room: mobile-style host without captureStream uses Web Audio captur
     await host.getByRole('button', { name: 'Play', exact: true }).click();
     await expectRemoteAudioPlaying(listener);
     await expect(listener.getByTestId('session-error')).toHaveCount(0);
+    await expect.poll(async () => (await readRoomJoinState(host))?.webAudioMonitorGain ?? 0).toBe(1);
+
+    await host.getByRole('button', { name: 'Mute' }).first().click();
+    await expect.poll(async () => (await readRoomJoinState(host))?.webAudioMonitorGain ?? 1).toBe(0);
+
+    await host.getByRole('button', { name: 'Unmute' }).first().click();
+    await expect.poll(async () => (await readRoomJoinState(host))?.webAudioMonitorGain ?? 0).toBe(1);
 
     const listenerState = await readRoomJoinState(listener);
     expect(listenerState?.keyRequests ?? 0).toBe(0);
