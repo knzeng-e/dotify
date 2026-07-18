@@ -857,6 +857,12 @@
         color: var(--slate-strong);
       }
 
+      .manifesto-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
       .resources {
         padding: clamp(4.5rem, 8vw, 6.5rem) 0;
         border-top: 1px solid var(--line);
@@ -1555,10 +1561,16 @@
               Dotify is not a Spotify clone. It is a cultural social hub where music can reopen a commons
               between people without dispossessing the artist.
             </p>
-            <a class="button button-dark" href="context/dotify-philosophical-north-star.md">
-              Read the north star
-              <span class="arrow" aria-hidden="true">&#8594;</span>
-            </a>
+            <div class="manifesto-actions" aria-label="Philosophy and book resources">
+              <a class="button button-dark" href="context/dotify-philosophical-north-star.md">
+                Read the north star
+                <span class="arrow" aria-hidden="true">&#8594;</span>
+              </a>
+              <a class="button button-secondary" href="book/README.md">
+                Open the book charter
+                <span class="arrow" aria-hidden="true">&#8594;</span>
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -1608,6 +1620,15 @@
               </a>
             </li>
             <li>
+              <a class="resource-link" href="book/README.md">
+                <span>
+                  <strong>Book charter</strong>
+                  <span>The companion book plan: technical lessons, cultural thesis, and evidence rules.</span>
+                </span>
+                <span class="arrow" aria-hidden="true">&#8594;</span>
+              </a>
+            </li>
+            <li>
               <a class="resource-link" href="Dotify_presentation.pptx">
                 <span>
                   <strong>Project presentation</strong>
@@ -1630,6 +1651,7 @@
         <nav class="footer-nav" aria-label="Project links">
           <a href="https://github.com/knzeng-e/dotify">GitHub repository</a>
           <a href="context/README.md">Project memory</a>
+          <a href="book/README.md">Book charter</a>
           <a href="backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md">Current roadmap</a>
         </nav>
       </div>
