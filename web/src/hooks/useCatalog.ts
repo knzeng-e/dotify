@@ -21,6 +21,7 @@ import { isPolicyManagedTrack } from '../features/access/accessPolicy';
 import { catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
+import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
 import {
@@ -59,13 +60,6 @@ import type {
 import type { ConnectedWallet } from './useWallet';
 
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
-
-class AudioV2ChunkAuthenticationError extends Error {
-  constructor(readonly cause: unknown) {
-    super('DAV2 chunk authentication failed');
-    this.name = 'AudioV2ChunkAuthenticationError';
-  }
-}
 
 type AudioV2StartupPhase =
   | 'key-authorized'
@@ -733,18 +727,21 @@ export function useCatalog(deps: UseCatalogDeps) {
         return pumpAudioV2ToMediaSource(mediaSource, sourceBuffer, context, parsed, key);
       })
       .catch(error => {
-        if (isAbortError(error) || !isAudioV2ContextActive(context)) {
-          retireAudioV2MseObjectUrl(context.audioRef, objectUrl);
-        } else if (!(error instanceof AudioV2ChunkAuthenticationError)) {
-          void recoverAudioV2MseFailure(context, key, objectUrl, error);
-        } else {
-          console.warn('DAV2 chunk authentication failed', error);
-          publishAudioV2StartupMetric(context, {
-            phase: 'error',
-            detail: errorMessage(error)
-          });
-          retireAudioV2MseObjectUrl(context.audioRef, objectUrl);
-        }
+        routeAudioV2MseFailure({
+          error,
+          contextActive: isAudioV2ContextActive(context),
+          retire: () => retireAudioV2MseObjectUrl(context.audioRef, objectUrl),
+          recover: recoverableError => {
+            void recoverAudioV2MseFailure(context, key, objectUrl, recoverableError);
+          },
+          reportAuthenticationFailure: authenticationError => {
+            console.warn('DAV2 chunk authentication failed', authenticationError);
+            publishAudioV2StartupMetric(context, {
+              phase: 'error',
+              detail: errorMessage(authenticationError)
+            });
+          }
+        });
         if (mediaSource.readyState === 'open') {
           try {
             mediaSource.endOfStream('decode');

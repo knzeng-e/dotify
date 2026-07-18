@@ -91,9 +91,11 @@ full-file decrypt path.
 
 DAV2 chunk reads require `206 Partial Content`. A known encrypted chunk must
 return exactly the requested byte count. When `Content-Range` is visible through
-CORS, its start, end, and returned length must also match; otherwise the client
-tries another configured gateway before decrypting. Header ranges may be shorter
-only when a small object ends before the requested upper bound.
+CORS, its start, end, and returned length must also match. A visible mismatch
+makes the client try another configured gateway before decrypting; an absent
+header is accepted after the byte-count check because some gateways do not expose
+it through CORS. Header ranges may be shorter only when a small object ends before
+the requested upper bound.
 
 The read-ahead window is deliberately small: the current chunk and two future
 chunks may be prepared, while only one clear chunk is appended at a time. Track
