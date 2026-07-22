@@ -75,10 +75,30 @@ function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw createAbortError();
 }
 
+function validateRangeBytes(response: Response, bytes: Uint8Array, gatewayUrl: string, start: number, end: number, phase: AudioV2GatewayPhase): void {
+  const expectedLength = end - start + 1;
+  if (bytes.length === 0 || bytes.length > expectedLength || (phase !== 'header' && bytes.length !== expectedLength)) {
+    throw new Error(`Gateway ${gatewayUrl} returned ${bytes.length} bytes for range ${start}-${end}`);
+  }
+
+  const contentRange = response.headers.get('content-range');
+  if (!contentRange) return;
+  const match = /^bytes (\d+)-(\d+)\/(?:\d+|\*)$/i.exec(contentRange.trim());
+  if (!match) throw new Error(`Gateway ${gatewayUrl} returned an invalid Content-Range header`);
+
+  const responseStart = Number(match[1]);
+  const responseEnd = Number(match[2]);
+  if (responseStart !== start || responseEnd > end || responseEnd - responseStart + 1 !== bytes.length) {
+    throw new Error(`Gateway ${gatewayUrl} returned mismatched Content-Range ${contentRange}`);
+  }
+}
+
 function makeRangeAttempt(
   id: number,
   gatewayUrl: string,
-  rangeHeader: string,
+  start: number,
+  end: number,
+  phase: AudioV2GatewayPhase,
   timeoutMs: number,
   fetchImpl: typeof fetch,
   cachedGateway: string | undefined,
@@ -87,6 +107,7 @@ function makeRangeAttempt(
   const controller = new AbortController();
   const startedAt = nowMs();
   const abortFromParent = () => controller.abort();
+  const rangeHeader = `bytes=${start}-${end}`;
 
   if (signal?.aborted) {
     controller.abort();
@@ -104,10 +125,12 @@ function makeRangeAttempt(
       if (response.status !== 206) {
         throw new Error(`Gateway ${gatewayUrl} did not serve a range (${response.status})`);
       }
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      validateRangeBytes(response, bytes, gatewayUrl, start, end, phase);
       return {
         ok: true as const,
         id,
-        bytes: new Uint8Array(await response.arrayBuffer()),
+        bytes,
         gatewayUrl,
         elapsedMs: Number((nowMs() - startedAt).toFixed(1)),
         fromCache: gatewayUrl === cachedGateway
@@ -156,7 +179,6 @@ export async function fetchAudioV2RangeThroughGateways(cid: string, start: numbe
     throw new Error(`Invalid DAV2 range ${start}-${end}`);
   }
 
-  const rangeHeader = `bytes=${start}-${end}`;
   const active = new Map<number, Attempt>();
   let nextGatewayIndex = 0;
   let nextAttemptId = 0;
@@ -166,7 +188,7 @@ export async function fetchAudioV2RangeThroughGateways(cid: string, start: numbe
   const launch = () => {
     const gatewayUrl = ordered[nextGatewayIndex];
     nextGatewayIndex += 1;
-    const attempt = makeRangeAttempt(nextAttemptId, gatewayUrl, rangeHeader, timeoutMs, fetchImpl, cachedGateway, options.signal);
+    const attempt = makeRangeAttempt(nextAttemptId, gatewayUrl, start, end, phase, timeoutMs, fetchImpl, cachedGateway, options.signal);
     nextAttemptId += 1;
     active.set(attempt.id, attempt);
   };

@@ -133,10 +133,15 @@ export function audioV2ChunkBodyOffset(header: AudioV2Header, index: number): nu
   return offset;
 }
 
-export async function decryptAudioV2Chunk(header: AudioV2Header, index: number, encryptedChunk: Uint8Array, key: Uint8Array): Promise<Uint8Array> {
+export async function importAudioV2ContentKey(key: Uint8Array): Promise<CryptoKey> {
+  if (key.length !== 32) throw new Error('DAV2 decryption requires a 32-byte key');
+  return crypto.subtle.importKey('raw', key, 'AES-GCM', false, ['decrypt']);
+}
+
+export async function decryptAudioV2Chunk(header: AudioV2Header, index: number, encryptedChunk: Uint8Array, key: Uint8Array | CryptoKey): Promise<Uint8Array> {
   const chunk = header.chunks[index];
   if (!chunk || encryptedChunk.length !== chunk.encryptedLength) throw new Error('Invalid DAV2 encrypted chunk');
-  const cryptoKey = await crypto.subtle.importKey('raw', key, 'AES-GCM', false, ['decrypt']);
+  const cryptoKey = key instanceof Uint8Array ? await importAudioV2ContentKey(key) : key;
   return new Uint8Array(
     await crypto.subtle.decrypt(
       {
@@ -152,11 +157,12 @@ export async function decryptAudioV2Chunk(header: AudioV2Header, index: number, 
 
 export async function decryptAudioV2Container(container: Uint8Array, key: Uint8Array): Promise<{ bytes: Uint8Array; mediaMime: string }> {
   const parsed = parseAudioV2Container(container);
+  const cryptoKey = await importAudioV2ContentKey(key);
   const clearChunks: Uint8Array[] = [];
   let encryptedOffset = parsed.bodyOffset;
   for (const chunk of parsed.header.chunks) {
     const encrypted = container.slice(encryptedOffset, encryptedOffset + chunk.encryptedLength);
-    clearChunks.push(await decryptAudioV2Chunk(parsed.header, chunk.index, encrypted, key));
+    clearChunks.push(await decryptAudioV2Chunk(parsed.header, chunk.index, encrypted, cryptoKey));
     encryptedOffset += chunk.encryptedLength;
   }
 

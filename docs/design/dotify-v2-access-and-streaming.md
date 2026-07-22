@@ -1,6 +1,6 @@
 # Dotify v2 - access, protected streaming, and Polkadot App alignment
 
-Status: living design and delivery plan. Last reviewed: 2026-07-10.
+Status: living design and delivery plan. Last reviewed: 2026-07-18.
 
 This document is the source of truth for the Dotify v2 access and streaming
 pivot. It should answer four questions:
@@ -32,9 +32,11 @@ Dotify v2 changes the production spine in three ways:
 The current implementation now includes the first `dotify.audio.v2` vertical
 slice: backend publish writes a chunked encrypted `DAV2` object, new registry
 refs use `dotify:enc:v2:ipfs://<CID>`, and the web player recognizes v2 refs
-with a Media Source Extensions path plus full-file fallback. Host playback now
-emits startup timing events; the remaining P3 work is browser/device validation
-against real gateways and media files.
+with a Media Source Extensions path plus authenticated full-file fallback. The
+MSE path uses bounded two-chunk read-ahead, ordered appends, one imported AES key
+per playback, and strict chunk-range response validation. Host playback emits
+startup timing events; the remaining P3 work is worker offload, field telemetry,
+and browser/device validation against real gateways and media files.
 
 ## 2. Current Delivery State
 
@@ -45,7 +47,7 @@ against real gateways and media files.
 | Free-track key delivery | Delivered | The backend verifies public access on-chain before releasing a key with no wallet or signature. |
 | Artist runtime bootstrap | Delivered | Polkadot Hub EVM registration is staged: `createRuntime()` creates a minimal shell, then `installRuntimeStep()` installs one pallet per transaction before final ownership transfer and directory registration. |
 | Room access doctrine | Delivered and preserved | Only the host needs access; listeners receive only the WebRTC stream. |
-| Chunked encrypted streaming, P3 | First vertical slice delivered | New backend uploads publish DAV2 refs; web playback supports v2 refs with v1 fallback. Startup metrics exist; browser/device validation remains. |
+| Chunked encrypted streaming, P3 | Startup pipeline delivered; field validation open | New backend uploads publish DAV2 refs; web playback supports v2 refs, bounded read-ahead, strict ordered append, and v1/full-file fallback. Startup metrics exist; browser/device validation remains. |
 | Real Proof of Personhood integration, P4 | Open | Current `human-free` remains structurally ready but not backed by the live platform source. |
 | Polkadot App / Triangle integration, P5 | Open | DotNS/Bulletin alignment exists conceptually; Product SDK, Host API signing, and Statement Store migration are future work. |
 
@@ -253,9 +255,26 @@ The target browser path:
 
 1. Fetch and parse the header.
 2. Fetch encrypted chunks using HTTP Range requests.
-3. Decrypt each chunk with Web Crypto.
-4. Append decrypted bytes to a Media Source Extensions `SourceBuffer`.
-5. Start playback after the first appendable segment.
+3. Import the temporary content key once, then decrypt each chunk with Web
+   Crypto.
+4. Prepare the current chunk plus two future chunks concurrently while keeping
+   at most three prepared chunks in memory.
+5. Append decrypted bytes to a Media Source Extensions `SourceBuffer` in strict
+   chunk order.
+6. Start playback after the first appendable segment.
+
+The range layer requires `206 Partial Content`. Known encrypted chunk ranges
+must return exactly the requested bytes, and an exposed `Content-Range` header
+must agree with the request. Header reads may be shorter only when the response
+reaches the end of a small object.
+
+MSE treats successive appends as one logical byte stream and retains incomplete
+parser input across appends. That makes DAV2's encryption boundaries compatible
+with incremental parsing, but it does not make every uploaded file a valid MSE
+stream. The bytes still have to conform to the registered format for their MIME
+type. `MediaSource.isTypeSupported()` is a necessary capability check, not proof
+that a particular file is correctly packaged; recoverable append failures keep
+the authenticated full-file path available.
 
 Fallback:
 
@@ -313,7 +332,41 @@ Browser validation remains required before marking P3 release-ready:
 - host switches v1 -> v2 and v2 -> v1 tracks;
 - listener joins before and after first audio;
 - mobile autoplay fallback still shows the explicit "start audio" action;
-- `replaceTrack()` behavior remains stable when the source changes.
+- source switches preserve listener audio through renegotiation, while
+  same-source sender replacement remains stable.
+
+### Current streaming coherence review (2026-07-18)
+
+The playback and room layers remain intentionally separate:
+
+- DAV2 Range/decrypt/MSE runs only on the authorized host or individual
+  listener. It never moves source bytes or content keys into the guest room
+  path.
+- A persistent host `<audio>` element feeds one captured `MediaStream`; room
+  guests receive that stream over WebRTC and attach it to an autoplay-aware
+  listener element.
+- Native media-element capture is preferred. The Web Audio fallback keeps a
+  stable `MediaStreamAudioDestinationNode` for browsers without
+  `captureStream()`, resumes its context after user/media activity, and keeps
+  host-local mute separate from the outbound room stream.
+- Same-source play, pause, and seek reuse the live sender. Source changes
+  deliberately renegotiate each listener after browser testing showed that
+  replacing tracks from a changing media-element capture can produce a
+  live-looking but silent sender. This costs more signaling than the ideal
+  `replaceTrack()` path, but preserves audible shared presence.
+- Listener media uses `autoplay` and `playsInline`, while blocked playback is
+  surfaced as an explicit user action. New tracks are not assumed to resume
+  merely because a `MediaStream` gained a track.
+
+This is coherent for the current small-room production spine, not the final
+scale architecture. Host-to-listener mesh fan-out, optional rather than
+mandatory TURN, missing ICE restart/quality telemetry, and per-source
+renegotiation belong to room reliability issue #89. They should be improved
+without moving key delivery to guests, making wallets a room-entry condition,
+or coupling DAV2 startup to a future SFU. The next optimization decision remains
+evidence-led: validate first sound and room continuity on real devices, then use
+the measurements to choose backend read-through, media normalization, TURN, or
+SFU work.
 
 ## 8. Polkadot App Stack Alignment
 
@@ -349,7 +402,7 @@ P5 should start with a capability matrix, not a rewrite.
 | --- | --- | --- | --- |
 | P1 | Delivered | Access model v2 in contracts, backend, and UI; remove preview playback. | Free tracks play with no wallet; unauthorized protected tracks show gates with no audio; artists can change future key-release policy without changing app flow. |
 | P2 | Delivered | Session auth for key service. | One signature opens a session; later protected listens do not prompt again; every key request still checks chain access. |
-| P3 | First vertical slice delivered | `dotify.audio.v2` chunked container, publish path, playback path, v1 fallback, startup metrics. | New protected uploads produce v2 refs; v1 assets still play; browser/device validation must confirm time-to-first-sound. |
+| P3 | Startup pipeline delivered; field validation open | `dotify.audio.v2` chunked container, publish path, bounded read-ahead playback, v1/full-file fallback, startup metrics. | New protected uploads produce v2 refs; v1 assets still play; browser/device validation must confirm time-to-first-sound and supported media packaging. |
 | P4 | Open | Real Proof of Personhood integration for `human-free`. | No admin mock in production; denied PoP checks fail closed; UI explains the exact missing proof. |
 | P5 | Open | Triangle/Host API/Product SDK alignment and Statement Store design. | Dotify runs as a Host-compatible Product without assuming direct wallet/RPC access; room social state has a migration design. |
 
@@ -373,6 +426,9 @@ P5 should start with a capability matrix, not a rewrite.
 - resolver chooses v2 playback for `dotify:enc:v2:ipfs://...` and v1 playback
   for `dotify:enc:ipfs://...`;
 - MSE path can append the first supported decrypted segment and start playback;
+- bounded preparation overlaps range/decrypt work while preserving append order
+  and aborting on track changes;
+- truncated or mismatched chunk ranges retry another gateway before decryption;
 - full-file fallback works when MSE or Range support is unavailable;
 - room e2e measures that host source loading no longer creates multi-second
   silence on ordinary protected tracks.

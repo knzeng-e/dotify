@@ -12,6 +12,7 @@ import {
   canStreamAudioV2WithMse,
   decryptAudioV2Chunk,
   decryptAudioV2Container,
+  importAudioV2ContentKey,
   initialAudioV2HeaderRangeEnd,
   parseAudioV2HeaderPrefix,
   type ParsedAudioV2
@@ -19,6 +20,8 @@ import {
 import { isPolicyManagedTrack } from '../features/access/accessPolicy';
 import { catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
+import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
+import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
 import {
@@ -57,13 +60,6 @@ import type {
 import type { ConnectedWallet } from './useWallet';
 
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
-
-class AudioV2ChunkAuthenticationError extends Error {
-  constructor(readonly cause: unknown) {
-    super('DAV2 chunk authentication failed');
-    this.name = 'AudioV2ChunkAuthenticationError';
-  }
-}
 
 type AudioV2StartupPhase =
   | 'key-authorized'
@@ -494,9 +490,15 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
   }
 
-  async function fetchAudioV2Range(context: AudioV2StartupContext, start: number, end: number, phase: AudioV2GatewayPhase): Promise<AudioV2RangeResult> {
-    throwIfAborted(context.signal);
-    return fetchAudioV2RangeThroughGateways(context.cid, start, end, { phase, signal: context.signal });
+  async function fetchAudioV2Range(
+    context: AudioV2StartupContext,
+    start: number,
+    end: number,
+    phase: AudioV2GatewayPhase,
+    signal: AbortSignal = context.signal
+  ): Promise<AudioV2RangeResult> {
+    throwIfAborted(signal);
+    return fetchAudioV2RangeThroughGateways(context.cid, start, end, { phase, signal });
   }
 
   async function fetchAudioV2Header(context: AudioV2StartupContext): Promise<ParsedAudioV2> {
@@ -587,7 +589,12 @@ export function useCatalog(deps: UseCatalogDeps) {
       sourceBuffer.addEventListener('error', handleError, { once: true });
       sourceBuffer.addEventListener('abort', handleError, { once: true });
       signal?.addEventListener('abort', handleAbort, { once: true });
-      sourceBuffer.appendBuffer(bytes);
+      try {
+        sourceBuffer.appendBuffer(bytes);
+      } catch {
+        cleanup();
+        reject(new Error('Unable to append DAV2 audio chunk'));
+      }
     });
   }
 
@@ -598,53 +605,66 @@ export function useCatalog(deps: UseCatalogDeps) {
     parsed: ParsedAudioV2,
     key: Uint8Array
   ): Promise<void> {
-    for (const chunk of parsed.header.chunks) {
-      throwIfAborted(context.signal);
-      const chunkStart = parsed.bodyOffset + audioV2ChunkBodyOffset(parsed.header, chunk.index);
-      const chunkEnd = chunkStart + chunk.encryptedLength - 1;
-      const range = await fetchAudioV2Range(context, chunkStart, chunkEnd, chunk.index === 0 ? 'first-chunk' : 'chunk');
-      if (chunk.index === 0) {
-        publishAudioV2StartupMetric(context, {
-          phase: 'first-range-ready',
-          gatewayUrl: range.gatewayUrl,
-          rangeStart: chunkStart,
-          rangeEnd: chunkEnd,
-          chunkIndex: chunk.index,
-          hedged: range.hedged,
-          fromCache: range.fromCache
-        });
+    const cryptoKeyPromise = importAudioV2ContentKey(key).catch(error => {
+      throw new AudioV2ChunkAuthenticationError(error);
+    });
+
+    await pumpAudioV2ReadAhead({
+      chunks: parsed.header.chunks,
+      signal: context.signal,
+      prepareChunk: async (chunk, signal) => {
+        throwIfAborted(signal);
+        const chunkStart = parsed.bodyOffset + audioV2ChunkBodyOffset(parsed.header, chunk.index);
+        const chunkEnd = chunkStart + chunk.encryptedLength - 1;
+        const range = await fetchAudioV2Range(context, chunkStart, chunkEnd, chunk.index === 0 ? 'first-chunk' : 'chunk', signal);
+        if (chunk.index === 0) {
+          publishAudioV2StartupMetric(context, {
+            phase: 'first-range-ready',
+            gatewayUrl: range.gatewayUrl,
+            rangeStart: chunkStart,
+            rangeEnd: chunkEnd,
+            chunkIndex: chunk.index,
+            hedged: range.hedged,
+            fromCache: range.fromCache
+          });
+        }
+
+        const cryptoKey = await cryptoKeyPromise;
+        let clear: Uint8Array;
+        try {
+          clear = await decryptAudioV2Chunk(parsed.header, chunk.index, range.bytes, cryptoKey);
+        } catch (error) {
+          throw new AudioV2ChunkAuthenticationError(error);
+        }
+        throwIfAborted(signal);
+        if (chunk.index === 0) {
+          publishAudioV2StartupMetric(context, {
+            phase: 'first-chunk-decrypted',
+            gatewayUrl: range.gatewayUrl,
+            rangeStart: chunkStart,
+            rangeEnd: chunkEnd,
+            chunkIndex: chunk.index,
+            hedged: range.hedged,
+            fromCache: range.fromCache
+          });
+        }
+        return { clear, range, chunkStart, chunkEnd };
+      },
+      appendChunk: async (chunk, prepared, signal) => {
+        await appendSourceBuffer(sourceBuffer, prepared.clear, signal);
+        if (chunk.index === 0) {
+          publishAudioV2StartupMetric(context, {
+            phase: 'first-chunk-appended',
+            gatewayUrl: prepared.range.gatewayUrl,
+            rangeStart: prepared.chunkStart,
+            rangeEnd: prepared.chunkEnd,
+            chunkIndex: chunk.index,
+            hedged: prepared.range.hedged,
+            fromCache: prepared.range.fromCache
+          });
+        }
       }
-      let clear: Uint8Array;
-      try {
-        clear = await decryptAudioV2Chunk(parsed.header, chunk.index, range.bytes, key);
-      } catch (error) {
-        throw new AudioV2ChunkAuthenticationError(error);
-      }
-      throwIfAborted(context.signal);
-      if (chunk.index === 0) {
-        publishAudioV2StartupMetric(context, {
-          phase: 'first-chunk-decrypted',
-          gatewayUrl: range.gatewayUrl,
-          rangeStart: chunkStart,
-          rangeEnd: chunkEnd,
-          chunkIndex: chunk.index,
-          hedged: range.hedged,
-          fromCache: range.fromCache
-        });
-      }
-      await appendSourceBuffer(sourceBuffer, clear, context.signal);
-      if (chunk.index === 0) {
-        publishAudioV2StartupMetric(context, {
-          phase: 'first-chunk-appended',
-          gatewayUrl: range.gatewayUrl,
-          rangeStart: chunkStart,
-          rangeEnd: chunkEnd,
-          chunkIndex: chunk.index,
-          hedged: range.hedged,
-          fromCache: range.fromCache
-        });
-      }
-    }
+    });
     if (mediaSource.readyState === 'open') mediaSource.endOfStream();
   }
 
@@ -707,18 +727,21 @@ export function useCatalog(deps: UseCatalogDeps) {
         return pumpAudioV2ToMediaSource(mediaSource, sourceBuffer, context, parsed, key);
       })
       .catch(error => {
-        if (isAbortError(error) || !isAudioV2ContextActive(context)) {
-          retireAudioV2MseObjectUrl(context.audioRef, objectUrl);
-        } else if (!(error instanceof AudioV2ChunkAuthenticationError)) {
-          void recoverAudioV2MseFailure(context, key, objectUrl, error);
-        } else {
-          console.warn('DAV2 chunk authentication failed', error);
-          publishAudioV2StartupMetric(context, {
-            phase: 'error',
-            detail: errorMessage(error)
-          });
-          retireAudioV2MseObjectUrl(context.audioRef, objectUrl);
-        }
+        routeAudioV2MseFailure({
+          error,
+          contextActive: isAudioV2ContextActive(context),
+          retire: () => retireAudioV2MseObjectUrl(context.audioRef, objectUrl),
+          recover: recoverableError => {
+            void recoverAudioV2MseFailure(context, key, objectUrl, recoverableError);
+          },
+          reportAuthenticationFailure: authenticationError => {
+            console.warn('DAV2 chunk authentication failed', authenticationError);
+            publishAudioV2StartupMetric(context, {
+              phase: 'error',
+              detail: errorMessage(authenticationError)
+            });
+          }
+        });
         if (mediaSource.readyState === 'open') {
           try {
             mediaSource.endOfStream('decode');
