@@ -2,10 +2,10 @@ import { deployments } from './deployments';
 
 export const registryOwnerGuardAttestation = {
   chainId: 420420417,
-  factory: '0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d',
-  directory: '0xda2761fea6f0871ed44ec719860fddb51b115be8',
-  auditedBlock: 10_904_607,
-  auditedBlockHash: '0x7eacbb1e0ee963a8e732239990403c4836e56d64af8151b830eb341ba3c505af',
+  factory: '0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72',
+  directory: '0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108',
+  auditedBlock: 11268829,
+  auditedBlockHash: '0xb48d6fd5ddb400a85cc4fa7700aed8d5b80d2f17c59dc0b4a69f326d9ee1cf25',
   factoryDirectoryPairingVerified: true,
   existingRuntimeCoverage: { protected: 0, total: 0 },
   existingTrackAudit: { ownerMatched: 0, total: 0 },
