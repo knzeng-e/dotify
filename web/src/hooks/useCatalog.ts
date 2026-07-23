@@ -18,12 +18,13 @@ import {
   type ParsedAudioV2
 } from '../shared/utils/audioV2';
 import { isPolicyManagedTrack } from '../features/access/accessPolicy';
-import { catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
+import { catalogApiStatus, catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
+import { fetchCatalog, isCatalogApiConfigured, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
 import {
   E2E_CLASSIC_AUDIO_URL,
   E2E_CLASSIC_HASH,
@@ -207,6 +208,33 @@ function createTrackInfoFromCatalog(track: CatalogTrack): TrackInfo {
   });
 }
 
+function catalogApiReleaseToTrack(release: CatalogApiRelease): CatalogTrack {
+  return {
+    id: release.id,
+    hash: release.hash,
+    title: release.title,
+    artist: release.artist,
+    artistAddress: release.artistAddress,
+    audioRef: release.audioRef,
+    imageRef: resolveVisualAssetRef(release.imageRef, release.title),
+    priceDot: release.priceDot,
+    localUrl: resolveAudioAssetRef(release.audioRef),
+    description: release.description,
+    bulletinRef: release.bulletinRef,
+    metadataRef: release.metadataRef,
+    royaltyBps: release.royaltyBps,
+    durationLabel: 'ready',
+    accessMode: release.accessMode,
+    active: release.active,
+    source: 'artist',
+    royaltySplits: release.royaltySplits,
+    personhoodLevel: release.personhoodLevel,
+    zone: 'Registry',
+    encrypted: release.encrypted,
+    registeredAtBlock: release.registeredAtBlock
+  };
+}
+
 export type UseCatalogDeps = {
   ethRpcUrl: string;
   listenerEvmAddress: `0x${string}` | null;
@@ -244,9 +272,16 @@ export function useCatalog(deps: UseCatalogDeps) {
     setDescription
   } = deps;
 
-  const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>([]);
-  const [allCatalogTracks, setAllCatalogTracks] = useState<CatalogTrack[]>([]);
-  const [catalogStatus, setCatalogStatus] = useState('Loading registry catalog');
+  const usesCatalogApi = isCatalogApiConfigured() && !isClassicUnlockE2e && !isArtistPublishE2e && !isRoomJoinE2e;
+  const [initialCatalog] = useState<CatalogTrack[]>(() => {
+    const cached = usesCatalogApi ? readCachedCatalog() : null;
+    return cached?.items.map(catalogApiReleaseToTrack) ?? [];
+  });
+  const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>(() => initialCatalog.filter(track => track.active !== false));
+  const [allCatalogTracks, setAllCatalogTracks] = useState<CatalogTrack[]>(initialCatalog);
+  const [catalogStatus, setCatalogStatus] = useState(
+    initialCatalog.length > 0 ? 'Showing saved catalog data while new releases are checked' : 'Loading registry catalog'
+  );
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
   const [catalogPaidAccessByTrackId, setCatalogPaidAccessByTrackId] = useState<Record<string, boolean>>({});
@@ -1125,6 +1160,19 @@ export function useCatalog(deps: UseCatalogDeps) {
     return tracks.flatMap(track => (track ? [track] : []));
   }
 
+  function commitCatalog(allTracks: CatalogTrack[], preferredTrackHash: `0x${string}` | undefined, status: string): CatalogTrack[] {
+    const nextCatalog = allTracks.filter(track => track.active !== false);
+    setAllCatalogTracks(allTracks);
+    setCatalogTracks(nextCatalog);
+    setSelectedTrackId(previous => {
+      const preferredTrack = preferredTrackHash ? nextCatalog.find(track => track.hash.toLowerCase() === preferredTrackHash.toLowerCase()) : null;
+      if (preferredTrack) return preferredTrack.id;
+      return nextCatalog.some(track => track.id === previous) ? previous : (nextCatalog[0]?.id ?? '');
+    });
+    setCatalogStatus(status);
+    return nextCatalog;
+  }
+
   async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
     if (isClassicUnlockE2e || isArtistPublishE2e || isRoomJoinE2e) {
       const nextCatalog = getDeterministicE2eCatalogTracks();
@@ -1152,6 +1200,20 @@ export function useCatalog(deps: UseCatalogDeps) {
         nextCatalog.length > 0 ? `Loaded ${nextCatalog.length} deterministic e2e track${nextCatalog.length === 1 ? '' : 's'}` : 'No e2e tracks registered yet'
       );
       return nextCatalog;
+    }
+
+    if (usesCatalogApi) {
+      if (allCatalogTracks.length === 0) setCatalogStatus('Loading registry catalog');
+      try {
+        const response = await fetchCatalog({ includeInactive: true, limit: 100 });
+        const apiTracks = response.items.map(catalogApiReleaseToTrack);
+        const allTracks = response.meta.cacheAvailable || allCatalogTracks.length === 0 ? apiTracks : allCatalogTracks;
+        return commitCatalog(allTracks, preferredTrackHash, catalogApiStatus(response.meta, allTracks.filter(track => track.active !== false).length));
+      } catch (catalogError) {
+        console.warn('Failed to load catalog API', catalogError);
+        setCatalogStatus(catalogLoadFailureStatus(catalogError));
+        return catalogTracks;
+      }
     }
 
     if (!directoryAddress) {
@@ -1211,19 +1273,13 @@ export function useCatalog(deps: UseCatalogDeps) {
         .map(({ registeredAtBlock: _registeredAtBlock, ...track }): CatalogTrack => track);
       const nextCatalog = allTracks.filter(track => track.active !== false);
 
-      setAllCatalogTracks(allTracks);
-      setCatalogTracks(nextCatalog);
-      setSelectedTrackId(previous => {
-        const preferredTrack = preferredTrackHash ? nextCatalog.find(track => track.hash.toLowerCase() === preferredTrackHash.toLowerCase()) : null;
-        if (preferredTrack) return preferredTrack.id;
-        return nextCatalog.some(track => track.id === previous) ? previous : (nextCatalog[0]?.id ?? '');
-      });
-      setCatalogStatus(
+      return commitCatalog(
+        allTracks,
+        preferredTrackHash,
         nextCatalog.length > 0
           ? `Loaded ${nextCatalog.length} registered track${nextCatalog.length > 1 ? 's' : ''}`
           : 'No tracks registered on this directory yet'
       );
-      return nextCatalog;
     } catch (catalogError) {
       console.warn('Failed to load registry catalog', catalogError);
       setCatalogTracks([]);
@@ -1253,6 +1309,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setCatalogAccessByTrackId,
     catalogPaidAccessByTrackId,
     setCatalogPaidAccessByTrackId,
+    usesCatalogApi,
     audioSource,
     setAudioSource: setResolvedAudioSource,
     trackInfo,

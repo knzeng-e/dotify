@@ -641,6 +641,9 @@ npm test
 - Proof of Personhood is not connected to live Individuality data.
 - Frontend e2e coverage exists for Classic unlock, artist publish, and room
   join/host-access behavior.
+- Production catalog browsing now uses the backend read model when
+  `VITE_DOTIFY_API_URL` is configured. Its durable baseline is an atomic
+  single-writer JSON snapshot; horizontal API replicas require shared storage.
 - `App.tsx` is now a thin shell, but `useCatalog`, `useSession`,
   `useArtistConsole`, `PlayerView`, and the historical stylesheet remain large.
 - Frontend contract bindings are generated from Hardhat artifacts; keep the
@@ -663,7 +666,9 @@ Priority improvements:
    Statement Store presence, and PolkaVM/CDM contract portability.
 6. Move the large catalog, session, artist, and player workflows behind domain
    ports and application use cases.
-7. Add a cacheable, paginated event-indexed catalog API.
+7. Validate the cacheable catalog API's warm/cold p75 budgets under public seed
+   traffic, then move its single-writer snapshot to shared storage before
+   horizontal scaling.
 8. Harden production wallet support and passkey recovery across public flows.
 9. Add backend-backed WebAuthn registration, credential storage, and
    discoverable passkey recovery.

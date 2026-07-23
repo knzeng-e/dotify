@@ -13,6 +13,9 @@ import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { keyRoutes } from './routes/keys.js';
 import { uploadRoutes } from './routes/uploads.js';
+import { createCatalogRoutes } from './routes/catalog.js';
+import { catalogReadModel as defaultCatalogReadModel } from './services/catalog/index.js';
+import type { CatalogReadModel } from './services/catalog/readModel.js';
 
 // Every response carries a correlation ID (echoed from a well-formed incoming
 // x-request-id, otherwise generated) so a user-reported failure can be matched
@@ -35,6 +38,7 @@ function genReqId(request: IncomingMessage): string {
 export type BuildAppOptions = {
   // Tests disable logging; production always logs.
   logging?: boolean;
+  catalog?: CatalogReadModel;
 };
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
@@ -48,7 +52,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(cors, {
     origin: config.API_ORIGIN,
     methods: ['GET', 'POST', 'OPTIONS'],
-    exposedHeaders: ['x-request-id'],
+    exposedHeaders: ['x-request-id', 'etag', 'x-catalog-state', 'x-catalog-block-lag'],
   });
 
   // Multipart — required by upload routes. Register before routes.
@@ -95,6 +99,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(keyRoutes, { prefix: '/api/tracks' });
   await app.register(uploadRoutes, { prefix: '/api/uploads' });
+  const catalog = options.catalog ?? defaultCatalogReadModel;
+  await catalog.start();
+  app.addHook('onClose', async () => {
+    catalog.stop();
+  });
+  await app.register(createCatalogRoutes({ catalog }));
 
   return app;
 }

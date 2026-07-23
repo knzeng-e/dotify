@@ -92,6 +92,13 @@ Deferred (needs a backend channel, deliberately not faked): persisted room mood.
 Ticket 24 supersedes the preview-based rows above: the 42% doctrine and the
 ticket 18 preview assets are consciously retired by access model v2.
 
+## Active production execution
+
+| Backlog doc | GitHub issue | Status | Goal |
+| --- | --- | --- | --- |
+| `26-cached-catalog-read-model.md` | #86 | Implemented on the active branch; Project 5 In Progress pending review and public p75 evidence | One cacheable catalog request backed by confirmed events and deterministic reconciliation |
+| `24-access-streaming-v2.md` | #88 | In Review | Validate DAV2 startup across real browsers, devices, and gateways |
+
 ## Strategic improvement plan
 
 `improvement-plan.md` tracks the July 2026 review of the implementation

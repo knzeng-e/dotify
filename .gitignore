@@ -2,6 +2,7 @@ node_modules/
 .DS_Store
 *.tsbuildinfo
 dist/
+.data/
 .env
 .env.*
 .playwright*
