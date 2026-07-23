@@ -35,6 +35,11 @@ const envSchema = z.object({
   DOTIFY_FACTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_DIRECTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_CHAIN_ID: z.coerce.number().int().default(420420417),
+  CATALOG_SNAPSHOT_PATH: z.string().default('.data/catalog.json'),
+  CATALOG_POLL_INTERVAL_MS: z.coerce.number().int().min(1_000).default(10_000),
+  CATALOG_RECONCILE_INTERVAL_MS: z.coerce.number().int().min(10_000).default(300_000),
+  CATALOG_STALE_AFTER_MS: z.coerce.number().int().min(1_000).default(60_000),
+  CATALOG_CONFIRMATIONS: z.coerce.number().int().min(0).max(100).default(2),
   // Master secret for HKDF per-track key derivation (hex, 32+ bytes). Must
   // never reach the frontend. Both the upload encryption path and the
   // content-key delivery path derive from this value (services/keyVault.ts).
