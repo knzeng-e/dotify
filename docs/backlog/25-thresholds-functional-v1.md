@@ -131,11 +131,11 @@ the active Paseo configuration now points to a fresh factory/directory whose
 registry facet matches the corrected owner-only `musicRegRegister` source.
 Artist publication is open on this active deployment.
 
-Read-only audit at finalized Paseo block `10904607` verified:
+Read-only audit at finalized Paseo block `11268829` verified:
 
-- factory: `0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d`;
-- directory: `0xda2761fea6f0871ed44ec719860fddb51b115be8`;
-- registry facet: `0x76ac102f448fbab9a7ea9efe4450878c01aabc8d`;
+- factory: `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72`;
+- directory: `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`;
+- registry facet: `0xa00c7a8472ba0cab7cbb2b9682fba102c29445e5`;
 - corrected registry code hash:
   `0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788`;
 - factory/directory pairing: verified;
@@ -197,7 +197,7 @@ Validation evidence (2026-07-12):
 - production web build and local docs/code whitespace check: passed;
 - publication-safety browser smoke and prior Shared Score desktop/mobile/reflow
   no-overflow visual smoke: passed before the final royalty/spacing polish;
-- live registry snapshot: completed read-only at finalized block `10904607`;
+- live registry snapshot: completed read-only at finalized block `11268829`;
   the active factory/directory pair, corrected registry code hash, zero
   finalized runtimes, and zero pending runtimes passed the audit;
 - corrected-facet deployment task: Paseo dry-run passed; no transaction sent;

@@ -5,10 +5,10 @@
 This runbook repairs the legacy `musicRegRegister` authorization boundary
 without moving existing SmartRuntime proxies or their storage.
 
-> Active deployment status, 2026-07-12: new artist publication has moved to the
-> fresh factory `0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d` and directory
-> `0xda2761fea6f0871ed44ec719860fddb51b115be8`. Read-only audit at finalized
-> block `10904607` verified the corrected registry facet hash and found zero
+> Active deployment status, 2026-07-26: new artist publication has moved to the
+> fresh factory `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72` and directory
+> `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`. Read-only audit at finalized
+> block `11268829` verified the corrected registry facet hash and found zero
 > finalized or pending runtimes. The legacy deployment below remains documented
 > for historical evidence and should not be reused for new publication.
 

@@ -137,8 +137,8 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | `API_PORT` | `8790` |
 | `NODE_ENV` | `production` |
 | `PASEO_ASSET_HUB_RPC` | `https://eth-rpc-testnet.polkadot.io/` |
-| `DOTIFY_FACTORY_ADDRESS` | `0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d` |
-| `DOTIFY_DIRECTORY_ADDRESS` | `0xda2761fea6f0871ed44ec719860fddb51b115be8` |
+| `DOTIFY_FACTORY_ADDRESS` | `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72` |
+| `DOTIFY_DIRECTORY_ADDRESS` | `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108` |
 | `DOTIFY_CHAIN_ID` | `420420417` |
 
 Set server-side values in the app's Secrets area:
