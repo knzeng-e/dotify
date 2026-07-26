@@ -89,6 +89,9 @@ function shouldMaterializeRemoteSource(source: string) {
 
 export type UseSessionDeps = {
   signalUrl: string;
+  // Canonical externally reachable app URL. Product-host builds use this
+  // instead of sharing an internal container/gateway location.
+  publicAppUrl?: string | null;
   // Optional local identity key used only to remember a display name on this
   // browser. It never crosses the anonymous room signaling boundary.
   identityAddress?: string | null;
@@ -104,8 +107,18 @@ export type UseSessionDeps = {
 };
 
 export function useSession(deps: UseSessionDeps) {
-  const { signalUrl, identityAddress, setTrackInfo, setPlayerState, localAudioRef, objectUrlsRef, resolvedAudioSourcesRef, navigateToView, setAudioSource } =
-    deps;
+  const {
+    signalUrl,
+    publicAppUrl,
+    identityAddress,
+    setTrackInfo,
+    setPlayerState,
+    localAudioRef,
+    objectUrlsRef,
+    resolvedAudioSourcesRef,
+    navigateToView,
+    setAudioSource
+  } = deps;
 
   const [roomId, setRoomId] = useState('');
   const [hostName, setHostName] = useState('');
@@ -1019,7 +1032,7 @@ export function useSession(deps: UseSessionDeps) {
   }, [mode, roomId]);
 
   async function copySessionLink() {
-    const link = buildSessionLink(roomId);
+    const link = buildSessionLink(roomId, publicAppUrl || window.location.href);
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
@@ -1166,6 +1179,6 @@ export function useSession(deps: UseSessionDeps) {
     removeRoomRequest,
     clearRoomRequests,
     destroySession,
-    sessionLink: buildSessionLink(roomId)
+    sessionLink: buildSessionLink(roomId, publicAppUrl || window.location.href)
   };
 }

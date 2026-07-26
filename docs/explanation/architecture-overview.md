@@ -174,4 +174,7 @@ The signaling server is a lightweight Socket.IO process (`server/signaling.mjs`)
 - Your payments — they go directly to your EVM address via smart contract.
 - Your track records — they live on Paseo Asset Hub (and optionally Bulletin Chain).
 
-The frontend is itself distributed via IPFS/DotNS at `dotify.dot.li`.
+The standalone frontend is deployed through Netlify. The Product DevNet build
+is publishable through Bulletin/DotNS as `dotify.dot` and resolves publicly at
+`https://dotify.dev-dot.li`; the older `dotify.dot.li` artifact remains legacy
+deployment evidence.

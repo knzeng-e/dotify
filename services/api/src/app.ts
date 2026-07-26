@@ -39,6 +39,7 @@ export type BuildAppOptions = {
   // Tests disable logging; production always logs.
   logging?: boolean;
   catalog?: CatalogReadModel;
+  apiOrigins?: string[];
 };
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
@@ -48,9 +49,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   };
   const app = Fastify(serverOptions);
 
-  // CORS — restricted to the configured frontend origin.
+  // CORS — restricted to the configured standalone and Product-host origins.
   await app.register(cors, {
-    origin: config.API_ORIGIN,
+    origin: options.apiOrigins ?? config.API_ORIGINS,
     methods: ['GET', 'POST', 'OPTIONS'],
     exposedHeaders: ['x-request-id', 'etag', 'x-catalog-state', 'x-catalog-block-lag'],
   });

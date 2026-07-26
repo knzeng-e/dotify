@@ -104,18 +104,18 @@ ticket 18 preview assets are consciously retired by access model v2.
 `improvement-plan.md` tracks the July 2026 review of the implementation
 against the product/technical/philosophical memory and the current Parity
 Product SDK direction. The plan is now dual-mode: standalone web remains the
-first public listening path, while Product SDK / Playground / Humanity
-integration is a gated feasibility track. Nothing in that track may imply live
-Host, Statement Store, Product account, Humanity, or `.dot` deployment support
-until the relevant spike proves the current API, environment, and security
-boundary.
+first public listening path, while the Product DevNet build adds `dotify.dot`,
+explicit Host detection, app-scoped Product identity, and canonical
+Product-origin room links. It does not imply Product-signed contract writes,
+protected key access, Statement Store rooms, or Humanity decisions; those
+remain gated until their adapters prove the current API and security boundary.
 
 The Product SDK evidence snapshot used for this replanning is
-`paritytech/product-sdk@2f359bba28ca72855207a0a519d4118b37b4438c`
-(`@parity/product-sdk` 0.17.0), fetched on 2026-07-14. It is explicitly
-prototype / reference / unaudited code. Paseo and Summit are the live preset
-environments; Product SDK contracts target `pallet-revive` / PolkaVM CDM flows,
-not Dotify's current viem + EVM RPC path; Statement Store is useful for small
+`@parity/product-sdk` 0.19.1 and
+`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1,
+verified on 2026-07-26. They remain prototype / reference / unaudited code.
+Product SDK contracts target `pallet-revive` / PolkaVM CDM flows, not Dotify's
+current viem + EVM RPC write path; Statement Store is useful for small
 ephemeral presence, not full chat, SDP/ICE, durable media metadata, or guest
 reactions.
 
@@ -160,9 +160,9 @@ on `main`. The remaining order is:
    signaling and production-env evidence are closed through #36/#37.
 3. Improve room resilience and shared-listening depth only where it preserves
    the link-first guest doctrine.
-4. Run Product SDK feasibility spikes: Host capability detection, Product
-   account signing, resource allocation, PolkaVM/CDM contract portability,
-   Playground/Bulletin/DotNS deployment, and Statement Store presence.
+4. Validate the delivered Product host/account and Bulletin/DotNS baseline,
+   then port writes through CDM/PAPI, add backend Product-signature
+   verification, and run bounded resource-allocation/Statement Store spikes.
 5. Build live Humanity / Individuality only after the research ticket proves a
    privacy-preserving source, proof shape, address-binding story, and fallback
    UX.

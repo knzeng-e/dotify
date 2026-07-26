@@ -36,6 +36,54 @@ production build contract without printing real secret values.
 
 ---
 
+### `VITE_DOTIFY_HOST_MODE`
+
+| Property     | Value                          |
+| ------------ | ------------------------------ |
+| **Type**     | `off`, `auto`, or `required`   |
+| **Required** | Product builds                 |
+| **Default**  | `off`                          |
+| **Example**  | `required`                     |
+
+Controls Product host discovery. `off` keeps the standalone app independent
+from the Product SDK. `auto` enables progressive host detection. `required`
+marks a Product-targeted build but does not block catalog, Free playback, or
+wallet-free room entry when opened outside the host.
+
+Host detection does not request an account. The account is requested only when
+the listener selects **Use Polkadot app**.
+
+---
+
+### `VITE_DOTIFY_PRODUCT_ID`
+
+| Property     | Value                  |
+| ------------ | ---------------------- |
+| **Type**     | Lowercase `.dot` name  |
+| **Required** | Host mode is not `off` |
+| **Default**  | `dotify.dot`           |
+| **Example**  | `dotify.dot`           |
+
+DotNS identifier used by the Product host to derive Dotify's app-scoped
+account. Changing it changes the Product account boundary and requires an
+identity/access migration review.
+
+---
+
+### `VITE_PUBLIC_APP_URL`
+
+| Property     | Value                            |
+| ------------ | -------------------------------- |
+| **Type**     | HTTPS URL                        |
+| **Required** | Product production builds        |
+| **Default**  | Current browser URL              |
+| **Example**  | `https://dotify.dev-dot.li`      |
+
+Canonical public origin used when copying room links. Product builds must set
+this so invitations never expose an internal host/container or raw gateway URL.
+
+---
+
 ### `VITE_DOTIFY_DEBUG_PANEL`
 
 | Property     | Value             |
@@ -246,7 +294,7 @@ Network interface to bind.
 | **Type**     | Comma-separated URL list or `*`                     |
 | **Required** | No                                                  |
 | **Default**  | `*`                                                 |
-| **Example**  | `https://muzinga.netlify.app,https://dotify.dot.li` |
+| **Example**  | `https://muzinga.netlify.app,https://dotify.dev-dot.li` |
 
 CORS allowed origins for Socket.IO and status endpoints. Set explicit frontend
 origins in production. `SIGNAL_ORIGIN` is still accepted as a backwards-compatible
@@ -327,7 +375,23 @@ Port the backend API listens on.
 | **Required** | Production              |
 | **Default**  | `http://localhost:5273` |
 
-Frontend origin allowed by backend CORS.
+Singular frontend origin allowed by backend CORS. This remains as a
+backwards-compatible fallback when `API_ORIGINS` is not set.
+
+---
+
+### `API_ORIGINS`
+
+| Property     | Value                                                    |
+| ------------ | -------------------------------------------------------- |
+| **Type**     | Comma-separated HTTPS origin list                        |
+| **Required** | Multiple hosted frontends                                |
+| **Default**  | The single `API_ORIGIN` value                            |
+| **Example**  | `https://muzinga.netlify.app,https://dotify.dev-dot.li`  |
+
+Exact frontend origins accepted by backend CORS. When set, it takes precedence
+over `API_ORIGIN`. Do not use `*`: the API carries authenticated upload and
+content-key routes.
 
 ---
 

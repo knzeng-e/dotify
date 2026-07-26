@@ -267,6 +267,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     if (!connectedWallet) {
       throw new Error('Connect a wallet before signing this transaction.');
     }
+    if (!connectedWallet.createEvmClient) {
+      throw new Error('Artist publishing still requires a passkey or EVM wallet while Dotify contracts are being ported to the Product DevNet host signer.');
+    }
     const chain = await resolveEvmChain(ethRpcUrl);
     if (connectedWallet.chainId !== undefined && connectedWallet.chainId !== chain.id) {
       throw new Error(chainMismatchMessage(chain.id, connectedWallet.chainId));

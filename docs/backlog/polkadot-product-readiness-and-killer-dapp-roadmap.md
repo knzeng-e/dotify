@@ -1,15 +1,16 @@
 # Polkadot product readiness and killer dapp roadmap
 
-Status: active planning note, supersedes the stale draft from PR #91.
+Status: active execution note; the Product DevNet baseline is implemented on
+`feat/product-devnet-adaptation`.
 
-Last Product SDK verification: 2026-07-14 against
-`paritytech/product-sdk@2f359bba28ca72855207a0a519d4118b37b4438c`
-(`@parity/product-sdk` 0.17.0).
+Last Product SDK verification: 2026-07-26 against
+`@parity/product-sdk` 0.19.1 and
+`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1.
 
 ## Verdict
 
-Dotify should align with the Polkadot product ecosystem, but it should not
-replace its standalone production path with Product SDK assumptions yet.
+Dotify should align with the Polkadot product ecosystem without replacing its
+standalone production path with Product SDK assumptions.
 
 The right product shape is dual-mode:
 
@@ -23,6 +24,18 @@ The right product shape is dual-mode:
   product failure state. It must not fall back to demo secrets, hidden signers,
   or bypassed access checks.
 
+The first adaptive slice is now implemented:
+
+- a separate Product DevNet build and `dotify.dot` manifest;
+- explicit Host detection and app-scoped Product account connection;
+- Product identity for room presence without claiming EVM/EIP-191 authority;
+- canonical `.dev-dot.li` room links;
+- shared Fly API/signaling allowlists for Netlify and Product origins;
+- a pinned build/deploy workflow and operator rollback guide.
+
+Contract writes, Product-signed key requests, Product personhood, and Product
+presence transport remain gated follow-up work.
+
 ## Product ecosystem evidence
 
 The current Parity product direction is coherent: Levity for publishing,
@@ -35,9 +48,8 @@ The SDK details matter for Dotify:
 
 - Product SDK and Playground are explicitly prototype / reference / unaudited
   code.
-- Product SDK preset chains are live for Paseo and Summit. Polkadot and Kusama
-  preset paths are gated because Bulletin / Individuality descriptors are not
-  live there.
+- Product DevNet exposes the Asset Hub, People, and Bulletin system-chain
+  topology used by the current Product tooling.
 - Product SDK contract helpers target `pallet-revive`, PolkaVM artifacts, and
   CDM manifests. Dotify currently uses Hardhat Solidity, generated EVM ABIs,
   viem, and Paseo Asset Hub EVM RPCs.
@@ -131,24 +143,27 @@ Goal: deepen rooms without breaking the room-guest doctrine.
 
 Goal: prove the Product host path with small spikes before committing the app.
 
-- Pin Product SDK versions and add a compatibility matrix.
-- Detect Host availability and supported chain/capability surfaces.
-- Prototype Product account connection, signing, identity prompt behavior, and
-  resource allocation.
+- Delivered: pin Product SDK/deploy versions and add a compatibility matrix.
+- Delivered: detect Host availability without blocking standalone first sound.
+- Delivered: connect the app-scoped Product account only on explicit action and
+  separate identity capability from EVM signing capability.
+- Delivered: publishable Bulletin/DotNS build and dual-origin Fly boundary.
+- Remaining: prototype host transaction signing and resource allocation.
 - Compare Dotify's Hardhat/EVM runtime with Product SDK PolkaVM/CDM contracts.
-- Prototype Playground deployment against Dotify's single-file build and secret
-  boundary.
 - Prototype Statement Store presence with strict payload, TTL, and signer
   limits.
 
 ### Phase 4 - Product integration
 
-Goal: ship Product mode as progressive enhancement.
+Goal: deepen the delivered Product mode one adapter at a time.
 
-- Add Product-mode adapters behind explicit ports, leaving standalone adapters
-  intact.
-- Use Host signing and Product accounts only when the Host path is available.
-- Surface Host permission denial as actionable UI state.
+- Delivered: keep standalone adapters intact and lazy-load Product host code.
+- Delivered: use the Product account as presence identity only when available.
+- Delivered: surface host absence and unsupported signer boundaries explicitly.
+- Next: extract typed runtime read/write ports and add a generated CDM/PAPI
+  adapter.
+- Next: add a backend signature-scheme adapter that verifies Product account
+  signatures and address binding before key delivery.
 - Keep backend key delivery authoritative unless a Product-host design proves a
   stronger key-custody boundary.
 - Keep `.dot`/Playground deployment separate from access enforcement.
@@ -219,8 +234,9 @@ Recommended Project 5 fields:
 - #36: closed after hosted signaling operation evidence.
 - #37: closed after #99 and manually checked deploy-host production env
   evidence.
-- #85: split into Product SDK baseline, contract portability, Playground deploy,
-  Statement Store presence, and integration adapter spikes.
+- #85: Product SDK baseline and Product DevNet deployment slice implemented;
+  keep open for contract portability, backend Product signatures, resource
+  allocation, and bounded Statement Store presence.
 - #86: implementation active on `codex/86-catalog-read-model`; keep In Progress
   until review and public performance evidence close the warm/cold budgets.
 - #87: keep for responsive cover/gateway pipeline.

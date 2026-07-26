@@ -62,25 +62,24 @@ Where it falls short of its own standards:
 
 ## Product SDK feasibility track
 
-This track runs in parallel with standalone hardening, but it does not block
-first sound and must not be sold as a delivered capability.
+This track runs in parallel with standalone hardening and does not block first
+sound. Only the baseline rows marked delivered may be presented as live.
 
 Product SDK snapshot used for this plan:
 
-- `paritytech/product-sdk@2f359bba28ca72855207a0a519d4118b37b4438c`
-  (fetched 2026-07-14);
-- `@parity/product-sdk` 0.17.0;
+- `@parity/product-sdk` 0.19.1 (verified 2026-07-26);
+- `@polkadot-community-foundation/polkadot-app-deploy` 0.13.1;
 - explicit prototype / reference / unaudited status;
-- live preset environments: Paseo and Summit;
+- Product target: DevNet Asset Hub / People / Bulletin;
 - contracts package: `pallet-revive`, PolkaVM artifacts, and CDM manifests;
 - Statement Store: 512-byte statement payload, 1024-byte user total, default
   30-second TTL.
 
 | Item | Tracking | Status |
 | --- | --- | --- |
-| Product SDK baseline: pin SDK versions, document compatible Host surfaces, and add feature detection for Host local storage, signing, permissions, resource allocation, payments, and chain support. | #85, `polkadot-product-readiness-and-killer-dapp-roadmap.md` | Proposed |
+| Product SDK baseline: pin SDK versions, detect Host availability, connect an app-scoped account explicitly, and separate presence identity from EVM signing authority. | #85, `polkadot-product-readiness-and-killer-dapp-roadmap.md` | Delivered on Product adaptation branch |
 | Contract portability spike: compare Dotify's current Paseo Asset Hub EVM / viem / Hardhat flow with Product SDK contracts on `pallet-revive`, PolkaVM artifacts, and CDM manifests. | #85 | Proposed |
-| Playground deployment spike: determine whether Dotify's static build can use Playground/Bulletin/DotNS deploy flows without weakening current secret and publication boundaries. | #85 | Proposed |
+| Product deployment baseline: build a browser-safe multi-file bundle, publish through Bulletin/DotNS tooling, preserve backend key custody, and use a canonical public room URL. | #85 | Delivered on Product adaptation branch; live publication pending operator credentials |
 | Statement Store presence spike: use it for small, signed, ephemeral discovery/presence only. Do not move SDP/ICE, full chat history, media metadata, or link-only guest reactions there until signer, TTL, and size constraints are solved. | #89, `20-room-social-layer.md`, `21-room-collaborative-queue.md` | Proposed |
 | Humanity / Individuality research rewrite: prove the canonical live source, privacy-preserving proof shape, product-account/identity-account binding, and fallback UX before promoting Human free from research to build. | #12, `11-proof-of-personhood-integration-research.md` | Open |
 

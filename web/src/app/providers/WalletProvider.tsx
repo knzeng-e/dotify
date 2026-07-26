@@ -18,6 +18,7 @@ import { devAccounts, type DevAccount } from '../../hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from '../../shared/config/network';
 import { resolveEvmChain, getWalletClient } from '../../shared/config/contracts';
 import { chainMismatchMessage } from '../../features/wallet/network';
+import type { ProductHostMode, ProductHostStatus } from '../../features/productHost/productHost';
 import { useUiFeedback } from './UiFeedbackProvider';
 
 type WalletContextValue = {
@@ -25,6 +26,7 @@ type WalletContextValue = {
   connectedWallet: ConnectedWallet | null;
   activeEvmAddress: `0x${string}`;
   listenerEvmAddress: `0x${string}` | null;
+  activeIdentityAddress: string | null;
   activeSubstrateAddress: string | null;
   activeSubstrateSigner: PolkadotSigner | null;
   currentBulletinAccount: DevAccount;
@@ -37,10 +39,13 @@ type WalletContextValue = {
   switchNetwork: () => Promise<void>;
   connectPasskey: () => Promise<void>;
   connectExtension: () => Promise<void>;
+  connectProductHost: () => Promise<void>;
   disconnect: () => void;
   forgetPasskey: () => void;
   hasPrfSupport: boolean;
   hasStoredPasskey: boolean;
+  productHostMode: ProductHostMode;
+  productHostStatus: ProductHostStatus;
 };
 
 const WalletContext = createContext<WalletContextValue | null>(null);
@@ -51,11 +56,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     state: walletState,
     connectPasskey,
     connectExtension,
+    connectProductHost,
     switchExtensionNetwork,
     disconnect: disconnectWalletOnly,
     hasPrfSupport,
     hasStoredPasskey,
-    forgetPasskey
+    forgetPasskey,
+    productHostMode,
+    productHostStatus
   } = useWallet();
 
   const [ethRpcUrl] = useState(getDefaultEthRpcUrl);
@@ -68,7 +76,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Disconnecting the wallet also signs out of the Dotify session (ticket 24
   // P2): revoke the server-side token and forget the stored one, so a shared
   // machine does not keep listening rights after the wallet leaves.
-  const connectedAddress = connectedWallet?.evmAddress;
+  const connectedAddress = connectedWallet?.createEvmClient ? connectedWallet.evmAddress : undefined;
   const lastConnectedAddressRef = useRef<`0x${string}` | null>(null);
   const disconnect = useCallback(() => {
     if (connectedAddress) void signOutOfDotifySession(connectedAddress);
@@ -88,7 +96,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const currentBulletinAccount = devAccounts[bulletinAccountIndex];
   const activeEvmAddress = connectedWallet?.evmAddress ?? zeroAddress;
-  const listenerEvmAddress = connectedWallet?.evmAddress ?? null;
+  const listenerEvmAddress = connectedWallet?.createEvmClient ? connectedWallet.evmAddress : null;
+  // Local room-name persistence lowercases its key, so use the H160 identity
+  // for both EVM wallets and Product accounts rather than case-sensitive SS58.
+  const activeIdentityAddress = connectedWallet?.evmAddress ?? null;
   const devBulletinFallback = import.meta.env.DEV ? currentBulletinAccount : null;
   const activeSubstrateAddress = connectedWallet ? (connectedWallet.substrateAddress ?? null) : (devBulletinFallback?.address ?? null);
   const activeSubstrateSigner = connectedWallet ? (connectedWallet.substrateSigner ?? null) : (devBulletinFallback?.signer ?? null);
@@ -96,6 +107,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const getActiveWalletClient = useCallback(async (): Promise<Awaited<ReturnType<typeof getWalletClient>>> => {
     if (!connectedWallet) {
       throw new Error('Connect a wallet before signing this transaction.');
+    }
+    if (!connectedWallet.createEvmClient) {
+      throw new Error('This action still requires a passkey or EVM wallet while Dotify contracts are being ported to the Product DevNet host signer.');
     }
     const chain = await resolveEvmChain(ethRpcUrl);
     if (connectedWallet.chainId !== undefined && connectedWallet.chainId !== chain.id) {
@@ -166,6 +180,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       connectedWallet,
       activeEvmAddress,
       listenerEvmAddress,
+      activeIdentityAddress,
       activeSubstrateAddress,
       activeSubstrateSigner,
       currentBulletinAccount,
@@ -178,16 +193,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       switchNetwork,
       connectPasskey,
       connectExtension,
+      connectProductHost,
       disconnect,
       forgetPasskey,
       hasPrfSupport,
-      hasStoredPasskey
+      hasStoredPasskey,
+      productHostMode,
+      productHostStatus
     }),
     [
       walletState,
       connectedWallet,
       activeEvmAddress,
       listenerEvmAddress,
+      activeIdentityAddress,
       activeSubstrateAddress,
       activeSubstrateSigner,
       currentBulletinAccount,
@@ -199,10 +218,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       switchNetwork,
       connectPasskey,
       connectExtension,
+      connectProductHost,
       disconnect,
       forgetPasskey,
       hasPrfSupport,
-      hasStoredPasskey
+      hasStoredPasskey,
+      productHostMode,
+      productHostStatus
     ]
   );
 

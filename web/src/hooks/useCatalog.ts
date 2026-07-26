@@ -481,7 +481,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const cacheKey = contentHash.toLowerCase();
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
-    if (!isKeyServiceConfigured() || !connectedWallet) return null;
+    if (!isKeyServiceConfigured() || !connectedWallet?.createEvmClient) return null;
 
     try {
       const walletClient = await getActiveWalletClient();
@@ -977,7 +977,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   async function payForTrackAccess(track: CatalogTrack) {
-    if (!connectedWallet) {
+    if (!connectedWallet?.createEvmClient) {
       setAccessGate(buildAccessGateInfo(track));
       setShowWalletModal(true);
       return;

@@ -29,6 +29,10 @@ describe('buildSessionLink', () => {
     expect(buildSessionLink('NEW1', 'https://dotify.example/#/rooms/OLD9')).toBe('https://dotify.example/#/rooms/NEW1');
   });
 
+  it('builds a public Product DevNet link instead of leaking a container URL', () => {
+    expect(buildSessionLink('LIVE42', 'https://dotify.dev-dot.li')).toBe('https://dotify.dev-dot.li/#/rooms/LIVE42');
+  });
+
   it('returns empty string without a room id or href', () => {
     expect(buildSessionLink('', 'https://dotify.example/')).toBe('');
     expect(buildSessionLink('AB12CD', '')).toBe('');

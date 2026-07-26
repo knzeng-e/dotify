@@ -259,6 +259,20 @@ export function validateProductionEnvironment(env: EnvironmentLike): ProductionE
     errors.push('VITE_CONTENT_SECRET is bundled into the browser and must not be set for production builds. Use backend CONTENT_KEY_MASTER_SECRET.');
   }
 
+  const productHostMode = readEnvironmentValue(env, 'VITE_DOTIFY_HOST_MODE').toLowerCase() || 'off';
+  if (!['off', 'auto', 'required'].includes(productHostMode)) {
+    errors.push('VITE_DOTIFY_HOST_MODE must be one of off, auto, or required.');
+  }
+  if (productHostMode !== 'off') {
+    const productId = readEnvironmentValue(env, 'VITE_DOTIFY_PRODUCT_ID');
+    if (!/^[a-z0-9][a-z0-9-]*\.dot$/.test(productId)) {
+      errors.push('VITE_DOTIFY_PRODUCT_ID must be a lowercase .dot name when Product host integration is enabled.');
+    }
+    validateUrl(env, 'VITE_PUBLIC_APP_URL', { required: true, protocols: ['https:'], errors });
+  } else {
+    validateUrl(env, 'VITE_PUBLIC_APP_URL', { protocols: ['https:'], errors });
+  }
+
   validateUrl(env, 'VITE_SIGNAL_URL', { required: true, protocols: ['https:', 'wss:'], errors });
   validateUrl(env, 'VITE_DOTIFY_API_URL', { required: true, protocols: ['https:'], errors });
   validateUrl(env, 'VITE_PINATA_GATEWAY', { required: true, protocols: ['https:'], errors });

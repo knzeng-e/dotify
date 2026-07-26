@@ -34,20 +34,23 @@ aura lights the whole field (`web/src/styles/aura.css`).
 creates one personal `SmartRuntime` per artist, and `ArtistDirectory` indexes
 artist addresses to their runtimes.
 
-**Frontend**: Static React + Vite web app deployed to dot.li.
+**Frontend**: Static React + Vite web app deployed to Netlify and, through the
+Product profile, Bulletin/DotNS at `dotify.dot`.
 
 **WebRTC**: real-time music streaming.
 
 **Socket.IO**: signaling for room discovery and SDP/ICE exchange. A future
 iteration can move signaling to statement-store style infrastructure.
 
-**Product SDK direction**: Dotify remains a standalone web app first. Product
-SDK / Playground / Humanity work is a progressive-enhancement track documented
-in
-[`docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md`](docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md).
-The current SDK snapshot is prototype/reference/unaudited and must be proven
-against Dotify's Host, key-delivery, room, and contract constraints before it
-becomes a production dependency.
+**Product SDK direction**: Dotify now has an adaptive Product DevNet build for
+`dotify.dot`. It keeps standalone link-first rooms and Free listening intact,
+adds explicit app-scoped Product identity, and publishes through
+Bulletin/DotNS. Product host signing is not yet accepted for contract writes or
+protected key delivery; those boundaries remain passkey/EVM until the CDM/PAPI
+and backend signature adapters are proven. See
+[`docs/explanation/product-devnet-architecture.md`](docs/explanation/product-devnet-architecture.md)
+and the
+[`Product roadmap`](docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md).
 
 ## Deployed
 
@@ -118,7 +121,8 @@ npm run dev
 
 | Variable                    | Required         | Purpose                                                  |
 | --------------------------- | ---------------- | -------------------------------------------------------- |
-| `API_ORIGIN`                | Production       | Frontend origin allowed by API CORS                      |
+| `API_ORIGIN`                | Compatibility    | Singular frontend CORS origin fallback                   |
+| `API_ORIGINS`               | Production       | Comma-separated exact frontend CORS origins              |
 | `PASEO_ASSET_HUB_RPC`       | Key requests     | Paseo Asset Hub EVM RPC used for access checks           |
 | `DOTIFY_DIRECTORY_ADDRESS`  | Key requests     | ArtistDirectory address used to resolve artist runtimes  |
 | `DOTIFY_CHAIN_ID`           | Key requests     | Chain ID expected in wallet-signed key requests          |
@@ -430,9 +434,9 @@ handle:
    and decide whether a backend read-through gateway is needed.
 4. Keep demo-mode browser-exposed Pinata/content secrets out of public
    deployments.
-5. Run Product SDK feasibility spikes: Host detection, Product account signing,
-   resource allocation, Playground/Bulletin/DotNS deployment, and PolkaVM/CDM
-   contract portability.
+5. Validate the Product host/account and Bulletin/DotNS deployment baseline,
+   then implement Product signature verification, resource allocation, and
+   PolkaVM/CDM contract portability.
 6. Add a production artist dashboard on `/artists`: release drafts, edit
    metadata, royalty analytics, and profile verification state.
 7. Deploy and monitor a public signaling server for DotNS / Bulletin builds.
