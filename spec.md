@@ -151,13 +151,13 @@ Dotify uses an EVM smart-runtime system on Paseo Asset Hub.
 
 Current testnet deployment:
 
-- factory: `0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d`
-- directory: `0xda2761fea6f0871ed44ec719860fddb51b115be8`
+- factory: `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72`
+- directory: `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`
 - chain: Paseo Asset Hub, chainId `420420417`
 
 Security status: these configured addresses point to a fresh factory/directory
 whose registry facet matches the source-level owner-only `musicRegRegister`
-implementation. Read-only audit at finalized block `10904607` verified the
+implementation. Read-only audit at finalized block `11268829` verified the
 factory/directory pairing, the corrected registry code hash
 `0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788`, zero
 finalized runtimes, and zero pending runtimes. New artist runtime creation and

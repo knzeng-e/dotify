@@ -51,13 +51,13 @@ becomes a production dependency.
 
 ## Deployed
 
-**EVM factory** — `0x9337287a194dfd8b53939eee1890b3f4ec0f8b0d` (Paseo Asset Hub, chainId 420420417)
+**EVM factory** — `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72` (Paseo Asset Hub, chainId 420420417)
 
-**EVM directory** — `0xda2761fea6f0871ed44ec719860fddb51b115be8`
+**EVM directory** — `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`
 
-> **Testnet security status (2026-07-12):** artist publication is open on the
+> **Testnet security status (2026-07-22):** artist publication is open on the
 > configured factory/directory above. Read-only audit at finalized block
-> `10904607` verified the factory/directory pairing, found no finalized or
+> `11268829` verified the factory/directory pairing, found no finalized or
 > pending runtimes, and confirmed that the configured registry facet hash matches
 > the source-level owner-only `musicRegRegister` implementation
 > (`0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788`).
