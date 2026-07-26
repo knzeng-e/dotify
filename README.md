@@ -45,9 +45,12 @@ iteration can move signaling to statement-store style infrastructure.
 **Product SDK direction**: Dotify now has an adaptive Product DevNet build for
 `dotify-test01.dot`. It keeps standalone link-first rooms and Free listening intact,
 adds explicit app-scoped Product identity, and publishes through
-Bulletin/DotNS. Product host signing is not yet accepted for contract writes or
-protected key delivery; those boundaries remain passkey/EVM until the CDM/PAPI
-and backend signature adapters are proven. See
+Bulletin/DotNS. The runtime hooks now sit behind typed ports with the current
+viem implementation and an experimental Product CDM/PAPI adapter boundary.
+Product host signing is not yet accepted for contract writes or protected key
+delivery; those boundaries remain passkey/EVM until CDM-installed runtime
+packages, host-signed transaction evidence, and backend signature adapters are
+proven. See
 [`docs/explanation/product-devnet-architecture.md`](docs/explanation/product-devnet-architecture.md)
 and the
 [`Product roadmap`](docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md).

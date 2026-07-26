@@ -119,6 +119,10 @@ host, and requests an app-scoped account only after explicit user action. That
 account is currently an identity/presence capability: Classic payments, artist
 publication, and protected key requests still require the passkey/EVM path
 until CDM/PAPI writes and backend Product-signature verification are delivered.
+The runtime hooks now depend on typed read/write ports; the current viem
+adapter remains active, and the Product CDM/PAPI adapter remains experimental
+until Dotify has CDM-installed runtime packages and host-signed transaction
+evidence.
 
 ## 5. Repository Layout
 
@@ -668,8 +672,9 @@ Priority improvements:
 4. Finish security hardening for publish intents, auth chain binding, durable
    revocation, realtime reconnect, and short-lived TURN credentials.
 5. Validate the delivered Product host/account and Bulletin/DotNS deployment
-   baseline, then implement CDM/PAPI contract portability, backend Product
-   signature verification, and a bounded Statement Store presence spike.
+   baseline, then wire real CDM-installed runtime packages through the
+   experimental Product CDM/PAPI adapter, add backend Product signature
+   verification, and run a bounded Statement Store presence spike.
 6. Move the large catalog, session, artist, and player workflows behind domain
    ports and application use cases.
 7. Validate the cacheable catalog API's warm/cold p75 budgets under public seed

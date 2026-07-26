@@ -149,17 +149,28 @@ Adapters:
 
 - `ViemRuntimeAdapter`: current standalone EVM implementation behind the typed
   ports;
-- `ProductRuntimeAdapter`: next adapter, generated from CDM/ABI bindings and
-  submitted with the host PAPI signer;
+- `ProductCdmRuntimeAdapter`: experimental CDM/PAPI implementation behind the
+  same ports. It maps the Dotify runtime method surface to Product SDK contract
+  handles, but remains opt-in until Dotify has CDM-installed Product runtime
+  packages and host signing evidence;
 - `CatalogApiAdapter`: the existing server-side read model, shared by both
   frontends.
 
-The remaining Product contract work is adapter work, not UI rewiring. The
-backend authentication protocol must still gain an explicit signature scheme
-field. A Product signature is accepted only after the server can bind the
-signed payload, Product account public key, derived H160, chain, nonce,
-purpose, and expiry. EIP-191 remains supported for standalone clients. Unknown
-schemes fail closed.
+The CDM adapter has one deliberate gap: royalty payment history is not read
+through Product contract handles because the current SDK surface exposes
+method queries and transactions, not the viem-style historical log query used
+by the artist console. Product mode must use the backend catalog/read-model
+indexer, or a future Product event/indexer API, for that history.
+
+The remaining Product contract work is integration and evidence work, not UI
+rewiring. Operators still need CDM-deployed Dotify runtime packages,
+`cdm.json`/generated contract types, `pallet-revive` account mapping, and real
+host-signed transaction smoke evidence before Product writes can replace the
+EVM wallet path. The backend authentication protocol must also gain an
+explicit signature scheme field. A Product signature is accepted only after the
+server can bind the signed payload, Product account public key, derived H160,
+chain, nonce, purpose, and expiry. EIP-191 remains supported for standalone
+clients. Unknown schemes fail closed.
 
 This avoids a second frontend business model and allows Product mode to replace
 one infrastructure adapter at a time.
@@ -209,6 +220,8 @@ For every SDK or deploy-tool upgrade:
 
 - [Product documentation](https://docs.polkadotcommunity.foundation/)
 - [Build and publish guide](https://docs.polkadotcommunity.foundation/guides/build-and-publish/)
+- [Deploy and register contracts with CDM](https://docs.polkadotcommunity.foundation/guides/deploy-contracts-cdm/)
+- [Smart contracts and CDM](https://docs.polkadotcommunity.foundation/architecture/contracts/)
 - [Platform Services SDK guide](https://docs.polkadotcommunity.foundation/guides/platform-services-sdk/)
 - [Product network reference](https://docs.polkadotcommunity.foundation/reference/networks/)
 - [Product identity architecture](https://docs.polkadotcommunity.foundation/architecture/identity/)
