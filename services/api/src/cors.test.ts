@@ -14,10 +14,10 @@ describe('frontend origin boundary', () => {
   it('allows each configured Dotify frontend and rejects unrelated origins', async () => {
     app = await buildApp({
       logging: false,
-      apiOrigins: ['https://muzinga.netlify.app', 'https://dotify.dev-dot.li'],
+      apiOrigins: ['https://muzinga.netlify.app', 'https://dotify-test01.dev-dot.li'],
     });
 
-    for (const origin of ['https://muzinga.netlify.app', 'https://dotify.dev-dot.li']) {
+    for (const origin of ['https://muzinga.netlify.app', 'https://dotify-test01.dev-dot.li']) {
       const response = await app.inject({
         method: 'GET',
         url: '/health',

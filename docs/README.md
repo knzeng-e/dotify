@@ -41,7 +41,7 @@ Runbooks for hosted configuration and production validation.
 | Document | Summary |
 |---|---|
 | [Deployment Configuration](./operations/deployment-configuration.md) | Netlify and Fly dashboard settings, secrets, catalog persistence, validation, and the update checklist for future env/config changes |
-| [Product DevNet Deployment](./operations/product-devnet-deployment.md) | Build, publish, validate, and roll back the `dotify.dot` Product DevNet app |
+| [Product DevNet Deployment](./operations/product-devnet-deployment.md) | Build, publish, validate, and roll back the `dotify-test01.dot` Product DevNet app |
 
 ---
 

@@ -390,7 +390,7 @@ Dotify mapping:
 | Product SDK / Host API | Replace bespoke chain, signing, storage, and permission glue only where the SDK gives equivalent or better behavior. |
 | Proof of Personhood | Replace the current admin/personhood mock with the live verified-human source for `human-free`. |
 | Coinage | Candidate future payment rail for paid access; EVM runtime remains the settlement record until Coinage design is explicit. |
-| DotNS | Publish the Product profile as `dotify.dot` / `https://dotify.dev-dot.li`; keep the legacy single-file path separate. |
+| DotNS | Publish the Product profile as `dotify-test01.dot` / `https://dotify-test01.dev-dot.li`; keep the legacy single-file path separate. |
 | Bulletin Chain | Continue as a publication and availability layer for product bundles and manifests. |
 | Statement Store | Future presence/chat/room-discovery layer; Socket.IO remains SDP/ICE relay until a separate migration is designed. |
 

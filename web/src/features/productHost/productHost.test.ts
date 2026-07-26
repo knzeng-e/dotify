@@ -5,7 +5,7 @@ describe('resolveProductHostConfig', () => {
   it('keeps ordinary browser builds independent from the Product host', () => {
     expect(resolveProductHostConfig({})).toEqual({
       mode: 'off',
-      productId: 'dotify.dot'
+      productId: 'dotify-test01.dot'
     });
   });
 

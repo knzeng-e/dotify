@@ -24,7 +24,7 @@ export function resolveProductHostConfig(env: EnvironmentLike): ProductHostConfi
 
   return {
     mode,
-    productId: envValue(env, 'VITE_DOTIFY_PRODUCT_ID') || 'dotify.dot'
+    productId: envValue(env, 'VITE_DOTIFY_PRODUCT_ID') || 'dotify-test01.dot'
   };
 }
 

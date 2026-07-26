@@ -30,7 +30,7 @@ Keep this document aligned with
 | Surface | Host | App/project | Source config | Purpose |
 | --- | --- | --- | --- | --- |
 | Frontend | Netlify | `muzinga` | `netlify.toml` | Static Vite web app |
-| Product frontend | Bulletin + DotNS | `dotify.dot` | `web/.env.product-devnet`, `web/polkadot-app-deploy.config.ts` | Product-host static app |
+| Product frontend | Bulletin + DotNS | `dotify-test01.dot` | `web/.env.product-devnet`, `web/polkadot-app-deploy.config.ts` | Product-host static app |
 | Backend API | Fly.io | `dotify-api` | `services/api/fly.toml` | Uploads, key delivery, catalog read model, health |
 | Signaling | Fly.io | `dotify-signal` | `web/fly.signal.toml` | Socket.IO room discovery and WebRTC signaling |
 
@@ -38,7 +38,7 @@ Production URLs currently assumed by the app and docs:
 
 ```txt
 Standalone:     https://muzinga.netlify.app
-Product:        https://dotify.dev-dot.li
+Product:        https://dotify-test01.dev-dot.li
 Backend API:    https://dotify-api.fly.dev
 Signaling:      https://dotify-signal.fly.dev
 Product IPFS:   https://devnet-ipfs.api.polkadotcommunity.foundation
@@ -134,8 +134,8 @@ Required Product values:
 | --- | --- |
 | `VITE_DOTIFY_DEPLOYMENT` | `production` |
 | `VITE_DOTIFY_HOST_MODE` | `required` |
-| `VITE_DOTIFY_PRODUCT_ID` | `dotify.dot` |
-| `VITE_PUBLIC_APP_URL` | `https://dotify.dev-dot.li` |
+| `VITE_DOTIFY_PRODUCT_ID` | `dotify-test01.dot` |
+| `VITE_PUBLIC_APP_URL` | `https://dotify-test01.dev-dot.li` |
 | `VITE_DOTIFY_API_URL` | `https://dotify-api.fly.dev` |
 | `VITE_SIGNAL_URL` | `https://dotify-signal.fly.dev` |
 
@@ -171,7 +171,7 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | --- | --- |
 | `API_PORT` | `8790` |
 | `NODE_ENV` | `production` |
-| `API_ORIGINS` | `https://muzinga.netlify.app,https://dotify.dev-dot.li` |
+| `API_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li` |
 | `PASEO_ASSET_HUB_RPC` | `https://eth-rpc-testnet.polkadot.io/` |
 | `DOTIFY_FACTORY_ADDRESS` | `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72` |
 | `DOTIFY_DIRECTORY_ADDRESS` | `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108` |
@@ -223,7 +223,7 @@ Non-secret runtime values are tracked in `web/fly.signal.toml`:
 | `SIGNAL_ROOM_TTL_MS` | `21600000` |
 | `SIGNAL_HOST_TIMEOUT_MS` | `120000` |
 | `SIGNAL_MAX_LISTENERS` | `24` |
-| `SIGNAL_ORIGINS` | `https://muzinga.netlify.app,https://dotify.dev-dot.li` |
+| `SIGNAL_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li` |
 
 The production origins are public configuration tracked in
 `web/fly.signal.toml`; they are not secrets. Temporary preview origins may be

@@ -107,7 +107,7 @@ Browser or Product host (React + Vite)
 
 The frontend is a static React/Vite app. It can be served locally by Vite,
 deployed to Netlify, built as a single-file Bulletin/IPFS-friendly artifact,
-or published as the multi-file `dotify.dot` Product DevNet app.
+or published as the multi-file `dotify-test01.dot` Product DevNet app.
 
 Production-sensitive upload and content-key operations live behind
 `services/api/`. Browser-side Pinata upload and `VITE_CONTENT_SECRET` key

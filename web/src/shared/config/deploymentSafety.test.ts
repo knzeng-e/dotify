@@ -209,8 +209,8 @@ describe('validateProductionEnvironment', () => {
       validateProductionEnvironment({
         ...validProductionEnv,
         VITE_DOTIFY_HOST_MODE: 'required',
-        VITE_DOTIFY_PRODUCT_ID: 'dotify.dot',
-        VITE_PUBLIC_APP_URL: 'https://dotify.dev-dot.li'
+        VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
+        VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li'
       })
     ).toEqual({
       mode: 'production',

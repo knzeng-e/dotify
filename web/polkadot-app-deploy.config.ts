@@ -1,5 +1,5 @@
 export default {
-  domain: 'dotify.dot',
+  domain: 'dotify-test01.dot',
   displayName: 'Dotify',
   description: 'Shared musical presence with artist-owned access and value flows.',
   icon: {

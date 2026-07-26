@@ -168,7 +168,7 @@ can be distributed from a flat IPFS CID / DotNS record.
 `build:product-devnet` produces `dist-product` with the checked-in
 `.env.product-devnet` profile. `deploy:product-devnet` uses
 `@polkadot-community-foundation/polkadot-app-deploy@0.13.1` through `npx`, uploads static chunks to
-Product DevNet Bulletin, and binds `dotify.dot`. Browse listing is a separate
+Product DevNet Bulletin, and binds `dotify-test01.dot`. Browse listing is a separate
 operator step because it has its own signer/personhood boundary. The Product account currently
 provides app-scoped identity for presence and rooms; contract writes and
 protected key requests still require the existing passkey/EVM signer.

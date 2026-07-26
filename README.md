@@ -35,7 +35,7 @@ creates one personal `SmartRuntime` per artist, and `ArtistDirectory` indexes
 artist addresses to their runtimes.
 
 **Frontend**: Static React + Vite web app deployed to Netlify and, through the
-Product profile, Bulletin/DotNS at `dotify.dot`.
+Product profile, Bulletin/DotNS at `dotify-test01.dot`.
 
 **WebRTC**: real-time music streaming.
 
@@ -43,7 +43,7 @@ Product profile, Bulletin/DotNS at `dotify.dot`.
 iteration can move signaling to statement-store style infrastructure.
 
 **Product SDK direction**: Dotify now has an adaptive Product DevNet build for
-`dotify.dot`. It keeps standalone link-first rooms and Free listening intact,
+`dotify-test01.dot`. It keeps standalone link-first rooms and Free listening intact,
 adds explicit app-scoped Product identity, and publishes through
 Bulletin/DotNS. Product host signing is not yet accepted for contract writes or
 protected key delivery; those boundaries remain passkey/EVM until the CDM/PAPI
@@ -72,7 +72,7 @@ and the
 
 **Gateway URL** — <https://paseo-ipfs.polkadot.io/ipfs/bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny>
 
-**DotNS name** — `dotify.dot.li`
+**DotNS name** — `dotify-test01.dev-dot.li`
 
 ## How to run end-to-end (locally)
 

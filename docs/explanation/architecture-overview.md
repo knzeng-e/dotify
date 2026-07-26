@@ -175,6 +175,6 @@ The signaling server is a lightweight Socket.IO process (`server/signaling.mjs`)
 - Your track records — they live on Paseo Asset Hub (and optionally Bulletin Chain).
 
 The standalone frontend is deployed through Netlify. The Product DevNet build
-is publishable through Bulletin/DotNS as `dotify.dot` and resolves publicly at
-`https://dotify.dev-dot.li`; the older `dotify.dot.li` artifact remains legacy
-deployment evidence.
+is publishable through Bulletin/DotNS as `dotify-test01.dot` and resolves
+publicly at `https://dotify-test01.dev-dot.li`; the older `dotify.dot.li`
+artifact remains legacy deployment evidence.

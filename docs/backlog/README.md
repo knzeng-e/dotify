@@ -104,7 +104,8 @@ ticket 18 preview assets are consciously retired by access model v2.
 `improvement-plan.md` tracks the July 2026 review of the implementation
 against the product/technical/philosophical memory and the current Parity
 Product SDK direction. The plan is now dual-mode: standalone web remains the
-first public listening path, while the Product DevNet build adds `dotify.dot`,
+first public listening path, while the Product DevNet build adds
+`dotify-test01.dot`,
 explicit Host detection, app-scoped Product identity, and canonical
 Product-origin room links. It does not imply Product-signed contract writes,
 protected key access, Statement Store rooms, or Humanity decisions; those

@@ -26,7 +26,7 @@ The right product shape is dual-mode:
 
 The first adaptive slice is now implemented:
 
-- a separate Product DevNet build and `dotify.dot` manifest;
+- a separate Product DevNet build and `dotify-test01.dot` manifest;
 - explicit Host detection and app-scoped Product account connection;
 - Product identity for room presence without claiming EVM/EIP-191 authority;
 - canonical `.dev-dot.li` room links;

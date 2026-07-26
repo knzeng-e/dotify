@@ -30,7 +30,7 @@ describe('buildSessionLink', () => {
   });
 
   it('builds a public Product DevNet link instead of leaking a container URL', () => {
-    expect(buildSessionLink('LIVE42', 'https://dotify.dev-dot.li')).toBe('https://dotify.dev-dot.li/#/rooms/LIVE42');
+    expect(buildSessionLink('LIVE42', 'https://dotify-test01.dev-dot.li')).toBe('https://dotify-test01.dev-dot.li/#/rooms/LIVE42');
   });
 
   it('returns empty string without a room id or href', () => {

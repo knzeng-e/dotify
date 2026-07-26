@@ -6,7 +6,7 @@ Dotify uses an adaptive dual-host architecture:
 
 - the standalone Netlify app remains a complete public entry point;
 - the Product DevNet build publishes the same listener and room experience as
-  `dotify.dot`;
+  `dotify-test01.dot`;
 - Product-host capabilities are added through explicit adapters;
 - a missing or denied host capability never enables a demo secret, hidden
   signer, or weaker access path.
@@ -47,7 +47,7 @@ chain and backend adapters described below are delivered.
 
 ```text
 Standalone browser                    Product host
-https://muzinga.netlify.app           https://dotify.dev-dot.li
+https://muzinga.netlify.app           https://dotify-test01.dev-dot.li
          |                                      |
          +---------------+----------------------+
                          |
@@ -183,8 +183,8 @@ The initial baseline is:
 | `@parity/product-sdk` | `0.19.1` |
 | `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` in the deploy command |
 | Product network | `devnet` |
-| Product domain | `dotify.dot` |
-| Public gateway | `https://dotify.dev-dot.li` |
+| Product domain | `dotify-test01.dot` |
+| Public gateway | `https://dotify-test01.dev-dot.li` |
 | Asset Hub EVM chain ID | `420420417` |
 
 For every SDK or deploy-tool upgrade:
