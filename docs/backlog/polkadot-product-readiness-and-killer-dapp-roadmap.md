@@ -33,7 +33,8 @@ The first adaptive slice is now implemented:
 - shared Fly API/signaling allowlists for Netlify and Product origins;
 - a pinned build/deploy workflow and operator rollback guide.
 
-Contract writes, Product-signed key requests, Product personhood, and Product
+Typed runtime ports are now extracted in the follow-up branch. Product-native
+contract writes, Product-signed key requests, Product personhood, and Product
 presence transport remain gated follow-up work.
 
 ## Product ecosystem evidence
@@ -160,8 +161,10 @@ Goal: deepen the delivered Product mode one adapter at a time.
 - Delivered: keep standalone adapters intact and lazy-load Product host code.
 - Delivered: use the Product account as presence identity only when available.
 - Delivered: surface host absence and unsupported signer boundaries explicitly.
-- Next: extract typed runtime read/write ports and add a generated CDM/PAPI
-  adapter.
+- Delivered on the follow-up branch: extract typed runtime read/write ports and
+  move the current viem runtime implementation behind `RuntimeReadPort` /
+  `RuntimeWritePort`.
+- Next: add a generated CDM/PAPI adapter behind those ports.
 - Next: add a backend signature-scheme adapter that verifies Product account
   signatures and address binding before key delivery.
 - Keep backend key delivery authoritative unless a Product-host design proves a
@@ -234,9 +237,10 @@ Recommended Project 5 fields:
 - #36: closed after hosted signaling operation evidence.
 - #37: closed after #99 and manually checked deploy-host production env
   evidence.
-- #85: Product SDK baseline and Product DevNet deployment slice implemented;
-  keep open for contract portability, backend Product signatures, resource
-  allocation, and bounded Statement Store presence.
+- #85: Product SDK baseline, Product DevNet deployment slice, and typed runtime
+  port extraction implemented; keep open for CDM/PAPI contract portability,
+  backend Product signatures, resource allocation, and bounded Statement Store
+  presence.
 - #86: implementation active on `codex/86-catalog-read-model`; keep In Progress
   until review and public performance evidence close the warm/cold budgets.
 - #87: keep for responsive cover/gateway pipeline.

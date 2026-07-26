@@ -1,14 +1,6 @@
 import { useState } from 'react';
-import { getAddress, isAddress, parseAbiItem } from 'viem';
-import {
-  ensureContract,
-  getPublicClient,
-  getWalletClient,
-  resolveEvmChain,
-  artistRuntimeFactoryAbi,
-  artistDirectoryAbi,
-  musicRegistryAbi
-} from '../shared/config/contracts';
+import { getAddress, isAddress } from 'viem';
+import { getWalletClient, resolveEvmChain } from '../shared/config/contracts';
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
 import {
   protectedAudioUploadToCID,
@@ -21,8 +13,9 @@ import {
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
+import { createViemRuntimeReader, createViemRuntimeWriter } from '../features/runtime/viemRuntimeAdapter';
 import { resolveConfiguredArtistPublicationSafety } from '../shared/config/deploymentSafety';
-import { describeArtistRegistrationError, formatBlockTimestampMs, formatWeiAsDot, shorten, dotToPlanck } from '../shared/utils/format';
+import { describeArtistRegistrationError, formatWeiAsDot, shorten, dotToPlanck } from '../shared/utils/format';
 import {
   createArtistPublishE2eTrack,
   E2E_ARTIST_PROFILE_TX_HASH,
@@ -41,8 +34,6 @@ import type { AccessMode, CatalogTrack, PersonhoodLevel, ReleaseRoyaltySplitDraf
 import type { ConnectedWallet } from './useWallet';
 import type { PolkadotSigner } from 'polkadot-api';
 
-const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
-const musicRoyAccessPaidEvent = parseAbiItem('event MusicRoyAccessPaid(bytes32 indexed contentHash, address indexed listener, uint256 amount)');
 const runtimeBootstrapSteps = [
   {
     label: 'Claim your artist space',
@@ -241,6 +232,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     coverUploadRef
   } = deps;
 
+  const runtimeReader = createViemRuntimeReader({ ethRpcUrl });
   const [artistRuntimeAddress, setArtistRuntimeAddress] = useState<`0x${string}` | null>(null);
   const [artistRegistrationStatus, setArtistRegistrationStatus] = useState('Checking artist registration');
   const [isRegisteringArtist, setIsRegisteringArtist] = useState(false);
@@ -314,21 +306,16 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     setArtistRegistrationStatus('Checking artist runtime');
 
     try {
-      const directoryExists = await ensureContract(directoryAddress!, ethRpcUrl);
+      const directoryExists = await runtimeReader.ensureContract(directoryAddress!);
       if (!directoryExists) {
         setArtistRuntimeAddress(null);
         setArtistRegistrationStatus('Artist directory unavailable');
         return null;
       }
 
-      const runtimeAddress = (await getPublicClient(ethRpcUrl).readContract({
-        address: directoryAddress!,
-        abi: artistDirectoryAbi,
-        functionName: 'runtimeOf',
-        args: [activeEvmAddress]
-      })) as `0x${string}`;
+      const runtimeAddress = await runtimeReader.resolveArtistRuntime(directoryAddress!, activeEvmAddress);
 
-      if (runtimeAddress === zeroAddress) {
+      if (!runtimeAddress) {
         setArtistRuntimeAddress(null);
         setArtistRegistrationStatus(artistPublicationQuarantined ? artistPublicationSafety.reason : 'Artist not registered yet');
         return null;
@@ -420,7 +407,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         return;
       }
 
-      const factoryExists = await ensureContract(factoryAddress!, ethRpcUrl);
+      const factoryExists = await runtimeReader.ensureContract(factoryAddress!);
       if (!factoryExists) {
         setTransactionFeedback({
           tone: 'error',
@@ -431,19 +418,14 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       }
 
       const walletClient = await getActiveWalletClient();
-      const publicClient = getPublicClient(ethRpcUrl);
+      const runtimeWriter = createViemRuntimeWriter({ ethRpcUrl, walletClient });
 
-      let pendingRuntime = (await publicClient.readContract({
-        address: factoryAddress!,
-        abi: artistRuntimeFactoryAbi,
-        functionName: 'pendingRuntimeOf',
-        args: [activeEvmAddress]
-      })) as `0x${string}`;
+      let pendingRuntime = await runtimeReader.pendingRuntimeOf(factoryAddress!, activeEvmAddress);
 
       let txHash: `0x${string}` | undefined;
       const confirmedBootstrapTxHashes: Partial<Record<number, `0x${string}`>> = {};
 
-      if (pendingRuntime === zeroAddress) {
+      if (!pendingRuntime) {
         setArtistRegistrationStatus(runtimeBootstrapSteps[0].label);
         setTransactionFeedback({
           tone: 'pending',
@@ -452,11 +434,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           steps: artistRuntimeBootstrapRoadmap(0, 'active')
         });
 
-        txHash = await walletClient.writeContract({
-          address: factoryAddress!,
-          abi: artistRuntimeFactoryAbi,
-          functionName: 'createRuntime'
-        });
+        txHash = await runtimeWriter.createRuntime(factoryAddress!);
 
         setTransactionFeedback({
           tone: 'pending',
@@ -466,17 +444,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           steps: artistRuntimeBootstrapRoadmap(0, 'submitted', confirmedBootstrapTxHashes)
         });
 
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
+        await runtimeWriter.waitForTransaction(txHash);
         confirmedBootstrapTxHashes[0] = txHash;
       } else {
-        const pendingStage = Number(
-          await publicClient.readContract({
-            address: factoryAddress!,
-            abi: artistRuntimeFactoryAbi,
-            functionName: 'pendingRuntimeStageOf',
-            args: [activeEvmAddress]
-          })
-        );
+        const pendingStage = await runtimeReader.pendingRuntimeStageOf(factoryAddress!, activeEvmAddress);
         const pendingStepIndex = Math.max(1, Math.min(runtimeBootstrapSteps.length - 1, pendingStage));
         setTransactionFeedback({
           tone: 'pending',
@@ -486,22 +457,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         });
       }
 
-      pendingRuntime = (await publicClient.readContract({
-        address: factoryAddress!,
-        abi: artistRuntimeFactoryAbi,
-        functionName: 'pendingRuntimeOf',
-        args: [activeEvmAddress]
-      })) as `0x${string}`;
+      pendingRuntime = await runtimeReader.pendingRuntimeOf(factoryAddress!, activeEvmAddress);
 
-      while (pendingRuntime !== zeroAddress) {
-        const currentStage = Number(
-          await publicClient.readContract({
-            address: factoryAddress!,
-            abi: artistRuntimeFactoryAbi,
-            functionName: 'pendingRuntimeStageOf',
-            args: [activeEvmAddress]
-          })
-        );
+      while (pendingRuntime) {
+        const currentStage = await runtimeReader.pendingRuntimeStageOf(factoryAddress!, activeEvmAddress);
         const stepIndex = Math.max(1, Math.min(runtimeBootstrapSteps.length - 1, currentStage));
         const step = runtimeBootstrapSteps[stepIndex];
 
@@ -513,11 +472,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           steps: artistRuntimeBootstrapRoadmap(stepIndex, 'active', confirmedBootstrapTxHashes)
         });
 
-        txHash = await walletClient.writeContract({
-          address: factoryAddress!,
-          abi: artistRuntimeFactoryAbi,
-          functionName: 'installRuntimeStep'
-        });
+        txHash = await runtimeWriter.installRuntimeStep(factoryAddress!);
 
         setTransactionFeedback({
           tone: 'pending',
@@ -527,15 +482,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           steps: artistRuntimeBootstrapRoadmap(stepIndex, 'submitted', confirmedBootstrapTxHashes)
         });
 
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
+        await runtimeWriter.waitForTransaction(txHash);
         confirmedBootstrapTxHashes[stepIndex] = txHash;
 
-        pendingRuntime = (await publicClient.readContract({
-          address: factoryAddress!,
-          abi: artistRuntimeFactoryAbi,
-          functionName: 'pendingRuntimeOf',
-          args: [activeEvmAddress]
-        })) as `0x${string}`;
+        pendingRuntime = await runtimeReader.pendingRuntimeOf(factoryAddress!, activeEvmAddress);
       }
 
       const runtimeAddress = await refreshArtistRuntime();
@@ -579,42 +529,20 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     setRoyaltyStatus('Reading artist runtime payments');
 
     try {
-      const client = getPublicClient(ethRpcUrl);
       const trackByHash = new Map(artistTracks.map(track => [track.hash.toLowerCase(), track]));
-      const logs = await client.getLogs({
-        address: artistRuntimeAddress,
-        event: musicRoyAccessPaidEvent,
-        fromBlock: 0n,
-        toBlock: 'latest'
-      });
-      const blockTimestampsByNumber = new Map<string, bigint>();
-      await Promise.all(
-        Array.from(new Set(logs.map(log => log.blockNumber.toString()))).map(async blockNumber => {
-          const block = await client.getBlock({ blockNumber: BigInt(blockNumber) });
-          blockTimestampsByNumber.set(blockNumber, block.timestamp);
-        })
-      );
-
+      const logs = await runtimeReader.listRoyaltyPaymentLogs(artistRuntimeAddress);
       const payments = logs
         .map(log => {
-          const trackHash = log.args.contentHash;
-          const listener = log.args.listener;
-          const amountWei = log.args.amount;
-
-          if (!trackHash || !listener || amountWei === undefined) {
-            return null;
-          }
-
-          const track = trackByHash.get(trackHash.toLowerCase());
+          const track = trackByHash.get(log.trackHash.toLowerCase());
 
           return {
             id: `${log.transactionHash}-${log.logIndex}`,
-            trackHash,
-            trackTitle: track?.title ?? shorten(trackHash, 14),
-            listener,
-            amountWei,
-            amountDot: formatWeiAsDot(amountWei),
-            paidAtMs: formatBlockTimestampMs(blockTimestampsByNumber.get(log.blockNumber.toString())),
+            trackHash: log.trackHash,
+            trackTitle: track?.title ?? shorten(log.trackHash, 14),
+            listener: log.listener,
+            amountWei: log.amountWei,
+            amountDot: formatWeiAsDot(log.amountWei),
+            paidAtMs: log.paidAtMs,
             transactionHash: log.transactionHash,
             blockNumber: log.blockNumber,
             logIndex: log.logIndex
@@ -862,7 +790,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         title: 'Checking factory',
         message: 'Verifying that the ArtistRuntimeFactory is reachable before submission.'
       });
-      const factoryExists = await ensureContract(factoryAddress, ethRpcUrl);
+      const factoryExists = await runtimeReader.ensureContract(factoryAddress);
       if (!factoryExists) {
         setRightsStatus('Factory not found');
         setTransactionFeedback({ tone: 'error', title: 'Factory unavailable', message: 'ArtistRuntimeFactory not found at the configured address.' });
@@ -880,6 +808,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       }
 
       const walletClient = await getActiveWalletClient();
+      const runtimeWriter = createViemRuntimeWriter({ ethRpcUrl, walletClient });
       const ipfsAudioRef = resolvedAudioRef || localAudioRef(fileHash);
       const ipfsCoverRef = resolvedCoverCID ? `ipfs://${resolvedCoverCID}` : `dotify:cover:${fileHash}`;
 
@@ -890,27 +819,20 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         message: 'Sending the registration to your SmartRuntime.'
       });
 
-      const txHash = await walletClient.writeContract({
-        address: runtimeAddress,
-        abi: musicRegistryAbi,
-        functionName: 'musicRegRegister',
-        args: [
-          {
-            contentHash: fileHash,
-            title,
-            artistName,
-            description,
-            imageRef: ipfsCoverRef,
-            audioRef: ipfsAudioRef,
-            metadataRef: ipfsMetadataRef,
-            artistContractRef: `dotify:self-certified:${fileHash}`,
-            accessMode: encodeAccessMode(accessMode),
-            pricePlanck: dotToPlanck(priceDotForAccessMode(accessMode, priceDot)),
-            requiredPersonhood: encodeRequiredPersonhood(accessMode, personhoodLevel)
-          },
-          royaltyRecipients,
-          royaltyShares
-        ]
+      const txHash = await runtimeWriter.registerTrack(runtimeAddress, {
+        contentHash: fileHash,
+        title,
+        artistName,
+        description,
+        imageRef: ipfsCoverRef,
+        audioRef: ipfsAudioRef,
+        metadataRef: ipfsMetadataRef,
+        artistContractRef: `dotify:self-certified:${fileHash}`,
+        accessMode: encodeAccessMode(accessMode),
+        pricePlanck: dotToPlanck(priceDotForAccessMode(accessMode, priceDot)),
+        requiredPersonhood: encodeRequiredPersonhood(accessMode, personhoodLevel),
+        royaltyRecipients,
+        royaltyShares
       });
 
       setRightsStatus('Waiting for transaction confirmation');
@@ -920,7 +842,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         message: 'Transaction submitted. Waiting for the final receipt on the EVM network.',
         txHash
       });
-      await getPublicClient(ethRpcUrl).waitForTransactionReceipt({ hash: txHash });
+      await runtimeWriter.waitForTransaction(txHash);
       setRightsStatus('Rights registered');
       setTransactionFeedback({
         tone: 'success',
@@ -973,24 +895,20 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     setReleaseActionId(`${track.id}:access`);
     try {
       const walletClient = await getActiveWalletClient();
+      const runtimeWriter = createViemRuntimeWriter({ ethRpcUrl, walletClient });
       setTransactionFeedback({
         tone: 'pending',
         title: 'Updating access',
         message: `Changing "${track.title}" access policy.`
       });
-      const txHash = await walletClient.writeContract({
-        address: runtimeAddress,
-        abi: musicRegistryAbi,
-        functionName: 'musicRegSetAccessMode',
-        args: [
-          track.hash,
-          encodeAccessMode(nextAccessMode),
-          dotToPlanck(priceDotForAccessMode(nextAccessMode, nextPriceDot)),
-          encodeRequiredPersonhood(nextAccessMode, nextPersonhoodLevel)
-        ]
+      const txHash = await runtimeWriter.setAccessMode(runtimeAddress, {
+        contentHash: track.hash,
+        accessMode: encodeAccessMode(nextAccessMode),
+        pricePlanck: dotToPlanck(priceDotForAccessMode(nextAccessMode, nextPriceDot)),
+        requiredPersonhood: encodeRequiredPersonhood(nextAccessMode, nextPersonhoodLevel)
       });
       setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Access update submitted.', txHash });
-      await getPublicClient(ethRpcUrl).waitForTransactionReceipt({ hash: txHash });
+      await runtimeWriter.waitForTransaction(txHash);
       await refreshCatalogFromRegistry(track.hash);
       setTransactionFeedback({
         tone: 'success',
@@ -1029,26 +947,15 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     setReleaseActionId(`${track.id}:active`);
     try {
       const walletClient = await getActiveWalletClient();
+      const runtimeWriter = createViemRuntimeWriter({ ethRpcUrl, walletClient });
       setTransactionFeedback({
         tone: 'pending',
         title: active ? 'Reactivating release' : 'Deactivating release',
         message: `${active ? 'Reactivating' : 'Deactivating'} "${track.title}".`
       });
-      const txHash = active
-        ? await walletClient.writeContract({
-            address: runtimeAddress,
-            abi: musicRegistryAbi,
-            functionName: 'musicRegReactivate',
-            args: [track.hash]
-          })
-        : await walletClient.writeContract({
-            address: runtimeAddress,
-            abi: musicRegistryAbi,
-            functionName: 'musicRegDeactivate',
-            args: [track.hash]
-          });
+      const txHash = await runtimeWriter.setReleaseActive(runtimeAddress, track.hash, active);
       setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Release status update submitted.', txHash });
-      await getPublicClient(ethRpcUrl).waitForTransactionReceipt({ hash: txHash });
+      await runtimeWriter.waitForTransaction(txHash);
       await refreshCatalogFromRegistry(track.hash);
       setTransactionFeedback({
         tone: 'success',

@@ -74,7 +74,7 @@ Track selected → access checked
         │
         ├── Has access?  ──► Content key requested, full audio decrypted and played
         │
-        └── No access?  ──► 42 % preview played, access gate shown
+        └── No access?  ──► Unlock/personhood gate shown, no protected audio
                 │
                 ├── Pay DOT     → musicRoyPayAccess() → access granted
                 └── Prove PoP   → registrar confirms personhood → access granted
@@ -102,6 +102,9 @@ src/
 │   ├── useSession.ts          # WebRTC + Socket.IO room management
 │   ├── useArtistConsole.ts    # /artists registration, releases, royalties
 │   └── useWallet.ts           # Wallet tiers: passkey → EIP-6963 extension
+├── features/runtime/
+│   ├── runtimePorts.ts        # RuntimeReadPort / RuntimeWritePort contracts
+│   └── viemRuntimeAdapter.ts  # Current EVM implementation behind the ports
 ├── views/                     # One file per screen / tab
 │   ├── ListenView.tsx
 │   ├── PlayerView.tsx
