@@ -104,4 +104,32 @@ When working on an issue:
 6. Update `docs/index.html` when product positioning, roadmap, architecture narrative, public presentation, or visual identity changes.
 7. Avoid unrelated refactors.
 
+## Pull requests as knowledge sharing
+
+Every pull request must teach the change, not merely list changed files.
+
+Before opening or updating a PR, follow
+`docs/explanation/pull-requests-as-knowledge-sharing.md` and complete
+`.github/pull_request_template.md`.
+
+The PR description must explain:
+
+- the problem and its user/system impact;
+- why the chosen design fits Dotify's constraints;
+- the architecture, data flow, state transitions, and key concepts introduced;
+- meaningful alternatives and tradeoffs;
+- security, failure, persistence, and operational boundaries;
+- a code map and a deliberate review order;
+- specific invariants, risks, and questions the reviewer should verify;
+- validation evidence and remaining limitations.
+
+Fill every applicable metadata field. Each Dotify PR must be associated with
+GitHub Project 5 (`Dotify sprints`), linked to its backlog issue, assigned,
+labeled, and given Project fields that mirror the ticket. Use a closing keyword
+when the PR completes the ticket; otherwise use an explicit issue reference and
+state what remains before closure.
+
+Write for a reviewer who may be new to the codebase. A careful review should
+leave them able to explain the design and safely change it later.
+
 The standard is senior engineering: secure by default, explicit in failure, clean enough for future contributors, and faithful to the product's human-centered purpose.

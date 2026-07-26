@@ -336,7 +336,9 @@ Frontend origin allowed by backend CORS.
 | **Default**  | None         |
 
 Paseo Asset Hub EVM RPC used by the backend to verify track access before
-delivering content keys. If unavailable, key delivery fails closed.
+delivering content keys and to advance the catalog read model. If unavailable,
+key delivery fails closed and the catalog API reports `rpc-outage` while serving
+its last snapshot when available.
 
 ---
 
@@ -373,6 +375,68 @@ Deployed `ArtistDirectory` address used to resolve artist runtimes.
 | **Default**  | `420420417` |
 
 Expected chain ID in wallet-signed content-key requests.
+
+---
+
+### `CATALOG_SNAPSHOT_PATH`
+
+| Property     | Value                  |
+| ------------ | ---------------------- |
+| **Type**     | File path              |
+| **Required** | Catalog API production |
+| **Default**  | `.data/catalog.json`   |
+
+Atomic catalog snapshot path. Mount it on durable storage in production. It is
+a single-writer file and must not be shared by concurrent API writers.
+
+---
+
+### `CATALOG_POLL_INTERVAL_MS`
+
+| Property     | Value      |
+| ------------ | ---------- |
+| **Type**     | Integer ms |
+| **Required** | No         |
+| **Default**  | `10000`    |
+
+Interval for polling confirmed ArtistDirectory and SmartRuntime catalog events.
+
+---
+
+### `CATALOG_RECONCILE_INTERVAL_MS`
+
+| Property     | Value      |
+| ------------ | ---------- |
+| **Type**     | Integer ms |
+| **Required** | No         |
+| **Default**  | `300000`   |
+
+Interval for deterministic full-state reconciliation against the directory,
+track records, and royalty splits.
+
+---
+
+### `CATALOG_STALE_AFTER_MS`
+
+| Property     | Value      |
+| ------------ | ---------- |
+| **Type**     | Integer ms |
+| **Required** | No         |
+| **Default**  | `60000`    |
+
+Snapshot age after which the API reports `stale-cache`.
+
+---
+
+### `CATALOG_CONFIRMATIONS`
+
+| Property     | Value   |
+| ------------ | ------- |
+| **Type**     | Integer |
+| **Required** | No      |
+| **Default**  | `2`     |
+
+Number of chain-head blocks held back before catalog events are indexed.
 
 ---
 

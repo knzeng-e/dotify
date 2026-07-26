@@ -230,12 +230,13 @@
     },
     {
       "id": "catalog-read-model",
-      "doc": "docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md",
+      "doc": "docs/backlog/26-cached-catalog-read-model.md",
       "issue": 86,
       "kind": "work",
-      "priority": "P1",
+      "priority": "P0",
       "track": "Production spine",
-      "phase": "Next"
+      "phase": "Now",
+      "note": "Implementation is on codex/86-catalog-read-model; keep In Progress until review and public warm/cold performance evidence are attached."
     },
     {
       "id": "cover-gateway-pipeline",

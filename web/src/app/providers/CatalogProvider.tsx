@@ -61,6 +61,13 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
         catalog.setCatalogPaidAccessByTrackId({});
         return;
       }
+      // Catalog API mode keeps browsing to one backend request. Security-
+      // sensitive policy reads happen on track intent inside selectTrack.
+      if (catalog.usesCatalogApi) {
+        catalog.setCatalogAccessByTrackId(Object.fromEntries(catalog.catalogTracks.map(track => [track.id, track.accessMode === 'free'])));
+        catalog.setCatalogPaidAccessByTrackId(Object.fromEntries(catalog.catalogTracks.map(track => [track.id, false])));
+        return;
+      }
       const [accessEntries, paidEntries] = await Promise.all([
         Promise.all(catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackAccess(track, listenerEvmAddress)] as const)),
         Promise.all(catalog.catalogTracks.map(async track => [track.id, await catalog.checkTrackPaidAccess(track, listenerEvmAddress)] as const))

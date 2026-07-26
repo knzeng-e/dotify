@@ -13,6 +13,8 @@ Dotify currently uses:
 - artist-owned SmartRuntime model;
 - ArtistRuntimeFactory and ArtistDirectory;
 - music pallets for registry, NFT ownership, royalties, access, and personhood gating.
+- Fastify catalog read model with confirmed event indexing, deterministic
+  reconciliation, and an atomic persisted snapshot.
 
 ## Active product surfaces
 
@@ -49,6 +51,9 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
 - Legacy registry paths should be archived or removed.
 - Frontend contract ABIs are generated from Hardhat artifacts; generation must
   stay checked so drift does not return.
+- Production catalog browsing is one backend request when
+  `VITE_DOTIFY_API_URL` is set. The current snapshot store is single-writer
+  JSON, not a horizontally shared database.
 - Product SDK / Playground / Humanity integration is a progressive enhancement
   track. The current verified Product SDK snapshot is prototype/reference/
   unaudited, Host APIs require a compatible container, contracts target
@@ -89,6 +94,8 @@ Introduce a lean backend service for:
 - denial responses without keys for unauthorized hosts;
 - Free-track unauthenticated key delivery after on-chain zero-address verification;
 - health and version endpoints;
+- cacheable catalog list/detail endpoints with block-lag metadata;
+- confirmed SmartRuntime event indexing and deterministic reconciliation;
 - future WebAuthn backend support.
 
 The backend should be boring, typed, and auditable.

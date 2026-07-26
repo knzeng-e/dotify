@@ -107,6 +107,9 @@ testnet users.
   frontend public-env validation are delivered/closed.
 - #33 public injected-wallet/device validation is delivered/closed; Product
   host/account integration remains scoped to #85, not reopened here.
+- #86 cached catalog implementation is active: the browser uses one cacheable
+  API request, while the backend persists and reconciles SmartRuntime state.
+  Keep it open until review and public warm/cold p75 evidence are attached.
 - Validate DAV2 Range/MSE and fallback behavior across browsers and gateways
   through #88.
 - Decide whether a backend read-through gateway is needed for reliable first
@@ -218,7 +221,8 @@ Recommended Project 5 fields:
   evidence.
 - #85: split into Product SDK baseline, contract portability, Playground deploy,
   Statement Store presence, and integration adapter spikes.
-- #86: keep for cacheable catalog read model.
+- #86: implementation active on `codex/86-catalog-read-model`; keep In Progress
+  until review and public performance evidence close the warm/cold budgets.
 - #87: keep for responsive cover/gateway pipeline.
 - #88: keep for DAV2 startup and backend read-through gateway decision.
 - #89: keep for TURN/SFU/reconnect; constrain Statement Store to presence.

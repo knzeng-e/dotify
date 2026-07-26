@@ -103,7 +103,8 @@ If the public Asset Hub RPC is unavailable, set `VITE_ETH_RPC_URL` in
 ### Running the backend API
 
 The backend service handles server-side IPFS pinning, audio encryption,
-wallet-signed content-key delivery, and health checks.
+wallet-signed content-key delivery, the persisted catalog read model, and
+health checks.
 
 ```bash
 cd services/api
@@ -121,6 +122,11 @@ npm run dev
 | `PASEO_ASSET_HUB_RPC`       | Key requests     | Paseo Asset Hub EVM RPC used for access checks           |
 | `DOTIFY_DIRECTORY_ADDRESS`  | Key requests     | ArtistDirectory address used to resolve artist runtimes  |
 | `DOTIFY_CHAIN_ID`           | Key requests     | Chain ID expected in wallet-signed key requests          |
+| `CATALOG_SNAPSHOT_PATH`     | Catalog API      | Durable JSON snapshot path (default `.data/catalog.json`) |
+| `CATALOG_POLL_INTERVAL_MS`  | Catalog API      | Confirmed event polling interval                         |
+| `CATALOG_RECONCILE_INTERVAL_MS` | Catalog API  | Full deterministic on-chain reconciliation interval      |
+| `CATALOG_STALE_AFTER_MS`    | Catalog API      | Age at which cached data reports `stale-cache`            |
+| `CATALOG_CONFIRMATIONS`     | Catalog API      | Blocks held back before indexing event changes            |
 | `PINATA_JWT`                | For uploads      | Server-side Pinata token (never expose in frontend)      |
 | `CONTENT_KEY_MASTER_SECRET` | For audio upload | 32-byte hex master secret for AES-256-GCM key derivation |
 
@@ -128,7 +134,10 @@ Set `VITE_DOTIFY_API_URL=http://localhost:8790` in `web/.env.local` to route
 audio, cover, and metadata uploads through the backend. In this mode the
 backend encrypts audio server-side and listeners obtain per-track keys through
 wallet-signed key requests; the production content key never ships in the
-frontend bundle.
+frontend bundle. The same setting makes initial catalog browsing use one
+cacheable `GET /api/catalog` request instead of enumerating every runtime and
+royalty split from the browser. Direct chain reads remain in transaction
+preflight and access checks performed after track intent.
 
 For public production builds, set `VITE_DOTIFY_DEPLOYMENT=production` alongside
 `VITE_DOTIFY_API_URL`, `VITE_SIGNAL_URL`, and the public IPFS gateway variables.
@@ -155,6 +164,9 @@ a restricted upload-only Pinata token. Do not use an unrestricted token in demos
 | `GET /health`       | Liveness: process status, uptime, package version. Never touches the chain. |
 | `GET /version`      | Package version plus the deploy commit SHA when known                       |
 | `GET /health/ready` | Readiness diagnostics; answers `503` when key delivery cannot work          |
+| `GET /api/catalog`  | Paginated release read model with ETag, cache policy, and block-lag metadata |
+| `GET /api/catalog/artists/:address` | Artist detail plus indexed releases                     |
+| `GET /api/catalog/releases/:hash`   | Release detail with access and royalty summary          |
 
 The commit SHA comes from the `GIT_COMMIT_SHA` env variable, falling back to
 `git rev-parse HEAD` in dev checkouts.
@@ -169,6 +181,14 @@ line for that request, and error responses share one typed envelope:
 `{ error, code, requestId }`. Authorization headers, session tokens, and
 signatures are redacted from request logs; secrets never appear in health
 output.
+
+The catalog indexer persists an atomic JSON snapshot, advances it from
+confirmed `ArtistRegistered` and SmartRuntime track events, and periodically
+reconciles full on-chain state. A checkpoint hash mismatch triggers a
+deterministic reindex. Run `npm run catalog:reindex` in `services/api` for an
+operator-forced rebuild. The JSON store is a single-process baseline; mount
+`CATALOG_SNAPSHOT_PATH` on durable storage and do not run multiple writers
+against the same file.
 
 ### Running the signaling server (hosted rooms)
 
@@ -390,7 +410,7 @@ handle:
 | ------------------ | ------------------------------------------------------ |
 | `web/`             | React app, signaling server, Bulletin deploy scripts   |
 | `web/.papi/`       | PAPI descriptors for Bulletin Chain                    |
-| `services/api/`    | Backend API: health, uploads, auth nonce, key delivery |
+| `services/api/`    | Backend API: catalog index, health, uploads, auth, key delivery |
 | `contracts/evm/`   | Hardhat + Solidity smart-runtime contracts             |
 | `docs/product/`    | Product policy and UX flow documentation               |
 | `docs/security/`   | Security boundaries and threat models                  |
@@ -415,8 +435,8 @@ handle:
 8. Integrate live Humanity / Individuality data instead of manual registrar
    writes, after the research ticket proves a privacy-preserving source and
    address-binding story.
-9. Split the large catalog, session, artist, and player workflows behind domain
-   ports and application use cases.
+9. Measure the catalog API budgets under public seed traffic and move its
+   single-writer JSON snapshot to shared storage before horizontal API scaling.
 10. Keep generated frontend ABI bindings checked from Hardhat artifacts.
 11. Add deployment smoke tests for DotNS/Bulletin CIDs, IPFS gateway fallback,
     API/signaling health, and contract address availability.
