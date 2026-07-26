@@ -4,6 +4,10 @@ All environment variables for the Dotify web app, signaling server, backend API,
 and EVM deployment scripts. Copy the relevant `.env.example` file and fill in
 values for your environment.
 
+For hosted Netlify/Fly dashboard placement, validation steps, and the checklist
+for future env/config changes, see
+[`docs/operations/deployment-configuration.md`](../operations/deployment-configuration.md).
+
 ---
 
 ## Web app variables (`web/.env.local`)

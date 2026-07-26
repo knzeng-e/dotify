@@ -101,8 +101,10 @@ When working on an issue:
 3. Implement only the requested scope.
 4. Add or update tests when requested.
 5. Update docs when behavior or setup changes.
-6. Update `docs/index.html` when product positioning, roadmap, architecture narrative, public presentation, or visual identity changes.
-7. Avoid unrelated refactors.
+6. When environment variables, hosted dashboard settings, deploy config, CORS origins, storage mounts, scaling, or production validation steps change, check and update
+   `docs/operations/deployment-configuration.md`.
+7. Update `docs/index.html` when product positioning, roadmap, architecture narrative, public presentation, or visual identity changes.
+8. Avoid unrelated refactors.
 
 ## Pull requests as knowledge sharing
 

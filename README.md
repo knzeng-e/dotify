@@ -149,6 +149,10 @@ Run `cd web && npm run smoke:production-env` to verify the production build
 guard still fails closed for missing URLs and browser-exposed demo secrets while
 accepting a safe public production env contract.
 
+Hosted Netlify/Fly dashboard settings, secrets, catalog persistence, and the
+update checklist for future env/config changes are tracked in
+[`docs/operations/deployment-configuration.md`](docs/operations/deployment-configuration.md).
+
 Operators can also set `VITE_DOTIFY_DEBUG_PANEL=true` during smoke checks to
 show the read-only Production readiness panel under `You`. It checks backend
 readiness, signaling health, chain RPC, configured contracts, wallet-chain
