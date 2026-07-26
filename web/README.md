@@ -167,6 +167,11 @@ a separately hosted Socket.IO signaling server. Deploy the signaling server
 first, then build the frontend with `VITE_SIGNAL_URL` pointing at that public
 server.
 
+Use
+[`docs/operations/deployment-configuration.md`](../docs/operations/deployment-configuration.md)
+as the dashboard checklist for Netlify/Fly environment values, secrets, catalog
+persistence, and future env/config changes.
+
 #### 1. Deploy the signaling server on Fly
 
 The signaling server lives in `server/signaling.mjs` and is packaged by

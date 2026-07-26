@@ -33,6 +33,16 @@ Precise technical descriptions for developers integrating with or contributing t
 
 ---
 
+## Operations
+
+Runbooks for hosted configuration and production validation.
+
+| Document | Summary |
+|---|---|
+| [Deployment Configuration](./operations/deployment-configuration.md) | Netlify and Fly dashboard settings, secrets, catalog persistence, validation, and the update checklist for future env/config changes |
+
+---
+
 ## Quick links
 
 - [spec.md](../spec.md) — complete product specification
