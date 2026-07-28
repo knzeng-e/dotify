@@ -222,9 +222,12 @@ accepts two explicit schemes on session sign-in and protected key requests:
 
 Unknown schemes fail at the API schema boundary. Product requests must still
 pass the same nonce, chain, purpose, expiry, and `musicAccCanAccess` checks as
-standalone requests. The shipped Product frontend does not yet submit this
-Product proof shape; when it does, validate it through Product host smoke tests
-before treating Product identity as a protected-playback account.
+standalone requests. The Product frontend submits this proof shape only after
+an explicit Product-host account connection; contract writes remain on the
+standalone EVM/passkey signer path until the Product CDM transaction adapter has
+real host-signed transaction evidence. Validate Product protected playback
+through host smoke tests after each Product publication before treating Product
+identity as production-ready for gated listening.
 
 ## Fly Signaling
 

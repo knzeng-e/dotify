@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { probeProductHost, resolveProductHostConfig } from './productHost';
+import { describe, expect, it, vi } from 'vitest';
+import { connectProductHostIdentity, probeProductHost, resolveProductHostConfig } from './productHost';
 
 describe('resolveProductHostConfig', () => {
   it('keeps ordinary browser builds independent from the Product host', () => {
@@ -49,5 +49,43 @@ describe('probeProductHost', () => {
         throw new Error('host missing');
       })
     ).resolves.toBe('unavailable');
+  });
+});
+
+describe('connectProductHostIdentity', () => {
+  it('exposes the Product account identity and message signer', async () => {
+    const publicKey = new Uint8Array(32).fill(0x22);
+    const signature = new Uint8Array(64).fill(0x33);
+    const signBytes = vi.fn(async () => signature);
+    const account = {
+      dotNsIdentifier: 'dotify-test01.dot',
+      derivationIndex: 0,
+      publicKey
+    };
+    const provider = {
+      getProductAccount: vi.fn(() => ({
+        match: async <T>(onOk: (value: typeof account) => T) => onOk(account)
+      })),
+      getProductAccountSigner: vi.fn(() => ({ signBytes }))
+    };
+
+    const identity = await connectProductHostIdentity(
+      { mode: 'required', productId: 'dotify-test01.dot' },
+      {
+        getAccountsProvider: async () => provider,
+        deriveH160: () => '0x1111111111111111111111111111111111111111',
+        ss58Encode: () => '5ProductAccount'
+      }
+    );
+
+    await expect(identity.signMessage('Dotify sign-in')).resolves.toBe(`0x${'33'.repeat(64)}`);
+    expect(identity).toMatchObject({
+      evmAddress: '0x1111111111111111111111111111111111111111',
+      substrateAddress: '5ProductAccount',
+      productPublicKey: `0x${'22'.repeat(32)}`
+    });
+    expect(provider.getProductAccount).toHaveBeenCalledWith('dotify-test01.dot', 0);
+    expect(provider.getProductAccountSigner).toHaveBeenCalledWith(account);
+    expect(signBytes).toHaveBeenCalledWith(new TextEncoder().encode('Dotify sign-in'));
   });
 });

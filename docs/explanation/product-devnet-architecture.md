@@ -174,7 +174,10 @@ use `product-sr25519-v1` after signing the same canonical Dotify message bytes
 with the app-scoped Product account; the server binds the signature to the
 Product public key, derived H160 requester, chain, nonce, purpose, and expiry
 before consuming the nonce or running access checks. Unknown schemes fail
-closed. The shipped Product frontend does not yet send this Product proof shape.
+closed. The Product frontend now sends this proof shape after explicit
+Product-host account connection; real Host smoke evidence is still required
+for each Product publication before gated listening is treated as
+production-ready.
 
 This avoids a second frontend business model and allows Product mode to replace
 one infrastructure adapter at a time.
@@ -187,8 +190,9 @@ one infrastructure adapter at a time.
    permission, or personhood proof before value is visible.
 3. If the host is absent, catalog browsing, Free playback, and room links still
    work. The wallet modal explains why the Product account is unavailable.
-4. A Product account without an EVM signing adapter is not a protected
-   listener. Dotify passes no requester address to the key service.
+4. A Product account without an EVM signing adapter can request protected keys
+   only through `product-sr25519-v1`; contract writes still require a
+   passkey/EVM signer until Product CDM transaction evidence lands.
 5. A denied key, RPC failure, or unsupported signature never falls back to a
    browser content secret.
 6. The Product SDK and deploy tooling are prototype/reference dependencies.

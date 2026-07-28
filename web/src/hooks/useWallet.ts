@@ -28,6 +28,7 @@ import {
 import { connectProductHostIdentity, probeProductHost, resolveProductHostConfig, type ProductHostStatus } from '../features/productHost/productHost';
 import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
 import { getProviderErrorCode, parseChainId, toEip155ChainId } from '../features/wallet/network';
+import { PRODUCT_SR25519_SIGNATURE_SCHEME, type KeyRequestSigner } from '../services/keyService';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,8 @@ export type ConnectedWallet = {
   evmAddress: `0x${string}`;
   /** EIP-1193 chain id when the connected wallet reports one */
   chainId?: number;
+  /** Optional identity signer for backend key/session requests. Product-host accounts use this without gaining EVM tx authority. */
+  keyRequestSigner?: KeyRequestSigner;
   /** Build the right viem WalletClient for this connection type */
   createEvmClient?: (chain: Chain, rpcUrl: string) => WalletClient;
 };
@@ -326,7 +329,13 @@ export function useWallet() {
           method: 'product-host',
           label: 'Polkadot app',
           substrateAddress: identity.substrateAddress,
-          evmAddress: identity.evmAddress
+          evmAddress: identity.evmAddress,
+          keyRequestSigner: {
+            signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+            address: identity.evmAddress,
+            productPublicKey: identity.productPublicKey,
+            signMessage: identity.signMessage
+          }
         }
       });
     } catch (error) {

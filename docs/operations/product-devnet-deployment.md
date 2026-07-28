@@ -171,9 +171,10 @@ active.
 ## Known Limits
 
 - Product account signing is accepted by the API only through the explicit
-  `product-sr25519-v1` session/key-request scheme. The shipped Product UI has
-  not yet been wired to submit that proof shape, so protected playback still
-  uses passkey/EVM signing in the current frontend.
+  `product-sr25519-v1` session/key-request scheme. The Product UI now submits
+  that proof shape after an explicit host-account connection, but each published
+  Product build still needs real Host smoke evidence before gated playback is
+  considered production-ready on Product DevNet.
 - Contract writes still require passkey/EVM signing in the shipped UI. The
   experimental Product CDM/PAPI runtime adapter is present in code, but it is
   not selected until Dotify has CDM-installed runtime packages, generated

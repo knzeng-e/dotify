@@ -58,8 +58,8 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
   track. The current verified Product SDK snapshot is prototype/reference/
   unaudited, Host APIs require a compatible container, contracts target
   `pallet-revive` / PolkaVM CDM flows, Product sr25519 key/session signatures
-  are API-supported but not yet wired into the shipped Product frontend, and
-  Statement Store is constrained to small signed ephemeral data.
+  are wired for Product frontend protected playback after explicit host-account
+  connection, and Statement Store is constrained to small signed ephemeral data.
 
 ## Production spine
 
