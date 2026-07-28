@@ -84,7 +84,7 @@ cross-origin catalog reads, key requests, Socket.IO, and WebRTC signaling.
 | Host room | Socket.IO + WebRTC | Same | Keep until a multiparty replacement proves equivalent UX |
 | Product identity | Not applicable | App-scoped SS58/H160 | Host identity with explicit capability grants |
 | Classic payment | Passkey/EVM wallet | Passkey/EVM wallet | CDM/PAPI write adapter |
-| Protected key request | EIP-191 | EIP-191 | Backend-verified Product signature scheme |
+| Protected key request | EIP-191 or session token | EIP-191 or session token in shipped UI; API accepts `product-sr25519-v1` | Frontend-host signed Product key/session requests |
 | Artist publication | viem/EVM | viem/EVM | Generated CDM contract adapter |
 | Personhood | Current on-chain policy source | No new claim | Privacy-preserving Product proof after verification |
 | Static delivery | Netlify | Bulletin + DotNS | Bulletin + DotNS |
@@ -166,11 +166,15 @@ The remaining Product contract work is integration and evidence work, not UI
 rewiring. Operators still need CDM-deployed Dotify runtime packages,
 `cdm.json`/generated contract types, `pallet-revive` account mapping, and real
 host-signed transaction smoke evidence before Product writes can replace the
-EVM wallet path. The backend authentication protocol must also gain an
-explicit signature scheme field. A Product signature is accepted only after the
-server can bind the signed payload, Product account public key, derived H160,
-chain, nonce, purpose, and expiry. EIP-191 remains supported for standalone
-clients. Unknown schemes fail closed.
+EVM wallet path.
+
+The backend authentication protocol now has an explicit signature scheme field.
+Standalone clients use the default `eip191` scheme. Product-host clients can
+use `product-sr25519-v1` after signing the same canonical Dotify message bytes
+with the app-scoped Product account; the server binds the signature to the
+Product public key, derived H160 requester, chain, nonce, purpose, and expiry
+before consuming the nonce or running access checks. Unknown schemes fail
+closed. The shipped Product frontend does not yet send this Product proof shape.
 
 This avoids a second frontend business model and allows Product mode to replace
 one infrastructure adapter at a time.

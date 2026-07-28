@@ -21,25 +21,43 @@ import {
   type TrackAccessResult
 } from '../services/chainAccess.js';
 import { deriveContentKey as defaultDeriveContentKey, type ContentKeyResult } from '../services/keyVault.js';
-import { verifySignedRequest as defaultVerifySignedRequest, type KeySignatureRequest, type SignatureVerification } from '../services/signatures.js';
+import {
+  EIP191_SIGNATURE_SCHEME,
+  PRODUCT_SR25519_SIGNATURE_SCHEME,
+  verifySignedRequest as defaultVerifySignedRequest,
+  type KeySignatureRequest,
+  type SignatureVerification
+} from '../services/signatures.js';
 import { verifySessionToken as defaultVerifySessionToken, type SessionVerification } from '../services/sessionTokens.js';
 
 const paramsSchema = z.object({
   contentHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid content hash')
 });
 
-const signedBodySchema = z.object({
+const signedBaseBodySchema = z.object({
   requester: z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'Invalid EVM address'),
-  signature: z.string().regex(/^0x[0-9a-fA-F]+$/, 'Invalid signature'),
   nonce: z.string().min(16, 'Nonce is required'),
   chainId: z.number().int().positive(),
   expiresAt: z.string().datetime()
 });
 
 // 'room_listener' is intentionally not accepted; room listeners never get keys.
-const keyRequestBodySchema = signedBodySchema.extend({
+const keyRequestPurposeSchema = z.object({
   purpose: z.enum(['individual', 'room_host'])
 });
+
+const eip191KeyRequestBodySchema = signedBaseBodySchema.merge(keyRequestPurposeSchema).extend({
+  signatureScheme: z.literal(EIP191_SIGNATURE_SCHEME).optional(),
+  signature: z.string().regex(/^0x[0-9a-fA-F]+$/, 'Invalid signature')
+});
+
+const productSr25519KeyRequestBodySchema = signedBaseBodySchema.merge(keyRequestPurposeSchema).extend({
+  signatureScheme: z.literal(PRODUCT_SR25519_SIGNATURE_SCHEME),
+  signature: z.string().regex(/^0x[0-9a-fA-F]{128}$/, 'Invalid Product sr25519 signature'),
+  productPublicKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid Product account public key')
+});
+
+const keyRequestBodySchema = z.union([productSr25519KeyRequestBodySchema, eip191KeyRequestBodySchema]);
 
 // Session path (ticket 24 P2): after the one-per-session sign-in, a key
 // request carries the bearer token instead of a fresh wallet signature. The
@@ -145,16 +163,33 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
         return reply.status(401).send({ error: domain.reason, code: domain.code });
       }
 
-      const signature = await deps.verifySignedRequest({
-        action: 'REQUEST_CONTENT_KEY',
-        purpose: body.data.purpose,
-        contentHash: params.data.contentHash,
-        requester: body.data.requester,
-        chainId: body.data.chainId,
-        nonce: body.data.nonce,
-        expiresAt: body.data.expiresAt,
-        signature: body.data.signature
-      });
+      const signatureRequest: KeySignatureRequest =
+        body.data.signatureScheme === PRODUCT_SR25519_SIGNATURE_SCHEME
+          ? {
+              action: 'REQUEST_CONTENT_KEY',
+              purpose: body.data.purpose,
+              contentHash: params.data.contentHash,
+              requester: body.data.requester,
+              chainId: body.data.chainId,
+              nonce: body.data.nonce,
+              expiresAt: body.data.expiresAt,
+              signature: body.data.signature,
+              signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+              productPublicKey: body.data.productPublicKey
+            }
+          : {
+              action: 'REQUEST_CONTENT_KEY',
+              purpose: body.data.purpose,
+              contentHash: params.data.contentHash,
+              requester: body.data.requester,
+              chainId: body.data.chainId,
+              nonce: body.data.nonce,
+              expiresAt: body.data.expiresAt,
+              signature: body.data.signature,
+              signatureScheme: EIP191_SIGNATURE_SCHEME
+            };
+
+      const signature = await deps.verifySignedRequest(signatureRequest);
 
       if (!signature.valid) {
         return reply.status(401).send({ error: signature.reason, code: signature.code });

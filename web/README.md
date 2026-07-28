@@ -77,7 +77,9 @@ The production protection boundary is the backend API:
 - Content keys are derived from `CONTENT_KEY_MASTER_SECRET`.
 - Full-track key delivery requires a signed-in session (one wallet signature
   per ~24h) or a wallet-signed request, plus an on-chain access check on
-  every key request.
+  every key request. Standalone clients use `eip191`; Product-host clients can
+  use the API-side `product-sr25519-v1` scheme once the frontend sends the
+  host-signed proof shape.
 - Room guests never receive keys; only an authorized host may request a
   `room_host` key.
 
@@ -170,8 +172,10 @@ can be distributed from a flat IPFS CID / DotNS record.
 `@polkadot-community-foundation/polkadot-app-deploy@0.13.1` through `npx`, uploads static chunks to
 Product DevNet Bulletin, and binds `dotify-test01.dot`. Browse listing is a separate
 operator step because it has its own signer/personhood boundary. The Product account currently
-provides app-scoped identity for presence and rooms; contract writes and
-protected key requests still require the existing passkey/EVM signer.
+provides app-scoped identity for presence and rooms in the shipped UI. The API
+can verify `product-sr25519-v1` key/session requests, but the frontend still
+uses the existing passkey/EVM signer until host-signed request wiring lands.
+Contract writes also remain on the passkey/EVM path.
 
 See
 [`docs/explanation/product-devnet-architecture.md`](../docs/explanation/product-devnet-architecture.md)
@@ -483,7 +487,8 @@ appropriate component composition rather than shell-level prop drilling.
 - Browser-side Pinata uploads are demo/local mode only. Production should set
   `VITE_DOTIFY_API_URL` and configure `PINATA_JWT` on the backend.
 - Playback protection is client-side best-effort only when the backend API is
-  not configured. Production key delivery uses wallet-signed backend requests.
+  not configured. Production key delivery uses wallet-signed backend requests
+  with explicit `eip191` or `product-sr25519-v1` signature schemes.
 - Artist registration and release publication require a connected wallet. Local
   EVM dev accounts are no longer exposed as public artist fallbacks.
 - Proof of Personhood levels are contract storage controlled by the runtime

@@ -57,8 +57,9 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
 - Product SDK / Playground / Humanity integration is a progressive enhancement
   track. The current verified Product SDK snapshot is prototype/reference/
   unaudited, Host APIs require a compatible container, contracts target
-  `pallet-revive` / PolkaVM CDM flows, and Statement Store is constrained to
-  small signed ephemeral data.
+  `pallet-revive` / PolkaVM CDM flows, Product sr25519 key/session signatures
+  are API-supported but not yet wired into the shipped Product frontend, and
+  Statement Store is constrained to small signed ephemeral data.
 
 ## Production spine
 
@@ -87,7 +88,8 @@ Introduce a lean backend service for:
 
 - Pinata uploads;
 - content-key custody and delivery;
-- wallet signature verification;
+- wallet signature verification, including EIP-191 and Product sr25519
+  request schemes;
 - nonce/replay protection;
 - access checks against SmartRuntime;
 - room host key requests;
@@ -211,7 +213,9 @@ Contracts already have meaningful tests; frontend and e2e must catch up.
 - No dev fallback signer in public flows.
 - Access checks must fail closed.
 - Backend must not trust frontend-provided access results.
-- Wallet signatures must include nonce, chain ID, content hash, requester address, request purpose, and expiration.
+- Wallet signatures must include nonce, chain ID, content hash, requester
+  address, request purpose, and expiration; Product signatures must also bind
+  the Product account public key to the derived H160 requester.
 - Replay protection is mandatory for key requests.
 - Room listeners must never receive content keys or encrypted source files.
 - Logs must never expose secrets, keys, or raw uploaded contents.

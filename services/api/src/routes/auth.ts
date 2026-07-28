@@ -8,6 +8,8 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { checkDotifyChainId } from '../services/chainDomain.js';
 import {
+  EIP191_SIGNATURE_SCHEME,
+  PRODUCT_SR25519_SIGNATURE_SCHEME,
   createWalletNonceChallenge,
   verifySignInRequest as defaultVerifySignInRequest,
   type SignInRequest,
@@ -25,13 +27,25 @@ const nonceRequestSchema = z.object({
   chainId: z.number().int().positive().optional()
 });
 
-const sessionRequestSchema = z.object({
+const sessionBaseRequestSchema = z.object({
   address: z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'Invalid EVM address'),
-  signature: z.string().regex(/^0x[0-9a-fA-F]+$/, 'Invalid signature'),
   nonce: z.string().min(16, 'Nonce is required'),
   chainId: z.number().int().positive(),
   expiresAt: z.string().datetime()
 });
+
+const eip191SessionRequestSchema = sessionBaseRequestSchema.extend({
+  signatureScheme: z.literal(EIP191_SIGNATURE_SCHEME).optional(),
+  signature: z.string().regex(/^0x[0-9a-fA-F]+$/, 'Invalid signature')
+});
+
+const productSr25519SessionRequestSchema = sessionBaseRequestSchema.extend({
+  signatureScheme: z.literal(PRODUCT_SR25519_SIGNATURE_SCHEME),
+  signature: z.string().regex(/^0x[0-9a-fA-F]{128}$/, 'Invalid Product sr25519 signature'),
+  productPublicKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid Product account public key')
+});
+
+const sessionRequestSchema = z.union([productSr25519SessionRequestSchema, eip191SessionRequestSchema]);
 
 const logoutRequestSchema = z.object({
   sessionToken: z.string().min(16, 'Session token is required')
@@ -103,13 +117,27 @@ export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
         return reply.status(400).send({ error: domain.reason, code: domain.code });
       }
 
-      const verification = await deps.verifySignInRequest({
-        requester: parsed.data.address,
-        chainId: parsed.data.chainId,
-        nonce: parsed.data.nonce,
-        expiresAt: parsed.data.expiresAt,
-        signature: parsed.data.signature
-      });
+      const signInRequest: SignInRequest =
+        parsed.data.signatureScheme === PRODUCT_SR25519_SIGNATURE_SCHEME
+          ? {
+              requester: parsed.data.address,
+              chainId: parsed.data.chainId,
+              nonce: parsed.data.nonce,
+              expiresAt: parsed.data.expiresAt,
+              signature: parsed.data.signature,
+              signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+              productPublicKey: parsed.data.productPublicKey
+            }
+          : {
+              requester: parsed.data.address,
+              chainId: parsed.data.chainId,
+              nonce: parsed.data.nonce,
+              expiresAt: parsed.data.expiresAt,
+              signature: parsed.data.signature,
+              signatureScheme: EIP191_SIGNATURE_SCHEME
+            };
+
+      const verification = await deps.verifySignInRequest(signInRequest);
       if (!verification.valid) {
         return reply.status(401).send({ error: verification.reason, code: verification.code });
       }

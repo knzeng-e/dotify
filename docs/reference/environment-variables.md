@@ -126,8 +126,10 @@ Production deployments must use a publicly reachable HTTPS endpoint.
 
 Backend API base URL. When set, audio, cover, and metadata uploads go through
 the backend. Full-track playback can request content keys with wallet-signed
-requests. When unset, the web app falls back to local/demo browser-side Pinata
-upload and `VITE_CONTENT_SECRET` encryption.
+requests. The backend accepts the default `eip191` signature scheme and the
+Product-host `product-sr25519-v1` scheme without an additional env flag. When
+unset, the web app falls back to local/demo browser-side Pinata upload and
+`VITE_CONTENT_SECRET` encryption.
 
 ---
 

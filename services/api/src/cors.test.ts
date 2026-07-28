@@ -16,9 +16,10 @@ describe('frontend origin boundary', () => {
       logging: false,
       apiOrigins: ['https://muzinga.netlify.app', 'https://dotify-test01.dev-dot.li'],
     });
+    const server = app;
 
     for (const origin of ['https://muzinga.netlify.app', 'https://dotify-test01.dev-dot.li']) {
-      const response = await app.inject({
+      const response = await server.inject({
         method: 'GET',
         url: '/health',
         headers: { origin },
@@ -26,7 +27,7 @@ describe('frontend origin boundary', () => {
       assert.equal(response.headers['access-control-allow-origin'], origin);
     }
 
-    const unrelated = await app.inject({
+    const unrelated = await server.inject({
       method: 'GET',
       url: '/health',
       headers: { origin: 'https://unrelated.example' },

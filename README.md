@@ -47,10 +47,12 @@ iteration can move signaling to statement-store style infrastructure.
 adds explicit app-scoped Product identity, and publishes through
 Bulletin/DotNS. The runtime hooks now sit behind typed ports with the current
 viem implementation and an experimental Product CDM/PAPI adapter boundary.
-Product host signing is not yet accepted for contract writes or protected key
-delivery; those boundaries remain passkey/EVM until CDM-installed runtime
-packages, host-signed transaction evidence, and backend signature adapters are
-proven. See
+The backend key-delivery protocol now has an explicit Product sr25519
+signature scheme that binds the Product account public key to the derived H160
+requester before access checks. The shipped Product frontend still uses the
+passkey/EVM path for protected playback until host-signed key/session requests
+are wired; contract writes also remain passkey/EVM until CDM-installed runtime
+packages and host-signed transaction evidence are proven. See
 [`docs/explanation/product-devnet-architecture.md`](docs/explanation/product-devnet-architecture.md)
 and the
 [`Product roadmap`](docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md).
@@ -305,6 +307,10 @@ releasing it. Gated tracks use a signed session or signed key request; the
 backend verifies the requester, resolves the artist runtime, and calls
 `musicAccCanAccess` before releasing a per-track key. If access is denied, the
 UI shows the action needed to unlock the track and plays no protected audio.
+Standalone clients sign with the default `eip191` scheme. Product-host clients
+can use `product-sr25519-v1` by signing the same canonical Dotify message bytes
+with the app-scoped Product account and sending `productPublicKey`; the backend
+derives the H160 requester from that public key before any nonce is consumed.
 
 For registered artist tracks, users without a connected wallet can play Free
 tracks. For gated tracks, they see a sign-in/unlock gate. Dev-account fallback
@@ -438,8 +444,8 @@ handle:
 4. Keep demo-mode browser-exposed Pinata/content secrets out of public
    deployments.
 5. Validate the Product host/account and Bulletin/DotNS deployment baseline,
-   then implement Product signature verification, resource allocation, and
-   PolkaVM/CDM contract portability.
+   then wire frontend Product-signed key/session requests, resource allocation,
+   and PolkaVM/CDM contract portability.
 6. Add a production artist dashboard on `/artists`: release drafts, edit
    metadata, royalty analytics, and profile verification state.
 7. Deploy and monitor a public signaling server for DotNS / Bulletin builds.
