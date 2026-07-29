@@ -66,15 +66,29 @@ API_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li
 SIGNAL_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li
 ```
 
-Deploy both services before publishing the frontend:
+Deploy both services before publishing the frontend. `cd` into each service
+first - this is not cosmetic:
 
 ```bash
 cd services/api
-flyctl deploy -c fly.toml
+flyctl deploy
 
 cd ../../web
 flyctl deploy -c fly.signal.toml
 ```
+
+`-c` selects the config file only; it does not set the Docker build context,
+which is always the shell's working directory. Running
+`flyctl deploy -c services/api/fly.toml` from the repository root fails at
+`COPY src ./src`, because the Dockerfile is written against `services/api` as
+its context and there is no `src/` at the root. It also uploads a ~1.3 GB
+context, since Docker reads `.dockerignore` from the context root and only the
+service directories have one. Passing the directory positionally
+(`flyctl deploy services/api`) works too, because that sets the context.
+
+An earlier cached layer can hide the mistake: `COPY package*.json ./` and
+`npm ci` may report `CACHED` from a previous correct build, so the failure
+surfaces at the first genuinely uncached step rather than the first wrong one.
 
 Keep backend secrets unchanged. `API_ORIGINS` supersedes singular
 `API_ORIGIN`; the latter remains only as a compatibility fallback.
