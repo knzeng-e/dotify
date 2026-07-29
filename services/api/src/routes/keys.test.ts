@@ -138,6 +138,32 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
     assert.equal(accessChecked, false);
   });
 
+  it('forwards a MultiSignature-tagged Product signature to verification', async () => {
+    // 65-byte tagged signatures are a legitimate Substrate signRaw shape; the
+    // route must not reject them at the schema before the verifier can check
+    // the tag.
+    let verifiedRequest: KeySignatureRequest | null = null;
+    const server = await buildApp({
+      verifySignedRequest: async request => {
+        verifiedRequest = request;
+        return { valid: true };
+      }
+    });
+    const signature = `0x01${'33'.repeat(64)}`;
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: baseBody({
+        signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+        productPublicKey: `0x${'22'.repeat(32)}`,
+        signature
+      })
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal((verifiedRequest as KeySignatureRequest | null)?.signature, signature);
+  });
+
   it('requires Product public key for Product sr25519 requests', async () => {
     let verificationCalled = false;
     const server = await buildApp({

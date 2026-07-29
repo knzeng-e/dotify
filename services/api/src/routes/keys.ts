@@ -51,9 +51,11 @@ const eip191KeyRequestBodySchema = signedBaseBodySchema.merge(keyRequestPurposeS
   signature: z.string().regex(/^0x[0-9a-fA-F]+$/, 'Invalid signature')
 });
 
+// 128 hex = bare 64-byte sr25519; 130 hex = MultiSignature-tagged 65-byte
+// value. The tag itself is validated in verifySignedRequest, not here.
 const productSr25519KeyRequestBodySchema = signedBaseBodySchema.merge(keyRequestPurposeSchema).extend({
   signatureScheme: z.literal(PRODUCT_SR25519_SIGNATURE_SCHEME),
-  signature: z.string().regex(/^0x[0-9a-fA-F]{128}$/, 'Invalid Product sr25519 signature'),
+  signature: z.string().regex(/^0x([0-9a-fA-F]{128}|[0-9a-fA-F]{130})$/, 'Invalid Product sr25519 signature'),
   productPublicKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid Product account public key')
 });
 
