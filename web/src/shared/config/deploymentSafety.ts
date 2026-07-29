@@ -259,6 +259,25 @@ export function validateProductionEnvironment(env: EnvironmentLike): ProductionE
     errors.push('VITE_CONTENT_SECRET is bundled into the browser and must not be set for production builds. Use backend CONTENT_KEY_MASTER_SECRET.');
   }
 
+  const runtimeAdapter = readEnvironmentValue(env, 'VITE_DOTIFY_RUNTIME_ADAPTER').toLowerCase() || 'viem';
+  if (!['viem', 'product-cdm'].includes(runtimeAdapter)) {
+    errors.push('VITE_DOTIFY_RUNTIME_ADAPTER must be one of viem or product-cdm.');
+  }
+  if (runtimeAdapter === 'product-cdm') {
+    const productChain = readEnvironmentValue(env, 'VITE_DOTIFY_PRODUCT_CHAIN').toLowerCase() || 'paseo';
+    if (!['paseo', 'devnet'].includes(productChain)) {
+      errors.push('VITE_DOTIFY_PRODUCT_CHAIN must be one of paseo or devnet.');
+    }
+    // The Product chain client only connects through a host container, so a
+    // production build selecting this adapter without the host would ship a
+    // frontend that cannot read the catalog at all.
+    if ((readEnvironmentValue(env, 'VITE_DOTIFY_HOST_MODE').toLowerCase() || 'off') === 'off') {
+      errors.push(
+        'VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm requires VITE_DOTIFY_HOST_MODE to be auto or required: Product contract calls route only through the Product host.'
+      );
+    }
+  }
+
   const productHostMode = readEnvironmentValue(env, 'VITE_DOTIFY_HOST_MODE').toLowerCase() || 'off';
   if (!['off', 'auto', 'required'].includes(productHostMode)) {
     errors.push('VITE_DOTIFY_HOST_MODE must be one of off, auto, or required.');
