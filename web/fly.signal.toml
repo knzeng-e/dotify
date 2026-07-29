@@ -10,7 +10,7 @@ primary_region = "ams"
   SIGNAL_ROOM_TTL_MS = "21600000"
   SIGNAL_HOST_TIMEOUT_MS = "120000"
   SIGNAL_MAX_LISTENERS = "24"
-  SIGNAL_ORIGINS = "https://muzinga.netlify.app,https://dotify-test01.dev-dot.li"
+  SIGNAL_ORIGINS = "https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,polkadot://app.dotify-test01.dot"
 
 [http_service]
   internal_port = 8788
