@@ -20,6 +20,7 @@
 		"deploy:bulletin": "node scripts/deploy-bulletin.cjs",
 		"deploy:product-devnet": "npm run build:product-devnet && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@0.13.1 pad ./dist-product dotify-test01.dot --env devnet --js-merkle --config ./polkadot-app-deploy.config.ts",
 		"smoke:production-env": "node scripts/production-env-smoke.mjs",
+		"smoke:devnet": "node scripts/devnet-endpoint-smoke.mjs",
 		"smoke:signal": "node scripts/signaling-smoke.mjs",
 		"lint": "eslint .",
 		"fmt": "prettier --write 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",
