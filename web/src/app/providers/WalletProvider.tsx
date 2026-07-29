@@ -100,7 +100,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const currentBulletinAccount = devAccounts[bulletinAccountIndex];
   const activeEvmAddress = connectedWallet?.evmAddress ?? zeroAddress;
-  const listenerEvmAddress = canRequestProtectedPlayback(connectedWallet) ? connectedWallet?.evmAddress ?? null : null;
+  const listenerEvmAddress = canRequestProtectedPlayback(connectedWallet) ? (connectedWallet?.evmAddress ?? null) : null;
   // Local room-name persistence lowercases its key, so use the H160 identity
   // for both EVM wallets and Product accounts rather than case-sensitive SS58.
   const activeIdentityAddress = connectedWallet?.evmAddress ?? null;

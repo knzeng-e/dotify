@@ -1,12 +1,15 @@
 import { zeroAddress, type Address, type Hash } from 'viem';
-import type {
-  RuntimeAccessPolicyUpdate,
-  RuntimeDirectoryEntry,
-  RuntimeReadPort,
-  RuntimeRoyaltyPaymentLog,
-  RuntimeTrackRegistration,
-  RuntimeTrackSnapshot,
-  RuntimeWritePort
+import {
+  MAX_ROYALTY_SPLITS,
+  MAX_RUNTIME_TRACKS,
+  assertBoundedCount,
+  type RuntimeAccessPolicyUpdate,
+  type RuntimeDirectoryEntry,
+  type RuntimeReadPort,
+  type RuntimeRoyaltyPaymentLog,
+  type RuntimeTrackRegistration,
+  type RuntimeTrackSnapshot,
+  type RuntimeWritePort
 } from './runtimePorts';
 import type { OnchainTrackRecord } from '../../shared/types';
 
@@ -166,16 +169,18 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
     async listRuntimeTracks(runtimeAddress) {
       const runtime = deps.contracts.getRuntimeContract(runtimeAddress);
       const trackCount = toBigInt(await queryContract<bigint | number | string>(runtime, 'musicRegTrackCount'));
+      const trackTotal = assertBoundedCount(trackCount, MAX_RUNTIME_TRACKS, `Runtime ${runtimeAddress}`);
 
       return Promise.all(
-        Array.from({ length: Number(trackCount) }, async (_, index): Promise<RuntimeTrackSnapshot> => {
+        Array.from({ length: trackTotal }, async (_, index): Promise<RuntimeTrackSnapshot> => {
           const hash = await queryContract<Hash>(runtime, 'musicRegTrackHashAtIndex', [BigInt(index)]);
           const trackResult = await queryContract<OnchainTrackRecord | [OnchainTrackRecord, Address]>(runtime, 'musicRegGetTrack', [hash]);
           const record = Array.isArray(trackResult) ? trackResult[0] : trackResult;
           const splitCount = await queryContract<bigint | number | string>(runtime, 'musicRoySplitCount', [hash]).catch(() => 0n);
+          const splitTotal = assertBoundedCount(toBigInt(splitCount), MAX_ROYALTY_SPLITS, `Track ${hash} royalty splits`);
           const royaltySplits = (
             await Promise.all(
-              Array.from({ length: Number(splitCount) }, async (_, splitIndex) => {
+              Array.from({ length: splitTotal }, async (_, splitIndex) => {
                 try {
                   const [recipient, bps] = await queryContract<[Address, bigint | number | string]>(runtime, 'musicRoySplitAt', [hash, BigInt(splitIndex)]);
                   return { recipient, bps: toNumber(bps) };
@@ -248,6 +253,12 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeAdapterDeps
       ]);
     },
 
+    // UNVERIFIED: the value-transfer argument shape is inferred, not confirmed
+    // against @parity/product-sdk-contracts. The viem writer passes `value` as
+    // a sibling of `args`; this assumes the CDM handle takes it as a trailing
+    // options object. Confirm against generated contract types before this
+    // adapter is selected - a wrong shape sends a zero-value call, which the
+    // runtime would reject rather than silently underpay.
     payForAccess(runtimeAddress, contentHash, value) {
       return txContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRoyPayAccess', [contentHash, { value }]);
     },
@@ -265,6 +276,12 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeAdapterDeps
       return txContract(deps.contracts.getRuntimeContract(runtimeAddress), active ? 'musicRegReactivate' : 'musicRegDeactivate', [contentHash]);
     },
 
+    // NOT IMPLEMENTED: the viem writer awaits a receipt here, so callers that
+    // write and then re-read (the artist console does) rely on this settling.
+    // Returning immediately is only safe if `txContract` already blocks until
+    // inclusion, which the SDK surface does not state. Until that is confirmed
+    // against a real host, this adapter must not be selected for writes -
+    // a caller would read pre-inclusion state and report a phantom failure.
     async waitForTransaction() {
       return;
     }
