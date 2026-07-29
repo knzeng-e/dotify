@@ -13,6 +13,7 @@ import {
   roomJoinE2eIceServers
 } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
+import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH } from '../shared/social';
@@ -306,6 +307,13 @@ export function useSession(deps: UseSessionDeps) {
       setSessionAction('idle');
       setIsRefreshingRooms(false);
       setError('Room service unavailable.');
+      // Socket.IO cannot tell us why. Ask the server's public /health and
+      // upgrade the message in place once it answers; the generic reason above
+      // already stands if it does not.
+      void diagnoseSignalFailure(signalUrl, window.location.origin).then(reason => {
+        if (socketRef.current !== socket || socket.connected) return;
+        setError(reason);
+      });
     });
     socket.on('disconnect', () => {
       setSocketStatus('offline');
