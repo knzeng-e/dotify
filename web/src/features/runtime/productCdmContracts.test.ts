@@ -40,7 +40,7 @@ function buildDeps(overrides: Handles = {}, spies: Record<string, ReturnType<typ
 
 describe('createProductCdmContracts', () => {
   it('resolves the manifest contracts by their deployed addresses', async () => {
-    const { resolver } = await createProductCdmContracts({ environment: 'paseo' }, buildDeps());
+    const { resolver } = await createProductCdmContracts({ environment: 'devnet' }, buildDeps());
 
     expect(() => resolver.getDirectoryContract(DIRECTORY)).not.toThrow();
     expect(() => resolver.getFactoryContract(FACTORY)).not.toThrow();
@@ -49,14 +49,14 @@ describe('createProductCdmContracts', () => {
   });
 
   it('refuses a directory address that does not match the manifest', async () => {
-    const { resolver } = await createProductCdmContracts({ environment: 'paseo' }, buildDeps());
+    const { resolver } = await createProductCdmContracts({ environment: 'devnet' }, buildDeps());
 
     expect(() => resolver.getDirectoryContract(RUNTIME)).toThrow(/does not match CDM package/);
   });
 
   it('binds the merged facet ABI to a per-artist runtime address', async () => {
     const createContract = vi.fn((..._args: unknown[]) => ({ musicAccCanAccess: { query: vi.fn() } }));
-    const { resolver } = await createProductCdmContracts({ environment: 'paseo' }, buildDeps({}, { createContract }));
+    const { resolver } = await createProductCdmContracts({ environment: 'devnet' }, buildDeps({}, { createContract }));
 
     resolver.getRuntimeContract(RUNTIME);
 
@@ -71,7 +71,9 @@ describe('createProductCdmContracts', () => {
       throw new Error('no host provider');
     });
 
-    await expect(createProductCdmContracts({ environment: 'paseo' }, buildDeps({}, { createChainClient }))).rejects.toThrow(/Polkadot Product host connection/);
+    await expect(createProductCdmContracts({ environment: 'devnet' }, buildDeps({}, { createChainClient }))).rejects.toThrow(
+      /Polkadot Product host connection/
+    );
   });
 
   it('verifyDeployment rejects a chain that does not answer for the directory', async () => {
@@ -82,7 +84,7 @@ describe('createProductCdmContracts', () => {
   });
 
   it('verifyDeployment passes when the directory answers', async () => {
-    const { verifyDeployment } = await createProductCdmContracts({ environment: 'paseo' }, buildDeps());
+    const { verifyDeployment } = await createProductCdmContracts({ environment: 'devnet' }, buildDeps());
 
     await expect(verifyDeployment()).resolves.toBeUndefined();
   });

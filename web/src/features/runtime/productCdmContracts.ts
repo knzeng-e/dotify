@@ -47,15 +47,27 @@ export const DOTIFY_CDM_PACKAGES: ProductCdmRuntimePackages = {
 };
 
 /**
- * Product chain environments Dotify can target.
+ * The Product chain environment Dotify targets.
  *
- * Deliberately not the SDK's full preset list. Each descriptor is a ~850 kB
- * metadata chunk that ships with the Bulletin publication whether or not it is
- * fetched, and Bulletin storage is a finite quota. Dotify has no deployment on
- * Polkadot or Kusama Asset Hub, so carrying their metadata would be dead
- * weight. Add one here only when Dotify actually deploys there.
+ * Only `devnet`, and that is a correctness constraint rather than a
+ * simplification. Product DevNet is not a separate chain: it is a preset over
+ * the Paseo system parachains - Asset Hub (1000), People (1004), Bulletin
+ * (1010) - with EVM chain id 420420417. That is exactly where Dotify's
+ * contracts are already deployed, confirmed by identical ArtistDirectory
+ * bytecode served from both the DevNet and Hub TestNet endpoints.
+ *
+ * The SDK's `paseo` preset is a trap here: it points at the Paseo **Next** v2
+ * deployment (Asset Hub Next 1500 / People Next 1502), which the Product docs
+ * describe as "a different network" where "funds sent there will not appear on
+ * this Devnet". Dotify has no deployment there, and none on Polkadot or Kusama
+ * Asset Hub. Offering those presets would only let an operator select a chain
+ * that cannot hold the catalog.
+ *
+ * Each descriptor is also a ~850 kB metadata chunk that ships with the Bulletin
+ * publication whether or not it is fetched, and Bulletin storage is a finite
+ * quota. Add an environment here only when Dotify actually deploys there.
  */
-export type ProductChainEnvironment = 'paseo' | 'devnet';
+export type ProductChainEnvironment = 'devnet';
 
 export type ProductCdmContractsOptions = {
   environment: ProductChainEnvironment;
@@ -73,7 +85,6 @@ export type ProductCdmContractsDeps = {
 };
 
 const DESCRIPTOR_LOADERS: Record<ProductChainEnvironment, () => Promise<unknown>> = {
-  paseo: async () => (await import('@parity/product-sdk-descriptors/paseo-asset-hub')).paseo_asset_hub,
   devnet: async () => (await import('@parity/product-sdk-descriptors/devnet-asset-hub')).devnet_asset_hub
 };
 
@@ -186,7 +197,7 @@ export async function createProductCdmContracts(
     const result = await artistCount.query();
     if (!result.success) {
       throw new ProductCdmRuntimeError(
-        `ArtistDirectory at ${manifestAddress(DOTIFY_CDM_PACKAGES.directory)} did not answer on the "${options.environment}" chain. Dotify's runtimes are deployed on Polkadot Hub TestNet; confirm the Product host connects that chain before enabling Product CDM mode.`
+        `ArtistDirectory at ${manifestAddress(DOTIFY_CDM_PACKAGES.directory)} did not answer on the "${options.environment}" chain. Dotify's runtimes live on Paseo Asset Hub (parachain 1000, EVM chain 420420417), which is what the Product DevNet preset targets; confirm the host connected that chain and not Asset Hub Next (1500), which is a different network.`
       );
     }
   }

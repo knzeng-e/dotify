@@ -199,13 +199,39 @@ standalone build, and `validateProductionEnvironment` rejects
 `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` unless `VITE_DOTIFY_HOST_MODE` is
 enabled.
 
-**The host decides which chain an environment resolves to.** Dotify's runtimes
-are deployed on Polkadot Hub TestNet (EVM chain `420420417`), which the Product
-chain client reaches through its `paseo` preset - *not* `devnet`. If the host
-connects an environment that does not hold them, every manifest address
-resolves to an account with no code, which would look like a catalog of artists
-with no releases. `verifyDeployment()` queries `artistCount` on the directory
-and fails closed with a named error instead.
+**The host decides which chain an environment resolves to**, and only one
+environment is correct. See "DevNet Is Not A Separate Chain" below.
+`verifyDeployment()` queries `artistCount` on the directory before any catalog
+read, so a wrong-chain connection fails closed with a named error instead of
+looking like a catalog of artists with no releases.
+
+### DevNet Is Not A Separate Chain
+
+Product DevNet is a *preset*, not a network. It targets the Paseo system
+parachains - Asset Hub (1000), People (1004), Bulletin (1010) - with EVM chain
+id `420420417` and the `dev-dot.li` web gateway.
+
+That is the chain Dotify is already deployed on. Verified read-only on
+2026-07-29 by querying both endpoints for the ArtistDirectory at
+`0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`:
+
+| Endpoint | `eth_chainId` | Block | Directory bytecode |
+| --- | --- | --- | --- |
+| `https://eth-rpc-testnet.polkadot.io/` | `0x190f1b41` | 11546347 | 3660 chars, sha256 `36707b24…` |
+| `https://paseo-assethub-rpc.laissez-faire.trade` | `0x190f1b41` | 11546348 | 3660 chars, sha256 `36707b24…` |
+
+Same chain id, blocks one apart, byte-identical contract code. The two URLs are
+different providers for one chain.
+
+**No contract redeploy is required to port Dotify to Product DevNet.** The
+addresses in `deployments.json` are already DevNet addresses.
+
+The trap is the SDK's `paseo` preset, which points at the Paseo **Next** v2
+deployment (Asset Hub Next 1500 / People Next 1502). The Product documentation
+is explicit that those "belong to a different network" and that "funds sent
+there will not appear on this Devnet". Dotify has no deployment there, so
+`ProductChainEnvironment` admits only `devnet` - a wrong preset is not a
+configuration option, it is a bug.
 
 **Selection is build-time, and reads only.** `VITE_DOTIFY_RUNTIME_ADAPTER` is
 inlined by Vite, so a `viem` build tree-shakes the entire Product contract graph
@@ -216,10 +242,10 @@ and Bulletin storage is a finite quota. Contract *writes* stay on the viem
 signer path in every mode, since routing a payment or a publication through an
 unproven signer is not a reasonable default.
 
-This is the real remaining gate for Product contract writes: not UI rewiring,
-and no longer missing manifest or types, but confirming the Product host serves
-a chain that holds Dotify's runtimes, plus `pallet-revive` account mapping and
-real host-signed transaction smoke evidence. Until that evidence exists,
+The remaining gate for Product contract *writes* is now narrow: `pallet-revive`
+account mapping for the signing account, and real host-signed transaction smoke
+evidence from inside the container. The chain question is settled, the manifest
+and types exist, and reads are wired. Until that write evidence exists,
 `VITE_DOTIFY_RUNTIME_ADAPTER` defaults to `viem`.
 
 The backend authentication protocol now has an explicit signature scheme field.

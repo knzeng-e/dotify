@@ -38,12 +38,12 @@ production build contract without printing real secret values.
 
 ### `VITE_DOTIFY_HOST_MODE`
 
-| Property     | Value                          |
-| ------------ | ------------------------------ |
-| **Type**     | `off`, `auto`, or `required`   |
-| **Required** | Product builds                 |
-| **Default**  | `off`                          |
-| **Example**  | `required`                     |
+| Property     | Value                        |
+| ------------ | ---------------------------- |
+| **Type**     | `off`, `auto`, or `required` |
+| **Required** | Product builds               |
+| **Default**  | `off`                        |
+| **Example**  | `required`                   |
 
 Controls Product host discovery. `off` keeps the standalone app independent
 from the Product SDK. `auto` enables progressive host detection. `required`
@@ -57,12 +57,12 @@ the listener selects **Use Polkadot app**.
 
 ### `VITE_DOTIFY_RUNTIME_ADAPTER`
 
-| Property     | Value                    |
-| ------------ | ------------------------ |
-| **Type**     | `viem` or `product-cdm`  |
-| **Required** | No                       |
-| **Default**  | `viem`                   |
-| **Example**  | `viem`                   |
+| Property     | Value                   |
+| ------------ | ----------------------- |
+| **Type**     | `viem` or `product-cdm` |
+| **Required** | No                      |
+| **Default**  | `viem`                  |
+| **Example**  | `viem`                  |
 
 Selects which adapter backs the runtime contract ports. `viem` is the only path
 with production evidence. `product-cdm` routes reads and writes through the
@@ -83,10 +83,10 @@ tree-shakes the entire Product contract graph away; opting in pulls it back in
 along with `@parity/product-sdk-descriptors`, whose shared descriptors module
 references every chain's metadata. Measured on this branch:
 
-| Build | Output size |
-| --- | --- |
-| `VITE_DOTIFY_RUNTIME_ADAPTER` unset or `viem` | 4.4 MB |
-| `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` | 10 MB |
+| Build                                         | Output size |
+| --------------------------------------------- | ----------- |
+| `VITE_DOTIFY_RUNTIME_ADAPTER` unset or `viem` | 4.4 MB      |
+| `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`     | 10 MB       |
 
 Only one metadata chunk is ever fetched at runtime, but all of them are
 published. Weigh that against the Bulletin storage quota before enabling this
@@ -96,21 +96,26 @@ for a `.dot` deployment.
 
 ### `VITE_DOTIFY_PRODUCT_CHAIN`
 
-| Property     | Value                                          |
-| ------------ | ---------------------------------------------- |
-| **Type**     | `paseo`, `devnet`, `polkadot`, or `kusama`     |
-| **Required** | No                                             |
-| **Default**  | `paseo`                                        |
-| **Example**  | `paseo`                                        |
+| Property     | Value    |
+| ------------ | -------- |
+| **Type**     | `devnet` |
+| **Required** | No       |
+| **Default**  | `devnet` |
+| **Example**  | `devnet` |
 
 Product chain preset used only when `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`.
 
-The default is `paseo`, not `devnet`: Dotify's runtimes are deployed on
-Polkadot Hub TestNet (EVM chain `420420417`), which the Product chain client
-reaches through its `paseo` preset. Pointing this at a chain that does not hold
-those contracts resolves every manifest address to an account with no code -
-indistinguishable from artists with no releases. `verifyDeployment()` turns
-that into an explicit error at startup.
+`devnet` is the only accepted value, and that is a correctness constraint.
+Product DevNet is a preset over the Paseo system parachains - Asset Hub (1000),
+People (1004), Bulletin (1010) - at EVM chain `420420417`, which is exactly
+where Dotify's contracts are deployed.
+
+The SDK's `paseo` preset is *not* an alternative: it targets Paseo Next
+(Asset Hub Next 1500 / People Next 1502), which the Product documentation calls
+a different network. Selecting it would resolve every manifest address to an
+account with no code - indistinguishable from artists with no releases.
+`verifyDeployment()` turns that into an explicit error at startup, and the
+config layer refuses the value outright.
 
 Regenerate the manifest with `npm run generate:cdm` after any contract
 redeploy, or the addresses in `cdm.json` go stale.
@@ -134,11 +139,11 @@ identity/access migration review.
 
 ### `VITE_PUBLIC_APP_URL`
 
-| Property     | Value                            |
-| ------------ | -------------------------------- |
-| **Type**     | HTTPS URL                        |
-| **Required** | Product production builds        |
-| **Default**  | Current browser URL              |
+| Property     | Value                              |
+| ------------ | ---------------------------------- |
+| **Type**     | HTTPS URL                          |
+| **Required** | Product production builds          |
+| **Default**  | Current browser URL                |
 | **Example**  | `https://dotify-test01.dev-dot.li` |
 
 Canonical public origin used when copying room links. Product builds must set
@@ -148,12 +153,12 @@ this so invitations never expose an internal host/container or raw gateway URL.
 
 ### `VITE_DOTIFY_DEBUG_PANEL`
 
-| Property     | Value             |
-| ------------ | ----------------- |
-| **Type**     | Boolean string    |
-| **Required** | No                |
-| **Default**  | `false`           |
-| **Example**  | `true`            |
+| Property     | Value          |
+| ------------ | -------------- |
+| **Type**     | Boolean string |
+| **Required** | No             |
+| **Default**  | `false`        |
+| **Example**  | `true`         |
 
 Enables the optional Production readiness panel under the `You` tab. The panel
 performs read-only checks for the backend readiness endpoint, signaling health,
@@ -353,11 +358,11 @@ Network interface to bind.
 
 ### `SIGNAL_ORIGINS`
 
-| Property     | Value                                               |
-| ------------ | --------------------------------------------------- |
-| **Type**     | Comma-separated URL list or `*`                     |
-| **Required** | No                                                  |
-| **Default**  | `*`                                                 |
+| Property     | Value                                                          |
+| ------------ | -------------------------------------------------------------- |
+| **Type**     | Comma-separated URL list or `*`                                |
+| **Required** | No                                                             |
+| **Default**  | `*`                                                            |
 | **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li` |
 
 CORS allowed origins for Socket.IO and status endpoints. Set explicit frontend
@@ -446,12 +451,12 @@ backwards-compatible fallback when `API_ORIGINS` is not set.
 
 ### `API_ORIGINS`
 
-| Property     | Value                                                    |
-| ------------ | -------------------------------------------------------- |
-| **Type**     | Comma-separated HTTPS origin list                        |
-| **Required** | Multiple hosted frontends                                |
-| **Default**  | The single `API_ORIGIN` value                            |
-| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li`  |
+| Property     | Value                                                          |
+| ------------ | -------------------------------------------------------------- |
+| **Type**     | Comma-separated HTTPS origin list                              |
+| **Required** | Multiple hosted frontends                                      |
+| **Default**  | The single `API_ORIGIN` value                                  |
+| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li` |
 
 Exact frontend origins accepted by backend CORS. When set, it takes precedence
 over `API_ORIGIN`. Do not use `*`: the API carries authenticated upload and

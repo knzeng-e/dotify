@@ -3,7 +3,7 @@ import { resolveRuntimeAdapterConfig } from './runtimeAdapterConfig';
 
 describe('resolveRuntimeAdapterConfig', () => {
   it('defaults to the viem adapter when nothing is configured', () => {
-    expect(resolveRuntimeAdapterConfig({})).toEqual({ kind: 'viem', productEnvironment: 'paseo' });
+    expect(resolveRuntimeAdapterConfig({})).toEqual({ kind: 'viem', productEnvironment: 'devnet' });
   });
 
   it('selects the Product CDM adapter only on an exact opt-in', () => {
@@ -17,13 +17,15 @@ describe('resolveRuntimeAdapterConfig', () => {
   });
 
   it('defaults the Product chain to the preset holding Dotify runtimes', () => {
-    // Dotify's contracts are on Polkadot Hub TestNet, reached via the paseo
-    // preset - defaulting to devnet would resolve addresses holding no code.
-    expect(resolveRuntimeAdapterConfig({ VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm' }).productEnvironment).toBe('paseo');
-    expect(resolveRuntimeAdapterConfig({ VITE_DOTIFY_PRODUCT_CHAIN: 'nowhere' }).productEnvironment).toBe('paseo');
+    // Product DevNet is a preset over Paseo Asset Hub 1000 (EVM chain
+    // 420420417), which is where Dotify's contracts already live.
+    expect(resolveRuntimeAdapterConfig({ VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm' }).productEnvironment).toBe('devnet');
   });
 
-  it('accepts an explicit supported Product chain', () => {
-    expect(resolveRuntimeAdapterConfig({ VITE_DOTIFY_PRODUCT_CHAIN: 'devnet' }).productEnvironment).toBe('devnet');
+  it('refuses the paseo preset, which is a different network from Product DevNet', () => {
+    // The SDK's `paseo` preset is Paseo Next (Asset Hub Next 1500). Dotify has
+    // no deployment there, so it must never be selectable by configuration.
+    expect(resolveRuntimeAdapterConfig({ VITE_DOTIFY_PRODUCT_CHAIN: 'paseo' }).productEnvironment).toBe('devnet');
+    expect(resolveRuntimeAdapterConfig({ VITE_DOTIFY_PRODUCT_CHAIN: 'nowhere' }).productEnvironment).toBe('devnet');
   });
 });

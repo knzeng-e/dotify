@@ -264,9 +264,9 @@ export function validateProductionEnvironment(env: EnvironmentLike): ProductionE
     errors.push('VITE_DOTIFY_RUNTIME_ADAPTER must be one of viem or product-cdm.');
   }
   if (runtimeAdapter === 'product-cdm') {
-    const productChain = readEnvironmentValue(env, 'VITE_DOTIFY_PRODUCT_CHAIN').toLowerCase() || 'paseo';
-    if (!['paseo', 'devnet'].includes(productChain)) {
-      errors.push('VITE_DOTIFY_PRODUCT_CHAIN must be one of paseo or devnet.');
+    const productChain = readEnvironmentValue(env, 'VITE_DOTIFY_PRODUCT_CHAIN').toLowerCase() || 'devnet';
+    if (!['devnet'].includes(productChain)) {
+      errors.push('VITE_DOTIFY_PRODUCT_CHAIN must be devnet: Product DevNet targets Paseo Asset Hub 1000, the only chain holding Dotify runtimes.');
     }
     // The Product chain client only connects through a host container, so a
     // production build selecting this adapter without the host would ship a

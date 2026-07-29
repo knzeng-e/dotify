@@ -245,9 +245,9 @@ describe('validateProductionEnvironment', () => {
         VITE_DOTIFY_HOST_MODE: 'required',
         VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
         VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li',
-        VITE_DOTIFY_PRODUCT_CHAIN: 'nowhere'
+        VITE_DOTIFY_PRODUCT_CHAIN: 'paseo'
       }).errors
-    ).toEqual(['VITE_DOTIFY_PRODUCT_CHAIN must be one of paseo or devnet.']);
+    ).toEqual(['VITE_DOTIFY_PRODUCT_CHAIN must be devnet: Product DevNet targets Paseo Asset Hub 1000, the only chain holding Dotify runtimes.']);
   });
 
   it('accepts the Product CDM adapter alongside an enabled Product host', () => {
@@ -255,7 +255,7 @@ describe('validateProductionEnvironment', () => {
       validateProductionEnvironment({
         ...validProductionEnv,
         VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm',
-        VITE_DOTIFY_PRODUCT_CHAIN: 'paseo',
+        VITE_DOTIFY_PRODUCT_CHAIN: 'devnet',
         VITE_DOTIFY_HOST_MODE: 'required',
         VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
         VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li'

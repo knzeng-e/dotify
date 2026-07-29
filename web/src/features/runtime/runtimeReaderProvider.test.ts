@@ -18,7 +18,7 @@ async function loadProvider() {
 describe('createRuntimeReader', () => {
   it('uses the viem reader by default', async () => {
     const createRuntimeReader = await loadProvider();
-    const reader = createRuntimeReader({ ethRpcUrl: 'https://rpc.example', config: { kind: 'viem', productEnvironment: 'paseo' } });
+    const reader = createRuntimeReader({ ethRpcUrl: 'https://rpc.example', config: { kind: 'viem', productEnvironment: 'devnet' } });
 
     await expect(reader.getArtistCount('0x1' as never)).resolves.toBe(7n);
   });
@@ -33,7 +33,7 @@ describe('createRuntimeReader', () => {
 
     const reader = createRuntimeReader({
       ethRpcUrl: 'https://rpc.example',
-      config: { kind: 'product-cdm', productEnvironment: 'paseo' }
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
     });
 
     await expect(reader.getArtistCount('0x1' as never)).rejects.toThrow(/not bundled/);
@@ -53,7 +53,7 @@ describe('createRuntimeReader', () => {
 
     const reader = createRuntimeReader({
       ethRpcUrl: 'https://rpc.example',
-      config: { kind: 'product-cdm', productEnvironment: 'paseo' }
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
     });
 
     await expect(reader.getArtistCount('0x1' as never)).rejects.toThrow(/no host provider/);

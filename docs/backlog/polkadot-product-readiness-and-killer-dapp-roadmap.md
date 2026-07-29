@@ -178,13 +178,16 @@ Goal: deepen the delivered Product mode one adapter at a time.
   contract augmentation from the same Hardhat artifacts as the viem bindings,
   and implement the real Product contract resolver behind the runtime ports.
   Selection stays opt-in behind `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`.
-- Next: confirm the Product host serves a chain that holds Dotify's runtimes.
-  `createChainClient`/`getChainAPI` connect only through the host container, and
-  the host decides which chain each environment resolves to. Dotify's contracts
-  are on Polkadot Hub TestNet (EVM chain 420420417), reached through the `paseo`
-  preset - not `devnet`. This, not the manifest, is now the blocking unknown.
+- Settled: the chain question. Product DevNet is a preset over the Paseo system
+  parachains (Asset Hub 1000, People 1004, Bulletin 1010) at EVM chain
+  420420417, not a separate network. Dotify's contracts are already there,
+  verified by byte-identical ArtistDirectory code served from both the DevNet
+  and Hub TestNet endpoints. No contract redeploy is needed to port to DevNet.
+  The SDK's `paseo` preset is Paseo Next (1500/1502), a different network, so
+  `devnet` is the only environment Dotify can serve a catalog from.
 - Next: `pallet-revive` account mapping plus real host-signed transaction smoke
-  tests before Product writes can replace the EVM wallet path.
+  tests before Product writes can replace the EVM wallet path. This is now the
+  only gate left for Product contract mode.
 - Next: run real Product host smoke tests for protected playback and capture the
   Product sr25519 request evidence.
 - Keep backend key delivery authoritative unless a Product-host design proves a

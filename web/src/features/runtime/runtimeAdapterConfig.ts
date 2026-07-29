@@ -14,12 +14,12 @@ export type RuntimeAdapterKind = 'viem' | 'product-cdm';
 export type RuntimeAdapterConfig = {
   kind: RuntimeAdapterKind;
   /** Product chain environment used only when kind is 'product-cdm'. */
-  productEnvironment: 'paseo' | 'devnet';
+  productEnvironment: 'devnet';
 };
 
 type EnvironmentLike = Record<string, string | boolean | number | null | undefined>;
 
-const PRODUCT_ENVIRONMENTS = ['paseo', 'devnet'] as const;
+const PRODUCT_ENVIRONMENTS = ['devnet'] as const;
 
 function envValue(env: EnvironmentLike, key: string): string {
   const value = env[key];
@@ -35,11 +35,13 @@ export function resolveRuntimeAdapterConfig(env: EnvironmentLike): RuntimeAdapte
   const kind: RuntimeAdapterKind = requested === 'product-cdm' ? 'product-cdm' : 'viem';
 
   const requestedEnvironment = envValue(env, 'VITE_DOTIFY_PRODUCT_CHAIN');
-  // Dotify's runtimes are deployed on Polkadot Hub TestNet, which the Product
-  // chain client reaches through its `paseo` preset - not `devnet`.
+  // Product DevNet is a preset over the Paseo system parachains (Asset Hub
+  // 1000, EVM chain 420420417) - exactly where Dotify's contracts already live.
+  // The SDK's `paseo` preset points at Paseo Next instead, a different network,
+  // so `devnet` is the only environment Dotify can serve a catalog from.
   const productEnvironment = (PRODUCT_ENVIRONMENTS as readonly string[]).includes(requestedEnvironment)
     ? (requestedEnvironment as RuntimeAdapterConfig['productEnvironment'])
-    : 'paseo';
+    : 'devnet';
 
   return { kind, productEnvironment };
 }
