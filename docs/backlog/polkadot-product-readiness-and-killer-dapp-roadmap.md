@@ -174,8 +174,17 @@ Goal: deepen the delivered Product mode one adapter at a time.
 - Delivered on the next follow-up branch: wire Product-host frontend key and
   session requests to that signature scheme, while keeping contract writes on
   the standalone EVM/passkey signer path.
-- Next: wire a generated CDM manifest/types into Product mode and run real host
-  transaction smoke tests.
+- Delivered on the next follow-up branch: generate the CDM manifest and typed
+  contract augmentation from the same Hardhat artifacts as the viem bindings,
+  and implement the real Product contract resolver behind the runtime ports.
+  Selection stays opt-in behind `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`.
+- Next: confirm the Product host serves a chain that holds Dotify's runtimes.
+  `createChainClient`/`getChainAPI` connect only through the host container, and
+  the host decides which chain each environment resolves to. Dotify's contracts
+  are on Polkadot Hub TestNet (EVM chain 420420417), reached through the `paseo`
+  preset - not `devnet`. This, not the manifest, is now the blocking unknown.
+- Next: `pallet-revive` account mapping plus real host-signed transaction smoke
+  tests before Product writes can replace the EVM wallet path.
 - Next: run real Product host smoke tests for protected playback and capture the
   Product sr25519 request evidence.
 - Keep backend key delivery authoritative unless a Product-host design proves a

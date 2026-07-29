@@ -149,10 +149,11 @@ Adapters:
 
 - `ViemRuntimeAdapter`: current standalone EVM implementation behind the typed
   ports;
-- `ProductCdmRuntimeAdapter`: experimental CDM/PAPI implementation behind the
-  same ports. It maps the Dotify runtime method surface to Product SDK contract
-  handles, but remains opt-in until Dotify has CDM-installed Product runtime
-  packages and host signing evidence;
+- `ProductCdmRuntimeAdapter`: CDM/PAPI implementation behind the same ports,
+  now backed by a real contract resolver (`productCdmContracts.ts`) over a
+  generated snapshot manifest. It remains opt-in behind
+  `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` until host transaction evidence
+  exists;
 - `CatalogApiAdapter`: the existing server-side read model, shared by both
   frontends.
 
@@ -162,11 +163,64 @@ method queries and transactions, not the viem-style historical log query used
 by the artist console. Product mode must use the backend catalog/read-model
 indexer, or a future Product event/indexer API, for that history.
 
-The remaining Product contract work is integration and evidence work, not UI
-rewiring. Operators still need CDM-deployed Dotify runtime packages,
-`cdm.json`/generated contract types, `pallet-revive` account mapping, and real
-host-signed transaction smoke evidence before Product writes can replace the
-EVM wallet path.
+### The CDM Manifest Is Generated, Not Installed
+
+Dotify has no CDM-registered packages, and `cdm install` is not available. It
+also does not need them. Dotify's Solidity contracts are deployed through Asset
+Hub's `eth-rpc`, which is a compatibility layer over `pallet-revive` - the same
+pallet the Product SDK contract helpers target. The deployed H160 addresses are
+therefore already reachable through `@parity/product-sdk-contracts` with no
+PolkaVM recompilation and no registry entry.
+
+`CdmJsonContract` needs only `version`, `address`, and `abi` for
+`getContract()`, and `new ContractManager(...)` is documented as snapshot-only.
+`web/scripts/generate-cdm-manifest.mjs` emits exactly that snapshot from the
+same Hardhat artifacts the viem bindings come from, so the two adapters cannot
+disagree about an ABI:
+
+| Output | Contents |
+| --- | --- |
+| `cdm.json` | `@dotify/artist-directory` and `@dotify/artist-runtime-factory` with their `deployments.json` addresses |
+| `smartRuntime.ts` | merged artist-runtime diamond facet ABI, bound to a per-artist address at call time |
+| `cdm.d.ts` | `Contracts` module augmentation for typed `getContract()` handles |
+
+Artist runtimes are deliberately absent from the manifest: a diamond is
+deployed per artist, so its address is known at call time, not build time.
+Inventing a placeholder address would misrepresent the deployment.
+`productCdmContracts.ts` resolves those through `createContract`, which needs no
+manifest entry.
+
+### Two Constraints On Product Contract Mode
+
+**It only runs inside a Product host.** `createChainClient`/`getChainAPI` route
+exclusively through the host provider and throw when none is present - there is
+no direct-WebSocket fallback. Product CDM mode is therefore impossible in the
+standalone build, and `validateProductionEnvironment` rejects
+`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` unless `VITE_DOTIFY_HOST_MODE` is
+enabled.
+
+**The host decides which chain an environment resolves to.** Dotify's runtimes
+are deployed on Polkadot Hub TestNet (EVM chain `420420417`), which the Product
+chain client reaches through its `paseo` preset - *not* `devnet`. If the host
+connects an environment that does not hold them, every manifest address
+resolves to an account with no code, which would look like a catalog of artists
+with no releases. `verifyDeployment()` queries `artistCount` on the directory
+and fails closed with a named error instead.
+
+**Selection is build-time, and reads only.** `VITE_DOTIFY_RUNTIME_ADAPTER` is
+inlined by Vite, so a `viem` build tree-shakes the entire Product contract graph
+away - 4.4 MB output versus 10 MB when opted in. The difference is
+`@parity/product-sdk-descriptors`, whose shared descriptors module references
+every chain's metadata; only one chunk is ever fetched, but all are published,
+and Bulletin storage is a finite quota. Contract *writes* stay on the viem
+signer path in every mode, since routing a payment or a publication through an
+unproven signer is not a reasonable default.
+
+This is the real remaining gate for Product contract writes: not UI rewiring,
+and no longer missing manifest or types, but confirming the Product host serves
+a chain that holds Dotify's runtimes, plus `pallet-revive` account mapping and
+real host-signed transaction smoke evidence. Until that evidence exists,
+`VITE_DOTIFY_RUNTIME_ADAPTER` defaults to `viem`.
 
 The backend authentication protocol now has an explicit signature scheme field.
 Standalone clients use the default `eip191` scheme. Product-host clients can

@@ -55,6 +55,68 @@ the listener selects **Use Polkadot app**.
 
 ---
 
+### `VITE_DOTIFY_RUNTIME_ADAPTER`
+
+| Property     | Value                    |
+| ------------ | ------------------------ |
+| **Type**     | `viem` or `product-cdm`  |
+| **Required** | No                       |
+| **Default**  | `viem`                   |
+| **Example**  | `viem`                   |
+
+Selects which adapter backs the runtime contract ports. `viem` is the only path
+with production evidence. `product-cdm` routes reads and writes through the
+Product SDK contract handles over the generated `cdm.json` snapshot.
+
+This selects **reads only**. Contract writes stay on the viem signer path in
+every mode, because the Product write path has no host-signed transaction
+evidence yet.
+
+Any unrecognised value falls back to `viem`, so a typo cannot silently disable
+contract reads. `product-cdm` additionally requires `VITE_DOTIFY_HOST_MODE` to
+be `auto` or `required`: the Product chain client connects only through a host
+container and has no direct-WebSocket fallback. The production guard rejects
+that combination rather than shipping a frontend that cannot read the catalog.
+
+**Build size.** This flag is read at build time, not runtime. A `viem` build
+tree-shakes the entire Product contract graph away; opting in pulls it back in
+along with `@parity/product-sdk-descriptors`, whose shared descriptors module
+references every chain's metadata. Measured on this branch:
+
+| Build | Output size |
+| --- | --- |
+| `VITE_DOTIFY_RUNTIME_ADAPTER` unset or `viem` | 4.4 MB |
+| `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` | 10 MB |
+
+Only one metadata chunk is ever fetched at runtime, but all of them are
+published. Weigh that against the Bulletin storage quota before enabling this
+for a `.dot` deployment.
+
+---
+
+### `VITE_DOTIFY_PRODUCT_CHAIN`
+
+| Property     | Value                                          |
+| ------------ | ---------------------------------------------- |
+| **Type**     | `paseo`, `devnet`, `polkadot`, or `kusama`     |
+| **Required** | No                                             |
+| **Default**  | `paseo`                                        |
+| **Example**  | `paseo`                                        |
+
+Product chain preset used only when `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`.
+
+The default is `paseo`, not `devnet`: Dotify's runtimes are deployed on
+Polkadot Hub TestNet (EVM chain `420420417`), which the Product chain client
+reaches through its `paseo` preset. Pointing this at a chain that does not hold
+those contracts resolves every manifest address to an account with no code -
+indistinguishable from artists with no releases. `verifyDeployment()` turns
+that into an explicit error at startup.
+
+Regenerate the manifest with `npm run generate:cdm` after any contract
+redeploy, or the addresses in `cdm.json` go stale.
+
+---
+
 ### `VITE_DOTIFY_PRODUCT_ID`
 
 | Property     | Value                  |
