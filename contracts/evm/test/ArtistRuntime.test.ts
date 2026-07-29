@@ -29,6 +29,20 @@ import { MUSIC_REGISTRY_REGISTER_SELECTOR, buildRegistryHotfixCalldata, registry
 const FacetCutAction = { Add: 0, Replace: 1, Remove: 2 } as const;
 const AccessMode = { HumanFree: 0, Classic: 1, Free: 2 } as const;
 const PersonhoodLevel = { None: 0, DIM1: 1, DIM2: 2 } as const;
+
+// The Individuality personhood precompile. Fixed inside pallet-revive, so a Hardhat
+// node has nothing there until a test installs mock code at the same address.
+const PERSONHOOD_PRECOMPILE = '0x000000000000000000000000000000000a010000' as const;
+const DOTIFY_CONTEXT = `0x${Buffer.from('dotify').toString('hex').padEnd(64, '0')}` as `0x${string}`;
+
+/** Install the mock precompile at the real precompile address and return a handle. */
+async function installPersonhoodPrecompile() {
+  const mock = await hre.viem.deployContract('MockPersonhoodPrecompile');
+  const publicClient = await hre.viem.getPublicClient();
+  const runtimeCode = await publicClient.getCode({ address: mock.address });
+  await hre.network.provider.request({ method: 'hardhat_setCode', params: [PERSONHOOD_PRECOMPILE, runtimeCode] });
+  return hre.viem.getContractAt('MockPersonhoodPrecompile', PERSONHOOD_PRECOMPILE);
+}
 const ZERO_ADDR = '0x0000000000000000000000000000000000000000' as const;
 
 function selectorsFromAbi(abi: Abi): `0x${string}`[] {
@@ -251,7 +265,10 @@ describe('DotifyRuntimeInitializer — bootstrap', () => {
     expect(registrar.toLowerCase()).to.equal(artistA.account.address.toLowerCase());
   });
 
-  it('owner can reassign the personhood registrar and the new registrar can grant levels', async () => {
+  it('no registrar can grant personhood any more, not even the artist', async () => {
+    // The registrar defaulted to the artist, so this path let an artist manufacture
+    // personhood for their own listeners. It must now fail loudly rather than write
+    // to storage that no access decision reads.
     const { factory, directory, artistA, other, listener } = await loadFixture(deployDotifySystemFixture);
 
     await createArtistRuntime(factory, artistA);
@@ -260,13 +277,14 @@ describe('DotifyRuntimeInitializer — bootstrap', () => {
     const artistAccess = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr, { client: { wallet: artistA } });
     await artistAccess.write.setPersonhoodRegistrar([other.account.address]);
 
-    const access = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr);
-    expect((await access.read.musicAccGetRegistrar()).toLowerCase()).to.equal(other.account.address.toLowerCase());
-
     const delegatedRegistrar = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr, { client: { wallet: other } });
-    await delegatedRegistrar.write.musicAccSetPersonhoodLevel([listener.account.address, PersonhoodLevel.DIM1]);
 
-    expect(await access.read.musicAccPersonhoodLevel([listener.account.address])).to.equal(PersonhoodLevel.DIM1);
+    try {
+      await delegatedRegistrar.write.musicAccSetPersonhoodLevel([listener.account.address, PersonhoodLevel.DIM1]);
+      expect.fail('Should have reverted');
+    } catch (e: unknown) {
+      expect((e as Error).message).to.include('Individuality precompile');
+    }
   });
 
   it('delegated registrar cannot rotate itself; only the owner can update the registrar', async () => {
@@ -365,8 +383,8 @@ describe('Artist SmartRuntime — music pallets', () => {
     expect((await publicClient.getBalance({ address: royaltyRecip.account.address })) > recipBefore).to.equal(true);
   });
 
-  it('HumanFree track: access granted after artist sets DIM1 personhood', async () => {
-    const { registry, royalties, access, artistA, listener, royaltyRecip } = await withArtistRuntime();
+  it('HumanFree track: access follows the Individuality precompile, not the artist', async () => {
+    const { registry, access, artistA, listener, royaltyRecip } = await withArtistRuntime();
 
     const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
     await artistRegistry.write.musicRegRegister([
@@ -380,13 +398,72 @@ describe('Artist SmartRuntime — music pallets', () => {
       [10_000]
     ]);
 
+    // No precompile installed yet: the chain cannot answer, so a gated track denies.
     expect(await access.read.musicAccCanAccess([TRACK_HASH2, listener.account.address])).to.equal(false);
 
-    // Artist is the registrar (bootstrapped by initializer) — grant DIM1
-    const artistAccess = await hre.viem.getContractAt('MusicAccessPallet', access.address, { client: { wallet: artistA } });
-    await artistAccess.write.musicAccSetPersonhoodLevel([listener.account.address, PersonhoodLevel.DIM1]);
+    const precompile = await installPersonhoodPrecompile();
+
+    // Present but with no personhood recorded — still denied.
+    expect(await access.read.musicAccCanAccess([TRACK_HASH2, listener.account.address])).to.equal(false);
+
+    const alias_ = `0x${'ab'.repeat(32)}` as `0x${string}`;
+    await precompile.write.setPersonhood([listener.account.address, DOTIFY_CONTEXT, PersonhoodLevel.DIM1, alias_]);
 
     expect(await access.read.musicAccCanAccess([TRACK_HASH2, listener.account.address])).to.equal(true);
+    expect(await access.read.musicAccPersonhoodLevel([listener.account.address])).to.equal(PersonhoodLevel.DIM1);
+
+    const [status, contextAlias, live] = await access.read.musicAccPersonhoodInfo([listener.account.address]);
+    expect(status).to.equal(PersonhoodLevel.DIM1);
+    expect(contextAlias).to.equal(alias_);
+    expect(live).to.equal(true);
+    void artistA;
+  });
+
+  it('HumanFree track: a lower tier than required is still denied', async () => {
+    const { registry, access, artistA, listener, royaltyRecip } = await withArtistRuntime();
+
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([
+      sampleRegistration({
+        contentHash: TRACK_HASH2,
+        accessMode: AccessMode.HumanFree,
+        pricePlanck: 0n,
+        requiredPersonhood: PersonhoodLevel.DIM2
+      }),
+      [royaltyRecip.account.address],
+      [10_000]
+    ]);
+
+    const precompile = await installPersonhoodPrecompile();
+    await precompile.write.setPersonhood([listener.account.address, DOTIFY_CONTEXT, PersonhoodLevel.DIM1, `0x${'cd'.repeat(32)}`]);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH2, listener.account.address])).to.equal(false);
+
+    await precompile.write.setPersonhood([listener.account.address, DOTIFY_CONTEXT, PersonhoodLevel.DIM2, `0x${'cd'.repeat(32)}`]);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH2, listener.account.address])).to.equal(true);
+  });
+
+  it('personhood granted in another application context does not unlock Dotify', async () => {
+    // This is the property the registrar could never provide: the same person carries a
+    // different alias per context, and a proof issued to another app is not Dotify's.
+    const { registry, access, artistA, listener, royaltyRecip } = await withArtistRuntime();
+
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([
+      sampleRegistration({
+        contentHash: TRACK_HASH2,
+        accessMode: AccessMode.HumanFree,
+        pricePlanck: 0n,
+        requiredPersonhood: PersonhoodLevel.DIM1
+      }),
+      [royaltyRecip.account.address],
+      [10_000]
+    ]);
+
+    const precompile = await installPersonhoodPrecompile();
+    const otherContext = `0x${Buffer.from('dotns').toString('hex').padEnd(64, '0')}` as `0x${string}`;
+    await precompile.write.setPersonhood([listener.account.address, otherContext, PersonhoodLevel.DIM2, `0x${'ef'.repeat(32)}`]);
+
+    expect(await access.read.musicAccCanAccess([TRACK_HASH2, listener.account.address])).to.equal(false);
   });
 
   it('NFT owner is the artist; NFT transfer moves ownership', async () => {
@@ -599,7 +676,13 @@ describe('Artist isolation', () => {
     expect(await registryB.read.musicRegTrackCount()).to.equal(0n);
   });
 
-  it('personhood granted on artist A has no effect on artist B', async () => {
+  it('personhood is a property of the person, so it reads the same on every runtime', async () => {
+    // This deliberately inverts the previous expectation. Personhood used to be
+    // per-runtime state an artist wrote, so it could differ between two artists for the
+    // same listener - which is exactly what made it forgeable. It is now one fact about
+    // a person in Dotify's context, so every runtime reads the same answer and no
+    // artist can change it. Catalog and payment state stay per-runtime; only the
+    // question "is this a distinct human" became global.
     const ctx = await loadFixture(deployDotifySystemFixture);
 
     await createArtistRuntime(ctx.factory, ctx.artistA);
@@ -608,13 +691,27 @@ describe('Artist isolation', () => {
     const runtimeAddrA = (await ctx.directory.read.runtimeOf([ctx.artistA.account.address])) as `0x${string}`;
     const runtimeAddrB = (await ctx.directory.read.runtimeOf([ctx.artistB.account.address])) as `0x${string}`;
 
-    // Artist A grants listener DIM1
-    const accessA = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddrA, { client: { wallet: ctx.artistA } });
-    await accessA.write.musicAccSetPersonhoodLevel([ctx.listener.account.address, PersonhoodLevel.DIM1]);
-
-    // Listener's level on B's runtime is still None
+    const accessA = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddrA);
     const accessB = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddrB);
+
+    // No precompile on this chain yet: both runtimes agree the answer is None.
+    expect(await accessA.read.musicAccPersonhoodLevel([ctx.listener.account.address])).to.equal(PersonhoodLevel.None);
     expect(await accessB.read.musicAccPersonhoodLevel([ctx.listener.account.address])).to.equal(PersonhoodLevel.None);
+
+    const precompile = await installPersonhoodPrecompile();
+    await precompile.write.setPersonhood([ctx.listener.account.address, DOTIFY_CONTEXT, PersonhoodLevel.DIM2, `0x${'11'.repeat(32)}`]);
+
+    expect(await accessA.read.musicAccPersonhoodLevel([ctx.listener.account.address])).to.equal(PersonhoodLevel.DIM2);
+    expect(await accessB.read.musicAccPersonhoodLevel([ctx.listener.account.address])).to.equal(PersonhoodLevel.DIM2);
+
+    // And neither artist can alter it.
+    const artistAccessA = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddrA, { client: { wallet: ctx.artistA } });
+    try {
+      await artistAccessA.write.musicAccSetPersonhoodLevel([ctx.listener.account.address, PersonhoodLevel.None]);
+      expect.fail('Should have reverted');
+    } catch (e: unknown) {
+      expect((e as Error).message).to.include('Individuality precompile');
+    }
   });
 });
 

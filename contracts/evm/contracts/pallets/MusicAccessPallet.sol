@@ -15,10 +15,17 @@ import { LibMusicNFT } from '../libraries/LibMusicNFT.sol';
 ///           3. HumanFree track           → granted if caller meets personhood level
 ///           4. Classic track             → granted if caller has paid
 ///
-///         Personhood levels (DIM1, DIM2) are set by the personhood registrar —
-///         an admin account that in production will mirror the Individuality Chain.
-///         The SmartRuntime owner remains the only account allowed to update
-///         the registrar assignment.
+///         Personhood (DIM1, DIM2) is read from the Individuality precompile at
+///         0x000000000000000000000000000000000A010000, in Dotify's own application
+///         context. DIM1 maps to Lite, DIM2 to Full.
+///
+///         The former admin registrar is retired. It defaulted to the artist, so an
+///         artist could grant personhood to their own listeners — which made
+///         `human-free` a claim the contract could not actually support. Reading the
+///         precompile removes that path, and adds a per-context alias so Dotify can
+///         recognise a distinct person without learning who they are in any other
+///         application. Registrar entry points remain declared for ABI stability;
+///         the setter reverts.
 ///
 ///         Storage: LibMusicAccess (owns), LibMusicRegistry (reads), LibMusicNFT (reads)
 ///         Prefix:  musicAcc — avoids selector collisions with other pallets
@@ -47,14 +54,14 @@ contract MusicAccessPallet {
   // Personhood level management (registrar-only)
   // -------------------------------------------------------------------------
 
-  /// @notice Set the proof-of-personhood level for an account.
-  ///         In production this would be called by an oracle reading the Individuality Chain.
-  function musicAccSetPersonhoodLevel(address account, LibMusicRegistry.PersonhoodLevel level) external {
-    LibMusicAccess.Storage storage as_ = LibMusicAccess.store();
-    LibMusicAccess.requireRegistrar(as_);
-    require(account != address(0), 'MusicAccess: zero address');
-    as_.personhoodLevelOf[account] = level;
-    emit MusicAccPersonhoodLevelSet(account, level);
+  /// @notice DEPRECATED — personhood is read from the Individuality precompile and can
+  ///         no longer be assigned by an operator.
+  /// @dev Reverts rather than writing to storage no access decision reads. Accepting a
+  ///      write that silently changes nothing would leave an operator believing a
+  ///      listener was granted access they do not have. The parameters are retained so
+  ///      the selector and ABI stay stable for already-deployed runtimes.
+  function musicAccSetPersonhoodLevel(address, LibMusicRegistry.PersonhoodLevel) external pure {
+    revert('MusicAccess: personhood is read from the Individuality precompile');
   }
 
   // -------------------------------------------------------------------------
@@ -89,9 +96,24 @@ contract MusicAccessPallet {
     return LibMusicAccess.store().paidAccess[contentHash][listener];
   }
 
-  /// @notice Returns the verified personhood level for `account`.
+  /// @notice Returns the verified personhood level for `account`, read from the
+  ///         Individuality precompile in Dotify's application context.
+  /// @dev Returns None when the precompile is unavailable, matching the access
+  ///      decision. Use `musicAccPersonhoodInfo` to tell those two cases apart.
   function musicAccPersonhoodLevel(address account) external view returns (LibMusicRegistry.PersonhoodLevel) {
-    return LibMusicAccess.store().personhoodLevelOf[account];
+    (uint8 status, , bool live) = LibMusicAccess.personhoodOf(account);
+    if (!live) return LibMusicRegistry.PersonhoodLevel.None;
+    return LibMusicRegistry.PersonhoodLevel(status);
+  }
+
+  /// @notice Full personhood reading for `account`: tier, Dotify-context pseudonym, and
+  ///         whether the precompile answered at all.
+  /// @dev `live == false` means this chain cannot answer, which is a deployment
+  ///      diagnosis, not a statement about the listener. `contextAlias` is the same
+  ///      person under a different pseudonym in every other application, so it can
+  ///      identify a returning listener without revealing who they are elsewhere.
+  function musicAccPersonhoodInfo(address account) external view returns (uint8 status, bytes32 contextAlias, bool live) {
+    return LibMusicAccess.personhoodOf(account);
   }
 
   /// @notice Returns true if `account` meets `required` personhood level.

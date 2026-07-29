@@ -56,8 +56,9 @@ declare module "@parity/product-sdk-contracts" {
                 musicAccGetRegistrar: { args: []; response: HexString };
                 musicAccHasPaid: { args: [contentHash: SizedHex<32>, listener: HexString]; response: boolean };
                 musicAccHasPersonhood: { args: [account: HexString, required: number]; response: boolean };
+                musicAccPersonhoodInfo: { args: [account: HexString]; response: { status: number; contextAlias: SizedHex<32>; live: boolean } };
                 musicAccPersonhoodLevel: { args: [account: HexString]; response: number };
-                musicAccSetPersonhoodLevel: { args: [account: HexString, level: number]; response: undefined };
+                musicAccSetPersonhoodLevel: { args: [arg0: HexString, arg1: number]; response: undefined };
                 setPersonhoodRegistrar: { args: [registrar: HexString]; response: undefined };
                 musicNFTApprove: { args: [to: HexString, tokenId: bigint]; response: undefined };
                 musicNFTBalanceOf: { args: [owner: HexString]; response: bigint };
