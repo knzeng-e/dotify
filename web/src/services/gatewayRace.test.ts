@@ -112,6 +112,23 @@ describe('fetchThroughGateways', () => {
     expect(await response.text()).toBe('winner body');
   });
 
+  it('keeps the winner cancellable after it is returned', async () => {
+    // The body streams after headers arrive, so a caller that cancels then -
+    // a listener skipping to another track - must still stop the download.
+    let winnerSignal: AbortSignal | undefined;
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation((_url, init) => {
+      winnerSignal = init?.signal ?? undefined;
+      return Promise.resolve(new Response('winner body'));
+    });
+    const controller = new AbortController();
+
+    await fetchThroughGateways([FIRST], { fetchImpl: fetchMock, signal: controller.signal });
+
+    expect(winnerSignal?.aborted).toBe(false);
+    controller.abort();
+    expect(winnerSignal?.aborted).toBe(true);
+  });
+
   it('surfaces the last error when every gateway fails', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockRejectedValueOnce(new Error('first down')).mockRejectedValueOnce(new Error('second down'));
 

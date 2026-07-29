@@ -151,11 +151,21 @@ export async function fetchThroughGateways(urls: string[], options: GatewayRaceO
       active.delete(outcome.id);
 
       if (outcome.ok) {
-        throwIfAborted(options.signal, message);
+        if (options.signal?.aborted) {
+          // A late abort still has to stop the winner: it is no longer in
+          // `active`, so the finally block below would not reach it.
+          outcome.controller.abort();
+          throwIfAborted(options.signal, message);
+        }
         for (const attempt of active.values()) {
           attempt.controller.abort();
         }
         active.clear();
+        // `makeAttempt` detaches its parent-abort link once headers arrive, but
+        // the body has only just started streaming. Re-link the winner so a
+        // caller that cancels - a listener skipping to another track - actually
+        // stops the download instead of leaving it to run to completion unread.
+        options.signal?.addEventListener('abort', () => outcome.controller.abort(), { once: true });
         return outcome.response;
       }
 
