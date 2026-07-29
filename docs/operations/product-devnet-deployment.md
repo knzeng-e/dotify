@@ -225,9 +225,10 @@ active.
   records which shape the live host actually produced - that observation is the
   evidence, and until it is captured the accepted set stays deliberately wide.
 - Contract writes still require passkey/EVM signing in the shipped UI. The
-  experimental Product CDM/PAPI runtime adapter is present in code, but it is
-  not selected until Dotify has CDM-installed runtime packages, generated
-  contract types, and real host-signed transaction evidence.
+  Product CDM/PAPI runtime adapter now has its generated manifest, contract
+  types, and a live resolver, so the only thing still missing before it can be
+  selected is `pallet-revive` account mapping plus real host-signed transaction
+  evidence.
 - Rooms still depend on one in-memory Fly signaling machine.
 - Product-host cloud storage does not hold Dotify audio or content keys.
 - Product personhood is not yet an access decision source.
