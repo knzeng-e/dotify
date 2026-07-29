@@ -14,6 +14,7 @@
 
 import { getArtistPublishE2eCid, getArtistPublishE2eScenario, isArtistPublishE2e, recordArtistPublishUploadFailure } from '../e2e/artistPublishMock';
 import { encryptedRefToCID, normalizeEncryptedAudioRef } from '../shared/utils/protectedAudio';
+import { fetchThroughGateways } from './gatewayRace';
 
 // Backend API base URL. When set, uploads are routed server-side.
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
@@ -120,39 +121,13 @@ function throwIfGatewayReadAborted(signal?: AbortSignal): void {
 }
 
 export async function fetchIpfsCid(cid: string, options: GatewayReadOptions = {}): Promise<Response> {
-  let lastError: unknown;
-
-  for (const url of getGatewayUrls(cid)) {
-    throwIfGatewayReadAborted(options.signal);
-    try {
-      const response = await fetch(url, { signal: options.signal });
-      if (response.ok) return response;
-      lastError = new Error(`Gateway ${url} returned ${response.status}`);
-    } catch (error) {
-      if (options.signal?.aborted) throw error;
-      lastError = error;
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error(`Unable to fetch IPFS CID ${cid}`);
+  throwIfGatewayReadAborted(options.signal);
+  return fetchThroughGateways(getGatewayUrls(cid), { signal: options.signal, label: `IPFS CID ${cid}` });
 }
 
 export async function fetchAssetRef(assetRef: string, options: GatewayReadOptions = {}): Promise<Response> {
-  let lastError: unknown;
-
-  for (const url of getGatewayUrlsForAssetRef(assetRef)) {
-    throwIfGatewayReadAborted(options.signal);
-    try {
-      const response = await fetch(url, { signal: options.signal });
-      if (response.ok) return response;
-      lastError = new Error(`Gateway ${url} returned ${response.status}`);
-    } catch (error) {
-      if (options.signal?.aborted) throw error;
-      lastError = error;
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error(`Unable to fetch asset ${assetRef}`);
+  throwIfGatewayReadAborted(options.signal);
+  return fetchThroughGateways(getGatewayUrlsForAssetRef(assetRef), { signal: options.signal, label: `asset ${assetRef}` });
 }
 
 // ---------------------------------------------------------------------------
