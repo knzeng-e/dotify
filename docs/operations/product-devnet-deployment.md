@@ -143,8 +143,18 @@ Then verify in the Product host:
 2. Free playback starts without connecting an account.
 3. **Use Polkadot app** connects an app-scoped Product account only after the
    button is selected.
-4. A protected track asks for a passkey/EVM wallet; it does not release a key
-   through the Product identity.
+4. A protected track requests its key through the Product identity using
+   `product-sr25519-v1`. Record which happened:
+   - accepted, and playback starts: capture the request/response pair as the
+     Product signing evidence this build needs;
+   - denied with `PRODUCT_SIGNATURE_REJECTED`: the key and requester bound
+     correctly but the host signing envelope is not one this API accepts.
+     Capture the Fly log line and the raw host signature length before
+     changing anything;
+   - denied with any other code: treat as a normal fail-closed denial.
+
+   In every rejected case, playback must stop and offer a passkey/EVM wallet.
+   No path may release a key without a verified signature.
 5. A Product-origin host creates a room and copies a
    `https://dotify-test01.dev-dot.li/#/rooms/<code>` link.
 6. A wallet-free browser joins that link from outside the Product host.
@@ -175,6 +185,13 @@ active.
   that proof shape after an explicit host-account connection, but each published
   Product build still needs real Host smoke evidence before gated playback is
   considered production-ready on Product DevNet.
+- The Host `signRaw` wire format is not pinned by the SDK: the response
+  signature is untagged, and a Substrate host may sign the payload verbatim or
+  inside a `<Bytes>` envelope. The API accepts both envelopes and both a bare
+  64-byte and a MultiSignature-tagged 65-byte sr25519 signature, so a correct
+  host signature verifies regardless of which shape it uses. Step 6.4 above
+  records which shape the live host actually produced - that observation is the
+  evidence, and until it is captured the accepted set stays deliberately wide.
 - Contract writes still require passkey/EVM signing in the shipped UI. The
   experimental Product CDM/PAPI runtime adapter is present in code, but it is
   not selected until Dotify has CDM-installed runtime packages, generated

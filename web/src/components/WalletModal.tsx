@@ -133,8 +133,8 @@ export function WalletModal({
         {wallet.method === 'product-host' && (
           <>
             <p className='info-box'>
-              Your app-scoped Polkadot identity is active for presence and rooms. Paid access, protected playback, and artist publishing still require an EVM
-              signer during the contract port.
+              Your app-scoped Polkadot identity is active for presence, rooms, and protected playback. If the host signature is rejected, protected playback
+              fails closed - add a passkey or EVM wallet below. Paying for access and artist publishing still require an EVM signer during the contract port.
             </p>
             <div className='wallet-options'>
               {hasPrfSupport && (
@@ -144,7 +144,7 @@ export function WalletModal({
                   </span>
                   <span className='wallet-option-copy'>
                     <strong>{hasStoredPasskey ? 'Use passkey' : 'Create passkey'}</strong>
-                    <small>Enable protected and paid actions.</small>
+                    <small>Enable paid access and publishing.</small>
                   </span>
                 </button>
               )}
@@ -154,7 +154,7 @@ export function WalletModal({
                 </span>
                 <span className='wallet-option-copy'>
                   <strong>Use EVM wallet</strong>
-                  <small>Enable protected and paid actions.</small>
+                  <small>Enable paid access and publishing.</small>
                 </span>
               </button>
             </div>

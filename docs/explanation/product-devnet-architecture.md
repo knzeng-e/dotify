@@ -84,7 +84,7 @@ cross-origin catalog reads, key requests, Socket.IO, and WebRTC signaling.
 | Host room | Socket.IO + WebRTC | Same | Keep until a multiparty replacement proves equivalent UX |
 | Product identity | Not applicable | App-scoped SS58/H160 | Host identity with explicit capability grants |
 | Classic payment | Passkey/EVM wallet | Passkey/EVM wallet | CDM/PAPI write adapter |
-| Protected key request | EIP-191 or session token | EIP-191 or session token in shipped UI; API accepts `product-sr25519-v1` | Frontend-host signed Product key/session requests |
+| Protected key request | EIP-191 or session token | `product-sr25519-v1` when a Product account is connected; EIP-191 or session token otherwise | Frontend-host signed Product key/session requests, with captured host signing evidence |
 | Artist publication | viem/EVM | viem/EVM | Generated CDM contract adapter |
 | Personhood | Current on-chain policy source | No new claim | Privacy-preserving Product proof after verification |
 | Static delivery | Netlify | Bulletin + DotNS | Bulletin + DotNS |
@@ -178,6 +178,36 @@ closed. The Product frontend now sends this proof shape after explicit
 Product-host account connection; real Host smoke evidence is still required
 for each Product publication before gated listening is treated as
 production-ready.
+
+### Host Signing Envelope
+
+The SDK does not pin the `signRaw` wire format. `HostSignPayloadResponse`
+carries an untagged signature, and a Substrate host may sign a raw payload
+verbatim or inside the conventional `<Bytes>...</Bytes>` envelope. Guessing one
+shape would make every Product key request fail on a wrong guess, and the
+failure would be indistinguishable from a wrong signer.
+
+Verification therefore accepts a bounded set:
+
+- the canonical message verbatim, or wrapped in `<Bytes>`;
+- a bare 64-byte sr25519 signature, or a 65-byte value carrying the
+  MultiSignature sr25519 tag `0x01`.
+
+This is not a weakening. Every accepted variant carries the identical
+domain-bound message, so no new replay, cross-app, cross-chain, or cross-track
+surface is created; an ed25519 or ECDSA tag is still rejected. A request whose
+key parses and derives to the requester but verifies under no variant returns
+`PRODUCT_SIGNATURE_REJECTED`, kept distinct from `SIGNATURE_INVALID` so
+operators can separate an envelope problem from a wrong-account problem.
+
+`product-sr25519-v1` additionally rejects EVM-derived account ids - a 20-byte
+H160 padded with `0xee`. Such a value derives straight back to the H160 it
+contains, so accepting it would let a caller name any paying EVM listener as
+the requester and rest the whole boundary on the curve check alone. A real
+Product account is a native `AccountId32`, so that shape is refused outright.
+
+Once live host evidence records which envelope the host actually produces, the
+accepted set can be narrowed to it.
 
 This avoids a second frontend business model and allows Product mode to replace
 one infrastructure adapter at a time.
