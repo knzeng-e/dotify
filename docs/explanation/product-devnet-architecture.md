@@ -190,6 +190,48 @@ Inventing a placeholder address would misrepresent the deployment.
 `productCdmContracts.ts` resolves those through `createContract`, which needs no
 manifest entry.
 
+### Registering `@dotify/*` Without Redeploying
+
+`cdm deploy` builds, deploys, publishes metadata, and registers in one pass.
+Dotify cannot use it: the contracts are already deployed and already hold the
+live catalog, so deploying again would mint new addresses and orphan every
+existing artist runtime.
+
+The registry contract itself provides the operation that is actually needed.
+`publishLatest(contract_name, contract_address, metadata_uri)` binds a name to
+an arbitrary address, and the contract's own comment states the rule: "The
+caller only has permission to publish a new version of `contract_name` if
+either the name is available or they are already the owner of the name." So a
+free name is claimable by anyone, and afterwards only by its owner.
+`metadata_uri` is stored verbatim and never validated - it is a pointer, not a
+checked reference.
+
+`npm run cdm:publish:testnet` (task `cdm:publish`) performs that registration
+for the addresses in `deployments.json`. It is read-only by default: it prints
+the plan and the exact calldata, and stops. Registration is first-writer-owns
+and the registry exposes no release or transfer entry point, so a claimed name
+is permanent - execution therefore requires `--confirm` and an explicit key.
+
+The task refuses to proceed when a target address has no bytecode on the
+connected chain, or when a name is already owned by another account. Publishing
+a name that points at nothing would be worse than not publishing it.
+
+| Registry | Address | Network |
+| --- | --- | --- |
+| `devnet` preset | `0x59b0245778917af55224e5f8fb55f7f8d452619f` | Paseo Asset Hub, para 1000, chain 420420417 |
+
+CDM's own documentation confirms the preset distinction that
+`VITE_DOTIFY_PRODUCT_CHAIN` encodes: "the `paseo` preset targets **paseo-next**
+... para 1500 - not the Paseo testnet. The `devnet` preset targets the Paseo
+testnet Asset Hub (para 1000, EVM chain id 420420417)." Publishing against the
+`paseo` registry would register Dotify's names on a network where its contracts
+do not exist.
+
+Note also that CDM does support Solidity, through a `/// @custom:cdm @org/name`
+NatSpec tag and first-pass Hardhat and Foundry templates. The architecture page
+mentions only PolkaVM bytecode, so this is easy to miss - it means Dotify's
+existing toolchain is not an obstacle to CDM participation.
+
 ### Two Constraints On Product Contract Mode
 
 **It only runs inside a Product host.** `createChainClient`/`getChainAPI` route

@@ -18,7 +18,8 @@
     "registry:deploy-facet:testnet": "npx hardhat registry:deploy-facet --network polkadotTestnet",
     "registry:upgrade:testnet": "npx hardhat registry:upgrade --network polkadotTestnet",
     "fmt": "prettier --plugin=prettier-plugin-solidity --write 'contracts/**/*.sol' 'scripts/**/*.ts' 'tasks/**/*.ts' 'test/**/*.ts' hardhat.config.ts",
-    "fmt:check": "prettier --plugin=prettier-plugin-solidity --check 'contracts/**/*.sol' 'scripts/**/*.ts' 'tasks/**/*.ts' 'test/**/*.ts' hardhat.config.ts"
+    "fmt:check": "prettier --plugin=prettier-plugin-solidity --check 'contracts/**/*.sol' 'scripts/**/*.ts' 'tasks/**/*.ts' 'test/**/*.ts' hardhat.config.ts",
+    "cdm:publish:testnet": "npx hardhat cdm:publish --network polkadotTestnet"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
