@@ -177,7 +177,7 @@ async function buildPlan(hre: HardhatRuntimeEnvironment, registry: Address, sign
 task('cdm:publish', 'Register Dotify contracts in the Product CDM registry. Read-only unless --confirm is passed.')
   .addOptionalParam('registry', 'ContractRegistry address', DEVNET_REGISTRY_ADDRESS, types.string)
   .addOptionalParam('metadataUri', 'Override the metadata pointer for every package. Defaults to each package generated CID.', '', types.string)
-  .addOptionalParam('privateKey', 'Publisher key. Required only with --confirm.', '', types.string)
+  .addOptionalParam('privateKey', 'Override the publisher key. Normally unnecessary: the configured PRIVATE_KEY hardhat var is used.', '', types.string)
   .addFlag('confirm', 'Actually submit the registration transactions')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     const registry = getAddress(args.registry as string);
@@ -189,7 +189,17 @@ task('cdm:publish', 'Register Dotify contracts in the Product CDM registry. Read
       throw new Error(`No ContractRegistry at ${registry} on this network. Check --registry and the RPC endpoint.`);
     }
 
-    const account = args.privateKey ? privateKeyToAccount(args.privateKey as Hex) : null;
+    // The publisher is not just paying fees: publish_latest records `caller` as the
+    // permanent owner of every name it creates. So this key decides who owns @dotify/*
+    // for good, which is why it is resolved explicitly and reported before any write.
+    //
+    // Default to the account hardhat already has for this network - sourced from the
+    // encrypted `PRIVATE_KEY` var - rather than asking for a key on the command line,
+    // where it would land in shell history and process listings.
+    const overrideAccount = args.privateKey ? privateKeyToAccount(args.privateKey as Hex) : null;
+    const [configuredWallet] = overrideAccount ? [] : await hre.viem.getWalletClients({ chain: POLKADOT_TESTNET_CHAIN });
+    const account = overrideAccount ?? configuredWallet?.account ?? null;
+
     const plans = await buildPlan(hre, registry, account?.address ?? null);
 
     const cidIndex = readCidIndex();
@@ -202,7 +212,8 @@ task('cdm:publish', 'Register Dotify contracts in the Product CDM registry. Read
 
     console.log(`\nCDM registry: ${registry}`);
     console.log(`Chain:        ${await publicClient.getChainId()}`);
-    console.log(`Publisher:    ${account?.address ?? '(not supplied — read-only plan)'}\n`);
+    console.log(`Publisher:    ${account?.address ?? '(none configured — read-only plan)'}${overrideAccount ? '  (--private-key override)' : ''}`);
+    console.log(`              this account becomes the permanent owner of any name it registers\n`);
 
     for (const plan of plans) {
       console.log(`${plan.name}`);
@@ -233,21 +244,23 @@ task('cdm:publish', 'Register Dotify contracts in the Product CDM registry. Read
       console.log(
         actionable.length === 0
           ? 'Nothing to publish — every name already resolves to the configured address.'
-          : `Dry run. ${actionable.length} name(s) would be published. Re-run with --confirm --private-key <key> to submit.\n` +
+          : `Dry run. ${actionable.length} name(s) would be published. Re-run with --confirm to submit.\n` +
               'Registration is first-writer-owns and the registry has no release or transfer entry point, so a claimed name is permanent.'
       );
       return;
     }
 
     if (!account) {
-      throw new Error('--confirm requires --private-key.');
+      throw new Error(
+        'No publisher account for this network. Set one with `npx hardhat vars set PRIVATE_KEY`, ' + 'or pass --private-key to override it for this run.'
+      );
     }
     if (actionable.length === 0) {
       console.log('Nothing to publish.');
       return;
     }
 
-    const walletClient = createWalletClient({ account, chain: POLKADOT_TESTNET_CHAIN, transport: http(rpcUrl) });
+    const walletClient = configuredWallet ?? createWalletClient({ account, chain: POLKADOT_TESTNET_CHAIN, transport: http(rpcUrl) });
 
     for (const plan of actionable) {
       const hash = await walletClient.writeContract({
