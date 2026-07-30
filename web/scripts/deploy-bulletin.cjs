@@ -41,10 +41,16 @@ function base32lower(bytes) {
   return out;
 }
 
+// Multihash code for blake2b-256 is 0xb220, which is 45600 and therefore needs three
+// varint bytes: 0xa0 0xe4 0x02. The single byte 0x1e used here previously is blake3 - an
+// algorithm the Bulletin Chain does not even accept - so the digest was correct but
+// tagged as the wrong function, and the resulting CID resolved nowhere. Verified against
+// @parity/bulletin-sdk `calculateCid(bytes, 0x55, 45600)`, which produces this prefix.
+const BLAKE2B_256_MULTIHASH = [0xa0, 0xe4, 0x02, 0x20];
+
 function cidFromBytes(bytes) {
   const hash = blake2b(bytes, null, 32);
-  const mh = new Uint8Array([0x1e, 0x20, ...hash]); // blake2b-256 multihash
-  const cid = new Uint8Array([0x01, 0x55, ...mh]);   // CIDv1 + raw codec
+  const cid = new Uint8Array([0x01, 0x55, ...BLAKE2B_256_MULTIHASH, ...hash]); // CIDv1 + raw codec
   return 'b' + base32lower(cid);
 }
 
