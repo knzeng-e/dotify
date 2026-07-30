@@ -232,6 +232,47 @@ NatSpec tag and first-pass Hardhat and Foundry templates. The architecture page
 mentions only PolkaVM bytecode, so this is easy to miss - it means Dotify's
 existing toolchain is not an obstacle to CDM participation.
 
+### Why `cdm deploy` Cannot Be Used, Even With A Fresh Redeploy
+
+The obvious objection to the task above is that a redeploy would avoid all of
+it. Dotify's on-chain data is test data, so that was worth checking properly
+rather than assuming. It does not work, and the reason is a hard chain limit
+rather than a preference.
+
+CDM's Solidity path compiles with `resolc` to PolkaVM, not with `solc` to EVM
+bytecode. `resolc` compiles Dotify's contracts successfully - all 24 files,
+including the diamond's `delegatecall` fallback and every one of its 17 inline
+assembly blocks, with only an informational `extcodesize` warning from
+`LibDiamond`. Feasibility is therefore not the blocker.
+
+Size is. The Asset Hub initcode limit is 49,152 bytes, and `resolc` emits
+roughly 4-10x more bytecode than `solc` for the same source:
+
+| Contract | Deployed EVM | resolc PolkaVM | Against the 48 KB limit |
+| --- | --- | --- | --- |
+| `MusicRegistryPallet` | 8,855 | 71,252 | **over by 45%** |
+| `SmartRuntime` | n/a | 41,142 | under |
+| `DiamondCutPallet` | 4,753 | 39,408 | under |
+| `ArtistRuntimeFactory` | 9,999 | 38,926 | under |
+| `ArtistDirectory` | 1,829 | 17,325 | under |
+| `MusicRightsRegistry` | not deployed | 88,955 | **over by 81%** |
+
+`MusicRegistryPallet` is the pallet that holds the catalog, so this is not an
+optional component. Clearing the limit would mean splitting it into a
+storage-only contract and a logic contract - and the practitioner report that
+documents that workaround also records that diamond-style generic mappings were
+*ineffective* at reducing size, which is precisely Dotify's architecture.
+
+So the ordering is: Asset Hub's `pallet-revive` accepts both EVM bytecode
+through `eth-rpc` and PolkaVM blobs through `resolc`, and for Dotify the EVM
+path is not a legacy compromise - it is the only one that currently fits. The
+existing deployment sits comfortably inside the limit on every contract.
+
+`publishLatest` registration is therefore the correct mechanism, not a
+workaround for an unwillingness to redeploy. Revisit only if `resolc` output
+size improves substantially, or if the registry pallet is split for reasons of
+its own.
+
 ### Two Constraints On Product Contract Mode
 
 **It only runs inside a Product host.** `createChainClient`/`getChainAPI` route
