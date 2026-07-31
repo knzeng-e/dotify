@@ -94,6 +94,43 @@ for a `.dot` deployment.
 
 ---
 
+### `VITE_DOTIFY_ROOM_BEACONS`
+
+| Property     | Value        |
+| ------------ | ------------ |
+| **Type**     | `on` or `off` |
+| **Required** | No           |
+| **Default**  | `off`        |
+| **Example**  | `off`        |
+
+Publishes a small beacon to the Statement Store while hosting a room, so the
+room can be discovered without Dotify's signaling server.
+
+This is **discovery only**. A beacon never carries SDP, ICE, chat, or audio, and
+is never required to join: a share link still works with no wallet, no account,
+and no chain. Joining cannot move here - a WebRTC offer is 1.5-4 KB against a
+512-byte statement ceiling, and a guest would have to publish an answer, which
+needs an identity and an allowance. That would turn every listener into a
+registered person.
+
+Only a host publishes, and only while hosting. Requires `VITE_DOTIFY_HOST_MODE`
+to be `auto` or `required`: the statement store client runs only inside the
+Product host container, so enabling beacons without it would ship chain code
+that can never connect. The production guard rejects that combination.
+
+A beacon carries the room code, host display name, and an aggregate listener
+count - never listener identities. Now-playing is opt-in per host, because a
+beacon is globally readable and outlives the room by up to the retention window,
+which is a different exposure than sharing a link.
+
+**Build size.** Enabling this adds about 24 KB. A build with it `off` still
+carries a ~69 KB statement-store chunk that is never fetched at runtime: Rollup
+emits a chunk for the nested dynamic import before it can prove the build-time
+guard makes it unreachable. That is ~1.5% of the bundle, and the code never
+executes, but it is published weight against the Bulletin quota.
+
+---
+
 ### `VITE_DOTIFY_PRODUCT_CHAIN`
 
 | Property     | Value    |

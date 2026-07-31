@@ -14,6 +14,7 @@ import {
 } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
 import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
+import { useRoomBeacon } from './useRoomBeacon';
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH } from '../shared/social';
@@ -1038,6 +1039,16 @@ export function useSession(deps: UseSessionDeps) {
     }, HOST_HEARTBEAT_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [mode, roomId]);
+
+  // Announce the room on the Statement Store so it can be discovered without
+  // Dotify's signaling server. Additive only: the share link remains the way in,
+  // and this is inert unless the build opted in and a Product host is present.
+  useRoomBeacon({
+    isHosting: mode === 'host' && Boolean(roomId),
+    roomCode: roomId,
+    hostName: displayName,
+    listenerCount
+  });
 
   async function copySessionLink() {
     const link = buildSessionLink(roomId, publicAppUrl || window.location.href);

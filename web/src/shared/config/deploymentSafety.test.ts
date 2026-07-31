@@ -263,6 +263,36 @@ describe('validateProductionEnvironment', () => {
     ).toEqual({ mode: 'production', errors: [], warnings: [] });
   });
 
+  it('rejects room beacons without a Product host, since they publish only inside it', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_ROOM_BEACONS: 'on'
+      }).errors
+    ).toEqual(['VITE_DOTIFY_ROOM_BEACONS=on requires VITE_DOTIFY_HOST_MODE to be auto or required: room beacons publish only inside the Product host.']);
+  });
+
+  it('rejects an unknown room beacon value', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_ROOM_BEACONS: 'yes'
+      }).errors
+    ).toEqual(['VITE_DOTIFY_ROOM_BEACONS must be on or off.']);
+  });
+
+  it('accepts room beacons alongside an enabled Product host', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_ROOM_BEACONS: 'on',
+        VITE_DOTIFY_HOST_MODE: 'required',
+        VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
+        VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li'
+      })
+    ).toEqual({ mode: 'production', errors: [], warnings: [] });
+  });
+
   it('accepts an explicit production environment that keeps secrets server-side', () => {
     expect(validateProductionEnvironment(validProductionEnv)).toEqual({
       mode: 'production',
