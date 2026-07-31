@@ -288,6 +288,73 @@ Then verify in the Product host:
 Inspect the browser console and Fly logs for CORS, catalog, Socket.IO, and
 WebRTC failures.
 
+## Room Beacons (Dormant By Default)
+
+The Statement Store beacon capability ships but is **not enabled** by the
+standard publication. `web/.env.product-devnet` sets
+`VITE_DOTIFY_ROOM_BEACONS=off`, and `npm run deploy:product-devnet` rebuilds in
+that mode, so a normal publish announces no rooms.
+
+That is deliberate. Nothing reads beacons yet, so publishing room records to a
+public chain would be exposure with no consumer, and the publish path has no
+live host evidence. Treat this section as the procedure for collecting that
+evidence, not as part of a routine release.
+
+### Prerequisites
+
+- `VITE_DOTIFY_HOST_MODE` must be `auto` or `required`. The statement store
+  client runs only inside the Product host container, and the production guard
+  refuses `VITE_DOTIFY_ROOM_BEACONS=on` without it.
+- No Individuality allowance is needed for the host account: host mode signs
+  through the product's allowance account on the RFC-10 sponsored path.
+- Expect about 24 KB of extra publication weight against the Bulletin quota.
+
+### Publish an announcing build
+
+```bash
+cd web
+npm run deploy:product-devnet:beacons
+```
+
+### Collect live evidence
+
+Inside the Product host, with the announcing build open:
+
+1. Create a room. Watch the browser console. A refused publish logs
+   `[dotify] room beacon not published (<reason>): <detail>`; nothing is logged
+   on success.
+2. Record which happened:
+   - **published** - capture the room code and the fact that no warning
+     appeared. This is the first evidence the publish path works end to end;
+   - **`rejected`** - the statement store refused the write. Most often the
+     account-wide quota, which the client cannot observe. Capture the detail
+     line before changing anything;
+   - **`transport`** - the client could not reach the store at all;
+   - **`quota-local`** - this instance's own beacons already fill the
+     1024-byte account budget.
+3. Confirm hosting is unaffected in every case: the room must still be
+   joinable from its share link by a wallet-free browser. A beacon failure that
+   degrades hosting is a defect, not a limitation.
+4. With a second client in the host, confirm the room appears through
+   `subscribeRoomBeacons` and disappears within roughly the statement TTL plus
+   one sweep after the host stops.
+
+Record the outcome in the release evidence. Until step 2 shows a published
+beacon, treat the capability as unproven regardless of unit coverage.
+
+### Rollback
+
+Republish without the flag:
+
+```bash
+cd web
+npm run deploy:product-devnet
+```
+
+Beacons already published expire on their own within the statement TTL. There
+is no revocation step and none is needed - a beacon carries no key, no
+identity, and no durable claim.
+
 ## Rollback
 
 The Product deployment is static. To roll back:

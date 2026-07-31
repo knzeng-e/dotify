@@ -38,19 +38,23 @@ const MAX_HOST_NAME = 40;
 const MAX_TRACK_TEXT = 60;
 const MAX_LISTENERS = 9_999;
 
+// Field names are spelled out rather than single letters. They cost bytes in
+// every published beacon - the full set is roughly 40 bytes of keys against a
+// 512-byte ceiling - but a wire format is read by people debugging a live room,
+// and `n`/`t`/`a` are unreadable for a saving the budget does not need.
 export type RoomBeacon = {
   /** Schema version, so a reader can reject shapes it does not understand. */
-  v: 1;
+  version: 1;
   /** Room code, matching the share link. */
   room: string;
   /** Host display name, already public to anyone holding the link. */
   host: string;
-  /** Listener count. Aggregate only - never identities. */
-  n: number;
+  /** Aggregate only - never identities. */
+  listenerCount: number;
   /** Now playing, present only when the host opted in. */
-  t?: string;
-  /** Artist, present only alongside `t`. */
-  a?: string;
+  title?: string;
+  /** Artist, present only alongside `title`. */
+  artist?: string;
 };
 
 export type RoomBeaconInput = {
@@ -79,6 +83,15 @@ function byteLength(value: unknown): number {
   return new TextEncoder().encode(JSON.stringify(value)).length;
 }
 
+/** Serialized size of a beacon, in the bytes the chain will actually count. */
+export function beaconByteLength(beacon: RoomBeacon): number {
+  return byteLength(beacon);
+}
+
+function tooLarge(beacon: RoomBeacon): boolean {
+  return beaconByteLength(beacon) > MAX_BEACON_BYTES;
+}
+
 /**
  * Build a beacon that is guaranteed to fit MAX_BEACON_BYTES.
  *
@@ -94,34 +107,31 @@ export function buildRoomBeacon(input: RoomBeaconInput): RoomBeacon | null {
   const listeners = Number.isFinite(input.listenerCount) ? Math.max(0, Math.min(MAX_LISTENERS, Math.trunc(input.listenerCount))) : 0;
 
   const beacon: RoomBeacon = {
-    v: 1,
+    version: 1,
     room,
     host: clamp(input.hostName || 'Host', MAX_HOST_NAME),
-    n: listeners
+    listenerCount: listeners
   };
 
   if (input.nowPlaying) {
     const title = clamp(input.nowPlaying.title, MAX_TRACK_TEXT);
     const artist = clamp(input.nowPlaying.artist, MAX_TRACK_TEXT);
-    if (title) beacon.t = title;
-    if (artist) beacon.a = artist;
+    if (title) beacon.title = title;
+    if (artist) beacon.artist = artist;
   }
 
-  // Shed optional fields in order of least value until the record fits. A
-  // multi-byte host name can still overflow after clamping by character count,
-  // so the byte check is authoritative rather than the length bounds above.
-  if (byteLength(beacon) > MAX_BEACON_BYTES) delete beacon.a;
-  if (byteLength(beacon) > MAX_BEACON_BYTES) delete beacon.t;
-  while (byteLength(beacon) > MAX_BEACON_BYTES && beacon.host.length > 1) {
+  // Shed optional fields in order of least value until the record fits. The size
+  // has to be re-measured after each removal rather than snapshotted once: every
+  // step changes the serialized bytes, so a cached length would be stale by the
+  // next check. A multi-byte host name can still overflow after clamping by
+  // character count, so bytes are authoritative over the length bounds above.
+  if (tooLarge(beacon)) delete beacon.artist;
+  if (tooLarge(beacon)) delete beacon.title;
+  while (tooLarge(beacon) && beacon.host.length > 1) {
     beacon.host = beacon.host.slice(0, Math.floor(beacon.host.length / 2));
   }
 
-  return byteLength(beacon) <= MAX_BEACON_BYTES ? beacon : null;
-}
-
-/** Serialized size of a beacon, in the bytes the chain will actually count. */
-export function beaconByteLength(beacon: RoomBeacon): number {
-  return byteLength(beacon);
+  return tooLarge(beacon) ? null : beacon;
 }
 
 /**
@@ -149,7 +159,7 @@ export type BeaconBudget = { ok: true; usedBytes: number } | { ok: false; usedBy
  * explainable refusal.
  */
 export function assertBeaconBudget(beacons: RoomBeacon[]): BeaconBudget {
-  const usedBytes = beacons.reduce((total, beacon) => total + byteLength(beacon), 0);
+  const usedBytes = beacons.reduce((total, beacon) => total + beaconByteLength(beacon), 0);
   if (usedBytes > MAX_ACCOUNT_BYTES) {
     return {
       ok: false,
@@ -170,7 +180,7 @@ export function assertBeaconBudget(beacons: RoomBeacon[]): BeaconBudget {
 export function parseRoomBeacon(data: unknown): RoomBeacon | null {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
   const record = data as Record<string, unknown>;
-  if (record.v !== 1) return null;
+  if (record.version !== 1) return null;
 
   const room = typeof record.room === 'string' ? record.room.toUpperCase() : '';
   if (!/^[A-Z0-9]{4,12}$/.test(room)) return null;
@@ -178,11 +188,11 @@ export function parseRoomBeacon(data: unknown): RoomBeacon | null {
   const host = typeof record.host === 'string' ? clamp(record.host, MAX_HOST_NAME) : '';
   if (!host) return null;
 
-  const rawCount = typeof record.n === 'number' && Number.isFinite(record.n) ? Math.trunc(record.n) : 0;
-  const beacon: RoomBeacon = { v: 1, room, host, n: Math.max(0, Math.min(MAX_LISTENERS, rawCount)) };
+  const rawCount = typeof record.listenerCount === 'number' && Number.isFinite(record.listenerCount) ? Math.trunc(record.listenerCount) : 0;
+  const beacon: RoomBeacon = { version: 1, room, host, listenerCount: Math.max(0, Math.min(MAX_LISTENERS, rawCount)) };
 
-  if (typeof record.t === 'string' && record.t.trim()) beacon.t = clamp(record.t, MAX_TRACK_TEXT);
-  if (typeof record.a === 'string' && record.a.trim()) beacon.a = clamp(record.a, MAX_TRACK_TEXT);
+  if (typeof record.title === 'string' && record.title.trim()) beacon.title = clamp(record.title, MAX_TRACK_TEXT);
+  if (typeof record.artist === 'string' && record.artist.trim()) beacon.artist = clamp(record.artist, MAX_TRACK_TEXT);
 
   return beacon;
 }

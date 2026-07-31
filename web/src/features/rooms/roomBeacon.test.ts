@@ -15,24 +15,24 @@ const base = { roomCode: 'AB12CD', hostName: 'Kevin', listenerCount: 3 };
 describe('buildRoomBeacon', () => {
   it('builds a compact beacon well inside the statement ceiling', () => {
     const beacon = buildRoomBeacon(base);
-    expect(beacon).toEqual({ v: 1, room: 'AB12CD', host: 'Kevin', n: 3 });
+    expect(beacon).toEqual({ version: 1, room: 'AB12CD', host: 'Kevin', listenerCount: 3 });
     expect(beaconByteLength(beacon!)).toBeLessThan(MAX_BEACON_BYTES);
   });
 
   it('omits now-playing unless the host opted in', () => {
     // Publishing what someone is listening to is a different exposure than
     // sharing a link, so it must never appear by default.
-    expect(buildRoomBeacon(base)).not.toHaveProperty('t');
-    expect(buildRoomBeacon({ ...base, nowPlaying: null })).not.toHaveProperty('t');
+    expect(buildRoomBeacon(base)).not.toHaveProperty('title');
+    expect(buildRoomBeacon({ ...base, nowPlaying: null })).not.toHaveProperty('title');
 
     const opted = buildRoomBeacon({ ...base, nowPlaying: { title: 'Kwenda', artist: 'Muzinga' } });
-    expect(opted).toMatchObject({ t: 'Kwenda', a: 'Muzinga' });
+    expect(opted).toMatchObject({ title: 'Kwenda', artist: 'Muzinga' });
   });
 
   it('never carries listener identities, only an aggregate count', () => {
     const beacon = buildRoomBeacon({ ...base, listenerCount: 7 });
-    expect(Object.keys(beacon!).sort()).toEqual(['host', 'n', 'room', 'v']);
-    expect(beacon!.n).toBe(7);
+    expect(Object.keys(beacon!).sort()).toEqual(['host', 'listenerCount', 'room', 'version']);
+    expect(beacon!.listenerCount).toBe(7);
   });
 
   it('rejects a room code that could not be joined anyway', () => {
@@ -42,9 +42,9 @@ describe('buildRoomBeacon', () => {
   });
 
   it('clamps a hostile listener count instead of publishing it', () => {
-    expect(buildRoomBeacon({ ...base, listenerCount: -5 })!.n).toBe(0);
-    expect(buildRoomBeacon({ ...base, listenerCount: 10 ** 9 })!.n).toBe(9999);
-    expect(buildRoomBeacon({ ...base, listenerCount: Number.NaN })!.n).toBe(0);
+    expect(buildRoomBeacon({ ...base, listenerCount: -5 })!.listenerCount).toBe(0);
+    expect(buildRoomBeacon({ ...base, listenerCount: 10 ** 9 })!.listenerCount).toBe(9999);
+    expect(buildRoomBeacon({ ...base, listenerCount: Number.NaN })!.listenerCount).toBe(0);
   });
 
   it('stays inside the ceiling when every field is oversized', () => {
@@ -123,34 +123,34 @@ describe('parseRoomBeacon', () => {
 
   it('rejects anything that is not a version 1 beacon', () => {
     // Statements come from arbitrary accounts, so shape cannot be assumed.
-    for (const bad of [null, undefined, 42, 'beacon', [], {}, { v: 2, room: 'AB12CD', host: 'K' }]) {
+    for (const bad of [null, undefined, 42, 'beacon', [], {}, { version: 2, room: 'AB12CD', host: 'K' }]) {
       expect(parseRoomBeacon(bad)).toBeNull();
     }
   });
 
   it('rejects a malformed room or missing host rather than listing a dead room', () => {
-    expect(parseRoomBeacon({ v: 1, room: '!!', host: 'K', n: 1 })).toBeNull();
-    expect(parseRoomBeacon({ v: 1, room: 'AB12CD', host: '', n: 1 })).toBeNull();
+    expect(parseRoomBeacon({ version: 1, room: '!!', host: 'K', listenerCount: 1 })).toBeNull();
+    expect(parseRoomBeacon({ version: 1, room: 'AB12CD', host: '', listenerCount: 1 })).toBeNull();
   });
 
   it('clamps hostile values from a remote publisher', () => {
     const parsed = parseRoomBeacon({
-      v: 1,
+      version: 1,
       room: 'ab12cd',
       host: 'h'.repeat(500),
-      n: Number.MAX_SAFE_INTEGER,
-      t: 't'.repeat(500),
-      a: 'a'.repeat(500)
+      listenerCount: Number.MAX_SAFE_INTEGER,
+      title: 't'.repeat(500),
+      artist: 'a'.repeat(500)
     });
 
     expect(parsed!.room).toBe('AB12CD');
     expect(parsed!.host.length).toBeLessThanOrEqual(40);
-    expect(parsed!.n).toBe(9999);
-    expect(parsed!.t!.length).toBeLessThanOrEqual(60);
+    expect(parsed!.listenerCount).toBe(9999);
+    expect(parsed!.title!.length).toBeLessThanOrEqual(60);
   });
 
   it('ignores a negative count instead of rendering it', () => {
-    expect(parseRoomBeacon({ v: 1, room: 'AB12CD', host: 'K', n: -10 })!.n).toBe(0);
+    expect(parseRoomBeacon({ version: 1, room: 'AB12CD', host: 'K', listenerCount: -10 })!.listenerCount).toBe(0);
   });
 });
 

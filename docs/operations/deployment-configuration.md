@@ -138,6 +138,26 @@ Required Product values:
 | `VITE_PUBLIC_APP_URL` | `https://dotify-test01.dev-dot.li` |
 | `VITE_DOTIFY_API_URL` | `https://dotify-api.fly.dev` |
 | `VITE_SIGNAL_URL` | `https://dotify-signal.fly.dev` |
+| `VITE_DOTIFY_ROOM_BEACONS` | `off` |
+
+`VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
+publication announces no rooms on the Statement Store. The capability ships
+dormant on purpose: nothing reads beacons yet, so publishing room records to a
+public chain would be exposure with no consumer, and the publish path has no
+live host evidence. Enabling also adds about 24 KB to every publication, against
+a finite Bulletin quota.
+
+To publish a build that does announce:
+
+```bash
+cd web
+npm run deploy:product-devnet:beacons
+```
+
+Rolling back is a normal republication with the flag absent - the standard
+`npm run deploy:product-devnet` produces the `off` build. Beacons already
+published expire on their own within the statement TTL; there is no revocation
+step, and none is needed.
 
 `VITE_PINATA_JWT` and `VITE_CONTENT_SECRET` are explicitly empty in that
 profile so a developer's generic local `.env` cannot leak demo credentials
