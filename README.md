@@ -49,10 +49,10 @@ Bulletin/DotNS. The runtime hooks now sit behind typed ports with the current
 viem implementation and an experimental Product CDM/PAPI adapter boundary.
 The backend key-delivery protocol now has an explicit Product sr25519
 signature scheme that binds the Product account public key to the derived H160
-requester before access checks. The shipped Product frontend still uses the
-passkey/EVM path for protected playback until host-signed key/session requests
-are wired; contract writes also remain passkey/EVM until CDM-installed runtime
-packages and host-signed transaction evidence are proven. See
+requester before access checks. The Product frontend can now submit that
+Product proof after explicit host-account connection; contract writes remain
+passkey/EVM until CDM-installed runtime packages and host-signed transaction
+evidence are proven. See
 [`docs/explanation/product-devnet-architecture.md`](docs/explanation/product-devnet-architecture.md)
 and the
 [`Product roadmap`](docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md).

@@ -83,6 +83,45 @@ describe('createViemRuntimeReader', () => {
     ]);
   });
 
+  it('refuses an implausible track count instead of allocating for it', async () => {
+    // A hostile or malformed runtime must not reach Array.from({ length: n }).
+    const readContract = vi.fn(async ({ functionName }: { functionName: string }) => {
+      if (functionName === 'musicRegTrackCount') return 2n ** 64n;
+      throw new Error(`unexpected ${functionName}`);
+    });
+    const reader = createViemRuntimeReader({
+      ethRpcUrl: 'http://localhost:8545',
+      publicClient: { readContract } as never
+    });
+
+    await expect(reader.listRuntimeTracks(runtime)).rejects.toThrow(/above the supported maximum/);
+    expect(readContract).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses an implausible royalty split count for a single track', async () => {
+    const record = baseTrackRecord();
+    const readContract = vi.fn(async ({ functionName }: { functionName: string }) => {
+      switch (functionName) {
+        case 'musicRegTrackCount':
+          return 1n;
+        case 'musicRegTrackHashAtIndex':
+          return hash;
+        case 'musicRegGetTrack':
+          return [record, runtime];
+        case 'musicRoySplitCount':
+          return 10_000n;
+        default:
+          throw new Error(`unexpected ${functionName}`);
+      }
+    });
+    const reader = createViemRuntimeReader({
+      ethRpcUrl: 'http://localhost:8545',
+      publicClient: { readContract } as never
+    });
+
+    await expect(reader.listRuntimeTracks(runtime)).rejects.toThrow(/above the supported maximum/);
+  });
+
   it('normalizes royalty payment logs with block timestamps', async () => {
     const getLogs = vi.fn(async () => [
       {

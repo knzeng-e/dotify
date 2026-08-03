@@ -46,7 +46,24 @@ async function signedPayload(overrides: Partial<SignedRequestPayload> = {}) {
   return { payload, signature };
 }
 
-async function productSignedPayload(overrides: Partial<SignedRequestPayload> = {}) {
+// The Host may sign the canonical message verbatim or inside the conventional
+// Substrate `<Bytes>` envelope, and may return the signature bare or with a
+// MultiSignature tag. Tests cover every shape the verifier accepts.
+type ProductEnvelope = 'raw' | 'bytes-wrapped';
+type ProductSignatureShape = 'bare' | 'multisignature';
+
+function encodeProductPayload(message: string, envelope: ProductEnvelope): Uint8Array {
+  return new TextEncoder().encode(envelope === 'bytes-wrapped' ? `<Bytes>${message}</Bytes>` : message);
+}
+
+function encodeProductSignature(raw: Uint8Array, shape: ProductSignatureShape): string {
+  return shape === 'multisignature' ? `0x01${bytesToHex(raw)}` : `0x${bytesToHex(raw)}`;
+}
+
+async function productSignedPayload(
+  overrides: Partial<SignedRequestPayload> = {},
+  options: { envelope?: ProductEnvelope; shape?: ProductSignatureShape } = {},
+) {
   const requester = overrides.requester ?? deriveProductAccountH160(productPublicKey);
   const challenge = createWalletNonceChallenge({ address: requester, chainId: CHAIN_ID });
   const payload: SignedRequestPayload = {
@@ -59,8 +76,8 @@ async function productSignedPayload(overrides: Partial<SignedRequestPayload> = {
     expiresAt: challenge.expiresAt,
     ...overrides
   };
-  const signature = `0x${bytesToHex(signSr25519(productSecretKey, new TextEncoder().encode(buildSignedRequestMessage(payload))))}`;
-  return { payload, signature, productPublicKey: productPublicKeyHex };
+  const raw = signSr25519(productSecretKey, encodeProductPayload(buildSignedRequestMessage(payload), options.envelope ?? 'raw'));
+  return { payload, signature: encodeProductSignature(raw, options.shape ?? 'bare'), productPublicKey: productPublicKeyHex };
 }
 
 describe('verifySignedRequest', () => {
@@ -103,6 +120,79 @@ describe('verifySignedRequest', () => {
     assert.equal(!result.valid && result.code, 'SIGNATURE_INVALID');
   });
 
+  it('accepts a Product signature made over the <Bytes> envelope', async () => {
+    const { payload, signature, productPublicKey } = await productSignedPayload({}, { envelope: 'bytes-wrapped' });
+    const result = await verifySignedRequest({
+      ...payload,
+      signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+      signature,
+      productPublicKey
+    });
+    assert.equal(result.valid, true);
+  });
+
+  it('accepts a MultiSignature-tagged Product signature in either envelope', async () => {
+    for (const envelope of ['raw', 'bytes-wrapped'] as const) {
+      resetNonceStore();
+      const { payload, signature, productPublicKey } = await productSignedPayload({}, { envelope, shape: 'multisignature' });
+      assert.equal(signature.length, 2 + 130, 'expected a 65-byte tagged signature');
+      const result = await verifySignedRequest({
+        ...payload,
+        signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+        signature,
+        productPublicKey
+      });
+      assert.equal(result.valid, true, `envelope ${envelope} should verify`);
+    }
+  });
+
+  it('rejects a 65-byte signature whose MultiSignature tag is not sr25519', async () => {
+    const { payload, signature, productPublicKey } = await productSignedPayload();
+    const ed25519Tagged = `0x00${signature.slice(2)}`;
+    const result = await verifySignedRequest({
+      ...payload,
+      signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+      signature: ed25519Tagged,
+      productPublicKey
+    });
+    assert.equal(result.valid, false);
+    assert.equal(!result.valid && result.code, 'PRODUCT_SIGNATURE_INVALID');
+  });
+
+  it('rejects an EVM-derived account id claiming an arbitrary requester H160', async () => {
+    // 20-byte H160 padded with 0xee derives straight back to that H160, so
+    // without this guard a caller could name any paying EVM listener.
+    const victim = '742d35cc6634c0532925a3b844bc9e7595f0beb0';
+    const forgedKey = `0x${victim}${'ee'.repeat(12)}`;
+    const { payload, signature } = await productSignedPayload({ requester: `0x${victim}` });
+
+    const result = await verifySignedRequest({
+      ...payload,
+      signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+      signature,
+      productPublicKey: forgedKey
+    });
+
+    assert.equal(result.valid, false);
+    assert.equal(!result.valid && result.code, 'PRODUCT_KEY_NOT_NATIVE');
+  });
+
+  it('reports an envelope/account failure distinctly from a malformed request', async () => {
+    const { payload, productPublicKey } = await productSignedPayload();
+    const wrongKey = secretFromSeed(new Uint8Array(32).fill(9));
+    const signature = `0x${bytesToHex(signSr25519(wrongKey, new TextEncoder().encode(buildSignedRequestMessage(payload))))}`;
+
+    const result = await verifySignedRequest({
+      ...payload,
+      signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+      signature,
+      productPublicKey
+    });
+
+    assert.equal(result.valid, false);
+    assert.equal(!result.valid && result.code, 'PRODUCT_SIGNATURE_REJECTED');
+  });
+
   it('rejects a Product signature when the payload changes', async () => {
     const { payload, signature, productPublicKey } = await productSignedPayload();
     const result = await verifySignedRequest({
@@ -113,7 +203,7 @@ describe('verifySignedRequest', () => {
       productPublicKey
     });
     assert.equal(result.valid, false);
-    assert.equal(!result.valid && result.code, 'SIGNATURE_INVALID');
+    assert.equal(!result.valid && result.code, 'PRODUCT_SIGNATURE_REJECTED');
   });
 
   it('rejects a Product public key that does not derive to the requester H160', async () => {

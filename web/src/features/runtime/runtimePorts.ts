@@ -45,6 +45,27 @@ export type RuntimeAccessPolicyUpdate = {
   requiredPersonhood: number;
 };
 
+/**
+ * Track and split counts are read from contract storage, and the artist
+ * directory enumerates runtimes Dotify does not control. `Array.from({ length:
+ * Number(count) })` allocates before any later check can reject the value, so a
+ * malformed or hostile count has to be refused before it is materialised.
+ *
+ * Exceeding a bound throws rather than truncating: a silent cap would present a
+ * partial catalog as complete. The catalog loader already isolates per-runtime
+ * failures, so one bad runtime degrades to a missing artist, not a dead
+ * catalog.
+ */
+export const MAX_RUNTIME_TRACKS = 2_000;
+export const MAX_ROYALTY_SPLITS = 128;
+
+export function assertBoundedCount(count: bigint, max: number, label: string): number {
+  if (count < 0n || count > BigInt(max)) {
+    throw new Error(`${label} reports ${count} entries, above the supported maximum of ${max}.`);
+  }
+  return Number(count);
+}
+
 export interface RuntimeReadPort {
   ensureContract(address: Address): Promise<boolean>;
   resolveArtistRuntime(directoryAddress: Address, artistAddress: Address): Promise<Address | null>;

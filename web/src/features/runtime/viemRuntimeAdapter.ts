@@ -8,13 +8,16 @@ import {
   musicRegistryAbi,
   musicRoyaltiesAbi
 } from '../../shared/config/contracts';
-import type {
-  RuntimeAccessPolicyUpdate,
-  RuntimeDirectoryEntry,
-  RuntimeReadPort,
-  RuntimeRoyaltyPaymentLog,
-  RuntimeTrackSnapshot,
-  RuntimeWritePort
+import {
+  MAX_ROYALTY_SPLITS,
+  MAX_RUNTIME_TRACKS,
+  assertBoundedCount,
+  type RuntimeAccessPolicyUpdate,
+  type RuntimeDirectoryEntry,
+  type RuntimeReadPort,
+  type RuntimeRoyaltyPaymentLog,
+  type RuntimeTrackSnapshot,
+  type RuntimeWritePort
 } from './runtimePorts';
 import type { OnchainTrackRecord } from '../../shared/types';
 
@@ -100,8 +103,10 @@ export function createViemRuntimeReader(deps: ViemRuntimeReaderDeps): RuntimeRea
         functionName: 'musicRegTrackCount'
       })) as bigint;
 
+      const trackTotal = assertBoundedCount(trackCount, MAX_RUNTIME_TRACKS, `Runtime ${runtimeAddress}`);
+
       return Promise.all(
-        Array.from({ length: Number(trackCount) }, async (_, index): Promise<RuntimeTrackSnapshot> => {
+        Array.from({ length: trackTotal }, async (_, index): Promise<RuntimeTrackSnapshot> => {
           const hash = (await client().readContract({
             address: runtimeAddress,
             abi: musicRegistryAbi,
@@ -124,10 +129,11 @@ export function createViemRuntimeReader(deps: ViemRuntimeReaderDeps): RuntimeRea
               args: [hash]
             })
             .catch(() => 0n)) as bigint;
+          const splitTotal = assertBoundedCount(splitCount, MAX_ROYALTY_SPLITS, `Track ${hash} royalty splits`);
 
           const royaltySplits = (
             await Promise.all(
-              Array.from({ length: Number(splitCount) }, async (_, splitIndex) => {
+              Array.from({ length: splitTotal }, async (_, splitIndex) => {
                 try {
                   const [recipient, bps] = (await client().readContract({
                     address: runtimeAddress,

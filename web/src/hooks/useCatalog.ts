@@ -472,15 +472,15 @@ export function useCatalog(deps: UseCatalogDeps) {
     const cacheKey = contentHash.toLowerCase();
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
-    if (!isKeyServiceConfigured() || !connectedWallet?.createEvmClient) return null;
+    if (!isKeyServiceConfigured() || !connectedWallet || (!connectedWallet.createEvmClient && !connectedWallet.keyRequestSigner)) return null;
 
     try {
-      const walletClient = await getActiveWalletClient();
-      const chainId = walletClient.chain?.id ?? (await getPublicClient(ethRpcUrl).getChainId());
+      const walletClient = connectedWallet.keyRequestSigner ? null : await getActiveWalletClient();
+      const chainId = walletClient?.chain?.id ?? (await getPublicClient(ethRpcUrl).getChainId());
       const response = await requestContentKey({
         contentHash,
         purpose: keyRequestPurposeRef.current,
-        walletClient,
+        ...(connectedWallet.keyRequestSigner ? { signer: connectedWallet.keyRequestSigner } : { walletClient: walletClient! }),
         chainId
       });
       if (response.access !== 'allowed') return null;

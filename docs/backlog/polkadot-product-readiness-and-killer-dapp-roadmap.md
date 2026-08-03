@@ -171,10 +171,13 @@ Goal: deepen the delivered Product mode one adapter at a time.
   signature scheme for key delivery and session sign-in. It binds the Product
   account public key to the derived H160 requester before nonce consumption and
   access checks.
+- Delivered on the next follow-up branch: wire Product-host frontend key and
+  session requests to that signature scheme, while keeping contract writes on
+  the standalone EVM/passkey signer path.
 - Next: wire a generated CDM manifest/types into Product mode and run real host
   transaction smoke tests.
-- Next: wire frontend Product-host key/session requests to the API signature
-  scheme and run real host smoke tests.
+- Next: run real Product host smoke tests for protected playback and capture the
+  Product sr25519 request evidence.
 - Keep backend key delivery authoritative unless a Product-host design proves a
   stronger key-custody boundary.
 - Keep `.dot`/Playground deployment separate from access enforcement.

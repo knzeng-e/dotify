@@ -1,8 +1,8 @@
 // Wallet-signed content-key client (Sprint 0, Ticket 03).
 //
-// Flow: request a single-use nonce, sign a structured EIP-191 message with
-// the connected wallet, exchange the signature for the per-track content key.
-// The backend independently re-checks the on-chain access policy; nothing the
+// Flow: request a single-use nonce, sign a structured Dotify message with the
+// connected identity, exchange the signature for the per-track content key. The
+// backend independently re-checks the on-chain access policy; nothing the
 // frontend sends is trusted as an access decision.
 //
 // The canonical message format below MUST stay byte-identical with the
@@ -14,6 +14,7 @@ import type { WalletClient } from 'viem';
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
 
 export type KeyRequestPurpose = 'individual' | 'room_host';
+export const PRODUCT_SR25519_SIGNATURE_SCHEME = 'product-sr25519-v1';
 
 // Access model v2 (ticket 24 P1): a denial names the reason and the action the
 // listener can take. There is no degraded playback mode - the preview doctrine
@@ -46,6 +47,23 @@ export class KeyServiceError extends Error {
 export function isKeyServiceConfigured(): boolean {
   return Boolean(API_URL);
 }
+
+export type DotifySignatureHex = `0x${string}`;
+
+export type Eip191KeyRequestSigner = {
+  signatureScheme?: 'eip191';
+  address: `0x${string}`;
+  signMessage: (message: string) => Promise<DotifySignatureHex>;
+};
+
+export type ProductKeyRequestSigner = {
+  signatureScheme: typeof PRODUCT_SR25519_SIGNATURE_SCHEME;
+  address: `0x${string}`;
+  productPublicKey: `0x${string}`;
+  signMessage: (message: string) => Promise<DotifySignatureHex>;
+};
+
+export type KeyRequestSigner = Eip191KeyRequestSigner | ProductKeyRequestSigner;
 
 type SignedRequestPayload = {
   action: 'REQUEST_CONTENT_KEY';
@@ -96,7 +114,8 @@ async function requestNonce(address: string, chainId: number): Promise<{ nonce: 
 export type ContentKeyRequest = {
   contentHash: `0x${string}`;
   purpose: KeyRequestPurpose;
-  walletClient: WalletClient;
+  walletClient?: WalletClient;
+  signer?: KeyRequestSigner;
   chainId: number;
 };
 
@@ -144,6 +163,35 @@ function storeSession(address: string, session: StoredSession): void {
     // Storage unavailable: the session still works for this page lifetime via
     // the per-request fallback; nothing to do.
   }
+}
+
+function toWalletSigner(walletClient: WalletClient): KeyRequestSigner | null {
+  const account = walletClient.account;
+  if (!account) return null;
+
+  return {
+    address: account.address,
+    signMessage: message => walletClient.signMessage({ account, message })
+  };
+}
+
+function resolveRequestSigner(request: ContentKeyRequest): KeyRequestSigner | null {
+  if (request.signer) return request.signer;
+  if (request.walletClient) return toWalletSigner(request.walletClient);
+  return null;
+}
+
+type ProductSignatureRequestFields = {
+  signatureScheme: typeof PRODUCT_SR25519_SIGNATURE_SCHEME;
+  productPublicKey: `0x${string}`;
+};
+
+function productSignatureFields(signer: KeyRequestSigner): Partial<ProductSignatureRequestFields> {
+  if (signer.signatureScheme !== PRODUCT_SR25519_SIGNATURE_SCHEME) return {};
+  return {
+    signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+    productPublicKey: signer.productPublicKey
+  };
 }
 
 export function clearStoredSession(address: string): void {
@@ -195,25 +243,27 @@ function buildSignInMessage(payload: { requester: string; chainId: number; nonce
  * Returns null when the backend does not support sessions (older deployment
  * or unconfigured), so callers fall back to per-request signing.
  */
-export async function ensureDotifySession(walletClient: WalletClient, chainId: number): Promise<string | null> {
+async function ensureDotifySessionForSigner(signer: KeyRequestSigner, chainId: number): Promise<string | null> {
   if (!API_URL) return null;
-  const account = walletClient.account;
-  if (!account) return null;
 
-  const stored = getStoredSession(account.address);
+  const stored = getStoredSession(signer.address);
   if (stored) return stored.token;
   if (!(await isDotifySessionAvailable())) return null;
 
-  const { nonce, expiresAt } = await requestNonce(account.address, chainId);
-  const signature = await walletClient.signMessage({
-    account,
-    message: buildSignInMessage({ requester: account.address, chainId, nonce, expiresAt })
-  });
+  const { nonce, expiresAt } = await requestNonce(signer.address, chainId);
+  const signature = await signer.signMessage(buildSignInMessage({ requester: signer.address, chainId, nonce, expiresAt }));
 
   const res = await fetch(`${API_URL}/api/auth/session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ address: account.address, signature, nonce, chainId, expiresAt })
+    body: JSON.stringify({
+      address: signer.address,
+      signature,
+      nonce,
+      chainId,
+      expiresAt,
+      ...productSignatureFields(signer)
+    })
   });
 
   // 404 (older backend) or 503 (session auth unconfigured): fall back to the
@@ -228,8 +278,13 @@ export async function ensureDotifySession(walletClient: WalletClient, chainId: n
   }
 
   const body = (await res.json()) as { sessionToken: string; expiresAt: string };
-  storeSession(account.address, { token: body.sessionToken, expiresAt: body.expiresAt });
+  storeSession(signer.address, { token: body.sessionToken, expiresAt: body.expiresAt });
   return body.sessionToken;
+}
+
+export async function ensureDotifySession(walletClient: WalletClient, chainId: number): Promise<string | null> {
+  const signer = toWalletSigner(walletClient);
+  return signer ? ensureDotifySessionForSigner(signer, chainId) : null;
 }
 
 /** Sign out: revoke the session server-side and forget the stored token. */
@@ -267,18 +322,18 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
     throw new KeyServiceError('Backend key service is not configured (VITE_DOTIFY_API_URL).', 'KEY_SERVICE_NOT_CONFIGURED');
   }
 
-  const account = request.walletClient.account;
-  if (!account) {
-    throw new KeyServiceError('Wallet client has no active account.', 'WALLET_REQUIRED');
+  const signer = resolveRequestSigner(request);
+  if (!signer) {
+    throw new KeyServiceError('Connect a wallet before requesting protected playback.', 'WALLET_REQUIRED');
   }
 
-  let sessionToken = await ensureDotifySession(request.walletClient, request.chainId);
+  let sessionToken = await ensureDotifySessionForSigner(signer, request.chainId);
   if (sessionToken) {
     let res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
     if (res.status === 401) {
       // Expired or revoked server-side: one fresh sign-in, then retry once.
-      clearStoredSession(account.address);
-      sessionToken = await ensureDotifySession(request.walletClient, request.chainId);
+      clearStoredSession(signer.address);
+      sessionToken = await ensureDotifySessionForSigner(signer, request.chainId);
       if (sessionToken) {
         res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
       }
@@ -293,33 +348,31 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
   }
 
   // Legacy per-request signed path (backend without session support).
-  const { nonce, expiresAt } = await requestNonce(account.address, request.chainId);
+  const { nonce, expiresAt } = await requestNonce(signer.address, request.chainId);
 
   const payload: SignedRequestPayload = {
     action: 'REQUEST_CONTENT_KEY',
     purpose: request.purpose,
     contentHash: request.contentHash,
-    requester: account.address,
+    requester: signer.address,
     chainId: request.chainId,
     nonce,
     expiresAt
   };
 
-  const signature = await request.walletClient.signMessage({
-    account,
-    message: buildSignedRequestMessage(payload)
-  });
+  const signature = await signer.signMessage(buildSignedRequestMessage(payload));
 
   const res = await fetch(`${API_URL}/api/tracks/${request.contentHash}/key-request`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      requester: account.address,
+      requester: signer.address,
       signature,
       nonce,
       chainId: request.chainId,
       expiresAt,
-      purpose: request.purpose
+      purpose: request.purpose,
+      ...productSignatureFields(signer)
     })
   });
 

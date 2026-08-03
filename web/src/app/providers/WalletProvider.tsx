@@ -50,6 +50,10 @@ type WalletContextValue = {
 
 const WalletContext = createContext<WalletContextValue | null>(null);
 
+function canRequestProtectedPlayback(wallet: ConnectedWallet | null): boolean {
+  return Boolean(wallet?.createEvmClient || wallet?.keyRequestSigner);
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { setTransactionFeedback, setShowWalletModal } = useUiFeedback();
   const {
@@ -76,7 +80,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Disconnecting the wallet also signs out of the Dotify session (ticket 24
   // P2): revoke the server-side token and forget the stored one, so a shared
   // machine does not keep listening rights after the wallet leaves.
-  const connectedAddress = connectedWallet?.createEvmClient ? connectedWallet.evmAddress : undefined;
+  const connectedAddress = canRequestProtectedPlayback(connectedWallet) ? connectedWallet?.evmAddress : undefined;
   const lastConnectedAddressRef = useRef<`0x${string}` | null>(null);
   const disconnect = useCallback(() => {
     if (connectedAddress) void signOutOfDotifySession(connectedAddress);
@@ -96,7 +100,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const currentBulletinAccount = devAccounts[bulletinAccountIndex];
   const activeEvmAddress = connectedWallet?.evmAddress ?? zeroAddress;
-  const listenerEvmAddress = connectedWallet?.createEvmClient ? connectedWallet.evmAddress : null;
+  const listenerEvmAddress = canRequestProtectedPlayback(connectedWallet) ? (connectedWallet?.evmAddress ?? null) : null;
   // Local room-name persistence lowercases its key, so use the H160 identity
   // for both EVM wallets and Product accounts rather than case-sensitive SS58.
   const activeIdentityAddress = connectedWallet?.evmAddress ?? null;
