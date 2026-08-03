@@ -62,19 +62,46 @@ for the current faucet, storage console, mapping, and DotNS registration steps.
 The tracked Fly configuration must contain:
 
 ```txt
-API_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li
-SIGNAL_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li
+API_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,polkadot://app.dotify-test01.dot
+SIGNAL_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,polkadot://app.dotify-test01.dot
 ```
 
-Deploy both services before publishing the frontend:
+Three frontends reach these services: Netlify, the DotNS web gateway, and the
+app as served inside the Product host container, which uses a custom scheme.
+Both lists must carry all three - a container with only the signaling origin
+gets rooms but no content keys, because catalog and key delivery go to the API.
+
+`polkadot:` is a non-special scheme, so its origin is opaque and a browser may
+send `Origin: null` rather than the literal value. If a host request is still
+refused after this change, read the actual `Origin` header from the Fly log
+before widening either list. Never add a bare `null`: that admits every
+sandboxed iframe and `file://` page on the web to the authenticated upload and
+content-key routes. A regression test in `services/api/src/cors.test.ts` pins
+that refusal.
+
+Deploy both services before publishing the frontend. `cd` into each service
+first - this is not cosmetic:
 
 ```bash
 cd services/api
-flyctl deploy -c fly.toml
+flyctl deploy
 
 cd ../../web
 flyctl deploy -c fly.signal.toml
 ```
+
+`-c` selects the config file only; it does not set the Docker build context,
+which is always the shell's working directory. Running
+`flyctl deploy -c services/api/fly.toml` from the repository root fails at
+`COPY src ./src`, because the Dockerfile is written against `services/api` as
+its context and there is no `src/` at the root. It also uploads a ~1.3 GB
+context, since Docker reads `.dockerignore` from the context root and only the
+service directories have one. Passing the directory positionally
+(`flyctl deploy services/api`) works too, because that sets the context.
+
+An earlier cached layer can hide the mistake: `COPY package*.json ./` and
+`npm ci` may report `CACHED` from a previous correct build, so the failure
+surfaces at the first genuinely uncached step rather than the first wrong one.
 
 Keep backend secrets unchanged. `API_ORIGINS` supersedes singular
 `API_ORIGIN`; the latter remains only as a compatibility fallback.

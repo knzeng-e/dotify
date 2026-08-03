@@ -10,7 +10,17 @@ primary_region = "ams"
   # checks target the owner-guarded factory/directory pair.
   API_PORT = "8790"
   NODE_ENV = "production"
-  API_ORIGINS = "https://muzinga.netlify.app,https://dotify-test01.dev-dot.li"
+  # Three frontends reach this API: Netlify, the DotNS web gateway, and the app
+  # as served inside the Polkadot Product host container, which uses a custom
+  # scheme. Keep this in step with SIGNAL_ORIGINS in web/fly.signal.toml.
+  #
+  # `polkadot:` is a non-special scheme, so `new URL(...).origin` is opaque and
+  # a browser may send `Origin: null` instead of the literal value below. If a
+  # host request is still refused, read the actual Origin header off the Fly log
+  # before widening this list - never add a bare `null`, which would admit every
+  # sandboxed iframe and file:// page on the web to authenticated upload and
+  # content-key routes.
+  API_ORIGINS = "https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,polkadot://app.dotify-test01.dot"
   PASEO_ASSET_HUB_RPC = "https://eth-rpc-testnet.polkadot.io/"
   DOTIFY_FACTORY_ADDRESS = "0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72"
   DOTIFY_DIRECTORY_ADDRESS = "0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108"
@@ -21,7 +31,11 @@ primary_region = "ams"
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 0
+  # Keep one machine warm. A stopped machine cold-starts on the first content
+  # key request, and that request sits directly in front of first sound: a
+  # measured 8.2s to /health cold against 0.11s warm. Scaling to zero saves
+  # nothing a listener would trade eight silent seconds for.
+  min_machines_running = 1
   processes = ["app"]
 
 [[vm]]

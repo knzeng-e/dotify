@@ -358,12 +358,12 @@ Network interface to bind.
 
 ### `SIGNAL_ORIGINS`
 
-| Property     | Value                                                          |
-| ------------ | -------------------------------------------------------------- |
-| **Type**     | Comma-separated URL list or `*`                                |
-| **Required** | No                                                             |
-| **Default**  | `*`                                                            |
-| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li` |
+| Property     | Value                                                                                           |
+| ------------ | ----------------------------------------------------------------------------------------------- |
+| **Type**     | Comma-separated URL list or `*`                                                                 |
+| **Required** | No                                                                                              |
+| **Default**  | `*`                                                                                             |
+| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,polkadot://app.dotify-test01.dot` |
 
 CORS allowed origins for Socket.IO and status endpoints. Set explicit frontend
 origins in production. `SIGNAL_ORIGIN` is still accepted as a backwards-compatible
@@ -451,12 +451,12 @@ backwards-compatible fallback when `API_ORIGINS` is not set.
 
 ### `API_ORIGINS`
 
-| Property     | Value                                                          |
-| ------------ | -------------------------------------------------------------- |
-| **Type**     | Comma-separated HTTPS origin list                              |
-| **Required** | Multiple hosted frontends                                      |
-| **Default**  | The single `API_ORIGIN` value                                  |
-| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li` |
+| Property     | Value                                                                                           |
+| ------------ | ----------------------------------------------------------------------------------------------- |
+| **Type**     | Comma-separated HTTPS origin list                                                               |
+| **Required** | Multiple hosted frontends                                                                       |
+| **Default**  | The single `API_ORIGIN` value                                                                   |
+| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,polkadot://app.dotify-test01.dot` |
 
 Exact frontend origins accepted by backend CORS. When set, it takes precedence
 over `API_ORIGIN`. Do not use `*`: the API carries authenticated upload and
