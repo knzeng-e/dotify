@@ -10,6 +10,7 @@ primary_region = "ams"
   # checks target the owner-guarded factory/directory pair.
   API_PORT = "8790"
   NODE_ENV = "production"
+  API_ORIGINS = "https://muzinga.netlify.app,https://dotify-test01.dev-dot.li"
   PASEO_ASSET_HUB_RPC = "https://eth-rpc-testnet.polkadot.io/"
   DOTIFY_FACTORY_ADDRESS = "0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72"
   DOTIFY_DIRECTORY_ADDRESS = "0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108"

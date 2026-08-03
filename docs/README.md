@@ -15,6 +15,7 @@ Conceptual documents that help you understand why Dotify works the way it does.
 | [Content Protection](./explanation/content-protection.md) | All | Audio encryption pipeline, what it protects, and what it does not |
 | [Royalty Settlement](./explanation/royalty-settlement.md) | All | How DOT payments flow from listener wallet to artist wallet |
 | [Listening Rooms](./explanation/listening-rooms.md) | All | WebRTC peer-to-peer streaming, signaling protocol, known limitations |
+| [Product DevNet Architecture](./explanation/product-devnet-architecture.md) | Maintainers | Dual-host boundaries, Product account capabilities, rooms, storage, and the proposed contract port |
 
 ---
 
@@ -40,6 +41,7 @@ Runbooks for hosted configuration and production validation.
 | Document | Summary |
 |---|---|
 | [Deployment Configuration](./operations/deployment-configuration.md) | Netlify and Fly dashboard settings, secrets, catalog persistence, validation, and the update checklist for future env/config changes |
+| [Product DevNet Deployment](./operations/product-devnet-deployment.md) | Build, publish, validate, and roll back the `dotify-test01.dot` Product DevNet app |
 
 ---
 

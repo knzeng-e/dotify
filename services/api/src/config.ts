@@ -28,9 +28,21 @@ const optionalNonEmptyString = z.preprocess(
   z.string().optional(),
 );
 
+const optionalOriginList = z.preprocess(
+  value =>
+    typeof value === 'string'
+      ? value
+          .split(',')
+          .map(origin => origin.trim())
+          .filter(Boolean)
+      : value,
+  z.array(z.string().url()).min(1).optional(),
+);
+
 const envSchema = z.object({
   API_PORT: z.coerce.number().int().min(1).max(65535).default(8790),
   API_ORIGIN: z.string().url().default('http://localhost:5273'),
+  API_ORIGINS: optionalOriginList,
   PASEO_ASSET_HUB_RPC: z.string().url().optional(),
   DOTIFY_FACTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_DIRECTORY_ADDRESS: optionalNonEmptyString,
@@ -65,7 +77,10 @@ function parseEnv() {
     console.error(`[dotify-api] Invalid environment configuration:\n${issues}`);
     process.exit(1);
   }
-  return result.data;
+  return {
+    ...result.data,
+    API_ORIGINS: result.data.API_ORIGINS ?? [result.data.API_ORIGIN],
+  };
 }
 
 export const config = parseEnv();

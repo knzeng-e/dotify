@@ -16,7 +16,9 @@
 		"dev:listen": "concurrently -n signal,web -c magenta,cyan \"npm:signal\" \"npm:dev\"",
 		"build": "tsc -b && vite build",
 		"build:bulletin": "tsc -b && vite build --config vite.bulletin.config.ts",
+		"build:product-devnet": "tsc -b && vite build --config vite.product.config.ts --mode product-devnet",
 		"deploy:bulletin": "node scripts/deploy-bulletin.cjs",
+		"deploy:product-devnet": "npm run build:product-devnet && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@0.13.1 pad ./dist-product dotify-test01.dot --env devnet --js-merkle --config ./polkadot-app-deploy.config.ts",
 		"smoke:production-env": "node scripts/production-env-smoke.mjs",
 		"smoke:signal": "node scripts/signaling-smoke.mjs",
 		"lint": "eslint .",
@@ -27,6 +29,7 @@
 		"preview": "vite preview --host 0.0.0.0 --port 4273"
 	},
 	"dependencies": {
+		"@parity/product-sdk": "0.19.1",
 		"@polkadot-api/descriptors": "file:.papi/descriptors",
 		"@polkadot-apps/chain-client": "^2.0.5",
 		"@polkadot-apps/descriptors": "^1.0.1",
@@ -45,6 +48,7 @@
 		"viem": "^2.53.1"
 	},
 	"overrides": {
+		"brace-expansion": "5.0.8",
 		"ws": "8.21.0"
 	},
 	"devDependencies": {

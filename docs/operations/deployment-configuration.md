@@ -1,7 +1,7 @@
 # Deployment Configuration Runbook
 
 This runbook is the operator checklist for Dotify's hosted configuration across
-Netlify and Fly.io. Use it when changing dashboard values, deploy contexts,
+Netlify, Product DevNet, and Fly.io. Use it when changing dashboard values, deploy contexts,
 `*.toml` settings, hosted origins, secrets, catalog persistence, or production
 smoke settings.
 
@@ -30,16 +30,18 @@ Keep this document aligned with
 | Surface | Host | App/project | Source config | Purpose |
 | --- | --- | --- | --- | --- |
 | Frontend | Netlify | `muzinga` | `netlify.toml` | Static Vite web app |
+| Product frontend | Bulletin + DotNS | `dotify-test01.dot` | `web/.env.product-devnet`, `web/polkadot-app-deploy.config.ts` | Product-host static app |
 | Backend API | Fly.io | `dotify-api` | `services/api/fly.toml` | Uploads, key delivery, catalog read model, health |
 | Signaling | Fly.io | `dotify-signal` | `web/fly.signal.toml` | Socket.IO room discovery and WebRTC signaling |
 
 Production URLs currently assumed by the app and docs:
 
 ```txt
-Frontend:       https://<netlify-or-custom-domain>
+Standalone:     https://muzinga.netlify.app
+Product:        https://dotify-test01.dev-dot.li
 Backend API:    https://dotify-api.fly.dev
 Signaling:      https://dotify-signal.fly.dev
-IPFS gateway:   https://paseo-ipfs.polkadot.io
+Product IPFS:   https://devnet-ipfs.api.polkadotcommunity.foundation
 Asset Hub RPC:  https://eth-rpc-testnet.polkadot.io/
 ```
 
@@ -94,6 +96,7 @@ Required production variables:
 | Key | Value | Notes |
 | --- | --- | --- |
 | `VITE_DOTIFY_DEPLOYMENT` | `production` | Enables fail-closed production env validation. |
+| `VITE_DOTIFY_HOST_MODE` | `off` | Prevents the standalone build from probing Product host APIs. |
 | `VITE_SIGNAL_URL` | `https://dotify-signal.fly.dev` | Public Socket.IO signaling origin. |
 | `VITE_DOTIFY_API_URL` | `https://dotify-api.fly.dev` | Backend API for uploads, key delivery, and cached catalog reads. |
 | `VITE_PINATA_GATEWAY` | `https://paseo-ipfs.polkadot.io` | Primary browser read gateway. |
@@ -115,10 +118,42 @@ Optional production variables:
 Deploy-preview note:
 
 Netlify deploy previews usually have their own origin. The signaling service
-can allow multiple origins with `SIGNAL_ORIGINS`, but the backend API currently
-accepts one `API_ORIGIN`. For PR evidence, use a stable frontend origin, a
-dedicated staging site, or temporarily set `API_ORIGIN` to the deploy-preview
-origin and restore it after validation.
+and backend both allow multiple exact origins with `SIGNAL_ORIGINS` and
+`API_ORIGINS`. Add only the specific preview origin needed for evidence, then
+remove it after validation. Never use `*` on the backend.
+
+## Product DevNet Frontend
+
+The browser-safe Product build profile is tracked in
+`web/.env.product-devnet`. The manifest is
+`web/polkadot-app-deploy.config.ts`.
+
+Required Product values:
+
+| Key | Current value |
+| --- | --- |
+| `VITE_DOTIFY_DEPLOYMENT` | `production` |
+| `VITE_DOTIFY_HOST_MODE` | `required` |
+| `VITE_DOTIFY_PRODUCT_ID` | `dotify-test01.dot` |
+| `VITE_PUBLIC_APP_URL` | `https://dotify-test01.dev-dot.li` |
+| `VITE_DOTIFY_API_URL` | `https://dotify-api.fly.dev` |
+| `VITE_SIGNAL_URL` | `https://dotify-signal.fly.dev` |
+
+`VITE_PINATA_JWT` and `VITE_CONTENT_SECRET` are explicitly empty in that
+profile so a developer's generic local `.env` cannot leak demo credentials
+into the Product bundle.
+
+Build and publication:
+
+```bash
+cd web
+npm run build:product-devnet
+npm run deploy:product-devnet
+```
+
+Use
+[`docs/operations/product-devnet-deployment.md`](product-devnet-deployment.md)
+for authentication, publication, validation, and rollback.
 
 ## Fly Backend API
 
@@ -136,6 +171,7 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | --- | --- |
 | `API_PORT` | `8790` |
 | `NODE_ENV` | `production` |
+| `API_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li` |
 | `PASEO_ASSET_HUB_RPC` | `https://eth-rpc-testnet.polkadot.io/` |
 | `DOTIFY_FACTORY_ADDRESS` | `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72` |
 | `DOTIFY_DIRECTORY_ADDRESS` | `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108` |
@@ -145,7 +181,6 @@ Set server-side values in the app's Secrets area:
 
 | Secret | Required | Notes |
 | --- | --- | --- |
-| `API_ORIGIN` | Production | Exact frontend origin allowed by API CORS. One URL only. |
 | `PINATA_JWT` | Uploads | Backend-only Pinata token. Never expose in Netlify. |
 | `CONTENT_KEY_MASTER_SECRET` | Audio upload and key delivery | 64+ hex chars, at least 32 random bytes. Do not rotate casually. |
 | `GIT_COMMIT_SHA` | Optional | Set by CI/build automation when available; `/version` can fall back in dev checkouts. |
@@ -188,12 +223,12 @@ Non-secret runtime values are tracked in `web/fly.signal.toml`:
 | `SIGNAL_ROOM_TTL_MS` | `21600000` |
 | `SIGNAL_HOST_TIMEOUT_MS` | `120000` |
 | `SIGNAL_MAX_LISTENERS` | `24` |
+| `SIGNAL_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li` |
 
-Set hosted frontend origins in the app's Secrets area:
-
-| Secret | Value |
-| --- | --- |
-| `SIGNAL_ORIGINS` | Exact comma-separated frontend origins, for example `https://muzinga.netlify.app,https://<deploy-preview-origin>` |
+The production origins are public configuration tracked in
+`web/fly.signal.toml`; they are not secrets. Temporary preview origins may be
+set through Fly configuration, but the tracked production allowlist must be
+restored after validation.
 
 Keep `dotify-signal` on one active machine until a shared Socket.IO adapter is
 added. Rooms, chat, reactions, request queues, and solo-presence aggregates are
@@ -227,7 +262,12 @@ curl -s https://dotify-signal.fly.dev/status
 cd web
 npm run smoke:production-env
 npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://<frontend-origin>
+npm run build:product-devnet
 ```
+
+6. For a Product release, complete the cross-origin room and host-account
+checks in
+[`docs/operations/product-devnet-deployment.md`](product-devnet-deployment.md).
 
 6. For explicit origin rejection evidence, include a denied origin:
 

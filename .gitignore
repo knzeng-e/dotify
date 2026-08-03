@@ -8,11 +8,14 @@ dist/
 .playwright*
 !.env.example
 !web/.env.example
+!web/.env.product-devnet
 !contracts/evm/.env.example
 
 web/node_modules/
 web/dist/
 web/dist-bulletin*
+web/dist-product/
+web/*.car
 web/.playwright*
 web/playwright-report/
 web/test-results/

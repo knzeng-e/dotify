@@ -191,6 +191,34 @@ describe('validateProductionEnvironment', () => {
     });
   });
 
+  it('requires a canonical public URL and .dot product id for Product-host builds', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_HOST_MODE: 'required',
+        VITE_DOTIFY_PRODUCT_ID: 'Dotify'
+      }).errors
+    ).toEqual([
+      'VITE_DOTIFY_PRODUCT_ID must be a lowercase .dot name when Product host integration is enabled.',
+      'VITE_PUBLIC_APP_URL is required when VITE_DOTIFY_DEPLOYMENT=production.'
+    ]);
+  });
+
+  it('accepts the Product DevNet public identity boundary', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_HOST_MODE: 'required',
+        VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
+        VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li'
+      })
+    ).toEqual({
+      mode: 'production',
+      errors: [],
+      warnings: []
+    });
+  });
+
   it('accepts an explicit production environment that keeps secrets server-side', () => {
     expect(validateProductionEnvironment(validProductionEnv)).toEqual({
       mode: 'production',

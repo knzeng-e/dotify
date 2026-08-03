@@ -139,12 +139,14 @@ P3 first vertical slice delivered (`agent/audio-v2-p3`):
   the browser/device validation matrix, startup telemetry export, and the
   backend read-through gateway decision.
 
-Product SDK replanning note (2026-07-14):
+Product SDK adaptation note (2026-07-26):
 
-- Product SDK (`@parity/product-sdk` 0.17.0 at
-  `2f359bba28ca72855207a0a519d4118b37b4438c`) is prototype/reference/unaudited.
+- Product SDK 0.19.1 and deploy tooling 0.13.1 remain
+  prototype/reference/unaudited.
 - Host APIs are progressive enhancement for Product containers; standalone web
   remains a supported mode.
+- Host detection, explicit Product account identity, a Product DevNet build,
+  canonical room links, and dual-origin Fly configuration are implemented.
 - Product SDK contracts use `pallet-revive`, PolkaVM artifacts, and CDM
   manifests. Dotify's current Hardhat + viem + Paseo Asset Hub EVM path needs a
   portability spike before adopting that layer.

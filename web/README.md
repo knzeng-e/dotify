@@ -35,6 +35,9 @@ Useful environment variables:
   wallet-signed content-key requests.
 - `VITE_DOTIFY_DEBUG_PANEL`: set to `true` to show the read-only Production
   readiness panel under the `You` tab.
+- `VITE_DOTIFY_HOST_MODE`, `VITE_DOTIFY_PRODUCT_ID`, and
+  `VITE_PUBLIC_APP_URL`: Product-host detection, app-scoped account identifier,
+  and canonical room-link origin.
 - `VITE_LOCAL_WS_URL` / `VITE_LOCAL_ETH_RPC_URL`: local development endpoints.
 - `VITE_BULLETIN_WS_URL`: Paseo Bulletin Chain RPC.
 - `VITE_PINATA_JWT`: restricted browser-exposed Pinata JWT for demo uploads
@@ -155,10 +158,25 @@ npm run codegen
 npm run build
 npm run build:bulletin
 npm run deploy:bulletin
+npm run build:product-devnet
+npm run deploy:product-devnet
 ```
 
 `build:bulletin` produces a single-file build via `vite-plugin-singlefile` so it
 can be distributed from a flat IPFS CID / DotNS record.
+
+`build:product-devnet` produces `dist-product` with the checked-in
+`.env.product-devnet` profile. `deploy:product-devnet` uses
+`@polkadot-community-foundation/polkadot-app-deploy@0.13.1` through `npx`, uploads static chunks to
+Product DevNet Bulletin, and binds `dotify-test01.dot`. Browse listing is a separate
+operator step because it has its own signer/personhood boundary. The Product account currently
+provides app-scoped identity for presence and rooms; contract writes and
+protected key requests still require the existing passkey/EVM signer.
+
+See
+[`docs/explanation/product-devnet-architecture.md`](../docs/explanation/product-devnet-architecture.md)
+and
+[`docs/operations/product-devnet-deployment.md`](../docs/operations/product-devnet-deployment.md).
 
 ### Production Deploy: Netlify + Fly
 

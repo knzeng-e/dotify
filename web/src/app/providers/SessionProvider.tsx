@@ -13,19 +13,21 @@ import { useNavigation } from './NavigationProvider';
 import { useCatalogContext } from './CatalogProvider';
 
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
+const publicAppUrl = import.meta.env.VITE_PUBLIC_APP_URL?.trim() || null;
 
 type SessionValue = ReturnType<typeof useSession>;
 
 const SessionContext = createContext<SessionValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const { listenerEvmAddress } = useWalletContext();
+  const { activeIdentityAddress } = useWalletContext();
   const { navigateToView } = useNavigation();
   const catalog = useCatalogContext();
 
   const session = useSession({
     signalUrl,
-    identityAddress: listenerEvmAddress,
+    publicAppUrl,
+    identityAddress: activeIdentityAddress,
     audioSource: catalog.audioSource,
     trackInfo: catalog.trackInfo,
     setTrackInfo: catalog.setTrackInfo,
@@ -50,7 +52,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initialRoomCode = getInitialRoomCode();
     if (!initialRoomCode || session.roomId) return;
-    const remembered = getStoredDisplayName(listenerEvmAddress);
+    const remembered = getStoredDisplayName(activeIdentityAddress);
     if (!remembered) return;
     session.setDisplayName(remembered);
     session.joinRoom(initialRoomCode, { displayName: remembered });
@@ -68,11 +70,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // write a partial name to storage on every keystroke.
   const setDisplayName = session.setDisplayName;
   useEffect(() => {
-    const stored = getStoredDisplayName(listenerEvmAddress);
+    const stored = getStoredDisplayName(activeIdentityAddress);
     if (stored) setDisplayName(stored);
     // Re-run only when the connected address changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listenerEvmAddress]);
+  }, [activeIdentityAddress]);
 
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }

@@ -94,7 +94,7 @@ Individuality data.
 ## 4. System Architecture
 
 ```text
-Browser (React + Vite)
+Browser or Product host (React + Vite)
   ├── Player and catalog UI
   ├── WebRTC host-to-listener audio stream
   ├── Socket.IO signaling server for SDP/ICE and room discovery
@@ -105,20 +105,20 @@ Browser (React + Vite)
   └── Paseo Asset Hub EVM contracts for artist runtimes and access policy
 ```
 
-The frontend is a static React/Vite app. It can be served locally by Vite or
-built as a single-file Bulletin/IPFS-friendly artifact.
+The frontend is a static React/Vite app. It can be served locally by Vite,
+deployed to Netlify, built as a single-file Bulletin/IPFS-friendly artifact,
+or published as the multi-file `dotify-test01.dot` Product DevNet app.
 
 Production-sensitive upload and content-key operations live behind
 `services/api/`. Browser-side Pinata upload and `VITE_CONTENT_SECRET` key
 derivation remain local/demo paths only.
 
-Product SDK / Playground / Humanity integration is a progressive enhancement
-track, not a hard dependency for first sound. The current verified SDK snapshot
-(`@parity/product-sdk` 0.17.0 at
-`2f359bba28ca72855207a0a519d4118b37b4438c`) must be treated as
-prototype/reference/unaudited until Dotify proves Host capability detection,
-Product account signing, resource allocation, contract portability, and
-Statement Store constraints against the current app.
+Product SDK integration is an adaptive enhancement, not a hard dependency for
+first sound. The Product build pins `@parity/product-sdk` 0.19.1, detects the
+host, and requests an app-scoped account only after explicit user action. That
+account is currently an identity/presence capability: Classic payments, artist
+publication, and protected key requests still require the passkey/EVM path
+until CDM/PAPI writes and backend Product-signature verification are delivered.
 
 ## 5. Repository Layout
 
@@ -418,6 +418,9 @@ Important browser-exposed variables:
 | Variable                  | Purpose                                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------------------ |
 | `VITE_DOTIFY_DEPLOYMENT`  | build-time deployment safety mode; set `production` for public production builds            |
+| `VITE_DOTIFY_HOST_MODE`   | Product host mode (`off`, `auto`, or `required`)                                             |
+| `VITE_DOTIFY_PRODUCT_ID`  | `.dot` name used for app-scoped Product account derivation                                   |
+| `VITE_PUBLIC_APP_URL`     | canonical public room-link origin for Product/container builds                              |
 | `VITE_DOTIFY_DEBUG_PANEL` | optional flag that shows the read-only Production readiness panel under `You`                |
 | `VITE_SIGNAL_URL`         | Socket.IO signaling server URL                                                             |
 | `VITE_LOCAL_WS_URL`       | local Substrate websocket URL                                                              |
@@ -436,7 +439,8 @@ Server/script variables:
 | `SIGNAL_PORT`               | local signaling server port                        |
 | `SIGNAL_ORIGINS`            | allowed frontend origins for signaling             |
 | `API_PORT`                  | backend API port                                   |
-| `API_ORIGIN`                | frontend origin allowed by backend CORS            |
+| `API_ORIGIN`                | backwards-compatible singular frontend CORS origin |
+| `API_ORIGINS`               | comma-separated exact frontend CORS origins         |
 | `PASEO_ASSET_HUB_RPC`       | backend RPC endpoint for access checks             |
 | `DOTIFY_DIRECTORY_ADDRESS`  | backend ArtistDirectory address for runtime lookup |
 | `DOTIFY_CHAIN_ID`           | chain ID expected in signed key requests           |
@@ -446,10 +450,12 @@ Server/script variables:
 
 ## 11. Wallet And Passkey Design
 
-Dotify supports two wallet paths in the frontend design:
+Dotify supports three account paths in the frontend design:
 
 - passkey-backed local key derivation through WebAuthn PRF;
 - browser wallet extension signing through Polkadot/EVM wallet providers.
+- Product-host app-scoped identity for presence and rooms. It is not yet an
+  EIP-191 or EVM transaction signer.
 
 ### 11.1 Passkey Credential ID
 
@@ -661,9 +667,9 @@ Priority improvements:
    Bulletin builds.
 4. Finish security hardening for publish intents, auth chain binding, durable
    revocation, realtime reconnect, and short-lived TURN credentials.
-5. Run Product SDK feasibility spikes for Host capability detection, Product
-   account signing, resource allocation, Playground/Bulletin/DotNS deployment,
-   Statement Store presence, and PolkaVM/CDM contract portability.
+5. Validate the delivered Product host/account and Bulletin/DotNS deployment
+   baseline, then implement CDM/PAPI contract portability, backend Product
+   signature verification, and a bounded Statement Store presence spike.
 6. Move the large catalog, session, artist, and player workflows behind domain
    ports and application use cases.
 7. Validate the cacheable catalog API's warm/cold p75 budgets under public seed

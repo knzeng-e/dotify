@@ -1,4 +1,4 @@
-import { ExternalLink, KeyRound, LockKeyhole, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
+import { Box, ExternalLink, KeyRound, LockKeyhole, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
 import { Dialog } from './Dialog';
 import type { WalletState } from '../hooks/useWallet';
 import type { CatalogTrack } from '../shared/types';
@@ -58,6 +58,9 @@ export function WalletModal({
     isSwitchingNetwork,
     connectPasskey,
     connectExtension,
+    connectProductHost,
+    productHostMode,
+    productHostStatus,
     switchNetwork,
     forgetPasskey: onForgetPasskey,
     disconnect: onDisconnect
@@ -69,6 +72,7 @@ export function WalletModal({
   const onClose = () => setShowWalletModal(false);
   const onPasskey = () => void connectPasskey();
   const onExtension = () => void connectExtension();
+  const onProductHost = () => void connectProductHost();
   const onSwitchNetwork = () => void switchNetwork();
 
   if (state.status === 'connected') {
@@ -95,7 +99,7 @@ export function WalletModal({
           <div>
             <strong>{wallet.label}</strong>
             <small className='tnum'>
-              {wallet.evmAddress ? (
+              {wallet.method !== 'product-host' ? (
                 <a className='verify-link' href={getBlockscoutAddressUrl(wallet.evmAddress)} target='_blank' rel='noreferrer'>
                   {shortenAddress(identityAddress)}
                 </a>
@@ -108,7 +112,15 @@ export function WalletModal({
 
         <div className='wallet-network' data-warning={walletChainMismatch}>
           <span>Connection</span>
-          <strong>{walletChainMismatch ? 'Needs attention' : wallet.method === 'passkey' ? 'This device' : 'Wallet app'}</strong>
+          <strong>
+            {walletChainMismatch
+              ? 'Needs attention'
+              : wallet.method === 'passkey'
+                ? 'This device'
+                : wallet.method === 'product-host'
+                  ? 'Product host'
+                  : 'Wallet app'}
+          </strong>
           {walletChainMismatch && <small>Choose the right network to continue</small>}
           {walletChainMismatch && wallet.method === 'extension' && onSwitchNetwork && (
             <button className='wallet-network-action' type='button' onClick={onSwitchNetwork} disabled={isSwitchingNetwork}>
@@ -117,6 +129,37 @@ export function WalletModal({
             </button>
           )}
         </div>
+
+        {wallet.method === 'product-host' && (
+          <>
+            <p className='info-box'>
+              Your app-scoped Polkadot identity is active for presence and rooms. Paid access, protected playback, and artist publishing still require an EVM
+              signer during the contract port.
+            </p>
+            <div className='wallet-options'>
+              {hasPrfSupport && (
+                <button className='wallet-option wallet-option-primary' type='button' onClick={onPasskey}>
+                  <span className='wallet-option-icon'>
+                    <KeyRound size={18} />
+                  </span>
+                  <span className='wallet-option-copy'>
+                    <strong>{hasStoredPasskey ? 'Use passkey' : 'Create passkey'}</strong>
+                    <small>Enable protected and paid actions.</small>
+                  </span>
+                </button>
+              )}
+              <button className='wallet-option' type='button' onClick={onExtension}>
+                <span className='wallet-option-icon'>
+                  <Wallet size={18} />
+                </span>
+                <span className='wallet-option-copy'>
+                  <strong>Use EVM wallet</strong>
+                  <small>Enable protected and paid actions.</small>
+                </span>
+              </button>
+            </div>
+          </>
+        )}
 
         <div className='wallet-stats'>
           <div>
@@ -254,15 +297,39 @@ export function WalletModal({
 
       {state.status === 'error' && <p className='error-box'>{state.message}</p>}
       {state.status === 'connecting' && (
-        <p className='info-box'>{state.via === 'passkey' ? 'Check your browser prompt to continue.' : 'Check your wallet to approve the connection.'}</p>
+        <p className='info-box'>
+          {state.via === 'passkey'
+            ? 'Check your browser prompt to continue.'
+            : state.via === 'product-host'
+              ? 'Check the Polkadot Product host to continue.'
+              : 'Check your wallet to approve the connection.'}
+        </p>
       )}
       {state.status === 'needs-reconnect' && state.via === 'passkey' && (
         <p className='info-box'>Your saved passkey is ready. Use passkey to reconnect when you are ready.</p>
       )}
 
       <div className='wallet-options'>
+        {productHostMode !== 'off' && (
+          <button className='wallet-option wallet-option-primary' type='button' onClick={onProductHost} disabled={productHostStatus !== 'available'}>
+            <span className='wallet-option-icon'>
+              <Box size={18} />
+            </span>
+            <span className='wallet-option-copy'>
+              <strong>Use Polkadot app</strong>
+              <small>
+                {productHostStatus === 'checking'
+                  ? 'Checking the Product host...'
+                  : productHostStatus === 'available'
+                    ? 'Use your app-scoped account.'
+                    : 'Open Dotify inside the Product host.'}
+              </small>
+            </span>
+          </button>
+        )}
+
         {hasPrfSupport && (
-          <button className='wallet-option wallet-option-primary' type='button' onClick={onPasskey}>
+          <button className={`wallet-option${productHostMode === 'off' ? ' wallet-option-primary' : ''}`} type='button' onClick={onPasskey}>
             <span className='wallet-option-icon'>
               <KeyRound size={18} />
             </span>

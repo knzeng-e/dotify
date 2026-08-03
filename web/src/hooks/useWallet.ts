@@ -25,6 +25,7 @@ import {
   isArtistPublishE2eScenarioRequested,
   shouldAutoConnectArtistPublishE2eWallet
 } from '../e2e/artistPublishMock';
+import { connectProductHostIdentity, probeProductHost, resolveProductHostConfig, type ProductHostStatus } from '../features/productHost/productHost';
 import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
 import { getProviderErrorCode, parseChainId, toEip155ChainId } from '../features/wallet/network';
 
@@ -39,7 +40,7 @@ const CONNECT_TIMEOUT_MS = 42_000;
 
 // ── Public types ─────────────────────────────────────────────────────────────
 
-export type WalletMethod = 'passkey' | 'extension';
+export type WalletMethod = 'passkey' | 'extension' | 'product-host';
 
 export type ConnectedWallet = {
   method: WalletMethod;
@@ -53,7 +54,7 @@ export type ConnectedWallet = {
   /** EIP-1193 chain id when the connected wallet reports one */
   chainId?: number;
   /** Build the right viem WalletClient for this connection type */
-  createEvmClient: (chain: Chain, rpcUrl: string) => WalletClient;
+  createEvmClient?: (chain: Chain, rpcUrl: string) => WalletClient;
 };
 
 export type WalletState =
@@ -62,6 +63,8 @@ export type WalletState =
   | { status: 'connecting'; via: WalletMethod }
   | { status: 'connected'; wallet: ConnectedWallet }
   | { status: 'error'; message: string };
+
+const productHostConfig = resolveProductHostConfig(import.meta.env);
 
 // ── Internal: key derivation ─────────────────────────────────────────────────
 
@@ -268,6 +271,7 @@ export function useWallet() {
     if (isClassicUnlockE2e) return { status: 'connected', wallet: createClassicUnlockE2eWallet() };
     return { status: 'disconnected' };
   });
+  const [productHostStatus, setProductHostStatus] = useState<ProductHostStatus>(() => (productHostConfig.mode === 'off' ? 'off' : 'checking'));
 
   const connectPasskey = useCallback(async () => {
     if (isArtistPublishE2e) {
@@ -304,6 +308,33 @@ export function useWallet() {
       setState({ status: 'connected', wallet });
     } catch (e) {
       setState({ status: 'error', message: e instanceof Error ? e.message : 'Wallet connection failed.' });
+    }
+  }, []);
+
+  const connectProductHost = useCallback(async () => {
+    setState({ status: 'connecting', via: 'product-host' });
+    try {
+      const identity = await withTimeout(
+        connectProductHostIdentity(productHostConfig),
+        'The Polkadot Product host did not answer in time. Reopen Dotify from the Product host and try again.'
+      );
+      setProductHostStatus('available');
+      localStorage.removeItem(LAST_METHOD_KEY);
+      setState({
+        status: 'connected',
+        wallet: {
+          method: 'product-host',
+          label: 'Polkadot app',
+          substrateAddress: identity.substrateAddress,
+          evmAddress: identity.evmAddress
+        }
+      });
+    } catch (error) {
+      setProductHostStatus('unavailable');
+      setState({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'The Polkadot Product account could not be connected.'
+      });
     }
   }, []);
 
@@ -375,6 +406,16 @@ export function useWallet() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    void probeProductHost(productHostConfig.mode).then(status => {
+      if (!cancelled) setProductHostStatus(status);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (isClassicUnlockE2e || isArtistPublishE2e) return;
     const ethereum = getEthereumProvider();
     if (!ethereum?.on || !ethereum.removeListener) return;
@@ -437,5 +478,17 @@ export function useWallet() {
     setState(current => (current.status === 'needs-reconnect' && current.via === 'passkey' ? { status: 'disconnected' } : current));
   }, []);
 
-  return { state, connectPasskey, connectExtension, switchExtensionNetwork, disconnect, hasPrfSupport, hasStoredPasskey, forgetPasskey };
+  return {
+    state,
+    connectPasskey,
+    connectExtension,
+    connectProductHost,
+    switchExtensionNetwork,
+    disconnect,
+    hasPrfSupport,
+    hasStoredPasskey,
+    forgetPasskey,
+    productHostMode: productHostConfig.mode,
+    productHostStatus
+  };
 }
