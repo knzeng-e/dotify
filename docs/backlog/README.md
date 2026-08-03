@@ -109,9 +109,10 @@ first public listening path, while the Product DevNet build adds
 explicit Host detection, app-scoped Product identity, and canonical
 Product-origin room links. The typed runtime ports and experimental
 Product CDM/PAPI adapter boundary are implementation preparation only; they do
-not imply Product-signed contract writes, protected key access, Statement Store
-rooms, or Humanity decisions. Those remain gated until their adapters prove the
-current API and security boundary.
+not imply Product-signed contract writes, Statement Store rooms, or Humanity
+decisions. API-side Product-signed key/session verification now exists through
+`product-sr25519-v1`, but the Product frontend still needs to send host-signed
+requests before protected playback can use that identity path.
 
 The Product SDK evidence snapshot used for this replanning is
 `@parity/product-sdk` 0.19.1 and
@@ -165,7 +166,7 @@ on `main`. The remaining order is:
    the link-first guest doctrine.
 4. Validate the delivered Product host/account and Bulletin/DotNS baseline,
    then wire real CDM-installed runtime packages through the Product CDM/PAPI
-   adapter, add backend Product-signature verification, and run bounded
+   adapter, wire frontend Product-signed key/session requests, and run bounded
    resource-allocation/Statement Store spikes.
 5. Build live Humanity / Individuality only after the research ticket proves a
    privacy-preserving source, proof shape, address-binding story, and fallback

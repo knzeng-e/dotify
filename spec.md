@@ -117,8 +117,11 @@ Product SDK integration is an adaptive enhancement, not a hard dependency for
 first sound. The Product build pins `@parity/product-sdk` 0.19.1, detects the
 host, and requests an app-scoped account only after explicit user action. That
 account is currently an identity/presence capability: Classic payments, artist
-publication, and protected key requests still require the passkey/EVM path
-until CDM/PAPI writes and backend Product-signature verification are delivered.
+publication, and the shipped protected-playback UI still require the
+passkey/EVM path until CDM/PAPI writes and Product-host key/session signing are
+wired. The backend already accepts an explicit `product-sr25519-v1` signature
+scheme for key delivery and session sign-in when the Product account public key
+derives to the requester H160 address.
 The runtime hooks now depend on typed read/write ports; the current viem
 adapter remains active, and the Product CDM/PAPI adapter remains experimental
 until Dotify has CDM-installed runtime packages and host-signed transaction
@@ -287,6 +290,9 @@ Production audio protection uses the backend as the key boundary:
 - per-track keys are derived from backend-only `CONTENT_KEY_MASTER_SECRET`;
 - a wallet signature opens a short-lived session, with a legacy signed
   per-request fallback for older backends;
+- signature schemes are explicit: standalone clients use `eip191`, and Product
+  clients may use `product-sr25519-v1` only when the Product account public key
+  derives to the requester H160 address;
 - the frontend requests keys through `POST /api/tracks/:contentHash/key-request`;
 - the backend verifies the session or signature, resolves the artist runtime,
   and calls `musicAccCanAccess` before releasing a key;
@@ -672,9 +678,9 @@ Priority improvements:
 4. Finish security hardening for publish intents, auth chain binding, durable
    revocation, realtime reconnect, and short-lived TURN credentials.
 5. Validate the delivered Product host/account and Bulletin/DotNS deployment
-   baseline, then wire real CDM-installed runtime packages through the
-   experimental Product CDM/PAPI adapter, add backend Product signature
-   verification, and run a bounded Statement Store presence spike.
+   baseline, then wire frontend Product-signed key/session requests, real
+   CDM-installed runtime packages through the experimental Product CDM/PAPI
+   adapter, and run a bounded Statement Store presence spike.
 6. Move the large catalog, session, artist, and player workflows behind domain
    ports and application use cases.
 7. Validate the cacheable catalog API's warm/cold p75 budgets under public seed

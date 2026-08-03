@@ -167,10 +167,14 @@ Goal: deepen the delivered Product mode one adapter at a time.
 - Delivered on the next follow-up branch: add an experimental CDM/PAPI adapter
   behind those ports. It is not selected by default until Dotify has
   CDM-installed Product runtime packages and host-signed transaction evidence.
+- Delivered on the next follow-up branch: add an API-side Product sr25519
+  signature scheme for key delivery and session sign-in. It binds the Product
+  account public key to the derived H160 requester before nonce consumption and
+  access checks.
 - Next: wire a generated CDM manifest/types into Product mode and run real host
   transaction smoke tests.
-- Next: add a backend signature-scheme adapter that verifies Product account
-  signatures and address binding before key delivery.
+- Next: wire frontend Product-host key/session requests to the API signature
+  scheme and run real host smoke tests.
 - Keep backend key delivery authoritative unless a Product-host design proves a
   stronger key-custody boundary.
 - Keep `.dot`/Playground deployment separate from access enforcement.

@@ -25,6 +25,21 @@ Dotify must avoid wallet pop-up fatigue. Wallet prompts should appear only when 
 | Human Free unlock | Yes | Maybe session signature | No, unless proving/linking personhood requires one |
 | Artist publishing | Yes | Yes/transaction depending on step | Yes for runtime/register actions |
 
+## Backend signature schemes
+
+Signed session and protected key requests carry an explicit `signatureScheme`.
+If the field is omitted, the backend treats the request as `eip191` for
+backward compatibility.
+
+| Scheme | Signer | Extra fields | Verification |
+| --- | --- | --- | --- |
+| `eip191` | Standalone EVM/passkey wallet | `signature` | Verify the canonical Dotify message with the requester H160 address. |
+| `product-sr25519-v1` | App-scoped Product account | `signature`, `productPublicKey` | Verify sr25519 over the same canonical message bytes, derive H160 from the Product public key, and require it to match the requester. |
+
+Unknown schemes and Product public-key mismatches fail closed before nonce
+consumption. Every successful signature path still runs the runtime access
+check before the backend releases a content key.
+
 ## Individual playback flow
 
 ```mermaid

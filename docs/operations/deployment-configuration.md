@@ -210,6 +210,22 @@ For production-grade catalog evidence:
 - keep at least one machine warm while measuring catalog p75 performance, then
   record whether the trace was warm or cold.
 
+### Backend Signature Schemes
+
+No Netlify or Fly dashboard variable enables Product signatures. The API
+accepts two explicit schemes on session sign-in and protected key requests:
+
+| Scheme | Client | Required proof fields | Backend binding |
+| --- | --- | --- | --- |
+| `eip191` | Standalone EVM/passkey wallet path | `signature` | `viem.verifyMessage` against the requester H160 |
+| `product-sr25519-v1` | Product-host app-scoped account path | `signature`, `productPublicKey` | sr25519 signature over the canonical Dotify message bytes, then Product public-key-to-H160 derivation matching the requester |
+
+Unknown schemes fail at the API schema boundary. Product requests must still
+pass the same nonce, chain, purpose, expiry, and `musicAccCanAccess` checks as
+standalone requests. The shipped Product frontend does not yet submit this
+Product proof shape; when it does, validate it through Product host smoke tests
+before treating Product identity as a protected-playback account.
+
 ## Fly Signaling
 
 Open app `dotify-signal`.
@@ -269,7 +285,7 @@ npm run build:product-devnet
 checks in
 [`docs/operations/product-devnet-deployment.md`](product-devnet-deployment.md).
 
-6. For explicit origin rejection evidence, include a denied origin:
+7. For explicit origin rejection evidence, include a denied origin:
 
 ```bash
 cd web

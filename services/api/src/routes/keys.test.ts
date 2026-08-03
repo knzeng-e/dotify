@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { createKeyRoutes, type KeyRouteDeps } from './keys.js';
+import { PRODUCT_SR25519_SIGNATURE_SCHEME, type KeySignatureRequest } from '../services/signatures.js';
 
 const CONTENT_HASH = `0x${'ab'.repeat(32)}`;
 const REQUESTER = '0x1111111111111111111111111111111111111111';
@@ -83,6 +84,79 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
 
     assert.equal(response.statusCode, 401);
     assert.equal(response.json().code, 'SIGNATURE_INVALID');
+  });
+
+  it('passes Product sr25519 proof fields to signature verification', async () => {
+    let verifiedRequest: KeySignatureRequest | null = null;
+    const server = await buildApp({
+      verifySignedRequest: async request => {
+        verifiedRequest = request;
+        return { valid: true };
+      }
+    });
+    const productPublicKey = `0x${'22'.repeat(32)}`;
+    const signature = `0x${'33'.repeat(64)}`;
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: baseBody({
+        signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+        productPublicKey,
+        signature
+      })
+    });
+
+    assert.equal(response.statusCode, 200);
+    const productRequest = verifiedRequest as Extract<KeySignatureRequest, { signatureScheme: typeof PRODUCT_SR25519_SIGNATURE_SCHEME }> | null;
+    assert.ok(productRequest);
+    assert.equal(productRequest.signatureScheme, PRODUCT_SR25519_SIGNATURE_SCHEME);
+    assert.equal(productRequest.productPublicKey, productPublicKey);
+    assert.equal(productRequest.signature, signature);
+  });
+
+  it('rejects unknown signature schemes before verification or access checks', async () => {
+    let verificationCalled = false;
+    let accessChecked = false;
+    const server = await buildApp({
+      verifySignedRequest: async () => {
+        verificationCalled = true;
+        return { valid: true };
+      },
+      checkTrackAccess: async () => {
+        accessChecked = true;
+        return { allowed: true, runtime: RUNTIME };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: baseBody({ signatureScheme: 'product-unknown-v1' })
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(verificationCalled, false);
+    assert.equal(accessChecked, false);
+  });
+
+  it('requires Product public key for Product sr25519 requests', async () => {
+    let verificationCalled = false;
+    const server = await buildApp({
+      verifySignedRequest: async () => {
+        verificationCalled = true;
+        return { valid: true };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: baseBody({
+        signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+        signature: `0x${'33'.repeat(64)}`
+      })
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(verificationCalled, false);
   });
 
   it('answers a denied individual listener with an unlock CTA, never a key or a preview mode', async () => {
