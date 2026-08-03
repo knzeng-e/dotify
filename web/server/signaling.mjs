@@ -67,6 +67,9 @@ export const defaultConfig = {
   // guaranteed to set it. Off by default (raw socket address) so a bare demo
   // deployment cannot be spoofed via a forged header.
   trustProxy: false,
+  // Native hosts/webviews may omit Origin entirely on Socket.IO handshakes.
+  // This does not allow the literal "null" origin from sandboxed/file pages.
+  allowMissingOrigin: false,
   logger: line => console.log(line)
 };
 
@@ -86,8 +89,15 @@ export function readConfigFromEnv(env = process.env) {
     roomTtlMs: Number(env.SIGNAL_ROOM_TTL_MS ?? defaultConfig.roomTtlMs),
     hostHeartbeatTimeoutMs: Number(env.SIGNAL_HOST_TIMEOUT_MS ?? defaultConfig.hostHeartbeatTimeoutMs),
     maxListenersPerRoom: Number(env.SIGNAL_MAX_LISTENERS ?? defaultConfig.maxListenersPerRoom),
-    trustProxy: /^(1|true|yes)$/i.test(String(env.SIGNAL_TRUST_PROXY ?? '').trim())
+    trustProxy: /^(1|true|yes)$/i.test(String(env.SIGNAL_TRUST_PROXY ?? '').trim()),
+    allowMissingOrigin: /^(1|true|yes)$/i.test(String(env.SIGNAL_ALLOW_MISSING_ORIGIN ?? '').trim())
   };
+}
+
+export function isSignalingOriginAllowed(origin, config) {
+  if (config.origins === '*') return true;
+  if (!origin) return Boolean(config.allowMissingOrigin);
+  return config.origins.includes(origin.replace(/\/$/, ''));
 }
 
 export function startSignalingServer(overrides = {}) {
@@ -110,9 +120,7 @@ export function startSignalingServer(overrides = {}) {
   }
 
   function isOriginAllowed(origin) {
-    if (config.origins === '*') return true;
-    if (!origin) return false;
-    return config.origins.includes(origin.replace(/\/$/, ''));
+    return isSignalingOriginAllowed(origin, config);
   }
 
   function corsHeaders(request) {
@@ -124,7 +132,7 @@ export function startSignalingServer(overrides = {}) {
 
     if (config.origins === '*') {
       headers['access-control-allow-origin'] = '*';
-    } else if (isOriginAllowed(origin)) {
+    } else if (origin && isOriginAllowed(origin)) {
       headers['access-control-allow-origin'] = origin;
     }
 
@@ -151,6 +159,7 @@ export function startSignalingServer(overrides = {}) {
         // Non-secret configuration echo (ticket 10): lets an operator confirm
         // which origin policy and room lifetimes a deployment is running.
         allowedOrigins: config.origins,
+        allowMissingOrigin: config.allowMissingOrigin,
         roomTtlMs: config.roomTtlMs,
         hostHeartbeatTimeoutMs: config.hostHeartbeatTimeoutMs,
         maxListenersPerRoom: config.maxListenersPerRoom
@@ -169,7 +178,17 @@ export function startSignalingServer(overrides = {}) {
 
   const io = new Server(httpServer, {
     allowRequest: (request, callback) => {
-      callback(null, isOriginAllowed(request.headers.origin));
+      const origin = request.headers.origin;
+      const allowed = isOriginAllowed(origin);
+      if (!allowed) {
+        logEvent('origin:rejected', {
+          origin: origin ?? '<missing>',
+          referer: request.headers.referer ?? '',
+          userAgent: request.headers['user-agent'] ?? '',
+          url: request.url ?? ''
+        });
+      }
+      callback(null, allowed);
     },
     cors: { origin: config.origins === '*' ? '*' : config.origins, methods: ['GET', 'POST'] }
   });
@@ -682,7 +701,7 @@ export function startSignalingServer(overrides = {}) {
     listen() {
       return new Promise(resolve => {
         httpServer.listen(config.port, config.host, () => {
-          logEvent('server:listening', { host: config.host, port: httpServer.address().port, origins: config.origins });
+          logEvent('server:listening', { host: config.host, port: httpServer.address().port, origins: config.origins, allowMissingOrigin: config.allowMissingOrigin });
           resolve(httpServer.address().port);
         });
       });

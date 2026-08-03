@@ -129,6 +129,7 @@ The tracked Fly configuration must contain:
 ```txt
 API_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,polkadot://app.dotify-test01.dot
 SIGNAL_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,polkadot://app.dotify-test01.dot
+SIGNAL_ALLOW_MISSING_ORIGIN=true
 ```
 
 Four exact origins reach these services: Netlify, the public DotNS gateway, the
@@ -146,6 +147,11 @@ before widening either list. Never add a bare `null`: that admits every
 sandboxed iframe and `file://` page on the web to the authenticated upload and
 content-key routes. A regression test in `services/api/src/cors.test.ts` pins
 that refusal.
+
+Polkadot Desktop/native hosts may omit the `Origin` header entirely on the
+Socket.IO handshake. `SIGNAL_ALLOW_MISSING_ORIGIN=true` allows that missing
+header only for the signaling service. It still rejects the literal
+`Origin: null` value, and it must not be mirrored to backend API CORS.
 
 Deploy both services before publishing the frontend. `cd` into each service
 first - this is not cosmetic:

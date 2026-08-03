@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { io as ioClient } from 'socket.io-client';
-import { startSignalingServer } from './signaling.mjs';
+import { isSignalingOriginAllowed, readConfigFromEnv, startSignalingServer } from './signaling.mjs';
 import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash } from './signaling-utils.mjs';
 
 let server;
@@ -47,6 +47,21 @@ afterEach(async () => {
 });
 
 describe('signaling server', () => {
+  it('reads native missing-origin allowance from env without widening origins', () => {
+    const config = readConfigFromEnv({
+      SIGNAL_ORIGINS: 'https://dotify.example',
+      SIGNAL_ALLOW_MISSING_ORIGIN: 'true'
+    });
+
+    assert.deepEqual(config.origins, ['https://dotify.example']);
+    assert.equal(config.allowMissingOrigin, true);
+    assert.equal(isSignalingOriginAllowed(undefined, config), true);
+    assert.equal(isSignalingOriginAllowed('', config), true);
+    assert.equal(isSignalingOriginAllowed('null', config), false);
+    assert.equal(isSignalingOriginAllowed('https://evil.example', config), false);
+    assert.equal(isSignalingOriginAllowed('https://dotify.example', config), true);
+  });
+
   it('creates a room and lets a listener join by code without any credential', async () => {
     const host = connectClient();
     const created = await createRoom(host, { hostAddress: '0x1111111111111111111111111111111111111111', track: { title: 'Night Drive', artist: 'Ada' } });
@@ -230,6 +245,25 @@ describe('signaling server', () => {
     clients.push(productHost);
     await once(productHost, 'connect');
     assert.equal(productHost.connected, true);
+  });
+
+  it('does not emit an undefined CORS header when missing-Origin native mode is enabled', async () => {
+    await server.close();
+    server = startSignalingServer({
+      port: 0,
+      host: '127.0.0.1',
+      origins: ['https://dotify.example'],
+      allowMissingOrigin: true,
+      logger: () => {}
+    });
+    port = await server.listen();
+
+    const health = await fetch(`http://127.0.0.1:${port}/health`);
+    const body = await health.json();
+
+    assert.equal(health.status, 200);
+    assert.equal(health.headers.get('access-control-allow-origin'), null);
+    assert.equal(body.allowMissingOrigin, true);
   });
 
   it('broadcasts host playback-mode changes to listeners and room metadata', async () => {

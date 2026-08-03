@@ -424,6 +424,25 @@ the live service using a stale origin list after redeploy.
 
 ---
 
+### `SIGNAL_ALLOW_MISSING_ORIGIN`
+
+| Property     | Value   |
+| ------------ | ------- |
+| **Type**     | Boolean |
+| **Required** | No      |
+| **Default**  | `false` |
+| **Example**  | `true`  |
+
+Allows Socket.IO handshakes with no `Origin` header. This is for
+Polkadot Desktop/native hosts that do not send browser-style CORS origins on
+the signaling connection.
+
+This does not allow the literal `Origin: null` header. Keep `null` rejected:
+sandboxed iframes and `file://` pages can use it. Do not mirror this behavior
+to the backend API, which serves authenticated upload and content-key routes.
+
+---
+
 ### `SIGNAL_ROOM_TTL_MS`
 
 | Property     | Value                |

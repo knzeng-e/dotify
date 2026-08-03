@@ -287,12 +287,19 @@ Non-secret runtime values are tracked in `web/fly.signal.toml`:
 | `SIGNAL_ROOM_TTL_MS` | `21600000` |
 | `SIGNAL_HOST_TIMEOUT_MS` | `120000` |
 | `SIGNAL_MAX_LISTENERS` | `24` |
+| `SIGNAL_ALLOW_MISSING_ORIGIN` | `true` |
 | `SIGNAL_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,polkadot://app.dotify-test01.dot` |
 
 The production origins are public configuration tracked in
 `web/fly.signal.toml`; they are not secrets. Temporary preview origins may be
 set through Fly configuration, but the tracked production allowlist must be
 restored after validation.
+
+`SIGNAL_ALLOW_MISSING_ORIGIN=true` exists for Polkadot Desktop/native hosts
+whose Socket.IO handshakes omit the `Origin` header. It does not allow the
+literal `Origin: null` value from sandboxed iframes or `file://` pages. Keep it
+scoped to signaling only; the backend API still requires explicit CORS origins
+because it serves authenticated upload and key-delivery routes.
 
 Do not store `SIGNAL_ORIGINS` as a Fly secret. If `/health` reports an old
 `allowedOrigins` list after deploy, the secret is probably overriding
