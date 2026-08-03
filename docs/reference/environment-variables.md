@@ -310,6 +310,11 @@ unset. Do not use an unrestricted Pinata JWT here. Production uploads should set
 
 Primary IPFS gateway for fetching audio, cover images, and metadata.
 
+For Product DevNet builds, keep a public gateway such as `https://ipfs.io` here
+while track assets are pinned through the API/Pinata path. The Product IPFS
+gateway is still used to publish the app bundle, but it may not resolve those
+public track CIDs quickly enough for browser image rendering.
+
 ---
 
 ### `VITE_IPFS_READ_GATEWAYS`
@@ -320,7 +325,10 @@ Primary IPFS gateway for fetching audio, cover images, and metadata.
 | **Required** | No                                                                 |
 | **Default**  | `https://paseo-ipfs.polkadot.io,https://ipfs.io,https://dweb.link` |
 
-Fallback IPFS gateways tried after `VITE_PINATA_GATEWAY`.
+Fallback IPFS gateways tried after `VITE_PINATA_GATEWAY`. Put gateways that
+resolve the current catalog's public track CIDs before Product storage gateways;
+otherwise image elements can sit pending without an `error` event and delay the
+fallback path.
 
 ---
 

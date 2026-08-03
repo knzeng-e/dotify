@@ -43,6 +43,7 @@ Product Host origin: https://dotify-test01.app.dev-dot.li
 Backend API:         https://dotify-api.fly.dev
 Signaling:           https://dotify-signal.fly.dev
 Product IPFS:        https://devnet-ipfs.api.polkadotcommunity.foundation
+Track asset IPFS:    https://ipfs.io, https://dweb.link
 Asset Hub RPC:       https://eth-rpc-testnet.polkadot.io/
 ```
 
@@ -144,6 +145,8 @@ Required Product values:
 | `VITE_DOTIFY_API_URL` | `https://dotify-api.fly.dev` |
 | `VITE_SIGNAL_URL` | `https://dotify-signal.fly.dev` |
 | `VITE_DOTIFY_ROOM_BEACONS` | `off` |
+| `VITE_PINATA_GATEWAY` | `https://ipfs.io` |
+| `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
 
 `VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
 publication announces no rooms on the Statement Store. The capability ships
@@ -167,6 +170,12 @@ step, and none is needed.
 `VITE_PINATA_JWT` and `VITE_CONTENT_SECRET` are explicitly empty in that
 profile so a developer's generic local `.env` cannot leak demo credentials
 into the Product bundle.
+
+The Product IPFS gateway is the publication storage endpoint for the app bundle,
+not the most reliable first read path for the public track assets Dotify
+currently pins through Pinata. Keep `ipfs.io` and `dweb.link` before Product
+storage gateways for `VITE_PINATA_GATEWAY` and `VITE_IPFS_READ_GATEWAYS`;
+otherwise cover images can hang in the browser without firing an image error.
 
 Build and publication:
 

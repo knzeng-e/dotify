@@ -174,7 +174,32 @@ surfaces at the first genuinely uncached step rather than the first wrong one.
 Keep backend secrets unchanged. `API_ORIGINS` supersedes singular
 `API_ORIGIN`; the latter remains only as a compatibility fallback.
 
-## 2. Verify The Browser-Safe Build Profile
+## 2. Verify Track Asset Gateways
+
+The Product IPFS gateway stores the published app bundle, but current Dotify
+track assets are public IPFS CIDs pinned through the API/Pinata path. Keep the
+public gateways first in `web/.env.product-devnet`:
+
+```txt
+VITE_PINATA_GATEWAY=https://ipfs.io
+VITE_IPFS_READ_GATEWAYS=https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443
+```
+
+Do not make `https://devnet-ipfs.api.polkadotcommunity.foundation` the first
+track-asset read gateway unless it has been proven to resolve the current
+catalog's cover/audio CIDs. A hanging first gateway can leave `<img>` requests
+pending without firing `error`, which makes covers appear blank or disappear
+while the app waits.
+
+Before publishing, spot-check one cover CID from the catalog:
+
+```bash
+curl -s -L -o /dev/null --max-time 12 \
+  -w '%{http_code} %{content_type} %{size_download} %{time_total}\n' \
+  https://ipfs.io/ipfs/<cover-cid>
+```
+
+## 3. Verify The Browser-Safe Build Profile
 
 Review `web/.env.product-devnet`. It must contain only public endpoints and
 identifiers. In particular:
@@ -192,7 +217,7 @@ VITE_CONTENT_SECRET=
 `VITE_PUBLIC_APP_URL` is the URL copied for room invitations. Do not replace it
 with an internal host URL or a raw CID gateway.
 
-## 3. Build Locally
+## 4. Build Locally
 
 ```bash
 cd web
@@ -211,7 +236,7 @@ contract graph away and publishes at roughly 4.4 MB. Building with
 and roughly doubles that. Bulletin storage is a finite quota, so only opt in
 when the Product contract path is actually being exercised.
 
-## 4. Authenticate The Deploy Tool
+## 5. Authenticate The Deploy Tool
 
 The repository pins the CLI version in the npm deploy command but does not add
 the experimental deploy tool to the application dependency tree.
@@ -225,7 +250,7 @@ Follow the mobile-wallet flow. Confirm the selected account owns, or can
 receive, `dotify-test01.dot` and satisfies the DevNet registration/funding
 rules.
 
-## 5. Publish
+## 6. Publish
 
 ```bash
 npm run deploy:product-devnet
@@ -250,7 +275,7 @@ successful static deployment.
 Record the commit, CLI version, resulting CID, DotNS transaction references,
 and final public URL in the release evidence.
 
-## 6. Validate
+## 7. Validate
 
 Check service CORS from both origins:
 
