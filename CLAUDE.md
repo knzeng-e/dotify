@@ -250,6 +250,14 @@ cd web
 npm run smoke:production-env
 ```
 
+When Product DevNet endpoints, `deployments.json`, or the DevNet build profile
+change, also run the read-only endpoint check:
+
+```bash
+cd web
+npm run smoke:devnet
+```
+
 For deployment-sensitive work, add the relevant read-only health, chain,
 contract, IPFS gateway, and wrong-network checks. Record the environment and
 evidence without exposing credentials.

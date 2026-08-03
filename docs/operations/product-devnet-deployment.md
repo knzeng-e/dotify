@@ -4,6 +4,31 @@ This runbook publishes the Product build to Bulletin/DotNS and connects it to
 the existing Fly API and signaling services. It does not deploy contracts or
 change production secrets.
 
+## Contracts Need No Redeploy
+
+Product DevNet is a preset over the Paseo system parachains - Asset Hub (1000),
+People (1004), Bulletin (1010) - at EVM chain `420420417`. Dotify's contracts
+are already deployed on that chain, so porting to DevNet is a configuration
+change, not a migration. The addresses in `deployments.json` are DevNet
+addresses.
+
+Confirm before every publish:
+
+```bash
+cd web
+npm run smoke:devnet
+```
+
+It reads `web/.env.product-devnet` and `deployments.json` and checks, read-only,
+that the configured Asset Hub reports chain `420420417`, is producing blocks
+past the 2026-07 halt, still serves bytecode for the ArtistDirectory and
+ArtistRuntimeFactory, and that the Bulletin RPC and IPFS gateway respond. It
+sends no transaction and prints no credential.
+
+Do not point the build at **Asset Hub Next (1500)** or **People Next (1502)**.
+The Product documentation is explicit that those belong to a different network;
+Dotify has no contracts there, and the catalog would load empty.
+
 ## Prerequisites
 
 - Node.js 22 and npm 10+
@@ -78,11 +103,18 @@ with an internal host URL or a raw CID gateway.
 cd web
 npm ci
 npm run test:unit
+npm run smoke:devnet
 npm run build:product-devnet
 ```
 
 Expected output is `web/dist-product`. The production guard must fail if a
 browser upload token or content secret is present.
+
+The default build keeps the viem runtime adapter, which tree-shakes the Product
+contract graph away and publishes at roughly 4.4 MB. Building with
+`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` pulls in the Product SDK descriptors
+and roughly doubles that. Bulletin storage is a finite quota, so only opt in
+when the Product contract path is actually being exercised.
 
 ## 4. Authenticate The Deploy Tool
 
@@ -193,11 +225,16 @@ active.
   records which shape the live host actually produced - that observation is the
   evidence, and until it is captured the accepted set stays deliberately wide.
 - Contract writes still require passkey/EVM signing in the shipped UI. The
-  experimental Product CDM/PAPI runtime adapter is present in code, but it is
-  not selected until Dotify has CDM-installed runtime packages, generated
-  contract types, and real host-signed transaction evidence.
+  Product CDM/PAPI runtime adapter now has its generated manifest, contract
+  types, and a live resolver, so the only thing still missing before it can be
+  selected is `pallet-revive` account mapping plus real host-signed transaction
+  evidence.
 - Rooms still depend on one in-memory Fly signaling machine.
 - Product-host cloud storage does not hold Dotify audio or content keys.
 - Product personhood is not yet an access decision source.
 - A durable `CATALOG_SNAPSHOT_PATH` remains recommended for production-grade
   catalog recovery but is not required for API startup.
+- Product contract mode (`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`) covers
+  catalog reads only, and only inside the Product host. Contract writes stay on
+  the passkey/EVM signer in every mode until `pallet-revive` account mapping and
+  host-signed transaction evidence exist.
