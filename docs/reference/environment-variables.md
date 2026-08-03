@@ -400,11 +400,19 @@ Network interface to bind.
 | **Type**     | Comma-separated URL list or `*`                                                                 |
 | **Required** | No                                                                                              |
 | **Default**  | `*`                                                                                             |
-| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,polkadot://app.dotify-test01.dot` |
+| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,polkadot://app.dotify-test01.dot` |
 
 CORS allowed origins for Socket.IO and status endpoints. Set explicit frontend
 origins in production. `SIGNAL_ORIGIN` is still accepted as a backwards-compatible
 singular alias.
+
+Product deployments need both HTTPS origins: `dotify-test01.dev-dot.li` is the
+public top-level gateway and canonical room-link origin, while requests made by
+the Product Host iframe originate from `dotify-test01.app.dev-dot.li`.
+
+On Fly, keep this value in `web/fly.signal.toml`. Do not define
+`SIGNAL_ORIGINS` as a Fly secret: secrets override `[env]` values and can leave
+the live service using a stale origin list after redeploy.
 
 ---
 
@@ -493,11 +501,20 @@ backwards-compatible fallback when `API_ORIGINS` is not set.
 | **Type**     | Comma-separated HTTPS origin list                                                               |
 | **Required** | Multiple hosted frontends                                                                       |
 | **Default**  | The single `API_ORIGIN` value                                                                   |
-| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,polkadot://app.dotify-test01.dot` |
+| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,polkadot://app.dotify-test01.dot` |
 
 Exact frontend origins accepted by backend CORS. When set, it takes precedence
 over `API_ORIGIN`. Do not use `*`: the API carries authenticated upload and
 content-key routes.
+
+The Product Host HTTPS iframe origin is distinct from the public DotNS URL, so
+both `https://dotify-test01.dev-dot.li` and
+`https://dotify-test01.app.dev-dot.li` must be present. Do not replace the
+canonical `VITE_PUBLIC_APP_URL` with the iframe origin.
+
+On Fly, keep this value in `services/api/fly.toml`. Do not define
+`API_ORIGINS` as a Fly secret: secrets override `[env]` values and can leave
+the live API using a stale origin list after redeploy.
 
 ---
 

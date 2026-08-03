@@ -127,14 +127,17 @@ for the current faucet, storage console, mapping, and DotNS registration steps.
 The tracked Fly configuration must contain:
 
 ```txt
-API_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,polkadot://app.dotify-test01.dot
-SIGNAL_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,polkadot://app.dotify-test01.dot
+API_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,polkadot://app.dotify-test01.dot
+SIGNAL_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,polkadot://app.dotify-test01.dot
 ```
 
-Three frontends reach these services: Netlify, the DotNS web gateway, and the
-app as served inside the Product host container, which uses a custom scheme.
-Both lists must carry all three - a container with only the signaling origin
-gets rooms but no content keys, because catalog and key delivery go to the API.
+Four exact origins reach these services: Netlify, the public DotNS gateway, the
+Product Host's HTTPS app iframe, and native hosts using the custom scheme. The
+top-level browser URL is `https://dotify-test01.dev-dot.li`, but requests from
+the hosted Product carry
+`Origin: https://dotify-test01.app.dev-dot.li`. Both lists must carry all four:
+without the iframe origin, catalog requests are blocked and Socket.IO polling
+returns `403`, even though the static shell itself renders.
 
 `polkadot:` is a non-special scheme, so its origin is opaque and a browser may
 send `Origin: null` rather than the literal value. If a host request is still
@@ -257,8 +260,35 @@ curl -s -D - -o /dev/null \
   https://dotify-api.fly.dev/health
 
 curl -s -D - -o /dev/null \
+  -H 'Origin: https://dotify-test01.app.dev-dot.li' \
+  https://dotify-api.fly.dev/api/catalog?limit=1
+
+curl -s -D - -o /dev/null \
   -H 'Origin: https://muzinga.netlify.app' \
   https://dotify-api.fly.dev/health
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: https://dotify-test01.app.dev-dot.li' \
+  https://dotify-signal.fly.dev/health
+```
+
+Each Product Host probe must include
+`access-control-allow-origin: https://dotify-test01.app.dev-dot.li`. A `200`
+without that header is still a browser failure. Also confirm an unrelated
+origin receives no allow-origin header; never widen either service to `*`.
+
+If `/health` still reports an old allowlist after redeploying, check Fly secret
+overrides. `API_ORIGINS` and `SIGNAL_ORIGINS` are public config tracked in the
+respective `fly.toml` files, not secrets:
+
+```bash
+cd services/api
+flyctl secrets list
+flyctl secrets unset API_ORIGINS
+
+cd ../../web
+flyctl secrets list -c fly.signal.toml
+flyctl secrets unset SIGNAL_ORIGINS -c fly.signal.toml
 ```
 
 Then verify in the Product host:

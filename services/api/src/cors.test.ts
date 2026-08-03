@@ -12,13 +12,18 @@ afterEach(async () => {
 
 describe('frontend origin boundary', () => {
   it('allows each configured Dotify frontend and rejects unrelated origins', async () => {
+    const allowedOrigins = [
+      'https://muzinga.netlify.app',
+      'https://dotify-test01.dev-dot.li',
+      'https://dotify-test01.app.dev-dot.li',
+    ];
     app = await buildApp({
       logging: false,
-      apiOrigins: ['https://muzinga.netlify.app', 'https://dotify-test01.dev-dot.li'],
+      apiOrigins: allowedOrigins,
     });
     const server = app;
 
-    for (const origin of ['https://muzinga.netlify.app', 'https://dotify-test01.dev-dot.li']) {
+    for (const origin of allowedOrigins) {
       const response = await server.inject({
         method: 'GET',
         url: '/health',
@@ -35,9 +40,9 @@ describe('frontend origin boundary', () => {
     assert.equal(unrelated.headers['access-control-allow-origin'], undefined);
   });
 
-  it('allows the Product host container origin, which uses a custom scheme', async () => {
-    // Inside the Product host the app is served from polkadot://, not the DotNS
-    // web gateway. Without this the container gets rooms but no content keys.
+  it('allows the native Product host origin when it uses the custom scheme', async () => {
+    // Current browser-hosted Products use an app.dev-dot.li HTTPS iframe, while
+    // native hosts may use this custom scheme. Keep both exact origins tracked.
     const hostOrigin = 'polkadot://app.dotify-test01.dot';
     app = await buildApp({ logging: false, apiOrigins: [hostOrigin] });
 

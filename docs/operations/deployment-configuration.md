@@ -37,16 +37,21 @@ Keep this document aligned with
 Production URLs currently assumed by the app and docs:
 
 ```txt
-Standalone:     https://muzinga.netlify.app
-Product:        https://dotify-test01.dev-dot.li
-Backend API:    https://dotify-api.fly.dev
-Signaling:      https://dotify-signal.fly.dev
-Product IPFS:   https://devnet-ipfs.api.polkadotcommunity.foundation
-Asset Hub RPC:  https://eth-rpc-testnet.polkadot.io/
+Standalone:          https://muzinga.netlify.app
+Product public URL:  https://dotify-test01.dev-dot.li
+Product Host origin: https://dotify-test01.app.dev-dot.li
+Backend API:         https://dotify-api.fly.dev
+Signaling:           https://dotify-signal.fly.dev
+Product IPFS:        https://devnet-ipfs.api.polkadotcommunity.foundation
+Asset Hub RPC:       https://eth-rpc-testnet.polkadot.io/
 ```
 
-Use the exact current frontend origin for CORS and signaling origin values. Do
-not include a trailing slash.
+Use the exact current frontend origins for CORS and signaling values. Do not
+include a trailing slash. The Product URL visible in the browser remains
+`dotify-test01.dev-dot.li`, but the Host executes the Product inside an HTTPS
+iframe whose requests carry `Origin: https://dotify-test01.app.dev-dot.li`.
+Allow both; keep `VITE_PUBLIC_APP_URL` on the public URL so shared room links do
+not expose the internal execution origin.
 
 ## Security Boundary
 
@@ -191,11 +196,22 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | --- | --- |
 | `API_PORT` | `8790` |
 | `NODE_ENV` | `production` |
-| `API_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li` |
+| `API_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,polkadot://app.dotify-test01.dot` |
 | `PASEO_ASSET_HUB_RPC` | `https://eth-rpc-testnet.polkadot.io/` |
 | `DOTIFY_FACTORY_ADDRESS` | `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72` |
 | `DOTIFY_DIRECTORY_ADDRESS` | `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108` |
 | `DOTIFY_CHAIN_ID` | `420420417` |
+
+Do not store `API_ORIGINS` as a Fly secret. Fly secrets override `[env]` values
+from `fly.toml`, so a stale secret can keep CORS broken after a clean deploy.
+Audit before origin changes:
+
+```bash
+cd services/api
+flyctl secrets list
+flyctl secrets unset API_ORIGINS
+flyctl deploy
+```
 
 Set server-side values in the app's Secrets area:
 
@@ -262,12 +278,28 @@ Non-secret runtime values are tracked in `web/fly.signal.toml`:
 | `SIGNAL_ROOM_TTL_MS` | `21600000` |
 | `SIGNAL_HOST_TIMEOUT_MS` | `120000` |
 | `SIGNAL_MAX_LISTENERS` | `24` |
-| `SIGNAL_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li` |
+| `SIGNAL_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,polkadot://app.dotify-test01.dot` |
 
 The production origins are public configuration tracked in
 `web/fly.signal.toml`; they are not secrets. Temporary preview origins may be
 set through Fly configuration, but the tracked production allowlist must be
 restored after validation.
+
+Do not store `SIGNAL_ORIGINS` as a Fly secret. If `/health` reports an old
+`allowedOrigins` list after deploy, the secret is probably overriding
+`web/fly.signal.toml`. Remove it and redeploy or let Fly restart the machine:
+
+```bash
+cd web
+flyctl secrets list -c fly.signal.toml
+flyctl secrets unset SIGNAL_ORIGINS -c fly.signal.toml
+flyctl deploy -c fly.signal.toml
+```
+
+The `app.dev-dot.li` origin is required for both services. If it is missing,
+the Host shell still renders the static app, but catalog requests lose their
+CORS response header and Socket.IO polling is rejected with `403`, producing an
+empty music view and preventing room creation.
 
 Keep `dotify-signal` on one active machine until a shared Socket.IO adapter is
 added. Rooms, chat, reactions, request queues, and solo-presence aggregates are
@@ -278,9 +310,12 @@ currently in memory.
 After changing Netlify or Fly dashboard values:
 
 1. Trigger a new Netlify deploy for frontend `VITE_*` changes.
-2. Restart or redeploy the affected Fly app after secret/runtime changes if the
+2. Check Fly secret overrides before debugging stale CORS. `API_ORIGINS` and
+   `SIGNAL_ORIGINS` should not appear in `flyctl secrets list`; they are
+   tracked non-secret config.
+3. Restart or redeploy the affected Fly app after secret/runtime changes if the
    platform did not already restart machines.
-3. Confirm the backend:
+4. Confirm the backend:
 
 ```bash
 curl -s https://dotify-api.fly.dev/health
@@ -288,27 +323,27 @@ curl -s https://dotify-api.fly.dev/health/ready
 curl -s https://dotify-api.fly.dev/api/catalog
 ```
 
-4. Confirm signaling:
+5. Confirm signaling:
 
 ```bash
 curl -s https://dotify-signal.fly.dev/health
 curl -s https://dotify-signal.fly.dev/status
 ```
 
-5. Run local smoke checks when the repo is available:
+6. Run local smoke checks when the repo is available:
 
 ```bash
 cd web
 npm run smoke:production-env
-npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://<frontend-origin>
+npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://dotify-test01.app.dev-dot.li
 npm run build:product-devnet
 ```
 
-6. For a Product release, complete the cross-origin room and host-account
+7. For a Product release, complete the cross-origin room and host-account
 checks in
 [`docs/operations/product-devnet-deployment.md`](product-devnet-deployment.md).
 
-7. For explicit origin rejection evidence, include a denied origin:
+8. For explicit origin rejection evidence, include a denied origin:
 
 ```bash
 cd web
@@ -318,7 +353,7 @@ npm run smoke:signal -- \
   --denied-origin https://not-dotify.example
 ```
 
-7. Attach evidence to the PR when the active ticket requires public validation.
+9. Attach evidence to the PR when the active ticket requires public validation.
    For ticket #86, include `GET /api/catalog` state, block lag, and warm/cold
    catalog timing evidence.
 
