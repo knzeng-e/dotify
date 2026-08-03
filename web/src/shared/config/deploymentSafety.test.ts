@@ -219,6 +219,50 @@ describe('validateProductionEnvironment', () => {
     });
   });
 
+  it('rejects the Product CDM adapter without a Product host, which cannot reach the chain', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm'
+      }).errors
+    ).toEqual([
+      'VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm requires VITE_DOTIFY_HOST_MODE to be auto or required: Product contract calls route only through the Product host.'
+    ]);
+  });
+
+  it('rejects an unknown runtime adapter and Product chain preset', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_RUNTIME_ADAPTER: 'cdm'
+      }).errors
+    ).toEqual(['VITE_DOTIFY_RUNTIME_ADAPTER must be one of viem or product-cdm.']);
+
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm',
+        VITE_DOTIFY_HOST_MODE: 'required',
+        VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
+        VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li',
+        VITE_DOTIFY_PRODUCT_CHAIN: 'paseo'
+      }).errors
+    ).toEqual(['VITE_DOTIFY_PRODUCT_CHAIN must be devnet: Product DevNet targets Paseo Asset Hub 1000, the only chain holding Dotify runtimes.']);
+  });
+
+  it('accepts the Product CDM adapter alongside an enabled Product host', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm',
+        VITE_DOTIFY_PRODUCT_CHAIN: 'devnet',
+        VITE_DOTIFY_HOST_MODE: 'required',
+        VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
+        VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li'
+      })
+    ).toEqual({ mode: 'production', errors: [], warnings: [] });
+  });
+
   it('accepts an explicit production environment that keeps secrets server-side', () => {
     expect(validateProductionEnvironment(validProductionEnv)).toEqual({
       mode: 'production',

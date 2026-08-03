@@ -253,12 +253,11 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeAdapterDeps
       ]);
     },
 
-    // UNVERIFIED: the value-transfer argument shape is inferred, not confirmed
-    // against @parity/product-sdk-contracts. The viem writer passes `value` as
-    // a sibling of `args`; this assumes the CDM handle takes it as a trailing
-    // options object. Confirm against generated contract types before this
-    // adapter is selected - a wrong shape sends a zero-value call, which the
-    // runtime would reject rather than silently underpay.
+    // Verified against @parity/product-sdk-contracts: contract methods take
+    // positional args followed by an optional options object, and `TxOptions`
+    // carries `value?: bigint`. txContract spreads this array, so the call is
+    // `musicRoyPayAccess.tx(contentHash, { value })` - the CDM equivalent of
+    // the viem writer's sibling `value` field.
     payForAccess(runtimeAddress, contentHash, value) {
       return txContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRoyPayAccess', [contentHash, { value }]);
     },
@@ -276,12 +275,13 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeAdapterDeps
       return txContract(deps.contracts.getRuntimeContract(runtimeAddress), active ? 'musicRegReactivate' : 'musicRegDeactivate', [contentHash]);
     },
 
-    // NOT IMPLEMENTED: the viem writer awaits a receipt here, so callers that
-    // write and then re-read (the artist console does) rely on this settling.
-    // Returning immediately is only safe if `txContract` already blocks until
-    // inclusion, which the SDK surface does not state. Until that is confirmed
-    // against a real host, this adapter must not be selected for writes -
-    // a caller would read pre-inclusion state and report a phantom failure.
+    // Intentionally a no-op, and safe by construction: `.tx()` resolves at
+    // best-block by default and its `TxResult` carries the including block, so
+    // txContract has already awaited inclusion by the time it returns a hash.
+    // That is the same point viem's waitForTransactionReceipt resolves at, so
+    // a caller that writes and then re-reads (the artist console does) sees
+    // post-inclusion state on both adapters. Verified against
+    // @parity/product-sdk-tx `SubmitOptions.waitFor` and `TxResult`.
     async waitForTransaction() {
       return;
     }

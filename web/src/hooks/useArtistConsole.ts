@@ -13,7 +13,8 @@ import {
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
-import { createViemRuntimeReader, createViemRuntimeWriter } from '../features/runtime/viemRuntimeAdapter';
+import { createViemRuntimeWriter } from '../features/runtime/viemRuntimeAdapter';
+import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
 import { resolveConfiguredArtistPublicationSafety } from '../shared/config/deploymentSafety';
 import { describeArtistRegistrationError, formatWeiAsDot, shorten, dotToPlanck } from '../shared/utils/format';
 import {
@@ -232,7 +233,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     coverUploadRef
   } = deps;
 
-  const runtimeReader = createViemRuntimeReader({ ethRpcUrl });
+  const runtimeReader = createRuntimeReader({ ethRpcUrl });
   const [artistRuntimeAddress, setArtistRuntimeAddress] = useState<`0x${string}` | null>(null);
   const [artistRegistrationStatus, setArtistRegistrationStatus] = useState('Checking artist registration');
   const [isRegisteringArtist, setIsRegisteringArtist] = useState(false);

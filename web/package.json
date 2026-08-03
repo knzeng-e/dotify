@@ -24,12 +24,14 @@
 		"lint": "eslint .",
 		"fmt": "prettier --write 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",
 		"fmt:check": "prettier --check 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",
+		"generate:cdm": "node scripts/generate-cdm-manifest.mjs",
 		"update-types": "papi update",
 		"codegen": "papi generate",
 		"preview": "vite preview --host 0.0.0.0 --port 4273"
 	},
 	"dependencies": {
 		"@parity/product-sdk": "0.19.1",
+		"@parity/product-sdk-descriptors": "0.8.0",
 		"@polkadot-api/descriptors": "file:.papi/descriptors",
 		"@polkadot-apps/chain-client": "^2.0.5",
 		"@polkadot-apps/descriptors": "^1.0.1",

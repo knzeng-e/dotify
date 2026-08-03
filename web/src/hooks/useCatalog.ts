@@ -24,7 +24,8 @@ import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
-import { createViemRuntimeReader, createViemRuntimeWriter } from '../features/runtime/viemRuntimeAdapter';
+import { createViemRuntimeWriter } from '../features/runtime/viemRuntimeAdapter';
+import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
 import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
 import { fetchCatalog, isCatalogApiConfigured, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
 import {
@@ -272,7 +273,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setDescription
   } = deps;
 
-  const runtimeReader = createViemRuntimeReader({ ethRpcUrl });
+  const runtimeReader = createRuntimeReader({ ethRpcUrl });
   const usesCatalogApi = isCatalogApiConfigured() && !isClassicUnlockE2e && !isArtistPublishE2e && !isRoomJoinE2e;
   const [initialCatalog] = useState<CatalogTrack[]>(() => {
     const cached = usesCatalogApi ? readCachedCatalog() : null;

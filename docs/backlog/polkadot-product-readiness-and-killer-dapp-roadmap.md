@@ -174,8 +174,20 @@ Goal: deepen the delivered Product mode one adapter at a time.
 - Delivered on the next follow-up branch: wire Product-host frontend key and
   session requests to that signature scheme, while keeping contract writes on
   the standalone EVM/passkey signer path.
-- Next: wire a generated CDM manifest/types into Product mode and run real host
-  transaction smoke tests.
+- Delivered on the next follow-up branch: generate the CDM manifest and typed
+  contract augmentation from the same Hardhat artifacts as the viem bindings,
+  and implement the real Product contract resolver behind the runtime ports.
+  Selection stays opt-in behind `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`.
+- Settled: the chain question. Product DevNet is a preset over the Paseo system
+  parachains (Asset Hub 1000, People 1004, Bulletin 1010) at EVM chain
+  420420417, not a separate network. Dotify's contracts are already there,
+  verified by byte-identical ArtistDirectory code served from both the DevNet
+  and Hub TestNet endpoints. No contract redeploy is needed to port to DevNet.
+  The SDK's `paseo` preset is Paseo Next (1500/1502), a different network, so
+  `devnet` is the only environment Dotify can serve a catalog from.
+- Next: `pallet-revive` account mapping plus real host-signed transaction smoke
+  tests before Product writes can replace the EVM wallet path. This is now the
+  only gate left for Product contract mode.
 - Next: run real Product host smoke tests for protected playback and capture the
   Product sr25519 request evidence.
 - Keep backend key delivery authoritative unless a Product-host design proves a

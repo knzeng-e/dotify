@@ -149,10 +149,11 @@ Adapters:
 
 - `ViemRuntimeAdapter`: current standalone EVM implementation behind the typed
   ports;
-- `ProductCdmRuntimeAdapter`: experimental CDM/PAPI implementation behind the
-  same ports. It maps the Dotify runtime method surface to Product SDK contract
-  handles, but remains opt-in until Dotify has CDM-installed Product runtime
-  packages and host signing evidence;
+- `ProductCdmRuntimeAdapter`: CDM/PAPI implementation behind the same ports,
+  now backed by a real contract resolver (`productCdmContracts.ts`) over a
+  generated snapshot manifest. It remains opt-in behind
+  `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` until host transaction evidence
+  exists;
 - `CatalogApiAdapter`: the existing server-side read model, shared by both
   frontends.
 
@@ -162,11 +163,90 @@ method queries and transactions, not the viem-style historical log query used
 by the artist console. Product mode must use the backend catalog/read-model
 indexer, or a future Product event/indexer API, for that history.
 
-The remaining Product contract work is integration and evidence work, not UI
-rewiring. Operators still need CDM-deployed Dotify runtime packages,
-`cdm.json`/generated contract types, `pallet-revive` account mapping, and real
-host-signed transaction smoke evidence before Product writes can replace the
-EVM wallet path.
+### The CDM Manifest Is Generated, Not Installed
+
+Dotify has no CDM-registered packages, and `cdm install` is not available. It
+also does not need them. Dotify's Solidity contracts are deployed through Asset
+Hub's `eth-rpc`, which is a compatibility layer over `pallet-revive` - the same
+pallet the Product SDK contract helpers target. The deployed H160 addresses are
+therefore already reachable through `@parity/product-sdk-contracts` with no
+PolkaVM recompilation and no registry entry.
+
+`CdmJsonContract` needs only `version`, `address`, and `abi` for
+`getContract()`, and `new ContractManager(...)` is documented as snapshot-only.
+`web/scripts/generate-cdm-manifest.mjs` emits exactly that snapshot from the
+same Hardhat artifacts the viem bindings come from, so the two adapters cannot
+disagree about an ABI:
+
+| Output | Contents |
+| --- | --- |
+| `cdm.json` | `@dotify/artist-directory` and `@dotify/artist-runtime-factory` with their `deployments.json` addresses |
+| `smartRuntime.ts` | merged artist-runtime diamond facet ABI, bound to a per-artist address at call time |
+| `cdm.d.ts` | `Contracts` module augmentation for typed `getContract()` handles |
+
+Artist runtimes are deliberately absent from the manifest: a diamond is
+deployed per artist, so its address is known at call time, not build time.
+Inventing a placeholder address would misrepresent the deployment.
+`productCdmContracts.ts` resolves those through `createContract`, which needs no
+manifest entry.
+
+### Two Constraints On Product Contract Mode
+
+**It only runs inside a Product host.** `createChainClient`/`getChainAPI` route
+exclusively through the host provider and throw when none is present - there is
+no direct-WebSocket fallback. Product CDM mode is therefore impossible in the
+standalone build, and `validateProductionEnvironment` rejects
+`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` unless `VITE_DOTIFY_HOST_MODE` is
+enabled.
+
+**The host decides which chain an environment resolves to**, and only one
+environment is correct. See "DevNet Is Not A Separate Chain" below.
+`verifyDeployment()` queries `artistCount` on the directory before any catalog
+read, so a wrong-chain connection fails closed with a named error instead of
+looking like a catalog of artists with no releases.
+
+### DevNet Is Not A Separate Chain
+
+Product DevNet is a *preset*, not a network. It targets the Paseo system
+parachains - Asset Hub (1000), People (1004), Bulletin (1010) - with EVM chain
+id `420420417` and the `dev-dot.li` web gateway.
+
+That is the chain Dotify is already deployed on. Verified read-only on
+2026-07-29 by querying both endpoints for the ArtistDirectory at
+`0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`:
+
+| Endpoint | `eth_chainId` | Block | Directory bytecode |
+| --- | --- | --- | --- |
+| `https://eth-rpc-testnet.polkadot.io/` | `0x190f1b41` | 11546347 | 3660 chars, sha256 `36707b24…` |
+| `https://paseo-assethub-rpc.laissez-faire.trade` | `0x190f1b41` | 11546348 | 3660 chars, sha256 `36707b24…` |
+
+Same chain id, blocks one apart, byte-identical contract code. The two URLs are
+different providers for one chain.
+
+**No contract redeploy is required to port Dotify to Product DevNet.** The
+addresses in `deployments.json` are already DevNet addresses.
+
+The trap is the SDK's `paseo` preset, which points at the Paseo **Next** v2
+deployment (Asset Hub Next 1500 / People Next 1502). The Product documentation
+is explicit that those "belong to a different network" and that "funds sent
+there will not appear on this Devnet". Dotify has no deployment there, so
+`ProductChainEnvironment` admits only `devnet` - a wrong preset is not a
+configuration option, it is a bug.
+
+**Selection is build-time, and reads only.** `VITE_DOTIFY_RUNTIME_ADAPTER` is
+inlined by Vite, so a `viem` build tree-shakes the entire Product contract graph
+away - 4.4 MB output versus 10 MB when opted in. The difference is
+`@parity/product-sdk-descriptors`, whose shared descriptors module references
+every chain's metadata; only one chunk is ever fetched, but all are published,
+and Bulletin storage is a finite quota. Contract *writes* stay on the viem
+signer path in every mode, since routing a payment or a publication through an
+unproven signer is not a reasonable default.
+
+The remaining gate for Product contract *writes* is now narrow: `pallet-revive`
+account mapping for the signing account, and real host-signed transaction smoke
+evidence from inside the container. The chain question is settled, the manifest
+and types exist, and reads are wired. Until that write evidence exists,
+`VITE_DOTIFY_RUNTIME_ADAPTER` defaults to `viem`.
 
 The backend authentication protocol now has an explicit signature scheme field.
 Standalone clients use the default `eip191` scheme. Product-host clients can
