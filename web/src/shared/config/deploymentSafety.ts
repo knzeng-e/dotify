@@ -259,6 +259,16 @@ export function validateProductionEnvironment(env: EnvironmentLike): ProductionE
     errors.push('VITE_CONTENT_SECRET is bundled into the browser and must not be set for production builds. Use backend CONTENT_KEY_MASTER_SECRET.');
   }
 
+  const roomBeacons = readEnvironmentValue(env, 'VITE_DOTIFY_ROOM_BEACONS').toLowerCase() || 'off';
+  if (!['on', 'off'].includes(roomBeacons)) {
+    errors.push('VITE_DOTIFY_ROOM_BEACONS must be on or off.');
+  }
+  if (roomBeacons === 'on' && (readEnvironmentValue(env, 'VITE_DOTIFY_HOST_MODE').toLowerCase() || 'off') === 'off') {
+    // The statement store client runs only inside the Product host container, so
+    // enabling beacons without it would ship chain code that can never connect.
+    errors.push('VITE_DOTIFY_ROOM_BEACONS=on requires VITE_DOTIFY_HOST_MODE to be auto or required: room beacons publish only inside the Product host.');
+  }
+
   const runtimeAdapter = readEnvironmentValue(env, 'VITE_DOTIFY_RUNTIME_ADAPTER').toLowerCase() || 'viem';
   if (!['viem', 'product-cdm'].includes(runtimeAdapter)) {
     errors.push('VITE_DOTIFY_RUNTIME_ADAPTER must be one of viem or product-cdm.');

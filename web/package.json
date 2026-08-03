@@ -17,8 +17,10 @@
 		"build": "tsc -b && vite build",
 		"build:bulletin": "tsc -b && vite build --config vite.bulletin.config.ts",
 		"build:product-devnet": "tsc -b && vite build --config vite.product.config.ts --mode product-devnet",
+		"build:product-devnet:beacons": "VITE_DOTIFY_ROOM_BEACONS=on npm run build:product-devnet",
 		"deploy:bulletin": "node scripts/deploy-bulletin.cjs",
 		"deploy:product-devnet": "npm run build:product-devnet && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@0.13.1 pad ./dist-product dotify-test01.dot --env devnet --js-merkle --config ./polkadot-app-deploy.config.ts",
+		"deploy:product-devnet:beacons": "VITE_DOTIFY_ROOM_BEACONS=on npm run deploy:product-devnet",
 		"smoke:production-env": "node scripts/production-env-smoke.mjs",
 		"smoke:devnet": "node scripts/devnet-endpoint-smoke.mjs",
 		"smoke:signal": "node scripts/signaling-smoke.mjs",
@@ -35,6 +37,7 @@
 	"dependencies": {
 		"@parity/product-sdk": "0.19.1",
 		"@parity/product-sdk-descriptors": "0.8.0",
+		"@parity/product-sdk-statement-store": "0.6.2",
 		"@polkadot-api/descriptors": "file:.papi/descriptors",
 		"@polkadot-apps/chain-client": "^2.0.5",
 		"@polkadot-apps/descriptors": "^1.0.1",

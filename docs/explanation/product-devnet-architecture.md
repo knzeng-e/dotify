@@ -102,9 +102,31 @@ important boundary: `VITE_PUBLIC_APP_URL` makes every copied room link point to
 the public `.dev-dot.li` origin rather than an internal container or content
 gateway URL.
 
-A future Product-native presence spike may mirror a compact host-signed
-heartbeat into Statement Store. It must not carry SDP, ICE candidates, audio,
-durable chat, or source keys, and it must remain optional for guests.
+### Room Beacons
+
+That presence spike is now implemented, and ships dormant. A host inside the
+Product container can publish a compact beacon to the Statement Store so a room
+is discoverable without Dotify's signaling server. It carries the room code,
+host name, and an aggregate listener count - never SDP, ICE, audio, chat,
+listener identities, or source keys. Now-playing is opt-in per host, because a
+beacon is globally readable and outlives the room by up to the statement TTL.
+
+Joining deliberately does not move here, and cannot. A WebRTC offer is 1.5-4 KB
+against a 512-byte statement ceiling and a 1024-byte per-account total, so a
+peer cannot hold even one. More decisively, a guest would have to publish an
+answer to complete the handshake, which requires an identity and an allowance -
+turning every listener into a registered person. Only the host publishes,
+because the host is already identified.
+
+Beacons are per-room channels for last-write-wins, so one hosted room occupies
+exactly one live statement no matter how often it refreshes. Host mode signs
+through the product's allowance account on the RFC-10 sponsored path, so
+hosting does not require the host to hold an Individuality allowance.
+
+`VITE_DOTIFY_ROOM_BEACONS` is `off` in the tracked Product profile: nothing
+reads beacons yet, so publishing room records would be exposure with no
+consumer, and the publish path has no live host evidence. See the deployment
+runbook for the opt-in build and the evidence procedure.
 
 ## Storage Boundaries
 
