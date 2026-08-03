@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { fetchAssetRef, fetchIpfsCid, getGatewayUrl } from '../services/pinata';
-import { ensureContract, getPublicClient, artistDirectoryAbi, musicRegistryAbi, musicAccessAbi, musicRoyaltiesAbi } from '../shared/config/contracts';
+import { getPublicClient } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot } from '../shared/utils/format';
 import { isKeyServiceConfigured, requestContentKey, requestFreeContentKey, type KeyRequestPurpose } from '../services/keyService';
@@ -24,6 +24,8 @@ import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
+import { createViemRuntimeReader, createViemRuntimeWriter } from '../features/runtime/viemRuntimeAdapter';
+import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
 import { fetchCatalog, isCatalogApiConfigured, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
 import {
   E2E_CLASSIC_AUDIO_URL,
@@ -49,12 +51,10 @@ import type {
   AccessGate,
   AccessMode,
   CatalogTrack,
-  OnchainTrackRecord,
   PersonhoodLevel,
   PlayerState,
   RegistryCatalogTrack,
   RoomPlaybackMode,
-  RoyaltySplit,
   TrackInfo,
   TransactionFeedback
 } from '../shared/types';
@@ -272,6 +272,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setDescription
   } = deps;
 
+  const runtimeReader = createViemRuntimeReader({ ethRpcUrl });
   const usesCatalogApi = isCatalogApiConfigured() && !isClassicUnlockE2e && !isArtistPublishE2e && !isRoomJoinE2e;
   const [initialCatalog] = useState<CatalogTrack[]>(() => {
     const cached = usesCatalogApi ? readCachedCatalog() : null;
@@ -379,12 +380,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       // a buyer, or personhood-verified, so the read answers true only when
       // the track's current mode grants access to everyone (Free). This is
       // what lets a walletless visitor play Free tracks (access model v2).
-      return (await getPublicClient(ethRpcUrl).readContract({
-        address: runtimeAddress,
-        abi: musicAccessAbi,
-        functionName: 'musicAccCanAccess',
-        args: [track.hash, listenerAddress ?? zeroAddress]
-      })) as boolean;
+      return await runtimeReader.canAccess(runtimeAddress, track.hash, listenerAddress ?? zeroAddress);
     } catch {
       return false;
     }
@@ -405,12 +401,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const runtimeAddress = runtimeAddressFromTrackId(track);
     if (!runtimeAddress) return false;
     try {
-      return (await getPublicClient(ethRpcUrl).readContract({
-        address: runtimeAddress,
-        abi: musicAccessAbi,
-        functionName: 'musicAccHasPaid',
-        args: [track.hash, listenerAddress]
-      })) as boolean;
+      return await runtimeReader.hasPaid(runtimeAddress, track.hash, listenerAddress);
     } catch {
       return false;
     }
@@ -1008,7 +999,6 @@ export function useCatalog(deps: UseCatalogDeps) {
     const runtimeAddress = runtimeAddressFromTrackId(track);
     if (!runtimeAddress) return;
 
-    const { musicRoyaltiesAbi, getPublicClient: getClient } = await import('../shared/config/contracts');
     const { dotToPlanck } = await import('../shared/utils/format');
 
     const priceWei = dotToPlanck(track.priceDot);
@@ -1022,15 +1012,10 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     try {
       const walletClient = await getActiveWalletClient();
-      const txHash = await walletClient.writeContract({
-        address: runtimeAddress,
-        abi: musicRoyaltiesAbi,
-        functionName: 'musicRoyPayAccess',
-        args: [track.hash],
-        value: priceWei
-      });
+      const runtimeWriter = createViemRuntimeWriter({ ethRpcUrl, walletClient });
+      const txHash = await runtimeWriter.payForAccess(runtimeAddress, track.hash, priceWei);
       setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Payment submitted.', txHash });
-      await getClient(ethRpcUrl).waitForTransactionReceipt({ hash: txHash });
+      await runtimeWriter.waitForTransaction(txHash);
 
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
@@ -1047,117 +1032,45 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
   }
 
-  async function fetchDirectoryEntries(client: ReturnType<typeof getPublicClient>, registryAddress: `0x${string}`, artistCount: bigint) {
-    const pageSize = 50n;
-    const entries: Array<{ artist: `0x${string}`; runtime: `0x${string}` }> = [];
+  async function fetchRuntimeCatalog(reader: RuntimeReadPort, artistAddress: `0x${string}`, runtimeAddress: `0x${string}`): Promise<RegistryCatalogTrack[]> {
+    const snapshots = await reader.listRuntimeTracks(runtimeAddress);
+    const tracks = snapshots.map((snapshot: RuntimeTrackSnapshot): RegistryCatalogTrack => {
+      const { hash, record: track } = snapshot;
+      const imageRef = resolveVisualAssetRef(track.imageRef, track.title);
+      const encrypted = isEncryptedAudioRef(track.audioRef);
+      const localUrl = resolveAudioAssetRef(track.audioRef);
 
-    for (let offset = 0n; offset < artistCount; offset += pageSize) {
-      const limit = artistCount - offset > pageSize ? pageSize : artistCount - offset;
-      const [artists, runtimes] = (await client.readContract({
-        address: registryAddress,
-        abi: artistDirectoryAbi,
-        functionName: 'artistsPage',
-        args: [offset, limit]
-      })) as [`0x${string}`[], `0x${string}`[]];
+      return {
+        id: `${runtimeAddress}:${hash}`,
+        hash,
+        title: track.title,
+        artist: track.artistName,
+        artistAddress: track.artist || artistAddress,
+        audioRef: track.audioRef,
+        imageRef,
+        priceDot: formatWeiAsDot(track.pricePlanck),
+        localUrl,
+        description: track.description,
+        bulletinRef: track.metadataRef.startsWith('paseo-bulletin:') ? track.metadataRef : '',
+        metadataRef: track.metadataRef,
+        royaltyBps: Number(track.royaltyBps),
+        txHash: undefined,
+        durationLabel: 'ready',
+        accessMode: decodeAccessMode(Number(track.accessMode)),
+        active: track.active,
+        source: 'artist' as const,
+        royaltySplits: snapshot.royaltySplits.map((split, splitIndex) => ({
+          label: splitIndex === 0 ? 'Primary recipient' : `Split ${splitIndex + 1}`,
+          ...split
+        })),
+        personhoodLevel: decodePersonhood(Number(track.requiredPersonhood)),
+        zone: 'Registry',
+        encrypted,
+        registeredAtBlock: Number(track.registeredAtBlock)
+      };
+    });
 
-      for (let index = 0; index < artists.length; index += 1) {
-        const artist = artists[index];
-        const runtime = runtimes[index];
-        if (!artist || !runtime || runtime === zeroAddress) continue;
-        entries.push({ artist, runtime });
-      }
-    }
-
-    return entries;
-  }
-
-  async function fetchRuntimeCatalog(
-    client: ReturnType<typeof getPublicClient>,
-    artistAddress: `0x${string}`,
-    runtimeAddress: `0x${string}`
-  ): Promise<RegistryCatalogTrack[]> {
-    const trackCount = (await client.readContract({
-      address: runtimeAddress,
-      abi: musicRegistryAbi,
-      functionName: 'musicRegTrackCount'
-    })) as bigint;
-
-    const tracks: Array<RegistryCatalogTrack | null> = await Promise.all(
-      Array.from({ length: Number(trackCount) }, async (_, index) => {
-        const hash = (await client.readContract({
-          address: runtimeAddress,
-          abi: musicRegistryAbi,
-          functionName: 'musicRegTrackHashAtIndex',
-          args: [BigInt(index)]
-        })) as `0x${string}`;
-
-        const [track] = (await client.readContract({
-          address: runtimeAddress,
-          abi: musicRegistryAbi,
-          functionName: 'musicRegGetTrack',
-          args: [hash]
-        })) as [OnchainTrackRecord, `0x${string}`];
-
-        const imageRef = resolveVisualAssetRef(track.imageRef, track.title);
-        const encrypted = isEncryptedAudioRef(track.audioRef);
-        const localUrl = resolveAudioAssetRef(track.audioRef);
-        const splitCount = (await client
-          .readContract({
-            address: runtimeAddress,
-            abi: musicRoyaltiesAbi,
-            functionName: 'musicRoySplitCount',
-            args: [hash]
-          })
-          .catch(() => 0n)) as bigint;
-        const royaltySplits = await Promise.all(
-          Array.from({ length: Number(splitCount) }, async (_, splitIndex): Promise<RoyaltySplit | null> => {
-            try {
-              const [recipient, bps] = (await client.readContract({
-                address: runtimeAddress,
-                abi: musicRoyaltiesAbi,
-                functionName: 'musicRoySplitAt',
-                args: [hash, BigInt(splitIndex)]
-              })) as [`0x${string}`, number];
-              return {
-                label: splitIndex === 0 ? 'Primary recipient' : `Split ${splitIndex + 1}`,
-                recipient,
-                bps: Number(bps)
-              };
-            } catch {
-              return null;
-            }
-          })
-        );
-
-        return {
-          id: `${runtimeAddress}:${hash}`,
-          hash,
-          title: track.title,
-          artist: track.artistName,
-          artistAddress: track.artist || artistAddress,
-          audioRef: track.audioRef,
-          imageRef,
-          priceDot: formatWeiAsDot(track.pricePlanck),
-          localUrl,
-          description: track.description,
-          bulletinRef: track.metadataRef.startsWith('paseo-bulletin:') ? track.metadataRef : '',
-          metadataRef: track.metadataRef,
-          royaltyBps: Number(track.royaltyBps),
-          txHash: undefined,
-          durationLabel: 'ready',
-          accessMode: decodeAccessMode(Number(track.accessMode)),
-          active: track.active,
-          source: 'artist' as const,
-          royaltySplits: royaltySplits.filter((split): split is RoyaltySplit => Boolean(split)),
-          personhoodLevel: decodePersonhood(Number(track.requiredPersonhood)),
-          zone: 'Registry',
-          encrypted,
-          registeredAtBlock: Number(track.registeredAtBlock)
-        };
-      })
-    );
-
-    return tracks.flatMap(track => (track ? [track] : []));
+    return tracks;
   }
 
   function commitCatalog(allTracks: CatalogTrack[], preferredTrackHash: `0x${string}` | undefined, status: string): CatalogTrack[] {
@@ -1227,7 +1140,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setCatalogStatus('Loading registry catalog');
 
     try {
-      const directoryExists = await ensureContract(directoryAddress, ethRpcUrl);
+      const directoryExists = await runtimeReader.ensureContract(directoryAddress);
       if (!directoryExists) {
         setCatalogTracks([]);
         setAllCatalogTracks([]);
@@ -1236,12 +1149,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         return [];
       }
 
-      const client = getPublicClient(ethRpcUrl);
-      const artistCount = (await client.readContract({
-        address: directoryAddress,
-        abi: artistDirectoryAbi,
-        functionName: 'artistCount'
-      })) as bigint;
+      const artistCount = await runtimeReader.getArtistCount(directoryAddress);
 
       if (artistCount === 0n) {
         setCatalogTracks([]);
@@ -1251,11 +1159,11 @@ export function useCatalog(deps: UseCatalogDeps) {
         return [];
       }
 
-      const entries = await fetchDirectoryEntries(client, directoryAddress, artistCount);
+      const entries = await runtimeReader.listArtistRuntimes(directoryAddress, artistCount);
       const runtimeCatalogs = await Promise.all(
         entries.map(async entry => {
           try {
-            return await fetchRuntimeCatalog(client, entry.artist, entry.runtime);
+            return await fetchRuntimeCatalog(runtimeReader, entry.artist, entry.runtime);
           } catch (runtimeError) {
             console.warn(`Failed to load runtime catalog for ${entry.runtime}`, runtimeError);
             return [];
@@ -1341,7 +1249,6 @@ export function useCatalog(deps: UseCatalogDeps) {
     payForTrackAccess,
     fetchAndDecryptAudio,
     refreshCatalogFromRegistry,
-    fetchDirectoryEntries,
     fetchRuntimeCatalog,
     clearObjectUrls
   };

@@ -122,36 +122,42 @@ or key custody there requires a separate threat model, Range/startup evidence,
 and a recovery plan. Until then, Fly remains the security boundary and IPFS
 gateways remain the delivery boundary.
 
-## Proposed Contract Port
+## Runtime Port
 
-The next contract phase should split the current integration into two typed
-ports rather than add Product conditionals throughout feature hooks:
+The contract integration is split into two typed ports rather than Product
+conditionals throughout feature hooks:
 
 ```text
 RuntimeReadPort
-  listArtists()
-  listReleases()
-  getAccessDecision()
-  getRoyaltyState()
+  resolveArtistRuntime()
+  listArtistRuntimes()
+  listRuntimeTracks()
+  canAccess()
+  hasPaid()
+  listRoyaltyPaymentLogs()
 
 RuntimeWritePort
-  createArtistRuntime()
-  publishRelease()
+  createRuntime()
+  installRuntimeStep()
+  registerTrack()
   setAccessMode()
+  setReleaseActive()
   payForAccess()
 ```
 
 Adapters:
 
-- `ViemRuntimeAdapter`: current standalone EVM implementation;
-- `ProductRuntimeAdapter`: generated CDM/ABI bindings submitted with the host
-  PAPI signer;
+- `ViemRuntimeAdapter`: current standalone EVM implementation behind the typed
+  ports;
+- `ProductRuntimeAdapter`: next adapter, generated from CDM/ABI bindings and
+  submitted with the host PAPI signer;
 - `CatalogApiAdapter`: the existing server-side read model, shared by both
   frontends.
 
-The backend authentication protocol must then gain an explicit signature
-scheme field. A Product signature is accepted only after the server can bind
-the signed payload, Product account public key, derived H160, chain, nonce,
+The remaining Product contract work is adapter work, not UI rewiring. The
+backend authentication protocol must still gain an explicit signature scheme
+field. A Product signature is accepted only after the server can bind the
+signed payload, Product account public key, derived H160, chain, nonce,
 purpose, and expiry. EIP-191 remains supported for standalone clients. Unknown
 schemes fail closed.
 
