@@ -2,6 +2,7 @@ import type { HardhatUserConfig } from 'hardhat/config';
 import '@nomicfoundation/hardhat-viem';
 import '@nomicfoundation/hardhat-verify';
 import './tasks/registryUpgrade';
+import './tasks/cdmPublish';
 
 const config: HardhatUserConfig = {
   solidity: {

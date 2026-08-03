@@ -35,6 +35,7 @@ export default tseslint.config(
 				require: "readonly",
 				setInterval: "readonly",
 				setTimeout: "readonly",
+				TextEncoder: "readonly",
 			},
 		},
 		rules: {

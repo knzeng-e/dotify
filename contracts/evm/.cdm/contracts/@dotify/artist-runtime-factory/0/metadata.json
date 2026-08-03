@@ -1,0 +1,333 @@
+{
+  "name": "@dotify/artist-runtime-factory",
+  "description": "Deploys one artist-owned SmartRuntime per artist and registers it in the artist directory.",
+  "readme": "# @dotify/artist-runtime-factory\n\nDeploys a SmartRuntime for an artist and registers it in `@dotify/artist-directory`.\n\nA runtime is a diamond: music registry, royalties, access, and NFT pallets are\ninstalled as facets, and the artist is set as its owner. Because each artist owns\ntheir own runtime, catalog, access policy, and royalty splits stay under the\nartist's control rather than the platform's.\n\nCreation is staged - `createRuntime()` then `installRuntimeStep()` until\n`pendingRuntimeStageOf(artist)` reports completion - so that installation fits\nwithin block limits.",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_directory",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_initContract",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_cutPallet",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_loupePallet",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_ownershipPallet",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_registryPallet",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_nftPallet",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_royaltiesPallet",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_accessPallet",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "artist",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "runtime",
+          "type": "address"
+        }
+      ],
+      "name": "ArtistRuntimeBootstrapStarted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "artist",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "runtime",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint8",
+          "name": "completedStage",
+          "type": "uint8"
+        }
+      ],
+      "name": "ArtistRuntimeBootstrapStep",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "artist",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "runtime",
+          "type": "address"
+        }
+      ],
+      "name": "ArtistRuntimeCreated",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "accessPallet",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "createRuntime",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "runtime",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "cutPallet",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "directory",
+      "outputs": [
+        {
+          "internalType": "contract ArtistDirectory",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "initContract",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "installRuntimeStep",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "completedStage",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "loupePallet",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "nftPallet",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ownershipPallet",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "pendingRuntimeOf",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "pendingRuntimeStageOf",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "registryPallet",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "royaltiesPallet",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "artist",
+          "type": "address"
+        }
+      ],
+      "name": "runtimeOf",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "homepage": "https://muzinga.netlify.app",
+  "repository": "https://github.com/knzeng-e/dotify",
+  "license": "MIT",
+  "authors": [
+    "Dotify"
+  ],
+  "keywords": [
+    "music",
+    "dotify",
+    "artist-runtime",
+    "access-control"
+  ]
+}

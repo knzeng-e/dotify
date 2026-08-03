@@ -26,6 +26,8 @@
 		"fmt": "prettier --write 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",
 		"fmt:check": "prettier --check 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",
 		"generate:cdm": "node scripts/generate-cdm-manifest.mjs",
+		"generate:cdm-metadata": "node scripts/generate-cdm-metadata.mjs",
+		"upload:cdm-metadata": "node scripts/upload-cdm-metadata.mjs",
 		"update-types": "papi update",
 		"codegen": "papi generate",
 		"preview": "vite preview --host 0.0.0.0 --port 4273"
