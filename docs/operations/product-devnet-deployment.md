@@ -247,14 +247,25 @@ when the Product contract path is actually being exercised.
 The repository pins the CLI version in the npm deploy command but does not add
 the experimental deploy tool to the application dependency tree.
 
+`npm run deploy:product-devnet` signs DotNS updates with the owner mnemonic from
+`MNEMONIC`. Do not rely on `pad login` for this path: `pad login` and
+`pad whoami` describe the mobile Product session only, not the local mnemonic
+used by `--mnemonic`.
+
 ```bash
-npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@0.13.1 pad login --env devnet
-npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@0.13.1 pad whoami --env devnet
+read -rs MNEMONIC
+export MNEMONIC
 ```
 
-Follow the mobile-wallet flow. Confirm the selected account owns, or can
-receive, `dotify-test01.dot` and satisfies the DevNet registration/funding
-rules.
+Paste the DotNS owner mnemonic, then press Enter. Prefer a password manager or
+another non-history shell injection in normal operation; do not commit it or
+store it in `.env`, Netlify, or Fly. If the owner account uses a derivation
+path, add that path to the deploy script or run the equivalent `pad` command
+with `--derivation-path`.
+
+The preflight output must show the H160 owner of `dotify-test01.dot`. If it
+shows a different H160, stop before publishing and check the mnemonic or
+derivation path.
 
 ## 6. Publish
 
@@ -264,12 +275,13 @@ npm run deploy:product-devnet
 
 The command:
 
-1. rebuilds `dist-product`;
-2. validates `polkadot-app-deploy.config.ts`;
-3. creates content-addressed chunks with the JavaScript merkle implementation;
-4. uploads changed content to Product DevNet Bulletin;
-5. binds `dotify-test01.dot`;
-6. writes the Product manifest and executable records.
+1. refuses to continue when `MNEMONIC` is empty;
+2. rebuilds `dist-product`;
+3. validates `polkadot-app-deploy.config.ts`;
+4. creates content-addressed chunks with the JavaScript merkle implementation;
+5. uploads changed content to Product DevNet Bulletin;
+6. updates `dotify-test01.dot` directly with the `$MNEMONIC` owner signer;
+7. writes the Product manifest and executable records.
 
 Publisher listing is deliberately not part of the default deploy. It requires
 the current Product proof-of-personhood level and signer support, and the

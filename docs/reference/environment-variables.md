@@ -10,6 +10,33 @@ for future env/config changes, see
 
 ---
 
+## Operator deployment variables (shell only)
+
+These variables are consumed by local deployment scripts. They are not bundled
+into the web app and must not be stored in `.env` files, Netlify, Fly, or the
+repository.
+
+### `MNEMONIC`
+
+| Property     | Value                    |
+| ------------ | ------------------------ |
+| **Type**     | BIP-39 mnemonic          |
+| **Required** | Product DevNet publish   |
+| **Default**  | None                     |
+| **Example**  | `<dotns-owner-mnemonic>` |
+
+DotNS owner mnemonic used by `npm run deploy:product-devnet`. The script
+refuses to deploy when this value is empty, then passes it to
+`polkadot-app-deploy` as `--mnemonic "$MNEMONIC"
+--no-transfer-to-signedin-user`.
+
+This is different from `pad login`: `pad login` and `pad whoami` describe the
+mobile Product session, not the mnemonic-derived signer used for DotNS updates.
+If the owner account uses a derivation path, keep that path aligned with the
+deploy command before publishing.
+
+---
+
 ## Web app variables (`web/.env.local`)
 
 Variables prefixed with `VITE_` are bundled into the browser. Do not put secrets

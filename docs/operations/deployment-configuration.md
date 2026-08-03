@@ -181,9 +181,17 @@ Build and publication:
 
 ```bash
 cd web
+read -rs MNEMONIC
+export MNEMONIC
 npm run build:product-devnet
 npm run deploy:product-devnet
 ```
+
+`deploy:product-devnet` requires `MNEMONIC` and passes it to
+`polkadot-app-deploy` with `--mnemonic "$MNEMONIC"
+--no-transfer-to-signedin-user`. This intentionally avoids the mobile
+`pad login` session for DotNS updates. `pad whoami` reports the mobile Product
+session, not the mnemonic-derived owner signer.
 
 Use
 [`docs/operations/product-devnet-deployment.md`](product-devnet-deployment.md)
