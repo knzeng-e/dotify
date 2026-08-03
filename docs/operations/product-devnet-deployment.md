@@ -171,7 +171,10 @@ active.
 ## Known Limits
 
 - Product account signing is identity/presence only in this phase.
-- Contract writes and key requests still require passkey/EVM signing.
+- Contract writes and key requests still require passkey/EVM signing in the
+  shipped UI. The experimental Product CDM/PAPI runtime adapter is present in
+  code, but it is not selected until Dotify has CDM-installed runtime packages,
+  generated contract types, and real host-signed transaction evidence.
 - Rooms still depend on one in-memory Fly signaling machine.
 - Product-host cloud storage does not hold Dotify audio or content keys.
 - Product personhood is not yet an access decision source.

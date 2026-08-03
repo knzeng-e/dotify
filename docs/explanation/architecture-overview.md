@@ -104,7 +104,9 @@ src/
 │   └── useWallet.ts           # Wallet tiers: passkey → EIP-6963 extension
 ├── features/runtime/
 │   ├── runtimePorts.ts        # RuntimeReadPort / RuntimeWritePort contracts
-│   └── viemRuntimeAdapter.ts  # Current EVM implementation behind the ports
+│   ├── viemRuntimeAdapter.ts  # Current EVM implementation behind the ports
+│   └── productCdmRuntimeAdapter.ts
+│                               # Experimental Product CDM/PAPI adapter
 ├── views/                     # One file per screen / tab
 │   ├── ListenView.tsx
 │   ├── PlayerView.tsx

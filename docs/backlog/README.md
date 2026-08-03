@@ -107,9 +107,11 @@ Product SDK direction. The plan is now dual-mode: standalone web remains the
 first public listening path, while the Product DevNet build adds
 `dotify-test01.dot`,
 explicit Host detection, app-scoped Product identity, and canonical
-Product-origin room links. It does not imply Product-signed contract writes,
-protected key access, Statement Store rooms, or Humanity decisions; those
-remain gated until their adapters prove the current API and security boundary.
+Product-origin room links. The typed runtime ports and experimental
+Product CDM/PAPI adapter boundary are implementation preparation only; they do
+not imply Product-signed contract writes, protected key access, Statement Store
+rooms, or Humanity decisions. Those remain gated until their adapters prove the
+current API and security boundary.
 
 The Product SDK evidence snapshot used for this replanning is
 `@parity/product-sdk` 0.19.1 and
@@ -162,8 +164,9 @@ on `main`. The remaining order is:
 3. Improve room resilience and shared-listening depth only where it preserves
    the link-first guest doctrine.
 4. Validate the delivered Product host/account and Bulletin/DotNS baseline,
-   then port writes through CDM/PAPI, add backend Product-signature
-   verification, and run bounded resource-allocation/Statement Store spikes.
+   then wire real CDM-installed runtime packages through the Product CDM/PAPI
+   adapter, add backend Product-signature verification, and run bounded
+   resource-allocation/Statement Store spikes.
 5. Build live Humanity / Individuality only after the research ticket proves a
    privacy-preserving source, proof shape, address-binding story, and fallback
    UX.
