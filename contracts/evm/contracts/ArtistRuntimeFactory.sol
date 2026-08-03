@@ -253,8 +253,12 @@ contract ArtistRuntimeFactory {
     selectors[4] = MusicRoyaltiesPallet.musicRoyTotalBps.selector;
   }
 
+  /// @dev The two registrar selectors are retained so already-deployed runtimes keep a
+  ///      stable ABI; the setter now reverts. `musicAccPersonhoodInfo` is new, so a
+  ///      runtime created before this change needs a diamond Add cut to gain it — its
+  ///      access decisions already follow the precompile without it.
   function _musicAccessSelectors() private pure returns (bytes4[] memory selectors) {
-    selectors = new bytes4[](7);
+    selectors = new bytes4[](8);
     selectors[0] = MusicAccessPallet.setPersonhoodRegistrar.selector;
     selectors[1] = MusicAccessPallet.musicAccSetPersonhoodLevel.selector;
     selectors[2] = MusicAccessPallet.musicAccCanAccess.selector;
@@ -262,5 +266,6 @@ contract ArtistRuntimeFactory {
     selectors[4] = MusicAccessPallet.musicAccPersonhoodLevel.selector;
     selectors[5] = MusicAccessPallet.musicAccHasPersonhood.selector;
     selectors[6] = MusicAccessPallet.musicAccGetRegistrar.selector;
+    selectors[7] = MusicAccessPallet.musicAccPersonhoodInfo.selector;
   }
 }

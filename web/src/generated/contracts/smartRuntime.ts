@@ -839,6 +839,35 @@ export const smartRuntimeAbi = [
         "type": "address"
       }
     ],
+    "name": "musicAccPersonhoodInfo",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "status",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "contextAlias",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bool",
+        "name": "live",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
     "name": "musicAccPersonhoodLevel",
     "outputs": [
       {
@@ -854,18 +883,18 @@ export const smartRuntimeAbi = [
     "inputs": [
       {
         "internalType": "address",
-        "name": "account",
+        "name": "",
         "type": "address"
       },
       {
         "internalType": "enum LibMusicRegistry.PersonhoodLevel",
-        "name": "level",
+        "name": "",
         "type": "uint8"
       }
     ],
     "name": "musicAccSetPersonhoodLevel",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
