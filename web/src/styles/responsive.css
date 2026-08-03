@@ -265,7 +265,35 @@
 
   .listen-home,
   .rooms-landing {
-    gap: 4.5rem;
+    gap: 3.25rem;
+  }
+
+  .listen-home .now-intro {
+    order: 1;
+  }
+
+  .listen-home .catalogue-section {
+    order: 2;
+  }
+
+  .listen-home .now-hero-grid {
+    order: 3;
+  }
+
+  .listen-home .live-section {
+    order: 4;
+  }
+
+  .listen-home .trust-line {
+    order: 5;
+  }
+
+  .section-index-desktop {
+    display: none;
+  }
+
+  .section-index-mobile {
+    display: inline;
   }
 
   .now-intro h1,

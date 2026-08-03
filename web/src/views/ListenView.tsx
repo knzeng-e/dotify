@@ -206,7 +206,10 @@ export function ListenView({
       <section className='live-section' aria-labelledby='live-section-title'>
         <div className='section-heading presence-section-heading'>
           <div>
-            <span className='section-index'>01 / Presence</span>
+            <span className='section-index'>
+              <span className='section-index-desktop'>01 / Presence</span>
+              <span className='section-index-mobile'>02 / Presence</span>
+            </span>
             <h2 id='live-section-title'>Open rooms</h2>
           </div>
           <div className='presence-command' aria-label={`${openRooms.length} open rooms, ${totalListening} people listening`}>
@@ -264,7 +267,10 @@ export function ListenView({
       <section className='catalogue-section' aria-labelledby='tracks-title'>
         <div className='section-heading'>
           <div>
-            <span className='section-index'>02 / Tracks</span>
+            <span className='section-index'>
+              <span className='section-index-desktop'>02 / Tracks</span>
+              <span className='section-index-mobile'>01 / Tracks</span>
+            </span>
             <h2 id='tracks-title'>Start with the music</h2>
           </div>
           <span>{catalogTracks.length} available</span>

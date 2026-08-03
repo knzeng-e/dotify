@@ -509,6 +509,10 @@
   gap: 1.5rem;
 }
 
+.section-index-mobile {
+  display: none;
+}
+
 .section-heading {
   display: flex;
   align-items: end;
