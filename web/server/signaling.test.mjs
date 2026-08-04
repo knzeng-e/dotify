@@ -217,13 +217,14 @@ describe('signaling server', () => {
     assert.equal(body.rooms.find(r => r.roomId === created.roomId).playbackMode, 'preview');
   });
 
-  it('allows the Product iframe origin and omits CORS headers for unrelated origins', async () => {
+  it('allows observed Product HTTPS origins and omits CORS headers for unrelated origins', async () => {
     const productIframeOrigin = 'https://dotify-test01.app.dev-dot.li';
+    const productMobileOrigin = 'https://dotify-test01.dot';
     await server.close();
     server = startSignalingServer({
       port: 0,
       host: '127.0.0.1',
-      origins: ['https://dotify.example', productIframeOrigin],
+      origins: ['https://dotify.example', productIframeOrigin, productMobileOrigin],
       logger: () => {}
     });
     port = await server.listen();
@@ -238,9 +239,14 @@ describe('signaling server', () => {
     });
     assert.equal(allowed.headers.get('access-control-allow-origin'), productIframeOrigin);
 
+    const mobileAllowed = await fetch(`http://127.0.0.1:${port}/status`, {
+      headers: { origin: productMobileOrigin }
+    });
+    assert.equal(mobileAllowed.headers.get('access-control-allow-origin'), productMobileOrigin);
+
     const productHost = ioClient(`http://127.0.0.1:${port}`, {
       transports: ['polling'],
-      extraHeaders: { origin: productIframeOrigin }
+      extraHeaders: { origin: productMobileOrigin }
     });
     clients.push(productHost);
     await once(productHost, 'connect');

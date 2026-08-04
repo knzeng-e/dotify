@@ -34,7 +34,16 @@ describe('explainSignalFailure', () => {
     const reason = explainSignalFailure(null, HOST_ORIGIN);
 
     expect(reason).toContain('did not answer');
-    expect(reason).not.toContain('SIGNAL_ORIGINS');
+    expect(reason).toContain(HOST_ORIGIN);
+    expect(reason).toContain('SIGNAL_ORIGINS');
+  });
+
+  it('does not recommend allowlisting literal null origins', () => {
+    const reason = explainSignalFailure(null, 'null');
+
+    expect(reason).toContain('opaque Product host origin');
+    expect(reason).toContain('Fly signaling logs');
+    expect(reason).not.toContain('Add that origin');
   });
 });
 

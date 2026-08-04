@@ -70,9 +70,10 @@ files to Bulletin and binds the result to DotNS. Keeping multiple static chunks
 allows incremental uploads; the older single-file Bulletin build remains
 available for its original workflow.
 
-The two frontend origins share the same Fly services. `API_ORIGINS` and
-`SIGNAL_ORIGINS` are explicit comma-separated allowlists. This is required for
-cross-origin catalog reads, key requests, Socket.IO, and WebRTC signaling.
+The standalone frontend and observed Product host origins share the same Fly
+services. `API_ORIGINS` and `SIGNAL_ORIGINS` are explicit comma-separated
+allowlists. This is required for cross-origin catalog reads, key requests,
+Socket.IO, and WebRTC signaling.
 
 ## Capability Matrix
 

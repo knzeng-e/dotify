@@ -16,6 +16,7 @@ describe('frontend origin boundary', () => {
       'https://muzinga.netlify.app',
       'https://dotify-test01.dev-dot.li',
       'https://dotify-test01.app.dev-dot.li',
+      'https://dotify-test01.dot',
     ];
     app = await buildApp({
       logging: false,
@@ -41,8 +42,9 @@ describe('frontend origin boundary', () => {
   });
 
   it('allows the native Product host origin when it uses the custom scheme', async () => {
-    // Current browser-hosted Products use an app.dev-dot.li HTTPS iframe, while
-    // native hosts may use this custom scheme. Keep both exact origins tracked.
+    // Current browser-hosted Products can use app.dev-dot.li or the mobile
+    // host's dot pseudo-domain, while native hosts may use this custom scheme.
+    // Keep each exact origin tracked instead of widening to null.
     const hostOrigin = 'polkadot://app.dotify-test01.dot';
     app = await buildApp({ logging: false, apiOrigins: [hostOrigin] });
 

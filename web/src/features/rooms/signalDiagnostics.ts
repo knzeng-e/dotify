@@ -27,14 +27,28 @@ function normalizeOrigin(origin: string): string {
   return origin.trim().replace(/\/$/, '');
 }
 
+function explainUnreadableHealth(pageOrigin: string): string {
+  const origin = normalizeOrigin(pageOrigin);
+  if (origin === 'null') {
+    return `${GENERIC_REASON} The signaling server did not answer from an opaque Product host origin. Check the Fly signaling logs for the actual Origin header before changing SIGNAL_ORIGINS.`;
+  }
+  if (origin) {
+    return `${GENERIC_REASON} The signaling server did not answer from ${origin}. It may be starting up, offline, or blocked by CORS. Confirm that this exact origin is in SIGNAL_ORIGINS.`;
+  }
+  return `${GENERIC_REASON} The signaling server did not answer. It may be starting up, offline, or blocked by CORS.`;
+}
+
 /**
  * Build the user-facing reason from a health payload, or null when the payload
  * gives no better explanation than the generic one.
  */
 export function explainSignalFailure(health: SignalHealth | null, pageOrigin: string): string {
   if (!health) {
-    // /health itself is unreachable, so this is not an origin problem.
-    return `${GENERIC_REASON} The signaling server did not answer. It may be starting up or offline.`;
+    // /health itself is unreachable to browser JavaScript. That can be a cold
+    // or down server, but it can also be CORS hiding an otherwise healthy
+    // response, especially inside Product hosts with environment-specific
+    // origins.
+    return explainUnreadableHealth(pageOrigin);
   }
 
   const allowed = health.allowedOrigins;
