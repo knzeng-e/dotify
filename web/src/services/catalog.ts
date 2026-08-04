@@ -1,6 +1,9 @@
+import { PRODUCT_DEVNET_BOOTSTRAP_CATALOG, PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID } from './productDevnetCatalogBootstrap';
+
 const DEFAULT_API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
 const CACHE_VERSION = 1;
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_CATALOG_TIMEOUT_MS = 8_000;
 
 export type CatalogApiState = 'fresh' | 'stale-cache' | 'indexer-outage' | 'rpc-outage' | 'empty';
 
@@ -86,6 +89,13 @@ export function isCatalogApiConfigured(): boolean {
   return Boolean(DEFAULT_API_URL);
 }
 
+export function readBundledCatalog(options: { apiUrl?: string; productId?: string } = {}): CatalogApiResponse | null {
+  const apiUrl = (options.apiUrl ?? DEFAULT_API_URL)?.replace(/\/$/, '');
+  const productId = (options.productId ?? (import.meta.env.VITE_DOTIFY_PRODUCT_ID as string | undefined))?.trim();
+  if (!apiUrl || productId !== PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID) return null;
+  return PRODUCT_DEVNET_BOOTSTRAP_CATALOG;
+}
+
 export function readCachedCatalog(options: { apiUrl?: string; storage?: Storage | null } = {}): CatalogApiResponse | null {
   return readCache(options.apiUrl ?? DEFAULT_API_URL, true, 100, resolveStorage(options.storage))?.response ?? null;
 }
@@ -96,6 +106,7 @@ export async function fetchCatalog(
     limit?: number;
     apiUrl?: string;
     storage?: Storage | null;
+    timeoutMs?: number;
   } = {}
 ): Promise<CatalogApiResponse> {
   const apiUrl = (options.apiUrl ?? DEFAULT_API_URL)?.replace(/\/$/, '');
@@ -103,6 +114,7 @@ export async function fetchCatalog(
 
   const includeInactive = options.includeInactive === true;
   const limit = options.limit ?? 100;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_CATALOG_TIMEOUT_MS;
   const storage = resolveStorage(options.storage);
   const cached = readCache(apiUrl, includeInactive, limit, storage);
   const query = new URLSearchParams({
@@ -112,21 +124,34 @@ export async function fetchCatalog(
   const headers = new Headers();
   if (cached?.etag) headers.set('If-None-Match', cached.etag);
 
-  const response = await fetch(`${apiUrl}/api/catalog?${query}`, { headers });
-  if (response.status === 304 && cached) return cached.response;
+  const controller = timeoutMs > 0 ? new AbortController() : null;
+  const timeoutId = controller ? globalThis.setTimeout(() => controller.abort(), timeoutMs) : undefined;
+  let response: Response;
 
-  const body = await parseResponseBody(response);
-  if (!isCatalogResponse(body)) {
-    throw new CatalogApiError(`Catalog request failed (${response.status})`, 'INVALID_CATALOG_RESPONSE');
-  }
-  if (!response.ok && response.status !== 503) {
-    throw new CatalogApiError(`Catalog request failed (${response.status})`, 'CATALOG_REQUEST_FAILED');
-  }
+  try {
+    response = await fetch(`${apiUrl}/api/catalog?${query}`, { headers, signal: controller?.signal });
+    if (response.status === 304 && cached) return cached.response;
 
-  if (response.ok && body.meta.cacheAvailable) {
-    writeCache(apiUrl, includeInactive, limit, response.headers.get('etag'), body, storage);
+    const body = await parseResponseBody(response);
+    if (!isCatalogResponse(body)) {
+      throw new CatalogApiError(`Catalog request failed (${response.status})`, 'INVALID_CATALOG_RESPONSE');
+    }
+    if (!response.ok && response.status !== 503) {
+      throw new CatalogApiError(`Catalog request failed (${response.status})`, 'CATALOG_REQUEST_FAILED');
+    }
+
+    if (response.ok && body.meta.cacheAvailable) {
+      writeCache(apiUrl, includeInactive, limit, response.headers.get('etag'), body, storage);
+    }
+    return body;
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new CatalogApiError('Catalog request timed out', 'CATALOG_REQUEST_TIMEOUT');
+    }
+    throw error;
+  } finally {
+    if (timeoutId !== undefined) globalThis.clearTimeout(timeoutId);
   }
-  return body;
 }
 
 function resolveStorage(storage: Storage | null | undefined): Storage | null {
@@ -184,6 +209,10 @@ async function parseResponseBody(response: Response): Promise<unknown> {
   } catch {
     return null;
   }
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
 }
 
 function isCatalogResponse(value: unknown): value is CatalogApiResponse {

@@ -223,6 +223,11 @@ VITE_CONTENT_SECRET=
 `VITE_PUBLIC_APP_URL` is the URL copied for room invitations. Do not replace it
 with an internal host URL or a raw CID gateway.
 
+The Product build embeds a non-secret bootstrap catalog snapshot for
+`dotify-test01.dot`. It is only an initial-read fallback for hosts where the
+catalog API request hangs or the browser storage cache is empty. The Fly catalog
+API remains the source of truth and refreshes the UI as soon as it responds.
+
 ## 4. Build Locally
 
 ```bash

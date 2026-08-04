@@ -177,6 +177,11 @@ currently pins through Pinata. Keep `ipfs.io` and `dweb.link` before Product
 storage gateways for `VITE_PINATA_GATEWAY` and `VITE_IPFS_READ_GATEWAYS`;
 otherwise cover images can hang in the browser without firing an image error.
 
+The Product build also embeds a non-secret `dotify-test01.dot` bootstrap catalog
+snapshot. It prevents first-run mobile hosts from staying on `Loading registry
+catalog` when the Fly catalog request hangs; the Fly API remains the source of
+truth once reachable.
+
 Build and publication:
 
 ```bash

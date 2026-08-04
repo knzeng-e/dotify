@@ -27,7 +27,7 @@ import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEn
 import { createViemRuntimeWriter } from '../features/runtime/viemRuntimeAdapter';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
 import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
-import { fetchCatalog, isCatalogApiConfigured, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
+import { fetchCatalog, isCatalogApiConfigured, readBundledCatalog, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
 import {
   E2E_CLASSIC_AUDIO_URL,
   E2E_CLASSIC_HASH,
@@ -275,14 +275,22 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   const runtimeReader = createRuntimeReader({ ethRpcUrl });
   const usesCatalogApi = isCatalogApiConfigured() && !isClassicUnlockE2e && !isArtistPublishE2e && !isRoomJoinE2e;
-  const [initialCatalog] = useState<CatalogTrack[]>(() => {
+  const [initialCatalogState] = useState<{ tracks: CatalogTrack[]; source: 'cache' | 'bundle' | null }>(() => {
     const cached = usesCatalogApi ? readCachedCatalog() : null;
-    return cached?.items.map(catalogApiReleaseToTrack) ?? [];
+    if (cached) return { tracks: cached.items.map(catalogApiReleaseToTrack), source: 'cache' };
+    const bundled = usesCatalogApi ? readBundledCatalog() : null;
+    if (bundled) return { tracks: bundled.items.map(catalogApiReleaseToTrack), source: 'bundle' };
+    return { tracks: [], source: null };
   });
+  const initialCatalog = initialCatalogState.tracks;
   const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>(() => initialCatalog.filter(track => track.active !== false));
   const [allCatalogTracks, setAllCatalogTracks] = useState<CatalogTrack[]>(initialCatalog);
   const [catalogStatus, setCatalogStatus] = useState(
-    initialCatalog.length > 0 ? 'Showing saved catalog data while new releases are checked' : 'Loading registry catalog'
+    initialCatalogState.source === 'bundle'
+      ? 'Showing bundled Product catalog while new releases are checked'
+      : initialCatalog.length > 0
+        ? 'Showing saved catalog data while new releases are checked'
+        : 'Loading registry catalog'
   );
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
@@ -1125,7 +1133,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         return commitCatalog(allTracks, preferredTrackHash, catalogApiStatus(response.meta, allTracks.filter(track => track.active !== false).length));
       } catch (catalogError) {
         console.warn('Failed to load catalog API', catalogError);
-        setCatalogStatus(catalogLoadFailureStatus(catalogError));
+        setCatalogStatus(allCatalogTracks.length > 0 ? 'Showing saved catalog while the catalog API reconnects' : catalogLoadFailureStatus(catalogError));
         return catalogTracks;
       }
     }

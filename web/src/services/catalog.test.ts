@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchCatalog, type CatalogApiResponse } from './catalog';
+import { fetchCatalog, readBundledCatalog, type CatalogApiResponse } from './catalog';
 
 function response(): CatalogApiResponse {
   return {
@@ -20,6 +20,7 @@ function response(): CatalogApiResponse {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -66,5 +67,35 @@ describe('fetchCatalog', () => {
     const result = await fetchCatalog({ apiUrl: 'https://api.dotify.example', storage: null });
     expect(result.meta.state).toBe('rpc-outage');
     expect(result.items).toEqual([]);
+  });
+
+  it('times out catalog API requests that never settle', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn((_url: string, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          reject(error);
+        });
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const request = expect(fetchCatalog({ apiUrl: 'https://api.dotify.example', storage: null, timeoutMs: 50 })).rejects.toMatchObject({
+      code: 'CATALOG_REQUEST_TIMEOUT'
+    });
+    await vi.advanceTimersByTimeAsync(50);
+
+    await request;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('readBundledCatalog', () => {
+  it('exposes the Product DevNet bootstrap catalog only for the matching product id', () => {
+    expect(readBundledCatalog({ apiUrl: 'https://api.dotify.example', productId: 'dotify-test01.dot' })?.items).toHaveLength(5);
+    expect(readBundledCatalog({ apiUrl: 'https://api.dotify.example', productId: 'other.dot' })).toBeNull();
+    expect(readBundledCatalog({ apiUrl: '', productId: 'dotify-test01.dot' })).toBeNull();
   });
 });
