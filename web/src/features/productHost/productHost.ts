@@ -15,7 +15,18 @@ export type ProductHostIdentity = {
   signMessage: (message: string) => Promise<`0x${string}`>;
 };
 
+export type ProductHostRoomPermissionResult = { ok: true } | { ok: false; reason: string };
+
 type EnvironmentLike = Record<string, string | boolean | number | null | undefined>;
+type HostRemotePermission =
+  | {
+      tag: 'Remote';
+      value: { domains: string[] };
+    }
+  | {
+      tag: 'WebRtc';
+      value?: undefined;
+    };
 type ProductAccount = {
   dotNsIdentifier: string;
   derivationIndex: number;
@@ -35,6 +46,10 @@ type ProductHostIdentityDeps = {
   getAccountsProvider: () => Promise<ProductAccountsProvider | null>;
   deriveH160: (publicKey: Uint8Array) => `0x${string}`;
   ss58Encode: (publicKey: Uint8Array) => string;
+};
+type ProductHostRoomPermissionDeps = {
+  isInsideContainer: () => boolean | Promise<boolean>;
+  requestPermission: (permission: HostRemotePermission) => Promise<{ ok: true; value: boolean } | { ok: false; error: unknown }>;
 };
 
 function envValue(env: EnvironmentLike, key: string): string {
@@ -72,12 +87,54 @@ async function loadProductHostIdentityDeps(): Promise<ProductHostIdentityDeps> {
   return { getAccountsProvider, deriveH160, ss58Encode };
 }
 
+async function loadProductHostRoomPermissionDeps(): Promise<ProductHostRoomPermissionDeps> {
+  const { isInsideContainer, requestPermission } = await import('@parity/product-sdk/host');
+  return { isInsideContainer, requestPermission };
+}
+
 function describeHostError(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'object' && error !== null && 'reason' in error) {
     return String((error as { reason: unknown }).reason);
   }
   return String(error);
+}
+
+function domainFromUrl(rawUrl: string): string {
+  return new URL(rawUrl).hostname.toLowerCase();
+}
+
+export async function ensureProductHostRoomPermissions(signalUrl: string, deps?: ProductHostRoomPermissionDeps): Promise<ProductHostRoomPermissionResult> {
+  const { isInsideContainer, requestPermission } = deps ?? (await loadProductHostRoomPermissionDeps());
+  if (!(await isInsideContainer())) return { ok: true };
+
+  let signalDomain: string;
+  try {
+    signalDomain = domainFromUrl(signalUrl);
+  } catch {
+    return { ok: false, reason: 'Room service unavailable. The configured signaling URL is not valid.' };
+  }
+
+  const remote = await requestPermission({
+    tag: 'Remote',
+    value: { domains: [signalDomain] }
+  });
+  if (!remote.ok) {
+    return { ok: false, reason: `Room service unavailable. The Polkadot host could not request remote access to ${signalDomain}: ${describeHostError(remote.error)}` };
+  }
+  if (!remote.value) {
+    return { ok: false, reason: `Room service unavailable. Allow remote access to ${signalDomain} in the Polkadot host to open listening rooms.` };
+  }
+
+  const webRtc = await requestPermission({ tag: 'WebRtc' });
+  if (!webRtc.ok) {
+    return { ok: false, reason: `Room service unavailable. The Polkadot host could not request WebRTC access: ${describeHostError(webRtc.error)}` };
+  }
+  if (!webRtc.value) {
+    return { ok: false, reason: 'Room service unavailable. Allow WebRTC in the Polkadot host to share live room audio.' };
+  }
+
+  return { ok: true };
 }
 
 export async function connectProductHostIdentity(config: ProductHostConfig, deps?: ProductHostIdentityDeps): Promise<ProductHostIdentity> {

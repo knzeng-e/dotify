@@ -343,6 +343,13 @@ missing, the Host shell can still render the static app, but catalog requests
 lose their CORS response header and Socket.IO polling is rejected with `403`,
 producing an empty music view or preventing room creation.
 
+Polkadot mobile host room creation also requires runtime host permissions, not
+only Fly CORS. The Product asks the host for `Remote` access to
+`dotify-signal.fly.dev` before opening Socket.IO and for `WebRtc` before sharing
+live audio. If mobile still shows `Room service unavailable` and Fly logs show
+no new `/health` or `/socket.io` request, debug the Product host permission or
+remote-network layer before changing Fly origins again.
+
 Keep `dotify-signal` on one active machine until a shared Socket.IO adapter is
 added. Rooms, chat, reactions, request queues, and solo-presence aggregates are
 currently in memory.
@@ -383,7 +390,8 @@ npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://dot
 npm run build:product-devnet
 ```
 
-7. For a Product release, complete the cross-origin room and host-account
+7. For a Product release, complete the cross-origin room, mobile host
+permission, and host-account
 checks in
 [`docs/operations/product-devnet-deployment.md`](product-devnet-deployment.md).
 

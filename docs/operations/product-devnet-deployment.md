@@ -384,7 +384,12 @@ Then verify in the Product host:
 2. Free playback starts without connecting an account.
 3. **Use Polkadot app** connects an app-scoped Product account only after the
    button is selected.
-4. A protected track requests its key through the Product identity using
+4. Opening or joining a room in the Polkadot mobile host prompts for and/or
+   receives the host `Remote` permission for `dotify-signal.fly.dev` plus the
+   `WebRtc` permission. If the mobile host shows `Room service unavailable`
+   while Fly receives no `/health` or `/socket.io` request, treat host
+   permission denial or host-side remote networking as the first suspect.
+5. A protected track requests its key through the Product identity using
    `product-sr25519-v1`. Record which happened:
    - accepted, and playback starts: capture the request/response pair as the
      Product signing evidence this build needs;

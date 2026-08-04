@@ -14,6 +14,7 @@ import {
 } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
 import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
+import { ensureProductHostRoomPermissions } from '../features/productHost/productHost';
 import { useRoomBeacon } from './useRoomBeacon';
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
@@ -161,6 +162,7 @@ export function useSession(deps: UseSessionDeps) {
   const listenerPeerRef = useRef<RTCPeerConnection | null>(null);
   const hostPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const pendingIceCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+  const roomPermissionRef = useRef<Promise<boolean> | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   // Which audioSource the current local stream was captured from. Capturing is
   // idempotent per source: source changes renegotiate listeners onto a fresh
@@ -449,14 +451,49 @@ export function useSession(deps: UseSessionDeps) {
     return socket;
   }
 
-  function emitAckWhenConnected<Response>(event: string, payload: unknown, onAck: (response: Response) => void, onFailure: () => void) {
-    const socket = connectSocket();
+  function failRoomPermission(message: string) {
+    setSocketStatus('error');
+    setSessionAction('idle');
+    setIsRefreshingRooms(false);
+    setSessionStatus('Error');
+    setError(message);
+  }
+
+  async function ensureRoomTransportReady() {
+    if (!roomPermissionRef.current) {
+      roomPermissionRef.current = ensureProductHostRoomPermissions(signalUrl)
+        .then(result => {
+          if (result.ok) return true;
+          roomPermissionRef.current = null;
+          failRoomPermission(result.reason);
+          return false;
+        })
+        .catch(error => {
+          roomPermissionRef.current = null;
+          const detail = error instanceof Error ? error.message : String(error);
+          failRoomPermission(`Room service unavailable. The Polkadot host could not prepare room permissions: ${detail}`);
+          return false;
+        });
+    }
+
+    return roomPermissionRef.current;
+  }
+
+  async function connectRoomSocket() {
+    if (!(await ensureRoomTransportReady())) return null;
+    return connectSocket();
+  }
+
+  async function emitAckWhenConnected<Response>(event: string, payload: unknown, onAck: (response: Response) => void, onFailure: () => void) {
+    const socket = await connectRoomSocket();
+    if (!socket) return;
+    const activeSocket = socket;
     let settled = false;
     let timeoutId = 0;
 
     function cleanup() {
-      socket.off('connect', send);
-      socket.off('connect_error', fail);
+      activeSocket.off('connect', send);
+      activeSocket.off('connect_error', fail);
       if (timeoutId) window.clearTimeout(timeoutId);
     }
 
@@ -471,7 +508,7 @@ export function useSession(deps: UseSessionDeps) {
       if (settled) return;
       settled = true;
       cleanup();
-      socket.timeout(SIGNAL_ACK_TIMEOUT_MS).emit(event, payload, (error: Error | null, response: Response | undefined) => {
+      activeSocket.timeout(SIGNAL_ACK_TIMEOUT_MS).emit(event, payload, (error: Error | null, response: Response | undefined) => {
         if (error || response === undefined) {
           onFailure();
           return;
@@ -481,21 +518,28 @@ export function useSession(deps: UseSessionDeps) {
     }
 
     timeoutId = window.setTimeout(fail, SIGNAL_ACK_TIMEOUT_MS);
-    if (socket.connected) {
+    if (activeSocket.connected) {
       send();
     } else {
-      socket.once('connect', send);
-      socket.once('connect_error', fail);
+      activeSocket.once('connect', send);
+      activeSocket.once('connect_error', fail);
     }
 
-    return socket;
+    return activeSocket;
   }
 
-  function requestOpenRooms(showBusy = false) {
+  async function requestOpenRooms(showBusy = false) {
     if (showBusy) {
       setIsRefreshingRooms(true);
     }
-    connectSocket().emit('rooms:list', (rooms: OpenRoom[]) => {
+    const socket = await connectRoomSocket();
+    if (!socket) {
+      if (showBusy) {
+        setIsRefreshingRooms(false);
+      }
+      return;
+    }
+    socket.emit('rooms:list', (rooms: OpenRoom[]) => {
       setOpenRooms(normalizeRooms(rooms));
       if (showBusy) {
         setIsRefreshingRooms(false);
