@@ -221,11 +221,12 @@ describe('signaling server', () => {
     const productIframeOrigin = 'https://dotify-test01.app.dev-dot.li';
     const productDotIframeOrigin = 'https://dotify-test01.app.dot.li';
     const productMobileOrigin = 'https://dotify-test01.dot';
+    const productMobileNativeOrigin = 'polkadot://dotify-test01.dot';
     await server.close();
     server = startSignalingServer({
       port: 0,
       host: '127.0.0.1',
-      origins: ['https://dotify.example', productIframeOrigin, productDotIframeOrigin, productMobileOrigin],
+      origins: ['https://dotify.example', productIframeOrigin, productDotIframeOrigin, productMobileOrigin, productMobileNativeOrigin],
       logger: () => {}
     });
     port = await server.listen();
@@ -244,6 +245,11 @@ describe('signaling server', () => {
       headers: { origin: productMobileOrigin }
     });
     assert.equal(mobileAllowed.headers.get('access-control-allow-origin'), productMobileOrigin);
+
+    const mobileNativeAllowed = await fetch(`http://127.0.0.1:${port}/status`, {
+      headers: { origin: productMobileNativeOrigin }
+    });
+    assert.equal(mobileNativeAllowed.headers.get('access-control-allow-origin'), productMobileNativeOrigin);
 
     const dotIframeAllowed = await fetch(`http://127.0.0.1:${port}/status`, {
       headers: { origin: productDotIframeOrigin }

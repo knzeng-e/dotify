@@ -127,8 +127,8 @@ for the current faucet, storage console, mapping, and DotNS registration steps.
 The tracked Fly configuration must contain:
 
 ```txt
-API_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://app.dotify-test01.dot
-SIGNAL_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://app.dotify-test01.dot
+API_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot
+SIGNAL_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot
 SIGNAL_ALLOW_MISSING_ORIGIN=true
 ```
 
@@ -138,7 +138,8 @@ Product Host HTTPS execution origins, Product mobile host webviews using the
 browser URL is `https://dotify-test01.dev-dot.li`, desktop host iframe requests
 can carry `Origin: https://dotify-test01.app.dev-dot.li`, Product host requests
 have also been observed with `Origin: https://dotify-test01.app.dot.li`, and
-Product mobile can carry `Origin: https://dotify-test01.dot`. Both lists must
+Product mobile can carry `Origin: https://dotify-test01.dot` or
+`Origin: polkadot://dotify-test01.dot`. Both lists must
 carry every observed exact origin: without the host-specific origin, catalog
 requests are blocked and Socket.IO polling returns `403`, even though the static
 shell itself renders.
@@ -343,6 +344,10 @@ curl -s -D - -o /dev/null \
   https://dotify-api.fly.dev/health
 
 curl -s -D - -o /dev/null \
+  -H 'Origin: polkadot://dotify-test01.dot' \
+  https://dotify-api.fly.dev/health
+
+curl -s -D - -o /dev/null \
   -H 'Origin: https://muzinga.netlify.app' \
   https://dotify-api.fly.dev/health
 
@@ -356,6 +361,10 @@ curl -s -D - -o /dev/null \
 
 curl -s -D - -o /dev/null \
   -H 'Origin: https://dotify-test01.dot' \
+  https://dotify-signal.fly.dev/health
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: polkadot://dotify-test01.dot' \
   https://dotify-signal.fly.dev/health
 ```
 

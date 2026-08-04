@@ -18,6 +18,8 @@ describe('frontend origin boundary', () => {
       'https://dotify-test01.app.dev-dot.li',
       'https://dotify-test01.app.dot.li',
       'https://dotify-test01.dot',
+      'polkadot://dotify-test01.dot',
+      'polkadot://app.dotify-test01.dot',
     ];
     app = await buildApp({
       logging: false,
@@ -46,7 +48,7 @@ describe('frontend origin boundary', () => {
     // Current browser-hosted Products can use app.dev-dot.li or the mobile
     // host's dot pseudo-domain, while native hosts may use this custom scheme.
     // Keep each exact origin tracked instead of widening to null.
-    const hostOrigin = 'polkadot://app.dotify-test01.dot';
+    const hostOrigin = 'polkadot://dotify-test01.dot';
     app = await buildApp({ logging: false, apiOrigins: [hostOrigin] });
 
     const response = await app.inject({
@@ -63,7 +65,7 @@ describe('frontend origin boundary', () => {
     // Answering that would admit every sandboxed iframe and file:// page to the
     // authenticated upload and content-key routes, so it must stay refused
     // until the real header is observed and allowlisted deliberately.
-    app = await buildApp({ logging: false, apiOrigins: ['polkadot://app.dotify-test01.dot'] });
+    app = await buildApp({ logging: false, apiOrigins: ['polkadot://dotify-test01.dot', 'polkadot://app.dotify-test01.dot'] });
 
     const response = await app.inject({
       method: 'GET',

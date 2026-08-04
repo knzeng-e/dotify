@@ -454,7 +454,7 @@ Network interface to bind.
 | **Type**     | Comma-separated URL list or `*`                                                                 |
 | **Required** | No                                                                                              |
 | **Default**  | `*`                                                                                             |
-| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
+| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 
 CORS allowed origins for Socket.IO and status endpoints. Set explicit frontend
 origins in production. `SIGNAL_ORIGIN` is still accepted as a backwards-compatible
@@ -465,7 +465,7 @@ Product deployments need every observed exact HTTPS origin:
 room-link origin, desktop host iframe requests originate from
 `dotify-test01.app.dev-dot.li`, Product host requests have also been observed
 from `dotify-test01.app.dot.li`, and Product mobile host webviews can originate
-from `dotify-test01.dot`.
+from `dotify-test01.dot` or `polkadot://dotify-test01.dot`.
 
 On Fly, keep this value in `web/fly.signal.toml`. Do not define
 `SIGNAL_ORIGINS` as a Fly secret: secrets override `[env]` values and can leave
@@ -574,10 +574,10 @@ backwards-compatible fallback when `API_ORIGINS` is not set.
 
 | Property     | Value                                                                                           |
 | ------------ | ----------------------------------------------------------------------------------------------- |
-| **Type**     | Comma-separated HTTPS origin list                                                               |
+| **Type**     | Comma-separated URL origin list                                                                 |
 | **Required** | Multiple hosted frontends                                                                       |
 | **Default**  | The single `API_ORIGIN` value                                                                   |
-| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
+| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 
 Exact frontend origins accepted by backend CORS. When set, it takes precedence
 over `API_ORIGIN`. Do not use `*`: the API carries authenticated upload and
@@ -585,8 +585,9 @@ content-key routes.
 
 The Product Host execution origins are distinct from the public DotNS URL, so
 `https://dotify-test01.dev-dot.li`, `https://dotify-test01.app.dev-dot.li`,
-`https://dotify-test01.app.dot.li`, and `https://dotify-test01.dot` must be
-present. Do not replace the canonical `VITE_PUBLIC_APP_URL` with a host
+`https://dotify-test01.app.dot.li`, `https://dotify-test01.dot`, and
+`polkadot://dotify-test01.dot` must be present when observed. Do not replace
+the canonical `VITE_PUBLIC_APP_URL` with a host
 execution origin.
 
 On Fly, keep this value in `services/api/fly.toml`. Do not define

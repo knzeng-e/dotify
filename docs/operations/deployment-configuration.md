@@ -42,6 +42,7 @@ Product public URL:  https://dotify-test01.dev-dot.li
 Product Host origin: https://dotify-test01.app.dev-dot.li
 Product Host dot.li: https://dotify-test01.app.dot.li
 Product mobile origin: https://dotify-test01.dot
+Product mobile native: polkadot://dotify-test01.dot
 Backend API:         https://dotify-api.fly.dev
 Signaling:           https://dotify-signal.fly.dev
 Product IPFS:        https://devnet-ipfs.api.polkadotcommunity.foundation
@@ -55,7 +56,8 @@ include a trailing slash. The Product URL visible in the browser remains
 iframe whose requests carry `Origin: https://dotify-test01.app.dev-dot.li`.
 Product host requests have also been observed from
 `Origin: https://dotify-test01.app.dot.li`, and Product mobile host webviews can
-carry `Origin: https://dotify-test01.dot`. Allow all observed exact Product
+carry `Origin: https://dotify-test01.dot` or
+`Origin: polkadot://dotify-test01.dot`. Allow all observed exact Product
 origins; keep `VITE_PUBLIC_APP_URL` on the public URL so shared room links do
 not expose the internal execution origin.
 
@@ -230,7 +232,7 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | --- | --- |
 | `API_PORT` | `8790` |
 | `NODE_ENV` | `production` |
-| `API_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
+| `API_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 | `PASEO_ASSET_HUB_RPC` | `https://eth-rpc-testnet.polkadot.io/` |
 | `DOTIFY_FACTORY_ADDRESS` | `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72` |
 | `DOTIFY_DIRECTORY_ADDRESS` | `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108` |
@@ -313,7 +315,7 @@ Non-secret runtime values are tracked in `web/fly.signal.toml`:
 | `SIGNAL_HOST_TIMEOUT_MS` | `120000` |
 | `SIGNAL_MAX_LISTENERS` | `24` |
 | `SIGNAL_ALLOW_MISSING_ORIGIN` | `true` |
-| `SIGNAL_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
+| `SIGNAL_ORIGINS` | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 
 The production origins are public configuration tracked in
 `web/fly.signal.toml`; they are not secrets. Temporary preview origins may be
@@ -337,11 +339,12 @@ flyctl secrets unset SIGNAL_ORIGINS -c fly.signal.toml
 flyctl deploy -c fly.signal.toml
 ```
 
-The `app.dev-dot.li`, `app.dot.li`, and `.dot` Product host origins are required
-for both services when observed in the host logs. If an active host origin is
-missing, the Host shell can still render the static app, but catalog requests
-lose their CORS response header and Socket.IO polling is rejected with `403`,
-producing an empty music view or preventing room creation.
+The `app.dev-dot.li`, `app.dot.li`, `.dot`, and `polkadot://...` Product host
+origins are required for both services when observed in the host logs or mobile
+diagnostics. If an active host origin is missing, the Host shell can still
+render the static app, but catalog requests lose their CORS response header and
+Socket.IO polling is rejected with `403`, producing an empty music view or
+preventing room creation.
 
 Polkadot mobile host room creation also requires runtime host permissions, not
 only Fly CORS. The Product asks the host for `Remote` access to
@@ -387,6 +390,7 @@ npm run smoke:production-env
 npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://dotify-test01.app.dev-dot.li
 npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://dotify-test01.app.dot.li
 npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://dotify-test01.dot
+npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin polkadot://dotify-test01.dot
 npm run build:product-devnet
 ```
 

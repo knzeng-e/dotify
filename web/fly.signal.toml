@@ -15,8 +15,9 @@ primary_region = "ams"
   SIGNAL_ALLOW_MISSING_ORIGIN = "true"
   # Keep all observed Product host origins: the public dev-dot.li gateway, the
   # app.dev-dot.li and app.dot.li execution iframes, the mobile host's dot
-  # pseudo-domain, and the native custom scheme.
-  SIGNAL_ORIGINS = "https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://app.dotify-test01.dot"
+  # pseudo-domain, and the native/custom scheme variants observed in Product
+  # mobile.
+  SIGNAL_ORIGINS = "https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot"
 
 [http_service]
   internal_port = 8788
