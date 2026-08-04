@@ -228,6 +228,25 @@ The Product build embeds a non-secret bootstrap catalog snapshot for
 catalog API request hangs or the browser storage cache is empty. The Fly catalog
 API remains the source of truth and refreshes the UI as soon as it responds.
 
+`npm run build:product-devnet` refreshes that bootstrap snapshot before Vite
+builds. The generator reads `VITE_DOTIFY_API_URL` from `.env.product-devnet`
+unless the shell-only `CATALOG_API_URL` override is set, calls
+`/api/catalog?limit=100&includeInactive=true`, validates the response, and
+rewrites `web/src/services/productDevnetCatalogBootstrap.ts`. If the API is
+temporarily unavailable, the default command keeps the existing snapshot so
+offline builds can still complete. Use the strict command for release evidence:
+
+```bash
+cd web
+npm run generate:product-catalog-bootstrap:strict
+git -C .. diff -- web/src/services/productDevnetCatalogBootstrap.ts
+```
+
+When the deployed contract addresses or indexed releases change, update the API
+configuration first, wait until `https://dotify-api.fly.dev/api/catalog` returns
+the new catalog, run the strict generator, commit the generated snapshot change,
+then publish the Product build.
+
 ## 4. Build Locally
 
 ```bash
@@ -281,12 +300,13 @@ npm run deploy:product-devnet
 The command:
 
 1. refuses to continue when `MNEMONIC` is empty;
-2. rebuilds `dist-product`;
-3. validates `polkadot-app-deploy.config.ts`;
-4. creates content-addressed chunks with the JavaScript merkle implementation;
-5. uploads changed content to Product DevNet Bulletin;
-6. updates `dotify-test01.dot` directly with the `$MNEMONIC` owner signer;
-7. writes the Product manifest and executable records.
+2. refreshes the bundled Product catalog snapshot from the Fly catalog API;
+3. rebuilds `dist-product`;
+4. validates `polkadot-app-deploy.config.ts`;
+5. creates content-addressed chunks with the JavaScript merkle implementation;
+6. uploads changed content to Product DevNet Bulletin;
+7. updates `dotify-test01.dot` directly with the `$MNEMONIC` owner signer;
+8. writes the Product manifest and executable records.
 
 Publisher listing is deliberately not part of the default deploy. It requires
 the current Product proof-of-personhood level and signer support, and the

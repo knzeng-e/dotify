@@ -180,7 +180,13 @@ otherwise cover images can hang in the browser without firing an image error.
 The Product build also embeds a non-secret `dotify-test01.dot` bootstrap catalog
 snapshot. It prevents first-run mobile hosts from staying on `Loading registry
 catalog` when the Fly catalog request hangs; the Fly API remains the source of
-truth once reachable.
+truth once reachable. `npm run build:product-devnet` refreshes
+`web/src/services/productDevnetCatalogBootstrap.ts` from
+`VITE_DOTIFY_API_URL` before building. Set shell-only `CATALOG_API_URL` only
+when deliberately generating the snapshot from a different catalog API. The
+default generator keeps the existing snapshot if the API is unavailable; use
+`npm run generate:product-catalog-bootstrap:strict` before releases or after
+contract address changes so a stale API fails visibly.
 
 Build and publication:
 
@@ -188,6 +194,7 @@ Build and publication:
 cd web
 read -rs MNEMONIC
 export MNEMONIC
+npm run generate:product-catalog-bootstrap:strict
 npm run build:product-devnet
 npm run deploy:product-devnet
 ```

@@ -35,6 +35,25 @@ mobile Product session, not the mnemonic-derived signer used for DotNS updates.
 If the owner account uses a derivation path, keep that path aligned with the
 deploy command before publishing.
 
+### `CATALOG_API_URL`
+
+| Property     | Value                                      |
+| ------------ | ------------------------------------------ |
+| **Type**     | HTTPS URL                                  |
+| **Required** | No                                         |
+| **Default**  | `VITE_DOTIFY_API_URL` from `.env.product-devnet` |
+| **Example**  | `https://dotify-api.fly.dev`               |
+
+Optional override used by
+`npm run generate:product-catalog-bootstrap`. The generator refreshes the
+Product DevNet bootstrap catalog from
+`$CATALOG_API_URL/api/catalog?limit=100&includeInactive=true`, validates the
+response, and writes `web/src/services/productDevnetCatalogBootstrap.ts`.
+
+Use this only in the local operator shell when refreshing a Product build from a
+non-default catalog API. It is not bundled into the browser and must not be set
+in Netlify or Fly.
+
 ---
 
 ## Web app variables (`web/.env.local`)
