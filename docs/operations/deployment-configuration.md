@@ -154,6 +154,24 @@ Required Product values:
 | `VITE_DOTIFY_ROOM_BEACONS` | `off` |
 | `VITE_PINATA_GATEWAY` | `https://ipfs.io` |
 | `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
+| Product executable `appVersion` | `[0, 1, 1]` in `web/polkadot-app-deploy.config.ts` |
+
+The Product executable version is part of the published Product manifest. Bump
+it whenever the Product bundle changes runtime behavior, host SDK integration,
+permissions, metadata, or cache-sensitive assets. A new CID alone proves the
+bundle changed on-chain, but the mobile host can still use executable metadata
+when deciding whether to refresh a previously opened app.
+
+Current Product host SDK dependencies:
+
+| Package | Current value |
+| --- | --- |
+| `@parity/product-sdk` | `0.20.1` |
+| `@parity/product-sdk-host` | `0.15.1` |
+
+Keep these pinned exactly during Product DevNet hardening. Recheck the official
+Product docs and npm versions before changing them because the mobile host API
+is still moving quickly.
 
 `VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
 publication announces no rooms on the Statement Store. The capability ships

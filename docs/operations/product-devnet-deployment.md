@@ -312,6 +312,12 @@ The command:
 7. updates `dotify-test01.dot` directly with the `$MNEMONIC` owner signer;
 8. writes the Product manifest and executable records.
 
+Bump the Product executable `appVersion` in
+`web/polkadot-app-deploy.config.ts` whenever the Product bundle changes runtime
+behavior, host SDK integration, permissions, metadata, or cache-sensitive
+assets. A successful `pad` publish writes a new CID, but the mobile host can
+also use executable metadata while refreshing an already-opened app.
+
 Publisher listing is deliberately not part of the default deploy. It requires
 the current Product proof-of-personhood level and signer support, and the
 0.13.1 CLI help still describes environment-specific limitations. After the
