@@ -16,6 +16,7 @@ describe('frontend origin boundary', () => {
       'https://muzinga.netlify.app',
       'https://dotify-test01.dev-dot.li',
       'https://dotify-test01.app.dev-dot.li',
+      'https://dotify-test01.app.dot.li',
       'https://dotify-test01.dot',
     ];
     app = await buildApp({

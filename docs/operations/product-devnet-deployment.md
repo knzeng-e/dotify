@@ -127,19 +127,21 @@ for the current faucet, storage console, mapping, and DotNS registration steps.
 The tracked Fly configuration must contain:
 
 ```txt
-API_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.dot,polkadot://app.dotify-test01.dot
-SIGNAL_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.dot,polkadot://app.dotify-test01.dot
+API_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://app.dotify-test01.dot
+SIGNAL_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://app.dotify-test01.dot
 SIGNAL_ALLOW_MISSING_ORIGIN=true
 ```
 
-Five exact origins reach these services: Netlify, the public DotNS gateway, the
-Product Host's HTTPS app iframe, Product mobile host webviews using the `.dot`
-pseudo-domain, and native hosts using the custom scheme. The public browser URL
-is `https://dotify-test01.dev-dot.li`, desktop host iframe requests carry
-`Origin: https://dotify-test01.app.dev-dot.li`, and Product mobile can carry
-`Origin: https://dotify-test01.dot`. Both lists must carry all five: without
-the host-specific origin, catalog requests are blocked and Socket.IO polling
-returns `403`, even though the static shell itself renders.
+These exact origins reach the Fly services: Netlify, the public DotNS gateway,
+Product Host HTTPS execution origins, Product mobile host webviews using the
+`.dot` pseudo-domain, and native hosts using the custom scheme. The public
+browser URL is `https://dotify-test01.dev-dot.li`, desktop host iframe requests
+can carry `Origin: https://dotify-test01.app.dev-dot.li`, Product host requests
+have also been observed with `Origin: https://dotify-test01.app.dot.li`, and
+Product mobile can carry `Origin: https://dotify-test01.dot`. Both lists must
+carry every observed exact origin: without the host-specific origin, catalog
+requests are blocked and Socket.IO polling returns `403`, even though the static
+shell itself renders.
 
 `polkadot:` is a non-special scheme, so its origin is opaque and a browser may
 send `Origin: null` rather than the literal value. If a host request is still
@@ -321,7 +323,7 @@ and final public URL in the release evidence.
 
 ## 7. Validate
 
-Check service CORS from both origins:
+Check service CORS from the standalone and observed Product origins:
 
 ```bash
 curl -s -D - -o /dev/null \
@@ -333,6 +335,10 @@ curl -s -D - -o /dev/null \
   https://dotify-api.fly.dev/api/catalog?limit=1
 
 curl -s -D - -o /dev/null \
+  -H 'Origin: https://dotify-test01.app.dot.li' \
+  https://dotify-api.fly.dev/health
+
+curl -s -D - -o /dev/null \
   -H 'Origin: https://dotify-test01.dot' \
   https://dotify-api.fly.dev/health
 
@@ -342,6 +348,10 @@ curl -s -D - -o /dev/null \
 
 curl -s -D - -o /dev/null \
   -H 'Origin: https://dotify-test01.app.dev-dot.li' \
+  https://dotify-signal.fly.dev/health
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: https://dotify-test01.app.dot.li' \
   https://dotify-signal.fly.dev/health
 
 curl -s -D - -o /dev/null \
