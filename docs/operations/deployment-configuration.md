@@ -154,7 +154,7 @@ Required Product values:
 | `VITE_DOTIFY_ROOM_BEACONS` | `off` |
 | `VITE_PINATA_GATEWAY` | `https://ipfs.io` |
 | `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 1]` in `web/polkadot-app-deploy.config.ts` |
+| Product executable `appVersion` | `[0, 1, 4]` in `web/polkadot-app-deploy.config.ts` |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -168,6 +168,7 @@ Current Product host SDK dependencies:
 | --- | --- |
 | `@parity/product-sdk` | `0.20.1` |
 | `@parity/product-sdk-host` | `0.15.1` |
+| `engine.io-client` | `6.6.6` |
 
 Keep these pinned exactly during Product DevNet hardening. Recheck the official
 Product docs and npm versions before changing them because the mobile host API
@@ -364,12 +365,35 @@ render the static app, but catalog requests lose their CORS response header and
 Socket.IO polling is rejected with `403`, producing an empty music view or
 preventing room creation.
 
-Polkadot mobile host room creation also requires runtime host permissions, not
-only Fly CORS. The Product asks the host for `Remote` access to
+Polkadot mobile host room creation also has a runtime host-permission preflight,
+not only Fly CORS. The Product asks the host for `Remote` access to
 `dotify-signal.fly.dev` before opening Socket.IO and for `WebRtc` before sharing
-live audio. If mobile still shows `Room service unavailable` and Fly logs show
-no new `/health` or `/socket.io` request, debug the Product host permission or
-remote-network layer before changing Fly origins again.
+live audio. Explicit host denials still stop room creation with a user-facing
+message. Product executable `[0, 1, 4]` treats the current Product Mobile SDK's
+internal permission-preflight exception (`... is not a function ... undefined`)
+as unsupported preflight and continues to the signaling connection, because
+Fetch polling and the allowed `polkadot://dotify-test01.dot` origin are the
+actual network boundary proven in mobile testing. The Product build uses
+Engine.IO's fetch-based polling transport because the failing Product Mobile
+runtime reached `/health` through `fetch` while its Socket.IO XHR polling did
+not connect. Product host containers remain on Fetch polling for the whole
+room; they do not attempt a WebSocket upgrade. Standalone browsers may still
+upgrade to WebSocket. If mobile still shows `Room service unavailable` and Fly
+logs show no new `/health` or `/socket.io` request, debug the Product host
+remote-network layer before changing Fly origins again. If `/health` appears
+but `/socket.io` does not, confirm the deployed Product executable is version
+`[0, 1, 4]` or later before investigating Fly.
+
+An open room now survives a transient host signaling disconnect for up to
+`SIGNAL_HOST_TIMEOUT_MS` (currently 120 seconds). The server removes the room
+from public discovery while the host is offline, retains connected listeners,
+and accepts `room:resume` only with the random resume token returned privately
+at room creation. The browser keeps that token in memory only; Fly stores only
+its SHA-256 hash in the in-memory room record. A successful reconnect republishes
+the room and rebuilds host-to-listener offers. An explicit **Leave room** still
+closes immediately, and an unrecovered room closes at the existing host timeout.
+This behavior requires both the updated `dotify-signal` deployment and Product
+executable `[0, 1, 4]`.
 
 Keep `dotify-signal` on one active machine until a shared Socket.IO adapter is
 added. Rooms, chat, reactions, request queues, and solo-presence aggregates are

@@ -318,6 +318,28 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
+The current Product executable is `[0, 1, 4]`. Product host containers use
+Engine.IO Fetch polling without a WebSocket upgrade, so room signaling stays on
+the remote-network primitive proven to remain available in Product Mobile.
+Standalone browsers retain Fetch-first with an optional WebSocket upgrade. Do
+not remove the direct `engine.io-client` pin or restore XHR polling without a
+successful room-open stability test in both Product Mobile and the standalone
+browser.
+
+Room continuity in `[0, 1, 4]` also depends on the matching signaling server.
+Deploy `web/fly.signal.toml` before publishing the Product executable. A
+transient host transport loss keeps the room private but resumable for the
+configured `SIGNAL_HOST_TIMEOUT_MS`; the in-memory host token resumes the same
+room without another wallet or name prompt. No new Fly secret or environment
+variable is required.
+
+Product Mobile permission preflight is strict when the host explicitly rejects
+`Remote` or `WebRtc`, but executable `[0, 1, 4]` does not fail room creation on
+the current mobile SDK's internal permission bridge error (`... is not a
+function ... undefined`). In that unsupported-preflight case Dotify proceeds to
+the Fetch-polling signaling connection, where Fly CORS and Socket.IO remain the
+effective network boundary.
+
 Publisher listing is deliberately not part of the default deploy. It requires
 the current Product proof-of-personhood level and signer support, and the
 0.13.1 CLI help still describes environment-specific limitations. After the
@@ -401,9 +423,12 @@ Then verify in the Product host:
    button is selected.
 4. Opening or joining a room in the Polkadot mobile host prompts for and/or
    receives the host `Remote` permission for `dotify-signal.fly.dev` plus the
-   `WebRtc` permission. If the mobile host shows `Room service unavailable`
-   while Fly receives no `/health` or `/socket.io` request, treat host
-   permission denial or host-side remote networking as the first suspect.
+   `WebRtc` permission when the host SDK can run that preflight. If the mobile
+   host shows `Room service unavailable` while Fly receives no `/health` or
+   `/socket.io` request, treat a stale executable older than `[0, 1, 4]` or
+   host-side remote networking as the first suspects. A current Product host
+   build keeps Socket.IO on Fetch polling without a WebSocket upgrade and
+   continues past the known mobile SDK preflight exception.
 5. A protected track requests its key through the Product identity using
    `product-sr25519-v1`. Record which happened:
    - accepted, and playback starts: capture the request/response pair as the
@@ -416,11 +441,15 @@ Then verify in the Product host:
 
    In every rejected case, playback must stop and offer a passkey/EVM wallet.
    No path may release a key without a verified signature.
-5. A Product-origin host creates a room and copies a
+6. A Product-origin host creates a room and copies a
    `https://dotify-test01.dev-dot.li/#/rooms/<code>` link.
-6. A wallet-free browser joins that link from outside the Product host.
-7. A Netlify-origin host and Product-origin guest also connect.
-8. Closing the host ends the room as before.
+7. A wallet-free browser joins that link from outside the Product host.
+8. A Netlify-origin host and Product-origin guest also connect.
+9. Briefly interrupting the mobile network preserves and resumes the same room
+   within 120 seconds; it must disappear from public discovery while the host
+   is offline and return with the same code after reconnecting.
+10. Explicitly leaving ends the room immediately. Force-closing the host leaves
+    the room private until the 120-second resume window expires.
 
 Inspect the browser console and Fly logs for CORS, catalog, Socket.IO, and
 WebRTC failures.

@@ -3,15 +3,17 @@
 //
 // The transport gives the browser no reason for the failure - a CORS rejection,
 // a stopped server, and a wrong URL all arrive identically. The signaling
-// server's /health endpoint is unauthenticated and reports the origin allowlist
-// it is actually running, so one read distinguishes the common cases. That
-// matters most inside the Polkadot Product host, where the app is served from a
-// DotNS origin an operator has to add to SIGNAL_ORIGINS deliberately.
+// server's /health endpoint reports the live origin allowlist; when that works,
+// a fetch-based Engine.IO handshake distinguishes a blocked realtime path from
+// a socket session that started and was then interrupted. That matters most
+// inside the Polkadot Product host, where browser network tools are unavailable.
 //
 // This only ever widens an error message. Room access itself stays decided by
 // the server.
 
 const GENERIC_REASON = 'Room service unavailable.';
+const REALTIME_BLOCKED_REASON = `${GENERIC_REASON} The signaling server is online, but this host blocked the realtime connection. Close and reopen Dotify, then retry.`;
+const REALTIME_INTERRUPTED_REASON = `${GENERIC_REASON} The realtime endpoint answered, but this host could not keep the session open. Close and reopen Dotify, then retry.`;
 
 export type SignalHealth = {
   ok?: boolean;
@@ -85,7 +87,24 @@ export async function diagnoseSignalFailure(signalUrl: string, pageOrigin: strin
   try {
     const response = await fetchImpl(healthUrl, { signal: controller.signal });
     if (!response.ok) return explainSignalFailure(null, pageOrigin);
-    return explainSignalFailure((await response.json()) as SignalHealth, pageOrigin);
+    const healthReason = explainSignalFailure((await response.json()) as SignalHealth, pageOrigin);
+    if (healthReason !== GENERIC_REASON) return healthReason;
+
+    const handshakeUrl = new URL('/socket.io/', signalUrl);
+    handshakeUrl.searchParams.set('EIO', '4');
+    handshakeUrl.searchParams.set('transport', 'polling');
+    handshakeUrl.searchParams.set('t', 'dotify-diagnostic');
+
+    try {
+      const handshake = await fetchImpl(handshakeUrl.toString(), { signal: controller.signal });
+      if (!handshake.ok) {
+        return `${GENERIC_REASON} The signaling server is online, but its realtime endpoint rejected this host (HTTP ${handshake.status}).`;
+      }
+      const payload = await handshake.text();
+      return payload.startsWith('0{') ? REALTIME_INTERRUPTED_REASON : REALTIME_BLOCKED_REASON;
+    } catch {
+      return REALTIME_BLOCKED_REASON;
+    }
   } catch {
     return explainSignalFailure(null, pageOrigin);
   } finally {

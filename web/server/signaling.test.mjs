@@ -2,6 +2,7 @@
 // Run with: npm run test:signal
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
+import { Fetch as EngineFetch } from 'engine.io-client';
 import { io as ioClient } from 'socket.io-client';
 import { isSignalingOriginAllowed, readConfigFromEnv, startSignalingServer } from './signaling.mjs';
 import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash } from './signaling-utils.mjs';
@@ -12,6 +13,15 @@ let clients;
 
 function connectClient() {
   const client = ioClient(`http://127.0.0.1:${port}`, { transports: ['websocket'] });
+  clients.push(client);
+  return client;
+}
+
+function connectFetchClient() {
+  const client = ioClient(`http://127.0.0.1:${port}`, {
+    transports: [EngineFetch],
+    upgrade: false
+  });
   clients.push(client);
   return client;
 }
@@ -67,6 +77,8 @@ describe('signaling server', () => {
     const created = await createRoom(host, { hostAddress: '0x1111111111111111111111111111111111111111', track: { title: 'Night Drive', artist: 'Ada' } });
     assert.equal(created.ok, true);
     assert.match(created.roomId, /^[A-Z2-9]{6}$/);
+    assert.equal(typeof created.hostResumeToken, 'string');
+    assert.ok(created.hostResumeToken.length >= 32);
 
     const listener = connectClient();
     await once(listener, 'connect');
@@ -77,6 +89,19 @@ describe('signaling server', () => {
     assert.equal(joined.listenerCount, 1);
     assert.equal(joined.playbackMode, 'full');
     assert.equal(joined.track.title, 'Night Drive');
+    assert.equal(joined.hostResumeToken, undefined);
+  });
+
+  it('keeps a Product-style Fetch polling host connected without a WebSocket upgrade', async () => {
+    const host = connectFetchClient();
+    const created = await createRoom(host, { track: { title: 'Mobile room', artist: 'Ada' } });
+
+    assert.equal(created.ok, true);
+    assert.equal(host.io.engine.transport.name, 'polling');
+    await new Promise(resolve => setTimeout(resolve, 150));
+    assert.equal(host.connected, true);
+    assert.equal(host.io.engine.transport.name, 'polling');
+    assert.equal(server.rooms.get(created.roomId).hostId, host.id);
   });
 
   it('exposes host-based access metadata without the self-declared host address', async () => {
@@ -97,6 +122,7 @@ describe('signaling server', () => {
     assert.equal(JSON.stringify(body).includes('0xAbCd00000000000000000000000000000000Ef12'), false);
     assert.equal(room.playbackMode, 'full');
     assert.ok(room.expiresAt > room.createdAt);
+    assert.equal(JSON.stringify(body).includes(created.hostResumeToken), false);
   });
 
   it('keeps source and manifest refs out of public summaries, join replies, and track broadcasts', async () => {
@@ -345,7 +371,66 @@ describe('signaling server', () => {
     assert.equal(rejected.code, 'ROOM_FULL');
   });
 
-  it('closes the room and notifies listeners when the host disconnects', async () => {
+  it('keeps a room private during a host transport interruption and resumes it with the host token', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId });
+
+    const reconnecting = once(listener, 'room:host-connection');
+    host.disconnect();
+    assert.equal((await reconnecting).status, 'reconnecting');
+    assert.equal(server.rooms.size, 1);
+    assert.equal(server.rooms.get(created.roomId).hostId, null);
+
+    const hiddenStatus = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    assert.equal(hiddenStatus.rooms.some(room => room.roomId === created.roomId), false);
+
+    const lateListener = connectClient();
+    await once(lateListener, 'connect');
+    const lateJoin = await emitAck(lateListener, 'room:join', { roomId: created.roomId, displayName: 'Late' });
+    assert.equal(lateJoin.ok, false);
+    assert.equal(lateJoin.code, 'HOST_RECONNECTING');
+
+    const resumedHost = connectClient();
+    await once(resumedHost, 'connect');
+    const online = once(listener, 'room:host-connection');
+    const resumed = await emitAck(resumedHost, 'room:resume', {
+      roomId: created.roomId,
+      hostResumeToken: created.hostResumeToken
+    });
+
+    assert.equal(resumed.ok, true);
+    assert.equal(resumed.listenerCount, 1);
+    assert.equal(resumed.listeners.length, 1);
+    assert.equal((await online).status, 'online');
+    assert.equal(server.rooms.get(created.roomId).hostId, resumedHost.id);
+
+    const visibleStatus = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    assert.equal(visibleStatus.rooms.some(room => room.roomId === created.roomId), true);
+    assert.equal(JSON.stringify(visibleStatus).includes(created.hostResumeToken), false);
+  });
+
+  it('rejects a forged host resume token without claiming the room', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    host.disconnect();
+
+    const attacker = connectClient();
+    await once(attacker, 'connect');
+    const rejected = await emitAck(attacker, 'room:resume', {
+      roomId: created.roomId,
+      hostResumeToken: 'x'.repeat(43)
+    });
+
+    assert.equal(rejected.ok, false);
+    assert.equal(rejected.code, 'INVALID_HOST_RESUME_TOKEN');
+    assert.equal(server.rooms.get(created.roomId).hostId, null);
+  });
+
+  it('closes the room immediately when the host explicitly leaves', async () => {
     const host = connectClient();
     const created = await createRoom(host);
 
@@ -354,7 +439,7 @@ describe('signaling server', () => {
     await emitAck(listener, 'room:join', { roomId: created.roomId });
 
     const closed = once(listener, 'room:closed');
-    host.disconnect();
+    host.emit('room:leave');
     const payload = await closed;
     assert.match(payload.reason, /Host left/i);
     assert.equal(server.rooms.size, 0);

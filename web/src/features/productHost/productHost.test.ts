@@ -121,6 +121,45 @@ describe('ensureProductHostRoomPermissions', () => {
     expect(requestPermission).toHaveBeenNthCalledWith(2, { tag: 'WebRtc' });
   });
 
+  it('continues when Product Mobile cannot run the permission preflight', async () => {
+    const requestPermission = vi.fn(async () => {
+      throw new TypeError("c is not a function. (In 'c(s)', 'c' is undefined)");
+    });
+
+    await expect(
+      ensureProductHostRoomPermissions('https://dotify-signal.fly.dev', {
+        isInsideContainer: () => true,
+        requestPermission
+      })
+    ).resolves.toEqual({ ok: true });
+
+    expect(requestPermission).toHaveBeenCalledWith({
+      tag: 'Remote',
+      value: { domains: ['dotify-signal.fly.dev'] }
+    });
+  });
+
+  it('continues when the installed host SDK has no permission preflight export', async () => {
+    await expect(
+      ensureProductHostRoomPermissions('https://dotify-signal.fly.dev', {
+        isInsideContainer: () => true
+      })
+    ).resolves.toEqual({ ok: true });
+  });
+
+  it('does not mask unexpected permission preflight exceptions', async () => {
+    const requestPermission = vi.fn(async () => {
+      throw new Error('permission bridge crashed');
+    });
+
+    await expect(
+      ensureProductHostRoomPermissions('https://dotify-signal.fly.dev', {
+        isInsideContainer: () => true,
+        requestPermission
+      })
+    ).rejects.toThrow('permission bridge crashed');
+  });
+
   it('explains when the host denies remote signaling access', async () => {
     const requestPermission = vi.fn(async () => ({ ok: true as const, value: false }));
 

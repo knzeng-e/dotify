@@ -664,6 +664,330 @@
   .wallet-activity {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* Mobile is a first-class listening surface, not the desktop score squeezed
+     into one column. Keep the catalogue and transport within thumb reach,
+     remove duplicated framing, and reserve stable space for both fixed bars. */
+  .topbar {
+    padding-top: env(safe-area-inset-top);
+    background: rgb(5 13 26 / 0.94);
+  }
+
+  .topbar-inner {
+    gap: 0.75rem;
+  }
+
+  .brand,
+  .wallet-pill,
+  .wallet-pill-open {
+    letter-spacing: 0;
+  }
+
+  .brand-mark {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .content,
+  .artist-portal-main {
+    padding-top: 1.25rem;
+  }
+
+  .content-player {
+    padding-top: 0.75rem;
+  }
+
+  .listen-home,
+  .rooms-landing {
+    gap: 2.25rem;
+  }
+
+  .now-intro,
+  .rooms-intro {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .now-intro h1,
+  .rooms-intro h1,
+  .artist-claim-copy h1 {
+    max-width: 15ch;
+    font-size: 2.8rem;
+    letter-spacing: 0;
+    line-height: 0.96;
+  }
+
+  .now-intro > p,
+  .rooms-intro-copy > p {
+    border-top: 0;
+    margin: 0;
+    padding-top: 0;
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    text-align: left;
+  }
+
+  .rooms-intro-copy {
+    border-top: 0;
+    padding-top: 0;
+    text-align: left;
+  }
+
+  .rooms-summary {
+    margin-top: 0.75rem;
+  }
+
+  .section-heading {
+    gap: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .section-heading h2 {
+    margin-top: 0.25rem;
+    font-size: 2.15rem;
+    letter-spacing: 0;
+  }
+
+  .catalogue-section,
+  .live-section,
+  .rooms-live-section,
+  .room-entry-section {
+    gap: 1rem;
+  }
+
+  .catalogue-intro,
+  .trust-line,
+  .room-doctrine {
+    display: none;
+  }
+
+  .catalogue-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .catalogue-card {
+    display: grid;
+    min-height: 6.75rem;
+    grid-template-columns: 6.75rem minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    border-radius: var(--radius-sm);
+  }
+
+  .catalogue-card:hover,
+  .catalogue-card:focus-within {
+    transform: none;
+  }
+
+  .catalogue-cover-frame {
+    grid-row: 1 / 3;
+    aspect-ratio: auto;
+  }
+
+  .catalogue-card-action {
+    right: 0.55rem;
+    bottom: 0.55rem;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .catalogue-card-copy {
+    min-height: 0;
+    justify-content: center;
+    padding: 0.8rem 0.85rem 0.45rem;
+  }
+
+  .catalogue-card-open {
+    font-size: var(--text-base);
+  }
+
+  .catalogue-card-description {
+    display: none;
+  }
+
+  .catalogue-access-line {
+    min-height: 2.4rem;
+    padding: 0.4rem 0.85rem;
+  }
+
+  .moment-feature,
+  .moment-feature-empty {
+    border-radius: var(--radius-md);
+  }
+
+  .moment-art,
+  .quiet-signal {
+    min-height: min(92vw, 24rem);
+  }
+
+  .moment-copy {
+    --moment-copy-pad-x: 1.25rem;
+    --moment-copy-pad-y: 1.5rem;
+
+    padding-top: 1.5rem;
+  }
+
+  .moment-copy h2 {
+    font-size: 2.8rem;
+    letter-spacing: 0;
+  }
+
+  .track-life-summary {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding-inline: var(--moment-copy-pad-x);
+  }
+
+  .track-life-summary dl {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  .home-room-card,
+  .room-live-card {
+    border-radius: var(--radius-sm);
+  }
+
+  .player-view-grid {
+    gap: 0.75rem;
+  }
+
+  .player-stage {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .player-cover-column {
+    border-radius: var(--radius-md);
+    padding: 0.9rem;
+  }
+
+  .cover-card {
+    width: min(100%, 23rem);
+    gap: 0.65rem;
+  }
+
+  .cover {
+    border-radius: var(--radius-sm);
+  }
+
+  .player-main-column {
+    padding: 1rem 0 0.5rem;
+  }
+
+  .player-artist-link {
+    min-height: 2rem;
+  }
+
+  .track-copy h2 {
+    max-width: 13ch;
+    margin-top: 0.15rem;
+    font-size: 2.85rem;
+    letter-spacing: 0;
+    line-height: 0.96;
+  }
+
+  .track-room-label {
+    margin-top: 0.55rem;
+  }
+
+  .access-badges {
+    margin-top: 0.85rem;
+  }
+
+  .player-transport {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    margin-top: 1.25rem;
+    padding: 0.75rem 0;
+  }
+
+  .transport-cluster {
+    justify-content: flex-start;
+  }
+
+  .transport-progress {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .solo-room-invite {
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem 0;
+  }
+
+  .solo-room-invite strong {
+    font-size: 1.45rem;
+    letter-spacing: 0;
+  }
+
+  .player-lower-grid,
+  .player-room-mode .player-lower-grid {
+    gap: 0.75rem;
+    margin-top: 0;
+  }
+
+  .session-panel,
+  .room-social-column,
+  .player-context-panel {
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 1rem 0;
+  }
+
+  .player-context-panel {
+    display: none;
+  }
+
+  .room-header {
+    gap: 0.55rem;
+  }
+
+  .room-code-pill {
+    min-height: 2.4rem;
+  }
+
+  .room-promise-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .room-promise-strip span {
+    justify-content: center;
+    font-size: 0.68rem;
+  }
+
+  .room-card-grid,
+  .room-entry-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .room-entry-card {
+    row-gap: 1rem;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+    padding: 1.25rem 0;
+  }
+
+  .room-entry-card h3 {
+    font-size: 2rem;
+    letter-spacing: 0;
+  }
+
+  .rooms-empty-state {
+    min-height: 0;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+    padding: 1.25rem 0;
+  }
 }
 
 @media (max-width: 31rem) {
@@ -678,7 +1002,7 @@
   .now-intro h1,
   .rooms-intro h1,
   .artist-claim-copy h1 {
-    font-size: clamp(2.9rem, 15vw, 4rem);
+    font-size: 2.45rem;
   }
 
   .home-room-card {

@@ -126,7 +126,20 @@ export type OpenRoom = {
 
 export type SoloListeningByTrackHash = Record<string, number>;
 
-export type CreateRoomResponse = { ok: true; roomId: string; hostName: string; expiresAt?: number } | { ok: false; error: string };
+export type CreateRoomResponse =
+  | { ok: true; roomId: string; hostName: string; hostResumeToken: string; expiresAt?: number }
+  | { ok: false; error: string };
+
+export type ResumeRoomResponse =
+  | {
+      ok: true;
+      roomId: string;
+      hostName: string;
+      listenerCount: number;
+      listeners: RoomPresenceListener[];
+      expiresAt?: number;
+    }
+  | { ok: false; error: string; code?: string };
 
 // Social layer message shapes. Deliberately transport-agnostic: nothing in
 // here knows about sockets, so a Statement Store presence layer can adopt

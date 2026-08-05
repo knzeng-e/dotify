@@ -57,6 +57,41 @@ describe('diagnoseSignalFailure', () => {
     expect(reason).toContain(HOST_ORIGIN);
   });
 
+  it('explains when health works but the realtime request is blocked by the host', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, allowedOrigins: [HOST_ORIGIN] })))
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    const reason = await diagnoseSignalFailure(SIGNAL_URL, HOST_ORIGIN, { fetchImpl: fetchMock });
+
+    expect(fetchMock.mock.calls[1][0]).toBe('https://dotify-signal.example/socket.io/?EIO=4&transport=polling&t=dotify-diagnostic');
+    expect(reason).toContain('host blocked the realtime connection');
+  });
+
+  it('explains when the realtime handshake answers but Socket.IO cannot keep it open', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, allowedOrigins: [HOST_ORIGIN] })))
+      .mockResolvedValueOnce(new Response('0{"sid":"diagnostic"}'));
+
+    const reason = await diagnoseSignalFailure(SIGNAL_URL, HOST_ORIGIN, { fetchImpl: fetchMock });
+
+    expect(reason).toContain('realtime endpoint answered');
+    expect(reason).toContain('could not keep the session open');
+  });
+
+  it('includes the realtime endpoint status when the handshake is rejected', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, allowedOrigins: [HOST_ORIGIN] })))
+      .mockResolvedValueOnce(new Response('Forbidden', { status: 403 }));
+
+    const reason = await diagnoseSignalFailure(SIGNAL_URL, HOST_ORIGIN, { fetchImpl: fetchMock });
+
+    expect(reason).toContain('HTTP 403');
+  });
+
   it('falls back to the generic reason when health cannot be read', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockRejectedValue(new TypeError('Failed to fetch'));
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { io, type Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import {
   createRoomJoinE2eCaptureStream,
   isRoomJoinE2e,
@@ -13,6 +13,7 @@ import {
   roomJoinE2eIceServers
 } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
+import { createSignalClient, describeSignalConnectError } from '../features/rooms/signalClient';
 import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
 import { ensureProductHostRoomPermissions } from '../features/productHost/productHost';
 import { useRoomBeacon } from './useRoomBeacon';
@@ -29,6 +30,7 @@ import type {
   OpenRoom,
   PeerStatus,
   PlayerState,
+  ResumeRoomResponse,
   RoomPresenceListener,
   RoomChatMessage,
   RoomPlaybackMode,
@@ -155,6 +157,7 @@ export function useSession(deps: UseSessionDeps) {
 
   const roomIdRef = useRef('');
   const hostIdRef = useRef('');
+  const hostResumeTokenRef = useRef('');
   const modeRef = useRef<Mode>(mode);
   const listenersRef = useRef<ListenerRecord[]>([]);
   const socketRef = useRef<Socket | null>(null);
@@ -256,6 +259,7 @@ export function useSession(deps: UseSessionDeps) {
     }
     roomIdRef.current = '';
     hostIdRef.current = '';
+    hostResumeTokenRef.current = '';
     setRoomId('');
     setHostName('');
     setListeners([]);
@@ -284,17 +288,22 @@ export function useSession(deps: UseSessionDeps) {
   function getSocket() {
     if (socketRef.current) return socketRef.current;
 
-    const socket = io(signalUrl, {
-      autoConnect: false,
-      transports: ['polling', 'websocket']
-    });
+    const socket = createSignalClient(signalUrl);
+    let diagnosisStarted = false;
 
     socket.on('connect', () => {
+      diagnosisStarted = false;
       setSocketStatus('online');
       setError(null);
       socket.emit('rooms:list', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
       if (soloTrackHashRef.current && !roomIdRef.current) {
         socket.emit('presence:solo', { trackHash: soloTrackHashRef.current });
+      }
+
+      if (modeRef.current === 'host' && roomIdRef.current && hostResumeTokenRef.current) {
+        setSessionStatus('Reconnecting room');
+        resumeHostedRoom();
+        return;
       }
 
       // A listener whose socket dropped mid-session rejoins the same room
@@ -305,11 +314,18 @@ export function useSession(deps: UseSessionDeps) {
         rejoinRoom(roomIdRef.current);
       }
     });
-    socket.on('connect_error', () => {
+    socket.on('connect_error', connectError => {
       setSocketStatus('error');
       setSessionAction('idle');
       setIsRefreshingRooms(false);
       setError('Room service unavailable.');
+      console.error('Dotify signaling connection failed', {
+        origin: window.location.origin,
+        signalUrl,
+        reason: describeSignalConnectError(connectError)
+      });
+      if (diagnosisStarted) return;
+      diagnosisStarted = true;
       // Socket.IO cannot tell us why. Ask the server's public /health and
       // upgrade the message in place once it answers; the generic reason above
       // already stands if it does not.
@@ -321,7 +337,8 @@ export function useSession(deps: UseSessionDeps) {
     socket.on('disconnect', () => {
       setSocketStatus('offline');
       if (modeRef.current === 'host' && roomIdRef.current) {
-        clearRoomState('Room closed', 'Signal disconnected. The hosted room was closed.');
+        setSessionStatus('Reconnecting room');
+        setError('The room connection was interrupted. Reconnecting...');
         return;
       }
       if (roomIdRef.current) {
@@ -403,6 +420,18 @@ export function useSession(deps: UseSessionDeps) {
       // The room is gone (host left, expired, or timed out): forget it so the
       // reconnect logic does not try to rejoin a dead room.
       clearRoomState(payload.reason ?? 'Room closed', payload.reason ?? 'Room closed');
+    });
+    socket.on('room:host-connection', (payload: { status?: string }) => {
+      if (modeRef.current !== 'listener' || !roomIdRef.current) return;
+      if (payload?.status === 'reconnecting') {
+        setSessionStatus('Host reconnecting');
+        setError('The host connection was interrupted. The room is being restored.');
+        return;
+      }
+      if (payload?.status === 'online') {
+        setSessionStatus('Waiting stream');
+        setError(null);
+      }
     });
     socket.on('webrtc:offer', (payload: { from: string; offer: RTCSessionDescriptionInit }) => {
       void acceptOffer(payload.from, payload.offer);
@@ -927,6 +956,7 @@ export function useSession(deps: UseSessionDeps) {
         }
 
         roomIdRef.current = response.roomId;
+        hostResumeTokenRef.current = response.hostResumeToken;
         setRoomId(response.roomId);
         setHostName(response.hostName);
         setListeners([]);
@@ -1026,6 +1056,40 @@ export function useSession(deps: UseSessionDeps) {
       setRequestQueue(response.requests ?? []);
       setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
     });
+  }
+
+  // A mobile host can briefly lose its signaling transport while the webview
+  // remains alive. The opaque token proves continuity to the server without a
+  // wallet prompt or public identifier; it is kept in memory for this room only.
+  function resumeHostedRoom() {
+    const socket = socketRef.current;
+    const targetRoomId = roomIdRef.current;
+    const hostResumeToken = hostResumeTokenRef.current;
+    if (!socket?.connected || !targetRoomId || !hostResumeToken) return;
+
+    socket.timeout(SIGNAL_ACK_TIMEOUT_MS).emit(
+      'room:resume',
+      { roomId: targetRoomId, hostResumeToken },
+      (ackError: Error | null, response: ResumeRoomResponse | undefined) => {
+        if (ackError || !response) {
+          setSessionStatus('Reconnecting room');
+          setError('The room connection is still recovering.');
+          return;
+        }
+        if (!response.ok) {
+          clearRoomState('Room closed', response.error);
+          return;
+        }
+
+        roomIdRef.current = response.roomId;
+        setRoomId(response.roomId);
+        setHostName(response.hostName);
+        applyListenerRoster(response.listeners);
+        setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
+        setError(null);
+        requestOpenRooms();
+      }
+    );
   }
 
   function joinSession(event: FormEvent<HTMLFormElement>) {

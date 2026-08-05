@@ -312,7 +312,7 @@ test('protected room with unauthorized host: no stream, no keys, host moves to a
   }
 });
 
-test('host disconnect: the room is removed and the listener sees a clear closed state', async ({ browser }) => {
+test('host explicitly closes: the room is removed and the listener sees a clear closed state', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();
   try {
@@ -322,9 +322,9 @@ test('host disconnect: the room is removed and the listener sees a clear closed 
     const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
 
-    // Host leaves: closing the context disconnects the host socket, so the
-    // server removes the room (no zombie) and notifies the listener.
-    await hostContext.close();
+    // An explicit close is authoritative and bypasses the transient transport
+    // resume window, so listeners are notified immediately.
+    await host.getByRole('button', { name: 'Close room' }).click();
 
     await expect(listener.getByTestId('session-error')).toContainText(/host left|room closed|expired/i, { timeout: 20_000 });
     // The room is gone from the listener UI (no lingering room code).

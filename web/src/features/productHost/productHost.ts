@@ -49,7 +49,7 @@ type ProductHostIdentityDeps = {
 };
 type ProductHostRoomPermissionDeps = {
   isInsideContainer: () => boolean | Promise<boolean>;
-  requestPermission: (permission: HostRemotePermission) => Promise<{ ok: true; value: boolean } | { ok: false; error: unknown }>;
+  requestPermission?: (permission: HostRemotePermission) => Promise<{ ok: true; value: boolean } | { ok: false; error: unknown }>;
 };
 
 function envValue(env: EnvironmentLike, key: string): string {
@@ -88,8 +88,11 @@ async function loadProductHostIdentityDeps(): Promise<ProductHostIdentityDeps> {
 }
 
 async function loadProductHostRoomPermissionDeps(): Promise<ProductHostRoomPermissionDeps> {
-  const { isInsideContainer, requestPermission } = await import('@parity/product-sdk/host');
-  return { isInsideContainer, requestPermission };
+  const host = await import('@parity/product-sdk/host');
+  return {
+    isInsideContainer: host.isInsideContainer,
+    requestPermission: typeof host.requestPermission === 'function' ? host.requestPermission : undefined
+  };
 }
 
 function describeHostError(error: unknown): string {
@@ -104,6 +107,27 @@ function domainFromUrl(rawUrl: string): string {
   return new URL(rawUrl).hostname.toLowerCase();
 }
 
+function isSdkPermissionPreflightUnsupported(error: unknown): boolean {
+  const message = describeHostError(error).toLowerCase();
+  return message.includes('is not a function') || message.includes('unsupported') || message.includes('not supported');
+}
+
+async function requestHostRoomPermission(
+  requestPermission: ProductHostRoomPermissionDeps['requestPermission'],
+  permission: HostRemotePermission
+): Promise<{ ok: true; value: boolean } | { ok: false; error: unknown } | { unsupported: true }> {
+  if (!requestPermission) return { unsupported: true };
+
+  try {
+    return await requestPermission(permission);
+  } catch (error) {
+    if (isSdkPermissionPreflightUnsupported(error)) {
+      return { unsupported: true };
+    }
+    throw error;
+  }
+}
+
 export async function ensureProductHostRoomPermissions(signalUrl: string, deps?: ProductHostRoomPermissionDeps): Promise<ProductHostRoomPermissionResult> {
   const { isInsideContainer, requestPermission } = deps ?? (await loadProductHostRoomPermissionDeps());
   if (!(await isInsideContainer())) return { ok: true };
@@ -115,10 +139,11 @@ export async function ensureProductHostRoomPermissions(signalUrl: string, deps?:
     return { ok: false, reason: 'Room service unavailable. The configured signaling URL is not valid.' };
   }
 
-  const remote = await requestPermission({
+  const remote = await requestHostRoomPermission(requestPermission, {
     tag: 'Remote',
     value: { domains: [signalDomain] }
   });
+  if ('unsupported' in remote) return { ok: true };
   if (!remote.ok) {
     return { ok: false, reason: `Room service unavailable. The Polkadot host could not request remote access to ${signalDomain}: ${describeHostError(remote.error)}` };
   }
@@ -126,7 +151,8 @@ export async function ensureProductHostRoomPermissions(signalUrl: string, deps?:
     return { ok: false, reason: `Room service unavailable. Allow remote access to ${signalDomain} in the Polkadot host to open listening rooms.` };
   }
 
-  const webRtc = await requestPermission({ tag: 'WebRtc' });
+  const webRtc = await requestHostRoomPermission(requestPermission, { tag: 'WebRtc' });
+  if ('unsupported' in webRtc) return { ok: true };
   if (!webRtc.ok) {
     return { ok: false, reason: `Room service unavailable. The Polkadot host could not request WebRTC access: ${describeHostError(webRtc.error)}` };
   }

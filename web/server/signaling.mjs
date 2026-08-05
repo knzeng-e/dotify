@@ -14,7 +14,7 @@
 // host heartbeat, per-room listener cap, structured lifecycle logs, and a
 // status endpoint exposing public room metadata.
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
@@ -212,7 +212,9 @@ export function startSignalingServer(overrides = {}) {
   }
 
   function publicRooms() {
-    return Array.from(rooms.entries()).map(([roomId, room]) => publicRoom(roomId, room));
+    return Array.from(rooms.entries())
+      .filter(([, room]) => Boolean(room.hostId))
+      .map(([roomId, room]) => publicRoom(roomId, room));
   }
 
   function emitRooms() {
@@ -262,6 +264,20 @@ export function startSignalingServer(overrides = {}) {
     room.lastHostSeenAt = Date.now();
   }
 
+  function createHostResumeCredential() {
+    const token = randomBytes(32).toString('base64url');
+    return {
+      token,
+      hash: createHash('sha256').update(token).digest()
+    };
+  }
+
+  function matchesHostResumeToken(room, token) {
+    if (typeof token !== 'string' || token.length < 32) return false;
+    const candidate = createHash('sha256').update(token).digest();
+    return candidate.length === room.hostResumeTokenHash.length && timingSafeEqual(candidate, room.hostResumeTokenHash);
+  }
+
   io.on('connection', socket => {
     socket.emit('rooms:updated', publicRooms());
     socket.emit('presence:solo:updated', publicSoloPresence());
@@ -284,8 +300,10 @@ export function startSignalingServer(overrides = {}) {
       leaveRoom(socket);
 
       const roomId = createRoomId(rooms);
+      const resumeCredential = createHostResumeCredential();
       const room = {
         hostId: socket.id,
+        hostResumeTokenHash: resumeCredential.hash,
         hostName: sanitizeText(payload.displayName, 'Host', 32),
         listeners: new Map(),
         track: sanitizeTrack(payload.track),
@@ -305,8 +323,67 @@ export function startSignalingServer(overrides = {}) {
       socket.data.role = 'host';
       socket.join(roomId);
 
-      logEvent('room:created', { roomId, hostName: room.hostName, track: room.track?.title ?? null });
-      reply?.({ ok: true, roomId, hostName: room.hostName, expiresAt: room.createdAt + config.roomTtlMs });
+      logEvent('room:created', {
+        roomId,
+        hostName: room.hostName,
+        track: room.track?.title ?? null,
+        transport: socket.conn.transport.name
+      });
+      reply?.({
+        ok: true,
+        roomId,
+        hostName: room.hostName,
+        hostResumeToken: resumeCredential.token,
+        expiresAt: room.createdAt + config.roomTtlMs
+      });
+      emitRooms();
+    });
+
+    socket.on('room:resume', (payload = {}, reply) => {
+      const roomId = normalizeRoomId(payload.roomId);
+      const room = rooms.get(roomId);
+      if (!room) {
+        reply?.({ ok: false, error: 'Room not found. It may have ended or expired.', code: 'ROOM_NOT_FOUND' });
+        return;
+      }
+      if (!matchesHostResumeToken(room, payload.hostResumeToken)) {
+        reply?.({ ok: false, error: 'This host session cannot resume the room.', code: 'INVALID_HOST_RESUME_TOKEN' });
+        return;
+      }
+      if (room.hostId && room.hostId !== socket.id) {
+        reply?.({ ok: false, error: 'The room host is already connected.', code: 'HOST_ALREADY_CONNECTED' });
+        return;
+      }
+
+      if (socket.data.role !== 'host' || socket.data.roomId !== roomId) leaveRoom(socket);
+      room.hostId = socket.id;
+      socket.data.roomId = roomId;
+      socket.data.role = 'host';
+      socket.join(roomId);
+      touchHost(room);
+
+      logEvent('room:resumed', {
+        roomId,
+        hostName: room.hostName,
+        listenerCount: room.listeners.size,
+        transport: socket.conn.transport.name
+      });
+      reply?.({
+        ok: true,
+        roomId,
+        hostName: room.hostName,
+        listenerCount: room.listeners.size,
+        listeners: listenerRoster(room),
+        expiresAt: room.createdAt + config.roomTtlMs
+      });
+      io.to(roomId).emit('room:host-connection', { status: 'online' });
+      for (const listener of room.listeners.values()) {
+        socket.emit('listener:ready', {
+          listenerId: listener.id,
+          displayName: listener.displayName,
+          listenerCount: room.listeners.size
+        });
+      }
       emitRooms();
     });
 
@@ -327,6 +404,10 @@ export function startSignalingServer(overrides = {}) {
       const room = rooms.get(roomId);
       if (!room) {
         reply?.({ ok: false, error: 'Room not found. It may have ended or expired.', code: 'ROOM_NOT_FOUND' });
+        return;
+      }
+      if (!room.hostId) {
+        reply?.({ ok: false, error: 'The room host is reconnecting. Try again in a moment.', code: 'HOST_RECONNECTING' });
         return;
       }
       if (room.listeners.size >= config.maxListenersPerRoom) {
@@ -572,7 +653,7 @@ export function startSignalingServer(overrides = {}) {
     socket.on('listener:ready', () => {
       const roomId = socket.data.roomId;
       const room = rooms.get(roomId);
-      if (socket.data.role !== 'listener' || !room) return;
+      if (socket.data.role !== 'listener' || !room?.hostId) return;
 
       const listener = room.listeners.get(socket.id);
       io.to(room.hostId).emit('listener:ready', {
@@ -587,7 +668,7 @@ export function startSignalingServer(overrides = {}) {
     });
 
     socket.on('room:leave', () => leaveRoom(socket));
-    socket.on('disconnect', () => leaveRoom(socket));
+    socket.on('disconnect', reason => disconnectFromRoom(socket, reason));
   });
 
   // Sweep: enforce room TTL and host liveness so zombie rooms cannot pile up.
@@ -674,7 +755,7 @@ export function startSignalingServer(overrides = {}) {
       room.listeners.delete(socket.id);
       const listenerCount = room.listeners.size;
       logEvent('room:left', { roomId, listenerId: socket.id, listenerCount });
-      io.to(room.hostId).emit('listener:left', { listenerId: socket.id, listenerCount });
+      if (room.hostId) io.to(room.hostId).emit('listener:left', { listenerId: socket.id, listenerCount });
       io.to(roomId).emit('room:listener-count', { listenerCount });
       emitListenerRoster(roomId, room);
       emitRooms();
@@ -682,6 +763,40 @@ export function startSignalingServer(overrides = {}) {
 
     clearSocketRoom(socket);
     socket.leave(roomId);
+  }
+
+  function disconnectFromRoom(socket, reason) {
+    clearSoloPresence(socket);
+    const roomId = socket.data.roomId;
+    const role = socket.data.role;
+    if (!roomId || !role) return;
+
+    const room = rooms.get(roomId);
+    if (!room) {
+      clearSocketRoom(socket);
+      return;
+    }
+
+    if (role === 'host' && room.hostId === socket.id) {
+      room.hostId = null;
+      touchHost(room);
+      clearSocketRoom(socket);
+      logEvent('room:host-disconnected', {
+        roomId,
+        listenerCount: room.listeners.size,
+        reason,
+        transport: socket.conn.transport.name,
+        resumeWindowMs: config.hostHeartbeatTimeoutMs
+      });
+      io.to(roomId).emit('room:host-connection', {
+        status: 'reconnecting',
+        resumeUntil: room.lastHostSeenAt + config.hostHeartbeatTimeoutMs
+      });
+      emitRooms();
+      return;
+    }
+
+    leaveRoom(socket);
   }
 
   function clearSocketRoom(socket) {
