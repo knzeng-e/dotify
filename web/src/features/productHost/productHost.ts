@@ -1,4 +1,5 @@
 import { bytesToHex } from '@polkadot-apps/utils';
+import type { RemotePermissionItem } from '@parity/product-sdk/host';
 
 export type ProductHostMode = 'off' | 'auto' | 'required';
 export type ProductHostStatus = 'off' | 'checking' | 'available' | 'unavailable';
@@ -18,15 +19,7 @@ export type ProductHostIdentity = {
 export type ProductHostRoomPermissionResult = { ok: true } | { ok: false; reason: string };
 
 type EnvironmentLike = Record<string, string | boolean | number | null | undefined>;
-type HostRemotePermission =
-  | {
-      tag: 'Remote';
-      value: { domains: string[] };
-    }
-  | {
-      tag: 'WebRtc';
-      value?: undefined;
-    };
+type HostRoomPermission = Extract<RemotePermissionItem, { tag: 'Remote' | 'WebRtc' }>;
 type ProductAccount = {
   dotNsIdentifier: string;
   derivationIndex: number;
@@ -49,7 +42,7 @@ type ProductHostIdentityDeps = {
 };
 type ProductHostRoomPermissionDeps = {
   isInsideContainer: () => boolean | Promise<boolean>;
-  requestPermission?: (permission: HostRemotePermission) => Promise<{ ok: true; value: boolean } | { ok: false; error: unknown }>;
+  requestPermission?: (permission: HostRoomPermission) => Promise<{ ok: true; value: boolean } | { ok: false; error: unknown }>;
 };
 
 function envValue(env: EnvironmentLike, key: string): string {
@@ -114,7 +107,7 @@ function isSdkPermissionPreflightUnsupported(error: unknown): boolean {
 
 async function requestHostRoomPermission(
   requestPermission: ProductHostRoomPermissionDeps['requestPermission'],
-  permission: HostRemotePermission
+  permission: HostRoomPermission
 ): Promise<{ ok: true; value: boolean } | { ok: false; error: unknown } | { unsupported: true }> {
   if (!requestPermission) return { unsupported: true };
 
@@ -139,25 +132,28 @@ export async function ensureProductHostRoomPermissions(signalUrl: string, deps?:
     return { ok: false, reason: 'Room service unavailable. The configured signaling URL is not valid.' };
   }
 
+  // Request WebRTC first. Product Mobile can currently throw while encoding a
+  // domain-scoped Remote request even though its simpler WebRtc permission is
+  // supported. Signaling fetches may still work through the webview in that
+  // state, so returning early after Remote would open a room that can exchange
+  // metadata but can never publish media.
+  const webRtc = await requestHostRoomPermission(requestPermission, { tag: 'WebRtc' });
+  if (!('unsupported' in webRtc) && !webRtc.ok) {
+    return { ok: false, reason: `Room service unavailable. The Polkadot host could not request WebRTC access: ${describeHostError(webRtc.error)}` };
+  }
+  if (!('unsupported' in webRtc) && !webRtc.value) {
+    return { ok: false, reason: 'Room service unavailable. Allow WebRTC in the Polkadot host to share live room audio.' };
+  }
+
   const remote = await requestHostRoomPermission(requestPermission, {
     tag: 'Remote',
     value: { domains: [signalDomain] }
   });
-  if ('unsupported' in remote) return { ok: true };
-  if (!remote.ok) {
+  if (!('unsupported' in remote) && !remote.ok) {
     return { ok: false, reason: `Room service unavailable. The Polkadot host could not request remote access to ${signalDomain}: ${describeHostError(remote.error)}` };
   }
-  if (!remote.value) {
+  if (!('unsupported' in remote) && !remote.value) {
     return { ok: false, reason: `Room service unavailable. Allow remote access to ${signalDomain} in the Polkadot host to open listening rooms.` };
-  }
-
-  const webRtc = await requestHostRoomPermission(requestPermission, { tag: 'WebRtc' });
-  if ('unsupported' in webRtc) return { ok: true };
-  if (!webRtc.ok) {
-    return { ok: false, reason: `Room service unavailable. The Polkadot host could not request WebRTC access: ${describeHostError(webRtc.error)}` };
-  }
-  if (!webRtc.value) {
-    return { ok: false, reason: 'Room service unavailable. Allow WebRTC in the Polkadot host to share live room audio.' };
   }
 
   return { ok: true };

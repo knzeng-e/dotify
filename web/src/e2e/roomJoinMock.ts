@@ -265,6 +265,24 @@ export function roomJoinE2eIceServers(): RTCIceServer[] {
   return [];
 }
 
+export function roomJoinE2eOfferDelayMs(): number {
+  if (!isRoomJoinE2e || typeof window === 'undefined') return 0;
+  const requested = Number(new URLSearchParams(window.location.search).get('e2eOfferDelayMs'));
+  return Number.isFinite(requested) ? Math.min(2_000, Math.max(0, requested)) : 0;
+}
+
+// A delayed-offer scenario strips candidates from the SDP snapshot so the
+// listener must preserve trickled candidates that arrive before the offer.
+// This reproduces Product Mobile Fetch-polling order without mocking WebRTC.
+export function roomJoinE2eOfferSnapshot(description: RTCSessionDescriptionInit): RTCSessionDescriptionInit {
+  if (!roomJoinE2eOfferDelayMs() || !description.sdp) return description;
+  const sdp = description.sdp
+    .split(/\r?\n/)
+    .filter(line => !line.startsWith('a=candidate:') && line !== 'a=end-of-candidates')
+    .join('\r\n');
+  return { ...description, sdp };
+}
+
 export function shouldUseRoomJoinE2eSyntheticCapture() {
   if (!isRoomJoinE2e || typeof window === 'undefined') return false;
   return new URLSearchParams(window.location.search).get('e2eCapture') !== 'web-audio';

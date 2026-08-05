@@ -40,9 +40,10 @@ async function readRoomJoinState(page: Page) {
 
 // Host: open a deterministic e2e track and broadcast it as a room. Returns the
 // server-assigned room code so a listener context can join via its share link.
-async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: string, options: { captureMode?: HostCaptureMode } = {}) {
+async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: string, options: { captureMode?: HostCaptureMode; offerDelayMs?: number } = {}) {
   const params = new URLSearchParams({ e2eRoom: scenario });
   if (options.captureMode) params.set('e2eCapture', options.captureMode);
+  if (options.offerDelayMs) params.set('e2eOfferDelayMs', String(options.offerDelayMs));
   await page.goto(`/?${params.toString()}`);
   // Open the room straight from the create-room modal so an unauthorized
   // protected track does not raise an access-gate overlay over the player
@@ -202,6 +203,26 @@ test('public room: mobile-style host without captureStream uses Web Audio captur
 
     const listenerState = await readRoomJoinState(listener);
     expect(listenerState?.keyRequests ?? 0).toBe(0);
+  } finally {
+    await hostContext.close();
+    await listenerContext.close();
+  }
+});
+
+test('public room: listener keeps trickled ICE candidates that arrive before the host offer', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const listenerContext = await browser.newContext();
+  try {
+    const host = await hostContext.newPage();
+    // The e2e harness snapshots an SDP without embedded candidates and delays
+    // the offer. Real host candidates therefore arrive first, matching Product
+    // Mobile Fetch polling and exercising the pre-offer candidate queue.
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { offerDelayMs: 800 });
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Early ICE guest' });
+
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await expectRemoteAudioPlaying(listener);
+    await expect(listener.getByTestId('session-error')).toHaveCount(0);
   } finally {
     await hostContext.close();
     await listenerContext.close();

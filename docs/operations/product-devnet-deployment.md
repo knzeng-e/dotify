@@ -318,7 +318,7 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 5]`. Product host containers use
+The current Product executable is `[0, 1, 6]`. Product host containers use
 Engine.IO Fetch polling without a WebSocket upgrade, so room signaling stays on
 the remote-network primitive proven to remain available in Product Mobile.
 Standalone browsers retain Fetch-first with an optional WebSocket upgrade. Do
@@ -326,7 +326,7 @@ not remove the direct `engine.io-client` pin or restore XHR polling without a
 successful room-open stability test in both Product Mobile and the standalone
 browser.
 
-Room continuity in `[0, 1, 5]` also depends on the matching signaling server.
+Room continuity in `[0, 1, 6]` also depends on the matching signaling server.
 Deploy `web/fly.signal.toml` before publishing the Product executable. A
 transient host transport loss keeps the room private but resumable for the
 configured `SIGNAL_HOST_TIMEOUT_MS`; the in-memory host token resumes the same
@@ -334,16 +334,30 @@ room without another wallet or name prompt. No new Fly secret or environment
 variable is required.
 
 Product Mobile permission preflight is strict when the host explicitly rejects
-`Remote` or `WebRtc`, but executable `[0, 1, 5]` does not fail room creation on
-the current mobile SDK's internal permission bridge error (`... is not a
-function ... undefined`). In that unsupported-preflight case Dotify proceeds to
-the Fetch-polling signaling connection, where Fly CORS and Socket.IO remain the
-effective network boundary.
+`Remote` or `WebRtc`. Executable `[0, 1, 6]` requests `WebRtc` first so the
+current mobile bridge's domain-encoding failure on `Remote` cannot prevent the
+media permission from being requested. It treats the known internal permission
+bridge exception (`... is not a function ... undefined`) as unsupported for the
+individual permission, checks the other permission, then proceeds to Fetch
+polling only when there was no explicit denial. Fly CORS and Socket.IO remain
+the signaling network boundary.
 
-Executable `[0, 1, 5]` retries host-side audio capture when a listener arrives
+Executable `[0, 1, 6]` retries host-side audio capture when a listener arrives
 before Product Mobile has produced a local WebRTC audio track. The host should
 therefore create a fresh offer after the capture becomes available instead of
-leaving guests on `Connecting...`.
+leaving guests on `Connecting...`. The listener now retains ICE candidates that
+arrive before the offer over Product Fetch polling, retries negotiation once,
+and reports whether the host sent no offer, exposed no WebRTC route, or needs a
+TURN relay.
+
+The checked-in Product profile does not configure TURN. Direct STUN is useful
+for development but cannot reliably cross every mobile, carrier, VPN, or
+symmetric-NAT boundary. Before treating cross-network mobile rooms as
+production-ready, configure `VITE_TURN_URL`, `VITE_TURN_USERNAME`, and
+`VITE_TURN_CREDENTIAL` in the Product build environment and republish. These
+Vite values are public client configuration, so use scoped and rotated DevNet
+credentials. Long-lived production TURN secrets must remain server-side behind
+a short-lived credential issuer.
 
 Publisher listing is deliberately not part of the default deploy. It requires
 the current Product proof-of-personhood level and signer support, and the
@@ -430,7 +444,7 @@ Then verify in the Product host:
    receives the host `Remote` permission for `dotify-signal.fly.dev` plus the
    `WebRtc` permission when the host SDK can run that preflight. If the mobile
    host shows `Room service unavailable` while Fly receives no `/health` or
-   `/socket.io` request, treat a stale executable older than `[0, 1, 5]` or
+   `/socket.io` request, treat a stale executable older than `[0, 1, 6]` or
    host-side remote networking as the first suspects. A current Product host
    build keeps Socket.IO on Fetch polling without a WebSocket upgrade and
    continues past the known mobile SDK preflight exception.

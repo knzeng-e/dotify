@@ -114,11 +114,11 @@ describe('ensureProductHostRoomPermissions', () => {
       })
     ).resolves.toEqual({ ok: true });
 
-    expect(requestPermission).toHaveBeenNthCalledWith(1, {
+    expect(requestPermission).toHaveBeenNthCalledWith(1, { tag: 'WebRtc' });
+    expect(requestPermission).toHaveBeenNthCalledWith(2, {
       tag: 'Remote',
       value: { domains: ['dotify-signal.fly.dev'] }
     });
-    expect(requestPermission).toHaveBeenNthCalledWith(2, { tag: 'WebRtc' });
   });
 
   it('continues when Product Mobile cannot run the permission preflight', async () => {
@@ -133,7 +133,28 @@ describe('ensureProductHostRoomPermissions', () => {
       })
     ).resolves.toEqual({ ok: true });
 
-    expect(requestPermission).toHaveBeenCalledWith({
+    expect(requestPermission).toHaveBeenNthCalledWith(1, { tag: 'WebRtc' });
+    expect(requestPermission).toHaveBeenNthCalledWith(2, {
+      tag: 'Remote',
+      value: { domains: ['dotify-signal.fly.dev'] }
+    });
+  });
+
+  it('still requests WebRTC when Product Mobile cannot encode the Remote permission', async () => {
+    const requestPermission = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, value: true })
+      .mockRejectedValueOnce(new TypeError("c is not a function. (In 'c(s)', 'c' is undefined)"));
+
+    await expect(
+      ensureProductHostRoomPermissions('https://dotify-signal.fly.dev', {
+        isInsideContainer: () => true,
+        requestPermission
+      })
+    ).resolves.toEqual({ ok: true });
+
+    expect(requestPermission).toHaveBeenNthCalledWith(1, { tag: 'WebRtc' });
+    expect(requestPermission).toHaveBeenNthCalledWith(2, {
       tag: 'Remote',
       value: { domains: ['dotify-signal.fly.dev'] }
     });
@@ -161,21 +182,6 @@ describe('ensureProductHostRoomPermissions', () => {
   });
 
   it('explains when the host denies remote signaling access', async () => {
-    const requestPermission = vi.fn(async () => ({ ok: true as const, value: false }));
-
-    const result = await ensureProductHostRoomPermissions('https://dotify-signal.fly.dev', {
-      isInsideContainer: () => true,
-      requestPermission
-    });
-
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.reason).toContain('Allow remote access to dotify-signal.fly.dev');
-    }
-    expect(requestPermission).toHaveBeenCalledTimes(1);
-  });
-
-  it('explains when the host denies WebRTC access', async () => {
     const requestPermission = vi
       .fn()
       .mockResolvedValueOnce({ ok: true, value: true })
@@ -188,8 +194,26 @@ describe('ensureProductHostRoomPermissions', () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.reason).toContain('Allow WebRTC');
+      expect(result.reason).toContain('Allow remote access to dotify-signal.fly.dev');
     }
     expect(requestPermission).toHaveBeenCalledTimes(2);
+    expect(requestPermission).toHaveBeenNthCalledWith(1, { tag: 'WebRtc' });
+  });
+
+  it('explains when the host denies WebRTC access', async () => {
+    const requestPermission = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, value: false });
+
+    const result = await ensureProductHostRoomPermissions('https://dotify-signal.fly.dev', {
+      isInsideContainer: () => true,
+      requestPermission
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toContain('Allow WebRTC');
+    }
+    expect(requestPermission).toHaveBeenCalledTimes(1);
   });
 });

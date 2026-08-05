@@ -154,7 +154,7 @@ Required Product values:
 | `VITE_DOTIFY_ROOM_BEACONS` | `off` |
 | `VITE_PINATA_GATEWAY` | `https://ipfs.io` |
 | `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 5]` in `web/polkadot-app-deploy.config.ts` |
+| Product executable `appVersion` | `[0, 1, 6]` in `web/polkadot-app-deploy.config.ts` |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -366,14 +366,14 @@ Socket.IO polling is rejected with `403`, producing an empty music view or
 preventing room creation.
 
 Polkadot mobile host room creation also has a runtime host-permission preflight,
-not only Fly CORS. The Product asks the host for `Remote` access to
-`dotify-signal.fly.dev` before opening Socket.IO and for `WebRtc` before sharing
-live audio. Explicit host denials still stop room creation with a user-facing
-message. Product executable `[0, 1, 5]` treats the current Product Mobile SDK's
-internal permission-preflight exception (`... is not a function ... undefined`)
-as unsupported preflight and continues to the signaling connection, because
-Fetch polling and the allowed `polkadot://dotify-test01.dot` origin are the
-actual network boundary proven in mobile testing. The Product build uses
+not only Fly CORS. Product executable `[0, 1, 6]` requests `WebRtc` before the
+domain-scoped `Remote` permission. This order matters because the current
+Product Mobile bridge can fail while encoding `Remote`, while signaling fetches
+still work and `WebRtc` may still be grantable. Explicit host denials stop room
+creation with a user-facing message. The known internal permission-preflight
+exception (`... is not a function ... undefined`) is treated as unsupported for
+that individual permission, and Dotify still checks the other permission before
+opening signaling. The Product build uses
 Engine.IO's fetch-based polling transport because the failing Product Mobile
 runtime reached `/health` through `fetch` while its Socket.IO XHR polling did
 not connect. Product host containers remain on Fetch polling for the whole
@@ -382,14 +382,24 @@ upgrade to WebSocket. If mobile still shows `Room service unavailable` and Fly
 logs show no new `/health` or `/socket.io` request, debug the Product host
 remote-network layer before changing Fly origins again. If `/health` appears
 but `/socket.io` does not, confirm the deployed Product executable is version
-`[0, 1, 5]` or later before investigating Fly.
+`[0, 1, 6]` or later before investigating Fly.
 
-Product executable `[0, 1, 5]` also retries host audio capture when a listener
+Product executable `[0, 1, 6]` also retries host audio capture when a listener
 arrives before Product Mobile has produced a local WebRTC audio track. This
 prevents the listener from staying on `Connecting...` merely because the host's
-first capture attempt happened before the mobile media element was ready. If
-listeners still do not receive audio on `[0, 1, 5]`, inspect host-side capture
-logs and WebRTC ICE state before changing signaling CORS.
+first capture attempt happened before the mobile media element was ready. It
+also preserves trickled ICE candidates delivered before the SDP offer, retries
+one failed listener negotiation, and replaces an unbounded `Joining live audio`
+state with a permission, missing-offer, or TURN-specific diagnostic.
+
+The tracked Product profile currently has no `VITE_TURN_URL`,
+`VITE_TURN_USERNAME`, or `VITE_TURN_CREDENTIAL`. Rooms therefore use direct
+ICE with public STUN only. This works on permissive networks but does not
+guarantee an iOS/mobile host can reach a listener behind a different or
+symmetric NAT. For that topology, provide a TURN relay at Product build time
+and republish. TURN credentials embedded as `VITE_*` values are visible to
+every client; use restricted, rotated credentials for DevNet only. Production
+should mint short-lived TURN REST credentials from a server-side shared secret.
 
 An open room now survives a transient host signaling disconnect for up to
 `SIGNAL_HOST_TIMEOUT_MS` (currently 120 seconds). The server removes the room
@@ -400,7 +410,7 @@ its SHA-256 hash in the in-memory room record. A successful reconnect republishe
 the room and rebuilds host-to-listener offers. An explicit **Leave room** still
 closes immediately, and an unrecovered room closes at the existing host timeout.
 This behavior requires both the updated `dotify-signal` deployment and Product
-executable `[0, 1, 5]`.
+executable `[0, 1, 6]`.
 
 Keep `dotify-signal` on one active machine until a shared Socket.IO adapter is
 added. Rooms, chat, reactions, request queues, and solo-presence aggregates are
