@@ -193,9 +193,9 @@ export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
   meta: {
     state: 'stale-cache',
     cacheAvailable: true,
-    indexedAt: '2026-08-04T19:22:44.672Z',
-    lastIndexedBlock: 11816331,
-    chainHeadBlock: 11816333,
+    indexedAt: '2026-08-05T00:39:14.838Z',
+    lastIndexedBlock: 11825780,
+    chainHeadBlock: 11825782,
     blockLag: 2,
     staleAfterMs: 60000,
     lastErrorCode: null

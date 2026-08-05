@@ -154,7 +154,7 @@ Required Product values:
 | `VITE_DOTIFY_ROOM_BEACONS` | `off` |
 | `VITE_PINATA_GATEWAY` | `https://ipfs.io` |
 | `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 4]` in `web/polkadot-app-deploy.config.ts` |
+| Product executable `appVersion` | `[0, 1, 5]` in `web/polkadot-app-deploy.config.ts` |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -369,7 +369,7 @@ Polkadot mobile host room creation also has a runtime host-permission preflight,
 not only Fly CORS. The Product asks the host for `Remote` access to
 `dotify-signal.fly.dev` before opening Socket.IO and for `WebRtc` before sharing
 live audio. Explicit host denials still stop room creation with a user-facing
-message. Product executable `[0, 1, 4]` treats the current Product Mobile SDK's
+message. Product executable `[0, 1, 5]` treats the current Product Mobile SDK's
 internal permission-preflight exception (`... is not a function ... undefined`)
 as unsupported preflight and continues to the signaling connection, because
 Fetch polling and the allowed `polkadot://dotify-test01.dot` origin are the
@@ -382,7 +382,14 @@ upgrade to WebSocket. If mobile still shows `Room service unavailable` and Fly
 logs show no new `/health` or `/socket.io` request, debug the Product host
 remote-network layer before changing Fly origins again. If `/health` appears
 but `/socket.io` does not, confirm the deployed Product executable is version
-`[0, 1, 4]` or later before investigating Fly.
+`[0, 1, 5]` or later before investigating Fly.
+
+Product executable `[0, 1, 5]` also retries host audio capture when a listener
+arrives before Product Mobile has produced a local WebRTC audio track. This
+prevents the listener from staying on `Connecting...` merely because the host's
+first capture attempt happened before the mobile media element was ready. If
+listeners still do not receive audio on `[0, 1, 5]`, inspect host-side capture
+logs and WebRTC ICE state before changing signaling CORS.
 
 An open room now survives a transient host signaling disconnect for up to
 `SIGNAL_HOST_TIMEOUT_MS` (currently 120 seconds). The server removes the room
@@ -393,7 +400,7 @@ its SHA-256 hash in the in-memory room record. A successful reconnect republishe
 the room and rebuilds host-to-listener offers. An explicit **Leave room** still
 closes immediately, and an unrecovered room closes at the existing host timeout.
 This behavior requires both the updated `dotify-signal` deployment and Product
-executable `[0, 1, 4]`.
+executable `[0, 1, 5]`.
 
 Keep `dotify-signal` on one active machine until a shared Socket.IO adapter is
 added. Rooms, chat, reactions, request queues, and solo-presence aggregates are

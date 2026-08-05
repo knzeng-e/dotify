@@ -116,6 +116,8 @@ export function useSession(deps: UseSessionDeps) {
     signalUrl,
     publicAppUrl,
     identityAddress,
+    audioSource,
+    trackInfo,
     setTrackInfo,
     setPlayerState,
     localAudioRef,
@@ -167,6 +169,8 @@ export function useSession(deps: UseSessionDeps) {
   const pendingIceCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const roomPermissionRef = useRef<Promise<boolean> | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const audioSourceRef = useRef<string | null>(audioSource);
+  const trackInfoRef = useRef<TrackInfo | null>(trackInfo);
   // Which audioSource the current local stream was captured from. Capturing is
   // idempotent per source: source changes renegotiate listeners onto a fresh
   // receiver, while same-source play/pause/seek refreshes can stay on
@@ -179,6 +183,12 @@ export function useSession(deps: UseSessionDeps) {
   const captureAttemptRef = useRef<CaptureAttempt>({ source: null, count: 0 });
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastPlayerStateEmitRef = useRef(0);
+
+  useEffect(() => {
+    audioSourceRef.current = audioSource;
+    trackInfoRef.current = trackInfo;
+  }, [audioSource, trackInfo]);
+
   function upsertListener(listener: ListenerRecord) {
     setListeners(previous => {
       const next = previous.some(item => item.id === listener.id)
@@ -368,9 +378,7 @@ export function useSession(deps: UseSessionDeps) {
       });
       setListenerCount(payload.listenerCount);
       setSessionStatus(localStreamRef.current ? 'Pairing listener' : 'Room open');
-      if (localStreamRef.current) {
-        void createOfferForListener(payload.listenerId);
-      }
+      pairListenerOrPrepareStream(payload.listenerId);
     });
     socket.on('listener:ready', (payload: { listenerId: string; displayName: string; listenerCount: number }) => {
       upsertListener({
@@ -380,9 +388,7 @@ export function useSession(deps: UseSessionDeps) {
       });
       setListenerCount(payload.listenerCount);
       setSessionStatus(localStreamRef.current ? 'Pairing listener' : 'Room open');
-      if (localStreamRef.current) {
-        void createOfferForListener(payload.listenerId);
-      }
+      pairListenerOrPrepareStream(payload.listenerId);
     });
     socket.on('listener:left', (payload: { listenerId: string; listenerCount: number }) => {
       hostPeersRef.current.get(payload.listenerId)?.close();
@@ -766,6 +772,17 @@ export function useSession(deps: UseSessionDeps) {
       socketRef.current?.emit('room:stream-ready');
       if (isRoomJoinE2e) recordRoomJoinE2eStreamReadySignal();
     }
+  }
+
+  function pairListenerOrPrepareStream(listenerId: string) {
+    if (localStreamRef.current) {
+      void createOfferForListener(listenerId);
+      return;
+    }
+
+    if (!audioSourceRef.current) return;
+    setSessionStatus('Preparing audio');
+    void prepareLocalStream(audioSourceRef.current, trackInfoRef.current);
   }
 
   function emitPlayerState(force = false) {
