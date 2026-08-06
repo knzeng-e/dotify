@@ -37,12 +37,12 @@ deploy command before publishing.
 
 ### `CATALOG_API_URL`
 
-| Property     | Value                                      |
-| ------------ | ------------------------------------------ |
-| **Type**     | HTTPS URL                                  |
-| **Required** | No                                         |
+| Property     | Value                                            |
+| ------------ | ------------------------------------------------ |
+| **Type**     | HTTPS URL                                        |
+| **Required** | No                                               |
 | **Default**  | `VITE_DOTIFY_API_URL` from `.env.product-devnet` |
-| **Example**  | `https://dotify-api.fly.dev`               |
+| **Example**  | `https://dotify-api.fly.dev`                     |
 
 Optional override used by
 `npm run generate:product-catalog-bootstrap`. The generator refreshes the
@@ -111,12 +111,11 @@ the listener selects **Use Polkadot app**.
 | **Example**  | `viem`                  |
 
 Selects which adapter backs the runtime contract ports. `viem` is the only path
-with production evidence. `product-cdm` routes reads and writes through the
-Product SDK contract handles over the generated `cdm.json` snapshot.
-
-This selects **reads only**. Contract writes stay on the viem signer path in
-every mode, because the Product write path has no host-signed transaction
-evidence yet.
+with production evidence. `product-cdm` routes reads and write submissions
+through the Product SDK contract handles over the generated `cdm.json` snapshot.
+The frontend now uses the same `RuntimeWritePort` for Classic unlock payments in
+both modes, but Product CDM writes remain an operator opt-in until real
+host-signed transaction evidence is captured.
 
 Any unrecognised value falls back to `viem`, so a typo cannot silently disable
 contract reads. `product-cdm` additionally requires `VITE_DOTIFY_HOST_MODE` to
@@ -142,12 +141,12 @@ for a `.dot` deployment.
 
 ### `VITE_DOTIFY_ROOM_BEACONS`
 
-| Property     | Value        |
-| ------------ | ------------ |
+| Property     | Value         |
+| ------------ | ------------- |
 | **Type**     | `on` or `off` |
-| **Required** | No           |
-| **Default**  | `off`        |
-| **Example**  | `off`        |
+| **Required** | No            |
+| **Default**  | `off`         |
+| **Example**  | `off`         |
 
 Publishes a small beacon to the Statement Store while hosting a room, so the
 room can be discovered without Dotify's signaling server.
@@ -193,7 +192,7 @@ Product DevNet is a preset over the Paseo system parachains - Asset Hub (1000),
 People (1004), Bulletin (1010) - at EVM chain `420420417`, which is exactly
 where Dotify's contracts are deployed.
 
-The SDK's `paseo` preset is *not* an alternative: it targets Paseo Next
+The SDK's `paseo` preset is _not_ an alternative: it targets Paseo Next
 (Asset Hub Next 1500 / People Next 1502), which the Product documentation calls
 a different network. Selecting it would resolve every manifest address to an
 account with no code - indistinguishable from artists with no releases.
@@ -397,11 +396,11 @@ use this as a production key boundary; production should use the backend
 
 ### `VITE_TURN_URL`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL`
 
-| Property     | Value                             |
-| ------------ | --------------------------------- |
+| Property     | Value                                                  |
+| ------------ | ------------------------------------------------------ |
 | **Type**     | Comma-separated TURN URL list and optional credentials |
-| **Required** | No                                |
-| **Default**  | None                              |
+| **Required** | No                                                     |
+| **Default**  | None                                                   |
 
 Optional browser-visible TURN relay fallback for WebRTC rooms. `VITE_TURN_URL`
 accepts one or more comma-separated `turn:` / `turns:` URLs, for example
@@ -458,11 +457,11 @@ Network interface to bind.
 
 ### `SIGNAL_ORIGINS`
 
-| Property     | Value                                                                                           |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| **Type**     | Comma-separated URL list or `*`                                                                 |
-| **Required** | No                                                                                              |
-| **Default**  | `*`                                                                                             |
+| Property     | Value                                                                                                                                                                                                                        |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Type**     | Comma-separated URL list or `*`                                                                                                                                                                                              |
+| **Required** | No                                                                                                                                                                                                                           |
+| **Default**  | `*`                                                                                                                                                                                                                          |
 | **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 
 CORS allowed origins for Socket.IO and status endpoints. Set explicit frontend
@@ -581,11 +580,11 @@ backwards-compatible fallback when `API_ORIGINS` is not set.
 
 ### `API_ORIGINS`
 
-| Property     | Value                                                                                           |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| **Type**     | Comma-separated URL origin list                                                                 |
-| **Required** | Multiple hosted frontends                                                                       |
-| **Default**  | The single `API_ORIGIN` value                                                                   |
+| Property     | Value                                                                                                                                                                                                                        |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Type**     | Comma-separated URL origin list                                                                                                                                                                                              |
+| **Required** | Multiple hosted frontends                                                                                                                                                                                                    |
+| **Default**  | The single `API_ORIGIN` value                                                                                                                                                                                                |
 | **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 
 Exact frontend origins accepted by backend CORS. When set, it takes precedence
@@ -788,11 +787,11 @@ credentials are replayable until rotated.
 
 ### `TURN_TTL_SECONDS`
 
-| Property     | Value            |
-| ------------ | ---------------- |
-| **Type**     | Integer seconds  |
-| **Required** | No               |
-| **Default**  | `3600`           |
+| Property     | Value           |
+| ------------ | --------------- |
+| **Type**     | Integer seconds |
+| **Required** | No              |
+| **Default**  | `3600`          |
 
 Lifetime used for `/api/turn/grant` responses. REST-mode credentials are
 embedded with this expiry in the username; static-mode credentials use it only

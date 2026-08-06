@@ -30,18 +30,20 @@ The first Product adaptation therefore uses the host account for:
 
 - an explicit, user-initiated Product account connection;
 - an SS58 account for display and future Product-native adapters;
-- a derived H160 address for local room-name persistence and read-only
-  runtime/catalog correlation.
+- a derived H160 address for local room-name persistence, protected key requests,
+  and Product-native runtime write candidates.
 
-It does not use that account for:
+The tracked Product deployment does not yet use that account for:
 
 - Classic payments;
 - artist runtime creation or release publication;
-- protected content-key requests;
 - Bulletin artist publication through the existing PAPI v1 integration.
 
-Those actions continue to require the existing passkey or EVM wallet until the
-chain and backend adapters described below are delivered.
+Classic payments and artist runtime writes now go through `RuntimeWritePort`,
+so a Product CDM build can submit them through the generated contract adapter.
+The tracked Product deployment still keeps `VITE_DOTIFY_RUNTIME_ADAPTER`
+unset/`viem`, so those actions continue to require the existing passkey or EVM
+wallet until host-signed transaction evidence is captured.
 
 ## Runtime Topology
 
@@ -77,18 +79,18 @@ Socket.IO, and WebRTC signaling.
 
 ## Capability Matrix
 
-| Capability | Standalone | Product build now | Product-native target |
-| --- | --- | --- | --- |
-| Browse catalog | Fly cache + EVM RPC | Same | Host-routed read adapter where it improves reliability |
-| Play Free track | No wallet | No wallet | Same |
-| Join room link | No wallet | No wallet | Same |
-| Host room | Socket.IO + WebRTC | Product Desktop/web host: same. Product Mobile iOS: external-browser continuation until the host exposes Product WebRTC. | Keep until a multiparty replacement proves equivalent UX |
-| Product identity | Not applicable | App-scoped SS58/H160 | Host identity with explicit capability grants |
-| Classic payment | Passkey/EVM wallet | Passkey/EVM wallet | CDM/PAPI write adapter |
-| Protected key request | EIP-191 or session token | `product-sr25519-v1` when a Product account is connected; EIP-191 or session token otherwise | Frontend-host signed Product key/session requests, with captured host signing evidence |
-| Artist publication | viem/EVM | viem/EVM | Generated CDM contract adapter |
-| Personhood | Current on-chain policy source | No new claim | Privacy-preserving Product proof after verification |
-| Static delivery | Netlify | Bulletin + DotNS | Bulletin + DotNS |
+| Capability            | Standalone                                    | Product build now                                                                                                                     | Product-native target                                                                  |
+| --------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Browse catalog        | Fly cache + EVM RPC                           | Same                                                                                                                                  | Host-routed read adapter where it improves reliability                                 |
+| Play Free track       | No wallet                                     | No wallet                                                                                                                             | Same                                                                                   |
+| Join room link        | No wallet                                     | No wallet                                                                                                                             | Same                                                                                   |
+| Host room             | Socket.IO + WebRTC                            | Product Desktop/web host: same. Product Mobile iOS: external-browser continuation until the host exposes Product WebRTC.              | Keep until a multiparty replacement proves equivalent UX                               |
+| Product identity      | Not applicable                                | App-scoped SS58/H160                                                                                                                  | Host identity with explicit capability grants                                          |
+| Classic payment       | Passkey/EVM wallet through `RuntimeWritePort` | Passkey/EVM wallet in the tracked build; Product CDM writer only when `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` is explicitly enabled | CASH settlement after the Product payment rail is designed                             |
+| Protected key request | EIP-191 or session token                      | `product-sr25519-v1` when a Product account is connected; EIP-191 or session token otherwise                                          | Frontend-host signed Product key/session requests, with captured host signing evidence |
+| Artist publication    | viem/EVM                                      | viem/EVM                                                                                                                              | Generated CDM contract adapter                                                         |
+| Personhood            | Current on-chain policy source                | No new claim                                                                                                                          | Privacy-preserving Product proof after verification                                    |
+| Static delivery       | Netlify                                       | Bulletin + DotNS                                                                                                                      | Bulletin + DotNS                                                                       |
 
 ## Rooms Stay Host-Neutral
 
@@ -186,7 +188,8 @@ Adapters:
   now backed by a real contract resolver (`productCdmContracts.ts`) over a
   generated snapshot manifest. It remains opt-in behind
   `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` until host transaction evidence
-  exists;
+  exists. Classic unlock payments already call the same `RuntimeWritePort`, so
+  this flag changes the signer/transport seam without touching listener UI;
 - `CatalogApiAdapter`: the existing server-side read model, shared by both
   frontends.
 
@@ -211,11 +214,11 @@ PolkaVM recompilation and no registry entry.
 same Hardhat artifacts the viem bindings come from, so the two adapters cannot
 disagree about an ABI:
 
-| Output | Contents |
-| --- | --- |
-| `cdm.json` | `@dotify/artist-directory` and `@dotify/artist-runtime-factory` with their `deployments.json` addresses |
-| `smartRuntime.ts` | merged artist-runtime diamond facet ABI, bound to a per-artist address at call time |
-| `cdm.d.ts` | `Contracts` module augmentation for typed `getContract()` handles |
+| Output            | Contents                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| `cdm.json`        | `@dotify/artist-directory` and `@dotify/artist-runtime-factory` with their `deployments.json` addresses |
+| `smartRuntime.ts` | merged artist-runtime diamond facet ABI, bound to a per-artist address at call time                     |
+| `cdm.d.ts`        | `Contracts` module augmentation for typed `getContract()` handles                                       |
 
 Artist runtimes are deliberately absent from the manifest: a diamond is
 deployed per artist, so its address is known at call time, not build time.
@@ -249,8 +252,8 @@ The task refuses to proceed when a target address has no bytecode on the
 connected chain, or when a name is already owned by another account. Publishing
 a name that points at nothing would be worse than not publishing it.
 
-| Registry | Address | Network |
-| --- | --- | --- |
+| Registry        | Address                                      | Network                                     |
+| --------------- | -------------------------------------------- | ------------------------------------------- |
 | `devnet` preset | `0x59b0245778917af55224e5f8fb55f7f8d452619f` | Paseo Asset Hub, para 1000, chain 420420417 |
 
 CDM's own documentation confirms the preset distinction that
@@ -281,20 +284,20 @@ assembly blocks, with only an informational `extcodesize` warning from
 Size is. The Asset Hub initcode limit is 49,152 bytes, and `resolc` emits
 roughly 4-10x more bytecode than `solc` for the same source:
 
-| Contract | Deployed EVM | resolc PolkaVM | Against the 48 KB limit |
-| --- | --- | --- | --- |
-| `MusicRegistryPallet` | 8,855 | 71,252 | **over by 45%** |
-| `SmartRuntime` | n/a | 41,142 | under |
-| `DiamondCutPallet` | 4,753 | 39,408 | under |
-| `ArtistRuntimeFactory` | 9,999 | 38,926 | under |
-| `ArtistDirectory` | 1,829 | 17,325 | under |
-| `MusicRightsRegistry` | not deployed | 88,955 | **over by 81%** |
+| Contract               | Deployed EVM | resolc PolkaVM | Against the 48 KB limit |
+| ---------------------- | ------------ | -------------- | ----------------------- |
+| `MusicRegistryPallet`  | 8,855        | 71,252         | **over by 45%**         |
+| `SmartRuntime`         | n/a          | 41,142         | under                   |
+| `DiamondCutPallet`     | 4,753        | 39,408         | under                   |
+| `ArtistRuntimeFactory` | 9,999        | 38,926         | under                   |
+| `ArtistDirectory`      | 1,829        | 17,325         | under                   |
+| `MusicRightsRegistry`  | not deployed | 88,955         | **over by 81%**         |
 
 `MusicRegistryPallet` is the pallet that holds the catalog, so this is not an
 optional component. Clearing the limit would mean splitting it into a
 storage-only contract and a logic contract - and the practitioner report that
 documents that workaround also records that diamond-style generic mappings were
-*ineffective* at reducing size, which is precisely Dotify's architecture.
+_ineffective_ at reducing size, which is precisely Dotify's architecture.
 
 So the ordering is: Asset Hub's `pallet-revive` accepts both EVM bytecode
 through `eth-rpc` and PolkaVM blobs through `resolc`, and for Dotify the EVM
@@ -323,7 +326,7 @@ looking like a catalog of artists with no releases.
 
 ### DevNet Is Not A Separate Chain
 
-Product DevNet is a *preset*, not a network. It targets the Paseo system
+Product DevNet is a _preset_, not a network. It targets the Paseo system
 parachains - Asset Hub (1000), People (1004), Bulletin (1010) - with EVM chain
 id `420420417` and the `dev-dot.li` web gateway.
 
@@ -331,10 +334,10 @@ That is the chain Dotify is already deployed on. Verified read-only on
 2026-07-29 by querying both endpoints for the ArtistDirectory at
 `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`:
 
-| Endpoint | `eth_chainId` | Block | Directory bytecode |
-| --- | --- | --- | --- |
-| `https://eth-rpc-testnet.polkadot.io/` | `0x190f1b41` | 11546347 | 3660 chars, sha256 `36707b24…` |
-| `https://paseo-assethub-rpc.laissez-faire.trade` | `0x190f1b41` | 11546348 | 3660 chars, sha256 `36707b24…` |
+| Endpoint                                         | `eth_chainId` | Block    | Directory bytecode             |
+| ------------------------------------------------ | ------------- | -------- | ------------------------------ |
+| `https://eth-rpc-testnet.polkadot.io/`           | `0x190f1b41`  | 11546347 | 3660 chars, sha256 `36707b24…` |
+| `https://paseo-assethub-rpc.laissez-faire.trade` | `0x190f1b41`  | 11546348 | 3660 chars, sha256 `36707b24…` |
 
 Same chain id, blocks one apart, byte-identical contract code. The two URLs are
 different providers for one chain.
@@ -349,19 +352,22 @@ there will not appear on this Devnet". Dotify has no deployment there, so
 `ProductChainEnvironment` admits only `devnet` - a wrong preset is not a
 configuration option, it is a bug.
 
-**Selection is build-time, and reads only.** `VITE_DOTIFY_RUNTIME_ADAPTER` is
+**Selection is build-time, and fail-closed.** `VITE_DOTIFY_RUNTIME_ADAPTER` is
 inlined by Vite, so a `viem` build tree-shakes the entire Product contract graph
 away - 4.4 MB output versus 10 MB when opted in. The difference is
 `@parity/product-sdk-descriptors`, whose shared descriptors module references
 every chain's metadata; only one chunk is ever fetched, but all are published,
-and Bulletin storage is a finite quota. Contract *writes* stay on the viem
-signer path in every mode, since routing a payment or a publication through an
+and Bulletin storage is a finite quota. Runtime _writes_ use the same adapter
+selection as reads: `viem` uses the connected EVM/passkey wallet, and
+`product-cdm` submits through Product SDK contract handles. The production
+default remains `viem`, since routing a payment or a publication through an
 unproven signer is not a reasonable default.
 
-The remaining gate for Product contract *writes* is now narrow: `pallet-revive`
+The remaining gate for Product contract _writes_ is now narrow: `pallet-revive`
 account mapping for the signing account, and real host-signed transaction smoke
-evidence from inside the container. The chain question is settled, the manifest
-and types exist, and reads are wired. Until that write evidence exists,
+evidence from inside the container, including native value forwarding for
+Classic unlock. The chain question is settled, the manifest and types exist,
+and reads/writes share one port. Until that write evidence exists,
 `VITE_DOTIFY_RUNTIME_ADAPTER` defaults to `viem`.
 
 The backend authentication protocol now has an explicit signature scheme field.
@@ -417,8 +423,9 @@ one infrastructure adapter at a time.
 3. If the host is absent, catalog browsing, Free playback, and room links still
    work. The wallet modal explains why the Product account is unavailable.
 4. A Product account without an EVM signing adapter can request protected keys
-   only through `product-sr25519-v1`; contract writes still require a
-   passkey/EVM signer until Product CDM transaction evidence lands.
+   through `product-sr25519-v1`; contract writes use `viem` by default and only
+   use Product CDM in an explicit `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`
+   build after operator validation.
 5. A denied key, RPC failure, or unsupported signature never falls back to a
    browser content secret.
 6. The Product SDK and deploy tooling are prototype/reference dependencies.
@@ -428,15 +435,15 @@ one infrastructure adapter at a time.
 
 The initial baseline is:
 
-| Component | Pinned/target value |
-| --- | --- |
-| Node | 22 |
-| `@parity/product-sdk` | `0.20.1` |
-| `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` in the deploy command |
-| Product network | `devnet` |
-| Product domain | `dotify-test01.dot` |
-| Public gateway | `https://dotify-test01.dev-dot.li` |
-| Asset Hub EVM chain ID | `420420417` |
+| Component                                            | Pinned/target value                |
+| ---------------------------------------------------- | ---------------------------------- |
+| Node                                                 | 22                                 |
+| `@parity/product-sdk`                                | `0.20.1`                           |
+| `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` in the deploy command     |
+| Product network                                      | `devnet`                           |
+| Product domain                                       | `dotify-test01.dot`                |
+| Public gateway                                       | `https://dotify-test01.dev-dot.li` |
+| Asset Hub EVM chain ID                               | `420420417`                        |
 
 For every SDK or deploy-tool upgrade:
 

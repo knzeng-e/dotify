@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { fetchAssetRef, fetchIpfsCid, getGatewayUrl } from '../services/pinata';
 import { getPublicClient } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
@@ -24,8 +24,9 @@ import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
-import { createViemRuntimeWriter } from '../features/runtime/viemRuntimeAdapter';
+import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
+import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
 import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
 import { fetchCatalog, isCatalogApiConfigured, readBundledCatalog, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
 import {
@@ -278,7 +279,12 @@ export function useCatalog(deps: UseCatalogDeps) {
     setDescription
   } = deps;
 
-  const runtimeReader = createRuntimeReader({ ethRpcUrl });
+  const runtimeAdapterConfig = useMemo(() => resolveRuntimeAdapterConfig(import.meta.env), []);
+  const runtimeReader = useMemo(() => createRuntimeReader({ ethRpcUrl, config: runtimeAdapterConfig }), [ethRpcUrl, runtimeAdapterConfig]);
+  const runtimeWriter = useMemo(
+    () => createRuntimeWriter({ ethRpcUrl, getViemWalletClient: getActiveWalletClient, config: runtimeAdapterConfig }),
+    [ethRpcUrl, getActiveWalletClient, runtimeAdapterConfig]
+  );
   const usesCatalogApi = isCatalogApiConfigured() && !isClassicUnlockE2e && !isArtistPublishE2e && !isRoomJoinE2e;
   const [initialCatalogState] = useState<{ tracks: CatalogTrack[]; source: 'cache' | 'bundle' | null }>(() => {
     const cached = usesCatalogApi ? readCachedCatalog() : null;
@@ -981,10 +987,33 @@ export function useCatalog(deps: UseCatalogDeps) {
     return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
   }
 
+  function explainRuntimeWriteWalletRequirement(): string | null {
+    if (!connectedWallet) return null;
+    if (runtimeAdapterConfig.kind === 'product-cdm') {
+      return connectedWallet.method === 'product-host'
+        ? null
+        : 'This Product CDM build signs runtime transactions with the Polkadot Product account. Connect with "Use Polkadot app", then try again.';
+    }
+    return connectedWallet.createEvmClient
+      ? null
+      : 'This action still requires a passkey or EVM wallet while Dotify contract writes are being validated on the Product DevNet host signer.';
+  }
+
   async function payForTrackAccess(track: CatalogTrack) {
-    if (!connectedWallet?.createEvmClient) {
+    if (!connectedWallet) {
       setAccessGate(buildAccessGateInfo(track));
       setShowWalletModal(true);
+      return;
+    }
+
+    const walletRequirement = explainRuntimeWriteWalletRequirement();
+    if (walletRequirement) {
+      setAccessGate(buildAccessGateInfo(track));
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Payment signer unavailable',
+        message: walletRequirement
+      });
       return;
     }
 
@@ -1025,8 +1054,6 @@ export function useCatalog(deps: UseCatalogDeps) {
     });
 
     try {
-      const walletClient = await getActiveWalletClient();
-      const runtimeWriter = createViemRuntimeWriter({ ethRpcUrl, walletClient });
       const txHash = await runtimeWriter.payForAccess(runtimeAddress, track.hash, priceWei);
       setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Payment submitted.', txHash });
       await runtimeWriter.waitForTransaction(txHash);

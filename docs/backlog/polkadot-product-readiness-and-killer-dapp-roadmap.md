@@ -183,12 +183,16 @@ Goal: deepen the delivered Product mode one adapter at a time.
   account public key to the derived H160 requester before nonce consumption and
   access checks.
 - Delivered on the next follow-up branch: wire Product-host frontend key and
-  session requests to that signature scheme, while keeping contract writes on
-  the standalone EVM/passkey signer path.
+  session requests to that signature scheme.
 - Delivered on the next follow-up branch: generate the CDM manifest and typed
   contract augmentation from the same Hardhat artifacts as the viem bindings,
   and implement the real Product contract resolver behind the runtime ports.
   Selection stays opt-in behind `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`.
+- Delivered on the next follow-up branch: route Classic unlock payments through
+  `RuntimeWritePort` instead of constructing a viem writer inside the catalog
+  hook. The tracked Product deployment still defaults to viem, but a
+  `product-cdm` build now changes the runtime write adapter at the same seam as
+  reads.
 - Settled: the chain question. Product DevNet is a preset over the Paseo system
   parachains (Asset Hub 1000, People 1004, Bulletin 1010) at EVM chain
   420420417, not a separate network. Dotify's contracts are already there,
