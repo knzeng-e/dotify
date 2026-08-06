@@ -431,7 +431,7 @@ The initial baseline is:
 | Component | Pinned/target value |
 | --- | --- |
 | Node | 22 |
-| `@parity/product-sdk` | `0.19.1` |
+| `@parity/product-sdk` | `0.20.1` |
 | `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` in the deploy command |
 | Product network | `devnet` |
 | Product domain | `dotify-test01.dot` |

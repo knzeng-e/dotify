@@ -6,8 +6,8 @@ Priority: P0
 
 Track: Production spine
 
-Status: implemented on `codex/86-catalog-read-model`; Project 5 remains In
-Progress until review and public performance evidence are attached.
+Status: closed / record. The cached catalog read model landed; residual DAV2
+first-sound and gateway timing evidence belongs to #88.
 
 ## Goal
 
@@ -77,5 +77,5 @@ npm run catalog:reindex
 - Browser startup runtime/royalty enumeration removed in API mode: delivered.
 - Stale cache, indexer outage, RPC outage, and empty states: delivered and
   tested.
-- Warm/cold p75 and useful-content budgets: require public deployment traces at
-  the production seed size before #86 moves to Done.
+- Warm/cold p75 and useful-content budgets: catalog-read evidence is closed
+  with #86. Any remaining startup/gateway timing budget now belongs to #88.

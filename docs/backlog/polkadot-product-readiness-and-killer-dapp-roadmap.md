@@ -1,10 +1,10 @@
 # Polkadot product readiness and killer dapp roadmap
 
-Status: active execution note; the Product DevNet baseline is implemented on
-`feat/product-devnet-adaptation`.
+Status: active execution note; the Product DevNet baseline is delivered on
+`dev` and remains tracked through Product compatibility issue #85.
 
-Last Product SDK verification: 2026-07-26 against
-`@parity/product-sdk` 0.19.1 and
+Last Product SDK package alignment: 2026-08-06 against
+`@parity/product-sdk` 0.20.1 and
 `@polkadot-community-foundation/polkadot-app-deploy` 0.13.1.
 
 ## Verdict
@@ -122,9 +122,9 @@ testnet users.
   frontend public-env validation are delivered/closed.
 - #33 public injected-wallet/device validation is delivered/closed; Product
   host/account integration remains scoped to #85, not reopened here.
-- #86 cached catalog implementation is active: the browser uses one cacheable
-  API request, while the backend persists and reconciles SmartRuntime state.
-  Keep it open until review and public warm/cold p75 evidence are attached.
+- #86 cached catalog implementation is closed/record: the browser uses one
+  cacheable API request, while the backend persists and reconciles SmartRuntime
+  state. Residual first-sound and gateway evidence belongs to #88, not #86.
 - Validate DAV2 Range/MSE and fallback behavior across browsers and gateways
   through #88.
 - Decide whether a backend read-through gateway is needed for reliable first
@@ -275,8 +275,8 @@ Recommended Project 5 fields:
   port extraction implemented; keep open for CDM/PAPI contract portability,
   backend Product signatures, resource allocation, and bounded Statement Store
   presence.
-- #86: implementation active on `codex/86-catalog-read-model`; keep In Progress
-  until review and public performance evidence close the warm/cold budgets.
+- #86: closed/record after the cached catalog read model landed. Do not reopen
+  it for DAV2 or gateway timing; those budgets belong to #88.
 - #87: keep for responsive cover/gateway pipeline.
 - #88: keep for DAV2 startup and backend read-through gateway decision.
 - #89: keep for TURN/SFU/reconnect; constrain Statement Store to presence.

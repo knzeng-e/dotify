@@ -141,7 +141,7 @@ P3 first vertical slice delivered (`agent/audio-v2-p3`):
 
 Product SDK adaptation note (2026-07-26):
 
-- Product SDK 0.19.1 and deploy tooling 0.13.1 remain
+- Product SDK 0.20.1 and deploy tooling 0.13.1 remain
   prototype/reference/unaudited.
 - Host APIs are progressive enhancement for Product containers; standalone web
   remains a supported mode.

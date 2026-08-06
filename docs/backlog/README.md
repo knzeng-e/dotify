@@ -96,7 +96,7 @@ ticket 18 preview assets are consciously retired by access model v2.
 
 | Backlog doc | GitHub issue | Status | Goal |
 | --- | --- | --- | --- |
-| `26-cached-catalog-read-model.md` | #86 | Implemented on the active branch; Project 5 In Progress pending review and public p75 evidence | One cacheable catalog request backed by confirmed events and deterministic reconciliation |
+| `26-cached-catalog-read-model.md` | #86 | Closed / Record | One cacheable catalog request backed by confirmed events and deterministic reconciliation |
 | `24-access-streaming-v2.md` | #88 | In Review | Validate DAV2 startup across real browsers, devices, and gateways |
 
 ## Strategic improvement plan
@@ -114,10 +114,11 @@ decisions. API-side Product-signed key/session verification now exists through
 `product-sr25519-v1`, but the Product frontend still needs to send host-signed
 requests before protected playback can use that identity path.
 
-The Product SDK evidence snapshot used for this replanning is
-`@parity/product-sdk` 0.19.1 and
+The Product SDK evidence snapshot used for this replanning is now
+`@parity/product-sdk` 0.20.1 and
 `@polkadot-community-foundation/polkadot-app-deploy` 0.13.1,
-verified on 2026-07-26. They remain prototype / reference / unaudited code.
+last aligned with the checked-in package set on 2026-08-06. They remain
+prototype / reference / unaudited code.
 Product SDK contracts target `pallet-revive` / PolkaVM CDM flows, not Dotify's
 current viem + EVM RPC write path; Statement Store is useful for small
 ephemeral presence, not full chat, SDP/ICE, durable media metadata, or guest

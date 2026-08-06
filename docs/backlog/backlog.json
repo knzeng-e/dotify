@@ -236,7 +236,7 @@
       "priority": "P0",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Implementation is on codex/86-catalog-read-model; keep In Progress until review and public warm/cold performance evidence are attached."
+      "note": "Closed/record after the cached catalog read model landed. Residual DAV2 first-sound and gateway timing evidence belongs to #88."
     },
     {
       "id": "cover-gateway-pipeline",

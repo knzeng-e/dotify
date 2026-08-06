@@ -67,7 +67,8 @@ sound. Only the baseline rows marked delivered may be presented as live.
 
 Product SDK snapshot used for this plan:
 
-- `@parity/product-sdk` 0.19.1 (verified 2026-07-26);
+- `@parity/product-sdk` 0.20.1 (aligned with the checked-in package set on
+  2026-08-06);
 - `@polkadot-community-foundation/polkadot-app-deploy` 0.13.1;
 - explicit prototype / reference / unaudited status;
 - Product target: DevNet Asset Hub / People / Bulletin;
@@ -77,9 +78,9 @@ Product SDK snapshot used for this plan:
 
 | Item | Tracking | Status |
 | --- | --- | --- |
-| Product SDK baseline: pin SDK versions, detect Host availability, connect an app-scoped account explicitly, and separate presence identity from EVM signing authority. | #85, `polkadot-product-readiness-and-killer-dapp-roadmap.md` | Delivered on Product adaptation branch |
+| Product SDK baseline: pin SDK versions, detect Host availability, connect an app-scoped account explicitly, and separate presence identity from EVM signing authority. | #85, `polkadot-product-readiness-and-killer-dapp-roadmap.md` | Delivered on `dev` |
 | Contract portability spike: compare Dotify's current Paseo Asset Hub EVM / viem / Hardhat flow with Product SDK contracts on `pallet-revive`, PolkaVM artifacts, and CDM manifests. | #85 | Proposed |
-| Product deployment baseline: build a browser-safe multi-file bundle, publish through Bulletin/DotNS tooling, preserve backend key custody, and use a canonical public room URL. | #85 | Delivered on Product adaptation branch; live publication pending operator credentials |
+| Product deployment baseline: build a browser-safe multi-file bundle, publish through Bulletin/DotNS tooling, preserve backend key custody, and use a canonical public room URL. | #85 | Delivered on `dev`; live Product publication still requires the operator mnemonic |
 | Statement Store presence spike: use it for small, signed, ephemeral discovery/presence only. Do not move SDP/ICE, full chat history, media metadata, or link-only guest reactions there until signer, TTL, and size constraints are solved. | #89, `20-room-social-layer.md`, `21-room-collaborative-queue.md` | Proposed |
 | Humanity / Individuality research rewrite: prove the canonical live source, privacy-preserving proof shape, product-account/identity-account binding, and fallback UX before promoting Human free from research to build. | #12, `11-proof-of-personhood-integration-research.md` | Open |
 
