@@ -1,6 +1,7 @@
 import {
   Copy,
   Check,
+  ExternalLink,
   Headphones,
   KeyRound,
   Library,
@@ -69,6 +70,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     remoteReady,
     localStreamReady,
     roomPlaybackMode,
+    productHostWebRtcUnavailable,
     error
   } = session;
   const streamTitle = trackInfo?.title || selectedTrack?.title || title;
@@ -134,7 +136,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const showManualAudioStart = Boolean(
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
   );
-  const showAudioRetry = Boolean(mode === 'listener' && roomId && (!remoteReady || status === 'no-audio'));
+  const showAudioRetry = Boolean(mode === 'listener' && roomId && !productHostWebRtcUnavailable && (!remoteReady || status === 'no-audio'));
 
   // Broadcast reactions: petals rise from real room:reaction events relayed by
   // the signaling server (sender included -- the echo is the single render
@@ -678,6 +680,13 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 Leave
               </button>
             </>
+          )}
+
+          {productHostWebRtcUnavailable && (
+            <button className='primary-action' type='button' onClick={() => void session.openRoomInBrowser()}>
+              <ExternalLink size={16} />
+              {roomId ? 'Continue in browser' : 'Open Dotify in browser'}
+            </button>
           )}
 
           {error && (

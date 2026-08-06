@@ -19,8 +19,11 @@ another actually hearing the same track in sync, with no wallet friction for the
   npm run dev:listen    # starts the signaling server + Vite dev server
   ```
 
-- For hostile networks (symmetric NAT), configure a TURN relay before testing:
-  `VITE_TURN_URL`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL` (STUN alone is not enough).
+- For hostile networks (symmetric NAT, carrier NAT, VPN), configure a TURN
+  relay before testing. Preferred production path: set API `TURN_URLS` plus
+  `TURN_REST_SECRET` and confirm `GET /api/turn/grant` returns `iceServers`.
+  `VITE_TURN_URL`, `VITE_TURN_USERNAME`, and `VITE_TURN_CREDENTIAL` are only
+  browser-visible DevNet/static fallbacks. STUN alone is not enough.
 
 ## Steps
 
@@ -50,6 +53,17 @@ another actually hearing the same track in sync, with no wallet friction for the
 - Any case where audio did not start (note whether a "Start audio" tap was required -
    browsers can block autoplay until the listener interacts).
 - Any sync drift beyond a couple of seconds.
+- The room code and local timestamp for a failed Product Mobile attempt. With
+  executable `[0, 1, 10]` or later, the operator can correlate these with
+  `flyctl logs -a dotify-signal --no-tail`: an offer without an answer is
+  followed by a metadata-only `webrtc:diagnostic` identifying the failing
+  listener phase. No SDP or ICE candidate is logged.
+- For executable `[0, 1, 11]`, verify that a Product Mobile runtime with no
+  `RTCPeerConnection` shows **Continue in browser**, opens the same
+  `#/rooms/<id>` URL externally, and does not keep sending retry offers.
+- Do not expect a coturn allocation when the diagnostic phase is
+  `listener:create-peer-failed` and `peerConnectionAvailable=false`. TURN is
+  reached only after a peer exists and ICE gathering begins.
 
 ## Notes
 

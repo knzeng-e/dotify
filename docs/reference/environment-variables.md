@@ -229,8 +229,10 @@ identity/access migration review.
 | **Default**  | Current browser URL                |
 | **Example**  | `https://dotify-test01.dev-dot.li` |
 
-Canonical public origin used when copying room links. Product builds must set
-this so invitations never expose an internal host/container or raw gateway URL.
+Canonical public origin used when copying room links and when a Product runtime
+needs to continue a room in the external browser. Product builds must set this
+so invitations and browser fallbacks never expose an internal host/container or
+raw gateway URL.
 
 ---
 
@@ -397,12 +399,19 @@ use this as a production key boundary; production should use the backend
 
 | Property     | Value                             |
 | ------------ | --------------------------------- |
-| **Type**     | TURN URL and optional credentials |
-| **Required** | Recommended for production rooms  |
+| **Type**     | Comma-separated TURN URL list and optional credentials |
+| **Required** | No                                |
 | **Default**  | None                              |
 
-Optional TURN relay configuration for WebRTC rooms. Without TURN, STUN-only
-connections can fail behind symmetric NATs and some corporate firewalls.
+Optional browser-visible TURN relay fallback for WebRTC rooms. `VITE_TURN_URL`
+accepts one or more comma-separated `turn:` / `turns:` URLs, for example
+`turn:turn.example.org:3478?transport=udp,turns:turn.example.org:443?transport=tcp`.
+
+Prefer the backend `/api/turn/grant` path for production so the shared TURN
+REST secret stays server-side. These `VITE_*` values are readable from the
+published bundle and should be limited to rotated DevNet/static credentials.
+Without any TURN relay, STUN-only connections can fail behind symmetric NATs,
+carrier NAT, VPNs, and some corporate firewalls.
 
 ---
 
@@ -731,6 +740,63 @@ Never expose this value to the frontend.
 | **Default**  | None                |
 
 Backend-only Pinata token for IPFS uploads.
+
+---
+
+### `TURN_URLS`
+
+| Property     | Value                                   |
+| ------------ | --------------------------------------- |
+| **Type**     | Comma-separated `turn:` / `turns:` list |
+| **Required** | Reliable production rooms               |
+| **Default**  | None                                    |
+
+Public TURN relay URLs returned by `GET /api/turn/grant`, for example
+`turn:turn.example.org:3478?transport=udp,turns:turn.example.org:443?transport=tcp`.
+This value is not secret, but it belongs on the API because the recommended
+credential path is server-minted.
+
+---
+
+### `TURN_REST_SECRET`
+
+| Property     | Value              |
+| ------------ | ------------------ |
+| **Type**     | Shared HMAC secret |
+| **Required** | Production TURN    |
+| **Default**  | None               |
+
+Backend-only secret shared with the TURN relay's REST authentication mechanism
+such as Coturn `static-auth-secret`. Dotify returns a short-lived username and
+HMAC-SHA1 credential from `/api/turn/grant`; it never returns this secret.
+
+---
+
+### `TURN_USERNAME`, `TURN_CREDENTIAL`
+
+| Property     | Value                         |
+| ------------ | ----------------------------- |
+| **Type**     | Static TURN username/password |
+| **Required** | No                            |
+| **Default**  | None                          |
+
+Fallback for rotated DevNet/static TURN credentials when `TURN_REST_SECRET` is
+not available. Prefer `TURN_REST_SECRET` for production because static
+credentials are replayable until rotated.
+
+---
+
+### `TURN_TTL_SECONDS`
+
+| Property     | Value            |
+| ------------ | ---------------- |
+| **Type**     | Integer seconds  |
+| **Required** | No               |
+| **Default**  | `3600`           |
+
+Lifetime used for `/api/turn/grant` responses. REST-mode credentials are
+embedded with this expiry in the username; static-mode credentials use it only
+as the client cache lifetime.
 
 ---
 

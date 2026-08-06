@@ -114,18 +114,37 @@ The listener's progress bar is derived from `playerState`, not from the local `<
 
 ### NAT traversal
 
-ICE candidates are gathered using a public STUN server (`stun.l.google.com:19302`). This resolves most consumer NAT configurations. Symmetric NAT and some corporate firewalls will block peer-to-peer connections. Configure `VITE_TURN_URL` and optional TURN credentials for production room reliability.
+ICE candidates are gathered using a public STUN server
+(`stun.l.google.com:19302`). This resolves many consumer NAT configurations,
+but symmetric NAT, carrier NAT, VPNs, and some corporate firewalls can block
+peer-to-peer media even when signaling works. Configure a TURN relay for
+production room reliability. The preferred path is the backend
+`GET /api/turn/grant` endpoint (`TURN_URLS` plus `TURN_REST_SECRET` on the
+API); browser-visible `VITE_TURN_URL` credentials are only a DevNet/static
+fallback.
 
 ### One peer connection per listener
 
 The host creates a separate `RTCPeerConnection` for each listener. Connections are tracked in `hostPeersRef` (a `Map<listenerId, RTCPeerConnection>`). When a listener leaves, their peer connection is closed and removed. When a new listener joins an active room, the host immediately creates a new offer and sends the current audio stream.
+
+The current iOS Product container is a deliberate exception to this browser
+architecture: its sandbox
+[removes `window.RTCPeerConnection` from Product scripts](https://github.com/Polkadot-Community-Foundation/polkadot-ios-community/blob/main/Packages/Products/product-container/src/index.ts#L79-L81).
+The Product `WebRtc` permission can still be recorded by the host, but
+it does not expose a JavaScript peer connection. Dotify cannot reach ICE or TURN
+inside that container, so executable `[0, 1, 11]` opens the canonical HTTPS room
+in the system browser instead. Full in-app support requires a host-provided,
+permission-gated WebRTC bridge or restoring the browser API after permission.
 
 ### Limitations
 
 - Audio only — no video.
 - Listeners cannot control playback.
 - Symmetric NAT can block connection without a TURN server.
-- `captureStream()` is not available in all browsers or in the Bulletin-distributed build.
+- `captureStream()` is not available in all browsers or Product host containers.
+- The current iOS Product sandbox does not expose `RTCPeerConnection` to Product
+  scripts. Product Mobile listeners must continue the room in the external
+  browser until the host adds a permission-gated media API.
 - Socket reconnect can silently rejoin the room, but the host still needs to
   create a fresh WebRTC offer for the new socket. If the host leaves, expires,
   or times out, the room is closed and listeners must join another room.

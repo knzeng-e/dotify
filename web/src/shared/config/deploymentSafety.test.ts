@@ -300,4 +300,26 @@ describe('validateProductionEnvironment', () => {
       warnings: []
     });
   });
+
+  it('accepts comma-separated TURN relay URLs in production builds', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_TURN_URL: 'turn:turn.example.org:3478?transport=udp,turns:turn.example.org:443?transport=tcp'
+      })
+    ).toEqual({
+      mode: 'production',
+      errors: [],
+      warnings: []
+    });
+  });
+
+  it('rejects non-TURN URLs in the TURN relay list', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_TURN_URL: 'turn:turn.example.org:3478?transport=udp,https://not-turn.example'
+      }).errors
+    ).toEqual(['VITE_TURN_URL must use turn: or turns: in production.']);
+  });
 });

@@ -17,12 +17,17 @@ import {
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
 import { createSignalClient, describeSignalConnectError } from '../features/rooms/signalClient';
 import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
-import { ensureProductHostRoomPermissions } from '../features/productHost/productHost';
+import {
+  ensureProductHostRoomPermissions,
+  isProductHostWebRtcUnavailable,
+  openProductHostExternalUrl
+} from '../features/productHost/productHost';
 import { useRoomBeacon } from './useRoomBeacon';
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
+import { getTurnIceServers, hasTurnIceServer } from '../services/turn';
 import type {
   CapturableMediaElement,
   CreateRoomResponse,
@@ -45,20 +50,9 @@ import type {
 } from '../shared/types';
 import type { FormEvent } from 'react';
 
-// STUN alone fails silently behind symmetric NAT; configure a TURN relay for
-// production rooms so "share a link, listen together" survives hostile networks.
-const TURN_URL = import.meta.env.VITE_TURN_URL as string | undefined;
-const TURN_USERNAME = import.meta.env.VITE_TURN_USERNAME as string | undefined;
-const TURN_CREDENTIAL = import.meta.env.VITE_TURN_CREDENTIAL as string | undefined;
-
 // E2E room-join runs loopback-only ICE (no public STUN) so two browser contexts
 // in the same headless Chromium connect deterministically without internet.
-const iceServers: RTCIceServer[] = isRoomJoinE2e
-  ? roomJoinE2eIceServers()
-  : [
-      { urls: 'stun:stun.l.google.com:19302' },
-      ...(TURN_URL ? [{ urls: TURN_URL, username: TURN_USERNAME, credential: TURN_CREDENTIAL } satisfies RTCIceServer] : [])
-    ];
+const stunIceServers: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
 
 // Hosts must show liveness to the signaling server; rooms with silent hosts
 // are swept server-side to avoid zombie rooms.
@@ -66,6 +60,7 @@ const HOST_HEARTBEAT_INTERVAL_MS = 25_000;
 const SIGNAL_ACK_TIMEOUT_MS = 8_000;
 const WEBRTC_CONNECTION_TIMEOUT_MS = 10_000;
 const WEBRTC_AUTOMATIC_RETRIES = 1;
+const dotifyApiUrl = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.trim();
 
 type AudioContextWindow = Window & { webkitAudioContext?: typeof AudioContext };
 
@@ -75,6 +70,21 @@ type WebAudioElementCapture = {
   destination: MediaStreamAudioDestinationNode;
   monitorGain: GainNode;
   stream: MediaStream;
+};
+
+type PlaceholderAudioStream = {
+  context: AudioContext;
+  oscillator: OscillatorNode;
+  stream: MediaStream;
+};
+
+type CreateSessionOptions = {
+  audioSourceHint?: string | null;
+};
+
+type WebRtcDiagnosticDetails = {
+  errorCode?: number;
+  peer?: RTCPeerConnection | null;
 };
 
 const webAudioElementCaptures = new WeakMap<HTMLMediaElement, WebAudioElementCapture>();
@@ -104,11 +114,18 @@ function hasIceCandidate(description: RTCSessionDescriptionInit | null): boolean
   return Boolean(description?.sdp && /(?:^|\r?\n)a=candidate:/i.test(description.sdp));
 }
 
-function webRtcConnectionFailureMessage() {
-  if (!TURN_URL) {
+function webRtcConnectionFailureMessage(turnRelayAvailable: boolean) {
+  if (!turnRelayAvailable) {
     return 'Live audio could not cross the host and listener networks. This deployment needs a TURN relay for reliable mobile rooms.';
   }
   return 'Live audio negotiation timed out. Retry audio; if it still fails, verify the configured TURN relay.';
+}
+
+function describeWebRtcError(error: unknown): { errorName: string; message: string } {
+  if (error instanceof Error) {
+    return { errorName: error.name || 'Error', message: error.message || 'Unknown WebRTC error' };
+  }
+  return { errorName: 'Error', message: String(error || 'Unknown WebRTC error') };
 }
 
 export type UseSessionDeps = {
@@ -145,6 +162,8 @@ export function useSession(deps: UseSessionDeps) {
     navigateToView,
     setAudioSource
   } = deps;
+
+  const productHostWebRtcUnavailable = isProductHostWebRtcUnavailable();
 
   const [roomId, setRoomId] = useState('');
   const [hostName, setHostName] = useState('');
@@ -190,8 +209,10 @@ export function useSession(deps: UseSessionDeps) {
   const hostConnectionTimersRef = useRef<Map<string, number>>(new Map());
   const listenerOfferReceivedRef = useRef(false);
   const listenerAudioRetryCountRef = useRef(0);
+  const turnRelayAvailableRef = useRef(false);
   const roomPermissionRef = useRef<Promise<boolean> | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const placeholderAudioStreamRef = useRef<PlaceholderAudioStream | null>(null);
   const audioSourceRef = useRef<string | null>(audioSource);
   const trackInfoRef = useRef<TrackInfo | null>(trackInfo);
   // Which audioSource the current local stream was captured from. Capturing is
@@ -236,6 +257,61 @@ export function useSession(deps: UseSessionDeps) {
       listenersRef.current = next;
       return next;
     });
+  }
+
+  async function resolveRoomIceServers(): Promise<RTCIceServer[]> {
+    if (isRoomJoinE2e) {
+      turnRelayAvailableRef.current = false;
+      return roomJoinE2eIceServers();
+    }
+
+    const turnServers = await getTurnIceServers();
+    const iceServers = [...stunIceServers, ...turnServers];
+    turnRelayAvailableRef.current = hasTurnIceServer(iceServers);
+    return iceServers;
+  }
+
+  function emitWebRtcDiagnostic(phase: string, error?: unknown, details: WebRtcDiagnosticDetails = {}) {
+    const described = error === undefined ? { errorName: '', message: '' } : describeWebRtcError(error);
+    const peer = details.peer;
+    socketRef.current?.emit('webrtc:diagnostic', {
+      phase,
+      errorName: described.errorName,
+      message: described.message,
+      errorCode: details.errorCode,
+      peerConnectionAvailable: typeof window.RTCPeerConnection === 'function',
+      turnRelayAvailable: turnRelayAvailableRef.current,
+      protocol: window.location.protocol,
+      embedded: window.self !== window.top,
+      connectionState: peer?.connectionState,
+      iceConnectionState: peer?.iceConnectionState,
+      iceGatheringState: peer?.iceGatheringState,
+      signalingState: peer?.signalingState
+    });
+  }
+
+  function createRoomPeerConnection(iceServers: RTCIceServer[]) {
+    if (typeof window.RTCPeerConnection !== 'function') {
+      throw new Error('This Polkadot Mobile build blocks Product WebRTC. Continue this room in the browser to hear live audio.');
+    }
+    return new window.RTCPeerConnection({ iceServers });
+  }
+
+  async function openRoomInBrowser() {
+    if (!publicAppUrl) {
+      setError('Dotify cannot open the browser because VITE_PUBLIC_APP_URL is not configured.');
+      return;
+    }
+
+    const targetUrl = roomIdRef.current ? buildSessionLink(roomIdRef.current, publicAppUrl) : new URL(publicAppUrl).toString();
+    try {
+      const result = await openProductHostExternalUrl(targetUrl);
+      if (!result.ok) {
+        setError(result.reason);
+      }
+    } catch (navigationError) {
+      setError(`The Polkadot host could not open the browser: ${describeWebRtcError(navigationError).message}`);
+    }
   }
 
   function applyListenerRoster(roster: RoomPresenceListener[]) {
@@ -303,6 +379,7 @@ export function useSession(deps: UseSessionDeps) {
   function closeAllPeers() {
     closeHostPeers();
     closeListenerPeer();
+    closePlaceholderAudioStream();
     localStreamRef.current = null;
     capturedSourceRef.current = null;
     captureStartedPausedRef.current = false;
@@ -426,7 +503,7 @@ export function useSession(deps: UseSessionDeps) {
       });
       setListenerCount(payload.listenerCount);
       setSessionStatus(localStreamRef.current ? 'Pairing listener' : 'Room open');
-      pairListenerOrPrepareStream(payload.listenerId);
+      void pairListenerOrPrepareStream(payload.listenerId);
     });
     socket.on('listener:ready', (payload: { listenerId: string; displayName: string; listenerCount: number }) => {
       upsertListener({
@@ -436,7 +513,7 @@ export function useSession(deps: UseSessionDeps) {
       });
       setListenerCount(payload.listenerCount);
       setSessionStatus(localStreamRef.current ? 'Pairing listener' : 'Room open');
-      pairListenerOrPrepareStream(payload.listenerId);
+      void pairListenerOrPrepareStream(payload.listenerId);
     });
     socket.on('listener:left', (payload: { listenerId: string; listenerCount: number }) => {
       clearHostConnectionTimer(payload.listenerId);
@@ -545,7 +622,9 @@ export function useSession(deps: UseSessionDeps) {
 
   async function ensureRoomTransportReady() {
     if (!roomPermissionRef.current) {
-      roomPermissionRef.current = ensureProductHostRoomPermissions(signalUrl)
+      roomPermissionRef.current = ensureProductHostRoomPermissions(signalUrl, undefined, {
+        remoteUrls: dotifyApiUrl ? [dotifyApiUrl] : []
+      })
         .then(result => {
           if (result.ok) return true;
           roomPermissionRef.current = null;
@@ -682,6 +761,44 @@ export function useSession(deps: UseSessionDeps) {
     return Boolean(stream && stream.getAudioTracks().some(track => track.readyState === 'live'));
   }
 
+  function closePlaceholderAudioStream() {
+    const placeholder = placeholderAudioStreamRef.current;
+    if (!placeholder) return;
+    placeholderAudioStreamRef.current = null;
+    try {
+      placeholder.oscillator.stop();
+    } catch {
+      // Already stopped.
+    }
+    for (const track of placeholder.stream.getTracks()) {
+      track.stop();
+    }
+    void placeholder.context.close().catch(() => undefined);
+  }
+
+  function createPlaceholderAudioStream(): MediaStream | null {
+    const existing = placeholderAudioStreamRef.current;
+    if (existing && streamHasLiveAudio(existing.stream)) return existing.stream;
+
+    closePlaceholderAudioStream();
+    const contextCtor = window.AudioContext ?? (window as AudioContextWindow).webkitAudioContext;
+    if (!contextCtor) return null;
+
+    const context = new contextCtor();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const destination = context.createMediaStreamDestination();
+    // Near-silent track: enough for WebRTC negotiation, inaudible while the
+    // real media element capture finishes preparing.
+    gain.gain.value = 0.0001;
+    oscillator.connect(gain).connect(destination);
+    oscillator.start();
+    void context.resume().catch(() => undefined);
+
+    placeholderAudioStreamRef.current = { context, oscillator, stream: destination.stream };
+    return destination.stream;
+  }
+
   async function ensureCapturableAudioSource(source: string) {
     if (!shouldMaterializeRemoteSource(source)) {
       return source;
@@ -767,6 +884,7 @@ export function useSession(deps: UseSessionDeps) {
       const previousCapturedSource = capturedSourceRef.current;
       const shouldRenegotiateListeners = Boolean(previousCapturedSource && previousCapturedSource !== currentAudioSource);
 
+      const previousPlaceholderStream = placeholderAudioStreamRef.current?.stream ?? null;
       localStreamRef.current = stream;
       capturedSourceRef.current = currentAudioSource;
       captureStartedPausedRef.current = audio.paused;
@@ -776,6 +894,9 @@ export function useSession(deps: UseSessionDeps) {
       socketRef.current?.emit('room:track', track);
 
       await publishLocalStreamToListeners(stream, { renegotiate: shouldRenegotiateListeners });
+      if (previousPlaceholderStream && previousPlaceholderStream !== stream) {
+        closePlaceholderAudioStream();
+      }
       // Do not stop tracks from an older captureStream() result here. Media
       // element capture streams follow source selection: when <audio>.src
       // changes, the browser can add the new source track to every existing
@@ -823,15 +944,19 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
-  function pairListenerOrPrepareStream(listenerId: string) {
+  async function pairListenerOrPrepareStream(listenerId: string) {
     if (localStreamRef.current) {
-      void createOfferForListener(listenerId);
+      await createOfferForListener(listenerId, { allowPlaceholder: Boolean(audioSourceRef.current) });
       return;
     }
 
     if (!audioSourceRef.current) return;
     setSessionStatus('Preparing audio');
-    void prepareLocalStream(audioSourceRef.current, trackInfoRef.current);
+    await prepareLocalStream(audioSourceRef.current, trackInfoRef.current);
+    const existingPeer = hostPeersRef.current.get(listenerId);
+    if (!existingPeer || existingPeer.connectionState === 'closed') {
+      await createOfferForListener(listenerId, { allowPlaceholder: true });
+    }
   }
 
   function emitPlayerState(force = false) {
@@ -860,7 +985,8 @@ export function useSession(deps: UseSessionDeps) {
       if (hostPeersRef.current.get(listenerId) !== peer || peer.connectionState === 'connected' || peer.connectionState === 'closed') return;
       upsertListenerStatus(listenerId, 'disconnected');
       setSessionStatus('Listener audio blocked');
-      setError(webRtcConnectionFailureMessage());
+      setError(webRtcConnectionFailureMessage(turnRelayAvailableRef.current));
+      emitWebRtcDiagnostic('host:connection-timeout', undefined, { peer });
     }, WEBRTC_CONNECTION_TIMEOUT_MS);
     hostConnectionTimersRef.current.set(listenerId, timer);
   }
@@ -891,16 +1017,20 @@ export function useSession(deps: UseSessionDeps) {
       }
 
       setSessionStatus(listenerOfferReceivedRef.current ? 'Audio connection failed' : 'Waiting for host audio');
-      setError(listenerOfferReceivedRef.current ? webRtcConnectionFailureMessage() : 'The host did not send a live-audio offer. Ask the host to retry the room.');
+      setError(
+        listenerOfferReceivedRef.current
+          ? webRtcConnectionFailureMessage(turnRelayAvailableRef.current)
+          : 'The host did not send a live-audio offer. Ask the host to retry the room.'
+      );
+      emitWebRtcDiagnostic(listenerOfferReceivedRef.current ? 'listener:connection-timeout' : 'listener:offer-timeout', undefined, { peer });
     }, WEBRTC_CONNECTION_TIMEOUT_MS);
   }
 
-  function createHostPeer(listenerId: string) {
+  function createHostPeer(listenerId: string, iceServers: RTCIceServer[], stream: MediaStream | null = localStreamRef.current) {
     clearHostConnectionTimer(listenerId);
     hostPeersRef.current.get(listenerId)?.close();
     pendingIceCandidatesRef.current.delete(listenerId);
-    const peer = new RTCPeerConnection({ iceServers });
-    const stream = localStreamRef.current;
+    const peer = createRoomPeerConnection(iceServers);
 
     if (stream) {
       for (const track of stream.getAudioTracks()) {
@@ -923,6 +1053,12 @@ export function useSession(deps: UseSessionDeps) {
         setError('The Product host did not expose a WebRTC network route. Confirm that WebRTC permission is allowed for Dotify.');
       }
     };
+    peer.onicecandidateerror = event => {
+      emitWebRtcDiagnostic('host:ice-candidate-error', new Error(event.errorText || 'ICE candidate gathering failed'), {
+        errorCode: event.errorCode,
+        peer
+      });
+    };
     peer.onconnectionstatechange = () => {
       const status = getPeerStatus(peer.connectionState);
       upsertListenerStatus(listenerId, status);
@@ -937,16 +1073,26 @@ export function useSession(deps: UseSessionDeps) {
     return peer;
   }
 
-  async function createOfferForListener(listenerId: string) {
-    if (!localStreamRef.current) {
-      upsertListenerStatus(listenerId, 'waiting');
-      return;
-    }
-
-    const peer = createHostPeer(listenerId);
-    upsertListenerStatus(listenerId, 'connecting');
-
+  async function createOfferForListener(listenerId: string, options: { allowPlaceholder?: boolean } = {}) {
     try {
+      let stream = localStreamRef.current;
+      if (!stream && options.allowPlaceholder && audioSourceRef.current) {
+        stream = createPlaceholderAudioStream();
+        if (stream) {
+          localStreamRef.current = stream;
+          setSessionStatus('Preparing live audio');
+        }
+      }
+
+      if (!stream) {
+        upsertListenerStatus(listenerId, 'waiting');
+        return;
+      }
+
+      const iceServers = await resolveRoomIceServers();
+      const peer = createHostPeer(listenerId, iceServers, stream);
+      upsertListenerStatus(listenerId, 'connecting');
+
       if (isRoomJoinE2e) recordRoomJoinE2eOffer();
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
@@ -966,6 +1112,7 @@ export function useSession(deps: UseSessionDeps) {
     } catch (offerError) {
       upsertListenerStatus(listenerId, 'disconnected');
       setError(offerError instanceof Error ? offerError.message : 'Unable to create WebRTC offer');
+      emitWebRtcDiagnostic('host:create-offer-failed', offerError);
     }
   }
 
@@ -976,59 +1123,81 @@ export function useSession(deps: UseSessionDeps) {
       return;
     }
 
-    // ICE candidates can arrive before the offer on Product Mobile's Fetch
-    // polling transport. Keep that queue while replacing the previous peer;
-    // acceptOffer flushes it immediately after setting the remote description.
-    closeListenerPeer({ clearPendingCandidates: false });
-    listenerOfferReceivedRef.current = true;
-    setSessionStatus('Negotiating live audio');
-    const peer = new RTCPeerConnection({ iceServers });
-    listenerPeerRef.current = peer;
-
-    peer.ontrack = event => {
-      const [stream] = event.streams;
-      if (remoteAudioRef.current && stream) {
-        remoteAudioRef.current.srcObject = stream;
-        clearListenerConnectionTimer();
-        cueRemotePlayback('Live');
-        // Playback is triggered by usePlayback which correctly surfaces
-        // 'autoplay-blocked' to the UI when the browser policy blocks autoplay.
-      }
-    };
-    peer.onicecandidate = event => {
-      if (event.candidate) {
-        socketRef.current?.emit('webrtc:ice-candidate', {
-          targetId: from,
-          candidate: event.candidate.toJSON()
-        });
-      }
-    };
-    peer.onconnectionstatechange = () => {
-      const status = getPeerStatus(peer.connectionState);
-      setSessionStatus(status === 'connected' ? 'Live' : peerStatusLabel(status));
-      if (status === 'connected') {
-        clearListenerConnectionTimer();
-        listenerAudioRetryCountRef.current = 0;
-        setError(null);
-        socketRef.current?.emit('peer:connected', { targetId: from });
-      } else if (peer.connectionState === 'failed') {
-        clearListenerConnectionTimer();
-        setError(webRtcConnectionFailureMessage());
-      }
-    };
-
+    let phase = 'prepare-answer';
+    let peer: RTCPeerConnection | null = null;
     try {
+      // ICE candidates can arrive before the offer on Product Mobile's Fetch
+      // polling transport. Keep that queue while replacing the previous peer;
+      // acceptOffer flushes it immediately after setting the remote description.
+      closeListenerPeer({ clearPendingCandidates: false });
+      listenerOfferReceivedRef.current = true;
+      setSessionStatus('Negotiating live audio');
+
+      phase = 'resolve-ice';
+      const iceServers = await resolveRoomIceServers();
+      phase = 'create-peer';
+      peer = createRoomPeerConnection(iceServers);
+      listenerPeerRef.current = peer;
+
+      peer.ontrack = event => {
+        const [stream] = event.streams;
+        if (remoteAudioRef.current && stream) {
+          remoteAudioRef.current.srcObject = stream;
+          clearListenerConnectionTimer();
+          cueRemotePlayback('Live');
+          // Playback is triggered by usePlayback which correctly surfaces
+          // 'autoplay-blocked' to the UI when the browser policy blocks autoplay.
+        }
+      };
+      peer.onicecandidate = event => {
+        if (event.candidate) {
+          socketRef.current?.emit('webrtc:ice-candidate', {
+            targetId: from,
+            candidate: event.candidate.toJSON()
+          });
+        }
+      };
+      peer.onicecandidateerror = event => {
+        emitWebRtcDiagnostic('listener:ice-candidate-error', new Error(event.errorText || 'ICE candidate gathering failed'), {
+          errorCode: event.errorCode,
+          peer
+        });
+      };
+      peer.onconnectionstatechange = () => {
+        if (!peer) return;
+        const status = getPeerStatus(peer.connectionState);
+        setSessionStatus(status === 'connected' ? 'Live' : peerStatusLabel(status));
+        if (status === 'connected') {
+          clearListenerConnectionTimer();
+          listenerAudioRetryCountRef.current = 0;
+          setError(null);
+          socketRef.current?.emit('peer:connected', { targetId: from });
+        } else if (peer.connectionState === 'failed') {
+          clearListenerConnectionTimer();
+          setError(webRtcConnectionFailureMessage(turnRelayAvailableRef.current));
+          emitWebRtcDiagnostic('listener:connection-failed', undefined, { peer });
+        }
+      };
+
+      phase = 'set-remote-description';
       await peer.setRemoteDescription(offer);
+      phase = 'flush-remote-candidates';
       await flushRemoteCandidates(from, peer);
+      phase = 'create-answer';
       const answer = await peer.createAnswer();
+      phase = 'set-local-description';
       await peer.setLocalDescription(answer);
+      phase = 'send-answer';
       socketRef.current?.emit('webrtc:answer', {
         targetId: from,
         answer: peer.localDescription
       });
       startListenerConnectionTimeout();
     } catch (answerError) {
-      setError(answerError instanceof Error ? answerError.message : 'Unable to create WebRTC answer');
+      clearListenerConnectionTimer();
+      emitWebRtcDiagnostic(`listener:${phase}-failed`, answerError, { peer });
+      const detail = describeWebRtcError(answerError).message;
+      setError(`Live audio could not start on this device (${phase}): ${detail}`);
       setSessionStatus('WebRTC error');
     }
   }
@@ -1081,8 +1250,24 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
-  function createSession(currentTrackInfo: TrackInfo | null, playbackMode: RoomPlaybackMode = 'full', event?: FormEvent<HTMLFormElement>) {
+  function createSession(
+    currentTrackInfo: TrackInfo | null,
+    playbackMode: RoomPlaybackMode = 'full',
+    event?: FormEvent<HTMLFormElement>,
+    options: CreateSessionOptions = {}
+  ) {
     event?.preventDefault();
+    if (productHostWebRtcUnavailable) {
+      setSessionAction('idle');
+      changeMode('host');
+      navigateToView('player');
+      setSessionStatus('Browser required');
+      setError('This Polkadot Mobile build does not expose Product WebRTC. Open Dotify in the browser to host live audio.');
+      return;
+    }
+    if (options.audioSourceHint) {
+      audioSourceRef.current = options.audioSourceHint;
+    }
     // Persist the chosen name on submit (not on every keystroke): storeDisplayName
     // no-ops for the untouched default, so a connected host is remembered without
     // recording a partial name typed into the create sheet.
@@ -1283,6 +1468,11 @@ export function useSession(deps: UseSessionDeps) {
 
   function requestRoomAudio() {
     if (modeRef.current !== 'listener' || !roomIdRef.current) return;
+    if (productHostWebRtcUnavailable) {
+      setSessionStatus('Browser required');
+      setError('This Polkadot Mobile build does not expose Product WebRTC. Continue this room in the browser to hear live audio.');
+      return;
+    }
     listenerAudioRetryCountRef.current = 0;
     requestListenerAudioOffer('Connecting audio');
   }
@@ -1409,6 +1599,7 @@ export function useSession(deps: UseSessionDeps) {
     setLocalStreamReady,
     isRefreshingRooms,
     roomPlaybackMode,
+    productHostWebRtcUnavailable,
     chatMessages,
     reactionFeed,
     requestQueue,
@@ -1432,6 +1623,7 @@ export function useSession(deps: UseSessionDeps) {
     joinSession,
     updateDisplayName,
     requestRoomAudio,
+    openRoomInBrowser,
     leaveSession,
     createHostPeer,
     createOfferForListener,

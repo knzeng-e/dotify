@@ -39,6 +39,24 @@ const optionalOriginList = z.preprocess(
   z.array(z.string().url()).min(1).optional(),
 );
 
+const optionalTurnUrlList = z.preprocess(
+  value =>
+    typeof value === 'string'
+      ? value
+          .split(',')
+          .map(url => url.trim())
+          .filter(Boolean)
+      : value,
+  z
+    .array(
+      z.string().refine(url => /^turns?:[^\s,]+$/i.test(url), {
+        message: 'TURN URLs must start with turn: or turns:',
+      }),
+    )
+    .min(1)
+    .optional(),
+);
+
 const envSchema = z.object({
   API_PORT: z.coerce.number().int().min(1).max(65535).default(8790),
   API_ORIGIN: z.string().url().default('http://localhost:5273'),
@@ -64,6 +82,13 @@ const envSchema = z.object({
   ),
   // Pinata JWT — must stay server-side only. Never expose in frontend env.
   PINATA_JWT: optionalNonEmptyString,
+  // TURN relay grants for production room WebRTC. TURN_URLS is browser-safe;
+  // TURN_REST_SECRET is the server-side HMAC secret shared with the TURN relay.
+  TURN_URLS: optionalTurnUrlList,
+  TURN_REST_SECRET: optionalNonEmptyString,
+  TURN_USERNAME: optionalNonEmptyString,
+  TURN_CREDENTIAL: optionalNonEmptyString,
+  TURN_TTL_SECONDS: z.coerce.number().int().min(60).max(24 * 60 * 60).default(3600),
   // Deploy-time commit SHA surfaced by /version (set by CI/Docker builds; the
   // service falls back to `git rev-parse HEAD` in dev checkouts).
   GIT_COMMIT_SHA: optionalNonEmptyString,

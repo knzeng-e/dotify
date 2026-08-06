@@ -38,8 +38,9 @@ Dotify now distinguishes two protected playback contexts:
 - If the host is authorized, the backend delivers a temporary content key to the host only.
 - Listeners receive only the ephemeral WebRTC stream.
 - Listeners never receive the key or source file.
-- If the host is unauthorized, Dotify returns preview-mode information instead of hard-failing the room.
-- The host streams the 42% preview, sees a discreet unlock/personhood CTA, and the playlist auto-advances after the preview.
+- If the host is unauthorized, Dotify keeps the room open but returns no
+  content key and streams no protected audio. The host sees the
+  unlock/personhood CTA or can choose another playable track.
 
 ## Required endpoints
 
@@ -139,8 +140,9 @@ This is acceptable for testnet production readiness. Document that future artist
   - preview mode;
   - key received;
   - decryption failed.
-- Keep 42% preview behavior for unauthorized individual listeners.
-- For unauthorized room hosts, preserve the room and stream the 42% preview instead of blocking the room.
+- Keep denials explicit for unauthorized individual listeners.
+- For unauthorized room hosts, preserve the room without streaming protected
+  audio instead of blocking the room.
 
 ## Acceptance criteria
 
@@ -148,7 +150,8 @@ This is acceptable for testnet production readiness. Document that future artist
 - Classic paid listener can request key after `musicRoyPayAccess` confirms.
 - Human free listener can request key only if `musicAccCanAccess` returns true.
 - Backend can distinguish `individual` vs `room_host` key-request purpose.
-- Unauthorized room host receives preview-mode response, not a hard room failure.
+- Unauthorized room host receives an explicit denied response and no content
+  key, not a hard room failure.
 - Room listeners never receive content keys or encrypted source files.
 - Room listeners are not required to connect a wallet/sign merely to listen to a host stream.
 - Signature replay is rejected after nonce use or expiration.
@@ -177,7 +180,8 @@ The social room is a doorway, not a wallet checkpoint.
 - `POST /api/auth/nonce` issues single-use nonces bound to address + chain ID (`services/api/src/services/replayProtection.ts`, in-memory, 5 minute TTL).
 - `POST /api/tracks/:contentHash/key-request` verifies an EIP-191 structured signature, consumes the nonce, resolves the owning artist runtime by enumerating the `ArtistDirectory`, calls `musicAccCanAccess(contentHash, requester)`, and only then derives and returns the per-track key (`services/api/src/routes/keys.ts`).
 - Purposes: `individual` and `room_host` only. `room_listener` is rejected at the schema boundary; room listeners receive the WebRTC stream, never keys.
-- Denials answer 200 with the preview-mode response model (`access: denied`, `previewRatio: 0.42`, reason code, host CTA). Unauthorized room hosts are not hard-failed.
+- Denials answer 200 with an explicit denied response model (reason code and
+  host CTA, no content key). Unauthorized room hosts are not hard-failed.
 - Frontend: `web/src/services/keyService.ts` (nonce + sign + key request), wired into `useCatalog`. Delivered keys are cached per session, one wallet signature per track per session. Publish flow now sends RAW audio to `/api/uploads/audio` when the backend is configured; the backend encrypts server-side, so the production content key never exists in the browser at publish time.
 - Tests: `services/api` `npm test` covers signature verification, replay rejection, purpose handling, denial semantics, and fail-closed RPC behavior.
 
@@ -193,4 +197,7 @@ The social room is a doorway, not a wallet checkpoint.
 - Keys are deterministic per track; "temporary" applies to the grant. Rotating `CONTENT_KEY_MASTER_SECRET` re-keys everything at once.
 - The nonce store is in-memory: restarts invalidate outstanding nonces (clients re-request), and horizontal scaling needs a shared store. Both fail closed.
 - `musicAccCanAccess` lives behind an artist-upgradeable runtime. The backend answers "does the artist's current policy allow this listener", nothing stronger. That is artist sovereignty, stated plainly.
-- **42% preview gap for server-keyed tracks**: tracks encrypted with the server-side key cannot be previewed by unauthorized listeners (the browser has no key to slice 42% from). Demo-mode tracks keep the old preview behavior. Restoring previews for production tracks requires publishing a separate preview asset at publish time - tracked in `18-production-preview-assets.md`.
+- **Historical 42% preview gap**: ticket 24 later retired previews for denied
+  protected playback. The current production doctrine is simpler and safer:
+  no access means no protected audio and no content key. The retired preview
+  asset path remains archived in `18-production-preview-assets.md`.

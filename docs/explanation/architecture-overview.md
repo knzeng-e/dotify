@@ -170,6 +170,12 @@ The stored CID is included in the on-chain track record as `metadataRef`, allowi
 
 The signaling server is a lightweight Socket.IO process (`server/signaling.mjs`) whose only job is to relay WebRTC handshake messages between peers. It never touches audio. Once WebRTC negotiation completes, audio flows peer-to-peer (host → listener) with no server involvement.
 
+The current Product Mobile iOS host is an explicit exception to that browser
+WebRTC model: the Product sandbox does not expose `RTCPeerConnection` to
+Product scripts. Dotify therefore continues mobile Product rooms in the
+external browser until the host provides a permission-gated WebRTC/media
+capability.
+
 ---
 
 ## What Dotify does not own

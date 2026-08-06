@@ -33,6 +33,7 @@ Keep this document aligned with
 | Product frontend | Bulletin + DotNS | `dotify-test01.dot` | `web/.env.product-devnet`, `web/polkadot-app-deploy.config.ts` | Product-host static app |
 | Backend API | Fly.io | `dotify-api` | `services/api/fly.toml` | Uploads, key delivery, catalog read model, health |
 | Signaling | Fly.io | `dotify-signal` | `web/fly.signal.toml` | Socket.IO room discovery and WebRTC signaling |
+| TURN relay | Managed provider or self-hosted relay | TBD | Backend `TURN_*` env | WebRTC media relay for restrictive networks |
 
 Production URLs currently assumed by the app and docs:
 
@@ -120,9 +121,9 @@ Optional production variables:
 | Key | When to set |
 | --- | --- |
 | `VITE_DOTIFY_DEBUG_PANEL=true` | Temporary operator smoke checks under `You -> Production readiness`; unset for ordinary listener deployments. |
-| `VITE_TURN_URL` | Reliable WebRTC rooms across restrictive NATs. |
-| `VITE_TURN_USERNAME` | Required with TURN credentials. |
-| `VITE_TURN_CREDENTIAL` | Required with TURN credentials. |
+| `VITE_TURN_URL` | Browser-visible TURN fallback for DevNet/static credentials. Prefer API grants for production. Accepts comma-separated `turn:` / `turns:` URLs. |
+| `VITE_TURN_USERNAME` | Static fallback only. Do not use long-lived production credentials here. |
+| `VITE_TURN_CREDENTIAL` | Static fallback only. Do not use long-lived production credentials here. |
 | `VITE_ETH_RPC_URL` | Override the default Paseo Asset Hub EVM RPC. Must be HTTPS in production. |
 | `VITE_WS_URL` | Override the default Polkadot WebSocket RPC. Must be WSS in production. |
 | `VITE_BULLETIN_WS_URL` | Override the default Paseo Bulletin RPC. Must be WSS in production. |
@@ -154,7 +155,7 @@ Required Product values:
 | `VITE_DOTIFY_ROOM_BEACONS` | `off` |
 | `VITE_PINATA_GATEWAY` | `https://ipfs.io` |
 | `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 6]` in `web/polkadot-app-deploy.config.ts` |
+| Product executable `appVersion` | `[0, 1, 11]` in `web/polkadot-app-deploy.config.ts` |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -275,6 +276,9 @@ Set server-side values in the app's Secrets area:
 | `PINATA_JWT` | Uploads | Backend-only Pinata token. Never expose in Netlify. |
 | `CONTENT_KEY_MASTER_SECRET` | Audio upload and key delivery | 64+ hex chars, at least 32 random bytes. Do not rotate casually. |
 | `GIT_COMMIT_SHA` | Optional | Set by CI/build automation when available; `/version` can fall back in dev checkouts. |
+| `TURN_REST_SECRET` | Reliable rooms | Backend-only HMAC secret shared with the TURN relay REST auth mechanism. Preferred production path. |
+| `TURN_USERNAME` | Optional fallback | Static DevNet TURN username when REST auth is unavailable. |
+| `TURN_CREDENTIAL` | Optional fallback | Static DevNet TURN password when REST auth is unavailable. |
 
 Catalog read-model variables:
 
@@ -300,6 +304,28 @@ For production-grade catalog evidence:
 - keep only one active API machine writing the catalog snapshot;
 - keep at least one machine warm while measuring catalog p75 performance, then
   record whether the trace was warm or cold.
+
+TURN relay variables:
+
+| Key | Default | When to set |
+| --- | --- | --- |
+| `TURN_URLS` | unset | Set to comma-separated public relay URLs when deploying reliable room audio, for example `turn:turn.example.org:3478?transport=udp,turns:turn.example.org:443?transport=tcp`. |
+| `TURN_REST_SECRET` | unset | Preferred production credential path. Store as a Fly secret only. |
+| `TURN_USERNAME` / `TURN_CREDENTIAL` | unset | Rotated DevNet/static fallback only when the relay cannot mint REST credentials. Store as Fly secrets. |
+| `TURN_TTL_SECONDS` | `3600` | Adjust only with relay policy. REST credentials embed this expiry in the username. |
+
+The API exposes `GET /api/turn/grant` for the frontend room code. If `TURN_URLS`
+and either `TURN_REST_SECRET` or static credentials are configured, the response
+contains browser-safe `RTCIceServer` credentials. If not, the route returns
+`TURN_NOT_CONFIGURED` and the room client falls back to STUN plus any
+browser-visible `VITE_TURN_*` values.
+
+For production, prefer TURN REST credentials because the shared relay secret
+stays on Fly. `VITE_TURN_USERNAME` and `VITE_TURN_CREDENTIAL` are public bundle
+values and should be limited to rotated DevNet/static tests.
+The grant endpoint is intentionally walletless so room guests can join from a
+link; protect the relay with short TTLs, API rate limits, relay quotas, and
+secret rotation rather than listener authentication.
 
 ### Backend Signature Schemes
 
@@ -366,7 +392,7 @@ Socket.IO polling is rejected with `403`, producing an empty music view or
 preventing room creation.
 
 Polkadot mobile host room creation also has a runtime host-permission preflight,
-not only Fly CORS. Product executable `[0, 1, 6]` requests `WebRtc` before the
+not only Fly CORS. Product executable `[0, 1, 6]` and later requests `WebRtc` before the
 domain-scoped `Remote` permission. This order matters because the current
 Product Mobile bridge can fail while encoding `Remote`, while signaling fetches
 still work and `WebRtc` may still be grantable. Explicit host denials stop room
@@ -383,23 +409,62 @@ logs show no new `/health` or `/socket.io` request, debug the Product host
 remote-network layer before changing Fly origins again. If `/health` appears
 but `/socket.io` does not, confirm the deployed Product executable is version
 `[0, 1, 6]` or later before investigating Fly.
+Product executable `[0, 1, 9]` requests `Remote` for both
+`dotify-signal.fly.dev` and `dotify-api.fly.dev`, because room WebRTC startup
+uses signaling plus the API TURN grant route before creating peer offers.
 
-Product executable `[0, 1, 6]` also retries host audio capture when a listener
+Product executable `[0, 1, 6]` and later also retries host audio capture when a listener
 arrives before Product Mobile has produced a local WebRTC audio track. This
 prevents the listener from staying on `Connecting...` merely because the host's
 first capture attempt happened before the mobile media element was ready. It
 also preserves trickled ICE candidates delivered before the SDP offer, retries
 one failed listener negotiation, and replaces an unbounded `Joining live audio`
 state with a permission, missing-offer, or TURN-specific diagnostic.
+Product executable `[0, 1, 8]` also sends a near-silent placeholder offer while
+the real host capture finishes, then replaces that sender track once the media
+element exposes live audio. This makes a listener retry observable at the
+WebRTC layer instead of timing out as "host sent no offer".
+Product executable `[0, 1, 9]` closes the remaining room-open race by carrying
+the resolved playable `audioSource` directly from catalog selection into
+session creation. A host that has just resolved a playable track can therefore
+prepare a placeholder offer even before React has propagated the new audio
+source through provider props.
+Product executable `[0, 1, 10]` normalizes API TURN grants to the smallest
+widely compatible `RTCIceServer` shape before handing them to WebKit, wraps the
+entire listener answer path in an explicit phase error, and emits metadata-only
+`webrtc:diagnostic` events. The diagnostic contains no SDP, ICE candidate, IP
+address, media identifier, content key, or user-agent string.
+
+Product executable `[0, 1, 11]` handles the current iOS Product sandbox
+boundary explicitly. The upstream Product container freezes and removes
+[`window.RTCPeerConnection` during container lockdown](https://github.com/Polkadot-Community-Foundation/polkadot-ios-community/blob/main/Packages/Products/product-container/src/index.ts#L79-L81);
+granting the `WebRtc` remote permission does not
+restore that JavaScript API. Dotify therefore blocks mobile in-container room
+hosting before creating a room and replaces futile listener retries with a
+**Continue in browser** action. The action uses the Product SDK `navigateTo`
+host bridge and only accepts the configured HTTPS `VITE_PUBLIC_APP_URL`. A
+listener keeps the current `#/rooms/<id>` route; a would-be host opens the
+canonical Dotify browser app and creates the room there.
+
+This boundary occurs before ICE gathering. When diagnostics show
+`listener:create-peer-failed`, `peerConnectionAvailable=false`, and
+`protocol=polkadot:`, no TURN allocation is expected in coturn logs. Do not
+change relay ports, credentials, or firewall rules for that failure. Coturn is
+relevant only after peer construction, when diagnostics show a later ICE or
+connection-timeout phase with `peerConnectionAvailable=true`.
 
 The tracked Product profile currently has no `VITE_TURN_URL`,
-`VITE_TURN_USERNAME`, or `VITE_TURN_CREDENTIAL`. Rooms therefore use direct
-ICE with public STUN only. This works on permissive networks but does not
-guarantee an iOS/mobile host can reach a listener behind a different or
-symmetric NAT. For that topology, provide a TURN relay at Product build time
-and republish. TURN credentials embedded as `VITE_*` values are visible to
-every client; use restricted, rotated credentials for DevNet only. Production
-should mint short-lived TURN REST credentials from a server-side shared secret.
+`VITE_TURN_USERNAME`, or `VITE_TURN_CREDENTIAL`. Product builds should normally
+receive TURN through the API grant endpoint instead of embedding static
+credentials. Without `TURN_URLS` plus relay credentials on `dotify-api`, rooms
+use direct ICE with public STUN only. This works on permissive networks but
+does not guarantee a web or mobile host can reach a listener behind a different
+carrier, VPN, corporate firewall, or symmetric NAT. For that topology, provide
+a TURN relay, configure the API `TURN_*` variables, redeploy `dotify-api`, and
+then redeploy Netlify / republish Product only if browser-visible `VITE_TURN_*`
+fallback values changed.
+Product executable `[0, 1, 7]` is the first Product version that fetches the
+API TURN grant before opening WebRTC peers.
 
 An open room now survives a transient host signaling disconnect for up to
 `SIGNAL_HOST_TIMEOUT_MS` (currently 120 seconds). The server removes the room
@@ -410,7 +475,18 @@ its SHA-256 hash in the in-memory room record. A successful reconnect republishe
 the room and rebuilds host-to-listener offers. An explicit **Leave room** still
 closes immediately, and an unrecovered room closes at the existing host timeout.
 This behavior requires both the updated `dotify-signal` deployment and Product
-executable `[0, 1, 6]`.
+executable `[0, 1, 10]` or later.
+
+`dotify-signal` logs room lifecycle events plus coarse peer-signaling events:
+`listener:ready`, `peer:route` for `webrtc:offer` / `webrtc:answer`, and
+`peer:route-dropped` when a role, target, or room check rejects an SDP route.
+Executable `[0, 1, 10]` and later also report `webrtc:diagnostic` on answer creation,
+ICE gathering, or connection timeout failures. ICE candidates are intentionally
+not logged per message. If an offer is present with no answer, read the next
+`webrtc:diagnostic.phase`: `create-peer` points to the Product host WebRTC
+runtime/permission boundary; `set-remote-description` points to SDP/runtime
+compatibility; and a later connection timeout or ICE candidate error points to
+the TURN/network path.
 
 Keep `dotify-signal` on one active machine until a shared Socket.IO adapter is
 added. Rooms, chat, reactions, request queues, and solo-presence aggregates are
@@ -432,6 +508,7 @@ After changing Netlify or Fly dashboard values:
 curl -s https://dotify-api.fly.dev/health
 curl -s https://dotify-api.fly.dev/health/ready
 curl -s https://dotify-api.fly.dev/api/catalog
+curl -s https://dotify-api.fly.dev/api/turn/grant
 ```
 
 5. Confirm signaling:

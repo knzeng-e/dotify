@@ -17,6 +17,10 @@ export type ProductHostIdentity = {
 };
 
 export type ProductHostRoomPermissionResult = { ok: true } | { ok: false; reason: string };
+export type ProductHostNavigationResult = { ok: true } | { ok: false; reason: string };
+export type ProductHostRoomPermissionOptions = {
+  remoteUrls?: string[];
+};
 
 type EnvironmentLike = Record<string, string | boolean | number | null | undefined>;
 type HostRoomPermission = Extract<RemotePermissionItem, { tag: 'Remote' | 'WebRtc' }>;
@@ -43,6 +47,9 @@ type ProductHostIdentityDeps = {
 type ProductHostRoomPermissionDeps = {
   isInsideContainer: () => boolean | Promise<boolean>;
   requestPermission?: (permission: HostRoomPermission) => Promise<{ ok: true; value: boolean } | { ok: false; error: unknown }>;
+};
+type ProductHostNavigationDeps = {
+  navigateTo: (url: string) => Promise<{ ok: true; value: void } | { ok: false; error: unknown }>;
 };
 
 function envValue(env: EnvironmentLike, key: string): string {
@@ -88,6 +95,11 @@ async function loadProductHostRoomPermissionDeps(): Promise<ProductHostRoomPermi
   };
 }
 
+async function loadProductHostNavigationDeps(): Promise<ProductHostNavigationDeps> {
+  const { navigateTo } = await import('@parity/product-sdk/host');
+  return { navigateTo };
+}
+
 function describeHostError(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'object' && error !== null && 'reason' in error) {
@@ -98,6 +110,10 @@ function describeHostError(error: unknown): string {
 
 function domainFromUrl(rawUrl: string): string {
   return new URL(rawUrl).hostname.toLowerCase();
+}
+
+function uniqueDomainsFromUrls(urls: string[]): string[] {
+  return Array.from(new Set(urls.map(url => domainFromUrl(url))));
 }
 
 function isSdkPermissionPreflightUnsupported(error: unknown): boolean {
@@ -121,15 +137,19 @@ async function requestHostRoomPermission(
   }
 }
 
-export async function ensureProductHostRoomPermissions(signalUrl: string, deps?: ProductHostRoomPermissionDeps): Promise<ProductHostRoomPermissionResult> {
+export async function ensureProductHostRoomPermissions(
+  signalUrl: string,
+  deps?: ProductHostRoomPermissionDeps,
+  options: ProductHostRoomPermissionOptions = {}
+): Promise<ProductHostRoomPermissionResult> {
   const { isInsideContainer, requestPermission } = deps ?? (await loadProductHostRoomPermissionDeps());
   if (!(await isInsideContainer())) return { ok: true };
 
-  let signalDomain: string;
+  let remoteDomains: string[];
   try {
-    signalDomain = domainFromUrl(signalUrl);
+    remoteDomains = uniqueDomainsFromUrls([signalUrl, ...(options.remoteUrls ?? []).filter(Boolean)]);
   } catch {
-    return { ok: false, reason: 'Room service unavailable. The configured signaling URL is not valid.' };
+    return { ok: false, reason: 'Room service unavailable. A configured room service URL is not valid.' };
   }
 
   // Request WebRTC first. Product Mobile can currently throw while encoding a
@@ -147,13 +167,45 @@ export async function ensureProductHostRoomPermissions(signalUrl: string, deps?:
 
   const remote = await requestHostRoomPermission(requestPermission, {
     tag: 'Remote',
-    value: { domains: [signalDomain] }
+    value: { domains: remoteDomains }
   });
   if (!('unsupported' in remote) && !remote.ok) {
-    return { ok: false, reason: `Room service unavailable. The Polkadot host could not request remote access to ${signalDomain}: ${describeHostError(remote.error)}` };
+    return { ok: false, reason: `Room service unavailable. The Polkadot host could not request remote access to ${remoteDomains.join(', ')}: ${describeHostError(remote.error)}` };
   }
   if (!('unsupported' in remote) && !remote.value) {
-    return { ok: false, reason: `Room service unavailable. Allow remote access to ${signalDomain} in the Polkadot host to open listening rooms.` };
+    return { ok: false, reason: `Room service unavailable. Allow remote access to ${remoteDomains.join(', ')} in the Polkadot host to open listening rooms.` };
+  }
+
+  return { ok: true };
+}
+
+export function isProductHostWebRtcUnavailable(
+  protocol: string = typeof window === 'undefined' ? '' : window.location.protocol,
+  peerConnection: typeof RTCPeerConnection | undefined = typeof window === 'undefined' ? undefined : window.RTCPeerConnection,
+  hostMarked: boolean = typeof window !== 'undefined' && (window as Window & { __HOST_WEBVIEW_MARK__?: boolean }).__HOST_WEBVIEW_MARK__ === true
+): boolean {
+  return (protocol === 'polkadot:' || hostMarked) && typeof peerConnection !== 'function';
+}
+
+export async function openProductHostExternalUrl(
+  rawUrl: string,
+  deps?: ProductHostNavigationDeps
+): Promise<ProductHostNavigationResult> {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return { ok: false, reason: 'Dotify could not build a valid browser link.' };
+  }
+
+  if (url.protocol !== 'https:') {
+    return { ok: false, reason: 'Dotify only opens secure browser links from the Polkadot host.' };
+  }
+
+  const { navigateTo } = deps ?? (await loadProductHostNavigationDeps());
+  const result = await navigateTo(url.toString());
+  if (!result.ok) {
+    return { ok: false, reason: `The Polkadot host could not open the browser: ${describeHostError(result.error)}` };
   }
 
   return { ok: true };

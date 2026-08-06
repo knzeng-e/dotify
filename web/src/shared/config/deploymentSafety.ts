@@ -310,7 +310,7 @@ export function validateProductionEnvironment(env: EnvironmentLike): ProductionE
   validateUrl(env, 'VITE_WS_URL', { protocols: ['wss:'], errors });
   validateUrl(env, 'VITE_BULLETIN_WS_URL', { protocols: ['wss:'], errors });
   validateUrl(env, 'VITE_BLOCKSCOUT_BASE_URL', { protocols: ['https:'], errors });
-  validateUrl(env, 'VITE_TURN_URL', { protocols: ['turn:', 'turns:'], errors });
+  validateUrlList(env, 'VITE_TURN_URL', { protocols: ['turn:', 'turns:'], errors });
 
   return { mode, errors, warnings };
 }

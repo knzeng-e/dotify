@@ -650,12 +650,47 @@ export function startSignalingServer(overrides = {}) {
       routePeerMessage(socket, payload.targetId, 'peer:connected', { from: socket.id }, 'listener', 'host');
     });
 
+    // Client-side WebRTC failures are otherwise invisible inside native
+    // Product webviews. Keep this deliberately metadata-only: no SDP, ICE
+    // candidates, IP addresses, media identifiers, or user agent strings.
+    socket.on('webrtc:diagnostic', (payload = {}) => {
+      const participant = getParticipant(socket);
+      if (!participant || !socket.rooms.has(participant.roomId)) return;
+
+      const states = new Set(['new', 'connecting', 'connected', 'disconnected', 'failed', 'closed', 'checking', 'completed', 'gathering', 'stable', 'have-local-offer', 'have-remote-offer']);
+      const safeState = value => (states.has(value) ? value : null);
+      const errorCode = Number(payload.errorCode);
+      logEvent('webrtc:diagnostic', {
+        roomId: participant.roomId,
+        sourceId: socket.id,
+        sourceRole: participant.role,
+        phase: sanitizeText(payload.phase, 'unknown', 80),
+        errorName: sanitizeText(payload.errorName, '', 80),
+        message: sanitizeText(payload.message, '', 240),
+        errorCode: Number.isSafeInteger(errorCode) ? errorCode : null,
+        peerConnectionAvailable: payload.peerConnectionAvailable === true,
+        turnRelayAvailable: payload.turnRelayAvailable === true,
+        protocol: sanitizeText(payload.protocol, '', 20),
+        embedded: payload.embedded === true,
+        connectionState: safeState(payload.connectionState),
+        iceConnectionState: safeState(payload.iceConnectionState),
+        iceGatheringState: safeState(payload.iceGatheringState),
+        signalingState: safeState(payload.signalingState)
+      });
+    });
+
     socket.on('listener:ready', () => {
       const roomId = socket.data.roomId;
       const room = rooms.get(roomId);
       if (socket.data.role !== 'listener' || !room?.hostId) return;
 
       const listener = room.listeners.get(socket.id);
+      logEvent('listener:ready', {
+        roomId,
+        listenerId: socket.id,
+        hostId: room.hostId,
+        listenerCount: room.listeners.size
+      });
       io.to(room.hostId).emit('listener:ready', {
         listenerId: socket.id,
         displayName: listener?.displayName ?? 'Listener',
@@ -690,19 +725,60 @@ export function startSignalingServer(overrides = {}) {
   sweepTimer.unref?.();
 
   function routePeerMessage(sourceSocket, targetId, eventName, message, expectedSourceRole, expectedTargetRole) {
-    if (typeof targetId !== 'string' || !targetId) return;
+    const logPeerEvent = eventName !== 'webrtc:ice-candidate';
+    const logPeerDrop = reason => {
+      if (!logPeerEvent) return;
+      logEvent('peer:route-dropped', {
+        event: eventName,
+        reason,
+        sourceId: sourceSocket.id,
+        sourceRole: sourceSocket.data.role ?? null,
+        roomId: sourceSocket.data.roomId ?? null,
+        targetId: typeof targetId === 'string' ? targetId : null
+      });
+    };
+
+    if (typeof targetId !== 'string' || !targetId) {
+      logPeerDrop('missing-target');
+      return;
+    }
 
     const source = getParticipant(sourceSocket);
-    if (!source || !sourceSocket.rooms.has(source.roomId)) return;
-    if (expectedSourceRole && source.role !== expectedSourceRole) return;
+    if (!source || !sourceSocket.rooms.has(source.roomId)) {
+      logPeerDrop('invalid-source');
+      return;
+    }
+    if (expectedSourceRole && source.role !== expectedSourceRole) {
+      logPeerDrop('unexpected-source-role');
+      return;
+    }
 
     const targetSocket = io.sockets.sockets.get(targetId);
-    if (!targetSocket || !targetSocket.rooms.has(source.roomId)) return;
+    if (!targetSocket || !targetSocket.rooms.has(source.roomId)) {
+      logPeerDrop('target-not-in-room');
+      return;
+    }
 
     const target = getParticipant(targetSocket);
-    if (!target || target.roomId !== source.roomId || target.role === source.role) return;
-    if (expectedTargetRole && target.role !== expectedTargetRole) return;
+    if (!target || target.roomId !== source.roomId || target.role === source.role) {
+      logPeerDrop('invalid-target');
+      return;
+    }
+    if (expectedTargetRole && target.role !== expectedTargetRole) {
+      logPeerDrop('unexpected-target-role');
+      return;
+    }
 
+    if (logPeerEvent) {
+      logEvent('peer:route', {
+        event: eventName,
+        roomId: source.roomId,
+        sourceId: sourceSocket.id,
+        sourceRole: source.role,
+        targetId,
+        targetRole: target.role
+      });
+    }
     targetSocket.emit(eventName, message);
   }
 

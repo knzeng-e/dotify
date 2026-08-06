@@ -5,8 +5,8 @@
 Dotify uses an adaptive dual-host architecture:
 
 - the standalone Netlify app remains a complete public entry point;
-- the Product DevNet build publishes the same listener and room experience as
-  `dotify-test01.dot`;
+- the Product DevNet build publishes the same catalog and link-first room
+  experience as `dotify-test01.dot` where host capabilities allow it;
 - Product-host capabilities are added through explicit adapters;
 - a missing or denied host capability never enables a demo secret, hidden
   signer, or weaker access path.
@@ -82,7 +82,7 @@ Socket.IO, and WebRTC signaling.
 | Browse catalog | Fly cache + EVM RPC | Same | Host-routed read adapter where it improves reliability |
 | Play Free track | No wallet | No wallet | Same |
 | Join room link | No wallet | No wallet | Same |
-| Host room | Socket.IO + WebRTC | Same | Keep until a multiparty replacement proves equivalent UX |
+| Host room | Socket.IO + WebRTC | Product Desktop/web host: same. Product Mobile iOS: external-browser continuation until the host exposes Product WebRTC. | Keep until a multiparty replacement proves equivalent UX |
 | Product identity | Not applicable | App-scoped SS58/H160 | Host identity with explicit capability grants |
 | Classic payment | Passkey/EVM wallet | Passkey/EVM wallet | CDM/PAPI write adapter |
 | Protected key request | EIP-191 or session token | `product-sr25519-v1` when a Product account is connected; EIP-191 or session token otherwise | Frontend-host signed Product key/session requests, with captured host signing evidence |
@@ -102,6 +102,16 @@ The Product build therefore keeps the Socket.IO/WebRTC room layer. It adds one
 important boundary: `VITE_PUBLIC_APP_URL` makes every copied room link point to
 the public `.dev-dot.li` origin rather than an internal container or content
 gateway URL.
+
+There is one current mobile exception. The iOS Product container removes
+`window.RTCPeerConnection` from Product scripts, so Dotify cannot create a
+browser WebRTC peer inside that sandbox even after requesting the `WebRtc`
+permission. Executable `[0, 1, 11]` detects that pre-ICE boundary and opens the
+same canonical HTTPS room URL in the external browser instead. Native in-app
+room audio now depends on a Product Mobile host capability such as a
+permission-gated peer connection API or media bridge; the upstream clarification
+request is tracked in
+[Polkadot-Community-Foundation/dotli-community#27](https://github.com/Polkadot-Community-Foundation/dotli-community/issues/27).
 
 ### Room Beacons
 
@@ -434,7 +444,9 @@ For every SDK or deploy-tool upgrade:
 2. connect the Product account only on explicit action;
 3. verify SS58 and derived H160 stability;
 4. run normal and Product builds;
-5. join one room across Netlify and Product origins;
+5. join one room across Netlify and Product Desktop/web origins, then verify
+   Product Mobile shows the external-browser continuation when
+   `RTCPeerConnection` is unavailable;
 6. verify Free playback remains walletless;
 7. verify protected actions still fail closed without a supported signer;
 8. inspect the static bundle and npm audit delta;

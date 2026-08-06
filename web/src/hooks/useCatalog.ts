@@ -96,6 +96,11 @@ type AudioV2StartupMetric = {
   detail?: string;
 };
 
+export type TrackSelectionResult = {
+  playbackMode: RoomPlaybackMode;
+  audioSource: string | null;
+};
+
 function nowMs(): number {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
@@ -885,7 +890,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     socketEmit?: (event: string, data: unknown) => void,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void
-  ): Promise<RoomPlaybackMode> {
+  ): Promise<TrackSelectionResult> {
     const selection = beginTrackSelection();
 
     // Stop the outgoing track immediately. Resolving the new source (access
@@ -922,7 +927,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     if (isPolicyManagedTrack(track)) {
       hasAccess = await checkTrackAccess(track, listenerEvmAddress);
-      if (!isTrackSelectionCurrent(selection)) return 'full';
+      if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
       if (!hasAccess) {
         setAccessGate(buildAccessGateInfo(track));
@@ -935,7 +940,7 @@ export function useCatalog(deps: UseCatalogDeps) {
             isTrackSelectionCurrent(selection)
           ).catch(() => null)
         : track.localUrl;
-      if (!isTrackSelectionCurrent(selection)) return 'full';
+      if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
 
       if (!audioUrl && track.encrypted) {
         // Access is granted but the key or decryption failed. Say so plainly
@@ -948,7 +953,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
     }
 
-    if (!isTrackSelectionCurrent(selection)) return 'full';
+    if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
     setResolvedAudioSource(audioUrl);
 
     if (!audioUrl) {
@@ -963,7 +968,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       socketEmit('room:playback-mode', { playbackMode: 'full' });
     }
 
-    return 'full';
+    return { playbackMode: 'full', audioSource: audioUrl };
   }
 
   async function openTrack(

@@ -601,6 +601,47 @@ function collect(socket, event, ms = 150) {
 }
 
 describe('peer signaling authorization', () => {
+  it('logs sanitized WebRTC diagnostics only for room participants', async () => {
+    await server.close();
+    const lines = [];
+    server = startSignalingServer({ port: 0, host: '127.0.0.1', logger: line => lines.push(JSON.parse(line)) });
+    port = await server.listen();
+
+    const host = connectClient();
+    const created = await createRoom(host);
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+
+    listener.emit('webrtc:diagnostic', {
+      phase: 'listener:create-peer-failed',
+      errorName: 'NotAllowedError',
+      message: `WebRTC blocked ${'x'.repeat(400)}`,
+      errorCode: 701,
+      peerConnectionAvailable: true,
+      turnRelayAvailable: true,
+      protocol: 'polkadot:',
+      embedded: true,
+      connectionState: 'failed',
+      candidate: 'must-not-be-logged'
+    });
+
+    const outsider = connectClient();
+    await once(outsider, 'connect');
+    outsider.emit('webrtc:diagnostic', { phase: 'outsider', message: 'must-not-be-logged' });
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    const diagnostics = lines.filter(line => line.event === 'webrtc:diagnostic');
+    assert.equal(diagnostics.length, 1);
+    assert.equal(diagnostics[0].roomId, created.roomId);
+    assert.equal(diagnostics[0].sourceRole, 'listener');
+    assert.equal(diagnostics[0].phase, 'listener:create-peer-failed');
+    assert.equal(diagnostics[0].errorName, 'NotAllowedError');
+    assert.equal(diagnostics[0].message.length, 240);
+    assert.equal(diagnostics[0].candidate, undefined);
+    assert.equal(JSON.stringify(diagnostics).includes('must-not-be-logged'), false);
+  });
+
   it('relays protocol-valid WebRTC messages only between a room host and listener', async () => {
     const host = connectClient();
     const created = await createRoom(host);

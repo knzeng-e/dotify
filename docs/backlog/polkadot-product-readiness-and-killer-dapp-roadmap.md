@@ -31,6 +31,8 @@ The first adaptive slice is now implemented:
 - Product identity for room presence without claiming EVM/EIP-191 authority;
 - canonical `.dev-dot.li` room links;
 - shared Fly API/signaling allowlists for Netlify and Product origins;
+- Product Mobile WebRTC boundary detection with an external-browser
+  continuation when the host sandbox does not expose `RTCPeerConnection`;
 - a pinned build/deploy workflow and operator rollback guide.
 
 Typed runtime ports are now extracted in the follow-up branch. Product-native
@@ -135,6 +137,10 @@ Goal: deepen rooms without breaking the room-guest doctrine.
 
 - Preserve walletless guest entry for room listening.
 - Add TURN/SFU/reconnect only where it improves room reliability.
+- Keep TURN/network failures separate from Product Mobile runtime-capability
+  failures: missing `RTCPeerConnection` happens before ICE and cannot be fixed
+  by a relay. Upstream Product Mobile clarification is tracked in
+  [dotli-community#27](https://github.com/Polkadot-Community-Foundation/dotli-community/issues/27).
 - Keep Statement Store limited to host-signed presence/discovery until its
   constraints are solved for richer behavior.
 - Treat provenance and ambassador work as consent/anti-abuse design first,

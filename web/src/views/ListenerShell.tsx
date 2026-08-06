@@ -130,12 +130,12 @@ export function ListenerShell() {
     if (isCurrentReadyTrack) {
       if (!playback.transport.playing) void playback.togglePlay();
       prepareLocalStream();
-      session.createSession(trackInfo, 'full');
+      session.createSession(trackInfo, 'full', undefined, { audioSourceHint: catalog.audioSource });
       return;
     }
 
-    await catalog.openTrack(track).catch(() => undefined);
-    session.createSession(trackInfo, 'full');
+    const selection = await catalog.openTrack(track).catch(() => null);
+    session.createSession(trackInfo, 'full', undefined, { audioSourceHint: selection?.audioSource ?? null });
   }
 
   // Entry point from artist profile / room cards - opens CreateRoomModal so the

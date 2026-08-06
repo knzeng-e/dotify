@@ -209,6 +209,28 @@ test('public room: mobile-style host without captureStream uses Web Audio captur
   }
 });
 
+test('Product Mobile without RTCPeerConnection sends room audio to the external browser', async ({ browser }) => {
+  const context = await browser.newContext();
+  try {
+    await context.addInitScript(() => {
+      Object.defineProperty(window, '__HOST_WEBVIEW_MARK__', { value: true, configurable: true });
+      Object.defineProperty(window, 'RTCPeerConnection', { value: undefined, configurable: true });
+    });
+    const page = await context.newPage();
+    await page.goto('/?e2eRoom=public');
+
+    await page.getByRole('button', { name: 'Open a room' }).click();
+    await page.getByRole('button', { name: `Select ${PUBLIC_TITLE}` }).click();
+    await page.getByRole('button', { name: 'Open the room' }).click();
+
+    await expect(page.getByTestId('session-error')).toContainText('does not expose Product WebRTC');
+    await expect(page.getByRole('button', { name: 'Open Dotify in browser' })).toBeVisible();
+    await expect(page.getByTestId('room-code')).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
 test('public room: listener keeps trickled ICE candidates that arrive before the host offer', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();

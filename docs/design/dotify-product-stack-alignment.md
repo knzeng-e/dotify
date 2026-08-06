@@ -118,6 +118,13 @@ decoration - and an identity checkpoint is the most visible decoration there is.
 So: **the anonymous guest is not a legacy compromise to be migrated away. It is
 the design constraint the architecture must be built around.**
 
+2026-08-06 host evidence adds a second, lower-level constraint: the current iOS
+Product container does not expose `window.RTCPeerConnection` to Product
+scripts. That prevents in-container Dotify room audio before ICE or TURN can
+start. The current fallback opens the canonical HTTPS room in the browser; true
+in-app mobile rooms require a Product Mobile host capability, tracked in
+[dotli-community#27](https://github.com/Polkadot-Community-Foundation/dotli-community/issues/27).
+
 ## 5. Proposed Architecture: Three Rings
 
 Organise every component by how much trust it requires, and shrink the inner
@@ -194,6 +201,11 @@ The stack does the same thing for its own calls: platform-issued TURN
 credentials, because NAT traversal has no on-chain answer. Ring 2 is not
 Dotify's deviation from the stack; it is the same concession the stack makes,
 kept as small as the product allows.
+
+TURN only helps after a browser or host-provided peer connection exists. It
+cannot compensate for the current Product Mobile sandbox removing
+`RTCPeerConnection`; that requires a host API or permission change, not a relay
+configuration change.
 
 *Open question worth asking the Foundation:* can third-party products obtain
 TURN credentials from platform infrastructure? If yes, Ring 2 halves.

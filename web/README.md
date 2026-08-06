@@ -48,8 +48,9 @@ Useful environment variables:
 - `VITE_CONTENT_SECRET`: optional 32-byte hex secret used for best-effort
   browser-side encrypted audio. It is bundled into the app, so it is not a
   production DRM boundary.
-- `VITE_TURN_URL` / `VITE_TURN_USERNAME` / `VITE_TURN_CREDENTIAL`: optional TURN
-  relay credentials for reliable room WebRTC across restrictive NATs.
+- `VITE_TURN_URL` / `VITE_TURN_USERNAME` / `VITE_TURN_CREDENTIAL`: optional
+  browser-visible TURN fallback for reliable room WebRTC across restrictive
+  NATs. Prefer backend TURN grants through `VITE_DOTIFY_API_URL`.
 - `VITE_BLOCKSCOUT_BASE_URL`: optional Blockscout explorer base URL.
 
 See `.env.example` for local defaults and script-only variables.
@@ -251,9 +252,10 @@ Required production environment variables:
 
 Recommended for reliable rooms:
 
-- `VITE_TURN_URL`
-- `VITE_TURN_USERNAME`
-- `VITE_TURN_CREDENTIAL`
+- Backend API `TURN_URLS` plus `TURN_REST_SECRET`, exposed to the frontend as
+  short-lived `/api/turn/grant` credentials.
+- `VITE_TURN_URL`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL` only as a
+  browser-visible DevNet/static fallback.
 
 Do not set unrestricted Pinata credentials in Netlify. `VITE_PINATA_JWT` is
 browser-exposed and is for restricted local/demo uploads only. Do not treat
@@ -308,7 +310,8 @@ Then verify the user flow in two browser contexts or devices:
 3. Confirm the guest joins without wallet/signature prompts.
 4. Send one chat message and one reaction; both browsers should receive the
    server echo.
-5. Start playback; if audio negotiation fails across networks, configure TURN.
+5. Start playback; if audio negotiation fails across networks, configure TURN
+   on the API and confirm `GET /api/turn/grant` returns `iceServers`.
 
 For operator smoke checks, temporarily set `VITE_DOTIFY_DEBUG_PANEL=true` and
 open `You -> Production readiness`. The panel checks backend readiness,
@@ -324,7 +327,8 @@ starting write flows.
 | Room creation works locally but not in production                            | Netlify was built without the production signaling URL.                                                                             | Inspect the deployed JS env by trying to create a room; the UI error includes the signal URL.                            | Set `VITE_SIGNAL_URL` in Netlify and trigger a fresh frontend deploy.                                                                             |
 | Guests can join, but chat, reactions, or requests do not appear for everyone | The Fly signaling image is stale, or more than one active Fly machine is serving separate in-memory room maps.                      | `flyctl status -c fly.signal.toml`; compare image name and active machine count.                                         | Run `flyctl deploy -c fly.signal.toml`, then `flyctl scale count 1 -c fly.signal.toml --yes` until a shared Socket.IO adapter exists.             |
 | `/health` works but `/status` shows rooms split or missing                   | Multiple signaling instances are active without shared state.                                                                       | `flyctl status -c fly.signal.toml`.                                                                                      | Keep one active machine for the current in-memory signaling design.                                                                               |
-| Listener joins but audio never starts                                        | WebRTC cannot establish a media path across the host/listener networks. Signaling can be healthy while audio still fails.           | The client reports a missing offer, blocked WebRTC route, or TURN timeout instead of waiting forever.                    | Publish Product executable `[0, 1, 6]` or later. For cross-network/mobile failures, configure TURN and redeploy the frontend/Product bundle.      |
+| Product Mobile reports `create-peer` / missing `RTCPeerConnection`            | The current iOS Product sandbox removes the browser WebRTC constructor even after granting the `WebRtc` host permission. ICE and TURN have not started. | Fly `webrtc:diagnostic` shows `peerConnectionAvailable=false`, `protocol=polkadot:`, and phase `listener:create-peer-failed`. Coturn receives no allocation. | Publish Product executable `[0, 1, 11]` or later and use **Continue in browser**. In-app audio requires a Product Mobile host change that exposes a permission-gated peer connection API. |
+| Listener joins but audio negotiation times out after peer creation            | WebRTC cannot establish a media path across the host/listener networks. Signaling can be healthy while audio still fails. | Check `https://dotify-api.fly.dev/api/turn/grant`, coturn allocation logs, and Fly `dotify-signal` diagnostics. `peerConnectionAvailable=true` separates this path from the Product Mobile sandbox limitation. | Configure API TURN grants and verify the relay ports/firewall. Redeploy the frontend/Product bundle only if browser-visible `VITE_TURN_*` changed. |
 | Mobile host sees `captureStream()` unsupported                               | Safari/iOS does not expose `HTMLMediaElement.captureStream()` for host audio capture.                                               | Host card shows the capture error before any guest can hear the room.                                                    | Use the Web Audio fallback path; if both media capture APIs are unavailable, host from desktop/Android Chrome and join as a listener on iOS.      |
 | Production upload or full-track playback fails                               | Backend API is missing or cannot release keys.                                                                                      | Check `VITE_DOTIFY_API_URL`, backend `/health`, and browser network requests to key/upload endpoints.                    | Deploy/fix the backend API and keep `PINATA_JWT` plus `CONTENT_KEY_MASTER_SECRET` server-side.                                                    |
 | Protected track takes too long to start                                      | The IPFS gateway cannot serve DAV2 Range requests quickly, MSE is unsupported for the media type, or the backend key route is slow. | Listen for `dotify:dav2-startup` and `dotify:host-audio-startup` in the browser and inspect key/upload network requests. | Compare selected gateway, hedged header/first-chunk timing, and first-audio timing; then decide whether a backend read-through gateway is needed. |

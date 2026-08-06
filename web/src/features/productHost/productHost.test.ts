@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { connectProductHostIdentity, ensureProductHostRoomPermissions, probeProductHost, resolveProductHostConfig } from './productHost';
+import {
+  connectProductHostIdentity,
+  ensureProductHostRoomPermissions,
+  isProductHostWebRtcUnavailable,
+  openProductHostExternalUrl,
+  probeProductHost,
+  resolveProductHostConfig
+} from './productHost';
 
 describe('resolveProductHostConfig', () => {
   it('keeps ordinary browser builds independent from the Product host', () => {
@@ -49,6 +56,43 @@ describe('probeProductHost', () => {
         throw new Error('host missing');
       })
     ).resolves.toBe('unavailable');
+  });
+});
+
+describe('Product host live-room navigation', () => {
+  it('detects the Product Mobile sandbox without masking browser WebRTC support', () => {
+    const peerConnection = class {} as typeof RTCPeerConnection;
+
+    expect(isProductHostWebRtcUnavailable('polkadot:', undefined, false)).toBe(true);
+    expect(isProductHostWebRtcUnavailable('polkadot:', peerConnection, false)).toBe(false);
+    expect(isProductHostWebRtcUnavailable('https:', undefined, true)).toBe(true);
+    expect(isProductHostWebRtcUnavailable('https:', undefined, false)).toBe(false);
+  });
+
+  it('opens a secure fallback URL through the Product host', async () => {
+    const navigateTo = vi.fn(async () => ({ ok: true as const, value: undefined }));
+
+    await expect(openProductHostExternalUrl('https://dotify-test01.dev-dot.li/#/rooms/LIVE42', { navigateTo })).resolves.toEqual({ ok: true });
+    expect(navigateTo).toHaveBeenCalledWith('https://dotify-test01.dev-dot.li/#/rooms/LIVE42');
+  });
+
+  it('rejects insecure fallback URLs before contacting the host', async () => {
+    const navigateTo = vi.fn();
+
+    await expect(openProductHostExternalUrl('http://dotify-test01.dev-dot.li', { navigateTo })).resolves.toEqual({
+      ok: false,
+      reason: 'Dotify only opens secure browser links from the Polkadot host.'
+    });
+    expect(navigateTo).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a host navigation denial', async () => {
+    const navigateTo = vi.fn(async () => ({ ok: false as const, error: new Error('PermissionDenied') }));
+
+    await expect(openProductHostExternalUrl('https://dotify-test01.dev-dot.li', { navigateTo })).resolves.toEqual({
+      ok: false,
+      reason: 'The Polkadot host could not open the browser: PermissionDenied'
+    });
   });
 });
 
@@ -118,6 +162,29 @@ describe('ensureProductHostRoomPermissions', () => {
     expect(requestPermission).toHaveBeenNthCalledWith(2, {
       tag: 'Remote',
       value: { domains: ['dotify-signal.fly.dev'] }
+    });
+  });
+
+  it('requests every remote room dependency domain inside the Product host', async () => {
+    const requestPermission = vi.fn(async () => ({ ok: true as const, value: true }));
+
+    await expect(
+      ensureProductHostRoomPermissions(
+        'https://dotify-signal.fly.dev',
+        {
+          isInsideContainer: () => true,
+          requestPermission
+        },
+        {
+          remoteUrls: ['https://dotify-api.fly.dev', 'https://dotify-api.fly.dev/api/turn/grant']
+        }
+      )
+    ).resolves.toEqual({ ok: true });
+
+    expect(requestPermission).toHaveBeenNthCalledWith(1, { tag: 'WebRtc' });
+    expect(requestPermission).toHaveBeenNthCalledWith(2, {
+      tag: 'Remote',
+      value: { domains: ['dotify-signal.fly.dev', 'dotify-api.fly.dev'] }
     });
   });
 

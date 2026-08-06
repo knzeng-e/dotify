@@ -441,6 +441,7 @@ Important browser-exposed variables:
 | `VITE_IPFS_READ_GATEWAYS` | comma-separated IPFS read fallbacks                                                        |
 | `VITE_DOTIFY_API_URL`     | backend API URL for production uploads and wallet-signed key requests                      |
 | `VITE_CONTENT_SECRET`     | optional demo/local 32-byte hex content-key derivation secret; never a production boundary |
+| `VITE_TURN_URL`           | optional browser-visible TURN fallback; API grants are preferred for production rooms      |
 
 Server/script variables:
 
@@ -456,6 +457,8 @@ Server/script variables:
 | `DOTIFY_CHAIN_ID`           | chain ID expected in signed key requests           |
 | `PINATA_JWT`                | backend-only Pinata credential                     |
 | `CONTENT_KEY_MASTER_SECRET` | backend-only content-key derivation secret         |
+| `TURN_URLS`                 | public TURN relay URLs returned by `/api/turn/grant` |
+| `TURN_REST_SECRET`          | backend-only TURN REST HMAC secret                 |
 | `BULLETIN_ACCOUNT`          | dev account used by Bulletin deploy script         |
 
 ## 11. Wallet And Passkey Design
