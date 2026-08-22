@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createNativeRuntimeAccessPaymentIntent } from '../payments/paymentModel';
 
 const txHash = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' as const;
 const factory = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' as const;
@@ -76,6 +77,14 @@ function mockProductSigner(selectedAccount = productAccount()) {
   return { signerManager, signerManagerOptions, SignerManager, HostProvider };
 }
 
+function accessIntent(amountPlanck: bigint) {
+  return createNativeRuntimeAccessPaymentIntent({
+    runtimeAddress: runtime,
+    contentHash: hash,
+    amountPlanck
+  });
+}
+
 describe('createRuntimeWriter', () => {
   it('uses the viem writer by default and resolves the active wallet per write', async () => {
     const createRuntimeWriter = await loadProvider();
@@ -88,14 +97,15 @@ describe('createRuntimeWriter', () => {
       config: { kind: 'viem', productEnvironment: 'devnet' }
     });
 
-    await expect(writer.payForAccess(runtime, hash, 42n)).resolves.toBe(txHash);
+    const intent = accessIntent(42n);
+    await expect(writer.payForAccess(intent)).resolves.toBe(txHash);
     await expect(writer.waitForTransaction(txHash)).resolves.toBeUndefined();
 
     const { createViemRuntimeWriter } = await import('./viemRuntimeAdapter');
     expect(createViemRuntimeWriter).toHaveBeenCalledTimes(2);
     expect(createViemRuntimeWriter).toHaveBeenCalledWith({ ethRpcUrl: 'https://rpc.example', walletClient });
     expect(getViemWalletClient).toHaveBeenCalledTimes(2);
-    expect(viemWriter.payForAccess).toHaveBeenCalledWith(runtime, hash, 42n);
+    expect(viemWriter.payForAccess).toHaveBeenCalledWith(intent);
   });
 
   it('explains that Product writes are absent when the build did not opt in', async () => {
@@ -109,7 +119,7 @@ describe('createRuntimeWriter', () => {
       config: { kind: 'product-cdm', productEnvironment: 'devnet' }
     });
 
-    await expect(writer.payForAccess(runtime, hash, 1n)).rejects.toThrow(/Product contract write adapter is not bundled/);
+    await expect(writer.payForAccess(accessIntent(1n))).rejects.toThrow(/Product contract write adapter is not bundled/);
   });
 
   it('routes Product writes through CDM setup without falling back to viem', async () => {
@@ -136,7 +146,8 @@ describe('createRuntimeWriter', () => {
     });
 
     await expect(writer.createRuntime(factory)).resolves.toBe(txHash);
-    await expect(writer.payForAccess(runtime, hash, 7n)).resolves.toBe(txHash);
+    const intent = accessIntent(7n);
+    await expect(writer.payForAccess(intent)).resolves.toBe(txHash);
 
     const { createProductCdmContracts } = await import('./productCdmContracts');
     const { createProductCdmRuntimeWriter } = await import('./productCdmRuntimeAdapter');
@@ -159,7 +170,7 @@ describe('createRuntimeWriter', () => {
     expect(createProductCdmRuntimeWriter).toHaveBeenCalledTimes(1);
     expect(createProductCdmRuntimeWriter).toHaveBeenCalledWith({ contracts: resolver });
     expect(productWriter.createRuntime).toHaveBeenCalledWith(factory);
-    expect(productWriter.payForAccess).toHaveBeenCalledWith(runtime, hash, 7n);
+    expect(productWriter.payForAccess).toHaveBeenCalledWith(intent);
     expect(createViemRuntimeWriter).not.toHaveBeenCalled();
     expect(getViemWalletClient).not.toHaveBeenCalled();
   });
@@ -179,7 +190,7 @@ describe('createRuntimeWriter', () => {
       productAccount: { productId: 'dotify-test01.dot', publicKey: productPublicKey }
     });
 
-    await expect(writer.payForAccess(runtime, hash, 1n)).rejects.toThrow(/Product CDM signer mismatch/);
+    await expect(writer.payForAccess(accessIntent(1n))).rejects.toThrow(/Product CDM signer mismatch/);
     expect(signerManager.destroy).toHaveBeenCalledTimes(1);
     expect(createProductCdmContracts).not.toHaveBeenCalled();
   });

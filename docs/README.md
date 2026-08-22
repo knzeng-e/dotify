@@ -13,7 +13,7 @@ Conceptual documents that help you understand why Dotify works the way it does.
 | [Architecture Overview](./explanation/architecture-overview.md) | All | How the six system layers (identity, IPFS, EVM, Bulletin, WebRTC, frontend) connect |
 | [Access Control Model](./explanation/access-control-model.md) | All | Human free vs Classic — what they mean for artists and listeners |
 | [Content Protection](./explanation/content-protection.md) | All | Audio encryption pipeline, what it protects, and what it does not |
-| [Royalty Settlement](./explanation/royalty-settlement.md) | All | How DOT payments flow from listener wallet to artist wallet |
+| [Royalty Settlement](./explanation/royalty-settlement.md) | All | How native runtime payments flow from listener wallet to artist wallet, and why Product CASH settlement remains a separate rail |
 | [Listening Rooms](./explanation/listening-rooms.md) | All | WebRTC peer-to-peer streaming, signaling protocol, known limitations |
 | [Product DevNet Architecture](./explanation/product-devnet-architecture.md) | Maintainers | Dual-host boundaries, Product account capabilities, rooms, storage, and the proposed contract port |
 

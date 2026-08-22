@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createNativeRuntimeAccessPaymentIntent } from '../payments/paymentModel';
 import { createViemRuntimeReader, createViemRuntimeWriter } from './viemRuntimeAdapter';
 import type { OnchainTrackRecord } from '../../shared/types';
 
@@ -165,7 +166,15 @@ describe('createViemRuntimeWriter', () => {
 
     await expect(writer.createRuntime(factory)).resolves.toBe(`${txHash}:createRuntime`);
     await expect(writer.installRuntimeStep(factory)).resolves.toBe(`${txHash}:installRuntimeStep`);
-    await expect(writer.payForAccess(runtime, hash, 1n)).resolves.toBe(`${txHash}:musicRoyPayAccess`);
+    await expect(
+      writer.payForAccess(
+        createNativeRuntimeAccessPaymentIntent({
+          runtimeAddress: runtime,
+          contentHash: hash,
+          amountPlanck: 1n
+        })
+      )
+    ).resolves.toBe(`${txHash}:musicRoyPayAccess`);
     await expect(
       writer.registerTrack(runtime, {
         contentHash: hash,
@@ -196,5 +205,13 @@ describe('createViemRuntimeWriter', () => {
     await writer.waitForTransaction(txHash);
     expect(waitForTransactionReceipt).toHaveBeenCalledWith({ hash: txHash });
     expect(writeContract).toHaveBeenCalledTimes(6);
+    expect(writeContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: runtime,
+        functionName: 'musicRoyPayAccess',
+        args: [hash],
+        value: 1n
+      })
+    );
   });
 });

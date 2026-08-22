@@ -325,6 +325,10 @@ Pay for access to a Classic-mode track.
 field name is historical; Dotify now stores the price as 18-decimal Asset Hub
 EVM native units.
 
+Frontend writes build an explicit native runtime payment intent before calling
+this function. CASH is not passed through this runtime method; Product-native
+CASH settlement requires a future receipt or bridge model.
+
 On success:
 
 1. Distributes `msg.value` across royalty splits (basis points).

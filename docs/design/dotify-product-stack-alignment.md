@@ -174,10 +174,12 @@ host-signed payment receipt the runtime verifies, or an Asset-Hub-side
 entitlement credited from an attested People-chain transfer. Both need design
 work. Do not ship a payment path until this is settled.
 
-Interim implementation note: Classic unlock now goes through Dotify's
-`RuntimeWritePort`, so a build can switch from viem to Product CDM contract
-handles without changing the listener UI. That is still native-value runtime
-payment, not Product-native CASH settlement.
+Interim implementation note: Classic unlock now creates a typed native runtime
+payment intent and sends that through Dotify's `RuntimeWritePort`, so a build
+can switch from viem to Product CDM contract handles without changing the
+listener UI. That is still native-value runtime payment, not Product-native
+CASH settlement. CASH is modeled as a separate unsupported rail until Product
+confirms how People-chain CASH can settle Asset-Hub runtime entitlement.
 
 **Catalog metadata to Bulletin.** Release metadata, artwork, and manifests are
 small, immutable, and public. Exactly Bulletin's shape. The Fly read model

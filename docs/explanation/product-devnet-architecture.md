@@ -86,7 +86,7 @@ Socket.IO, and WebRTC signaling.
 | Join room link        | No wallet                                     | No wallet                                                                                                                             | Same                                                                                   |
 | Host room             | Socket.IO + WebRTC                            | Product Desktop/web host: same. Product Mobile iOS: external-browser continuation until the host exposes Product WebRTC.              | Keep until a multiparty replacement proves equivalent UX                               |
 | Product identity      | Not applicable                                | App-scoped SS58/H160                                                                                                                  | Host identity with explicit capability grants                                          |
-| Classic payment       | Passkey/EVM wallet through `RuntimeWritePort` | Passkey/EVM wallet in the tracked build; Product CDM writer only when `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` is explicitly enabled | CASH settlement after the Product payment rail is designed                             |
+| Classic payment       | Native runtime payment intent through `RuntimeWritePort` | Passkey/EVM wallet in the tracked build; Product CDM writer only when `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` is explicitly enabled | CASH settlement after the Product payment rail is designed                             |
 | Protected key request | EIP-191 or session token                      | `product-sr25519-v1` when a Product account is connected; EIP-191 or session token otherwise                                          | Frontend-host signed Product key/session requests, with captured host signing evidence |
 | Artist publication    | viem/EVM                                      | viem/EVM                                                                                                                              | Generated CDM contract adapter                                                         |
 | Personhood            | Current on-chain policy source                | No new claim                                                                                                                          | Privacy-preserving Product proof after verification                                    |
@@ -177,7 +177,7 @@ RuntimeWritePort
   registerTrack()
   setAccessMode()
   setReleaseActive()
-  payForAccess()
+  payForAccess(nativeRuntimeIntent)
 ```
 
 Adapters:
@@ -192,6 +192,19 @@ Adapters:
   this flag changes the signer/transport seam without touching listener UI;
 - `CatalogApiAdapter`: the existing server-side read model, shared by both
   frontends.
+
+Classic unlock no longer passes a loose `(runtimeAddress, contentHash, value)`
+triple into runtime writers. The catalog hook creates a typed native runtime
+payment intent first: asset `DOT`, rail `runtime-native`, runtime address,
+content hash, and 18-decimal native amount. The viem and Product CDM adapters
+both submit that same intent as `musicRoyPayAccess(contentHash)` plus
+`msg.value`.
+
+CASH is represented separately as an unsupported `product-cash` rail. That is
+intentional. CASH lives on People chain while Dotify entitlements live in Asset
+Hub runtimes, so the Product-native path needs an explicit receipt or bridge
+model before any listener payment can execute. Dotify must not silently convert
+CASH to native runtime value or mark access paid without runtime evidence.
 
 The CDM adapter has one deliberate gap: royalty payment history is not read
 through Product contract handles because the current SDK surface exposes

@@ -23,6 +23,7 @@ import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
+import { createNativeRuntimeAccessPaymentIntent } from '../features/payments/paymentModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
 import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
@@ -1045,6 +1046,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         message: `Full listening for "${track.title}" is now available to this wallet.`,
         txHash: E2E_CLASSIC_TX_HASH
       });
+      navigateToView('player');
       await selectTrack(track, undefined, undefined, undefined);
       return;
     }
@@ -1054,17 +1056,31 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     const { dotToPlanck } = await import('../shared/utils/format');
 
-    const priceWei = dotToPlanck(track.priceDot);
+    let paymentIntent;
+    try {
+      paymentIntent = createNativeRuntimeAccessPaymentIntent({
+        runtimeAddress,
+        contentHash: track.hash,
+        amountPlanck: dotToPlanck(track.priceDot)
+      });
+    } catch (intentError) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Payment setup failed',
+        message: intentError instanceof Error ? intentError.message : 'Unable to prepare this payment.'
+      });
+      return;
+    }
 
     setAccessGate(null);
     setTransactionFeedback({
       tone: 'pending',
       title: 'Support being confirmed',
-      message: `Confirming ${track.priceDot} DOT of support to open "${track.title}".`
+      message: `Confirming ${track.priceDot} ${paymentIntent.asset.symbol} of support to open "${track.title}".`
     });
 
     try {
-      const txHash = await runtimeWriter.payForAccess(runtimeAddress, track.hash, priceWei);
+      const txHash = await runtimeWriter.payForAccess(paymentIntent);
       setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Payment submitted.', txHash });
       await runtimeWriter.waitForTransaction(txHash);
 
@@ -1076,6 +1092,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         message: `Full listening for "${track.title}" is now available to this wallet.`,
         txHash
       });
+      navigateToView('player');
       await selectTrack(track, undefined, undefined, undefined);
     } catch (payError) {
       const message = payError instanceof Error ? payError.message : 'Payment failed';

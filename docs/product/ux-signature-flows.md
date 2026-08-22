@@ -115,6 +115,7 @@ sequenceDiagram
   participant API as Dotify Backend
 
   L->>UI: Click unlock full track
+  UI->>UI: Build native runtime payment intent
   UI->>L: Confirm Classic payment transaction
   L->>RT: musicRoyPayAccess(contentHash) + value
   RT-->>UI: Transaction confirmed
@@ -124,6 +125,11 @@ sequenceDiagram
   API-->>UI: Temporary content key
   UI-->>L: Full playback
 ```
+
+Classic unlock intentionally uses a native runtime payment intent today. Product
+CASH settlement is a separate future rail; it must not be treated as executable
+until Dotify has a Product-confirmed receipt or bridge model between People
+chain CASH and Asset Hub runtime entitlement.
 
 ## Human Free flow
 

@@ -193,6 +193,11 @@ Goal: deepen the delivered Product mode one adapter at a time.
   hook. The tracked Product deployment still defaults to viem, but a
   `product-cdm` build now changes the runtime write adapter at the same seam as
   reads.
+- Delivered on the next follow-up branch: make Classic unlock payments a typed
+  native runtime payment intent before they reach `RuntimeWritePort`. The code
+  now has an explicit unsupported `product-cash` rail, so future CASH work can
+  add receipt/bridge settlement without pretending CASH is already executable
+  through `msg.value`.
 - Settled: the chain question. Product DevNet is a preset over the Paseo system
   parachains (Asset Hub 1000, People 1004, Bulletin 1010) at EVM chain
   420420417, not a separate network. Dotify's contracts are already there,
@@ -201,8 +206,10 @@ Goal: deepen the delivered Product mode one adapter at a time.
   The SDK's `paseo` preset is Paseo Next (1500/1502), a different network, so
   `devnet` is the only environment Dotify can serve a catalog from.
 - Next: `pallet-revive` account mapping plus real host-signed transaction smoke
-  tests before Product writes can replace the EVM wallet path. This is now the
-  only gate left for Product contract mode.
+  tests before Product writes can replace the EVM wallet path.
+- Next: confirm the Product-supported CASH settlement model before exposing any
+  DOT/CASH conversion, bridge, or receipt UI. Dotify must keep runtime access
+  grants tied to verifiable settlement evidence.
 - Next: run real Product host smoke tests for protected playback and capture the
   Product sr25519 request evidence.
 - Keep backend key delivery authoritative unless a Product-host design proves a
