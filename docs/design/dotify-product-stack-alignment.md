@@ -13,18 +13,18 @@ document says so rather than guessing.
 
 Ten architecture layers, each with a defined owner:
 
-| Layer | What it provides | Where it lives |
-| --- | --- | --- |
-| Client tier | The Polkadot app; apps run *inside* a host container | Desktop / Mobile / `dev-dot.li` |
-| Identity | Device attestation -> JWT, Lite usernames, Full personhood | `identity-backend` (centralized HTTP), `people-lite`, `proof-of-ink` |
-| Naming | `.dot` names; usernames mirror into DotNS | DotNS |
-| App delivery | build -> Bulletin -> DotNS bind -> Browse listing | Bulletin + DotNS |
-| Storage | Content-addressed CIDs; authorization is a byte/tx quota with expiry | Bulletin (para 1010) |
-| Contracts | PolkaVM via `pallet-revive`; CDM builds, deploys, registers, resolves | Asset Hub (1000) |
-| Identity in contracts | **Personhood precompile** returning a per-app privacy-preserving alias | Asset Hub |
-| Money | CASH (pUSD asset 1) spent through Coinage; PAS pays fees | People chain (1004) |
-| Messaging & calls | Encrypted chat, 1:1 voice/video; **signaling travels on-chain** | People statement store + platform TURN |
-| Discovery | Browse | `browse.dev-dot.li` |
+| Layer                 | What it provides                                                       | Where it lives                                                       |
+| --------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Client tier           | The Polkadot app; apps run _inside_ a host container                   | Desktop / Mobile / `dev-dot.li`                                      |
+| Identity              | Device attestation -> JWT, Lite usernames, Full personhood             | `identity-backend` (centralized HTTP), `people-lite`, `proof-of-ink` |
+| Naming                | `.dot` names; usernames mirror into DotNS                              | DotNS                                                                |
+| App delivery          | build -> Bulletin -> DotNS bind -> Browse listing                      | Bulletin + DotNS                                                     |
+| Storage               | Content-addressed CIDs; authorization is a byte/tx quota with expiry   | Bulletin (para 1010)                                                 |
+| Contracts             | PolkaVM via `pallet-revive`; CDM builds, deploys, registers, resolves  | Asset Hub (1000)                                                     |
+| Identity in contracts | **Personhood precompile** returning a per-app privacy-preserving alias | Asset Hub                                                            |
+| Money                 | CASH (pUSD asset 1) spent through Coinage; PAS pays fees               | People chain (1004)                                                  |
+| Messaging & calls     | Encrypted chat, 1:1 voice/video; **signaling travels on-chain**        | People statement store + platform TURN                               |
+| Discovery             | Browse                                                                 | `browse.dev-dot.li`                                                  |
 
 Three properties matter more than the inventory.
 
@@ -67,21 +67,21 @@ Bulletin is the same idea with a different authorizer.
 
 **Encryption already assumes ungated reads.** Bulletin "reading never needs"
 authorization - it gates storing, not retrieval. Dotify's DAV2 encryption is
-therefore not redundant with a move to Bulletin; it is the *precondition* for
+therefore not redundant with a move to Bulletin; it is the _precondition_ for
 one. Protected audio on a public content-addressed store must be encrypted, and
 Dotify already does that.
 
 ## 3. Where Dotify Diverges
 
-| Concern | Dotify today | Stack model | Real gap? |
-| --- | --- | --- | --- |
-| Contract toolchain | Solidity, Hardhat, viem, hand-built manifest | PolkaVM, CDM, `@org/name` resolution | Yes - composability and discoverability |
-| Personhood | Dev-operated registrar, unused | Personhood precompile, contextual alias | Yes - and the stack's answer is better |
-| Payments | `payForAccess` in native token | CASH via Coinage, host payment APIs | Yes - wrong asset, wrong surface |
-| Catalog metadata | Fly read model over EVM logs | Bulletin CIDs + CDM resolution | Partly - a cache is legitimate |
-| Audio storage | Pinata / IPFS pinning | Bulletin | Contested - see §6 |
-| Room signaling | Socket.IO on Fly | People statement store | **Blocked** - see §4 |
-| Content-key custody | Fly, `CONTENT_KEY_MASTER_SECRET` | No equivalent | **No stack answer exists** |
+| Concern             | Dotify today                                 | Stack model                             | Real gap?                               |
+| ------------------- | -------------------------------------------- | --------------------------------------- | --------------------------------------- |
+| Contract toolchain  | Solidity, Hardhat, viem, hand-built manifest | PolkaVM, CDM, `@org/name` resolution    | Yes - composability and discoverability |
+| Personhood          | Dev-operated registrar, unused               | Personhood precompile, contextual alias | Yes - and the stack's answer is better  |
+| Payments            | `payForAccess` in native token               | CASH via Coinage, host payment APIs     | Yes - wrong asset, wrong surface        |
+| Catalog metadata    | Fly read model over EVM logs                 | Bulletin CIDs + CDM resolution          | Partly - a cache is legitimate          |
+| Audio storage       | Pinata / IPFS pinning                        | Bulletin                                | Contested - see §6                      |
+| Room signaling      | Socket.IO on Fly                             | People statement store                  | **Blocked** - see §4                    |
+| Content-key custody | Fly, `CONTENT_KEY_MASTER_SECRET`             | No equivalent                           | **No stack answer exists**              |
 
 ## 4. The Constraint That Shapes Everything
 
@@ -101,7 +101,7 @@ A WebRTC offer is roughly 1.5-4 KB. That is 3-8x the per-statement ceiling, and
 the per-account ceiling is 1 KiB - so a peer cannot hold even one SDP in the
 store. Chunking does not rescue it; the budget is the wall, not the chunk size.
 
-And the arithmetic is the *lesser* problem. The greater one is that a guest must
+And the arithmetic is the _lesser_ problem. The greater one is that a guest must
 publish an answer to complete a handshake, which requires an attested identity.
 
 **Moving Dotify's rooms onto the official messaging layer would convert every
@@ -109,7 +109,7 @@ listener into a registered, attested person.** That does not degrade the
 product; it deletes it. The gesture Dotify exists to protect - "someone lets
 another person listen with them" - becomes an onboarding funnel.
 
-This is where the word *convivial* earns its keep. A convivial tool, in Illich's
+This is where the word _convivial_ earns its keep. A convivial tool, in Illich's
 sense, is one people can use without first submitting to an institution. A
 listening room that demands attestation at the door is a well-engineered
 enclosure. The north star is explicit that Web3 here is "invisible trust", not
@@ -168,11 +168,16 @@ should not think about. Charging in PAS is a category error on this stack. The
 runtime stays the authority on entitlement; settlement moves to host payment
 APIs.
 
-*Open problem, stated plainly:* CASH lives on People chain, the runtime lives on
+_Open problem, stated plainly:_ CASH lives on People chain, the runtime lives on
 Asset Hub. Cross-chain settlement is unsolved here. Two candidate shapes - a
 host-signed payment receipt the runtime verifies, or an Asset-Hub-side
 entitlement credited from an attested People-chain transfer. Both need design
 work. Do not ship a payment path until this is settled.
+
+Interim implementation note: Classic unlock now goes through Dotify's
+`RuntimeWritePort`, so a build can switch from viem to Product CDM contract
+handles without changing the listener UI. That is still native-value runtime
+payment, not Product-native CASH settlement.
 
 **Catalog metadata to Bulletin.** Release metadata, artwork, and manifests are
 small, immutable, and public. Exactly Bulletin's shape. The Fly read model
@@ -180,7 +185,7 @@ becomes a cache with a provable source, not the source.
 
 **Room discovery and presence to the statement store.** A `{room, host,
 listeners, ts}` record is ~100 B, well inside 512 B, and `ChannelStore`'s
-last-write-wins is the right primitive. The *host* is identified and can hold an
+last-write-wins is the right primitive. The _host_ is identified and can hold an
 allowance, so this works without touching the guest. Rooms become discoverable
 without Dotify's servers - a genuine decentralization win that costs the product
 nothing.
@@ -207,7 +212,7 @@ cannot compensate for the current Product Mobile sandbox removing
 `RTCPeerConnection`; that requires a host API or permission change, not a relay
 configuration change.
 
-*Open question worth asking the Foundation:* can third-party products obtain
+_Open question worth asking the Foundation:_ can third-party products obtain
 TURN credentials from platform infrastructure? If yes, Ring 2 halves.
 
 ### Ring 3 - name the exception
@@ -266,7 +271,8 @@ Ordered by value per unit of risk:
 5. **Shrink signaling to a rendezvous** - only after 3 lands.
 6. **Per-artist key custody** - the deepest change; do it when the runtime work
    above has settled.
-7. **CASH settlement** - last, and only after the cross-chain design is proven.
+7. **CASH settlement** - after the write-port seam and host transaction evidence,
+   and only after the cross-chain design is proven.
 
 Steps 1-4 are additive and independently shippable. Nothing before step 5
 touches the walletless guest path.
