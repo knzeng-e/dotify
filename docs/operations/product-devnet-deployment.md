@@ -614,6 +614,7 @@ active.
 - A durable `CATALOG_SNAPSHOT_PATH` remains recommended for production-grade
   catalog recovery but is not required for API startup.
 - Product contract mode (`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`) covers
-  catalog reads only, and only inside the Product host. Contract writes stay on
-  the passkey/EVM signer in every mode until `pallet-revive` account mapping and
-  host-signed transaction evidence exist.
+  catalog reads and runtime write submissions inside the Product host. The
+  tracked deployment still keeps the default `viem` adapter until
+  `pallet-revive` account mapping, native value forwarding, and host-signed
+  transaction evidence are captured.

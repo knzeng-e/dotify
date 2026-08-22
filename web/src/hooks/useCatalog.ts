@@ -28,6 +28,7 @@ import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterC
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
 import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
 import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
+import { resolveProductHostConfig } from '../features/productHost/productHost';
 import { fetchCatalog, isCatalogApiConfigured, readBundledCatalog, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
 import {
   E2E_CLASSIC_AUDIO_URL,
@@ -280,10 +281,19 @@ export function useCatalog(deps: UseCatalogDeps) {
   } = deps;
 
   const runtimeAdapterConfig = useMemo(() => resolveRuntimeAdapterConfig(import.meta.env), []);
+  const productHostConfig = useMemo(() => resolveProductHostConfig(import.meta.env), []);
+  const productRuntimeAccount = useMemo(() => {
+    if (connectedWallet?.method !== 'product-host') return undefined;
+    const signer = connectedWallet.keyRequestSigner;
+    return {
+      productId: productHostConfig.productId,
+      publicKey: signer && 'productPublicKey' in signer ? signer.productPublicKey : undefined
+    };
+  }, [connectedWallet, productHostConfig.productId]);
   const runtimeReader = useMemo(() => createRuntimeReader({ ethRpcUrl, config: runtimeAdapterConfig }), [ethRpcUrl, runtimeAdapterConfig]);
   const runtimeWriter = useMemo(
-    () => createRuntimeWriter({ ethRpcUrl, getViemWalletClient: getActiveWalletClient, config: runtimeAdapterConfig }),
-    [ethRpcUrl, getActiveWalletClient, runtimeAdapterConfig]
+    () => createRuntimeWriter({ ethRpcUrl, getViemWalletClient: getActiveWalletClient, config: runtimeAdapterConfig, productAccount: productRuntimeAccount }),
+    [ethRpcUrl, getActiveWalletClient, productRuntimeAccount, runtimeAdapterConfig]
   );
   const usesCatalogApi = isCatalogApiConfigured() && !isClassicUnlockE2e && !isArtistPublishE2e && !isRoomJoinE2e;
   const [initialCatalogState] = useState<{ tracks: CatalogTrack[]; source: 'cache' | 'bundle' | null }>(() => {

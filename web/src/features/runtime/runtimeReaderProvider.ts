@@ -1,10 +1,9 @@
 // Selects the runtime read adapter and hands callers a plain RuntimeReadPort.
 //
-// Scope note: this switches READS only. Contract writes stay on the viem
-// signer path in every mode, because the Product write path still has no
-// host-signed transaction evidence and a payment or publication is not
-// something to route through an unproven signer. `RuntimeWritePort` therefore
-// has no equivalent provider on purpose.
+// Scope note: this switches READS only. Runtime writes have their own provider
+// because they need stricter signer setup: the Product CDM writer must bind the
+// connected Product account before any payment or publication transaction can
+// be submitted.
 //
 // Every RuntimeReadPort method already returns a promise, so the Product
 // adapter's asynchronous setup (dynamic import, host connection, deployment
