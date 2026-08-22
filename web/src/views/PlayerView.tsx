@@ -84,7 +84,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const onCopySessionLink = session.copySessionLink;
   const onSetAccessGate = catalog.setAccessGate;
   const onPayForTrackAccess = (track: CatalogTrack) => {
-    void catalog.payForTrackAccess(track);
+    void catalog.payForTrackAccess(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
   };
   const onShowWalletModal = () => setShowWalletModal(true);
   const onNavigateToListen = () => navigateToView('listen');

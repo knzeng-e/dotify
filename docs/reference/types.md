@@ -225,7 +225,8 @@ type CatalogTrack = {
   artistAddress?: `0x${string}`;
   audioRef: string;
   imageRef: string;
-  priceDot: string;
+  priceDot: string; // Display-only decimal DOT amount
+  pricePlanck?: bigint; // Authoritative 18-decimal native amount when loaded from chain/API
   localUrl?: string; // Resolved playable URL (blob:, http:, etc.)
   duration?: number;
   hash: `0x${string}`;
@@ -243,7 +244,11 @@ type CatalogTrack = {
 };
 ```
 
-The full catalog entry for a track as used in the browse and player views. On-chain tracks have `source: 'artist'` and an `id` of the form `<runtimeAddress>:<contentHash>`.
+The full catalog entry for a track as used in the browse and player views.
+On-chain tracks have `source: 'artist'` and an `id` of the form
+`<runtimeAddress>:<contentHash>`. `priceDot` is for display; Classic unlock
+payments use `pricePlanck` when it is present so the submitted `msg.value`
+matches the runtime's stored price exactly.
 
 ---
 

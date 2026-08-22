@@ -63,9 +63,12 @@ When a listener calls `musicRoyPayAccess(contentHash)`, the contract:
 5. Emits `MusicRoyAccessPaid(contentHash, listener, amount)`.
 
 The `pricePlanck` field name is historical. The active EVM path stores and pays
-prices as 18-decimal native token units, so the frontend uses `parseEther()` for
-DOT input and `formatEther()` for display. The frontend now wraps this as a
-native runtime payment intent before submitting `musicRoyPayAccess`.
+prices as 18-decimal native token units. The frontend uses `parseEther()` for
+artist DOT input and `formatEther()` for display, but unlock payments are built
+from the catalog's authoritative `pricePlanck` when present. `priceDot` is never
+used as the source of truth for an on-chain Classic payment. The frontend wraps
+the native amount as a typed runtime payment intent before submitting
+`musicRoyPayAccess`.
 
 Product CASH settlement is deliberately not executable through this path. CASH
 lives on People chain while Dotify runtime entitlements live on Asset Hub, so

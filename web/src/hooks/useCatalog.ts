@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchAssetRef, fetchIpfsCid, getGatewayUrl } from '../services/pinata';
 import { getPublicClient } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
@@ -23,7 +23,7 @@ import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
-import { createNativeRuntimeAccessPaymentIntent } from '../features/payments/paymentModel';
+import { classicTrackPaymentAmountPlanck, createNativeRuntimeAccessPaymentIntent } from '../features/payments/paymentModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
 import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
@@ -60,7 +60,8 @@ import type {
   RegistryCatalogTrack,
   RoomPlaybackMode,
   TrackInfo,
-  TransactionFeedback
+  TransactionFeedback,
+  View
 } from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
 
@@ -227,6 +228,7 @@ function catalogApiReleaseToTrack(release: CatalogApiRelease): CatalogTrack {
     audioRef: release.audioRef,
     imageRef: resolveVisualAssetRef(release.imageRef, release.title),
     priceDot: release.priceDot,
+    pricePlanck: BigInt(release.priceWei),
     localUrl: resolveAudioAssetRef(release.audioRef),
     description: release.description,
     bulletinRef: release.bulletinRef,
@@ -251,6 +253,7 @@ export type UseCatalogDeps = {
   directoryAddress: `0x${string}` | undefined;
   setShowWalletModal: (show: boolean) => void;
   setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
+  activeView: View;
   navigateToView: (view: 'listen' | 'player' | 'rooms') => void;
   getActiveWalletClient: () => Promise<Awaited<ReturnType<typeof import('../shared/config/contracts').getWalletClient>>>;
   setBulletinManifestRef: (ref: string) => void;
@@ -271,6 +274,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setShowWalletModal,
     setTransactionFeedback,
     setTitle,
+    activeView,
     navigateToView,
     getActiveWalletClient,
     setBulletinManifestRef,
@@ -333,6 +337,8 @@ export function useCatalog(deps: UseCatalogDeps) {
   const audioUploadRef = useRef<Promise<string> | null>(null);
   const coverUploadRef = useRef<Promise<string> | null>(null);
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
+  const selectedTrackIdRef = useRef(selectedTrackId);
+  const activeViewRef = useRef(activeView);
   const activeTrackSelectionRef = useRef<{ id: number; controller: AbortController } | null>(null);
   const nextTrackSelectionIdRef = useRef(0);
   const e2eClassicAccessGrantedRef = useRef(false);
@@ -342,6 +348,14 @@ export function useCatalog(deps: UseCatalogDeps) {
   // 'room_host' when the selected track streams into a room; room listeners
   // never request keys at all (they only receive the WebRTC stream).
   const keyRequestPurposeRef = useRef<KeyRequestPurpose>('individual');
+
+  useEffect(() => {
+    selectedTrackIdRef.current = selectedTrackId;
+  }, [selectedTrackId]);
+
+  useEffect(() => {
+    activeViewRef.current = activeView;
+  }, [activeView]);
 
   function internalSetFileHash(hash: `0x${string}` | '') {
     setFileHashState(hash);
@@ -919,6 +933,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       outgoingAudio.pause();
     }
 
+    selectedTrackIdRef.current = track.id;
     setSelectedTrackId(track.id);
     setTitle(track.title);
     setArtistName(track.artist);
@@ -1010,7 +1025,16 @@ export function useCatalog(deps: UseCatalogDeps) {
       : 'This action still requires a passkey or EVM wallet while Dotify contract writes are being validated on the Product DevNet host signer.';
   }
 
-  async function payForTrackAccess(track: CatalogTrack) {
+  async function payForTrackAccess(
+    track: CatalogTrack,
+    socketEmit?: (event: string, data: unknown) => void,
+    setLocalStreamReady?: (ready: boolean) => void,
+    closeHostPeers?: () => void
+  ) {
+    const unlockStartedTrackId = track.id;
+    const unlockStartedView = activeViewRef.current;
+    const shouldRestoreUnlockedTrack = () => selectedTrackIdRef.current === unlockStartedTrackId && activeViewRef.current === unlockStartedView;
+
     if (!connectedWallet) {
       setAccessGate(buildAccessGateInfo(track));
       setShowWalletModal(true);
@@ -1046,22 +1070,30 @@ export function useCatalog(deps: UseCatalogDeps) {
         message: `Full listening for "${track.title}" is now available to this wallet.`,
         txHash: E2E_CLASSIC_TX_HASH
       });
-      navigateToView('player');
-      await selectTrack(track, undefined, undefined, undefined);
+      if (shouldRestoreUnlockedTrack()) {
+        navigateToView('player');
+        await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+      }
       return;
     }
 
     const runtimeAddress = runtimeAddressFromTrackId(track);
-    if (!runtimeAddress) return;
-
-    const { dotToPlanck } = await import('../shared/utils/format');
+    if (!runtimeAddress) {
+      setAccessGate(null);
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Payment setup failed',
+        message: 'This track is missing its artist runtime address. Refresh the catalog and try again.'
+      });
+      return;
+    }
 
     let paymentIntent;
     try {
       paymentIntent = createNativeRuntimeAccessPaymentIntent({
         runtimeAddress,
         contentHash: track.hash,
-        amountPlanck: dotToPlanck(track.priceDot)
+        amountPlanck: classicTrackPaymentAmountPlanck(track)
       });
     } catch (intentError) {
       setTransactionFeedback({
@@ -1092,8 +1124,10 @@ export function useCatalog(deps: UseCatalogDeps) {
         message: `Full listening for "${track.title}" is now available to this wallet.`,
         txHash
       });
-      navigateToView('player');
-      await selectTrack(track, undefined, undefined, undefined);
+      if (shouldRestoreUnlockedTrack()) {
+        navigateToView('player');
+        await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+      }
     } catch (payError) {
       const message = payError instanceof Error ? payError.message : 'Payment failed';
       setTransactionFeedback({ tone: 'error', title: 'Payment failed', message });
@@ -1117,6 +1151,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         audioRef: track.audioRef,
         imageRef,
         priceDot: formatWeiAsDot(track.pricePlanck),
+        pricePlanck: track.pricePlanck,
         localUrl,
         description: track.description,
         bulletinRef: track.metadataRef.startsWith('paseo-bulletin:') ? track.metadataRef : '',

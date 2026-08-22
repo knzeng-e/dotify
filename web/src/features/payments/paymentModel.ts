@@ -1,10 +1,10 @@
-import type { Address, Hash } from 'viem';
+import { parseEther, type Address, type Hash } from 'viem';
+import type { CatalogTrack } from '../../shared/types';
 
 export const DOTIFY_NATIVE_RUNTIME_ASSET = {
   kind: 'native',
   symbol: 'DOT',
   decimals: 18,
-  chain: 'paseo-asset-hub',
   settlement: 'runtime-msg-value'
 } as const;
 
@@ -41,6 +41,10 @@ export type CashAccessPaymentIntent = {
 export type TrackAccessPaymentIntent = NativeRuntimeAccessPaymentIntent | CashAccessPaymentIntent;
 export type ExecutableTrackAccessPaymentIntent = NativeRuntimeAccessPaymentIntent;
 
+export function classicTrackPaymentAmountPlanck(track: Pick<CatalogTrack, 'priceDot' | 'pricePlanck'>): bigint {
+  return track.pricePlanck ?? parseEther(track.priceDot.trim() || '0');
+}
+
 export function createNativeRuntimeAccessPaymentIntent(input: {
   runtimeAddress: Address;
   contentHash: Hash;
@@ -65,6 +69,8 @@ export function createUnsupportedCashAccessPaymentIntent(input: {
   contentHash: Hash;
   requestedAmount: string;
 }): CashAccessPaymentIntent {
+  // Design marker only: do not route this to UI or runtime writers until
+  // Product confirms CASH settlement evidence.
   return {
     kind: 'track-access',
     rail: 'product-cash',

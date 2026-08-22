@@ -196,9 +196,10 @@ Adapters:
 Classic unlock no longer passes a loose `(runtimeAddress, contentHash, value)`
 triple into runtime writers. The catalog hook creates a typed native runtime
 payment intent first: asset `DOT`, rail `runtime-native`, runtime address,
-content hash, and 18-decimal native amount. The viem and Product CDM adapters
-both submit that same intent as `musicRoyPayAccess(contentHash)` plus
-`msg.value`.
+content hash, and 18-decimal native amount. The amount comes from the runtime
+or catalog API `pricePlanck` value when available; `priceDot` is only the
+rounded display string. The viem and Product CDM adapters both submit that same
+intent as `musicRoyPayAccess(contentHash)` plus `msg.value`.
 
 CASH is represented separately as an unsupported `product-cash` rail. That is
 intentional. CASH lives on People chain while Dotify entitlements live in Asset

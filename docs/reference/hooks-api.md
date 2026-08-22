@@ -20,6 +20,7 @@ const catalog = useCatalog({
   directoryAddress,
   setShowWalletModal,
   setTransactionFeedback,
+  activeView,
   navigateToView,
   getActiveWalletClient,
   setBulletinManifestRef,
@@ -61,12 +62,19 @@ const catalog = useCatalog({
 | `checkTrackAccess`           | `(track: CatalogTrack, address: 0x${string} \| null) => Promise<boolean>`                                | Calls `musicAccCanAccess` on the artist's SmartRuntime. Returns `true` if access is granted.                                                                  |
 | `handleAudioFile`            | `(event: ChangeEvent<HTMLInputElement>) => Promise<void>`                                                | Hash, encrypt, and begin uploading an audio file. Updates `audioSource`, `fileHash`, `audioCID`.                                                              |
 | `handleCoverFile`            | `(event: ChangeEvent<HTMLInputElement>) => void`                                                         | Begin uploading a cover image. Updates `coverSource`, `coverCID`.                                                                                             |
-| `payForTrackAccess`          | `(track: CatalogTrack) => Promise<void>`                                                                 | Builds a native runtime payment intent, submits `musicRoyPayAccess` with the track's price, and re-selects the track with full access on success.             |
+| `payForTrackAccess`          | `(track: CatalogTrack, socketEmit?, setLocalStreamReady?, closeHostPeers?) => Promise<void>`             | Build and submit a Classic unlock payment, then restore full access on success.                                                                               |
 | `setSelectedTrackId`         | `(id: string) => void`                                                                                   | Direct setter, used when clearing the draft upload state.                                                                                                     |
 | `setTrackInfo`               | `(info: TrackInfo \| null) => void`                                                                      | Direct setter, used by `useSession` to update from room track events.                                                                                         |
 | `setPlayerState`             | `(state: PlayerState \| null) => void`                                                                   | Direct setter, used by `useSession` to sync remote player state.                                                                                              |
 | `setAccessGate`              | `(gate: AccessGate \| null) => void`                                                                     | Direct setter, used to dismiss the access gate.                                                                                                               |
 | `setCoverSource`             | `(url: string) => void`                                                                                  | Direct setter, used when selecting a catalog track to update the player cover.                                                                                |
+
+`payForTrackAccess` builds its native runtime payment intent from the
+authoritative on-chain `pricePlanck` when available; `priceDot` is display only.
+If the user changes track or view while a transaction is pending, success still
+records access but does not force navigation back to the player. Room callers
+pass the same session callbacks as `selectTrack`, so an in-room Classic unlock
+can refresh the host stream and room metadata.
 
 #### Refs (pass-through to views)
 
