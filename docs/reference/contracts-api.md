@@ -2,6 +2,13 @@
 
 All contracts are deployed on **Paseo Asset Hub** (`chainId 420420417`). Source lives in `Dotify/contracts/evm/contracts/`.
 
+Classic unlock payments settle through the runtime's native EVM `msg.value`
+rail. The frontend fetches the connected EVM `chainId`, then derives the
+displayed native asset from an explicit Polkadot Hub metadata table because
+standard EVM JSON-RPC does not expose a native-currency symbol/decimals method.
+The current Product DevNet/Paseo runtime rail displays `PAS`; a DOT-backed
+Polkadot Hub EVM chain displays `DOT`.
+
 > **Pre-fix deployment warning (2026-07-12):** this reference describes the
 > current source contract. The configured Paseo factory and indexed runtimes
 > still use the registry facet deployed before `musicRegRegister` became

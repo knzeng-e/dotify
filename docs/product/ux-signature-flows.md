@@ -127,8 +127,11 @@ sequenceDiagram
 ```
 
 Classic unlock intentionally uses a native runtime payment intent today. The
-visible asset symbol is derived from the configured EVM chain currency (`PAS`
-on the current Product DevNet/Paseo Asset Hub rail), not hard-coded as DOT.
+visible asset symbol is derived from the connected EVM `chainId` and Dotify's
+explicit Polkadot Hub native-currency metadata table (`PAS` on the current
+Product DevNet/Paseo Asset Hub rail, `DOT` on a DOT-backed Polkadot Hub EVM
+chain), not hard-coded as DOT. This is not an on-chain metadata fetch: standard
+EVM JSON-RPC exposes `eth_chainId`, not native-token symbol metadata.
 Product CASH settlement is a separate future rail; it must not be treated as
 executable until Dotify has a Product-confirmed receipt or bridge model between
 People chain CASH and Asset Hub runtime entitlement.

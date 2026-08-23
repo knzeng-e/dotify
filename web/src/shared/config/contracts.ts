@@ -73,10 +73,19 @@ export async function resolveEvmChain(ethRpcUrl: string): Promise<Chain> {
   return resolveChain(ethRpcUrl);
 }
 
+// EVM JSON-RPC gives us `eth_chainId`, but not a standard native-token
+// metadata method. Dotify therefore derives the native payment label from the
+// connected EVM chain id. Decimals stay at 18 because the current runtime write
+// path settles through EVM `msg.value`.
+const polkadotHubNativeCurrencyByChainId: Record<number, Chain['nativeCurrency']> = {
+  420420417: { name: 'Paseo', symbol: 'PAS', decimals: 18 },
+  420420418: { name: 'Kusama', symbol: 'KSM', decimals: 18 },
+  420420419: { name: 'Polkadot', symbol: 'DOT', decimals: 18 }
+};
+
 export function nativeCurrencyForChain(chainId: number, ethRpcUrl: string): Chain['nativeCurrency'] {
-  if (chainId === 420420417) {
-    return { name: 'Paseo', symbol: 'PAS', decimals: 18 };
-  }
+  const knownCurrency = polkadotHubNativeCurrencyByChainId[chainId];
+  if (knownCurrency) return knownCurrency;
 
   const isLocalChain = ethRpcUrl.includes('localhost') || ethRpcUrl.includes('127.0.0.1');
   return isLocalChain ? { name: 'Unit', symbol: 'UNIT', decimals: 18 } : { name: 'Native token', symbol: 'UNIT', decimals: 18 };
