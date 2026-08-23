@@ -408,11 +408,12 @@ Introspection: `facets()`, `facetFunctionSelectors(address)`, `facetAddresses()`
 The Solidity field is still named `pricePlanck` for historical/Substrate
 context, but the active EVM path stores prices directly as 18-decimal native
 token units. The frontend uses viem's `parseEther()` and `formatEther()` helpers
-for DOT display and `msg.value`.
+for display and `msg.value`; the payment symbol comes from the configured EVM
+chain's native currency (`PAS` on chain `420420417`).
 
 | Format                         | Example                   |
 | ------------------------------ | ------------------------- |
-| DOT (display)                  | `0.5`                     |
+| Native display amount          | `0.5`                     |
 | Stored value / EVM `msg.value` | `500_000_000_000_000_000` |
 
 Frontend conversion: `src/utils/format.ts` → `dotToPlanck()` for input and

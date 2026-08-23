@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchAssetRef, fetchIpfsCid, getGatewayUrl } from '../services/pinata';
-import { getPublicClient } from '../shared/config/contracts';
+import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot } from '../shared/utils/format';
 import { isKeyServiceConfigured, requestContentKey, requestFreeContentKey, type KeyRequestPurpose } from '../services/keyService';
@@ -23,7 +23,12 @@ import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
-import { classicTrackPaymentAmountPlanck, createNativeRuntimeAccessPaymentIntent } from '../features/payments/paymentModel';
+import {
+  DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
+  classicTrackPaymentAmountPlanck,
+  createNativeRuntimeAccessPaymentIntent,
+  nativeRuntimePaymentAssetFromChain
+} from '../features/payments/paymentModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
 import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
@@ -321,6 +326,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
   const [catalogPaidAccessByTrackId, setCatalogPaidAccessByTrackId] = useState<Record<string, boolean>>({});
+  const [nativeRuntimePaymentAsset, setNativeRuntimePaymentAsset] = useState(DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET);
   const [audioSource, setAudioSource] = useState<string | null>(null);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
@@ -356,6 +362,24 @@ export function useCatalog(deps: UseCatalogDeps) {
   useEffect(() => {
     activeViewRef.current = activeView;
   }, [activeView]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function resolveNativeRuntimePaymentAsset() {
+      try {
+        const chain = await resolveEvmChain(ethRpcUrl);
+        if (!cancelled) setNativeRuntimePaymentAsset(nativeRuntimePaymentAssetFromChain(chain));
+      } catch {
+        if (!cancelled) setNativeRuntimePaymentAsset(DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET);
+      }
+    }
+
+    void resolveNativeRuntimePaymentAsset();
+    return () => {
+      cancelled = true;
+    };
+  }, [ethRpcUrl]);
 
   function internalSetFileHash(hash: `0x${string}` | '') {
     setFileHashState(hash);
@@ -461,7 +485,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         return {
           track,
           title: 'Support and open this track',
-          message: `"${track.title}" opens for ${track.priceDot} DOT. Review the split before confirming.`,
+          message: `"${track.title}" opens for ${track.priceDot} ${nativeRuntimePaymentAsset.symbol}. Review the split before confirming.`,
           hint: 'Nothing is sent until you confirm.',
           actionType: 'signin'
         };
@@ -487,7 +511,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     return {
       track,
       title: 'Support and open this track',
-      message: `"${track.title}" opens after ${track.priceDot} DOT of support. Review the artist-defined split before confirming.`,
+      message: `"${track.title}" opens after ${track.priceDot} ${nativeRuntimePaymentAsset.symbol} of support. Review the artist-defined split before confirming.`,
       hint: 'The artist-owned runtime distributes the confirmed amount.',
       actionType: 'payment'
     };
@@ -1057,7 +1081,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       setTransactionFeedback({
         tone: 'pending',
         title: 'Support being confirmed',
-        message: `Confirming ${track.priceDot} DOT of support to open "${track.title}".`
+        message: `Confirming ${track.priceDot} ${nativeRuntimePaymentAsset.symbol} of support to open "${track.title}".`
       });
       await new Promise(resolve => window.setTimeout(resolve, 20));
       e2eClassicAccessGrantedRef.current = true;
@@ -1090,10 +1114,12 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     let paymentIntent;
     try {
+      const chain = await resolveEvmChain(ethRpcUrl);
       paymentIntent = createNativeRuntimeAccessPaymentIntent({
         runtimeAddress,
         contentHash: track.hash,
-        amountPlanck: classicTrackPaymentAmountPlanck(track)
+        amountPlanck: classicTrackPaymentAmountPlanck(track),
+        asset: nativeRuntimePaymentAssetFromChain(chain)
       });
     } catch (intentError) {
       setTransactionFeedback({

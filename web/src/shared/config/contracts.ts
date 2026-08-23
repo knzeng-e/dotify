@@ -73,6 +73,15 @@ export async function resolveEvmChain(ethRpcUrl: string): Promise<Chain> {
   return resolveChain(ethRpcUrl);
 }
 
+export function nativeCurrencyForChain(chainId: number, ethRpcUrl: string): Chain['nativeCurrency'] {
+  if (chainId === 420420417) {
+    return { name: 'Paseo', symbol: 'PAS', decimals: 18 };
+  }
+
+  const isLocalChain = ethRpcUrl.includes('localhost') || ethRpcUrl.includes('127.0.0.1');
+  return isLocalChain ? { name: 'Unit', symbol: 'UNIT', decimals: 18 } : { name: 'Native token', symbol: 'UNIT', decimals: 18 };
+}
+
 async function resolveChain(ethRpcUrl: string): Promise<Chain> {
   if (!chainCache) {
     const chainId = await getPublicClient(ethRpcUrl).getChainId();
@@ -80,7 +89,7 @@ async function resolveChain(ethRpcUrl: string): Promise<Chain> {
     chainCache = defineChain({
       id: chainId,
       name: isLocalChain ? 'Local Polkadot Devnet' : 'Polkadot Hub TestNet',
-      nativeCurrency: { name: 'Unit', symbol: 'UNIT', decimals: 18 },
+      nativeCurrency: nativeCurrencyForChain(chainId, ethRpcUrl),
       rpcUrls: { default: { http: [ethRpcUrl] } },
       ...(isLocalChain ? {} : { blockExplorers: { default: { name: 'Blockscout', url: blockscoutBaseUrl } } })
     });

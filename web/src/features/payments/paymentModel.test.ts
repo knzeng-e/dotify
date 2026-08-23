@@ -1,29 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import {
   DOTIFY_CASH_ASSET,
-  DOTIFY_NATIVE_RUNTIME_ASSET,
+  DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
   cashSettlementUnavailableReason,
   classicTrackPaymentAmountPlanck,
   createNativeRuntimeAccessPaymentIntent,
-  createUnsupportedCashAccessPaymentIntent
+  createUnsupportedCashAccessPaymentIntent,
+  nativeRuntimePaymentAssetFromChain
 } from './paymentModel';
 import { formatWeiAsDot } from '../../shared/utils/format';
 
 const runtimeAddress = '0x3000000000000000000000000000000000000000' as const;
 const contentHash = `0x${'ab'.repeat(32)}` as const;
+const nativeAsset = nativeRuntimePaymentAssetFromChain({ nativeCurrency: { name: 'Paseo', symbol: 'PAS', decimals: 18 } });
 
 describe('payment model', () => {
+  it('derives the runtime native payment asset from the configured chain currency', () => {
+    expect(nativeAsset).toEqual({
+      kind: 'native',
+      symbol: 'PAS',
+      decimals: 18,
+      settlement: 'runtime-msg-value'
+    });
+    expect(nativeRuntimePaymentAssetFromChain(null)).toEqual(DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET);
+  });
+
   it('creates an executable native runtime payment intent for Classic unlocks', () => {
     expect(
       createNativeRuntimeAccessPaymentIntent({
         runtimeAddress,
         contentHash,
-        amountPlanck: 42n
+        amountPlanck: 42n,
+        asset: nativeAsset
       })
     ).toEqual({
       kind: 'track-access',
       rail: 'runtime-native',
-      asset: DOTIFY_NATIVE_RUNTIME_ASSET,
+      asset: nativeAsset,
       runtimeAddress,
       contentHash,
       amountPlanck: 42n
@@ -35,7 +48,8 @@ describe('payment model', () => {
       createNativeRuntimeAccessPaymentIntent({
         runtimeAddress,
         contentHash,
-        amountPlanck: 0n
+        amountPlanck: 0n,
+        asset: nativeAsset
       })
     ).toThrow(/positive native amount/);
   });

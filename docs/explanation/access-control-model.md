@@ -66,9 +66,10 @@ level, it can access the track without paying.
 
 > "Pay once, play forever."
 
-In Classic mode, a listener pays a fixed amount of DOT to unlock full playback.
-The payment goes directly and immediately to the artist's wallet - no
-intermediary, no payout schedule, no platform cut.
+In Classic mode, a listener pays a fixed amount of the configured chain's
+native token to unlock full playback. On the current Product DevNet/Paseo Asset
+Hub runtime rail, that token is PAS. The payment goes directly and immediately
+to the artist's wallet - no intermediary, no payout schedule, no platform cut.
 
 Once a listener has paid for a track, their wallet is recorded on-chain. They
 can return and play the track at any time without paying again, even if the
@@ -76,7 +77,7 @@ track later flips away from Classic and back.
 
 **When to choose Classic:**
 
-- You want to monetize your releases directly in DOT.
+- You want to monetize your releases directly through the runtime-native token.
 - You prefer familiar pay-to-play economics.
 
 ---
@@ -88,7 +89,7 @@ track later flips away from Classic and back.
 3. An access gate is shown with the appropriate action:
    - **Signin gate** - listener has no wallet connected. They must connect first.
    - **Personhood gate** - wallet is connected but lacks the required PoP level.
-   - **Payment gate** - wallet is connected; DOT payment is required.
+   - **Payment gate** - wallet is connected; a runtime-native payment is required.
 
 The listener can choose a Free track, join a room hosted by someone with access,
 or satisfy the required gate.

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createNativeRuntimeAccessPaymentIntent } from '../payments/paymentModel';
+import { DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET, createNativeRuntimeAccessPaymentIntent } from '../payments/paymentModel';
 
 const txHash = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' as const;
 const factory = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' as const;
@@ -81,7 +81,8 @@ function accessIntent(amountPlanck: bigint) {
   return createNativeRuntimeAccessPaymentIntent({
     runtimeAddress: runtime,
     contentHash: hash,
-    amountPlanck
+    amountPlanck,
+    asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
   });
 }
 

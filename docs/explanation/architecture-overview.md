@@ -76,7 +76,7 @@ Track selected → access checked
         │
         └── No access?  ──► Unlock/personhood gate shown, no protected audio
                 │
-                ├── Pay DOT     → musicRoyPayAccess() → access granted
+                ├── Pay native  → musicRoyPayAccess() → access granted
                 └── Prove PoP   → registrar confirms personhood → access granted
 ```
 

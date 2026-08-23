@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createNativeRuntimeAccessPaymentIntent } from '../payments/paymentModel';
+import { DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET, createNativeRuntimeAccessPaymentIntent } from '../payments/paymentModel';
 import { createViemRuntimeReader, createViemRuntimeWriter } from './viemRuntimeAdapter';
 import type { OnchainTrackRecord } from '../../shared/types';
 
@@ -171,7 +171,8 @@ describe('createViemRuntimeWriter', () => {
         createNativeRuntimeAccessPaymentIntent({
           runtimeAddress: runtime,
           contentHash: hash,
-          amountPlanck: 1n
+          amountPlanck: 1n,
+          asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
         })
       )
     ).resolves.toBe(`${txHash}:musicRoyPayAccess`);

@@ -1,9 +1,16 @@
-import { parseEther, type Address, type Hash } from 'viem';
+import { parseEther, type Address, type Chain, type Hash } from 'viem';
 import type { CatalogTrack } from '../../shared/types';
 
-export const DOTIFY_NATIVE_RUNTIME_ASSET = {
+export type DotifyNativeRuntimeAsset = {
+  kind: 'native';
+  symbol: string;
+  decimals: number;
+  settlement: 'runtime-msg-value';
+};
+
+export const DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET: DotifyNativeRuntimeAsset = {
   kind: 'native',
-  symbol: 'DOT',
+  symbol: 'UNIT',
   decimals: 18,
   settlement: 'runtime-msg-value'
 } as const;
@@ -14,7 +21,6 @@ export const DOTIFY_CASH_ASSET = {
   settlement: 'pending-product-confirmation'
 } as const;
 
-export type DotifyNativeRuntimeAsset = typeof DOTIFY_NATIVE_RUNTIME_ASSET;
 export type DotifyCashAsset = typeof DOTIFY_CASH_ASSET;
 export type DotifyPaymentAsset = DotifyNativeRuntimeAsset | DotifyCashAsset;
 
@@ -41,6 +47,23 @@ export type CashAccessPaymentIntent = {
 export type TrackAccessPaymentIntent = NativeRuntimeAccessPaymentIntent | CashAccessPaymentIntent;
 export type ExecutableTrackAccessPaymentIntent = NativeRuntimeAccessPaymentIntent;
 
+export function nativeRuntimePaymentAssetFromChain(chain: Pick<Chain, 'nativeCurrency'> | null | undefined): DotifyNativeRuntimeAsset {
+  const currency = chain?.nativeCurrency;
+  const symbol = currency?.symbol?.trim() || DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET.symbol;
+  const configuredDecimals = currency?.decimals;
+  const decimals =
+    typeof configuredDecimals === 'number' && Number.isInteger(configuredDecimals) && configuredDecimals > 0
+      ? configuredDecimals
+      : DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET.decimals;
+
+  return {
+    kind: 'native',
+    symbol,
+    decimals,
+    settlement: 'runtime-msg-value'
+  };
+}
+
 export function classicTrackPaymentAmountPlanck(track: Pick<CatalogTrack, 'priceDot' | 'pricePlanck'>): bigint {
   return track.pricePlanck ?? parseEther(track.priceDot.trim() || '0');
 }
@@ -49,6 +72,7 @@ export function createNativeRuntimeAccessPaymentIntent(input: {
   runtimeAddress: Address;
   contentHash: Hash;
   amountPlanck: bigint;
+  asset: DotifyNativeRuntimeAsset;
 }): NativeRuntimeAccessPaymentIntent {
   if (input.amountPlanck <= 0n) {
     throw new Error('Classic unlock payments require a positive native amount.');
@@ -57,7 +81,7 @@ export function createNativeRuntimeAccessPaymentIntent(input: {
   return {
     kind: 'track-access',
     rail: 'runtime-native',
-    asset: DOTIFY_NATIVE_RUNTIME_ASSET,
+    asset: input.asset,
     runtimeAddress: input.runtimeAddress,
     contentHash: input.contentHash,
     amountPlanck: input.amountPlanck

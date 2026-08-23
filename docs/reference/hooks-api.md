@@ -71,10 +71,11 @@ const catalog = useCatalog({
 
 `payForTrackAccess` builds its native runtime payment intent from the
 authoritative on-chain `pricePlanck` when available; `priceDot` is display only.
-If the user changes track or view while a transaction is pending, success still
-records access but does not force navigation back to the player. Room callers
-pass the same session callbacks as `selectTrack`, so an in-room Classic unlock
-can refresh the host stream and room metadata.
+The displayed payment symbol is derived from the configured chain's native
+currency. If the user changes track or view while a transaction is pending,
+success still records access but does not force navigation back to the player.
+Room callers pass the same session callbacks as `selectTrack`, so an in-room
+Classic unlock can refresh the host stream and room metadata.
 
 #### Refs (pass-through to views)
 

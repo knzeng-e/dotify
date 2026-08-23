@@ -63,7 +63,7 @@ The access policy for a registered track.
 | Value        | Meaning                                  |
 | ------------ | ---------------------------------------- |
 | `human-free` | Unlocked by Polkadot Proof of Personhood |
-| `classic`    | Unlocked by DOT payment                  |
+| `classic`    | Unlocked by runtime-native payment       |
 
 ---
 
@@ -200,7 +200,7 @@ type TrackInfo = {
   updatedAt: number; // Unix ms timestamp
   imageRef?: string; // URL or IPFS ref for cover image
   audioRef?: string; // URL, IPFS ref, or Dotify encrypted audio ref
-  priceDot?: string; // Decimal DOT amount (Classic mode only)
+  priceDot?: string; // Legacy display amount label (Classic mode only)
   bulletinRef: string; // Bulletin archive ref, or empty string
   metadataRef?: string; // IPFS metadata ref (ipfs://<CID>)
   description?: string;
@@ -225,7 +225,7 @@ type CatalogTrack = {
   artistAddress?: `0x${string}`;
   audioRef: string;
   imageRef: string;
-  priceDot: string; // Display-only decimal DOT amount
+  priceDot: string; // Legacy display-only decimal amount
   pricePlanck?: bigint; // Authoritative 18-decimal native amount when loaded from chain/API
   localUrl?: string; // Resolved playable URL (blob:, http:, etc.)
   duration?: number;
@@ -246,9 +246,10 @@ type CatalogTrack = {
 
 The full catalog entry for a track as used in the browse and player views.
 On-chain tracks have `source: 'artist'` and an `id` of the form
-`<runtimeAddress>:<contentHash>`. `priceDot` is for display; Classic unlock
-payments use `pricePlanck` when it is present so the submitted `msg.value`
-matches the runtime's stored price exactly.
+`<runtimeAddress>:<contentHash>`. `priceDot` is a legacy display field;
+Classic unlock payments use `pricePlanck` when it is present so the submitted
+`msg.value` matches the runtime's stored price exactly, and the visible payment
+symbol comes from the configured chain's native currency.
 
 ---
 
@@ -377,7 +378,7 @@ protected audio should play. `actionType` controls which CTA is shown:
 | `actionType` | Shown when                         | CTA                                             |
 | ------------ | ---------------------------------- | ----------------------------------------------- |
 | `signin`     | No wallet connected                | "Use wallet to unlock"                          |
-| `payment`    | Wallet connected, Classic track    | "Pay X DOT to unlock"                           |
+| `payment`    | Wallet connected, Classic track    | "Pay X native token to unlock"                  |
 | `personhood` | Wallet connected, insufficient PoP | No payment CTA — user must obtain PoP off-chain |
 
 ---

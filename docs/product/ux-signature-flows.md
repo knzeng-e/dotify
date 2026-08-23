@@ -126,10 +126,12 @@ sequenceDiagram
   UI-->>L: Full playback
 ```
 
-Classic unlock intentionally uses a native runtime payment intent today. Product
-CASH settlement is a separate future rail; it must not be treated as executable
-until Dotify has a Product-confirmed receipt or bridge model between People
-chain CASH and Asset Hub runtime entitlement.
+Classic unlock intentionally uses a native runtime payment intent today. The
+visible asset symbol is derived from the configured EVM chain currency (`PAS`
+on the current Product DevNet/Paseo Asset Hub rail), not hard-coded as DOT.
+Product CASH settlement is a separate future rail; it must not be treated as
+executable until Dotify has a Product-confirmed receipt or bridge model between
+People chain CASH and Asset Hub runtime entitlement.
 
 ## Human Free flow
 

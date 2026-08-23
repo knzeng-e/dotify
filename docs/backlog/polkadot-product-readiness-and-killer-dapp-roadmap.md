@@ -208,7 +208,7 @@ Goal: deepen the delivered Product mode one adapter at a time.
 - Next: `pallet-revive` account mapping plus real host-signed transaction smoke
   tests before Product writes can replace the EVM wallet path.
 - Next: confirm the Product-supported CASH settlement model before exposing any
-  DOT/CASH conversion, bridge, or receipt UI. Dotify must keep runtime access
+  native/CASH conversion, bridge, or receipt UI. Dotify must keep runtime access
   grants tied to verifiable settlement evidence.
 - Next: run real Product host smoke tests for protected playback and capture the
   Product sr25519 request evidence.
