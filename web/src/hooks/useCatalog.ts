@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchAssetRef, fetchIpfsCid, getGatewayUrl } from '../services/pinata';
-import { getPublicClient } from '../shared/config/contracts';
+import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot } from '../shared/utils/format';
 import { isKeyServiceConfigured, requestContentKey, requestFreeContentKey, type KeyRequestPurpose } from '../services/keyService';
@@ -23,6 +23,12 @@ import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
+import {
+  DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
+  classicTrackPaymentAmountPlanck,
+  createNativeRuntimeAccessPaymentIntent,
+  nativeRuntimePaymentAssetFromChain
+} from '../features/payments/paymentModel';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
 import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
@@ -59,7 +65,8 @@ import type {
   RegistryCatalogTrack,
   RoomPlaybackMode,
   TrackInfo,
-  TransactionFeedback
+  TransactionFeedback,
+  View
 } from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
 
@@ -226,6 +233,7 @@ function catalogApiReleaseToTrack(release: CatalogApiRelease): CatalogTrack {
     audioRef: release.audioRef,
     imageRef: resolveVisualAssetRef(release.imageRef, release.title),
     priceDot: release.priceDot,
+    pricePlanck: BigInt(release.priceWei),
     localUrl: resolveAudioAssetRef(release.audioRef),
     description: release.description,
     bulletinRef: release.bulletinRef,
@@ -250,6 +258,7 @@ export type UseCatalogDeps = {
   directoryAddress: `0x${string}` | undefined;
   setShowWalletModal: (show: boolean) => void;
   setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
+  activeView: View;
   navigateToView: (view: 'listen' | 'player' | 'rooms') => void;
   getActiveWalletClient: () => Promise<Awaited<ReturnType<typeof import('../shared/config/contracts').getWalletClient>>>;
   setBulletinManifestRef: (ref: string) => void;
@@ -270,6 +279,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setShowWalletModal,
     setTransactionFeedback,
     setTitle,
+    activeView,
     navigateToView,
     getActiveWalletClient,
     setBulletinManifestRef,
@@ -316,6 +326,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
   const [catalogPaidAccessByTrackId, setCatalogPaidAccessByTrackId] = useState<Record<string, boolean>>({});
+  const [nativeRuntimePaymentAsset, setNativeRuntimePaymentAsset] = useState(DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET);
   const [audioSource, setAudioSource] = useState<string | null>(null);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
@@ -332,6 +343,8 @@ export function useCatalog(deps: UseCatalogDeps) {
   const audioUploadRef = useRef<Promise<string> | null>(null);
   const coverUploadRef = useRef<Promise<string> | null>(null);
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
+  const selectedTrackIdRef = useRef(selectedTrackId);
+  const activeViewRef = useRef(activeView);
   const activeTrackSelectionRef = useRef<{ id: number; controller: AbortController } | null>(null);
   const nextTrackSelectionIdRef = useRef(0);
   const e2eClassicAccessGrantedRef = useRef(false);
@@ -341,6 +354,32 @@ export function useCatalog(deps: UseCatalogDeps) {
   // 'room_host' when the selected track streams into a room; room listeners
   // never request keys at all (they only receive the WebRTC stream).
   const keyRequestPurposeRef = useRef<KeyRequestPurpose>('individual');
+
+  useEffect(() => {
+    selectedTrackIdRef.current = selectedTrackId;
+  }, [selectedTrackId]);
+
+  useEffect(() => {
+    activeViewRef.current = activeView;
+  }, [activeView]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function resolveNativeRuntimePaymentAsset() {
+      try {
+        const chain = await resolveEvmChain(ethRpcUrl);
+        if (!cancelled) setNativeRuntimePaymentAsset(nativeRuntimePaymentAssetFromChain(chain));
+      } catch {
+        if (!cancelled) setNativeRuntimePaymentAsset(DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET);
+      }
+    }
+
+    void resolveNativeRuntimePaymentAsset();
+    return () => {
+      cancelled = true;
+    };
+  }, [ethRpcUrl]);
 
   function internalSetFileHash(hash: `0x${string}` | '') {
     setFileHashState(hash);
@@ -446,7 +485,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         return {
           track,
           title: 'Support and open this track',
-          message: `"${track.title}" opens for ${track.priceDot} DOT. Review the split before confirming.`,
+          message: `"${track.title}" opens for ${track.priceDot} ${nativeRuntimePaymentAsset.symbol}. Review the split before confirming.`,
           hint: 'Nothing is sent until you confirm.',
           actionType: 'signin'
         };
@@ -472,7 +511,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     return {
       track,
       title: 'Support and open this track',
-      message: `"${track.title}" opens after ${track.priceDot} DOT of support. Review the artist-defined split before confirming.`,
+      message: `"${track.title}" opens after ${track.priceDot} ${nativeRuntimePaymentAsset.symbol} of support. Review the artist-defined split before confirming.`,
       hint: 'The artist-owned runtime distributes the confirmed amount.',
       actionType: 'payment'
     };
@@ -918,6 +957,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       outgoingAudio.pause();
     }
 
+    selectedTrackIdRef.current = track.id;
     setSelectedTrackId(track.id);
     setTitle(track.title);
     setArtistName(track.artist);
@@ -1009,7 +1049,16 @@ export function useCatalog(deps: UseCatalogDeps) {
       : 'This action still requires a passkey or EVM wallet while Dotify contract writes are being validated on the Product DevNet host signer.';
   }
 
-  async function payForTrackAccess(track: CatalogTrack) {
+  async function payForTrackAccess(
+    track: CatalogTrack,
+    socketEmit?: (event: string, data: unknown) => void,
+    setLocalStreamReady?: (ready: boolean) => void,
+    closeHostPeers?: () => void
+  ) {
+    const unlockStartedTrackId = track.id;
+    const unlockStartedView = activeViewRef.current;
+    const shouldRestoreUnlockedTrack = () => selectedTrackIdRef.current === unlockStartedTrackId && activeViewRef.current === unlockStartedView;
+
     if (!connectedWallet) {
       setAccessGate(buildAccessGateInfo(track));
       setShowWalletModal(true);
@@ -1032,7 +1081,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       setTransactionFeedback({
         tone: 'pending',
         title: 'Support being confirmed',
-        message: `Confirming ${track.priceDot} DOT of support to open "${track.title}".`
+        message: `Confirming ${track.priceDot} ${nativeRuntimePaymentAsset.symbol} of support to open "${track.title}".`
       });
       await new Promise(resolve => window.setTimeout(resolve, 20));
       e2eClassicAccessGrantedRef.current = true;
@@ -1045,26 +1094,51 @@ export function useCatalog(deps: UseCatalogDeps) {
         message: `Full listening for "${track.title}" is now available to this wallet.`,
         txHash: E2E_CLASSIC_TX_HASH
       });
-      await selectTrack(track, undefined, undefined, undefined);
+      if (shouldRestoreUnlockedTrack()) {
+        navigateToView('player');
+        await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+      }
       return;
     }
 
     const runtimeAddress = runtimeAddressFromTrackId(track);
-    if (!runtimeAddress) return;
+    if (!runtimeAddress) {
+      setAccessGate(null);
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Payment setup failed',
+        message: 'This track is missing its artist runtime address. Refresh the catalog and try again.'
+      });
+      return;
+    }
 
-    const { dotToPlanck } = await import('../shared/utils/format');
-
-    const priceWei = dotToPlanck(track.priceDot);
+    let paymentIntent;
+    try {
+      const chain = await resolveEvmChain(ethRpcUrl);
+      paymentIntent = createNativeRuntimeAccessPaymentIntent({
+        runtimeAddress,
+        contentHash: track.hash,
+        amountPlanck: classicTrackPaymentAmountPlanck(track),
+        asset: nativeRuntimePaymentAssetFromChain(chain)
+      });
+    } catch (intentError) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Payment setup failed',
+        message: intentError instanceof Error ? intentError.message : 'Unable to prepare this payment.'
+      });
+      return;
+    }
 
     setAccessGate(null);
     setTransactionFeedback({
       tone: 'pending',
       title: 'Support being confirmed',
-      message: `Confirming ${track.priceDot} DOT of support to open "${track.title}".`
+      message: `Confirming ${track.priceDot} ${paymentIntent.asset.symbol} of support to open "${track.title}".`
     });
 
     try {
-      const txHash = await runtimeWriter.payForAccess(runtimeAddress, track.hash, priceWei);
+      const txHash = await runtimeWriter.payForAccess(paymentIntent);
       setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Payment submitted.', txHash });
       await runtimeWriter.waitForTransaction(txHash);
 
@@ -1076,7 +1150,10 @@ export function useCatalog(deps: UseCatalogDeps) {
         message: `Full listening for "${track.title}" is now available to this wallet.`,
         txHash
       });
-      await selectTrack(track, undefined, undefined, undefined);
+      if (shouldRestoreUnlockedTrack()) {
+        navigateToView('player');
+        await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+      }
     } catch (payError) {
       const message = payError instanceof Error ? payError.message : 'Payment failed';
       setTransactionFeedback({ tone: 'error', title: 'Payment failed', message });
@@ -1100,6 +1177,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         audioRef: track.audioRef,
         imageRef,
         priceDot: formatWeiAsDot(track.pricePlanck),
+        pricePlanck: track.pricePlanck,
         localUrl,
         description: track.description,
         bulletinRef: track.metadataRef.startsWith('paseo-bulletin:') ? track.metadataRef : '',

@@ -1,4 +1,5 @@
 import type { Address, Hash } from 'viem';
+import type { ExecutableTrackAccessPaymentIntent } from '../payments/paymentModel';
 import type { OnchainTrackRecord, RoyaltySplit } from '../../shared/types';
 
 export type RuntimeDirectoryEntry = {
@@ -83,7 +84,7 @@ export interface RuntimeWritePort {
   createRuntime(factoryAddress: Address): Promise<Hash>;
   installRuntimeStep(factoryAddress: Address): Promise<Hash>;
   registerTrack(runtimeAddress: Address, registration: RuntimeTrackRegistration): Promise<Hash>;
-  payForAccess(runtimeAddress: Address, contentHash: Hash, value: bigint): Promise<Hash>;
+  payForAccess(intent: ExecutableTrackAccessPaymentIntent): Promise<Hash>;
   setAccessMode(runtimeAddress: Address, update: RuntimeAccessPolicyUpdate): Promise<Hash>;
   setReleaseActive(runtimeAddress: Address, contentHash: Hash, active: boolean): Promise<Hash>;
   waitForTransaction(txHash: Hash): Promise<void>;

@@ -257,9 +257,10 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeAdapterDeps
     // positional args followed by an optional options object, and `TxOptions`
     // carries `value?: bigint`. txContract spreads this array, so the call is
     // `musicRoyPayAccess.tx(contentHash, { value })` - the CDM equivalent of
-    // the viem writer's sibling `value` field.
-    payForAccess(runtimeAddress, contentHash, value) {
-      return txContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRoyPayAccess', [contentHash, { value }]);
+    // the viem writer's sibling `value` field. Only native runtime intents are
+    // accepted here; Product CASH settlement needs a separate receipt path.
+    payForAccess(intent) {
+      return txContract(deps.contracts.getRuntimeContract(intent.runtimeAddress), 'musicRoyPayAccess', [intent.contentHash, { value: intent.amountPlanck }]);
     },
 
     setAccessMode(runtimeAddress, update: RuntimeAccessPolicyUpdate) {

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET, createNativeRuntimeAccessPaymentIntent } from '../payments/paymentModel';
 import {
   ProductCdmRuntimeError,
   ProductCdmRuntimeUnsupportedOperationError,
@@ -234,7 +235,16 @@ describe('createProductCdmRuntimeWriter', () => {
         royaltyShares: [10_000]
       })
     ).resolves.toBe(txHash);
-    await expect(writer.payForAccess(runtime, hash, 3n)).resolves.toBe(txHash);
+    await expect(
+      writer.payForAccess(
+        createNativeRuntimeAccessPaymentIntent({
+          runtimeAddress: runtime,
+          contentHash: hash,
+          amountPlanck: 3n,
+          asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+        })
+      )
+    ).resolves.toBe(txHash);
     await expect(
       writer.setAccessMode(runtime, {
         contentHash: hash,

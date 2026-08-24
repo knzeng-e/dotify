@@ -65,6 +65,7 @@ export type CatalogTrack = {
   audioRef: string;
   imageRef: string;
   priceDot: string;
+  pricePlanck?: bigint;
   localUrl?: string;
   duration?: number;
   hash: `0x${string}`;
@@ -103,6 +104,7 @@ export type OnchainTrackRecord = {
 
 export type RegistryCatalogTrack = CatalogTrack & {
   artistAddress: `0x${string}`;
+  pricePlanck: bigint;
   registeredAtBlock: number;
 };
 

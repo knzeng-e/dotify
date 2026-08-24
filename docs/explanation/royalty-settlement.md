@@ -6,7 +6,11 @@
 
 ## How royalties work for artists
 
-When a listener pays to unlock a Classic-access track, the DOT goes directly from their wallet to yours. There is no platform account, no holding period, and no payout schedule. The smart contract distributes the payment the moment the transaction is confirmed.
+When a listener pays to unlock a Classic-access track, the configured chain's
+native token goes directly from their wallet to yours. On the current Product
+DevNet/Paseo Asset Hub runtime rail, that token is PAS. There is no platform
+account, no holding period, and no payout schedule. The smart contract
+distributes the payment the moment the transaction is confirmed.
 
 You can also split royalties with collaborators. When you register a track, you specify a list of recipient addresses and a share for each (expressed in basis points, where 10,000 = 100 %). The contract distributes the payment proportionally in the same transaction.
 
@@ -22,7 +26,7 @@ SmartRuntime. For each entry you can see:
 
 - The track that was unlocked.
 - The listener's wallet address.
-- The amount paid in DOT.
+- The amount paid in the configured runtime-native token.
 - The date and time of the transaction.
 - A link to the transaction receipt on Blockscout.
 
@@ -63,8 +67,17 @@ When a listener calls `musicRoyPayAccess(contentHash)`, the contract:
 5. Emits `MusicRoyAccessPaid(contentHash, listener, amount)`.
 
 The `pricePlanck` field name is historical. The active EVM path stores and pays
-prices as 18-decimal native token units, so the frontend uses `parseEther()` for
-DOT input and `formatEther()` for display.
+prices as 18-decimal native token units. The frontend uses `parseEther()` for
+artist price input and `formatEther()` for display, but unlock payments are
+built from the catalog's authoritative `pricePlanck` when present. `priceDot`
+is never used as the source of truth for an on-chain Classic payment. The
+frontend derives the payment symbol from the configured chain and wraps the
+native amount as a typed runtime payment intent before submitting
+`musicRoyPayAccess`.
+
+Product CASH settlement is deliberately not executable through this path. CASH
+lives on People chain while Dotify runtime entitlements live on Asset Hub, so
+that future flow needs an explicit Product-confirmed receipt or bridge design.
 
 ### Royalty event structure
 

@@ -274,13 +274,13 @@ export function createViemRuntimeWriter(deps: ViemRuntimeWriterDeps): RuntimeWri
       });
     },
 
-    payForAccess(runtimeAddress, contentHash, value) {
+    payForAccess(intent) {
       return walletClient.writeContract({
-        address: runtimeAddress,
+        address: intent.runtimeAddress,
         abi: musicRoyaltiesAbi,
         functionName: 'musicRoyPayAccess',
-        args: [contentHash],
-        value
+        args: [intent.contentHash],
+        value: intent.amountPlanck
       });
     },
 

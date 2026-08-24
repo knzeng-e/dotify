@@ -2,6 +2,13 @@
 
 All contracts are deployed on **Paseo Asset Hub** (`chainId 420420417`). Source lives in `Dotify/contracts/evm/contracts/`.
 
+Classic unlock payments settle through the runtime's native EVM `msg.value`
+rail. The frontend fetches the connected EVM `chainId`, then derives the
+displayed native asset from an explicit Polkadot Hub metadata table because
+standard EVM JSON-RPC does not expose a native-currency symbol/decimals method.
+The current Product DevNet/Paseo runtime rail displays `PAS`; a DOT-backed
+Polkadot Hub EVM chain displays `DOT`.
+
 > **Pre-fix deployment warning (2026-07-12):** this reference describes the
 > current source contract. The configured Paseo factory and indexed runtimes
 > still use the registry facet deployed before `musicRegRegister` became
@@ -325,6 +332,10 @@ Pay for access to a Classic-mode track.
 field name is historical; Dotify now stores the price as 18-decimal Asset Hub
 EVM native units.
 
+Frontend writes build an explicit native runtime payment intent before calling
+this function. CASH is not passed through this runtime method; Product-native
+CASH settlement requires a future receipt or bridge model.
+
 On success:
 
 1. Distributes `msg.value` across royalty splits (basis points).
@@ -404,11 +415,12 @@ Introspection: `facets()`, `facetFunctionSelectors(address)`, `facetAddresses()`
 The Solidity field is still named `pricePlanck` for historical/Substrate
 context, but the active EVM path stores prices directly as 18-decimal native
 token units. The frontend uses viem's `parseEther()` and `formatEther()` helpers
-for DOT display and `msg.value`.
+for display and `msg.value`; the payment symbol comes from the configured EVM
+chain's native currency (`PAS` on chain `420420417`).
 
 | Format                         | Example                   |
 | ------------------------------ | ------------------------- |
-| DOT (display)                  | `0.5`                     |
+| Native display amount          | `0.5`                     |
 | Stored value / EVM `msg.value` | `500_000_000_000_000_000` |
 
 Frontend conversion: `src/utils/format.ts` → `dotToPlanck()` for input and
