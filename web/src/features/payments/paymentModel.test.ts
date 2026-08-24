@@ -6,6 +6,7 @@ import {
   classicTrackPaymentAmountPlanck,
   createNativeRuntimeAccessPaymentIntent,
   createUnsupportedCashAccessPaymentIntent,
+  nativeRuntimeAmountLabel,
   nativeRuntimePaymentAssetFromChain
 } from './paymentModel';
 import { formatWeiAsDot } from '../../shared/utils/format';
@@ -23,6 +24,13 @@ describe('payment model', () => {
       settlement: 'runtime-msg-value'
     });
     expect(nativeRuntimePaymentAssetFromChain(null)).toEqual(DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET);
+  });
+
+  it('formats visible native runtime amounts with the resolved chain symbol', () => {
+    expect(nativeRuntimeAmountLabel('0.5', nativeAsset)).toBe('0.5 PAS');
+    expect(nativeRuntimeAmountLabel('1.25', nativeRuntimePaymentAssetFromChain({ nativeCurrency: { name: 'Polkadot', symbol: 'DOT', decimals: 18 } }))).toBe(
+      '1.25 DOT'
+    );
   });
 
   it('creates an executable native runtime payment intent for Classic unlocks', () => {

@@ -1346,6 +1346,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setCatalogAccessByTrackId,
     catalogPaidAccessByTrackId,
     setCatalogPaidAccessByTrackId,
+    nativeRuntimePaymentAsset,
     usesCatalogApi,
     audioSource,
     setAudioSource: setResolvedAudioSource,

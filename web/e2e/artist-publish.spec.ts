@@ -25,6 +25,8 @@ declare global {
 const fixtureDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures');
 const audioFixture = path.join(fixtureDir, 'artist-release.wav');
 const coverFixture = path.join(fixtureDir, 'artist-cover.svg');
+const E2E_NATIVE_PAYMENT_SYMBOL = 'PAS';
+const E2E_ARTIST_SHARE_PERCENT = '72.5';
 
 async function readArtistPublishState(page: Page) {
   return page.evaluate(() => window.__DOTIFY_E2E_ARTIST_PUBLISH__ as ArtistPublishE2eState | undefined);
@@ -76,12 +78,12 @@ async function completeReleaseDraft(page: Page) {
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByTestId('release-access-select').selectOption('classic');
   await page.getByTestId('release-price-input').fill('0.75');
-  await page.getByTestId('release-royalty-input').fill('7250');
+  await page.getByTestId('release-royalty-input').fill(E2E_ARTIST_SHARE_PERCENT);
 
   await page.getByRole('button', { name: 'Continue' }).click();
   const reviewPanel = page.locator('.release-review');
   await expect(reviewPanel.getByText('E2E Published Signal')).toBeVisible();
-  await expect(reviewPanel.getByText('0.75 DOT')).toBeVisible();
+  await expect(reviewPanel.getByText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`)).toBeVisible();
 }
 
 test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }) => {
@@ -102,7 +104,7 @@ test('artist can create a runtime, publish a release, and see it in the listener
   const publishedCard = page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' });
   await expect(publishedCard).toContainText('E2E Artist');
   await expect(publishedCard).toContainText('A deterministic artist publish e2e release.');
-  await expect(publishedCard).toContainText('0.75 DOT');
+  await expect(publishedCard).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
 });
 
 test('artist onboarding handles a missing wallet without enabling profile creation', async ({ page }) => {

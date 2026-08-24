@@ -68,8 +68,9 @@ level, it can access the track without paying.
 
 In Classic mode, a listener pays a fixed amount of the configured chain's
 native token to unlock full playback. On the current Product DevNet/Paseo Asset
-Hub runtime rail, that token is PAS. The payment goes directly and immediately
-to the artist's wallet - no intermediary, no payout schedule, no platform cut.
+Hub runtime rail, that token is PAS; a DOT-backed Polkadot Hub EVM chain would
+display DOT instead. The payment goes directly and immediately to the artist's
+wallet - no intermediary, no payout schedule, no platform cut.
 
 Once a listener has paid for a track, their wallet is recorded on-chain. They
 can return and play the track at any time without paying again, even if the

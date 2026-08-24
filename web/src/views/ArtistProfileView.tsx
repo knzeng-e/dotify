@@ -11,6 +11,7 @@ type ArtistProfileViewProps = {
   catalogTracks: CatalogTrack[];
   openRooms: OpenRoom[];
   catalogAccessByTrackId: Record<string, boolean>;
+  nativePaymentSymbol: string;
   onBack: () => void;
   onOpenTrack: (track: CatalogTrack) => void;
   onOpenArtistRoom: (track: CatalogTrack) => void;
@@ -47,6 +48,7 @@ export function ArtistProfileView({
   catalogTracks,
   openRooms,
   catalogAccessByTrackId,
+  nativePaymentSymbol,
   onBack,
   onOpenTrack,
   onOpenArtistRoom,
@@ -191,7 +193,9 @@ export function ArtistProfileView({
                   <div>
                     <strong>{track.title}</strong>
                     <span>{track.description || 'A Dotify release ready for listening rooms and direct support.'}</span>
-                    <small aria-label={catalogAccessAriaLabel(track, hasCatalogAccess)}>{catalogAccessLabel(track)}</small>
+                    <small aria-label={catalogAccessAriaLabel(track, hasCatalogAccess, nativePaymentSymbol)}>
+                      {catalogAccessLabel(track, nativePaymentSymbol)}
+                    </small>
                   </div>
                 </article>
               );

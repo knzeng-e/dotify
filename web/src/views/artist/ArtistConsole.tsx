@@ -105,6 +105,7 @@ export function ArtistConsole() {
   const coverCID = catalog.coverCID;
   const audioCID = catalog.audioCID;
   const trackInfo = catalog.trackInfo;
+  const nativePaymentSymbol = catalog.nativeRuntimePaymentAsset.symbol;
 
   const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
   const artistRegistrationAvailable = artistConsole.artistRegistrationAvailable;
@@ -350,6 +351,7 @@ export function ArtistConsole() {
           artistRegistrationAvailable={artistRegistrationAvailable}
           artistSetupState={artistSetupState}
           artistTracks={artistTracks}
+          nativePaymentSymbol={nativePaymentSymbol}
           connectedWallet={connectedWallet}
           royaltyPayments={royaltyPayments}
           totalRoyaltyWei={totalRoyaltyWei}
@@ -378,6 +380,7 @@ export function ArtistConsole() {
           accessMode={accessMode}
           personhoodLevel={personhoodLevel}
           priceDot={priceDot}
+          nativePaymentSymbol={nativePaymentSymbol}
           royaltyBps={royaltyBps}
           additionalRoyaltySplits={additionalRoyaltySplits}
           uploadToBulletinEnabled={uploadToBulletinEnabled}
@@ -418,6 +421,7 @@ export function ArtistConsole() {
           onSetReleaseActive={onSetReleaseActive}
           releaseActionId={artistConsole.releaseActionId}
           arrivedReleaseId={arrivedReleaseId}
+          nativePaymentSymbol={nativePaymentSymbol}
         />
       )}
 
@@ -431,6 +435,7 @@ export function ArtistConsole() {
           totalRoyaltyWei={totalRoyaltyWei}
           uniqueRoyaltyListeners={uniqueRoyaltyListeners}
           paidRoyaltyTracks={paidRoyaltyTracks}
+          nativePaymentSymbol={nativePaymentSymbol}
           onSetExpandedRoyaltyPaymentId={onSetExpandedRoyaltyPaymentId}
           onRefreshRoyalties={onRefreshRoyalties}
         />

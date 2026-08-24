@@ -81,6 +81,7 @@ export function ListenerShell() {
   const soloTrackHash = playback.transport.playing && !roomId ? (selectedTrack?.hash ?? null) : null;
   const showProductionReadinessPanel = isProductionReadinessPanelEnabled({ VITE_DOTIFY_DEBUG_PANEL: import.meta.env.VITE_DOTIFY_DEBUG_PANEL });
   const connectedWallet = walletState.status === 'connected' ? walletState.wallet : null;
+  const nativePaymentSymbol = catalog.nativeRuntimePaymentAsset.symbol;
 
   useEffect(() => {
     session.setSoloListeningTrack(soloTrackHash);
@@ -204,6 +205,7 @@ export function ListenerShell() {
                 catalogTracks={catalog.catalogTracks}
                 openRooms={session.openRooms}
                 catalogAccessByTrackId={catalog.catalogAccessByTrackId}
+                nativePaymentSymbol={nativePaymentSymbol}
                 onBack={() => setPublicArtistName(null)}
                 onOpenTrack={openTrack}
                 onOpenArtistRoom={handleOpenArtistRoom}
@@ -219,6 +221,7 @@ export function ListenerShell() {
                     soloListeningByTrackHash={session.soloListeningByTrackHash}
                     selectedTrackId={catalog.selectedTrackId}
                     catalogAccessByTrackId={catalog.catalogAccessByTrackId}
+                    nativePaymentSymbol={nativePaymentSymbol}
                     onOpenTrack={openTrack}
                     onOpenArtist={handleOpenArtistProfile}
                     onJoinRoom={handleJoinRoomRequest}
@@ -255,6 +258,7 @@ export function ListenerShell() {
                     unlockedTrackCount={paidTracks.length}
                     supportedArtistCount={supportedArtists.length}
                     supportedArtists={supportedArtists}
+                    nativePaymentSymbol={nativePaymentSymbol}
                     unlockedTracks={paidTracks.map(track => ({
                       id: track.id,
                       title: track.title,

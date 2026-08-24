@@ -196,7 +196,8 @@ Adapters:
 Classic unlock no longer passes a loose `(runtimeAddress, contentHash, value)`
 triple into runtime writers. The catalog hook creates a typed native runtime
 payment intent first: asset symbol derived from the configured EVM chain
-(`PAS` on the current Product DevNet/Paseo Asset Hub chain), rail
+(`PAS` on the current Product DevNet/Paseo Asset Hub chain, `DOT` on a
+DOT-backed Polkadot Hub EVM chain), rail
 `runtime-native`, runtime address, content hash, and 18-decimal native amount.
 The amount comes from the runtime or catalog API `pricePlanck` value when
 available; `priceDot` is only the rounded display string. The viem and Product
