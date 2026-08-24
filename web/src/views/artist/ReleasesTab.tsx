@@ -17,6 +17,7 @@ type ReleasesTabProps = {
   onUpdateReleaseAccessMode: (track: CatalogTrack, accessMode: AccessMode, priceDot: string, personhoodLevel: PersonhoodLevel) => void;
   onSetReleaseActive: (track: CatalogTrack, active: boolean) => void;
   releaseActionId: string | null;
+  nativePaymentSymbol: string;
   /** Into orbit (Constellation phase C): id of a release that just landed on
    * chain while the console was open; its card plays a one-shot arrival. */
   arrivedReleaseId?: string | null;
@@ -34,6 +35,7 @@ export function ReleasesTab({
   onUpdateReleaseAccessMode,
   onSetReleaseActive,
   releaseActionId,
+  nativePaymentSymbol,
   arrivedReleaseId = null
 }: ReleasesTabProps) {
   const selectedRelease = artistTracks.find(track => track.id === selectedReleaseId) ?? artistTracks[0] ?? null;
@@ -103,7 +105,7 @@ export function ReleasesTab({
                     {track.active === false
                       ? 'Inactive'
                       : track.accessMode === 'classic'
-                        ? `${track.priceDot} DOT`
+                        ? `${track.priceDot} ${nativePaymentSymbol}`
                         : track.accessMode === 'free'
                           ? 'Free'
                           : track.personhoodLevel}
@@ -137,7 +139,7 @@ export function ReleasesTab({
                 <span className='access-chip'>{accessModeLabel(selectedRelease)}</span>
                 <span className='access-chip'>
                   {selectedRelease.accessMode === 'classic'
-                    ? `${selectedRelease.priceDot} DOT`
+                    ? `${selectedRelease.priceDot} ${nativePaymentSymbol}`
                     : selectedRelease.accessMode === 'free'
                       ? 'Free'
                       : 'Free for verified humans'}
@@ -194,7 +196,7 @@ export function ReleasesTab({
               </select>
             </label>
             <label className='release-editor-field'>
-              <span>Price DOT</span>
+              <span>Price {nativePaymentSymbol}</span>
               <input
                 className='field'
                 type='number'
@@ -228,7 +230,7 @@ export function ReleasesTab({
               label='Access'
               value={
                 selectedRelease.accessMode === 'classic'
-                  ? `${selectedRelease.priceDot} DOT`
+                  ? `${selectedRelease.priceDot} ${nativePaymentSymbol}`
                   : selectedRelease.accessMode === 'free'
                     ? 'Free for everyone'
                     : selectedRelease.personhoodLevel === 'DIM2'

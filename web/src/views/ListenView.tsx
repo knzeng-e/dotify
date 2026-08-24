@@ -17,6 +17,7 @@ type ListenViewProps = {
   soloListeningByTrackHash: SoloListeningByTrackHash;
   selectedTrackId: string;
   catalogAccessByTrackId: Record<string, boolean>;
+  nativePaymentSymbol: string;
   onOpenTrack: (track: CatalogTrack) => void;
   onOpenArtist: (artistName: string) => void;
   onJoinRoom: (roomId: string) => void;
@@ -36,6 +37,7 @@ export function ListenView({
   soloListeningByTrackHash,
   selectedTrackId,
   catalogAccessByTrackId,
+  nativePaymentSymbol,
   onOpenTrack,
   onOpenArtist,
   onJoinRoom,
@@ -316,11 +318,11 @@ export function ListenView({
                   <div
                     className='catalogue-access-line'
                     data-access={accessGranted ? 'granted' : 'locked'}
-                    aria-label={catalogAccessAriaLabel(track, hasCatalogAccess)}
+                    aria-label={catalogAccessAriaLabel(track, hasCatalogAccess, nativePaymentSymbol)}
                   >
                     <span>
                       {accessGranted ? <CircleCheckBig size={15} /> : track.accessMode === 'classic' ? <Wallet size={15} /> : <KeyRound size={15} />}
-                      {catalogAccessLabel(track)}
+                      {catalogAccessLabel(track, nativePaymentSymbol)}
                     </span>
                     <ArrowRight size={15} aria-hidden='true' />
                   </div>

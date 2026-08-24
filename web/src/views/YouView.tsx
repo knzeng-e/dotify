@@ -17,6 +17,7 @@ type YouViewProps = {
   unlockedTrackCount: number;
   supportedArtistCount: number;
   supportedArtists: AccountSupportedArtist[];
+  nativePaymentSymbol: string;
   unlockedTracks: AccountUnlockedTrack[];
   productionReadiness: ProductionReadinessPanelProps | null;
   onOpenArtistStudio: () => void;
@@ -33,6 +34,7 @@ export function YouView({
   unlockedTrackCount,
   supportedArtistCount,
   supportedArtists,
+  nativePaymentSymbol,
   unlockedTracks,
   productionReadiness,
   onOpenArtistStudio,
@@ -88,7 +90,7 @@ export function YouView({
                       <span>
                         <strong>{track.title}</strong>
                         <small>
-                          {track.artist} / {track.priceDot} DOT
+                          {track.artist} / {track.priceDot} {nativePaymentSymbol}
                         </small>
                       </span>
                       <code>{shortenAddress(track.hash)}</code>
@@ -156,7 +158,7 @@ export function YouView({
                 </div>
                 <div>
                   <strong className='tnum'>{earnedDot}</strong>
-                  <span>DOT received</span>
+                  <span>{nativePaymentSymbol} received</span>
                 </div>
               </div>
               <code className='you-address'>{shortenAddress(artistRuntimeAddress!)}</code>

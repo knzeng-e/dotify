@@ -15,6 +15,7 @@ type RoyaltiesTabProps = {
   totalRoyaltyWei: bigint;
   uniqueRoyaltyListeners: number;
   paidRoyaltyTracks: number;
+  nativePaymentSymbol: string;
   onSetExpandedRoyaltyPaymentId: (id: string | null) => void;
   onRefreshRoyalties: () => void;
 };
@@ -28,6 +29,7 @@ export function RoyaltiesTab({
   totalRoyaltyWei,
   uniqueRoyaltyListeners,
   paidRoyaltyTracks,
+  nativePaymentSymbol,
   onSetExpandedRoyaltyPaymentId,
   onRefreshRoyalties
 }: RoyaltiesTabProps) {
@@ -36,7 +38,7 @@ export function RoyaltiesTab({
       <div className='doc-panel royalties-panel'>
         <PanelTitle icon={Wallet} title='Royalty ledger' meta={artistRuntimeAddress ? 'on-chain payments' : 'profile needed'} />
         <div className='royalty-summary-grid'>
-          <Metric label='received' value={`${formatWeiAsDot(totalRoyaltyWei)} DOT`} />
+          <Metric label='received' value={`${formatWeiAsDot(totalRoyaltyWei)} ${nativePaymentSymbol}`} />
           <Metric label='payments' value={royaltyPayments.length.toString()} />
           <Metric label='listeners' value={uniqueRoyaltyListeners.toString()} />
           <Metric label='tracks paid' value={paidRoyaltyTracks.toString()} />
@@ -73,7 +75,9 @@ export function RoyaltiesTab({
                       <span>{formatPaymentDate(payment.paidAtMs)}</span>
                     </div>
                     <div className='royalty-row-side'>
-                      <strong>{payment.amountDot} DOT</strong>
+                      <strong>
+                        {payment.amountDot} {nativePaymentSymbol}
+                      </strong>
                       <span>
                         Details
                         <ChevronDown size={15} />
@@ -154,7 +158,7 @@ export function RoyaltiesTab({
           </div>
           <div>
             <strong>Open accounting</strong>
-            <span>Amounts are shown in DOT and each payment links back to Blockscout.</span>
+            <span>Amounts are shown in {nativePaymentSymbol} and each payment links back to Blockscout.</span>
           </div>
         </div>
       </div>

@@ -16,18 +16,20 @@ async function readClassicUnlockState(page: Page) {
   return page.evaluate(() => window.__DOTIFY_E2E_CLASSIC_UNLOCK__ as ClassicUnlockE2eState | undefined);
 }
 
+const E2E_NATIVE_PAYMENT_SYMBOL = 'PAS';
+
 test('Classic track stays locked before payment and unlocks full playback after payment', async ({ page }) => {
   await page.goto('/');
 
   const trackCard = page.getByTestId('track-card');
   await expect(trackCard).toContainText('Deterministic Classic Unlock');
-  await expect(trackCard).toContainText('0.5 DOT');
+  await expect(trackCard).toContainText(`0.5 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
 
   await page.getByTestId('track-card-open').click();
 
   await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
   await expect(page.getByTestId('access-warning')).toContainText('Support and open this track');
-  await expect(page.getByTestId('access-warning')).toContainText('0.5 DOT');
+  await expect(page.getByTestId('access-warning')).toContainText(`0.5 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
 
   const beforePayment = await readClassicUnlockState(page);
   expect(beforePayment?.fullKeyRequests ?? 0).toBe(0);

@@ -14,6 +14,7 @@ type OverviewTabProps = {
   artistRegistrationAvailable: boolean;
   artistSetupState: string;
   artistTracks: CatalogTrack[];
+  nativePaymentSymbol: string;
   connectedWallet: { label: string } | null;
   royaltyPayments: RoyaltyPayment[];
   totalRoyaltyWei: bigint;
@@ -34,6 +35,7 @@ export function OverviewTab({
   isRefreshingArtistRuntime,
   artistRegistrationAvailable,
   artistTracks,
+  nativePaymentSymbol,
   connectedWallet,
   royaltyPayments,
   totalRoyaltyWei,
@@ -61,7 +63,7 @@ export function OverviewTab({
           </div>
           <div className='studio-metric doc-panel'>
             <strong className='tnum'>
-              {earnedDot} <small>DOT</small>
+              {earnedDot} <small>{nativePaymentSymbol}</small>
             </strong>
             <span>Earned - paid direct</span>
           </div>
@@ -81,7 +83,7 @@ export function OverviewTab({
                 <CoverImage src={track.imageRef} alt='' />
                 <span className='studio-release-meta'>
                   <strong>{track.title}</strong>
-                  <small>{catalogAccessLabel(track)}</small>
+                  <small>{catalogAccessLabel(track, nativePaymentSymbol)}</small>
                 </span>
               </button>
             ))
@@ -101,7 +103,9 @@ export function OverviewTab({
                   <span>supported and opened {payment.trackTitle}</span>
                 </div>
                 <div className='studio-support-amount'>
-                  <strong>+{payment.amountDot} DOT</strong>
+                  <strong>
+                    +{payment.amountDot} {nativePaymentSymbol}
+                  </strong>
                   <small>{formatPaymentDate(payment.paidAtMs)}</small>
                 </div>
               </div>
@@ -130,7 +134,7 @@ export function OverviewTab({
           </span>
           <div>
             <strong>You set the access</strong>
-            <span>Free for verified humans, or a price in DOT - per track, your call.</span>
+            <span>Free for verified humans, or a price in {nativePaymentSymbol} - per track, your call.</span>
           </div>
         </div>
         <div className='sov-item'>

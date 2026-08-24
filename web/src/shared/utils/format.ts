@@ -115,14 +115,14 @@ export function accessModeLabelFromState(mode: AccessMode) {
   return mode === 'human-free' ? 'Free for verified humans' : 'Full song';
 }
 
-export function catalogAccessLabel(track: CatalogTrack) {
+export function catalogAccessLabel(track: CatalogTrack, nativePaymentSymbol = 'native token') {
   if (track.accessMode === 'free') return 'Free for everyone';
-  return track.accessMode === 'classic' ? `${track.priceDot} DOT` : 'Free for verified humans';
+  return track.accessMode === 'classic' ? `${track.priceDot} ${nativePaymentSymbol}` : 'Free for verified humans';
 }
 
-export function catalogAccessAriaLabel(track: CatalogTrack, hasAccess: boolean) {
+export function catalogAccessAriaLabel(track: CatalogTrack, hasAccess: boolean, nativePaymentSymbol = 'native token') {
   const status = hasAccess ? 'Access already available' : 'Access required';
-  return `${status}: ${catalogAccessLabel(track)}`;
+  return `${status}: ${catalogAccessLabel(track, nativePaymentSymbol)}`;
 }
 
 export function describeArtistRegistrationError(error: unknown) {

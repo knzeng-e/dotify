@@ -29,6 +29,7 @@ type NewReleaseTabProps = {
   accessMode: AccessMode;
   personhoodLevel: PersonhoodLevel;
   priceDot: string;
+  nativePaymentSymbol: string;
   royaltyBps: number;
   additionalRoyaltySplits: ReleaseRoyaltySplitDraft[];
   uploadToBulletinEnabled: boolean;
@@ -72,6 +73,7 @@ export function NewReleaseTab({
   accessMode,
   personhoodLevel,
   priceDot,
+  nativePaymentSymbol,
   royaltyBps,
   additionalRoyaltySplits,
   uploadToBulletinEnabled,
@@ -223,7 +225,7 @@ export function NewReleaseTab({
                 </select>
               </label>
               <label>
-                <span>Price in DOT</span>
+                <span>Price in {nativePaymentSymbol}</span>
                 <input
                   className='field'
                   type='number'
@@ -383,7 +385,7 @@ export function NewReleaseTab({
               label='Access'
               value={
                 accessMode === 'classic'
-                  ? `${priceDot} DOT`
+                  ? `${priceDot} ${nativePaymentSymbol}`
                   : accessMode === 'free'
                     ? 'Free for everyone'
                     : personhoodLevel === 'DIM2'
@@ -441,7 +443,7 @@ export function NewReleaseTab({
             <p>{description || 'Add a short release note to help listeners understand the world behind this track.'}</p>
             <div className='access-badges'>
               <span>{accessModeLabelFromState(accessMode)}</span>
-              <span>{accessMode === 'classic' ? `${priceDot} DOT` : accessMode === 'free' ? 'Free' : 'Free for verified humans'}</span>
+              <span>{accessMode === 'classic' ? `${priceDot} ${nativePaymentSymbol}` : accessMode === 'free' ? 'Free' : 'Free for verified humans'}</span>
             </div>
           </div>
         </div>

@@ -104,14 +104,22 @@ Before requesting review:
 
 1. Confirm the branch contains one coherent backlog scope.
 2. Re-read the PR description against the final diff.
-3. Verify the issue link and closure semantics.
-4. Add the PR to Project 5 and mirror the ticket fields.
-5. Check assignee, labels, milestone, draft state, and reviewers.
-6. Provide an ordered code map and high-risk review prompts.
-7. Report commands and outcomes, including warnings.
-8. Identify evidence that still requires deployment or manual validation.
-9. Confirm docs describe operational and security boundaries honestly.
-10. Make sure a reviewer can explain the design without private context.
+3. Check the relevant official dependency and SDK versions against the pinned
+   codebase. Do not update them opportunistically inside an unrelated PR, but
+   report drift and any compatibility work the reviewer should know about.
+4. Flag codebase improvements discovered while scoping the PR, even when they
+   are deliberately deferred to avoid scope creep.
+5. Review philosophical alignment: the change should strengthen shared
+   listening, artist sovereignty, low-friction trust, or honest access
+   boundaries. If it does not, explain why it still belongs.
+6. Verify the issue link and closure semantics.
+7. Add the PR to Project 5 and mirror the ticket fields.
+8. Check assignee, labels, milestone, draft state, and reviewers.
+9. Provide an ordered code map and high-risk review prompts.
+10. Report commands and outcomes, including warnings.
+11. Identify evidence that still requires deployment or manual validation.
+12. Confirm docs describe operational and security boundaries honestly.
+13. Make sure a reviewer can explain the design without private context.
 
 ## Definition of done
 

@@ -64,6 +64,10 @@ export function nativeRuntimePaymentAssetFromChain(chain: Pick<Chain, 'nativeCur
   };
 }
 
+export function nativeRuntimeAmountLabel(amount: string, asset: Pick<DotifyNativeRuntimeAsset, 'symbol'>): string {
+  return `${amount} ${asset.symbol}`;
+}
+
 export function classicTrackPaymentAmountPlanck(track: Pick<CatalogTrack, 'priceDot' | 'pricePlanck'>): bigint {
   return track.pricePlanck ?? parseEther(track.priceDot.trim() || '0');
 }

@@ -1,20 +1,24 @@
 import { LockKeyhole } from 'lucide-react';
 import { Dialog } from './Dialog';
 import type { AccessGate } from '../shared/types';
+import { nativeRuntimeAmountLabel, type DotifyNativeRuntimeAsset } from '../features/payments/paymentModel';
 
 export function AccessGateOverlay({
   gate,
+  nativePaymentAsset,
   onDismiss,
   onPay,
   onSignIn
 }: {
   gate: AccessGate;
+  nativePaymentAsset: Pick<DotifyNativeRuntimeAsset, 'symbol'>;
   onDismiss: () => void;
   onPay?: () => void;
   onSignIn?: () => void;
 }) {
   const configuredSplitBps = gate.track.royaltySplits.reduce((total, split) => total + split.bps, 0);
   const artistRemainderBps = Math.max(0, 10_000 - configuredSplitBps);
+  const supportAmount = nativeRuntimeAmountLabel(gate.track.priceDot, nativePaymentAsset);
 
   return (
     <Dialog
@@ -39,9 +43,9 @@ export function AccessGateOverlay({
       </div>
       {gate.track.accessMode === 'classic' && (
         <section className='access-gate-receipt' aria-label={`Support summary for ${gate.track.title}`}>
-          <div className='access-gate-price' aria-label={`Support amount ${gate.track.priceDot} DOT`}>
+          <div className='access-gate-price' aria-label={`Support amount ${supportAmount}`}>
             <span>Total support</span>
-            <strong>{gate.track.priceDot} DOT</strong>
+            <strong>{supportAmount}</strong>
           </div>
           <dl>
             <div>
@@ -75,9 +79,9 @@ export function AccessGateOverlay({
             type='button'
             data-testid='classic-unlock-button'
             onClick={onPay}
-            aria-label={`Support the artist and open ${gate.track.title} for ${gate.track.priceDot} DOT`}
+            aria-label={`Support the artist and open ${gate.track.title} for ${supportAmount}`}
           >
-            Support and open - {gate.track.priceDot} DOT
+            Support and open - {supportAmount}
           </button>
         )}
         {gate.actionType === 'signin' && onSignIn && (

@@ -34,6 +34,7 @@ import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessP
 import { isChosenDisplayName } from '../features/identity/walletIdentity';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import { playbackStatusLabel, transportProgressPercent } from '../features/player/playbackStatus';
+import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
@@ -95,6 +96,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
 
   const effectiveAccessMode = trackInfo?.accessMode ?? selectedTrack?.accessMode ?? accessMode;
   const effectivePriceDot = trackInfo?.priceDot ?? selectedTrack?.priceDot ?? priceDot;
+  const nativePaymentAsset = catalog.nativeRuntimePaymentAsset;
+  const effectivePaymentAmount = nativeRuntimeAmountLabel(effectivePriceDot, nativePaymentAsset);
   const [reactions, setReactions] = useState<Array<{ id: string; emoji: string; x: number; senderName: string; self: boolean }>>([]);
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
 
@@ -123,7 +126,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     ? 'Live room stream'
     : effectiveAccessMode === 'classic'
       ? needsTrackAccess
-        ? `${effectivePriceDot} DOT`
+        ? effectivePaymentAmount
         : 'Opened for this wallet'
       : effectiveAccessMode === 'free'
         ? 'Free for everyone'
@@ -440,6 +443,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           {accessGate && !isRoomGuest && (
             <AccessGateOverlay
               gate={accessGate}
+              nativePaymentAsset={nativePaymentAsset}
               onDismiss={() => onSetAccessGate(null)}
               onPay={
                 accessGate.actionType === 'payment'
@@ -718,7 +722,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   ? 'Streamed by the host'
                   : effectiveAccessMode === 'classic'
                     ? needsTrackAccess
-                      ? `${effectivePriceDot} DOT to open`
+                      ? `${effectivePaymentAmount} to open`
                       : 'Full track opened'
                     : 'Open in this room'
               }

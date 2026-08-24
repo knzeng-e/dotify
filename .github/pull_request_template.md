@@ -59,6 +59,18 @@ modes, persistence, configuration, monitoring, migration, and rollback needs.
 
 <!-- Separate remaining evidence and follow-up scope from delivered behavior. -->
 
+## Pre-PR alignment check
+
+<!--
+List the official dependency/SDK version checks performed before opening this PR,
+any drift found, codebase improvements worth considering, and how the change
+fits Dotify's product north star.
+-->
+
+- Dependency / SDK currency:
+- Improvement flags:
+- Philosophical alignment:
+
 ## Metadata checklist
 
 - [ ] Backlog issue linked with correct close/reference semantics

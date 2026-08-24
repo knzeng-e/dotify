@@ -41,12 +41,14 @@ export function WalletModal({
   supportingCount = 0,
   unlockedCount = 0,
   supportedArtists = [],
+  nativePaymentSymbol,
   paidTracks = [],
   onOpenAccountDetails
 }: {
   supportingCount?: number;
   unlockedCount?: number;
   supportedArtists?: WalletSupportedArtist[];
+  nativePaymentSymbol: string;
   paidTracks?: WalletPaidTrack[];
   onOpenAccountDetails?: () => void;
 }) {
@@ -226,7 +228,7 @@ export function WalletModal({
                     <span>
                       <strong>{track.title}</strong>
                       <small>
-                        {track.artist} / {track.priceDot} DOT
+                        {track.artist} / {track.priceDot} {nativePaymentSymbol}
                       </small>
                     </span>
                     <code>{shortenAddress(track.hash)}</code>
