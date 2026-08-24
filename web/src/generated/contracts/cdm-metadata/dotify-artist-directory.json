@@ -180,7 +180,7 @@
   ],
   "homepage": "https://muzinga.netlify.app",
   "repository": "https://github.com/knzeng-e/dotify",
-  "license": "MIT",
+  "license": "GPL-3.0-only WITH Classpath-exception-2.0",
   "authors": [
     "Dotify"
   ],
