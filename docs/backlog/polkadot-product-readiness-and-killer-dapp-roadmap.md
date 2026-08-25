@@ -3,9 +3,12 @@
 Status: active execution note; the Product DevNet baseline is delivered on
 `dev` and remains tracked through Product compatibility issue #85.
 
-Last Product SDK package alignment: 2026-08-06 against
+Last Product SDK package check: 2026-08-25. Dotify still pins
 `@parity/product-sdk` 0.20.1 and
-`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1.
+`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1. npm currently
+publishes `@parity/product-sdk` 0.23.0, host 0.16.0, statement-store 0.6.5,
+descriptors 0.10.0, and `polkadot-api` 3.0.0; upgrade remains a dedicated
+compatibility task, not a casual lockfile bump.
 
 ## Verdict
 

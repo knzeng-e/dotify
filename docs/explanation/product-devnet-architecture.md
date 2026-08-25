@@ -450,17 +450,28 @@ one infrastructure adapter at a time.
 
 ## Compatibility Gate
 
-The initial baseline is:
+The current baseline is:
 
 | Component                                            | Pinned/target value                |
 | ---------------------------------------------------- | ---------------------------------- |
 | Node                                                 | 22                                 |
 | `@parity/product-sdk`                                | `0.20.1`                           |
+| `@parity/product-sdk-host`                           | `0.15.1`                           |
+| `@parity/product-sdk-statement-store`                | `0.6.2`                            |
+| `@parity/product-sdk-descriptors`                    | `0.8.0`                            |
+| `polkadot-api`                                      | `1.23.3`                           |
 | `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` in the deploy command     |
 | Product network                                      | `devnet`                           |
 | Product domain                                       | `dotify-test01.dot`                |
 | Public gateway                                       | `https://dotify-test01.dev-dot.li` |
 | Asset Hub EVM chain ID                               | `420420417`                        |
+
+Checked against npm on 2026-08-25: the Product SDK set has newer published
+versions (`@parity/product-sdk` `0.23.0`, host `0.16.0`, statement-store
+`0.6.5`, descriptors `0.10.0`, and `polkadot-api` `3.0.0`). Dotify keeps the
+older pinned set until a dedicated compatibility branch verifies Product
+Desktop, Product Mobile fallback, Product sr25519 key requests, and the
+experimental CDM/PAPI adapter together.
 
 For every SDK or deploy-tool upgrade:
 

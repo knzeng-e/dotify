@@ -165,15 +165,21 @@ when deciding whether to refresh a previously opened app.
 
 Current Product host SDK dependencies:
 
-| Package                    | Current value |
-| -------------------------- | ------------- |
-| `@parity/product-sdk`      | `0.20.1`      |
-| `@parity/product-sdk-host` | `0.15.1`      |
-| `engine.io-client`         | `6.6.6`       |
+| Package                                      | Current value | Latest checked 2026-08-25 |
+| -------------------------------------------- | ------------- | ------------------------- |
+| `@parity/product-sdk`                        | `0.20.1`      | `0.23.0`                  |
+| `@parity/product-sdk-host`                   | `0.15.1`      | `0.16.0`                  |
+| `@parity/product-sdk-statement-store`        | `0.6.2`       | `0.6.5`                   |
+| `@parity/product-sdk-descriptors`            | `0.8.0`       | `0.10.0`                  |
+| `polkadot-api`                              | `1.23.3`      | `3.0.0`                   |
+| `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` | `0.13.1`                  |
+| `engine.io-client`                           | `6.6.6`       | `6.6.6`                   |
 
 Keep these pinned exactly during Product DevNet hardening. Recheck the official
 Product docs and npm versions before changing them because the mobile host API
-is still moving quickly.
+is still moving quickly. The 2026-08-25 dependency/security pass intentionally
+left the Product SDK set pinned and records the residual audit status in
+`docs/operations/dependency-security-status.md`.
 
 `VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
 publication announces no rooms on the Statement Store. The capability ships
