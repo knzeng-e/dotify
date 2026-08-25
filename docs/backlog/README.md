@@ -110,17 +110,19 @@ explicit Host detection, app-scoped Product identity, and canonical
 Product-origin room links. The typed runtime ports and experimental
 Product CDM/PAPI adapter boundary are implementation preparation only; they do
 not imply Product-signed contract writes, Statement Store rooms, or Humanity
-decisions. API-side Product-signed key/session verification now exists through
-`product-sr25519-v1`, but the Product frontend still needs to send host-signed
-requests before protected playback can use that identity path.
+decisions. Product-signed key/session verification now exists through
+`product-sr25519-v1`, and the Product frontend sends that request shape after
+explicit Product account connection. Live host evidence remains required before
+Product identity can be treated as broadly proven across devices.
 
 The Product SDK evidence snapshot used for this replanning is now
-`@parity/product-sdk` 0.20.1 and
+`@parity/product-sdk` 0.23.0 and
 `@polkadot-community-foundation/polkadot-app-deploy` 0.13.1,
-last aligned with the checked-in package set on 2026-08-06 and rechecked
-against npm on 2026-08-25. Newer Product SDK/PAPI packages exist and remain a
-dedicated compatibility task because the host/mobile boundary is still moving
-quickly. They remain prototype / reference / unaudited code.
+last aligned with npm on 2026-08-26. The Product SDK set remains prototype /
+reference / unaudited code. Root `polkadot-api` 3.0.0 exists but is not yet
+adopted because the current Product SDK packages use PAPI 2.2.x and
+`@polkadot-apps` packages use PAPI 1.23.x, so a single PAPI 3 root breaks
+Dotify's Bulletin/wallet type seams.
 Product SDK contracts target `pallet-revive` / PolkaVM CDM flows, not Dotify's
 current viem + EVM RPC write path; Statement Store is useful for small
 ephemeral presence, not full chat, SDP/ICE, durable media metadata, or guest

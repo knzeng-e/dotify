@@ -114,14 +114,13 @@ Production-sensitive upload and content-key operations live behind
 derivation remain local/demo paths only.
 
 Product SDK integration is an adaptive enhancement, not a hard dependency for
-first sound. The Product build pins `@parity/product-sdk` 0.20.1, detects the
+first sound. The Product build pins `@parity/product-sdk` 0.23.0, detects the
 host, and requests an app-scoped account only after explicit user action. That
-account is currently an identity/presence capability: Classic payments, artist
-publication, and the shipped protected-playback UI still require the
-passkey/EVM path until CDM/PAPI writes and Product-host key/session signing are
-wired. The backend already accepts an explicit `product-sr25519-v1` signature
-scheme for key delivery and session sign-in when the Product account public key
-derives to the requester H160 address.
+account is currently an identity/presence and protected key/session capability
+through the explicit `product-sr25519-v1` signature scheme when the Product
+account public key derives to the requester H160 address. Classic payments and
+artist publication still use the passkey/EVM path in the tracked build until
+CDM/PAPI writes have host-signed transaction smoke evidence.
 The runtime hooks now depend on typed read/write ports; the current viem
 adapter remains active, and the Product CDM/PAPI adapter remains experimental
 until Dotify has CDM-installed runtime packages and host-signed transaction

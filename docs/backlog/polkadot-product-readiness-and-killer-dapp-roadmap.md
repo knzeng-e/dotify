@@ -3,12 +3,14 @@
 Status: active execution note; the Product DevNet baseline is delivered on
 `dev` and remains tracked through Product compatibility issue #85.
 
-Last Product SDK package check: 2026-08-25. Dotify still pins
-`@parity/product-sdk` 0.20.1 and
-`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1. npm currently
-publishes `@parity/product-sdk` 0.23.0, host 0.16.0, statement-store 0.6.5,
-descriptors 0.10.0, and `polkadot-api` 3.0.0; upgrade remains a dedicated
-compatibility task, not a casual lockfile bump.
+Last Product SDK package check: 2026-08-26. Dotify now pins the current
+published Product SDK set: `@parity/product-sdk` 0.23.0, host 0.16.0,
+statement-store 0.6.5, descriptors 0.10.0, and
+`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1. npm also
+publishes `polkadot-api` 3.0.0, but Dotify keeps root PAPI on 1.23.3 because
+the current Product SDK packages use PAPI 2.2.x and `@polkadot-apps`
+chain-client/keys/signer use PAPI 1.23.x. Root PAPI 3 remains blocked until
+the official SDK graph converges.
 
 ## Verdict
 
@@ -158,6 +160,8 @@ Goal: prove the Product host path with small spikes before committing the app.
 - Delivered: connect the app-scoped Product account only on explicit action and
   separate identity capability from EVM signing capability.
 - Delivered: publishable Bulletin/DotNS build and dual-origin Fly boundary.
+- Delivered: align the Product SDK set with the 2026-08-26 npm latest while
+  keeping standalone/Product builds green.
 - Remaining: prototype host transaction signing and resource allocation.
 - Compare Dotify's Hardhat/EVM runtime with Product SDK PolkaVM/CDM contracts.
 - Delivered on the room-beacon branch: Statement Store presence with strict
@@ -210,6 +214,8 @@ Goal: deepen the delivered Product mode one adapter at a time.
   `devnet` is the only environment Dotify can serve a catalog from.
 - Next: `pallet-revive` account mapping plus real host-signed transaction smoke
   tests before Product writes can replace the EVM wallet path.
+- Next: revisit root `polkadot-api` 3 after Product SDK and `@polkadot-apps`
+  packages publish on a compatible PAPI major line.
 - Next: confirm the Product-supported CASH settlement model before exposing any
   native/CASH conversion, bridge, or receipt UI. Dotify must keep runtime access
   grants tied to verifiable settlement evidence.

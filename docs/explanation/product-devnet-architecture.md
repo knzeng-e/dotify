@@ -455,10 +455,10 @@ The current baseline is:
 | Component                                            | Pinned/target value                |
 | ---------------------------------------------------- | ---------------------------------- |
 | Node                                                 | 22                                 |
-| `@parity/product-sdk`                                | `0.20.1`                           |
-| `@parity/product-sdk-host`                           | `0.15.1`                           |
-| `@parity/product-sdk-statement-store`                | `0.6.2`                            |
-| `@parity/product-sdk-descriptors`                    | `0.8.0`                            |
+| `@parity/product-sdk`                                | `0.23.0`                           |
+| `@parity/product-sdk-host`                           | `0.16.0`                           |
+| `@parity/product-sdk-statement-store`                | `0.6.5`                            |
+| `@parity/product-sdk-descriptors`                    | `0.10.0`                           |
 | `polkadot-api`                                      | `1.23.3`                           |
 | `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` in the deploy command     |
 | Product network                                      | `devnet`                           |
@@ -466,12 +466,14 @@ The current baseline is:
 | Public gateway                                       | `https://dotify-test01.dev-dot.li` |
 | Asset Hub EVM chain ID                               | `420420417`                        |
 
-Checked against npm on 2026-08-25: the Product SDK set has newer published
-versions (`@parity/product-sdk` `0.23.0`, host `0.16.0`, statement-store
-`0.6.5`, descriptors `0.10.0`, and `polkadot-api` `3.0.0`). Dotify keeps the
-older pinned set until a dedicated compatibility branch verifies Product
-Desktop, Product Mobile fallback, Product sr25519 key requests, and the
-experimental CDM/PAPI adapter together.
+Checked against npm on 2026-08-26: the Product SDK set above is current. npm
+also publishes `polkadot-api` `3.0.0`, but Dotify keeps root PAPI on `1.23.3`
+for now. The current official Product SDK packages bring their own PAPI
+`2.2.x` tree, while `@polkadot-apps` chain-client/keys/signer still depend on
+PAPI `1.23.x`. A direct root PAPI 3 trial removed the public
+`PolkadotSigner` export and broke `ChainDefinition` / `TypedApi` compatibility
+at the Bulletin and wallet seams. Root PAPI 3 therefore remains a blocked
+compatibility migration until the upstream SDK graph converges.
 
 For every SDK or deploy-tool upgrade:
 
