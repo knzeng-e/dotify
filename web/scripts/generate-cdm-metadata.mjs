@@ -43,7 +43,7 @@ const publishedAt = publishedAtArg !== -1 ? process.argv[publishedAtArg + 1] : n
 const COMMON = {
   homepage: 'https://muzinga.netlify.app',
   repository: 'https://github.com/knzeng-e/dotify',
-  license: 'MIT',
+  license: 'GPL-3.0-only WITH Classpath-exception-2.0',
   authors: ['Dotify'],
   keywords: ['music', 'dotify', 'artist-runtime', 'access-control']
 };
