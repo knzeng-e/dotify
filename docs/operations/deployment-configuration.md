@@ -155,7 +155,7 @@ Required Product values:
 | `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                                                            |
 | `VITE_PINATA_GATEWAY`           | `https://ipfs.io`                                                                                                                |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 11]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 12]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -165,21 +165,25 @@ when deciding whether to refresh a previously opened app.
 
 Current Product host SDK dependencies:
 
-| Package                                      | Current value | Latest checked 2026-08-25 |
+| Package                                      | Current value | Latest checked 2026-08-26 |
 | -------------------------------------------- | ------------- | ------------------------- |
-| `@parity/product-sdk`                        | `0.20.1`      | `0.23.0`                  |
-| `@parity/product-sdk-host`                   | `0.15.1`      | `0.16.0`                  |
-| `@parity/product-sdk-statement-store`        | `0.6.2`       | `0.6.5`                   |
-| `@parity/product-sdk-descriptors`            | `0.8.0`       | `0.10.0`                  |
+| `@parity/product-sdk`                        | `0.23.0`      | `0.23.0`                  |
+| `@parity/product-sdk-host`                   | `0.16.0`      | `0.16.0`                  |
+| `@parity/product-sdk-statement-store`        | `0.6.5`       | `0.6.5`                   |
+| `@parity/product-sdk-descriptors`            | `0.10.0`      | `0.10.0`                  |
 | `polkadot-api`                              | `1.23.3`      | `3.0.0`                   |
 | `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` | `0.13.1`                  |
 | `engine.io-client`                           | `6.6.6`       | `6.6.6`                   |
 
-Keep these pinned exactly during Product DevNet hardening. Recheck the official
-Product docs and npm versions before changing them because the mobile host API
-is still moving quickly. The 2026-08-25 dependency/security pass intentionally
-left the Product SDK set pinned and records the residual audit status in
-`docs/operations/dependency-security-status.md`.
+Keep the Product SDK packages pinned exactly during Product DevNet hardening.
+Recheck npm and the official Product docs before changing them because the
+mobile host API is still moving quickly. `polkadot-api` remains on `1.23.3` at
+the Dotify root even though npm publishes `3.0.0`: the current official Product
+SDK packages bring their own PAPI `2.2.x` tree, while `@polkadot-apps`
+chain-client/keys/signer still depend on PAPI `1.23.x`. A direct root PAPI 3
+trial failed type compatibility for the `PolkadotSigner` export and
+`ChainDefinition` / `TypedApi` boundaries, so PAPI 3 is tracked as a blocked
+compatibility migration rather than a deployable dependency bump.
 
 `VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
 publication announces no rooms on the Statement Store. The capability ships
@@ -446,8 +450,8 @@ entire listener answer path in an explicit phase error, and emits metadata-only
 `webrtc:diagnostic` events. The diagnostic contains no SDP, ICE candidate, IP
 address, media identifier, content key, or user-agent string.
 
-Product executable `[0, 1, 11]` handles the current iOS Product sandbox
-boundary explicitly. The upstream Product container freezes and removes
+Product executable `[0, 1, 11]` and later handle the current iOS Product
+sandbox boundary explicitly. The upstream Product container freezes and removes
 [`window.RTCPeerConnection` during container lockdown](https://github.com/Polkadot-Community-Foundation/polkadot-ios-community/blob/main/Packages/Products/product-container/src/index.ts#L79-L81);
 granting the `WebRtc` remote permission does not
 restore that JavaScript API. Dotify therefore blocks mobile in-container room

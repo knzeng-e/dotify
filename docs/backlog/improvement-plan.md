@@ -67,11 +67,12 @@ sound. Only the baseline rows marked delivered may be presented as live.
 
 Product SDK snapshot used for this plan:
 
-- `@parity/product-sdk` 0.20.1 (aligned with the checked-in package set on
-  2026-08-06; rechecked 2026-08-25 against latest npm `0.23.0`);
+- `@parity/product-sdk` 0.23.0, host 0.16.0, statement-store 0.6.5, and
+  descriptors 0.10.0 (aligned with npm on 2026-08-26);
 - `@polkadot-community-foundation/polkadot-app-deploy` 0.13.1;
-- deferred SDK drift: host 0.16.0, statement-store 0.6.5, descriptors 0.10.0,
-  and `polkadot-api` 3.0.0 need a dedicated compatibility PR;
+- deferred PAPI drift: root `polkadot-api` 3.0.0 is published, but the current
+  Product SDK graph uses PAPI 2.2.x and `@polkadot-apps` uses PAPI 1.23.x, so
+  Dotify keeps root PAPI 1.23.3 until upstream packages converge;
 - explicit prototype / reference / unaudited status;
 - Product target: DevNet Asset Hub / People / Bulletin;
 - contracts package: `pallet-revive`, PolkaVM artifacts, and CDM manifests;

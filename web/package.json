@@ -38,10 +38,10 @@
 		"preview": "vite preview --host 0.0.0.0 --port 4273"
 	},
 	"dependencies": {
-		"@parity/product-sdk": "0.20.1",
-		"@parity/product-sdk-descriptors": "0.8.0",
-		"@parity/product-sdk-host": "0.15.1",
-		"@parity/product-sdk-statement-store": "0.6.2",
+		"@parity/product-sdk": "0.23.0",
+		"@parity/product-sdk-descriptors": "0.10.0",
+		"@parity/product-sdk-host": "0.16.0",
+		"@parity/product-sdk-statement-store": "0.6.5",
 		"@polkadot-api/descriptors": "file:.papi/descriptors",
 		"@polkadot-apps/chain-client": "^2.0.5",
 		"@polkadot-apps/descriptors": "^1.0.1",
