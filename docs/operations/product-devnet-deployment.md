@@ -318,7 +318,7 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 11]`. Product host containers use
+The current Product executable is `[0, 1, 12]`. Product host containers use
 Engine.IO Fetch polling without a WebSocket upgrade, so room signaling stays on
 the remote-network primitive proven to remain available in Product Mobile.
 Standalone browsers retain Fetch-first with an optional WebSocket upgrade. Do
@@ -364,13 +364,14 @@ WKWebViews can reject, catches every listener answer phase (including peer
 construction), and reports metadata-only `webrtc:diagnostic` events through
 signaling. These diagnostics intentionally exclude SDP, candidates, addresses,
 media identifiers, content keys, and user-agent strings.
-Executable `[0, 1, 11]` recognizes the current iOS Product sandbox, which
-explicitly removes `window.RTCPeerConnection` from Product scripts. It prevents
-opening an in-container host room that cannot stream and offers listeners a
-**Continue in browser** action through the SDK `navigateTo` bridge. The current
-room code is preserved in the external HTTPS URL. This is an interim product
-fallback, not an in-app WebRTC implementation; native in-app audio requires the
-Product Mobile host to expose a permission-gated peer connection capability.
+Executable `[0, 1, 11]` and later recognize the current iOS Product sandbox,
+which explicitly removes `window.RTCPeerConnection` from Product scripts. Dotify
+prevents opening an in-container host room that cannot stream and offers
+listeners a **Continue in browser** action through the SDK `navigateTo` bridge.
+The current room code is preserved in the external HTTPS URL. This is an
+interim product fallback, not an in-app WebRTC implementation; native in-app
+audio requires the Product Mobile host to expose a permission-gated peer
+connection capability.
 
 When Fly diagnostics report `listener:create-peer-failed` with
 `peerConnectionAvailable=false` and `protocol=polkadot:`, coturn will correctly

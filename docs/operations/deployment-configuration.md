@@ -155,7 +155,7 @@ Required Product values:
 | `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                                                            |
 | `VITE_PINATA_GATEWAY`           | `https://ipfs.io`                                                                                                                |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 11]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 12]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -450,8 +450,8 @@ entire listener answer path in an explicit phase error, and emits metadata-only
 `webrtc:diagnostic` events. The diagnostic contains no SDP, ICE candidate, IP
 address, media identifier, content key, or user-agent string.
 
-Product executable `[0, 1, 11]` handles the current iOS Product sandbox
-boundary explicitly. The upstream Product container freezes and removes
+Product executable `[0, 1, 11]` and later handle the current iOS Product
+sandbox boundary explicitly. The upstream Product container freezes and removes
 [`window.RTCPeerConnection` during container lockdown](https://github.com/Polkadot-Community-Foundation/polkadot-ios-community/blob/main/Packages/Products/product-container/src/index.ts#L79-L81);
 granting the `WebRtc` remote permission does not
 restore that JavaScript API. Dotify therefore blocks mobile in-container room

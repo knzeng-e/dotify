@@ -132,9 +132,10 @@ architecture: its sandbox
 [removes `window.RTCPeerConnection` from Product scripts](https://github.com/Polkadot-Community-Foundation/polkadot-ios-community/blob/main/Packages/Products/product-container/src/index.ts#L79-L81).
 The Product `WebRtc` permission can still be recorded by the host, but
 it does not expose a JavaScript peer connection. Dotify cannot reach ICE or TURN
-inside that container, so executable `[0, 1, 11]` opens the canonical HTTPS room
-in the system browser instead. Full in-app support requires a host-provided,
-permission-gated WebRTC bridge or restoring the browser API after permission.
+inside that container, so executable `[0, 1, 11]` and later open the canonical
+HTTPS room in the system browser instead. Full in-app support requires a
+host-provided, permission-gated WebRTC bridge or restoring the browser API after
+permission.
 
 ### Limitations
 

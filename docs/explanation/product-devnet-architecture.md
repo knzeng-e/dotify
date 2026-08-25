@@ -108,9 +108,9 @@ gateway URL.
 There is one current mobile exception. The iOS Product container removes
 `window.RTCPeerConnection` from Product scripts, so Dotify cannot create a
 browser WebRTC peer inside that sandbox even after requesting the `WebRtc`
-permission. Executable `[0, 1, 11]` detects that pre-ICE boundary and opens the
-same canonical HTTPS room URL in the external browser instead. Native in-app
-room audio now depends on a Product Mobile host capability such as a
+permission. Executable `[0, 1, 11]` and later detect that pre-ICE boundary and
+open the same canonical HTTPS room URL in the external browser instead. Native
+in-app room audio now depends on a Product Mobile host capability such as a
 permission-gated peer connection API or media bridge; the upstream clarification
 request is tracked in
 [Polkadot-Community-Foundation/dotli-community#27](https://github.com/Polkadot-Community-Foundation/dotli-community/issues/27).

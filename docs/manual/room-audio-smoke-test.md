@@ -58,7 +58,7 @@ another actually hearing the same track in sync, with no wallet friction for the
   `flyctl logs -a dotify-signal --no-tail`: an offer without an answer is
   followed by a metadata-only `webrtc:diagnostic` identifying the failing
   listener phase. No SDP or ICE candidate is logged.
-- For executable `[0, 1, 11]`, verify that a Product Mobile runtime with no
+- For executable `[0, 1, 11]` or later, verify that a Product Mobile runtime with no
   `RTCPeerConnection` shows **Continue in browser**, opens the same
   `#/rooms/<id>` URL externally, and does not keep sending retry offers.
 - Do not expect a coturn allocation when the diagnostic phase is
