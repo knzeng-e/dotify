@@ -117,8 +117,10 @@ requests before protected playback can use that identity path.
 The Product SDK evidence snapshot used for this replanning is now
 `@parity/product-sdk` 0.20.1 and
 `@polkadot-community-foundation/polkadot-app-deploy` 0.13.1,
-last aligned with the checked-in package set on 2026-08-06. They remain
-prototype / reference / unaudited code.
+last aligned with the checked-in package set on 2026-08-06 and rechecked
+against npm on 2026-08-25. Newer Product SDK/PAPI packages exist and remain a
+dedicated compatibility task because the host/mobile boundary is still moving
+quickly. They remain prototype / reference / unaudited code.
 Product SDK contracts target `pallet-revive` / PolkaVM CDM flows, not Dotify's
 current viem + EVM RPC write path; Statement Store is useful for small
 ephemeral presence, not full chat, SDP/ICE, durable media metadata, or guest

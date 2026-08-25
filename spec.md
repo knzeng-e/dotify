@@ -114,7 +114,7 @@ Production-sensitive upload and content-key operations live behind
 derivation remain local/demo paths only.
 
 Product SDK integration is an adaptive enhancement, not a hard dependency for
-first sound. The Product build pins `@parity/product-sdk` 0.19.1, detects the
+first sound. The Product build pins `@parity/product-sdk` 0.20.1, detects the
 host, and requests an app-scoped account only after explicit user action. That
 account is currently an identity/presence capability: Classic payments, artist
 publication, and the shipped protected-playback UI still require the
