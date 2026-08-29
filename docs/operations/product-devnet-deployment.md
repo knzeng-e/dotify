@@ -507,13 +507,20 @@ Then verify in the Product host:
    - the submitted `musicRoyPayAccess(contentHash)` forwards the exact
      `pricePlanck` native value;
    - after inclusion, `musicAccHasPaid(contentHash, listenerH160)` and
-     `musicAccCanAccess(contentHash, listenerH160)` both read `true`;
+     `musicAccCanAccess(contentHash, listenerH160)` both read `true`. Dotify
+     polls this read-back with a bound before showing **Work opened** in a
+     `product-cdm` build and emits a `dotify:product-cdm-payment-smoke`
+     browser event with `txHash`, `runtimeAddress`, `contentHash`,
+     `listenerAddress`, `hasPaid`, `canAccess`, `attempts`, and `ok` for manual
+     evidence capture;
    - the backend then releases the full key through the same Product identity.
 
    If any mapping check fails, the expected behavior is a fail-closed
    **Payment signer unavailable** error before submission. If native value,
-   host approval UX, or post-payment access evidence is missing, keep the
-   shipped profile on `viem`.
+   host approval UX, or post-payment access evidence is missing, the
+   `product-cdm` build must report **Payment included, access not verified**
+   with the transaction hash instead of marking the track open.
+   Keep the shipped profile on `viem`.
 7. A Product-origin host creates a room and copies a
    `https://dotify-test01.dev-dot.li/#/rooms/<code>` link.
 8. A wallet-free browser joins that link from outside the Product host.
@@ -632,7 +639,10 @@ active.
   selected is real host-signed transaction evidence. Dotify now validates that
   the selected Product host signer public key maps to the same `pallet-revive`
   H160 account used by the connected Product identity before a CDM write can be
-  submitted.
+  submitted, and Product CDM Classic unlocks poll `musicAccHasPaid` and
+  `musicAccCanAccess` for that H160 account before surfacing success. If the
+  payment was included but verification fails, the UI preserves the transaction
+  hash in the error state.
 - Rooms still depend on one in-memory Fly signaling machine.
 - Product-host cloud storage does not hold Dotify audio or content keys.
 - Product personhood is not yet an access decision source.
@@ -641,5 +651,5 @@ active.
 - Product contract mode (`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`) covers
   catalog reads and runtime write submissions inside the Product host. The
   tracked deployment still keeps the default `viem` adapter until
-  native value forwarding, host approval UX, and post-payment access evidence
-  are captured.
+  native value forwarding, host approval UX, and successful post-payment
+  read-back evidence are captured.

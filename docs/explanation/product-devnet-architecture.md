@@ -383,11 +383,17 @@ unproven signer is not a reasonable default.
 The remaining gate for Product contract _writes_ is now narrow. Dotify verifies
 the selected host signer public key and derived `pallet-revive` H160 address
 against the Product account that the UI and backend use for key/session
-requests before any Product CDM write can be submitted. The remaining evidence
-must come from inside the container: native value forwarding for Classic unlock,
-host approval UX, and post-payment `musicAccCanAccess` reads. The chain question
-is settled, the manifest and types exist, and reads/writes share one port. Until
-that write evidence exists, `VITE_DOTIFY_RUNTIME_ADAPTER` defaults to `viem`.
+requests before any Product CDM write can be submitted. Product CDM Classic
+unlocks also poll `musicAccHasPaid` and `musicAccCanAccess` for the same H160
+account after inclusion before the UI marks the track open. If the write is
+included but the read-back never confirms the grant, the UI reports
+**Payment included, access not verified** and keeps the transaction hash
+visible as the user's receipt. The remaining evidence must come from inside
+the container: native value forwarding for Classic unlock, explicit host
+approval UX, and a successful post-payment read-back. The chain question is
+settled, the manifest and types exist, and reads/writes share one port. Until
+that write evidence exists,
+`VITE_DOTIFY_RUNTIME_ADAPTER` defaults to `viem`.
 
 The backend authentication protocol now has an explicit signature scheme field.
 Standalone clients use the default `eip191` scheme. Product-host clients can
