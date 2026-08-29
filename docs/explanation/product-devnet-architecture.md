@@ -380,12 +380,14 @@ selection as reads: `viem` uses the connected EVM/passkey wallet, and
 default remains `viem`, since routing a payment or a publication through an
 unproven signer is not a reasonable default.
 
-The remaining gate for Product contract _writes_ is now narrow: `pallet-revive`
-account mapping for the signing account, and real host-signed transaction smoke
-evidence from inside the container, including native value forwarding for
-Classic unlock. The chain question is settled, the manifest and types exist,
-and reads/writes share one port. Until that write evidence exists,
-`VITE_DOTIFY_RUNTIME_ADAPTER` defaults to `viem`.
+The remaining gate for Product contract _writes_ is now narrow. Dotify verifies
+the selected host signer public key and derived `pallet-revive` H160 address
+against the Product account that the UI and backend use for key/session
+requests before any Product CDM write can be submitted. The remaining evidence
+must come from inside the container: native value forwarding for Classic unlock,
+host approval UX, and post-payment `musicAccCanAccess` reads. The chain question
+is settled, the manifest and types exist, and reads/writes share one port. Until
+that write evidence exists, `VITE_DOTIFY_RUNTIME_ADAPTER` defaults to `viem`.
 
 The backend authentication protocol now has an explicit signature scheme field.
 Standalone clients use the default `eip191` scheme. Product-host clients can
@@ -466,11 +468,13 @@ The current baseline is:
 | Public gateway                                       | `https://dotify-test01.dev-dot.li` |
 | Asset Hub EVM chain ID                               | `420420417`                        |
 
-Checked against npm on 2026-08-26: the Product SDK set above is current. npm
-also publishes `polkadot-api` `3.0.0`, but Dotify keeps root PAPI on `1.23.3`
-for now. The current official Product SDK packages bring their own PAPI
-`2.2.x` tree, while `@polkadot-apps` chain-client/keys/signer still depend on
-PAPI `1.23.x`. A direct root PAPI 3 trial removed the public
+Checked against npm on 2026-08-30: npm now publishes Product SDK `0.25.0`,
+host `0.18.0`, statement-store `0.6.7`, and descriptors `0.11.0`. Dotify keeps
+the baseline above for this branch and defers that migration to a dedicated SDK
+compatibility PR. npm also publishes `polkadot-api` `3.0.0`, but Dotify keeps
+root PAPI on `1.23.3` for now. The current pinned Product SDK packages bring
+their own PAPI `2.2.x` tree, while `@polkadot-apps` chain-client/keys/signer
+still depend on PAPI `1.23.x`. A direct root PAPI 3 trial removed the public
 `PolkadotSigner` export and broke `ChainDefinition` / `TypedApi` compatibility
 at the Bulletin and wallet seams. Root PAPI 3 therefore remains a blocked
 compatibility migration until the upstream SDK graph converges.

@@ -493,17 +493,38 @@ Then verify in the Product host:
 
    In every rejected case, playback must stop and offer a passkey/EVM wallet.
    No path may release a key without a verified signature.
-6. A Product-origin host creates a room and copies a
+6. Only for an explicit Product CDM write smoke build, set
+   `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` and use a funded Product account
+   that has not already paid for the target Classic track. Do not use this as
+   the default `dotify-test01.dot` release gate until it has passed once end to
+   end. Verify:
+   - the connected Dotify Product account and the host-selected signer expose
+     the same public key;
+   - deriving `pallet-revive` H160 from that public key gives the same H160
+     address shown by Dotify and used in key/session requests;
+   - clicking **Support and open** triggers an explicit host transaction
+     approval, not a silent write;
+   - the submitted `musicRoyPayAccess(contentHash)` forwards the exact
+     `pricePlanck` native value;
+   - after inclusion, `musicAccHasPaid(contentHash, listenerH160)` and
+     `musicAccCanAccess(contentHash, listenerH160)` both read `true`;
+   - the backend then releases the full key through the same Product identity.
+
+   If any mapping check fails, the expected behavior is a fail-closed
+   **Payment signer unavailable** error before submission. If native value,
+   host approval UX, or post-payment access evidence is missing, keep the
+   shipped profile on `viem`.
+7. A Product-origin host creates a room and copies a
    `https://dotify-test01.dev-dot.li/#/rooms/<code>` link.
-7. A wallet-free browser joins that link from outside the Product host.
-8. The outside listener reaches `In sync` and hears the host stream; staying on
+8. A wallet-free browser joins that link from outside the Product host.
+9. The outside listener reaches `In sync` and hears the host stream; staying on
    `Connecting...` means host capture or WebRTC negotiation is still failing,
    not room creation.
-9. A Netlify-origin host and Product-origin guest also connect.
-10. Briefly interrupting the mobile network preserves and resumes the same room
+10. A Netlify-origin host and Product-origin guest also connect.
+11. Briefly interrupting the mobile network preserves and resumes the same room
    within 120 seconds; it must disappear from public discovery while the host
    is offline and return with the same code after reconnecting.
-11. Explicitly leaving ends the room immediately. Force-closing the host leaves
+12. Explicitly leaving ends the room immediately. Force-closing the host leaves
     the room private until the 120-second resume window expires.
 
 Inspect the browser console and Fly logs for CORS, catalog, Socket.IO, and
@@ -601,14 +622,17 @@ active.
   signature is untagged, and a Substrate host may sign the payload verbatim or
   inside a `<Bytes>` envelope. The API accepts both envelopes and both a bare
   64-byte and a MultiSignature-tagged 65-byte sr25519 signature, so a correct
-  host signature verifies regardless of which shape it uses. Step 6.4 above
-  records which shape the live host actually produced - that observation is the
-  evidence, and until it is captured the accepted set stays deliberately wide.
+  host signature verifies regardless of which shape it uses. The validation
+  step for `product-sr25519-v1` records which shape the live host actually
+  produced - that observation is the evidence, and until it is captured the
+  accepted set stays deliberately wide.
 - Contract writes still require passkey/EVM signing in the shipped UI. The
   Product CDM/PAPI runtime adapter now has its generated manifest, contract
   types, and a live resolver, so the only thing still missing before it can be
-  selected is `pallet-revive` account mapping plus real host-signed transaction
-  evidence.
+  selected is real host-signed transaction evidence. Dotify now validates that
+  the selected Product host signer public key maps to the same `pallet-revive`
+  H160 account used by the connected Product identity before a CDM write can be
+  submitted.
 - Rooms still depend on one in-memory Fly signaling machine.
 - Product-host cloud storage does not hold Dotify audio or content keys.
 - Product personhood is not yet an access decision source.
@@ -617,5 +641,5 @@ active.
 - Product contract mode (`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`) covers
   catalog reads and runtime write submissions inside the Product host. The
   tracked deployment still keeps the default `viem` adapter until
-  `pallet-revive` account mapping, native value forwarding, and host-signed
-  transaction evidence are captured.
+  native value forwarding, host approval UX, and post-payment access evidence
+  are captured.

@@ -7,6 +7,8 @@ const runtime = '0xcccccccccccccccccccccccccccccccccccccccc' as const;
 const hash = '0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd' as const;
 const productPublicKey = `0x${'11'.repeat(32)}` as const;
 const differentProductPublicKey = `0x${'22'.repeat(32)}` as const;
+const productH160Address = '0x9999999999999999999999999999999999999999' as const;
+const differentProductH160Address = '0x8888888888888888888888888888888888888888' as const;
 
 const viemWriter = {
   createRuntime: vi.fn(async () => txHash),
@@ -41,14 +43,15 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
   vi.doUnmock('./productCdmContracts');
-  vi.doUnmock('@parity/product-sdk-signer');
+  vi.doUnmock('@parity/product-sdk/wallet');
+  vi.doUnmock('@parity/product-sdk/address');
 });
 
 async function loadProvider() {
   return (await import('./runtimeWriterProvider')).createRuntimeWriter;
 }
 
-function productAccount(publicKey = productPublicKey) {
+function productAccount(publicKey = productPublicKey, h160Address = h160ForPublicKey(publicKey)) {
   return {
     publicKey: Uint8Array.from(
       publicKey
@@ -57,7 +60,7 @@ function productAccount(publicKey = productPublicKey) {
         .map(byte => Number.parseInt(byte, 16))
     ),
     address: '5ProductAccount',
-    h160Address: '0x9999999999999999999999999999999999999999'
+    h160Address
   };
 }
 
@@ -73,8 +76,10 @@ function mockProductSigner(selectedAccount = productAccount()) {
     return signerManager;
   });
   const HostProvider = vi.fn(() => ({ type: 'host' }));
-  vi.doMock('@parity/product-sdk-signer', () => ({ SignerManager, HostProvider }));
-  return { signerManager, signerManagerOptions, SignerManager, HostProvider };
+  const deriveH160 = vi.fn((publicKey: Uint8Array) => h160ForPublicKey(hexFromBytes(publicKey)));
+  vi.doMock('@parity/product-sdk/wallet', () => ({ SignerManager, HostProvider }));
+  vi.doMock('@parity/product-sdk/address', () => ({ deriveH160 }));
+  return { signerManager, signerManagerOptions, SignerManager, HostProvider, deriveH160 };
 }
 
 function accessIntent(amountPlanck: bigint) {
@@ -125,7 +130,7 @@ describe('createRuntimeWriter', () => {
 
   it('routes Product writes through CDM setup without falling back to viem', async () => {
     vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
-    const { signerManager, signerManagerOptions, SignerManager, HostProvider } = mockProductSigner();
+    const { signerManager, signerManagerOptions, SignerManager, HostProvider, deriveH160 } = mockProductSigner();
     const verifyDeployment = vi.fn(async () => undefined);
     const resolver = { getRuntimeContract: vi.fn() };
     vi.doMock('./productCdmContracts', () => ({
@@ -143,7 +148,7 @@ describe('createRuntimeWriter', () => {
       ethRpcUrl: 'https://rpc.example',
       getViemWalletClient,
       config: { kind: 'product-cdm', productEnvironment: 'devnet' },
-      productAccount: { productId: 'dotify-test01.dot', publicKey: productPublicKey }
+      productAccount: { productId: 'dotify-test01.dot', evmAddress: productH160Address, publicKey: productPublicKey }
     });
 
     await expect(writer.createRuntime(factory)).resolves.toBe(txHash);
@@ -165,6 +170,7 @@ describe('createRuntimeWriter', () => {
       }
     });
     expect(signerManager.connect).toHaveBeenCalledWith('host');
+    expect(deriveH160).toHaveBeenCalledWith(productAccount().publicKey);
     expect(createProductCdmContracts).toHaveBeenCalledTimes(1);
     expect(createProductCdmContracts).toHaveBeenCalledWith({ environment: 'devnet', signerManager });
     expect(verifyDeployment).toHaveBeenCalledTimes(1);
@@ -195,4 +201,52 @@ describe('createRuntimeWriter', () => {
     expect(signerManager.destroy).toHaveBeenCalledTimes(1);
     expect(createProductCdmContracts).not.toHaveBeenCalled();
   });
+
+  it('rejects Product writes when the host signer maps to a different pallet-revive H160 address', async () => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    const { signerManager } = mockProductSigner(productAccount(productPublicKey, productH160Address));
+    const createProductCdmContracts = vi.fn();
+    vi.doMock('./productCdmContracts', () => ({ createProductCdmContracts }));
+    vi.resetModules();
+    const createRuntimeWriter = await loadProvider();
+
+    const writer = createRuntimeWriter({
+      ethRpcUrl: 'https://rpc.example',
+      getViemWalletClient: vi.fn(async () => ({}) as never),
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' },
+      productAccount: { productId: 'dotify-test01.dot', evmAddress: differentProductH160Address, publicKey: productPublicKey }
+    });
+
+    await expect(writer.payForAccess(accessIntent(1n))).rejects.toThrow(/maps to/);
+    expect(signerManager.destroy).toHaveBeenCalledTimes(1);
+    expect(createProductCdmContracts).not.toHaveBeenCalled();
+  });
+
+  it('rejects Product writes when the signer-reported H160 disagrees with the derived public-key mapping', async () => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    const { signerManager } = mockProductSigner(productAccount(productPublicKey, differentProductH160Address));
+    const createProductCdmContracts = vi.fn();
+    vi.doMock('./productCdmContracts', () => ({ createProductCdmContracts }));
+    vi.resetModules();
+    const createRuntimeWriter = await loadProvider();
+
+    const writer = createRuntimeWriter({
+      ethRpcUrl: 'https://rpc.example',
+      getViemWalletClient: vi.fn(async () => ({}) as never),
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' },
+      productAccount: { productId: 'dotify-test01.dot', evmAddress: productH160Address, publicKey: productPublicKey }
+    });
+
+    await expect(writer.payForAccess(accessIntent(1n))).rejects.toThrow(/account mapping mismatch/);
+    expect(signerManager.destroy).toHaveBeenCalledTimes(1);
+    expect(createProductCdmContracts).not.toHaveBeenCalled();
+  });
 });
+
+function hexFromBytes(bytes: Uint8Array): `0x${string}` {
+  return `0x${Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')}` as `0x${string}`;
+}
+
+function h160ForPublicKey(publicKey: `0x${string}`): `0x${string}` {
+  return publicKey === productPublicKey ? productH160Address : differentProductH160Address;
+}
