@@ -297,6 +297,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const signer = connectedWallet.keyRequestSigner;
     return {
       productId: productHostConfig.productId,
+      evmAddress: connectedWallet.evmAddress,
       publicKey: signer && 'productPublicKey' in signer ? signer.productPublicKey : undefined
     };
   }, [connectedWallet, productHostConfig.productId]);

@@ -68,7 +68,9 @@ sound. Only the baseline rows marked delivered may be presented as live.
 Product SDK snapshot used for this plan:
 
 - `@parity/product-sdk` 0.23.0, host 0.16.0, statement-store 0.6.5, and
-  descriptors 0.10.0 (aligned with npm on 2026-08-26);
+  descriptors 0.10.0 (pinned baseline; npm rechecked on 2026-08-30 and now
+  publishes Product SDK 0.25.0 / host 0.18.0 / statement-store 0.6.7 /
+  descriptors 0.11.0, deferred to a dedicated compatibility PR);
 - `@polkadot-community-foundation/polkadot-app-deploy` 0.13.1;
 - deferred PAPI drift: root `polkadot-api` 3.0.0 is published, but the current
   Product SDK graph uses PAPI 2.2.x and `@polkadot-apps` uses PAPI 1.23.x, so

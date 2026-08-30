@@ -3,12 +3,14 @@
 Status: active execution note; the Product DevNet baseline is delivered on
 `dev` and remains tracked through Product compatibility issue #85.
 
-Last Product SDK package check: 2026-08-26. Dotify now pins the current
-published Product SDK set: `@parity/product-sdk` 0.23.0, host 0.16.0,
-statement-store 0.6.5, descriptors 0.10.0, and
-`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1. npm also
-publishes `polkadot-api` 3.0.0, but Dotify keeps root PAPI on 1.23.3 because
-the current Product SDK packages use PAPI 2.2.x and `@polkadot-apps`
+Last Product SDK package check: 2026-08-30. Dotify currently pins
+`@parity/product-sdk` 0.23.0, host 0.16.0, statement-store 0.6.5,
+descriptors 0.10.0, and
+`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1. npm now publishes
+Product SDK 0.25.0, host 0.18.0, statement-store 0.6.7, and descriptors 0.11.0;
+that upgrade is deferred to a dedicated compatibility PR. npm also publishes
+`polkadot-api` 3.0.0, but Dotify keeps root PAPI on 1.23.3 because the current
+Product SDK packages use PAPI 2.2.x and `@polkadot-apps`
 chain-client/keys/signer use PAPI 1.23.x. Root PAPI 3 remains blocked until
 the official SDK graph converges.
 
@@ -160,8 +162,8 @@ Goal: prove the Product host path with small spikes before committing the app.
 - Delivered: connect the app-scoped Product account only on explicit action and
   separate identity capability from EVM signing capability.
 - Delivered: publishable Bulletin/DotNS build and dual-origin Fly boundary.
-- Delivered: align the Product SDK set with the 2026-08-26 npm latest while
-  keeping standalone/Product builds green.
+- Delivered: align the Product SDK set with the 2026-08-26 npm latest at that
+  time while keeping standalone/Product builds green.
 - Remaining: prototype host transaction signing and resource allocation.
 - Compare Dotify's Hardhat/EVM runtime with Product SDK PolkaVM/CDM contracts.
 - Delivered on the room-beacon branch: Statement Store presence with strict
@@ -205,6 +207,11 @@ Goal: deepen the delivered Product mode one adapter at a time.
   now has an explicit unsupported `product-cash` rail, so future CASH work can
   add receipt/bridge settlement without pretending CASH is already executable
   through `msg.value`.
+- Delivered on the next follow-up branch: Product CDM writes now verify both
+  the selected host signer public key and its derived `pallet-revive` H160
+  address against the Product account Dotify connected for key/session requests.
+  This prevents a Product-host transaction from marking access for a different
+  runtime account than the one the UI and backend authenticated.
 - Settled: the chain question. Product DevNet is a preset over the Paseo system
   parachains (Asset Hub 1000, People 1004, Bulletin 1010) at EVM chain
   420420417, not a separate network. Dotify's contracts are already there,
@@ -212,8 +219,10 @@ Goal: deepen the delivered Product mode one adapter at a time.
   and Hub TestNet endpoints. No contract redeploy is needed to port to DevNet.
   The SDK's `paseo` preset is Paseo Next (1500/1502), a different network, so
   `devnet` is the only environment Dotify can serve a catalog from.
-- Next: `pallet-revive` account mapping plus real host-signed transaction smoke
-  tests before Product writes can replace the EVM wallet path.
+- Next: real host-signed transaction smoke tests before Product writes can
+  replace the EVM wallet path. The remaining evidence is native value
+  forwarding, host approval UX, and post-payment `musicAccCanAccess` reads from
+  inside the Product container.
 - Next: revisit root `polkadot-api` 3 after Product SDK and `@polkadot-apps`
   packages publish on a compatible PAPI major line.
 - Next: confirm the Product-supported CASH settlement model before exposing any

@@ -115,12 +115,13 @@ decisions. Product-signed key/session verification now exists through
 explicit Product account connection. Live host evidence remains required before
 Product identity can be treated as broadly proven across devices.
 
-The Product SDK evidence snapshot used for this replanning is now
+The Product SDK evidence snapshot used for this replanning currently pins
 `@parity/product-sdk` 0.23.0 and
-`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1,
-last aligned with npm on 2026-08-26. The Product SDK set remains prototype /
+`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1. npm was rechecked
+on 2026-08-30 and now publishes Product SDK 0.25.0; that migration is deferred
+to a dedicated compatibility PR. The Product SDK set remains prototype /
 reference / unaudited code. Root `polkadot-api` 3.0.0 exists but is not yet
-adopted because the current Product SDK packages use PAPI 2.2.x and
+adopted because the current pinned Product SDK packages use PAPI 2.2.x and
 `@polkadot-apps` packages use PAPI 1.23.x, so a single PAPI 3 root breaks
 Dotify's Bulletin/wallet type seams.
 Product SDK contracts target `pallet-revive` / PolkaVM CDM flows, not Dotify's

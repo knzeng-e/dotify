@@ -139,10 +139,11 @@ P3 first vertical slice delivered (`agent/audio-v2-p3`):
   the browser/device validation matrix, startup telemetry export, and the
   backend read-through gateway decision.
 
-Product SDK adaptation note (updated 2026-08-26):
+Product SDK adaptation note (updated 2026-08-30):
 
 - Product SDK 0.23.0 and deploy tooling 0.13.1 remain
-  prototype/reference/unaudited.
+  prototype/reference/unaudited in Dotify's pinned baseline. npm now publishes
+  Product SDK 0.25.0, which is deferred to a dedicated compatibility PR.
 - Root PAPI 3.0.0 is not adopted yet because the current Product SDK graph
   uses PAPI 2.2.x while `@polkadot-apps` still uses PAPI 1.23.x.
 - Host APIs are progressive enhancement for Product containers; standalone web

@@ -165,19 +165,21 @@ when deciding whether to refresh a previously opened app.
 
 Current Product host SDK dependencies:
 
-| Package                                      | Current value | Latest checked 2026-08-26 |
+| Package                                      | Current value | Latest checked 2026-08-30 |
 | -------------------------------------------- | ------------- | ------------------------- |
-| `@parity/product-sdk`                        | `0.23.0`      | `0.23.0`                  |
-| `@parity/product-sdk-host`                   | `0.16.0`      | `0.16.0`                  |
-| `@parity/product-sdk-statement-store`        | `0.6.5`       | `0.6.5`                   |
-| `@parity/product-sdk-descriptors`            | `0.10.0`      | `0.10.0`                  |
+| `@parity/product-sdk`                        | `0.23.0`      | `0.25.0`                  |
+| `@parity/product-sdk-host`                   | `0.16.0`      | `0.18.0`                  |
+| `@parity/product-sdk-statement-store`        | `0.6.5`       | `0.6.7`                   |
+| `@parity/product-sdk-descriptors`            | `0.10.0`      | `0.11.0`                  |
 | `polkadot-api`                              | `1.23.3`      | `3.0.0`                   |
 | `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` | `0.13.1`                  |
 | `engine.io-client`                           | `6.6.6`       | `6.6.6`                   |
 
 Keep the Product SDK packages pinned exactly during Product DevNet hardening.
 Recheck npm and the official Product docs before changing them because the
-mobile host API is still moving quickly. `polkadot-api` remains on `1.23.3` at
+mobile host API is still moving quickly. The 2026-08-30 check found a newer
+Product SDK line; upgrade it in a dedicated compatibility PR rather than mixing
+it into Product write-signer mapping work. `polkadot-api` remains on `1.23.3` at
 the Dotify root even though npm publishes `3.0.0`: the current official Product
 SDK packages bring their own PAPI `2.2.x` tree, while `@polkadot-apps`
 chain-client/keys/signer still depend on PAPI `1.23.x`. A direct root PAPI 3
@@ -356,8 +358,10 @@ an explicit Product-host account connection.
 including Classic unlock payments, through the Product CDM contract adapter. The
 tracked Product profile does not enable that flag yet. Keep `viem` as the
 production default until Product-host transaction evidence proves account
-mapping, fees/native value handling, and user approval for real writes. Validate
-Product protected playback through host smoke tests after each Product
+mapping, fees/native value handling, and user approval for real writes. Product
+CDM writes now fail closed unless the host signer public key maps to the same
+pallet-revive H160 address that Dotify connected for key/session requests.
+Validate Product protected playback through host smoke tests after each Product
 publication before treating Product identity as production-ready for gated
 listening.
 

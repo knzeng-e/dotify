@@ -1,6 +1,6 @@
 # Dependency and Security Status
 
-Last checked: 2026-08-26.
+Last checked: 2026-08-30.
 
 This record captures the dependency/security evidence for the maintenance pass
 that follows the Product payment-label work. It is not a blanket policy change:
@@ -20,14 +20,16 @@ inside their reviewed scope.
 
 ## Official Version Drift
 
-Checked against npm published versions on 2026-08-26.
+Checked against npm published versions on 2026-08-30.
 
 | Package | Current pinned/locked value | Latest published value | Decision |
 | --- | --- | --- | --- |
-| `@parity/product-sdk` | `0.23.0` | `0.23.0` | Current. |
-| `@parity/product-sdk-host` | `0.16.0` | `0.16.0` | Current. |
-| `@parity/product-sdk-statement-store` | `0.6.5` | `0.6.5` | Current. |
-| `@parity/product-sdk-descriptors` | `0.10.0` | `0.10.0` | Current. |
+| `@parity/product-sdk` | `0.23.0` | `0.25.0` | Defer to a dedicated Product compatibility PR; this PR changes signer/account mapping, not the SDK graph. |
+| `@parity/product-sdk-host` | `0.16.0` | `0.18.0` | Defer with the Product SDK compatibility PR. |
+| `@parity/product-sdk-statement-store` | `0.6.5` | `0.6.7` | Defer with the Product SDK compatibility PR. |
+| `@parity/product-sdk-descriptors` | `0.10.0` | `0.11.0` | Defer with the Product SDK compatibility PR. |
+| `@parity/product-sdk-signer` | `0.14.0` transitively via `@parity/product-sdk/wallet` | `0.14.2` | No direct dependency; import through the Product SDK export and upgrade with the SDK set. |
+| `@parity/product-sdk-address` | `0.2.0` transitively via `@parity/product-sdk/address` | `0.2.0` | Current through the Product SDK export. |
 | `polkadot-api` | `1.23.3` | `3.0.0` | Blocked as a root migration: Product SDK `0.23.0` currently depends on PAPI `2.2.x`, while `@polkadot-apps/chain-client` / keys / signer depend on PAPI `1.23.x`; a direct root PAPI 3 trial removes `PolkadotSigner` and breaks `ChainDefinition` / `TypedApi` compatibility. |
 | `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` | `0.13.1` | Current. |
 | `react` / `react-dom` | `18.3.1` | `19.2.8` | Defer as a UI/runtime migration. |
@@ -52,13 +54,15 @@ Checked against npm published versions on 2026-08-26.
 - `npm audit --omit=dev --audit-level=moderate` reports the same 26 Product /
   PAPI chain findings because those packages are runtime dependencies. npm does
   not offer a non-breaking fix for the `deepmerge-ts` path.
-- Product SDK latest does not remove that audit chain. A root
+- Product SDK `0.25.0` has not yet been tested against Dotify's Product
+  manifest, host permissions, CDM resolver, and mobile fallback. A root
   `polkadot-api@3.0.0` trial also did not produce a deployable graph because
   the official Product SDK and `@polkadot-apps` packages still use different
   PAPI major lines.
 - Next safe action: Product host-signed transaction/resource-allocation smoke
-  tests on this SDK set, plus upstream monitoring for a Product SDK /
-  `@polkadot-apps` PAPI 3 convergence release. Do not run
+  tests on this SDK set, then a dedicated Product SDK `0.25.x` compatibility
+  PR, plus upstream monitoring for a Product SDK / `@polkadot-apps` PAPI 3
+  convergence release. Do not run
   `npm audit fix --force` on the Product stack.
 
 `contracts/evm`:
@@ -73,6 +77,8 @@ Checked against npm published versions on 2026-08-26.
 
 - Run real Product host smoke tests for Product sr25519 key/session requests
   and the opt-in `product-cdm` runtime adapter with the SDK `0.23.0` set.
+- Test the Product SDK `0.25.x` line in a dedicated compatibility PR before
+  changing the published Product profile.
 - Track root `polkadot-api` `3.0.0` separately until Product SDK and
   `@polkadot-apps` publish compatible packages on the same PAPI major line.
 - Plan a Hardhat 3 migration separately from app/runtime changes.

@@ -1547,8 +1547,9 @@
                 current viem implementation, API-side Product sr25519 verification with frontend Product
                 proof submission for protected key/session requests, and an opt-in CDM/PAPI path that can
                 route runtime reads and write submissions through the Product host signer. The tracked
-                deployment still defaults to viem until account mapping, native payment forwarding,
-                host-signed transaction evidence, and Product CASH receipt design are verified. Product
+                deployment still defaults to viem; Product writes now fail closed on Product public-key /
+                pallet-revive H160 mismatch, and still need native payment forwarding, host-signed
+                transaction evidence, and Product CASH receipt design before becoming default. Product
                 Mobile in-app live audio pending a host-exposed WebRTC capability, Humanity/Individuality proofs,
                 consented provenance, and ambassador mechanics remain sequenced behind verified security
                 and privacy boundaries.

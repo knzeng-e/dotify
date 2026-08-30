@@ -71,7 +71,7 @@ export type ProductChainEnvironment = 'devnet';
 
 export type ProductCdmContractsOptions = {
   environment: ProductChainEnvironment;
-  /** Signer manager from @parity/product-sdk-signer, when transactions are in scope. */
+  /** Signer manager from @parity/product-sdk/wallet, when transactions are in scope. */
   signerManager?: unknown;
 };
 
