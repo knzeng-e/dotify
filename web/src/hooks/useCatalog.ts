@@ -29,6 +29,7 @@ import {
   createNativeRuntimeAccessPaymentIntent,
   nativeRuntimePaymentAssetFromChain
 } from '../features/payments/paymentModel';
+import { verifyRuntimeAccessPayment, type RuntimeAccessPaymentVerificationResult } from '../features/payments/paymentReadback';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
 import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
@@ -110,6 +111,19 @@ export type TrackSelectionResult = {
   audioSource: string | null;
 };
 
+type ProductCdmPaymentSmokeMetric = {
+  txHash: `0x${string}`;
+  runtimeAddress: `0x${string}`;
+  contentHash: `0x${string}`;
+  listenerAddress: `0x${string}`;
+  hasPaid: boolean | null;
+  canAccess: boolean | null;
+  attempts: number;
+  ok: boolean;
+  error: string | null;
+  timestamp: number;
+};
+
 function nowMs(): number {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
@@ -151,6 +165,32 @@ function publishAudioV2StartupMetric(context: AudioV2StartupContext, metric: Omi
   window.dispatchEvent(new CustomEvent('dotify:dav2-startup', { detail }));
   if (import.meta.env.DEV) {
     console.info('[dotify.dav2.startup]', detail);
+  }
+}
+
+function publishProductCdmPaymentSmokeMetric(input: {
+  verification: RuntimeAccessPaymentVerificationResult;
+  txHash: `0x${string}`;
+  runtimeAddress: `0x${string}`;
+  contentHash: `0x${string}`;
+  listenerAddress: `0x${string}`;
+}): void {
+  if (typeof window === 'undefined') return;
+  const detail: ProductCdmPaymentSmokeMetric = {
+    txHash: input.txHash,
+    runtimeAddress: input.runtimeAddress,
+    contentHash: input.contentHash,
+    listenerAddress: input.listenerAddress,
+    hasPaid: input.verification.readback?.hasPaid ?? null,
+    canAccess: input.verification.readback?.canAccess ?? null,
+    attempts: input.verification.attempts,
+    ok: input.verification.ok,
+    error: input.verification.error,
+    timestamp: Date.now()
+  };
+  window.dispatchEvent(new CustomEvent('dotify:product-cdm-payment-smoke', { detail }));
+  if (import.meta.env.DEV) {
+    console.info('[dotify.product-cdm.payment-smoke]', detail);
   }
 }
 
@@ -1138,10 +1178,58 @@ export function useCatalog(deps: UseCatalogDeps) {
       message: `Confirming ${track.priceDot} ${paymentIntent.asset.symbol} of support to open "${track.title}".`
     });
 
+    let includedTxHash: `0x${string}` | null = null;
+
     try {
       const txHash = await runtimeWriter.payForAccess(paymentIntent);
       setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Payment submitted.', txHash });
       await runtimeWriter.waitForTransaction(txHash);
+      includedTxHash = txHash;
+
+      if (runtimeAdapterConfig.kind === 'product-cdm') {
+        setTransactionFeedback({
+          tone: 'pending',
+          title: 'Verifying runtime access',
+          message: 'Payment included. Reading the Product runtime before opening the track.',
+          txHash
+        });
+
+        if (!listenerEvmAddress) {
+          setTransactionFeedback({
+            tone: 'error',
+            title: 'Payment included, access not verified',
+            message: 'The payment transaction was included, but Dotify cannot verify runtime access without the connected Product account H160 address.',
+            txHash
+          });
+          return;
+        }
+
+        // The Product writer and reader use separate host chain clients. A tx
+        // can be included before the read client observes the same head, so the
+        // smoke test polls briefly before treating a false read as evidence.
+        const verification = await verifyRuntimeAccessPayment({
+          reader: runtimeReader,
+          intent: paymentIntent,
+          listenerAddress: listenerEvmAddress
+        });
+        publishProductCdmPaymentSmokeMetric({
+          verification,
+          txHash,
+          runtimeAddress: paymentIntent.runtimeAddress,
+          contentHash: paymentIntent.contentHash,
+          listenerAddress: listenerEvmAddress
+        });
+
+        if (!verification.ok) {
+          setTransactionFeedback({
+            tone: 'error',
+            title: 'Payment included, access not verified',
+            message: `The payment transaction was included, but Dotify could not verify runtime access after ${verification.attempts} read-back attempts: ${verification.error} Keep Product writes disabled until native value forwarding and account mapping are verified in the Product host.`,
+            txHash
+          });
+          return;
+        }
+      }
 
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
@@ -1157,6 +1245,15 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
     } catch (payError) {
       const message = payError instanceof Error ? payError.message : 'Payment failed';
+      if (includedTxHash) {
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Payment included, access not verified',
+          message: `The payment transaction was included, but Dotify could not complete access verification: ${message}`,
+          txHash: includedTxHash
+        });
+        return;
+      }
       setTransactionFeedback({ tone: 'error', title: 'Payment failed', message });
     }
   }

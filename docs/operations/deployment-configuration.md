@@ -360,7 +360,11 @@ tracked Product profile does not enable that flag yet. Keep `viem` as the
 production default until Product-host transaction evidence proves account
 mapping, fees/native value handling, and user approval for real writes. Product
 CDM writes now fail closed unless the host signer public key maps to the same
-pallet-revive H160 address that Dotify connected for key/session requests.
+pallet-revive H160 address that Dotify connected for key/session requests, and
+Classic unlocks in a `product-cdm` build must poll `musicAccHasPaid` plus
+`musicAccCanAccess` for that H160 before showing success. If the transaction is
+included but verification fails, Dotify preserves the transaction hash in a
+**Payment included, access not verified** error.
 Validate Product protected playback through host smoke tests after each Product
 publication before treating Product identity as production-ready for gated
 listening.

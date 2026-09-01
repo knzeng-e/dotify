@@ -212,6 +212,12 @@ Goal: deepen the delivered Product mode one adapter at a time.
   address against the Product account Dotify connected for key/session requests.
   This prevents a Product-host transaction from marking access for a different
   runtime account than the one the UI and backend authenticated.
+- Delivered on the next follow-up branch: Product CDM Classic unlocks now
+  perform a bounded post-inclusion read-back before showing success. A
+  `product-cdm` build polls `musicAccHasPaid(contentHash, listenerH160)` and
+  `musicAccCanAccess(contentHash, listenerH160)` for the connected Product
+  account, emits a `dotify:product-cdm-payment-smoke` evidence event, and keeps
+  the transaction hash visible if verification fails.
 - Settled: the chain question. Product DevNet is a preset over the Paseo system
   parachains (Asset Hub 1000, People 1004, Bulletin 1010) at EVM chain
   420420417, not a separate network. Dotify's contracts are already there,
@@ -221,7 +227,7 @@ Goal: deepen the delivered Product mode one adapter at a time.
   `devnet` is the only environment Dotify can serve a catalog from.
 - Next: real host-signed transaction smoke tests before Product writes can
   replace the EVM wallet path. The remaining evidence is native value
-  forwarding, host approval UX, and post-payment `musicAccCanAccess` reads from
+  forwarding, host approval UX, and a successful post-payment read-back from
   inside the Product container.
 - Next: revisit root `polkadot-api` 3 after Product SDK and `@polkadot-apps`
   packages publish on a compatible PAPI major line.

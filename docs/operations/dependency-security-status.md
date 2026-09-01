@@ -24,7 +24,7 @@ Checked against npm published versions on 2026-08-30.
 
 | Package | Current pinned/locked value | Latest published value | Decision |
 | --- | --- | --- | --- |
-| `@parity/product-sdk` | `0.23.0` | `0.25.0` | Defer to a dedicated Product compatibility PR; this PR changes signer/account mapping, not the SDK graph. |
+| `@parity/product-sdk` | `0.23.0` | `0.25.0` | Defer to a dedicated Product compatibility PR; this PR changes the Product CDM smoke guard, not the SDK graph. |
 | `@parity/product-sdk-host` | `0.16.0` | `0.18.0` | Defer with the Product SDK compatibility PR. |
 | `@parity/product-sdk-statement-store` | `0.6.5` | `0.6.7` | Defer with the Product SDK compatibility PR. |
 | `@parity/product-sdk-descriptors` | `0.10.0` | `0.11.0` | Defer with the Product SDK compatibility PR. |
@@ -60,9 +60,10 @@ Checked against npm published versions on 2026-08-30.
   the official Product SDK and `@polkadot-apps` packages still use different
   PAPI major lines.
 - Next safe action: Product host-signed transaction/resource-allocation smoke
-  tests on this SDK set, then a dedicated Product SDK `0.25.x` compatibility
-  PR, plus upstream monitoring for a Product SDK / `@polkadot-apps` PAPI 3
-  convergence release. Do not run
+  tests on this SDK set, using the post-payment `hasPaid` / `canAccess`
+  read-back as the pass/fail signal. Then run a dedicated Product SDK `0.25.x`
+  compatibility PR, plus upstream monitoring for a Product SDK /
+  `@polkadot-apps` PAPI 3 convergence release. Do not run
   `npm audit fix --force` on the Product stack.
 
 `contracts/evm`:
@@ -76,7 +77,9 @@ Checked against npm published versions on 2026-08-30.
 ## Improvement Flags
 
 - Run real Product host smoke tests for Product sr25519 key/session requests
-  and the opt-in `product-cdm` runtime adapter with the SDK `0.23.0` set.
+  and the opt-in `product-cdm` runtime adapter with the SDK `0.23.0` set,
+  capturing the `dotify:product-cdm-payment-smoke` read-back event for Classic
+  unlocks.
 - Test the Product SDK `0.25.x` line in a dedicated compatibility PR before
   changing the published Product profile.
 - Track root `polkadot-api` `3.0.0` separately until Product SDK and

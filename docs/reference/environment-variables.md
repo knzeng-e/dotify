@@ -115,7 +115,13 @@ with production evidence. `product-cdm` routes reads and write submissions
 through the Product SDK contract handles over the generated `cdm.json` snapshot.
 The frontend now uses the same `RuntimeWritePort` for Classic unlock payments in
 both modes, but Product CDM writes remain an operator opt-in until real
-host-signed transaction evidence is captured.
+host-signed transaction evidence is captured. In a `product-cdm` build, Classic
+unlock success also requires a bounded post-inclusion read-back where
+`musicAccHasPaid(contentHash, listenerH160)` and
+`musicAccCanAccess(contentHash, listenerH160)` both return `true` for the same
+Product-derived H160 account. An included transaction whose read-back never
+confirms access remains visible to the user with its transaction hash instead
+of being reported as a generic payment failure.
 
 Any unrecognised value falls back to `viem`, so a typo cannot silently disable
 contract reads. `product-cdm` additionally requires `VITE_DOTIFY_HOST_MODE` to
