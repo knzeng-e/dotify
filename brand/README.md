@@ -5,7 +5,7 @@ The Polkadot ring of six dots with a stylised G clef at the centre. The dots sta
 ## Mark
 - dotify-mark-light.svg : ink clef, for white and light backgrounds
 - dotify-mark-dark.svg : white clef, for dark backgrounds
-- dotify-mark-light-1024/512/256.png, dotify-mark-dark-1024/512/256.png : transparent raster
+- dotify-mark-light-512.png / dotify-mark-dark-512.png : 512 px transparent raster exports
 
 ## Lockups
 - dotify-logo-light.svg / dotify-logo-dark.svg : horizontal, mark + wordmark
@@ -14,7 +14,8 @@ The Polkadot ring of six dots with a stylised G clef at the centre. The dots sta
 - dotify-mono-ink.svg / dotify-mono-pink.svg / dotify-mono-white.svg : one colour, for stamps, merch, engraving and low quality print
 
 ## App and web
-- dotify-app-icon-ink.svg / dotify-app-icon-pink.svg (+ 1024/512/256 png) : rounded square app icon
+- dotify-app-icon-ink.svg / dotify-app-icon-pink.svg : rounded square app icon source
+- dotify-app-icon-ink-512.png / dotify-app-icon-pink-512.png : 512 px rounded square app icon exports
 - dotify-favicon.svg : mark with slightly fatter dots, for small sizes
 - dotify-favicon-ink-square.svg (+ 16/32/64/180 png) : the version that survives a browser tab
 

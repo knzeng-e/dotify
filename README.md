@@ -472,19 +472,30 @@ handle:
 
 ## Roadmap
 
-In order:
+Production spine first:
 
-1. **Full portability to Product DevNet** - the same shared listening
-   experience carried natively by the Product host, so Dotify never becomes
-   another silo.
-2. **Subscription as commitment** - a staking based subscription: the monthly
-   amount is staked and the yield goes to the artists. Leaving gives the money
-   back, so subscribers become real supporters and investors rather than
-   customers.
-3. **Ambassador program** - listeners act as cultural ambassadors for the
-   artists they love, and artists can choose to reward that transmission.
-4. **Decentralised music awards** - recognition decided by the community, with
-   results anyone can audit.
+1. **Finish standalone production operation** - complete DAV2 real-browser and
+   gateway validation, frontend health checks, deployment smoke checks, and the
+   backend read-through decision for reliable first sound.
+2. **Validate Product DevNet portability** - prove the host/account and
+   Bulletin/DotNS baseline, then wire real CDM-installed runtime packages,
+   Product-signed key/session requests, resource allocation, and Statement
+   Store spikes without weakening standalone rooms.
+3. **Integrate real Humanity / Individuality** - promote Human free access only
+   after the privacy-preserving source, proof shape, address-binding story, and
+   fallback UX are proven.
+4. **Deepen resilient shared listening** - improve room resilience, provenance,
+   consented social memory, and artist surfaces after the production gate is
+   stable.
+
+Deferred cultural expansion:
+
+- **Subscription as commitment** - explore staking-based support only after
+  trust, usability, and payment-rail boundaries are proven.
+- **Ambassador program** - let listeners act as cultural ambassadors for the
+  artists they love after provenance, consent, and anti-abuse foundations exist.
+- **Decentralised music awards** - make recognition community-decided and
+  auditable once the core listening and rights spine is stable.
 
 ## Improvement Backlog
 
