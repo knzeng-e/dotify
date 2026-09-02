@@ -38,6 +38,8 @@ import { NAV_ITEMS } from '../app/navigation';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from '../features/catalog/trackModel';
 import { getStoredDisplayName, isChosenDisplayName } from '../features/identity/walletIdentity';
 import { isProductionReadinessPanelEnabled } from '../features/observability/productionReadiness';
+import { resolveProductHostConfig } from '../features/productHost/productHost';
+import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { getInitialRoomCode } from '../features/rooms/roomState';
 import { deriveSupportSummary } from '../features/wallet/supportSummary';
 import { getStoredArtistName } from '../hooks/useArtistConsole';
@@ -45,13 +47,25 @@ import { normalizeRoomCode } from '../shared/utils/format';
 import type { CatalogTrack, View } from '../shared/types';
 
 const DEFAULT_ARTIST_NAME = 'Dotify Artist';
+const productHostConfig = resolveProductHostConfig(import.meta.env);
+const runtimeAdapterConfig = resolveRuntimeAdapterConfig(import.meta.env);
+const apiConfigured = Boolean((import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.trim());
 
 export function ListenerShell() {
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { playback, openTrack, prepareLocalStream } = usePlaybackContext();
   const { activeView, publicArtistName, setPublicArtistName, navigateToView, openArtistStudio } = useNavigation();
-  const { walletState, activeEvmAddress, listenerEvmAddress, ethRpcUrl, expectedChainId, disconnect: disconnectWallet } = useWalletContext();
+  const {
+    walletState,
+    activeEvmAddress,
+    listenerEvmAddress,
+    ethRpcUrl,
+    expectedChainId,
+    disconnect: disconnectWallet,
+    productHostMode,
+    productHostStatus
+  } = useWalletContext();
   const { setShowWalletModal } = useUiFeedback();
   const { artistName } = useReleaseForm();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
@@ -273,7 +287,22 @@ export function ListenerShell() {
                             catalogStatus: catalog.catalogStatus,
                             ethRpcUrl,
                             expectedChainId,
-                            walletChainId: connectedWallet?.chainId
+                            walletChainId: connectedWallet?.chainId,
+                            productCdmHostSmoke: {
+                              productId: productHostConfig.productId,
+                              productHostMode,
+                              productHostStatus,
+                              runtimeAdapterKind: runtimeAdapterConfig.kind,
+                              walletMethod: connectedWallet?.method ?? null,
+                              listenerAddress: listenerEvmAddress,
+                              substrateAddress: connectedWallet?.substrateAddress ?? null,
+                              productPublicKey:
+                                connectedWallet?.keyRequestSigner && 'productPublicKey' in connectedWallet.keyRequestSigner
+                                  ? connectedWallet.keyRequestSigner.productPublicKey
+                                  : null,
+                              expectedChainId,
+                              apiConfigured
+                            }
                           }
                         : null
                     }

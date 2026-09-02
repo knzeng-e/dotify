@@ -253,8 +253,11 @@ raw gateway URL.
 Enables the optional Production readiness panel under the `You` tab. The panel
 performs read-only checks for the backend readiness endpoint, signaling health,
 chain RPC, configured factory/directory contract code, wallet-chain mismatch,
-catalog status, and IPFS gateway reads. Leave this unset for ordinary listener
-deployments unless operators need in-app diagnostics.
+catalog status, and IPFS gateway reads. In an explicit Product CDM write smoke
+build, it also exposes the Product CDM host evidence collector for payment
+read-back, native `amountPlanck`, Product sr25519 key/session outcomes, and the
+operator-marked host approval observation. Leave this unset for ordinary
+listener deployments unless operators need in-app diagnostics.
 
 ---
 

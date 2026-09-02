@@ -120,7 +120,7 @@ Optional production variables:
 
 | Key                            | When to set                                                                                                                                     |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_DOTIFY_DEBUG_PANEL=true` | Temporary operator smoke checks under `You -> Production readiness`; unset for ordinary listener deployments.                                   |
+| `VITE_DOTIFY_DEBUG_PANEL=true` | Temporary operator smoke checks and Product CDM host evidence export under `You -> Production readiness`; unset for ordinary listener deployments. |
 | `VITE_TURN_URL`                | Browser-visible TURN fallback for DevNet/static credentials. Prefer API grants for production. Accepts comma-separated `turn:` / `turns:` URLs. |
 | `VITE_TURN_USERNAME`           | Static fallback only. Do not use long-lived production credentials here.                                                                        |
 | `VITE_TURN_CREDENTIAL`         | Static fallback only. Do not use long-lived production credentials here.                                                                        |
@@ -364,7 +364,10 @@ pallet-revive H160 address that Dotify connected for key/session requests, and
 Classic unlocks in a `product-cdm` build must poll `musicAccHasPaid` plus
 `musicAccCanAccess` for that H160 before showing success. If the transaction is
 included but verification fails, Dotify preserves the transaction hash in a
-**Payment included, access not verified** error.
+**Payment included, access not verified** error. Enable
+`VITE_DOTIFY_DEBUG_PANEL=true` only on that smoke build to export the safe
+browser-side evidence bundle with `amountPlanck`, payment read-back, Product
+sr25519 key/session outcomes, and the operator-marked host approval observation.
 Validate Product protected playback through host smoke tests after each Product
 publication before treating Product identity as production-ready for gated
 listening.

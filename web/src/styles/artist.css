@@ -318,6 +318,63 @@ button.you-panel:hover {
   max-width: 28rem;
 }
 
+.product-smoke {
+  display: grid;
+  gap: 0.85rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+
+.product-smoke-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.product-smoke-head > div,
+.product-smoke-observation {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.product-smoke-head span,
+.product-smoke-context,
+.product-smoke-observation {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.product-smoke-context,
+.product-smoke-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.product-smoke-context > code,
+.product-smoke-context > span {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  padding: 0.25rem 0.45rem;
+}
+
+.product-smoke-observation {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.product-smoke-observation input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--signal);
+}
+
+.product-smoke-checks {
+  border-top: 1px solid rgb(255 255 255 / 0.06);
+  padding-top: 0.25rem;
+}
+
 /* Public artist ---------------------------------------------------------- */
 
 .artist-profile-back {

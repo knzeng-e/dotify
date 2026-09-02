@@ -16,6 +16,8 @@ import { deployments } from '../shared/config/deployments';
 import { ensureContract, getPublicClient } from '../shared/config/contracts';
 import { EndpointRow } from '../shared/ui/EndpointRow';
 import type { CatalogTrack } from '../shared/types';
+import { ProductCdmHostSmokeEvidencePanel } from './ProductCdmHostSmokeEvidencePanel';
+import type { ProductCdmHostSmokeContext } from '../features/productHost/productCdmHostSmokeEvidence';
 
 const FETCH_TIMEOUT_MS = 5_000;
 const SIGNAL_URL = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
@@ -27,9 +29,10 @@ export type ProductionReadinessPanelProps = {
   ethRpcUrl: string;
   expectedChainId: number | null;
   walletChainId?: number;
+  productCdmHostSmoke?: ProductCdmHostSmokeContext;
 };
 
-export function ProductionReadinessPanel({ catalogTracks, catalogStatus, ethRpcUrl, expectedChainId, walletChainId }: ProductionReadinessPanelProps) {
+export function ProductionReadinessPanel({ catalogTracks, catalogStatus, ethRpcUrl, expectedChainId, walletChainId, productCdmHostSmoke }: ProductionReadinessPanelProps) {
   const { pushNotice } = useUiFeedback();
   const [checks, setChecks] = useState<ReadinessCheck[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -101,6 +104,8 @@ export function ProductionReadinessPanel({ catalogTracks, catalogStatus, ethRpcU
           />
         ))}
       </div>
+
+      {productCdmHostSmoke && <ProductCdmHostSmokeEvidencePanel context={productCdmHostSmoke} />}
     </section>
   );
 }
