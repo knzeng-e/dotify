@@ -494,9 +494,10 @@ Then verify in the Product host:
    In every rejected case, playback must stop and offer a passkey/EVM wallet.
    No path may release a key without a verified signature.
 6. Only for an explicit Product CDM write smoke build, set
-   `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` and use a funded Product account
-   that has not already paid for the target Classic track. Do not use this as
-   the default `dotify-test01.dot` release gate until it has passed once end to
+   `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` and
+   `VITE_DOTIFY_DEBUG_PANEL=true`, then use a funded Product account that has
+   not already paid for the target Classic track. Do not use this as the
+   default `dotify-test01.dot` release gate until it has passed once end to
    end. Verify:
    - the connected Dotify Product account and the host-selected signer expose
      the same public key;
@@ -511,9 +512,16 @@ Then verify in the Product host:
      polls this read-back with a bound before showing **Work opened** in a
      `product-cdm` build and emits a `dotify:product-cdm-payment-smoke`
      browser event with `txHash`, `runtimeAddress`, `contentHash`,
-     `listenerAddress`, `hasPaid`, `canAccess`, `attempts`, and `ok` for manual
-     evidence capture;
+     `listenerAddress`, `amountPlanck`, `hasPaid`, `canAccess`, `attempts`,
+     and `ok`;
    - the backend then releases the full key through the same Product identity.
+
+   After the unlock attempt, open `You` -> `Production readiness` -> `Product
+   CDM host smoke`, mark **Host approval prompt captured** if the host showed
+   an explicit transaction approval, then copy or download the smoke JSON. The
+   JSON is stored only in browser session storage and deliberately excludes
+   content keys, signatures, nonces, and session tokens. Attach it with the
+   Product host approval screenshot and Fly/API logs.
 
    If any mapping check fails, the expected behavior is a fail-closed
    **Payment signer unavailable** error before submission. If native value,
@@ -624,7 +632,9 @@ active.
   `product-sr25519-v1` session/key-request scheme. The Product UI now submits
   that proof shape after an explicit host-account connection, but each published
   Product build still needs real Host smoke evidence before gated playback is
-  considered production-ready on Product DevNet.
+  considered production-ready on Product DevNet. The debug panel can export
+  safe browser-side evidence for this flow, but it does not replace Product
+  host screenshots or backend logs.
 - The Host `signRaw` wire format is not pinned by the SDK: the response
   signature is untagged, and a Substrate host may sign the payload verbatim or
   inside a `<Bytes>` envelope. The API accepts both envelopes and both a bare
@@ -652,4 +662,5 @@ active.
   catalog reads and runtime write submissions inside the Product host. The
   tracked deployment still keeps the default `viem` adapter until
   native value forwarding, host approval UX, and successful post-payment
-  read-back evidence are captured.
+  read-back evidence are captured. Use `VITE_DOTIFY_DEBUG_PANEL=true` on that
+  smoke build to export the Product CDM host evidence JSON.

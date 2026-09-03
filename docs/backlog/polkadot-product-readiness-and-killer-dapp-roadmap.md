@@ -218,6 +218,12 @@ Goal: deepen the delivered Product mode one adapter at a time.
   `musicAccCanAccess(contentHash, listenerH160)` for the connected Product
   account, emits a `dotify:product-cdm-payment-smoke` evidence event, and keeps
   the transaction hash visible if verification fails.
+- Delivered on `/product-cdm-host-smoke-evidence`: the debug Production
+  readiness panel now captures Product CDM payment read-back, native
+  `amountPlanck`, Product sr25519 session/key outcomes, and the operator-marked
+  host approval observation into a copyable JSON bundle. The bundle deliberately
+  omits content keys, signatures, nonces, and session tokens; real Product host
+  screenshots and backend logs are still required evidence.
 - Settled: the chain question. Product DevNet is a preset over the Paseo system
   parachains (Asset Hub 1000, People 1004, Bulletin 1010) at EVM chain
   420420417, not a separate network. Dotify's contracts are already there,
@@ -225,17 +231,17 @@ Goal: deepen the delivered Product mode one adapter at a time.
   and Hub TestNet endpoints. No contract redeploy is needed to port to DevNet.
   The SDK's `paseo` preset is Paseo Next (1500/1502), a different network, so
   `devnet` is the only environment Dotify can serve a catalog from.
-- Next: real host-signed transaction smoke tests before Product writes can
-  replace the EVM wallet path. The remaining evidence is native value
-  forwarding, host approval UX, and a successful post-payment read-back from
-  inside the Product container.
+- Next: run the real host-signed transaction smoke using that evidence bundle
+  before Product writes can replace the EVM wallet path. The remaining evidence
+  is native value forwarding, host approval UX, and a successful post-payment
+  read-back from inside the Product container.
 - Next: revisit root `polkadot-api` 3 after Product SDK and `@polkadot-apps`
   packages publish on a compatible PAPI major line.
 - Next: confirm the Product-supported CASH settlement model before exposing any
   native/CASH conversion, bridge, or receipt UI. Dotify must keep runtime access
   grants tied to verifiable settlement evidence.
-- Next: run real Product host smoke tests for protected playback and capture the
-  Product sr25519 request evidence.
+- Next: run real Product host smoke tests for protected playback and attach the
+  Product sr25519 request evidence bundle with backend logs.
 - Keep backend key delivery authoritative unless a Product-host design proves a
   stronger key-custody boundary.
 - Keep `.dot`/Playground deployment separate from access enforcement.

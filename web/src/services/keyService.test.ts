@@ -17,6 +17,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function installLocalStorage(entries: Array<[string, string]> = []) {
   const store = new Map(entries);
+  const sessionStore = new Map<string, string>();
   const localStorage = {
     get length() {
       return store.size;
@@ -31,9 +32,23 @@ function installLocalStorage(entries: Array<[string, string]> = []) {
       store.set(key, value);
     })
   } satisfies Storage;
+  const sessionStorage = {
+    get length() {
+      return sessionStore.size;
+    },
+    clear: vi.fn(() => sessionStore.clear()),
+    getItem: vi.fn((key: string) => sessionStore.get(key) ?? null),
+    key: vi.fn((index: number) => Array.from(sessionStore.keys())[index] ?? null),
+    removeItem: vi.fn((key: string) => {
+      sessionStore.delete(key);
+    }),
+    setItem: vi.fn((key: string, value: string) => {
+      sessionStore.set(key, value);
+    })
+  } satisfies Storage;
 
-  vi.stubGlobal('window', { localStorage });
-  return { store, localStorage };
+  vi.stubGlobal('window', { localStorage, sessionStorage });
+  return { store, sessionStore, localStorage, sessionStorage };
 }
 
 async function loadKeyService() {
@@ -160,7 +175,7 @@ describe('keyService sessions', () => {
   });
 
   it('opens a Product-signed session and then requests the key with the session token', async () => {
-    installLocalStorage();
+    const { sessionStore } = installLocalStorage();
     const signMessage = vi.fn(async (message: string) => {
       expect(message).toContain('Action: SIGN_IN');
       return PRODUCT_SIGNATURE;
@@ -198,6 +213,15 @@ describe('keyService sessions', () => {
 
     expect(response.access).toBe('allowed');
     expect(signMessage).toHaveBeenCalledTimes(1);
+
+    const storedEvidence = sessionStore.get('dotify:product-cdm-host-smoke-evidence:v1') ?? '';
+    expect(storedEvidence).toContain('session-created');
+    expect(storedEvidence).toContain('key-allowed');
+    expect(storedEvidence).toContain(PRODUCT_PUBLIC_KEY);
+    expect(storedEvidence).toContain(CONTENT_HASH);
+    expect(storedEvidence).not.toContain(PRODUCT_SIGNATURE);
+    expect(storedEvidence).not.toContain('product-session-token');
+    expect(storedEvidence).not.toContain(CONTENT_KEY);
   });
 
   it('submits Product signature fields on the per-request fallback path', async () => {

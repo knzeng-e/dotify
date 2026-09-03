@@ -395,6 +395,14 @@ settled, the manifest and types exist, and reads/writes share one port. Until
 that write evidence exists,
 `VITE_DOTIFY_RUNTIME_ADAPTER` defaults to `viem`.
 
+For that one-off write smoke, the optional Production readiness panel also
+collects a safe browser-side Product CDM evidence bundle when
+`VITE_DOTIFY_DEBUG_PANEL=true`. It records the payment read-back event,
+submitted `amountPlanck`, Product sr25519 session/key outcomes, and an
+operator-marked host approval observation in session storage. It deliberately
+does not store content keys, signatures, nonces, or session tokens; host
+screenshots and backend logs remain part of the evidence package.
+
 The backend authentication protocol now has an explicit signature scheme field.
 Standalone clients use the default `eip191` scheme. Product-host clients can
 use `product-sr25519-v1` after signing the same canonical Dotify message bytes
@@ -450,7 +458,8 @@ one infrastructure adapter at a time.
 4. A Product account without an EVM signing adapter can request protected keys
    through `product-sr25519-v1`; contract writes use `viem` by default and only
    use Product CDM in an explicit `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`
-   build after operator validation.
+   build after operator validation. Enable `VITE_DOTIFY_DEBUG_PANEL=true` on
+   that smoke build to export the browser-side evidence bundle.
 5. A denied key, RPC failure, or unsupported signature never falls back to a
    browser content secret.
 6. The Product SDK and deploy tooling are prototype/reference dependencies.

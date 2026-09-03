@@ -11,6 +11,8 @@
 
 import type { WalletClient } from 'viem';
 
+import { publishProductHostKeySmokeMetric, type ProductHostKeySmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
+
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
 
 export type KeyRequestPurpose = 'individual' | 'room_host';
@@ -194,6 +196,49 @@ function productSignatureFields(signer: KeyRequestSigner): Partial<ProductSignat
   };
 }
 
+function isProductKeyRequestSigner(signer: KeyRequestSigner): signer is ProductKeyRequestSigner {
+  return signer.signatureScheme === PRODUCT_SR25519_SIGNATURE_SCHEME;
+}
+
+function errorText(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+function keyRequestSmokeFields(
+  signer: KeyRequestSigner,
+  chainId: number,
+  input: Omit<ProductHostKeySmokeMetric, 'signatureScheme' | 'address' | 'productPublicKey' | 'chainId' | 'timestamp'>
+): void {
+  if (!isProductKeyRequestSigner(signer)) return;
+  publishProductHostKeySmokeMetric({
+    signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+    address: signer.address,
+    productPublicKey: signer.productPublicKey,
+    chainId,
+    timestamp: Date.now(),
+    ...input
+  });
+}
+
+function publishProductKeyResponseSmoke(input: {
+  signer: KeyRequestSigner;
+  chainId: number;
+  contentHash: `0x${string}`;
+  purpose: KeyRequestPurpose;
+  path: ProductHostKeySmokeMetric['path'];
+  response: ContentKeyResponse;
+}): void {
+  keyRequestSmokeFields(input.signer, input.chainId, {
+    phase: input.response.access === 'allowed' ? 'key-allowed' : 'key-denied',
+    path: input.path,
+    contentHash: input.contentHash,
+    purpose: input.purpose,
+    access: input.response.access,
+    ...(input.response.access === 'allowed' ? { playbackMode: input.response.playbackMode, runtime: input.response.runtime } : { code: input.response.reason })
+  });
+}
+
 export function clearStoredSession(address: string): void {
   try {
     window.localStorage.removeItem(sessionStorageKey(address));
@@ -248,38 +293,69 @@ async function ensureDotifySessionForSigner(signer: KeyRequestSigner, chainId: n
 
   const stored = getStoredSession(signer.address);
   if (stored) return stored.token;
-  if (!(await isDotifySessionAvailable())) return null;
-
-  const { nonce, expiresAt } = await requestNonce(signer.address, chainId);
-  const signature = await signer.signMessage(buildSignInMessage({ requester: signer.address, chainId, nonce, expiresAt }));
-
-  const res = await fetch(`${API_URL}/api/auth/session`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      address: signer.address,
-      signature,
-      nonce,
-      chainId,
-      expiresAt,
-      ...productSignatureFields(signer)
-    })
-  });
-
-  // 404 (older backend) or 503 (session auth unconfigured): fall back to the
-  // per-request signed path rather than failing playback.
-  if (res.status === 404 || res.status === 503) {
-    sessionCapability = 'unavailable';
-    return null;
-  }
-  if (!res.ok) {
-    const { message, code } = await parseError(res, `Sign-in failed (${res.status})`);
-    throw new KeyServiceError(message, code);
+  try {
+    if (!(await isDotifySessionAvailable())) {
+      keyRequestSmokeFields(signer, chainId, { phase: 'session-unavailable', path: 'session' });
+      return null;
+    }
+  } catch (error) {
+    keyRequestSmokeFields(signer, chainId, {
+      phase: 'session-error',
+      path: 'session',
+      code: error instanceof KeyServiceError ? error.code : 'SESSION_CAPABILITY_ERROR',
+      error: errorText(error)
+    });
+    throw error;
   }
 
-  const body = (await res.json()) as { sessionToken: string; expiresAt: string };
-  storeSession(signer.address, { token: body.sessionToken, expiresAt: body.expiresAt });
-  return body.sessionToken;
+  let smokePublished = false;
+  try {
+    const { nonce, expiresAt } = await requestNonce(signer.address, chainId);
+    const signature = await signer.signMessage(buildSignInMessage({ requester: signer.address, chainId, nonce, expiresAt }));
+
+    const res = await fetch(`${API_URL}/api/auth/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        address: signer.address,
+        signature,
+        nonce,
+        chainId,
+        expiresAt,
+        ...productSignatureFields(signer)
+      })
+    });
+
+    // 404 (older backend) or 503 (session auth unconfigured): fall back to the
+    // per-request signed path rather than failing playback.
+    if (res.status === 404 || res.status === 503) {
+      sessionCapability = 'unavailable';
+      smokePublished = true;
+      keyRequestSmokeFields(signer, chainId, { phase: 'session-unavailable', path: 'session', status: res.status });
+      return null;
+    }
+    if (!res.ok) {
+      const { message, code } = await parseError(res, `Sign-in failed (${res.status})`);
+      smokePublished = true;
+      keyRequestSmokeFields(signer, chainId, { phase: 'session-rejected', path: 'session', status: res.status, code, error: message });
+      throw new KeyServiceError(message, code);
+    }
+
+    const body = (await res.json()) as { sessionToken: string; expiresAt: string };
+    storeSession(signer.address, { token: body.sessionToken, expiresAt: body.expiresAt });
+    keyRequestSmokeFields(signer, chainId, { phase: 'session-created', path: 'session' });
+    return body.sessionToken;
+  } catch (error) {
+    if (!smokePublished) {
+      keyRequestSmokeFields(signer, chainId, {
+        phase: 'session-error',
+        path: 'session',
+        code: error instanceof KeyServiceError ? error.code : 'SESSION_SIGNING_ERROR',
+        error: errorText(error)
+      });
+    }
+    throw error;
+  }
 }
 
 export async function ensureDotifySession(walletClient: WalletClient, chainId: number): Promise<string | null> {
@@ -329,59 +405,126 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
 
   let sessionToken = await ensureDotifySessionForSigner(signer, request.chainId);
   if (sessionToken) {
-    let res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
-    if (res.status === 401) {
-      // Expired or revoked server-side: one fresh sign-in, then retry once.
-      clearStoredSession(signer.address);
-      sessionToken = await ensureDotifySessionForSigner(signer, request.chainId);
+    try {
+      let res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
+      if (res.status === 401) {
+        // Expired or revoked server-side: one fresh sign-in, then retry once.
+        clearStoredSession(signer.address);
+        sessionToken = await ensureDotifySessionForSigner(signer, request.chainId);
+        if (sessionToken) {
+          res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
+        }
+      }
       if (sessionToken) {
-        res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
+        if (!res.ok) {
+          const { message, code } = await parseError(res, `Key request failed (${res.status})`);
+          keyRequestSmokeFields(signer, request.chainId, {
+            phase: 'key-error',
+            path: 'session',
+            contentHash: request.contentHash,
+            purpose: request.purpose,
+            status: res.status,
+            code,
+            error: message
+          });
+          throw new KeyServiceError(message, code);
+        }
+        const body = (await res.json()) as ContentKeyResponse;
+        publishProductKeyResponseSmoke({
+          signer,
+          chainId: request.chainId,
+          contentHash: request.contentHash,
+          purpose: request.purpose,
+          path: 'session',
+          response: body
+        });
+        return body;
       }
-    }
-    if (sessionToken) {
-      if (!res.ok) {
-        const { message, code } = await parseError(res, `Key request failed (${res.status})`);
-        throw new KeyServiceError(message, code);
+    } catch (error) {
+      if (!(error instanceof KeyServiceError)) {
+        keyRequestSmokeFields(signer, request.chainId, {
+          phase: 'key-error',
+          path: 'session',
+          contentHash: request.contentHash,
+          purpose: request.purpose,
+          code: 'SESSION_KEY_REQUEST_ERROR',
+          error: errorText(error)
+        });
       }
-      return (await res.json()) as ContentKeyResponse;
+      throw error;
     }
   }
 
   // Legacy per-request signed path (backend without session support).
-  const { nonce, expiresAt } = await requestNonce(signer.address, request.chainId);
+  let smokePublished = false;
+  try {
+    const { nonce, expiresAt } = await requestNonce(signer.address, request.chainId);
 
-  const payload: SignedRequestPayload = {
-    action: 'REQUEST_CONTENT_KEY',
-    purpose: request.purpose,
-    contentHash: request.contentHash,
-    requester: signer.address,
-    chainId: request.chainId,
-    nonce,
-    expiresAt
-  };
-
-  const signature = await signer.signMessage(buildSignedRequestMessage(payload));
-
-  const res = await fetch(`${API_URL}/api/tracks/${request.contentHash}/key-request`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      requester: signer.address,
-      signature,
-      nonce,
-      chainId: request.chainId,
-      expiresAt,
+    const payload: SignedRequestPayload = {
+      action: 'REQUEST_CONTENT_KEY',
       purpose: request.purpose,
-      ...productSignatureFields(signer)
-    })
-  });
+      contentHash: request.contentHash,
+      requester: signer.address,
+      chainId: request.chainId,
+      nonce,
+      expiresAt
+    };
 
-  if (!res.ok) {
-    const { message, code } = await parseError(res, `Key request failed (${res.status})`);
-    throw new KeyServiceError(message, code);
+    const signature = await signer.signMessage(buildSignedRequestMessage(payload));
+
+    const res = await fetch(`${API_URL}/api/tracks/${request.contentHash}/key-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requester: signer.address,
+        signature,
+        nonce,
+        chainId: request.chainId,
+        expiresAt,
+        purpose: request.purpose,
+        ...productSignatureFields(signer)
+      })
+    });
+
+    if (!res.ok) {
+      const { message, code } = await parseError(res, `Key request failed (${res.status})`);
+      smokePublished = true;
+      keyRequestSmokeFields(signer, request.chainId, {
+        phase: 'key-error',
+        path: 'per-request',
+        contentHash: request.contentHash,
+        purpose: request.purpose,
+        status: res.status,
+        code,
+        error: message
+      });
+      throw new KeyServiceError(message, code);
+    }
+
+    const body = (await res.json()) as ContentKeyResponse;
+    smokePublished = true;
+    publishProductKeyResponseSmoke({
+      signer,
+      chainId: request.chainId,
+      contentHash: request.contentHash,
+      purpose: request.purpose,
+      path: 'per-request',
+      response: body
+    });
+    return body;
+  } catch (error) {
+    if (!smokePublished) {
+      keyRequestSmokeFields(signer, request.chainId, {
+        phase: 'key-error',
+        path: 'per-request',
+        contentHash: request.contentHash,
+        purpose: request.purpose,
+        code: error instanceof KeyServiceError ? error.code : 'PER_REQUEST_KEY_SIGNING_ERROR',
+        error: errorText(error)
+      });
+    }
+    throw error;
   }
-
-  return (await res.json()) as ContentKeyResponse;
 }
 
 /**

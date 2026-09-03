@@ -36,6 +36,7 @@ import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
 import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
 import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
 import { resolveProductHostConfig } from '../features/productHost/productHost';
+import { publishProductCdmPaymentSmokeMetric, type ProductCdmPaymentSmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
 import { fetchCatalog, isCatalogApiConfigured, readBundledCatalog, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
 import {
   E2E_CLASSIC_AUDIO_URL,
@@ -111,19 +112,6 @@ export type TrackSelectionResult = {
   audioSource: string | null;
 };
 
-type ProductCdmPaymentSmokeMetric = {
-  txHash: `0x${string}`;
-  runtimeAddress: `0x${string}`;
-  contentHash: `0x${string}`;
-  listenerAddress: `0x${string}`;
-  hasPaid: boolean | null;
-  canAccess: boolean | null;
-  attempts: number;
-  ok: boolean;
-  error: string | null;
-  timestamp: number;
-};
-
 function nowMs(): number {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
@@ -168,19 +156,20 @@ function publishAudioV2StartupMetric(context: AudioV2StartupContext, metric: Omi
   }
 }
 
-function publishProductCdmPaymentSmokeMetric(input: {
+function buildProductCdmPaymentSmokeMetric(input: {
   verification: RuntimeAccessPaymentVerificationResult;
   txHash: `0x${string}`;
   runtimeAddress: `0x${string}`;
   contentHash: `0x${string}`;
   listenerAddress: `0x${string}`;
-}): void {
-  if (typeof window === 'undefined') return;
-  const detail: ProductCdmPaymentSmokeMetric = {
+  amountPlanck: bigint;
+}): ProductCdmPaymentSmokeMetric {
+  return {
     txHash: input.txHash,
     runtimeAddress: input.runtimeAddress,
     contentHash: input.contentHash,
     listenerAddress: input.listenerAddress,
+    amountPlanck: input.amountPlanck.toString(),
     hasPaid: input.verification.readback?.hasPaid ?? null,
     canAccess: input.verification.readback?.canAccess ?? null,
     attempts: input.verification.attempts,
@@ -188,10 +177,6 @@ function publishProductCdmPaymentSmokeMetric(input: {
     error: input.verification.error,
     timestamp: Date.now()
   };
-  window.dispatchEvent(new CustomEvent('dotify:product-cdm-payment-smoke', { detail }));
-  if (import.meta.env.DEV) {
-    console.info('[dotify.product-cdm.payment-smoke]', detail);
-  }
 }
 
 function escapeSvgText(value: string): string {
@@ -1212,13 +1197,16 @@ export function useCatalog(deps: UseCatalogDeps) {
           intent: paymentIntent,
           listenerAddress: listenerEvmAddress
         });
-        publishProductCdmPaymentSmokeMetric({
-          verification,
-          txHash,
-          runtimeAddress: paymentIntent.runtimeAddress,
-          contentHash: paymentIntent.contentHash,
-          listenerAddress: listenerEvmAddress
-        });
+        publishProductCdmPaymentSmokeMetric(
+          buildProductCdmPaymentSmokeMetric({
+            verification,
+            txHash,
+            runtimeAddress: paymentIntent.runtimeAddress,
+            contentHash: paymentIntent.contentHash,
+            listenerAddress: listenerEvmAddress,
+            amountPlanck: paymentIntent.amountPlanck
+          })
+        );
 
         if (!verification.ok) {
           setTransactionFeedback({
