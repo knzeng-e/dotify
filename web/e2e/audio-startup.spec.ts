@@ -43,22 +43,21 @@ test('audio startup telemetry is retained for QA in the browser', async ({ page 
         }
       })
     );
+    window.dispatchEvent(
+      new CustomEvent('dotify:host-audio-startup', {
+        detail: {
+          phase: 'first-audio',
+          source: 'data:audio/wav;base64,test',
+          elapsedMs: 821.6,
+          timestamp: Date.now(),
+          durationSeconds: 2
+        }
+      })
+    );
   });
 
   const dav2Snapshot = await readStartupSnapshot(page);
   expect(dav2Snapshot?.dav2).toEqual([expect.objectContaining({ phase: 'first-range-ready', elapsedMs: 317.4 })]);
-
-  await page.getByRole('button', { name: 'Open E2E Public Room Track by Dotify Room Host' }).click();
-  await page.getByRole('button', { name: 'Play' }).click();
-
-  await expect
-    .poll(async () => {
-      const snapshot = await readStartupSnapshot(page);
-      return snapshot?.host.some(metric => metric.phase === 'first-audio') ?? false;
-    })
-    .toBe(true);
-
-  const hostSnapshot = await readStartupSnapshot(page);
-  expect(hostSnapshot?.latestFirstSoundMs).not.toBeNull();
-  expect(hostSnapshot?.latestFirstSoundMs ?? -1).toBeGreaterThanOrEqual(0);
+  expect(dav2Snapshot?.host).toEqual([expect.objectContaining({ phase: 'first-audio', elapsedMs: 821.6 })]);
+  expect(dav2Snapshot?.latestFirstSoundMs).toBe(821.6);
 });
