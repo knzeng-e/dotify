@@ -657,7 +657,20 @@ export function startSignalingServer(overrides = {}) {
       const participant = getParticipant(socket);
       if (!participant || !socket.rooms.has(participant.roomId)) return;
 
-      const states = new Set(['new', 'connecting', 'connected', 'disconnected', 'failed', 'closed', 'checking', 'completed', 'gathering', 'stable', 'have-local-offer', 'have-remote-offer']);
+      const states = new Set([
+        'new',
+        'connecting',
+        'connected',
+        'disconnected',
+        'failed',
+        'closed',
+        'checking',
+        'completed',
+        'gathering',
+        'stable',
+        'have-local-offer',
+        'have-remote-offer'
+      ]);
       const safeState = value => (states.has(value) ? value : null);
       const errorCode = Number(payload.errorCode);
       logEvent('webrtc:diagnostic', {
@@ -892,7 +905,12 @@ export function startSignalingServer(overrides = {}) {
     listen() {
       return new Promise(resolve => {
         httpServer.listen(config.port, config.host, () => {
-          logEvent('server:listening', { host: config.host, port: httpServer.address().port, origins: config.origins, allowMissingOrigin: config.allowMissingOrigin });
+          logEvent('server:listening', {
+            host: config.host,
+            port: httpServer.address().port,
+            origins: config.origins,
+            allowMissingOrigin: config.allowMissingOrigin
+          });
           resolve(httpServer.address().port);
         });
       });

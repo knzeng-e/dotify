@@ -94,7 +94,7 @@ async function fetchTurnGrant(fetchImpl: typeof fetch): Promise<RTCIceServer[]> 
   try {
     const response = await fetchImpl(`${API_URL}/api/turn/grant`, {
       method: 'GET',
-      signal: controller.signal,
+      signal: controller.signal
     });
     if (!response.ok) return [];
 

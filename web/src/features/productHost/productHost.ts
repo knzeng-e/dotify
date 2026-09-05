@@ -170,7 +170,10 @@ export async function ensureProductHostRoomPermissions(
     value: { domains: remoteDomains }
   });
   if (!('unsupported' in remote) && !remote.ok) {
-    return { ok: false, reason: `Room service unavailable. The Polkadot host could not request remote access to ${remoteDomains.join(', ')}: ${describeHostError(remote.error)}` };
+    return {
+      ok: false,
+      reason: `Room service unavailable. The Polkadot host could not request remote access to ${remoteDomains.join(', ')}: ${describeHostError(remote.error)}`
+    };
   }
   if (!('unsupported' in remote) && !remote.value) {
     return { ok: false, reason: `Room service unavailable. Allow remote access to ${remoteDomains.join(', ')} in the Polkadot host to open listening rooms.` };
@@ -187,10 +190,7 @@ export function isProductHostWebRtcUnavailable(
   return (protocol === 'polkadot:' || hostMarked) && typeof peerConnection !== 'function';
 }
 
-export async function openProductHostExternalUrl(
-  rawUrl: string,
-  deps?: ProductHostNavigationDeps
-): Promise<ProductHostNavigationResult> {
+export async function openProductHostExternalUrl(rawUrl: string, deps?: ProductHostNavigationDeps): Promise<ProductHostNavigationResult> {
   let url: URL;
   try {
     url = new URL(rawUrl);

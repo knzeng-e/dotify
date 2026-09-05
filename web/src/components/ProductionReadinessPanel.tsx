@@ -32,7 +32,14 @@ export type ProductionReadinessPanelProps = {
   productCdmHostSmoke?: ProductCdmHostSmokeContext;
 };
 
-export function ProductionReadinessPanel({ catalogTracks, catalogStatus, ethRpcUrl, expectedChainId, walletChainId, productCdmHostSmoke }: ProductionReadinessPanelProps) {
+export function ProductionReadinessPanel({
+  catalogTracks,
+  catalogStatus,
+  ethRpcUrl,
+  expectedChainId,
+  walletChainId,
+  productCdmHostSmoke
+}: ProductionReadinessPanelProps) {
   const { pushNotice } = useUiFeedback();
   const [checks, setChecks] = useState<ReadinessCheck[]>([]);
   const [refreshing, setRefreshing] = useState(false);

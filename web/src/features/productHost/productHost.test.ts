@@ -249,10 +249,7 @@ describe('ensureProductHostRoomPermissions', () => {
   });
 
   it('explains when the host denies remote signaling access', async () => {
-    const requestPermission = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: true, value: true })
-      .mockResolvedValueOnce({ ok: true, value: false });
+    const requestPermission = vi.fn().mockResolvedValueOnce({ ok: true, value: true }).mockResolvedValueOnce({ ok: true, value: false });
 
     const result = await ensureProductHostRoomPermissions('https://dotify-signal.fly.dev', {
       isInsideContainer: () => true,
@@ -268,9 +265,7 @@ describe('ensureProductHostRoomPermissions', () => {
   });
 
   it('explains when the host denies WebRTC access', async () => {
-    const requestPermission = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: true, value: false });
+    const requestPermission = vi.fn().mockResolvedValueOnce({ ok: true, value: false });
 
     const result = await ensureProductHostRoomPermissions('https://dotify-signal.fly.dev', {
       isInsideContainer: () => true,

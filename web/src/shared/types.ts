@@ -128,9 +128,7 @@ export type OpenRoom = {
 
 export type SoloListeningByTrackHash = Record<string, number>;
 
-export type CreateRoomResponse =
-  | { ok: true; roomId: string; hostName: string; hostResumeToken: string; expiresAt?: number }
-  | { ok: false; error: string };
+export type CreateRoomResponse = { ok: true; roomId: string; hostName: string; hostResumeToken: string; expiresAt?: number } | { ok: false; error: string };
 
 export type ResumeRoomResponse =
   | {
