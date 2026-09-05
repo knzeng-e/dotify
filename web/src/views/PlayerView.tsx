@@ -105,9 +105,10 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const transportDuration = transport.duration || trackInfo?.duration || selectedTrack?.duration || 0;
   const transportProgress = transportProgressPercent(transport.currentTime, transportDuration);
   const transportProgressStyle = { '--progress': `${transportProgress}%` } as CSSProperties;
-  const isBusy = status === 'preparing' || status === 'joining';
+  const audioStartupDetail = status === 'idle' || status === 'preparing' ? (catalog.audioStartupStatus ?? undefined) : undefined;
+  const isBusy = status === 'preparing' || status === 'joining' || Boolean(audioStartupDetail);
   const isOnAir = !isBusy && transport.playing;
-  const statusLabel = isOnAir ? 'ON AIR' : playbackStatusLabel(status, mode, catalog.audioStartupStatus ?? undefined);
+  const statusLabel = isOnAir ? 'ON AIR' : playbackStatusLabel(status, mode, audioStartupDetail);
   const isRoomGuest = mode === 'listener' && Boolean(roomId);
   const isManagedTrack = Boolean(selectedTrack && isPolicyManagedTrack(selectedTrack));
   const needsTrackAccess = Boolean(!isRoomGuest && selectedTrack && isManagedTrack && !selectedTrackHasAccess);

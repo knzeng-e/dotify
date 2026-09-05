@@ -30,7 +30,7 @@ export function playbackStatusLabel(status: AudioStatus, mode: Mode, preparingDe
     case 'ready':
       return mode === 'host' ? 'Hosting' : 'Connected';
     case 'idle':
-      return '';
+      return preparingDetail || '';
     default:
       return mode === 'host' ? 'Hosting' : 'Ready';
   }

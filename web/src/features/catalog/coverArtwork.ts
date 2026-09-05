@@ -2,6 +2,10 @@ import { auraForTrack } from '../../shared/utils/aura';
 
 export const COVER_GATEWAY_TIMEOUT_MS = 1_200;
 
+export function shouldArmCoverGatewayTimeout(loading: string | undefined, isInLoadRange: boolean): boolean {
+  return loading !== 'lazy' || isInLoadRange;
+}
+
 function escapeSvgText(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

@@ -39,7 +39,8 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, a
   const duration = transport.duration || track?.duration || trackInfo?.duration || 0;
   const currentTime = transport.currentTime;
   const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
-  const isBusy = status === 'preparing' || status === 'joining';
+  const startupDetail = status === 'idle' || status === 'preparing' ? (audioStartupStatus ?? undefined) : undefined;
+  const isBusy = status === 'preparing' || status === 'joining' || Boolean(startupDetail);
 
   return (
     <div className='player-dock'>
@@ -188,7 +189,7 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, a
           )}
         </div>
       </div>
-      {isBusy && <span className='player-dock-status'>{playbackStatusLabel(status, mode, audioStartupStatus ?? undefined)}</span>}
+      {isBusy && <span className='player-dock-status'>{playbackStatusLabel(status, mode, startupDetail)}</span>}
     </div>
   );
 }

@@ -9,6 +9,7 @@ describe('playbackStatusLabel', () => {
     expect(playbackStatusLabel('joining', 'listener')).toBe('Joining live audio');
     expect(playbackStatusLabel('no-audio', 'host')).toBe('No audio available');
     expect(playbackStatusLabel('idle', 'host')).toBe('');
+    expect(playbackStatusLabel('idle', 'host', 'Checking access')).toBe('Checking access');
   });
 
   it('phrases playing and ready differently for host vs listener', () => {
