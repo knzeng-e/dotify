@@ -22,9 +22,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Parse workflow YAML
+      - name: Install actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
         run: |
-          ruby -e 'require "yaml"; Dir[".github/workflows/*.{yml,yaml}"].sort.each { |file| YAML.load_file(file); puts "parsed #{file}" }'
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -sSfL -o "${archive}" "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}"
+          echo "${ACTIONLINT_SHA256}  ${archive}" | sha256sum --check -
+          tar -xzf "${archive}" actionlint
+          sudo install -m 0755 actionlint /usr/local/bin/actionlint
+
+      - name: Lint workflow files
+        run: actionlint -color
 
   repository-hygiene:
     name: W01 / Repository hygiene
@@ -172,7 +182,13 @@ jobs:
 
       - name: Fail on ABI drift
         working-directory: .
-        run: git diff --exit-code -- web/src/generated/contracts
+        run: |
+          drift="$(git status --porcelain -- web/src/generated/contracts)"
+          if [ -n "${drift}" ]; then
+            printf '%s\n' "${drift}"
+            git diff -- web/src/generated/contracts
+            exit 1
+          fi
 
   product-devnet-build:
     name: W01 / Product DevNet build
@@ -194,17 +210,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Regenerate Product catalog bootstrap from fixture
+        run: npm run generate:product-catalog-bootstrap:strict -- --input fixtures/product-devnet-catalog.json
+
       - name: Build Product DevNet package
         env:
-          # Keep this CI job deterministic. The generator falls back to the
-          # committed bootstrap snapshot when the API is unavailable, and the
-          # next step fails if the checked-in snapshot drifted.
+          # Keep the build itself offline after the strict fixture generation.
           CATALOG_API_URL: http://127.0.0.1:9
         run: npm run build:product-devnet
 
       - name: Fail on generated Product catalog drift
         working-directory: .
-        run: git diff --exit-code -- web/src/services/productDevnetCatalogBootstrap.ts
+        run: |
+          drift="$(git status --porcelain -- web/src/services/productDevnetCatalogBootstrap.ts)"
+          if [ -n "${drift}" ]; then
+            printf '%s\n' "${drift}"
+            git diff -- web/src/services/productDevnetCatalogBootstrap.ts
+            exit 1
+          fi
 
   playwright:
     name: W01 / Playwright core flows

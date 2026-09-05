@@ -37,15 +37,20 @@ set.
 ## Coverage
 
 - Repository hygiene validates backlog metadata offline and whitespace.
-- Workflow syntax parses all GitHub Actions YAML files.
+- Workflow syntax runs pinned `actionlint` over all GitHub Actions workflow
+  files. This validates Actions-specific keys and expressions, not only generic
+  YAML syntax.
 - Web checks run formatting, lint, unit tests, production-env smoke, and the
   ordinary Vite build.
 - Signaling checks run the Socket.IO signaling test suite.
 - API checks run typecheck and the Fastify service test suite.
 - EVM checks run Solidity formatting, compile, tests, ABI generation, and a
-  generated-binding drift guard.
-- Product DevNet checks build the Product package and fail if the generated
-  catalog bootstrap changes unexpectedly.
+  generated-binding drift guard that fails on tracked or untracked output
+  changes under `web/src/generated/contracts`.
+- Product DevNet checks regenerate the bootstrap catalog in strict mode from
+  `web/fixtures/product-devnet-catalog.json`, build the Product package without
+  relying on the live catalog API, and fail if the generated bootstrap changes
+  unexpectedly.
 - Playwright checks run deterministic browser flows against local Vite and
   local signaling services from `web/playwright.config.ts`.
 
