@@ -273,6 +273,16 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next"
+    },
+    {
+      "id": "agent-implementation-playbook",
+      "doc": "docs/backlog/implementation/README.md",
+      "issue": 130,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Product SDK",
+      "phase": "Now",
+      "note": "Documentation-only delivery plan. Project association pending available Project tooling; execution recipes reuse existing issues or add scoped tickets at activation."
     }
   ]
 }

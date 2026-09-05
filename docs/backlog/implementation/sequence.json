@@ -1,0 +1,249 @@
+{
+  "version": 1,
+  "baseline": "bb3e2557215ee8628f4c0e107de6d1e984baaccf",
+  "integrationBranch": "dev",
+  "note": "Sequence IDs are execution recipes, not duplicate backlog ticket numbers. Branch names are reserved recommendations, not pre-created branches. Project 5 owns workflow status.",
+  "sequences": [
+    {
+      "id": "W01",
+      "title": "Make dev a tested integration branch",
+      "file": "W01-dev-quality-gates.md",
+      "branch": "chore/dev-quality-gates",
+      "dependencies": [],
+      "issue": null,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W02",
+      "title": "Protect upload resources and session revocation",
+      "file": "W02-upload-session-boundaries.md",
+      "branch": "feat/upload-session-boundaries",
+      "dependencies": [
+        "W01"
+      ],
+      "issue": null,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W03",
+      "title": "Bind key delivery to the canonical release",
+      "file": "W03-canonical-release-access.md",
+      "branch": "feat/canonical-release-access",
+      "dependencies": [
+        "W02"
+      ],
+      "issue": null,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W04",
+      "title": "Make purchased access and ownership claims truthful",
+      "file": "W04-access-promise.md",
+      "branch": "fix/access-promise",
+      "dependencies": [
+        "W01"
+      ],
+      "issue": null,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W05",
+      "title": "Prevent one royalty recipient from blocking everyone",
+      "file": "W05-royalty-failure-isolation.md",
+      "branch": "feat/royalty-failure-isolation",
+      "dependencies": [
+        "W04"
+      ],
+      "issue": null,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W06",
+      "title": "Make returning accounts and wallet-later UX safe",
+      "file": "W06-returning-identity.md",
+      "branch": "feat/returning-identity",
+      "dependencies": [
+        "W01"
+      ],
+      "issue": 90,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W07",
+      "title": "Version content keys and rehearse recovery",
+      "file": "W07-key-custody-recovery.md",
+      "branch": "feat/key-custody-recovery",
+      "dependencies": [
+        "W03"
+      ],
+      "issue": null,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W08",
+      "title": "Make artwork and first sound dependable",
+      "file": "W08-first-sound.md",
+      "branch": "feat/first-sound",
+      "dependencies": [
+        "W01"
+      ],
+      "issue": 88,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W09",
+      "title": "Keep shared listening alive across real networks",
+      "file": "W09-room-resilience.md",
+      "branch": "feat/room-resilience",
+      "dependencies": [
+        "W08"
+      ],
+      "issue": 89,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W10",
+      "title": "Establish the responsive musical identity",
+      "file": "W10-adaptive-design.md",
+      "branch": "feat/adaptive-design",
+      "dependencies": [
+        "W01"
+      ],
+      "issue": null,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W11",
+      "title": "Prove the Product DevNet user journey",
+      "file": "W11-product-devnet-journey.md",
+      "branch": "feat/product-devnet-journey",
+      "dependencies": [
+        "W03",
+        "W04",
+        "W06",
+        "W05"
+      ],
+      "issue": 85,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W12",
+      "title": "Make artist publication and support understandable",
+      "file": "W12-artist-support-experience.md",
+      "branch": "feat/artist-support-experience",
+      "dependencies": [
+        "W02",
+        "W04",
+        "W05",
+        "W10",
+        "W11"
+      ],
+      "issue": null,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W13",
+      "title": "Ship and evaluate the first coherent pilot",
+      "file": "W13-pilot-release.md",
+      "branch": "feat/pilot-release",
+      "dependencies": [
+        "W01",
+        "W02",
+        "W03",
+        "W04",
+        "W05",
+        "W06",
+        "W07",
+        "W08",
+        "W09",
+        "W10",
+        "W11",
+        "W12"
+      ],
+      "issue": null,
+      "phase": "Pilot gate"
+    },
+    {
+      "id": "W14",
+      "title": "Build an optional immersive 3D room galaxy",
+      "file": "W14-room-galaxy.md",
+      "branch": "feat/room-galaxy",
+      "dependencies": [
+        "W09",
+        "W10"
+      ],
+      "issue": null,
+      "phase": "Experience expansion"
+    },
+    {
+      "id": "W15",
+      "title": "Make the galaxy respond honestly to music",
+      "file": "W15-live-musical-presence.md",
+      "branch": "feat/live-musical-presence",
+      "dependencies": [
+        "W14"
+      ],
+      "issue": null,
+      "phase": "Experience expansion"
+    },
+    {
+      "id": "W16",
+      "title": "Prove a real Product CASH settlement path",
+      "file": "W16-product-cash-settlement.md",
+      "branch": "feat/product-cash-settlement",
+      "dependencies": [
+        "W05",
+        "W11"
+      ],
+      "issue": 85,
+      "phase": "Later feasibility"
+    },
+    {
+      "id": "W17",
+      "title": "Bind Human free access to real private personhood",
+      "file": "W17-human-free-evidence.md",
+      "branch": "feat/human-free-evidence",
+      "dependencies": [
+        "W03",
+        "W11"
+      ],
+      "issue": 12,
+      "phase": "Later feasibility"
+    },
+    {
+      "id": "W18",
+      "title": "Design nearby discovery with explicit privacy boundaries",
+      "file": "W18-nearby-privacy-design.md",
+      "branch": "docs/nearby-privacy-design",
+      "dependencies": [
+        "W09",
+        "W10"
+      ],
+      "issue": null,
+      "phase": "Later research"
+    },
+    {
+      "id": "W19",
+      "title": "Implement opt-in nearby room discovery",
+      "file": "W19-nearby-rooms.md",
+      "branch": "feat/nearby-rooms",
+      "dependencies": [
+        "W13",
+        "W18"
+      ],
+      "issue": null,
+      "phase": "Later implementation"
+    },
+    {
+      "id": "W20",
+      "title": "Choose the next community and sovereignty increment",
+      "file": "W20-community-sovereignty.md",
+      "branch": "docs/community-sovereignty",
+      "dependencies": [
+        "W13"
+      ],
+      "issue": 13,
+      "phase": "Later research"
+    }
+  ]
+}

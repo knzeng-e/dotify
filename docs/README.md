@@ -4,6 +4,13 @@ Documentation for the Dotify decentralized music streaming platform, structured 
 
 ---
 
+## Implementation playbook
+
+[Agent implementation sequences](./backlog/implementation/README.md) provide
+copy-paste prompts, short-lived branch names, dependencies, acceptance criteria,
+and evidence handoffs for the Product DevNet/web pilot and later immersive and
+privacy-preserving nearby discovery. Preparation is tracked in issue #130.
+
 ## Explanation
 
 Conceptual documents that help you understand why Dotify works the way it does.
