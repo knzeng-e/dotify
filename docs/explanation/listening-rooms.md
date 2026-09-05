@@ -79,7 +79,7 @@ The signaling server (`server/signaling.mjs`) is a Socket.IO process that relays
 - Routing SDP offers, answers, and ICE candidates between the correct peers.
 - Broadcasting `rooms:updated` when the room list changes and `presence:solo:updated` when solo presence changes.
 - Expiring rooms after their TTL and closing rooms whose host stops heartbeating.
-- Exposing `GET /health` and `GET /status` for uptime, public room metadata, and anonymous solo-listening aggregates.
+- Exposing `GET /health` and `GET /status` for uptime, public room metadata, capacity flags, and anonymous solo-listening aggregates.
 
 See [socket-events.md](../reference/socket-events.md) for the full event schema.
 
@@ -127,6 +127,32 @@ fallback.
 
 The host creates a separate `RTCPeerConnection` for each listener. Connections are tracked in `hostPeersRef` (a `Map<listenerId, RTCPeerConnection>`). When a listener leaves, their peer connection is closed and removed. When a new listener joins an active room, the host immediately creates a new offer and sends the current audio stream.
 
+The public room list includes `maxListeners` and `isFull` so clients can show
+room capacity before a guest tries to join. The server still enforces the cap
+on `room:join`, and the frontend disables full room cards as a convenience, not
+as the security boundary.
+
+When a host's signaling transport drops, the host closes existing
+`RTCPeerConnection` objects before resuming the room. Existing listeners keep
+their room identity, rejoin with a fresh socket when their own transport
+recovers, and wait for the host to send a fresh offer. If the host cannot
+resume before the server timeout, the room closes instead of silently keeping a
+stale listing.
+
+### Quality telemetry
+
+The frontend exposes a browser-local QA snapshot at
+`window.__DOTIFY_ROOM_QUALITY__.snapshot()`. It records bounded room phases such
+as `room-joined`, `offer-sent`, `answer-sent`, `remote-audio-cued`,
+`peer-connected`, reconnect, retry, and timeout events.
+
+For connected peers it also summarizes browser WebRTC stats when available:
+relay/direct candidate type, round-trip time, jitter, packet counters, byte
+counters, and available outgoing bitrate. It deliberately does not store SDP,
+ICE candidate strings, IP addresses, audio source references, content keys, or
+wallet identifiers. The snapshot is page-local memory and clears on reload or
+`window.__DOTIFY_ROOM_QUALITY__.clear()`.
+
 The current iOS Product container is a deliberate exception to this browser
 architecture: its sandbox
 [removes `window.RTCPeerConnection` from Product scripts](https://github.com/Polkadot-Community-Foundation/polkadot-ios-community/blob/main/Packages/Products/product-container/src/index.ts#L79-L81).
@@ -143,6 +169,9 @@ permission.
 - Listeners cannot control playback.
 - Symmetric NAT can block connection without a TURN server.
 - `captureStream()` is not available in all browsers or Product host containers.
+- Room capacity is enforced by the signaling server and currently defaults to
+  24 listeners per host. Larger sessions need SFU evaluation instead of simply
+  raising the peer-to-peer fan-out.
 - The current iOS Product sandbox does not expose `RTCPeerConnection` to Product
   scripts. Product Mobile listeners must continue the room in the external
   browser until the host adds a permission-gated media API.

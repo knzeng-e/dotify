@@ -15,6 +15,13 @@ import {
   roomJoinE2eIceServers
 } from '../e2e/roomJoinMock';
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
+import {
+  publishRoomQualityMetric,
+  summarizeRoomPeerStats,
+  type RoomQualityMetric,
+  type RoomQualityPhase,
+  type RoomQualityRole
+} from '../features/rooms/roomQualityTelemetry';
 import { createSignalClient, describeSignalConnectError } from '../features/rooms/signalClient';
 import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
 import { ensureProductHostRoomPermissions, isProductHostWebRtcUnavailable, openProductHostExternalUrl } from '../features/productHost/productHost';
@@ -205,6 +212,10 @@ export function useSession(deps: UseSessionDeps) {
   const hostConnectionTimersRef = useRef<Map<string, number>>(new Map());
   const listenerOfferReceivedRef = useRef(false);
   const listenerAudioRetryCountRef = useRef(0);
+  const hostRoomStartedAtRef = useRef<number | null>(null);
+  const hostPeerStartedAtRef = useRef<Map<string, number>>(new Map());
+  const listenerJoinStartedAtRef = useRef<number | null>(null);
+  const listenerConnectionStartedAtRef = useRef<number | null>(null);
   const turnRelayAvailableRef = useRef(false);
   const roomPermissionRef = useRef<Promise<boolean> | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -228,6 +239,49 @@ export function useSession(deps: UseSessionDeps) {
     audioSourceRef.current = audioSource;
     trackInfoRef.current = trackInfo;
   }, [audioSource, trackInfo]);
+
+  function monotonicNow() {
+    return typeof performance === 'undefined' ? Date.now() : performance.now();
+  }
+
+  function elapsedSince(startedAt: number | null) {
+    return startedAt === null ? undefined : Math.max(0, Math.round(monotonicNow() - startedAt));
+  }
+
+  function socketTransportName() {
+    return (socketRef.current?.io.engine.transport as { name?: string } | undefined)?.name;
+  }
+
+  function publishRoomQuality(phase: RoomQualityPhase, role: RoomQualityRole, details: Partial<Omit<RoomQualityMetric, 'phase' | 'role' | 'timestamp'>> = {}) {
+    publishRoomQualityMetric({
+      phase,
+      role,
+      timestamp: Date.now(),
+      roomId: roomIdRef.current || undefined,
+      socketTransport: socketTransportName(),
+      ...details
+    });
+  }
+
+  async function publishPeerRoomQuality(
+    phase: RoomQualityPhase,
+    role: RoomQualityRole,
+    peer: RTCPeerConnection | null,
+    details: Partial<Omit<RoomQualityMetric, 'phase' | 'role' | 'timestamp' | 'stats'>> = {}
+  ) {
+    let stats: RoomQualityMetric['stats'];
+    try {
+      stats = peer && peer.connectionState !== 'closed' ? summarizeRoomPeerStats(await peer.getStats(), role) : undefined;
+    } catch {
+      stats = undefined;
+    }
+    publishRoomQuality(phase, role, {
+      connectionState: peer?.connectionState,
+      iceConnectionState: peer?.iceConnectionState,
+      stats,
+      ...details
+    });
+  }
 
   function upsertListener(listener: ListenerRecord) {
     setListeners(previous => {
@@ -257,13 +311,22 @@ export function useSession(deps: UseSessionDeps) {
 
   async function resolveRoomIceServers(): Promise<RTCIceServer[]> {
     if (isRoomJoinE2e) {
+      const iceServers = roomJoinE2eIceServers();
       turnRelayAvailableRef.current = false;
-      return roomJoinE2eIceServers();
+      publishRoomQuality('ice-servers-resolved', modeRef.current, {
+        turnRelayAvailable: false,
+        iceServerCount: iceServers.length
+      });
+      return iceServers;
     }
 
     const turnServers = await getTurnIceServers();
     const iceServers = [...stunIceServers, ...turnServers];
     turnRelayAvailableRef.current = hasTurnIceServer(iceServers);
+    publishRoomQuality('ice-servers-resolved', modeRef.current, {
+      turnRelayAvailable: turnRelayAvailableRef.current,
+      iceServerCount: iceServers.length
+    });
     return iceServers;
   }
 
@@ -290,7 +353,7 @@ export function useSession(deps: UseSessionDeps) {
     if (typeof window.RTCPeerConnection !== 'function') {
       throw new Error('This Polkadot Mobile build blocks Product WebRTC. Continue this room in the browser to hear live audio.');
     }
-    return new window.RTCPeerConnection({ iceServers });
+    return new window.RTCPeerConnection({ iceServers, iceCandidatePoolSize: 4 });
   }
 
   async function openRoomInBrowser() {
@@ -369,6 +432,7 @@ export function useSession(deps: UseSessionDeps) {
       peer.close();
     }
     hostPeersRef.current.clear();
+    hostPeerStartedAtRef.current.clear();
     pendingIceCandidatesRef.current.clear();
   }
 
@@ -381,6 +445,10 @@ export function useSession(deps: UseSessionDeps) {
     captureStartedPausedRef.current = false;
     captureAttemptRef.current = { source: null, count: 0 };
     listenerAudioRetryCountRef.current = 0;
+    hostRoomStartedAtRef.current = null;
+    hostPeerStartedAtRef.current.clear();
+    listenerJoinStartedAtRef.current = null;
+    listenerConnectionStartedAtRef.current = null;
     setLocalStreamReady(false);
   }
 
@@ -414,6 +482,10 @@ export function useSession(deps: UseSessionDeps) {
     setRemoteStreamVersion(version => version + 1);
     setSessionStatus(status);
     if (isRoomJoinE2e) recordRoomJoinE2eRemotePlaybackCue();
+    publishRoomQuality('remote-audio-cued', 'listener', {
+      elapsedMs: elapsedSince(listenerJoinStartedAtRef.current),
+      detail: status
+    });
   }
 
   function getSocket() {
@@ -470,10 +542,13 @@ export function useSession(deps: UseSessionDeps) {
       if (modeRef.current === 'host' && roomIdRef.current) {
         setSessionStatus('Reconnecting room');
         setError('The room connection was interrupted. Reconnecting...');
+        publishRoomQuality('host-reconnecting', 'host', { listenerCount: listenersRef.current.length, detail: 'signal-disconnect' });
+        closeHostPeers();
         return;
       }
       if (roomIdRef.current) {
         setSessionStatus('Reconnecting');
+        publishRoomQuality('peer-disconnected', 'listener', { detail: 'signal-disconnect' });
       }
     });
     socket.on('rooms:updated', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
@@ -492,6 +567,11 @@ export function useSession(deps: UseSessionDeps) {
     });
 
     socket.on('listener:joined', (payload: { listenerId: string; displayName: string; listenerCount: number }) => {
+      publishRoomQuality('listener-ready', 'host', {
+        peerId: payload.listenerId,
+        listenerCount: payload.listenerCount,
+        detail: 'joined'
+      });
       upsertListener({
         id: payload.listenerId,
         displayName: payload.displayName,
@@ -502,6 +582,10 @@ export function useSession(deps: UseSessionDeps) {
       void pairListenerOrPrepareStream(payload.listenerId);
     });
     socket.on('listener:ready', (payload: { listenerId: string; displayName: string; listenerCount: number }) => {
+      publishRoomQuality('listener-ready', 'host', {
+        peerId: payload.listenerId,
+        listenerCount: payload.listenerCount
+      });
       upsertListener({
         id: payload.listenerId,
         displayName: payload.displayName,
@@ -547,18 +631,22 @@ export function useSession(deps: UseSessionDeps) {
     socket.on('room:closed', (payload: { reason?: string }) => {
       // The room is gone (host left, expired, or timed out): forget it so the
       // reconnect logic does not try to rejoin a dead room.
+      publishRoomQuality('room-closed', modeRef.current, { detail: payload.reason ?? 'Room closed' });
       clearRoomState(payload.reason ?? 'Room closed', payload.reason ?? 'Room closed');
     });
     socket.on('room:host-connection', (payload: { status?: string }) => {
       if (modeRef.current !== 'listener' || !roomIdRef.current) return;
       if (payload?.status === 'reconnecting') {
+        closeListenerPeer({ clearPendingCandidates: false });
         setSessionStatus('Host reconnecting');
         setError('The host connection was interrupted. The room is being restored.');
+        publishRoomQuality('host-reconnecting', 'listener');
         return;
       }
       if (payload?.status === 'online') {
         setSessionStatus('Waiting stream');
         setError(null);
+        publishRoomQuality('host-online', 'listener');
       }
     });
     socket.on('webrtc:offer', (payload: { from: string; offer: RTCSessionDescriptionInit }) => {
@@ -572,9 +660,18 @@ export function useSession(deps: UseSessionDeps) {
     });
     socket.on('peer:connected', (payload: { from: string }) => {
       upsertListenerStatus(payload.from, 'connected');
+      const peer = hostPeersRef.current.get(payload.from) ?? null;
+      void publishPeerRoomQuality('peer-connected', 'host', peer, {
+        peerId: payload.from,
+        elapsedMs: elapsedSince(hostPeerStartedAtRef.current.get(payload.from) ?? null),
+        listenerCount: listenersRef.current.length
+      });
     });
     socket.on('room:stream-ready', () => {
       if (modeRef.current !== 'listener') return;
+      publishRoomQuality('stream-ready', 'listener', {
+        elapsedMs: elapsedSince(listenerJoinStartedAtRef.current)
+      });
       cueRemotePlayback('Live');
     });
 
@@ -937,6 +1034,9 @@ export function useSession(deps: UseSessionDeps) {
     if (roomIdRef.current && listenersRef.current.length > 0) {
       socketRef.current?.emit('room:stream-ready');
       if (isRoomJoinE2e) recordRoomJoinE2eStreamReadySignal();
+      publishRoomQuality('stream-ready', 'host', {
+        listenerCount: listenersRef.current.length
+      });
     }
   }
 
@@ -982,6 +1082,11 @@ export function useSession(deps: UseSessionDeps) {
       upsertListenerStatus(listenerId, 'disconnected');
       setSessionStatus('Listener audio blocked');
       setError(webRtcConnectionFailureMessage(turnRelayAvailableRef.current));
+      publishRoomQuality('connection-timeout', 'host', {
+        peerId: listenerId,
+        elapsedMs: elapsedSince(hostPeerStartedAtRef.current.get(listenerId) ?? null),
+        listenerCount: listenersRef.current.length
+      });
       emitWebRtcDiagnostic('host:connection-timeout', undefined, { peer });
     }, WEBRTC_CONNECTION_TIMEOUT_MS);
     hostConnectionTimersRef.current.set(listenerId, timer);
@@ -990,11 +1095,17 @@ export function useSession(deps: UseSessionDeps) {
   function requestListenerAudioOffer(status: string) {
     if (modeRef.current !== 'listener' || !roomIdRef.current) return;
 
+    const retryCount = listenerAudioRetryCountRef.current;
     pendingIceCandidatesRef.current.clear();
     closeListenerPeer();
     listenerOfferReceivedRef.current = false;
+    listenerConnectionStartedAtRef.current = monotonicNow();
     setError(null);
     setSessionStatus(status);
+    publishRoomQuality(retryCount > 0 || /^retrying/i.test(status) ? 'retry-requested' : 'listener-ready', 'listener', {
+      retryCount,
+      detail: status
+    });
     connectSocket().emit('listener:ready');
     startListenerConnectionTimeout();
   }
@@ -1008,6 +1119,10 @@ export function useSession(deps: UseSessionDeps) {
 
       if (listenerAudioRetryCountRef.current < WEBRTC_AUTOMATIC_RETRIES && roomIdRef.current && socketRef.current?.connected) {
         listenerAudioRetryCountRef.current += 1;
+        publishRoomQuality('retry-requested', 'listener', {
+          retryCount: listenerAudioRetryCountRef.current,
+          elapsedMs: elapsedSince(listenerConnectionStartedAtRef.current)
+        });
         requestListenerAudioOffer('Retrying live audio');
         return;
       }
@@ -1018,6 +1133,11 @@ export function useSession(deps: UseSessionDeps) {
           ? webRtcConnectionFailureMessage(turnRelayAvailableRef.current)
           : 'The host did not send a live-audio offer. Ask the host to retry the room.'
       );
+      publishRoomQuality('connection-timeout', 'listener', {
+        retryCount: listenerAudioRetryCountRef.current,
+        elapsedMs: elapsedSince(listenerConnectionStartedAtRef.current),
+        detail: listenerOfferReceivedRef.current ? 'connection-timeout' : 'offer-timeout'
+      });
       emitWebRtcDiagnostic(listenerOfferReceivedRef.current ? 'listener:connection-timeout' : 'listener:offer-timeout', undefined, { peer });
     }, WEBRTC_CONNECTION_TIMEOUT_MS);
   }
@@ -1026,6 +1146,7 @@ export function useSession(deps: UseSessionDeps) {
     clearHostConnectionTimer(listenerId);
     hostPeersRef.current.get(listenerId)?.close();
     pendingIceCandidatesRef.current.delete(listenerId);
+    hostPeerStartedAtRef.current.set(listenerId, monotonicNow());
     const peer = createRoomPeerConnection(iceServers);
 
     if (stream) {
@@ -1062,6 +1183,23 @@ export function useSession(deps: UseSessionDeps) {
         clearHostConnectionTimer(listenerId);
         setSessionStatus('Live');
         setError(null);
+        void publishPeerRoomQuality('peer-connected', 'host', peer, {
+          peerId: listenerId,
+          elapsedMs: elapsedSince(hostPeerStartedAtRef.current.get(listenerId) ?? null),
+          listenerCount: listenersRef.current.length
+        });
+      } else if (peer.connectionState === 'failed') {
+        void publishPeerRoomQuality('peer-failed', 'host', peer, {
+          peerId: listenerId,
+          elapsedMs: elapsedSince(hostPeerStartedAtRef.current.get(listenerId) ?? null),
+          listenerCount: listenersRef.current.length
+        });
+      } else if (peer.connectionState === 'disconnected') {
+        void publishPeerRoomQuality('peer-disconnected', 'host', peer, {
+          peerId: listenerId,
+          elapsedMs: elapsedSince(hostPeerStartedAtRef.current.get(listenerId) ?? null),
+          listenerCount: listenersRef.current.length
+        });
       }
     };
 
@@ -1104,10 +1242,20 @@ export function useSession(deps: UseSessionDeps) {
         targetId: listenerId,
         offer: outboundOffer
       });
+      publishRoomQuality('offer-sent', 'host', {
+        peerId: listenerId,
+        elapsedMs: elapsedSince(hostPeerStartedAtRef.current.get(listenerId) ?? null),
+        listenerCount: listenersRef.current.length
+      });
       startHostConnectionTimeout(listenerId, peer);
     } catch (offerError) {
       upsertListenerStatus(listenerId, 'disconnected');
       setError(offerError instanceof Error ? offerError.message : 'Unable to create WebRTC offer');
+      publishRoomQuality('peer-failed', 'host', {
+        peerId: listenerId,
+        elapsedMs: elapsedSince(hostPeerStartedAtRef.current.get(listenerId) ?? null),
+        detail: 'create-offer-failed'
+      });
       emitWebRtcDiagnostic('host:create-offer-failed', offerError);
     }
   }
@@ -1128,6 +1276,10 @@ export function useSession(deps: UseSessionDeps) {
       closeListenerPeer({ clearPendingCandidates: false });
       listenerOfferReceivedRef.current = true;
       setSessionStatus('Negotiating live audio');
+      publishRoomQuality('offer-received', 'listener', {
+        peerId: from,
+        elapsedMs: elapsedSince(listenerJoinStartedAtRef.current)
+      });
 
       phase = 'resolve-ice';
       const iceServers = await resolveRoomIceServers();
@@ -1140,6 +1292,10 @@ export function useSession(deps: UseSessionDeps) {
         if (remoteAudioRef.current && stream) {
           remoteAudioRef.current.srcObject = stream;
           clearListenerConnectionTimer();
+          publishRoomQuality('remote-track', 'listener', {
+            peerId: from,
+            elapsedMs: elapsedSince(listenerJoinStartedAtRef.current)
+          });
           cueRemotePlayback('Live');
           // Playback is triggered by usePlayback which correctly surfaces
           // 'autoplay-blocked' to the UI when the browser policy blocks autoplay.
@@ -1168,10 +1324,23 @@ export function useSession(deps: UseSessionDeps) {
           listenerAudioRetryCountRef.current = 0;
           setError(null);
           socketRef.current?.emit('peer:connected', { targetId: from });
+          void publishPeerRoomQuality('peer-connected', 'listener', peer, {
+            peerId: from,
+            elapsedMs: elapsedSince(listenerConnectionStartedAtRef.current)
+          });
         } else if (peer.connectionState === 'failed') {
           clearListenerConnectionTimer();
           setError(webRtcConnectionFailureMessage(turnRelayAvailableRef.current));
+          void publishPeerRoomQuality('peer-failed', 'listener', peer, {
+            peerId: from,
+            elapsedMs: elapsedSince(listenerConnectionStartedAtRef.current)
+          });
           emitWebRtcDiagnostic('listener:connection-failed', undefined, { peer });
+        } else if (peer.connectionState === 'disconnected') {
+          void publishPeerRoomQuality('peer-disconnected', 'listener', peer, {
+            peerId: from,
+            elapsedMs: elapsedSince(listenerConnectionStartedAtRef.current)
+          });
         }
       };
 
@@ -1188,6 +1357,10 @@ export function useSession(deps: UseSessionDeps) {
         targetId: from,
         answer: peer.localDescription
       });
+      publishRoomQuality('answer-sent', 'listener', {
+        peerId: from,
+        elapsedMs: elapsedSince(listenerConnectionStartedAtRef.current)
+      });
       startListenerConnectionTimeout();
     } catch (answerError) {
       clearListenerConnectionTimer();
@@ -1195,6 +1368,11 @@ export function useSession(deps: UseSessionDeps) {
       const detail = describeWebRtcError(answerError).message;
       setError(`Live audio could not start on this device (${phase}): ${detail}`);
       setSessionStatus('WebRTC error');
+      publishRoomQuality('peer-failed', 'listener', {
+        peerId: from,
+        elapsedMs: elapsedSince(listenerConnectionStartedAtRef.current),
+        detail: phase
+      });
     }
   }
 
@@ -1274,6 +1452,10 @@ export function useSession(deps: UseSessionDeps) {
     setError(null);
     setSessionStatus('Opening room');
     closeListenerPeer();
+    hostRoomStartedAtRef.current = monotonicNow();
+    publishRoomQuality('room-create-started', 'host', {
+      listenerCount: 0
+    });
 
     emitAckWhenConnected<CreateRoomResponse>(
       'room:create',
@@ -1288,6 +1470,11 @@ export function useSession(deps: UseSessionDeps) {
 
         roomIdRef.current = response.roomId;
         hostResumeTokenRef.current = response.hostResumeToken;
+        publishRoomQuality('room-created', 'host', {
+          roomId: response.roomId,
+          elapsedMs: elapsedSince(hostRoomStartedAtRef.current),
+          listenerCount: 0
+        });
         setRoomId(response.roomId);
         setHostName(response.hostName);
         setListeners([]);
@@ -1324,6 +1511,12 @@ export function useSession(deps: UseSessionDeps) {
     setError(null);
     setSessionStatus('Joining room');
     closeHostPeers();
+    closeListenerPeer();
+    listenerJoinStartedAtRef.current = monotonicNow();
+    listenerConnectionStartedAtRef.current = listenerJoinStartedAtRef.current;
+    publishRoomQuality('room-join-started', 'listener', {
+      roomId: normalizedRoomId
+    });
 
     emitAckWhenConnected<JoinRoomResponse>(
       'room:join',
@@ -1338,6 +1531,11 @@ export function useSession(deps: UseSessionDeps) {
 
         roomIdRef.current = response.roomId;
         hostIdRef.current = response.hostId;
+        publishRoomQuality('room-joined', 'listener', {
+          roomId: response.roomId,
+          elapsedMs: elapsedSince(listenerJoinStartedAtRef.current),
+          listenerCount: response.listenerCount
+        });
         setRoomId(response.roomId);
         setJoinCode(response.roomId);
         setHostName(response.hostName);
@@ -1352,11 +1550,10 @@ export function useSession(deps: UseSessionDeps) {
         setChatMessages(response.chatHistory ?? []);
         setRequestQueue(response.requests ?? []);
         setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
-        if (!listenerPeerRef.current) {
-          listenerOfferReceivedRef.current = false;
-          listenerAudioRetryCountRef.current = 0;
-          startListenerConnectionTimeout();
-        }
+        listenerOfferReceivedRef.current = false;
+        listenerAudioRetryCountRef.current = 0;
+        listenerConnectionStartedAtRef.current = monotonicNow();
+        startListenerConnectionTimeout();
         requestOpenRooms();
       },
       () => {
@@ -1371,6 +1568,16 @@ export function useSession(deps: UseSessionDeps) {
     const socket = socketRef.current;
     if (!socket) return;
 
+    closeListenerPeer();
+    listenerJoinStartedAtRef.current = monotonicNow();
+    listenerConnectionStartedAtRef.current = listenerJoinStartedAtRef.current;
+    listenerOfferReceivedRef.current = false;
+    listenerAudioRetryCountRef.current = 0;
+    publishRoomQuality('room-join-started', 'listener', {
+      roomId: targetRoomId,
+      detail: 'socket-reconnect'
+    });
+
     socket.emit('room:join', { roomId: targetRoomId, displayName }, (response: JoinRoomResponse) => {
       if (!response.ok) {
         clearRoomState('Room closed', response.error);
@@ -1379,6 +1586,11 @@ export function useSession(deps: UseSessionDeps) {
 
       roomIdRef.current = response.roomId;
       hostIdRef.current = response.hostId;
+      publishRoomQuality('room-rejoined', 'listener', {
+        roomId: response.roomId,
+        elapsedMs: elapsedSince(listenerJoinStartedAtRef.current),
+        listenerCount: response.listenerCount
+      });
       setHostName(response.hostName);
       setTrackInfo(response.track);
       setPlayerState(response.playerState);
@@ -1391,11 +1603,8 @@ export function useSession(deps: UseSessionDeps) {
       setChatMessages(response.chatHistory ?? []);
       setRequestQueue(response.requests ?? []);
       setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
-      if (!listenerPeerRef.current) {
-        listenerOfferReceivedRef.current = false;
-        listenerAudioRetryCountRef.current = 0;
-        startListenerConnectionTimeout();
-      }
+      listenerConnectionStartedAtRef.current = monotonicNow();
+      startListenerConnectionTimeout();
     });
   }
 
@@ -1427,6 +1636,10 @@ export function useSession(deps: UseSessionDeps) {
         applyListenerRoster(response.listeners);
         setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
         setError(null);
+        publishRoomQuality('host-online', 'host', {
+          roomId: response.roomId,
+          listenerCount: response.listenerCount
+        });
         requestOpenRooms();
       });
   }

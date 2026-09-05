@@ -22,9 +22,22 @@ type RoomJoinE2eState = {
   remotePlaybackCues: number;
 };
 
+type RoomQualitySnapshot = {
+  events: {
+    phase: string;
+    role: string;
+    elapsedMs?: number;
+    stats?: { relay?: boolean | null };
+  }[];
+  latestJoinToConnectedMs: number | null;
+  latestRemoteAudioMs: number | null;
+  relayConnectionCount: number;
+};
+
 declare global {
   interface Window {
     __DOTIFY_E2E_ROOM_JOIN__?: RoomJoinE2eState;
+    __DOTIFY_ROOM_QUALITY__?: { snapshot: () => RoomQualitySnapshot };
   }
 }
 
@@ -36,6 +49,10 @@ type HostCaptureMode = 'synthetic' | 'web-audio';
 
 async function readRoomJoinState(page: Page) {
   return page.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__);
+}
+
+async function readRoomQuality(page: Page) {
+  return page.evaluate(() => window.__DOTIFY_ROOM_QUALITY__?.snapshot());
 }
 
 // Host: open a deterministic e2e track and broadcast it as a room. Returns the
@@ -150,6 +167,18 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await expect(listener.getByRole('button', { name: 'Connect' })).toBeVisible();
     // Real WebRTC stream reaches the listener.
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await expect
+      .poll(async () => {
+        const quality = await readRoomQuality(listener);
+        return Boolean(quality?.events.some(event => event.phase === 'room-joined') && quality.latestRemoteAudioMs !== null);
+      })
+      .toBe(true);
+    await expect
+      .poll(async () => {
+        const quality = await readRoomQuality(host);
+        return Boolean(quality?.events.some(event => event.phase === 'offer-sent'));
+      })
+      .toBe(true);
     await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
     await expectRoomGuestAccessBoundary(listener);
     await expect(host.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
@@ -338,7 +367,7 @@ test('protected room with unauthorized host: no stream, no keys, host moves to a
     // The listener can be in the room, but with no stream they are connected,
     // not in sync.
     const listener = await joinAsListener(listenerContext, roomId, { displayName: 'Rin' });
-    await expect(listener.getByTestId('room-listener-sync')).toHaveText('Connecting...', { timeout: 20_000 });
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('Waiting for host', { timeout: 20_000 });
 
     // The host dismisses the gate and moves the room to the public track;
     // playback starts on the explicit Play (e2e disables autoplay).

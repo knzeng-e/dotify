@@ -235,7 +235,16 @@ export function ListenView({
         {openRooms.length > 0 ? (
           <div className='home-room-strip'>
             {openRooms.slice(0, 6).map(room => (
-              <button className='home-room-card' type='button' key={room.roomId} onClick={() => onJoinRoom(room.roomId)}>
+              <button
+                className='home-room-card'
+                type='button'
+                key={room.roomId}
+                onClick={() => {
+                  if (!room.isFull) onJoinRoom(room.roomId);
+                }}
+                disabled={room.isFull}
+                aria-label={room.isFull ? `${room.hostName}'s room is full` : `Enter ${room.hostName}'s room`}
+              >
                 <span className='home-room-art' aria-hidden='true'>
                   {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' fallbackLabel={room.track.title} />}
                 </span>
@@ -249,7 +258,7 @@ export function ListenView({
                   </span>
                 </span>
                 <span className='home-room-join'>
-                  Enter
+                  {room.isFull ? 'Full' : 'Enter'}
                   <ArrowRight size={15} />
                 </span>
               </button>

@@ -117,6 +117,8 @@ export type OpenRoom = {
   createdAt: number;
   expiresAt?: number;
   listenerCount: number;
+  maxListeners?: number;
+  isFull?: boolean;
   track: TrackInfo | null;
   playerState: PlayerState | null;
   // Host-based room access doctrine: the HOST satisfies the track policy;

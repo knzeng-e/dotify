@@ -32,7 +32,7 @@ import { hashHue, initialsFor } from '../shared/utils/aura';
 import { formatTime } from '../shared/utils/format';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
 import { isChosenDisplayName } from '../features/identity/walletIdentity';
-import { roomPresenceCount } from '../features/rooms/roomState';
+import { roomListenerSyncLabel, roomPresenceCount } from '../features/rooms/roomState';
 import { playbackStatusLabel, transportProgressPercent } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
@@ -592,7 +592,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                       {hostName || 'Host'}
                       <span className='room-person-tag'>host</span>
                     </strong>
-                    <span data-testid='room-listener-sync'>{remoteReady ? 'In sync' : 'Connecting...'}</span>
+                    <span data-testid='room-listener-sync'>{roomListenerSyncLabel(remoteReady, sessionStatus)}</span>
                   </div>
                 </div>
                 {remoteReady ? (

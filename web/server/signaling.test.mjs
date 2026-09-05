@@ -122,6 +122,8 @@ describe('signaling server', () => {
     assert.equal(JSON.stringify(body).includes('0xAbCd00000000000000000000000000000000Ef12'), false);
     assert.equal(room.playbackMode, 'full');
     assert.ok(room.expiresAt > room.createdAt);
+    assert.equal(room.maxListeners, 2);
+    assert.equal(room.isFull, false);
     assert.equal(JSON.stringify(body).includes(created.hostResumeToken), false);
   });
 
@@ -363,6 +365,12 @@ describe('signaling server', () => {
     const second = connectClient();
     await once(second, 'connect');
     assert.equal((await emitAck(second, 'room:join', { roomId: created.roomId })).ok, true);
+
+    const status = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    const fullRoom = status.rooms.find(room => room.roomId === created.roomId);
+    assert.equal(fullRoom.listenerCount, 2);
+    assert.equal(fullRoom.maxListeners, 2);
+    assert.equal(fullRoom.isFull, true);
 
     const third = connectClient();
     await once(third, 'connect');
