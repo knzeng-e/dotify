@@ -80,7 +80,7 @@ export function OverviewTab({
           {artistTracks.length > 0 ? (
             artistTracks.map(track => (
               <button className='studio-release-row' type='button' key={track.id} onClick={() => onOpenRelease(track)}>
-                <CoverImage src={track.imageRef} alt='' />
+                <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
                 <span className='studio-release-meta'>
                   <strong>{track.title}</strong>
                   <small>{catalogAccessLabel(track, nativePaymentSymbol)}</small>

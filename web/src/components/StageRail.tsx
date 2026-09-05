@@ -122,7 +122,7 @@ export function StageRail({ tracks, accessByTrackId, selectedTrackId, nativePaym
               onClick={() => onOpenTrack(track)}
             >
               <span className='stage-cover'>
-                <CoverImage src={track.imageRef} alt='' loading='lazy' />
+                <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} loading='lazy' />
                 <span className='stage-glare' aria-hidden='true' />
               </span>
               <span className='stage-copy'>

@@ -4,10 +4,12 @@ import { playbackStatusLabel, transportProgressPercent, type AudioStatus } from 
 describe('playbackStatusLabel', () => {
   it('returns mode-neutral labels for transient states', () => {
     expect(playbackStatusLabel('preparing', 'host')).toBe('Preparing audio');
+    expect(playbackStatusLabel('preparing', 'host', 'Receiving first audio bytes')).toBe('Receiving first audio bytes');
     expect(playbackStatusLabel('autoplay-blocked', 'listener')).toBe('Tap play to start');
     expect(playbackStatusLabel('joining', 'listener')).toBe('Joining live audio');
     expect(playbackStatusLabel('no-audio', 'host')).toBe('No audio available');
     expect(playbackStatusLabel('idle', 'host')).toBe('');
+    expect(playbackStatusLabel('idle', 'host', 'Checking access')).toBe('Checking access');
   });
 
   it('phrases playing and ready differently for host vs listener', () => {

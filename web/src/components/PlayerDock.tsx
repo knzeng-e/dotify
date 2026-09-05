@@ -17,6 +17,7 @@ type PlayerDockProps = {
   mode: Mode;
   roomId: string;
   locked: boolean;
+  audioStartupStatus?: string | null;
   onOpenPlayer: () => void;
   onOpenArtist: (artistName: string) => void;
   onStartRoom: () => void;
@@ -28,7 +29,7 @@ function formatClock(seconds: number) {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, onOpenPlayer, onOpenArtist, onStartRoom }: PlayerDockProps) {
+export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, audioStartupStatus, onOpenPlayer, onOpenArtist, onStartRoom }: PlayerDockProps) {
   const title = track?.title ?? trackInfo?.title;
   const artist = track?.artist ?? trackInfo?.artist;
   if (!title) return null;
@@ -38,14 +39,15 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, o
   const duration = transport.duration || track?.duration || trackInfo?.duration || 0;
   const currentTime = transport.currentTime;
   const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
-  const isBusy = status === 'preparing' || status === 'joining';
+  const startupDetail = status === 'idle' || status === 'preparing' ? (audioStartupStatus ?? undefined) : undefined;
+  const isBusy = status === 'preparing' || status === 'joining' || Boolean(startupDetail);
 
   return (
     <div className='player-dock'>
       <div className='player-dock-inner'>
         <div className='player-dock-track'>
           <button className='player-dock-art' type='button' onClick={onOpenPlayer} aria-label={`Open ${title} in the player`}>
-            {cover && <CoverImage src={cover} alt='' />}
+            {cover && <CoverImage src={cover} alt='' fallbackLabel={title} />}
           </button>
           <div className='player-dock-meta'>
             <button className='player-dock-title' type='button' onClick={onOpenPlayer} title={`Open ${title}`}>
@@ -187,7 +189,7 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, o
           )}
         </div>
       </div>
-      {isBusy && <span className='player-dock-status'>{playbackStatusLabel(status, mode)}</span>}
+      {isBusy && <span className='player-dock-status'>{playbackStatusLabel(status, mode, startupDetail)}</span>}
     </div>
   );
 }

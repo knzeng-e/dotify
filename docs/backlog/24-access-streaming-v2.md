@@ -135,8 +135,20 @@ P3 first vertical slice delivered (`agent/audio-v2-p3`):
 - The resolver emits `dotify:dav2-startup` events for key authorization,
   gateway selection, header readiness, first range, first decrypt, first
   append, fallback, and error phases.
+
+W08 first-sound slice:
+
+- The app installs a retained QA snapshot at `window.__DOTIFY_AUDIO_STARTUP__`.
+  It records bounded DAV2 startup events plus host source-to-first-audio events,
+  so reviewers can compare key authorization, gateway selection, first bytes,
+  decryption, MSE append, and actual audible start without leaking content keys.
+- The player and dock now surface listener-safe DAV2 startup phases while the
+  media element is preparing, replacing the single generic preparing label for
+  protected startup.
+- Cover artwork gateway recovery now has a 1.2 second per-gateway budget and a
+  deterministic generated fallback when all sources fail or time out.
 - Remaining #88 work: worker-based decryption, first-chunk sizing experiments,
-  the browser/device validation matrix, startup telemetry export, and the
+  the browser/device validation matrix, cold/warm sample collection, and the
   backend read-through gateway decision.
 
 Product SDK adaptation note (updated 2026-08-30):
