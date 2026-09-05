@@ -159,6 +159,15 @@ All implementation must be production-minded:
 
 ## Recommended execution order
 
+For new implementation sessions, use the September 2026
+[agent implementation playbook](implementation/README.md), tracked by #130.
+It translates the existing backlog and the latest product direction into
+bounded prompts, dependency gates, and a Product DevNet/web pilot. Product is
+a first-class acceptance target; responsive design can progress alongside the
+spine, a 3D prototype can start early, and nearby discovery comes later after
+privacy design. The historical order below remains context; the playbook is the
+current sequencing guide. Project 5 continues to own workflow status.
+
 Sprint 0, Sprint 1, ticket 24 P1/P2/P3 first slice, and ticket 25 are delivered
 on `main`. The remaining order is:
 

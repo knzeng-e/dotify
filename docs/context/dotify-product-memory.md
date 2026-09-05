@@ -136,6 +136,16 @@ This is the compromise: protect the artist's source-file distribution without ki
 
 ## Product priorities
 
+September 2026 execution clarification: Product DevNet is a first-class
+destination alongside ordinary mobile/desktop web, with acceptance based on
+real host capabilities. A coherent responsive identity and an optional 3D
+room galaxy express the shared-presence purpose; sound activity must use real
+data, and discovery must retain an accessible 2D/list path. Nearby discovery
+is a later, separately consented feature that never publishes precise host
+coordinates. Follow `docs/backlog/implementation/README.md` for the current
+sequencing, pilot gates, and agent prompts. The earlier lists below remain
+historical context where their priorities differ.
+
 ### Music / now
 
 - protected Classic unlock;
