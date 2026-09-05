@@ -90,7 +90,12 @@ async function joinAsListener(context: BrowserContext, roomId: string, options: 
     await expect(page.locator('#join-room-title')).toHaveText(/Finding this room|welcomes you/);
     const findingButton = page.getByRole('button', { name: 'Finding room...' });
     if (await findingButton.isVisible().catch(() => false)) {
-      await expect(findingButton).toBeDisabled();
+      await expect
+        .poll(async () => {
+          if (!(await findingButton.isVisible().catch(() => false))) return true;
+          return findingButton.isDisabled().catch(() => false);
+        })
+        .toBe(true);
     }
   }
   if (options.displayName) {

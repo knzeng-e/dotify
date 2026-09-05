@@ -283,6 +283,16 @@
       "track": "Product SDK",
       "phase": "Now",
       "note": "Documentation-only delivery plan. Project association pending available Project tooling; execution recipes reuse existing issues or add scoped tickets at activation."
+    },
+    {
+      "id": "W01",
+      "doc": "docs/backlog/implementation/W01-dev-quality-gates.md",
+      "issue": 132,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Activated implementation sequence for stable dev quality gates and branch protection guidance."
     }
   ]
 }

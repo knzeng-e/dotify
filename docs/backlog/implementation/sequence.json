@@ -10,7 +10,7 @@
       "file": "W01-dev-quality-gates.md",
       "branch": "chore/dev-quality-gates",
       "dependencies": [],
-      "issue": null,
+      "issue": 132,
       "phase": "Pilot"
     },
     {

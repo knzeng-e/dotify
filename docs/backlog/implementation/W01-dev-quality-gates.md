@@ -9,7 +9,7 @@ Implement **W01** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Branch: `chore/dev-quality-gates` created from the latest tested `origin/dev` when work starts.
 - Dependencies: playbook available on dev; no feature dependencies.
 - Release stage: Pilot.
-- Existing issue: No dedicated issue assigned yet; reuse a matching open issue or create a scoped ticket when this sequence starts.
+- Existing issue: #132.
 - Product purpose: effortless shared listening, meaningful artist control, transparent value, and a coherent poetic interface. Product DevNet is a first-class target alongside ordinary web.
 
 ## Outcome

@@ -330,7 +330,10 @@ export function recordProductCdmHostApprovalObservation(ok: boolean): ProductCdm
   return event;
 }
 
-function latestEvent<T extends ProductCdmHostSmokeEvent['kind']>(events: ProductCdmHostSmokeEvent[], kind: T): Extract<ProductCdmHostSmokeEvent, { kind: T }> | null {
+function latestEvent<T extends ProductCdmHostSmokeEvent['kind']>(
+  events: ProductCdmHostSmokeEvent[],
+  kind: T
+): Extract<ProductCdmHostSmokeEvent, { kind: T }> | null {
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index];
     if (event.kind === kind) return event as Extract<ProductCdmHostSmokeEvent, { kind: T }>;
@@ -391,7 +394,7 @@ function keyReleaseCheck(events: ProductCdmHostSmokeEvent[], payment: Extract<Pr
       id: 'backend-key',
       label: 'Backend key release',
       tone: 'error',
-      detail: latest.code ? `${latest.phase} (${latest.code})` : latest.error ?? latest.phase
+      detail: latest.code ? `${latest.phase} (${latest.code})` : (latest.error ?? latest.phase)
     };
   }
   const matchingAllowedKey = keys.find(
@@ -413,9 +416,7 @@ function keyReleaseCheck(events: ProductCdmHostSmokeEvent[], payment: Extract<Pr
       id: 'backend-key',
       label: 'Backend key release',
       tone: payment ? 'warning' : 'ok',
-      detail: payment
-        ? 'A Product sr25519 key request passed, but not yet for the same post-payment track identity.'
-        : 'A Product sr25519 key request passed.'
+      detail: payment ? 'A Product sr25519 key request passed, but not yet for the same post-payment track identity.' : 'A Product sr25519 key request passed.'
     };
   }
   return {
@@ -442,7 +443,12 @@ export function summarizeProductCdmHostSmokeChecks(context: ProductCdmHostSmokeC
     {
       id: 'product-account',
       label: 'Product account',
-      tone: context.walletMethod === 'product-host' && context.listenerAddress && context.productPublicKey ? 'ok' : context.productHostStatus === 'unavailable' ? 'error' : 'unknown',
+      tone:
+        context.walletMethod === 'product-host' && context.listenerAddress && context.productPublicKey
+          ? 'ok'
+          : context.productHostStatus === 'unavailable'
+            ? 'error'
+            : 'unknown',
       detail:
         context.walletMethod === 'product-host' && context.listenerAddress && context.productPublicKey
           ? `Connected ${context.listenerAddress} from Product public key ${context.productPublicKey}.`
@@ -461,7 +467,9 @@ export function summarizeProductCdmHostSmokeChecks(context: ProductCdmHostSmokeC
       id: 'host-approval',
       label: 'Host approval',
       tone: latestObservation?.ok ? 'ok' : 'unknown',
-      detail: latestObservation?.ok ? 'Operator marked the host transaction approval prompt as explicit.' : 'Mark this after the Product host shows a transaction approval prompt.'
+      detail: latestObservation?.ok
+        ? 'Operator marked the host transaction approval prompt as explicit.'
+        : 'Mark this after the Product host shows a transaction approval prompt.'
     },
     {
       id: 'native-value',
@@ -474,7 +482,11 @@ export function summarizeProductCdmHostSmokeChecks(context: ProductCdmHostSmokeC
     {
       id: 'same-identity',
       label: 'Same identity',
-      tone: hasAddressMismatch ? 'error' : eventAddresses.length > 0 && context.listenerAddress && latestKey?.productPublicKey === context.productPublicKey ? 'ok' : 'unknown',
+      tone: hasAddressMismatch
+        ? 'error'
+        : eventAddresses.length > 0 && context.listenerAddress && latestKey?.productPublicKey === context.productPublicKey
+          ? 'ok'
+          : 'unknown',
       detail: hasAddressMismatch
         ? 'At least one captured Product event used a different H160 listener identity than the connected wallet.'
         : eventAddresses.length > 0 && context.listenerAddress

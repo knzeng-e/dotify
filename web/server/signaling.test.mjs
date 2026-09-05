@@ -386,7 +386,10 @@ describe('signaling server', () => {
     assert.equal(server.rooms.get(created.roomId).hostId, null);
 
     const hiddenStatus = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
-    assert.equal(hiddenStatus.rooms.some(room => room.roomId === created.roomId), false);
+    assert.equal(
+      hiddenStatus.rooms.some(room => room.roomId === created.roomId),
+      false
+    );
 
     const lateListener = connectClient();
     await once(lateListener, 'connect');
@@ -409,7 +412,10 @@ describe('signaling server', () => {
     assert.equal(server.rooms.get(created.roomId).hostId, resumedHost.id);
 
     const visibleStatus = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
-    assert.equal(visibleStatus.rooms.some(room => room.roomId === created.roomId), true);
+    assert.equal(
+      visibleStatus.rooms.some(room => room.roomId === created.roomId),
+      true
+    );
     assert.equal(JSON.stringify(visibleStatus).includes(created.hostResumeToken), false);
   });
 

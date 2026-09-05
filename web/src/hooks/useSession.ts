@@ -17,11 +17,7 @@ import {
 import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
 import { createSignalClient, describeSignalConnectError } from '../features/rooms/signalClient';
 import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
-import {
-  ensureProductHostRoomPermissions,
-  isProductHostWebRtcUnavailable,
-  openProductHostExternalUrl
-} from '../features/productHost/productHost';
+import { ensureProductHostRoomPermissions, isProductHostWebRtcUnavailable, openProductHostExternalUrl } from '../features/productHost/productHost';
 import { useRoomBeacon } from './useRoomBeacon';
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
@@ -1412,10 +1408,9 @@ export function useSession(deps: UseSessionDeps) {
     const hostResumeToken = hostResumeTokenRef.current;
     if (!socket?.connected || !targetRoomId || !hostResumeToken) return;
 
-    socket.timeout(SIGNAL_ACK_TIMEOUT_MS).emit(
-      'room:resume',
-      { roomId: targetRoomId, hostResumeToken },
-      (ackError: Error | null, response: ResumeRoomResponse | undefined) => {
+    socket
+      .timeout(SIGNAL_ACK_TIMEOUT_MS)
+      .emit('room:resume', { roomId: targetRoomId, hostResumeToken }, (ackError: Error | null, response: ResumeRoomResponse | undefined) => {
         if (ackError || !response) {
           setSessionStatus('Reconnecting room');
           setError('The room connection is still recovering.');
@@ -1433,8 +1428,7 @@ export function useSession(deps: UseSessionDeps) {
         setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
         setError(null);
         requestOpenRooms();
-      }
-    );
+      });
   }
 
   function joinSession(event: FormEvent<HTMLFormElement>) {
