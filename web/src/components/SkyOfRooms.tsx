@@ -276,7 +276,7 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
             >
               <span className='sky-halo' aria-hidden='true' />
               <span className='sky-core' aria-hidden='true'>
-                {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' loading='lazy' />}
+                {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' fallbackLabel={room.track.title} loading='lazy' />}
               </span>
               {petals > 0 && (
                 <span className='sky-orbit' aria-hidden='true' style={{ animationDuration: `${orbitSeconds}s` }}>

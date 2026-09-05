@@ -336,6 +336,7 @@ export function ListenerShell() {
             locked={Boolean(
               !isRoomGuest && selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true
             )}
+            audioStartupStatus={catalog.audioStartupStatus}
             onOpenPlayer={() => navigateToView('player')}
             onOpenArtist={handleOpenArtistProfile}
             onStartRoom={() => setCreateRoomOpen(true)}

@@ -74,7 +74,7 @@ export function JoinRoomModal({
       {room && (
         <section className='room-threshold-preview' aria-label={`Room hosted by ${room.hostName}`}>
           <div className='room-threshold-art' aria-hidden='true'>
-            {roomTrack?.imageRef ? <CoverImage src={roomTrack.imageRef} alt='' /> : <Disc3 size={40} />}
+            {roomTrack?.imageRef ? <CoverImage src={roomTrack.imageRef} alt='' fallbackLabel={roomTrack.title} /> : <Disc3 size={40} />}
           </div>
           <div className='room-threshold-copy'>
             <span className='room-threshold-live'>

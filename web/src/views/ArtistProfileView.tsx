@@ -189,7 +189,7 @@ export function ArtistProfileView({
                   onKeyDown={event => handleTrackKeyDown(event, track)}
                   aria-label={`Open ${track.title} by ${track.artist}`}
                 >
-                  <CoverImage src={track.imageRef} alt='' />
+                  <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
                   <div>
                     <strong>{track.title}</strong>
                     <span>{track.description || 'A Dotify release ready for listening rooms and direct support.'}</span>

@@ -435,7 +435,7 @@ export function NewReleaseTab({
         <PanelTitle icon={Library} title='Release preview' meta={accessModeLabelFromState(accessMode)} />
         <div className='release-preview-card'>
           <div className='release-preview-cover'>
-            <CoverImage src={coverSource} alt='' />
+            <CoverImage src={coverSource} alt='' fallbackLabel={title || 'Untitled'} />
           </div>
           <div className='release-preview-copy'>
             <span className='release-preview-artist'>{artistName || 'Artist'}</span>

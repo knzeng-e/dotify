@@ -77,7 +77,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
 
       {picked && (
         <div className='create-room-preview'>
-          <CoverImage src={picked.imageRef} alt='' />
+          <CoverImage src={picked.imageRef} alt='' fallbackLabel={picked.title} />
           <div>
             <strong>{picked.title}</strong>
             <span>{picked.artist}</span>
@@ -105,7 +105,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
                 aria-label={`Select ${track.title}`}
                 aria-pressed={picked?.id === track.id}
               >
-                <CoverImage src={track.imageRef} alt='' />
+                <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
               </button>
             ))}
           </div>

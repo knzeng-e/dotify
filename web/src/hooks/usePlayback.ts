@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
+import type { HostAudioStartupMetric } from '../features/catalog/audioStartupTelemetry';
 import type { CatalogTrack, Mode, PlayerState } from '../shared/types';
 import type { AudioStatus } from '../features/player/playbackStatus';
 
@@ -38,14 +39,6 @@ type HostAudioStartup = {
   metadataReported: boolean;
   firstAudioReported: boolean;
   errorReported: boolean;
-};
-
-type HostAudioStartupMetric = {
-  phase: 'source-selected' | 'metadata-ready' | 'first-audio' | 'error';
-  source: string;
-  elapsedMs: number;
-  durationSeconds?: number;
-  timestamp: number;
 };
 
 function nowMs(): number {

@@ -94,7 +94,7 @@ export function ReleasesTab({
                   key={track.id}
                   onClick={() => onSelectRelease(track.id)}
                 >
-                  <CoverImage src={track.imageRef} alt='' />
+                  <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
                   <span className='release-tab-copy'>
                     <strong>{track.title}</strong>
                     <small>
@@ -123,7 +123,7 @@ export function ReleasesTab({
         <article className='doc-panel release-focus-panel' id='release-detail-panel' role='tabpanel' aria-labelledby={`release-tab-${selectedDomId}`}>
           <div className='release-focus-hero'>
             <div className='release-focus-cover'>
-              <CoverImage src={selectedRelease.imageRef} alt='' />
+              <CoverImage src={selectedRelease.imageRef} alt='' fallbackLabel={selectedRelease.title} />
               <span className='sound-bars' aria-hidden='true'>
                 <i />
                 <i />

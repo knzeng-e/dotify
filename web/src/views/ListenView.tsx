@@ -100,7 +100,7 @@ export function ListenView({
                   onClick={() => onOpenTrack(featured)}
                   aria-label={`Listen to ${featured.title} by ${featured.artist}`}
                 >
-                  <CoverImage key={featured.id} src={featured.imageRef} alt='' />
+                  <CoverImage key={featured.id} src={featured.imageRef} alt='' fallbackLabel={featured.title} />
                 </button>
                 {latestTracks.length > 1 && (
                   <div className='moment-pagination' aria-label='Choose a featured track'>
@@ -237,7 +237,7 @@ export function ListenView({
             {openRooms.slice(0, 6).map(room => (
               <button className='home-room-card' type='button' key={room.roomId} onClick={() => onJoinRoom(room.roomId)}>
                 <span className='home-room-art' aria-hidden='true'>
-                  {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' />}
+                  {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' fallbackLabel={room.track.title} />}
                 </span>
                 <span className='home-room-copy'>
                   <span className='home-room-host'>{room.hostName} hosts</span>
@@ -295,7 +295,7 @@ export function ListenView({
                   style={auraStyleForTrack(track) as CSSProperties}
                 >
                   <span className='catalogue-cover-frame'>
-                    <CoverImage className='catalogue-cover' src={track.imageRef} alt='' />
+                    <CoverImage className='catalogue-cover' src={track.imageRef} alt='' fallbackLabel={track.title} />
                     <span className='catalogue-card-action' aria-hidden='true'>
                       <Headphones size={18} />
                     </span>

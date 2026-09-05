@@ -107,7 +107,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const transportProgressStyle = { '--progress': `${transportProgress}%` } as CSSProperties;
   const isBusy = status === 'preparing' || status === 'joining';
   const isOnAir = !isBusy && transport.playing;
-  const statusLabel = isOnAir ? 'ON AIR' : playbackStatusLabel(status, mode);
+  const statusLabel = isOnAir ? 'ON AIR' : playbackStatusLabel(status, mode, catalog.audioStartupStatus ?? undefined);
   const isRoomGuest = mode === 'listener' && Boolean(roomId);
   const isManagedTrack = Boolean(selectedTrack && isPolicyManagedTrack(selectedTrack));
   const needsTrackAccess = Boolean(!isRoomGuest && selectedTrack && isManagedTrack && !selectedTrackHasAccess);
@@ -278,7 +278,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <div className={'room-cover-glow' + (transport.playing ? ' on' : '')} aria-hidden='true' />
           <div className='cover-card'>
             <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
-              <CoverImage src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' />
+              <CoverImage src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' fallbackLabel={streamTitle || 'Dotify'} />
               <span className='sound-bars' aria-hidden='true'>
                 <i />
                 <i />

@@ -81,7 +81,7 @@ export function RoomsView({
                 aria-label={`Enter ${room.hostName}'s room listening to ${room.track?.title ?? 'a live session'}`}
               >
                 <span className='room-live-art' aria-hidden='true'>
-                  {room.track?.imageRef ? <CoverImage src={room.track.imageRef} alt='' /> : <Radio size={24} />}
+                  {room.track?.imageRef ? <CoverImage src={room.track.imageRef} alt='' fallbackLabel={room.track.title} /> : <Radio size={24} />}
                 </span>
                 <span className='room-live-main'>
                   <span className='room-live-kicker'>

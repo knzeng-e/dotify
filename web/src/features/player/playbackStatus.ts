@@ -15,10 +15,10 @@ export type AudioStatus =
   | 'no-audio'; //       genuine failure or missing source
 
 /** Human label for a playback status, phrased for the host or the listener. */
-export function playbackStatusLabel(status: AudioStatus, mode: Mode): string {
+export function playbackStatusLabel(status: AudioStatus, mode: Mode, preparingDetail?: string): string {
   switch (status) {
     case 'preparing':
-      return 'Preparing audio';
+      return preparingDetail || 'Preparing audio';
     case 'autoplay-blocked':
       return 'Tap play to start';
     case 'joining':
