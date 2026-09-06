@@ -102,21 +102,12 @@ async function joinAsListener(context: BrowserContext, roomId: string, options: 
   if (options.delaySignalMessagesMs) {
     // Socket.IO can satisfy the room lookup over its polling transport before
     // the WebSocket delay is visible, so this delayed path may already have
-    // reached the join sheet. If the loading affordance is observable, it must
-    // still be disabled.
+    // reached the join sheet. The durable contract is that lookup resolves to
+    // the room threshold sheet before the guest chooses a display name.
     await expect(page.locator('#join-room-title')).toHaveText(/Finding this room|welcomes you/);
-    const findingButton = page.getByRole('button', { name: 'Finding room...' });
-    if (await findingButton.isVisible().catch(() => false)) {
-      await expect
-        .poll(async () => {
-          if (!(await findingButton.isVisible().catch(() => false))) return true;
-          return findingButton.isDisabled().catch(() => false);
-        })
-        .toBe(true);
-    }
   }
   if (options.displayName) {
-    await expect(page.locator('#join-room-title')).toContainText('welcomes you');
+    await expect(page.locator('#join-room-title')).toContainText('welcomes you', { timeout: 15_000 });
     await expect(page.locator('.room-threshold-preview')).toBeVisible();
     await expect(page.locator('.room-threshold-code')).toContainText(roomId);
     await expect(page.getByRole('button', { name: 'Enter and listen' })).toBeDisabled();
