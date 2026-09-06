@@ -87,16 +87,16 @@ and the
 
 ## Deployed
 
-**EVM factory** — `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72` (Paseo Asset Hub, chainId 420420417)
+**EVM factory** — `0x835a626a9a6965b197d079ae56b1ec94033c2699` (Paseo Asset Hub, chainId 420420417)
 
-**EVM directory** — `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`
+**EVM directory** — `0x4e883827d61e573094c7b777bae323070ea9f954`
 
-> **Testnet security status (2026-07-22):** artist publication is open on the
+> **Testnet security status (2026-09-06):** artist publication is open on the
 > configured factory/directory above. Read-only audit at finalized block
-> `11268829` verified the factory/directory pairing, found no finalized or
+> `13103348` verified the factory/directory pairing, found no finalized or
 > pending runtimes, and confirmed that the configured registry facet hash matches
 > the source-level owner-only `musicRegRegister` implementation
-> (`0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788`).
+> (`0x8ade82431086a7c3fa03c39dd602e7abee4e4b588b9246adeb36537cafff6b57`).
 > The previous Paseo deployment remains documented in the
 > [registry remediation runbook](docs/operations/registry-facet-remediation.md)
 > as legacy evidence and must not be reused for new publication.
@@ -152,20 +152,20 @@ npm run dev
 
 **Environment variables** (see `services/api/.env.example`):
 
-| Variable                    | Required         | Purpose                                                  |
-| --------------------------- | ---------------- | -------------------------------------------------------- |
-| `API_ORIGIN`                | Compatibility    | Singular frontend CORS origin fallback                   |
-| `API_ORIGINS`               | Production       | Comma-separated exact frontend CORS origins              |
-| `PASEO_ASSET_HUB_RPC`       | Key requests     | Paseo Asset Hub EVM RPC used for access checks           |
-| `DOTIFY_DIRECTORY_ADDRESS`  | Key requests     | ArtistDirectory address used to resolve artist runtimes  |
-| `DOTIFY_CHAIN_ID`           | Key requests     | Chain ID expected in wallet-signed key requests          |
-| `CATALOG_SNAPSHOT_PATH`     | Catalog API      | Durable JSON snapshot path (default `.data/catalog.json`) |
-| `CATALOG_POLL_INTERVAL_MS`  | Catalog API      | Confirmed event polling interval                         |
-| `CATALOG_RECONCILE_INTERVAL_MS` | Catalog API  | Full deterministic on-chain reconciliation interval      |
-| `CATALOG_STALE_AFTER_MS`    | Catalog API      | Age at which cached data reports `stale-cache`            |
-| `CATALOG_CONFIRMATIONS`     | Catalog API      | Blocks held back before indexing event changes            |
-| `PINATA_JWT`                | For uploads      | Server-side Pinata token (never expose in frontend)      |
-| `CONTENT_KEY_MASTER_SECRET` | For audio upload | 32-byte hex master secret for AES-256-GCM key derivation |
+| Variable                        | Required         | Purpose                                                   |
+| ------------------------------- | ---------------- | --------------------------------------------------------- |
+| `API_ORIGIN`                    | Compatibility    | Singular frontend CORS origin fallback                    |
+| `API_ORIGINS`                   | Production       | Comma-separated exact frontend CORS origins               |
+| `PASEO_ASSET_HUB_RPC`           | Key requests     | Paseo Asset Hub EVM RPC used for access checks            |
+| `DOTIFY_DIRECTORY_ADDRESS`      | Key requests     | ArtistDirectory address used to resolve artist runtimes   |
+| `DOTIFY_CHAIN_ID`               | Key requests     | Chain ID expected in wallet-signed key requests           |
+| `CATALOG_SNAPSHOT_PATH`         | Catalog API      | Durable JSON snapshot path (default `.data/catalog.json`) |
+| `CATALOG_POLL_INTERVAL_MS`      | Catalog API      | Confirmed event polling interval                          |
+| `CATALOG_RECONCILE_INTERVAL_MS` | Catalog API      | Full deterministic on-chain reconciliation interval       |
+| `CATALOG_STALE_AFTER_MS`        | Catalog API      | Age at which cached data reports `stale-cache`            |
+| `CATALOG_CONFIRMATIONS`         | Catalog API      | Blocks held back before indexing event changes            |
+| `PINATA_JWT`                    | For uploads      | Server-side Pinata token (never expose in frontend)       |
+| `CONTENT_KEY_MASTER_SECRET`     | For audio upload | 32-byte hex master secret for AES-256-GCM key derivation  |
 
 Set `VITE_DOTIFY_API_URL=http://localhost:8790` in `web/.env.local` to route
 audio, cover, and metadata uploads through the backend. In this mode the
@@ -200,14 +200,14 @@ a restricted upload-only Pinata token. Do not use an unrestricted token in demos
 
 **Inspecting API health**:
 
-| Endpoint            | Purpose                                                                     |
-| ------------------- | --------------------------------------------------------------------------- |
-| `GET /health`       | Liveness: process status, uptime, package version. Never touches the chain. |
-| `GET /version`      | Package version plus the deploy commit SHA when known                       |
-| `GET /health/ready` | Readiness diagnostics; answers `503` when key delivery cannot work          |
-| `GET /api/catalog`  | Paginated release read model with ETag, cache policy, and block-lag metadata |
-| `GET /api/catalog/artists/:address` | Artist detail plus indexed releases                     |
-| `GET /api/catalog/releases/:hash`   | Release detail with access and royalty summary          |
+| Endpoint                            | Purpose                                                                      |
+| ----------------------------------- | ---------------------------------------------------------------------------- |
+| `GET /health`                       | Liveness: process status, uptime, package version. Never touches the chain.  |
+| `GET /version`                      | Package version plus the deploy commit SHA when known                        |
+| `GET /health/ready`                 | Readiness diagnostics; answers `503` when key delivery cannot work           |
+| `GET /api/catalog`                  | Paginated release read model with ETag, cache policy, and block-lag metadata |
+| `GET /api/catalog/artists/:address` | Artist detail plus indexed releases                                          |
+| `GET /api/catalog/releases/:hash`   | Release detail with access and royalty summary                               |
 
 The commit SHA comes from the `GIT_COMMIT_SHA` env variable, falling back to
 `git rev-parse HEAD` in dev checkouts.
@@ -457,18 +457,18 @@ handle:
 
 ## Structure
 
-| Path               | Role                                                   |
-| ------------------ | ------------------------------------------------------ |
-| `web/`             | React app, signaling server, Bulletin deploy scripts   |
-| `web/.papi/`       | PAPI descriptors for Bulletin Chain                    |
-| `services/api/`    | Backend API: catalog index, health, uploads, auth, key delivery |
-| `contracts/evm/`   | Hardhat + Solidity smart-runtime contracts             |
-| `docs/product/`    | Product policy and UX flow documentation               |
-| `docs/security/`   | Security boundaries and threat models                  |
-| `deployments.json` | EVM factory, directory, initializer, pallet addresses  |
-| `brand/`           | Logo, lockups, app icons and favicons                  |
-| `docs/images/`     | Product screenshots used in this README                |
-| `docs/presentation/` | Project presentation deck (PDF)                      |
+| Path                 | Role                                                            |
+| -------------------- | --------------------------------------------------------------- |
+| `web/`               | React app, signaling server, Bulletin deploy scripts            |
+| `web/.papi/`         | PAPI descriptors for Bulletin Chain                             |
+| `services/api/`      | Backend API: catalog index, health, uploads, auth, key delivery |
+| `contracts/evm/`     | Hardhat + Solidity smart-runtime contracts                      |
+| `docs/product/`      | Product policy and UX flow documentation                        |
+| `docs/security/`     | Security boundaries and threat models                           |
+| `deployments.json`   | EVM factory, directory, initializer, pallet addresses           |
+| `brand/`             | Logo, lockups, app icons and favicons                           |
+| `docs/images/`       | Product screenshots used in this README                         |
+| `docs/presentation/` | Project presentation deck (PDF)                                 |
 
 ## Roadmap
 

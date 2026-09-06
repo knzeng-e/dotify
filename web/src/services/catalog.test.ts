@@ -94,7 +94,10 @@ describe('fetchCatalog', () => {
 
 describe('readBundledCatalog', () => {
   it('exposes the Product DevNet bootstrap catalog only for the matching product id', () => {
-    expect(readBundledCatalog({ apiUrl: 'https://api.dotify.example', productId: 'dotify-test01.dot' })?.items).toHaveLength(5);
+    const bundled = readBundledCatalog({ apiUrl: 'https://api.dotify.example', productId: 'dotify-test01.dot' });
+    expect(bundled?.items).toHaveLength(0);
+    expect(bundled?.pagination.total).toBe(0);
+    expect(bundled?.meta.cacheAvailable).toBe(true);
     expect(readBundledCatalog({ apiUrl: 'https://api.dotify.example', productId: 'other.dot' })).toBeNull();
     expect(readBundledCatalog({ apiUrl: '', productId: 'dotify-test01.dot' })).toBeNull();
   });

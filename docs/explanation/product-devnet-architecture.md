@@ -79,18 +79,18 @@ Socket.IO, and WebRTC signaling.
 
 ## Capability Matrix
 
-| Capability            | Standalone                                    | Product build now                                                                                                                     | Product-native target                                                                  |
-| --------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Browse catalog        | Fly cache + EVM RPC                           | Same                                                                                                                                  | Host-routed read adapter where it improves reliability                                 |
-| Play Free track       | No wallet                                     | No wallet                                                                                                                             | Same                                                                                   |
-| Join room link        | No wallet                                     | No wallet                                                                                                                             | Same                                                                                   |
-| Host room             | Socket.IO + WebRTC                            | Product Desktop/web host: same. Product Mobile iOS: external-browser continuation until the host exposes Product WebRTC.              | Keep until a multiparty replacement proves equivalent UX                               |
-| Product identity      | Not applicable                                | App-scoped SS58/H160                                                                                                                  | Host identity with explicit capability grants                                          |
+| Capability            | Standalone                                                                                                                                                                                          | Product build now                                                                                                                     | Product-native target                                                                  |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Browse catalog        | Fly cache + EVM RPC                                                                                                                                                                                 | Same                                                                                                                                  | Host-routed read adapter where it improves reliability                                 |
+| Play Free track       | No wallet                                                                                                                                                                                           | No wallet                                                                                                                             | Same                                                                                   |
+| Join room link        | No wallet                                                                                                                                                                                           | No wallet                                                                                                                             | Same                                                                                   |
+| Host room             | Socket.IO + WebRTC                                                                                                                                                                                  | Product Desktop/web host: same. Product Mobile iOS: external-browser continuation until the host exposes Product WebRTC.              | Keep until a multiparty replacement proves equivalent UX                               |
+| Product identity      | Not applicable                                                                                                                                                                                      | App-scoped SS58/H160                                                                                                                  | Host identity with explicit capability grants                                          |
 | Classic payment       | Native runtime payment intent through `RuntimeWritePort`; the asset label is derived from the connected EVM `chainId` (`PAS` on Product DevNet/Paseo, `DOT` on a DOT-backed Polkadot Hub EVM chain) | Passkey/EVM wallet in the tracked build; Product CDM writer only when `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` is explicitly enabled | CASH settlement after the Product payment rail is designed                             |
-| Protected key request | EIP-191 or session token                      | `product-sr25519-v1` when a Product account is connected; EIP-191 or session token otherwise                                          | Frontend-host signed Product key/session requests, with captured host signing evidence |
-| Artist publication    | viem/EVM                                      | viem/EVM                                                                                                                              | Generated CDM contract adapter                                                         |
-| Personhood            | Current on-chain policy source                | No new claim                                                                                                                          | Privacy-preserving Product proof after verification                                    |
-| Static delivery       | Netlify                                       | Bulletin + DotNS                                                                                                                      | Bulletin + DotNS                                                                       |
+| Protected key request | EIP-191 or session token                                                                                                                                                                            | `product-sr25519-v1` when a Product account is connected; EIP-191 or session token otherwise                                          | Frontend-host signed Product key/session requests, with captured host signing evidence |
+| Artist publication    | viem/EVM                                                                                                                                                                                            | viem/EVM                                                                                                                              | Generated CDM contract adapter                                                         |
+| Personhood            | Current on-chain policy source                                                                                                                                                                      | No new claim                                                                                                                          | Privacy-preserving Product proof after verification                                    |
+| Static delivery       | Netlify                                                                                                                                                                                             | Bulletin + DotNS                                                                                                                      | Bulletin + DotNS                                                                       |
 
 ## Rooms Stay Host-Neutral
 
@@ -347,20 +347,16 @@ Product DevNet is a _preset_, not a network. It targets the Paseo system
 parachains - Asset Hub (1000), People (1004), Bulletin (1010) - with EVM chain
 id `420420417` and the `dev-dot.li` web gateway.
 
-That is the chain Dotify is already deployed on. Verified read-only on
-2026-07-29 by querying both endpoints for the ArtistDirectory at
-`0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`:
-
-| Endpoint                                         | `eth_chainId` | Block    | Directory bytecode             |
-| ------------------------------------------------ | ------------- | -------- | ------------------------------ |
-| `https://eth-rpc-testnet.polkadot.io/`           | `0x190f1b41`  | 11546347 | 3660 chars, sha256 `36707b24…` |
-| `https://paseo-assethub-rpc.laissez-faire.trade` | `0x190f1b41`  | 11546348 | 3660 chars, sha256 `36707b24…` |
-
-Same chain id, blocks one apart, byte-identical contract code. The two URLs are
-different providers for one chain.
+That is the chain Dotify is deployed on. Re-verified read-only on 2026-09-06
+against `https://eth-rpc-testnet.polkadot.io/` for the active ArtistDirectory at
+`0x4e883827d61e573094c7b777bae323070ea9f954`: `eth_chainId` returned
+`0x190f1b41`, `eth_getCode` returned non-empty bytecode, and `artistCount()`
+returned `0` in the reset environment.
 
 **No contract redeploy is required to port Dotify to Product DevNet.** The
-addresses in `deployments.json` are already DevNet addresses.
+addresses in `deployments.json` are already DevNet addresses. A redeploy is an
+environment reset/cutover, not a prerequisite for the Product host to read
+Dotify contracts.
 
 The trap is the SDK's `paseo` preset, which points at the Paseo **Next** v2
 deployment (Asset Hub Next 1500 / People Next 1502). The Product documentation
@@ -476,7 +472,7 @@ The current baseline is:
 | `@parity/product-sdk-host`                           | `0.16.0`                           |
 | `@parity/product-sdk-statement-store`                | `0.6.5`                            |
 | `@parity/product-sdk-descriptors`                    | `0.10.0`                           |
-| `polkadot-api`                                      | `1.23.3`                           |
+| `polkadot-api`                                       | `1.23.3`                           |
 | `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` in the deploy command     |
 | Product network                                      | `devnet`                           |
 | Product domain                                       | `dotify-test01.dot`                |

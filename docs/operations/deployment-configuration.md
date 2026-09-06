@@ -118,16 +118,16 @@ Required production variables:
 
 Optional production variables:
 
-| Key                            | When to set                                                                                                                                     |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                            | When to set                                                                                                                                        |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `VITE_DOTIFY_DEBUG_PANEL=true` | Temporary operator smoke checks and Product CDM host evidence export under `You -> Production readiness`; unset for ordinary listener deployments. |
-| `VITE_TURN_URL`                | Browser-visible TURN fallback for DevNet/static credentials. Prefer API grants for production. Accepts comma-separated `turn:` / `turns:` URLs. |
-| `VITE_TURN_USERNAME`           | Static fallback only. Do not use long-lived production credentials here.                                                                        |
-| `VITE_TURN_CREDENTIAL`         | Static fallback only. Do not use long-lived production credentials here.                                                                        |
-| `VITE_ETH_RPC_URL`             | Override the default Paseo Asset Hub EVM RPC. Must be HTTPS in production.                                                                      |
-| `VITE_WS_URL`                  | Override the default Polkadot WebSocket RPC. Must be WSS in production.                                                                         |
-| `VITE_BULLETIN_WS_URL`         | Override the default Paseo Bulletin RPC. Must be WSS in production.                                                                             |
-| `VITE_BLOCKSCOUT_BASE_URL`     | Override explorer links. Must be HTTPS in production.                                                                                           |
+| `VITE_TURN_URL`                | Browser-visible TURN fallback for DevNet/static credentials. Prefer API grants for production. Accepts comma-separated `turn:` / `turns:` URLs.    |
+| `VITE_TURN_USERNAME`           | Static fallback only. Do not use long-lived production credentials here.                                                                           |
+| `VITE_TURN_CREDENTIAL`         | Static fallback only. Do not use long-lived production credentials here.                                                                           |
+| `VITE_ETH_RPC_URL`             | Override the default Paseo Asset Hub EVM RPC. Must be HTTPS in production.                                                                         |
+| `VITE_WS_URL`                  | Override the default Polkadot WebSocket RPC. Must be WSS in production.                                                                            |
+| `VITE_BULLETIN_WS_URL`         | Override the default Paseo Bulletin RPC. Must be WSS in production.                                                                                |
+| `VITE_BLOCKSCOUT_BASE_URL`     | Override explorer links. Must be HTTPS in production.                                                                                              |
 
 Deploy-preview note:
 
@@ -165,15 +165,15 @@ when deciding whether to refresh a previously opened app.
 
 Current Product host SDK dependencies:
 
-| Package                                      | Current value | Latest checked 2026-08-30 |
-| -------------------------------------------- | ------------- | ------------------------- |
-| `@parity/product-sdk`                        | `0.23.0`      | `0.25.0`                  |
-| `@parity/product-sdk-host`                   | `0.16.0`      | `0.18.0`                  |
-| `@parity/product-sdk-statement-store`        | `0.6.5`       | `0.6.7`                   |
-| `@parity/product-sdk-descriptors`            | `0.10.0`      | `0.11.0`                  |
-| `polkadot-api`                              | `1.23.3`      | `3.0.0`                   |
-| `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` | `0.13.1`                  |
-| `engine.io-client`                           | `6.6.6`       | `6.6.6`                   |
+| Package                                              | Current value | Latest checked 2026-08-30 |
+| ---------------------------------------------------- | ------------- | ------------------------- |
+| `@parity/product-sdk`                                | `0.23.0`      | `0.25.0`                  |
+| `@parity/product-sdk-host`                           | `0.16.0`      | `0.18.0`                  |
+| `@parity/product-sdk-statement-store`                | `0.6.5`       | `0.6.7`                   |
+| `@parity/product-sdk-descriptors`                    | `0.10.0`      | `0.11.0`                  |
+| `polkadot-api`                                       | `1.23.3`      | `3.0.0`                   |
+| `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1`      | `0.13.1`                  |
+| `engine.io-client`                                   | `6.6.6`       | `6.6.6`                   |
 
 Keep the Product SDK packages pinned exactly during Product DevNet hardening.
 Recheck npm and the official Product docs before changing them because the
@@ -266,8 +266,8 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | `NODE_ENV`                 | `production`                                                                                                                                                                                                                 |
 | `API_ORIGINS`              | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 | `PASEO_ASSET_HUB_RPC`      | `https://eth-rpc-testnet.polkadot.io/`                                                                                                                                                                                       |
-| `DOTIFY_FACTORY_ADDRESS`   | `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72`                                                                                                                                                                                 |
-| `DOTIFY_DIRECTORY_ADDRESS` | `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`                                                                                                                                                                                 |
+| `DOTIFY_FACTORY_ADDRESS`   | `0x835a626a9a6965b197d079ae56b1ec94033c2699`                                                                                                                                                                                 |
+| `DOTIFY_DIRECTORY_ADDRESS` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
 | `DOTIFY_CHAIN_ID`          | `420420417`                                                                                                                                                                                                                  |
 
 Do not store `API_ORIGINS` as a Fly secret. Fly secrets override `[env]` values
@@ -316,6 +316,15 @@ For production-grade catalog evidence:
 - keep only one active API machine writing the catalog snapshot;
 - keep at least one machine warm while measuring catalog p75 performance, then
   record whether the trace was warm or cold.
+
+When `DOTIFY_FACTORY_ADDRESS` or `DOTIFY_DIRECTORY_ADDRESS` changes, clear the
+old catalog snapshot or force a reindex before using the public API as release
+evidence. A clean redeploy to the September 2026 factory
+`0x835a626a9a6965b197d079ae56b1ec94033c2699` and directory
+`0x4e883827d61e573094c7b777bae323070ea9f954` starts with zero registered
+artists and zero releases. If `GET /api/catalog` still returns runtime
+`0x84D5062F2195758E42100845151c3f80BfAA5482` or blocks near `11269xxx`, the
+hosted API is still serving the previous environment.
 
 TURN relay variables:
 

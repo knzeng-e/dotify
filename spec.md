@@ -157,15 +157,15 @@ Dotify uses an EVM smart-runtime system on Paseo Asset Hub.
 
 Current testnet deployment:
 
-- factory: `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72`
-- directory: `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`
+- factory: `0x835a626a9a6965b197d079ae56b1ec94033c2699`
+- directory: `0x4e883827d61e573094c7b777bae323070ea9f954`
 - chain: Paseo Asset Hub, chainId `420420417`
 
 Security status: these configured addresses point to a fresh factory/directory
 whose registry facet matches the source-level owner-only `musicRegRegister`
-implementation. Read-only audit at finalized block `11268829` verified the
+implementation. Read-only audit at finalized block `13103348` verified the
 factory/directory pairing, the corrected registry code hash
-`0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788`, zero
+`0x8ade82431086a7c3fa03c39dd602e7abee4e4b588b9246adeb36537cafff6b57`, zero
 finalized runtimes, and zero pending runtimes. New artist runtime creation and
 release registration are therefore enabled for this deployment. The legacy
 quarantined deployment and its remediation procedure remain documented in
@@ -426,11 +426,11 @@ Important browser-exposed variables:
 
 | Variable                  | Purpose                                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------------------ |
-| `VITE_DOTIFY_DEPLOYMENT`  | build-time deployment safety mode; set `production` for public production builds            |
-| `VITE_DOTIFY_HOST_MODE`   | Product host mode (`off`, `auto`, or `required`)                                             |
-| `VITE_DOTIFY_PRODUCT_ID`  | `.dot` name used for app-scoped Product account derivation                                   |
-| `VITE_PUBLIC_APP_URL`     | canonical public room-link origin for Product/container builds                              |
-| `VITE_DOTIFY_DEBUG_PANEL` | optional flag that shows the read-only Production readiness panel under `You`                |
+| `VITE_DOTIFY_DEPLOYMENT`  | build-time deployment safety mode; set `production` for public production builds           |
+| `VITE_DOTIFY_HOST_MODE`   | Product host mode (`off`, `auto`, or `required`)                                           |
+| `VITE_DOTIFY_PRODUCT_ID`  | `.dot` name used for app-scoped Product account derivation                                 |
+| `VITE_PUBLIC_APP_URL`     | canonical public room-link origin for Product/container builds                             |
+| `VITE_DOTIFY_DEBUG_PANEL` | optional flag that shows the read-only Production readiness panel under `You`              |
 | `VITE_SIGNAL_URL`         | Socket.IO signaling server URL                                                             |
 | `VITE_LOCAL_WS_URL`       | local Substrate websocket URL                                                              |
 | `VITE_LOCAL_ETH_RPC_URL`  | local EVM RPC URL                                                                          |
@@ -444,21 +444,21 @@ Important browser-exposed variables:
 
 Server/script variables:
 
-| Variable                    | Purpose                                            |
-| --------------------------- | -------------------------------------------------- |
-| `SIGNAL_PORT`               | local signaling server port                        |
-| `SIGNAL_ORIGINS`            | allowed frontend origins for signaling             |
-| `API_PORT`                  | backend API port                                   |
-| `API_ORIGIN`                | backwards-compatible singular frontend CORS origin |
-| `API_ORIGINS`               | comma-separated exact frontend CORS origins         |
-| `PASEO_ASSET_HUB_RPC`       | backend RPC endpoint for access checks             |
-| `DOTIFY_DIRECTORY_ADDRESS`  | backend ArtistDirectory address for runtime lookup |
-| `DOTIFY_CHAIN_ID`           | chain ID expected in signed key requests           |
-| `PINATA_JWT`                | backend-only Pinata credential                     |
-| `CONTENT_KEY_MASTER_SECRET` | backend-only content-key derivation secret         |
+| Variable                    | Purpose                                              |
+| --------------------------- | ---------------------------------------------------- |
+| `SIGNAL_PORT`               | local signaling server port                          |
+| `SIGNAL_ORIGINS`            | allowed frontend origins for signaling               |
+| `API_PORT`                  | backend API port                                     |
+| `API_ORIGIN`                | backwards-compatible singular frontend CORS origin   |
+| `API_ORIGINS`               | comma-separated exact frontend CORS origins          |
+| `PASEO_ASSET_HUB_RPC`       | backend RPC endpoint for access checks               |
+| `DOTIFY_DIRECTORY_ADDRESS`  | backend ArtistDirectory address for runtime lookup   |
+| `DOTIFY_CHAIN_ID`           | chain ID expected in signed key requests             |
+| `PINATA_JWT`                | backend-only Pinata credential                       |
+| `CONTENT_KEY_MASTER_SECRET` | backend-only content-key derivation secret           |
 | `TURN_URLS`                 | public TURN relay URLs returned by `/api/turn/grant` |
-| `TURN_REST_SECRET`          | backend-only TURN REST HMAC secret                 |
-| `BULLETIN_ACCOUNT`          | dev account used by Bulletin deploy script         |
+| `TURN_REST_SECRET`          | backend-only TURN REST HMAC secret                   |
+| `BULLETIN_ACCOUNT`          | dev account used by Bulletin deploy script           |
 
 ## 11. Wallet And Passkey Design
 

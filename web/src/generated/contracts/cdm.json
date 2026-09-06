@@ -6,7 +6,7 @@
   "contracts": {
     "@dotify/artist-directory": {
       "version": 1,
-      "address": "0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108",
+      "address": "0x4e883827d61e573094c7b777bae323070ea9f954",
       "abi": [
         {
           "inputs": [],
@@ -186,7 +186,7 @@
     },
     "@dotify/artist-runtime-factory": {
       "version": 1,
-      "address": "0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72",
+      "address": "0x835a626a9a6965b197d079ae56b1ec94033c2699",
       "abi": [
         {
           "inputs": [
