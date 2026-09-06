@@ -134,10 +134,33 @@ export async function fetchAssetRef(assetRef: string, options: GatewayReadOption
 // Backend upload helpers
 // ---------------------------------------------------------------------------
 
+export type BackendUploadErrorBody = {
+  error?: unknown;
+  issues?: Array<{
+    path?: unknown;
+    message?: unknown;
+  }>;
+};
+
+export function formatBackendUploadError(body: BackendUploadErrorBody | null | undefined, fallback: string): string {
+  const message = typeof body?.error === 'string' && body.error.trim() ? body.error : fallback;
+  const issues = Array.isArray(body?.issues)
+    ? body.issues
+        .map(issue => {
+          const path = typeof issue.path === 'string' ? issue.path.trim() : '';
+          const detail = typeof issue.message === 'string' ? issue.message.trim() : '';
+          if (path && detail) return `${path}: ${detail}`;
+          return path || detail || '';
+        })
+        .filter(Boolean)
+    : [];
+  return issues.length > 0 ? `${message}: ${issues.join('; ')}` : message;
+}
+
 async function parseBackendError(res: Response, fallback: string): Promise<string> {
   try {
-    const body = (await res.json()) as { error?: string };
-    return body.error ?? fallback;
+    const body = (await res.json()) as BackendUploadErrorBody;
+    return formatBackendUploadError(body, fallback);
   } catch {
     return fallback;
   }

@@ -13,6 +13,7 @@ import {
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
+import { resolvePreparedUpload } from '../features/uploads/preparedUpload';
 import { createViemRuntimeWriter } from '../features/runtime/viemRuntimeAdapter';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
 import { resolveConfiguredArtistPublicationSafety } from '../shared/config/deploymentSafety';
@@ -669,12 +670,18 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       const rawAudioBytes = rawAudioBlob ? new Uint8Array(await rawAudioBlob.arrayBuffer()) : null;
 
       const [resolvedAudioUpload, resolvedCoverCID] = await Promise.all([
-        audioUploadRef.current ??
-          (rawAudioBytes
+        resolvePreparedUpload(audioUploadRef, () =>
+          rawAudioBytes
             ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash)
-            : Promise.resolve('')),
-        coverUploadRef.current ?? (coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }) : Promise.resolve(''))
+            : Promise.resolve('')
+        ),
+        resolvePreparedUpload(coverUploadRef, () =>
+          coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }) : Promise.resolve('')
+        )
       ]);
+      if (!resolvedAudioUpload.trim()) {
+        throw new Error('Audio upload did not complete. Select the audio file again and retry.');
+      }
       const resolvedAudioCID = resolvedAudioUpload ? protectedAudioUploadToCID(resolvedAudioUpload) : '';
       const resolvedAudioRef = resolvedAudioUpload ? protectedAudioUploadToRef(resolvedAudioUpload) : '';
 
