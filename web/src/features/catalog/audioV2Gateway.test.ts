@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   AUDIO_V2_HEDGE_DELAY_MS,
+  AUDIO_V2_RANGE_ATTEMPTS_PER_GATEWAY,
   AUDIO_V2_RANGE_TIMEOUT_MS,
   clearAudioV2GatewayCache,
   fetchAudioV2RangeThroughGateways,
@@ -30,6 +31,21 @@ describe('audioV2 gateway range fetching', () => {
     expect(AUDIO_V2_RANGE_TIMEOUT_MS).toBeGreaterThanOrEqual(12_000);
     expect(AUDIO_V2_HEDGE_DELAY_MS).toBeGreaterThanOrEqual(6_000);
     expect(AUDIO_V2_HEDGE_DELAY_MS).toBeLessThan(AUDIO_V2_RANGE_TIMEOUT_MS);
+    expect(AUDIO_V2_RANGE_ATTEMPTS_PER_GATEWAY).toBeGreaterThanOrEqual(2);
+  });
+
+  it('retries a transient network failure on the same gateway before falling back', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(rangeResponse(9, 3));
+
+    const result = await fetchAudioV2RangeThroughGateways(CID, 0, 8, {
+      fetchImpl: fetchMock,
+      getGatewayUrlsForCid: () => [PRIMARY, FALLBACK],
+      hedge: false
+    });
+
+    expect(result.bytes).toEqual(new Uint8Array(9).fill(3));
+    expect(result.gatewayUrl).toBe(PRIMARY);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([PRIMARY, PRIMARY]);
   });
 
   it('falls back to the next gateway and caches the winner per CID', async () => {

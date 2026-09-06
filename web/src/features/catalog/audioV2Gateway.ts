@@ -45,6 +45,7 @@ type Attempt = {
 
 export const AUDIO_V2_RANGE_TIMEOUT_MS = 12_000;
 export const AUDIO_V2_HEDGE_DELAY_MS = 6_500;
+export const AUDIO_V2_RANGE_ATTEMPTS_PER_GATEWAY = 2;
 const MAX_PARALLEL_HEDGED_RANGES = 2;
 
 const winningGatewayByCid = new Map<string, string>();
@@ -62,6 +63,12 @@ function orderGatewaysForCid(cid: string, gateways: string[]): { ordered: string
 function formatError(error: unknown): string {
   if (error instanceof Error) return error.message;
   return String(error);
+}
+
+function isRetryableRangeError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (error.name === 'AbortError') return true;
+  return /failed to fetch|load failed|network|returned 5\d\d/i.test(error.message);
 }
 
 function createAbortError(): Error {
@@ -117,36 +124,51 @@ function makeRangeAttempt(
 
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  const promise = fetchImpl(gatewayUrl, {
-    headers: { Range: rangeHeader },
-    signal: controller.signal
-  })
-    .then(async response => {
-      if (response.status !== 206) {
-        throw new Error(`Gateway ${gatewayUrl} did not serve a range (${response.status})`);
+  const promise = (async (): Promise<AttemptOutcome> => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < AUDIO_V2_RANGE_ATTEMPTS_PER_GATEWAY; attempt += 1) {
+      try {
+        const response = await fetchImpl(gatewayUrl, {
+          headers: { Range: rangeHeader },
+          signal: controller.signal
+        });
+        if (response.status !== 206) {
+          throw new Error(`Gateway ${gatewayUrl} did not serve a range (${response.status})`);
+        }
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        validateRangeBytes(response, bytes, gatewayUrl, start, end, phase);
+        return {
+          ok: true as const,
+          id,
+          bytes,
+          gatewayUrl,
+          elapsedMs: Number((nowMs() - startedAt).toFixed(1)),
+          fromCache: gatewayUrl === cachedGateway
+        };
+      } catch (error) {
+        lastError = error;
+        if (controller.signal.aborted || attempt === AUDIO_V2_RANGE_ATTEMPTS_PER_GATEWAY - 1 || !isRetryableRangeError(error)) {
+          return {
+            ok: false as const,
+            id,
+            error,
+            gatewayUrl,
+            elapsedMs: Number((nowMs() - startedAt).toFixed(1))
+          };
+        }
       }
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      validateRangeBytes(response, bytes, gatewayUrl, start, end, phase);
-      return {
-        ok: true as const,
-        id,
-        bytes,
-        gatewayUrl,
-        elapsedMs: Number((nowMs() - startedAt).toFixed(1)),
-        fromCache: gatewayUrl === cachedGateway
-      };
-    })
-    .catch(error => ({
+    }
+    return {
       ok: false as const,
       id,
-      error,
+      error: lastError ?? new Error(`Gateway ${gatewayUrl} did not return a range`),
       gatewayUrl,
       elapsedMs: Number((nowMs() - startedAt).toFixed(1))
-    }))
-    .finally(() => {
-      clearTimeout(timeoutId);
-      signal?.removeEventListener('abort', abortFromParent);
-    });
+    };
+  })().finally(() => {
+    clearTimeout(timeoutId);
+    signal?.removeEventListener('abort', abortFromParent);
+  });
 
   return { id, controller, promise };
 }

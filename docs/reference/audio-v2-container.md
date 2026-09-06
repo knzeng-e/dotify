@@ -76,7 +76,7 @@ The web client resolves refs in this order:
    one stalls, and the winning gateway is cached per CID for the browser
    session.
 3. If the browser supports `MediaSource.isTypeSupported(header.mediaMime)`,
-   import the content key once, prepare the current chunk plus two future chunks,
+   import the content key once, prepare the current chunk plus one future chunk,
    and append clear chunks to a `SourceBuffer` in strict index order.
 4. If Range or MSE is unavailable before streaming starts, or a recoverable
    gateway/MSE append error happens while streaming, fetch the full encrypted
@@ -97,7 +97,7 @@ header is accepted after the byte-count check because some gateways do not expos
 it through CORS. Header ranges may be shorter only when a small object ends before
 the requested upper bound.
 
-The read-ahead window is deliberately small: the current chunk and two future
+The read-ahead window is deliberately small: the current chunk and one future
 chunks may be prepared, while only one clear chunk is appended at a time. Track
 selection cancellation aborts the pipeline and its in-flight gateway requests.
 This lowers dead air without turning public gateways into an unbounded fan-out
