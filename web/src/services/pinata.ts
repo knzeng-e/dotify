@@ -22,12 +22,18 @@ const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.rep
 // Demo/local mode credentials — browser-side Pinata only.
 // These env vars have no effect when API_URL is configured.
 const JWT = import.meta.env.VITE_PINATA_JWT as string;
-const GATEWAY = (import.meta.env.VITE_PINATA_GATEWAY as string | undefined) ?? 'https://paseo-ipfs.polkadot.io';
+const PINATA_PUBLIC_GATEWAY = 'https://gateway.pinata.cloud';
+function optionalEnvString(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+const GATEWAY = optionalEnvString(import.meta.env.VITE_PINATA_GATEWAY as string | undefined) ?? PINATA_PUBLIC_GATEWAY;
 const READ_GATEWAYS = (import.meta.env.VITE_IPFS_READ_GATEWAYS as string | undefined)
   ?.split(',')
   .map(gateway => gateway.trim())
   .filter(Boolean);
-const FALLBACK_GATEWAYS = ['https://paseo-ipfs.polkadot.io', 'https://ipfs.io', 'https://dweb.link'];
+const FALLBACK_GATEWAYS = ['https://ipfs.io', 'https://dweb.link', 'https://paseo-ipfs.polkadot.io'];
 
 const PIN_FILE_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
 const PIN_JSON_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
@@ -86,7 +92,7 @@ export function getGatewayUrl(cid: string): string {
 }
 
 export function getGatewayUrls(cid: string): string[] {
-  const gateways = [GATEWAY, ...(READ_GATEWAYS ?? []), ...FALLBACK_GATEWAYS];
+  const gateways = [GATEWAY, PINATA_PUBLIC_GATEWAY, ...(READ_GATEWAYS ?? []), ...FALLBACK_GATEWAYS];
   return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
 }
 

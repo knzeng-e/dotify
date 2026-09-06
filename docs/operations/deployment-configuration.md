@@ -47,7 +47,7 @@ Product mobile native: polkadot://dotify-test01.dot
 Backend API:         https://dotify-api.fly.dev
 Signaling:           https://dotify-signal.fly.dev
 Product IPFS:        https://devnet-ipfs.api.polkadotcommunity.foundation
-Track asset IPFS:    https://ipfs.io, https://dweb.link
+Track asset IPFS:    https://gateway.pinata.cloud, https://ipfs.io, https://dweb.link
 Asset Hub RPC:       https://eth-rpc-testnet.polkadot.io/
 ```
 
@@ -113,8 +113,8 @@ Required production variables:
 | `VITE_DOTIFY_HOST_MODE`   | `off`                                                              | Prevents the standalone build from probing Product host APIs.    |
 | `VITE_SIGNAL_URL`         | `https://dotify-signal.fly.dev`                                    | Public Socket.IO signaling origin.                               |
 | `VITE_DOTIFY_API_URL`     | `https://dotify-api.fly.dev`                                       | Backend API for uploads, key delivery, and cached catalog reads. |
-| `VITE_PINATA_GATEWAY`     | `https://paseo-ipfs.polkadot.io`                                   | Primary browser read gateway.                                    |
-| `VITE_IPFS_READ_GATEWAYS` | `https://paseo-ipfs.polkadot.io,https://ipfs.io,https://dweb.link` | Ordered fallback gateway list.                                   |
+| `VITE_PINATA_GATEWAY`     | `https://gateway.pinata.cloud`                                     | Primary browser read gateway for Pinata-backed track assets.     |
+| `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://paseo-ipfs.polkadot.io` | Ordered fallback gateway list.                                   |
 
 Optional production variables:
 
@@ -153,7 +153,7 @@ Required Product values:
 | `VITE_DOTIFY_API_URL`           | `https://dotify-api.fly.dev`                                                                                                     |
 | `VITE_SIGNAL_URL`               | `https://dotify-signal.fly.dev`                                                                                                  |
 | `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                                                            |
-| `VITE_PINATA_GATEWAY`           | `https://ipfs.io`                                                                                                                |
+| `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
 | Product executable `appVersion` | `[0, 1, 12]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
@@ -212,9 +212,10 @@ into the Product bundle.
 
 The Product IPFS gateway is the publication storage endpoint for the app bundle,
 not the most reliable first read path for the public track assets Dotify
-currently pins through Pinata. Keep `ipfs.io` and `dweb.link` before Product
-storage gateways for `VITE_PINATA_GATEWAY` and `VITE_IPFS_READ_GATEWAYS`;
-otherwise cover images can hang in the browser without firing an image error.
+currently pins through Pinata. Keep `https://gateway.pinata.cloud` first, with
+`ipfs.io` and `dweb.link` before Product storage gateways for fallback reads;
+otherwise cover images can hang in the browser without firing an image error,
+and DAV2 audio range requests can time out before playback starts.
 
 The Product build also embeds a non-secret `dotify-test01.dot` bootstrap catalog
 snapshot. It prevents first-run mobile hosts from staying on `Loading registry

@@ -362,14 +362,15 @@ unset. Do not use an unrestricted Pinata JWT here. Production uploads should set
 | ------------ | -------------------------------- |
 | **Type**     | URL string                       |
 | **Required** | No                               |
-| **Default**  | `https://paseo-ipfs.polkadot.io` |
+| **Default**  | `https://gateway.pinata.cloud` |
 
 Primary IPFS gateway for fetching audio, cover images, and metadata.
 
-For Product DevNet builds, keep a public gateway such as `https://ipfs.io` here
-while track assets are pinned through the API/Pinata path. The Product IPFS
-gateway is still used to publish the app bundle, but it may not resolve those
-public track CIDs quickly enough for browser image rendering.
+For Product DevNet builds, keep `https://gateway.pinata.cloud` here while track
+assets are pinned through the API/Pinata path. The Product IPFS gateway is still
+used to publish the app bundle, but generic public gateways may not resolve
+freshly pinned track CIDs quickly enough for browser image rendering or DAV2
+audio range requests.
 
 ---
 
@@ -379,7 +380,7 @@ public track CIDs quickly enough for browser image rendering.
 | ------------ | ------------------------------------------------------------------ |
 | **Type**     | Comma-separated URL list                                           |
 | **Required** | No                                                                 |
-| **Default**  | `https://paseo-ipfs.polkadot.io,https://ipfs.io,https://dweb.link` |
+| **Default**  | `https://ipfs.io,https://dweb.link,https://paseo-ipfs.polkadot.io` |
 
 Fallback IPFS gateways tried after `VITE_PINATA_GATEWAY`. Put gateways that
 resolve the current catalog's public track CIDs before Product storage gateways;

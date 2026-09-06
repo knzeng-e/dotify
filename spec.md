@@ -322,7 +322,8 @@ The frontend reads manifests and encrypted audio through gateway fallback logic:
 
 - primary gateway: `VITE_PINATA_GATEWAY`;
 - optional configured fallbacks: `VITE_IPFS_READ_GATEWAYS`;
-- built-in public fallbacks include Paseo IPFS, `ipfs.io`, and `dweb.link`.
+- built-in public fallbacks include Pinata's public gateway, `ipfs.io`,
+  `dweb.link`, and Paseo IPFS.
 
 This protects the app from custom gateway authorization failures such as `401`
 responses on otherwise public files.

@@ -188,25 +188,26 @@ Keep backend secrets unchanged. `API_ORIGINS` supersedes singular
 
 The Product IPFS gateway stores the published app bundle, but current Dotify
 track assets are public IPFS CIDs pinned through the API/Pinata path. Keep the
-public gateways first in `web/.env.product-devnet`:
+Pinata public gateway first in `web/.env.product-devnet` so freshly published
+audio and cover CIDs resolve before generic public IPFS gateways catch up:
 
 ```txt
-VITE_PINATA_GATEWAY=https://ipfs.io
+VITE_PINATA_GATEWAY=https://gateway.pinata.cloud
 VITE_IPFS_READ_GATEWAYS=https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443
 ```
 
-Do not make `https://devnet-ipfs.api.polkadotcommunity.foundation` the first
-track-asset read gateway unless it has been proven to resolve the current
-catalog's cover/audio CIDs. A hanging first gateway can leave `<img>` requests
-pending without firing `error`, which makes covers appear blank or disappear
-while the app waits.
+Do not make `https://devnet-ipfs.api.polkadotcommunity.foundation`, `ipfs.io`,
+or `dweb.link` the first track-asset read gateway unless it has been proven to
+resolve the current catalog's cover/audio CIDs quickly. A hanging first gateway
+can leave `<img>` requests pending without firing `error`, which makes covers
+appear blank or disappear while the app waits.
 
 Before publishing, spot-check one cover CID from the catalog:
 
 ```bash
 curl -s -L -o /dev/null --max-time 12 \
   -w '%{http_code} %{content_type} %{size_download} %{time_total}\n' \
-  https://ipfs.io/ipfs/<cover-cid>
+  https://gateway.pinata.cloud/ipfs/<cover-cid>
 ```
 
 ## 3. Verify The Browser-Safe Build Profile
