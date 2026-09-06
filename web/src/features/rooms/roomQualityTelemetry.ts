@@ -300,7 +300,7 @@ export function summarizeRoomPeerStats(report: unknown, role: RoomQualityRole): 
   const outbound = audioStats(stats, 'outbound-rtp');
   const inbound = audioStats(stats, 'inbound-rtp');
   const remoteInbound = audioStats(stats, 'remote-inbound-rtp');
-  const primaryAudio = role === 'host' ? outbound : inbound;
+  const receiverObservedAudio = role === 'host' ? remoteInbound : inbound;
   const roundTripTimeMs = secondsToMs(selectedPair?.currentRoundTripTime) ?? firstMs(remoteInbound, 'roundTripTime');
   const relay = localCandidateType || remoteCandidateType ? localCandidateType === 'relay' || remoteCandidateType === 'relay' : null;
 
@@ -310,8 +310,8 @@ export function summarizeRoomPeerStats(report: unknown, role: RoomQualityRole): 
     remoteCandidateType,
     currentRoundTripTimeMs: roundTripTimeMs,
     availableOutgoingBitrate: numberValue(selectedPair?.availableOutgoingBitrate),
-    jitterMs: firstMs(primaryAudio, 'jitter'),
-    packetsLost: sumNumber(primaryAudio, 'packetsLost'),
+    jitterMs: firstMs(receiverObservedAudio, 'jitter'),
+    packetsLost: sumNumber(receiverObservedAudio, 'packetsLost'),
     packetsSent: sumNumber(outbound, 'packetsSent'),
     packetsReceived: sumNumber(inbound, 'packetsReceived'),
     bytesSent: sumNumber(outbound, 'bytesSent'),

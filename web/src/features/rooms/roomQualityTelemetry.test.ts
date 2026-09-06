@@ -130,13 +130,13 @@ describe('room quality telemetry', () => {
     });
   });
 
-  it('summarizes host outbound audio stats', () => {
+  it('summarizes host outbound and receiver-observed audio stats', () => {
     const report = [
       { id: 'pair-1', type: 'candidate-pair', selected: true, localCandidateId: 'local-1', remoteCandidateId: 'remote-1' },
       { id: 'local-1', type: 'local-candidate', candidateType: 'host' },
       { id: 'remote-1', type: 'remote-candidate', candidateType: 'host' },
       { id: 'audio-out', type: 'outbound-rtp', kind: 'audio', packetsSent: 88, bytesSent: 4096 },
-      { id: 'remote-in', type: 'remote-inbound-rtp', kind: 'audio', roundTripTime: 0.044, packetsLost: 1 }
+      { id: 'remote-in', type: 'remote-inbound-rtp', kind: 'audio', roundTripTime: 0.044, jitter: 0.021, packetsLost: 1 }
     ];
 
     expect(summarizeRoomPeerStats(report, 'host')).toMatchObject({
@@ -144,6 +144,8 @@ describe('room quality telemetry', () => {
       localCandidateType: 'host',
       remoteCandidateType: 'host',
       currentRoundTripTimeMs: 44,
+      jitterMs: 21,
+      packetsLost: 1,
       packetsSent: 88,
       bytesSent: 4096
     });

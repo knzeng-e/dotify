@@ -660,12 +660,6 @@ export function useSession(deps: UseSessionDeps) {
     });
     socket.on('peer:connected', (payload: { from: string }) => {
       upsertListenerStatus(payload.from, 'connected');
-      const peer = hostPeersRef.current.get(payload.from) ?? null;
-      void publishPeerRoomQuality('peer-connected', 'host', peer, {
-        peerId: payload.from,
-        elapsedMs: elapsedSince(hostPeerStartedAtRef.current.get(payload.from) ?? null),
-        listenerCount: listenersRef.current.length
-      });
     });
     socket.on('room:stream-ready', () => {
       if (modeRef.current !== 'listener') return;
@@ -1096,6 +1090,7 @@ export function useSession(deps: UseSessionDeps) {
     if (modeRef.current !== 'listener' || !roomIdRef.current) return;
 
     const retryCount = listenerAudioRetryCountRef.current;
+    const retryElapsedMs = retryCount > 0 ? elapsedSince(listenerConnectionStartedAtRef.current) : undefined;
     pendingIceCandidatesRef.current.clear();
     closeListenerPeer();
     listenerOfferReceivedRef.current = false;
@@ -1104,6 +1099,7 @@ export function useSession(deps: UseSessionDeps) {
     setSessionStatus(status);
     publishRoomQuality(retryCount > 0 || /^retrying/i.test(status) ? 'retry-requested' : 'listener-ready', 'listener', {
       retryCount,
+      elapsedMs: retryElapsedMs,
       detail: status
     });
     connectSocket().emit('listener:ready');
@@ -1119,10 +1115,6 @@ export function useSession(deps: UseSessionDeps) {
 
       if (listenerAudioRetryCountRef.current < WEBRTC_AUTOMATIC_RETRIES && roomIdRef.current && socketRef.current?.connected) {
         listenerAudioRetryCountRef.current += 1;
-        publishRoomQuality('retry-requested', 'listener', {
-          retryCount: listenerAudioRetryCountRef.current,
-          elapsedMs: elapsedSince(listenerConnectionStartedAtRef.current)
-        });
         requestListenerAudioOffer('Retrying live audio');
         return;
       }
@@ -1326,7 +1318,7 @@ export function useSession(deps: UseSessionDeps) {
           socketRef.current?.emit('peer:connected', { targetId: from });
           void publishPeerRoomQuality('peer-connected', 'listener', peer, {
             peerId: from,
-            elapsedMs: elapsedSince(listenerConnectionStartedAtRef.current)
+            elapsedMs: elapsedSince(listenerJoinStartedAtRef.current)
           });
         } else if (peer.connectionState === 'failed') {
           clearListenerConnectionTimer();
