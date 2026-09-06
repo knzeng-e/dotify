@@ -162,7 +162,7 @@ function resolveVisualAssetRef(assetRef: string, title: string) {
     return createCoverFallbackDataUri(title);
   }
   if (assetRef.startsWith('ipfs://')) {
-    return getGatewayUrl(assetRef.slice('ipfs://'.length));
+    return assetRef;
   }
   if (assetRef.startsWith('http://') || assetRef.startsWith('https://') || assetRef.startsWith('data:') || assetRef.startsWith('blob:')) {
     return assetRef;
