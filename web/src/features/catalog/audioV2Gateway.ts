@@ -43,8 +43,8 @@ type Attempt = {
   promise: Promise<AttemptOutcome>;
 };
 
-const DEFAULT_RANGE_TIMEOUT_MS = 5_000;
-const DEFAULT_HEDGE_DELAY_MS = 700;
+export const AUDIO_V2_RANGE_TIMEOUT_MS = 12_000;
+export const AUDIO_V2_HEDGE_DELAY_MS = 6_500;
 const MAX_PARALLEL_HEDGED_RANGES = 2;
 
 const winningGatewayByCid = new Map<string, string>();
@@ -167,8 +167,8 @@ export async function fetchAudioV2RangeThroughGateways(cid: string, start: numbe
   throwIfAborted(options.signal);
 
   const phase = options.phase ?? 'chunk';
-  const timeoutMs = options.timeoutMs ?? DEFAULT_RANGE_TIMEOUT_MS;
-  const hedgeDelayMs = options.hedgeDelayMs ?? DEFAULT_HEDGE_DELAY_MS;
+  const timeoutMs = options.timeoutMs ?? AUDIO_V2_RANGE_TIMEOUT_MS;
+  const hedgeDelayMs = options.hedgeDelayMs ?? AUDIO_V2_HEDGE_DELAY_MS;
   const fetchImpl = options.fetchImpl ?? fetch;
   const gateways = options.getGatewayUrlsForCid?.(cid) ?? getGatewayUrls(cid);
   const { ordered, cachedGateway } = orderGatewaysForCid(cid, gateways);

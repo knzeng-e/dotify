@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearAudioV2GatewayCache, fetchAudioV2RangeThroughGateways, getCachedAudioV2Gateway } from './audioV2Gateway';
+import {
+  AUDIO_V2_HEDGE_DELAY_MS,
+  AUDIO_V2_RANGE_TIMEOUT_MS,
+  clearAudioV2GatewayCache,
+  fetchAudioV2RangeThroughGateways,
+  getCachedAudioV2Gateway
+} from './audioV2Gateway';
 
 const CID = 'QmDav2Audio';
 const PRIMARY = `https://primary.example/ipfs/${CID}`;
@@ -18,6 +24,12 @@ describe('audioV2 gateway range fetching', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     clearAudioV2GatewayCache();
+  });
+
+  it('keeps the default range budget above cold Product gateway reads', () => {
+    expect(AUDIO_V2_RANGE_TIMEOUT_MS).toBeGreaterThanOrEqual(12_000);
+    expect(AUDIO_V2_HEDGE_DELAY_MS).toBeGreaterThanOrEqual(6_000);
+    expect(AUDIO_V2_HEDGE_DELAY_MS).toBeLessThan(AUDIO_V2_RANGE_TIMEOUT_MS);
   });
 
   it('falls back to the next gateway and caches the winner per CID', async () => {
