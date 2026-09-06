@@ -30,6 +30,26 @@ socket.emit('rooms:list', (rooms: OpenRoom[]) => { ... });
 OpenRoom[]
 ```
 
+Each `OpenRoom` is a public, source-redacted snapshot:
+
+```typescript
+{
+  roomId: string;
+  title?: string;
+  hostName: string;
+  createdAt: number;
+  expiresAt?: number;
+  listenerCount: number;
+  maxListeners?: number;
+  isFull?: boolean;
+  track: TrackInfo | null;        // no source-bearing refs
+  playerState: PlayerState | null;
+  playbackMode?: 'full' | 'preview';
+  hostAccessRequired?: boolean;
+  listenersNeedWalletAccess?: false;
+}
+```
+
 ---
 
 ### `rooms:updated`
@@ -102,7 +122,9 @@ socket.emit('room:join', {
 { ok: false; error: string; code?: string }
 ```
 
-On success, the host receives a `listener:joined` event for this listener.
+Known failure codes include `ROOM_NOT_FOUND`, `HOST_RECONNECTING`,
+`ROOM_FULL`, and `JOIN_THROTTLED`. On success, the host receives a
+`listener:joined` event for this listener.
 
 ---
 

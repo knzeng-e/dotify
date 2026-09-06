@@ -36,3 +36,19 @@ export function buildSessionLink(roomId: string, href: string = typeof window ==
 export function roomPresenceCount(listenerCount: number, inRoom: boolean): number {
   return inRoom ? listenerCount + 1 : 0;
 }
+
+/** Listener-facing host/audio state, kept short enough for the compact player roster. */
+export function roomListenerSyncLabel(remoteReady: boolean, sessionStatus: string): string {
+  if (remoteReady) return 'In sync';
+
+  const normalized = sessionStatus.trim().toLowerCase();
+  if (normalized.includes('browser required')) return 'Browser required';
+  if (normalized.includes('host reconnecting')) return 'Host reconnecting';
+  if (normalized.includes('retrying')) return 'Retrying audio';
+  if (normalized.includes('reconnecting')) return 'Reconnecting';
+  if (normalized.includes('audio connection failed') || normalized.includes('webrtc error') || normalized.includes('audio blocked')) return 'Audio interrupted';
+  if (normalized.includes('negotiating') || normalized.includes('connecting audio')) return 'Connecting audio';
+  if (normalized.includes('waiting')) return 'Waiting for host';
+
+  return 'Waiting for host';
+}

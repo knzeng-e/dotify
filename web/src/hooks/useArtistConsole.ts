@@ -671,9 +671,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       const [resolvedAudioUpload, resolvedCoverCID] = await Promise.all([
         resolvePreparedUpload(audioUploadRef, () =>
-          rawAudioBytes
-            ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash)
-            : Promise.resolve('')
+          rawAudioBytes ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash) : Promise.resolve('')
         ),
         resolvePreparedUpload(coverUploadRef, () =>
           coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }) : Promise.resolve('')

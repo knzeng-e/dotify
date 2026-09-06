@@ -76,9 +76,13 @@ export function RoomsView({
                 className='room-live-card'
                 type='button'
                 key={room.roomId}
-                onClick={() => onJoinRoom(room.roomId)}
-                disabled={sessionAction !== 'idle'}
-                aria-label={`Enter ${room.hostName}'s room listening to ${room.track?.title ?? 'a live session'}`}
+                onClick={() => {
+                  if (!room.isFull) onJoinRoom(room.roomId);
+                }}
+                disabled={sessionAction !== 'idle' || room.isFull}
+                aria-label={
+                  room.isFull ? `${room.hostName}'s room is full` : `Enter ${room.hostName}'s room listening to ${room.track?.title ?? 'a live session'}`
+                }
               >
                 <span className='room-live-art' aria-hidden='true'>
                   {room.track?.imageRef ? <CoverImage src={room.track.imageRef} alt='' fallbackLabel={room.track.title} /> : <Radio size={24} />}
@@ -98,7 +102,7 @@ export function RoomsView({
                 <span className='room-live-side'>
                   <code>{room.roomId}</code>
                   <span>
-                    {isJoining ? 'Joining' : 'Enter'}
+                    {room.isFull ? 'Full' : isJoining ? 'Joining' : 'Enter'}
                     <ArrowRight size={15} />
                   </span>
                 </span>

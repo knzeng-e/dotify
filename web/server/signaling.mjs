@@ -207,7 +207,9 @@ export function startSignalingServer(overrides = {}) {
       listenersNeedWalletAccess: false,
       createdAt: room.createdAt,
       expiresAt: room.createdAt + config.roomTtlMs,
-      listenerCount: room.listeners.size
+      listenerCount: room.listeners.size,
+      maxListeners: config.maxListenersPerRoom,
+      isFull: room.listeners.size >= config.maxListenersPerRoom
     };
   }
 

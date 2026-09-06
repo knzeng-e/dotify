@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSessionLink, getInitialRoomCode, roomPresenceCount } from './roomState';
+import { buildSessionLink, getInitialRoomCode, roomListenerSyncLabel, roomPresenceCount } from './roomState';
 
 describe('getInitialRoomCode', () => {
   it('reads and uppercases the preferred #/rooms/<id> form', () => {
@@ -47,5 +47,18 @@ describe('roomPresenceCount', () => {
 
   it('is zero when not in a room', () => {
     expect(roomPresenceCount(5, false)).toBe(0);
+  });
+});
+
+describe('roomListenerSyncLabel', () => {
+  it('shows sync only after remote audio is ready', () => {
+    expect(roomListenerSyncLabel(true, 'Host reconnecting')).toBe('In sync');
+  });
+
+  it('maps recovery and failure states to listener-safe copy', () => {
+    expect(roomListenerSyncLabel(false, 'Host reconnecting')).toBe('Host reconnecting');
+    expect(roomListenerSyncLabel(false, 'Retrying live audio')).toBe('Retrying audio');
+    expect(roomListenerSyncLabel(false, 'Audio connection failed')).toBe('Audio interrupted');
+    expect(roomListenerSyncLabel(false, 'Waiting stream')).toBe('Waiting for host');
   });
 });

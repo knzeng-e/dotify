@@ -19,25 +19,28 @@ import { SessionProvider } from './SessionProvider';
 import { ArtistStudioProvider } from './ArtistStudioProvider';
 import { PlaybackProvider } from './PlaybackProvider';
 import { AudioStartupTelemetryProvider } from './AudioStartupTelemetryProvider';
+import { RoomQualityTelemetryProvider } from './RoomQualityTelemetryProvider';
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <AudioStartupTelemetryProvider>
-      <UiFeedbackProvider>
-        <WalletProvider>
-          <NavigationProvider>
-            <ReleaseFormProvider>
-              <CatalogProvider>
-                <SessionProvider>
-                  <ArtistStudioProvider>
-                    <PlaybackProvider>{children}</PlaybackProvider>
-                  </ArtistStudioProvider>
-                </SessionProvider>
-              </CatalogProvider>
-            </ReleaseFormProvider>
-          </NavigationProvider>
-        </WalletProvider>
-      </UiFeedbackProvider>
+      <RoomQualityTelemetryProvider>
+        <UiFeedbackProvider>
+          <WalletProvider>
+            <NavigationProvider>
+              <ReleaseFormProvider>
+                <CatalogProvider>
+                  <SessionProvider>
+                    <ArtistStudioProvider>
+                      <PlaybackProvider>{children}</PlaybackProvider>
+                    </ArtistStudioProvider>
+                  </SessionProvider>
+                </CatalogProvider>
+              </ReleaseFormProvider>
+            </NavigationProvider>
+          </WalletProvider>
+        </UiFeedbackProvider>
+      </RoomQualityTelemetryProvider>
     </AudioStartupTelemetryProvider>
   );
 }

@@ -560,7 +560,7 @@
     transform var(--duration-fast) var(--ease);
 }
 
-.home-room-card:hover {
+.home-room-card:hover:not(:disabled) {
   border-color: var(--ink);
   box-shadow: var(--shadow-float);
   transform: translateY(-2px);

@@ -399,6 +399,11 @@ literal `Origin: null` value from sandboxed iframes or `file://` pages. Keep it
 scoped to signaling only; the backend API still requires explicit CORS origins
 because it serves authenticated upload and key-delivery routes.
 
+`/status` exposes each visible room's `listenerCount`, `maxListeners`, and
+`isFull` values. When changing `SIGNAL_MAX_LISTENERS`, capture this metadata in
+room smoke evidence so the frontend capacity labels and server-enforced
+`ROOM_FULL` boundary stay aligned.
+
 Do not store `SIGNAL_ORIGINS` as a Fly secret. If `/health` reports an old
 `allowedOrigins` list after deploy, the secret is probably overriding
 `web/fly.signal.toml`. Remove it and redeploy or let Fly restart the machine:

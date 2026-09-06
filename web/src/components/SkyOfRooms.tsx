@@ -86,6 +86,7 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
 
   function enterRoom(roomId: string) {
     if (sessionAction !== 'idle' || joiningId) return;
+    if (rooms.find(room => room.roomId === roomId)?.isFull) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       onJoinRoom(roomId);
       return;
@@ -247,6 +248,7 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
           const aura = auraForTrack(room.track);
           const ember = !room.track;
           const live = room.playerState?.playing === true;
+          const full = room.isFull === true;
           const size = ember ? 44 : Math.min(72 + presence * 7, 132);
           const petals = ember ? 0 : Math.min(presence, MAX_VISIBLE_PETALS);
           const orbitSeconds = 16 + (hashHue(room.roomId) % 9);
@@ -257,10 +259,11 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
               key={room.roomId}
               data-ember={ember}
               data-live={live}
+              data-full={full}
               data-joining={joiningId === room.roomId}
               data-centered={centeredRoomId === room.roomId}
               data-testid='sky-dot'
-              disabled={sessionAction !== 'idle'}
+              disabled={sessionAction !== 'idle' || full}
               style={
                 {
                   left: `${roomLayouts[index].x}%`,
@@ -271,7 +274,11 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
                   '--dot-accent': aura.accent
                 } as CSSProperties
               }
-              aria-label={`Enter room ${room.roomId}: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`}
+              aria-label={
+                full
+                  ? `Room ${room.roomId} is full: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`
+                  : `Enter room ${room.roomId}: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`
+              }
               onClick={() => enterRoom(room.roomId)}
             >
               <span className='sky-halo' aria-hidden='true' />
@@ -289,6 +296,7 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
                 <strong>{room.track?.title ?? 'Audio session'}</strong>
                 <span>
                   {room.hostName} - {presence} listening
+                  {full && <em> full</em>}
                   {room.playbackMode === 'preview' && <em> preview</em>}
                 </span>
               </span>

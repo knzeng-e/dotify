@@ -33,6 +33,7 @@ export function JoinRoomModal({
   const isJoining = sessionAction === 'joining';
   const isResolving = thresholdState === 'resolving';
   const isUnavailable = thresholdState === 'unavailable';
+  const isFull = room?.isFull === true;
   const isThreshold = Boolean(room) || isResolving || isUnavailable;
   const hasChosenName = isChosenDisplayName(displayName);
   const hasPrefilledCode = Boolean(joinCode.trim());
@@ -42,13 +43,23 @@ export function JoinRoomModal({
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!isResolving && !isUnavailable && joinCode.trim() && hasChosenName) onJoin(joinCode.trim());
+    if (!isResolving && !isUnavailable && !isFull && joinCode.trim() && hasChosenName) onJoin(joinCode.trim());
   }
 
-  const eyebrow = room ? 'Live room' : isResolving ? 'Finding room' : isUnavailable ? 'Room unavailable' : 'Join a room';
-  const title = room ? `${room.hostName} welcomes you` : isResolving ? 'Finding this room' : isUnavailable ? 'This room is unavailable' : 'Join a room';
+  const eyebrow = isFull ? 'Room full' : room ? 'Live room' : isResolving ? 'Finding room' : isUnavailable ? 'Room unavailable' : 'Join a room';
+  const title = isFull
+    ? `${room?.hostName ?? 'This room'} is at capacity`
+    : room
+      ? `${room.hostName} welcomes you`
+      : isResolving
+        ? 'Finding this room'
+        : isUnavailable
+          ? 'This room is unavailable'
+          : 'Join a room';
   const description = room
-    ? `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here. Choose a name to enter.`
+    ? isFull
+      ? `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here, which is the current listener cap.`
+      : `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here. Choose a name to enter.`
     : isResolving
       ? 'Loading host, track, and presence.'
       : isUnavailable
@@ -85,7 +96,7 @@ export function JoinRoomModal({
             <span className='room-threshold-presence'>
               <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={26} />
               <span>
-                <Users size={14} aria-hidden='true' /> {peopleHere} here
+                <Users size={14} aria-hidden='true' /> {isFull ? `${peopleHere} here · full` : `${peopleHere} here`}
               </span>
             </span>
           </div>
@@ -135,9 +146,23 @@ export function JoinRoomModal({
         )}
 
         <div className='create-room-actions'>
-          <button className='primary-action wide' type='submit' disabled={isJoining || isResolving || isUnavailable || !joinCode.trim() || !hasChosenName}>
+          <button
+            className='primary-action wide'
+            type='submit'
+            disabled={isJoining || isResolving || isUnavailable || isFull || !joinCode.trim() || !hasChosenName}
+          >
             {isJoining || isResolving ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
-            {isJoining ? 'Entering...' : isResolving ? 'Finding room...' : isUnavailable ? 'Room unavailable' : room ? 'Enter and listen' : 'Join room'}
+            {isJoining
+              ? 'Entering...'
+              : isResolving
+                ? 'Finding room...'
+                : isUnavailable
+                  ? 'Room unavailable'
+                  : isFull
+                    ? 'Room full'
+                    : room
+                      ? 'Enter and listen'
+                      : 'Join room'}
           </button>
           <button className='secondary-action' type='button' onClick={onClose}>
             Cancel
