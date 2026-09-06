@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ImgHTMLAttributes } from 'react';
-import { COVER_GATEWAY_TIMEOUT_MS, createCoverFallbackDataUri, shouldArmCoverGatewayTimeout } from '../features/catalog/coverArtwork';
+import {
+  COVER_GATEWAY_TIMEOUT_MS,
+  createCoverFallbackDataUri,
+  shouldArmCoverGatewayTimeout,
+  shouldUseLocalCoverFallbackAfterGatewayTimeout
+} from '../features/catalog/coverArtwork';
 import { getGatewayUrlsForAssetRef } from '../services/pinata';
 
 type CoverImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'crossOrigin' | 'src'> & {
@@ -17,12 +22,14 @@ export function CoverImage({ src, alt = '', fallbackLabel, loading, onError, onL
   const [sourceIndex, setSourceIndex] = useState(0);
   const [loadedSource, setLoadedSource] = useState<string | null>(null);
   const [didExhaustSources, setDidExhaustSources] = useState(false);
+  const [showLocalFallback, setShowLocalFallback] = useState(false);
   const [lazyLoadRangeSource, setLazyLoadRangeSource] = useState<string | null>(null);
 
   useEffect(() => {
     setSourceIndex(0);
     setLoadedSource(null);
     setDidExhaustSources(false);
+    setShowLocalFallback(false);
   }, [src]);
 
   useEffect(() => {
@@ -57,18 +64,23 @@ export function CoverImage({ src, alt = '', fallbackLabel, loading, onError, onL
   const canStartGatewayTimeout = shouldArmCoverGatewayTimeout(loading, isInLoadRange);
 
   useEffect(() => {
-    if (!canStartGatewayTimeout || !gatewaySource || didExhaustSources || loadedSource === gatewaySource) return;
+    if (!canStartGatewayTimeout || !shouldUseLocalCoverFallbackAfterGatewayTimeout(gatewaySource, loadedSource, didExhaustSources)) return;
 
     const timeoutId = window.setTimeout(() => {
-      if (boundedSourceIndex >= lastSourceIndex) {
-        setDidExhaustSources(true);
-        return;
-      }
-      setSourceIndex(index => (index === boundedSourceIndex ? Math.min(index + 1, lastSourceIndex) : index));
+      setShowLocalFallback(true);
     }, COVER_GATEWAY_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [boundedSourceIndex, canStartGatewayTimeout, didExhaustSources, gatewaySource, lastSourceIndex, loadedSource]);
+  }, [canStartGatewayTimeout, didExhaustSources, gatewaySource, loadedSource]);
+
+  const localFallbackStyle =
+    showLocalFallback && activeSource !== fallbackSource
+      ? {
+          backgroundImage: `url("${fallbackSource}")`,
+          backgroundPosition: 'center',
+          backgroundSize: 'cover'
+        }
+      : undefined;
 
   return (
     <img
@@ -77,8 +89,10 @@ export function CoverImage({ src, alt = '', fallbackLabel, loading, onError, onL
       src={activeSource}
       alt={alt}
       loading={loading}
+      style={localFallbackStyle ? { ...localFallbackStyle, ...props.style } : props.style}
       onLoad={event => {
         setLoadedSource(activeSource);
+        setShowLocalFallback(false);
         onLoad?.(event);
       }}
       onError={event => {

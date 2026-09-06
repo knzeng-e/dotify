@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { COVER_GATEWAY_TIMEOUT_MS, createCoverFallbackDataUri, shouldArmCoverGatewayTimeout } from './coverArtwork';
+import {
+  COVER_GATEWAY_TIMEOUT_MS,
+  createCoverFallbackDataUri,
+  shouldArmCoverGatewayTimeout,
+  shouldUseLocalCoverFallbackAfterGatewayTimeout
+} from './coverArtwork';
 
 function decodeDataUri(uri: string): string {
   return decodeURIComponent(uri.slice(uri.indexOf(',') + 1));
@@ -31,5 +36,14 @@ describe('cover artwork fallbacks', () => {
     expect(shouldArmCoverGatewayTimeout('lazy', true)).toBe(true);
     expect(shouldArmCoverGatewayTimeout('eager', false)).toBe(true);
     expect(shouldArmCoverGatewayTimeout(undefined, false)).toBe(true);
+  });
+
+  it('recovers slow covers with the local fallback instead of racing public gateways', () => {
+    expect(shouldUseLocalCoverFallbackAfterGatewayTimeout('https://gateway.pinata.cloud/ipfs/QmCoverCid', null, false)).toBe(true);
+    expect(
+      shouldUseLocalCoverFallbackAfterGatewayTimeout('https://gateway.pinata.cloud/ipfs/QmCoverCid', 'https://gateway.pinata.cloud/ipfs/QmCoverCid', false)
+    ).toBe(false);
+    expect(shouldUseLocalCoverFallbackAfterGatewayTimeout(undefined, null, false)).toBe(false);
+    expect(shouldUseLocalCoverFallbackAfterGatewayTimeout('https://gateway.pinata.cloud/ipfs/QmCoverCid', null, true)).toBe(false);
   });
 });

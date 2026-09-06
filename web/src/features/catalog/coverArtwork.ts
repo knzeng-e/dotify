@@ -6,6 +6,14 @@ export function shouldArmCoverGatewayTimeout(loading: string | undefined, isInLo
   return loading !== 'lazy' || isInLoadRange;
 }
 
+export function shouldUseLocalCoverFallbackAfterGatewayTimeout(
+  gatewaySource: string | undefined,
+  loadedSource: string | null,
+  didExhaustSources: boolean
+): boolean {
+  return Boolean(gatewaySource) && !didExhaustSources && loadedSource !== gatewaySource;
+}
+
 function escapeSvgText(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
