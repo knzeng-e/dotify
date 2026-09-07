@@ -56,6 +56,23 @@ describe('getGatewayUrlsForAssetRef', () => {
   });
 });
 
+describe('getAudioGatewayUrls', () => {
+  it('uses the Pinata gateway for browser audio byte reads by default', async () => {
+    const { getAudioGatewayUrls } = await loadPinataService();
+
+    expect(getAudioGatewayUrls('QmAudioCid')).toEqual(['https://gateway.pinata.cloud/ipfs/QmAudioCid']);
+  });
+
+  it('keeps custom Pinata gateways and skips public generic fallbacks for audio', async () => {
+    const { getAudioGatewayUrls } = await loadPinataService({
+      VITE_PINATA_GATEWAY: 'https://artist-space.mypinata.cloud/',
+      VITE_IPFS_READ_GATEWAYS: 'https://ipfs.io,https://gateway.pinata.cloud,https://dweb.link'
+    });
+
+    expect(getAudioGatewayUrls('QmAudioCid')).toEqual(['https://artist-space.mypinata.cloud/ipfs/QmAudioCid', 'https://gateway.pinata.cloud/ipfs/QmAudioCid']);
+  });
+});
+
 describe('fetchAssetRef', () => {
   it('falls back to the next gateway when the first IPFS gateway fails', async () => {
     const { fetchAssetRef } = await loadPinataService();
@@ -85,6 +102,16 @@ describe('fetchAssetRef', () => {
 
     await expect(responsePromise).rejects.toMatchObject({ name: 'AbortError' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry encrypted audio through public non-Pinata gateways', async () => {
+    const { fetchAudioIpfsCid } = await loadPinataService({
+      VITE_IPFS_READ_GATEWAYS: 'https://ipfs.io,https://dweb.link'
+    });
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    await expect(fetchAudioIpfsCid('QmAudioCid')).rejects.toThrow('Failed to fetch');
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['https://gateway.pinata.cloud/ipfs/QmAudioCid']);
   });
 });
 

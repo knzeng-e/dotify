@@ -1,4 +1,4 @@
-import { getGatewayUrls } from '../../services/pinata';
+import { getAudioGatewayUrls } from '../../services/pinata';
 
 export type AudioV2GatewayPhase = 'header' | 'first-chunk' | 'chunk';
 
@@ -192,7 +192,7 @@ export async function fetchAudioV2RangeThroughGateways(cid: string, start: numbe
   const timeoutMs = options.timeoutMs ?? AUDIO_V2_RANGE_TIMEOUT_MS;
   const hedgeDelayMs = options.hedgeDelayMs ?? AUDIO_V2_HEDGE_DELAY_MS;
   const fetchImpl = options.fetchImpl ?? fetch;
-  const gateways = options.getGatewayUrlsForCid?.(cid) ?? getGatewayUrls(cid);
+  const gateways = options.getGatewayUrlsForCid?.(cid) ?? getAudioGatewayUrls(cid);
   const { ordered, cachedGateway } = orderGatewaysForCid(cid, gateways);
   const shouldHedge = options.hedge ?? shouldHedgePhase(phase);
 

@@ -358,19 +358,23 @@ unset. Do not use an unrestricted Pinata JWT here. Production uploads should set
 
 ### `VITE_PINATA_GATEWAY`
 
-| Property     | Value                            |
-| ------------ | -------------------------------- |
-| **Type**     | URL string                       |
-| **Required** | No                               |
+| Property     | Value                          |
+| ------------ | ------------------------------ |
+| **Type**     | URL string                     |
+| **Required** | No                             |
 | **Default**  | `https://gateway.pinata.cloud` |
 
-Primary IPFS gateway for fetching audio, cover images, and metadata.
+Primary IPFS gateway for fetching cover images, metadata, and Pinata-backed
+encrypted audio bytes.
 
 For Product DevNet builds, keep `https://gateway.pinata.cloud` here while track
 assets are pinned through the API/Pinata path. The Product IPFS gateway is still
 used to publish the app bundle, but generic public gateways may not resolve
-freshly pinned track CIDs quickly enough for browser image rendering or DAV2
-audio range requests.
+freshly pinned track CIDs quickly enough for browser image rendering. DAV2 audio
+range reads and full-file recovery are stricter: the browser path only uses
+Pinata gateways (`gateway.pinata.cloud` or a configured `*.mypinata.cloud`)
+because the public fallback gateways do not provide reliable CORS/range behavior
+for encrypted audio fetches.
 
 ---
 

@@ -34,6 +34,8 @@ const READ_GATEWAYS = (import.meta.env.VITE_IPFS_READ_GATEWAYS as string | undef
   .map(gateway => gateway.trim())
   .filter(Boolean);
 const FALLBACK_GATEWAYS = ['https://ipfs.io', 'https://dweb.link', 'https://paseo-ipfs.polkadot.io'];
+const AUDIO_READ_TIMEOUT_MS = 20_000;
+const AUDIO_READ_HEDGE_DELAY_MS = 8_000;
 
 const PIN_FILE_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
 const PIN_JSON_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
@@ -96,6 +98,20 @@ export function getGatewayUrls(cid: string): string[] {
   return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
 }
 
+function isPinataGateway(gateway: string): boolean {
+  try {
+    const host = new URL(gateway).hostname.toLowerCase();
+    return host === 'gateway.pinata.cloud' || host.endsWith('.mypinata.cloud');
+  } catch {
+    return false;
+  }
+}
+
+export function getAudioGatewayUrls(cid: string): string[] {
+  const gateways = [GATEWAY, PINATA_PUBLIC_GATEWAY, ...(READ_GATEWAYS ?? []).filter(isPinataGateway)].filter(isPinataGateway);
+  return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
+}
+
 function extractIpfsPath(ref: string): string | null {
   if (ref.startsWith('ipfs://')) {
     return ref.slice('ipfs://'.length);
@@ -129,6 +145,16 @@ function throwIfGatewayReadAborted(signal?: AbortSignal): void {
 export async function fetchIpfsCid(cid: string, options: GatewayReadOptions = {}): Promise<Response> {
   throwIfGatewayReadAborted(options.signal);
   return fetchThroughGateways(getGatewayUrls(cid), { signal: options.signal, label: `IPFS CID ${cid}` });
+}
+
+export async function fetchAudioIpfsCid(cid: string, options: GatewayReadOptions = {}): Promise<Response> {
+  throwIfGatewayReadAborted(options.signal);
+  return fetchThroughGateways(getAudioGatewayUrls(cid), {
+    signal: options.signal,
+    timeoutMs: AUDIO_READ_TIMEOUT_MS,
+    hedgeDelayMs: AUDIO_READ_HEDGE_DELAY_MS,
+    label: `audio IPFS CID ${cid}`
+  });
 }
 
 export async function fetchAssetRef(assetRef: string, options: GatewayReadOptions = {}): Promise<Response> {

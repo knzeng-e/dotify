@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchAssetRef, fetchIpfsCid, getGatewayUrl } from '../services/pinata';
+import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl } from '../services/pinata';
 import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot } from '../shared/utils/format';
@@ -759,7 +759,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function fetchAndDecryptAudioV2Blob(cid: string, key: Uint8Array, signal?: AbortSignal): Promise<string> {
     throwIfAborted(signal);
-    const response = await fetchIpfsCid(cid, { signal });
+    const response = await fetchAudioIpfsCid(cid, { signal });
     if (!response.ok) throw new Error(`Unable to fetch DAV2 audio (${response.status})`);
     throwIfAborted(signal);
     const decrypted = await decryptAudioV2Container(new Uint8Array(await response.arrayBuffer()), key);
@@ -921,7 +921,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash) : await resolveServerContentKey(contentHash);
     throwIfAborted(signal);
     const response = isEncryptedAudioRef(audioRef)
-      ? await fetchIpfsCid(encryptedRefToCID(audioRef), { signal })
+      ? await fetchAudioIpfsCid(encryptedRefToCID(audioRef), { signal })
       : await fetchAssetRef(audioRef || gatewayUrl, { signal });
     if (!response.ok) throw new Error(`Unable to fetch audio (${response.status})`);
     throwIfAborted(signal);

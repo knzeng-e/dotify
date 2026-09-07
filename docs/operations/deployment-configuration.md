@@ -213,9 +213,16 @@ into the Product bundle.
 The Product IPFS gateway is the publication storage endpoint for the app bundle,
 not the most reliable first read path for the public track assets Dotify
 currently pins through Pinata. Keep `https://gateway.pinata.cloud` first, with
-`ipfs.io` and `dweb.link` before Product storage gateways for fallback reads;
-otherwise cover images can hang in the browser without firing an image error,
-and DAV2 audio range requests can time out before playback starts.
+`ipfs.io` and `dweb.link` before Product storage gateways for artwork and
+metadata fallback reads; otherwise cover images can hang in the browser without
+firing an image error.
+
+Encrypted audio byte reads are stricter than image and metadata reads: the
+browser fetch path requires CORS and range behavior that public gateways do not
+provide consistently for Dotify's Pinata-pinned DAV2 files. The web app
+therefore restricts DAV2 range reads and full-file recovery to Pinata gateways
+(`gateway.pinata.cloud` or a configured `*.mypinata.cloud` gateway). Keep
+generic `VITE_IPFS_READ_GATEWAYS` values for artwork/metadata fallback only.
 
 The Product build also embeds a non-secret `dotify-test01.dot` bootstrap catalog
 snapshot. It prevents first-run mobile hosts from staying on `Loading registry
