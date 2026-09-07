@@ -209,7 +209,7 @@ describe('backend upload authorization', () => {
 
     await expect(uploadCoverToBackend(file, { chainId: 420420417, signer })).resolves.toBe('cover-cid');
 
-    expect(sessionMocks.clearStoredSession).toHaveBeenCalledWith(signer.address);
+    expect(sessionMocks.clearStoredSession).toHaveBeenCalledWith(signer.address, 'old-session');
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       'https://api.test/api/uploads/authorize',

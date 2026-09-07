@@ -232,7 +232,7 @@ async function requestUploadAuthorization(identity: BackendUploadIdentity | unde
 
   let res = await requestAuthorization(sessionToken);
   if (res.status === 401 && sessionAddress) {
-    clearStoredSession(sessionAddress);
+    clearStoredSession(sessionAddress, sessionToken);
     sessionToken = await ensureSession();
     if (sessionToken) res = await requestAuthorization(sessionToken);
   }

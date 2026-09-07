@@ -16,13 +16,52 @@ function includesAscii(bytes: Uint8Array, value: string, offset = 0): boolean {
   return Buffer.from(bytes).indexOf(value, offset, 'ascii') !== -1;
 }
 
-function isMpegAudioFrame(bytes: Uint8Array, offset = 0): boolean {
-  if (bytes.length < offset + 4 || bytes[offset] !== 0xff || (bytes[offset + 1] & 0xe0) !== 0xe0) return false;
+type MpegFrame = {
+  length: number;
+};
+
+function parseMpegAudioFrame(bytes: Uint8Array, offset = 0): MpegFrame | null {
+  if (bytes.length < offset + 4 || bytes[offset] !== 0xff || (bytes[offset + 1] & 0xe0) !== 0xe0) return null;
   const version = (bytes[offset + 1] >> 3) & 0x03;
   const layer = (bytes[offset + 1] >> 1) & 0x03;
   const bitrate = (bytes[offset + 2] >> 4) & 0x0f;
   const sampleRate = (bytes[offset + 2] >> 2) & 0x03;
-  return version !== 1 && layer !== 0 && bitrate !== 0 && bitrate !== 0x0f && sampleRate !== 0x03;
+  if (version === 1 || layer === 0 || bitrate === 0 || bitrate === 0x0f || sampleRate === 0x03) return null;
+
+  const bitrateKbpsByVersionAndLayer: Record<number, Record<number, number[]>> = {
+    3: {
+      3: [0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448],
+      2: [0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384],
+      1: [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320]
+    },
+    2: {
+      3: [0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256],
+      2: [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160],
+      1: [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160]
+    },
+    0: {
+      3: [0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256],
+      2: [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160],
+      1: [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160]
+    }
+  };
+  const sampleRatesByVersion: Record<number, number[]> = {
+    3: [44100, 48000, 32000],
+    2: [22050, 24000, 16000],
+    0: [11025, 12000, 8000]
+  };
+
+  const bitrateBps = bitrateKbpsByVersionAndLayer[version]?.[layer]?.[bitrate] * 1000;
+  const sampleRateHz = sampleRatesByVersion[version]?.[sampleRate];
+  if (!bitrateBps || !sampleRateHz) return null;
+
+  const padding = (bytes[offset + 2] >> 1) & 0x01;
+  const length =
+    layer === 3
+      ? Math.floor((12 * bitrateBps) / sampleRateHz + padding) * 4
+      : Math.floor(((version === 3 ? 144 : 72) * bitrateBps) / sampleRateHz + padding);
+  if (length < 4 || offset + length > bytes.length) return null;
+  return { length };
 }
 
 function id3AudioStart(bytes: Uint8Array): number | null {
@@ -32,6 +71,19 @@ function id3AudioStart(bytes: Uint8Array): number | null {
   const tagBytes = (sizeBytes[0] << 21) | (sizeBytes[1] << 14) | (sizeBytes[2] << 7) | sizeBytes[3];
   const audioStart = 10 + tagBytes;
   return audioStart < bytes.length ? audioStart : null;
+}
+
+function hasCompleteMpegAudioFrameSequence(bytes: Uint8Array, offset = 0): boolean {
+  let cursor = offset;
+  let frames = 0;
+  while (cursor < bytes.length) {
+    if (bytes.length - cursor === 128 && ascii(bytes, cursor, 3) === 'TAG') return frames >= 2;
+    const frame = parseMpegAudioFrame(bytes, cursor);
+    if (!frame) return false;
+    frames += 1;
+    cursor += frame.length;
+  }
+  return frames >= 2;
 }
 
 function hasWavChunks(bytes: Uint8Array): boolean {
@@ -69,8 +121,8 @@ export function detectAudioMedia(bytes: Uint8Array): ValidatedMedia | null {
   }
 
   const id3Start = id3AudioStart(bytes);
-  if (id3Start !== null && isMpegAudioFrame(bytes, id3Start)) return { mime: 'audio/mpeg', extension: 'mp3' };
-  if (isMpegAudioFrame(bytes)) return { mime: 'audio/mpeg', extension: 'mp3' };
+  if (id3Start !== null && hasCompleteMpegAudioFrameSequence(bytes, id3Start)) return { mime: 'audio/mpeg', extension: 'mp3' };
+  if (hasCompleteMpegAudioFrameSequence(bytes)) return { mime: 'audio/mpeg', extension: 'mp3' };
 
   if (bytes.length >= 7 && bytes[0] === 0xff && (bytes[1] & 0xf6) === 0xf0) {
     const frameLength = ((bytes[3] & 0x03) << 11) | (bytes[4] << 3) | (bytes[5] >> 5);

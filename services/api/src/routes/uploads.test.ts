@@ -11,9 +11,15 @@ const RUNTIME = '0x2222222222222222222222222222222222222222' as const;
 const CHAIN_ID = 420420417;
 const SESSION_TOKEN = 'valid-session-token';
 const BOUNDARY = '----dotifytest';
-const audioBytes = Buffer.alloc(417);
-audioBytes.set([0xff, 0xfb, 0x90, 0x64]);
+function mpegFrame(): Buffer {
+  const frame = Buffer.alloc(417);
+  frame.set([0xff, 0xfb, 0x90, 0x64]);
+  return frame;
+}
+const audioBytes = Buffer.concat([mpegFrame(), mpegFrame()]);
 const audioHash = `0x${Buffer.from(blake2b(audioBytes, { dkLen: 32 })).toString('hex')}`;
+const truncatedMpegBytes = mpegFrame();
+const truncatedMpegHash = `0x${Buffer.from(blake2b(truncatedMpegBytes, { dkLen: 32 })).toString('hex')}`;
 const pngBytes = Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
   Buffer.from([0x00, 0x00, 0x00, 0x0d]),
@@ -164,6 +170,19 @@ describe('authorized upload routes', () => {
       url: '/api/uploads/audio',
       headers: multipartHeaders(grant),
       payload: multipartAudio(pngBytes, spoofedHash, 'audio/mpeg')
+    });
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().code, 'UPLOAD_MEDIA_INVALID');
+  });
+
+  it('rejects a lone MPEG frame header without a complete frame sequence', async () => {
+    const server = await buildApp();
+    const grant = (await authorize(server, 'audio', truncatedMpegBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/audio',
+      headers: multipartHeaders(grant),
+      payload: multipartAudio(truncatedMpegBytes, truncatedMpegHash, 'audio/mpeg')
     });
     assert.equal(response.statusCode, 400);
     assert.equal(response.json().code, 'UPLOAD_MEDIA_INVALID');

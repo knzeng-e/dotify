@@ -240,9 +240,14 @@ function publishProductKeyResponseSmoke(input: {
   });
 }
 
-export function clearStoredSession(address: string): void {
+export function clearStoredSession(address: string, expectedToken?: string): void {
   try {
-    window.localStorage.removeItem(sessionStorageKey(address));
+    const key = sessionStorageKey(address);
+    if (expectedToken) {
+      const stored = readStoredSession(address, { requireFresh: false });
+      if (stored?.token !== expectedToken) return;
+    }
+    window.localStorage.removeItem(key);
   } catch {
     // ignore
   }
@@ -425,7 +430,7 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
       let res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
       if (res.status === 401) {
         // Expired or revoked server-side: one fresh sign-in, then retry once.
-        clearStoredSession(signer.address);
+        clearStoredSession(signer.address, sessionToken);
         sessionToken = await ensureDotifySessionForSigner(signer, request.chainId);
         if (sessionToken) {
           res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);

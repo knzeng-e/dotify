@@ -113,6 +113,30 @@ describe('keyService sessions', () => {
     );
   });
 
+  it('keeps a concurrently refreshed session when clearing a rejected stale token', async () => {
+    const sessionKey = `dotify:session:${ADDRESS}`;
+    const { store, localStorage } = installLocalStorage([
+      [
+        sessionKey,
+        JSON.stringify({
+          token: 'fresh-session-token',
+          expiresAt: new Date(Date.now() + 3_600_000).toISOString()
+        })
+      ]
+    ]);
+    const { clearStoredSession } = await loadKeyService();
+
+    clearStoredSession(ADDRESS, 'stale-session-token');
+
+    expect(store.has(sessionKey)).toBe(true);
+    expect(localStorage.removeItem).not.toHaveBeenCalled();
+
+    clearStoredSession(ADDRESS, 'fresh-session-token');
+
+    expect(store.has(sessionKey)).toBe(false);
+    expect(localStorage.removeItem).toHaveBeenCalledWith(sessionKey);
+  });
+
   it('falls back to the legacy signed request without SIGN_IN when the session route is missing', async () => {
     installLocalStorage();
     const signMessage = vi.fn(async ({ message }: { message: string }) => {
