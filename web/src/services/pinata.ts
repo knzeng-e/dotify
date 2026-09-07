@@ -15,6 +15,8 @@
 import { getArtistPublishE2eCid, getArtistPublishE2eScenario, isArtistPublishE2e, recordArtistPublishUploadFailure } from '../e2e/artistPublishMock';
 import { encryptedRefToCID, normalizeEncryptedAudioRef } from '../shared/utils/protectedAudio';
 import { fetchThroughGateways } from './gatewayRace';
+import { clearStoredSession, ensureDotifySession, ensureDotifySessionForSigner, type KeyRequestSigner } from './keyService';
+import type { WalletClient } from 'viem';
 
 // Backend API base URL. When set, uploads are routed server-side.
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
@@ -174,6 +176,14 @@ export type BackendUploadErrorBody = {
   }>;
 };
 
+export type BackendUploadIdentity = {
+  chainId: number;
+  walletClient?: WalletClient;
+  signer?: KeyRequestSigner;
+};
+
+type BackendUploadPurpose = 'audio' | 'cover' | 'metadata';
+
 export function formatBackendUploadError(body: BackendUploadErrorBody | null | undefined, fallback: string): string {
   const message = typeof body?.error === 'string' && body.error.trim() ? body.error : fallback;
   const issues = Array.isArray(body?.issues)
@@ -198,6 +208,45 @@ async function parseBackendError(res: Response, fallback: string): Promise<strin
   }
 }
 
+async function requestUploadAuthorization(identity: BackendUploadIdentity | undefined, purpose: BackendUploadPurpose, bytes: number): Promise<string> {
+  if (!identity) throw new Error('Connect the artist wallet before uploading release assets.');
+  const sessionAddress = identity.signer?.address ?? identity.walletClient?.account?.address;
+  const ensureSession = () =>
+    identity.signer
+      ? ensureDotifySessionForSigner(identity.signer, identity.chainId)
+      : identity.walletClient
+        ? ensureDotifySession(identity.walletClient, identity.chainId)
+        : Promise.resolve(null);
+  let sessionToken = await ensureSession();
+  if (!sessionToken) throw new Error('The backend requires signed artist sessions for uploads. Sign in and try again.');
+
+  const requestAuthorization = (token: string) =>
+    fetch(`${API_URL}/api/uploads/authorize`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ purpose, bytes })
+    });
+
+  let res = await requestAuthorization(sessionToken);
+  if (res.status === 401 && sessionAddress) {
+    clearStoredSession(sessionAddress, sessionToken);
+    sessionToken = await ensureSession();
+    if (sessionToken) res = await requestAuthorization(sessionToken);
+  }
+  if (!res.ok) {
+    const msg = await parseBackendError(res, `Upload authorization failed (${res.status})`);
+    throw new Error(msg);
+  }
+  const data = (await res.json()) as { uploadAuthorization?: unknown };
+  if (typeof data.uploadAuthorization !== 'string' || !data.uploadAuthorization) {
+    throw new Error('The backend returned an invalid upload authorization.');
+  }
+  return data.uploadAuthorization;
+}
+
 /**
  * Upload a raw (unencrypted) audio file through the backend.
  * The backend derives a per-track key, encrypts server-side, and pins to Pinata.
@@ -206,14 +255,19 @@ async function parseBackendError(res: Response, fallback: string): Promise<strin
  * @param contentHash 0x-prefixed blake2b-256 hash of the raw audio bytes.
  * @returns           Full Dotify audio ref: "dotify:enc:v2:ipfs://<CID>" for new backend uploads.
  */
-export async function uploadAudioToBackend(rawFile: File, contentHash: string): Promise<string> {
+export async function uploadAudioToBackend(rawFile: File, contentHash: string, identity?: BackendUploadIdentity): Promise<string> {
   if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
+  const authorization = await requestUploadAuthorization(identity, 'audio', rawFile.size);
 
   const form = new FormData();
   form.append('audio', rawFile, rawFile.name);
   form.append('contentHash', contentHash);
 
-  const res = await fetch(`${API_URL}/api/uploads/audio`, { method: 'POST', body: form });
+  const res = await fetch(`${API_URL}/api/uploads/audio`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${authorization}` },
+    body: form
+  });
 
   if (!res.ok) {
     const msg = await parseBackendError(res, `Audio upload failed (${res.status})`);
@@ -230,13 +284,18 @@ export async function uploadAudioToBackend(rawFile: File, contentHash: string): 
  * @returns CID string (without ipfs:// prefix) — matches the return format of
  *          uploadFileToPinata so callers are interchangeable.
  */
-export async function uploadCoverToBackend(file: File): Promise<string> {
+export async function uploadCoverToBackend(file: File, identity?: BackendUploadIdentity): Promise<string> {
   if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
+  const authorization = await requestUploadAuthorization(identity, 'cover', file.size);
 
   const form = new FormData();
   form.append('cover', file, file.name);
 
-  const res = await fetch(`${API_URL}/api/uploads/cover`, { method: 'POST', body: form });
+  const res = await fetch(`${API_URL}/api/uploads/cover`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${authorization}` },
+    body: form
+  });
 
   if (!res.ok) {
     const msg = await parseBackendError(res, `Cover upload failed (${res.status})`);
@@ -253,13 +312,18 @@ export async function uploadCoverToBackend(file: File): Promise<string> {
  *
  * @returns CID string (without ipfs:// prefix) — matches uploadJsonToPinata return format.
  */
-export async function uploadMetadataToBackend(manifest: DotifyTrackManifest): Promise<string> {
+export async function uploadMetadataToBackend(manifest: DotifyTrackManifest, identity?: BackendUploadIdentity): Promise<string> {
   if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
+  const body = JSON.stringify(manifest);
+  const authorization = await requestUploadAuthorization(identity, 'metadata', new TextEncoder().encode(body).byteLength);
 
   const res = await fetch(`${API_URL}/api/uploads/metadata`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(manifest)
+    headers: {
+      Authorization: `Bearer ${authorization}`,
+      'Content-Type': 'application/json'
+    },
+    body
   });
 
   if (!res.ok) {
@@ -292,7 +356,7 @@ export type ProtectedAudioSource = {
  * Demo/local: bytes are encrypted in the browser with the bundle-derived
  * demo key (best-effort, not a production boundary) and pinned directly.
  */
-export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentHash: string): Promise<string> {
+export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentHash: string, identity?: BackendUploadIdentity): Promise<string> {
   if (isArtistPublishE2e) {
     void audio;
     void contentHash;
@@ -301,7 +365,7 @@ export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentH
 
   if (API_URL) {
     const rawFile = new File([audio.bytes as BlobPart], audio.name, { type: audio.mime || 'audio/mpeg' });
-    return uploadAudioToBackend(rawFile, contentHash);
+    return uploadAudioToBackend(rawFile, contentHash, identity);
   }
 
   const { encryptTrackAudio } = await import('../shared/utils/protectedAudio');
@@ -331,7 +395,7 @@ function demoPinataHeaders(): Record<string, string> {
   return { Authorization: `Bearer ${JWT}` };
 }
 
-export async function uploadFileToPinata(file: File, name: string, keyvalues: Record<string, string> = {}): Promise<string> {
+export async function uploadFileToPinata(file: File, name: string, keyvalues: Record<string, string> = {}, identity?: BackendUploadIdentity): Promise<string> {
   if (isArtistPublishE2e && keyvalues.type === 'cover') {
     void file;
     void name;
@@ -340,7 +404,7 @@ export async function uploadFileToPinata(file: File, name: string, keyvalues: Re
 
   // Cover images: route through backend when API is configured.
   if (API_URL && keyvalues.type === 'cover') {
-    return uploadCoverToBackend(file);
+    return uploadCoverToBackend(file, identity);
   }
 
   // Demo/local path — requires VITE_PINATA_JWT.
@@ -363,7 +427,12 @@ export async function uploadFileToPinata(file: File, name: string, keyvalues: Re
   return data.IpfsHash;
 }
 
-export async function uploadJsonToPinata(json: unknown, name: string, keyvalues: Record<string, string> = {}): Promise<string> {
+export async function uploadJsonToPinata(
+  json: unknown,
+  name: string,
+  keyvalues: Record<string, string> = {},
+  identity?: BackendUploadIdentity
+): Promise<string> {
   if (isArtistPublishE2e && keyvalues.type === 'track-metadata') {
     void json;
     void name;
@@ -376,7 +445,7 @@ export async function uploadJsonToPinata(json: unknown, name: string, keyvalues:
 
   // Route through backend when API is configured.
   if (API_URL) {
-    return uploadMetadataToBackend(json as DotifyTrackManifest);
+    return uploadMetadataToBackend(json as DotifyTrackManifest, identity);
   }
 
   // Demo/local path — requires VITE_PINATA_JWT.

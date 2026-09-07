@@ -5,7 +5,7 @@ import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
 import { shorten } from '../../shared/utils/format';
 import { hashFileWithBytes } from '../../shared/utils/hash';
 import { deployments } from '../../shared/config/deployments';
-import { protectedAudioUploadToCID, uploadFileToPinata, uploadProtectedAudio } from '../../services/pinata';
+import { isBackendConfigured, protectedAudioUploadToCID, uploadFileToPinata, uploadProtectedAudio, type BackendUploadIdentity } from '../../services/pinata';
 import { buildDraftTrackInfo, nextTitleFromUpload, uploadStatusMessage } from '../../features/uploads/uploadModel';
 import {
   artistSetupState as deriveArtistSetupState,
@@ -76,7 +76,8 @@ export function ArtistConsole() {
     releaseStep,
     setReleaseStep
   } = useReleaseForm();
-  const { connectedWallet, activeEvmAddress, activeSubstrateAddress, bulletinAccountIndex, setBulletinAccountIndex } = useWalletContext();
+  const { connectedWallet, activeEvmAddress, activeSubstrateAddress, expectedChainId, getActiveWalletClient, bulletinAccountIndex, setBulletinAccountIndex } =
+    useWalletContext();
   const { setShowWalletModal } = useUiFeedback();
   const catalog = useCatalogContext();
   const session = useSessionContext();
@@ -155,6 +156,15 @@ export function ArtistConsole() {
     void artistConsole.refreshArtistRoyalties(true);
   };
 
+  async function getUploadIdentity(): Promise<BackendUploadIdentity | undefined> {
+    if (!isBackendConfigured()) return undefined;
+    if (!connectedWallet) throw new Error('Connect the artist wallet before uploading release assets.');
+    const chainId = expectedChainId ?? connectedWallet.chainId;
+    if (!chainId) throw new Error('Confirm the artist network before uploading release assets.');
+    if (connectedWallet.keyRequestSigner) return { chainId, signer: connectedWallet.keyRequestSigner };
+    return { chainId, walletClient: await getActiveWalletClient() };
+  }
+
   async function handleAudioFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -188,10 +198,11 @@ export function ArtistConsole() {
       });
       catalog.setTrackInfo(trackInfoObj);
       session.socketEmit('room:track', trackInfoObj);
+      const uploadIdentity = await getUploadIdentity();
 
       // Production: raw audio goes to the backend, which encrypts server-side
       // with the master-secret-derived key. Demo: browser-side encryption.
-      const uploadPromise = uploadProtectedAudio({ bytes: result.bytes, name: file.name, mime: file.type }, result.hash)
+      const uploadPromise = uploadProtectedAudio({ bytes: result.bytes, name: file.name, mime: file.type }, result.hash, uploadIdentity)
         .then(audioUpload => {
           catalog.setAudioCID(protectedAudioUploadToCID(audioUpload));
           artistConsole.setRightsStatus(uploadStatusMessage('audio', 'uploaded'));
@@ -210,7 +221,7 @@ export function ArtistConsole() {
     }
   }
 
-  function handleCoverFile(event: ChangeEvent<HTMLInputElement>) {
+  async function handleCoverFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     setAssetAction('cover');
@@ -224,8 +235,9 @@ export function ArtistConsole() {
       catalog.setCoverSource(nextUrl);
       setCoverFile(file);
       artistConsole.setRightsStatus(uploadStatusMessage('cover', 'uploading'));
+      const uploadIdentity = await getUploadIdentity();
 
-      const uploadPromise = uploadFileToPinata(file, file.name, { app: 'dotify', type: 'cover' })
+      const uploadPromise = uploadFileToPinata(file, file.name, { app: 'dotify', type: 'cover' }, uploadIdentity)
         .then(cid => {
           catalog.setCoverCID(cid);
           artistConsole.setRightsStatus(uploadStatusMessage('cover', 'uploaded'));

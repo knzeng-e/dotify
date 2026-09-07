@@ -113,6 +113,30 @@ describe('keyService sessions', () => {
     );
   });
 
+  it('keeps a concurrently refreshed session when clearing a rejected stale token', async () => {
+    const sessionKey = `dotify:session:${ADDRESS}`;
+    const { store, localStorage } = installLocalStorage([
+      [
+        sessionKey,
+        JSON.stringify({
+          token: 'fresh-session-token',
+          expiresAt: new Date(Date.now() + 3_600_000).toISOString()
+        })
+      ]
+    ]);
+    const { clearStoredSession } = await loadKeyService();
+
+    clearStoredSession(ADDRESS, 'stale-session-token');
+
+    expect(store.has(sessionKey)).toBe(true);
+    expect(localStorage.removeItem).not.toHaveBeenCalled();
+
+    clearStoredSession(ADDRESS, 'fresh-session-token');
+
+    expect(store.has(sessionKey)).toBe(false);
+    expect(localStorage.removeItem).toHaveBeenCalledWith(sessionKey);
+  });
+
   it('falls back to the legacy signed request without SIGN_IN when the session route is missing', async () => {
     installLocalStorage();
     const signMessage = vi.fn(async ({ message }: { message: string }) => {
@@ -222,6 +246,33 @@ describe('keyService sessions', () => {
     expect(storedEvidence).not.toContain(PRODUCT_SIGNATURE);
     expect(storedEvidence).not.toContain('product-session-token');
     expect(storedEvidence).not.toContain(CONTENT_KEY);
+  });
+
+  it('coalesces simultaneous session requests for parallel asset uploads', async () => {
+    installLocalStorage();
+    const signMessage = vi.fn(async () => PRODUCT_SIGNATURE);
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === 'https://api.test/api/auth/session' && init?.method === 'GET') return jsonResponse({ available: true });
+      if (url === 'https://api.test/api/auth/nonce') {
+        return jsonResponse({ nonce: 'e'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+      }
+      if (url === 'https://api.test/api/auth/session' && init?.method === 'POST') {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        return jsonResponse({ sessionToken: 'shared-session-token', expiresAt: new Date(Date.now() + 3_600_000).toISOString() });
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { ensureDotifySessionForSigner } = await loadKeyService();
+    const signer = productSigner(signMessage);
+
+    await expect(Promise.all([ensureDotifySessionForSigner(signer, 420420417), ensureDotifySessionForSigner(signer, 420420417)])).resolves.toEqual([
+      'shared-session-token',
+      'shared-session-token'
+    ]);
+
+    expect(signMessage).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('submits Product signature fields on the per-request fallback path', async () => {

@@ -134,6 +134,7 @@ type StoredSession = { token: string; expiresAt: string };
 // Refresh slightly early so a token never expires mid-request.
 const SESSION_REFRESH_MARGIN_MS = 60_000;
 let sessionCapability: 'unknown' | 'available' | 'unavailable' = 'unknown';
+const sessionRequests = new Map<string, Promise<string | null>>();
 
 function sessionStorageKey(address: string): string {
   return `dotify:session:${address.toLowerCase()}`;
@@ -239,9 +240,14 @@ function publishProductKeyResponseSmoke(input: {
   });
 }
 
-export function clearStoredSession(address: string): void {
+export function clearStoredSession(address: string, expectedToken?: string): void {
   try {
-    window.localStorage.removeItem(sessionStorageKey(address));
+    const key = sessionStorageKey(address);
+    if (expectedToken) {
+      const stored = readStoredSession(address, { requireFresh: false });
+      if (stored?.token !== expectedToken) return;
+    }
+    window.localStorage.removeItem(key);
   } catch {
     // ignore
   }
@@ -288,7 +294,7 @@ function buildSignInMessage(payload: { requester: string; chainId: number; nonce
  * Returns null when the backend does not support sessions (older deployment
  * or unconfigured), so callers fall back to per-request signing.
  */
-async function ensureDotifySessionForSigner(signer: KeyRequestSigner, chainId: number): Promise<string | null> {
+async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: number): Promise<string | null> {
   if (!API_URL) return null;
 
   const stored = getStoredSession(signer.address);
@@ -358,6 +364,21 @@ async function ensureDotifySessionForSigner(signer: KeyRequestSigner, chainId: n
   }
 }
 
+/** Reuse one in-flight SIGN_IN request across simultaneous artist uploads. */
+export async function ensureDotifySessionForSigner(signer: KeyRequestSigner, chainId: number): Promise<string | null> {
+  const key = `${signer.address.toLowerCase()}:${chainId}`;
+  const pending = sessionRequests.get(key);
+  if (pending) return pending;
+
+  const request = openDotifySessionForSigner(signer, chainId);
+  sessionRequests.set(key, request);
+  try {
+    return await request;
+  } finally {
+    if (sessionRequests.get(key) === request) sessionRequests.delete(key);
+  }
+}
+
 export async function ensureDotifySession(walletClient: WalletClient, chainId: number): Promise<string | null> {
   const signer = toWalletSigner(walletClient);
   return signer ? ensureDotifySessionForSigner(signer, chainId) : null;
@@ -409,7 +430,7 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
       let res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
       if (res.status === 401) {
         // Expired or revoked server-side: one fresh sign-in, then retry once.
-        clearStoredSession(signer.address);
+        clearStoredSession(signer.address, sessionToken);
         sessionToken = await ensureDotifySessionForSigner(signer, request.chainId);
         if (sessionToken) {
           res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);

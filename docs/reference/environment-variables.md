@@ -756,6 +756,38 @@ Backend-only Pinata token for IPFS uploads.
 
 ---
 
+### `UPLOAD_AUTH_TTL_SECONDS`
+
+| Property     | Value           |
+| ------------ | --------------- |
+| **Type**     | Integer seconds |
+| **Required** | No              |
+| **Default**  | `300`           |
+
+Lifetime of a single-use artist upload authorization. Each capability is bound
+to the signed-in address, configured chain, one asset purpose, one byte budget,
+and the current API process epoch.
+
+---
+
+### Upload quota variables
+
+| Variable                            | Default      | Scope                         |
+| ----------------------------------- | ------------ | ----------------------------- |
+| `UPLOAD_QUOTA_WINDOW_SECONDS`       | `3600`       | Rolling completed-byte window |
+| `UPLOAD_PRINCIPAL_BYTES_PER_WINDOW` | `209715200`  | One artist address            |
+| `UPLOAD_GLOBAL_BYTES_PER_WINDOW`    | `2147483648` | Entire API process            |
+| `UPLOAD_PRINCIPAL_CONCURRENCY`      | `2`          | Outstanding grants per artist |
+| `UPLOAD_GLOBAL_CONCURRENCY`         | `8`          | Outstanding grants globally   |
+
+Quota state is memory-only and intentionally supports one API instance. The
+tracked Fly configuration limits the service to one machine. A process restart
+clears counters and invalidates all outstanding upload authorizations and
+sessions; horizontal scaling requires a shared transactional quota and session
+store first.
+
+---
+
 ### `TURN_URLS`
 
 | Property     | Value                                   |

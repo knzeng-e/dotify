@@ -37,6 +37,10 @@ primary_region = "ams"
   # measured 8.2s to /health cold against 0.11s warm. Scaling to zero saves
   # nothing a listener would trade eight silent seconds for.
   min_machines_running = 1
+  # Session revocation and upload quota state are process-local. W02 binds all
+  # session/capability tokens to the process epoch and enforces one API machine
+  # until a shared transactional store replaces these counters.
+  max_machines_running = 1
   processes = ["app"]
 
 [[vm]]

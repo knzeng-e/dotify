@@ -1,5 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const sessionMocks = vi.hoisted(() => ({
+  clearStoredSession: vi.fn(),
+  ensureDotifySession: vi.fn(),
+  ensureDotifySessionForSigner: vi.fn()
+}));
+
+vi.mock('./keyService', () => ({
+  clearStoredSession: sessionMocks.clearStoredSession,
+  ensureDotifySession: sessionMocks.ensureDotifySession,
+  ensureDotifySessionForSigner: sessionMocks.ensureDotifySessionForSigner
+}));
+
 async function loadPinataService(env: Record<string, string> = {}) {
   vi.resetModules();
   vi.unstubAllEnvs();
@@ -12,6 +24,9 @@ async function loadPinataService(env: Record<string, string> = {}) {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  sessionMocks.clearStoredSession.mockReset();
+  sessionMocks.ensureDotifySession.mockReset();
+  sessionMocks.ensureDotifySessionForSigner.mockReset();
   vi.unstubAllEnvs();
 });
 
@@ -133,6 +148,72 @@ describe('formatBackendUploadError', () => {
     const { formatBackendUploadError } = await loadPinataService();
     expect(formatBackendUploadError({ error: 400, issues: [{ path: ['assets'], message: null }] }, 'Metadata upload failed (400)')).toBe(
       'Metadata upload failed (400)'
+    );
+  });
+});
+
+describe('backend upload authorization', () => {
+  it('obtains a purpose-scoped artist authorization before uploading', async () => {
+    const { uploadCoverToBackend } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test/' });
+    const signer = {
+      signatureScheme: 'product-sr25519-v1' as const,
+      address: '0x1111111111111111111111111111111111111111' as const,
+      productPublicKey: `0x${'22'.repeat(32)}` as const,
+      signMessage: vi.fn()
+    };
+    sessionMocks.ensureDotifySessionForSigner.mockResolvedValue('artist-session');
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ uploadAuthorization: 'cover-capability' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ref: 'ipfs://cover-cid' }), { status: 200 }));
+    const file = new File([new Uint8Array([1, 2, 3])], 'cover.png', { type: 'image/png' });
+
+    await expect(uploadCoverToBackend(file, { chainId: 420420417, signer })).resolves.toBe('cover-cid');
+
+    expect(sessionMocks.ensureDotifySessionForSigner).toHaveBeenCalledWith(signer, 420420417);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://api.test/api/uploads/authorize',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'Bearer artist-session' }),
+        body: JSON.stringify({ purpose: 'cover', bytes: 3 })
+      })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://api.test/api/uploads/cover',
+      expect.objectContaining({ method: 'POST', headers: { Authorization: 'Bearer cover-capability' } })
+    );
+  });
+
+  it('fails closed when no signed artist identity is supplied', async () => {
+    const { uploadCoverToBackend } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test' });
+    const file = new File([new Uint8Array([1])], 'cover.png', { type: 'image/png' });
+    await expect(uploadCoverToBackend(file)).rejects.toThrow(/Connect the artist wallet/i);
+  });
+
+  it('opens a fresh session once when a restart invalidates the stored token', async () => {
+    const { uploadCoverToBackend } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test' });
+    const signer = {
+      address: '0x1111111111111111111111111111111111111111' as const,
+      signMessage: vi.fn()
+    };
+    sessionMocks.ensureDotifySessionForSigner.mockResolvedValueOnce('old-session').mockResolvedValueOnce('fresh-session');
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ code: 'SESSION_RESTARTED' }), { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ uploadAuthorization: 'fresh-capability' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ref: 'ipfs://cover-cid' }), { status: 200 }));
+    const file = new File([new Uint8Array([1, 2])], 'cover.png', { type: 'image/png' });
+
+    await expect(uploadCoverToBackend(file, { chainId: 420420417, signer })).resolves.toBe('cover-cid');
+
+    expect(sessionMocks.clearStoredSession).toHaveBeenCalledWith(signer.address, 'old-session');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://api.test/api/uploads/authorize',
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer fresh-session' }) })
     );
   });
 });
