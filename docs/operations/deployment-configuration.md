@@ -326,6 +326,34 @@ For production-grade catalog evidence:
 - keep at least one machine warm while measuring catalog p75 performance, then
   record whether the trace was warm or cold.
 
+Artist upload and session-boundary variables:
+
+| Key                                 | Default      | Meaning                                                                    |
+| ----------------------------------- | ------------ | -------------------------------------------------------------------------- |
+| `UPLOAD_AUTH_TTL_SECONDS`           | `300`        | Lifetime of a one-use capability for one audio, cover, or metadata upload. |
+| `UPLOAD_QUOTA_WINDOW_SECONDS`       | `3600`       | Rolling window for completed upload bytes.                                 |
+| `UPLOAD_PRINCIPAL_BYTES_PER_WINDOW` | `209715200`  | Reserved plus completed bytes allowed per artist address.                  |
+| `UPLOAD_GLOBAL_BYTES_PER_WINDOW`    | `2147483648` | Reserved plus completed bytes allowed across the API.                      |
+| `UPLOAD_PRINCIPAL_CONCURRENCY`      | `2`          | Outstanding upload grants allowed for one artist address.                  |
+| `UPLOAD_GLOBAL_CONCURRENCY`         | `8`          | Outstanding upload grants allowed across the API process.                  |
+
+Production uploads require this sequence: signed EIP-191 or Product sr25519
+session, on-chain `ArtistDirectory.runtimeOf(requester)` verification, a
+short-lived capability bound to asset purpose and byte budget, then byte-level
+media validation before Pinata receives anything. Free key delivery and room
+guest entry remain unauthenticated.
+
+Quota reservations, completed-byte counters, revoked session JTIs, and upload
+capabilities are process-local. `services/api/fly.toml` therefore enforces
+`max_machines_running = 1`; do not scale the API horizontally until those
+records use one shared transactional store. A restart clears quota counters and
+changes the process epoch, which invalidates every earlier session and upload
+capability. This is the deliberate durable logout policy: an old token cannot
+become valid again after restart, but all still-connected users must sign in
+again. If chain RPC is unavailable, artist verification and capability issuance
+fail closed. If Pinata fails or the client interrupts the request, the reserved
+quota and concurrency lease are released.
+
 When `DOTIFY_FACTORY_ADDRESS` or `DOTIFY_DIRECTORY_ADDRESS` changes, clear the
 old catalog snapshot or force a reindex before using the public API as release
 evidence. A clean redeploy to the September 2026 factory

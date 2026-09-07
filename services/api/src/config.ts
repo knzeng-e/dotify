@@ -82,6 +82,33 @@ const envSchema = z.object({
   ),
   // Pinata JWT — must stay server-side only. Never expose in frontend env.
   PINATA_JWT: optionalNonEmptyString,
+  // Upload authorizations are short-lived, single-use capabilities. Byte
+  // quotas are rolling, in-memory counters for the enforced single API
+  // instance; a process restart invalidates every outstanding capability.
+  UPLOAD_AUTH_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(30)
+    .max(15 * 60)
+    .default(5 * 60),
+  UPLOAD_QUOTA_WINDOW_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(24 * 60 * 60)
+    .default(60 * 60),
+  UPLOAD_PRINCIPAL_BYTES_PER_WINDOW: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(200 * 1024 * 1024),
+  UPLOAD_GLOBAL_BYTES_PER_WINDOW: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(2 * 1024 * 1024 * 1024),
+  UPLOAD_PRINCIPAL_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(2),
+  UPLOAD_GLOBAL_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(8),
   // TURN relay grants for production room WebRTC. TURN_URLS is browser-safe;
   // TURN_REST_SECRET is the server-side HMAC secret shared with the TURN relay.
   TURN_URLS: optionalTurnUrlList,

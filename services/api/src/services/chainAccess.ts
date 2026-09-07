@@ -24,6 +24,13 @@ const artistDirectoryAbi = [
   { type: 'function', name: 'artistCount', inputs: [], outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view' },
   {
     type: 'function',
+    name: 'runtimeOf',
+    inputs: [{ name: 'artist', type: 'address' }],
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'artistsPage',
     inputs: [
       { name: 'offset', type: 'uint256' },
@@ -81,6 +88,10 @@ export type TrackAccessResult =
   | { allowed: true; runtime: Address }
   | { allowed: false; code: AccessDenialCode; reason: string };
 
+export type ArtistAuthorityResult =
+  | { allowed: true; runtime: Address }
+  | { allowed: false; code: 'RPC_UNAVAILABLE' | 'ARTIST_RUNTIME_REQUIRED'; reason: string };
+
 let clientCache: PublicClient | null = null;
 
 // contentHash registration is immutable per runtime, so positive lookups can
@@ -94,6 +105,30 @@ function getClient(): PublicClient | null {
     clientCache = createPublicClient({ transport: http(config.PASEO_ASSET_HUB_RPC) });
   }
   return clientCache;
+}
+
+/** Verify that the authenticated requester already owns a directory runtime. */
+export async function checkArtistAuthority(requester: string): Promise<ArtistAuthorityResult> {
+  const client = getClient();
+  const directory = config.DOTIFY_DIRECTORY_ADDRESS as Address | undefined;
+  if (!client || !directory) {
+    return { allowed: false, code: 'RPC_UNAVAILABLE', reason: 'Artist verification is unavailable: chain RPC or directory is not configured.' };
+  }
+
+  try {
+    const runtime = (await client.readContract({
+      address: directory,
+      abi: artistDirectoryAbi,
+      functionName: 'runtimeOf',
+      args: [requester as Address],
+    })) as Address;
+    if (!runtime || runtime.toLowerCase() === ZERO_ADDRESS) {
+      return { allowed: false, code: 'ARTIST_RUNTIME_REQUIRED', reason: 'Create an artist runtime before uploading release assets.' };
+    }
+    return { allowed: true, runtime };
+  } catch {
+    return { allowed: false, code: 'RPC_UNAVAILABLE', reason: 'Artist verification is unavailable: chain RPC request failed.' };
+  }
 }
 
 async function listRuntimes(client: PublicClient, directory: Address): Promise<Address[]> {

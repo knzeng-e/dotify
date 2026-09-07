@@ -5,9 +5,11 @@ import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from
 import {
   protectedAudioUploadToCID,
   protectedAudioUploadToRef,
+  isBackendConfigured,
   uploadFileToPinata,
   uploadJsonToPinata,
   uploadProtectedAudio,
+  type BackendUploadIdentity,
   type DotifyTrackManifest
 } from '../services/pinata';
 import { chainMismatchMessage } from '../features/wallet/network';
@@ -269,6 +271,14 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       throw new Error(chainMismatchMessage(chain.id, connectedWallet.chainId));
     }
     return connectedWallet.createEvmClient(chain, ethRpcUrl) as Awaited<ReturnType<typeof getWalletClient>>;
+  }
+
+  async function getUploadIdentity(): Promise<BackendUploadIdentity | undefined> {
+    if (!isBackendConfigured()) return undefined;
+    if (!connectedWallet) throw new Error('Connect the artist wallet before uploading release assets.');
+    const chainId = currentChainId ?? connectedWallet.chainId ?? (await resolveEvmChain(ethRpcUrl)).id;
+    if (connectedWallet.keyRequestSigner) return { chainId, signer: connectedWallet.keyRequestSigner };
+    return { chainId, walletClient: await getActiveWalletClient() };
   }
 
   async function refreshArtistRuntime(showBusy = false) {
@@ -668,13 +678,16 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       // the access mode alone decides who gets the key.
       const rawAudioBlob = audioSource ? await fetch(audioSource).then(r => r.blob()) : null;
       const rawAudioBytes = rawAudioBlob ? new Uint8Array(await rawAudioBlob.arrayBuffer()) : null;
+      const uploadIdentity = await getUploadIdentity();
 
       const [resolvedAudioUpload, resolvedCoverCID] = await Promise.all([
         resolvePreparedUpload(audioUploadRef, () =>
-          rawAudioBytes ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash) : Promise.resolve('')
+          rawAudioBytes
+            ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash, uploadIdentity)
+            : Promise.resolve('')
         ),
         resolvePreparedUpload(coverUploadRef, () =>
-          coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }) : Promise.resolve('')
+          coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }, uploadIdentity) : Promise.resolve('')
         )
       ]);
       if (!resolvedAudioUpload.trim()) {
@@ -699,7 +712,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         title: 'Uploading to IPFS',
         message: 'Pinning the track manifest to IPFS via Pinata.'
       });
-      const metadataCID = await uploadJsonToPinata(manifest, `${manifest.track.title}.json`, { app: 'dotify', type: 'track-metadata' });
+      const metadataCID = await uploadJsonToPinata(manifest, `${manifest.track.title}.json`, { app: 'dotify', type: 'track-metadata' }, uploadIdentity);
       const ipfsMetadataRef = `ipfs://${metadataCID}`;
 
       if (isArtistPublishE2e) {

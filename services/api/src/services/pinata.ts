@@ -27,6 +27,7 @@ export async function pinFileToPinata(
   bytes: Uint8Array,
   filename: string,
   keyvalues: Record<string, string> = {},
+  signal?: AbortSignal,
 ): Promise<string> {
   const headers = authHeaders();
   const form = new FormData();
@@ -37,6 +38,7 @@ export async function pinFileToPinata(
     method: 'POST',
     headers,
     body: form,
+    signal,
   });
 
   if (!res.ok) {
@@ -55,12 +57,14 @@ export async function pinJsonToPinata(
   json: unknown,
   name: string,
   keyvalues: Record<string, string> = {},
+  signal?: AbortSignal,
 ): Promise<string> {
   const headers = authHeaders();
   const res = await fetch(PIN_JSON_URL, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify({ pinataContent: json, pinataMetadata: { name, keyvalues } }),
+    signal,
   });
 
   if (!res.ok) {

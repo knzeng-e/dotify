@@ -293,6 +293,16 @@
       "track": "Production spine",
       "phase": "Now",
       "note": "Activated implementation sequence for stable dev quality gates and branch protection guidance."
+    },
+    {
+      "id": "W02",
+      "doc": "docs/backlog/implementation/W02-upload-session-boundaries.md",
+      "issue": 138,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Activated implementation sequence for authenticated upload capacity and restart-safe session revocation."
     }
   ]
 }

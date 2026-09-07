@@ -14,13 +14,17 @@ In the production path, Dotify keeps the upload credential and master key
 material in the backend API:
 
 1. The browser computes the audio content hash.
-2. The browser uploads the raw audio to the backend.
-3. The backend derives the per-track key from `CONTENT_KEY_MASTER_SECRET`.
-4. The backend encrypts the audio with AES-256-GCM. New uploads use the
+2. The artist signs in with the connected EIP-191 or Product sr25519 identity.
+3. The backend verifies that identity owns a SmartRuntime, then issues a
+   single-use audio capability with a short expiry and byte budget.
+4. The browser uploads the raw audio with that capability.
+5. The backend validates the received media bytes and content hash, then
+   derives the per-track key from `CONTENT_KEY_MASTER_SECRET`.
+6. The backend encrypts the audio with AES-256-GCM. New uploads use the
    chunked `dotify.audio.v2` container; older v1 encrypted blobs remain
    playable.
-5. The backend pins the encrypted bytes to Pinata.
-6. A Free listener receives a key only after the backend re-verifies public
+7. The backend pins the encrypted bytes to Pinata.
+8. A Free listener receives a key only after the backend re-verifies public
    runtime access. Gated listeners and room hosts receive a key only after a
    signed session/key request and a server-side runtime access check.
 
@@ -70,6 +74,9 @@ Raw audio bytes
 Browser computes contentHash
         |
         v
+Signed session -> artist runtime check -> one-use audio capability
+        |
+        v
 POST /api/uploads/audio
         |
         v
@@ -94,6 +101,13 @@ startup latency, not authorization: room guests still receive only the host's
 ephemeral WebRTC stream and never receive the key or source bytes.
 The exact `DAV2` binary layout and browser playback contract are documented in
 [audio-v2-container.md](../reference/audio-v2-container.md).
+
+Audio, cover, and metadata capabilities are separate. A cover capability cannot
+upload audio, and a completed capability cannot be replayed. Reserved and
+completed bytes count against rolling per-artist and global quotas. File type is
+derived from the received container bytes rather than the browser's MIME label;
+an image renamed as audio is rejected before encryption or pinning. Failed and
+interrupted storage requests release their quota reservation.
 
 ### Demo/local encryption pipeline
 
