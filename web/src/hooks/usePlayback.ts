@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
 import type { HostAudioStartupMetric } from '../features/catalog/audioStartupTelemetry';
 import type { CatalogTrack, Mode, PlayerState } from '../shared/types';
-import type { AudioStatus } from '../features/player/playbackStatus';
+import { listenerPlaybackStatusForHostState, type AudioStatus } from '../features/player/playbackStatus';
 
 export type PlaybackControls = ReturnType<typeof usePlayback>;
 
@@ -168,7 +168,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     if (mode !== 'listener') return;
     // Before the first broadcast arrives, a freshly connected listener is
     // "Connected" rather than "In sync" - default to not-playing.
-    setStatus(remoteReady ? (!remotePausedByUser && (playerState?.playing ?? false) ? 'playing' : 'ready') : 'joining');
+    setStatus(previous => listenerPlaybackStatusForHostState(previous, remoteReady, playerState?.playing ?? false, remotePausedByUser));
     // Depend only on the play flag: playerState is a fresh object on every host
     // clock tick (~4 Hz), but only playing/paused changes the status.
   }, [mode, remoteReady, remotePausedByUser, playerState?.playing]);

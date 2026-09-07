@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchCatalog, readBundledCatalog, type CatalogApiResponse } from './catalog';
+import { PRODUCT_DEVNET_BOOTSTRAP_CATALOG, PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID } from './productDevnetCatalogBootstrap';
 
 function response(): CatalogApiResponse {
   return {
@@ -94,11 +95,12 @@ describe('fetchCatalog', () => {
 
 describe('readBundledCatalog', () => {
   it('exposes the Product DevNet bootstrap catalog only for the matching product id', () => {
-    const bundled = readBundledCatalog({ apiUrl: 'https://api.dotify.example', productId: 'dotify-test01.dot' });
-    expect(bundled?.items).toHaveLength(0);
-    expect(bundled?.pagination.total).toBe(0);
+    const bundled = readBundledCatalog({ apiUrl: 'https://api.dotify.example', productId: PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID });
+    expect(bundled).toBe(PRODUCT_DEVNET_BOOTSTRAP_CATALOG);
+    expect(bundled?.items).toHaveLength(PRODUCT_DEVNET_BOOTSTRAP_CATALOG.items.length);
+    expect(bundled?.pagination.total).toBe(PRODUCT_DEVNET_BOOTSTRAP_CATALOG.pagination.total);
     expect(bundled?.meta.cacheAvailable).toBe(true);
     expect(readBundledCatalog({ apiUrl: 'https://api.dotify.example', productId: 'other.dot' })).toBeNull();
-    expect(readBundledCatalog({ apiUrl: '', productId: 'dotify-test01.dot' })).toBeNull();
+    expect(readBundledCatalog({ apiUrl: '', productId: PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID })).toBeNull();
   });
 });

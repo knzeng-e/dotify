@@ -14,6 +14,17 @@ export type AudioStatus =
   | 'joining' //         room listener waiting for the live stream
   | 'no-audio'; //       genuine failure or missing source
 
+export function listenerPlaybackStatusForHostState(
+  previous: AudioStatus,
+  remoteReady: boolean,
+  hostPlaying: boolean,
+  remotePausedByUser: boolean
+): AudioStatus {
+  if (!remoteReady) return 'joining';
+  if (previous === 'autoplay-blocked' || previous === 'no-audio') return previous;
+  return !remotePausedByUser && hostPlaying ? 'playing' : 'ready';
+}
+
 /** Human label for a playback status, phrased for the host or the listener. */
 export function playbackStatusLabel(status: AudioStatus, mode: Mode, preparingDetail?: string): string {
   switch (status) {

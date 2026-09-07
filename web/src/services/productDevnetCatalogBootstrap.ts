@@ -4,19 +4,133 @@ import type { CatalogApiResponse } from './catalog';
 export const PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID = 'dotify-test01.dot';
 
 export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
-  items: [],
-  artists: [],
+  items: [
+    {
+      id: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0x085c288a67aaf02691dfd8fc1dc2ac13cf51e215a9a1a7e98314e54be27d693b',
+      hash: '0x085c288a67aaf02691dfd8fc1dc2ac13cf51e215a9a1a7e98314e54be27d693b',
+      runtimeAddress: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338',
+      artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+      tokenId: '3',
+      title: 'Des pyramides',
+      artist: 'Lord Ékomy Ndong ☥',
+      description:
+        'Durée: 03:32\n\nAuteur: Lord Ekomy Ndong\n\nCompositeur: Lord Ekomy Ndong\n\nAlbum: Toujours autant dans son coin\n\nGenre musical: Hip Hop/Rap\n\nAnnée: 2020\n\nCommentaire: MOVAIZHALEINE/zorbam Produxions/GABON',
+      imageRef: 'ipfs://QmQFWjczVRRsvxeSX4Pzd2774PZ9n7iUuH85ZQhmz7cs11',
+      coverVariants: ['ipfs://QmQFWjczVRRsvxeSX4Pzd2774PZ9n7iUuH85ZQhmz7cs11'],
+      audioRef: 'dotify:enc:v2:ipfs://QmbREbR24HiGjcfkiwYjg3awQdhBDQxGrTCHbBStU3VcVh',
+      metadataRef: 'ipfs://QmTZuXbn4PqdNuUbjC6D79cjaEGRXdUhtp5w8QNWbndygG',
+      bulletinRef: '',
+      artistContractRef: 'dotify:self-certified:0x085c288a67aaf02691dfd8fc1dc2ac13cf51e215a9a1a7e98314e54be27d693b',
+      accessMode: 'free',
+      priceWei: '0',
+      priceDot: '0',
+      personhoodLevel: 'DIM1',
+      active: true,
+      encrypted: true,
+      royaltyBps: 10000,
+      royaltySplits: [
+        {
+          label: 'Primary recipient',
+          recipient: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+          bps: 10000
+        }
+      ],
+      registeredAtBlock: 13123023,
+      sourceBlock: 13123023
+    },
+    {
+      id: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0x340333875dc4640ebbfc9fc5ec713a0c25ad6267f278ac07a1ff3579675201fa',
+      hash: '0x340333875dc4640ebbfc9fc5ec713a0c25ad6267f278ac07a1ff3579675201fa',
+      runtimeAddress: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338',
+      artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+      tokenId: '2',
+      title: 'Discipline',
+      artist: 'Lord Ékomy Ndong ☥',
+      description:
+        'Durée: 05:17\n\nAuteur: Lord Ekomy Ndong feat Matt Seigneur Lion\n\nCompositeur: Lord Ekomy Ndong\n\nAlbum: Petit Mutant dans son coin\n\nGenre musical: Hip Hop/Rap\n\nAnnée: 2020\n\nCommentaire: MOVAIZHALEINE/zorbam Produxions/GABON\n',
+      imageRef: 'ipfs://QmR5Wob4FT475vdsRGEq5HKDx9aRjXZ8Djwq2ymnfRFcNj',
+      coverVariants: ['ipfs://QmR5Wob4FT475vdsRGEq5HKDx9aRjXZ8Djwq2ymnfRFcNj'],
+      audioRef: 'dotify:enc:v2:ipfs://QmP9vnfjFoMKAkqvT8siu11x7tHhxaPty1UU2m4z6UErAQ',
+      metadataRef: 'ipfs://QmNZE73TVFghkb3rba4fwxp4jDHYWirBV8B9NPR25ndesL',
+      bulletinRef: '',
+      artistContractRef: 'dotify:self-certified:0x340333875dc4640ebbfc9fc5ec713a0c25ad6267f278ac07a1ff3579675201fa',
+      accessMode: 'classic',
+      priceWei: '4210000000000000000',
+      priceDot: '4.21',
+      personhoodLevel: 'DIM1',
+      active: true,
+      encrypted: true,
+      royaltyBps: 10000,
+      royaltySplits: [
+        {
+          label: 'Primary recipient',
+          recipient: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+          bps: 7000
+        },
+        {
+          label: 'Split 2',
+          recipient: '0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809',
+          bps: 3000
+        }
+      ],
+      registeredAtBlock: 13104621,
+      sourceBlock: 13104621
+    },
+    {
+      id: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0xac255d49e3181b3f077ca55ef8de8ddb4b852c0bf3ffcec6153cc8f9164afcd9',
+      hash: '0xac255d49e3181b3f077ca55ef8de8ddb4b852c0bf3ffcec6153cc8f9164afcd9',
+      runtimeAddress: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338',
+      artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+      tokenId: '1',
+      title: "Princesse d'Afrique",
+      artist: 'Lord Ékomy Ndong ☥',
+      description:
+        'Titre: Princesse d’Afrique\n\nDurée: 04:07\n\nAuteur: Lord Ekomy Ndong feat Ayilé Ekomy Ndong\n\nCompositeur: Lord Ekomy Ndong\n\nAlbum: Petit Mutant dans son coin\n\nGenre musical: Hip Hop/Rap\n\nAnnée: 2020\n\nCommentaire: MOVAIZHALEINE/zorbam Produxions/GABON',
+      imageRef: 'ipfs://QmR5Wob4FT475vdsRGEq5HKDx9aRjXZ8Djwq2ymnfRFcNj',
+      coverVariants: ['ipfs://QmR5Wob4FT475vdsRGEq5HKDx9aRjXZ8Djwq2ymnfRFcNj'],
+      audioRef: 'dotify:enc:v2:ipfs://QmW7dLpW8ssK3KjQShCLsSp7rGNZvEqAQRwL2xUTn4bCMP',
+      metadataRef: 'ipfs://Qmd3THoduY5BvQfyS69wgduuSGxPU9rgaLMLiCy3DGakrA',
+      bulletinRef: '',
+      artistContractRef: 'dotify:self-certified:0xac255d49e3181b3f077ca55ef8de8ddb4b852c0bf3ffcec6153cc8f9164afcd9',
+      accessMode: 'free',
+      priceWei: '0',
+      priceDot: '0',
+      personhoodLevel: 'DIM1',
+      active: true,
+      encrypted: true,
+      royaltyBps: 10000,
+      royaltySplits: [
+        {
+          label: 'Primary recipient',
+          recipient: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+          bps: 10000
+        }
+      ],
+      registeredAtBlock: 13104573,
+      sourceBlock: 13104573
+    }
+  ],
+  artists: [
+    {
+      artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+      runtimeAddress: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338',
+      name: 'Lord Ékomy Ndong ☥',
+      releaseCount: 3,
+      activeReleaseCount: 3,
+      latestReleaseBlock: 13123023
+    }
+  ],
   pagination: {
     limit: 100,
     nextCursor: null,
-    total: 0
+    total: 3
   },
   meta: {
     state: 'stale-cache',
     cacheAvailable: true,
-    indexedAt: '2026-09-06T12:00:00.000Z',
-    lastIndexedBlock: 13103317,
-    chainHeadBlock: 13103319,
+    indexedAt: '2026-09-07T11:49:00.521Z',
+    lastIndexedBlock: 13124113,
+    chainHeadBlock: 13124115,
     blockLag: 2,
     staleAfterMs: 60000,
     lastErrorCode: null

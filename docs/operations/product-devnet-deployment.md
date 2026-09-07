@@ -319,13 +319,15 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 12]`. Product host containers use
-Engine.IO Fetch polling without a WebSocket upgrade, so room signaling stays on
-the remote-network primitive proven to remain available in Product Mobile.
-Standalone browsers retain Fetch-first with an optional WebSocket upgrade. Do
-not remove the direct `engine.io-client` pin or restore XHR polling without a
-successful room-open stability test in both Product Mobile and the standalone
-browser.
+The current Product executable is `[0, 1, 13]`. This version keeps blocked
+guest audio recovery visible in Product-hosted rooms, so a listener whose first
+remote stream `play()` call is blocked can still press `Start audio`. Product
+host containers use Engine.IO Fetch polling without a WebSocket upgrade, so
+room signaling stays on the remote-network primitive proven to remain available
+in Product Mobile. Standalone browsers retain Fetch-first with an optional
+WebSocket upgrade. Do not remove the direct `engine.io-client` pin or restore
+XHR polling without a successful room-open stability test in both Product
+Mobile and the standalone browser.
 
 Room continuity introduced in `[0, 1, 6]` also depends on the matching
 signaling server.

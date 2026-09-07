@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { playbackStatusLabel, transportProgressPercent, type AudioStatus } from './playbackStatus';
+import { listenerPlaybackStatusForHostState, playbackStatusLabel, transportProgressPercent, type AudioStatus } from './playbackStatus';
 
 describe('playbackStatusLabel', () => {
   it('returns mode-neutral labels for transient states', () => {
@@ -38,5 +38,22 @@ describe('transportProgressPercent', () => {
   it('is 0 when duration is zero or invalid', () => {
     expect(transportProgressPercent(10, 0)).toBe(0);
     expect(transportProgressPercent(10, Number.NaN)).toBe(0);
+  });
+});
+
+describe('listenerPlaybackStatusForHostState', () => {
+  it('keeps autoplay-blocked visible across host playback ticks', () => {
+    expect(listenerPlaybackStatusForHostState('autoplay-blocked', true, true, false)).toBe('autoplay-blocked');
+  });
+
+  it('keeps no-audio visible until the listener retries the room audio', () => {
+    expect(listenerPlaybackStatusForHostState('no-audio', true, true, false)).toBe('no-audio');
+  });
+
+  it('maps normal listener state from remote stream readiness and host playback', () => {
+    expect(listenerPlaybackStatusForHostState('joining', false, true, false)).toBe('joining');
+    expect(listenerPlaybackStatusForHostState('joining', true, true, false)).toBe('playing');
+    expect(listenerPlaybackStatusForHostState('playing', true, true, true)).toBe('ready');
+    expect(listenerPlaybackStatusForHostState('playing', true, false, false)).toBe('ready');
   });
 });
