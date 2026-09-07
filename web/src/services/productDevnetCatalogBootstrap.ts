@@ -6,9 +6,42 @@ export const PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID = 'dotify-test01.dot';
 export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
   items: [
     {
-      id: '0xb60e91ccacd08b6cb0ddb2e678f90791901e9338:0x715636fd68fb3205d4b90336f1c3c4c520d02ff58b72f282b0ead14e190f4834',
+      id: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0xabc5993ee6ce0044618e883f0e775e9fcbf0e7ade3e9b4d5c284a48615bdd135',
+      hash: '0xabc5993ee6ce0044618e883f0e775e9fcbf0e7ade3e9b4d5c284a48615bdd135',
+      runtimeAddress: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338',
+      artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+      tokenId: '8',
+      title: 'Odzambogha',
+      artist: 'Lord Ékomy Ndong ☥',
+      description:
+        "Titre: Odzambogha\n\nDurée: 04:13\n\nAuteurs: Lord Ekomy Ndong ☥\n\nAlbum: Toujours Autant Dans Son Coin\n\nGenre musical: HIp-Hop\n\nAnnée d'enregistrement: 2020\n\nCommentaires: Zorbam Produxions",
+      imageRef: 'ipfs://QmYttHXoEPnTVNXiqTxjJi6ZTKin8DXF4FnQjGE1yHMQQw',
+      coverVariants: ['ipfs://QmYttHXoEPnTVNXiqTxjJi6ZTKin8DXF4FnQjGE1yHMQQw'],
+      audioRef: 'dotify:enc:v2:ipfs://Qmd1QTFwL9FVWJJxFbcH4kVQprEM6rjr6gFH4dRjcAH1rZ',
+      metadataRef: 'ipfs://QmZcgnGJwZ9jSadNMuCuH32EGReZKJcMZoG3T99pDeg2xv',
+      bulletinRef: '',
+      artistContractRef: 'dotify:self-certified:0xabc5993ee6ce0044618e883f0e775e9fcbf0e7ade3e9b4d5c284a48615bdd135',
+      accessMode: 'human-free',
+      priceWei: '0',
+      priceDot: '0',
+      personhoodLevel: 'DIM1',
+      active: true,
+      encrypted: true,
+      royaltyBps: 10000,
+      royaltySplits: [
+        {
+          label: 'Primary recipient',
+          recipient: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+          bps: 10000
+        }
+      ],
+      registeredAtBlock: 13133435,
+      sourceBlock: 13133435
+    },
+    {
+      id: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0x715636fd68fb3205d4b90336f1c3c4c520d02ff58b72f282b0ead14e190f4834',
       hash: '0x715636fd68fb3205d4b90336f1c3c4c520d02ff58b72f282b0ead14e190f4834',
-      runtimeAddress: '0xb60e91ccacd08b6cb0ddb2e678f90791901e9338',
+      runtimeAddress: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338',
       artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
       tokenId: '7',
       title: 'CALL',
@@ -252,22 +285,22 @@ export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
       artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
       runtimeAddress: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338',
       name: 'Lord Ékomy Ndong ☥',
-      releaseCount: 7,
-      activeReleaseCount: 7,
-      latestReleaseBlock: 13126444
+      releaseCount: 8,
+      activeReleaseCount: 8,
+      latestReleaseBlock: 13133435
     }
   ],
   pagination: {
     limit: 100,
     nextCursor: null,
-    total: 7
+    total: 8
   },
   meta: {
     state: 'stale-cache',
     cacheAvailable: true,
-    indexedAt: '2026-09-07T14:25:06.165Z',
-    lastIndexedBlock: 13126453,
-    chainHeadBlock: 13126455,
+    indexedAt: '2026-09-07T23:39:01.906Z',
+    lastIndexedBlock: 13134392,
+    chainHeadBlock: 13134394,
     blockLag: 2,
     staleAfterMs: 60000,
     lastErrorCode: null
