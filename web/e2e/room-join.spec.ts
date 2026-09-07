@@ -142,6 +142,24 @@ async function removeMediaElementCaptureSupport(context: BrowserContext) {
   });
 }
 
+async function blockFirstRemoteStreamAutoplay(context: BrowserContext) {
+  await context.addInitScript(() => {
+    const nativePlay = HTMLMediaElement.prototype.play;
+    let blocked = false;
+
+    HTMLMediaElement.prototype.play = function playWithBlockedFirstRemoteStream() {
+      const remoteAudio = document.querySelectorAll<HTMLAudioElement>('audio.native-player-source')[1];
+      if (!blocked && remoteAudio === this) {
+        blocked = true;
+        this.pause();
+        return Promise.reject(new DOMException('Autoplay blocked in Product iframe', 'NotAllowedError'));
+      }
+
+      return nativePlay.call(this);
+    };
+  });
+}
+
 test('public room: listener joins via link, hears full playback, no wallet, no content key', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();
@@ -194,6 +212,31 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await hostContext.close();
     await listenerContext.close();
     await secondListenerContext.close();
+  }
+});
+
+test('public room: listener can manually start audio when embedded autoplay is blocked', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const listenerContext = await browser.newContext();
+  try {
+    await blockFirstRemoteStreamAutoplay(listenerContext);
+
+    const host = await hostContext.newPage();
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE);
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Product guest' });
+
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    const startAudio = listener.getByRole('button', { name: 'Start audio' });
+    await expect(startAudio).toBeVisible({ timeout: 15_000 });
+    await listener.waitForTimeout(2_000);
+    await expect(startAudio).toBeVisible();
+
+    await startAudio.click();
+    await expectRemoteAudioPlaying(listener);
+    await expect(listener.getByTestId('session-error')).toHaveCount(0);
+  } finally {
+    await hostContext.close();
+    await listenerContext.close();
   }
 });
 
