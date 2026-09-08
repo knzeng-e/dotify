@@ -290,6 +290,44 @@ describe('canonical release access', () => {
     if (!result.allowed) assert.equal(result.code, 'RELEASE_IDENTITY_MISMATCH');
   });
 
+  it('rejects a release when ArtistDirectory remaps the artist runtime', async () => {
+    const releaseA = release();
+    const { access, client } = service([releaseA]);
+    client.runtimeOf.set(ARTIST_A, RUNTIME_B);
+
+    const result = await access.checkTrackAccess({
+      contentHash: HASH,
+      requester: REQUESTER,
+      purpose: 'individual',
+      release: identity(releaseA)
+    });
+
+    assert.equal(result.allowed, false);
+    if (!result.allowed) assert.equal(result.code, 'RELEASE_IDENTITY_MISMATCH');
+    assert.equal(client.calls.some(call => call.functionName === 'musicAccCanAccess'), false);
+  });
+
+  it('rejects a release when the target runtime audioRef drifts from the catalog', async () => {
+    const releaseA = release();
+    const { access, client } = service([releaseA]);
+    client.releases.set(`${RUNTIME_A}:${HASH}`.toLowerCase(), {
+      artist: ARTIST_A,
+      audioRef: makeReleaseBoundEncryptedAudioV2Ref('replaced-cid'),
+      active: true
+    });
+
+    const result = await access.checkTrackAccess({
+      contentHash: HASH,
+      requester: REQUESTER,
+      purpose: 'individual',
+      release: identity(releaseA)
+    });
+
+    assert.equal(result.allowed, false);
+    if (!result.allowed) assert.equal(result.code, 'RELEASE_IDENTITY_MISMATCH');
+    assert.equal(client.calls.some(call => call.functionName === 'musicAccCanAccess'), false);
+  });
+
   it('checks Free access with the zero address and never with a guest wallet', async () => {
     const releaseA = release({ accessMode: 'free', priceWei: '0', priceDot: '0' });
     const { access, client } = service([releaseA]);
@@ -303,5 +341,4 @@ describe('canonical release access', () => {
       true
     );
   });
-
 });
