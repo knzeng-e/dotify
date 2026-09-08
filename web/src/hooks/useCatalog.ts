@@ -4,6 +4,7 @@ import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot } from '../shared/utils/format';
 import {
+  LEGACY_CONTENT_KEY_VERSION,
   isKeyServiceConfigured,
   requestContentKey,
   requestFreeContentKey,
@@ -261,6 +262,12 @@ function releaseIdentityFromTrack(track: CatalogTrack): ContentKeyReleaseIdentit
     audioRef: track.audioRef,
     keyVersion
   };
+}
+
+export function contentKeyCacheKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): string {
+  const normalizedHash = contentHash.toLowerCase();
+  if (!release || release.keyVersion === LEGACY_CONTENT_KEY_VERSION) return normalizedHash;
+  return [release.keyVersion, release.runtimeAddress.toLowerCase(), release.releaseId.toLowerCase(), normalizedHash, release.audioRef].join(':');
 }
 
 export type UseCatalogDeps = {
@@ -552,7 +559,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       return authorized ? new Uint8Array(32).fill(9) : null;
     }
 
-    const cacheKey = contentHash.toLowerCase();
+    const cacheKey = contentKeyCacheKey(contentHash, release);
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
     if (!isKeyServiceConfigured() || !connectedWallet || (!connectedWallet.createEvmClient && !connectedWallet.keyRequestSigner)) return null;
@@ -584,7 +591,7 @@ export function useCatalog(deps: UseCatalogDeps) {
    * cannot open a paid or human-gated track.
    */
   async function resolveFreeContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
-    const cacheKey = contentHash.toLowerCase();
+    const cacheKey = contentKeyCacheKey(contentHash, release);
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
     if (!isKeyServiceConfigured()) return null;
