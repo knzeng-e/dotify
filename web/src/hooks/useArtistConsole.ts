@@ -1093,7 +1093,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         setTransactionFeedback({
           tone: 'error',
           title: 'Royalty claim readback unavailable',
-          message: 'The transaction was included, but Dotify could not confirm whether the pending balance cleared. Refresh the ledger before treating it as received.',
+          message:
+            'The transaction was included, but Dotify could not confirm whether the pending balance cleared. Refresh the ledger before treating it as received.',
           txHash
         });
         return;

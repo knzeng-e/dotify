@@ -222,7 +222,9 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
     },
 
     async getRoyaltyClaimable(runtimeAddress, recipientAddress) {
-      return toBigInt(await queryContract<bigint | number | string>(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRoyClaimable', [recipientAddress]));
+      return toBigInt(
+        await queryContract<bigint | number | string>(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRoyClaimable', [recipientAddress])
+      );
     }
   };
 }
