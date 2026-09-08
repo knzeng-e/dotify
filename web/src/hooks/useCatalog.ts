@@ -17,6 +17,7 @@ import {
   type ParsedAudioV2
 } from '../shared/utils/audioV2';
 import { isPolicyManagedTrack } from '../features/access/accessPolicy';
+import { buildAccessGate, buildClassicAccessVerifiedFeedback, buildIncludedPaymentUnverifiedMessage } from '../features/access/accessPromise';
 import { catalogApiStatus, catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
@@ -474,41 +475,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   // door (pay / verify humanity / sign in), and free tracks and rooms are the
   // discovery surface.
   function buildAccessGateInfo(track: CatalogTrack): AccessGate {
-    if (!connectedWallet) {
-      if (track.accessMode === 'classic') {
-        return {
-          track,
-          title: 'Support and open this track',
-          message: `"${track.title}" opens for ${track.priceDot} ${nativeRuntimePaymentAsset.symbol}. Review the split before confirming.`,
-          hint: 'Nothing is sent until you confirm.',
-          actionType: 'signin'
-        };
-      }
-      return {
-        track,
-        title: 'Verification needed',
-        message: `"${track.title}" is free for verified humans.`,
-        hint: 'Dotify only checks whether access should open.',
-        actionType: 'signin'
-      };
-    }
-
-    if (track.accessMode === 'human-free') {
-      return {
-        track,
-        title: 'Verification needed',
-        message: `"${track.title}" is free for verified humans. Verify once to listen in full.`,
-        hint: 'No profile is created for this check.',
-        actionType: 'personhood'
-      };
-    }
-    return {
-      track,
-      title: 'Support and open this track',
-      message: `"${track.title}" opens after ${track.priceDot} ${nativeRuntimePaymentAsset.symbol} of support. Review the artist-defined split before confirming.`,
-      hint: 'The artist-owned runtime distributes the confirmed amount.',
-      actionType: 'payment'
-    };
+    return buildAccessGate({ track, connected: Boolean(connectedWallet), nativePaymentAsset: nativeRuntimePaymentAsset });
   }
 
   /**
@@ -1093,10 +1060,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback({
-        tone: 'success',
-        title: 'Work opened',
-        message: `Full listening for "${track.title}" is now available to this wallet.`,
-        txHash: E2E_CLASSIC_TX_HASH
+        ...buildClassicAccessVerifiedFeedback(track, E2E_CLASSIC_TX_HASH)
       });
       if (shouldRestoreUnlockedTrack()) {
         navigateToView('player');
@@ -1149,32 +1113,33 @@ export function useCatalog(deps: UseCatalogDeps) {
       await runtimeWriter.waitForTransaction(txHash);
       includedTxHash = txHash;
 
-      if (runtimeAdapterConfig.kind === 'product-cdm') {
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Verifying runtime access',
+        message:
+          runtimeAdapterConfig.kind === 'product-cdm'
+            ? 'Payment included. Reading the Product runtime before opening the track.'
+            : 'Payment included. Reading the runtime before opening the track.',
+        txHash
+      });
+
+      if (!listenerEvmAddress) {
         setTransactionFeedback({
-          tone: 'pending',
-          title: 'Verifying runtime access',
-          message: 'Payment included. Reading the Product runtime before opening the track.',
+          tone: 'error',
+          title: 'Payment included, access not verified',
+          message: 'The payment transaction was included, but Dotify cannot verify runtime access without the connected account address.',
           txHash
         });
+        return;
+      }
 
-        if (!listenerEvmAddress) {
-          setTransactionFeedback({
-            tone: 'error',
-            title: 'Payment included, access not verified',
-            message: 'The payment transaction was included, but Dotify cannot verify runtime access without the connected Product account H160 address.',
-            txHash
-          });
-          return;
-        }
+      const verification = await verifyRuntimeAccessPayment({
+        reader: runtimeReader,
+        intent: paymentIntent,
+        listenerAddress: listenerEvmAddress
+      });
 
-        // The Product writer and reader use separate host chain clients. A tx
-        // can be included before the read client observes the same head, so the
-        // smoke test polls briefly before treating a false read as evidence.
-        const verification = await verifyRuntimeAccessPayment({
-          reader: runtimeReader,
-          intent: paymentIntent,
-          listenerAddress: listenerEvmAddress
-        });
+      if (runtimeAdapterConfig.kind === 'product-cdm') {
         publishProductCdmPaymentSmokeMetric(
           buildProductCdmPaymentSmokeMetric({
             verification,
@@ -1185,26 +1150,25 @@ export function useCatalog(deps: UseCatalogDeps) {
             amountPlanck: paymentIntent.amountPlanck
           })
         );
+      }
 
-        if (!verification.ok) {
-          setTransactionFeedback({
-            tone: 'error',
-            title: 'Payment included, access not verified',
-            message: `The payment transaction was included, but Dotify could not verify runtime access after ${verification.attempts} read-back attempts: ${verification.error} Keep Product writes disabled until native value forwarding and account mapping are verified in the Product host.`,
-            txHash
-          });
-          return;
-        }
+      if (!verification.ok) {
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Payment included, access not verified',
+          message: buildIncludedPaymentUnverifiedMessage({
+            attempts: verification.attempts,
+            error: verification.error,
+            productCdm: runtimeAdapterConfig.kind === 'product-cdm'
+          }),
+          txHash
+        });
+        return;
       }
 
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setTransactionFeedback({
-        tone: 'success',
-        title: 'Work opened',
-        message: `Full listening for "${track.title}" is now available to this wallet.`,
-        txHash
-      });
+      setTransactionFeedback(buildClassicAccessVerifiedFeedback(track, txHash));
       if (shouldRestoreUnlockedTrack()) {
         navigateToView('player');
         await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);

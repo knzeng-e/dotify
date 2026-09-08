@@ -52,7 +52,7 @@ export function YouView({
       <header className='you-hero'>
         <p className='eyebrow'>Your private space</p>
         <h2 id='you-view-title'>Your music.</h2>
-        <p>Keep opened tracks, supported artists, and your artist space close.</p>
+        <p>Keep payment records, supported artists, and your artist space close.</p>
       </header>
 
       <div className='you-layout'>
@@ -68,7 +68,7 @@ export function YouView({
             <div className='account-summary' aria-label='Music summary'>
               <span>
                 <strong className='tnum'>{unlockedTrackCount}</strong>
-                tracks opened
+                payment records
               </span>
               <span>
                 <strong className='tnum'>{supportedArtistCount}</strong>
@@ -81,7 +81,7 @@ export function YouView({
             <section className='account-detail-section' id='account-unlocked-tracks' tabIndex={-1} aria-labelledby='account-unlocked-title'>
               <div className='account-detail-title'>
                 <Music2 size={16} />
-                <h4 id='account-unlocked-title'>Tracks opened</h4>
+                <h4 id='account-unlocked-title'>Supported tracks</h4>
               </div>
               {unlockedTracks.length > 0 ? (
                 <div className='account-detail-list'>
@@ -90,7 +90,7 @@ export function YouView({
                       <span>
                         <strong>{track.title}</strong>
                         <small>
-                          {track.artist} / {track.priceDot} {nativePaymentSymbol}
+                          {track.artist} / {track.priceDot} {nativePaymentSymbol} paid
                         </small>
                       </span>
                       <code>{shortenAddress(track.hash)}</code>
@@ -98,7 +98,7 @@ export function YouView({
                   ))}
                 </div>
               ) : (
-                <p className='account-empty'>Tracks you support and open will appear here.</p>
+                <p className='account-empty'>Tracks you support will appear here after payment is verified.</p>
               )}
             </section>
 
@@ -114,7 +114,7 @@ export function YouView({
                       <span>
                         <strong>{artist.artist}</strong>
                         <small>
-                          {artist.trackCount} opened track{artist.trackCount === 1 ? '' : 's'}
+                          {artist.trackCount} paid track{artist.trackCount === 1 ? '' : 's'}
                         </small>
                       </span>
                       {artist.artistAddress && (

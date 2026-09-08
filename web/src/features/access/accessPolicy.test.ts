@@ -5,6 +5,7 @@ import { isPolicyManagedTrack, trackHasAccess, trackNeedsAccess } from './access
 type TrackShape = Pick<CatalogTrack, 'source' | 'id'>;
 
 const managed: TrackShape = { source: 'artist', id: '0xRuntime:0xHash' };
+const inactiveManaged = { ...managed, active: false };
 const freeLocal: TrackShape = { source: 'artist', id: 'draft-upload' };
 const nonArtist: TrackShape = { source: 'seed', id: '0xRuntime:0xHash' };
 
@@ -32,6 +33,10 @@ describe('trackHasAccess', () => {
     expect(trackHasAccess(managed, {})).toBe(false);
     expect(trackHasAccess(managed, { [managed.id]: false })).toBe(false);
     expect(trackHasAccess(managed, { [managed.id]: true })).toBe(true);
+  });
+
+  it('denies inactive policy-managed tracks even when a cached entry is true', () => {
+    expect(trackHasAccess(inactiveManaged, { [managed.id]: true })).toBe(false);
   });
 });
 

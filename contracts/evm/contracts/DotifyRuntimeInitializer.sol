@@ -9,9 +9,9 @@ import { LibMusicAccess } from './libraries/LibMusicAccess.sol';
 ///         SmartRuntime constructor.
 ///
 ///         Bootstraps each new artist runtime so that:
-///           - The personhood registrar is set to the artist (owner) so they
-///             can immediately grant DIM levels to listeners and optionally
-///             delegate that role later through the owner-only setter.
+///           - The legacy personhood registrar storage slot is initialised for
+///             layout/ABI continuity. Current access reads Individuality
+///             precompile evidence instead of artist-granted DIM levels.
 ///
 ///         This contract is deployed once and shared across all artist runtimes
 ///         created by the factory.  It executes in the SmartRuntime's storage

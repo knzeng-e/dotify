@@ -311,7 +311,9 @@ Each uploaded track gets:
   JSON;
 - an optional advanced JSON rights manifest archived to Bulletin Chain;
 - an EVM NFT minted by the artist `SmartRuntime` with the content hash, metadata
-  reference, royalty splits, and access mode.
+  reference, royalty splits, and access mode. The NFT owner has active-track
+  playback access, but the original artist field, runtime ownership, and
+  royalty beneficiaries remain separate facts.
 
 Draft track data is in-session only until registration. Registered tracks store
 IPFS refs on-chain and can be loaded through the configured gateway. IPFS reads
@@ -323,14 +325,18 @@ authorization failures.
 - **Free**: playable by everyone, wallet or not. The backend still verifies the
   current runtime policy before releasing the content key.
 - **Human free**: free listening for addresses that satisfy the configured
-  Humanity / Individuality requirement. The current contract stores a
-  personhood level and gates NFT transfer to the same level, but the live source
-  and proof shape are still research.
-- **Classic**: paid access in DOT. The runtime records the price and distributes
-  payments to configured royalty recipients on `musicRoyPayAccess`.
+  Humanity / Individuality requirement. The current access pallet reads the
+  Individuality precompile in Dotify's application context when the host chain
+  exposes it; otherwise Human free fails closed.
+- **Classic**: paid access in the configured runtime-native token. On the
+  current Product DevNet/Paseo Asset Hub rail, that token is PAS. The runtime
+  records the price and distributes payments to configured royalty recipients on
+  `musicRoyPayAccess`.
 
-Proof of Personhood is a registrar-controlled mapping in the contract — ready
-for a live Individuality chain integration without blocking the prototype.
+A Classic payment creates an on-chain paid-access record with no fixed expiry in
+the current runtime. It is not a guarantee of perpetual media availability:
+inactive releases stay closed, and playback always follows the current runtime
+access check.
 
 ### Individual playback access
 

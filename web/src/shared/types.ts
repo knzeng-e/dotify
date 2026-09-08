@@ -220,7 +220,7 @@ export type AccessGate = {
   title: string;
   message: string;
   hint: string;
-  actionType: 'personhood' | 'payment' | 'signin';
+  actionType: 'none' | 'personhood' | 'payment' | 'signin';
 };
 
 export type RoyaltyPayment = {

@@ -1,7 +1,8 @@
 import { LockKeyhole } from 'lucide-react';
 import { Dialog } from './Dialog';
 import type { AccessGate } from '../shared/types';
-import { nativeRuntimeAmountLabel, type DotifyNativeRuntimeAsset } from '../features/payments/paymentModel';
+import { buildClassicAccessReceipt } from '../features/access/accessPromise';
+import type { DotifyNativeRuntimeAsset } from '../features/payments/paymentModel';
 
 export function AccessGateOverlay({
   gate,
@@ -16,9 +17,8 @@ export function AccessGateOverlay({
   onPay?: () => void;
   onSignIn?: () => void;
 }) {
-  const configuredSplitBps = gate.track.royaltySplits.reduce((total, split) => total + split.bps, 0);
-  const artistRemainderBps = Math.max(0, 10_000 - configuredSplitBps);
-  const supportAmount = nativeRuntimeAmountLabel(gate.track.priceDot, nativePaymentAsset);
+  const classicReceipt =
+    gate.track.accessMode === 'classic' && gate.actionType === 'payment' ? buildClassicAccessReceipt(gate.track, nativePaymentAsset) : null;
 
   return (
     <Dialog
@@ -41,47 +41,43 @@ export function AccessGateOverlay({
         </p>
         <p className='access-gate-hint'>{gate.hint}</p>
       </div>
-      {gate.track.accessMode === 'classic' && (
+      {classicReceipt && (
         <section className='access-gate-receipt' aria-label={`Support summary for ${gate.track.title}`}>
-          <div className='access-gate-price' aria-label={`Support amount ${supportAmount}`}>
+          <div className='access-gate-price' aria-label={`Support amount ${classicReceipt.supportAmount}`}>
             <span>Total support</span>
-            <strong>{supportAmount}</strong>
+            <strong>{classicReceipt.supportAmount}</strong>
           </div>
           <dl>
-            <div>
-              <dt>You receive</dt>
-              <dd>Durable listening access for this wallet</dd>
-            </div>
-            {gate.track.royaltySplits.map((split, index) => (
-              <div key={`${split.recipient}-${index}`}>
-                <dt>{split.label || `Collaborator ${index + 1}`}</dt>
-                <dd>{(split.bps / 100).toFixed(split.bps % 100 === 0 ? 0 : 2)}%</dd>
+            {classicReceipt.terms.map(term => (
+              <div key={term.label}>
+                <dt>{term.label}</dt>
+                <dd>{term.value}</dd>
               </div>
             ))}
-            {artistRemainderBps > 0 && (
-              <div>
-                <dt>Original artist remainder</dt>
-                <dd>{(artistRemainderBps / 100).toFixed(artistRemainderBps % 100 === 0 ? 0 : 2)}%</dd>
+            {classicReceipt.recipients.map(recipient => (
+              <div key={`${recipient.label}-${recipient.value}`}>
+                <dt>{recipient.label}</dt>
+                <dd>{recipient.value}</dd>
               </div>
-            )}
+            ))}
             <div>
               <dt>Network fee</dt>
               <dd>Shown by your confirmation method</dd>
             </div>
           </dl>
-          <p>The artist-owned runtime applies this split when the support is confirmed.</p>
+          <p>{classicReceipt.settlementNote}</p>
         </section>
       )}
       <div className='access-gate-actions'>
-        {gate.actionType === 'payment' && onPay && (
+        {gate.actionType === 'payment' && onPay && classicReceipt && (
           <button
             className='primary-action access-gate-primary'
             type='button'
             data-testid='classic-unlock-button'
             onClick={onPay}
-            aria-label={`Support the artist and open ${gate.track.title} for ${supportAmount}`}
+            aria-label={`Support the artist and open ${gate.track.title} for ${classicReceipt.supportAmount}`}
           >
-            Support and open - {supportAmount}
+            Support and open - {classicReceipt.supportAmount}
           </button>
         )}
         {gate.actionType === 'signin' && onSignIn && (

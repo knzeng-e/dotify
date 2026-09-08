@@ -82,7 +82,8 @@ describe('runtime access payment read-back', () => {
   });
 
   it('explains an inconsistent paid state', () => {
-    expect(runtimeAccessPaymentReadbackError({ intent, listenerAddress, hasPaid: true, canAccess: false })).toMatch(/still denies access/);
+    expect(runtimeAccessPaymentReadbackError({ intent, listenerAddress, hasPaid: true, canAccess: false })).toMatch(/still denies playable access/);
+    expect(runtimeAccessPaymentReadbackError({ intent, listenerAddress, hasPaid: true, canAccess: false })).toMatch(/inactive|policy/);
     expect(runtimeAccessPaymentReadbackError({ intent, listenerAddress, hasPaid: false, canAccess: true })).toMatch(/not a paid Classic grant/);
     expect(runtimeAccessPaymentReadbackError({ intent, listenerAddress, hasPaid: true, canAccess: true })).toBeNull();
   });
@@ -104,6 +105,19 @@ describe('runtime access payment read-back', () => {
       readback: { hasPaid: true, canAccess: true }
     });
     expect(sleep).toHaveBeenCalledTimes(2);
+  });
+
+  it('fails verification when payment is recorded but playable access is denied', async () => {
+    const runtimeReader = reader(true, false);
+    const sleep = vi.fn(async () => undefined);
+
+    await expect(verifyRuntimeAccessPayment({ reader: runtimeReader, intent, listenerAddress, attempts: 1, delayMs: 0, sleep })).resolves.toMatchObject({
+      ok: false,
+      attempts: 1,
+      readback: { hasPaid: true, canAccess: false },
+      error: expect.stringMatching(/still denies playable access/)
+    });
+    expect(sleep).not.toHaveBeenCalled();
   });
 
   it('returns a bounded failure after transient query errors', async () => {

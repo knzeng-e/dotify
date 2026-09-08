@@ -37,9 +37,9 @@ test('Classic track stays locked before payment and unlocks full playback after 
 
   await page.getByTestId('classic-unlock-button').click();
 
-  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Work opened');
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Access verified');
   await expect(page.getByTestId('full-playback-state')).toContainText('Full track opened');
-  await expect(page.getByText('Opened for this wallet')).toBeVisible();
+  await expect(page.getByTestId('player-access-price')).toContainText('Access verified');
 
   const afterPayment = await readClassicUnlockState(page);
   expect(afterPayment?.paid).toBe(true);

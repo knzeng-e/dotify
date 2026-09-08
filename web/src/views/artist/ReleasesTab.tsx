@@ -149,7 +149,7 @@ export function ReleasesTab({
                 </span>
                 <span className='access-chip access-chip-trust'>
                   <BadgeCheck size={13} />
-                  Artist controlled
+                  Original artist policy
                 </span>
                 <span className='access-chip access-chip-trust'>
                   <ShieldCheck size={13} />
@@ -245,9 +245,10 @@ export function ReleasesTab({
             <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />
             <EndpointRow label='Encrypted audio' value={selectedRelease.encrypted ? 'yes' : 'no'} />
             <EndpointRow label='Status' value={selectedReleaseActive ? 'active' : 'inactive'} />
+            <EndpointRow label='Track NFT' value='Current owner receives active-track access; policy control does not move with the NFT.' />
             <EndpointRow label='Content hash' value={<code className='release-ref-code'>{selectedRelease.hash}</code>} />
             <EndpointRow
-              label='Artist record'
+              label='Directory runtime'
               value={
                 runtimeAddress ? (
                   <a className='verify-link' href={getBlockscoutAddressUrl(runtimeAddress)} target='_blank' rel='noreferrer'>
@@ -259,7 +260,7 @@ export function ReleasesTab({
               }
             />
             <EndpointRow
-              label='Artist wallet'
+              label='Original artist'
               value={
                 selectedRelease.artistAddress ? (
                   <a className='verify-link' href={getBlockscoutAddressUrl(selectedRelease.artistAddress)} target='_blank' rel='noreferrer'>

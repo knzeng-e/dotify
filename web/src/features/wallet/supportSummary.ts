@@ -1,4 +1,4 @@
-// Support summary - the "artists backed / tracks unlocked" rollup shown in the
+// Support summary - the "artists backed / paid track records" rollup shown in the
 // wallet modal and the account view. Pure: derived from the catalog and the
 // per-track paid-access map, no DOM or chain deps. Previously computed inline in
 // App.tsx; extracted so the listener shell and the artist shell share one source.
@@ -17,7 +17,7 @@ export type SupportSummary = {
 };
 
 /**
- * Roll up the tracks a wallet has paid to unlock and the artists behind them.
+ * Roll up the tracks a wallet has paid to support and the artists behind them.
  * Artists are keyed by address when present, else by (lowercased) name, so the
  * same artist is not double-counted across casings.
  */

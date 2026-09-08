@@ -166,7 +166,7 @@ export function WalletModal({
         <div className='wallet-stats'>
           <div>
             <strong className='tnum'>{unlockedCount}</strong>
-            <span>track{unlockedCount === 1 ? '' : 's'} opened</span>
+            <span>payment record{unlockedCount === 1 ? '' : 's'}</span>
           </div>
           <div>
             <strong className='tnum'>{supportingCount}</strong>
@@ -193,7 +193,7 @@ export function WalletModal({
                     <span>
                       <strong>{artist.artist}</strong>
                       <small>
-                        {artist.trackCount} opened track{artist.trackCount === 1 ? '' : 's'}
+                        {artist.trackCount} paid track{artist.trackCount === 1 ? '' : 's'}
                       </small>
                     </span>
                     {artist.artistAddress && (
@@ -219,7 +219,7 @@ export function WalletModal({
           <section className='wallet-activity-section'>
             <h3>
               <Music2 size={15} />
-              Tracks opened
+              Supported tracks
             </h3>
             {paidTracks.length > 0 ? (
               <div className='wallet-activity-list'>
@@ -228,7 +228,7 @@ export function WalletModal({
                     <span>
                       <strong>{track.title}</strong>
                       <small>
-                        {track.artist} / {track.priceDot} {nativePaymentSymbol}
+                        {track.artist} / {track.priceDot} {nativePaymentSymbol} paid
                       </small>
                     </span>
                     <code>{shortenAddress(track.hash)}</code>
@@ -237,7 +237,7 @@ export function WalletModal({
                 {paidTracks.length > 5 && <p className='wallet-empty'>+{paidTracks.length - 5} more - view all in account details</p>}
               </div>
             ) : (
-              <p className='wallet-empty'>No opened tracks found in the indexed catalog.</p>
+              <p className='wallet-empty'>No verified payment records found in the indexed catalog.</p>
             )}
           </section>
         </div>
