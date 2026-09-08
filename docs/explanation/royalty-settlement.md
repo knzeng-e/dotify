@@ -16,6 +16,11 @@ You can also split royalties with collaborators. When you register a track, you 
 
 Everything is verifiable on-chain. Any listener can inspect the payment records using a block explorer like Blockscout.
 
+A Classic payment receipt proves that the runtime accepted and settled the
+support transaction. It does not promise perpetual media availability. Dotify
+opens protected playback only after the current runtime read-back confirms both
+the paid record and playable access for that wallet.
+
 ---
 
 ## What you see in the artist studio
@@ -45,7 +50,11 @@ address[] royaltyRecipients   // wallet addresses to receive payment shares
 uint256[] royaltyShares       // basis points per recipient (must sum to ≤ 10,000)
 ```
 
-The remainder after all splits is sent to the artist's address (the runtime owner).
+The remainder after all splits is sent to the original artist address stored on
+the track record.
+Those recipients are stored at registration for the release's payment split.
+They are separate from the current track NFT owner and from the current
+SmartRuntime owner.
 
 **Example:** A track with a 30 % collaborator split.
 
@@ -62,7 +71,7 @@ When a listener calls `musicRoyPayAccess(contentHash)`, the contract:
 
 1. Verifies `msg.value >= pricePlanck`.
 2. Iterates the royalty recipient list and transfers `(value * bps) / 10_000` to each.
-3. Sends any remainder to the runtime owner.
+3. Sends any remainder to the original artist address stored on the track.
 4. Sets `paidAccess[contentHash][msg.sender] = true`.
 5. Emits `MusicRoyAccessPaid(contentHash, listener, amount)`.
 

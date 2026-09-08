@@ -275,12 +275,15 @@ function musicAccCanAccess(bytes32 contentHash, address listener)
 Returns `true` if the listener is allowed full playback. Logic:
 
 ```
-listener == owner(tokenId)           → true (artist always has access)
+track.active == false                          → false
+listener == original artist                    → true
+listener == owner(tokenId)                     → true
 accessMode == classic
-  AND paidAccess[contentHash][listener] == true  → true
+  AND paidAccess[contentHash][listener] == true → true
 accessMode == human-free
-  AND personhoodLevelOf[listener] >= requiredPersonhood  → true
-otherwise → false
+  AND Individuality level >= requiredPersonhood → true
+accessMode == free                             → true
+otherwise                                     → false
 ```
 
 ---
@@ -302,9 +305,9 @@ Returns whether the listener has paid for Classic-mode access. Does not evaluate
 function musicAccSetPersonhoodLevel(address listener, uint8 level) external
 ```
 
-Records a personhood level for a listener address.
-
-**Caller must be:** The designated personhood registrar (initially the artist; set by `DotifyRuntimeInitializer`).
+Deprecated ABI-stability entry point. Current runtimes read personhood from the
+Individuality precompile in Dotify's application context; this setter reverts
+instead of writing unused storage.
 
 | `level` | Meaning                |
 | ------- | ---------------------- |
@@ -338,10 +341,11 @@ CASH settlement requires a future receipt or bridge model.
 
 On success:
 
-1. Distributes `msg.value` across royalty splits (basis points).
-2. Sends remainder to the runtime owner.
-3. Sets `paidAccess[contentHash][msg.sender] = true`.
-4. Emits `MusicRoyAccessPaid`.
+1. Records `paidAccess[contentHash][msg.sender] = true`.
+2. Distributes the stored track price across royalty splits (basis points).
+3. Sends remainder to the original artist address stored on the track.
+4. Refunds any overpayment to the caller.
+5. Emits `MusicRoyAccessPaid`.
 
 **Emits:** `MusicRoyAccessPaid(bytes32 indexed contentHash, address indexed listener, uint256 amount)`
 
@@ -364,6 +368,9 @@ Records a completed listen event for a Human free track (analytics only, no paym
 **File:** `contracts/pallets/MusicNFTPallet.sol`
 
 ERC-721-style NFT per track. Each registered track mints one NFT to the artist.
+The current NFT owner has playback access while the release is active. NFT
+transfer does not rewrite the original artist field, SmartRuntime ownership, or
+royalty beneficiaries.
 
 ### `ownerOf(uint256 tokenId)`
 
@@ -387,7 +394,8 @@ function balanceOf(address owner) external view returns (uint256)
 function transferFrom(address from, address to, uint256 tokenId) external
 ```
 
-Transfers track ownership (NFT). For Human free tracks, `to` must have the required personhood level.
+Transfers track ownership (NFT). For Human free tracks, `to` must have the
+required personhood level.
 
 ---
 

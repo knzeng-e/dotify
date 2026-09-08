@@ -313,6 +313,16 @@
       "track": "Production spine",
       "phase": "Now",
       "note": "Activated implementation sequence for canonical release-bound key delivery and duplicate-contentHash ambiguity handling."
+    },
+    {
+      "id": "W04",
+      "doc": "docs/backlog/implementation/W04-access-promise.md",
+      "issue": 143,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Activated implementation sequence for truthful Classic access, ownership, and royalty recipient promises."
     }
   ]
 }

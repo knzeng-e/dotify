@@ -47,6 +47,7 @@ export type ClassicUnlockE2eState = {
   fullKeyRequests: number;
   deniedFullKeyRequests: number;
   paid: boolean;
+  accessGranted: boolean;
 };
 
 declare global {
@@ -57,10 +58,15 @@ declare global {
 
 export function getClassicUnlockE2eState(): ClassicUnlockE2eState {
   if (typeof window === 'undefined') {
-    return { fullKeyRequests: 0, deniedFullKeyRequests: 0, paid: false };
+    return { fullKeyRequests: 0, deniedFullKeyRequests: 0, paid: false, accessGranted: false };
   }
-  window.__DOTIFY_E2E_CLASSIC_UNLOCK__ ??= { fullKeyRequests: 0, deniedFullKeyRequests: 0, paid: false };
+  window.__DOTIFY_E2E_CLASSIC_UNLOCK__ ??= { fullKeyRequests: 0, deniedFullKeyRequests: 0, paid: false, accessGranted: false };
   return window.__DOTIFY_E2E_CLASSIC_UNLOCK__;
+}
+
+export function shouldDenyClassicUnlockAfterPaymentReadback(): boolean {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('e2eClassic') === 'paid-without-access';
 }
 
 export function recordClassicUnlockFullKeyRequest(authorized: boolean) {

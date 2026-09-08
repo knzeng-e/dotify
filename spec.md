@@ -85,11 +85,12 @@ A listener can:
 A host is a listener running the local player in host mode. The host streams the
 captured audio element to room listeners through WebRTC.
 
-### 3.4 Registrar / Operator
+### 3.4 Individuality Source / Operator
 
-The runtime personhood registrar writes personhood levels used by Human free
-access checks. In the current prototype this is not integrated with live
-Individuality data.
+Human free access reads the chain-exposed Individuality precompile in Dotify's
+application context. If that precompile is unavailable, Human free fails closed.
+The legacy registrar setter remains only for ABI compatibility and no longer
+grants personhood.
 
 ## 4. System Architecture
 
@@ -214,10 +215,13 @@ A registered track stores:
 `Classic`:
 
 - requires payment through `musicRoyPayAccess(contentHash)`;
-- records paid access for the listener;
+- records paid access for the listener with no fixed expiry in the current
+  runtime;
 - distributes payment according to royalty splits.
 
-Artists and track NFT owners are expected to have access to their own tracks.
+Artists and track NFT owners are expected to have access to their own active
+tracks. Inactive tracks deny playback for everyone, including the original
+artist, NFT owner, and previously paid listeners.
 
 ### 6.5 Contract Tests
 
@@ -377,8 +381,11 @@ For Classic tracks:
 1. The listener clicks the payment action.
 2. The app calls `musicRoyPayAccess(contentHash)` with the track price.
 3. The app waits for transaction confirmation.
-4. The app reselects the track.
-5. `musicAccCanAccess` should return true and full playback loads.
+4. The app re-reads `musicAccHasPaid(contentHash, listener)` and
+   `musicAccCanAccess(contentHash, listener)`.
+5. Full playback loads only when the runtime confirms playable access. If the
+   payment was included but access is not confirmed, Dotify keeps protected
+   audio closed and shows the transaction hash for inspection.
 
 ## 9. Listening Room Specification
 

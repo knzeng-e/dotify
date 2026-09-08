@@ -509,9 +509,11 @@ describe('Access model v2 - Free mode + musicRegSetAccessMode', () => {
     const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtimeAddr);
     const royalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', runtimeAddr);
     const access = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr);
+    const nft = await hre.viem.getContractAt('MusicNFTPallet', runtimeAddr);
+    const ownership = await hre.viem.getContractAt('OwnershipPallet', runtimeAddr);
     const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', runtimeAddr, { client: { wallet: ctx.artistA } });
 
-    return { ...ctx, runtimeAddr, registry, royalties, access, artistRegistry };
+    return { ...ctx, runtimeAddr, registry, royalties, access, nft, ownership, artistRegistry };
   }
 
   it('registers a Free track (no price, no personhood) and everyone can access it', async () => {
@@ -574,6 +576,92 @@ describe('Access model v2 - Free mode + musicRegSetAccessMode', () => {
     await artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Classic, PRICE, PersonhoodLevel.None]);
     expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(true);
     expect(await access.read.musicAccCanAccess([TRACK_HASH, other.account.address])).to.equal(false);
+  });
+
+  it('documents the W04 policy table across Free, Classic, HumanFree, active, inactive, and paid states', async () => {
+    const PRICE = parseEther('0.5');
+    const { artistRegistry, royalties, access, listener, other, royaltyRecip } = await withArtistRuntime();
+
+    await artistRegistry.write.musicRegRegister([sampleRegistration({ pricePlanck: PRICE }), [royaltyRecip.account.address], [10_000]]);
+
+    const row = async (label: string, account: `0x${string}`) => ({
+      label,
+      hasPaid: await access.read.musicAccHasPaid([TRACK_HASH, account]),
+      canAccess: await access.read.musicAccCanAccess([TRACK_HASH, account])
+    });
+
+    const rows = [await row('classic.active.unpaid', listener.account.address)];
+
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+    rows.push(await row('classic.active.paid', listener.account.address));
+
+    await artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Free, 0n, PersonhoodLevel.None]);
+    rows.push(await row('free.active.unpaid', other.account.address));
+    rows.push(await row('free.active.previously-paid', listener.account.address));
+
+    await artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.HumanFree, 0n, PersonhoodLevel.DIM2]);
+    rows.push(await row('human-free.active.previously-paid-without-personhood', listener.account.address));
+
+    const precompile = await installPersonhoodPrecompile();
+    await precompile.write.setPersonhood([listener.account.address, DOTIFY_CONTEXT, PersonhoodLevel.DIM2, `0x${'44'.repeat(32)}`]);
+    rows.push(await row('human-free.active.previously-paid-with-personhood', listener.account.address));
+
+    await artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Classic, PRICE, PersonhoodLevel.None]);
+    await artistRegistry.write.musicRegDeactivate([TRACK_HASH]);
+    rows.push(await row('classic.inactive.previously-paid', listener.account.address));
+
+    await artistRegistry.write.musicRegReactivate([TRACK_HASH]);
+    rows.push(await row('classic.reactivated.previously-paid', listener.account.address));
+
+    expect(rows).to.deep.equal([
+      { label: 'classic.active.unpaid', hasPaid: false, canAccess: false },
+      { label: 'classic.active.paid', hasPaid: true, canAccess: true },
+      { label: 'free.active.unpaid', hasPaid: false, canAccess: true },
+      { label: 'free.active.previously-paid', hasPaid: true, canAccess: true },
+      { label: 'human-free.active.previously-paid-without-personhood', hasPaid: true, canAccess: false },
+      { label: 'human-free.active.previously-paid-with-personhood', hasPaid: true, canAccess: true },
+      { label: 'classic.inactive.previously-paid', hasPaid: true, canAccess: false },
+      { label: 'classic.reactivated.previously-paid', hasPaid: true, canAccess: true }
+    ]);
+  });
+
+  it('separates original artist policy control, runtime ownership, NFT ownership, directory binding, and royalty beneficiaries', async () => {
+    const { artistRegistry, registry, nft, ownership, access, accessArtifact, directory, artistA, listener, other, royaltyRecip } = await withArtistRuntime();
+
+    await artistRegistry.write.musicRegRegister([sampleRegistration(), [royaltyRecip.account.address], [2_500]]);
+
+    const artistNft = await hre.viem.getContractAt('MusicNFTPallet', nft.address, { client: { wallet: artistA } });
+    await artistNft.write.musicNFTTransfer([1n, listener.account.address]);
+    expect((await nft.read.musicNFTOwnerOf([1n])).toLowerCase()).to.equal(listener.account.address.toLowerCase());
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(true);
+
+    const artistOwnership = await hre.viem.getContractAt('OwnershipPallet', ownership.address, { client: { wallet: artistA } });
+    await artistOwnership.write.transferOwnership([other.account.address]);
+    expect((await ownership.read.owner()).toLowerCase()).to.equal(other.account.address.toLowerCase());
+    expect((await directory.read.runtimeOf([artistA.account.address])).toLowerCase()).to.equal(registry.address.toLowerCase());
+
+    const runtimeOwnerRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: other } });
+    await expectRevert(runtimeOwnerRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Free, 0n, PersonhoodLevel.None]), 'not artist');
+
+    const replacementAccessPallet = await hre.viem.deployContract('MusicAccessPallet');
+    const runtimeOwnerCut = await hre.viem.getContractAt('DiamondCutPallet', registry.address, { client: { wallet: other } });
+    await runtimeOwnerCut.write.diamondCut([
+      [{ facetAddress: replacementAccessPallet.address, action: FacetCutAction.Replace, functionSelectors: selectorsFromAbi(accessArtifact.abi as Abi) }],
+      ZERO_ADDR,
+      '0x'
+    ]);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(true);
+
+    const nftOwnerRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: listener } });
+    await expectRevert(nftOwnerRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Free, 0n, PersonhoodLevel.None]), 'not artist');
+
+    await artistRegistry.write.musicRegSetAccessMode([TRACK_HASH, AccessMode.Free, 0n, PersonhoodLevel.None]);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, other.account.address])).to.equal(true);
+
+    const [recipient, bps] = await (await hre.viem.getContractAt('MusicRoyaltiesPallet', registry.address)).read.musicRoySplitAt([TRACK_HASH, 0n]);
+    expect(recipient.toLowerCase()).to.equal(royaltyRecip.account.address.toLowerCase());
+    expect(bps).to.equal(2_500);
   });
 
   it('only the artist can change the access mode', async () => {

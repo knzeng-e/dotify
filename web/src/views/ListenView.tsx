@@ -293,7 +293,7 @@ export function ListenView({
           {catalogTracks.length > 0 ? (
             catalogTracks.map(track => {
               const hasCatalogAccess = catalogAccessByTrackId[track.id] === true;
-              const accessGranted = track.accessMode === 'free' || hasCatalogAccess;
+              const accessGranted = track.active !== false && (track.accessMode === 'free' || hasCatalogAccess);
 
               return (
                 <article

@@ -26,9 +26,9 @@ import { MusicAccessPallet } from './pallets/MusicAccessPallet.sol';
 ///         Initialisation
 ///         ──────────────
 ///         Every new SmartRuntime is bootstrapped by `DotifyRuntimeInitializer`
-///         via `delegatecall`, which sets the personhood registrar to the artist
-///         (owner) so they can grant listener access without extra admin steps
-///         and retain owner control over future registrar updates.
+///         via `delegatecall`, which initialises the legacy personhood registrar
+///         storage slot for layout continuity. Current HumanFree access reads
+///         Individuality precompile evidence in Dotify's app context.
 ///
 ///         Usage
 ///         ─────

@@ -111,27 +111,32 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const statusLabel = isOnAir ? 'ON AIR' : playbackStatusLabel(status, mode, audioStartupDetail);
   const isRoomGuest = mode === 'listener' && Boolean(roomId);
   const isManagedTrack = Boolean(selectedTrack && isPolicyManagedTrack(selectedTrack));
+  const selectedTrackInactive = selectedTrack?.active === false;
   const needsTrackAccess = Boolean(!isRoomGuest && selectedTrack && isManagedTrack && !selectedTrackHasAccess);
-  const showUnlockAction = Boolean(needsTrackAccess && selectedTrack);
+  const showUnlockAction = Boolean(needsTrackAccess && selectedTrack && !selectedTrackInactive);
   const showWideStatus = Boolean(selectedTrack && !showUnlockAction);
   const accessStatusLabel = isRoomGuest
     ? remoteReady
       ? 'Listening with the host'
       : 'Waiting for the host'
-    : needsTrackAccess
-      ? 'Listening closed'
-      : effectiveAccessMode === 'classic'
-        ? 'Full track opened'
-        : 'Ready to listen';
+    : selectedTrackInactive
+      ? 'Release unavailable'
+      : needsTrackAccess
+        ? 'Listening closed'
+        : effectiveAccessMode === 'classic'
+          ? 'Full track opened'
+          : 'Ready to listen';
   const accessPriceLabel = isRoomGuest
     ? 'Live room stream'
-    : effectiveAccessMode === 'classic'
-      ? needsTrackAccess
-        ? effectivePaymentAmount
-        : 'Opened for this wallet'
-      : effectiveAccessMode === 'free'
-        ? 'Free for everyone'
-        : 'Free for verified humans';
+    : selectedTrackInactive
+      ? 'Inactive release'
+      : effectiveAccessMode === 'classic'
+        ? needsTrackAccess
+          ? effectivePaymentAmount
+          : 'Access verified'
+        : effectiveAccessMode === 'free'
+          ? 'Free for everyone'
+          : 'Free for verified humans';
   const unlockCtaLabel = effectiveAccessMode === 'classic' ? 'Support and open' : 'Check access';
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
@@ -347,7 +352,9 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               >
                 {accessStatusLabel}
               </span>
-              <span className='access-chip'>{accessPriceLabel}</span>
+              <span className='access-chip' data-testid='player-access-price'>
+                {accessPriceLabel}
+              </span>
             </div>
 
             <div className='player-transport' data-playing={transport.playing}>
@@ -721,11 +728,13 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               value={
                 isRoomGuest
                   ? 'Streamed by the host'
-                  : effectiveAccessMode === 'classic'
-                    ? needsTrackAccess
-                      ? `${effectivePaymentAmount} to open`
-                      : 'Full track opened'
-                    : 'Open in this room'
+                  : selectedTrackInactive
+                    ? 'Inactive release'
+                    : effectiveAccessMode === 'classic'
+                      ? needsTrackAccess
+                        ? `${effectivePaymentAmount} to open`
+                        : 'Access verified'
+                      : 'Open in this room'
               }
             />
             <EndpointRow label='Status' value={trackInfo?.hash || selectedTrack?.metadataRef ? 'In the catalog' : 'Being prepared'} />

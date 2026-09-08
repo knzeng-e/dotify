@@ -18,12 +18,13 @@ export function isPolicyManagedTrack(track: Pick<CatalogTrack, 'source' | 'id'>)
  * Non-policy-managed tracks are always granted; policy-managed tracks require
  * an explicit `true` entry in the access map.
  */
-export function trackHasAccess(track: Pick<CatalogTrack, 'source' | 'id'>, accessByTrackId: Record<string, boolean>): boolean {
+export function trackHasAccess(track: Pick<CatalogTrack, 'source' | 'id' | 'active'>, accessByTrackId: Record<string, boolean>): boolean {
+  if (track.active === false) return false;
   if (!isPolicyManagedTrack(track)) return true;
   return accessByTrackId[track.id] === true;
 }
 
 /** Whether the listener should be shown the unlock affordance. */
-export function trackNeedsAccess(track: Pick<CatalogTrack, 'source' | 'id'>, hasAccess: boolean): boolean {
+export function trackNeedsAccess(track: Pick<CatalogTrack, 'source' | 'id' | 'active'>, hasAccess: boolean): boolean {
   return isPolicyManagedTrack(track) && !hasAccess;
 }

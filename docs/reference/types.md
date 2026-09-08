@@ -368,7 +368,7 @@ type AccessGate = {
   title: string;
   message: string;
   hint: string;
-  actionType: 'personhood' | 'payment' | 'signin';
+  actionType: 'none' | 'personhood' | 'payment' | 'signin';
 };
 ```
 
@@ -377,8 +377,9 @@ protected audio should play. `actionType` controls which CTA is shown:
 
 | `actionType` | Shown when                         | CTA                                             |
 | ------------ | ---------------------------------- | ----------------------------------------------- |
-| `signin`     | No wallet connected                | "Use wallet to unlock"                          |
-| `payment`    | Wallet connected, Classic track    | "Pay X native token to unlock"                  |
+| `none`       | Release inactive or unavailable    | No primary CTA                                  |
+| `signin`     | No wallet connected                | "Continue"                                      |
+| `payment`    | Wallet connected, active Classic track | "Support and open - X native token"         |
 | `personhood` | Wallet connected, insufficient PoP | No payment CTA — user must obtain PoP off-chain |
 
 ---
