@@ -10,6 +10,8 @@ type RoyaltiesTabProps = {
   royaltyPayments: RoyaltyPayment[];
   royaltyStatus: string;
   isRefreshingRoyalties: boolean;
+  claimableRoyaltyWei: bigint;
+  isClaimingRoyalties: boolean;
   artistRuntimeAddress: `0x${string}` | null;
   expandedRoyaltyPaymentId: string | null;
   totalRoyaltyWei: bigint;
@@ -18,12 +20,15 @@ type RoyaltiesTabProps = {
   nativePaymentSymbol: string;
   onSetExpandedRoyaltyPaymentId: (id: string | null) => void;
   onRefreshRoyalties: () => void;
+  onClaimRoyalties: () => void;
 };
 
 export function RoyaltiesTab({
   royaltyPayments,
   royaltyStatus,
   isRefreshingRoyalties,
+  claimableRoyaltyWei,
+  isClaimingRoyalties,
   artistRuntimeAddress,
   expandedRoyaltyPaymentId,
   totalRoyaltyWei,
@@ -31,38 +36,53 @@ export function RoyaltiesTab({
   paidRoyaltyTracks,
   nativePaymentSymbol,
   onSetExpandedRoyaltyPaymentId,
-  onRefreshRoyalties
+  onRefreshRoyalties,
+  onClaimRoyalties
 }: RoyaltiesTabProps) {
+  const claimableDot = formatWeiAsDot(claimableRoyaltyWei);
+
   return (
     <section className='content-grid royalties-grid'>
       <div className='doc-panel royalties-panel'>
-        <PanelTitle icon={Wallet} title='Royalty ledger' meta={artistRuntimeAddress ? 'on-chain payments' : 'profile needed'} />
+        <PanelTitle icon={Wallet} title='Royalty ledger' meta={artistRuntimeAddress ? 'on-chain settlement' : 'profile needed'} />
         <div className='royalty-summary-grid'>
-          <Metric label='received' value={`${formatWeiAsDot(totalRoyaltyWei)} ${nativePaymentSymbol}`} />
-          <Metric label='payments' value={royaltyPayments.length.toString()} />
+          <Metric label='settled' value={`${formatWeiAsDot(totalRoyaltyWei)} ${nativePaymentSymbol}`} />
+          <Metric label='claimable' value={`${claimableDot} ${nativePaymentSymbol}`} />
           <Metric label='listeners' value={uniqueRoyaltyListeners.toString()} />
-          <Metric label='tracks paid' value={paidRoyaltyTracks.toString()} />
+          <Metric label='tracks settled' value={paidRoyaltyTracks.toString()} />
         </div>
         <div className='royalty-toolbar'>
           <p className='rights-status'>{royaltyStatus}</p>
-          <button
-            className='secondary-action compact-action'
-            type='button'
-            onClick={onRefreshRoyalties}
-            disabled={isRefreshingRoyalties || !artistRuntimeAddress}
-          >
-            {isRefreshingRoyalties ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
-            {isRefreshingRoyalties ? 'Refreshing…' : 'Refresh ledger'}
-          </button>
+          <div className='royalty-toolbar-actions'>
+            <button
+              className='secondary-action compact-action'
+              type='button'
+              onClick={onClaimRoyalties}
+              disabled={isClaimingRoyalties || claimableRoyaltyWei <= 0n || !artistRuntimeAddress}
+            >
+              {isClaimingRoyalties ? <Disc3 size={16} className='spin' /> : <Wallet size={16} />}
+              {isClaimingRoyalties ? 'Claiming…' : 'Claim pending'}
+            </button>
+            <button
+              className='secondary-action compact-action'
+              type='button'
+              onClick={onRefreshRoyalties}
+              disabled={isRefreshingRoyalties || !artistRuntimeAddress}
+            >
+              {isRefreshingRoyalties ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
+              {isRefreshingRoyalties ? 'Refreshing…' : 'Refresh ledger'}
+            </button>
+          </div>
         </div>
 
         <div className='royalty-ledger-list'>
           {royaltyPayments.length > 0 ? (
             royaltyPayments.map(payment => {
               const isExpanded = expandedRoyaltyPaymentId === payment.id;
+              const settlementLabel = payment.settlement === 'paid' ? 'Paid' : 'Claimable';
 
               return (
-                <article className='royalty-entry' data-expanded={isExpanded} key={payment.id}>
+                <article className='royalty-entry' data-expanded={isExpanded} data-settlement={payment.settlement} key={payment.id}>
                   <button
                     className='royalty-row'
                     type='button'
@@ -76,10 +96,11 @@ export function RoyaltiesTab({
                     </div>
                     <div className='royalty-row-side'>
                       <strong>
+                        {payment.settlement === 'paid' ? '+' : ''}
                         {payment.amountDot} {nativePaymentSymbol}
                       </strong>
                       <span>
-                        Details
+                        {settlementLabel}
                         <ChevronDown size={15} />
                       </span>
                     </div>
@@ -87,7 +108,8 @@ export function RoyaltiesTab({
 
                   {isExpanded && (
                     <div className='royalty-details' id={`royalty-details-${payment.id}`}>
-                      <EndpointRow label='Paid at' value={formatPaymentDate(payment.paidAtMs)} />
+                      <EndpointRow label={payment.settlement === 'paid' ? 'Paid at' : 'Claimable at'} value={formatPaymentDate(payment.paidAtMs)} />
+                      <EndpointRow label='Settlement' value={settlementLabel} />
                       <EndpointRow
                         label='Listener wallet'
                         value={
@@ -96,6 +118,17 @@ export function RoyaltiesTab({
                           </a>
                         }
                       />
+                      <EndpointRow
+                        label='Recipient wallet'
+                        value={
+                          <a className='verify-link' href={getBlockscoutAddressUrl(payment.recipient)} target='_blank' rel='noreferrer'>
+                            {shorten(payment.recipient, 14)}
+                          </a>
+                        }
+                      />
+                      {payment.settlement === 'claimable' && payment.pendingTotalWei !== undefined && (
+                        <EndpointRow label='Pending total' value={`${formatWeiAsDot(payment.pendingTotalWei)} ${nativePaymentSymbol}`} />
+                      )}
                       <EndpointRow
                         label='Block'
                         value={
@@ -146,19 +179,19 @@ export function RoyaltiesTab({
       </div>
 
       <div className='doc-panel royalties-context-panel'>
-        <PanelTitle icon={CircleCheckBig} title='Direct settlement' meta='artist control' />
+        <PanelTitle icon={CircleCheckBig} title='Settlement fallback' meta='artist control' />
         <div className='principle-list'>
           <div>
-            <strong>Payment history</strong>
-            <span>Every row is a listener supporting and opening one of your releases.</span>
+            <strong>Recipient isolation</strong>
+            <span>A recipient that rejects native transfers cannot block a listener from opening the release.</span>
           </div>
           <div>
-            <strong>Listener record</strong>
-            <span>Support stays visible without forcing listeners into platform accounts.</span>
+            <strong>Claimable balance</strong>
+            <span>Failed recipient payouts stay in the runtime until the recipient claims them successfully.</span>
           </div>
           <div>
             <strong>Open accounting</strong>
-            <span>Amounts are shown in {nativePaymentSymbol} and each payment links back to Blockscout.</span>
+            <span>Settled and claimable amounts are separate receipts, each linked back to Blockscout.</span>
           </div>
         </div>
       </div>

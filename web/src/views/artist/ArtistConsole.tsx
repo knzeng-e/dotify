@@ -41,7 +41,7 @@ const artistTabs: Array<{ id: ArtistTab; label: string; description: string }> =
   { id: 'overview', label: 'Overview', description: 'Identity and next step' },
   { id: 'new', label: 'New Release', description: 'Publish under your own terms' },
   { id: 'releases', label: 'Releases', description: 'Catalog you control' },
-  { id: 'royalties', label: 'Royalties', description: 'Payments received' },
+  { id: 'royalties', label: 'Royalties', description: 'Settlement ledger' },
   { id: 'advanced', label: 'Advanced', description: 'Proofs, contracts, and archives' }
 ];
 
@@ -442,6 +442,8 @@ export function ArtistConsole() {
           royaltyPayments={royaltyPayments}
           royaltyStatus={royaltyStatus}
           isRefreshingRoyalties={isRefreshingRoyalties}
+          claimableRoyaltyWei={artistConsole.claimableRoyaltyWei}
+          isClaimingRoyalties={artistConsole.isClaimingRoyalties}
           artistRuntimeAddress={artistRuntimeAddress}
           expandedRoyaltyPaymentId={expandedRoyaltyPaymentId}
           totalRoyaltyWei={totalRoyaltyWei}
@@ -450,6 +452,7 @@ export function ArtistConsole() {
           nativePaymentSymbol={nativePaymentSymbol}
           onSetExpandedRoyaltyPaymentId={onSetExpandedRoyaltyPaymentId}
           onRefreshRoyalties={onRefreshRoyalties}
+          onClaimRoyalties={artistConsole.claimRoyalties}
         />
       )}
 

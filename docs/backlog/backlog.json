@@ -323,6 +323,16 @@
       "track": "Production spine",
       "phase": "Now",
       "note": "Activated implementation sequence for truthful Classic access, ownership, and royalty recipient promises."
+    },
+    {
+      "id": "W05",
+      "doc": "docs/backlog/implementation/W05-royalty-failure-isolation.md",
+      "issue": 145,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Activated implementation sequence for royalty failure isolation, bounded payout fallback, and claimable receipt UI."
     }
   ]
 }

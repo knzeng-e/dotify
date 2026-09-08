@@ -24,7 +24,12 @@ import type { OnchainTrackRecord } from '../../shared/types';
 type ViemPublicClient = ReturnType<typeof getPublicClient>;
 type ViemWalletClient = Awaited<ReturnType<typeof getWalletClient>>;
 
-const musicRoyAccessPaidEvent = parseAbiItem('event MusicRoyAccessPaid(bytes32 indexed contentHash, address indexed listener, uint256 amount)');
+const musicRoyRoyaltyPaidEvent = parseAbiItem(
+  'event MusicRoyRoyaltyPaid(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount)'
+);
+const musicRoyRoyaltyClaimableEvent = parseAbiItem(
+  'event MusicRoyRoyaltyClaimable(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount, uint256 pendingTotal)'
+);
 
 export type ViemRuntimeReaderDeps = {
   ethRpcUrl: string;
@@ -193,30 +198,45 @@ export function createViemRuntimeReader(deps: ViemRuntimeReaderDeps): RuntimeRea
       );
     },
 
-    async listRoyaltyPaymentLogs(runtimeAddress) {
-      const logs = await client().getLogs({
-        address: runtimeAddress,
-        event: musicRoyAccessPaidEvent,
-        fromBlock: 0n,
-        toBlock: 'latest'
-      });
+    async listRoyaltyPaymentLogs(runtimeAddress, recipientAddress) {
+      const eventArgs = recipientAddress ? { recipient: recipientAddress } : undefined;
+      const [paidLogs, claimableLogs] = await Promise.all([
+        client().getLogs({
+          address: runtimeAddress,
+          event: musicRoyRoyaltyPaidEvent,
+          args: eventArgs,
+          fromBlock: 0n,
+          toBlock: 'latest'
+        }),
+        client().getLogs({
+          address: runtimeAddress,
+          event: musicRoyRoyaltyClaimableEvent,
+          args: eventArgs,
+          fromBlock: 0n,
+          toBlock: 'latest'
+        })
+      ]);
+      const allLogs = [...paidLogs, ...claimableLogs];
       const timestampsByBlock = new Map<string, number | null>();
       await Promise.all(
-        Array.from(new Set(logs.map(log => log.blockNumber.toString()))).map(async blockNumber => {
+        Array.from(new Set(allLogs.map(log => log.blockNumber.toString()))).map(async blockNumber => {
           timestampsByBlock.set(blockNumber, await blockTimestampMs(client(), BigInt(blockNumber)));
         })
       );
 
-      return logs
+      const payments = paidLogs
         .map((log): RuntimeRoyaltyPaymentLog | null => {
           const trackHash = log.args.contentHash;
           const listener = log.args.listener;
+          const recipient = log.args.recipient;
           const amountWei = log.args.amount;
-          if (!trackHash || !listener || amountWei === undefined) return null;
+          if (!trackHash || !listener || !recipient || amountWei === undefined) return null;
           return {
             trackHash,
             listener,
+            recipient,
             amountWei,
+            settlement: 'paid',
             paidAtMs: timestampsByBlock.get(log.blockNumber.toString()) ?? null,
             transactionHash: log.transactionHash,
             blockNumber: log.blockNumber,
@@ -224,6 +244,40 @@ export function createViemRuntimeReader(deps: ViemRuntimeReaderDeps): RuntimeRea
           };
         })
         .filter((payment): payment is RuntimeRoyaltyPaymentLog => Boolean(payment));
+
+      const claimablePayments = claimableLogs
+        .map((log): RuntimeRoyaltyPaymentLog | null => {
+          const trackHash = log.args.contentHash;
+          const listener = log.args.listener;
+          const recipient = log.args.recipient;
+          const amountWei = log.args.amount;
+          const pendingTotalWei = log.args.pendingTotal;
+          if (!trackHash || !listener || !recipient || amountWei === undefined || pendingTotalWei === undefined) return null;
+          return {
+            trackHash,
+            listener,
+            recipient,
+            amountWei,
+            settlement: 'claimable',
+            pendingTotalWei,
+            paidAtMs: timestampsByBlock.get(log.blockNumber.toString()) ?? null,
+            transactionHash: log.transactionHash,
+            blockNumber: log.blockNumber,
+            logIndex: log.logIndex
+          };
+        })
+        .filter((payment): payment is RuntimeRoyaltyPaymentLog => Boolean(payment));
+
+      return [...payments, ...claimablePayments];
+    },
+
+    async getRoyaltyClaimable(runtimeAddress, recipientAddress) {
+      return (await client().readContract({
+        address: runtimeAddress,
+        abi: musicRoyaltiesAbi,
+        functionName: 'musicRoyClaimable',
+        args: [recipientAddress]
+      })) as bigint;
     }
   };
 }
@@ -281,6 +335,15 @@ export function createViemRuntimeWriter(deps: ViemRuntimeWriterDeps): RuntimeWri
         functionName: 'musicRoyPayAccess',
         args: [intent.contentHash],
         value: intent.amountPlanck
+      });
+    },
+
+    claimRoyalty(runtimeAddress, recipientAddress) {
+      return walletClient.writeContract({
+        address: runtimeAddress,
+        abi: musicRoyaltiesAbi,
+        functionName: 'musicRoyClaim',
+        args: [recipientAddress]
       });
     },
 

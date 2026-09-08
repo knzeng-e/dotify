@@ -73,6 +73,7 @@ export function createRuntimeReader(deps: RuntimeReaderDeps): RuntimeReadPort {
     hasPaid: (...args) => portPromise.then(port => port.hasPaid(...args)),
     pendingRuntimeOf: (...args) => portPromise.then(port => port.pendingRuntimeOf(...args)),
     pendingRuntimeStageOf: (...args) => portPromise.then(port => port.pendingRuntimeStageOf(...args)),
-    listRoyaltyPaymentLogs: (...args) => portPromise.then(port => port.listRoyaltyPaymentLogs(...args))
+    listRoyaltyPaymentLogs: (...args) => portPromise.then(port => port.listRoyaltyPaymentLogs(...args)),
+    getRoyaltyClaimable: (...args) => portPromise.then(port => port.getRoyaltyClaimable(...args))
   };
 }

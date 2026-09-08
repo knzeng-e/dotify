@@ -168,6 +168,7 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
     installRuntimeStep: factoryAddress => portForWrite().then(port => port.installRuntimeStep(factoryAddress)),
     registerTrack: (runtimeAddress, registration: RuntimeTrackRegistration) => portForWrite().then(port => port.registerTrack(runtimeAddress, registration)),
     payForAccess: intent => portForWrite().then(port => port.payForAccess(intent)),
+    claimRoyalty: (runtimeAddress, recipientAddress) => portForWrite().then(port => port.claimRoyalty(runtimeAddress, recipientAddress)),
     setAccessMode: (runtimeAddress, update: RuntimeAccessPolicyUpdate) => portForWrite().then(port => port.setAccessMode(runtimeAddress, update)),
     setReleaseActive: (runtimeAddress, contentHash, active) => portForWrite().then(port => port.setReleaseActive(runtimeAddress, contentHash, active)),
     waitForTransaction: txHash => portForWrite().then(port => port.waitForTransaction(txHash))

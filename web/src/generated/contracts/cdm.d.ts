@@ -47,6 +47,8 @@ declare module "@parity/product-sdk-contracts" {
                 musicRegSetAccessMode: { args: [contentHash: SizedHex<32>, accessMode: number, pricePlanck: bigint, requiredPersonhood: number]; response: undefined };
                 musicRegTrackCount: { args: []; response: bigint };
                 musicRegTrackHashAtIndex: { args: [index: bigint]; response: SizedHex<32> };
+                musicRoyClaim: { args: [recipient: HexString]; response: { amount: bigint; settled: boolean } };
+                musicRoyClaimable: { args: [recipient: HexString]; response: bigint };
                 musicRoyPayAccess: { args: [contentHash: SizedHex<32>]; response: undefined };
                 musicRoyRecordListen: { args: [contentHash: SizedHex<32>]; response: undefined };
                 musicRoySplitAt: { args: [contentHash: SizedHex<32>, index: bigint]; response: { recipient: HexString; bps: number } };

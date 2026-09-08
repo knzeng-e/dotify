@@ -193,6 +193,20 @@ describe('createProductCdmRuntimeReader', () => {
 
     await expect(reader.listRoyaltyPaymentLogs(runtime)).rejects.toThrow(ProductCdmRuntimeUnsupportedOperationError);
   });
+
+  it('reads the Product runtime claimable royalty balance', async () => {
+    const musicRoyClaimable = queryMethod(25n);
+    const reader = createProductCdmRuntimeReader({
+      contracts: {
+        getDirectoryContract: () => ({}),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({ musicRoyClaimable })
+      }
+    });
+
+    await expect(reader.getRoyaltyClaimable(runtime, splitRecipient)).resolves.toBe(25n);
+    expect(musicRoyClaimable.query).toHaveBeenCalledWith(splitRecipient);
+  });
 });
 
 describe('createProductCdmRuntimeWriter', () => {
@@ -201,6 +215,7 @@ describe('createProductCdmRuntimeWriter', () => {
     const installRuntimeStep = txMethod();
     const musicRegRegister = txMethod();
     const musicRoyPayAccess = txMethod();
+    const musicRoyClaim = txMethod();
     const musicRegSetAccessMode = txMethod();
     const musicRegDeactivate = txMethod();
     const writer = createProductCdmRuntimeWriter({
@@ -210,6 +225,7 @@ describe('createProductCdmRuntimeWriter', () => {
         getRuntimeContract: () => ({
           musicRegRegister,
           musicRoyPayAccess,
+          musicRoyClaim,
           musicRegSetAccessMode,
           musicRegDeactivate
         })
@@ -245,6 +261,7 @@ describe('createProductCdmRuntimeWriter', () => {
         })
       )
     ).resolves.toBe(txHash);
+    await expect(writer.claimRoyalty(runtime, splitRecipient)).resolves.toBe(txHash);
     await expect(
       writer.setAccessMode(runtime, {
         contentHash: hash,
@@ -257,6 +274,7 @@ describe('createProductCdmRuntimeWriter', () => {
     await expect(writer.waitForTransaction(txHash)).resolves.toBeUndefined();
 
     expect(musicRoyPayAccess.tx).toHaveBeenCalledWith(hash, { value: 3n });
+    expect(musicRoyClaim.tx).toHaveBeenCalledWith(splitRecipient);
     expect(musicRegSetAccessMode.tx).toHaveBeenCalledWith(hash, 2, 0n, 1);
     expect(musicRegDeactivate.tx).toHaveBeenCalledWith(hash);
   });

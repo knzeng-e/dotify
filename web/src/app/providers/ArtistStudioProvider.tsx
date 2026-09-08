@@ -68,9 +68,10 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     coverUploadRef: catalog.coverUploadRef
   });
 
-  const totalRoyaltyWei = artistConsole.royaltyPayments.reduce((total, payment) => total + payment.amountWei, 0n);
+  const settledRoyaltyPayments = artistConsole.royaltyPayments.filter(payment => payment.settlement === 'paid');
+  const totalRoyaltyWei = settledRoyaltyPayments.reduce((total, payment) => total + payment.amountWei, 0n);
   const uniqueRoyaltyListeners = new Set(artistConsole.royaltyPayments.map(payment => payment.listener.toLowerCase())).size;
-  const paidRoyaltyTracks = new Set(artistConsole.royaltyPayments.map(payment => payment.trackHash.toLowerCase())).size;
+  const paidRoyaltyTracks = new Set(settledRoyaltyPayments.map(payment => payment.trackHash.toLowerCase())).size;
 
   const value = useMemo<ArtistStudioValue>(
     () => ({ artistConsole, totalRoyaltyWei, uniqueRoyaltyListeners, paidRoyaltyTracks }),

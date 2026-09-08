@@ -228,8 +228,11 @@ export type RoyaltyPayment = {
   trackHash: `0x${string}`;
   trackTitle: string;
   listener: `0x${string}`;
+  recipient: `0x${string}`;
   amountWei: bigint;
   amountDot: string;
+  settlement: 'paid' | 'claimable';
+  pendingTotalWei?: bigint;
   paidAtMs: number | null;
   transactionHash: `0x${string}`;
   blockNumber: bigint;

@@ -1429,8 +1429,8 @@
                 <p>
                   Runtime rules keep royalties, collaborator shares, and access decisions inspectable without making chain mechanics the listener's first
                   experience. Classic payments now move through an explicit native runtime intent, while Product CASH remains a separate settlement rail until
-                  the cross-chain receipt model is verified. Payment receipts, NFT ownership, runtime ownership, and royalty beneficiaries remain distinct
-                  facts.
+                  the cross-chain receipt model is verified. Recipient transfers are gas-bounded: failed recipient shares stay claimable in the runtime instead
+                  of blocking the listener's access. Payment receipts, NFT ownership, runtime ownership, and royalty beneficiaries remain distinct facts.
                 </p>
               </dd>
             </div>
@@ -1530,9 +1530,9 @@
                 wallet-free entry, typed runtime ports around the current viem implementation, API-side Product sr25519 verification with frontend Product proof
                 submission for protected key/session requests, and an opt-in CDM/PAPI path that can route runtime reads and write submissions through the
                 Product host signer. The tracked deployment still defaults to viem; Product writes now fail closed on Product public-key / pallet-revive H160
-                mismatch, poll post-payment access read-back before success, and preserve transaction receipts when verification fails. They still need native
-                payment forwarding, host-signed transaction evidence, Product CASH receipt design, and CDM-installed runtime packages before becoming default.
-                Product Mobile in-app live audio remains pending a host-exposed WebRTC capability.
+                mismatch, poll post-payment access read-back before success, preserve transaction receipts when verification fails, and expose runtime royalty
+                claims through the shared writer port. They still need native payment forwarding, host-signed transaction evidence, Product CASH receipt design,
+                and CDM-installed runtime packages before becoming default. Product Mobile in-app live audio remains pending a host-exposed WebRTC capability.
               </p>
               <p>
                 Product DevNet is a first-class delivery target alongside ordinary mobile and desktop web. The next pilot must demonstrate discovery, listening,

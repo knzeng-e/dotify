@@ -166,7 +166,7 @@ Maintain and test:
 - track registration;
 - deactivation;
 - Classic payment;
-- royalty distribution;
+- royalty settlement with claimable fallback for failed recipients;
 - personhood-gated access;
 - NFT transfer gating;
 - isolation between artist runtimes;

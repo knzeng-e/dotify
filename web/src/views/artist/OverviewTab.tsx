@@ -95,21 +95,28 @@ export function OverviewTab({
         <div className='doc-panel studio-support-panel'>
           <p className='studio-section-title'>Latest support</p>
           {royaltyPayments.length > 0 ? (
-            royaltyPayments.slice(0, 4).map(payment => (
-              <div className='studio-support-row' key={payment.id}>
-                <Avatar name={payment.listener} size={36} />
-                <div className='studio-support-meta'>
-                  <strong>{shorten(payment.listener, 12)}</strong>
-                  <span>supported and opened {payment.trackTitle}</span>
+            royaltyPayments.slice(0, 4).map(payment => {
+              const settlementLabel = payment.settlement === 'paid' ? 'settled' : 'claimable';
+
+              return (
+                <div className='studio-support-row' data-settlement={payment.settlement} key={payment.id}>
+                  <Avatar name={payment.listener} size={36} />
+                  <div className='studio-support-meta'>
+                    <strong>{shorten(payment.listener, 12)}</strong>
+                    <span>
+                      supported and opened {payment.trackTitle} - {settlementLabel}
+                    </span>
+                  </div>
+                  <div className='studio-support-amount'>
+                    <strong>
+                      {payment.settlement === 'paid' ? '+' : ''}
+                      {payment.amountDot} {nativePaymentSymbol}
+                    </strong>
+                    <small>{formatPaymentDate(payment.paidAtMs)}</small>
+                  </div>
                 </div>
-                <div className='studio-support-amount'>
-                  <strong>
-                    +{payment.amountDot} {nativePaymentSymbol}
-                  </strong>
-                  <small>{formatPaymentDate(payment.paidAtMs)}</small>
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className='empty-state'>No paid support recorded yet.</div>
           )}

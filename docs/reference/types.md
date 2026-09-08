@@ -392,8 +392,11 @@ type RoyaltyPayment = {
   trackHash: `0x${string}`;
   trackTitle: string;
   listener: `0x${string}`;
+  recipient: `0x${string}`;
   amountWei: bigint;
   amountDot: string; // Formatted for display
+  settlement: 'paid' | 'claimable';
+  pendingTotalWei?: bigint; // Present on claimable settlement rows
   paidAtMs: number | null; // null if block timestamp unavailable
   transactionHash: `0x${string}`;
   blockNumber: bigint;
@@ -401,8 +404,10 @@ type RoyaltyPayment = {
 };
 ```
 
-A single royalty payment event parsed from `MusicRoyAccessPaid` logs. Used in the
-Royalties tab of the artist studio.
+A single per-recipient royalty settlement event parsed from
+`MusicRoyRoyaltyPaid` and `MusicRoyRoyaltyClaimable` logs. The artist studio
+sums only `settlement: 'paid'` as received money; claimable rows remain pending
+until `musicRoyClaim()` clears the runtime balance.
 
 ---
 

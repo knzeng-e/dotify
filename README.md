@@ -78,9 +78,9 @@ viem implementation and an experimental Product CDM/PAPI adapter boundary.
 The backend key-delivery protocol now has an explicit Product sr25519
 signature scheme that binds the Product account public key to the derived H160
 requester before access checks. The Product frontend can now submit that
-Product proof after explicit host-account connection; contract writes remain
-passkey/EVM until CDM-installed runtime packages and host-signed transaction
-evidence are proven. See
+Product proof after explicit host-account connection; contract writes now share
+the same runtime writer port, but the Product path still needs host-signed
+transaction evidence before becoming the default. See
 [`docs/explanation/product-devnet-architecture.md`](docs/explanation/product-devnet-architecture.md)
 and the
 [`Product roadmap`](docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md).
@@ -330,8 +330,10 @@ authorization failures.
   exposes it; otherwise Human free fails closed.
 - **Classic**: paid access in the configured runtime-native token. On the
   current Product DevNet/Paseo Asset Hub rail, that token is PAS. The runtime
-  records the price and distributes payments to configured royalty recipients on
-  `musicRoyPayAccess`.
+  records the price and settles configured recipient shares on
+  `musicRoyPayAccess`. Recipients that reject or exhaust the bounded native
+  transfer do not block the listener's purchase; their share remains claimable
+  in the artist runtime.
 
 A Classic payment creates an on-chain paid-access record with no fixed expiry in
 the current runtime. It is not a guarantee of perpetual media availability:
@@ -459,7 +461,8 @@ handle:
 - NFT mint with `ownerOf`, `balanceOf`, and transfer events;
 - cover, audio, metadata, and Bulletin manifest references stored on-chain;
 - Human free or Classic access mode with PoP gating;
-- DOT payment and royalty distribution on `musicRoyPayAccess`.
+- native-token access payment, bounded royalty settlement, and claimable failed
+  recipient shares on `musicRoyPayAccess`.
 
 ## Structure
 

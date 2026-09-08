@@ -181,7 +181,8 @@ The runtime includes:
 - `OwnershipPallet`: runtime ownership.
 - `MusicRegistryPallet`: track registration, reads, and deactivation.
 - `MusicNFTPallet`: per-track NFT ownership and transfer state.
-- `MusicRoyaltiesPallet`: Classic access payment and royalty distribution.
+- `MusicRoyaltiesPallet`: Classic access payment, bounded royalty settlement,
+  and claimable failed recipient shares.
 - `MusicAccessPallet`: access checks and personhood-level state.
 
 ### 6.3 Track Record
@@ -217,7 +218,8 @@ A registered track stores:
 - requires payment through `musicRoyPayAccess(contentHash)`;
 - records paid access for the listener with no fixed expiry in the current
   runtime;
-- distributes payment according to royalty splits.
+- settles payment according to royalty splits, while failed recipient transfers
+  remain claimable instead of blocking access.
 
 Artists and track NFT owners are expected to have access to their own active
 tracks. Inactive tracks deny playback for everyone, including the original
@@ -230,7 +232,7 @@ The active runtime tests cover:
 - runtime factory deployment;
 - artist runtime creation;
 - track registration and deactivation;
-- paid access and royalty distribution;
+- paid access, royalty settlement, and claimable recipient fallback;
 - personhood-gated access;
 - NFT transfer gating;
 - isolation between artist runtimes.

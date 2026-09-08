@@ -584,6 +584,19 @@
     border: 1px solid var(--line);
   }
 
+  .royalty-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .royalty-toolbar-actions {
+    justify-content: stretch;
+  }
+
+  .royalty-toolbar-actions .compact-action {
+    flex: 1 1 10rem;
+  }
+
   .release-stepper button {
     justify-content: flex-start;
     border-right: 0;
