@@ -312,7 +312,12 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
 
         completed = lease.complete(fileBuffer.length);
         if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
-        return reply.status(200).send({ ref: makeReleaseBoundEncryptedAudioV2Ref(cid), contentHash: normalizedHash, keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION });
+        return reply.status(200).send({
+          ref: makeReleaseBoundEncryptedAudioV2Ref(cid),
+          contentHash: normalizedHash,
+          keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION,
+          runtimeAddress: lease.payload.runtimeAddress
+        });
       } finally {
         abort.detach();
         if (!completed) lease.abort();

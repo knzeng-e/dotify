@@ -160,6 +160,7 @@ describe('authorized upload routes', () => {
     });
     assert.equal(response.statusCode, 200);
     assert.equal(response.json().ref, 'dotify:enc:v2:key-v2:ipfs://file-cid');
+    assert.equal(response.json().runtimeAddress, RUNTIME);
     assert.equal(response.json().keyVersion, RELEASE_BOUND_CONTENT_KEY_VERSION);
   });
 

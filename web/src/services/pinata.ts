@@ -16,7 +16,7 @@ import { getArtistPublishE2eCid, getArtistPublishE2eScenario, isArtistPublishE2e
 import { contentKeyVersionForAudioRef, encryptedRefToCID, normalizeEncryptedAudioRef } from '../shared/utils/protectedAudio';
 import { fetchThroughGateways } from './gatewayRace';
 import { clearStoredSession, ensureDotifySession, ensureDotifySessionForSigner, type KeyRequestSigner } from './keyService';
-import type { WalletClient } from 'viem';
+import { getAddress, isAddress, type WalletClient } from 'viem';
 
 // Backend API base URL. When set, uploads are routed server-side.
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
@@ -256,7 +256,7 @@ async function requestUploadAuthorization(identity: BackendUploadIdentity | unde
  * @param contentHash 0x-prefixed blake2b-256 hash of the raw audio bytes.
  * @returns           Full Dotify audio ref: "dotify:enc:v2:key-v2:ipfs://<CID>" for new backend uploads.
  */
-export async function uploadAudioToBackend(rawFile: File, contentHash: string, identity?: BackendUploadIdentity): Promise<string> {
+export async function uploadAudioToBackend(rawFile: File, contentHash: string, identity?: BackendUploadIdentity): Promise<ProtectedAudioUpload> {
   if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
   const authorization = await requestUploadAuthorization(identity, 'audio', rawFile.size);
 
@@ -275,8 +275,22 @@ export async function uploadAudioToBackend(rawFile: File, contentHash: string, i
     throw new Error(msg);
   }
 
-  const data = (await res.json()) as { ref: string };
-  return data.ref;
+  const data = (await res.json()) as { ref?: unknown; runtimeAddress?: unknown; contentHash?: unknown; keyVersion?: unknown };
+  if (typeof data.ref !== 'string' || !data.ref.trim()) {
+    throw new Error('The backend returned an invalid audio upload response.');
+  }
+  if (typeof data.runtimeAddress !== 'string' || !isAddress(data.runtimeAddress)) {
+    throw new Error('The backend returned an invalid audio upload runtime.');
+  }
+
+  return {
+    ref: data.ref,
+    runtimeAddress: getAddress(data.runtimeAddress),
+    ...(typeof data.contentHash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(data.contentHash)
+      ? { contentHash: data.contentHash.toLowerCase() as `0x${string}` }
+      : {}),
+    ...(typeof data.keyVersion === 'string' && data.keyVersion.trim() ? { keyVersion: data.keyVersion } : {})
+  };
 }
 
 /**
@@ -346,6 +360,19 @@ export type ProtectedAudioSource = {
   mime: string;
 };
 
+export type ProtectedAudioUpload =
+  | string
+  | {
+      ref: string;
+      runtimeAddress?: `0x${string}`;
+      contentHash?: `0x${string}`;
+      keyVersion?: string;
+    };
+
+function audioUploadRef(upload: ProtectedAudioUpload): string {
+  return typeof upload === 'string' ? upload : upload.ref;
+}
+
 /**
  * Upload protected audio for publication and return the encrypted audio ref.
  *
@@ -357,7 +384,7 @@ export type ProtectedAudioSource = {
  * Demo/local: bytes are encrypted in the browser with the bundle-derived
  * demo key (best-effort, not a production boundary) and pinned directly.
  */
-export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentHash: string, identity?: BackendUploadIdentity): Promise<string> {
+export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentHash: string, identity?: BackendUploadIdentity): Promise<ProtectedAudioUpload> {
   if (isArtistPublishE2e) {
     void audio;
     void contentHash;
@@ -376,16 +403,25 @@ export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentH
   return normalizeEncryptedAudioRef(cid);
 }
 
-export function protectedAudioUploadToRef(refOrCid: string): string {
-  return normalizeEncryptedAudioRef(refOrCid);
+export function protectedAudioUploadToRef(upload: ProtectedAudioUpload): string {
+  const refOrCid = audioUploadRef(upload);
+  return refOrCid.trim() ? normalizeEncryptedAudioRef(refOrCid) : '';
 }
 
-export function protectedAudioUploadToKeyVersion(refOrCid: string): string | undefined {
-  return contentKeyVersionForAudioRef(protectedAudioUploadToRef(refOrCid)) ?? undefined;
+export function protectedAudioUploadToKeyVersion(upload: ProtectedAudioUpload): string | undefined {
+  if (typeof upload !== 'string' && upload.keyVersion) return upload.keyVersion;
+  return contentKeyVersionForAudioRef(protectedAudioUploadToRef(upload)) ?? undefined;
 }
 
-export function protectedAudioUploadToCID(refOrCid: string): string {
+export function protectedAudioUploadToCID(upload: ProtectedAudioUpload): string {
+  const refOrCid = audioUploadRef(upload);
+  if (!refOrCid.trim()) return '';
   return refOrCid.startsWith('dotify:enc:') ? encryptedRefToCID(refOrCid) : refOrCid;
+}
+
+export function protectedAudioUploadToRuntimeAddress(upload: ProtectedAudioUpload): `0x${string}` | null {
+  if (typeof upload === 'string') return null;
+  return upload.runtimeAddress ?? null;
 }
 
 // ---------------------------------------------------------------------------

@@ -11,12 +11,14 @@ import {
   uploadJsonToPinata,
   uploadProtectedAudio,
   type BackendUploadIdentity,
-  type DotifyTrackManifest
+  type DotifyTrackManifest,
+  type ProtectedAudioUpload
 } from '../services/pinata';
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
-import { resolvePreparedUpload } from '../features/uploads/preparedUpload';
+import { resolvePreparedAudioUploadForRuntime } from '../features/uploads/preparedAudioUpload';
+import { resolvePreparedUpload, type PreparedUploadRef } from '../features/uploads/preparedUpload';
 import { createViemRuntimeWriter } from '../features/runtime/viemRuntimeAdapter';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
 import { resolveConfiguredArtistPublicationSafety } from '../shared/config/deploymentSafety';
@@ -171,6 +173,10 @@ function getArtistNameStorageKey(address: `0x${string}`) {
   return `dotify:artist-name:${address.toLowerCase()}`;
 }
 
+function preparedAudioRuntimeMismatchMessage(uploadRuntime: `0x${string}`, publicationRuntime: `0x${string}`): string {
+  return `The prepared audio upload was encrypted for ${shorten(uploadRuntime, 10)}, but this release is being published to ${shorten(publicationRuntime, 10)}. Dotify will not register audio under a different runtime than the one that derived its content key. Select the audio file again and retry.`;
+}
+
 export { getStoredArtistName, storeArtistName };
 
 export type UseArtistConsoleDeps = {
@@ -202,8 +208,8 @@ export type UseArtistConsoleDeps = {
   setAudioCID: (cid: string) => void;
   setCoverCID: (cid: string) => void;
   uploadToBulletinEnabled: boolean;
-  audioUploadRef: React.RefObject<Promise<string> | null>;
-  coverUploadRef: React.RefObject<Promise<string> | null>;
+  audioUploadRef: PreparedUploadRef<ProtectedAudioUpload>;
+  coverUploadRef: PreparedUploadRef;
 };
 
 export function useArtistConsole(deps: UseArtistConsoleDeps) {
@@ -683,22 +689,37 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       const rawAudioBlob = audioSource ? await fetch(audioSource).then(r => r.blob()) : null;
       const rawAudioBytes = rawAudioBlob ? new Uint8Array(await rawAudioBlob.arrayBuffer()) : null;
       const uploadIdentity = await getUploadIdentity();
+      const uploadAudioForCurrentRuntime = () =>
+        rawAudioBytes
+          ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash, uploadIdentity)
+          : Promise.resolve('');
 
       const [resolvedAudioUpload, resolvedCoverCID] = await Promise.all([
-        resolvePreparedUpload(audioUploadRef, () =>
-          rawAudioBytes
-            ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash, uploadIdentity)
-            : Promise.resolve('')
-        ),
+        resolvePreparedAudioUploadForRuntime({
+          ref: audioUploadRef,
+          upload: uploadAudioForCurrentRuntime,
+          publicationRuntimeAddress: runtimeAddress,
+          canRetry: Boolean(rawAudioBytes),
+          onBeforeRetry: () => {
+            setRightsStatus('Artist runtime changed; uploading audio again');
+            setTransactionFeedback({
+              tone: 'pending',
+              title: 'Refreshing protected audio',
+              message: 'The prepared audio belongs to a different artist runtime, so Dotify is uploading it again before registration.'
+            });
+          },
+          mismatchMessage: preparedAudioRuntimeMismatchMessage
+        }),
         resolvePreparedUpload(coverUploadRef, () =>
           coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }, uploadIdentity) : Promise.resolve('')
         )
       ]);
-      if (!resolvedAudioUpload.trim()) {
+
+      const resolvedAudioRef = resolvedAudioUpload ? protectedAudioUploadToRef(resolvedAudioUpload) : '';
+      if (!resolvedAudioRef.trim()) {
         throw new Error('Audio upload did not complete. Select the audio file again and retry.');
       }
       const resolvedAudioCID = resolvedAudioUpload ? protectedAudioUploadToCID(resolvedAudioUpload) : '';
-      const resolvedAudioRef = resolvedAudioUpload ? protectedAudioUploadToRef(resolvedAudioUpload) : '';
 
       if (resolvedAudioCID) setAudioCID(resolvedAudioCID);
       if (resolvedCoverCID) setCoverCID(resolvedCoverCID);

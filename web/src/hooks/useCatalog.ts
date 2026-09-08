@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl } from '../services/pinata';
+import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
 import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot } from '../shared/utils/format';
@@ -361,7 +361,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const resolvedAudioSourcesRef = useRef<Map<string, string>>(new Map());
   const audioSourceRef = useRef<string | null>(null);
   const audioV2FallbacksRef = useRef<Set<string>>(new Set());
-  const audioUploadRef = useRef<Promise<string> | null>(null);
+  const audioUploadRef = useRef<Promise<ProtectedAudioUpload> | null>(null);
   const coverUploadRef = useRef<Promise<string> | null>(null);
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
   const selectedTrackIdRef = useRef(selectedTrackId);

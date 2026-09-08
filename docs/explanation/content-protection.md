@@ -95,10 +95,15 @@ Encrypted bytes pinned to Pinata
         |
         v
 audioRef = "dotify:enc:v2:key-v2:ipfs://<CID>"
+uploadRuntime = runtimeAddress used by the backend derivation
 ```
 
 The same backend derivation is used when an authorized key request succeeds, so
 the delivered per-release key decrypts bytes encrypted by the upload route.
+The audio upload response includes the runtime address used for that derivation;
+before registering a release, the artist console compares it with the current
+publication runtime and retries or rejects the prepared upload if the artist
+account/runtime changed.
 During MSE playback, the browser imports that temporary key once and prepares a
 bounded two-chunk look-ahead while appending clear chunks in order. This changes
 startup latency, not authorization: room guests still receive only the host's
