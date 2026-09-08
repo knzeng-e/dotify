@@ -4,11 +4,13 @@ import { checkDotifyChainId } from './chainDomain.js';
 
 const HKDF_INFO = 'dotify-upload-authorization-v1';
 const MIN_MASTER_SECRET_BYTES = 32;
+const HEX_ADDRESS_PATTERN = /^0x[0-9a-f]{40}$/;
 
 export type UploadPurpose = 'audio' | 'cover' | 'metadata';
 
 export type UploadAuthorizationPayload = {
   address: `0x${string}`;
+  runtimeAddress: `0x${string}`;
   chainId: number;
   purpose: UploadPurpose;
   maxBytes: number;
@@ -80,7 +82,7 @@ export type UploadAuthorizationServiceOptions = {
 };
 
 export type UploadAuthorizationService = {
-  issue: (input: { address: `0x${string}`; chainId: number; purpose: UploadPurpose; maxBytes: number }) => IssuedUploadAuthorization;
+  issue: (input: { address: `0x${string}`; runtimeAddress: `0x${string}`; chainId: number; purpose: UploadPurpose; maxBytes: number }) => IssuedUploadAuthorization;
   begin: (token: string, purpose: UploadPurpose) => UploadLeaseResult;
 };
 
@@ -180,7 +182,9 @@ export function createUploadAuthorizationService(options: UploadAuthorizationSer
 
     if (
       typeof payload.address !== 'string' ||
-      !/^0x[0-9a-f]{40}$/.test(payload.address) ||
+      !HEX_ADDRESS_PATTERN.test(payload.address) ||
+      typeof payload.runtimeAddress !== 'string' ||
+      !HEX_ADDRESS_PATTERN.test(payload.runtimeAddress) ||
       typeof payload.chainId !== 'number' ||
       !['audio', 'cover', 'metadata'].includes(payload.purpose) ||
       !Number.isSafeInteger(payload.maxBytes) ||
@@ -227,6 +231,7 @@ export function createUploadAuthorizationService(options: UploadAuthorizationSer
       const issuedAt = currentTime;
       const payload: UploadAuthorizationPayload = {
         address,
+        runtimeAddress: input.runtimeAddress.toLowerCase() as `0x${string}`,
         chainId: input.chainId,
         purpose: input.purpose,
         maxBytes: input.maxBytes,

@@ -152,6 +152,31 @@ describe('formatBackendUploadError', () => {
   });
 });
 
+describe('protected audio upload metadata', () => {
+  it('reports release-bound key versions from backend audio refs', async () => {
+    const { protectedAudioUploadToKeyVersion } = await loadPinataService();
+
+    expect(protectedAudioUploadToKeyVersion('dotify:enc:v2:key-v2:ipfs://release-cid')).toBe('dotify-content-key-v2');
+    expect(protectedAudioUploadToKeyVersion('dotify:enc:v2:ipfs://legacy-dav2')).toBe('dotify-content-key-v1');
+  });
+
+  it('retains backend runtime metadata on protected audio upload results', async () => {
+    const { protectedAudioUploadToCID, protectedAudioUploadToKeyVersion, protectedAudioUploadToRef, protectedAudioUploadToRuntimeAddress } =
+      await loadPinataService();
+    const upload = {
+      ref: 'dotify:enc:v2:key-v2:ipfs://release-cid',
+      runtimeAddress: '0x2222222222222222222222222222222222222222' as const,
+      keyVersion: 'dotify-content-key-v2'
+    };
+
+    expect(protectedAudioUploadToRef(upload)).toBe(upload.ref);
+    expect(protectedAudioUploadToCID(upload)).toBe('release-cid');
+    expect(protectedAudioUploadToKeyVersion(upload)).toBe('dotify-content-key-v2');
+    expect(protectedAudioUploadToRuntimeAddress(upload)).toBe(upload.runtimeAddress);
+    expect(protectedAudioUploadToRuntimeAddress(upload.ref)).toBeNull();
+  });
+});
+
 describe('backend upload authorization', () => {
   it('obtains a purpose-scoped artist authorization before uploading', async () => {
     const { uploadCoverToBackend } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test/' });
@@ -191,6 +216,66 @@ describe('backend upload authorization', () => {
     const { uploadCoverToBackend } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test' });
     const file = new File([new Uint8Array([1])], 'cover.png', { type: 'image/png' });
     await expect(uploadCoverToBackend(file)).rejects.toThrow(/Connect the artist wallet/i);
+  });
+
+  it('returns backend runtime metadata for protected audio uploads', async () => {
+    const { protectedAudioUploadToRuntimeAddress, uploadProtectedAudio } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test/' });
+    const signer = {
+      signatureScheme: 'product-sr25519-v1' as const,
+      address: '0x1111111111111111111111111111111111111111' as const,
+      productPublicKey: `0x${'22'.repeat(32)}` as const,
+      signMessage: vi.fn()
+    };
+    const runtimeAddress = '0x2222222222222222222222222222222222222222' as const;
+    const contentHash = `0x${'ab'.repeat(32)}` as const;
+    sessionMocks.ensureDotifySessionForSigner.mockResolvedValue('artist-session');
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ uploadAuthorization: 'audio-capability' }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ref: 'dotify:enc:v2:key-v2:ipfs://audio-cid',
+            runtimeAddress,
+            contentHash,
+            keyVersion: 'dotify-content-key-v2'
+          }),
+          { status: 200 }
+        )
+      );
+
+    const upload = await uploadProtectedAudio({ bytes: new Uint8Array([1, 2, 3]), name: 'track.mp3', mime: 'audio/mpeg' }, contentHash, {
+      chainId: 420420417,
+      signer
+    });
+
+    expect(upload).toMatchObject({
+      ref: 'dotify:enc:v2:key-v2:ipfs://audio-cid',
+      runtimeAddress,
+      contentHash,
+      keyVersion: 'dotify-content-key-v2'
+    });
+    expect(protectedAudioUploadToRuntimeAddress(upload)).toBe(runtimeAddress);
+  });
+
+  it('fails closed when the backend omits protected audio runtime metadata', async () => {
+    const { uploadProtectedAudio } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test/' });
+    const signer = {
+      signatureScheme: 'product-sr25519-v1' as const,
+      address: '0x1111111111111111111111111111111111111111' as const,
+      productPublicKey: `0x${'22'.repeat(32)}` as const,
+      signMessage: vi.fn()
+    };
+    sessionMocks.ensureDotifySessionForSigner.mockResolvedValue('artist-session');
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ uploadAuthorization: 'audio-capability' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ref: 'dotify:enc:v2:key-v2:ipfs://audio-cid' }), { status: 200 }));
+
+    await expect(
+      uploadProtectedAudio({ bytes: new Uint8Array([1, 2, 3]), name: 'track.mp3', mime: 'audio/mpeg' }, `0x${'ab'.repeat(32)}`, {
+        chainId: 420420417,
+        signer
+      })
+    ).rejects.toThrow('The backend returned an invalid audio upload runtime.');
   });
 
   it('opens a fresh session once when a restart invalidates the stored token', async () => {

@@ -401,8 +401,8 @@ See also:
 - Backend upload/key service for server-side audio encryption and wallet-signed
   content-key requests, with demo/local browser encryption still available.
 - Access model v2: Free tracks play without a wallet, gated tracks show a gate
-  with no preview fallback, and new production uploads use
-  `dotify:enc:v2:ipfs://<CID>` chunked encrypted audio.
+  with no preview fallback, and new production uploads use release-bound
+  `dotify:enc:v2:key-v2:ipfs://<CID>` chunked encrypted audio.
 - Seed catalog browsable on the Music view.
 - SmartRuntime music pallets: registration, NFT ownership, access checks, paid
   access, listen recording, royalty split storage, and transfer gating by

@@ -3,7 +3,12 @@ import { blake2b } from '@noble/hashes/blake2';
 import { z } from 'zod';
 import { encryptAudioV2Container } from '../services/audioV2.js';
 import { checkArtistAuthority as defaultCheckArtistAuthority, type ArtistAuthorityResult } from '../services/chainAccess.js';
-import { deriveContentKeyBytes as defaultDeriveContentKeyBytes } from '../services/keyVault.js';
+import {
+  RELEASE_BOUND_CONTENT_KEY_VERSION,
+  deriveContentKeyBytes as defaultDeriveContentKeyBytes,
+  makeReleaseBoundEncryptedAudioV2Ref,
+  type ContentKeyDerivationInput
+} from '../services/keyVault.js';
 import { detectAudioMedia, detectImageMedia } from '../services/mediaValidation.js';
 import { PinataError, PinataUnconfiguredError, pinFileToPinata, pinJsonToPinata } from '../services/pinata.js';
 import { verifySessionToken as defaultVerifySessionToken, type SessionVerification } from '../services/sessionTokens.js';
@@ -39,6 +44,7 @@ const dotifyManifestSchema = z.object({
       audioCID: z.string().min(1),
       coverCID: z.string(),
       encrypted: z.boolean().optional(),
+      keyVersion: z.string().min(1).max(80).optional(),
       previewCID: z.string().optional()
     })
     .strict(),
@@ -87,7 +93,7 @@ export type UploadRouteDeps = {
   verifySessionToken: (token: string) => SessionVerification;
   checkArtistAuthority: (requester: string) => Promise<ArtistAuthorityResult>;
   authorizations: UploadAuthorizationService;
-  deriveContentKeyBytes: (contentHash: string) => Buffer | null;
+  deriveContentKeyBytes: (input: ContentKeyDerivationInput) => Buffer | null;
   encryptAudio: typeof encryptAudioV2Container;
   pinFile: PinFile;
   pinJson: PinJson;
@@ -208,6 +214,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
 
       const issued = deps.authorizations.issue({
         address: session.address,
+        runtimeAddress: authority.runtime,
         chainId: session.chainId,
         purpose: parsed.data.purpose,
         maxBytes: parsed.data.bytes
@@ -262,7 +269,12 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
           return badRequest(reply, 'contentHash does not match the uploaded audio file. Select the file again and retry.');
         }
 
-        const contentKey = deps.deriveContentKeyBytes(normalizedHash);
+        const contentKey = deps.deriveContentKeyBytes({
+          contentHash: normalizedHash,
+          keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION,
+          chainId: lease.payload.chainId,
+          runtimeAddress: lease.payload.runtimeAddress
+        });
         if (!contentKey) {
           return reply.status(503).send({
             error: 'Server-side encryption is not configured. Set CONTENT_KEY_MASTER_SECRET (32+ bytes of hex).',
@@ -288,6 +300,8 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
               type: 'audio',
               encrypted: 'true',
               container: 'dotify.audio.v2',
+              keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION,
+              runtimeAddress: lease.payload.runtimeAddress,
               contentHash: normalizedHash
             },
             abort.signal
@@ -298,7 +312,12 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
 
         completed = lease.complete(fileBuffer.length);
         if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
-        return reply.status(200).send({ ref: `dotify:enc:v2:ipfs://${cid}`, contentHash: normalizedHash });
+        return reply.status(200).send({
+          ref: makeReleaseBoundEncryptedAudioV2Ref(cid),
+          contentHash: normalizedHash,
+          keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION,
+          runtimeAddress: lease.payload.runtimeAddress
+        });
       } finally {
         abort.detach();
         if (!completed) lease.abort();

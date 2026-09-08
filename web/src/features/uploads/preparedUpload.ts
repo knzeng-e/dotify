@@ -1,9 +1,11 @@
-export type PreparedUploadRef = {
-  current: Promise<string> | null;
+export type PreparedUploadRef<T = string> = {
+  current: Promise<T> | null;
 };
 
-function isUsableUploadRef(value: string): boolean {
-  return value.trim().length > 0;
+function isUsableUploadRef(value: unknown): boolean {
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (!value || typeof value !== 'object' || !('ref' in value)) return false;
+  return typeof value.ref === 'string' && value.ref.trim().length > 0;
 }
 
 /**
@@ -11,7 +13,7 @@ function isUsableUploadRef(value: string): boolean {
  * settled to an unusable empty ref. This matches the artist UI promise that
  * failed eager uploads are retried during registration.
  */
-export async function resolvePreparedUpload(ref: PreparedUploadRef, upload: () => Promise<string>): Promise<string> {
+export async function resolvePreparedUpload<T>(ref: PreparedUploadRef<T>, upload: () => Promise<T>): Promise<T> {
   const prepared = ref.current;
   if (prepared) {
     try {

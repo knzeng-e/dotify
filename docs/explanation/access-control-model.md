@@ -187,7 +187,22 @@ improvement.
 ### Denied playback and key delivery
 
 The backend is the production key boundary. The browser asks the backend for a
-content key only after the relevant access path succeeds:
+content key only after the relevant access path succeeds, and for catalog-backed
+encrypted tracks it includes the canonical release identity:
+
+- `releaseId` (`runtimeAddress:contentHash`);
+- artist runtime address;
+- artist address;
+- `audioRef`;
+- content-key version.
+
+The key service resolves that identity against the fresh confirmed catalog
+snapshot, checks `ArtistDirectory.runtimeOf(artist)`, then re-reads the target
+runtime's current `musicRegGetTrack(contentHash)` before deriving a key. It
+does not trust frontend runtime allowlists or scan unrelated runtimes for modern
+requests.
+
+After canonical release resolution:
 
 - Free tracks use the unauthenticated free-key route, and the backend
   re-checks that the runtime currently grants public access.
@@ -195,6 +210,11 @@ content key only after the relevant access path succeeds:
   backend re-checks access for the requesting wallet before returning a key.
 - Room listeners never request keys. Only the host asks for a `room_host` key;
   listeners receive the WebRTC stream.
+
+Legacy hash-only requests remain available only when the fresh catalog snapshot
+contains exactly one encrypted release for the hash. If multiple runtimes claim
+the same legacy v1 hash, Dotify refuses to deliver the key because v1 derivation
+is content-hash based and cannot distinguish duplicate releases.
 
 Audio is encrypted (see [content-protection.md](./content-protection.md)), so
 the raw IPFS file cannot be played directly even if the URL is discovered.

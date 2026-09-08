@@ -10,6 +10,18 @@ describe('resolvePreparedUpload', () => {
     expect(retry).not.toHaveBeenCalled();
   });
 
+  it('uses a completed structured eager upload without retrying', async () => {
+    const prepared = {
+      ref: 'dotify:enc:v2:key-v2:ipfs://QmAudio',
+      runtimeAddress: '0x2222222222222222222222222222222222222222'
+    };
+    const ref: PreparedUploadRef<typeof prepared> = { current: Promise.resolve(prepared) };
+    const retry = vi.fn(async () => ({ ...prepared, ref: 'retry' }));
+
+    await expect(resolvePreparedUpload(ref, retry)).resolves.toBe(prepared);
+    expect(retry).not.toHaveBeenCalled();
+  });
+
   it('retries when an eager upload settled to an empty ref', async () => {
     const ref: PreparedUploadRef = { current: Promise.resolve('') };
     const retry = vi.fn(async () => 'dotify:enc:v2:ipfs://QmAudioRetry');
