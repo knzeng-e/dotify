@@ -4,7 +4,7 @@
 uploads. The on-chain `audioRef` is:
 
 ```txt
-dotify:enc:v2:ipfs://<CID>
+dotify:enc:v2:key-v2:ipfs://<CID>
 ```
 
 The CID points to one IPFS object. That object contains a small `DAV2` header
@@ -61,9 +61,18 @@ ciphertext || gcmTag(16 bytes)
 ```
 
 The `contentHash` is the blake2b-256 hash of the raw audio before encryption.
-The content key is derived by the backend from `CONTENT_KEY_MASTER_SECRET` and
-the same `contentHash`; key delivery uses the same derivation after access is
-approved.
+For new backend uploads, the content key is derived from
+`CONTENT_KEY_MASTER_SECRET` with the release-bound v2 scope:
+
+```txt
+dotify-content-key-v2:<chainId>:<runtimeAddress>:<contentHash>
+```
+
+Key delivery uses the same scope only after the backend resolves the canonical
+catalog release and confirms the current target-runtime track. Older DAV2 refs
+that use `dotify:enc:v2:ipfs://<CID>` remain legacy v1 assets derived only from
+`contentHash`; duplicate legacy hashes are refused because the key scope cannot
+distinguish releases.
 
 ## Playback Contract
 
@@ -84,8 +93,9 @@ The web client resolves refs in this order:
 5. If any chunk fails authentication, stop playback and surface a protected
    playback error.
 
-Legacy refs with `dotify:enc:ipfs://<CID>` remain supported through the v1
-full-file decrypt path.
+Legacy refs with `dotify:enc:v2:ipfs://<CID>` remain DAV2 assets using the v1
+content-hash key scope. Legacy refs with `dotify:enc:ipfs://<CID>` remain
+supported through the v1 full-file decrypt path.
 
 ## Range and MSE Boundary
 

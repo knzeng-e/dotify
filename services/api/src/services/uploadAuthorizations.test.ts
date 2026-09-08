@@ -4,6 +4,8 @@ import { createUploadAuthorizationService } from './uploadAuthorizations.js';
 
 const ADDRESS = '0x1111111111111111111111111111111111111111' as const;
 const OTHER_ADDRESS = '0x2222222222222222222222222222222222222222' as const;
+const RUNTIME = '0x3333333333333333333333333333333333333333' as const;
+const OTHER_RUNTIME = '0x4444444444444444444444444444444444444444' as const;
 const CHAIN_ID = 420420417;
 
 function service(overrides: Parameters<typeof createUploadAuthorizationService>[0] = {}) {
@@ -22,8 +24,14 @@ function service(overrides: Parameters<typeof createUploadAuthorizationService>[
   });
 }
 
-function issueToken(instance: ReturnType<typeof service>, address: `0x${string}` = ADDRESS, purpose: 'audio' | 'cover' | 'metadata' = 'audio', maxBytes = 50) {
-  const issued = instance.issue({ address, chainId: CHAIN_ID, purpose, maxBytes });
+function issueToken(
+  instance: ReturnType<typeof service>,
+  address: `0x${string}` = ADDRESS,
+  purpose: 'audio' | 'cover' | 'metadata' = 'audio',
+  maxBytes = 50
+) {
+  const runtimeAddress = address === OTHER_ADDRESS ? OTHER_RUNTIME : RUNTIME;
+  const issued = instance.issue({ address, runtimeAddress, chainId: CHAIN_ID, purpose, maxBytes });
   if (!issued.ok) throw new Error(`Expected upload authorization, received ${issued.code}`);
   return issued.token;
 }
@@ -40,6 +48,7 @@ describe('upload authorizations', () => {
     const started = authorizations.begin(token, 'audio');
     assert.equal(started.ok, true);
     if (!started.ok) return;
+    assert.equal(started.lease.payload.runtimeAddress, RUNTIME);
     assert.equal(started.lease.complete(40), true);
 
     const replayed = authorizations.begin(token, 'audio');
@@ -67,12 +76,12 @@ describe('upload authorizations', () => {
     const authorizations = service({ principalConcurrencyLimit: 10, globalConcurrencyLimit: 10 });
     issueToken(authorizations, ADDRESS, 'audio', 80);
 
-    const principalQuota = authorizations.issue({ address: ADDRESS, chainId: CHAIN_ID, purpose: 'cover', maxBytes: 21 });
+    const principalQuota = authorizations.issue({ address: ADDRESS, runtimeAddress: RUNTIME, chainId: CHAIN_ID, purpose: 'cover', maxBytes: 21 });
     assert.equal(principalQuota.ok, false);
     assert.equal(!principalQuota.ok && principalQuota.code, 'UPLOAD_PRINCIPAL_QUOTA_EXCEEDED');
 
     issueToken(authorizations, OTHER_ADDRESS, 'audio', 70);
-    const globalQuota = authorizations.issue({ address: OTHER_ADDRESS, chainId: CHAIN_ID, purpose: 'cover', maxBytes: 1 });
+    const globalQuota = authorizations.issue({ address: OTHER_ADDRESS, runtimeAddress: OTHER_RUNTIME, chainId: CHAIN_ID, purpose: 'cover', maxBytes: 1 });
     assert.equal(globalQuota.ok, false);
     assert.equal(!globalQuota.ok && globalQuota.code, 'UPLOAD_GLOBAL_QUOTA_EXCEEDED');
   });
@@ -84,7 +93,7 @@ describe('upload authorizations', () => {
     assert.equal(first.ok, true);
     if (!first.ok) return;
 
-    const concurrent = authorizations.issue({ address: ADDRESS, chainId: CHAIN_ID, purpose: 'cover', maxBytes: 50 });
+    const concurrent = authorizations.issue({ address: ADDRESS, runtimeAddress: RUNTIME, chainId: CHAIN_ID, purpose: 'cover', maxBytes: 50 });
     assert.equal(concurrent.ok, false);
     assert.equal(!concurrent.ok && concurrent.code, 'UPLOAD_PRINCIPAL_CONCURRENCY_EXCEEDED');
 
@@ -102,11 +111,11 @@ describe('upload authorizations', () => {
     assert.equal(first.ok, true);
     if (!first.ok) return;
 
-    const concurrent = authorizations.issue({ address: OTHER_ADDRESS, chainId: CHAIN_ID, purpose: 'cover', maxBytes: 50 });
+    const concurrent = authorizations.issue({ address: OTHER_ADDRESS, runtimeAddress: OTHER_RUNTIME, chainId: CHAIN_ID, purpose: 'cover', maxBytes: 50 });
     assert.equal(concurrent.ok, false);
     assert.equal(!concurrent.ok && concurrent.code, 'UPLOAD_GLOBAL_CONCURRENCY_EXCEEDED');
 
     first.lease.abort();
-    assert.equal(authorizations.issue({ address: OTHER_ADDRESS, chainId: CHAIN_ID, purpose: 'cover', maxBytes: 50 }).ok, true);
+    assert.equal(authorizations.issue({ address: OTHER_ADDRESS, runtimeAddress: OTHER_RUNTIME, chainId: CHAIN_ID, purpose: 'cover', maxBytes: 50 }).ok, true);
   });
 });

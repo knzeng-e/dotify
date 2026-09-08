@@ -5,6 +5,7 @@ import multipart from '@fastify/multipart';
 import { blake2b } from '@noble/hashes/blake2';
 import { createUploadRoutes, type UploadRouteDeps } from './uploads.js';
 import { createUploadAuthorizationService } from '../services/uploadAuthorizations.js';
+import { RELEASE_BOUND_CONTENT_KEY_VERSION } from '../services/keyVault.js';
 
 const ADDRESS = '0x1111111111111111111111111111111111111111' as const;
 const RUNTIME = '0x2222222222222222222222222222222222222222' as const;
@@ -158,7 +159,36 @@ describe('authorized upload routes', () => {
       payload: multipartAudio(audioBytes, audioHash, 'application/octet-stream')
     });
     assert.equal(response.statusCode, 200);
-    assert.equal(response.json().ref, 'dotify:enc:v2:ipfs://file-cid');
+    assert.equal(response.json().ref, 'dotify:enc:v2:key-v2:ipfs://file-cid');
+    assert.equal(response.json().runtimeAddress, RUNTIME);
+    assert.equal(response.json().keyVersion, RELEASE_BOUND_CONTENT_KEY_VERSION);
+  });
+
+  it('derives backend audio keys from the artist runtime-bound key scope', async () => {
+    let derivationScope: unknown = null;
+    const server = await buildApp({
+      routeDeps: {
+        deriveContentKeyBytes: input => {
+          derivationScope = input;
+          return Buffer.alloc(32, 7);
+        }
+      }
+    });
+    const grant = (await authorize(server, 'audio', audioBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/audio',
+      headers: multipartHeaders(grant),
+      payload: multipartAudio(audioBytes, audioHash)
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(derivationScope, {
+      contentHash: audioHash,
+      keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION,
+      chainId: CHAIN_ID,
+      runtimeAddress: RUNTIME
+    });
   });
 
   it('rejects spoofed audio MIME when the received bytes are an image', async () => {

@@ -739,8 +739,10 @@ Number of chain-head blocks held back before catalog events are indexed.
 | **Required** | Server-side audio encryption and key delivery |
 | **Default**  | None                                          |
 
-Backend-only master secret used to derive per-track AES-256-GCM content keys.
-Never expose this value to the frontend.
+Backend-only master secret used to derive AES-256-GCM content keys. Legacy
+assets use the v1 `contentHash` scope; new backend uploads use the release-bound
+v2 scope `chainId + runtimeAddress + contentHash`. Never expose this value to
+the frontend.
 
 ---
 

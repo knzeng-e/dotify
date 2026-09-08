@@ -17,6 +17,9 @@ const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.rep
 
 export type KeyRequestPurpose = 'individual' | 'room_host';
 export const PRODUCT_SR25519_SIGNATURE_SCHEME = 'product-sr25519-v1';
+export const LEGACY_CONTENT_KEY_VERSION = 'dotify-content-key-v1';
+export const RELEASE_BOUND_CONTENT_KEY_VERSION = 'dotify-content-key-v2';
+export type ContentKeyVersion = typeof LEGACY_CONTENT_KEY_VERSION | typeof RELEASE_BOUND_CONTENT_KEY_VERSION;
 
 // Access model v2 (ticket 24 P1): a denial names the reason and the action the
 // listener can take. There is no degraded playback mode - the preview doctrine
@@ -75,10 +78,11 @@ type SignedRequestPayload = {
   chainId: number;
   nonce: string;
   expiresAt: string;
+  release?: ContentKeyReleaseIdentity;
 };
 
 function buildSignedRequestMessage(payload: SignedRequestPayload): string {
-  return [
+  const lines = [
     'Dotify signed request',
     'App: Dotify',
     `Action: ${payload.action}`,
@@ -88,7 +92,17 @@ function buildSignedRequestMessage(payload: SignedRequestPayload): string {
     `Chain ID: ${payload.chainId}`,
     `Nonce: ${payload.nonce}`,
     `Expires At: ${payload.expiresAt}`
-  ].join('\n');
+  ];
+  if (payload.release) {
+    lines.push(
+      `Release ID: ${payload.release.releaseId.toLowerCase()}`,
+      `Runtime Address: ${payload.release.runtimeAddress.toLowerCase()}`,
+      `Artist Address: ${payload.release.artistAddress.toLowerCase()}`,
+      `Audio Ref: ${payload.release.audioRef}`,
+      `Key Version: ${payload.release.keyVersion}`
+    );
+  }
+  return lines.join('\n');
 }
 
 async function parseError(res: Response, fallback: string): Promise<{ message: string; code: string }> {
@@ -119,6 +133,15 @@ export type ContentKeyRequest = {
   walletClient?: WalletClient;
   signer?: KeyRequestSigner;
   chainId: number;
+  release?: ContentKeyReleaseIdentity;
+};
+
+export type ContentKeyReleaseIdentity = {
+  releaseId: string;
+  runtimeAddress: `0x${string}`;
+  artistAddress: `0x${string}`;
+  audioRef: string;
+  keyVersion: ContentKeyVersion;
 };
 
 // ---------------------------------------------------------------------------
@@ -400,11 +423,27 @@ export async function signOutOfDotifySession(address: string): Promise<void> {
   }
 }
 
-async function requestKeyWithSession(contentHash: `0x${string}`, purpose: KeyRequestPurpose, sessionToken: string): Promise<Response> {
+function releaseIdentityRequestFields(release: ContentKeyReleaseIdentity | undefined): Record<string, string> {
+  if (!release) return {};
+  return {
+    releaseId: release.releaseId,
+    runtimeAddress: release.runtimeAddress,
+    artistAddress: release.artistAddress,
+    audioRef: release.audioRef,
+    keyVersion: release.keyVersion
+  };
+}
+
+async function requestKeyWithSession(
+  contentHash: `0x${string}`,
+  purpose: KeyRequestPurpose,
+  sessionToken: string,
+  release: ContentKeyReleaseIdentity | undefined
+): Promise<Response> {
   return fetch(`${API_URL}/api/tracks/${contentHash}/key-request`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionToken, purpose })
+    body: JSON.stringify({ sessionToken, purpose, ...releaseIdentityRequestFields(release) })
   });
 }
 
@@ -427,13 +466,13 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
   let sessionToken = await ensureDotifySessionForSigner(signer, request.chainId);
   if (sessionToken) {
     try {
-      let res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
+      let res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken, request.release);
       if (res.status === 401) {
         // Expired or revoked server-side: one fresh sign-in, then retry once.
         clearStoredSession(signer.address, sessionToken);
         sessionToken = await ensureDotifySessionForSigner(signer, request.chainId);
         if (sessionToken) {
-          res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken);
+          res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken, request.release);
         }
       }
       if (sessionToken) {
@@ -488,7 +527,8 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
       requester: signer.address,
       chainId: request.chainId,
       nonce,
-      expiresAt
+      expiresAt,
+      release: request.release
     };
 
     const signature = await signer.signMessage(buildSignedRequestMessage(payload));
@@ -503,6 +543,7 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
         chainId: request.chainId,
         expiresAt,
         purpose: request.purpose,
+        ...releaseIdentityRequestFields(request.release),
         ...productSignatureFields(signer)
       })
     });
@@ -554,7 +595,7 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
  * grants access to everyone, and only then releases the key. Free must feel
  * free - a guest without a wallet can play a Free track.
  */
-export async function requestFreeContentKey(contentHash: `0x${string}`): Promise<ContentKeyResponse> {
+export async function requestFreeContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<ContentKeyResponse> {
   if (!API_URL) {
     throw new KeyServiceError('Backend key service is not configured (VITE_DOTIFY_API_URL).', 'KEY_SERVICE_NOT_CONFIGURED');
   }
@@ -562,7 +603,7 @@ export async function requestFreeContentKey(contentHash: `0x${string}`): Promise
   const res = await fetch(`${API_URL}/api/tracks/${contentHash}/free-key`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({})
+    body: JSON.stringify(releaseIdentityRequestFields(release))
   });
 
   if (!res.ok) {

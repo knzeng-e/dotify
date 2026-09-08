@@ -5,6 +5,10 @@ const ADDRESS = '0x1111111111111111111111111111111111111111' as const;
 const CONTENT_HASH = `0x${'ab'.repeat(32)}` as const;
 const CONTENT_KEY = `0x${'cd'.repeat(32)}` as const;
 const RUNTIME = '0x2222222222222222222222222222222222222222' as const;
+const ARTIST = '0x4444444444444444444444444444444444444444' as const;
+const AUDIO_REF = 'dotify:enc:v2:key-v2:ipfs://release-cid';
+const KEY_VERSION = 'dotify-content-key-v2' as const;
+const RELEASE_ID = `${RUNTIME}:${CONTENT_HASH}`;
 const PRODUCT_PUBLIC_KEY = `0x${'22'.repeat(32)}` as const;
 const PRODUCT_SIGNATURE = `0x${'33'.repeat(64)}` as const;
 
@@ -77,6 +81,16 @@ function keyRequestResponse() {
     contentKey: CONTENT_KEY,
     runtime: RUNTIME
   });
+}
+
+function releaseIdentity() {
+  return {
+    releaseId: RELEASE_ID,
+    runtimeAddress: RUNTIME,
+    artistAddress: ARTIST,
+    audioRef: AUDIO_REF,
+    keyVersion: KEY_VERSION
+  };
 }
 
 afterEach(() => {
@@ -248,6 +262,43 @@ describe('keyService sessions', () => {
     expect(storedEvidence).not.toContain(CONTENT_KEY);
   });
 
+  it('sends canonical release identity with session key requests when available', async () => {
+    const sessionKey = `dotify:session:${ADDRESS}`;
+    installLocalStorage([
+      [
+        sessionKey,
+        JSON.stringify({
+          token: 'fresh-session-token',
+          expiresAt: new Date(Date.now() + 3_600_000).toISOString()
+        })
+      ]
+    ]);
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === `https://api.test/api/tracks/${CONTENT_HASH}/key-request`) {
+        expect(JSON.parse(String(init?.body))).toEqual({
+          sessionToken: 'fresh-session-token',
+          purpose: 'individual',
+          ...releaseIdentity()
+        });
+        return keyRequestResponse();
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { requestContentKey } = await loadKeyService();
+
+    const response = await requestContentKey({
+      contentHash: CONTENT_HASH,
+      purpose: 'individual',
+      signer: productSigner(),
+      chainId: 420420417,
+      release: releaseIdentity()
+    });
+
+    expect(response.access).toBe('allowed');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('coalesces simultaneous session requests for parallel asset uploads', async () => {
     installLocalStorage();
     const signMessage = vi.fn(async () => PRODUCT_SIGNATURE);
@@ -280,6 +331,11 @@ describe('keyService sessions', () => {
     const signMessage = vi.fn(async (message: string) => {
       expect(message).toContain('Action: REQUEST_CONTENT_KEY');
       expect(message).toContain(`Requester: ${ADDRESS}`);
+      expect(message).toContain(`Release ID: ${RELEASE_ID.toLowerCase()}`);
+      expect(message).toContain(`Runtime Address: ${RUNTIME.toLowerCase()}`);
+      expect(message).toContain(`Artist Address: ${ARTIST.toLowerCase()}`);
+      expect(message).toContain(`Audio Ref: ${AUDIO_REF}`);
+      expect(message).toContain(`Key Version: ${KEY_VERSION}`);
       return PRODUCT_SIGNATURE;
     });
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -293,7 +349,8 @@ describe('keyService sessions', () => {
           signature: PRODUCT_SIGNATURE,
           signatureScheme: 'product-sr25519-v1',
           productPublicKey: PRODUCT_PUBLIC_KEY,
-          purpose: 'individual'
+          purpose: 'individual',
+          ...releaseIdentity()
         });
         return keyRequestResponse();
       }
@@ -306,7 +363,8 @@ describe('keyService sessions', () => {
       contentHash: CONTENT_HASH,
       purpose: 'individual',
       signer: productSigner(signMessage),
-      chainId: 420420417
+      chainId: 420420417,
+      release: releaseIdentity()
     });
 
     expect(signMessage).toHaveBeenCalledTimes(1);

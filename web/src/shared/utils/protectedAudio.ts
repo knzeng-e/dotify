@@ -60,6 +60,11 @@ export async function decryptTrackAudio(packed: Uint8Array, contentHash: string)
 
 const ENC_AUDIO_PREFIX = 'dotify:enc:ipfs://';
 const ENC_AUDIO_V2_PREFIX = 'dotify:enc:v2:ipfs://';
+const ENC_AUDIO_V2_RELEASE_KEY_PREFIX = 'dotify:enc:v2:key-v2:ipfs://';
+
+export const LEGACY_CONTENT_KEY_VERSION = 'dotify-content-key-v1';
+export const RELEASE_BOUND_CONTENT_KEY_VERSION = 'dotify-content-key-v2';
+export type ContentKeyVersion = typeof LEGACY_CONTENT_KEY_VERSION | typeof RELEASE_BOUND_CONTENT_KEY_VERSION;
 
 /**
  * Build the on-chain audioRef for an encrypted IPFS upload.
@@ -74,6 +79,11 @@ export function makeEncryptedAudioV2Ref(audioCID: string): string {
   return `${ENC_AUDIO_V2_PREFIX}${audioCID}`;
 }
 
+/** Build the on-chain audioRef for a DAV2 asset encrypted with release-bound key v2. */
+export function makeReleaseBoundEncryptedAudioV2Ref(audioCID: string): string {
+  return `${ENC_AUDIO_V2_RELEASE_KEY_PREFIX}${audioCID}`;
+}
+
 /** Normalize an upload response that may already be a full encrypted audio ref. */
 export function normalizeEncryptedAudioRef(audioRefOrCid: string): string {
   if (isEncryptedAudioRef(audioRefOrCid)) return audioRefOrCid;
@@ -82,16 +92,23 @@ export function normalizeEncryptedAudioRef(audioRefOrCid: string): string {
 
 /** Returns true when the audioRef is any encrypted Dotify audio ref. */
 export function isEncryptedAudioRef(audioRef: string): boolean {
-  return audioRef.startsWith(ENC_AUDIO_PREFIX) || audioRef.startsWith(ENC_AUDIO_V2_PREFIX);
+  return audioRef.startsWith(ENC_AUDIO_PREFIX) || audioRef.startsWith(ENC_AUDIO_V2_PREFIX) || audioRef.startsWith(ENC_AUDIO_V2_RELEASE_KEY_PREFIX);
 }
 
 /** Returns true when the audioRef points to a chunked DAV2 encrypted asset. */
 export function isEncryptedAudioV2Ref(audioRef: string): boolean {
-  return audioRef.startsWith(ENC_AUDIO_V2_PREFIX);
+  return audioRef.startsWith(ENC_AUDIO_V2_PREFIX) || audioRef.startsWith(ENC_AUDIO_V2_RELEASE_KEY_PREFIX);
 }
 
 /** Extract the raw IPFS CID from an encrypted audioRef. */
 export function encryptedRefToCID(audioRef: string): string {
+  if (audioRef.startsWith(ENC_AUDIO_V2_RELEASE_KEY_PREFIX)) return audioRef.slice(ENC_AUDIO_V2_RELEASE_KEY_PREFIX.length);
   if (audioRef.startsWith(ENC_AUDIO_V2_PREFIX)) return audioRef.slice(ENC_AUDIO_V2_PREFIX.length);
   return audioRef.slice(ENC_AUDIO_PREFIX.length);
+}
+
+export function contentKeyVersionForAudioRef(audioRef: string): ContentKeyVersion | null {
+  if (audioRef.startsWith(ENC_AUDIO_V2_RELEASE_KEY_PREFIX)) return RELEASE_BOUND_CONTENT_KEY_VERSION;
+  if (audioRef.startsWith(ENC_AUDIO_V2_PREFIX) || audioRef.startsWith(ENC_AUDIO_PREFIX)) return LEGACY_CONTENT_KEY_VERSION;
+  return null;
 }
