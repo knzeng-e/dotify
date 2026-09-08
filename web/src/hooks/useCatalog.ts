@@ -54,7 +54,8 @@ import {
   E2E_CLASSIC_TX_HASH,
   getClassicUnlockE2eState,
   isClassicUnlockE2e,
-  recordClassicUnlockFullKeyRequest
+  recordClassicUnlockFullKeyRequest,
+  shouldDenyClassicUnlockAfterPaymentReadback
 } from '../e2e/classicUnlockMock';
 import { getArtistPublishE2eTracks, isArtistPublishE2e, isArtistPublishE2eTrack } from '../e2e/artistPublishMock';
 import {
@@ -479,7 +480,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function checkTrackPaidAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
     if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
-      return e2eClassicAccessGrantedRef.current;
+      return getClassicUnlockE2eState().paid;
     }
     if (isArtistPublishE2eTrack(track)) {
       return false;
@@ -1090,10 +1091,30 @@ export function useCatalog(deps: UseCatalogDeps) {
         message: `Confirming ${track.priceDot} ${nativeRuntimePaymentAsset.symbol} of support to open "${track.title}".`
       });
       await new Promise(resolve => window.setTimeout(resolve, 20));
-      e2eClassicAccessGrantedRef.current = true;
-      getClassicUnlockE2eState().paid = true;
-      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+      const e2eState = getClassicUnlockE2eState();
+      e2eState.paid = true;
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+
+      if (shouldDenyClassicUnlockAfterPaymentReadback()) {
+        e2eClassicAccessGrantedRef.current = false;
+        e2eState.accessGranted = false;
+        setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: false }));
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Payment included, access not verified',
+          message: buildIncludedPaymentUnverifiedMessage({
+            attempts: 1,
+            error: 'The runtime recorded the payment, but still denies playable access for this account.',
+            productCdm: false
+          }),
+          txHash: E2E_CLASSIC_TX_HASH
+        });
+        return;
+      }
+
+      e2eClassicAccessGrantedRef.current = true;
+      e2eState.accessGranted = true;
+      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback({
         ...buildClassicAccessVerifiedFeedback(track, E2E_CLASSIC_TX_HASH)
       });
@@ -1187,6 +1208,10 @@ export function useCatalog(deps: UseCatalogDeps) {
         );
       }
 
+      if (verification.readback?.hasPaid) {
+        setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+      }
+
       if (!verification.ok) {
         setTransactionFeedback({
           tone: 'error',
@@ -1202,7 +1227,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
 
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback(buildClassicAccessVerifiedFeedback(track, txHash));
       if (shouldRestoreUnlockedTrack()) {
         navigateToView('player');
@@ -1299,7 +1323,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         )
       );
       setCatalogPaidAccessByTrackId(
-        Object.fromEntries(nextCatalog.map(track => [track.id, track.id === E2E_CLASSIC_TRACK.id && e2eClassicAccessGrantedRef.current]))
+        Object.fromEntries(nextCatalog.map(track => [track.id, track.id === E2E_CLASSIC_TRACK.id && getClassicUnlockE2eState().paid]))
       );
       setCatalogStatus(
         nextCatalog.length > 0 ? `Loaded ${nextCatalog.length} deterministic e2e track${nextCatalog.length === 1 ? '' : 's'}` : 'No e2e tracks registered yet'
