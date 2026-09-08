@@ -152,6 +152,15 @@ describe('formatBackendUploadError', () => {
   });
 });
 
+describe('protected audio upload metadata', () => {
+  it('reports release-bound key versions from backend audio refs', async () => {
+    const { protectedAudioUploadToKeyVersion } = await loadPinataService();
+
+    expect(protectedAudioUploadToKeyVersion('dotify:enc:v2:key-v2:ipfs://release-cid')).toBe('dotify-content-key-v2');
+    expect(protectedAudioUploadToKeyVersion('dotify:enc:v2:ipfs://legacy-dav2')).toBe('dotify-content-key-v1');
+  });
+});
+
 describe('backend upload authorization', () => {
   it('obtains a purpose-scoped artist authorization before uploading', async () => {
     const { uploadCoverToBackend } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test/' });

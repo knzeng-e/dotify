@@ -20,6 +20,11 @@ const signer = privateKeyToAccount('0xac0974bec39a37e36980911eda47a06fcd4ee8d3a8
 
 const CONTENT_HASH = `0x${'ab'.repeat(32)}` as const;
 const CHAIN_ID = 420420417;
+const RUNTIME = '0x2222222222222222222222222222222222222222' as const;
+const ARTIST = '0x3333333333333333333333333333333333333333' as const;
+const AUDIO_REF = 'dotify:enc:v2:key-v2:ipfs://release-cid';
+const KEY_VERSION = 'dotify-content-key-v2';
+const RELEASE_ID = `${RUNTIME}:${CONTENT_HASH}`;
 const productSecretKey = secretFromSeed(new Uint8Array(32).fill(7));
 const productPublicKey = getPublicKey(productSecretKey);
 const productPublicKeyHex = `0x${bytesToHex(productPublicKey)}` as const;
@@ -44,6 +49,16 @@ async function signedPayload(overrides: Partial<SignedRequestPayload> = {}) {
   };
   const signature = await signer.signMessage({ message: buildSignedRequestMessage(payload) });
   return { payload, signature };
+}
+
+function releaseIdentity(): SignedRequestPayload['release'] {
+  return {
+    releaseId: RELEASE_ID,
+    runtimeAddress: RUNTIME,
+    artistAddress: ARTIST,
+    audioRef: AUDIO_REF,
+    keyVersion: KEY_VERSION
+  };
 }
 
 // The Host may sign the canonical message verbatim or inside the conventional
@@ -89,6 +104,48 @@ describe('verifySignedRequest', () => {
     const { payload, signature } = await signedPayload();
     const result = await verifySignedRequest({ ...payload, signature });
     assert.equal(result.valid, true);
+  });
+
+  it('preserves the legacy signed message when no release identity is supplied', async () => {
+    const payload: SignedRequestPayload = {
+      action: 'REQUEST_CONTENT_KEY',
+      purpose: 'individual',
+      contentHash: CONTENT_HASH,
+      requester: signer.address,
+      chainId: CHAIN_ID,
+      nonce: 'nonce-1',
+      expiresAt: '2026-09-08T00:00:00.000Z'
+    };
+
+    assert.equal(
+      buildSignedRequestMessage(payload),
+      [
+        'Dotify signed request',
+        'App: Dotify',
+        'Action: REQUEST_CONTENT_KEY',
+        'Purpose: individual',
+        `Content Hash: ${CONTENT_HASH}`,
+        `Requester: ${signer.address.toLowerCase()}`,
+        `Chain ID: ${CHAIN_ID}`,
+        'Nonce: nonce-1',
+        'Expires At: 2026-09-08T00:00:00.000Z'
+      ].join('\n')
+    );
+  });
+
+  it('binds canonical release identity to signed key requests', async () => {
+    const { payload, signature } = await signedPayload({ release: releaseIdentity() });
+    const tampered = { ...payload, release: { ...payload.release!, audioRef: 'dotify:enc:v2:key-v2:ipfs://other-cid' }, signature };
+
+    const result = await verifySignedRequest(tampered);
+
+    assert.equal(result.valid, false);
+    assert.equal(!result.valid && result.code, 'SIGNATURE_INVALID');
+    assert.match(buildSignedRequestMessage(payload), new RegExp(`Release ID: ${RELEASE_ID.toLowerCase()}`));
+    assert.match(buildSignedRequestMessage(payload), new RegExp(`Runtime Address: ${RUNTIME}`));
+    assert.match(buildSignedRequestMessage(payload), new RegExp(`Artist Address: ${ARTIST}`));
+    assert.match(buildSignedRequestMessage(payload), new RegExp(`Audio Ref: ${AUDIO_REF}`));
+    assert.match(buildSignedRequestMessage(payload), new RegExp(`Key Version: ${KEY_VERSION}`));
   });
 
   it('accepts a Product sr25519 request bound to the derived H160 requester', async () => {

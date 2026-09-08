@@ -81,8 +81,10 @@ PINATA_JWT
 CONTENT_KEY_MASTER_SECRET
 ```
 
-`CONTENT_KEY_MASTER_SECRET` derives per-track keys. Do not rotate it casually:
-rotating it changes the key derivation boundary for existing tracks.
+`CONTENT_KEY_MASTER_SECRET` derives content keys. Legacy assets use the v1
+`contentHash` scope; new backend uploads use the release-bound v2 scope
+`chainId + runtimeAddress + contentHash`. Do not rotate it casually: rotating
+it changes the key derivation boundary for existing tracks.
 
 ## Netlify Frontend
 
@@ -295,7 +297,7 @@ Set server-side values in the app's Secrets area:
 | Secret                      | Required                      | Notes                                                                                               |
 | --------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------- |
 | `PINATA_JWT`                | Uploads                       | Backend-only Pinata token. Never expose in Netlify.                                                 |
-| `CONTENT_KEY_MASTER_SECRET` | Audio upload and key delivery | 64+ hex chars, at least 32 random bytes. Do not rotate casually.                                    |
+| `CONTENT_KEY_MASTER_SECRET` | Audio upload and key delivery | 64+ hex chars, at least 32 random bytes. v1 assets use `contentHash`; new v2 assets bind `chainId + runtimeAddress + contentHash`. Do not rotate casually. |
 | `GIT_COMMIT_SHA`            | Optional                      | Set by CI/build automation when available; `/version` can fall back in dev checkouts.               |
 | `TURN_REST_SECRET`          | Reliable rooms                | Backend-only HMAC secret shared with the TURN relay REST auth mechanism. Preferred production path. |
 | `TURN_USERNAME`             | Optional fallback             | Static DevNet TURN username when REST auth is unavailable.                                          |

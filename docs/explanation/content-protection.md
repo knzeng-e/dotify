@@ -19,7 +19,8 @@ material in the backend API:
    single-use audio capability with a short expiry and byte budget.
 4. The browser uploads the raw audio with that capability.
 5. The backend validates the received media bytes and content hash, then
-   derives the per-track key from `CONTENT_KEY_MASTER_SECRET`.
+   derives the per-release key from `CONTENT_KEY_MASTER_SECRET`, the configured
+   chain ID, the artist runtime, and the content hash.
 6. The backend encrypts the audio with AES-256-GCM. New uploads use the
    chunked `dotify.audio.v2` container; older v1 encrypted blobs remain
    playable.
@@ -81,7 +82,10 @@ POST /api/uploads/audio
         |
         v
 Backend derives key:
-HKDF-SHA256(CONTENT_KEY_MASTER_SECRET, "dotify-content-key-v1:<contentHash>")
+HKDF-SHA256(
+  CONTENT_KEY_MASTER_SECRET,
+  "dotify-content-key-v2:<chainId>:<runtimeAddress>:<contentHash>"
+)
         |
         v
 Backend AES-256-GCM encrypts audio as a DAV2 chunked container
@@ -90,11 +94,11 @@ Backend AES-256-GCM encrypts audio as a DAV2 chunked container
 Encrypted bytes pinned to Pinata
         |
         v
-audioRef = "dotify:enc:v2:ipfs://<CID>"
+audioRef = "dotify:enc:v2:key-v2:ipfs://<CID>"
 ```
 
 The same backend derivation is used when an authorized key request succeeds, so
-the delivered per-track key decrypts bytes encrypted by the upload route.
+the delivered per-release key decrypts bytes encrypted by the upload route.
 During MSE playback, the browser imports that temporary key once and prepares a
 bounded two-chunk look-ahead while appending clear chunks in order. This changes
 startup latency, not authorization: room guests still receive only the host's
@@ -146,16 +150,20 @@ The backend verifies:
 - chain ID;
 - requester address;
 - request purpose;
+- canonical release identity against the fresh catalog read model;
+- `ArtistDirectory.runtimeOf(artist)`;
+- current target-runtime `musicRegGetTrack(contentHash)` state;
 - runtime access through `musicAccCanAccess`.
 
-If access is allowed, the backend returns the per-track key. If access is
+If access is allowed, the backend returns the applicable content key. If access is
 denied or ambiguous, it returns a denial reason and no key.
 
 ### Decryption pipeline
 
 ```txt
-audioRef = "dotify:enc:v2:ipfs://<CID>"    # new uploads
-audioRef = "dotify:enc:ipfs://<CID>"       # legacy v1 uploads
+audioRef = "dotify:enc:v2:key-v2:ipfs://<CID>" # new backend uploads
+audioRef = "dotify:enc:v2:ipfs://<CID>"        # legacy DAV2, v1 key scope
+audioRef = "dotify:enc:ipfs://<CID>"           # legacy v1 uploads
         |
         v
 fetch IPFS bytes with gateway fallback
@@ -186,11 +194,12 @@ protected audio until they unlock, verify, or choose a playable track.
 
 ### Encrypted audio ref format
 
-| Prefix                       | Meaning                                             |
-| ---------------------------- | --------------------------------------------------- |
-| `dotify:enc:v2:ipfs://<CID>` | Chunked encrypted audio on IPFS (`DAV2`)            |
-| `dotify:enc:ipfs://<CID>`    | Legacy v1 encrypted audio on IPFS; fetch and decrypt |
-| `ipfs://<CID>`               | Plain IPFS ref                                      |
-| `http[s]://...`              | Plain HTTP audio URL                                |
-| `blob:...`                   | Local Object URL                                    |
-| `dotify:local:<hash>`        | Local draft audio not yet uploaded                  |
+| Prefix                              | Meaning                                                  |
+| ----------------------------------- | -------------------------------------------------------- |
+| `dotify:enc:v2:key-v2:ipfs://<CID>` | New DAV2 audio encrypted with release-bound v2 key scope |
+| `dotify:enc:v2:ipfs://<CID>`        | Legacy DAV2 audio using contentHash-derived v1 keys      |
+| `dotify:enc:ipfs://<CID>`           | Legacy v1 encrypted audio on IPFS; fetch and decrypt     |
+| `ipfs://<CID>`                      | Plain IPFS ref                                           |
+| `http[s]://...`                     | Plain HTTP audio URL                                     |
+| `blob:...`                          | Local Object URL                                         |
+| `dotify:local:<hash>`               | Local draft audio not yet uploaded                       |

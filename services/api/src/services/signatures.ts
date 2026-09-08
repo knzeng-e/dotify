@@ -63,6 +63,7 @@ export type SignedRequestPayload = {
   chainId: number;
   nonce: string;
   expiresAt: string;
+  release?: SignedReleaseIdentity;
 };
 
 export type Eip191SignatureFields = {
@@ -80,12 +81,20 @@ export type SignatureFields = Eip191SignatureFields | ProductSr25519SignatureFie
 export type KeySignatureRequest = SignedRequestPayload & SignatureFields;
 export type SignatureVerification = { valid: true } | { valid: false; code: string; reason: string };
 
+export type SignedReleaseIdentity = {
+  releaseId: string;
+  runtimeAddress: string;
+  artistAddress: string;
+  audioRef: string;
+  keyVersion: string;
+};
+
 /**
  * Canonical EIP-191 message for a Dotify signed request.
  * Must stay byte-identical with the frontend builder.
  */
 export function buildSignedRequestMessage(payload: SignedRequestPayload): string {
-  return [
+  const lines = [
     'Dotify signed request',
     'App: Dotify',
     `Action: ${payload.action}`,
@@ -95,7 +104,17 @@ export function buildSignedRequestMessage(payload: SignedRequestPayload): string
     `Chain ID: ${payload.chainId}`,
     `Nonce: ${payload.nonce}`,
     `Expires At: ${payload.expiresAt}`
-  ].join('\n');
+  ];
+  if (payload.release) {
+    lines.push(
+      `Release ID: ${payload.release.releaseId.toLowerCase()}`,
+      `Runtime Address: ${payload.release.runtimeAddress.toLowerCase()}`,
+      `Artist Address: ${payload.release.artistAddress.toLowerCase()}`,
+      `Audio Ref: ${payload.release.audioRef}`,
+      `Key Version: ${payload.release.keyVersion}`
+    );
+  }
+  return lines.join('\n');
 }
 
 export type SignInPayload = {

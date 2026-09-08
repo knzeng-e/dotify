@@ -64,8 +64,9 @@ content hash to the backend, and the backend encrypts with its
 `VITE_DOTIFY_API_URL` is unset, the browser encrypts with `VITE_CONTENT_SECRET`
 and pins directly with `VITE_PINATA_JWT`.
 
-The on-chain `audioRef` stores a `dotify:enc:ipfs://CID` URI, so the raw IPFS
-object is not directly playable by an HTML audio element.
+New backend uploads store `dotify:enc:v2:key-v2:ipfs://CID` in the on-chain
+`audioRef`; legacy encrypted refs remain supported. The raw IPFS object is not
+directly playable by an HTML audio element.
 
 Cover images and track manifests are also pinned through Pinata. Manifest reads
 and encrypted audio downloads use `fetchIpfsCid`, which tries the configured
@@ -75,14 +76,16 @@ breaking playback when a custom Pinata gateway returns `401` for public files.
 The production protection boundary is the backend API:
 
 - Pinata credentials stay server-side.
-- Content keys are derived from `CONTENT_KEY_MASTER_SECRET`.
+- Content keys are derived from `CONTENT_KEY_MASTER_SECRET`; new backend
+  uploads bind the key scope to `chainId + runtimeAddress + contentHash`.
 - Full-track key delivery requires a signed-in session (one wallet signature
   per ~24h) or a wallet-signed request, plus an on-chain access check on
   every key request. Standalone clients use `eip191`; Product-host clients can
   use the API-side `product-sr25519-v1` scheme once the frontend sends the
   host-signed proof shape.
 - Room guests never receive keys; only an authorized host may request a
-  `room_host` key.
+  `room_host` key. Catalog-backed requests include the canonical release
+  identity so the backend does not guess between runtimes with the same hash.
 
 The fallback browser-only protection model is best-effort:
 

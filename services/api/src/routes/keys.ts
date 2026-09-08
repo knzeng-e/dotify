@@ -17,10 +17,12 @@ import { checkDotifyChainId } from '../services/chainDomain.js';
 import {
   checkPublicAccess as defaultCheckPublicAccess,
   checkTrackAccess as defaultCheckTrackAccess,
+  type PublicTrackAccessRequest,
+  type ReleaseKeyIdentity,
   type TrackAccessRequest,
   type TrackAccessResult
 } from '../services/chainAccess.js';
-import { deriveContentKey as defaultDeriveContentKey, type ContentKeyResult } from '../services/keyVault.js';
+import { deriveContentKey as defaultDeriveContentKey, type ContentKeyDerivationInput, type ContentKeyResult } from '../services/keyVault.js';
 import {
   EIP191_SIGNATURE_SCHEME,
   PRODUCT_SR25519_SIGNATURE_SCHEME,
@@ -41,19 +43,27 @@ const signedBaseBodySchema = z.object({
   expiresAt: z.string().datetime()
 });
 
+const releaseIdentityBodySchema = z.object({
+  releaseId: z.string().min(1).max(256).optional(),
+  runtimeAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'Invalid runtime address').optional(),
+  artistAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'Invalid artist address').optional(),
+  audioRef: z.string().min(1).max(2048).optional(),
+  keyVersion: z.string().min(1).max(80).optional()
+});
+
 // 'room_listener' is intentionally not accepted; room listeners never get keys.
 const keyRequestPurposeSchema = z.object({
   purpose: z.enum(['individual', 'room_host'])
 });
 
-const eip191KeyRequestBodySchema = signedBaseBodySchema.merge(keyRequestPurposeSchema).extend({
+const eip191KeyRequestBodySchema = signedBaseBodySchema.merge(keyRequestPurposeSchema).merge(releaseIdentityBodySchema).extend({
   signatureScheme: z.literal(EIP191_SIGNATURE_SCHEME).optional(),
   signature: z.string().regex(/^0x[0-9a-fA-F]+$/, 'Invalid signature')
 });
 
 // 128 hex = bare 64-byte sr25519; 130 hex = MultiSignature-tagged 65-byte
 // value. The tag itself is validated in verifySignedRequest, not here.
-const productSr25519KeyRequestBodySchema = signedBaseBodySchema.merge(keyRequestPurposeSchema).extend({
+const productSr25519KeyRequestBodySchema = signedBaseBodySchema.merge(keyRequestPurposeSchema).merge(releaseIdentityBodySchema).extend({
   signatureScheme: z.literal(PRODUCT_SR25519_SIGNATURE_SCHEME),
   signature: z.string().regex(/^0x([0-9a-fA-F]{128}|[0-9a-fA-F]{130})$/, 'Invalid Product sr25519 signature'),
   productPublicKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid Product account public key')
@@ -67,14 +77,14 @@ const keyRequestBodySchema = z.union([productSr25519KeyRequestBodySchema, eip191
 const sessionKeyRequestBodySchema = z.object({
   sessionToken: z.string().min(16),
   purpose: z.enum(['individual', 'room_host'])
-});
+}).merge(releaseIdentityBodySchema);
 
 export type KeyRouteDeps = {
   verifySignedRequest: (request: KeySignatureRequest) => Promise<SignatureVerification>;
   verifySessionToken: (token: string) => SessionVerification;
   checkTrackAccess: (request: TrackAccessRequest) => Promise<TrackAccessResult>;
-  checkPublicAccess: (contentHash: string) => Promise<TrackAccessResult>;
-  deriveContentKey: (contentHash: string) => ContentKeyResult;
+  checkPublicAccess: (request: PublicTrackAccessRequest) => Promise<TrackAccessResult>;
+  deriveContentKey: (input: ContentKeyDerivationInput) => ContentKeyResult;
 };
 
 const defaultDeps: KeyRouteDeps = {
@@ -93,6 +103,34 @@ function validationError(reply: FastifyReply, error: string, issues: z.ZodIssue[
       message: issue.message
     }))
   });
+}
+
+function releaseIdentityFromBody(body: Record<string, unknown>): { ok: true; release?: ReleaseKeyIdentity } | { ok: false; issues: z.ZodIssue[] } {
+  const names = ['releaseId', 'runtimeAddress', 'artistAddress', 'audioRef', 'keyVersion'] as const;
+  const present = names.filter(name => body[name] !== undefined);
+  if (present.length === 0) return { ok: true };
+  if (present.length !== names.length) {
+    const missing = names.filter(name => body[name] === undefined);
+    return {
+      ok: false,
+      issues: missing.map(name => ({
+        code: z.ZodIssueCode.custom,
+        path: [name],
+        message: 'Release identity fields must be supplied together'
+      }))
+    };
+  }
+
+  return {
+    ok: true,
+    release: {
+      releaseId: body.releaseId as string,
+      runtimeAddress: body.runtimeAddress as string,
+      artistAddress: body.artistAddress as string,
+      audioRef: body.audioRef as string,
+      keyVersion: body.keyVersion as string
+    }
+  };
 }
 
 // Access model v2 (ticket 24 P1): a denial carries the reason and the action
@@ -123,6 +161,11 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
       // signature, so the two shapes cannot be confused.
       const sessionBody = sessionKeyRequestBodySchema.safeParse(request.body);
       if (sessionBody.success) {
+        const release = releaseIdentityFromBody(sessionBody.data);
+        if (!release.ok) {
+          return validationError(reply, 'Invalid release identity', release.issues);
+        }
+
         const session = deps.verifySessionToken(sessionBody.data.sessionToken);
         if (!session.valid) {
           return reply.status(401).send({ error: session.reason, code: session.code });
@@ -136,13 +179,14 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
         const access = await deps.checkTrackAccess({
           contentHash: params.data.contentHash,
           requester: session.address,
-          purpose: sessionBody.data.purpose
+          purpose: sessionBody.data.purpose,
+          release: release.release
         });
         if (!access.allowed) {
           return reply.status(200).send(deniedResponse(access, sessionBody.data.purpose));
         }
 
-        const key = deps.deriveContentKey(params.data.contentHash);
+        const key = deps.deriveContentKey(access.keyScope);
         if (!key.ok) {
           return reply.status(503).send({ error: key.reason, code: key.code });
         }
@@ -160,6 +204,11 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
         return validationError(reply, 'Invalid key request body', body.error.issues);
       }
 
+      const release = releaseIdentityFromBody(body.data);
+      if (!release.ok) {
+        return validationError(reply, 'Invalid release identity', release.issues);
+      }
+
       const domain = checkDotifyChainId(body.data.chainId);
       if (!domain.ok) {
         return reply.status(401).send({ error: domain.reason, code: domain.code });
@@ -175,6 +224,7 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
               chainId: body.data.chainId,
               nonce: body.data.nonce,
               expiresAt: body.data.expiresAt,
+              release: release.release,
               signature: body.data.signature,
               signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
               productPublicKey: body.data.productPublicKey
@@ -187,6 +237,7 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
               chainId: body.data.chainId,
               nonce: body.data.nonce,
               expiresAt: body.data.expiresAt,
+              release: release.release,
               signature: body.data.signature,
               signatureScheme: EIP191_SIGNATURE_SCHEME
             };
@@ -200,7 +251,8 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
       const access = await deps.checkTrackAccess({
         contentHash: params.data.contentHash,
         requester: body.data.requester,
-        purpose: body.data.purpose
+        purpose: body.data.purpose,
+        release: release.release
       });
 
       if (!access.allowed) {
@@ -209,7 +261,7 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
         return reply.status(200).send(deniedResponse(access, body.data.purpose));
       }
 
-      const key = deps.deriveContentKey(params.data.contentHash);
+      const key = deps.deriveContentKey(access.keyScope);
       if (!key.ok) {
         return reply.status(503).send({ error: key.reason, code: key.code });
       }
@@ -235,12 +287,21 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
         return validationError(reply, 'Invalid key request path', params.error.issues);
       }
 
-      const access = await deps.checkPublicAccess(params.data.contentHash);
+      const body = releaseIdentityBodySchema.safeParse(request.body ?? {});
+      if (!body.success) {
+        return validationError(reply, 'Invalid free key request body', body.error.issues);
+      }
+      const release = releaseIdentityFromBody(body.data);
+      if (!release.ok) {
+        return validationError(reply, 'Invalid release identity', release.issues);
+      }
+
+      const access = await deps.checkPublicAccess({ contentHash: params.data.contentHash, release: release.release });
       if (!access.allowed) {
         return reply.status(200).send(deniedResponse(access, 'individual'));
       }
 
-      const key = deps.deriveContentKey(params.data.contentHash);
+      const key = deps.deriveContentKey(access.keyScope);
       if (!key.ok) {
         return reply.status(503).send({ error: key.reason, code: key.code });
       }

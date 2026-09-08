@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 import { getArtistPublishE2eCid, getArtistPublishE2eScenario, isArtistPublishE2e, recordArtistPublishUploadFailure } from '../e2e/artistPublishMock';
-import { encryptedRefToCID, normalizeEncryptedAudioRef } from '../shared/utils/protectedAudio';
+import { contentKeyVersionForAudioRef, encryptedRefToCID, normalizeEncryptedAudioRef } from '../shared/utils/protectedAudio';
 import { fetchThroughGateways } from './gatewayRace';
 import { clearStoredSession, ensureDotifySession, ensureDotifySessionForSigner, type KeyRequestSigner } from './keyService';
 import type { WalletClient } from 'viem';
@@ -53,6 +53,7 @@ export interface DotifyTrackManifest {
     audioCID: string;
     coverCID: string;
     encrypted?: boolean; // audio bytes are AES-256-GCM encrypted before upload
+    keyVersion?: string; // present for server-encrypted uploads that use release-bound derivation
     // previewCID existed for the retired 42% preview assets (ticket 18);
     // already-pinned manifests may still carry it, new manifests never do.
   };
@@ -253,7 +254,7 @@ async function requestUploadAuthorization(identity: BackendUploadIdentity | unde
  *
  * @param rawFile     The original audio file as selected by the artist.
  * @param contentHash 0x-prefixed blake2b-256 hash of the raw audio bytes.
- * @returns           Full Dotify audio ref: "dotify:enc:v2:ipfs://<CID>" for new backend uploads.
+ * @returns           Full Dotify audio ref: "dotify:enc:v2:key-v2:ipfs://<CID>" for new backend uploads.
  */
 export async function uploadAudioToBackend(rawFile: File, contentHash: string, identity?: BackendUploadIdentity): Promise<string> {
   if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
@@ -377,6 +378,10 @@ export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentH
 
 export function protectedAudioUploadToRef(refOrCid: string): string {
   return normalizeEncryptedAudioRef(refOrCid);
+}
+
+export function protectedAudioUploadToKeyVersion(refOrCid: string): string | undefined {
+  return contentKeyVersionForAudioRef(protectedAudioUploadToRef(refOrCid)) ?? undefined;
 }
 
 export function protectedAudioUploadToCID(refOrCid: string): string {

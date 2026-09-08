@@ -3,8 +3,14 @@ import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl } from '../services/pin
 import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot } from '../shared/utils/format';
-import { isKeyServiceConfigured, requestContentKey, requestFreeContentKey, type KeyRequestPurpose } from '../services/keyService';
-import { decryptTrackAudio, encryptedRefToCID, isEncryptedAudioRef, isEncryptedAudioV2Ref } from '../shared/utils/protectedAudio';
+import {
+  isKeyServiceConfigured,
+  requestContentKey,
+  requestFreeContentKey,
+  type ContentKeyReleaseIdentity,
+  type KeyRequestPurpose
+} from '../services/keyService';
+import { contentKeyVersionForAudioRef, decryptTrackAudio, encryptedRefToCID, isEncryptedAudioRef, isEncryptedAudioV2Ref } from '../shared/utils/protectedAudio';
 import {
   AudioV2HeaderIncompleteError,
   audioV2ChunkBodyOffset,
@@ -240,6 +246,20 @@ function catalogApiReleaseToTrack(release: CatalogApiRelease): CatalogTrack {
     zone: 'Registry',
     encrypted: release.encrypted,
     registeredAtBlock: release.registeredAtBlock
+  };
+}
+
+function releaseIdentityFromTrack(track: CatalogTrack): ContentKeyReleaseIdentity | undefined {
+  if (track.source !== 'artist' || !track.artistAddress || !isEncryptedAudioRef(track.audioRef)) return undefined;
+  const runtimeAddress = runtimeAddressFromTrackId(track);
+  const keyVersion = contentKeyVersionForAudioRef(track.audioRef);
+  if (!runtimeAddress || !keyVersion) return undefined;
+  return {
+    releaseId: `${runtimeAddress}:${track.hash}`,
+    runtimeAddress,
+    artistAddress: track.artistAddress,
+    audioRef: track.audioRef,
+    keyVersion
   };
 }
 
@@ -517,7 +537,7 @@ export function useCatalog(deps: UseCatalogDeps) {
    * or the backend denies access; callers then fall back to the demo-mode
    * bundle-derived key (which only decrypts demo-published tracks).
    */
-  async function resolveServerContentKey(contentHash: `0x${string}`): Promise<Uint8Array | null> {
+  async function resolveServerContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
       const authorized = e2eClassicAccessGrantedRef.current;
       recordClassicUnlockFullKeyRequest(authorized);
@@ -544,7 +564,8 @@ export function useCatalog(deps: UseCatalogDeps) {
         contentHash,
         purpose: keyRequestPurposeRef.current,
         ...(connectedWallet.keyRequestSigner ? { signer: connectedWallet.keyRequestSigner } : { walletClient: walletClient! }),
-        chainId
+        chainId,
+        release
       });
       if (response.access !== 'allowed') return null;
       const keyBytes = hexToBytes(response.contentKey);
@@ -562,14 +583,14 @@ export function useCatalog(deps: UseCatalogDeps) {
    * backend re-verifies the mode on-chain before releasing anything, so this
    * cannot open a paid or human-gated track.
    */
-  async function resolveFreeContentKey(contentHash: `0x${string}`): Promise<Uint8Array | null> {
+  async function resolveFreeContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
     const cacheKey = contentHash.toLowerCase();
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
     if (!isKeyServiceConfigured()) return null;
 
     try {
-      const response = await requestFreeContentKey(contentHash);
+      const response = await requestFreeContentKey(contentHash, release);
       if (response.access !== 'allowed') return null;
       const keyBytes = hexToBytes(response.contentKey);
       contentKeysRef.current.set(cacheKey, keyBytes);
@@ -866,19 +887,20 @@ export function useCatalog(deps: UseCatalogDeps) {
     gatewayUrl: string,
     contentHash: `0x${string}`,
     accessMode: AccessMode,
+    release: ContentKeyReleaseIdentity | undefined,
     signal?: AbortSignal,
     isCurrent: () => boolean = () => true
   ): Promise<string> {
     throwIfAborted(signal);
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
-      const serverKey = await resolveServerContentKey(contentHash);
+      const serverKey = await resolveServerContentKey(contentHash, release);
       throwIfAborted(signal);
       if (!serverKey) throw new Error('E2E full key request denied before payment.');
       return E2E_CLASSIC_AUDIO_URL;
     }
 
     if (isRoomJoinE2eProtectedHash(contentHash)) {
-      const serverKey = await resolveServerContentKey(contentHash);
+      const serverKey = await resolveServerContentKey(contentHash, release);
       throwIfAborted(signal);
       if (!serverKey) throw new Error('E2E room host is not authorized for full playback.');
       return E2E_ROOM_PROTECTED_AUDIO_URL;
@@ -902,7 +924,7 @@ export function useCatalog(deps: UseCatalogDeps) {
           setAudioStartupStatus(audioV2StartupPhaseLabel(metric));
         }
       };
-      const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash) : await resolveServerContentKey(contentHash);
+      const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
       throwIfAborted(context.signal);
       if (!serverKey) {
         publishAudioV2StartupMetric(context, {
@@ -918,7 +940,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       return objectUrl;
     }
 
-    const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash) : await resolveServerContentKey(contentHash);
+    const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
     throwIfAborted(signal);
     const response = isEncryptedAudioRef(audioRef)
       ? await fetchAudioIpfsCid(encryptedRefToCID(audioRef), { signal })
@@ -994,8 +1016,14 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     if (hasAccess && track.localUrl) {
       audioUrl = track.encrypted
-        ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, track.accessMode, selection.controller.signal, () =>
-            isTrackSelectionCurrent(selection)
+        ? await fetchAndDecryptAudio(
+            track.audioRef,
+            track.localUrl,
+            track.hash,
+            track.accessMode,
+            releaseIdentityFromTrack(track),
+            selection.controller.signal,
+            () => isTrackSelectionCurrent(selection)
           ).catch(() => null)
         : track.localUrl;
       if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };

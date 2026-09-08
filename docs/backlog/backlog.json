@@ -303,6 +303,16 @@
       "track": "Production spine",
       "phase": "Now",
       "note": "Activated implementation sequence for authenticated upload capacity and restart-safe session revocation."
+    },
+    {
+      "id": "W03",
+      "doc": "docs/backlog/implementation/W03-canonical-release-access.md",
+      "issue": 141,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Activated implementation sequence for canonical release-bound key delivery and duplicate-contentHash ambiguity handling."
     }
   ]
 }

@@ -4,6 +4,7 @@ import { getWalletClient, resolveEvmChain } from '../shared/config/contracts';
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
 import {
   protectedAudioUploadToCID,
+  protectedAudioUploadToKeyVersion,
   protectedAudioUploadToRef,
   isBackendConfigured,
   uploadFileToPinata,
@@ -586,15 +587,18 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     royaltyRecipients: `0x${string}`[],
     royaltyShares: number[],
     resolvedAudioCID: string,
-    resolvedCoverCID: string
+    resolvedCoverCID: string,
+    resolvedAudioRef: string
   ): DotifyTrackManifest {
+    const keyVersion = protectedAudioUploadToKeyVersion(resolvedAudioRef);
     return {
       schema: 'dotify.track.v1',
       createdAt: new Date().toISOString(),
       assets: {
         audioCID: resolvedAudioCID,
         coverCID: resolvedCoverCID,
-        encrypted: true
+        encrypted: true,
+        ...(keyVersion ? { keyVersion } : {})
       },
       track: {
         contentHash,
@@ -704,7 +708,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         shares: royaltyShares,
         totalBps: totalRoyaltyBps
       } = resolveReleaseRoyaltySplits(activeEvmAddress, accessMode, royaltyBps, additionalRoyaltySplits);
-      const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID);
+      const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID, resolvedAudioRef);
 
       setRightsStatus('Publishing manifest to IPFS…');
       setTransactionFeedback({
