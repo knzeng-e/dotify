@@ -27,12 +27,19 @@ catalogue storage, paid-access state, and claimable balances intact:
 ```bash
 cd contracts/evm
 npm run runtime:export:testnet -- --runtime <RUNTIME> --recipient <ARTIST_OR_SPLIT_RECIPIENT> --out /tmp/dotify-runtime-snapshot.json
-npm run runtime:royalties-upgrade:testnet -- --runtime <RUNTIME> --out /tmp/dotify-royalties-upgrade-plan.json
-npm run runtime:royalties-upgrade:testnet -- --runtime <RUNTIME> --execute --confirm-plan <PLAN_DIGEST> --out /tmp/dotify-royalties-upgrade-final.json
+npm run runtime:deploy-royalties-facet:testnet
+npm run runtime:deploy-royalties-facet:testnet -- --execute --confirm-chain-id 420420417 --confirm-code-hash <LOCAL_CODE_HASH> --out /tmp/dotify-royalties-facet.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <RUNTIME> --facet <NEW_ROYALTIES_FACET> --out /tmp/dotify-royalties-upgrade-plan.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <RUNTIME> --facet <NEW_ROYALTIES_FACET> --execute --confirm-plan <PLAN_DIGEST> --out /tmp/dotify-royalties-upgrade-final.json
 ```
 
-The upgrade command is dry-run by default and refuses execution without a fresh
-plan digest plus an evidence file. Clean redeploy is a fallback:
+The facet deploy and runtime upgrade commands are dry-run by default. A
+code-hash mismatch means the target facet is still an older on-chain deployment
+or an unrelated contract; deploy the current `MusicRoyaltiesPallet` facet first,
+then pass the manifest's `facet` address to the upgrade command with `--facet`.
+The deploy command never edits `deployments.json`, and the upgrade command
+refuses execution without a fresh plan digest plus an evidence file. Clean
+redeploy is a fallback:
 
 ```bash
 npm run runtime:migration-plan -- --snapshot <SNAPSHOT> --target-runtime <NEW_RUNTIME> --out <PLAN>
@@ -526,6 +533,7 @@ Then verify in the Product host:
 
    In every rejected case, playback must stop and offer a passkey/EVM wallet.
    No path may release a key without a verified signature.
+
 6. Only for an explicit Product CDM write smoke build, set
    `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` and
    `VITE_DOTIFY_DEBUG_PANEL=true`, then use a funded Product account that has
@@ -550,7 +558,7 @@ Then verify in the Product host:
    - the backend then releases the full key through the same Product identity.
 
    After the unlock attempt, open `You` -> `Production readiness` -> `Product
-   CDM host smoke`, mark **Host approval prompt captured** if the host showed
+CDM host smoke`, mark **Host approval prompt captured** if the host showed
    an explicit transaction approval, then copy or download the smoke JSON. The
    JSON is stored only in browser session storage and deliberately excludes
    content keys, signatures, nonces, and session tokens. Attach it with the
@@ -562,6 +570,7 @@ Then verify in the Product host:
    `product-cdm` build must report **Payment included, access not verified**
    with the transaction hash instead of marking the track open.
    Keep the shipped profile on `viem`.
+
 7. A Product-origin host creates a room and copies a
    `https://dotify-test01.dev-dot.li/#/rooms/<code>` link.
 8. A wallet-free browser joins that link from outside the Product host.
@@ -570,8 +579,8 @@ Then verify in the Product host:
    not room creation.
 10. A Netlify-origin host and Product-origin guest also connect.
 11. Briefly interrupting the mobile network preserves and resumes the same room
-   within 120 seconds; it must disappear from public discovery while the host
-   is offline and return with the same code after reconnecting.
+    within 120 seconds; it must disappear from public discovery while the host
+    is offline and return with the same code after reconnecting.
 12. Explicitly leaving ends the room immediately. Force-closing the host leaves
     the room private until the 120-second resume window expires.
 

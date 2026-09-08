@@ -528,6 +528,127 @@ task('runtime:export', 'Read-only snapshot of one artist SmartRuntime catalogue 
     if (args.out) writeJson(args.out, report);
   });
 
+task('runtime:deploy-royalties-facet', 'Compile or explicitly deploy only the W05 MusicRoyaltiesPallet facet')
+  .addFlag('execute', 'Broadcast the deployment transaction')
+  .addOptionalParam('confirmChainId', 'Required chain ID confirmation when --execute is set', '', types.string)
+  .addOptionalParam('confirmCodeHash', 'Required local deployed-bytecode hash when --execute is set', '', types.string)
+  .addOptionalParam('out', 'Deployment manifest path; required with --execute', '', types.string)
+  .setAction(async (args: { execute: boolean; confirmChainId: string; confirmCodeHash: string; out: string }, hre) => {
+    await hre.run('compile');
+    const publicClient = await getPublicClient(hre);
+    const chainId = await publicClient.getChainId();
+    const source = await getPalletSource(hre, 'MusicRoyaltiesPallet');
+
+    if (!args.execute) {
+      console.log(
+        formatJson({
+          action: 'dry-run',
+          chainId,
+          contract: 'MusicRoyaltiesPallet',
+          localSourceCodeHash: source.codeHash,
+          next: `Re-run with --execute --confirm-chain-id ${chainId} --confirm-code-hash ${source.codeHash} --out <manifest-path>`,
+          warning:
+            'This deploys only a stateless facet. It never edits deployments.json and never upgrades a runtime. Pass the resulting facet to runtime:royalties-upgrade --facet <facet>.'
+        })
+      );
+      return;
+    }
+
+    if (args.confirmChainId !== String(chainId)) {
+      throw new Error(`Refusing deployment: --confirm-chain-id must equal ${chainId}.`);
+    }
+    if (args.confirmCodeHash.toLowerCase() !== source.codeHash.toLowerCase()) {
+      throw new Error(`Refusing deployment: --confirm-code-hash must equal ${source.codeHash}.`);
+    }
+    if (!args.out) throw new Error('Refusing deployment: --out is required so the transaction evidence cannot be lost.');
+    reserveJsonOutput(args.out, {
+      schema: 'dotify.runtime-royalties-facet-deployment.v1',
+      status: 'reserved-before-broadcast',
+      chainId,
+      expectedCodeHash: source.codeHash,
+      note: 'If this file remains reserved, inspect the deployer account and chain before retrying.'
+    });
+
+    const wallet = await getOwnerWallet(hre, 'deployer');
+    const deployer = getAddress(wallet.account.address);
+    const nonce = await publicClient.getTransactionCount({ address: deployer, blockTag: 'pending' });
+    const predictedFacet = getContractAddress({ from: deployer, nonce: BigInt(nonce) });
+    overwriteReservedJson(args.out, {
+      schema: 'dotify.runtime-royalties-facet-deployment.v1',
+      status: 'prepared-before-broadcast',
+      chainId,
+      expectedCodeHash: source.codeHash,
+      deployer,
+      nonce,
+      predictedFacet,
+      note: 'No signed transaction hash means no broadcast-safe payload was persisted. Inspect the deployer nonce before retrying.'
+    });
+    const signed = await signRawTransaction(hre, wallet, {
+      data: source.bytecode,
+      nonce,
+      value: 0n
+    });
+    if (signed.nonce !== nonce) throw new Error(`Prepared deployment nonce ${signed.nonce} differs from reserved nonce ${nonce}.`);
+    overwriteReservedJson(args.out, {
+      schema: 'dotify.runtime-royalties-facet-deployment.v1',
+      status: 'signed-before-broadcast',
+      chainId,
+      expectedCodeHash: source.codeHash,
+      deployer,
+      nonce,
+      predictedFacet,
+      transactionHash: signed.transactionHash,
+      note: 'The transaction hash is derived from locally signed bytes. If broadcast response is lost, inspect this hash and nonce before retrying.'
+    });
+    const broadcastHash = await wallet.sendRawTransaction({
+      serializedTransaction: signed.serializedTransaction
+    });
+    if (broadcastHash !== signed.transactionHash) {
+      throw new Error(`RPC returned transaction hash ${broadcastHash}, but locally signed bytes hash to ${signed.transactionHash}.`);
+    }
+    overwriteReservedJson(args.out, {
+      schema: 'dotify.runtime-royalties-facet-deployment.v1',
+      status: 'broadcast',
+      chainId,
+      expectedCodeHash: source.codeHash,
+      deployer,
+      nonce,
+      predictedFacet,
+      transactionHash: signed.transactionHash,
+      broadcastHash
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: signed.transactionHash });
+    if (receipt.status !== 'success' || !receipt.contractAddress) {
+      throw new Error(`Royalties facet deployment ${signed.transactionHash} did not produce a successful contract receipt.`);
+    }
+    const { receipt: finalizedReceipt, finalizedBlockNumber } = await waitForCanonicalFinality(hre, publicClient, signed.transactionHash, receipt);
+    const facetAddress = getAddress(receipt.contractAddress);
+    if (predictedFacet !== facetAddress) throw new Error(`Predicted facet ${predictedFacet} differs from receipt address ${facetAddress}.`);
+    const deployedCodeHash = await readCodeHash(publicClient, facetAddress, finalizedReceipt.blockNumber);
+    if (deployedCodeHash !== source.codeHash) {
+      throw new Error(`Deployed royalties facet code hash ${deployedCodeHash ?? 'missing'} does not match ${source.codeHash}.`);
+    }
+
+    const manifest = {
+      schema: 'dotify.runtime-royalties-facet-deployment.v1',
+      status: 'deployed-finalized-bytecode-verified',
+      chainId,
+      transactionHash: signed.transactionHash,
+      blockNumber: finalizedReceipt.blockNumber.toString(),
+      blockHash: finalizedReceipt.blockHash,
+      finalizedBlockNumber: finalizedBlockNumber.toString(),
+      deployer,
+      nonce,
+      facet: facetAddress,
+      codeHash: deployedCodeHash,
+      explorerSourceVerified: false,
+      next: `npm run runtime:royalties-upgrade:testnet -- --runtime <RUNTIME> --facet ${facetAddress} --out <plan-path>`,
+      note: 'Not active until each runtime owner applies a separately verified royalties selector upgrade.'
+    };
+    overwriteReservedJson(args.out, manifest);
+    console.log(formatJson(manifest));
+  });
+
 task('runtime:royalties-upgrade', 'Prepare, simulate, or explicitly apply the W05 royalties facet upgrade to one runtime')
   .addParam('runtime', 'One SmartRuntime proxy address', undefined, types.string)
   .addOptionalParam('facet', 'Target MusicRoyaltiesPallet address; defaults to deployments.json pallets.royaltiesPallet', '', types.string)
@@ -544,7 +665,11 @@ task('runtime:royalties-upgrade', 'Prepare, simulate, or explicitly apply the W0
     const capturedBlock = await publicClient.getBlock({ blockTag: 'finalized' });
     const targetCodeHash = await readCodeHash(publicClient, targetFacet, capturedBlock.number);
     if (targetCodeHash !== source.codeHash) {
-      throw new Error(`Target royalties facet code hash ${targetCodeHash ?? 'missing'} does not match local source ${source.codeHash}.`);
+      const sourceLabel = args.facet ? '--facet' : 'deployments.json pallets.royaltiesPallet';
+      throw new Error(
+        `Target royalties facet code hash ${targetCodeHash ?? 'missing'} from ${sourceLabel} does not match local source ${source.codeHash}. ` +
+          'Deploy the current MusicRoyaltiesPallet facet first with runtime:deploy-royalties-facet, then rerun runtime:royalties-upgrade with --facet <NEW_FACET>.'
+      );
     }
     if (args.execute && !args.out) throw new Error('Refusing upgrade: --out is required with --execute so broadcast evidence cannot be lost.');
     if (args.out) assertOutputPathAvailable(args.out);

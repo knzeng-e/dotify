@@ -175,15 +175,25 @@ W05 adds Hardhat tasks for that path:
 ```bash
 cd contracts/evm
 npm run runtime:export:testnet -- --runtime <OLD_RUNTIME> --recipient <RECIPIENT> --out /tmp/runtime-snapshot.json
-npm run runtime:royalties-upgrade:testnet -- --runtime <OLD_RUNTIME> --out /tmp/royalties-upgrade-plan.json
-npm run runtime:royalties-upgrade:testnet -- --runtime <OLD_RUNTIME> --execute --confirm-plan <PLAN_DIGEST> --out /tmp/royalties-upgrade-final.json
+npm run runtime:deploy-royalties-facet:testnet
+npm run runtime:deploy-royalties-facet:testnet -- --execute --confirm-chain-id 420420417 --confirm-code-hash <LOCAL_CODE_HASH> --out /tmp/royalties-facet.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <OLD_RUNTIME> --facet <NEW_ROYALTIES_FACET> --out /tmp/royalties-upgrade-plan.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <OLD_RUNTIME> --facet <NEW_ROYALTIES_FACET> --execute --confirm-plan <PLAN_DIGEST> --out /tmp/royalties-upgrade-final.json
 ```
 
-The upgrade task is dry-run by default. Execution requires the current runtime
-owner key, an output evidence path, and an exact fresh plan digest. It snapshots
+Both deploy and upgrade tasks are dry-run by default. The deploy task emits the
+local source code hash that must be passed back as `--confirm-code-hash`, then
+writes the new stateless facet address to the deployment manifest. The upgrade
+task execution requires the current runtime owner key, the new facet via
+`--facet`, an output evidence path, and an exact fresh plan digest. It snapshots
 track state before the cut, simulates the owner call, records signed/broadcast
 evidence, waits for finality, verifies every royalties selector, and compares
 the post-upgrade catalogue hash with the pre-upgrade hash.
+
+If `runtime:royalties-upgrade` reports a target royalties facet code-hash
+mismatch, the facet address being used is not the locally compiled W05 facet.
+Deploy the current facet first, then rerun the upgrade with `--facet
+<NEW_ROYALTIES_FACET>`.
 
 Clean redeploy is a fallback, not the default. You can save a runtime snapshot
 and render replay calldata for a new runtime:

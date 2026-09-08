@@ -18,6 +18,7 @@
     "registry:deploy-facet:testnet": "npx hardhat registry:deploy-facet --network polkadotTestnet",
     "registry:upgrade:testnet": "npx hardhat registry:upgrade --network polkadotTestnet",
     "runtime:export:testnet": "npx hardhat runtime:export --network polkadotTestnet",
+    "runtime:deploy-royalties-facet:testnet": "npx hardhat runtime:deploy-royalties-facet --network polkadotTestnet",
     "runtime:royalties-upgrade:testnet": "npx hardhat runtime:royalties-upgrade --network polkadotTestnet",
     "runtime:migration-plan": "npx hardhat runtime:migration-plan",
     "fmt": "prettier --plugin=prettier-plugin-solidity --write 'contracts/**/*.sol' 'scripts/**/*.ts' 'tasks/**/*.ts' 'test/**/*.ts' hardhat.config.ts",

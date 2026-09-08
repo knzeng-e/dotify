@@ -312,6 +312,89 @@ describe('Registry remediation Hardhat tasks', () => {
     }
   });
 
+  it('dry-runs a royalties facet deployment with explicit execute instructions', async () => {
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (...values: unknown[]) => output.push(values.map(String).join(' '));
+
+    try {
+      await hre.run('runtime:deploy-royalties-facet', {
+        execute: false,
+        confirmChainId: '',
+        confirmCodeHash: '',
+        out: ''
+      });
+    } finally {
+      console.log = originalLog;
+    }
+
+    const reportText = output.find(value => value.includes('"action": "dry-run"'));
+    expect(reportText).to.be.a('string');
+    const report = JSON.parse(reportText!) as { action: string; chainId: number; contract: string; localSourceCodeHash: Hex; next: string; warning: string };
+    expect(report.action).to.equal('dry-run');
+    expect(report.chainId).to.equal(31337);
+    expect(report.contract).to.equal('MusicRoyaltiesPallet');
+    expect(report.localSourceCodeHash).to.match(/^0x[0-9a-f]{64}$/i);
+    expect(report.next).to.include(`--confirm-chain-id ${report.chainId}`);
+    expect(report.next).to.include(`--confirm-code-hash ${report.localSourceCodeHash}`);
+    expect(report.warning).to.include('runtime:royalties-upgrade --facet <facet>');
+  });
+
+  it('executes runtime:deploy-royalties-facet and writes a bytecode-verified manifest', async () => {
+    const artifact = await hre.artifacts.readArtifact('MusicRoyaltiesPallet');
+    const expectedCodeHash = keccak256(artifact.deployedBytecode as Hex);
+    const evidenceDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'dotify-runtime-royalties-facet-'));
+    const manifestPath = path.join(evidenceDirectory, 'facet.json');
+
+    try {
+      await withSilentConsole(() =>
+        hre.run('runtime:deploy-royalties-facet', {
+          execute: true,
+          confirmChainId: '31337',
+          confirmCodeHash: expectedCodeHash,
+          out: manifestPath
+        })
+      );
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as {
+        schema: string;
+        status: string;
+        chainId: number;
+        transactionHash: Hex;
+        facet: string;
+        codeHash: Hex;
+        next: string;
+      };
+      expect(manifest.schema).to.equal('dotify.runtime-royalties-facet-deployment.v1');
+      expect(manifest.status).to.equal('deployed-finalized-bytecode-verified');
+      expect(manifest.chainId).to.equal(31337);
+      expect(manifest.transactionHash).to.match(/^0x[0-9a-f]{64}$/i);
+      expect(getAddress(manifest.facet)).to.equal(manifest.facet);
+      expect(manifest.codeHash).to.equal(expectedCodeHash);
+      expect(manifest.next).to.include(`--facet ${manifest.facet}`);
+    } finally {
+      fs.rmSync(evidenceDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('explains royalties upgrade hash mismatches before planning a selector cut', async () => {
+    const { runtime } = await deployTaskFixture();
+    const wrongFacet = await hre.viem.deployContract('MusicRegistryPallet');
+
+    await expectRejection(
+      () =>
+        withSilentConsole(() =>
+          hre.run('runtime:royalties-upgrade', {
+            runtime,
+            facet: wrongFacet.address,
+            execute: false,
+            confirmPlan: '',
+            out: ''
+          })
+        ),
+      /Target royalties facet code hash 0x[0-9a-f]{64} from --facet does not match local source 0x[0-9a-f]{64}\. Deploy the current MusicRoyaltiesPallet facet first with runtime:deploy-royalties-facet, then rerun runtime:royalties-upgrade with --facet <NEW_FACET>\./i
+    );
+  });
+
   it('rejects registry:upgrade execution when --confirm-plan does not match the fresh digest', async () => {
     const { owner, publicClient, runtime } = await deployTaskFixture();
     await installUnsafeRegisterFacet(owner, publicClient, runtime);
