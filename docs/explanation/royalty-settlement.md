@@ -31,21 +31,27 @@ read-back confirms both the paid record and playable access for that wallet.
 
 ## What you see in the artist studio
 
-After claiming an artist profile on `/artists`, the **Royalties** tab in the
-artist studio shows the connected recipient wallet's settlement ledger for the
-selected SmartRuntime. For each entry you can see:
+After connecting a wallet on `/artists`, the **Royalties** tab shows the
+connected recipient wallet's settlement ledger across known SmartRuntimes. That
+includes the wallet's own artist runtime and other artist runtimes where the
+catalogue lists the connected wallet as a royalty split recipient. For each
+entry you can see:
 
 - The track that was unlocked.
 - The listener's wallet address.
 - The recipient wallet.
-- Whether that recipient share is `Paid` or `Claimable`.
+- Whether that recipient share is `Paid`, `Claimable`, `Claimed`, or a
+  pre-upgrade `Legacy access` record.
 - The amount in the configured runtime-native token.
 - The date and time of the transaction.
 - A link to the transaction receipt on Blockscout.
 
-The settled total counts only `MusicRoyRoyaltyPaid` rows. Claimable rows are
-shown separately, and the claim action calls `musicRoyClaim(recipient)`. Dotify
-does not display claimable funds as already received.
+The settled total counts only immediately paid rows and claimable rows that were
+later cleared by `MusicRoyRoyaltyClaimed`. Current claimable balances are shown
+separately per runtime, and the claim action calls `musicRoyClaim(recipient)` on
+each known runtime with a pending balance. Dotify does not display pending
+claimable funds as already received. Pre-W05 access-payment records are kept as
+legacy history because they do not contain per-recipient settlement evidence.
 
 ---
 
@@ -137,9 +143,12 @@ event MusicRoyRoyaltyClaimFailed(address indexed recipient, uint256 amount);
 ```
 
 `MusicRoyAccessPaid` records the access payment. The artist studio reads
-`MusicRoyRoyaltyPaid` and `MusicRoyRoyaltyClaimable` for the connected recipient
-address so recipient settlement is never inferred from the full payment amount.
-Block timestamps are fetched separately to display human-readable dates.
+`MusicRoyRoyaltyPaid`, `MusicRoyRoyaltyClaimable`, and
+`MusicRoyRoyaltyClaimed` for the connected recipient address so recipient
+settlement is never inferred from the full payment amount. It also keeps
+pre-upgrade `MusicRoyAccessPaid` rows that have no W05 per-recipient settlement
+event in the same transaction, labeling them as `Legacy access`. Block
+timestamps are fetched separately to display human-readable dates.
 
 ### Claiming pending royalties
 
@@ -153,6 +162,41 @@ the pending amount with the same bounded native-transfer helper, and either:
 The failed-claim path does not revert, because a reverted transaction would also
 discard the failure event. The caller must read `musicRoyClaimable` again before
 treating the money as received.
+
+### Runtime upgrades and clean migration
+
+Artist SmartRuntimes are Diamond proxies. The preferred upgrade path is an
+owner-signed `diamondCut` that replaces or adds only the affected pallet
+selectors while preserving the runtime address, catalogue storage, paid-access
+state, claimable balances, and content-key binding.
+
+W05 adds Hardhat tasks for that path:
+
+```bash
+cd contracts/evm
+npm run runtime:export:testnet -- --runtime <OLD_RUNTIME> --recipient <RECIPIENT> --out /tmp/runtime-snapshot.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <OLD_RUNTIME> --out /tmp/royalties-upgrade-plan.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <OLD_RUNTIME> --execute --confirm-plan <PLAN_DIGEST> --out /tmp/royalties-upgrade-final.json
+```
+
+The upgrade task is dry-run by default. Execution requires the current runtime
+owner key, an output evidence path, and an exact fresh plan digest. It snapshots
+track state before the cut, simulates the owner call, records signed/broadcast
+evidence, waits for finality, verifies every royalties selector, and compares
+the post-upgrade catalogue hash with the pre-upgrade hash.
+
+Clean redeploy is a fallback, not the default. You can save a runtime snapshot
+and render replay calldata for a new runtime:
+
+```bash
+npm run runtime:migration-plan -- --snapshot /tmp/runtime-snapshot.json --target-runtime <NEW_RUNTIME> --out /tmp/runtime-migration-plan.json
+```
+
+That plan does not move paid-access state or claimable balances. It also blocks
+encrypted `dotify:enc:v2:` audio refs by default because content-key derivation
+is bound to `chainId + runtimeAddress + contentHash`; migrating those releases
+requires re-encrypting/re-uploading audio for the new runtime or an explicit
+key-recovery flow.
 
 ### Human free tracking
 
@@ -170,24 +214,30 @@ This function is not yet wired in the current frontend but the contract supports
 refreshArtistRoyalties() in useArtistConsole
         │
         ▼
-musicRoyClaimable(artist wallet)
+discover known royalty runtimes for the connected recipient
         │
         ▼
-client.getLogs({ address: artistRuntimeAddress, event: MusicRoyRoyaltyPaid, recipient })
-client.getLogs({ address: artistRuntimeAddress, event: MusicRoyRoyaltyClaimable, recipient })
+musicRoyClaimable(runtime, recipient) for each runtime
+client.getLogs({ address: runtime, event: MusicRoyRoyaltyPaid, recipient })
+client.getLogs({ address: runtime, event: MusicRoyRoyaltyClaimable, recipient })
+client.getLogs({ address: runtime, event: MusicRoyRoyaltyClaimed, recipient })
+client.getLogs({ address: runtime, event: MusicRoyAccessPaid }) for legacy rows
         │
         ▼
 for each log → fetch block timestamp
+        │
+        ▼
+reconcile claimable accruals with successful claim events
         │
         ▼
 build RoyaltyPayment[] sorted by blockNumber desc, logIndex desc
         │
         ▼
 compute aggregates:
-  totalRoyaltyWei = sum of paid amountWei only
-  claimableRoyaltyWei = direct runtime read
+  totalRoyaltyWei = sum of paid + claimed amountWei
+  claimableRoyaltyWei = sum of direct runtime reads
   uniqueRoyaltyListeners = distinct listener addresses
-  paidRoyaltyTracks = distinct track hashes with paid settlement
+  paidRoyaltyTracks = distinct track hashes with a paid or claimed settlement
 ```
 
-The `RoyaltyPayment` type is defined in `src/types.ts`.
+The `RoyaltyPayment` type is defined in `web/src/shared/types.ts`.

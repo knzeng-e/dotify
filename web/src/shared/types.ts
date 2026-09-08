@@ -108,6 +108,17 @@ export type RegistryCatalogTrack = CatalogTrack & {
   registeredAtBlock: number;
 };
 
+export type RoyaltySettlementState = 'paid' | 'claimable' | 'claimed' | 'legacy';
+
+export type RoyaltyRuntimeSummary = {
+  runtimeAddress: `0x${string}`;
+  artistAddress?: `0x${string}`;
+  artistName: string;
+  trackCount: number;
+  trackTitles: string[];
+  claimableWei: bigint;
+};
+
 export type RoomPlaybackMode = 'full' | 'preview';
 
 export type OpenRoom = {
@@ -225,14 +236,17 @@ export type AccessGate = {
 
 export type RoyaltyPayment = {
   id: string;
+  runtimeAddress: `0x${string}`;
   trackHash: `0x${string}`;
   trackTitle: string;
   listener: `0x${string}`;
   recipient: `0x${string}`;
   amountWei: bigint;
   amountDot: string;
-  settlement: 'paid' | 'claimable';
+  settlement: RoyaltySettlementState;
   pendingTotalWei?: bigint;
+  claimedAtMs?: number | null;
+  claimTransactionHash?: `0x${string}`;
   paidAtMs: number | null;
   transactionHash: `0x${string}`;
   blockNumber: bigint;

@@ -17,6 +17,7 @@ import {
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
+import { listKnownRoyaltyRuntimeCandidates } from '../features/runtime/royaltyRuntimeClaims';
 import { resolvePreparedAudioUploadForRuntime } from '../features/uploads/preparedAudioUpload';
 import { resolvePreparedUpload, type PreparedUploadRef } from '../features/uploads/preparedUpload';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
@@ -39,7 +40,15 @@ import {
   publishArtistPublishE2eTrack,
   recordArtistPublishTransactionFailure
 } from '../e2e/artistPublishMock';
-import type { AccessMode, CatalogTrack, PersonhoodLevel, ReleaseRoyaltySplitDraft, RoyaltyPayment, TransactionFeedback } from '../shared/types';
+import type {
+  AccessMode,
+  CatalogTrack,
+  PersonhoodLevel,
+  ReleaseRoyaltySplitDraft,
+  RoyaltyPayment,
+  RoyaltyRuntimeSummary,
+  TransactionFeedback
+} from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
 import type { PolkadotSigner } from 'polkadot-api';
 
@@ -256,6 +265,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const [rightsStatus, setRightsStatus] = useState('No audio file selected');
   const [royaltyPayments, setRoyaltyPayments] = useState<RoyaltyPayment[]>([]);
   const [claimableRoyaltyWei, setClaimableRoyaltyWei] = useState(0n);
+  const [royaltyRuntimeSummaries, setRoyaltyRuntimeSummaries] = useState<RoyaltyRuntimeSummary[]>([]);
   const [royaltyStatus, setRoyaltyStatus] = useState('No artist profile selected');
   const [isRefreshingRoyalties, setIsRefreshingRoyalties] = useState(false);
   const [isClaimingRoyalties, setIsClaimingRoyalties] = useState(false);
@@ -559,31 +569,72 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     }
   }
 
-  async function refreshArtistRoyalties(showBusy = false) {
-    if (!artistRuntimeAddress) {
-      setRoyaltyPayments([]);
-      setClaimableRoyaltyWei(0n);
-      setRoyaltyStatus('Create an artist profile to track payments');
-      return;
-    }
+  function getKnownRoyaltyRuntimeCandidates() {
+    return listKnownRoyaltyRuntimeCandidates(artistTracks, activeEvmAddress, artistRuntimeAddress);
+  }
 
+  async function readRoyaltyRuntimeSummaries(): Promise<RoyaltyRuntimeSummary[]> {
+    const candidates = getKnownRoyaltyRuntimeCandidates();
+    return Promise.all(
+      candidates.map(async candidate => ({
+        ...candidate,
+        claimableWei: await runtimeReader.getRoyaltyClaimable(candidate.runtimeAddress, activeEvmAddress).catch(() => 0n)
+      }))
+    );
+  }
+
+  async function refreshArtistRoyalties(showBusy = false) {
     if (showBusy) {
       setIsRefreshingRoyalties(true);
     }
 
-    setRoyaltyStatus('Reading artist runtime payments');
+    setRoyaltyStatus('Reading royalty runtime payments');
 
     try {
+      const candidates = getKnownRoyaltyRuntimeCandidates();
+      if (candidates.length === 0) {
+        setRoyaltyPayments([]);
+        setClaimableRoyaltyWei(0n);
+        setRoyaltyRuntimeSummaries([]);
+        setRoyaltyStatus('No artist or split royalty runtime found for this wallet');
+        return;
+      }
+
       const trackByHash = new Map(artistTracks.map(track => [track.hash.toLowerCase(), track]));
-      const claimableWei = await runtimeReader.getRoyaltyClaimable(artistRuntimeAddress, activeEvmAddress).catch(() => 0n);
+      const trackByRuntimeHash = new Map(
+        artistTracks.flatMap(track => {
+          const runtimeAddress = runtimeAddressFromTrackId(track);
+          return runtimeAddress ? [[`${runtimeAddress.toLowerCase()}:${track.hash.toLowerCase()}`, track] as const] : [];
+        })
+      );
+      const runtimeResults = await Promise.all(
+        candidates.map(async candidate => {
+          const claimableWei = await runtimeReader.getRoyaltyClaimable(candidate.runtimeAddress, activeEvmAddress).catch(() => 0n);
+          try {
+            return {
+              candidate,
+              claimableWei,
+              logs: await runtimeReader.listRoyaltyPaymentLogs(candidate.runtimeAddress, activeEvmAddress),
+              error: null
+            };
+          } catch (error) {
+            return { candidate, claimableWei, logs: [], error };
+          }
+        })
+      );
+      const summaries = runtimeResults.map(({ candidate, claimableWei }) => ({ ...candidate, claimableWei }));
+      const claimableWei = summaries.reduce((total, summary) => total + summary.claimableWei, 0n);
       setClaimableRoyaltyWei(claimableWei);
-      const logs = await runtimeReader.listRoyaltyPaymentLogs(artistRuntimeAddress, activeEvmAddress);
+      setRoyaltyRuntimeSummaries(summaries);
+      const logs = runtimeResults.flatMap(result => result.logs);
       const payments = logs
         .map(log => {
-          const track = trackByHash.get(log.trackHash.toLowerCase());
+          const track =
+            trackByRuntimeHash.get(`${log.runtimeAddress.toLowerCase()}:${log.trackHash.toLowerCase()}`) ?? trackByHash.get(log.trackHash.toLowerCase());
 
           return {
-            id: `${log.transactionHash}-${log.logIndex}`,
+            id: `${log.runtimeAddress}-${log.transactionHash}-${log.logIndex}`,
+            runtimeAddress: log.runtimeAddress,
             trackHash: log.trackHash,
             trackTitle: track?.title ?? shorten(log.trackHash, 14),
             listener: log.listener,
@@ -592,6 +643,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
             amountDot: formatWeiAsDot(log.amountWei),
             settlement: log.settlement,
             ...(log.pendingTotalWei !== undefined ? { pendingTotalWei: log.pendingTotalWei } : {}),
+            ...(log.claimedAtMs !== undefined ? { claimedAtMs: log.claimedAtMs } : {}),
+            ...(log.claimTransactionHash !== undefined ? { claimTransactionHash: log.claimTransactionHash } : {}),
             paidAtMs: log.paidAtMs,
             transactionHash: log.transactionHash,
             blockNumber: log.blockNumber,
@@ -606,10 +659,17 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         });
 
       setRoyaltyPayments(payments);
-      setRoyaltyStatus(payments.length > 0 || claimableWei > 0n ? 'Royalty settlement indexed from your runtime' : 'No access payments received yet');
+      const failedRuntimeCount = runtimeResults.filter(result => result.error).length;
+      if (failedRuntimeCount > 0) {
+        setRoyaltyStatus(`Royalty balances loaded; ${failedRuntimeCount} runtime ledger${failedRuntimeCount === 1 ? '' : 's'} need event indexing`);
+      } else {
+        setRoyaltyStatus(payments.length > 0 || claimableWei > 0n ? 'Royalty settlement indexed from known runtimes' : 'No access payments received yet');
+      }
     } catch (royaltyError) {
       const message = royaltyError instanceof Error ? royaltyError.message : 'Unable to load royalty payments';
       setRoyaltyPayments([]);
+      setClaimableRoyaltyWei(0n);
+      setRoyaltyRuntimeSummaries([]);
       setRoyaltyStatus(message);
     } finally {
       if (showBusy) {
@@ -1052,60 +1112,80 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       return;
     }
 
-    if (!artistRuntimeAddress) {
-      setTransactionFeedback({
-        tone: 'error',
-        title: 'Artist runtime missing',
-        message: 'Create or resolve your artist runtime before claiming royalties.'
-      });
-      return;
-    }
-
-    if (claimableRoyaltyWei <= 0n) {
-      setTransactionFeedback({
-        tone: 'success',
-        title: 'No pending royalties',
-        message: 'This wallet has no claimable royalty balance on the selected runtime.'
-      });
-      return;
-    }
-
     setIsClaimingRoyalties(true);
     try {
-      const runtimeWriter = getRuntimeWriter();
-      setTransactionFeedback({
-        tone: 'pending',
-        title: 'Claiming royalties',
-        message: 'Submitting the pending royalty claim from your SmartRuntime.'
-      });
-      const txHash = await runtimeWriter.claimRoyalty(artistRuntimeAddress, activeEvmAddress);
-      setTransactionFeedback({
-        tone: 'pending',
-        title: 'Royalty claim submitted',
-        message: 'Waiting for confirmation before refreshing the settlement ledger.',
-        txHash
-      });
-      await runtimeWriter.waitForTransaction(txHash);
-      const remainingClaimableWei = await runtimeReader.getRoyaltyClaimable(artistRuntimeAddress, activeEvmAddress).catch(() => null);
-      await refreshArtistRoyalties();
+      const summaries = await readRoyaltyRuntimeSummaries();
+      const claimTargets = summaries.filter(summary => summary.claimableWei > 0n);
+      const totalClaimableWei = summaries.reduce((total, summary) => total + summary.claimableWei, 0n);
+      setRoyaltyRuntimeSummaries(summaries);
+      setClaimableRoyaltyWei(totalClaimableWei);
 
-      if (remainingClaimableWei === null) {
+      if (summaries.length === 0) {
         setTransactionFeedback({
           tone: 'error',
-          title: 'Royalty claim readback unavailable',
-          message:
-            'The transaction was included, but Dotify could not confirm whether the pending balance cleared. Refresh the ledger before treating it as received.',
-          txHash
+          title: 'Royalty runtime missing',
+          message: 'No known artist or split royalty runtime was found for this wallet.'
         });
         return;
       }
 
-      if (remainingClaimableWei > 0n) {
+      if (claimTargets.length === 0) {
+        setTransactionFeedback({
+          tone: 'success',
+          title: 'No pending royalties',
+          message: 'This wallet has no claimable royalty balance in the known runtimes.'
+        });
+        return;
+      }
+
+      const runtimeWriter = getRuntimeWriter();
+      let lastTxHash: `0x${string}` | undefined;
+      const unresolvedRuntimes: string[] = [];
+      const unreadableRuntimes: string[] = [];
+
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Claiming royalties',
+        message: `Submitting ${claimTargets.length} pending runtime claim${claimTargets.length === 1 ? '' : 's'}.`
+      });
+
+      for (const target of claimTargets) {
+        const txHash = await runtimeWriter.claimRoyalty(target.runtimeAddress, activeEvmAddress);
+        lastTxHash = txHash;
+        setTransactionFeedback({
+          tone: 'pending',
+          title: 'Royalty claim submitted',
+          message: `Waiting for ${shorten(target.runtimeAddress, 10)} before refreshing the settlement ledger.`,
+          txHash
+        });
+        await runtimeWriter.waitForTransaction(txHash);
+        const remainingClaimableWei = await runtimeReader.getRoyaltyClaimable(target.runtimeAddress, activeEvmAddress).catch(() => null);
+        if (remainingClaimableWei === null) {
+          unreadableRuntimes.push(target.runtimeAddress);
+        } else if (remainingClaimableWei > 0n) {
+          unresolvedRuntimes.push(target.runtimeAddress);
+        }
+      }
+
+      await refreshArtistRoyalties();
+
+      if (unreadableRuntimes.length > 0) {
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Royalty claim readback unavailable',
+          message:
+            'One or more transactions were included, but Dotify could not confirm every pending balance. Refresh the ledger before treating it as received.',
+          txHash: lastTxHash
+        });
+        return;
+      }
+
+      if (unresolvedRuntimes.length > 0) {
         setTransactionFeedback({
           tone: 'error',
           title: 'Royalty claim still pending',
-          message: 'The transaction was included, but this recipient still could not receive the native-token transfer. The amount remains claimable.',
-          txHash
+          message: 'At least one runtime still could not transfer the native-token balance. The amount remains claimable.',
+          txHash: lastTxHash
         });
         return;
       }
@@ -1113,8 +1193,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       setTransactionFeedback({
         tone: 'success',
         title: 'Royalties claimed',
-        message: 'The claim was confirmed and the pending royalty balance was cleared.',
-        txHash
+        message: 'All known pending royalty balances were cleared.',
+        txHash: lastTxHash
       });
     } catch (claimError) {
       const message = claimError instanceof Error ? claimError.message : 'Royalty claim failed';
@@ -1131,6 +1211,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     }
   }
 
+  const hasKnownRoyaltyRuntime = getKnownRoyaltyRuntimeCandidates().length > 0;
+
   return {
     // State
     artistRuntimeAddress,
@@ -1141,6 +1223,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     setRightsStatus,
     royaltyPayments,
     claimableRoyaltyWei,
+    royaltyRuntimeSummaries,
+    hasKnownRoyaltyRuntime,
     royaltyStatus,
     isRefreshingRoyalties,
     isClaimingRoyalties,

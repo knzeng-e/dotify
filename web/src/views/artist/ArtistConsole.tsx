@@ -443,6 +443,7 @@ export function ArtistConsole() {
           royaltyStatus={royaltyStatus}
           isRefreshingRoyalties={isRefreshingRoyalties}
           claimableRoyaltyWei={artistConsole.claimableRoyaltyWei}
+          royaltyRuntimeSummaries={artistConsole.royaltyRuntimeSummaries}
           isClaimingRoyalties={artistConsole.isClaimingRoyalties}
           artistRuntimeAddress={artistRuntimeAddress}
           expandedRoyaltyPaymentId={expandedRoyaltyPaymentId}

@@ -13,13 +13,18 @@ export type RuntimeTrackSnapshot = {
   royaltySplits: Array<Pick<RoyaltySplit, 'recipient' | 'bps'>>;
 };
 
+export type RuntimeRoyaltySettlementState = 'paid' | 'claimable' | 'claimed' | 'legacy';
+
 export type RuntimeRoyaltyPaymentLog = {
+  runtimeAddress: Address;
   trackHash: Hash;
   listener: Address;
   recipient: Address;
   amountWei: bigint;
-  settlement: 'paid' | 'claimable';
+  settlement: RuntimeRoyaltySettlementState;
   pendingTotalWei?: bigint;
+  claimedAtMs?: number | null;
+  claimTransactionHash?: Hash;
   paidAtMs: number | null;
   transactionHash: Hash;
   blockNumber: bigint;

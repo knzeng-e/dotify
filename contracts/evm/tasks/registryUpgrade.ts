@@ -27,6 +27,7 @@ import {
   canonicalJson,
   hashCanonical,
   isRegistryRuntimeSafe,
+  registrySelectorsFromAbi,
   registryUpgradePlanDigest,
   requireAddress,
   type RegistrySelector
@@ -92,6 +93,34 @@ type RegistryUpgradePlanBody = {
 };
 
 type RegistryUpgradePlan = RegistryUpgradePlanBody & { digest: Hex; evidenceDigest: Hex };
+
+type RuntimeFacetSelectorRoute = RegistrySelector & {
+  facet: Address;
+  codeHash: Hex | null;
+  action: 'add' | 'replace' | 'keep';
+};
+
+type RuntimeRoyaltiesUpgradePlanBody = {
+  schema: 'dotify.runtime-royalties-upgrade.v1';
+  chainId: number;
+  capturedBlockNumber: string;
+  capturedBlockHash: Hex;
+  runtime: Address;
+  owner: Address;
+  targetFacet: Address;
+  targetCodeHash: Hex;
+  trackStateHash: Hex;
+  selectorRoutes: RuntimeFacetSelectorRoute[];
+  addSelectors: RegistrySelector[];
+  replaceSelectors: RegistrySelector[];
+  transaction: {
+    to: Address;
+    value: '0x0';
+    data: Hex;
+  } | null;
+};
+
+type RuntimeRoyaltiesUpgradePlan = RuntimeRoyaltiesUpgradePlanBody & { digest: Hex; evidenceDigest: Hex };
 
 const bootstrapStartedEvent = parseAbiItem('event ArtistRuntimeBootstrapStarted(address indexed artist, address indexed runtime)');
 
@@ -464,6 +493,218 @@ task('registry:upgrade', 'Prepare, simulate, or explicitly apply the owner-only 
     console.log(formatJson(verification));
   });
 
+task('runtime:export', 'Read-only snapshot of one artist SmartRuntime catalogue and royalty splits')
+  .addParam('runtime', 'One SmartRuntime proxy address', undefined, types.string)
+  .addOptionalParam('recipient', 'Optional royalty recipient to include claimable balance for', '', types.string)
+  .addOptionalParam('out', 'Snapshot output path. Refuses to overwrite existing files.', '', types.string)
+  .setAction(async (args: { runtime: string; recipient: string; out: string }, hre) => {
+    await hre.run('compile');
+    const publicClient = await getPublicClient(hre);
+    const runtime = requireAddress('runtime', args.runtime);
+    const recipient = args.recipient ? requireAddress('recipient', args.recipient) : null;
+    const chainId = await publicClient.getChainId();
+    const capturedBlock = await publicClient.getBlock({ blockTag: 'finalized' });
+    const snapshot = await readCatalogueSnapshot(hre, publicClient, runtime, capturedBlock.number);
+    const royalties = await getReadContract(hre, publicClient, 'MusicRoyaltiesPallet', runtime);
+    const recipientClaimable =
+      recipient === null
+        ? undefined
+        : await royalties.read
+            .musicRoyClaimable([recipient], { blockNumber: capturedBlock.number })
+            .then(value => ({ recipient, amount: value.toString(), status: 'read' as const }))
+            .catch(error => ({ recipient, amount: null, status: 'unavailable' as const, detail: firstLine(errorDetails(error)) }));
+    const report = {
+      schema: 'dotify.runtime-catalogue-snapshot.v1',
+      chainId,
+      capturedBlockNumber: capturedBlock.number.toString(),
+      capturedBlockHash: capturedBlock.hash,
+      runtime,
+      ...snapshot,
+      trackStateHash: hashCanonical(snapshot),
+      ...(recipientClaimable ? { recipientClaimable } : {})
+    };
+
+    console.log(formatJson(report));
+    if (args.out) writeJson(args.out, report);
+  });
+
+task('runtime:royalties-upgrade', 'Prepare, simulate, or explicitly apply the W05 royalties facet upgrade to one runtime')
+  .addParam('runtime', 'One SmartRuntime proxy address', undefined, types.string)
+  .addOptionalParam('facet', 'Target MusicRoyaltiesPallet address; defaults to deployments.json pallets.royaltiesPallet', '', types.string)
+  .addFlag('execute', 'Broadcast the owner-signed diamond cut')
+  .addOptionalParam('confirmPlan', 'Exact plan digest required when --execute is set', '', types.string)
+  .addOptionalParam('out', 'Plan/evidence path; required with --execute. Refuses to overwrite on first write.', '', types.string)
+  .setAction(async (args: { runtime: string; facet: string; execute: boolean; confirmPlan: string; out: string }, hre) => {
+    await hre.run('compile');
+    const publicClient = await getPublicClient(hre);
+    const runtime = requireAddress('runtime', args.runtime);
+    const deployments = readDeployments();
+    const targetFacet = requireAddress('facet', args.facet || deployments.pallets.royaltiesPallet || '');
+    const source = await getPalletSource(hre, 'MusicRoyaltiesPallet');
+    const capturedBlock = await publicClient.getBlock({ blockTag: 'finalized' });
+    const targetCodeHash = await readCodeHash(publicClient, targetFacet, capturedBlock.number);
+    if (targetCodeHash !== source.codeHash) {
+      throw new Error(`Target royalties facet code hash ${targetCodeHash ?? 'missing'} does not match local source ${source.codeHash}.`);
+    }
+    if (args.execute && !args.out) throw new Error('Refusing upgrade: --out is required with --execute so broadcast evidence cannot be lost.');
+    if (args.out) assertOutputPathAvailable(args.out);
+
+    const before = await readCatalogueSnapshot(hre, publicClient, runtime, capturedBlock.number);
+    const plan = await buildRoyaltiesUpgradePlan(
+      hre,
+      publicClient,
+      runtime,
+      targetFacet,
+      targetCodeHash,
+      source.selectors,
+      before,
+      capturedBlock.number,
+      capturedBlock.hash
+    );
+    console.log(formatJson(plan));
+
+    if (!plan.transaction) {
+      if (args.out) writeJson(args.out, { ...plan, status: 'already-current-no-transaction' });
+      console.log('No transaction needed: every MusicRoyaltiesPallet selector already routes to the target facet.');
+      return;
+    }
+
+    await simulateRawCall(publicClient, before.owner, plan.transaction.to, plan.transaction.data, 'owner royalties upgrade simulation', capturedBlock.number);
+    const preflight = { ownerCutSimulation: 'succeeded' as const };
+    if (!args.execute) {
+      if (args.out) writeJson(args.out, { ...plan, status: 'simulated-dry-run', preflight });
+      console.log(`\nDry-run only. The runtime owner may re-run with --execute --confirm-plan ${plan.digest}`);
+      return;
+    }
+
+    if (args.confirmPlan.toLowerCase() !== plan.digest.toLowerCase()) {
+      throw new Error(`Refusing upgrade: --confirm-plan must equal the fresh digest ${plan.digest}.`);
+    }
+
+    const ownerCode = await publicClient.getCode({ address: before.owner, blockNumber: capturedBlock.number });
+    if (ownerCode && ownerCode !== '0x') {
+      throw new Error('Runtime owner is a contract. Submit the generated calldata through that contract governance; this task will not impersonate it.');
+    }
+
+    const wallet = await getOwnerWallet(hre, 'runtime owner');
+    if (getAddress(wallet.account.address) !== before.owner) {
+      throw new Error(`Configured signer ${wallet.account.address} is not current runtime owner ${before.owner}.`);
+    }
+
+    const ownerNonce = await publicClient.getTransactionCount({ address: before.owner, blockTag: 'pending' });
+    writeJson(args.out, {
+      ...plan,
+      status: 'prepared-before-broadcast',
+      preflight,
+      signer: getAddress(wallet.account.address),
+      nonce: ownerNonce,
+      note: 'No signed transaction hash means no broadcast-safe payload was persisted. Inspect the owner nonce before retrying.'
+    });
+
+    const signed = await signRawTransaction(hre, wallet, {
+      to: plan.transaction.to,
+      data: plan.transaction.data,
+      value: 0n,
+      nonce: ownerNonce
+    });
+    if (signed.nonce !== ownerNonce) throw new Error(`Prepared owner nonce ${signed.nonce} differs from reserved nonce ${ownerNonce}.`);
+    overwriteReservedJson(args.out, {
+      ...plan,
+      status: 'signed-before-broadcast',
+      preflight,
+      signer: getAddress(wallet.account.address),
+      nonce: ownerNonce,
+      transactionHash: signed.transactionHash,
+      note: 'The transaction hash is derived from locally signed bytes. If broadcast response is lost, inspect this hash and nonce before retrying.'
+    });
+    const broadcastHash = await wallet.sendRawTransaction({
+      serializedTransaction: signed.serializedTransaction
+    });
+    if (broadcastHash !== signed.transactionHash) {
+      throw new Error(`RPC returned transaction hash ${broadcastHash}, but locally signed bytes hash to ${signed.transactionHash}.`);
+    }
+    overwriteReservedJson(args.out, {
+      ...plan,
+      status: 'broadcast',
+      preflight,
+      signer: getAddress(wallet.account.address),
+      nonce: ownerNonce,
+      transactionHash: signed.transactionHash,
+      broadcastHash
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: signed.transactionHash });
+    if (receipt.status !== 'success') throw new Error(`Royalties upgrade transaction ${signed.transactionHash} failed.`);
+    const { receipt: finalizedReceipt, finalizedBlockNumber } = await waitForCanonicalFinality(hre, publicClient, signed.transactionHash, receipt);
+
+    const after = await readCatalogueSnapshot(hre, publicClient, runtime, finalizedReceipt.blockNumber);
+    if (hashCanonical(after) !== plan.trackStateHash) {
+      throw new Error('Post-upgrade catalogue snapshot differs from the pre-upgrade state. Quarantine this runtime and investigate immediately.');
+    }
+    const loupe = await getReadContract(hre, publicClient, 'DiamondLoupePallet', runtime);
+    for (const selector of source.selectors) {
+      const actual = getAddress(await loupe.read.facetAddress([selector.selector], { blockNumber: finalizedReceipt.blockNumber }));
+      if (actual !== targetFacet) throw new Error(`Selector ${selector.name} routes to ${actual}, expected ${targetFacet}.`);
+    }
+
+    const verification = {
+      ...plan,
+      status: 'verified-finalized',
+      preflight,
+      signer: getAddress(wallet.account.address),
+      nonce: ownerNonce,
+      transactionHash: signed.transactionHash,
+      receiptBlockNumber: finalizedReceipt.blockNumber.toString(),
+      receiptBlockHash: finalizedReceipt.blockHash,
+      finalizedBlockNumber: finalizedBlockNumber.toString(),
+      catalogueStatePreserved: true
+    };
+    overwriteReservedJson(args.out, verification);
+    console.log(formatJson(verification));
+  });
+
+task('runtime:migration-plan', 'Render replay calldata from a saved runtime snapshot for a clean new runtime')
+  .addParam('snapshot', 'Path produced by runtime:export', undefined, types.string)
+  .addParam('targetRuntime', 'New SmartRuntime proxy address that will receive replayed registrations', undefined, types.string)
+  .addFlag('allowEncryptedAudioReuse', 'Allow calldata for encrypted audio refs. Usually unsafe because v2 content keys are runtime-bound.')
+  .addOptionalParam('out', 'Migration plan output path. Refuses to overwrite existing files.', '', types.string)
+  .setAction(async (args: { snapshot: string; targetRuntime: string; allowEncryptedAudioReuse: boolean; out: string }, hre) => {
+    await hre.run('compile');
+    const targetRuntime = requireAddress('targetRuntime', args.targetRuntime);
+    const snapshot = JSON.parse(fs.readFileSync(path.resolve(args.snapshot), 'utf8')) as {
+      chainId?: number;
+      runtime?: Address;
+      owner?: Address;
+      tracks?: unknown[];
+    };
+    if (!Array.isArray(snapshot.tracks)) throw new Error('Snapshot does not contain a tracks array.');
+    const registryArtifact = await hre.artifacts.readArtifact('MusicRegistryPallet');
+    const transactions = [];
+    const blockedTracks = [];
+
+    for (const track of snapshot.tracks) {
+      const migration = buildTrackMigrationTransaction(registryArtifact.abi as Abi, targetRuntime, track, args.allowEncryptedAudioReuse);
+      if (migration.status === 'blocked') blockedTracks.push(migration);
+      else transactions.push(migration);
+    }
+
+    const plan = {
+      schema: 'dotify.runtime-track-migration-plan.v1',
+      sourceRuntime: snapshot.runtime,
+      targetRuntime,
+      owner: snapshot.owner,
+      chainId: snapshot.chainId,
+      transactionCount: transactions.length,
+      blockedTrackCount: blockedTracks.length,
+      warning:
+        'Prefer an in-place diamond upgrade when possible. Replaying registrations to a new runtime does not move paid-access state or claimable balances, and protected audio v2 refs usually need re-encryption for the new runtime.',
+      transactions,
+      blockedTracks
+    };
+    console.log(formatJson(plan));
+    if (args.out) writeJson(args.out, plan);
+    if (blockedTracks.length > 0) process.exitCode = 2;
+  });
+
 async function getPublicClient(hre: HardhatRuntimeEnvironment): Promise<PublicClient> {
   return (
     hre.network.name === 'polkadotTestnet' ? await hre.viem.getPublicClient({ chain: POLKADOT_TESTNET_CHAIN }) : await hre.viem.getPublicClient()
@@ -687,6 +928,174 @@ async function buildUpgradePlan(
     transaction: buildRegistryHotfixTransaction(diamondCutArtifact.abi as Abi, runtime, targetFacet)
   };
   return { ...body, digest: registryUpgradePlanDigest(body), evidenceDigest: hashCanonical(body) };
+}
+
+async function buildRoyaltiesUpgradePlan(
+  hre: HardhatRuntimeEnvironment,
+  publicClient: PublicClient,
+  runtime: Address,
+  targetFacet: Address,
+  targetCodeHash: Hex,
+  selectors: RegistrySelector[],
+  snapshot: CatalogueSnapshot,
+  capturedBlockNumber: bigint,
+  capturedBlockHash: Hex
+): Promise<RuntimeRoyaltiesUpgradePlan> {
+  const chainId = await publicClient.getChainId();
+  const loupe = await getReadContract(hre, publicClient, 'DiamondLoupePallet', runtime);
+  const codeHashes = new Map<Address, Hex | null>();
+  const selectorRoutes: RuntimeFacetSelectorRoute[] = [];
+
+  for (const selector of selectors) {
+    const facet = getAddress(await loupe.read.facetAddress([selector.selector], { blockNumber: capturedBlockNumber }));
+    let codeHash = codeHashes.get(facet);
+    if (codeHash === undefined) {
+      codeHash = facet === zeroAddress ? null : await readCodeHash(publicClient, facet, capturedBlockNumber);
+      codeHashes.set(facet, codeHash);
+    }
+    selectorRoutes.push({
+      ...selector,
+      facet,
+      codeHash,
+      action: facet === zeroAddress ? 'add' : facet === targetFacet ? 'keep' : 'replace'
+    });
+  }
+
+  const addSelectors = selectorRoutes.filter(route => route.action === 'add').map(({ name, selector }) => ({ name, selector }));
+  const replaceSelectors = selectorRoutes.filter(route => route.action === 'replace').map(({ name, selector }) => ({ name, selector }));
+  const transaction =
+    addSelectors.length === 0 && replaceSelectors.length === 0
+      ? null
+      : {
+          to: runtime,
+          value: '0x0' as const,
+          data: await buildRuntimeRoyaltiesUpgradeCalldata(hre, targetFacet, addSelectors, replaceSelectors)
+        };
+  const body: RuntimeRoyaltiesUpgradePlanBody = {
+    schema: 'dotify.runtime-royalties-upgrade.v1',
+    chainId,
+    capturedBlockNumber: capturedBlockNumber.toString(),
+    capturedBlockHash,
+    runtime,
+    owner: snapshot.owner,
+    targetFacet,
+    targetCodeHash,
+    trackStateHash: hashCanonical(snapshot),
+    selectorRoutes,
+    addSelectors,
+    replaceSelectors,
+    transaction
+  };
+  return { ...body, digest: registryUpgradePlanDigest(body), evidenceDigest: hashCanonical(body) };
+}
+
+async function buildRuntimeRoyaltiesUpgradeCalldata(
+  hre: HardhatRuntimeEnvironment,
+  targetFacet: Address,
+  addSelectors: RegistrySelector[],
+  replaceSelectors: RegistrySelector[]
+): Promise<Hex> {
+  const diamondCutArtifact = await hre.artifacts.readArtifact('DiamondCutPallet');
+  const cuts: Array<{ facetAddress: Address; action: 0 | 1; functionSelectors: Hex[] }> = [];
+  if (replaceSelectors.length > 0) {
+    cuts.push({
+      facetAddress: targetFacet,
+      action: 1,
+      functionSelectors: replaceSelectors.map(selector => selector.selector)
+    });
+  }
+  if (addSelectors.length > 0) {
+    cuts.push({
+      facetAddress: targetFacet,
+      action: 0,
+      functionSelectors: addSelectors.map(selector => selector.selector)
+    });
+  }
+  return encodeFunctionData({
+    abi: diamondCutArtifact.abi as Abi,
+    functionName: 'diamondCut',
+    args: [cuts, zeroAddress, '0x']
+  });
+}
+
+async function getPalletSource(hre: HardhatRuntimeEnvironment, contractName: string) {
+  const artifact = await hre.artifacts.readArtifact(contractName);
+  const abi = artifact.abi as Abi;
+  const selectors = registrySelectorsFromAbi(abi);
+  const bytecode = artifact.bytecode as Hex;
+  const deployedBytecode = artifact.deployedBytecode as Hex;
+  if (!bytecode || bytecode === '0x') throw new Error(`${contractName} creation bytecode is missing. Compile contracts first.`);
+  if (!deployedBytecode || deployedBytecode === '0x') throw new Error(`${contractName} deployed bytecode is missing. Compile contracts first.`);
+  assertRoyaltiesSelectors(contractName, selectors);
+  return { abi, selectors, bytecode, deployedBytecode, codeHash: keccak256(deployedBytecode) };
+}
+
+function assertRoyaltiesSelectors(contractName: string, selectors: RegistrySelector[]) {
+  if (contractName !== 'MusicRoyaltiesPallet') return;
+  const expected = new Set([
+    'musicRoyClaim',
+    'musicRoyClaimable',
+    'musicRoyPayAccess',
+    'musicRoyRecordListen',
+    'musicRoySplitAt',
+    'musicRoySplitCount',
+    'musicRoyTotalBps'
+  ]);
+  const actual = new Set(selectors.map(selector => selector.name));
+  const missing = Array.from(expected).filter(name => !actual.has(name));
+  if (missing.length > 0) {
+    throw new Error(`MusicRoyaltiesPallet ABI is missing expected selector(s): ${missing.join(', ')}.`);
+  }
+}
+
+function buildTrackMigrationTransaction(abi: Abi, targetRuntime: Address, snapshotTrack: unknown, allowEncryptedAudioReuse: boolean) {
+  const track = snapshotTrack as {
+    hash?: Hex;
+    record?: Record<string, unknown>;
+    royaltySplits?: Array<{ recipient?: Address; bps?: string | number | bigint }>;
+  };
+  if (!track.hash || !track.record) throw new Error('Snapshot track is missing hash or record.');
+  const audioRef = String(track.record.audioRef ?? '');
+  if (!allowEncryptedAudioReuse && audioRef.startsWith('dotify:enc:v2:')) {
+    return {
+      status: 'blocked' as const,
+      hash: track.hash,
+      title: String(track.record.title ?? ''),
+      reason: 'Protected audio v2 keys are runtime-bound. Re-encrypt the audio for the target runtime before replaying this registration.'
+    };
+  }
+
+  const royaltySplits = track.royaltySplits ?? [];
+  const royaltyRecipients = royaltySplits.map(split => requireAddress('royalty recipient', String(split.recipient ?? '')));
+  const royaltyShares = royaltySplits.map(split => Number(split.bps ?? 0));
+  const registration = {
+    contentHash: track.hash,
+    title: String(track.record.title ?? ''),
+    artistName: String(track.record.artistName ?? ''),
+    description: String(track.record.description ?? ''),
+    imageRef: String(track.record.imageRef ?? ''),
+    audioRef,
+    metadataRef: String(track.record.metadataRef ?? ''),
+    artistContractRef: String(track.record.artistContractRef ?? ''),
+    accessMode: Number(track.record.accessMode ?? 0),
+    pricePlanck: BigInt(String(track.record.pricePlanck ?? 0)),
+    requiredPersonhood: Number(track.record.requiredPersonhood ?? 0)
+  };
+
+  return {
+    status: 'ready' as const,
+    hash: track.hash,
+    title: registration.title,
+    transaction: {
+      to: targetRuntime,
+      value: '0x0' as const,
+      data: encodeFunctionData({
+        abi,
+        functionName: 'musicRegRegister',
+        args: [registration, royaltyRecipients, royaltyShares]
+      })
+    }
+  };
 }
 
 async function probeOwnerGuard(publicClient: PublicClient, runtime: Address, registryAbi: Abi, owner: Address, blockNumber: bigint): Promise<GuardProbe> {

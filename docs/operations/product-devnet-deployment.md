@@ -20,6 +20,28 @@ facet cut or a clean factory/runtime redeploy before native Classic payments are
 treated as W05-ready. `npm run smoke:devnet` checks configured chain/bytecode
 availability; it does not prove every runtime has the new selectors installed.
 
+Prefer the in-place facet cut when the current artist runtime is owned by the
+artist wallet. It keeps the runtime address, protected-audio key binding,
+catalogue storage, paid-access state, and claimable balances intact:
+
+```bash
+cd contracts/evm
+npm run runtime:export:testnet -- --runtime <RUNTIME> --recipient <ARTIST_OR_SPLIT_RECIPIENT> --out /tmp/dotify-runtime-snapshot.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <RUNTIME> --out /tmp/dotify-royalties-upgrade-plan.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <RUNTIME> --execute --confirm-plan <PLAN_DIGEST> --out /tmp/dotify-royalties-upgrade-final.json
+```
+
+The upgrade command is dry-run by default and refuses execution without a fresh
+plan digest plus an evidence file. Clean redeploy is a fallback:
+
+```bash
+npm run runtime:migration-plan -- --snapshot <SNAPSHOT> --target-runtime <NEW_RUNTIME> --out <PLAN>
+```
+
+Use that command to render replay calldata, but do not treat it as a state
+migration. It does not move paid-access grants or claimable balances, and
+encrypted `dotify:enc:v2:` audio must be re-encrypted for the new runtime.
+
 Confirm before every publish:
 
 ```bash

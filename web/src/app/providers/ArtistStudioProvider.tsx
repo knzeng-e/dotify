@@ -68,7 +68,7 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     coverUploadRef: catalog.coverUploadRef
   });
 
-  const settledRoyaltyPayments = artistConsole.royaltyPayments.filter(payment => payment.settlement === 'paid');
+  const settledRoyaltyPayments = artistConsole.royaltyPayments.filter(payment => payment.settlement === 'paid' || payment.settlement === 'claimed');
   const totalRoyaltyWei = settledRoyaltyPayments.reduce((total, payment) => total + payment.amountWei, 0n);
   const uniqueRoyaltyListeners = new Set(artistConsole.royaltyPayments.map(payment => payment.listener.toLowerCase())).size;
   const paidRoyaltyTracks = new Set(settledRoyaltyPayments.map(payment => payment.trackHash.toLowerCase())).size;
