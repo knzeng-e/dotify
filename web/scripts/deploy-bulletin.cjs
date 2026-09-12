@@ -22,8 +22,9 @@ const { sr25519CreateDerive } = require(path.join(nm, '@polkadot-labs/hdkd'));
 const { DEV_PHRASE, entropyToMiniSecret, mnemonicToEntropy, ss58Address } = require(path.join(nm, '@polkadot-labs/hdkd-helpers'));
 const { getPolkadotSigner } = require(path.join(nm, 'polkadot-api/dist/reexports/signer.js'));
 
-const BULLETIN_WS = process.env.VITE_BULLETIN_WS_URL || 'wss://paseo-bulletin-rpc.polkadot.io';
-const GATEWAY = 'https://paseo-ipfs.polkadot.io/ipfs/';
+// Product DevNet Bulletin (Paseo Bulletin, para 1010).
+const BULLETIN_WS = process.env.VITE_BULLETIN_WS_URL || 'wss://bulletin-paseo.tservices.es:8443';
+const GATEWAY = process.env.BULLETIN_GATEWAY_URL || 'https://bulletin-kubo.tservices.es:9443/ipfs/';
 const UPLOAD_TIMEOUT_MS = 120_000;
 const HTML_PATH = path.resolve(__dirname, '../dist-bulletin/index.html');
 

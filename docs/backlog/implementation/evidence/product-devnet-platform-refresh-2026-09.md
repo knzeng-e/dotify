@@ -27,8 +27,13 @@ Dotify's Product DevNet baseline now targets the post-reset platform:
   `0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f`.
 - Bulletin is re-pinned through `papi update bulletin` against
   `wss://bulletin-paseo.tservices.es:8443`.
+- Bulletin deploy fallbacks and public reference docs use the same refreshed
+  endpoint, so `npm run deploy:bulletin` no longer combines the new descriptor
+  with the retired Bulletin chain.
 - The Product DevNet fixture and generated bootstrap catalog were refreshed
   from the live API and still contain 8 items.
+- `docs/index.html` now calls out the Product DevNet reset and the remaining
+  post-merge republication/smoke boundary.
 
 Root `polkadot-api` remains on `1.23.3`. Product SDK `0.27.0` brings its own
 PAPI `2.2.x` tree, while the `@polkadot-apps` signer stack still uses PAPI
@@ -54,6 +59,7 @@ branch.
 | `npm --prefix contracts/evm run fmt:check`                                                                       | Node 22.13.1, local worktree                          | Passed                                                                                               | terminal |
 | `npm --prefix contracts/evm run compile`                                                                         | Node 22.13.1, local worktree                          | Passed                                                                                               | terminal |
 | `npm --prefix contracts/evm run cdm:publish:testnet`                                                             | Network allowed, default read-only mode               | Passed dry-run; 2 names would publish update-version entries to the new registry                     | terminal |
+| `node --check web/scripts/deploy-bulletin.cjs`                                                                   | Node 22.13.1, local worktree                          | Passed                                                                                               | terminal |
 | `node scripts/backlog-sync.mjs --check --offline`                                                                | Node 22.13.1, local worktree                          | Passed with existing offline warnings: 24 active items without issue mapping and duplicate `08` docs | terminal |
 | `git diff --check`                                                                                               | local worktree                                        | Passed                                                                                               | terminal |
 | `npm --prefix web audit --audit-level=moderate`                                                                  | Network allowed                                       | Failed with expected residual risk: 32 findings, no forced fix applied                               | terminal |

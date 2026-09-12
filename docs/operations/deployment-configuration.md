@@ -116,7 +116,7 @@ Required production variables:
 | `VITE_SIGNAL_URL`         | `https://dotify-signal.fly.dev`                                    | Public Socket.IO signaling origin.                               |
 | `VITE_DOTIFY_API_URL`     | `https://dotify-api.fly.dev`                                       | Backend API for uploads, key delivery, and cached catalog reads. |
 | `VITE_PINATA_GATEWAY`     | `https://gateway.pinata.cloud`                                     | Primary browser read gateway for Pinata-backed track assets.     |
-| `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://paseo-ipfs.polkadot.io` | Ordered fallback gateway list.                                   |
+| `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` | Ordered fallback gateway list.                                   |
 
 Optional production variables:
 
@@ -128,7 +128,7 @@ Optional production variables:
 | `VITE_TURN_CREDENTIAL`         | Static fallback only. Do not use long-lived production credentials here.                                                                           |
 | `VITE_ETH_RPC_URL`             | Override the default Paseo Asset Hub EVM RPC. Must be HTTPS in production.                                                                         |
 | `VITE_WS_URL`                  | Override the default Polkadot WebSocket RPC. Must be WSS in production.                                                                            |
-| `VITE_BULLETIN_WS_URL`         | Override the default Paseo Bulletin RPC. Must be WSS in production.                                                                                |
+| `VITE_BULLETIN_WS_URL`         | Override the default Product DevNet Bulletin RPC. Must be WSS in production.                                                                       |
 | `VITE_BLOCKSCOUT_BASE_URL`     | Override explorer links. Must be HTTPS in production.                                                                                              |
 
 Deploy-preview note:
@@ -155,6 +155,7 @@ Required Product values:
 | `VITE_DOTIFY_API_URL`           | `https://dotify-api.fly.dev`                                                                                                     |
 | `VITE_SIGNAL_URL`               | `https://dotify-signal.fly.dev`                                                                                                  |
 | `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                                                            |
+| `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
 | Product executable `appVersion` | `[0, 1, 15]` in `web/polkadot-app-deploy.config.ts`                                                                              |

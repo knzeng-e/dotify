@@ -39,7 +39,7 @@ Useful environment variables:
   `VITE_PUBLIC_APP_URL`: Product-host detection, app-scoped account identifier,
   and canonical room-link origin.
 - `VITE_LOCAL_WS_URL` / `VITE_LOCAL_ETH_RPC_URL`: local development endpoints.
-- `VITE_BULLETIN_WS_URL`: Paseo Bulletin Chain RPC.
+- `VITE_BULLETIN_WS_URL`: Product DevNet Bulletin Chain RPC.
 - `VITE_PINATA_JWT`: restricted browser-exposed Pinata JWT for demo uploads
   when `VITE_DOTIFY_API_URL` is unset.
 - `VITE_PINATA_GATEWAY`: primary gateway used when rendering IPFS assets.
