@@ -46,9 +46,21 @@ let publicClientCache: ReturnType<typeof createPublicClient> | null = null;
 let chainCache: Chain | null = null;
 let rpcCache = '';
 
+const RPC_HTTP_TIMEOUT_MS = 20_000;
+const RPC_HTTP_RETRY_COUNT = 2;
+const RPC_HTTP_RETRY_DELAY_MS = 1_000;
+
+function rpcHttpTransport(ethRpcUrl: string) {
+  return http(ethRpcUrl, {
+    timeout: RPC_HTTP_TIMEOUT_MS,
+    retryCount: RPC_HTTP_RETRY_COUNT,
+    retryDelay: RPC_HTTP_RETRY_DELAY_MS
+  });
+}
+
 export function getPublicClient(ethRpcUrl: string) {
   if (!publicClientCache || rpcCache !== ethRpcUrl) {
-    publicClientCache = createPublicClient({ transport: http(ethRpcUrl) });
+    publicClientCache = createPublicClient({ transport: rpcHttpTransport(ethRpcUrl) });
     rpcCache = ethRpcUrl;
     chainCache = null;
   }
@@ -60,7 +72,7 @@ export async function getWalletClient(accountIndex: number, ethRpcUrl: string) {
   return createWalletClient({
     account: evmDevAccounts[accountIndex as 0 | 1].account,
     chain,
-    transport: http(ethRpcUrl)
+    transport: rpcHttpTransport(ethRpcUrl)
   });
 }
 

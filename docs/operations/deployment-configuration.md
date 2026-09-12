@@ -109,13 +109,13 @@ Build settings for the repo-root Netlify site:
 
 Required production variables:
 
-| Key                       | Value                                                              | Notes                                                            |
-| ------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| `VITE_DOTIFY_DEPLOYMENT`  | `production`                                                       | Enables fail-closed production env validation.                   |
-| `VITE_DOTIFY_HOST_MODE`   | `off`                                                              | Prevents the standalone build from probing Product host APIs.    |
-| `VITE_SIGNAL_URL`         | `https://dotify-signal.fly.dev`                                    | Public Socket.IO signaling origin.                               |
-| `VITE_DOTIFY_API_URL`     | `https://dotify-api.fly.dev`                                       | Backend API for uploads, key delivery, and cached catalog reads. |
-| `VITE_PINATA_GATEWAY`     | `https://gateway.pinata.cloud`                                     | Primary browser read gateway for Pinata-backed track assets.     |
+| Key                       | Value                                                                                                                            | Notes                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `VITE_DOTIFY_DEPLOYMENT`  | `production`                                                                                                                     | Enables fail-closed production env validation.                   |
+| `VITE_DOTIFY_HOST_MODE`   | `off`                                                                                                                            | Prevents the standalone build from probing Product host APIs.    |
+| `VITE_SIGNAL_URL`         | `https://dotify-signal.fly.dev`                                                                                                  | Public Socket.IO signaling origin.                               |
+| `VITE_DOTIFY_API_URL`     | `https://dotify-api.fly.dev`                                                                                                     | Backend API for uploads, key delivery, and cached catalog reads. |
+| `VITE_PINATA_GATEWAY`     | `https://gateway.pinata.cloud`                                                                                                   | Primary browser read gateway for Pinata-backed track assets.     |
 | `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` | Ordered fallback gateway list.                                   |
 
 Optional production variables:
@@ -158,16 +158,18 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 15]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 16]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 15]` carries the Product room guest audio recovery fix, the W05
+Version `[0, 1, 16]` carries the Product room guest audio recovery fix, the W05
 royalty claim runtime writer path, the September 2026 Product DevNet
-tooling/CDM registry refresh, and the re-pinned Bulletin descriptor.
+tooling/CDM registry refresh, the re-pinned Bulletin descriptor, and the viem
+release-registration confirmation hardening for dropped or still-pending wallet
+hashes.
 
 Current Product host SDK dependencies:
 

@@ -328,15 +328,36 @@ describe('createViemRuntimeReader', () => {
 });
 
 describe('createViemRuntimeWriter', () => {
+  function runtimeRegistration() {
+    return {
+      contentHash: hash,
+      title: 'Runtime song',
+      artistName: 'Runtime artist',
+      description: 'On-chain description',
+      imageRef: 'ipfs://cover',
+      audioRef: 'dotify.audio.v2:audio',
+      metadataRef: 'ipfs://metadata',
+      artistContractRef: 'dotify:self-certified',
+      accessMode: 1,
+      pricePlanck: 1n,
+      requiredPersonhood: 0,
+      royaltyRecipients: [artist],
+      royaltyShares: [10_000]
+    };
+  }
+
   it('routes runtime writes through named contract calls and waits for receipts', async () => {
     const writeContract = vi.fn(async ({ functionName }: { functionName: string }) => {
       return `${txHash}:${functionName}` as `0x${string}`;
     });
     const waitForTransactionReceipt = vi.fn(async () => ({ status: 'success' }));
+    const estimateContractGas = vi.fn(async () => 80_000n);
+    const getChainId = vi.fn(async () => 420420417);
+    const getGasPrice = vi.fn(async () => 1_000n);
     const writer = createViemRuntimeWriter({
       ethRpcUrl: 'http://localhost:8545',
-      walletClient: { writeContract } as never,
-      publicClient: { waitForTransactionReceipt } as never
+      walletClient: { account: { address: artist }, getChainId, writeContract } as never,
+      publicClient: { estimateContractGas, getChainId, getGasPrice, waitForTransactionReceipt } as never
     });
 
     await expect(writer.createRuntime(factory)).resolves.toBe(`${txHash}:createRuntime`);
@@ -352,23 +373,7 @@ describe('createViemRuntimeWriter', () => {
       )
     ).resolves.toBe(`${txHash}:musicRoyPayAccess`);
     await expect(writer.claimRoyalty(runtime, artist)).resolves.toBe(`${txHash}:musicRoyClaim`);
-    await expect(
-      writer.registerTrack(runtime, {
-        contentHash: hash,
-        title: 'Runtime song',
-        artistName: 'Runtime artist',
-        description: 'On-chain description',
-        imageRef: 'ipfs://cover',
-        audioRef: 'dotify.audio.v2:audio',
-        metadataRef: 'ipfs://metadata',
-        artistContractRef: 'dotify:self-certified',
-        accessMode: 1,
-        pricePlanck: 1n,
-        requiredPersonhood: 0,
-        royaltyRecipients: [artist],
-        royaltyShares: [10_000]
-      })
-    ).resolves.toBe(`${txHash}:musicRegRegister`);
+    await expect(writer.registerTrack(runtime, runtimeRegistration())).resolves.toBe(`${txHash}:musicRegRegister`);
     await expect(
       writer.setAccessMode(runtime, {
         contentHash: hash,
@@ -380,8 +385,24 @@ describe('createViemRuntimeWriter', () => {
     await expect(writer.setReleaseActive(runtime, hash, false)).resolves.toBe(`${txHash}:musicRegDeactivate`);
 
     await writer.waitForTransaction(txHash);
-    expect(waitForTransactionReceipt).toHaveBeenCalledWith({ hash: txHash });
+    expect(waitForTransactionReceipt).toHaveBeenCalledWith({ hash: txHash, timeout: 240_000, pollingInterval: 6_000 });
+    expect(estimateContractGas).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: artist,
+        address: runtime,
+        functionName: 'musicRegRegister'
+      })
+    );
     expect(writeContract).toHaveBeenCalledTimes(7);
+    expect(writeContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: runtime,
+        functionName: 'musicRegRegister',
+        gas: 104_000n,
+        maxFeePerGas: 2_000n,
+        maxPriorityFeePerGas: 1_000n
+      })
+    );
     expect(writeContract).toHaveBeenCalledWith(
       expect.objectContaining({
         address: runtime,
@@ -391,5 +412,71 @@ describe('createViemRuntimeWriter', () => {
       })
     );
     expect(writeContract).toHaveBeenCalledWith(expect.objectContaining({ address: runtime, functionName: 'musicRoyClaim', args: [artist] }));
+  });
+
+  it('refuses to submit a registration when the wallet chain differs from the configured RPC', async () => {
+    const writeContract = vi.fn();
+    const estimateContractGas = vi.fn();
+    const writer = createViemRuntimeWriter({
+      ethRpcUrl: 'https://eth-rpc-testnet.polkadot.io/',
+      walletClient: { account: { address: artist }, getChainId: vi.fn(async () => 1), writeContract } as never,
+      publicClient: { getChainId: vi.fn(async () => 420420417), estimateContractGas } as never
+    });
+
+    await expect(writer.registerTrack(runtime, runtimeRegistration())).rejects.toThrow(/Wallet is connected to chain 1/);
+    expect(estimateContractGas).not.toHaveBeenCalled();
+    expect(writeContract).not.toHaveBeenCalled();
+  });
+
+  it('reports a dropped transaction when receipt waiting times out and the hash is absent', async () => {
+    const waitForTransactionReceipt = vi.fn(async () => {
+      throw new Error(`Timed out while waiting for transaction with hash "${txHash}" to be confirmed. Version: viem@2.55.19`);
+    });
+    const getTransactionReceipt = vi.fn(async () => {
+      throw new Error('not found');
+    });
+    const getTransaction = vi.fn(async () => {
+      throw new Error('not found');
+    });
+    const writer = createViemRuntimeWriter({
+      ethRpcUrl: 'http://localhost:8545',
+      walletClient: { writeContract: vi.fn() } as never,
+      publicClient: { waitForTransactionReceipt, getTransactionReceipt, getTransaction } as never
+    });
+
+    await expect(writer.waitForTransaction(txHash)).rejects.toThrow(/could not find it on the configured Product DevNet RPCs/);
+    expect(getTransactionReceipt).toHaveBeenCalledWith({ hash: txHash });
+    expect(getTransaction).toHaveBeenCalledWith({ hash: txHash });
+  });
+
+  it('reports a still-pending transaction when a timeout hash remains in the RPC pool', async () => {
+    const waitForTransactionReceipt = vi.fn(async () => {
+      throw new Error(`Timed out while waiting for transaction with hash "${txHash}" to be confirmed. Version: viem@2.55.19`);
+    });
+    const getTransactionReceipt = vi.fn(async () => {
+      throw new Error('not found');
+    });
+    const getTransaction = vi.fn(async () => ({ hash: txHash }));
+    const writer = createViemRuntimeWriter({
+      ethRpcUrl: 'http://localhost:8545',
+      walletClient: { writeContract: vi.fn() } as never,
+      publicClient: { waitForTransactionReceipt, getTransactionReceipt, getTransaction } as never
+    });
+
+    await expect(writer.waitForTransaction(txHash)).rejects.toThrow(/is still pending/);
+  });
+
+  it('accepts a receipt found by follow-up lookup after the initial wait fails', async () => {
+    const waitForTransactionReceipt = vi.fn(async () => {
+      throw new Error(`Timed out while waiting for transaction with hash "${txHash}" to be confirmed. Version: viem@2.55.19`);
+    });
+    const getTransactionReceipt = vi.fn(async () => ({ status: 'success' }));
+    const writer = createViemRuntimeWriter({
+      ethRpcUrl: 'http://localhost:8545',
+      walletClient: { writeContract: vi.fn() } as never,
+      publicClient: { waitForTransactionReceipt, getTransactionReceipt } as never
+    });
+
+    await expect(writer.waitForTransaction(txHash)).resolves.toBeUndefined();
   });
 });

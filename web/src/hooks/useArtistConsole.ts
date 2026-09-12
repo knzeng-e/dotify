@@ -749,6 +749,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
     let bulletinRef = bulletinManifestRef;
     let runtimeAddress = artistRuntimeAddress;
+    let submittedRegistrationTxHash: `0x${string}` | undefined;
     try {
       if (isArtistPublishE2e) {
         const networkError = getArtistPublishE2eNetworkError(connectedWallet);
@@ -967,6 +968,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         royaltyRecipients,
         royaltyShares
       });
+      submittedRegistrationTxHash = txHash;
 
       setRightsStatus('Waiting for transaction confirmation');
       setTransactionFeedback({
@@ -990,7 +992,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       setTransactionFeedback({
         tone: 'error',
         title: 'Registration failed',
-        message
+        message,
+        txHash: submittedRegistrationTxHash
       });
     } finally {
       setIsRegistering(false);

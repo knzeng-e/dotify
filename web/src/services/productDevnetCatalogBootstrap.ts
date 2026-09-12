@@ -288,6 +288,22 @@ export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
       releaseCount: 8,
       activeReleaseCount: 8,
       latestReleaseBlock: 13133435
+    },
+    {
+      artistAddress: '0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809',
+      runtimeAddress: '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85',
+      name: '0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809',
+      releaseCount: 0,
+      activeReleaseCount: 0,
+      latestReleaseBlock: 0
+    },
+    {
+      artistAddress: '0xcE104CADBbF6E5DB3779F5E0921753Ff1e7d2de2',
+      runtimeAddress: '0x95DDe50424d6278ccb91D36B36230105eE71Eb1E',
+      name: '0xcE104CADBbF6E5DB3779F5E0921753Ff1e7d2de2',
+      releaseCount: 0,
+      activeReleaseCount: 0,
+      latestReleaseBlock: 0
     }
   ],
   pagination: {
@@ -298,9 +314,9 @@ export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
   meta: {
     state: 'stale-cache',
     cacheAvailable: true,
-    indexedAt: '2026-09-12T05:31:46.695Z',
-    lastIndexedBlock: 13214871,
-    chainHeadBlock: 13214873,
+    indexedAt: '2026-09-12T14:27:58.846Z',
+    lastIndexedBlock: 13221384,
+    chainHeadBlock: 13221386,
     blockLag: 2,
     staleAfterMs: 60000,
     lastErrorCode: null
