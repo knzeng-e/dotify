@@ -157,39 +157,38 @@ Required Product values:
 | `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                                                            |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 14]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 15]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 14]` carries the Product room guest audio recovery fix and the
-W05 royalty claim runtime writer path.
+Version `[0, 1, 15]` carries the Product room guest audio recovery fix, the W05
+royalty claim runtime writer path, the September 2026 Product DevNet
+tooling/CDM registry refresh, and the re-pinned Bulletin descriptor.
 
 Current Product host SDK dependencies:
 
-| Package                                              | Current value | Latest checked 2026-08-30 |
+| Package                                              | Current value | Latest checked 2026-09-12 |
 | ---------------------------------------------------- | ------------- | ------------------------- |
-| `@parity/product-sdk`                                | `0.23.0`      | `0.25.0`                  |
-| `@parity/product-sdk-host`                           | `0.16.0`      | `0.18.0`                  |
-| `@parity/product-sdk-statement-store`                | `0.6.5`       | `0.6.7`                   |
-| `@parity/product-sdk-descriptors`                    | `0.10.0`      | `0.11.0`                  |
+| `@parity/product-sdk`                                | `0.27.0`      | `0.27.0`                  |
+| `@parity/product-sdk-host`                           | `0.19.1`      | `0.19.1`                  |
+| `@parity/product-sdk-statement-store`                | `0.6.9`       | `0.6.9`                   |
+| `@parity/product-sdk-descriptors`                    | `0.11.0`      | `0.11.0`                  |
 | `polkadot-api`                                       | `1.23.3`      | `3.0.0`                   |
-| `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1`      | `0.13.1`                  |
+| `@polkadot-community-foundation/polkadot-app-deploy` | `0.16.2`      | `0.16.2`                  |
 | `engine.io-client`                                   | `6.6.6`       | `6.6.6`                   |
 
 Keep the Product SDK packages pinned exactly during Product DevNet hardening.
 Recheck npm and the official Product docs before changing them because the
-mobile host API is still moving quickly. The 2026-08-30 check found a newer
-Product SDK line; upgrade it in a dedicated compatibility PR rather than mixing
-it into Product write-signer mapping work. `polkadot-api` remains on `1.23.3` at
-the Dotify root even though npm publishes `3.0.0`: the current official Product
-SDK packages bring their own PAPI `2.2.x` tree, while `@polkadot-apps`
-chain-client/keys/signer still depend on PAPI `1.23.x`. A direct root PAPI 3
-trial failed type compatibility for the `PolkadotSigner` export and
-`ChainDefinition` / `TypedApi` boundaries, so PAPI 3 is tracked as a blocked
-compatibility migration rather than a deployable dependency bump.
+mobile host API is still moving quickly. `polkadot-api` remains on `1.23.3` at
+the Dotify root even though npm publishes `3.0.0`: Product SDK `0.27.0` brings
+its own PAPI `2.2.x` tree, while `@polkadot-apps` chain-client/keys/signer still
+depend on PAPI `1.23.x`. A direct root PAPI 3 trial failed type compatibility
+for the `PolkadotSigner` export and `ChainDefinition` / `TypedApi` boundaries,
+so PAPI 3 is tracked as a blocked compatibility migration rather than a
+deployable dependency bump.
 
 `VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
 publication announces no rooms on the Statement Store. The capability ships
@@ -295,14 +294,14 @@ flyctl deploy
 
 Set server-side values in the app's Secrets area:
 
-| Secret                      | Required                      | Notes                                                                                               |
-| --------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------- |
-| `PINATA_JWT`                | Uploads                       | Backend-only Pinata token. Never expose in Netlify.                                                 |
+| Secret                      | Required                      | Notes                                                                                                                                                      |
+| --------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PINATA_JWT`                | Uploads                       | Backend-only Pinata token. Never expose in Netlify.                                                                                                        |
 | `CONTENT_KEY_MASTER_SECRET` | Audio upload and key delivery | 64+ hex chars, at least 32 random bytes. v1 assets use `contentHash`; new v2 assets bind `chainId + runtimeAddress + contentHash`. Do not rotate casually. |
-| `GIT_COMMIT_SHA`            | Optional                      | Set by CI/build automation when available; `/version` can fall back in dev checkouts.               |
-| `TURN_REST_SECRET`          | Reliable rooms                | Backend-only HMAC secret shared with the TURN relay REST auth mechanism. Preferred production path. |
-| `TURN_USERNAME`             | Optional fallback             | Static DevNet TURN username when REST auth is unavailable.                                          |
-| `TURN_CREDENTIAL`           | Optional fallback             | Static DevNet TURN password when REST auth is unavailable.                                          |
+| `GIT_COMMIT_SHA`            | Optional                      | Set by CI/build automation when available; `/version` can fall back in dev checkouts.                                                                      |
+| `TURN_REST_SECRET`          | Reliable rooms                | Backend-only HMAC secret shared with the TURN relay REST auth mechanism. Preferred production path.                                                        |
+| `TURN_USERNAME`             | Optional fallback             | Static DevNet TURN username when REST auth is unavailable.                                                                                                 |
+| `TURN_CREDENTIAL`           | Optional fallback             | Static DevNet TURN password when REST auth is unavailable.                                                                                                 |
 
 Catalog read-model variables:
 

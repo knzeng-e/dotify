@@ -25,13 +25,13 @@ P0 once approved (it redefines the production spine's access rules).
 
 ## Phases
 
-| Phase | Scope |
-| --- | --- |
-| P1 | Access model v2 (contracts + UI); delete the preview machinery |
-| P2 | Session auth in the key service (SIWE login, token key requests) |
-| P3 | Chunked container publish + MSE playback + v1 fallback + startup metrics |
-| P4 | Product SDK feasibility spikes: Host detection/signing, resource allocation, PolkaVM/CDM contract portability, Playground deployment, and Statement Store presence |
-| P5 | Real Humanity / Individuality behind `human-free` (promotes ticket 11 only after research proves the live source and privacy model) |
+| Phase | Scope                                                                                                                                                              |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P1    | Access model v2 (contracts + UI); delete the preview machinery                                                                                                     |
+| P2    | Session auth in the key service (SIWE login, token key requests)                                                                                                   |
+| P3    | Chunked container publish + MSE playback + v1 fallback + startup metrics                                                                                           |
+| P4    | Product SDK feasibility spikes: Host detection/signing, resource allocation, PolkaVM/CDM contract portability, Playground deployment, and Statement Store presence |
+| P5    | Real Humanity / Individuality behind `human-free` (promotes ticket 11 only after research proves the live source and privacy model)                                |
 
 ## Constraints
 
@@ -151,11 +151,11 @@ W08 first-sound slice:
   the browser/device validation matrix, cold/warm sample collection, and the
   backend read-through gateway decision.
 
-Product SDK adaptation note (updated 2026-08-30):
+Product SDK adaptation note (updated 2026-09-12):
 
-- Product SDK 0.23.0 and deploy tooling 0.13.1 remain
-  prototype/reference/unaudited in Dotify's pinned baseline. npm now publishes
-  Product SDK 0.25.0, which is deferred to a dedicated compatibility PR.
+- Product SDK 0.27.0 and deploy tooling 0.16.2 remain
+  prototype/reference/unaudited in Dotify's pinned baseline after the Product
+  DevNet DotNS/CDM/descriptors refresh.
 - Root PAPI 3.0.0 is not adopted yet because the current Product SDK graph
   uses PAPI 2.2.x while `@polkadot-apps` still uses PAPI 1.23.x.
 - Host APIs are progressive enhancement for Product containers; standalone web
