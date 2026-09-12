@@ -41,6 +41,11 @@ The deploy command never edits `deployments.json`, and the upgrade command
 refuses execution without a fresh plan digest plus an evidence file. Clean
 redeploy is a fallback:
 
+If a command writes an evidence file and then fails before the manifest reaches
+`signed-before-broadcast`, no transaction was signed or broadcast by that task.
+Inspect the file, then retry with a new `--out` path or remove the stale
+prepared manifest.
+
 ```bash
 npm run runtime:migration-plan -- --snapshot <SNAPSHOT> --target-runtime <NEW_RUNTIME> --out <PLAN>
 ```

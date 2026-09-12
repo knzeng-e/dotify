@@ -1,4 +1,4 @@
-import { task, types } from 'hardhat/config';
+import { task, types, vars } from 'hardhat/config';
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -863,7 +863,9 @@ async function signRawTransaction(
       ? wallet.account
       : hre.network.name === 'hardhat'
         ? privateKeyToAccount(HARDHAT_FIRST_ACCOUNT_PRIVATE_KEY)
-        : undefined;
+        : vars.has('PRIVATE_KEY')
+          ? privateKeyToAccount(vars.get('PRIVATE_KEY') as Hex)
+          : undefined;
   if (!signer) {
     throw new Error('Configured wallet is not a local signer. Use a local PRIVATE_KEY so transaction bytes and hash can be persisted before broadcast.');
   }
