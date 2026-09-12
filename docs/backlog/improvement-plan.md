@@ -42,23 +42,23 @@ Where it falls short of its own standards:
 
 ## Now - finish the standalone production spine
 
-| Item | Tracking | Status |
-| --- | --- | --- |
-| PR8b providers/context boundary (5 stacked PRs) | `08b-providers-design.md`, tracker rows 8b-1..8b-5 | Delivered on `main` |
-| PR9 `shared/` tree relocation | `08-frontend-refactor-tracker.md` | Delivered on `main` |
-| PR10 split mega-hooks (`useCatalog`, `useSession`, `useArtistConsole`) along their `features/*` seams | follow-up rows in the ticket 08 tracker or a new focused refactor ticket | Proposed |
-| Generated ABI bindings | `09-generated-abi-bindings.md` (#10) | Delivered |
-| Observability and health checks on the key service | `10-observability-health-checks.md` (#11) | Delivered; residual DAV2/gateway evidence moved to #88 |
-| Separate production preview assets | `18-production-preview-assets.md` (#27) | Retired by access model v2 |
+| Item                                                                                                  | Tracking                                                                 | Status                                                 |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------ |
+| PR8b providers/context boundary (5 stacked PRs)                                                       | `08b-providers-design.md`, tracker rows 8b-1..8b-5                       | Delivered on `main`                                    |
+| PR9 `shared/` tree relocation                                                                         | `08-frontend-refactor-tracker.md`                                        | Delivered on `main`                                    |
+| PR10 split mega-hooks (`useCatalog`, `useSession`, `useArtistConsole`) along their `features/*` seams | follow-up rows in the ticket 08 tracker or a new focused refactor ticket | Proposed                                               |
+| Generated ABI bindings                                                                                | `09-generated-abi-bindings.md` (#10)                                     | Delivered                                              |
+| Observability and health checks on the key service                                                    | `10-observability-health-checks.md` (#11)                                | Delivered; residual DAV2/gateway evidence moved to #88 |
+| Separate production preview assets                                                                    | `18-production-preview-assets.md` (#27)                                  | Retired by access model v2                             |
 
 ## Next - standalone operation and listening depth
 
-| Item | Tracking | Status |
-| --- | --- | --- |
-| Public API/signaling operation evidence: readiness checks, frontend health surface, public env validation, CORS/origin hardening, unsafe-secret guards, and deployment smoke checks. | #11, #36, #37 | Delivered / Record |
-| DAV2 validation: real browser/container/gateway matrix, Range + MSE fallback behavior, first-sound metrics, and decision on backend read-through gateway. | #87, #88, `24-access-streaming-v2.md` | Active |
-| Room resilience: short-lived TURN credentials, reconnect/handoff policy, and optional SFU only when it protects the link-first guest doctrine. | #89 | Active |
-| Value-before-wallet onboarding: make public room links and first sound useful before asking for wallet state, while keeping protected source access fail-closed. | #90 | Active |
+| Item                                                                                                                                                                                 | Tracking                              | Status             |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- | ------------------ |
+| Public API/signaling operation evidence: readiness checks, frontend health surface, public env validation, CORS/origin hardening, unsafe-secret guards, and deployment smoke checks. | #11, #36, #37                         | Delivered / Record |
+| DAV2 validation: real browser/container/gateway matrix, Range + MSE fallback behavior, first-sound metrics, and decision on backend read-through gateway.                            | #87, #88, `24-access-streaming-v2.md` | Active             |
+| Room resilience: short-lived TURN credentials, reconnect/handoff policy, and optional SFU only when it protects the link-first guest doctrine.                                       | #89                                   | Active             |
+| Value-before-wallet onboarding: make public room links and first sound useful before asking for wallet state, while keeping protected source access fail-closed.                     | #90                                   | Active             |
 
 ## Product SDK feasibility track
 
@@ -67,11 +67,10 @@ sound. Only the baseline rows marked delivered may be presented as live.
 
 Product SDK snapshot used for this plan:
 
-- `@parity/product-sdk` 0.23.0, host 0.16.0, statement-store 0.6.5, and
-  descriptors 0.10.0 (pinned baseline; npm rechecked on 2026-08-30 and now
-  publishes Product SDK 0.25.0 / host 0.18.0 / statement-store 0.6.7 /
-  descriptors 0.11.0, deferred to a dedicated compatibility PR);
-- `@polkadot-community-foundation/polkadot-app-deploy` 0.13.1;
+- `@parity/product-sdk` 0.27.0, host 0.19.1, statement-store 0.6.9, and
+  descriptors 0.11.0 (pinned baseline after the September 2026 Product DevNet
+  DotNS/CDM/descriptors refresh);
+- `@polkadot-community-foundation/polkadot-app-deploy` 0.16.2;
 - deferred PAPI drift: root `polkadot-api` 3.0.0 is published, but the current
   Product SDK graph uses PAPI 2.2.x and `@polkadot-apps` uses PAPI 1.23.x, so
   Dotify keeps root PAPI 1.23.3 until upstream packages converge;
@@ -81,22 +80,22 @@ Product SDK snapshot used for this plan:
 - Statement Store: 512-byte statement payload, 1024-byte user total, default
   30-second TTL.
 
-| Item | Tracking | Status |
-| --- | --- | --- |
-| Product SDK baseline: pin SDK versions, detect Host availability, connect an app-scoped account explicitly, and separate presence identity from EVM signing authority. | #85, `polkadot-product-readiness-and-killer-dapp-roadmap.md` | Delivered on `dev` |
-| Contract portability spike: compare Dotify's current Paseo Asset Hub EVM / viem / Hardhat flow with Product SDK contracts on `pallet-revive`, PolkaVM artifacts, and CDM manifests. | #85 | Proposed |
-| Product deployment baseline: build a browser-safe multi-file bundle, publish through Bulletin/DotNS tooling, preserve backend key custody, and use a canonical public room URL. | #85 | Delivered on `dev`; live Product publication still requires the operator mnemonic |
-| Statement Store presence spike: use it for small, signed, ephemeral discovery/presence only. Do not move SDP/ICE, full chat history, media metadata, or link-only guest reactions there until signer, TTL, and size constraints are solved. | #89, `20-room-social-layer.md`, `21-room-collaborative-queue.md` | Proposed |
-| Humanity / Individuality research rewrite: prove the canonical live source, privacy-preserving proof shape, product-account/identity-account binding, and fallback UX before promoting Human free from research to build. | #12, `11-proof-of-personhood-integration-research.md` | Open |
+| Item                                                                                                                                                                                                                                        | Tracking                                                         | Status                                                                            |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Product SDK baseline: pin SDK versions, detect Host availability, connect an app-scoped account explicitly, and separate presence identity from EVM signing authority.                                                                      | #85, `polkadot-product-readiness-and-killer-dapp-roadmap.md`     | Delivered on `dev`                                                                |
+| Contract portability spike: compare Dotify's current Paseo Asset Hub EVM / viem / Hardhat flow with Product SDK contracts on `pallet-revive`, PolkaVM artifacts, and CDM manifests.                                                         | #85                                                              | Proposed                                                                          |
+| Product deployment baseline: build a browser-safe multi-file bundle, publish through Bulletin/DotNS tooling, preserve backend key custody, and use a canonical public room URL.                                                             | #85                                                              | Delivered on `dev`; live Product publication still requires the operator mnemonic |
+| Statement Store presence spike: use it for small, signed, ephemeral discovery/presence only. Do not move SDP/ICE, full chat history, media metadata, or link-only guest reactions there until signer, TTL, and size constraints are solved. | #89, `20-room-social-layer.md`, `21-room-collaborative-queue.md` | Proposed                                                                          |
+| Humanity / Individuality research rewrite: prove the canonical live source, privacy-preserving proof shape, product-account/identity-account binding, and fallback UX before promoting Human free from research to build.                   | #12, `11-proof-of-personhood-integration-research.md`            | Open                                                                              |
 
 ## Later - concept and cultural propagation
 
-| Item | Tracking | Status |
-| --- | --- | --- |
-| Rooms as an actual village square: provenance trails showing which room and host introduced a listener to a track, as the substrate for the ambassador model without referral mechanics. | `12-ambassador-social-propagation-model.md` (#13); collaborative queue delivered in `21-room-collaborative-queue.md`; reactions/chat delivered in `20-room-social-layer.md` | Provenance and consent still proposed |
-| Aura-driven discovery: browse rooms and tracks by light and mood rather than lists. | new ticket | Proposed |
-| Key-delivery decentralization path: documented route away from the single `CONTENT_KEY_MASTER_SECRET`, for example per-artist key derivation anchored to the SmartRuntime or threshold key shares across independent key-service instances. | new ticket | Proposed |
-| UX polish pass: public room first sound in one click, warmer unlock moment showing the actual royalty split, and operation-scoped feedback instead of one global transaction toast. | new ticket | Proposed |
+| Item                                                                                                                                                                                                                                        | Tracking                                                                                                                                                                    | Status                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Rooms as an actual village square: provenance trails showing which room and host introduced a listener to a track, as the substrate for the ambassador model without referral mechanics.                                                    | `12-ambassador-social-propagation-model.md` (#13); collaborative queue delivered in `21-room-collaborative-queue.md`; reactions/chat delivered in `20-room-social-layer.md` | Provenance and consent still proposed |
+| Aura-driven discovery: browse rooms and tracks by light and mood rather than lists.                                                                                                                                                         | new ticket                                                                                                                                                                  | Proposed                              |
+| Key-delivery decentralization path: documented route away from the single `CONTENT_KEY_MASTER_SECRET`, for example per-artist key derivation anchored to the SmartRuntime or threshold key shares across independent key-service instances. | new ticket                                                                                                                                                                  | Proposed                              |
+| UX polish pass: public room first sound in one click, warmer unlock moment showing the actual royalty split, and operation-scoped feedback instead of one global transaction toast.                                                         | new ticket                                                                                                                                                                  | Proposed                              |
 
 ## Ordering and guardrails
 

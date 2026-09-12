@@ -274,7 +274,13 @@ a name that points at nothing would be worse than not publishing it.
 
 | Registry        | Address                                      | Network                                     |
 | --------------- | -------------------------------------------- | ------------------------------------------- |
-| `devnet` preset | `0x59b0245778917af55224e5f8fb55f7f8d452619f` | Paseo Asset Hub, para 1000, chain 420420417 |
+| `devnet` preset | `0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f` | Paseo Asset Hub, para 1000, chain 420420417 |
+
+The retired pre-September-2026 registry
+`0x59b0245778917af55224e5f8fb55f7f8d452619f` remains readable, but Product's
+2026-09 DevNet migration explicitly warns that post-snapshot versions published
+there do not appear in the refreshed registry. Dotify therefore pins the new
+address in `contracts/evm/cdm.json` and in the `cdm:publish` default.
 
 CDM's own documentation confirms the preset distinction that
 `VITE_DOTIFY_PRODUCT_CHAIN` encodes: "the `paseo` preset targets **paseo-next**
@@ -471,27 +477,26 @@ The current baseline is:
 | Component                                            | Pinned/target value                |
 | ---------------------------------------------------- | ---------------------------------- |
 | Node                                                 | 22                                 |
-| `@parity/product-sdk`                                | `0.23.0`                           |
-| `@parity/product-sdk-host`                           | `0.16.0`                           |
-| `@parity/product-sdk-statement-store`                | `0.6.5`                            |
-| `@parity/product-sdk-descriptors`                    | `0.10.0`                           |
+| `@parity/product-sdk`                                | `0.27.0`                           |
+| `@parity/product-sdk-host`                           | `0.19.1`                           |
+| `@parity/product-sdk-statement-store`                | `0.6.9`                            |
+| `@parity/product-sdk-descriptors`                    | `0.11.0`                           |
 | `polkadot-api`                                       | `1.23.3`                           |
-| `@polkadot-community-foundation/polkadot-app-deploy` | `0.13.1` in the deploy command     |
+| `@polkadot-community-foundation/polkadot-app-deploy` | `0.16.2` in the deploy command     |
 | Product network                                      | `devnet`                           |
 | Product domain                                       | `dotify-test01.dot`                |
 | Public gateway                                       | `https://dotify-test01.dev-dot.li` |
 | Asset Hub EVM chain ID                               | `420420417`                        |
 
-Checked against npm on 2026-08-30: npm now publishes Product SDK `0.25.0`,
-host `0.18.0`, statement-store `0.6.7`, and descriptors `0.11.0`. Dotify keeps
-the baseline above for this branch and defers that migration to a dedicated SDK
-compatibility PR. npm also publishes `polkadot-api` `3.0.0`, but Dotify keeps
-root PAPI on `1.23.3` for now. The current pinned Product SDK packages bring
-their own PAPI `2.2.x` tree, while `@polkadot-apps` chain-client/keys/signer
-still depend on PAPI `1.23.x`. A direct root PAPI 3 trial removed the public
-`PolkadotSigner` export and broke `ChainDefinition` / `TypedApi` compatibility
-at the Bulletin and wallet seams. Root PAPI 3 therefore remains a blocked
-compatibility migration until the upstream SDK graph converges.
+Checked against npm on 2026-09-12 after the Product DevNet registry/runtime
+refresh: the Product SDK package set above is current. npm also publishes
+`polkadot-api` `3.0.0`, but Dotify keeps root PAPI on `1.23.3` for now. Product
+SDK `0.27.0` brings its own PAPI `2.2.x` tree, while `@polkadot-apps`
+chain-client/keys/signer still depend on PAPI `1.23.x`. A direct root PAPI 3
+trial removed the public `PolkadotSigner` export and broke `ChainDefinition` /
+`TypedApi` compatibility at the Bulletin and wallet seams. Root PAPI 3
+therefore remains a blocked compatibility migration until the upstream SDK graph
+converges.
 
 For every SDK or deploy-tool upgrade:
 

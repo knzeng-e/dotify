@@ -299,9 +299,10 @@ unset, the web app falls back to local/demo browser-side Pinata upload and
 | ------------ | -------------------------------------- |
 | **Type**     | WebSocket URL                          |
 | **Required** | No                                     |
-| **Default**  | `wss://paseo-bulletin-rpc.polkadot.io` |
+| **Default**  | `wss://bulletin-paseo.tservices.es:8443` |
 
-Paseo Bulletin Chain RPC used when an artist enables Bulletin archival.
+Product DevNet Bulletin Chain RPC used when an artist enables Bulletin
+archival.
 
 ---
 
@@ -384,7 +385,7 @@ for encrypted audio fetches.
 | ------------ | ------------------------------------------------------------------ |
 | **Type**     | Comma-separated URL list                                           |
 | **Required** | No                                                                 |
-| **Default**  | `https://ipfs.io,https://dweb.link,https://paseo-ipfs.polkadot.io` |
+| **Default**  | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
 
 Fallback IPFS gateways tried after `VITE_PINATA_GATEWAY`. Put gateways that
 resolve the current catalog's public track CIDs before Product storage gateways;
@@ -560,6 +561,20 @@ Maximum listeners allowed in one room.
 
 Dev account used by web Bulletin scripts in local development or CI. Never use
 this as a production user fallback.
+
+---
+
+### `BULLETIN_GATEWAY_URL`
+
+| Property     | Value                                           |
+| ------------ | ----------------------------------------------- |
+| **Type**     | HTTP(S) URL prefix                              |
+| **Required** | No                                              |
+| **Default**  | `https://bulletin-kubo.tservices.es:9443/ipfs/` |
+
+Gateway URL prefix printed by `web/scripts/deploy-bulletin.cjs` after upload.
+It does not change the chain used for the upload; use `VITE_BULLETIN_WS_URL`
+for that.
 
 ---
 

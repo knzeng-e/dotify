@@ -39,11 +39,12 @@ function readCidIndex(): CidIndex | null {
 
 /// Community-operated ContractRegistry for the Product `devnet` preset, i.e. Paseo
 /// testnet Asset Hub (para 1000, EVM chain 420420417). Sourced from
-/// paritytech/contract-dependency-manager `src/lib/env/src/registry.ts`.
+/// docs.polkadotcommunity.foundation/reference/addresses after the September
+/// 2026 Product DevNet registry migration.
 ///
 /// Deliberately not the `paseo` preset registry: CDM's own docs note that `paseo`
 /// targets paseo-next (para 1500), a different network that holds no Dotify contracts.
-const DEVNET_REGISTRY_ADDRESS = '0x59b0245778917af55224e5f8fb55f7f8d452619f' as const;
+const DEVNET_REGISTRY_ADDRESS = '0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f' as const;
 
 const REGISTRY_ABI = [
   {

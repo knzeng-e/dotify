@@ -103,7 +103,7 @@ and the
 
 **Bulletin CID** — `bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny`
 
-**Gateway URL** — <https://paseo-ipfs.polkadot.io/ipfs/bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny>
+**Gateway URL** — <https://ipfs.io/ipfs/bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny>
 
 **DotNS name** — `dotify-test01.dev-dot.li`
 
@@ -128,7 +128,7 @@ Default ports:
 | Artist portal | <http://localhost:5273/artists>        |
 | Signaling     | <http://localhost:8788>                |
 | Backend API   | <http://localhost:8790>                |
-| Bulletin RPC  | `wss://paseo-bulletin-rpc.polkadot.io` |
+| Bulletin RPC  | `wss://bulletin-paseo.tservices.es:8443` |
 | Asset Hub RPC | <https://eth-rpc-testnet.polkadot.io/> |
 
 The app talks to Paseo Bulletin and Asset Hub directly from the browser. A local

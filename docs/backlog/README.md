@@ -44,11 +44,11 @@ Do not add ornamental product features until the following spine is stable:
 
 ## Sprint 2 — Product hardening and philosophical differentiation
 
-| Backlog doc                                      | GitHub issue | Status                                                                          | Goal                                     |
-| ------------------------------------------------ | ------------ | ------------------------------------------------------------------------------- | ---------------------------------------- |
+| Backlog doc                                      | GitHub issue | Status                                                                                                            | Goal                                     |
+| ------------------------------------------------ | ------------ | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | `10-observability-health-checks.md`              | #11          | Delivered on `main`; public signaling/env evidence closed through #36/#37, DAV2/gateway evidence continues in #88 | Observability and health checks          |
-| `11-proof-of-personhood-integration-research.md` | #12          | Open - rewrite against current Product SDK / Individuality host APIs before build | Proof of Personhood integration research |
-| `12-ambassador-social-propagation-model.md`      | #13          | Open - keep last until provenance, consent, and anti-abuse foundations exist       | Ambassador and social propagation model  |
+| `11-proof-of-personhood-integration-research.md` | #12          | Open - rewrite against current Product SDK / Individuality host APIs before build                                 | Proof of Personhood integration research |
+| `12-ambassador-social-propagation-model.md`      | #13          | Open - keep last until provenance, consent, and anti-abuse foundations exist                                      | Ambassador and social propagation model  |
 
 ## Design track - experience evolution
 
@@ -60,17 +60,17 @@ track-driven dark listening room. Constellation, Living Interface, and layered
 Thresholds remain design history unless a current ticket explicitly revives a
 specific pattern with real data.
 
-| Backlog doc                               | Status                                                                                         | Goal                                                                                                                                                                                                                                           |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `13-living-light-design-foundation.md`    | Delivered on `main`                                                                            | Aura engine, presence, dock, immersive-room presence, hero/typography/cover-fallback polish                                                                                                                                                    |
-| `14-one-link-room-creation-sheet.md`      | Delivered on `main`                                                                            | "As easy as sharing a link" room-create sheet over the existing createSession                                                                                                                                                                  |
-| `15-immersive-room-parity.md`             | Delivered (chat via #20)                                                                       | Room code pill + copy, access chips, sync note; the deferred chatter aside landed with `20-room-social-layer.md`                                                                                                                               |
-| `16-wallet-connected-identity-card.md`    | Delivered on `main`                                                                            | Calm connected-wallet identity card with real, non-fabricated stats                                                                                                                                                                            |
-| `17-artist-studio-living-light-parity.md` | Delivered on `main`                                                                            | Studio identity header, metric cards, sovereignty card, releases + support showcase                                                                                                                                                            |
-| `19-constellation-design-track.md`        | Phases A-C prototyped (see delivery notes)                                                     | Constellation direction: The Stage (aura lamp rail), Sky of rooms, micro-moments (`docs/design/dotify-constellation-ux.md`)                                                                                                                    |
-| `20-room-social-layer.md`                 | Delivered on `main` (PR #67)                                                                   | Broadcast reactions (attributed petals) + in-room chat over the signaling relay; 50-message in-room history, rate-limited, fail closed                                                                                                         |
-| `22-living-interface.md`                  | Delivered on `design/living-interface`                                                         | Living Interface: borders replaced by aura-tinted tonal layering, relaxed geometry, deep-glass floating layers, conversational chat bubbles, one breathing motion curve (`docs/design/dotify-living-interface.md`)                             |
-| `23-room-identity.md`                     | Layer 1 delivered on `feat/room-identity`                                                      | A pseudonym set once per wallet: off-chain per-address display name, auto-filled into room create/join; Layer 2 (link/QR join step) and on-chain handle registry are future (`docs/design/room-identity.md`)                                   |
+| Backlog doc                               | Status                                                                       | Goal                                                                                                                                                                                                                                                                                       |
+| ----------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `13-living-light-design-foundation.md`    | Delivered on `main`                                                          | Aura engine, presence, dock, immersive-room presence, hero/typography/cover-fallback polish                                                                                                                                                                                                |
+| `14-one-link-room-creation-sheet.md`      | Delivered on `main`                                                          | "As easy as sharing a link" room-create sheet over the existing createSession                                                                                                                                                                                                              |
+| `15-immersive-room-parity.md`             | Delivered (chat via #20)                                                     | Room code pill + copy, access chips, sync note; the deferred chatter aside landed with `20-room-social-layer.md`                                                                                                                                                                           |
+| `16-wallet-connected-identity-card.md`    | Delivered on `main`                                                          | Calm connected-wallet identity card with real, non-fabricated stats                                                                                                                                                                                                                        |
+| `17-artist-studio-living-light-parity.md` | Delivered on `main`                                                          | Studio identity header, metric cards, sovereignty card, releases + support showcase                                                                                                                                                                                                        |
+| `19-constellation-design-track.md`        | Phases A-C prototyped (see delivery notes)                                   | Constellation direction: The Stage (aura lamp rail), Sky of rooms, micro-moments (`docs/design/dotify-constellation-ux.md`)                                                                                                                                                                |
+| `20-room-social-layer.md`                 | Delivered on `main` (PR #67)                                                 | Broadcast reactions (attributed petals) + in-room chat over the signaling relay; 50-message in-room history, rate-limited, fail closed                                                                                                                                                     |
+| `22-living-interface.md`                  | Delivered on `design/living-interface`                                       | Living Interface: borders replaced by aura-tinted tonal layering, relaxed geometry, deep-glass floating layers, conversational chat bubbles, one breathing motion curve (`docs/design/dotify-living-interface.md`)                                                                         |
+| `23-room-identity.md`                     | Layer 1 delivered on `feat/room-identity`                                    | A pseudonym set once per wallet: off-chain per-address display name, auto-filled into room create/join; Layer 2 (link/QR join step) and on-chain handle registry are future (`docs/design/room-identity.md`)                                                                               |
 | `25-thresholds-functional-v1.md`          | Delivered on `main` by merged PR #92; follow-up validation passed 2026-07-14 | `Shared Score` IA with Living Light presentation over the real room-link threshold, retired-preview copy cleanup, multi-recipient royalty splits, and production-spine security hardening (`docs/design/dotify-shared-score.md`; original rationale in `docs/design/dotify-thresholds.md`) |
 
 Delivered before the #92 consolidation: album-aura engine, aura-colored cover
@@ -85,8 +85,8 @@ Deferred (needs a backend channel, deliberately not faked): persisted room mood.
 
 ## Dotify v2 - strategic pivot
 
-| Backlog doc                 | Status                                                                                                                                                                | Goal                                                                                                                                                                                                                                                                                           |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backlog doc                 | Status                                                                                                                                                                        | Goal                                                                                                                                                                                                                                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `24-access-streaming-v2.md` | P1/P2 delivered; P3 DAV2 vertical slice and bounded read-ahead delivered; real-browser/gateway validation remains (design in `docs/design/dotify-v2-access-and-streaming.md`) | Remove the 42% preview; three-mode artist policy (free / paid / human-free via Proof of Personhood); sign-once session auth for key delivery; encrypted chunked streaming (`dotify.audio.v2`) for fast starts; Product SDK / Playground / Humanity feasibility as a later host-integration track |
 
 Ticket 24 supersedes the preview-based rows above: the 42% doctrine and the
@@ -94,10 +94,10 @@ ticket 18 preview assets are consciously retired by access model v2.
 
 ## Active production execution
 
-| Backlog doc | GitHub issue | Status | Goal |
-| --- | --- | --- | --- |
-| `26-cached-catalog-read-model.md` | #86 | Closed / Record | One cacheable catalog request backed by confirmed events and deterministic reconciliation |
-| `24-access-streaming-v2.md` | #88 | In Review | Validate DAV2 startup across real browsers, devices, and gateways |
+| Backlog doc                       | GitHub issue | Status          | Goal                                                                                      |
+| --------------------------------- | ------------ | --------------- | ----------------------------------------------------------------------------------------- |
+| `26-cached-catalog-read-model.md` | #86          | Closed / Record | One cacheable catalog request backed by confirmed events and deterministic reconciliation |
+| `24-access-streaming-v2.md`       | #88          | In Review       | Validate DAV2 startup across real browsers, devices, and gateways                         |
 
 ## Strategic improvement plan
 
@@ -115,13 +115,12 @@ decisions. Product-signed key/session verification now exists through
 explicit Product account connection. Live host evidence remains required before
 Product identity can be treated as broadly proven across devices.
 
-The Product SDK evidence snapshot used for this replanning currently pins
-`@parity/product-sdk` 0.23.0 and
-`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1. npm was rechecked
-on 2026-08-30 and now publishes Product SDK 0.25.0; that migration is deferred
-to a dedicated compatibility PR. The Product SDK set remains prototype /
-reference / unaudited code. Root `polkadot-api` 3.0.0 exists but is not yet
-adopted because the current pinned Product SDK packages use PAPI 2.2.x and
+The Product SDK evidence snapshot used for this replanning now pins
+`@parity/product-sdk` 0.27.0 and
+`@polkadot-community-foundation/polkadot-app-deploy` 0.16.2 after the September
+2026 Product DevNet DotNS/CDM/descriptors refresh. The Product SDK set remains
+prototype / reference / unaudited code. Root `polkadot-api` 3.0.0 exists but is
+not yet adopted because the current Product SDK packages use PAPI 2.2.x and
 `@polkadot-apps` packages use PAPI 1.23.x, so a single PAPI 3 root breaks
 Dotify's Bulletin/wallet type seams.
 Product SDK contracts target `pallet-revive` / PolkaVM CDM flows, not Dotify's

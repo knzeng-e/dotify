@@ -35,7 +35,12 @@ const READ_GATEWAYS = (import.meta.env.VITE_IPFS_READ_GATEWAYS as string | undef
   ?.split(',')
   .map(gateway => gateway.trim())
   .filter(Boolean);
-const FALLBACK_GATEWAYS = ['https://ipfs.io', 'https://dweb.link', 'https://paseo-ipfs.polkadot.io'];
+const FALLBACK_GATEWAYS = [
+  'https://ipfs.io',
+  'https://dweb.link',
+  'https://devnet-ipfs.api.polkadotcommunity.foundation',
+  'https://bulletin-kubo.tservices.es:9443'
+];
 const AUDIO_READ_TIMEOUT_MS = 20_000;
 const AUDIO_READ_HEDGE_DELAY_MS = 8_000;
 

@@ -3,16 +3,15 @@
 Status: active execution note; the Product DevNet baseline is delivered on
 `dev` and remains tracked through Product compatibility issue #85.
 
-Last Product SDK package check: 2026-08-30. Dotify currently pins
-`@parity/product-sdk` 0.23.0, host 0.16.0, statement-store 0.6.5,
-descriptors 0.10.0, and
-`@polkadot-community-foundation/polkadot-app-deploy` 0.13.1. npm now publishes
-Product SDK 0.25.0, host 0.18.0, statement-store 0.6.7, and descriptors 0.11.0;
-that upgrade is deferred to a dedicated compatibility PR. npm also publishes
-`polkadot-api` 3.0.0, but Dotify keeps root PAPI on 1.23.3 because the current
-Product SDK packages use PAPI 2.2.x and `@polkadot-apps`
-chain-client/keys/signer use PAPI 1.23.x. Root PAPI 3 remains blocked until
-the official SDK graph converges.
+Last Product SDK package check: 2026-09-12. Dotify currently pins
+`@parity/product-sdk` 0.27.0, host 0.19.1, statement-store 0.6.9,
+descriptors 0.11.0, and
+`@polkadot-community-foundation/polkadot-app-deploy` 0.16.2. This aligns the
+Product app bundle and descriptors with the September 2026 Product DevNet
+DotNS/CDM registry refresh. npm also publishes `polkadot-api` 3.0.0, but
+Dotify keeps root PAPI on 1.23.3 because the current Product SDK packages use
+PAPI 2.2.x and `@polkadot-apps` chain-client/keys/signer use PAPI 1.23.x. Root
+PAPI 3 remains blocked until the official SDK graph converges.
 
 ## Verdict
 
@@ -282,7 +281,7 @@ Use this workflow to keep the board and local backlog synchronized:
    cards.
 6. PRs run `node scripts/backlog-sync.mjs --check --offline`.
 7. Manual/scheduled project audits run `node scripts/backlog-sync.mjs --check
-   --live` with a user-scoped `PROJECT_SYNC_TOKEN`.
+--live` with a user-scoped `PROJECT_SYNC_TOKEN`.
 8. Closing an issue moves it to Done; reopening moves it to Todo; labels and
    Project fields identify track, phase, type, priority, and source doc.
 

@@ -20,7 +20,7 @@
 		"build:product-devnet:beacons": "VITE_DOTIFY_ROOM_BEACONS=on npm run build:product-devnet",
 		"deploy:bulletin": "node scripts/deploy-bulletin.cjs",
 		"deploy:product-devnet:check-mnemonic": "node -e \"if (!process.env.MNEMONIC?.trim()) { console.error('MNEMONIC is required for Product DevNet deploy. Export the DotNS owner mnemonic before running npm run deploy:product-devnet.'); process.exit(1); }\"",
-		"deploy:product-devnet": "npm run deploy:product-devnet:check-mnemonic && npm run build:product-devnet && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@0.13.1 pad ./dist-product dotify-test01.dot --env devnet --js-merkle --config ./polkadot-app-deploy.config.ts --mnemonic \"$MNEMONIC\" --no-transfer-to-signedin-user",
+		"deploy:product-devnet": "npm run deploy:product-devnet:check-mnemonic && npm run build:product-devnet && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@0.16.2 pad ./dist-product dotify-test01.dot --env devnet --js-merkle --config ./polkadot-app-deploy.config.ts --mnemonic \"$MNEMONIC\" --no-transfer-to-signedin-user",
 		"deploy:product-devnet:beacons": "VITE_DOTIFY_ROOM_BEACONS=on npm run deploy:product-devnet",
 		"smoke:production-env": "node scripts/production-env-smoke.mjs",
 		"smoke:devnet": "node scripts/devnet-endpoint-smoke.mjs",
@@ -38,10 +38,10 @@
 		"preview": "vite preview --host 0.0.0.0 --port 4273"
 	},
 	"dependencies": {
-		"@parity/product-sdk": "0.23.0",
-		"@parity/product-sdk-descriptors": "0.10.0",
-		"@parity/product-sdk-host": "0.16.0",
-		"@parity/product-sdk-statement-store": "0.6.5",
+		"@parity/product-sdk": "0.27.0",
+		"@parity/product-sdk-descriptors": "0.11.0",
+		"@parity/product-sdk-host": "0.19.1",
+		"@parity/product-sdk-statement-store": "0.6.9",
 		"@polkadot-api/descriptors": "file:.papi/descriptors",
 		"@polkadot-apps/chain-client": "^2.0.5",
 		"@polkadot-apps/descriptors": "^1.0.1",

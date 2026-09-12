@@ -37,17 +37,19 @@ describe('getGatewayUrlsForAssetRef', () => {
       'https://gateway.pinata.cloud/ipfs/QmCoverCid',
       'https://ipfs.io/ipfs/QmCoverCid',
       'https://dweb.link/ipfs/QmCoverCid',
-      'https://paseo-ipfs.polkadot.io/ipfs/QmCoverCid'
+      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmCoverCid',
+      'https://bulletin-kubo.tservices.es:9443/ipfs/QmCoverCid'
     ]);
   });
 
   it('keeps an existing gateway URL first and appends other gateway fallbacks', async () => {
     const { getGatewayUrlsForAssetRef } = await loadPinataService();
-    expect(getGatewayUrlsForAssetRef('https://paseo-ipfs.polkadot.io/ipfs/QmCoverCid')).toEqual([
-      'https://paseo-ipfs.polkadot.io/ipfs/QmCoverCid',
+    expect(getGatewayUrlsForAssetRef('https://bulletin-kubo.tservices.es:9443/ipfs/QmCoverCid')).toEqual([
+      'https://bulletin-kubo.tservices.es:9443/ipfs/QmCoverCid',
       'https://gateway.pinata.cloud/ipfs/QmCoverCid',
       'https://ipfs.io/ipfs/QmCoverCid',
-      'https://dweb.link/ipfs/QmCoverCid'
+      'https://dweb.link/ipfs/QmCoverCid',
+      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmCoverCid'
     ]);
   });
 
@@ -66,7 +68,8 @@ describe('getGatewayUrlsForAssetRef', () => {
       'https://ipfs.io/ipfs/QmCoverCid',
       'https://gateway.pinata.cloud/ipfs/QmCoverCid',
       'https://dweb.link/ipfs/QmCoverCid',
-      'https://paseo-ipfs.polkadot.io/ipfs/QmCoverCid'
+      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmCoverCid',
+      'https://bulletin-kubo.tservices.es:9443/ipfs/QmCoverCid'
     ]);
   });
 });
@@ -93,11 +96,11 @@ describe('fetchAssetRef', () => {
     const { fetchAssetRef } = await loadPinataService();
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(new Response('ok'));
 
-    const response = await fetchAssetRef('https://paseo-ipfs.polkadot.io/ipfs/QmAudioCid');
+    const response = await fetchAssetRef('https://bulletin-kubo.tservices.es:9443/ipfs/QmAudioCid');
 
     expect(await response.text()).toBe('ok');
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      'https://paseo-ipfs.polkadot.io/ipfs/QmAudioCid',
+      'https://bulletin-kubo.tservices.es:9443/ipfs/QmAudioCid',
       'https://gateway.pinata.cloud/ipfs/QmAudioCid'
     ]);
   });

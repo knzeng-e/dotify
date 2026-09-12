@@ -4,6 +4,18 @@ This runbook publishes the Product build to Bulletin/DotNS and connects it to
 the existing Fly API and signaling services. It does not deploy contracts or
 change production secrets.
 
+## September 2026 Product DevNet Platform Refresh
+
+The Product DevNet update published on 2026-09-08/2026-09-09 moved DotNS to a
+new contract set, moved CDM `ContractRegistry` to
+`0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f`, and required fresh chain
+descriptors after runtime upgrades. Dotify must therefore publish Product app
+bundles with `@polkadot-community-foundation/polkadot-app-deploy@0.16.2` or
+newer, publish CDM names against the new registry, and keep the checked-in
+Bulletin descriptor pinned to the current DevNet runtime. Older `pad`/DotNS
+tooling can report a successful publish while writing to retired contracts that
+new Product hosts no longer observe.
+
 ## Frontend Publish Does Not Deploy Contracts
 
 Product DevNet is a preset over the Paseo system parachains - Asset Hub (1000),
@@ -76,6 +88,13 @@ Dotify has no contracts there, and the catalog would load empty.
 Separate from the frontend publish below, and only needed when the contracts or
 their ABIs change.
 
+Dotify's default CDM registry is the current Product DevNet `ContractRegistry`
+at `0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f`. Do not publish new
+`@dotify/*` versions to the retired registry
+`0x59b0245778917af55224e5f8fb55f7f8d452619f`; it remains readable but new
+post-snapshot versions registered there do not appear in the refreshed Product
+DevNet registry.
+
 The registry stores `(name -> address)` and `(name -> metadata_uri)`. Without
 the second, another product can resolve where Dotify's contracts are but not
 what they expose, so `cdm install` fails and the registration is nominal.
@@ -142,7 +161,7 @@ Use `-n devnet`, never `-n paseo`: the `paseo` preset targets paseo-next
 - a clean build from the intended commit
 - access to the `dotify-test01.dot` deployment account
 - Fly access for `dotify-api` and `dotify-signal`
-- the current `@polkadot-community-foundation/polkadot-app-deploy` DevNet prerequisites
+- the current `@polkadot-community-foundation/polkadot-app-deploy` DevNet prerequisites (`0.16.2` is the pinned Dotify deploy CLI)
 
 The CLI is reference/experimental tooling. Do not store a mnemonic in the
 repository, shell history, `.env` files, Netlify, or Fly.
@@ -361,9 +380,10 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 14]`. This version keeps blocked
+The current Product executable is `[0, 1, 15]`. This version keeps blocked
 guest audio recovery visible in Product-hosted rooms and exposes W05 runtime
-claim writes through the shared runtime writer port. Product
+claim writes through the shared runtime writer port, while using the refreshed
+September 2026 Product SDK/tooling and re-pinned Bulletin descriptor. Product
 host containers use Engine.IO Fetch polling without a WebSocket upgrade, so
 room signaling stays on the remote-network primitive proven to remain available
 in Product Mobile. Standalone browsers retain Fetch-first with an optional
@@ -437,11 +457,10 @@ rotated DevNet/static fallback credentials; they are public inside the Product
 bundle and require a Product republish when changed.
 
 Publisher listing is deliberately not part of the default deploy. It requires
-the current Product proof-of-personhood level and signer support, and the
-0.13.1 CLI help still describes environment-specific limitations. After the
-app URL is verified, follow the current official **List it in Browse** guide
-and record that result separately. A listing failure must not obscure a
-successful static deployment.
+the current Product proof-of-personhood level and signer support. After the app
+URL is verified, follow the current official **List it in Browse** guide and
+record that result separately. A listing failure must not obscure a successful
+static deployment.
 
 Record the commit, CLI version, resulting CID, DotNS transaction references,
 and final public URL in the release evidence.

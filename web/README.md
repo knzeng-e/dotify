@@ -39,7 +39,7 @@ Useful environment variables:
   `VITE_PUBLIC_APP_URL`: Product-host detection, app-scoped account identifier,
   and canonical room-link origin.
 - `VITE_LOCAL_WS_URL` / `VITE_LOCAL_ETH_RPC_URL`: local development endpoints.
-- `VITE_BULLETIN_WS_URL`: Paseo Bulletin Chain RPC.
+- `VITE_BULLETIN_WS_URL`: Product DevNet Bulletin Chain RPC.
 - `VITE_PINATA_JWT`: restricted browser-exposed Pinata JWT for demo uploads
   when `VITE_DOTIFY_API_URL` is unset.
 - `VITE_PINATA_GATEWAY`: primary gateway used when rendering IPFS assets.
@@ -173,13 +173,14 @@ can be distributed from a flat IPFS CID / DotNS record.
 
 `build:product-devnet` produces `dist-product` with the checked-in
 `.env.product-devnet` profile. `deploy:product-devnet` uses
-`@polkadot-community-foundation/polkadot-app-deploy@0.13.1` through `npx`, uploads static chunks to
-Product DevNet Bulletin, and binds `dotify-test01.dot`. Browse listing is a separate
-operator step because it has its own signer/personhood boundary. The Product account currently
-provides app-scoped identity for presence and rooms in the shipped UI. The API
-can verify `product-sr25519-v1` key/session requests, but the frontend still
-uses the existing passkey/EVM signer until host-signed request wiring lands.
-Contract writes also remain on the passkey/EVM path.
+`@polkadot-community-foundation/polkadot-app-deploy@0.16.2` through `npx`,
+uploads static chunks to Product DevNet Bulletin, and binds `dotify-test01.dot`
+through the post-September 2026 DotNS tooling. Browse listing is a separate
+operator step because it has its own signer/personhood boundary. The Product
+account currently provides app-scoped identity for presence and rooms in the
+shipped UI. The API can verify `product-sr25519-v1` key/session requests, but
+native Product contract writes remain opt-in behind `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`
+until live host payment evidence is recorded.
 
 See
 [`docs/explanation/product-devnet-architecture.md`](../docs/explanation/product-devnet-architecture.md)

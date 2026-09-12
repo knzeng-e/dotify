@@ -4,7 +4,7 @@ export const LOCAL_WS_URL = import.meta.env.VITE_LOCAL_WS_URL || 'ws://localhost
 export const LOCAL_ETH_RPC_URL = import.meta.env.VITE_LOCAL_ETH_RPC_URL || 'http://localhost:8545';
 export const TESTNET_WS_URL = 'wss://services.polkadothub-rpc.com/testnet';
 export const TESTNET_ETH_RPC_URL = 'https://eth-rpc-testnet.polkadot.io/';
-export const BULLETIN_WS_URL = import.meta.env.VITE_BULLETIN_WS_URL || 'wss://paseo-bulletin-rpc.polkadot.io';
+export const BULLETIN_WS_URL = import.meta.env.VITE_BULLETIN_WS_URL || 'wss://bulletin-paseo.tservices.es:8443';
 
 export type NetworkPreset = 'local' | 'testnet';
 
