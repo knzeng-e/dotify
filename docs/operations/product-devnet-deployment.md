@@ -4,13 +4,55 @@ This runbook publishes the Product build to Bulletin/DotNS and connects it to
 the existing Fly API and signaling services. It does not deploy contracts or
 change production secrets.
 
-## Contracts Need No Redeploy
+## Frontend Publish Does Not Deploy Contracts
 
 Product DevNet is a preset over the Paseo system parachains - Asset Hub (1000),
 People (1004), Bulletin (1010) - at EVM chain `420420417`. Dotify's contracts
-are already deployed on that chain, so porting to DevNet is a configuration
-change, not a migration. The addresses in `deployments.json` are DevNet
-addresses.
+live on that chain. Publishing the Product frontend is therefore separate from
+deploying or upgrading contracts, and the addresses in `deployments.json` must
+already point at the intended DevNet contracts.
+
+When a change modifies contract code or ABI, deploy or upgrade the affected
+contracts first, then regenerate the Product CDM manifest and metadata before
+publishing the frontend. W05 changes `MusicRoyaltiesPallet` by adding
+claimable-recipient settlement, so existing artist runtimes need a royalties
+facet cut or a clean factory/runtime redeploy before native Classic payments are
+treated as W05-ready. `npm run smoke:devnet` checks configured chain/bytecode
+availability; it does not prove every runtime has the new selectors installed.
+
+Prefer the in-place facet cut when the current artist runtime is owned by the
+artist wallet. It keeps the runtime address, protected-audio key binding,
+catalogue storage, paid-access state, and claimable balances intact:
+
+```bash
+cd contracts/evm
+npm run runtime:export:testnet -- --runtime <RUNTIME> --recipient <ARTIST_OR_SPLIT_RECIPIENT> --out /tmp/dotify-runtime-snapshot.json
+npm run runtime:deploy-royalties-facet:testnet
+npm run runtime:deploy-royalties-facet:testnet -- --execute --confirm-chain-id 420420417 --confirm-code-hash <LOCAL_CODE_HASH> --out /tmp/dotify-royalties-facet.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <RUNTIME> --facet <NEW_ROYALTIES_FACET> --out /tmp/dotify-royalties-upgrade-plan.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <RUNTIME> --facet <NEW_ROYALTIES_FACET> --execute --confirm-plan <PLAN_DIGEST> --out /tmp/dotify-royalties-upgrade-final.json
+```
+
+The facet deploy and runtime upgrade commands are dry-run by default. A
+code-hash mismatch means the target facet is still an older on-chain deployment
+or an unrelated contract; deploy the current `MusicRoyaltiesPallet` facet first,
+then pass the manifest's `facet` address to the upgrade command with `--facet`.
+The deploy command never edits `deployments.json`, and the upgrade command
+refuses execution without a fresh plan digest plus an evidence file. Clean
+redeploy is a fallback:
+
+If a command writes an evidence file and then fails before the manifest reaches
+`signed-before-broadcast`, no transaction was signed or broadcast by that task.
+Inspect the file, then retry with a new `--out` path or remove the stale
+prepared manifest.
+
+```bash
+npm run runtime:migration-plan -- --snapshot <SNAPSHOT> --target-runtime <NEW_RUNTIME> --out <PLAN>
+```
+
+Use that command to render replay calldata, but do not treat it as a state
+migration. It does not move paid-access grants or claimable balances, and
+encrypted `dotify:enc:v2:` audio must be re-encrypted for the new runtime.
 
 Confirm before every publish:
 
@@ -319,9 +361,9 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 13]`. This version keeps blocked
-guest audio recovery visible in Product-hosted rooms, so a listener whose first
-remote stream `play()` call is blocked can still press `Start audio`. Product
+The current Product executable is `[0, 1, 14]`. This version keeps blocked
+guest audio recovery visible in Product-hosted rooms and exposes W05 runtime
+claim writes through the shared runtime writer port. Product
 host containers use Engine.IO Fetch polling without a WebSocket upgrade, so
 room signaling stays on the remote-network primitive proven to remain available
 in Product Mobile. Standalone browsers retain Fetch-first with an optional
@@ -496,6 +538,7 @@ Then verify in the Product host:
 
    In every rejected case, playback must stop and offer a passkey/EVM wallet.
    No path may release a key without a verified signature.
+
 6. Only for an explicit Product CDM write smoke build, set
    `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` and
    `VITE_DOTIFY_DEBUG_PANEL=true`, then use a funded Product account that has
@@ -520,7 +563,7 @@ Then verify in the Product host:
    - the backend then releases the full key through the same Product identity.
 
    After the unlock attempt, open `You` -> `Production readiness` -> `Product
-   CDM host smoke`, mark **Host approval prompt captured** if the host showed
+CDM host smoke`, mark **Host approval prompt captured** if the host showed
    an explicit transaction approval, then copy or download the smoke JSON. The
    JSON is stored only in browser session storage and deliberately excludes
    content keys, signatures, nonces, and session tokens. Attach it with the
@@ -532,6 +575,7 @@ Then verify in the Product host:
    `product-cdm` build must report **Payment included, access not verified**
    with the transaction hash instead of marking the track open.
    Keep the shipped profile on `viem`.
+
 7. A Product-origin host creates a room and copies a
    `https://dotify-test01.dev-dot.li/#/rooms/<code>` link.
 8. A wallet-free browser joins that link from outside the Product host.
@@ -540,8 +584,8 @@ Then verify in the Product host:
    not room creation.
 10. A Netlify-origin host and Product-origin guest also connect.
 11. Briefly interrupting the mobile network preserves and resumes the same room
-   within 120 seconds; it must disappear from public discovery while the host
-   is offline and return with the same code after reconnecting.
+    within 120 seconds; it must disappear from public discovery while the host
+    is offline and return with the same code after reconnecting.
 12. Explicitly leaving ends the room immediately. Force-closing the host leaves
     the room private until the 120-second resume window expires.
 
@@ -646,16 +690,17 @@ active.
   step for `product-sr25519-v1` records which shape the live host actually
   produced - that observation is the evidence, and until it is captured the
   accepted set stays deliberately wide.
-- Contract writes still require passkey/EVM signing in the shipped UI. The
-  Product CDM/PAPI runtime adapter now has its generated manifest, contract
-  types, and a live resolver, so the only thing still missing before it can be
-  selected is real host-signed transaction evidence. Dotify now validates that
-  the selected Product host signer public key maps to the same `pallet-revive`
-  H160 account used by the connected Product identity before a CDM write can be
-  submitted, and Product CDM Classic unlocks poll `musicAccHasPaid` and
-  `musicAccCanAccess` for that H160 account before surfacing success. If the
-  payment was included but verification fails, the UI preserves the transaction
-  hash in the error state.
+- Contract writes use the shared runtime writer port, with viem still selected
+  for the tracked deployment. The Product CDM/PAPI runtime adapter now has its
+  generated manifest, contract types, live resolver, signer-account mapping
+  checks, Classic unlock write path, and W05 royalty claim write path. It still
+  needs real host-signed transaction evidence before Product CDM becomes the
+  default. Dotify validates that the selected Product host signer public key
+  maps to the same `pallet-revive` H160 account used by the connected Product
+  identity before a CDM write can be submitted, and Product CDM Classic unlocks
+  poll `musicAccHasPaid` and `musicAccCanAccess` for that H160 account before
+  surfacing success. If the payment was included but verification fails, the UI
+  preserves the transaction hash in the error state.
 - Rooms still depend on one in-memory Fly signaling machine.
 - Product-host cloud storage does not hold Dotify audio or content keys.
 - Product personhood is not yet an access decision source.
@@ -665,5 +710,7 @@ active.
   catalog reads and runtime write submissions inside the Product host. The
   tracked deployment still keeps the default `viem` adapter until
   native value forwarding, host approval UX, and successful post-payment
-  read-back evidence are captured. Use `VITE_DOTIFY_DEBUG_PANEL=true` on that
-  smoke build to export the Product CDM host evidence JSON.
+  read-back evidence are captured. Product payment history is still not exposed
+  by the current Product contract handle API, so the full royalty settlement
+  ledger needs an event/indexer source. Use `VITE_DOTIFY_DEBUG_PANEL=true` on
+  that smoke build to export the Product CDM host evidence JSON.

@@ -157,14 +157,15 @@ Required Product values:
 | `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                                                            |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 13]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 14]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 13]` carries the Product room guest audio recovery fix.
+Version `[0, 1, 14]` carries the Product room guest audio recovery fix and the
+W05 royalty claim runtime writer path.
 
 Current Product host SDK dependencies:
 
@@ -365,6 +366,17 @@ artists and zero releases. If `GET /api/catalog` still returns runtime
 `0x84D5062F2195758E42100845151c3f80BfAA5482` or blocks near `11269xxx`, the
 hosted API is still serving the previous environment.
 
+W05 changes the `MusicRoyaltiesPallet` ABI and appends claimable-recipient
+storage under the existing namespaced Diamond storage slot. New factory
+deployments install the claim selectors automatically. Existing artist runtimes
+need a royalties facet cut that replaces `musicRoyPayAccess` and adds
+`musicRoyClaimable(address)` plus `musicRoyClaim(address)` before native
+Classic payments are enabled on that runtime. There is no new environment
+variable for this behavior. Rollback before any W05 payment can reinstall the
+previous royalties facet; rollback after W05 payments may have created
+claimable balances must keep a claim-capable facet available until those
+balances are settled or explicitly migrated.
+
 TURN relay variables:
 
 | Key                                 | Default | When to set                                                                                                                                                                   |
@@ -412,7 +424,10 @@ pallet-revive H160 address that Dotify connected for key/session requests, and
 Classic unlocks in a `product-cdm` build must poll `musicAccHasPaid` plus
 `musicAccCanAccess` for that H160 before showing success. If the transaction is
 included but verification fails, Dotify preserves the transaction hash in a
-**Payment included, access not verified** error. Enable
+**Payment included, access not verified** error. Royalty claim writes use the
+same adapter boundary through `musicRoyClaim(activeEvmAddress)`, but payment
+history still needs an event/indexer source before Product can show the full
+settlement ledger. Enable
 `VITE_DOTIFY_DEBUG_PANEL=true` only on that smoke build to export the safe
 browser-side evidence bundle with `amountPlanck`, payment read-back, Product
 sr25519 key/session outcomes, and the operator-marked host approval observation.

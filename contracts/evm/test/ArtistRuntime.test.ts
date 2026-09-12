@@ -52,6 +52,26 @@ function selectorsFromAbi(abi: Abi): `0x${string}`[] {
 const TRACK_HASH = keccak256(toBytes('dotify:track:001')) as `0x${string}`;
 const TRACK_HASH2 = keccak256(toBytes('dotify:track:002')) as `0x${string}`;
 const musicRoyRefundedEvent = parseAbiItem('event MusicRoyRefunded(bytes32 indexed contentHash, address indexed listener, uint256 amount)');
+const musicRoyRoyaltyPaidEvent = parseAbiItem(
+  'event MusicRoyRoyaltyPaid(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount)'
+);
+const musicRoyRoyaltyPayoutFailedEvent = parseAbiItem(
+  'event MusicRoyRoyaltyPayoutFailed(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount)'
+);
+const musicRoyRoyaltyClaimableEvent = parseAbiItem(
+  'event MusicRoyRoyaltyClaimable(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount, uint256 pendingTotal)'
+);
+const musicRoyRoyaltyClaimedEvent = parseAbiItem('event MusicRoyRoyaltyClaimed(address indexed recipient, uint256 amount)');
+const musicRoyRoyaltyClaimFailedEvent = parseAbiItem('event MusicRoyRoyaltyClaimFailed(address indexed recipient, uint256 amount)');
+
+async function expectRevertMessage(promise: Promise<unknown>, fragment: string) {
+  try {
+    await promise;
+    expect.fail('Should have reverted');
+  } catch (e: unknown) {
+    expect((e as Error).message).to.include(fragment);
+  }
+}
 
 function sampleRegistration(
   overrides: Partial<{
@@ -840,6 +860,67 @@ describe('Forkless upgrade — artist replaces their music pallets', () => {
     expect(await access.read.musicAccCanAccess([TRACK_HASH, ctx.listener.account.address])).to.equal(false);
   });
 
+  it('replaces royalties pallet and adds claim selectors without losing splits or paid access', async () => {
+    const ctx = await loadFixture(deployDotifySystemFixture);
+    await createArtistRuntime(ctx.factory, ctx.artistA);
+    const runtimeAddr = (await ctx.directory.read.runtimeOf([ctx.artistA.account.address])) as `0x${string}`;
+    const price = parseEther('0.5');
+
+    const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtimeAddr, { client: { wallet: ctx.artistA } });
+    const royalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', runtimeAddr);
+    const access = await hre.viem.getContractAt('MusicAccessPallet', runtimeAddr);
+    const loupe = await hre.viem.getContractAt('DiamondLoupePallet', runtimeAddr);
+    const replacementArtifact = await hre.artifacts.readArtifact('MusicRoyaltiesPallet');
+    const existingSelectors = ['musicRoyPayAccess', 'musicRoyRecordListen', 'musicRoySplitCount', 'musicRoySplitAt', 'musicRoyTotalBps'].map(name =>
+      toFunctionSelector((replacementArtifact.abi as Abi).find(item => item.type === 'function' && item.name === name) as AbiFunction)
+    );
+    const claimSelectors = ['musicRoyClaimable', 'musicRoyClaim'].map(name =>
+      toFunctionSelector((replacementArtifact.abi as Abi).find(item => item.type === 'function' && item.name === name) as AbiFunction)
+    );
+
+    await registry.write.musicRegRegister([sampleRegistration({ pricePlanck: price }), [ctx.royaltyRecip.account.address], [8_000]]);
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', runtimeAddr, { client: { wallet: ctx.listener } });
+    await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: price });
+
+    const before = {
+      splitCount: await royalties.read.musicRoySplitCount([TRACK_HASH]),
+      split: await royalties.read.musicRoySplitAt([TRACK_HASH, 0n]),
+      totalBps: await royalties.read.musicRoyTotalBps([TRACK_HASH]),
+      claimable: await royalties.read.musicRoyClaimable([ctx.royaltyRecip.account.address]),
+      hasPaid: await access.read.musicAccHasPaid([TRACK_HASH, ctx.listener.account.address]),
+      canAccess: await access.read.musicAccCanAccess([TRACK_HASH, ctx.listener.account.address])
+    };
+
+    const cut = await hre.viem.getContractAt('DiamondCutPallet', runtimeAddr, { client: { wallet: ctx.artistA } });
+    await cut.write.diamondCut([[{ facetAddress: ZERO_ADDR, action: FacetCutAction.Remove, functionSelectors: claimSelectors }], ZERO_ADDR, '0x']);
+    for (const selector of claimSelectors) {
+      expect((await loupe.read.facetAddress([selector])).toLowerCase()).to.equal(ZERO_ADDR);
+    }
+
+    const replacement = await hre.viem.deployContract('MusicRoyaltiesPallet');
+    const replacementSelectors = selectorsFromAbi(replacementArtifact.abi as Abi);
+
+    await cut.write.diamondCut([
+      [
+        { facetAddress: replacement.address, action: FacetCutAction.Replace, functionSelectors: existingSelectors },
+        { facetAddress: replacement.address, action: FacetCutAction.Add, functionSelectors: claimSelectors }
+      ],
+      ZERO_ADDR,
+      '0x'
+    ]);
+
+    for (const selector of replacementSelectors) {
+      expect((await loupe.read.facetAddress([selector])).toLowerCase()).to.equal(replacement.address.toLowerCase());
+    }
+
+    expect(await royalties.read.musicRoySplitCount([TRACK_HASH])).to.equal(before.splitCount);
+    expect(await royalties.read.musicRoySplitAt([TRACK_HASH, 0n])).to.deep.equal(before.split);
+    expect(await royalties.read.musicRoyTotalBps([TRACK_HASH])).to.equal(before.totalBps);
+    expect(await royalties.read.musicRoyClaimable([ctx.royaltyRecip.account.address])).to.equal(before.claimable);
+    expect(await access.read.musicAccHasPaid([TRACK_HASH, ctx.listener.account.address])).to.equal(before.hasPaid);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, ctx.listener.account.address])).to.equal(before.canAccess);
+  });
+
   it('hotfixes only musicRegRegister, preserves runtime state, and rejects outsider registration', async () => {
     const ctx = await loadFixture(deployDotifySystemFixture);
     await createArtistRuntime(ctx.factory, ctx.artistA);
@@ -1025,6 +1106,191 @@ describe('MusicRoyaltiesPallet — payment security', () => {
     expect(refundEvents[0].args.contentHash).to.equal(TRACK_HASH);
     expect(refundEvents[0].args.listener?.toLowerCase()).to.equal(listener.account.address.toLowerCase());
     expect(refundEvents[0].args.amount).to.equal(OVERPAY - PRICE);
+  });
+
+  it('keeps access purchase valid when royalty recipients reject or exhaust bounded gas', async () => {
+    const PRICE = 101n;
+    const { registry, royalties, access, artistA, listener, royaltyRecip, publicClient } = await withArtistRuntime();
+    const rejecting = await hre.viem.deployContract('RejectingRoyaltyRecipient');
+    const gasConsumer = await hre.viem.deployContract('GasConsumingRoyaltyRecipient');
+
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([
+      sampleRegistration({ pricePlanck: PRICE }),
+      [rejecting.address, gasConsumer.address, royaltyRecip.account.address],
+      [2_500, 2_500, 2_500]
+    ]);
+
+    const artistBefore = await publicClient.getBalance({ address: artistA.account.address });
+    const recipBefore = await publicClient.getBalance({ address: royaltyRecip.account.address });
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    const txHash = await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+    expect(await access.read.musicAccHasPaid([TRACK_HASH, listener.account.address])).to.equal(true);
+    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(true);
+
+    const splitShare = 25n;
+    const artistRemainder = 26n;
+    expect(await royalties.read.musicRoyClaimable([rejecting.address])).to.equal(splitShare);
+    expect(await royalties.read.musicRoyClaimable([gasConsumer.address])).to.equal(splitShare);
+    expect(await royalties.read.musicRoyClaimable([royaltyRecip.account.address])).to.equal(0n);
+    expect((await publicClient.getBalance({ address: royaltyRecip.account.address })) - recipBefore).to.equal(splitShare);
+    expect((await publicClient.getBalance({ address: artistA.account.address })) - artistBefore).to.equal(artistRemainder);
+
+    const paidLogs = await publicClient.getLogs({
+      address: royalties.address,
+      event: musicRoyRoyaltyPaidEvent,
+      fromBlock: receipt.blockNumber,
+      toBlock: receipt.blockNumber
+    });
+    const failedLogs = await publicClient.getLogs({
+      address: royalties.address,
+      event: musicRoyRoyaltyPayoutFailedEvent,
+      fromBlock: receipt.blockNumber,
+      toBlock: receipt.blockNumber
+    });
+    const claimableLogs = await publicClient.getLogs({
+      address: royalties.address,
+      event: musicRoyRoyaltyClaimableEvent,
+      fromBlock: receipt.blockNumber,
+      toBlock: receipt.blockNumber
+    });
+
+    expect(paidLogs.map(log => log.args.recipient?.toLowerCase()).sort()).to.deep.equal(
+      [artistA.account.address.toLowerCase(), royaltyRecip.account.address.toLowerCase()].sort()
+    );
+    expect(failedLogs.map(log => log.args.recipient?.toLowerCase()).sort()).to.deep.equal(
+      [gasConsumer.address.toLowerCase(), rejecting.address.toLowerCase()].sort()
+    );
+    expect(claimableLogs.map(log => log.args.pendingTotal)).to.deep.equal([splitShare, splitShare]);
+
+    const immediatePaid =
+      (await publicClient.getBalance({ address: royaltyRecip.account.address })) -
+      recipBefore +
+      ((await publicClient.getBalance({ address: artistA.account.address })) - artistBefore);
+    const pending = (await royalties.read.musicRoyClaimable([rejecting.address])) + (await royalties.read.musicRoyClaimable([gasConsumer.address]));
+    expect(immediatePaid + pending).to.equal(PRICE);
+  });
+
+  it('lets recipients claim pending royalties once and rejects unauthorized claims', async () => {
+    const PRICE = 100n;
+    const { registry, royalties, artistA, listener, other, publicClient } = await withArtistRuntime();
+    const gasConsumer = await hre.viem.deployContract('GasConsumingRoyaltyRecipient');
+
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([sampleRegistration({ pricePlanck: PRICE }), [gasConsumer.address], [10_000]]);
+
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+    expect(await royalties.read.musicRoyClaimable([gasConsumer.address])).to.equal(PRICE);
+
+    const otherRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: other } });
+    await expectRevertMessage(otherRoyalties.write.musicRoyClaim([gasConsumer.address]), 'MusicRoyalties: claim self only');
+
+    await gasConsumer.write.setBurnGas([false]);
+    const before = await publicClient.getBalance({ address: gasConsumer.address });
+    const txHash = await gasConsumer.write.claimFrom([royalties.address]);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+    const claimedLogs = await publicClient.getLogs({
+      address: royalties.address,
+      event: musicRoyRoyaltyClaimedEvent,
+      fromBlock: receipt.blockNumber,
+      toBlock: receipt.blockNumber
+    });
+
+    expect(await royalties.read.musicRoyClaimable([gasConsumer.address])).to.equal(0n);
+    expect((await publicClient.getBalance({ address: gasConsumer.address })) - before).to.equal(PRICE);
+    expect(claimedLogs).to.have.lengthOf(1);
+    expect(claimedLogs[0].args.recipient?.toLowerCase()).to.equal(gasConsumer.address.toLowerCase());
+    expect(claimedLogs[0].args.amount).to.equal(PRICE);
+
+    await expectRevertMessage(gasConsumer.write.claimFrom([royalties.address]), 'MusicRoyalties: nothing to claim');
+  });
+
+  it('keeps pending royalties claimable when the recipient still rejects a claim', async () => {
+    const PRICE = 100n;
+    const { registry, royalties, artistA, listener, publicClient } = await withArtistRuntime();
+    const rejecting = await hre.viem.deployContract('RejectingRoyaltyRecipient');
+
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([sampleRegistration({ pricePlanck: PRICE }), [rejecting.address], [10_000]]);
+
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+    expect(await royalties.read.musicRoyClaimable([rejecting.address])).to.equal(PRICE);
+
+    const txHash = await rejecting.write.claimFrom([royalties.address]);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+    const failedLogs = await publicClient.getLogs({
+      address: royalties.address,
+      event: musicRoyRoyaltyClaimFailedEvent,
+      fromBlock: receipt.blockNumber,
+      toBlock: receipt.blockNumber
+    });
+
+    expect(await royalties.read.musicRoyClaimable([rejecting.address])).to.equal(PRICE);
+    expect(failedLogs).to.have.lengthOf(1);
+    expect(failedLogs[0].args.recipient?.toLowerCase()).to.equal(rejecting.address.toLowerCase());
+    expect(failedLogs[0].args.amount).to.equal(PRICE);
+  });
+
+  it('keeps repeated purchase accounting exact across paid and claimable royalty shares', async () => {
+    const PRICE = 101n;
+    const { registry, royalties, artistA, listener, royaltyRecip, other, publicClient } = await withArtistRuntime();
+    const rejecting = await hre.viem.deployContract('RejectingRoyaltyRecipient');
+
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([
+      sampleRegistration({ pricePlanck: PRICE }),
+      [rejecting.address, royaltyRecip.account.address],
+      [3_333, 3_333]
+    ]);
+
+    const artistBefore = await publicClient.getBalance({ address: artistA.account.address });
+    const recipBefore = await publicClient.getBalance({ address: royaltyRecip.account.address });
+
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    const otherRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: other } });
+    await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+    await otherRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+
+    const splitShare = 33n;
+    const artistRemainder = 35n;
+    const immediatePaid =
+      (await publicClient.getBalance({ address: royaltyRecip.account.address })) -
+      recipBefore +
+      ((await publicClient.getBalance({ address: artistA.account.address })) - artistBefore);
+    const pending = await royalties.read.musicRoyClaimable([rejecting.address]);
+
+    expect(immediatePaid).to.equal((splitShare + artistRemainder) * 2n);
+    expect(pending).to.equal(splitShare * 2n);
+    expect(immediatePaid + pending).to.equal(PRICE * 2n);
+  });
+
+  it('keeps dust rounding exact when tiny split shares round down', async () => {
+    const PRICE = 2n;
+    const { registry, royalties, artistA, listener, publicClient } = await withArtistRuntime();
+    const rejecting = await hre.viem.deployContract('RejectingRoyaltyRecipient');
+
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([sampleRegistration({ pricePlanck: PRICE }), [rejecting.address], [1]]);
+
+    const artistBefore = await publicClient.getBalance({ address: artistA.account.address });
+    const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    const txHash = await listenerRoyalties.write.musicRoyPayAccess([TRACK_HASH], { value: PRICE });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+    const claimableLogs = await publicClient.getLogs({
+      address: royalties.address,
+      event: musicRoyRoyaltyClaimableEvent,
+      fromBlock: receipt.blockNumber,
+      toBlock: receipt.blockNumber
+    });
+
+    expect(await royalties.read.musicRoyClaimable([rejecting.address])).to.equal(0n);
+    expect((await publicClient.getBalance({ address: artistA.account.address })) - artistBefore).to.equal(PRICE);
+    expect(claimableLogs).to.have.lengthOf(0);
   });
 
   it('reentrancy: a malicious royalty recipient that re-enters for another track cannot bypass the guard', async () => {

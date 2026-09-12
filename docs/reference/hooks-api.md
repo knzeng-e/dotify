@@ -212,9 +212,13 @@ const artist = useArtistConsole({
 | `isRefreshingArtistRuntime` | `boolean`             | `true` while `refreshArtistRuntime()` is running                  |
 | `bulletinManifestRef`       | `string`              | Bulletin archive ref for the last registered track                |
 | `rightsStatus`              | `string`              | Human-readable status of the current release operation            |
-| `royaltyPayments`           | `RoyaltyPayment[]`    | All payment events for the artist's tracks                        |
+| `royaltyPayments`           | `RoyaltyPayment[]`    | Per-recipient paid, claimable, claimed, and legacy royalty events  |
+| `claimableRoyaltyWei`       | `bigint`              | Native-token royalty amount currently claimable across known runtimes by the connected recipient |
+| `royaltyRuntimeSummaries`   | `RoyaltyRuntimeSummary[]` | Known runtimes where the connected wallet can inspect claimable recipient balances |
+| `hasKnownRoyaltyRuntime`    | `boolean`             | `true` when the wallet has an artist runtime or appears in known royalty splits |
 | `royaltyStatus`             | `string`              | Human-readable royalty ledger status                              |
 | `isRefreshingRoyalties`     | `boolean`             | `true` while royalties are being fetched                          |
+| `isClaimingRoyalties`       | `boolean`             | `true` while a royalty claim transaction is being confirmed        |
 | `expandedRoyaltyPaymentId`  | `string \| null`      | ID of the royalty entry currently expanded in the UI              |
 
 #### Functions
@@ -224,7 +228,8 @@ const artist = useArtistConsole({
 | `registerArtist`              | `() => Promise<void>`                                  | Bootstrap and finalize a SmartRuntime for the active address via `ArtistRuntimeFactory`.            |
 | `refreshArtistRuntime`        | `(showBusy?: boolean) => Promise<0x${string} \| null>` | Check `ArtistDirectory` for the active address. Updates `artistRuntimeAddress`.                    |
 | `registerRights`              | `() => Promise<void>`                                  | Full release publish flow: IPFS upload → optional Bulletin → `musicRegRegister()`.                 |
-| `refreshArtistRoyalties`      | `(showBusy?: boolean) => Promise<void>`                | Fetch all `MusicRoyAccessPaid` logs for the artist's runtime.                                      |
+| `refreshArtistRoyalties`      | `(showBusy?: boolean) => Promise<void>`                | Fetch settlement history and direct claimable balances across known runtimes for the active recipient. |
+| `claimRoyalties`              | `() => Promise<void>`                                  | Submit `musicRoyClaim(activeEvmAddress)` for every known runtime with pending funds, wait for confirmation, and re-read balances. |
 | `updateArtistName`            | `(name: string) => void`                               | Update artist name in state and persist to `localStorage`.                                         |
 | `getActiveWalletClient`       | `() => Promise<WalletClient>`                          | Returns the viem `WalletClient` for the connected artist wallet. Throws if no wallet is connected. |
 | `setUploadToBulletinEnabled`  | `(enabled: boolean) => void`                           | Toggle Bulletin archival for the next release.                                                     |

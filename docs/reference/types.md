@@ -1,9 +1,9 @@
 # TypeScript Types Reference
 
-All shared types are defined in `src/types.ts` and re-exported from there. Import them directly:
+All shared web types are defined in `web/src/shared/types.ts`. Import them directly:
 
 ```typescript
-import type { CatalogTrack, AccessMode, RoyaltyPayment } from './types';
+import type { AccessMode, CatalogTrack, RoyaltyPayment } from '../shared/types';
 ```
 
 ---
@@ -251,8 +251,6 @@ Classic unlock payments use `pricePlanck` when it is present so the submitted
 `msg.value` matches the runtime's stored price exactly, and the visible payment
 symbol comes from the configured chain's native currency.
 
----
-
 ### `PlayerState`
 
 ```typescript
@@ -387,13 +385,21 @@ protected audio should play. `actionType` controls which CTA is shown:
 ### `RoyaltyPayment`
 
 ```typescript
+type RoyaltySettlementState = 'paid' | 'claimable' | 'claimed' | 'legacy';
+
 type RoyaltyPayment = {
-  id: string; // "<txHash>-<logIndex>"
+  id: string; // "<runtimeAddress>-<txHash>-<logIndex>"
+  runtimeAddress: `0x${string}`;
   trackHash: `0x${string}`;
   trackTitle: string;
   listener: `0x${string}`;
+  recipient: `0x${string}`;
   amountWei: bigint;
   amountDot: string; // Formatted for display
+  settlement: RoyaltySettlementState;
+  pendingTotalWei?: bigint; // Present on claimable settlement rows
+  claimedAtMs?: number | null;
+  claimTransactionHash?: `0x${string}`;
   paidAtMs: number | null; // null if block timestamp unavailable
   transactionHash: `0x${string}`;
   blockNumber: bigint;
@@ -401,8 +407,30 @@ type RoyaltyPayment = {
 };
 ```
 
-A single royalty payment event parsed from `MusicRoyAccessPaid` logs. Used in the
-Royalties tab of the artist studio.
+A single per-recipient royalty ledger row. `paid` means the runtime transferred
+that share in the listener payment transaction. `claimable` means the transfer
+failed and the amount is still pending in the runtime. `claimed` means a later
+`MusicRoyRoyaltyClaimed` event cleared that historical accrual. `legacy` keeps
+pre-W05 `MusicRoyAccessPaid` history where per-recipient settlement state is
+unknown. The artist studio sums only `paid` and `claimed` rows as received
+money.
+
+### `RoyaltyRuntimeSummary`
+
+```typescript
+type RoyaltyRuntimeSummary = {
+  runtimeAddress: `0x${string}`;
+  artistAddress?: `0x${string}`;
+  artistName: string;
+  trackCount: number;
+  trackTitles: string[];
+  claimableWei: bigint;
+};
+```
+
+Current claimable balance for the connected recipient in one known artist
+runtime. The artist studio builds this list from the connected wallet's own
+runtime plus catalogue tracks where that wallet appears in royalty splits.
 
 ---
 

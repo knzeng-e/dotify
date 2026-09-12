@@ -342,12 +342,50 @@ CASH settlement requires a future receipt or bridge model.
 On success:
 
 1. Records `paidAccess[contentHash][msg.sender] = true`.
-2. Distributes the stored track price across royalty splits (basis points).
-3. Sends remainder to the original artist address stored on the track.
-4. Refunds any overpayment to the caller.
-5. Emits `MusicRoyAccessPaid`.
+2. Settles the stored track price across royalty splits (basis points).
+3. Sends each recipient share with bounded gas.
+4. Records any failed recipient transfer as claimable.
+5. Sends remainder to the original artist address stored on the track.
+6. Refunds any overpayment to the caller.
+7. Emits `MusicRoyAccessPaid` and per-recipient settlement events.
 
-**Emits:** `MusicRoyAccessPaid(bytes32 indexed contentHash, address indexed listener, uint256 amount)`
+**Emits:**
+
+- `MusicRoyAccessPaid(bytes32 indexed contentHash, address indexed listener, uint256 amount)`
+- `MusicRoyRoyaltyPaid(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount)`
+- `MusicRoyRoyaltyPayoutFailed(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount)`
+- `MusicRoyRoyaltyClaimable(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount, uint256 pendingTotal)`
+
+---
+
+### `musicRoyClaimable(address recipient)`
+
+```solidity
+function musicRoyClaimable(address recipient) external view returns (uint256)
+```
+
+Returns the native-token amount currently waiting in the runtime for
+`recipient`.
+
+---
+
+### `musicRoyClaim(address recipient)`
+
+```solidity
+function musicRoyClaim(address recipient) external returns (uint256 amount, bool settled)
+```
+
+Claims pending native-token royalties. The caller must be the same address as
+`recipient`; third-party claim helpers cannot drain another recipient's balance.
+
+The claim transfer uses the same bounded-gas native transfer helper as immediate
+settlement. If the recipient still cannot receive the transfer, the transaction
+does not revert; the balance is restored and remains claimable for a later retry.
+
+**Emits:**
+
+- `MusicRoyRoyaltyClaimed(address indexed recipient, uint256 amount)`
+- `MusicRoyRoyaltyClaimFailed(address indexed recipient, uint256 amount)`
 
 ---
 

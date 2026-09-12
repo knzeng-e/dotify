@@ -15,6 +15,7 @@ const viemWriter = {
   installRuntimeStep: vi.fn(async () => txHash),
   registerTrack: vi.fn(async () => txHash),
   payForAccess: vi.fn(async () => txHash),
+  claimRoyalty: vi.fn(async () => txHash),
   setAccessMode: vi.fn(async () => txHash),
   setReleaseActive: vi.fn(async () => txHash),
   waitForTransaction: vi.fn(async () => undefined)
@@ -25,6 +26,7 @@ const productWriter = {
   installRuntimeStep: vi.fn(async () => txHash),
   registerTrack: vi.fn(async () => txHash),
   payForAccess: vi.fn(async () => txHash),
+  claimRoyalty: vi.fn(async () => txHash),
   setAccessMode: vi.fn(async () => txHash),
   setReleaseActive: vi.fn(async () => txHash),
   waitForTransaction: vi.fn(async () => undefined)
@@ -105,13 +107,15 @@ describe('createRuntimeWriter', () => {
 
     const intent = accessIntent(42n);
     await expect(writer.payForAccess(intent)).resolves.toBe(txHash);
+    await expect(writer.claimRoyalty(runtime, productH160Address)).resolves.toBe(txHash);
     await expect(writer.waitForTransaction(txHash)).resolves.toBeUndefined();
 
     const { createViemRuntimeWriter } = await import('./viemRuntimeAdapter');
-    expect(createViemRuntimeWriter).toHaveBeenCalledTimes(2);
+    expect(createViemRuntimeWriter).toHaveBeenCalledTimes(3);
     expect(createViemRuntimeWriter).toHaveBeenCalledWith({ ethRpcUrl: 'https://rpc.example', walletClient });
-    expect(getViemWalletClient).toHaveBeenCalledTimes(2);
+    expect(getViemWalletClient).toHaveBeenCalledTimes(3);
     expect(viemWriter.payForAccess).toHaveBeenCalledWith(intent);
+    expect(viemWriter.claimRoyalty).toHaveBeenCalledWith(runtime, productH160Address);
   });
 
   it('explains that Product writes are absent when the build did not opt in', async () => {
@@ -154,6 +158,7 @@ describe('createRuntimeWriter', () => {
     await expect(writer.createRuntime(factory)).resolves.toBe(txHash);
     const intent = accessIntent(7n);
     await expect(writer.payForAccess(intent)).resolves.toBe(txHash);
+    await expect(writer.claimRoyalty(runtime, productH160Address)).resolves.toBe(txHash);
 
     const { createProductCdmContracts } = await import('./productCdmContracts');
     const { createProductCdmRuntimeWriter } = await import('./productCdmRuntimeAdapter');
@@ -178,6 +183,7 @@ describe('createRuntimeWriter', () => {
     expect(createProductCdmRuntimeWriter).toHaveBeenCalledWith({ contracts: resolver });
     expect(productWriter.createRuntime).toHaveBeenCalledWith(factory);
     expect(productWriter.payForAccess).toHaveBeenCalledWith(intent);
+    expect(productWriter.claimRoyalty).toHaveBeenCalledWith(runtime, productH160Address);
     expect(createViemRuntimeWriter).not.toHaveBeenCalled();
     expect(getViemWalletClient).not.toHaveBeenCalled();
   });

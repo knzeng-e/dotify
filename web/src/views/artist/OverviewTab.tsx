@@ -48,6 +48,18 @@ export function OverviewTab({
   onOpenRelease
 }: OverviewTabProps) {
   const earnedDot = formatWeiAsDot(totalRoyaltyWei);
+  function supportSettlementLabel(payment: RoyaltyPayment): string {
+    switch (payment.settlement) {
+      case 'paid':
+        return 'settled';
+      case 'claimable':
+        return 'claimable';
+      case 'claimed':
+        return 'claimed';
+      case 'legacy':
+        return 'legacy access';
+    }
+  }
 
   return (
     <section className='content-grid artist-overview-grid'>
@@ -65,7 +77,7 @@ export function OverviewTab({
             <strong className='tnum'>
               {earnedDot} <small>{nativePaymentSymbol}</small>
             </strong>
-            <span>Earned - paid direct</span>
+            <span>Earned - settled</span>
           </div>
         </div>
 
@@ -95,21 +107,28 @@ export function OverviewTab({
         <div className='doc-panel studio-support-panel'>
           <p className='studio-section-title'>Latest support</p>
           {royaltyPayments.length > 0 ? (
-            royaltyPayments.slice(0, 4).map(payment => (
-              <div className='studio-support-row' key={payment.id}>
-                <Avatar name={payment.listener} size={36} />
-                <div className='studio-support-meta'>
-                  <strong>{shorten(payment.listener, 12)}</strong>
-                  <span>supported and opened {payment.trackTitle}</span>
+            royaltyPayments.slice(0, 4).map(payment => {
+              const settlementLabel = supportSettlementLabel(payment);
+
+              return (
+                <div className='studio-support-row' data-settlement={payment.settlement} key={payment.id}>
+                  <Avatar name={payment.listener} size={36} />
+                  <div className='studio-support-meta'>
+                    <strong>{shorten(payment.listener, 12)}</strong>
+                    <span>
+                      supported and opened {payment.trackTitle} - {settlementLabel}
+                    </span>
+                  </div>
+                  <div className='studio-support-amount'>
+                    <strong>
+                      {payment.settlement === 'paid' || payment.settlement === 'claimed' ? '+' : ''}
+                      {payment.amountDot} {nativePaymentSymbol}
+                    </strong>
+                    <small>{formatPaymentDate(payment.paidAtMs)}</small>
+                  </div>
                 </div>
-                <div className='studio-support-amount'>
-                  <strong>
-                    +{payment.amountDot} {nativePaymentSymbol}
-                  </strong>
-                  <small>{formatPaymentDate(payment.paidAtMs)}</small>
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className='empty-state'>No paid support recorded yet.</div>
           )}

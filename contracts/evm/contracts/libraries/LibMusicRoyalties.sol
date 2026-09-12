@@ -8,6 +8,7 @@ pragma solidity ^0.8.28;
 /// Storage slot: keccak256("smart.runtime.pallet.music-royalties.storage")
 library LibMusicRoyalties {
   bytes32 constant STORAGE_POSITION = keccak256('smart.runtime.pallet.music-royalties.storage');
+  uint256 internal constant NATIVE_TRANSFER_GAS_LIMIT = 100_000;
 
   struct RoyaltySplit {
     address recipient;
@@ -16,6 +17,7 @@ library LibMusicRoyalties {
 
   struct Storage {
     mapping(bytes32 => RoyaltySplit[]) splits; // contentHash → splits
+    mapping(address => uint256) claimable; // recipient → pending native-token amount
   }
 
   function store() internal pure returns (Storage storage s) {
@@ -42,23 +44,28 @@ library LibMusicRoyalties {
     }
   }
 
-  /// @dev Distributes `amount` across splits; remainder goes to `artist`.
-  function distribute(Storage storage s, bytes32 contentHash, address artist, uint256 amount) internal {
-    RoyaltySplit[] storage sp = s.splits[contentHash];
-    uint256 distributed;
-    for (uint256 i = 0; i < sp.length; i++) {
-      uint256 share = (amount * sp[i].bps) / 10_000;
-      distributed += share;
-      _send(sp[i].recipient, share);
-    }
-    if (amount > distributed) {
-      _send(artist, amount - distributed);
+  function trySendNative(address recipient, uint256 amount) internal returns (bool) {
+    if (amount == 0) return true;
+    (bool ok, ) = payable(recipient).call{ value: amount, gas: NATIVE_TRANSFER_GAS_LIMIT }('');
+    return ok;
+  }
+
+  function addClaimable(Storage storage s, address recipient, uint256 amount) internal returns (uint256 pendingTotal) {
+    if (amount == 0) return s.claimable[recipient];
+    s.claimable[recipient] += amount;
+    return s.claimable[recipient];
+  }
+
+  function takeClaimable(Storage storage s, address recipient) internal returns (uint256 amount) {
+    amount = s.claimable[recipient];
+    if (amount > 0) {
+      s.claimable[recipient] = 0;
     }
   }
 
-  function _send(address recipient, uint256 amount) private {
-    if (amount == 0) return;
-    (bool ok, ) = payable(recipient).call{ value: amount }('');
-    require(ok, 'MusicRoyalties: transfer failed');
+  function restoreClaimable(Storage storage s, address recipient, uint256 amount) internal returns (uint256 pendingTotal) {
+    if (amount == 0) return s.claimable[recipient];
+    s.claimable[recipient] += amount;
+    return s.claimable[recipient];
   }
 }

@@ -245,12 +245,14 @@ contract ArtistRuntimeFactory {
   }
 
   function _musicRoyaltiesSelectors() private pure returns (bytes4[] memory selectors) {
-    selectors = new bytes4[](5);
+    selectors = new bytes4[](7);
     selectors[0] = MusicRoyaltiesPallet.musicRoyPayAccess.selector;
     selectors[1] = MusicRoyaltiesPallet.musicRoyRecordListen.selector;
     selectors[2] = MusicRoyaltiesPallet.musicRoySplitCount.selector;
     selectors[3] = MusicRoyaltiesPallet.musicRoySplitAt.selector;
     selectors[4] = MusicRoyaltiesPallet.musicRoyTotalBps.selector;
+    selectors[5] = MusicRoyaltiesPallet.musicRoyClaimable.selector;
+    selectors[6] = MusicRoyaltiesPallet.musicRoyClaim.selector;
   }
 
   /// @dev The two registrar selectors are retained so already-deployed runtimes keep a

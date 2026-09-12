@@ -11,6 +11,7 @@ const listener = '0x5000000000000000000000000000000000000000' as const;
 const splitRecipient = '0x6000000000000000000000000000000000000000' as const;
 const hash = `0x${'ab'.repeat(32)}` as const;
 const txHash = `0x${'cd'.repeat(32)}` as const;
+const legacyTxHash = `0x${'de'.repeat(32)}` as const;
 
 function baseTrackRecord(patch: Partial<OnchainTrackRecord> = {}): OnchainTrackRecord {
   return {
@@ -124,31 +125,205 @@ describe('createViemRuntimeReader', () => {
   });
 
   it('normalizes royalty payment logs with block timestamps', async () => {
-    const getLogs = vi.fn(async () => [
-      {
-        args: { contentHash: hash, listener, amount: 2_000_000_000_000_000_000n },
-        transactionHash: txHash,
-        blockNumber: 7n,
-        logIndex: 3
+    const getLogs = vi.fn(async ({ event }: { event: { name?: string } }) => {
+      if (event.name === 'MusicRoyRoyaltyPaid') {
+        return [
+          {
+            args: { contentHash: hash, listener, recipient: splitRecipient, amount: 2_000_000_000_000_000_000n },
+            transactionHash: txHash,
+            blockNumber: 7n,
+            logIndex: 3
+          }
+        ];
       }
-    ]);
-    const getBlock = vi.fn(async () => ({ timestamp: 123n }));
+      if (event.name === 'MusicRoyRoyaltyClaimable') {
+        return [
+          {
+            args: { contentHash: hash, listener, recipient: splitRecipient, amount: 1_000_000_000_000_000_000n, pendingTotal: 1_500_000_000_000_000_000n },
+            transactionHash: txHash,
+            blockNumber: 8n,
+            logIndex: 4
+          }
+        ];
+      }
+      if (event.name === 'MusicRoyRoyaltyClaimed' || event.name === 'MusicRoyAccessPaid') {
+        return [];
+      }
+      throw new Error(`unexpected event ${event.name}`);
+    });
+    const getBlock = vi.fn(async ({ blockNumber }: { blockNumber: bigint }) => ({ timestamp: blockNumber === 7n ? 123n : 124n }));
     const reader = createViemRuntimeReader({
       ethRpcUrl: 'http://localhost:8545',
       publicClient: { getLogs, getBlock } as never
     });
 
-    await expect(reader.listRoyaltyPaymentLogs(runtime)).resolves.toEqual([
+    await expect(reader.listRoyaltyPaymentLogs(runtime, splitRecipient)).resolves.toEqual([
       {
+        runtimeAddress: runtime,
         trackHash: hash,
         listener,
+        recipient: splitRecipient,
         amountWei: 2_000_000_000_000_000_000n,
+        settlement: 'paid',
         paidAtMs: 123_000,
         transactionHash: txHash,
         blockNumber: 7n,
         logIndex: 3
+      },
+      {
+        runtimeAddress: runtime,
+        trackHash: hash,
+        listener,
+        recipient: splitRecipient,
+        amountWei: 1_000_000_000_000_000_000n,
+        settlement: 'claimable',
+        pendingTotalWei: 1_500_000_000_000_000_000n,
+        paidAtMs: 124_000,
+        transactionHash: txHash,
+        blockNumber: 8n,
+        logIndex: 4
       }
     ]);
+    expect(getLogs).toHaveBeenCalledWith(expect.objectContaining({ args: { recipient: splitRecipient } }));
+  });
+
+  it('reconciles claimable accrual rows after successful royalty claims', async () => {
+    const getLogs = vi.fn(async ({ event }: { event: { name?: string } }) => {
+      if (event.name === 'MusicRoyRoyaltyPaid' || event.name === 'MusicRoyAccessPaid') return [];
+      if (event.name === 'MusicRoyRoyaltyClaimable') {
+        return [
+          {
+            args: { contentHash: hash, listener, recipient: splitRecipient, amount: 1_000_000_000_000_000_000n, pendingTotal: 1_000_000_000_000_000_000n },
+            transactionHash: txHash,
+            blockNumber: 7n,
+            logIndex: 3
+          },
+          {
+            args: { contentHash: hash, listener, recipient: splitRecipient, amount: 2_000_000_000_000_000_000n, pendingTotal: 2_000_000_000_000_000_000n },
+            transactionHash: legacyTxHash,
+            blockNumber: 9n,
+            logIndex: 1
+          }
+        ];
+      }
+      if (event.name === 'MusicRoyRoyaltyClaimed') {
+        return [
+          {
+            args: { recipient: splitRecipient, amount: 1_000_000_000_000_000_000n },
+            transactionHash: legacyTxHash,
+            blockNumber: 8n,
+            logIndex: 1
+          }
+        ];
+      }
+      throw new Error(`unexpected event ${event.name}`);
+    });
+    const getBlock = vi.fn(async ({ blockNumber }: { blockNumber: bigint }) => ({ timestamp: blockNumber + 100n }));
+    const reader = createViemRuntimeReader({
+      ethRpcUrl: 'http://localhost:8545',
+      publicClient: { getLogs, getBlock } as never
+    });
+
+    await expect(reader.listRoyaltyPaymentLogs(runtime, splitRecipient)).resolves.toMatchObject([
+      {
+        runtimeAddress: runtime,
+        trackHash: hash,
+        listener,
+        recipient: splitRecipient,
+        amountWei: 1_000_000_000_000_000_000n,
+        settlement: 'claimed',
+        claimedAtMs: 108_000,
+        claimTransactionHash: legacyTxHash,
+        blockNumber: 7n,
+        logIndex: 3
+      },
+      {
+        runtimeAddress: runtime,
+        trackHash: hash,
+        listener,
+        recipient: splitRecipient,
+        amountWei: 2_000_000_000_000_000_000n,
+        settlement: 'claimable',
+        blockNumber: 9n,
+        logIndex: 1
+      }
+    ]);
+  });
+
+  it('preserves pre-upgrade access payments as legacy history without duplicating W05 payments', async () => {
+    const getLogs = vi.fn(async ({ event }: { event: { name?: string } }) => {
+      if (event.name === 'MusicRoyRoyaltyClaimable' || event.name === 'MusicRoyRoyaltyClaimed') return [];
+      if (event.name === 'MusicRoyRoyaltyPaid') {
+        return [
+          {
+            args: { contentHash: hash, listener, recipient: splitRecipient, amount: 2_000_000_000_000_000_000n },
+            transactionHash: txHash,
+            blockNumber: 10n,
+            logIndex: 2
+          }
+        ];
+      }
+      if (event.name === 'MusicRoyAccessPaid') {
+        return [
+          {
+            args: { contentHash: hash, listener, amount: 4_000_000_000_000_000_000n },
+            transactionHash: txHash,
+            blockNumber: 10n,
+            logIndex: 3
+          },
+          {
+            args: { contentHash: hash, listener, amount: 3_000_000_000_000_000_000n },
+            transactionHash: legacyTxHash,
+            blockNumber: 5n,
+            logIndex: 1
+          }
+        ];
+      }
+      throw new Error(`unexpected event ${event.name}`);
+    });
+    const getBlock = vi.fn(async ({ blockNumber }: { blockNumber: bigint }) => ({ timestamp: blockNumber + 100n }));
+    const reader = createViemRuntimeReader({
+      ethRpcUrl: 'http://localhost:8545',
+      publicClient: { getLogs, getBlock } as never
+    });
+
+    await expect(reader.listRoyaltyPaymentLogs(runtime, splitRecipient)).resolves.toEqual([
+      {
+        runtimeAddress: runtime,
+        trackHash: hash,
+        listener,
+        recipient: splitRecipient,
+        amountWei: 2_000_000_000_000_000_000n,
+        settlement: 'paid',
+        paidAtMs: 110_000,
+        transactionHash: txHash,
+        blockNumber: 10n,
+        logIndex: 2
+      },
+      {
+        runtimeAddress: runtime,
+        trackHash: hash,
+        listener,
+        recipient: splitRecipient,
+        amountWei: 3_000_000_000_000_000_000n,
+        settlement: 'legacy',
+        paidAtMs: 105_000,
+        transactionHash: legacyTxHash,
+        blockNumber: 5n,
+        logIndex: 1
+      }
+    ]);
+  });
+
+  it('reads the claimable balance for one royalty recipient', async () => {
+    const readContract = vi.fn(async () => 33n);
+    const reader = createViemRuntimeReader({
+      ethRpcUrl: 'http://localhost:8545',
+      publicClient: { readContract } as never
+    });
+
+    await expect(reader.getRoyaltyClaimable(runtime, splitRecipient)).resolves.toBe(33n);
+    expect(readContract).toHaveBeenCalledWith(expect.objectContaining({ functionName: 'musicRoyClaimable', args: [splitRecipient] }));
   });
 });
 
@@ -176,6 +351,7 @@ describe('createViemRuntimeWriter', () => {
         })
       )
     ).resolves.toBe(`${txHash}:musicRoyPayAccess`);
+    await expect(writer.claimRoyalty(runtime, artist)).resolves.toBe(`${txHash}:musicRoyClaim`);
     await expect(
       writer.registerTrack(runtime, {
         contentHash: hash,
@@ -205,7 +381,7 @@ describe('createViemRuntimeWriter', () => {
 
     await writer.waitForTransaction(txHash);
     expect(waitForTransactionReceipt).toHaveBeenCalledWith({ hash: txHash });
-    expect(writeContract).toHaveBeenCalledTimes(6);
+    expect(writeContract).toHaveBeenCalledTimes(7);
     expect(writeContract).toHaveBeenCalledWith(
       expect.objectContaining({
         address: runtime,
@@ -214,5 +390,6 @@ describe('createViemRuntimeWriter', () => {
         value: 1n
       })
     );
+    expect(writeContract).toHaveBeenCalledWith(expect.objectContaining({ address: runtime, functionName: 'musicRoyClaim', args: [artist] }));
   });
 });

@@ -574,6 +574,7 @@
   .fields-grid,
   .release-stepper,
   .royalty-summary-grid,
+  .royalty-runtime-row,
   .release-detail-grid,
   .royalty-details,
   .artist-grid {
@@ -582,6 +583,19 @@
 
   .release-stepper {
     border: 1px solid var(--line);
+  }
+
+  .royalty-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .royalty-toolbar-actions {
+    justify-content: stretch;
+  }
+
+  .royalty-toolbar-actions .compact-action {
+    flex: 1 1 10rem;
   }
 
   .release-stepper button {

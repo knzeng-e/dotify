@@ -210,11 +210,14 @@ Hub runtimes, so the Product-native path needs an explicit receipt or bridge
 model before any listener payment can execute. Dotify must not silently convert
 CASH to native runtime value or mark access paid without runtime evidence.
 
-The CDM adapter has one deliberate gap: royalty payment history is not read
-through Product contract handles because the current SDK surface exposes
-method queries and transactions, not the viem-style historical log query used
-by the artist console. Product mode must use the backend catalog/read-model
-indexer, or a future Product event/indexer API, for that history.
+The CDM adapter has one deliberate gap: historical royalty payment events are
+not read through Product contract handles because the current SDK surface
+exposes method queries and transactions, not the viem-style historical log
+query used by the artist console. W05 claimable balances are readable through
+`musicRoyClaimable(recipient)`, and `musicRoyClaim(recipient)` is routed through
+the shared writer port, but Product mode still needs the backend
+catalog/read-model indexer or a future Product event/indexer API for the full
+settlement history.
 
 ### The CDM Manifest Is Generated, Not Installed
 

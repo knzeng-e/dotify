@@ -219,6 +219,12 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
       throw new ProductCdmRuntimeUnsupportedOperationError(
         'Product CDM runtime payment history is not available through the current contract handle API. Use the catalog/read-model indexer until a Product event API or backend indexer is wired.'
       );
+    },
+
+    async getRoyaltyClaimable(runtimeAddress, recipientAddress) {
+      return toBigInt(
+        await queryContract<bigint | number | string>(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRoyClaimable', [recipientAddress])
+      );
     }
   };
 }
@@ -261,6 +267,10 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeAdapterDeps
     // accepted here; Product CASH settlement needs a separate receipt path.
     payForAccess(intent) {
       return txContract(deps.contracts.getRuntimeContract(intent.runtimeAddress), 'musicRoyPayAccess', [intent.contentHash, { value: intent.amountPlanck }]);
+    },
+
+    claimRoyalty(runtimeAddress, recipientAddress) {
+      return txContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRoyClaim', [recipientAddress]);
     },
 
     setAccessMode(runtimeAddress, update: RuntimeAccessPolicyUpdate) {

@@ -160,13 +160,13 @@ contract verifies the release exists, is active, is currently Classic, the walle
 has not already paid, and value >= price
         |
         v
-records paid access and distributes the stored price across royalty splits
+records paid access and settles royalty shares, making failed recipient transfers claimable
         |
         v
 refunds any overpayment
         |
         v
-emits MusicRoyAccessPaid(contentHash, listener, amount) event
+emits payment and per-recipient settlement events
 ```
 
 The frontend watches for inclusion, then re-reads `musicAccHasPaid()` and

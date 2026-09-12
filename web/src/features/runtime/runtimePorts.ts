@@ -13,10 +13,18 @@ export type RuntimeTrackSnapshot = {
   royaltySplits: Array<Pick<RoyaltySplit, 'recipient' | 'bps'>>;
 };
 
+export type RuntimeRoyaltySettlementState = 'paid' | 'claimable' | 'claimed' | 'legacy';
+
 export type RuntimeRoyaltyPaymentLog = {
+  runtimeAddress: Address;
   trackHash: Hash;
   listener: Address;
+  recipient: Address;
   amountWei: bigint;
+  settlement: RuntimeRoyaltySettlementState;
+  pendingTotalWei?: bigint;
+  claimedAtMs?: number | null;
+  claimTransactionHash?: Hash;
   paidAtMs: number | null;
   transactionHash: Hash;
   blockNumber: bigint;
@@ -77,7 +85,8 @@ export interface RuntimeReadPort {
   hasPaid(runtimeAddress: Address, contentHash: Hash, listenerAddress: Address): Promise<boolean>;
   pendingRuntimeOf(factoryAddress: Address, artistAddress: Address): Promise<Address | null>;
   pendingRuntimeStageOf(factoryAddress: Address, artistAddress: Address): Promise<number>;
-  listRoyaltyPaymentLogs(runtimeAddress: Address): Promise<RuntimeRoyaltyPaymentLog[]>;
+  listRoyaltyPaymentLogs(runtimeAddress: Address, recipientAddress?: Address): Promise<RuntimeRoyaltyPaymentLog[]>;
+  getRoyaltyClaimable(runtimeAddress: Address, recipientAddress: Address): Promise<bigint>;
 }
 
 export interface RuntimeWritePort {
@@ -85,6 +94,7 @@ export interface RuntimeWritePort {
   installRuntimeStep(factoryAddress: Address): Promise<Hash>;
   registerTrack(runtimeAddress: Address, registration: RuntimeTrackRegistration): Promise<Hash>;
   payForAccess(intent: ExecutableTrackAccessPaymentIntent): Promise<Hash>;
+  claimRoyalty(runtimeAddress: Address, recipientAddress: Address): Promise<Hash>;
   setAccessMode(runtimeAddress: Address, update: RuntimeAccessPolicyUpdate): Promise<Hash>;
   setReleaseActive(runtimeAddress: Address, contentHash: Hash, active: boolean): Promise<Hash>;
   waitForTransaction(txHash: Hash): Promise<void>;
