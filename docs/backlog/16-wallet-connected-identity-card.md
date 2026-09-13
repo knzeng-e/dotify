@@ -1,16 +1,20 @@
 # 16 - Wallet connected identity card
 
 ## Sprint
+
 Design track - Living Light experience
 
 ## Priority
+
 P2
 
 ## Objective
+
 Give the connected wallet a calm identity card, matching the prototype's "Your wallet" modal: address/handle, a few support stats, and a "You hold your keys" reassurance, with a clear Disconnect.
 
 ## Context
-`web/src/components/WalletModal.tsx` already nails the not-connected invitation (passkey-first, "keep your music"). When connected, the app only shows `WalletStatusPill` (label + disconnect) - there is no connected identity surface. The prototype `WalletModal` connected state (`design/Dotify-design/app/screens-modals.jsx`, screenshot `wallet-connected.png`) shows an avatar/identity, balance, artists supported, tracks unlocked, and "Dotify never sees your seed."
+
+`web/src/components/WalletModal.tsx` already owns the wallet-later connection invitation. When connected, the app only shows `WalletStatusPill` (label + disconnect) - there is no connected identity surface. The prototype `WalletModal` connected state (`design/Dotify-design/app/screens-modals.jsx`, screenshot `wallet-connected.png`) shows an avatar/identity, balance, artists supported, tracks unlocked, and "Dotify never sees your seed."
 
 ## Required work
 
@@ -39,4 +43,5 @@ Give the connected wallet a calm identity card, matching the prototype's "Your w
 - Multi-account switching beyond what `useWallet` already supports.
 
 ## Senior-engineer notes
+
 This is reassurance, not a dashboard. Keep it small and truthful; the wallet must never feel more important than the music (brief UX risk).

@@ -380,15 +380,16 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 16]`. This version keeps blocked
-guest audio recovery visible in Product-hosted rooms and exposes W05 runtime
-claim writes through the shared runtime writer port, while using the refreshed
-September 2026 Product SDK/tooling and re-pinned Bulletin descriptor. It also
-hardens viem release registration against Product DevNet wallet hashes that
-remain pending or disappear before inclusion, surfacing a retryable dropped-tx
-diagnostic instead of a generic receipt timeout. Product host containers use
-Engine.IO Fetch polling without a WebSocket upgrade, so room signaling stays on
-the remote-network primitive proven to remain available in Product Mobile.
+The current Product executable is `[0, 1, 17]`. This version keeps blocked
+guest audio recovery visible in Product-hosted rooms, exposes W05 runtime claim
+writes through the shared runtime writer port, uses the refreshed September 2026
+Product SDK/tooling and re-pinned Bulletin descriptor, and removes
+passkey-only wallet routes from public account flows. It also hardens viem
+release registration against Product DevNet wallet hashes that remain pending
+or disappear before inclusion, surfacing a retryable dropped-tx diagnostic
+instead of a generic receipt timeout. Product host containers use Engine.IO
+Fetch polling without a WebSocket upgrade, so room signaling stays on the
+remote-network primitive proven to remain available in Product Mobile.
 Standalone browsers retain Fetch-first with an optional WebSocket upgrade. Do
 not remove the direct `engine.io-client` pin or restore XHR polling without a
 successful room-open stability test in both Product Mobile and the standalone
@@ -558,7 +559,7 @@ Then verify in the Product host:
      changing anything;
    - denied with any other code: treat as a normal fail-closed denial.
 
-   In every rejected case, playback must stop and offer a passkey/EVM wallet.
+   In every rejected case, playback must stop and offer an EVM wallet fallback.
    No path may release a key without a verified signature.
 
 6. Only for an explicit Product CDM write smoke build, set

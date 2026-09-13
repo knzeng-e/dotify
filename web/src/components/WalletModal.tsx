@@ -6,6 +6,7 @@ import { getBlockscoutAddressUrl } from '../shared/utils/explorer';
 import { shortenAddress } from '../shared/utils/format';
 import { useWalletContext } from '../app/providers/WalletProvider';
 import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
+import { LEGACY_PASSKEY_LOCAL_DATA_MESSAGE } from '../features/wallet/passkeyPolicy';
 
 type WalletSupportedArtist = Pick<CatalogTrack, 'artist' | 'artistAddress'> & { trackCount: number };
 type WalletPaidTrack = Pick<CatalogTrack, 'id' | 'title' | 'artist' | 'artistAddress' | 'priceDot' | 'hash'>;
@@ -27,7 +28,7 @@ export function WalletStatusPill({ state, onClick, onDisconnect }: { state: Wall
   return (
     <button type='button' className='status-pill wallet-pill' data-tone='muted' onClick={onClick}>
       <Power size={14} />
-      <span>{state.status === 'connecting' ? 'Connecting…' : state.status === 'needs-reconnect' ? 'Reconnect' : 'Connect'}</span>
+      <span>{state.status === 'connecting' ? 'Connecting…' : 'Connect'}</span>
     </button>
   );
 }
@@ -54,17 +55,15 @@ export function WalletModal({
 }) {
   const {
     walletState: state,
-    hasPrfSupport,
-    hasStoredPasskey,
+    hasLegacyPasskeyData,
     expectedChainId,
     isSwitchingNetwork,
-    connectPasskey,
     connectExtension,
     connectProductHost,
     productHostMode,
     productHostStatus,
     switchNetwork,
-    forgetPasskey: onForgetPasskey,
+    forgetLegacyPasskeyData,
     disconnect: onDisconnect
   } = useWalletContext();
   const { showWalletModal, setShowWalletModal } = useUiFeedback();
@@ -72,7 +71,6 @@ export function WalletModal({
   if (!showWalletModal) return null;
 
   const onClose = () => setShowWalletModal(false);
-  const onPasskey = () => void connectPasskey();
   const onExtension = () => void connectExtension();
   const onProductHost = () => void connectProductHost();
   const onSwitchNetwork = () => void switchNetwork();
@@ -114,15 +112,7 @@ export function WalletModal({
 
         <div className='wallet-network' data-warning={walletChainMismatch}>
           <span>Connection</span>
-          <strong>
-            {walletChainMismatch
-              ? 'Needs attention'
-              : wallet.method === 'passkey'
-                ? 'This device'
-                : wallet.method === 'product-host'
-                  ? 'Product host'
-                  : 'Wallet app'}
-          </strong>
+          <strong>{walletChainMismatch ? 'Needs attention' : wallet.method === 'product-host' ? 'Product host' : 'Wallet app'}</strong>
           {walletChainMismatch && <small>Choose the right network to continue</small>}
           {walletChainMismatch && wallet.method === 'extension' && onSwitchNetwork && (
             <button className='wallet-network-action' type='button' onClick={onSwitchNetwork} disabled={isSwitchingNetwork}>
@@ -136,20 +126,10 @@ export function WalletModal({
           <>
             <p className='info-box'>
               Your app-scoped Polkadot identity is active for presence, rooms, and protected playback. If the host signature is rejected, protected playback
-              fails closed - add a passkey or EVM wallet below. Paying for access and artist publishing still require an EVM signer during the contract port.
+              fails closed. Paying for access and artist publishing still require an EVM wallet unless a Product CDM build is explicitly selected and
+              smoke-tested.
             </p>
             <div className='wallet-options'>
-              {hasPrfSupport && (
-                <button className='wallet-option wallet-option-primary' type='button' onClick={onPasskey}>
-                  <span className='wallet-option-icon'>
-                    <KeyRound size={18} />
-                  </span>
-                  <span className='wallet-option-copy'>
-                    <strong>{hasStoredPasskey ? 'Use passkey' : 'Create passkey'}</strong>
-                    <small>Enable paid access and publishing.</small>
-                  </span>
-                </button>
-              )}
               <button className='wallet-option' type='button' onClick={onExtension}>
                 <span className='wallet-option-icon'>
                   <Wallet size={18} />
@@ -248,20 +228,21 @@ export function WalletModal({
           </span>
           <span className='wallet-option-copy'>
             <strong>You hold your keys</strong>
-            <small id='wallet-modal-desc'>Approvals stay on your device.</small>
+            <small id='wallet-modal-desc'>Approvals stay in your wallet app or Product host.</small>
           </span>
         </div>
 
-        {hasStoredPasskey && (
+        {hasLegacyPasskeyData && <p className='info-box'>{LEGACY_PASSKEY_LOCAL_DATA_MESSAGE}</p>}
+        {hasLegacyPasskeyData && (
           <button
             className='wallet-forget'
             type='button'
             onClick={() => {
-              onForgetPasskey();
+              forgetLegacyPasskeyData();
               onClose();
             }}
           >
-            Remove saved passkey
+            Forget local passkey data
           </button>
         )}
         {onDisconnect && (
@@ -294,21 +275,14 @@ export function WalletModal({
       <div className='modal-copy'>
         <p className='modal-eyebrow'>Account</p>
         <h2 id='wallet-modal-title'>Connect wallet</h2>
-        <p id='wallet-modal-desc'>Use a wallet for paid or protected releases.</p>
+        <p id='wallet-modal-desc'>Listen first. Connect only when a paid, protected, or artist action needs it.</p>
       </div>
 
       {state.status === 'error' && <p className='error-box'>{state.message}</p>}
       {state.status === 'connecting' && (
         <p className='info-box'>
-          {state.via === 'passkey'
-            ? 'Check your browser prompt to continue.'
-            : state.via === 'product-host'
-              ? 'Check the Polkadot Product host to continue.'
-              : 'Check your wallet to approve the connection.'}
+          {state.via === 'product-host' ? 'Check the Polkadot Product host to continue.' : 'Check your wallet to approve the connection.'}
         </p>
-      )}
-      {state.status === 'needs-reconnect' && state.via === 'passkey' && (
-        <p className='info-box'>Your saved passkey is ready. Use passkey to reconnect when you are ready.</p>
       )}
 
       <div className='wallet-options'>
@@ -330,40 +304,27 @@ export function WalletModal({
           </button>
         )}
 
-        {hasPrfSupport && (
-          <button className={`wallet-option${productHostMode === 'off' ? ' wallet-option-primary' : ''}`} type='button' onClick={onPasskey}>
-            <span className='wallet-option-icon'>
-              <KeyRound size={18} />
-            </span>
-            <span className='wallet-option-copy'>
-              <strong>
-                {state.status === 'needs-reconnect' && state.via === 'passkey' ? 'Reconnect passkey' : hasStoredPasskey ? 'Use passkey' : 'Create passkey'}
-              </strong>
-              <small>Use this device.</small>
-            </span>
-          </button>
-        )}
-
-        <button className='wallet-option' type='button' onClick={onExtension}>
+        <button className={`wallet-option${productHostMode === 'off' ? ' wallet-option-primary' : ''}`} type='button' onClick={onExtension}>
           <span className='wallet-option-icon'>
             <Wallet size={18} />
           </span>
           <span className='wallet-option-copy'>
-            <strong>Use wallet app</strong>
-            <small>Use an existing wallet.</small>
+            <strong>Use EVM wallet</strong>
+            <small>Use an existing wallet for payments and publishing.</small>
           </span>
         </button>
 
-        {hasStoredPasskey && (
+        {hasLegacyPasskeyData && <p className='info-box'>{LEGACY_PASSKEY_LOCAL_DATA_MESSAGE}</p>}
+        {hasLegacyPasskeyData && (
           <button
             className='wallet-forget'
             type='button'
             onClick={() => {
-              onForgetPasskey();
+              forgetLegacyPasskeyData();
               onClose();
             }}
           >
-            Remove saved passkey
+            Forget local passkey data
           </button>
         )}
       </div>

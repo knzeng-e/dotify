@@ -37,13 +37,11 @@ type WalletContextValue = {
   setBulletinAccountIndex: (index: number) => void;
   getActiveWalletClient: () => Promise<Awaited<ReturnType<typeof getWalletClient>>>;
   switchNetwork: () => Promise<void>;
-  connectPasskey: () => Promise<void>;
   connectExtension: () => Promise<void>;
   connectProductHost: () => Promise<void>;
   disconnect: () => void;
-  forgetPasskey: () => void;
-  hasPrfSupport: boolean;
-  hasStoredPasskey: boolean;
+  forgetLegacyPasskeyData: () => void;
+  hasLegacyPasskeyData: boolean;
   productHostMode: ProductHostMode;
   productHostStatus: ProductHostStatus;
 };
@@ -58,14 +56,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const { setTransactionFeedback, setShowWalletModal } = useUiFeedback();
   const {
     state: walletState,
-    connectPasskey,
     connectExtension,
     connectProductHost,
     switchExtensionNetwork,
     disconnect: disconnectWalletOnly,
-    hasPrfSupport,
-    hasStoredPasskey,
-    forgetPasskey,
+    hasLegacyPasskeyData,
+    forgetLegacyPasskeyData,
     productHostMode,
     productHostStatus
   } = useWallet();
@@ -113,7 +109,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       throw new Error('Connect a wallet before signing this transaction.');
     }
     if (!connectedWallet.createEvmClient) {
-      throw new Error('This action still requires a passkey or EVM wallet while Dotify contracts are being ported to the Product DevNet host signer.');
+      throw new Error('This action still requires an EVM wallet while Dotify contracts are being ported to the Product DevNet host signer.');
     }
     const chain = await resolveEvmChain(ethRpcUrl);
     if (connectedWallet.chainId !== undefined && connectedWallet.chainId !== chain.id) {
@@ -195,13 +191,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setBulletinAccountIndex,
       getActiveWalletClient,
       switchNetwork,
-      connectPasskey,
       connectExtension,
       connectProductHost,
       disconnect,
-      forgetPasskey,
-      hasPrfSupport,
-      hasStoredPasskey,
+      forgetLegacyPasskeyData,
+      hasLegacyPasskeyData,
       productHostMode,
       productHostStatus
     }),
@@ -220,13 +214,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       bulletinAccountIndex,
       getActiveWalletClient,
       switchNetwork,
-      connectPasskey,
       connectExtension,
       connectProductHost,
       disconnect,
-      forgetPasskey,
-      hasPrfSupport,
-      hasStoredPasskey,
+      forgetLegacyPasskeyData,
+      hasLegacyPasskeyData,
       productHostMode,
       productHostStatus
     ]

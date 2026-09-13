@@ -158,18 +158,19 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 16]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 17]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 16]` carries the Product room guest audio recovery fix, the W05
+Version `[0, 1, 17]` carries the Product room guest audio recovery fix, the W05
 royalty claim runtime writer path, the September 2026 Product DevNet
 tooling/CDM registry refresh, the re-pinned Bulletin descriptor, and the viem
 release-registration confirmation hardening for dropped or still-pending wallet
-hashes.
+hashes, plus the W06 removal of passkey-only wallet routes from the public
+Product and standalone account flows.
 
 Current Product host SDK dependencies:
 
@@ -408,7 +409,7 @@ accepts two explicit schemes on session sign-in and protected key requests:
 
 | Scheme               | Client                               | Required proof fields           | Backend binding                                                                                                              |
 | -------------------- | ------------------------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `eip191`             | Standalone EVM/passkey wallet path   | `signature`                     | `viem.verifyMessage` against the requester H160                                                                              |
+| `eip191`             | Standalone EVM wallet path           | `signature`                     | `viem.verifyMessage` against the requester H160                                                                              |
 | `product-sr25519-v1` | Product-host app-scoped account path | `signature`, `productPublicKey` | sr25519 signature over the canonical Dotify message bytes, then Product public-key-to-H160 derivation matching the requester |
 
 Unknown schemes fail at the API schema boundary. Product requests must still

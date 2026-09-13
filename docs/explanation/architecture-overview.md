@@ -13,15 +13,15 @@ Dotify is a decentralized music streaming platform. When you stream a track, upl
 
 Those systems are:
 
-| Layer                   | Technology                        | What it does                                                  |
-| ----------------------- | --------------------------------- | ------------------------------------------------------------- |
-| **Identity**            | EVM wallet (passkey or extension) | Proves who you are without a password or an account           |
-| **Storage**             | IPFS via Pinata                   | Holds audio files, cover images, and track metadata           |
-| **Backend API**         | Node.js + Fastify                 | Keeps Pinata credentials and content-key material server-side |
-| **On-chain registry**   | Paseo Asset Hub (EVM)             | Records track ownership, access rules, and payments           |
-| **Archival**            | Polkadot Bulletin Chain           | Permanent, tamper-proof backup of the rights manifest         |
-| **Real-time streaming** | WebRTC + Socket.IO                | Delivers live audio to listening rooms                        |
-| **Frontend**            | React SPA                         | The user interface that ties all of the above together        |
+| Layer                   | Technology                         | What it does                                                  |
+| ----------------------- | ---------------------------------- | ------------------------------------------------------------- |
+| **Identity**            | EVM wallet or Product host account | Proves account authority only when an action needs it         |
+| **Storage**             | IPFS via Pinata                    | Holds audio files, cover images, and track metadata           |
+| **Backend API**         | Node.js + Fastify                  | Keeps Pinata credentials and content-key material server-side |
+| **On-chain registry**   | Paseo Asset Hub (EVM)              | Records track ownership, access rules, and payments           |
+| **Archival**            | Polkadot Bulletin Chain            | Permanent, tamper-proof backup of the rights manifest         |
+| **Real-time streaming** | WebRTC + Socket.IO                 | Delivers live audio to listening rooms                        |
+| **Frontend**            | React SPA                          | The user interface that ties all of the above together        |
 
 These systems are intentionally separate. If any one of them goes down or is replaced, the others keep working. Your music is not locked into Dotify — it lives on open networks.
 
@@ -101,7 +101,7 @@ src/
 │   ├── useCatalog.ts          # Catalog state, IPFS resolution, access gating
 │   ├── useSession.ts          # WebRTC + Socket.IO room management
 │   ├── useArtistConsole.ts    # /artists registration, releases, royalties
-│   └── useWallet.ts           # Wallet tiers: passkey → EIP-6963 extension
+│   └── useWallet.ts           # Wallet tiers: EVM extension + Product host account
 ├── features/runtime/
 │   ├── runtimePorts.ts        # RuntimeReadPort / RuntimeWritePort contracts
 │   ├── viemRuntimeAdapter.ts  # Current EVM implementation behind the ports
