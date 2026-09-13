@@ -1,6 +1,6 @@
 import { ArrowRight, Headphones, KeyRound, Link2, Radio, RefreshCw, Users, X } from 'lucide-react';
-import type { FormEvent } from 'react';
-import { useState } from 'react';
+import type { FormEvent, Ref } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CoverImage } from '../components/CoverImage';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
@@ -21,6 +21,12 @@ type RoomsViewProps = {
   onStartRoom: () => void;
 };
 
+const MOBILE_ROOM_DETAILS_QUERY = '(max-width: 48rem)';
+
+function isMobileRoomDetailsLayout() {
+  return typeof window !== 'undefined' && window.matchMedia(MOBILE_ROOM_DETAILS_QUERY).matches;
+}
+
 export function RoomsView({
   openRooms,
   joinCode,
@@ -34,11 +40,46 @@ export function RoomsView({
   onStartRoom
 }: RoomsViewProps) {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const roomCardRefs = useRef(new Map<string, HTMLButtonElement>());
+  const roomDetailsSheetRef = useRef<HTMLElement | null>(null);
   const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
   const selectedRoom = selectedRoomId ? (openRooms.find(room => room.roomId === selectedRoomId) ?? null) : null;
   const isJoining = sessionAction === 'joining';
   const roomListStatus = getRoomListStatus(socketStatus, isRefreshingRooms);
   const roomSignalUnavailable = socketStatus === 'error' || socketStatus === 'offline';
+  const setRoomCardRef = useCallback((roomId: string, element: HTMLButtonElement | null) => {
+    if (element) {
+      roomCardRefs.current.set(roomId, element);
+      return;
+    }
+    roomCardRefs.current.delete(roomId);
+  }, []);
+  const selectRoom = useCallback((roomId: string) => {
+    setSelectedRoomId(roomId);
+  }, []);
+  const closeSelectedRoom = useCallback(() => {
+    const restoreTarget = selectedRoomId ? roomCardRefs.current.get(selectedRoomId) : null;
+    setSelectedRoomId(null);
+    if (!restoreTarget || !isMobileRoomDetailsLayout()) return;
+    window.requestAnimationFrame(() => {
+      if (restoreTarget.isConnected) restoreTarget.focus({ preventScroll: true });
+    });
+  }, [selectedRoomId]);
+
+  useEffect(() => {
+    if (!selectedRoomId || !isMobileRoomDetailsLayout()) return;
+    const sheet = roomDetailsSheetRef.current;
+    if (!sheet) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      if (!sheet.isConnected || !isMobileRoomDetailsLayout()) return;
+      if (document.activeElement instanceof HTMLElement && sheet.contains(document.activeElement)) return;
+      const focusTarget = sheet.querySelector<HTMLElement>('.room-detail-close:not([disabled]), .room-detail-join:not([disabled])') ?? sheet;
+      focusTarget.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedRoomId]);
 
   return (
     <section className='rooms-landing' aria-labelledby='rooms-title'>
@@ -85,7 +126,7 @@ export function RoomsView({
                 rooms={openRooms}
                 selectedRoomId={selectedRoom?.roomId}
                 sessionAction={sessionAction}
-                onSelectRoom={setSelectedRoomId}
+                onSelectRoom={selectRoom}
                 onJoinRoom={onJoinRoom}
               />
 
@@ -98,9 +139,10 @@ export function RoomsView({
                       className='room-live-card'
                       type='button'
                       key={room.roomId}
+                      ref={element => setRoomCardRef(room.roomId, element)}
                       data-selected={isSelected}
                       data-full={room.isFull === true}
-                      onClick={() => setSelectedRoomId(room.roomId)}
+                      onClick={() => selectRoom(room.roomId)}
                       aria-pressed={isSelected}
                       aria-label={`Inspect ${room.track?.title ?? 'live audio session'} hosted by ${room.hostName}`}
                     >
@@ -148,7 +190,8 @@ export function RoomsView({
                 isRefreshingRooms={isRefreshingRooms}
                 socketStatus={socketStatus}
                 variant='sheet'
-                onClose={() => setSelectedRoomId(null)}
+                panelRef={roomDetailsSheetRef}
+                onClose={closeSelectedRoom}
                 onJoinRoom={onJoinRoom}
               />
             )}
@@ -257,17 +300,18 @@ type RoomDetailsPanelProps = {
   socketStatus: SocketStatus;
   isRefreshingRooms: boolean;
   variant: 'panel' | 'sheet';
+  panelRef?: Ref<HTMLElement>;
   onClose?: () => void;
   onJoinRoom: (roomId: string) => void;
 };
 
-function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms, variant, onClose, onJoinRoom }: RoomDetailsPanelProps) {
+function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms, variant, panelRef, onClose, onJoinRoom }: RoomDetailsPanelProps) {
   const status = getRoomListStatus(socketStatus, isRefreshingRooms);
   const className = variant === 'sheet' ? 'room-detail room-detail-sheet' : 'room-detail room-detail-panel';
 
   if (!room) {
     return (
-      <aside className={className} aria-label='Room details' data-testid='room-detail-panel'>
+      <aside ref={panelRef} className={className} aria-label='Room details' data-testid='room-detail-panel' tabIndex={variant === 'sheet' ? -1 : undefined}>
         <div className='room-detail-empty'>
           <span className='room-detail-icon' aria-hidden='true'>
             <Radio size={20} />
@@ -286,7 +330,13 @@ function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms
   const joinLabel = room.isFull ? 'Room full' : sessionAction === 'joining' ? 'Joining' : 'Join room';
 
   return (
-    <aside className={className} aria-label='Room details' data-testid={variant === 'sheet' ? 'room-detail-sheet' : 'room-detail-panel'}>
+    <aside
+      ref={panelRef}
+      className={className}
+      aria-label='Room details'
+      data-testid={variant === 'sheet' ? 'room-detail-sheet' : 'room-detail-panel'}
+      tabIndex={variant === 'sheet' ? -1 : undefined}
+    >
       {onClose && (
         <button className='room-detail-close' type='button' onClick={onClose} aria-label='Close room details'>
           <X size={18} />

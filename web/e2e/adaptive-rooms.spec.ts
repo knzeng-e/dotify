@@ -55,12 +55,15 @@ test('room discovery uses a touch-safe inspection sheet above mobile playback co
   const roomCard = await openRoomsTab(page, roomId);
 
   await expect(page.getByTestId('sky-of-rooms')).toBeHidden();
-  await roomCard.click();
+  await roomCard.focus();
+  await page.keyboard.press('Enter');
 
   const sheet = page.getByTestId('room-detail-sheet');
   await expect(sheet).toBeVisible();
   await expect(sheet).toContainText(PUBLIC_TITLE);
   await expect(page.locator('.player-dock')).toBeVisible();
+  const closeButton = sheet.getByRole('button', { name: 'Close room details' });
+  await expect(closeButton).toBeFocused();
 
   const layout = await page.evaluate(() => {
     const join = document.querySelector<HTMLElement>('.room-detail-sheet .room-detail-join')?.getBoundingClientRect();
@@ -78,4 +81,8 @@ test('room discovery uses a touch-safe inspection sheet above mobile playback co
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
   expect(layout.joinHeight).toBeGreaterThanOrEqual(44);
   expect(layout.sheetBottom).toBeLessThanOrEqual(layout.dockTop + 1);
+
+  await page.keyboard.press('Enter');
+  await expect(sheet).toBeHidden();
+  await expect(roomCard).toBeFocused();
 });
