@@ -122,14 +122,14 @@ onboarding and studio flow is available at `http://localhost:5273/artists`.
 
 Default ports:
 
-| Service       | URL                                    |
-| ------------- | -------------------------------------- |
-| Frontend      | <http://localhost:5273>                |
-| Artist portal | <http://localhost:5273/artists>        |
-| Signaling     | <http://localhost:8788>                |
-| Backend API   | <http://localhost:8790>                |
+| Service       | URL                                      |
+| ------------- | ---------------------------------------- |
+| Frontend      | <http://localhost:5273>                  |
+| Artist portal | <http://localhost:5273/artists>          |
+| Signaling     | <http://localhost:8788>                  |
+| Backend API   | <http://localhost:8790>                  |
 | Bulletin RPC  | `wss://bulletin-paseo.tservices.es:8443` |
-| Asset Hub RPC | <https://eth-rpc-testnet.polkadot.io/> |
+| Asset Hub RPC | <https://eth-rpc-testnet.polkadot.io/>   |
 
 The app talks to Paseo Bulletin and Asset Hub directly from the browser. A local
 Ethereum node or local Substrate node is not required to run the demo.
@@ -508,8 +508,9 @@ Deferred cultural expansion:
 
 ## Improvement Backlog
 
-1. Harden wallet support: injected EVM providers, passkey recovery warnings,
-   network mismatch handling, and clear transaction preflight states.
+1. Harden wallet support: injected EVM providers, Product host account
+   boundaries, network mismatch handling, and clear transaction preflight
+   states.
 2. Harden and operate the backend upload/key service for public traffic:
    production CORS, secret rotation, monitoring, and rate limits.
 3. Complete the browser/device validation matrix for DAV2 Range + MSE playback

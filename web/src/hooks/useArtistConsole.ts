@@ -288,7 +288,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       throw new Error('Connect a wallet before signing this transaction.');
     }
     if (!connectedWallet.createEvmClient) {
-      throw new Error('Artist publishing still requires a passkey or EVM wallet while Dotify contracts are being ported to the Product DevNet host signer.');
+      throw new Error('Artist publishing still requires an EVM wallet while Dotify contracts are being ported to the Product DevNet host signer.');
     }
     const chain = await resolveEvmChain(ethRpcUrl);
     if (connectedWallet.chainId !== undefined && connectedWallet.chainId !== chain.id) {
@@ -869,7 +869,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       if (uploadToBulletinEnabled) {
         if (!activeSubstrateAddress || !activeSubstrateSigner) {
-          const message = 'Bulletin archival requires a Substrate signer. Use a passkey wallet or disable the Bulletin archival option.';
+          const message =
+            'Bulletin archival requires a Substrate signer. Disable the Bulletin archival option unless you are using a local development signer.';
           setRightsStatus(message);
           setTransactionFeedback({
             tone: 'error',

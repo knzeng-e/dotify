@@ -120,8 +120,9 @@ host, and requests an app-scoped account only after explicit user action. That
 account is currently an identity/presence and protected key/session capability
 through the explicit `product-sr25519-v1` signature scheme when the Product
 account public key derives to the requester H160 address. Classic payments and
-artist publication still use the passkey/EVM path in the tracked build until
-CDM/PAPI writes have host-signed transaction smoke evidence.
+artist publication still use the EVM wallet path in the tracked build until
+CDM/PAPI writes have host-signed transaction smoke evidence. The older
+passkey-derived EVM wallet route is retired from public Dotify flows.
 The runtime hooks now depend on typed read/write ports; the current viem
 adapter remains active, and the Product CDM/PAPI adapter remains experimental
 until Dotify has CDM-installed runtime packages and host-signed transaction
@@ -470,43 +471,40 @@ Server/script variables:
 | `TURN_REST_SECRET`          | backend-only TURN REST HMAC secret                   |
 | `BULLETIN_ACCOUNT`          | dev account used by Bulletin deploy script           |
 
-## 11. Wallet And Passkey Design
+## 11. Wallet And Account Design
 
-Dotify supports three account paths in the frontend design:
+Dotify supports two public account authorities:
 
-- passkey-backed local key derivation through WebAuthn PRF;
-- browser wallet extension signing through Polkadot/EVM wallet providers.
-- Product-host app-scoped identity for presence and rooms. It is not yet an
-  EIP-191 or EVM transaction signer.
+- browser wallet extension signing through EVM wallet providers;
+- Product-host app-scoped identity for presence, rooms, protected key/session
+  proofs, and opt-in Product CDM writes when that adapter is selected.
 
-### 11.1 Passkey Credential ID
+Room guests and Free playback do not require either account path. Wallet prompts
+appear only when the user starts a paid, protected, or artist action that needs
+account authority.
 
-When a passkey is created, the browser returns a WebAuthn credential whose
-`rawId` is stored by the app as a base64 string. This value is the WebAuthn
-credential ID.
+### 11.1 Retired Passkey-Only Wallet Route
 
-The credential ID is an opaque lookup identifier. It tells the browser and
-authenticator which passkey credential should be used during a future
-authentication request.
+The earlier passkey-backed local key derivation path used WebAuthn PRF output to
+derive a local EVM key. That route is no longer available in public Dotify
+flows. Generic WebAuthn support is not enough to prove PRF output is available,
+and the derived account can change when local credential metadata, RP/origin,
+device sync, authenticator support, or salt changes.
 
-The credential ID is not:
+Old browsers may still contain the legacy `dotify:passkey:credId` lookup value.
+Dotify may show a cleanup notice for that local value, but it does not treat it
+as a recoverable wallet and does not create a replacement passkey account.
+Forgetting that value removes only Dotify's browser-local lookup data; it does
+not delete the passkey from the operating system, password manager, or hardware
+authenticator.
 
-- an EVM private key;
-- a Substrate private key;
-- the WebAuthn PRF output;
-- the passkey private key;
-- a signing secret;
-- enough information to sign transactions.
+### 11.2 Future Passkey Direction
 
-Because of that, storing the credential ID in `localStorage` is acceptable for a
-prototype. Storing it in a dedicated backend database can also be safe and is
-normal in a full WebAuthn design.
-
-### 11.2 Data That May Be Stored Server-Side
-
-A backend-backed passkey design may store:
+Passkeys can return only as an authentication or recovery factor attached to an
+existing EVM wallet or Product host account. A backend-backed design may store:
 
 - application user ID;
+- parent EVM or Product account identifier;
 - WebAuthn credential ID;
 - WebAuthn public key;
 - sign counter and backup eligibility metadata;
@@ -521,50 +519,9 @@ The backend must not store:
 - raw `KeyManager` seed material;
 - derived symmetric content keys.
 
-### 11.3 LocalStorage Loss Behavior
-
-If browser cache or site storage is cleared, the app loses the stored credential
-ID. This does not necessarily delete the passkey itself, because the passkey
-usually lives in the OS password manager, browser passkey store, or hardware
-security key.
-
-However, if the app only supports login by replaying the locally stored
-credential ID, clearing `localStorage` can make the app unable to locate the
-existing passkey. The user may then create a new passkey, which produces a new
-PRF output and therefore a different derived EVM/Substrate wallet.
-
-The current design requests a resident/discoverable credential, so a future
-improvement should add a discoverable passkey login flow that does not depend on
-`localStorage` having the credential ID.
-
-### 11.4 Key Loss Risks
-
-The derived wallet can be lost or changed if:
-
-- the actual passkey is deleted from the OS password manager, browser passkey
-  store, or hardware security key;
-- the WebAuthn credential is not synced to the user's other devices and the
-  original device is lost;
-- the WebAuthn PRF extension is unavailable on the browser/authenticator used
-  for recovery;
-- `PRF_SALT` changes after users have created wallets;
-- the app treats a missing local credential ID as a new-user flow and creates a
-  replacement passkey.
-
-The `PRF_SALT` must be treated as permanent once real users exist. Rotating it
-rotates all derived accounts.
-
-### 11.5 Recommended Production Direction
-
-For production, Dotify should implement a standard WebAuthn backend flow:
-
-- register and verify WebAuthn credentials server-side;
-- store credential IDs and public keys in the backend;
-- support discoverable credential login;
-- keep PRF outputs strictly client-side;
-- show explicit recovery warnings before users rely on passkey-derived wallets;
-- provide an account migration or backup story before real funds or valuable
-  rights are managed by passkey-derived accounts.
+That future flow must explicitly bind the passkey to the existing account and
+must not imply that a passkey-derived EVM key migrates across standalone web,
+`.dot` gateways, and Product host origins.
 
 ## 12. Build And Deployment
 
@@ -641,8 +598,8 @@ npm test
 - Treat browser-side encryption as demo protection.
 - Move production pinning and key delivery behind authenticated services.
 - Keep runtime contract access checks as the source of truth for policy.
-- Keep WebAuthn PRF outputs and derived private keys client-side only.
-- Treat `PRF_SALT` as permanent once passkey-derived wallets are in use.
+- Keep passkeys out of public wallet routes until they are explicitly bound to
+  an existing EVM or Product account.
 
 ### 13.2 Availability
 
@@ -656,7 +613,8 @@ npm test
 
 - Development requires Node 22 and npm 10+.
 - WebRTC host mode requires browser support for audio element `captureStream`.
-- Passkey wallet mode requires a secure origin and WebAuthn PRF support.
+- Public wallet mode requires an EVM wallet provider or a compatible Product
+  host account.
 
 ## 14. Current Limitations
 
@@ -664,8 +622,9 @@ npm test
   local/demo mode and must not be used as public production boundaries.
 - DAV2 Range/MSE playback still needs a documented real-browser, media-container,
   and gateway validation matrix before P3 is release-ready.
-- Passkey credential discovery currently depends on locally stored credential
-  metadata.
+- Passkey-only accounts are retired from public routes; legacy browser-local
+  passkey lookup data can be forgotten but is not treated as a recoverable
+  wallet.
 - Proof of Personhood is not connected to live Individuality data.
 - Frontend e2e coverage exists for Classic unlock, artist publish, and room
   join/host-access behavior.
@@ -698,9 +657,9 @@ Priority improvements:
 7. Validate the cacheable catalog API's warm/cold p75 budgets under public seed
    traffic, then move its single-writer snapshot to shared storage before
    horizontal scaling.
-8. Harden production wallet support and passkey recovery across public flows.
-9. Add backend-backed WebAuthn registration, credential storage, and
-   discoverable passkey recovery.
+8. Harden production wallet support across public flows.
+9. Add backend-backed passkey attachment only after it can bind to an existing
+   EVM wallet or Product account without creating a replacement identity.
 10. Integrate live Humanity / Individuality data only after the research ticket
     proves source, proof shape, privacy, and address binding.
 11. Archive or remove the legacy monolithic registry path.

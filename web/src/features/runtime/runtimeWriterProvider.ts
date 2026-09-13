@@ -2,7 +2,7 @@
 //
 // Writes are money/ownership operations, so adapter selection is intentionally
 // build-time and fail-closed, matching runtimeReaderProvider. The default path
-// remains viem with the connected EVM/passkey wallet. Product CDM writes are
+// remains viem with the connected EVM wallet. Product CDM writes are
 // available only in builds that explicitly opt in to the Product contract graph.
 
 import type { getWalletClient } from '../../shared/config/contracts';

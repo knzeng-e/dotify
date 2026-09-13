@@ -505,8 +505,9 @@ appropriate component composition rather than shell-level prop drilling.
 - Playback protection is client-side best-effort only when the backend API is
   not configured. Production key delivery uses wallet-signed backend requests
   with explicit `eip191` or `product-sr25519-v1` signature schemes.
-- Artist registration and release publication require a connected wallet. Local
-  EVM dev accounts are no longer exposed as public artist fallbacks.
+- Artist registration and release publication require a connected EVM wallet in
+  the tracked build. Local EVM dev accounts are no longer exposed as public
+  artist fallbacks.
 - Proof of Personhood levels are contract storage controlled by the runtime
   registrar; live Individuality integration is not implemented yet.
 - The signaling server must be hosted separately for DotNS / Bulletin builds.
@@ -516,7 +517,9 @@ appropriate component composition rather than shell-level prop drilling.
 
 ## Improvement Backlog
 
-1. Harden injected EVM provider and passkey wallet support for production usage.
+1. Harden injected EVM provider support for production usage, and only re-add
+   passkeys as a backend-bound factor attached to an existing EVM or Product
+   account.
 2. Move Pinata uploads and content-key release behind a backend or artist-run key
    service.
 3. Replace bundled-content-secret protection with per-track key custody and

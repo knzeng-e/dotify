@@ -1532,13 +1532,15 @@
                 Product host signer. The tracked deployment still defaults to viem; Product writes now fail closed on Product public-key / pallet-revive H160
                 mismatch, poll post-payment access read-back before success, preserve transaction receipts when verification fails, and expose runtime royalty
                 claims through the shared writer port. They still need native payment forwarding, host-signed transaction evidence, Product CASH receipt design,
-                and CDM-installed runtime packages before becoming default. Product Mobile in-app live audio remains pending a host-exposed WebRTC capability.
+                and CDM-installed runtime packages before becoming default. Passkey-only wallet routes are retired for the pilot: guests still enter with no
+                wallet, standalone paid/publish actions use an EVM wallet, and Product-host actions use the app-scoped Product account where supported. Product
+                Mobile in-app live audio remains pending a host-exposed WebRTC capability.
               </p>
               <p>
-                The September 2026 Product DevNet reset is now explicit in the codebase: new app publications use the refreshed Bulletin/DotNS tooling,
-                Dotify's Product CDM registry points at the current DevNet registry, and the Bulletin descriptor is pinned to the post-reset runtime. Published
-                bundles and CDM registrations remain release-time artifacts, so the public host must still be republished and smoke-tested after merge before it
-                counts as Product evidence.
+                The September 2026 Product DevNet reset is now explicit in the codebase: new app publications use the refreshed Bulletin/DotNS tooling, Dotify's
+                Product CDM registry points at the current DevNet registry, and the Bulletin descriptor is pinned to the post-reset runtime. Published bundles
+                and CDM registrations remain release-time artifacts, so the public host must still be republished and smoke-tested after merge before it counts
+                as Product evidence.
               </p>
               <p>
                 Product DevNet is a first-class delivery target alongside ordinary mobile and desktop web. The next pilot must demonstrate discovery, listening,

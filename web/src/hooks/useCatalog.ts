@@ -1053,7 +1053,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
     return connectedWallet.createEvmClient
       ? null
-      : 'This action still requires a passkey or EVM wallet while Dotify contract writes are being validated on the Product DevNet host signer.';
+      : 'This action still requires an EVM wallet while Dotify contract writes are being validated on the Product DevNet host signer.';
   }
 
   async function payForTrackAccess(
