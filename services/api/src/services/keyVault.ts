@@ -182,8 +182,9 @@ export function getContentKeyVaultStatus(overrides: ContentKeyVaultConfigInput =
   if (!secrets.has(activeVersion)) {
     errors.push(`Active content-key version ${activeVersion} has no configured secret.`);
   }
+  const configured = secrets.has(activeVersion) && errors.length === 0;
   return {
-    configured: secrets.has(activeVersion),
+    configured,
     activeVersion,
     configuredVersions,
     errors

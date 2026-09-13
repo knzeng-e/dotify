@@ -137,4 +137,22 @@ describe('key vault derivation scopes', () => {
     assert.equal(serialized.includes(secretV1V2), false);
     assert.equal(serialized.includes(secretV3), false);
   });
+
+  it('marks retained-version configuration errors as unhealthy even when the active secret is valid', () => {
+    const status = getContentKeyVaultStatus({
+      contentKeyMasterSecrets: JSON.stringify({
+        'dotify-content-key-v3': 'not-hex',
+        'dotify-content-key-v4': '66'.repeat(32)
+      }),
+      contentKeyActiveVersion: 'dotify-content-key-v4'
+    });
+
+    assert.equal(status.configured, false);
+    assert.deepEqual(status.configuredVersions, [
+      LEGACY_CONTENT_KEY_VERSION,
+      RELEASE_BOUND_CONTENT_KEY_VERSION,
+      'dotify-content-key-v4'
+    ]);
+    assert.match(status.errors.join('\n'), /dotify-content-key-v3/);
+  });
 });
