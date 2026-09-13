@@ -13,6 +13,7 @@ import {
   RELEASE_STEPS,
   releaseAccessConditionLabel,
   releasePaymentAmountLabel,
+  releaseRoyaltySplitPreflightError,
   royaltyBpsToPercent,
   royaltyPercentToBps,
   royaltySplitRemaining,
@@ -143,6 +144,29 @@ describe('release publication disclosure helpers', () => {
     ).toEqual([{ label: 'Artist wallet', value: '0x111111...111111 controls the release; no listener payment is collected.' }]);
   });
 
+  it('does not synthesize a 100% artist remainder for empty paid splits', () => {
+    const rows = buildReleaseValueFlowRows({
+      accessMode: 'classic',
+      artistRecipient: '0x1111111111111111111111111111111111111111',
+      primaryBps: 0,
+      additionalSplits: []
+    });
+
+    expect(rows).toEqual([
+      {
+        label: 'Payment split',
+        value: 'Add at least 0.01% to the artist or another rights holder before publishing.'
+      }
+    ]);
+  });
+
+  it('preflights empty and over-limit paid royalty splits', () => {
+    expect(releaseRoyaltySplitPreflightError('free', 0, [])).toBeNull();
+    expect(releaseRoyaltySplitPreflightError('classic', 0, [])).toBe('Add at least 0.01% to the artist or another rights holder before publishing.');
+    expect(releaseRoyaltySplitPreflightError('human-free', 10_001, [])).toBe('Reduce the payment split to 100% or less before publishing.');
+    expect(releaseRoyaltySplitPreflightError('classic', 7_250, [{ bps: 2_000 }])).toBeNull();
+  });
+
   it('builds a publication roadmap that does not treat tx submission as catalog visibility', () => {
     const txHash = `0x${'ab'.repeat(32)}` as const;
     const submitted = buildReleasePublicationRoadmap('registry', txHash);
@@ -158,12 +182,21 @@ describe('release publication disclosure helpers', () => {
     const draftFailure = buildReleaseRegistrationFailureMessage({ error: 'User rejected the request.' });
     const catalogFailure = buildReleaseRegistrationFailureMessage({
       error: 'The catalog read-back did not include this release yet.',
-      submittedTxHash: `0x${'ab'.repeat(32)}`
+      submittedTxHash: `0x${'ab'.repeat(32)}`,
+      registrationConfirmed: true
+    });
+    const submittedFailure = buildReleaseRegistrationFailureMessage({
+      error: 'Timed out while waiting for transaction confirmation.',
+      submittedTxHash: `0x${'cd'.repeat(32)}`
     });
 
     expect(draftFailure).toContain('No release was published');
     expect(draftFailure).toContain('can be retried from this draft');
     expect(catalogFailure).toContain('transaction was submitted');
     expect(catalogFailure).toContain('will not mark the release as published');
+    expect(catalogFailure).toContain('catalog visibility');
+    expect(submittedFailure).toContain('did not confirm finality');
+    expect(submittedFailure).toContain('runtime registration');
+    expect(submittedFailure).not.toContain('catalog visibility yet');
   });
 });

@@ -11,6 +11,7 @@ import {
   RELEASE_STEPS,
   releaseAccessConditionLabel,
   releasePaymentAmountLabel,
+  releaseRoyaltySplitPreflightError,
   royaltyBpsToPercent,
   royaltyPercentToBps,
   royaltySplitRemaining,
@@ -117,7 +118,8 @@ export function NewReleaseTab({
   const isListenerPassAccess = accessMode === 'human-free';
   const isDirectSupportAccess = accessMode === 'classic';
   const royaltyFieldsDisabled = artistStudioLocked || isFreeAccess;
-  const releaseCanPublish = canReviewRelease && (isFreeAccess || remainingRoyaltyBps >= 0);
+  const royaltySplitError = releaseRoyaltySplitPreflightError(accessMode, royaltyBps, additionalRoyaltySplits);
+  const releaseCanPublish = canReviewRelease && !royaltySplitError;
   const releaseValueFlowRows = buildReleaseValueFlowRows({
     accessMode,
     artistRecipient: activeEvmAddress ?? '',
@@ -443,7 +445,7 @@ export function NewReleaseTab({
               it.
             </p>
             {!canReviewRelease && <p className='error-box'>Add an audio file and title before publishing.</p>}
-            {!isFreeAccess && remainingRoyaltyBps < 0 && <p className='error-box'>Reduce the payment split to 100% or less before publishing.</p>}
+            {royaltySplitError && <p className='error-box'>{royaltySplitError}</p>}
           </div>
         )}
 

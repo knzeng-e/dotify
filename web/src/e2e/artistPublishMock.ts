@@ -5,11 +5,20 @@ import type { AccessMode, CatalogTrack, PersonhoodLevel } from '../shared/types'
 
 export const isArtistPublishE2e = import.meta.env.VITE_E2E_ARTIST_PUBLISH === 'true';
 
-export type ArtistPublishE2eScenario = 'happy' | 'missing-wallet' | 'network-mismatch' | 'upload-failure' | 'transaction-failure' | 'catalog-delay';
+export type ArtistPublishE2eScenario =
+  | 'happy'
+  | 'missing-wallet'
+  | 'network-mismatch'
+  | 'upload-failure'
+  | 'transaction-failure'
+  | 'transaction-timeout'
+  | 'catalog-delay'
+  | 'catalog-hash-collision';
 
 export const E2E_ARTIST_CHAIN_ID = 420420417;
 export const E2E_ARTIST_ADDRESS = '0x000000000000000000000000000000000000a711' as const;
 export const E2E_ARTIST_RUNTIME = '0x000000000000000000000000000000000000a712' as const;
+export const E2E_ARTIST_COLLISION_RUNTIME = '0x000000000000000000000000000000000000b712' as const;
 export const E2E_ARTIST_PROFILE_TX_HASH = '0xa711000000000000000000000000000000000000000000000000000000000001' as const;
 export const E2E_ARTIST_RELEASE_TX_HASH = '0xa711000000000000000000000000000000000000000000000000000000000002' as const;
 export const E2E_ARTIST_COVER_DATA_URL =
@@ -94,7 +103,9 @@ export function getArtistPublishE2eScenario(): ArtistPublishE2eScenario {
     requested === 'network-mismatch' ||
     requested === 'upload-failure' ||
     requested === 'transaction-failure' ||
+    requested === 'transaction-timeout' ||
     requested === 'catalog-delay' ||
+    requested === 'catalog-hash-collision' ||
     requested === 'happy'
   ) {
     return requested;

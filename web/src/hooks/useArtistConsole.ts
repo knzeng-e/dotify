@@ -22,6 +22,7 @@ import {
   buildReleasePublicationFacts,
   buildReleasePublicationRoadmap,
   buildReleaseRegistrationFailureMessage,
+  releaseRoyaltySplitPreflightError,
   type ReleasePublicationStage
 } from '../features/artist-studio/releaseForm';
 import { resolvePreparedAudioUploadForRuntime } from '../features/uploads/preparedAudioUpload';
@@ -34,6 +35,7 @@ import { resolveConfiguredArtistPublicationSafety } from '../shared/config/deplo
 import { describeArtistRegistrationError, formatWeiAsDot, shorten, dotToPlanck } from '../shared/utils/format';
 import {
   createArtistPublishE2eTrack,
+  E2E_ARTIST_COLLISION_RUNTIME,
   E2E_ARTIST_PROFILE_TX_HASH,
   E2E_ARTIST_RELEASE_TX_HASH,
   E2E_ARTIST_RUNTIME,
@@ -196,6 +198,13 @@ function getArtistNameStorageKey(address: `0x${string}`) {
 
 function preparedAudioRuntimeMismatchMessage(uploadRuntime: `0x${string}`, publicationRuntime: `0x${string}`): string {
   return `The prepared audio upload was encrypted for ${shorten(uploadRuntime, 10)}, but this release is being published to ${shorten(publicationRuntime, 10)}. Dotify will not register audio under a different runtime than the one that derived its content key. Select the audio file again and retry.`;
+}
+
+function isReleaseVisibleInRuntime(track: CatalogTrack, runtimeAddress: `0x${string}`, contentHash: `0x${string}`): boolean {
+  return (
+    track.hash.toLowerCase() === contentHash.toLowerCase() &&
+    runtimeAddressFromTrackId(track)?.toLowerCase() === runtimeAddress.toLowerCase()
+  );
 }
 
 export { getStoredArtistName, storeArtistName };
@@ -761,6 +770,19 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       return;
     }
 
+    const royaltySplitError = releaseRoyaltySplitPreflightError(accessMode, royaltyBps, additionalRoyaltySplits);
+    if (royaltySplitError) {
+      setRightsStatus(royaltySplitError);
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Payment split incomplete',
+        message: royaltySplitError,
+        facts: releasePublicationFacts(),
+        steps: buildReleasePublicationRoadmap('assets')
+      });
+      return;
+    }
+
     setIsRegistering(true);
     let publicationStage: ReleasePublicationStage = 'assets';
     setTransactionFeedback({
@@ -773,6 +795,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
     let runtimeAddress = artistRuntimeAddress;
     let submittedRegistrationTxHash: `0x${string}` | undefined;
+    let registrationTransactionConfirmed = false;
     try {
       if (isArtistPublishE2e) {
         const networkError = getArtistPublishE2eNetworkError(connectedWallet);
@@ -872,14 +895,32 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         if (!runtimeAddress) {
           throw new Error('Artist runtime missing');
         }
-        if (getArtistPublishE2eScenario() === 'transaction-failure') {
+        const targetRuntimeAddress = runtimeAddress;
+        const e2eScenario = getArtistPublishE2eScenario();
+        if (e2eScenario === 'transaction-failure') {
           recordArtistPublishTransactionFailure();
           throw new Error('E2E registration transaction rejected.');
+        }
+        publicationStage = 'registry';
+        submittedRegistrationTxHash = E2E_ARTIST_RELEASE_TX_HASH;
+        if (e2eScenario === 'transaction-timeout') {
+          recordArtistPublishTrackRegistration();
+          recordArtistPublishTransactionFailure();
+          setRightsStatus('Waiting for transaction confirmation');
+          setTransactionFeedback({
+            tone: 'pending',
+            title: 'Waiting for confirmation',
+            message: 'Transaction submitted. Waiting for the final receipt on the EVM network.',
+            facts: releasePublicationFacts(targetRuntimeAddress),
+            steps: buildReleasePublicationRoadmap(publicationStage, E2E_ARTIST_RELEASE_TX_HASH),
+            txHash: E2E_ARTIST_RELEASE_TX_HASH
+          });
+          throw new Error('E2E registration transaction timed out.');
         }
 
         const track = createArtistPublishE2eTrack({
           artistAddress: activeEvmAddress,
-          runtimeAddress,
+          runtimeAddress: targetRuntimeAddress,
           hash: fileHash,
           title,
           artistName,
@@ -892,22 +933,42 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           coverCID: resolvedCoverCID,
           metadataCID
         });
-        if (getArtistPublishE2eScenario() === 'catalog-delay') {
+        if (e2eScenario === 'catalog-delay') {
           recordArtistPublishTrackRegistration();
+        } else if (e2eScenario === 'catalog-hash-collision') {
+          publishArtistPublishE2eTrack(
+            createArtistPublishE2eTrack({
+              artistAddress: activeEvmAddress,
+              runtimeAddress: E2E_ARTIST_COLLISION_RUNTIME,
+              hash: fileHash,
+              title,
+              artistName,
+              description,
+              accessMode,
+              priceDot,
+              personhoodLevel,
+              royaltyBps: totalRoyaltyBps,
+              audioCID: resolvedAudioCID,
+              coverCID: resolvedCoverCID,
+              metadataCID
+            })
+          );
         } else {
           publishArtistPublishE2eTrack(track);
         }
+        registrationTransactionConfirmed = true;
+        publicationStage = 'catalog';
         setRightsStatus('Verifying catalog visibility');
         setTransactionFeedback({
           tone: 'pending',
           title: 'Verifying catalog visibility',
           message: 'Registration accepted. Reading the catalog before marking this release published.',
-          facts: releasePublicationFacts(runtimeAddress),
+          facts: releasePublicationFacts(targetRuntimeAddress),
           steps: buildReleasePublicationRoadmap('catalog', E2E_ARTIST_RELEASE_TX_HASH),
           txHash: E2E_ARTIST_RELEASE_TX_HASH
         });
         const refreshedTracks = await refreshCatalogFromRegistry(fileHash);
-        const visible = refreshedTracks.some(refreshedTrack => refreshedTrack.hash.toLowerCase() === fileHash.toLowerCase());
+        const visible = refreshedTracks.some(refreshedTrack => isReleaseVisibleInRuntime(refreshedTrack, targetRuntimeAddress, fileHash));
         if (!visible) {
           setRightsStatus('Registration accepted; catalog refresh pending');
           setTransactionFeedback({
@@ -915,9 +976,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
             title: 'Registration accepted, catalog pending',
             message: buildReleaseRegistrationFailureMessage({
               error: 'The catalog read-back did not include this release yet.',
-              submittedTxHash: E2E_ARTIST_RELEASE_TX_HASH
+              submittedTxHash: E2E_ARTIST_RELEASE_TX_HASH,
+              registrationConfirmed: true
             }),
-            facts: releasePublicationFacts(runtimeAddress),
+            facts: releasePublicationFacts(targetRuntimeAddress),
             steps: buildReleasePublicationRoadmap('catalog', E2E_ARTIST_RELEASE_TX_HASH),
             txHash: E2E_ARTIST_RELEASE_TX_HASH
           });
@@ -928,7 +990,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           tone: 'success',
           title: 'Track registered',
           message: 'The release was added to the artist runtime and Dotify can see it in the catalog.',
-          facts: releasePublicationFacts(runtimeAddress),
+          facts: releasePublicationFacts(targetRuntimeAddress),
           steps: buildReleasePublicationRoadmap('complete', E2E_ARTIST_RELEASE_TX_HASH),
           txHash: E2E_ARTIST_RELEASE_TX_HASH
         });
@@ -1030,6 +1092,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         return;
       }
 
+      const targetRuntimeAddress = runtimeAddress;
       const runtimeWriter = getRuntimeWriter();
       const ipfsAudioRef = resolvedAudioRef || localAudioRef(fileHash);
       const ipfsCoverRef = resolvedCoverCID ? `ipfs://${resolvedCoverCID}` : `dotify:cover:${fileHash}`;
@@ -1040,11 +1103,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         tone: 'pending',
         title: 'Registering track',
         message: 'Review the registration in your wallet. Dotify will not mark the release as published until catalog read-back confirms it.',
-        facts: releasePublicationFacts(runtimeAddress),
+        facts: releasePublicationFacts(targetRuntimeAddress),
         steps: buildReleasePublicationRoadmap(publicationStage)
       });
 
-      const txHash = await runtimeWriter.registerTrack(runtimeAddress, {
+      const txHash = await runtimeWriter.registerTrack(targetRuntimeAddress, {
         contentHash: fileHash,
         title,
         artistName,
@@ -1067,10 +1130,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         title: 'Waiting for confirmation',
         message: 'Transaction submitted. Waiting for the final receipt on the EVM network.',
         txHash,
-        facts: releasePublicationFacts(runtimeAddress),
+        facts: releasePublicationFacts(targetRuntimeAddress),
         steps: buildReleasePublicationRoadmap(publicationStage, txHash)
       });
       await runtimeWriter.waitForTransaction(txHash);
+      registrationTransactionConfirmed = true;
       publicationStage = 'catalog';
       setRightsStatus('Verifying catalog visibility');
       setTransactionFeedback({
@@ -1078,11 +1142,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         title: 'Verifying catalog visibility',
         message: 'Registration confirmed. Reading the catalog before marking this release published.',
         txHash,
-        facts: releasePublicationFacts(runtimeAddress),
+        facts: releasePublicationFacts(targetRuntimeAddress),
         steps: buildReleasePublicationRoadmap(publicationStage, txHash)
       });
       const refreshedTracks = await refreshCatalogFromRegistry(fileHash);
-      const visible = refreshedTracks.some(refreshedTrack => refreshedTrack.hash.toLowerCase() === fileHash.toLowerCase());
+      const visible = refreshedTracks.some(refreshedTrack => isReleaseVisibleInRuntime(refreshedTrack, targetRuntimeAddress, fileHash));
       if (!visible) {
         setRightsStatus('Registration confirmed; catalog refresh pending');
         setTransactionFeedback({
@@ -1090,10 +1154,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           title: 'Registration confirmed, catalog pending',
           message: buildReleaseRegistrationFailureMessage({
             error: 'The catalog read-back did not include this release yet.',
-            submittedTxHash: txHash
+            submittedTxHash: txHash,
+            registrationConfirmed: true
           }),
           txHash,
-          facts: releasePublicationFacts(runtimeAddress),
+          facts: releasePublicationFacts(targetRuntimeAddress),
           steps: buildReleasePublicationRoadmap(publicationStage, txHash)
         });
         return;
@@ -1104,7 +1169,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         title: 'Track registered',
         message: 'The release was added to the artist runtime and Dotify can see it in the catalog.',
         txHash,
-        facts: releasePublicationFacts(runtimeAddress),
+        facts: releasePublicationFacts(targetRuntimeAddress),
         steps: buildReleasePublicationRoadmap('complete', txHash)
       });
     } catch (registrationError) {
@@ -1115,11 +1180,12 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         title: 'Registration failed',
         message: buildReleaseRegistrationFailureMessage({
           error: message,
-          submittedTxHash: submittedRegistrationTxHash
+          submittedTxHash: submittedRegistrationTxHash,
+          registrationConfirmed: registrationTransactionConfirmed
         }),
         txHash: submittedRegistrationTxHash,
         facts: releasePublicationFacts(runtimeAddress),
-        steps: buildReleasePublicationRoadmap(submittedRegistrationTxHash ? 'catalog' : publicationStage, submittedRegistrationTxHash)
+        steps: buildReleasePublicationRoadmap(registrationTransactionConfirmed ? 'catalog' : publicationStage, submittedRegistrationTxHash)
       });
     } finally {
       setIsRegistering(false);

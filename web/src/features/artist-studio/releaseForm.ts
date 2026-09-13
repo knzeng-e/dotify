@@ -78,6 +78,18 @@ export function royaltySplitRemaining(primaryBps: number, additionalSplits: Pick
   return ROYALTY_BPS_DENOMINATOR - royaltySplitTotal(primaryBps, additionalSplits);
 }
 
+export function releaseRoyaltySplitPreflightError(
+  accessMode: AccessMode,
+  primaryBps: number,
+  additionalSplits: Pick<ReleaseRoyaltySplitDraft, 'bps'>[]
+): string | null {
+  if (accessMode === 'free') return null;
+  const totalBps = royaltySplitTotal(primaryBps, additionalSplits);
+  if (totalBps <= 0) return 'Add at least 0.01% to the artist or another rights holder before publishing.';
+  if (totalBps > ROYALTY_BPS_DENOMINATOR) return 'Reduce the payment split to 100% or less before publishing.';
+  return null;
+}
+
 /** Convert on-chain basis points to the percentage users configure. */
 export function royaltyBpsToPercent(bps: number): number {
   return Number.isFinite(bps) ? Math.max(0, Math.trunc(bps)) / 100 : 0;
@@ -140,6 +152,14 @@ export function buildReleaseValueFlowRows(input: {
   }
 
   const totalBps = royaltySplitTotal(input.primaryBps, input.additionalSplits);
+  if (totalBps <= 0) {
+    return [
+      {
+        label: 'Payment split',
+        value: 'Add at least 0.01% to the artist or another rights holder before publishing.'
+      }
+    ];
+  }
   const remainderBps = ROYALTY_BPS_DENOMINATOR - totalBps;
   if (remainderBps > 0) {
     rows.push({
@@ -224,9 +244,16 @@ export function buildReleasePublicationRoadmap(stage: ReleasePublicationStage, t
   });
 }
 
-export function buildReleaseRegistrationFailureMessage(input: { error: string; submittedTxHash?: `0x${string}` }): string {
-  if (input.submittedTxHash) {
+export function buildReleaseRegistrationFailureMessage(input: {
+  error: string;
+  submittedTxHash?: `0x${string}`;
+  registrationConfirmed?: boolean;
+}): string {
+  if (input.submittedTxHash && input.registrationConfirmed) {
     return `The registration transaction was submitted, but Dotify did not confirm catalog visibility yet: ${input.error} Keep this transaction hash and refresh the catalog before retrying. Dotify will not mark the release as published until catalog read-back includes it.`;
+  }
+  if (input.submittedTxHash) {
+    return `The registration transaction was submitted, but Dotify did not confirm finality: ${input.error} Keep this transaction hash and verify the runtime registration before retrying. Dotify will not mark the release as published until runtime registration and catalog read-back both confirm it.`;
   }
   return `No release was published. Asset uploads and manifest pinning can be retried from this draft without changing the artist runtime: ${input.error}`;
 }
