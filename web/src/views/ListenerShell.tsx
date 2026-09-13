@@ -289,7 +289,11 @@ export function ListenerShell() {
                             expectedChainId,
                             walletChainId: connectedWallet?.chainId,
                             productCdmHostSmoke: {
+                              buildSha: (import.meta.env.VITE_DOTIFY_BUILD_SHA as string | undefined) ?? null,
+                              productAppVersion: (import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION as string | undefined) ?? null,
                               productId: productHostConfig.productId,
+                              publicAppUrl: (import.meta.env.VITE_PUBLIC_APP_URL as string | undefined) ?? null,
+                              cdmRegistry: (import.meta.env.VITE_DOTIFY_CDM_REGISTRY as string | undefined) ?? null,
                               productHostMode,
                               productHostStatus,
                               runtimeAdapterKind: runtimeAdapterConfig.kind,

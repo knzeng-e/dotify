@@ -595,8 +595,11 @@ Then verify in the Product host:
 CDM host smoke`, mark **Host approval prompt captured** if the host showed
    an explicit transaction approval, then copy or download the smoke JSON. The
    JSON is stored only in browser session storage and deliberately excludes
-   content keys, signatures, nonces, and session tokens. Attach it with the
-   Product host approval screenshot and Fly/API logs.
+   content keys, signatures, nonces, and session tokens. It includes
+   browser-safe build identity (`buildSha`, Product app version, public app URL,
+   and CDM registry) so the local harness can reject stale exports from an old
+   Product DevNet reset or a different build. Attach it with the Product host
+   approval screenshot and Fly/API logs.
 
    Feed the exported smoke JSON back into the local journey harness:
 
@@ -636,6 +639,10 @@ npm run smoke:product-journey -- \
 ```json
 {
   "schemaVersion": 1,
+  "hostSurface": "product-desktop",
+  "hostOrigin": "polkadot://dotify-test01.dot",
+  "hostVersion": "Product Desktop 0.1.0",
+  "guestOrigin": "https://muzinga.netlify.app",
   "canonicalRoomUrl": "https://dotify-test01.dev-dot.li/#/rooms/ROOM42",
   "hostSharedCanonicalUrl": true,
   "guestAccountConnected": false,
@@ -643,6 +650,10 @@ npm run smoke:product-journey -- \
   "guestHeardAudio": true
 }
 ```
+
+   Use `hostSurface: "product-web-gateway"` only for a separate smoke captured
+   from the Product Web gateway. A Product Desktop room smoke must not be reused
+   as Product Web evidence.
 
 10. A Netlify-origin host and Product-origin guest also connect.
 11. Briefly interrupting the mobile network preserves and resumes the same room

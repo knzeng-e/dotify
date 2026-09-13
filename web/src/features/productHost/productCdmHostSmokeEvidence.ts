@@ -61,7 +61,11 @@ export type ProductCdmHostSmokeEvent =
   | ProductCdmHostOperatorObservation;
 
 export type ProductCdmHostSmokeContext = {
+  buildSha: string | null;
+  productAppVersion: string | null;
   productId: string;
+  publicAppUrl: string | null;
+  cdmRegistry: string | null;
   productHostMode: string;
   productHostStatus: string;
   runtimeAdapterKind: string;
@@ -506,7 +510,11 @@ export function summarizeProductCdmHostSmoke(checks: ProductCdmHostSmokeCheck[])
 
 function sanitizeContext(context: ProductCdmHostSmokeContext): ProductCdmHostSmokeContext {
   return {
+    buildSha: context.buildSha,
+    productAppVersion: context.productAppVersion,
     productId: context.productId,
+    publicAppUrl: context.publicAppUrl,
+    cdmRegistry: context.cdmRegistry,
     productHostMode: context.productHostMode,
     productHostStatus: context.productHostStatus,
     runtimeAdapterKind: context.runtimeAdapterKind,

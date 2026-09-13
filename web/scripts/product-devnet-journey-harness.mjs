@@ -7,7 +7,8 @@
 // Product CDM host smoke panel. It never signs, broadcasts, reads secrets, or
 // treats missing live evidence as a pass.
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -16,6 +17,8 @@ export const EXPECTED_PRODUCT_DEVNET = {
   productId: 'dotify-test01.dot',
   publicAppUrl: 'https://dotify-test01.dev-dot.li',
   chainId: 420420417,
+  devnetResetAt: '2026-09-09T00:00:00.000Z',
+  assetHubRpcUrls: ['https://eth-rpc-testnet.polkadot.io/', 'https://paseo-assethub-rpc.laissez-faire.trade/'],
   cdmRegistry: '0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f',
   retiredCdmRegistry: '0x59b0245778917af55224e5f8fb55f7f8d452619f',
   productSdk: '0.27.0',
@@ -33,16 +36,6 @@ const REQUIRED_PRODUCT_ORIGINS = [
   'https://dotify-test01.dot',
   'polkadot://dotify-test01.dot',
   'polkadot://app.dotify-test01.dot'
-];
-
-const REQUIRED_PRODUCT_SMOKE_CHECKS = [
-  'product-account',
-  'product-cdm-adapter',
-  'host-approval',
-  'native-value',
-  'payment-readback',
-  'backend-key',
-  'same-identity'
 ];
 
 const FORBIDDEN_EVIDENCE_KEYS = ['contentKey', 'signature', 'nonce', 'sessionToken', 'token'];
@@ -101,8 +94,52 @@ function isHttpsUrl(value) {
   }
 }
 
+function normalizedUrl(value) {
+  try {
+    return new URL(value).toString();
+  } catch {
+    return null;
+  }
+}
+
+function isExpectedProductDevnetRpcUrl(value) {
+  const normalized = normalizedUrl(value);
+  if (!normalized) return false;
+  return EXPECTED_PRODUCT_DEVNET.assetHubRpcUrls.map(url => normalizedUrl(url)).includes(normalized);
+}
+
 function normalizeAddress(address) {
   return typeof address === 'string' ? address.toLowerCase() : '';
+}
+
+function isHexAddress(value) {
+  return typeof value === 'string' && /^0x[0-9a-fA-F]{40}$/.test(value);
+}
+
+function isHexHash(value) {
+  return typeof value === 'string' && /^0x[0-9a-fA-F]{64}$/.test(value);
+}
+
+function isProductPublicKey(value) {
+  return typeof value === 'string' && /^0x[0-9a-fA-F]{64}$/.test(value);
+}
+
+function isPositivePlanck(value) {
+  return typeof value === 'string' && /^[1-9][0-9]*$/.test(value);
+}
+
+function parseDateMs(value) {
+  if (typeof value !== 'string') return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function versionText(appVersion) {
+  return Array.isArray(appVersion) ? `[${appVersion.join(', ')}]` : null;
+}
+
+function sameValue(left, right) {
+  return typeof left === 'string' && typeof right === 'string' && left.toLowerCase() === right.toLowerCase();
 }
 
 function commaList(value) {
@@ -190,7 +227,6 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
   for (const [id, key] of [
     ['api-url', 'VITE_DOTIFY_API_URL'],
     ['signal-url', 'VITE_SIGNAL_URL'],
-    ['asset-hub-rpc', 'VITE_ETH_RPC_URL'],
     ['pinata-gateway', 'VITE_PINATA_GATEWAY']
   ]) {
     const value = env[key] ?? '';
@@ -199,6 +235,19 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
     } else {
       fail(gates, id, key, `Expected an https URL, found ${value || 'missing'}.`, 'web/.env.product-devnet');
     }
+  }
+
+  const ethRpcUrl = env.VITE_ETH_RPC_URL ?? '';
+  if (isExpectedProductDevnetRpcUrl(ethRpcUrl)) {
+    pass(gates, 'asset-hub-rpc', 'VITE_ETH_RPC_URL', `${ethRpcUrl} (Product DevNet chain ${EXPECTED_PRODUCT_DEVNET.chainId}).`, 'web/.env.product-devnet');
+  } else {
+    fail(
+      gates,
+      'asset-hub-rpc',
+      'VITE_ETH_RPC_URL',
+      `Expected Product DevNet Asset Hub RPC (${EXPECTED_PRODUCT_DEVNET.assetHubRpcUrls.join(' or ')}), found ${ethRpcUrl || 'missing'}.`,
+      'web/.env.product-devnet'
+    );
   }
 
   if (env.VITE_PINATA_JWT || env.VITE_CONTENT_SECRET) {
@@ -313,10 +362,6 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
   return gates;
 }
 
-function findCheck(evidence, id) {
-  return Array.isArray(evidence?.checks) ? evidence.checks.find(check => check?.id === id) : null;
-}
-
 function containsForbiddenKey(value, path = []) {
   if (!value || typeof value !== 'object') return null;
   for (const [key, child] of Object.entries(value)) {
@@ -328,8 +373,51 @@ function containsForbiddenKey(value, path = []) {
   return null;
 }
 
-export function evaluateProductCdmSmokeEvidence(evidence) {
+function smokeEvents(evidence) {
+  return Array.isArray(evidence?.events) ? evidence.events : [];
+}
+
+function latestPaymentEvent(events) {
+  return events.filter(event => event?.kind === 'payment').at(-1) ?? null;
+}
+
+function latestAllowedKeyEvent(events, payment, context) {
+  return (
+    events.find(
+      event =>
+        event?.kind === 'key' &&
+        event.phase === 'key-allowed' &&
+        event.signatureScheme === 'product-sr25519-v1' &&
+        event.chainId === EXPECTED_PRODUCT_DEVNET.chainId &&
+        event.access === 'allowed' &&
+        event.playbackMode === 'full' &&
+        sameValue(event.address, context?.listenerAddress) &&
+        sameValue(event.productPublicKey, context?.productPublicKey) &&
+        (!payment || (sameValue(event.contentHash, payment.contentHash) && sameValue(event.runtime, payment.runtimeAddress)))
+    ) ?? null
+  );
+}
+
+function hasExplicitHostApproval(events) {
+  return events.some(event => event?.kind === 'operator-observation' && event.observation === 'host-approval-explicit' && event.ok === true);
+}
+
+function allSmokeIdentitiesMatch(events, context) {
+  if (!context?.listenerAddress || !context?.productPublicKey) return false;
+  const identityEvents = events.filter(event => event?.kind === 'payment' || event?.kind === 'key');
+  if (identityEvents.length === 0) return false;
+  return identityEvents.every(event => {
+    if (event.kind === 'payment') return sameValue(event.listenerAddress, context.listenerAddress);
+    return sameValue(event.address, context.listenerAddress) && sameValue(event.productPublicKey, context.productPublicKey);
+  });
+}
+
+export function evaluateProductCdmSmokeEvidence(evidence, options = {}) {
   const gates = [];
+  const expectedVersion = versionText(options.appVersion);
+  const expectedCommit = typeof options.commit === 'string' && options.commit !== 'unknown' ? options.commit : null;
+  const generatedAtMs = parseDateMs(options.generatedAt) ?? Date.now();
+  const devnetResetAtMs = parseDateMs(EXPECTED_PRODUCT_DEVNET.devnetResetAt);
 
   if (!evidence) {
     blocked(
@@ -342,10 +430,32 @@ export function evaluateProductCdmSmokeEvidence(evidence) {
     return gates;
   }
 
+  const context = evidence.context ?? {};
+  const events = smokeEvents(evidence);
+  const payment = latestPaymentEvent(events);
+  const allowedKey = latestAllowedKeyEvent(events, payment, context);
+
   if (evidence.schemaVersion !== 1) {
     fail(gates, 'smoke-schema', 'Smoke evidence schema', `Expected schemaVersion 1, found ${evidence.schemaVersion ?? 'missing'}.`, 'Product host JSON');
   } else {
     pass(gates, 'smoke-schema', 'Smoke evidence schema', 'schemaVersion 1.', 'Product host JSON');
+  }
+
+  const capturedAtMs = parseDateMs(evidence.capturedAt);
+  if (capturedAtMs === null) {
+    fail(gates, 'smoke-captured-at', 'Smoke capture time', 'capturedAt must be an ISO timestamp.', 'Product host JSON');
+  } else if (devnetResetAtMs !== null && capturedAtMs < devnetResetAtMs) {
+    fail(
+      gates,
+      'smoke-captured-at',
+      'Smoke capture time',
+      `Evidence predates the Product DevNet reset at ${EXPECTED_PRODUCT_DEVNET.devnetResetAt}.`,
+      'Product host JSON'
+    );
+  } else if (capturedAtMs > generatedAtMs + 5 * 60_000) {
+    fail(gates, 'smoke-captured-at', 'Smoke capture time', 'capturedAt is later than the harness run.', 'Product host JSON');
+  } else {
+    pass(gates, 'smoke-captured-at', 'Smoke capture time', evidence.capturedAt, 'Product host JSON');
   }
 
   const forbidden = containsForbiddenKey(evidence);
@@ -355,25 +465,116 @@ export function evaluateProductCdmSmokeEvidence(evidence) {
     pass(gates, 'smoke-secrets', 'Smoke evidence secret hygiene', 'No content keys, signatures, nonces, or tokens are present.', 'Product host JSON');
   }
 
-  for (const id of REQUIRED_PRODUCT_SMOKE_CHECKS) {
-    const check = findCheck(evidence, id);
-    if (!check) {
-      fail(gates, `smoke:${id}`, checkLabel(id), 'Required smoke check missing.', 'Product host JSON');
-    } else if (check.tone === 'ok') {
-      pass(gates, `smoke:${id}`, check.label ?? checkLabel(id), check.detail ?? 'ok', 'Product host JSON');
-    } else {
-      fail(gates, `smoke:${id}`, check.label ?? checkLabel(id), check.detail ?? `Expected ok, found ${check.tone}.`, 'Product host JSON');
-    }
+  const buildProblems = [];
+  if (expectedCommit && context.buildSha !== expectedCommit) buildProblems.push(`buildSha ${context.buildSha || 'missing'} does not match ${expectedCommit}`);
+  if (expectedVersion && context.productAppVersion !== expectedVersion) {
+    buildProblems.push(`productAppVersion ${context.productAppVersion || 'missing'} does not match ${expectedVersion}`);
+  }
+  if (context.publicAppUrl !== EXPECTED_PRODUCT_DEVNET.publicAppUrl) {
+    buildProblems.push(`publicAppUrl ${context.publicAppUrl || 'missing'} does not match ${EXPECTED_PRODUCT_DEVNET.publicAppUrl}`);
+  }
+  if (normalizeAddress(context.cdmRegistry) !== EXPECTED_PRODUCT_DEVNET.cdmRegistry) {
+    buildProblems.push(`cdmRegistry ${context.cdmRegistry || 'missing'} does not match ${EXPECTED_PRODUCT_DEVNET.cdmRegistry}`);
+  }
+  if (buildProblems.length === 0) {
+    pass(
+      gates,
+      'smoke-build',
+      'Smoke build identity',
+      `Build ${expectedCommit ?? 'unknown'} ${expectedVersion ?? ''} matches Product DevNet config.`,
+      'Product host JSON'
+    );
+  } else {
+    fail(gates, 'smoke-build', 'Smoke build identity', buildProblems.join('; '), 'Product host JSON');
+  }
+
+  if (
+    context.productId === EXPECTED_PRODUCT_DEVNET.productId &&
+    context.productHostMode === 'required' &&
+    context.productHostStatus === 'available' &&
+    context.walletMethod === 'product-host' &&
+    isHexAddress(context.listenerAddress) &&
+    isProductPublicKey(context.productPublicKey) &&
+    context.expectedChainId === EXPECTED_PRODUCT_DEVNET.chainId &&
+    context.apiConfigured === true
+  ) {
+    pass(gates, 'smoke:product-account', 'Product account', `Connected ${context.listenerAddress} for ${context.productId}.`, 'Product host JSON');
+  } else {
+    fail(
+      gates,
+      'smoke:product-account',
+      'Product account',
+      'Expected Product host account, available host, current product ID, Product DevNet chain, API enabled, H160 listener, and 32-byte Product public key.',
+      'Product host JSON'
+    );
+  }
+
+  if (context.runtimeAdapterKind === 'product-cdm') {
+    pass(gates, 'smoke:product-cdm-adapter', 'Runtime adapter', 'Product CDM adapter was active.', 'Product host JSON');
+  } else {
+    fail(gates, 'smoke:product-cdm-adapter', 'Runtime adapter', `Expected product-cdm, found ${context.runtimeAdapterKind || 'missing'}.`, 'Product host JSON');
+  }
+
+  if (hasExplicitHostApproval(events)) {
+    pass(gates, 'smoke:host-approval', 'Host approval', 'Operator recorded an explicit Product host approval prompt.', 'Product host JSON');
+  } else {
+    fail(gates, 'smoke:host-approval', 'Host approval', 'Expected an operator-observation event with host-approval-explicit=true.', 'Product host JSON');
+  }
+
+  if (payment && isPositivePlanck(payment.amountPlanck)) {
+    pass(gates, 'smoke:native-value', 'Native value', `amountPlanck=${payment.amountPlanck}.`, 'Product host JSON');
+  } else {
+    fail(gates, 'smoke:native-value', 'Native value', 'Expected a payment event with a non-zero native amountPlanck.', 'Product host JSON');
+  }
+
+  if (
+    payment &&
+    payment.ok === true &&
+    payment.hasPaid === true &&
+    payment.canAccess === true &&
+    Number.isInteger(payment.attempts) &&
+    payment.attempts > 0 &&
+    isHexHash(payment.txHash) &&
+    isHexAddress(payment.runtimeAddress) &&
+    isHexHash(payment.contentHash) &&
+    sameValue(payment.listenerAddress, context.listenerAddress)
+  ) {
+    pass(gates, 'smoke:payment-readback', 'Payment read-back', `Access read-back passed after ${payment.attempts} attempts.`, 'Product host JSON');
+  } else {
+    fail(
+      gates,
+      'smoke:payment-readback',
+      'Payment read-back',
+      'Expected a same-identity payment event with valid tx/runtime/content hashes, ok=true, hasPaid=true, canAccess=true, and attempts>0.',
+      'Product host JSON'
+    );
+  }
+
+  if (allowedKey) {
+    pass(
+      gates,
+      'smoke:backend-key',
+      'Backend key release',
+      `Backend released full access through ${allowedKey.path} Product sr25519 identity.`,
+      'Product host JSON'
+    );
+  } else {
+    fail(
+      gates,
+      'smoke:backend-key',
+      'Backend key release',
+      'Expected a matching key-allowed event for the same listener, Product public key, runtime, content hash, Product DevNet chain, and full playback.',
+      'Product host JSON'
+    );
+  }
+
+  if (allSmokeIdentitiesMatch(events, context)) {
+    pass(gates, 'smoke:same-identity', 'Same identity', 'Payment and key events use the connected Product H160/public-key identity.', 'Product host JSON');
+  } else {
+    fail(gates, 'smoke:same-identity', 'Same identity', 'Payment/key event identities must match the connected Product account.', 'Product host JSON');
   }
 
   return gates;
-}
-
-function checkLabel(id) {
-  return id
-    .split('-')
-    .map(part => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
-    .join(' ');
 }
 
 export function evaluateRoomJourneyEvidence(roomEvidence, publicAppUrl = EXPECTED_PRODUCT_DEVNET.publicAppUrl) {
@@ -393,6 +594,27 @@ export function evaluateRoomJourneyEvidence(roomEvidence, publicAppUrl = EXPECTE
     fail(gates, 'room-schema', 'Room evidence schema', `Expected schemaVersion 1, found ${roomEvidence.schemaVersion ?? 'missing'}.`, 'room JSON');
   } else {
     pass(gates, 'room-schema', 'Room evidence schema', 'schemaVersion 1.', 'room JSON');
+  }
+
+  const hostSurface = roomEvidence.hostSurface;
+  if (
+    (hostSurface === 'product-desktop' || hostSurface === 'product-web-gateway') &&
+    typeof roomEvidence.hostOrigin === 'string' &&
+    roomEvidence.hostOrigin.trim() &&
+    typeof roomEvidence.hostVersion === 'string' &&
+    roomEvidence.hostVersion.trim() &&
+    typeof roomEvidence.guestOrigin === 'string' &&
+    isHttpsUrl(roomEvidence.guestOrigin)
+  ) {
+    pass(gates, 'room-surface', 'Product room surface', `${hostSurface} ${roomEvidence.hostVersion} from ${roomEvidence.hostOrigin}.`, 'room JSON');
+  } else {
+    fail(
+      gates,
+      'room-surface',
+      'Product room surface',
+      'Expected hostSurface=product-desktop or product-web-gateway plus hostOrigin, hostVersion, and HTTPS guestOrigin.',
+      'room JSON'
+    );
   }
 
   const canonical = typeof roomEvidence.canonicalRoomUrl === 'string' && roomEvidence.canonicalRoomUrl.startsWith(`${publicAppUrl}/#/rooms/`);
@@ -423,10 +645,33 @@ export function evaluateRoomJourneyEvidence(roomEvidence, publicAppUrl = EXPECTE
   return gates;
 }
 
-export function buildSurfaceMatrix({ commit, appVersion, productSmokeEvidence, roomEvidence }) {
+function gatesPassed(gates, ids) {
+  return ids.every(id => gates.some(gate => gate.id === id && gate.status === 'pass'));
+}
+
+function roomEvidenceSurface(roomEvidence, roomGates) {
+  if (!gatesPassed(roomGates, ['room-schema', 'room-surface', 'canonical-room-link', 'walletless-browser-guest'])) return null;
+  return roomEvidence?.hostSurface ?? null;
+}
+
+export function buildSurfaceMatrix({ commit, appVersion, productSmokeGates, roomEvidence, roomGates }) {
   const version = appVersion ? `[${appVersion.join(', ')}]` : 'unknown';
-  const productPaymentComplete = productSmokeEvidence?.summary?.tone === 'ok';
-  const roomComplete = roomEvidence?.guestAccountConnected === false && roomEvidence?.guestJoined === true && roomEvidence?.guestHeardAudio === true;
+  const productPaymentComplete = gatesPassed(productSmokeGates, [
+    'smoke-schema',
+    'smoke-captured-at',
+    'smoke-secrets',
+    'smoke-build',
+    'smoke:product-account',
+    'smoke:product-cdm-adapter',
+    'smoke:host-approval',
+    'smoke:native-value',
+    'smoke:payment-readback',
+    'smoke:backend-key',
+    'smoke:same-identity'
+  ]);
+  const roomSurface = roomEvidenceSurface(roomEvidence, roomGates);
+  const productDesktopRoomComplete = roomSurface === 'product-desktop';
+  const productWebRoomComplete = roomSurface === 'product-web-gateway';
 
   return [
     {
@@ -447,18 +692,20 @@ export function buildSurfaceMatrix({ commit, appVersion, productSmokeEvidence, r
       surface: 'Product Desktop',
       buildSha: commit,
       appVersion: version,
-      status: productPaymentComplete && roomComplete ? 'pass' : 'blocked',
+      status: productPaymentComplete && productDesktopRoomComplete ? 'pass' : 'blocked',
       evidence:
-        productPaymentComplete && roomComplete
-          ? 'Product CDM payment/key smoke and room guest evidence supplied.'
-          : 'Needs live Product host payment/key and room evidence.'
+        productPaymentComplete && productDesktopRoomComplete
+          ? 'Product CDM payment/key smoke and Product Desktop room guest evidence supplied.'
+          : productPaymentComplete
+            ? 'Needs room evidence explicitly captured on Product Desktop.'
+            : 'Needs live Product Desktop payment/key and room evidence.'
     },
     {
       surface: 'Product Web gateway',
       buildSha: commit,
       appVersion: version,
-      status: roomComplete ? 'pass' : 'not-run',
-      evidence: roomComplete ? 'Canonical Product room URL evidence supplied.' : 'Needs Product gateway room/open playback smoke.'
+      status: productWebRoomComplete ? 'pass' : 'not-run',
+      evidence: productWebRoomComplete ? 'Canonical Product Web gateway room evidence supplied.' : 'Needs Product Web gateway room/open playback smoke.'
     },
     {
       surface: 'Product iOS',
@@ -484,20 +731,26 @@ export function summarizeGates(gates) {
 }
 
 export function buildProductDevnetJourneyReport(input) {
+  const generatedAt = input.generatedAt ?? new Date().toISOString();
   const staticGates = evaluateStaticProductDevnetSnapshot(input.snapshot);
-  const productSmokeGates = evaluateProductCdmSmokeEvidence(input.productSmokeEvidence);
-  const roomGates = evaluateRoomJourneyEvidence(input.roomEvidence, input.snapshot.env?.VITE_PUBLIC_APP_URL);
   const appVersion = extractProductAppVersion(input.snapshot.productDeployConfigText ?? '');
+  const productSmokeGates = evaluateProductCdmSmokeEvidence(input.productSmokeEvidence, {
+    commit: input.commit ?? 'unknown',
+    appVersion,
+    generatedAt
+  });
+  const roomGates = evaluateRoomJourneyEvidence(input.roomEvidence, input.snapshot.env?.VITE_PUBLIC_APP_URL);
   const surfaceMatrix = buildSurfaceMatrix({
     commit: input.commit ?? 'unknown',
     appVersion,
-    productSmokeEvidence: input.productSmokeEvidence,
-    roomEvidence: input.roomEvidence
+    productSmokeGates,
+    roomEvidence: input.roomEvidence,
+    roomGates
   });
   const gates = [...staticGates, ...productSmokeGates, ...roomGates];
   return {
     schemaVersion: PRODUCT_JOURNEY_SCHEMA_VERSION,
-    generatedAt: input.generatedAt ?? new Date().toISOString(),
+    generatedAt,
     commit: input.commit ?? 'unknown',
     product: EXPECTED_PRODUCT_DEVNET,
     summary: summarizeGates(gates),
@@ -536,8 +789,8 @@ export function renderProductDevnetJourneyMarkdown(report) {
     '',
     '## Live Evidence Inputs',
     '',
-    '- Product CDM payment/key smoke: pass `--smoke-json <downloaded-product-cdm-host-smoke.json>` after running the explicit `product-cdm` build inside a funded Product host.',
-    '- Product room smoke: pass `--room-json <room-evidence.json>` with `schemaVersion`, `canonicalRoomUrl`, `guestAccountConnected`, `guestJoined`, and `guestHeardAudio` fields.',
+    '- Product CDM payment/key smoke: pass `--smoke-json <downloaded-product-cdm-host-smoke.json>` after running the explicit `product-cdm` build from the same commit inside a funded Product host.',
+    '- Product room smoke: pass `--room-json <room-evidence.json>` with `schemaVersion`, `hostSurface`, `hostOrigin`, `hostVersion`, `guestOrigin`, `canonicalRoomUrl`, `guestAccountConnected`, `guestJoined`, and `guestHeardAudio` fields.',
     '- Missing live inputs are reported as blocked/not-run, never as passed.'
   ].join('\n');
 }
@@ -566,21 +819,12 @@ function readOptionalJson(path) {
   return readJson(path);
 }
 
-function gitCommit(repoRoot) {
+export function gitCommit(repoRoot) {
   try {
-    const head = readFileSync(resolve(repoRoot, '.git/HEAD'), 'utf8').trim();
-    if (head.startsWith('ref: ')) {
-      const ref = head.slice(5).trim();
-      const refPath = resolve(repoRoot, '.git', ref);
-      if (existsSync(refPath)) return readFileSync(refPath, 'utf8').trim();
-      const packedRefs = readFileSync(resolve(repoRoot, '.git/packed-refs'), 'utf8');
-      const match = packedRefs
-        .split('\n')
-        .map(line => line.trim())
-        .find(line => line.endsWith(` ${ref}`));
-      return match?.split(' ')[0] ?? 'unknown';
-    }
-    return head;
+    return execFileSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
   } catch {
     return 'unknown';
   }

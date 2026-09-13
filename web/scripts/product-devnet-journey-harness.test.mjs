@@ -1,4 +1,8 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import {
@@ -6,6 +10,7 @@ import {
   buildProductDevnetJourneyReport,
   evaluateProductCdmSmokeEvidence,
   extractProductAppVersion,
+  gitCommit,
   parseEnvFile
 } from './product-devnet-journey-harness.mjs';
 
@@ -74,7 +79,11 @@ function completeSmokeEvidence() {
     capturedAt: '2026-09-13T10:00:00.000Z',
     summary: { tone: 'ok', label: 'Evidence complete', problemCount: 0 },
     context: {
+      buildSha: 'abc123',
+      productAppVersion: '[0, 1, 17]',
       productId: EXPECTED_PRODUCT_DEVNET.productId,
+      publicAppUrl: EXPECTED_PRODUCT_DEVNET.publicAppUrl,
+      cdmRegistry: EXPECTED_PRODUCT_DEVNET.cdmRegistry,
       productHostMode: 'required',
       productHostStatus: 'available',
       runtimeAdapterKind: 'product-cdm',
@@ -96,6 +105,12 @@ function completeSmokeEvidence() {
     ].map(([id, label]) => ({ id, label, tone: 'ok', detail: `${label} ok.` })),
     events: [
       {
+        kind: 'operator-observation',
+        observation: 'host-approval-explicit',
+        ok: true,
+        timestamp: 500
+      },
+      {
         kind: 'payment',
         txHash: TX_HASH,
         runtimeAddress: RUNTIME,
@@ -108,6 +123,21 @@ function completeSmokeEvidence() {
         ok: true,
         error: null,
         timestamp: 1_000
+      },
+      {
+        kind: 'key',
+        phase: 'key-allowed',
+        path: 'session',
+        signatureScheme: 'product-sr25519-v1',
+        address: ADDRESS,
+        productPublicKey: PRODUCT_PUBLIC_KEY,
+        chainId: EXPECTED_PRODUCT_DEVNET.chainId,
+        purpose: 'individual',
+        contentHash: CONTENT_HASH,
+        access: 'allowed',
+        playbackMode: 'full',
+        runtime: RUNTIME,
+        timestamp: 2_000
       }
     ],
     limitations: []
@@ -160,6 +190,10 @@ test('complete Product smoke and room evidence satisfy the live journey gates', 
     productSmokeEvidence: completeSmokeEvidence(),
     roomEvidence: {
       schemaVersion: 1,
+      hostSurface: 'product-desktop',
+      hostOrigin: 'polkadot://dotify-test01.dot',
+      hostVersion: 'Product Desktop 0.1.0',
+      guestOrigin: 'https://muzinga.netlify.app',
       canonicalRoomUrl: `${EXPECTED_PRODUCT_DEVNET.publicAppUrl}/#/rooms/LIVE42`,
       hostSharedCanonicalUrl: true,
       guestAccountConnected: false,
@@ -183,6 +217,50 @@ test('complete Product smoke and room evidence satisfy the live journey gates', 
   );
 });
 
+test('ok-toned Product smoke checks fail when underlying facts do not match Product DevNet', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: {
+      schemaVersion: 1,
+      capturedAt: '2026-09-01T10:00:00.000Z',
+      summary: { tone: 'ok', label: 'Evidence complete', problemCount: 0 },
+      context: {
+        buildSha: 'old-build',
+        productAppVersion: '[0, 1, 17]',
+        productId: 'other-product.dot',
+        publicAppUrl: 'https://other-product.dev-dot.li',
+        cdmRegistry: EXPECTED_PRODUCT_DEVNET.retiredCdmRegistry,
+        productHostMode: 'required',
+        productHostStatus: 'unavailable',
+        runtimeAdapterKind: 'product-cdm',
+        walletMethod: 'product-host',
+        listenerAddress: ADDRESS,
+        substrateAddress: '5ProductAccount',
+        productPublicKey: PRODUCT_PUBLIC_KEY,
+        expectedChainId: 1,
+        apiConfigured: true
+      },
+      checks: ['product-account', 'product-cdm-adapter', 'host-approval', 'native-value', 'payment-readback', 'backend-key', 'same-identity'].map(id => ({
+        id,
+        label: id,
+        tone: 'ok',
+        detail: 'ok'
+      })),
+      events: [],
+      limitations: []
+    },
+    roomEvidence: null,
+    commit: 'abc123',
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.summary.status, 'fail');
+  assert.equal(report.productSmokeGates.find(gate => gate.id === 'smoke-captured-at')?.status, 'fail');
+  assert.equal(report.productSmokeGates.find(gate => gate.id === 'smoke-build')?.status, 'fail');
+  assert.equal(report.productSmokeGates.find(gate => gate.id === 'smoke:product-account')?.status, 'fail');
+  assert.equal(report.productSmokeGates.find(gate => gate.id === 'smoke:payment-readback')?.status, 'fail');
+});
+
 test('unsafe Product smoke evidence fails instead of persisting secrets', () => {
   const gates = evaluateProductCdmSmokeEvidence({
     ...completeSmokeEvidence(),
@@ -203,4 +281,87 @@ test('static gates fail when the tracked Product profile points at the retired C
 
   assert.equal(report.summary.status, 'fail');
   assert.equal(report.staticGates.find(gate => gate.id === 'cdm-registry')?.status, 'fail');
+});
+
+test('static gates fail when the configured HTTPS RPC is not the Product DevNet Asset Hub endpoint', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot({
+      env: {
+        ...staticSnapshot().env,
+        VITE_ETH_RPC_URL: 'https://ethereum-rpc.publicnode.com'
+      }
+    }),
+    productSmokeEvidence: null,
+    roomEvidence: null,
+    commit: 'abc123',
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.summary.status, 'fail');
+  assert.equal(report.staticGates.find(gate => gate.id === 'asset-hub-rpc')?.status, 'fail');
+});
+
+test('Product Desktop room evidence does not satisfy the separate Product Web gateway surface', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: completeSmokeEvidence(),
+    roomEvidence: {
+      schemaVersion: 1,
+      hostSurface: 'product-desktop',
+      hostOrigin: 'polkadot://dotify-test01.dot',
+      hostVersion: 'Product Desktop 0.1.0',
+      guestOrigin: 'https://muzinga.netlify.app',
+      canonicalRoomUrl: `${EXPECTED_PRODUCT_DEVNET.publicAppUrl}/#/rooms/LIVE42`,
+      hostSharedCanonicalUrl: true,
+      guestAccountConnected: false,
+      guestJoined: true,
+      guestHeardAudio: true
+    },
+    commit: 'abc123',
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Desktop')?.status, 'pass');
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Web gateway')?.status, 'not-run');
+});
+
+test('room evidence must name the Product host surface before it can pass', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: completeSmokeEvidence(),
+    roomEvidence: {
+      schemaVersion: 1,
+      canonicalRoomUrl: `${EXPECTED_PRODUCT_DEVNET.publicAppUrl}/#/rooms/LIVE42`,
+      hostSharedCanonicalUrl: true,
+      guestAccountConnected: false,
+      guestJoined: true,
+      guestHeardAudio: true
+    },
+    commit: 'abc123',
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.summary.status, 'fail');
+  assert.equal(report.roomGates.find(gate => gate.id === 'room-surface')?.status, 'fail');
+});
+
+test('gitCommit resolves HEAD from linked Git worktrees', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dotify-w11-git-'));
+  try {
+    const repo = join(root, 'repo');
+    const worktree = join(root, 'linked-worktree');
+    mkdirSync(repo);
+    execFileSync('git', ['init'], { cwd: repo, stdio: 'ignore' });
+    writeFileSync(join(repo, 'README.md'), 'test\n');
+    execFileSync('git', ['add', 'README.md'], { cwd: repo, stdio: 'ignore' });
+    execFileSync('git', ['-c', 'user.email=test@example.com', '-c', 'user.name=Dotify Test', 'commit', '-m', 'init'], { cwd: repo, stdio: 'ignore' });
+    const commit = execFileSync('git', ['-C', repo, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+
+    execFileSync('git', ['-C', repo, 'worktree', 'add', worktree], { stdio: 'ignore' });
+
+    assert.equal(existsSync(join(worktree, '.git')), true);
+    assert.equal(gitCommit(worktree), commit);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
