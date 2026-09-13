@@ -324,6 +324,184 @@ body {
   }
 }
 
+/* ── Optional 3D room galaxy ──────────────────────────────────────────────── */
+
+.room-galaxy {
+  position: relative;
+  height: clamp(320px, 46vh, 460px);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(ellipse at 50% 118%, rgb(19 39 65 / 0.62), transparent 62%),
+    linear-gradient(180deg, rgb(5 13 26 / 0.42), rgb(5 13 26 / 0.96));
+  cursor: grab;
+  isolation: isolate;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.room-galaxy:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 4px;
+}
+
+.room-galaxy-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.room-galaxy-status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgb(224 236 247 / 0.72);
+  font-size: var(--text-sm);
+  pointer-events: none;
+}
+
+.room-galaxy-overlays {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.room-galaxy-marker {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  transition:
+    opacity var(--duration-fast) var(--ease),
+    transform var(--duration-fast) var(--ease);
+}
+
+.room-galaxy-marker[data-selected='true'] {
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+.room-galaxy-room,
+.room-galaxy-join {
+  border: 1px solid rgb(246 251 255 / 0.16);
+  background: rgb(5 13 26 / 0.72);
+  color: #ffffff;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 28px rgb(2 8 18 / 0.36);
+}
+
+.room-galaxy-room {
+  display: grid;
+  min-width: 4.5rem;
+  max-width: 14rem;
+  min-height: 3.25rem;
+  grid-template-columns: 2.55rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  border-radius: var(--radius-full);
+  padding: 0.34rem 0.78rem 0.34rem 0.34rem;
+  text-align: left;
+}
+
+.room-galaxy-cover {
+  display: grid;
+  width: 2.55rem;
+  height: 2.55rem;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--dot-a) 62%, #0a182c), #0a182c 78%);
+  overflow: hidden;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--dot-accent) 34%, transparent);
+}
+
+.room-galaxy-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.room-galaxy-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.room-galaxy-copy strong,
+.room-galaxy-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-galaxy-copy strong {
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.room-galaxy-copy span {
+  color: rgb(224 236 247 / 0.7);
+  font-size: 0.68rem;
+}
+
+.room-galaxy-marker[data-label='compact'] .room-galaxy-room {
+  width: 3.25rem;
+  min-width: 3.25rem;
+  grid-template-columns: 2.55rem;
+  padding-right: 0.34rem;
+}
+
+.room-galaxy-marker[data-label='compact'] .room-galaxy-copy {
+  display: none;
+}
+
+.room-galaxy-join {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.room-galaxy-room:hover,
+.room-galaxy-room:focus-visible,
+.room-galaxy-join:hover:not(:disabled),
+.room-galaxy-join:focus-visible {
+  border-color: var(--dot-accent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--dot-accent) 32%, transparent),
+    0 14px 30px rgb(2 8 18 / 0.42);
+}
+
+.room-galaxy-room:focus-visible,
+.room-galaxy-join:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+}
+
+.room-galaxy-join:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.room-galaxy-controls {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: var(--radius-full);
+  background: rgb(5 13 26 / 0.72);
+  color: rgb(224 236 247 / 0.72);
+  padding: 0.3rem;
+  backdrop-filter: blur(16px);
+}
+
 /* ── The Sky of rooms ───────────────────────────────────────────────────────
    Open rooms as dot-spheres in the navy sky: aura halo, honest pulse (only
    when the host's broadcast player state is live), one orbiting petal per real
@@ -619,6 +797,7 @@ body {
 /* Fallback doctrine: the sky is an enhancement. Small screens and reduced
    motion get the card grid alone, which is the complete experience. */
 @media (max-width: 860px) {
+  .room-galaxy,
   .sky {
     display: none;
   }
@@ -694,8 +873,13 @@ body {
     transition: none;
   }
 
+  .room-galaxy,
   .sky {
     display: none;
+  }
+
+  .room-galaxy-marker {
+    transition: none;
   }
 
   .stage-lamp {

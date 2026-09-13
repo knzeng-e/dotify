@@ -395,21 +395,29 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 18]`. This version keeps blocked
+The current Product executable is `[0, 1, 19]`. This version keeps blocked
 guest audio recovery visible in Product-hosted rooms, exposes W05 runtime claim
 writes through the shared runtime writer port, uses the refreshed September 2026
 Product SDK/tooling and re-pinned Bulletin descriptor, and removes
 passkey-only wallet routes from public account flows. It also hardens viem
 release registration against Product DevNet wallet hashes that remain pending
 or disappear before inclusion, understands W07 `dotify:enc:v2:key-vN`
-protected-audio refs, and surfaces a retryable dropped-tx diagnostic instead of
-a generic receipt timeout. Product host containers use Engine.IO Fetch polling
+protected-audio refs, surfaces a retryable dropped-tx diagnostic instead of
+a generic receipt timeout, and adds the optional W14 room galaxy renderer behind
+the existing 2D/list room discovery fallback. Product host containers use Engine.IO Fetch polling
 without a WebSocket upgrade, so room signaling stays on the remote-network
 primitive proven to remain available in Product Mobile. Standalone browsers
 retain Fetch-first with an optional WebSocket upgrade. Do not remove the direct
 `engine.io-client` pin or restore XHR polling without a successful room-open
 stability test in both Product Mobile and the standalone
 browser.
+
+The W14 room galaxy lazy-loads `three` in the normal Vite build, so the
+standalone web bundle keeps the graphics code in a separate on-demand chunk.
+The Product build is multi-file and also preserves that chunking; the Bulletin
+single-file build inlines it by design. If Bulletin quota or first-load size is
+the priority for a release, switch the Rooms view back to the 2D renderer before
+publishing that profile and keep the card list as the supported path.
 
 Room continuity introduced in `[0, 1, 6]` also depends on the matching
 signaling server.

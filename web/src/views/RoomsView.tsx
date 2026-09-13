@@ -1,10 +1,10 @@
-import { ArrowRight, Headphones, KeyRound, Link2, Radio, RefreshCw, Users, X } from 'lucide-react';
+import { ArrowRight, Box, Headphones, KeyRound, Link2, List, Radio, RefreshCw, Users, X } from 'lucide-react';
 import type { FormEvent, Ref } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CoverImage } from '../components/CoverImage';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
-import { RoomDiscoveryRenderer } from '../components/RoomDiscoveryRenderer';
+import { RoomDiscoveryRenderer, type RoomDiscoveryRendererKind } from '../components/RoomDiscoveryRenderer';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import type { OpenRoom, SessionAction, SocketStatus } from '../shared/types';
 
@@ -40,6 +40,7 @@ export function RoomsView({
   onStartRoom
 }: RoomsViewProps) {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [discoveryRenderer, setDiscoveryRenderer] = useState<RoomDiscoveryRendererKind>('galaxy-3d');
   const roomCardRefs = useRef(new Map<string, HTMLButtonElement>());
   const roomDetailsSheetRef = useRef<HTMLElement | null>(null);
   const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
@@ -109,10 +110,32 @@ export function RoomsView({
             <span className='section-index'>Live</span>
             <h2 id='rooms-live-title'>Happening now</h2>
           </div>
-          <button className='text-action' type='button' onClick={onRefreshRooms} disabled={isRefreshingRooms}>
-            <RefreshCw size={15} className={isRefreshingRooms ? 'spin' : undefined} />
-            {isRefreshingRooms ? 'Refreshing' : 'Refresh'}
-          </button>
+          <div className='room-section-actions'>
+            <div className='room-renderer-switch' role='group' aria-label='Room discovery view'>
+              <button
+                type='button'
+                data-active={discoveryRenderer === 'galaxy-3d'}
+                aria-pressed={discoveryRenderer === 'galaxy-3d'}
+                onClick={() => setDiscoveryRenderer('galaxy-3d')}
+              >
+                <Box size={15} />
+                3D
+              </button>
+              <button
+                type='button'
+                data-active={discoveryRenderer === 'sky-2d'}
+                aria-pressed={discoveryRenderer === 'sky-2d'}
+                onClick={() => setDiscoveryRenderer('sky-2d')}
+              >
+                <List size={15} />
+                2D
+              </button>
+            </div>
+            <button className='text-action' type='button' onClick={onRefreshRooms} disabled={isRefreshingRooms}>
+              <RefreshCw size={15} className={isRefreshingRooms ? 'spin' : undefined} />
+              {isRefreshingRooms ? 'Refreshing' : 'Refresh'}
+            </button>
+          </div>
         </div>
 
         <p className='room-list-status' data-status={roomListStatus.tone}>
@@ -123,6 +146,7 @@ export function RoomsView({
           <div className='rooms-discovery-layout' data-has-selection={Boolean(selectedRoom)}>
             <div className='rooms-discovery-main'>
               <RoomDiscoveryRenderer
+                renderer={discoveryRenderer}
                 rooms={openRooms}
                 selectedRoomId={selectedRoom?.roomId}
                 sessionAction={sessionAction}

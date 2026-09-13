@@ -8,7 +8,8 @@ Visible product areas:
 
 - `Music`: artist-grouped catalog browsing, track artwork, descriptions, access
   badges, policy-aware player, and room hosting.
-- `Rooms`: open room discovery and room-code entry.
+- `Rooms`: open room discovery through the optional Three.js galaxy, the 2D
+  sky/list fallback, and room-code entry.
 - `/artists`: dedicated artist onboarding and studio flow for artist runtime
   creation, audio upload, cover upload, primary artist share plus additional
   rights-holder royalty splits, Human free / Classic mode selection, Pinata IPFS
