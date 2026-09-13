@@ -320,11 +320,17 @@ cd web
 npm ci
 npm run test:unit
 npm run smoke:devnet
+npm run smoke:product-journey -- --md-out /tmp/dotify-product-journey.md --json-out /tmp/dotify-product-journey.json
 npm run build:product-devnet
 ```
 
 Expected output is `web/dist-product`. The production guard must fail if a
 browser upload token or content secret is present.
+
+`smoke:product-journey` is read-only. Without exported live host evidence it
+must report all static Product DevNet gates as passed, then mark the Product
+CDM unlock as `blocked` and the room journey as `not-run`. Treat a static
+`fail` as a release blocker before publishing.
 
 The default build keeps the viem runtime adapter, which tree-shakes the Product
 contract graph away and publishes at roughly 4.4 MB. Building with
@@ -590,8 +596,20 @@ Then verify in the Product host:
 CDM host smoke`, mark **Host approval prompt captured** if the host showed
    an explicit transaction approval, then copy or download the smoke JSON. The
    JSON is stored only in browser session storage and deliberately excludes
-   content keys, signatures, nonces, and session tokens. Attach it with the
-   Product host approval screenshot and Fly/API logs.
+   content keys, signatures, nonces, and session tokens. It includes
+   browser-safe build identity (`buildSha`, Product app version, public app URL,
+   and CDM registry) so the local harness can reject stale exports from an old
+   Product DevNet reset or a different build. Attach it with the Product host
+   approval screenshot and Fly/API logs.
+
+   Feed the exported smoke JSON back into the local journey harness:
+
+```bash
+npm run smoke:product-journey -- \
+  --smoke-json /path/to/product-cdm-host-smoke.json \
+  --md-out /tmp/dotify-product-journey.md \
+  --json-out /tmp/dotify-product-journey.json
+```
 
    If any mapping check fails, the expected behavior is a fail-closed
    **Payment signer unavailable** error before submission. If native value,
@@ -606,6 +624,38 @@ CDM host smoke`, mark **Host approval prompt captured** if the host showed
 9. The outside listener reaches `In sync` and hears the host stream; staying on
    `Connecting...` means host capture or WebRTC negotiation is still failing,
    not room creation.
+   Record the room result as JSON and rerun the journey harness with both live
+   evidence files:
+
+```bash
+npm run smoke:product-journey -- \
+  --smoke-json /path/to/product-cdm-host-smoke.json \
+  --room-json /path/to/product-room-evidence.json \
+  --md-out /tmp/dotify-product-journey.md \
+  --json-out /tmp/dotify-product-journey.json
+```
+
+   The room JSON schema is intentionally small:
+
+```json
+{
+  "schemaVersion": 1,
+  "hostSurface": "product-desktop",
+  "hostOrigin": "polkadot://dotify-test01.dot",
+  "hostVersion": "Product Desktop 0.1.0",
+  "guestOrigin": "https://muzinga.netlify.app",
+  "canonicalRoomUrl": "https://dotify-test01.dev-dot.li/#/rooms/ROOM42",
+  "hostSharedCanonicalUrl": true,
+  "guestAccountConnected": false,
+  "guestJoined": true,
+  "guestHeardAudio": true
+}
+```
+
+   Use `hostSurface: "product-web-gateway"` only for a separate smoke captured
+   from the Product Web gateway. A Product Desktop room smoke must not be reused
+   as Product Web evidence.
+
 10. A Netlify-origin host and Product-origin guest also connect.
 11. Briefly interrupting the mobile network preserves and resumes the same room
     within 120 seconds; it must disappear from public discovery while the host

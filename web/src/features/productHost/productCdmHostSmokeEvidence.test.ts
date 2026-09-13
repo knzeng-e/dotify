@@ -37,7 +37,11 @@ function memoryStorage(entries: Array<[string, string]> = []) {
 
 function smokeContext(overrides: Partial<ProductCdmHostSmokeContext> = {}): ProductCdmHostSmokeContext {
   return {
+    buildSha: 'abc123',
+    productAppVersion: '[0, 1, 17]',
     productId: 'dotify-test01.dot',
+    publicAppUrl: 'https://dotify-test01.dev-dot.li',
+    cdmRegistry: '0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f',
     productHostMode: 'required',
     productHostStatus: 'available',
     runtimeAdapterKind: 'product-cdm',
