@@ -132,6 +132,17 @@ room capacity before a guest tries to join. The server still enforces the cap
 on `room:join`, and the frontend disables full room cards as a convenience, not
 as the security boundary.
 
+### Nearby Discovery Status
+
+Nearby room discovery is designed but not implemented. W18 defines the privacy
+contract in
+[dotify-nearby-discovery-privacy.md](../design/dotify-nearby-discovery-privacy.md):
+host and listener opt-in are separate, exact coordinates stay off the network,
+logs, chain, Statement Store, and durable stores, and sparse areas expand before
+results are shown. Current rooms remain discoverable through the existing room
+list, manual code entry, and shared links without requiring wallet or location
+permission.
+
 When a host's signaling transport drops, the host closes existing
 `RTCPeerConnection` objects before resuming the room. Existing listeners keep
 their room identity, rejoin with a fresh socket when their own transport

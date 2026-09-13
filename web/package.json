@@ -25,6 +25,7 @@
 		"smoke:production-env": "node scripts/production-env-smoke.mjs",
 		"smoke:devnet": "node scripts/devnet-endpoint-smoke.mjs",
 		"smoke:product-journey": "node scripts/product-devnet-journey-harness.mjs",
+		"smoke:nearby-privacy": "node scripts/nearby-privacy-simulation.mjs",
 		"smoke:signal": "node scripts/signaling-smoke.mjs",
 		"lint": "eslint .",
 		"fmt": "prettier --write 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",
