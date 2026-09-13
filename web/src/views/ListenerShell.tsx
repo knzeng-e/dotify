@@ -253,6 +253,7 @@ export function ListenerShell() {
                     openRooms={session.openRooms}
                     joinCode={session.joinCode}
                     sessionAction={session.sessionAction}
+                    socketStatus={session.socketStatus}
                     isRefreshingRooms={session.isRefreshingRooms}
                     onSetJoinCode={session.setJoinCode}
                     onJoinRoom={handleJoinRoomRequest}

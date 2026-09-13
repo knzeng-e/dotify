@@ -88,6 +88,15 @@
   --content-pad: clamp(1.25rem, 3vw, 2.5rem);
   --header-height: 4.75rem;
   --dock-height: 5.8rem;
+  --mobile-nav-height: 0rem;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --touch-target: 2.75rem;
+  --surface-sheet: color-mix(in srgb, var(--surface) 94%, var(--night-raised));
+  --surface-selected: color-mix(in srgb, var(--surface) 86%, var(--action));
+  --layout-gap: clamp(1rem, 2.8vw, 2rem);
 
   /* Compatibility aliases for the functional components that predate this
      visual system. They map to Night Console tokens rather than a legacy theme. */

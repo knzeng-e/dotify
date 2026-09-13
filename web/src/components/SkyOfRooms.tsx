@@ -28,7 +28,9 @@ import type { OpenRoom, SessionAction } from '../shared/types';
 
 type SkyOfRoomsProps = {
   rooms: OpenRoom[];
+  selectedRoomId?: string;
   sessionAction: SessionAction;
+  onSelectRoom?: (roomId: string) => void;
   onJoinRoom: (roomId: string) => void;
 };
 
@@ -62,7 +64,7 @@ function dotPosition(index: number, total: number, roomId: string) {
   };
 }
 
-export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps) {
+export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom, onJoinRoom }: SkyOfRoomsProps) {
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [camera, setCamera] = useState<SkyCamera>({ x: 0, y: 0, scale: 1 });
   const [dragging, setDragging] = useState(false);
@@ -83,6 +85,16 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
   }, [centeredRoomId, rooms]);
 
   if (rooms.length === 0) return null;
+
+  function activateRoom(roomId: string) {
+    if (onSelectRoom) {
+      setCenteredRoomId(roomId);
+      onSelectRoom(roomId);
+      return;
+    }
+
+    enterRoom(roomId);
+  }
 
   function enterRoom(roomId: string) {
     if (sessionAction !== 'idle' || joiningId) return;
@@ -262,8 +274,9 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
               data-full={full}
               data-joining={joiningId === room.roomId}
               data-centered={centeredRoomId === room.roomId}
+              data-selected={selectedRoomId === room.roomId}
               data-testid='sky-dot'
-              disabled={sessionAction !== 'idle' || full}
+              disabled={!onSelectRoom && (sessionAction !== 'idle' || full)}
               style={
                 {
                   left: `${roomLayouts[index].x}%`,
@@ -275,11 +288,13 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
                 } as CSSProperties
               }
               aria-label={
-                full
-                  ? `Room ${room.roomId} is full: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`
-                  : `Enter room ${room.roomId}: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`
+                onSelectRoom
+                  ? `Inspect room ${room.roomId}: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`
+                  : full
+                    ? `Room ${room.roomId} is full: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`
+                    : `Enter room ${room.roomId}: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`
               }
-              onClick={() => enterRoom(room.roomId)}
+              onClick={() => activateRoom(room.roomId)}
             >
               <span className='sky-halo' aria-hidden='true' />
               <span className='sky-core' aria-hidden='true'>
