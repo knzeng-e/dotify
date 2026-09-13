@@ -39,6 +39,10 @@ test('Classic track stays locked before payment and unlocks full playback after 
   await page.getByTestId('classic-unlock-button').click();
 
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('Access verified');
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Amount');
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText(`0.5 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Recipients');
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Settlement');
   await expect(page.getByTestId('full-playback-state')).toContainText('Full track opened');
   await expect(page.getByTestId('player-access-price')).toContainText('Access verified');
 
@@ -62,6 +66,8 @@ test('Classic payment record remains visible when runtime read-back denies playa
 
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('Payment included, access not verified');
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('payment record may still exist');
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Protected audio stays closed');
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Settlement');
   await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
   await expect(page.getByTestId('full-playback-state')).toHaveCount(0);
 
@@ -79,4 +85,31 @@ test('Classic payment record remains visible when runtime read-back denies playa
   await expect(page.getByLabel('Music summary')).toContainText(/1\s*artists supported/);
   await expect(supportedTracks.getByText('Deterministic Classic Unlock')).toBeVisible();
   await expect(supportedTracks.getByText(`Dotify Test Artist / 0.5 ${E2E_NATIVE_PAYMENT_SYMBOL} paid`)).toBeVisible();
+});
+
+test.describe('mobile Classic support receipt states', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true });
+
+  test('mobile receipt shows confirmed support facts', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('track-card-open').click();
+    await page.getByTestId('classic-unlock-button').click();
+
+    const receipt = page.getByTestId('unlock-transaction-status');
+    await expect(receipt).toContainText('Access verified');
+    await expect(receipt).toContainText(`0.5 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+    await expect(receipt).toContainText('Recipients');
+    await expect(receipt).toContainText('Settlement');
+  });
+
+  test('mobile receipt keeps included-but-unverified support closed', async ({ page }) => {
+    await page.goto('/?e2eClassic=paid-without-access');
+    await page.getByTestId('track-card-open').click();
+    await page.getByTestId('classic-unlock-button').click();
+
+    const receipt = page.getByTestId('unlock-transaction-status');
+    await expect(receipt).toContainText('Payment included, access not verified');
+    await expect(receipt).toContainText('Protected audio stays closed');
+    await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
+  });
 });

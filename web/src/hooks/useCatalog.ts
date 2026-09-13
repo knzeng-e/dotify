@@ -24,7 +24,13 @@ import {
   type ParsedAudioV2
 } from '../shared/utils/audioV2';
 import { isPolicyManagedTrack } from '../features/access/accessPolicy';
-import { buildAccessGate, buildClassicAccessVerifiedFeedback, buildIncludedPaymentUnverifiedMessage } from '../features/access/accessPromise';
+import {
+  buildAccessGate,
+  buildClassicAccessVerifiedFeedback,
+  buildClassicSupportFacts,
+  buildIncludedPaymentUnverifiedMessage,
+  isUserRejectedSupportError
+} from '../features/access/accessPromise';
 import { catalogApiStatus, catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
@@ -1078,7 +1084,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       setTransactionFeedback({
         tone: 'error',
         title: 'Payment signer unavailable',
-        message: walletRequirement
+        message: walletRequirement,
+        facts: buildClassicSupportFacts(track, nativeRuntimePaymentAsset, 'failed')
       });
       return;
     }
@@ -1088,7 +1095,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       setTransactionFeedback({
         tone: 'pending',
         title: 'Support being confirmed',
-        message: `Confirming ${track.priceDot} ${nativeRuntimePaymentAsset.symbol} of support to open "${track.title}".`
+        message: `Confirming ${track.priceDot} ${nativeRuntimePaymentAsset.symbol} of support to open "${track.title}".`,
+        facts: buildClassicSupportFacts(track, nativeRuntimePaymentAsset, 'pending')
       });
       await new Promise(resolve => window.setTimeout(resolve, 20));
       const e2eState = getClassicUnlockE2eState();
@@ -1107,7 +1115,8 @@ export function useCatalog(deps: UseCatalogDeps) {
             error: 'The runtime recorded the payment, but still denies playable access for this account.',
             productCdm: false
           }),
-          txHash: E2E_CLASSIC_TX_HASH
+          txHash: E2E_CLASSIC_TX_HASH,
+          facts: buildClassicSupportFacts(track, nativeRuntimePaymentAsset, 'included-unverified')
         });
         return;
       }
@@ -1116,7 +1125,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       e2eState.accessGranted = true;
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback({
-        ...buildClassicAccessVerifiedFeedback(track, E2E_CLASSIC_TX_HASH)
+        ...buildClassicAccessVerifiedFeedback(track, E2E_CLASSIC_TX_HASH, nativeRuntimePaymentAsset)
       });
       if (shouldRestoreUnlockedTrack()) {
         navigateToView('player');
@@ -1158,14 +1167,21 @@ export function useCatalog(deps: UseCatalogDeps) {
     setTransactionFeedback({
       tone: 'pending',
       title: 'Support being confirmed',
-      message: `Confirming ${track.priceDot} ${paymentIntent.asset.symbol} of support to open "${track.title}".`
+      message: `Confirming ${track.priceDot} ${paymentIntent.asset.symbol} of support to open "${track.title}".`,
+      facts: buildClassicSupportFacts(track, paymentIntent.asset, 'pending')
     });
 
     let includedTxHash: `0x${string}` | null = null;
 
     try {
       const txHash = await runtimeWriter.payForAccess(paymentIntent);
-      setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Payment submitted.', txHash });
+      setTransactionFeedback({
+        tone: 'pending',
+        title: 'Awaiting confirmation',
+        message: 'Payment submitted. Waiting for finality before Dotify verifies playable access.',
+        txHash,
+        facts: buildClassicSupportFacts(track, paymentIntent.asset, 'pending')
+      });
       await runtimeWriter.waitForTransaction(txHash);
       includedTxHash = txHash;
 
@@ -1176,7 +1192,8 @@ export function useCatalog(deps: UseCatalogDeps) {
           runtimeAdapterConfig.kind === 'product-cdm'
             ? 'Payment included. Reading the Product runtime before opening the track.'
             : 'Payment included. Reading the runtime before opening the track.',
-        txHash
+        txHash,
+        facts: buildClassicSupportFacts(track, paymentIntent.asset, 'pending')
       });
 
       if (!listenerEvmAddress) {
@@ -1184,7 +1201,8 @@ export function useCatalog(deps: UseCatalogDeps) {
           tone: 'error',
           title: 'Payment included, access not verified',
           message: 'The payment transaction was included, but Dotify cannot verify runtime access without the connected account address.',
-          txHash
+          txHash,
+          facts: buildClassicSupportFacts(track, paymentIntent.asset, 'included-unverified')
         });
         return;
       }
@@ -1221,13 +1239,14 @@ export function useCatalog(deps: UseCatalogDeps) {
             error: verification.error,
             productCdm: runtimeAdapterConfig.kind === 'product-cdm'
           }),
-          txHash
+          txHash,
+          facts: buildClassicSupportFacts(track, paymentIntent.asset, 'included-unverified')
         });
         return;
       }
 
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setTransactionFeedback(buildClassicAccessVerifiedFeedback(track, txHash));
+      setTransactionFeedback(buildClassicAccessVerifiedFeedback(track, txHash, paymentIntent.asset));
       if (shouldRestoreUnlockedTrack()) {
         navigateToView('player');
         await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
@@ -1239,11 +1258,18 @@ export function useCatalog(deps: UseCatalogDeps) {
           tone: 'error',
           title: 'Payment included, access not verified',
           message: `The payment transaction was included, but Dotify could not complete access verification: ${message}`,
-          txHash: includedTxHash
+          txHash: includedTxHash,
+          facts: buildClassicSupportFacts(track, paymentIntent.asset, 'included-unverified')
         });
         return;
       }
-      setTransactionFeedback({ tone: 'error', title: 'Payment failed', message });
+      const canceled = isUserRejectedSupportError(payError);
+      setTransactionFeedback({
+        tone: 'error',
+        title: canceled ? 'Support canceled' : 'Payment failed',
+        message: canceled ? 'No payment was sent. You can review the amount and recipients before trying again.' : message,
+        facts: buildClassicSupportFacts(track, paymentIntent.asset, canceled ? 'canceled' : 'failed')
+      });
     }
   }
 

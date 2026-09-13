@@ -401,6 +401,8 @@ export function ArtistConsole() {
           canReviewRelease={canReviewRelease}
           artistName={artistName}
           connectedWallet={connectedWallet}
+          activeEvmAddress={activeEvmAddress}
+          artistRuntimeAddress={artistRuntimeAddress}
           activeSubstrateAddress={activeSubstrateAddress}
           bulletinAccountIndex={bulletinAccountIndex}
           onSetReleaseStep={onSetReleaseStep}

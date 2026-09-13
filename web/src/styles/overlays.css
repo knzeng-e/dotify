@@ -149,6 +149,49 @@
   text-underline-offset: 0.2rem;
 }
 
+.transaction-facts {
+  display: grid;
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.transaction-facts > div {
+  display: grid;
+  grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr);
+  gap: 0.8rem;
+  padding: 0.65rem 0;
+}
+
+.transaction-facts > div + div {
+  border-top: 1px solid var(--line);
+}
+
+.transaction-facts dt,
+.transaction-facts dd {
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.transaction-facts dd {
+  color: var(--ink);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.transaction-facts code,
+.transaction-facts a {
+  color: inherit;
+  font-family: var(--font-code);
+  font-size: inherit;
+}
+
+.transaction-facts a {
+  color: var(--signal);
+  text-underline-offset: 0.2rem;
+}
+
 .toast-region {
   position: fixed;
   right: 1rem;

@@ -674,6 +674,10 @@
     flex-direction: column;
   }
 
+  .release-understanding-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .royalty-split-row {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -700,6 +704,17 @@
 
   .release-split-row > :last-child {
     grid-column: 1 / -1;
+  }
+
+  .transaction-facts > div,
+  .release-fact-panel dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
+
+  .transaction-facts dd,
+  .release-fact-panel dd {
+    text-align: left;
   }
 
   .modal-backdrop {

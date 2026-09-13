@@ -1,8 +1,9 @@
-import type { AccessGate, CatalogTrack, TransactionFeedback } from '../../shared/types';
+import type { AccessGate, CatalogTrack, TransactionFeedback, TransactionFeedbackFact } from '../../shared/types';
 import { shortenAddress } from '../../shared/utils/format';
 import { nativeRuntimeAmountLabel, type DotifyNativeRuntimeAsset } from '../payments/paymentModel';
 
 type RuntimeAssetShape = Pick<DotifyNativeRuntimeAsset, 'symbol'>;
+type ClassicSupportStatus = 'pending' | 'confirmed' | 'included-unverified' | 'failed' | 'canceled';
 
 export type ClassicReceiptRow = {
   label: string;
@@ -17,7 +18,7 @@ export type ClassicAccessReceipt = {
 };
 
 function royaltyPercentLabel(bps: number): string {
-  return `${(bps / 100).toFixed(bps % 100 === 0 ? 0 : 2)}%`;
+  return `${(bps / 100).toFixed(2).replace(/\.?0+$/, '')}%`;
 }
 
 export function buildClassicAccessReceipt(track: CatalogTrack, nativePaymentAsset: RuntimeAssetShape): ClassicAccessReceipt {
@@ -54,6 +55,39 @@ export function buildClassicAccessReceipt(track: CatalogTrack, nativePaymentAsse
     recipients,
     settlementNote: 'The artist-owned runtime applies this split when the support transaction is confirmed.'
   };
+}
+
+export function buildClassicSupportFacts(
+  track: CatalogTrack,
+  nativePaymentAsset: RuntimeAssetShape,
+  status: ClassicSupportStatus = 'pending'
+): TransactionFeedbackFact[] {
+  const receipt = buildClassicAccessReceipt(track, nativePaymentAsset);
+  const recipients = receipt.recipients.map(row => `${row.label}: ${row.value}`).join('; ') || 'Artist runtime recipient list';
+  const accessValue =
+    status === 'confirmed'
+      ? 'Paid access verified for this wallet while the release remains active.'
+      : status === 'included-unverified'
+        ? 'Protected audio stays closed until runtime read-back grants access.'
+        : 'Full audio opens only after runtime read-back confirms access.';
+  const settlementValue =
+    status === 'confirmed'
+      ? 'Runtime accepted support; each share is settled now or claimable by its recipient.'
+      : status === 'included-unverified'
+        ? 'Payment may be recorded, but Dotify has not confirmed playable access.'
+        : status === 'canceled'
+          ? 'No support transaction was completed from this attempt.'
+          : status === 'failed'
+            ? 'No completed support is recorded by Dotify from this attempt.'
+            : 'Pending until the transaction is included and verified.';
+
+  return [
+    { label: 'Amount', value: receipt.supportAmount },
+    { label: 'Access', value: accessValue },
+    { label: 'Recipients', value: recipients },
+    { label: 'Settlement', value: settlementValue },
+    { label: 'Network fee', value: 'Shown by the wallet or Product host before signing.' }
+  ];
 }
 
 export function buildAccessGate(input: { track: CatalogTrack; connected: boolean; nativePaymentAsset: RuntimeAssetShape }): AccessGate {
@@ -108,12 +142,17 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
   };
 }
 
-export function buildClassicAccessVerifiedFeedback(track: CatalogTrack, txHash: `0x${string}`): TransactionFeedback {
+export function buildClassicAccessVerifiedFeedback(
+  track: CatalogTrack,
+  txHash: `0x${string}`,
+  nativePaymentAsset: RuntimeAssetShape = { symbol: 'native token' }
+): TransactionFeedback {
   return {
     tone: 'success',
     title: 'Access verified',
     message: `Payment confirmed. Full listening for "${track.title}" is available to this wallet while the release remains active and runtime policy continues to grant access.`,
-    txHash
+    txHash,
+    facts: buildClassicSupportFacts(track, nativePaymentAsset, 'confirmed')
   };
 }
 
@@ -121,4 +160,9 @@ export function buildIncludedPaymentUnverifiedMessage(input: { attempts: number;
   const base = `The payment transaction was included, but Dotify could not verify playable runtime access after ${input.attempts} read-back attempts: ${input.error} Your payment record may still exist, but Dotify will not open protected audio until the runtime confirms access.`;
   if (!input.productCdm) return base;
   return `${base} Keep Product writes disabled until native value forwarding and account mapping are verified in the Product host.`;
+}
+
+export function isUserRejectedSupportError(error: unknown): boolean {
+  const message = error instanceof Error ? `${error.name} ${error.message}` : String(error);
+  return /\b4001\b|user rejected|request rejected|denied|cancelled|canceled/i.test(message);
 }

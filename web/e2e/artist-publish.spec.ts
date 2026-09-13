@@ -83,7 +83,12 @@ async function completeReleaseDraft(page: Page) {
   await page.getByRole('button', { name: 'Continue' }).click();
   const reviewPanel = page.locator('.release-review');
   await expect(reviewPanel.getByText('E2E Published Signal')).toBeVisible();
-  await expect(reviewPanel.getByText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`)).toBeVisible();
+  await expect(page.getByTestId('release-preflight-panel')).toContainText('Controller');
+  await expect(page.getByTestId('release-preflight-panel')).toContainText('Catalog visibility');
+  await expect(page.getByTestId('release-preflight-panel')).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(page.getByTestId('release-value-flow')).toContainText('Artist share');
+  await expect(page.getByTestId('release-value-flow')).toContainText(`${E2E_ARTIST_SHARE_PERCENT}%`);
+  await expect(page.getByTestId('release-value-flow')).toContainText('Artist remainder');
 }
 
 test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }) => {
@@ -92,6 +97,8 @@ test('artist can create a runtime, publish a release, and see it in the listener
 
   await page.getByTestId('publish-release-button').click();
   await expect(page.getByRole('dialog')).toContainText('Track registered');
+  await expect(page.getByRole('dialog')).toContainText('Catalog read-back');
+  await expect(page.getByRole('dialog')).toContainText('Catalog visibility');
 
   const publishState = await readArtistPublishState(page);
   expect(publishState?.runtimeCreated).toBe(true);
@@ -139,6 +146,7 @@ test('upload failure surfaces an error and halts registration', async ({ page })
   await page.getByTestId('publish-release-button').click();
 
   await expect(page.getByRole('dialog')).toContainText('Registration failed');
+  await expect(page.getByRole('dialog')).toContainText('No release was published');
   await expect(page.getByRole('dialog')).toContainText('E2E metadata upload failed.');
 
   const state = await readArtistPublishState(page);
@@ -155,10 +163,30 @@ test('artist publish surfaces transaction failure after successful uploads', asy
   await page.getByTestId('publish-release-button').click();
 
   await expect(page.getByRole('dialog')).toContainText('Registration failed');
+  await expect(page.getByRole('dialog')).toContainText('No release was published');
   await expect(page.getByRole('dialog')).toContainText('E2E registration transaction rejected.');
 
   const state = await readArtistPublishState(page);
   expect(state?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 1 });
   expect(state?.transactionFailures).toBe(1);
   expect(state?.registerTrackTransactions).toBe(0);
+});
+
+test('artist publish remains recoverable while catalog read-back is delayed', async ({ page }) => {
+  await createArtistProfile(page, 'catalog-delay');
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Registration accepted, catalog pending');
+  await expect(dialog).toContainText('transaction was submitted');
+  await expect(dialog).toContainText('will not mark the release as published');
+  await expect(dialog).toContainText('Catalog read-back');
+
+  const state = await readArtistPublishState(page);
+  expect(state?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 1 });
+  expect(state?.registerTrackTransactions).toBe(1);
+
+  await page.goto('/');
+  await expect(page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' })).toHaveCount(0);
 });

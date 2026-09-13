@@ -5,8 +5,12 @@ import { EndpointRow } from '../../shared/ui/EndpointRow';
 import { accessModeLabelFromState, shorten } from '../../shared/utils/format';
 import { devAccounts } from '../../hooks/useDevAccounts';
 import {
+  buildReleasePublicationFacts,
+  buildReleaseValueFlowRows,
   formatRoyaltyPercent,
   RELEASE_STEPS,
+  releaseAccessConditionLabel,
+  releasePaymentAmountLabel,
   royaltyBpsToPercent,
   royaltyPercentToBps,
   royaltySplitRemaining,
@@ -38,6 +42,8 @@ type NewReleaseTabProps = {
   canReviewRelease: boolean;
   artistName: string;
   connectedWallet: { label: string } | null;
+  activeEvmAddress: string | null;
+  artistRuntimeAddress: string | null;
   activeSubstrateAddress: string | null;
   bulletinAccountIndex: number;
   onSetReleaseStep: (step: ReleaseStep) => void;
@@ -82,6 +88,8 @@ export function NewReleaseTab({
   canReviewRelease,
   artistName,
   connectedWallet,
+  activeEvmAddress,
+  artistRuntimeAddress,
   activeSubstrateAddress,
   bulletinAccountIndex,
   onSetReleaseStep,
@@ -110,6 +118,21 @@ export function NewReleaseTab({
   const isDirectSupportAccess = accessMode === 'classic';
   const royaltyFieldsDisabled = artistStudioLocked || isFreeAccess;
   const releaseCanPublish = canReviewRelease && (isFreeAccess || remainingRoyaltyBps >= 0);
+  const releaseValueFlowRows = buildReleaseValueFlowRows({
+    accessMode,
+    artistRecipient: activeEvmAddress ?? '',
+    primaryBps: royaltyBps,
+    additionalSplits: additionalRoyaltySplits
+  });
+  const releasePublicationFacts = buildReleasePublicationFacts({
+    accessMode,
+    priceDot,
+    nativePaymentSymbol,
+    personhoodLevel,
+    artistRecipient: activeEvmAddress ?? '',
+    runtimeAddress: artistRuntimeAddress,
+    uploadToBulletinEnabled
+  });
 
   return (
     <section className='content-grid release-workbench-grid'>
@@ -381,18 +404,8 @@ export function NewReleaseTab({
           <div className='wizard-panel release-review'>
             <EndpointRow label='Track' value={title.trim() || 'Untitled'} />
             <EndpointRow label='Artist' value={artistName.trim() || 'Unknown artist'} />
-            <EndpointRow
-              label='Access'
-              value={
-                accessMode === 'classic'
-                  ? `${priceDot} ${nativePaymentSymbol}`
-                  : accessMode === 'free'
-                    ? 'Free for everyone'
-                    : personhoodLevel === 'DIM2'
-                      ? 'Free for verified humans · extended'
-                      : 'Free for verified humans · basic'
-              }
-            />
+            <EndpointRow label='Access' value={releaseAccessConditionLabel(accessMode, priceDot, nativePaymentSymbol, personhoodLevel)} />
+            <EndpointRow label='Total support' value={releasePaymentAmountLabel(accessMode, priceDot, nativePaymentSymbol)} />
             <EndpointRow
               label='Payment split'
               value={
@@ -401,6 +414,34 @@ export function NewReleaseTab({
             />
             <EndpointRow label='Metadata' value='IPFS canonical manifest' />
             <EndpointRow label='Archive' value={uploadToBulletinEnabled ? 'Bulletin enabled' : 'Off'} />
+            <div className='release-understanding-grid'>
+              <section className='release-fact-panel' data-testid='release-preflight-panel' aria-label='Before you publish'>
+                <h3>Before you publish</h3>
+                <dl>
+                  {releasePublicationFacts.map(fact => (
+                    <div key={`${fact.label}-${fact.value}`}>
+                      <dt>{fact.label}</dt>
+                      <dd>{fact.code ? <code>{fact.value}</code> : fact.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+              <section className='release-fact-panel' data-testid='release-value-flow' aria-label='Value flow'>
+                <h3>Value flow</h3>
+                <dl>
+                  {releaseValueFlowRows.map(row => (
+                    <div key={`${row.label}-${row.value}`}>
+                      <dt>{row.label}</dt>
+                      <dd>{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            </div>
+            <p className='rights-status'>
+              Uploads alone do not publish this release. Dotify only treats it as published after the registry transaction and catalog read-back both confirm
+              it.
+            </p>
             {!canReviewRelease && <p className='error-box'>Add an audio file and title before publishing.</p>}
             {!isFreeAccess && remainingRoyaltyBps < 0 && <p className='error-box'>Reduce the payment split to 100% or less before publishing.</p>}
           </div>

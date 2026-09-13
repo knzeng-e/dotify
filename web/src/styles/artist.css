@@ -1123,8 +1123,67 @@ button.you-panel:hover {
 }
 
 .release-review {
+  display: grid;
+  gap: 0.9rem;
   border-top: 1px solid var(--line);
   padding-top: 1rem;
+}
+
+.release-understanding-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.release-fact-panel {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  padding: 0.9rem;
+}
+
+.release-fact-panel h3 {
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 760;
+}
+
+.release-fact-panel dl {
+  display: grid;
+}
+
+.release-fact-panel dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr);
+  gap: 0.7rem;
+  border-top: 1px solid var(--line);
+  padding: 0.6rem 0;
+}
+
+.release-fact-panel dl > div:last-child {
+  padding-bottom: 0;
+}
+
+.release-fact-panel dt,
+.release-fact-panel dd {
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.release-fact-panel dd {
+  color: var(--ink);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.release-fact-panel code {
+  color: inherit;
+  font-family: var(--font-code);
+  font-size: inherit;
 }
 
 .royalty-split-editor {

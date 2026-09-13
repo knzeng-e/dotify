@@ -343,6 +343,16 @@
       "track": "Production spine",
       "phase": "Now",
       "note": "Activated implementation sequence for versioned content-key custody, synthetic restore rehearsal, and honest recovery boundaries."
+    },
+    {
+      "id": "W12",
+      "doc": "docs/backlog/implementation/W12-artist-support-experience.md",
+      "issue": 156,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Activated implementation sequence for understandable artist publication and support receipts."
     }
   ]
 }
