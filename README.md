@@ -494,7 +494,10 @@ Production spine first:
 
 1. **Finish standalone production operation** - complete DAV2 real-browser and
    gateway validation, frontend health checks, deployment smoke checks, and the
-   backend read-through decision for reliable first sound.
+   backend read-through decision for reliable first sound. Use
+   `npm run smoke:pilot-release` from `web/` to keep W01-W12 evidence, Product
+   smoke inputs, rollback rehearsal, and aggregate pilot metrics separated from
+   a shipped-pilot claim.
 2. **Validate Product DevNet portability** - prove the host/account and
    Bulletin/DotNS baseline, then wire real CDM-installed runtime packages,
    Product-signed key/session requests, resource allocation, and Statement

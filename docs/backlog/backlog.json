@@ -353,6 +353,16 @@
       "track": "Production spine",
       "phase": "Now",
       "note": "Activated implementation sequence for understandable artist publication and support receipts."
+    },
+    {
+      "id": "W13",
+      "doc": "docs/backlog/implementation/W13-pilot-release.md",
+      "issue": 158,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Activated implementation sequence for the reversible pilot release package, Product/Web evidence gate, and consented first-community evaluation record."
     }
   ]
 }

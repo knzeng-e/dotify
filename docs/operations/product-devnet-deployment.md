@@ -321,6 +321,7 @@ npm ci
 npm run test:unit
 npm run smoke:devnet
 npm run smoke:product-journey -- --md-out /tmp/dotify-product-journey.md --json-out /tmp/dotify-product-journey.json
+npm run smoke:pilot-release -- --md-out /tmp/dotify-pilot-release-readiness.md --json-out /tmp/dotify-pilot-release-readiness.json
 npm run build:product-devnet
 ```
 
@@ -331,6 +332,12 @@ browser upload token or content secret is present.
 must report all static Product DevNet gates as passed, then mark the Product
 CDM unlock as `blocked` and the room journey as `not-run`. Treat a static
 `fail` as a release blocker before publishing.
+
+`smoke:pilot-release` wraps the Product journey gates into the W13 release
+package. It additionally verifies W01-W12 local evidence, issue/backlog mapping,
+the reversible pilot plan, contract inventory, and optional aggregate pilot
+metrics. It does not sign, deploy, contact participants, or treat missing live
+evidence as a pass.
 
 The default build keeps the viem runtime adapter, which tree-shakes the Product
 contract graph away and publishes at roughly 4.4 MB. Building with
