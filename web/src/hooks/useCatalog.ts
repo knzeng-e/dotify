@@ -410,6 +410,18 @@ export function useCatalog(deps: UseCatalogDeps) {
     };
   }, [ethRpcUrl]);
 
+  async function resolveNativeRuntimePaymentAssetForAction() {
+    try {
+      const chain = await resolveEvmChain(ethRpcUrl);
+      const asset = nativeRuntimePaymentAssetFromChain(chain);
+      setNativeRuntimePaymentAsset(asset);
+      return asset;
+    } catch {
+      setNativeRuntimePaymentAsset(DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET);
+      return DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET;
+    }
+  }
+
   function internalSetFileHash(hash: `0x${string}` | '') {
     setFileHashState(hash);
   }
@@ -1091,12 +1103,13 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
 
     if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
+      const supportAsset = await resolveNativeRuntimePaymentAssetForAction();
       setAccessGate(null);
       setTransactionFeedback({
         tone: 'pending',
         title: 'Support being confirmed',
-        message: `Confirming ${track.priceDot} ${nativeRuntimePaymentAsset.symbol} of support to open "${track.title}".`,
-        facts: buildClassicSupportFacts(track, nativeRuntimePaymentAsset, 'pending')
+        message: `Confirming ${track.priceDot} ${supportAsset.symbol} of support to open "${track.title}".`,
+        facts: buildClassicSupportFacts(track, supportAsset, 'pending')
       });
       await new Promise(resolve => window.setTimeout(resolve, 20));
       const e2eState = getClassicUnlockE2eState();
@@ -1116,7 +1129,7 @@ export function useCatalog(deps: UseCatalogDeps) {
             productCdm: false
           }),
           txHash: E2E_CLASSIC_TX_HASH,
-          facts: buildClassicSupportFacts(track, nativeRuntimePaymentAsset, 'included-unverified')
+          facts: buildClassicSupportFacts(track, supportAsset, 'included-unverified')
         });
         return;
       }
@@ -1125,7 +1138,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       e2eState.accessGranted = true;
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback({
-        ...buildClassicAccessVerifiedFeedback(track, E2E_CLASSIC_TX_HASH, nativeRuntimePaymentAsset)
+        ...buildClassicAccessVerifiedFeedback(track, E2E_CLASSIC_TX_HASH, supportAsset)
       });
       if (shouldRestoreUnlockedTrack()) {
         navigateToView('player');
