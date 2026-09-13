@@ -244,11 +244,7 @@ export function buildReleasePublicationRoadmap(stage: ReleasePublicationStage, t
   });
 }
 
-export function buildReleaseRegistrationFailureMessage(input: {
-  error: string;
-  submittedTxHash?: `0x${string}`;
-  registrationConfirmed?: boolean;
-}): string {
+export function buildReleaseRegistrationFailureMessage(input: { error: string; submittedTxHash?: `0x${string}`; registrationConfirmed?: boolean }): string {
   if (input.submittedTxHash && input.registrationConfirmed) {
     return `The registration transaction was submitted, but Dotify did not confirm catalog visibility yet: ${input.error} Keep this transaction hash and refresh the catalog before retrying. Dotify will not mark the release as published until catalog read-back includes it.`;
   }

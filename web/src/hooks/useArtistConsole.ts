@@ -201,10 +201,7 @@ function preparedAudioRuntimeMismatchMessage(uploadRuntime: `0x${string}`, publi
 }
 
 function isReleaseVisibleInRuntime(track: CatalogTrack, runtimeAddress: `0x${string}`, contentHash: `0x${string}`): boolean {
-  return (
-    track.hash.toLowerCase() === contentHash.toLowerCase() &&
-    runtimeAddressFromTrackId(track)?.toLowerCase() === runtimeAddress.toLowerCase()
-  );
+  return track.hash.toLowerCase() === contentHash.toLowerCase() && runtimeAddressFromTrackId(track)?.toLowerCase() === runtimeAddress.toLowerCase();
 }
 
 export { getStoredArtistName, storeArtistName };
