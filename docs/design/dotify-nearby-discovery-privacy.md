@@ -86,7 +86,7 @@ type NearbyHostPresence = {
   hostSurface: NearbyHostSurface;
   canonicalRoomUrl: string;
   expiresAt: string;
-  listenerCountBucket: '0' | '1' | '2-3' | '4-9' | '10+';
+  listenerCountBucket: '0' | '1-3' | '4-9' | '10+';
   capabilities: {
     walletlessJoin: true;
     sourceKeysExposed: false;
@@ -110,8 +110,13 @@ type NearbySearchRequest = {
 };
 ```
 
-Forbidden field names at every protocol level: `lat`, `latitude`,
-`longitude`, `lon`, `lng`, `coordinates`, `coordinate`, `geohash`,
+W19 must validate incoming JSON against the allowlisted `NearbyHostPresence`,
+`NearbySearchRequest`, and `NearbySearchResponse` schemas and reject unknown
+fields. A denylist alone is not enough: payloads such as `position: [lat, lon]`
+must fail even though the field name is not one of the known coordinate names.
+
+Forbidden field names at every protocol level remain defense in depth: `lat`,
+`latitude`, `longitude`, `lon`, `lng`, `coordinates`, `coordinate`, `geohash`,
 `distanceMeters`, `exactDistanceMeters`, `walletAddress`, `evmAddress`,
 `ss58Address`, and `ipAddress`.
 
@@ -133,7 +138,7 @@ Authentication rules for W19:
 | Standard cell size | 1,800 m | Coarse enough to avoid venue/block-level precision while still useful in a city. |
 | Expanded cell size | 7,200 m | Used when density is low so sparse areas do not expose one precise room area. |
 | Neighbor ring | 1 | Queries include the center cell plus eight neighbors to soften grid boundaries. |
-| Minimum useful density | 4 rooms | Below this, use expanded area and suppress exact counts. |
+| Minimum useful density | 4 rooms | Below this, use expanded area and suppress exact counts into the non-exact `1-3` bucket. |
 | Max results | 20 rooms | Keeps repeated searches from enumerating every room. |
 | Host TTL | 90 seconds | Short enough for stale room cleanup, long enough for 30-second refresh jitter. |
 | Host refresh interval | 30 seconds | Three chances to refresh before expiry. |
