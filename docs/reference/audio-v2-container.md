@@ -4,7 +4,7 @@
 uploads. The on-chain `audioRef` is:
 
 ```txt
-dotify:enc:v2:key-v2:ipfs://<CID>
+dotify:enc:v2:key-vN:ipfs://<CID>
 ```
 
 The CID points to one IPFS object. That object contains a small `DAV2` header
@@ -61,18 +61,21 @@ ciphertext || gcmTag(16 bytes)
 ```
 
 The `contentHash` is the blake2b-256 hash of the raw audio before encryption.
-For new backend uploads, the content key is derived from
-`CONTENT_KEY_MASTER_SECRET` with the release-bound v2 scope:
+For new backend uploads, the content key is derived from the active
+server-side version secret. The version in `audioRef` selects the retained
+secret and is included in the release-bound scope:
 
 ```txt
-dotify-content-key-v2:<chainId>:<runtimeAddress>:<contentHash>
+dotify-content-key-vN:<chainId>:<runtimeAddress>:<contentHash>
 ```
 
 Key delivery uses the same scope only after the backend resolves the canonical
-catalog release and confirms the current target-runtime track. Older DAV2 refs
-that use `dotify:enc:v2:ipfs://<CID>` remain legacy v1 assets derived only from
-`contentHash`; duplicate legacy hashes are refused because the key scope cannot
-distinguish releases.
+catalog release and confirms the current target-runtime track. The default
+active version remains `dotify-content-key-v2`; operators can configure a new
+active version for future uploads while retaining old version secrets for old
+ciphertext. Older DAV2 refs that use `dotify:enc:v2:ipfs://<CID>` remain
+legacy v1 assets derived only from `contentHash`; duplicate legacy hashes are
+refused because the key scope cannot distinguish releases.
 
 ## Playback Contract
 

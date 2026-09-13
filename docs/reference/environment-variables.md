@@ -754,10 +754,55 @@ Number of chain-head blocks held back before catalog events are indexed.
 | **Required** | Server-side audio encryption and key delivery |
 | **Default**  | None                                          |
 
-Backend-only master secret used to derive AES-256-GCM content keys. Legacy
-assets use the v1 `contentHash` scope; new backend uploads use the release-bound
-v2 scope `chainId + runtimeAddress + contentHash`. Never expose this value to
-the frontend.
+Backend-only compatibility secret used to derive AES-256-GCM content keys.
+When `CONTENT_KEY_MASTER_SECRETS` is not set, this value backs both
+`dotify-content-key-v1` legacy assets and `dotify-content-key-v2` release-bound
+assets. Never expose this value to the frontend.
+
+Keep an operator-side backup outside Fly before setting or rotating this value:
+Fly secrets can be overwritten or unset, but they cannot be read back as a
+recovery copy.
+
+---
+
+### `CONTENT_KEY_MASTER_SECRETS`
+
+| Property     | Value                                         |
+| ------------ | --------------------------------------------- |
+| **Type**     | JSON object: key version -> 32+ byte hex      |
+| **Required** | Only for explicit key-version rotation        |
+| **Default**  | None                                          |
+
+Backend-only retained key-version map. Use it when adding a future active
+version while keeping old releases decryptable:
+
+```json
+{
+  "dotify-content-key-v1": "<old-hex>",
+  "dotify-content-key-v2": "<old-hex>",
+  "dotify-content-key-v3": "<new-hex>"
+}
+```
+
+The backend accepts version names shaped as `dotify-content-key-vN`. Missing
+versions fail closed: a `key-v3` audio ref cannot be served by a service that
+does not retain `dotify-content-key-v3`.
+
+---
+
+### `CONTENT_KEY_ACTIVE_VERSION`
+
+| Property     | Value                    |
+| ------------ | ------------------------ |
+| **Type**     | `dotify-content-key-vN`  |
+| **Required** | No                       |
+| **Default**  | `dotify-content-key-v2`  |
+
+Content-key version used for new backend audio uploads. Do not change this
+without first configuring and backing up the matching entry in
+`CONTENT_KEY_MASTER_SECRETS`. Rotating the active version affects future
+uploads only; it does not revoke keys already delivered to clients and does not
+change older ciphertext.
 
 ---
 

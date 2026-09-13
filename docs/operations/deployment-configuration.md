@@ -79,12 +79,16 @@ Keep production upload and key material server-side on Fly:
 ```txt
 PINATA_JWT
 CONTENT_KEY_MASTER_SECRET
+CONTENT_KEY_MASTER_SECRETS
+CONTENT_KEY_ACTIVE_VERSION
 ```
 
-`CONTENT_KEY_MASTER_SECRET` derives content keys. Legacy assets use the v1
-`contentHash` scope; new backend uploads use the release-bound v2 scope
-`chainId + runtimeAddress + contentHash`. Do not rotate it casually: rotating
-it changes the key derivation boundary for existing tracks.
+`CONTENT_KEY_MASTER_SECRET` is the compatibility secret for existing v1/v2 key
+derivation. `CONTENT_KEY_MASTER_SECRETS` is the optional retained version map,
+and `CONTENT_KEY_ACTIVE_VERSION` selects which version encrypts new backend
+uploads. Do not remove an old version until every release encrypted with it has
+been re-encrypted and republished; the API fails closed instead of guessing a
+different secret.
 
 ## Netlify Frontend
 
@@ -158,19 +162,19 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 17]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 18]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 17]` carries the Product room guest audio recovery fix, the W05
+Version `[0, 1, 18]` carries the Product room guest audio recovery fix, the W05
 royalty claim runtime writer path, the September 2026 Product DevNet
 tooling/CDM registry refresh, the re-pinned Bulletin descriptor, and the viem
 release-registration confirmation hardening for dropped or still-pending wallet
 hashes, plus the W06 removal of passkey-only wallet routes from the public
-Product and standalone account flows.
+Product and standalone account flows and W07 key-versioned protected audio refs.
 
 Current Product host SDK dependencies:
 
@@ -301,11 +305,36 @@ Set server-side values in the app's Secrets area:
 | Secret                      | Required                      | Notes                                                                                                                                                      |
 | --------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PINATA_JWT`                | Uploads                       | Backend-only Pinata token. Never expose in Netlify.                                                                                                        |
-| `CONTENT_KEY_MASTER_SECRET` | Audio upload and key delivery | 64+ hex chars, at least 32 random bytes. v1 assets use `contentHash`; new v2 assets bind `chainId + runtimeAddress + contentHash`. Do not rotate casually. |
+| `CONTENT_KEY_MASTER_SECRET` | Audio upload and key delivery | 64+ hex chars, at least 32 random bytes. Compatibility source for v1/v2 when the explicit version map omits them. Never expose or rely on Fly as a backup. |
+| `CONTENT_KEY_MASTER_SECRETS` | Key rotation                 | Optional JSON object from `dotify-content-key-vN` to 64+ hex chars. Keep every retained version needed by existing releases.                               |
+| `CONTENT_KEY_ACTIVE_VERSION` | New encrypted uploads        | Optional active version for new backend uploads. Default is `dotify-content-key-v2`; change only after backing up and configuring the matching secret.       |
 | `GIT_COMMIT_SHA`            | Optional                      | Set by CI/build automation when available; `/version` can fall back in dev checkouts.                                                                      |
 | `TURN_REST_SECRET`          | Reliable rooms                | Backend-only HMAC secret shared with the TURN relay REST auth mechanism. Preferred production path.                                                        |
 | `TURN_USERNAME`             | Optional fallback             | Static DevNet TURN username when REST auth is unavailable.                                                                                                 |
 | `TURN_CREDENTIAL`           | Optional fallback             | Static DevNet TURN password when REST auth is unavailable.                                                                                                 |
+
+Content-key rotation procedure:
+
+1. Export the current key material from the operator's secret manager, not from
+   Fly. Fly secrets are write-only from the app operator perspective.
+2. Create a new 32-byte hex secret locally with
+   `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+3. Build a retained JSON map containing every version that still has published
+   ciphertext, for example v1, v2, and a new v3. Store that JSON in the secret
+   manager before deploying.
+4. Set `CONTENT_KEY_MASTER_SECRETS` and `CONTENT_KEY_ACTIVE_VERSION` on Fly,
+   then deploy the API. Existing v1/v2 releases should still decrypt; new
+   uploads should return an audio ref shaped like
+   `dotify:enc:v2:key-v3:ipfs://<CID>`.
+5. Run `npm --prefix services/api run key-custody:rehearse` locally. The script
+   uses synthetic secrets and writes only a synthetic backup under `/tmp`; it is
+   a rehearsal of the operator process, not a production export.
+6. Smoke one existing protected release and one newly uploaded release through
+   the deployed API before depending on the rotation for the pilot catalog.
+
+Changing the active version cannot revoke keys already delivered to browsers or
+room hosts. If a secret is compromised, plan a re-encryption and release-update
+operation for affected tracks; config rotation alone is not a revocation tool.
 
 Catalog read-model variables:
 

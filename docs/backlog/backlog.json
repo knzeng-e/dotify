@@ -333,6 +333,16 @@
       "track": "Production spine",
       "phase": "Now",
       "note": "Activated implementation sequence for royalty failure isolation, bounded payout fallback, and claimable receipt UI."
+    },
+    {
+      "id": "W07",
+      "doc": "docs/backlog/implementation/W07-key-custody-recovery.md",
+      "issue": 149,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Activated implementation sequence for versioned content-key custody, synthetic restore rehearsal, and honest recovery boundaries."
     }
   ]
 }

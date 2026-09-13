@@ -57,6 +57,7 @@ async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
         : { valid: false, code: 'SESSION_INVALID', reason: 'bad session' },
     checkArtistAuthority: async () => ({ allowed: true, runtime: RUNTIME }),
     authorizations,
+    getActiveContentKeyVersion: () => RELEASE_BOUND_CONTENT_KEY_VERSION,
     deriveContentKeyBytes: () => Buffer.alloc(32, 7),
     encryptAudio: bytes => Buffer.from(bytes),
     pinFile: async () => 'file-cid',
@@ -186,6 +187,37 @@ describe('authorized upload routes', () => {
     assert.deepEqual(derivationScope, {
       contentHash: audioHash,
       keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION,
+      chainId: CHAIN_ID,
+      runtimeAddress: RUNTIME
+    });
+  });
+
+  it('uses the active key version for new backend audio uploads', async () => {
+    let derivationScope: unknown = null;
+    const activeVersion = 'dotify-content-key-v3' as const;
+    const server = await buildApp({
+      routeDeps: {
+        getActiveContentKeyVersion: () => activeVersion,
+        deriveContentKeyBytes: input => {
+          derivationScope = input;
+          return Buffer.alloc(32, 7);
+        }
+      }
+    });
+    const grant = (await authorize(server, 'audio', audioBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/audio',
+      headers: multipartHeaders(grant),
+      payload: multipartAudio(audioBytes, audioHash)
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().ref, 'dotify:enc:v2:key-v3:ipfs://file-cid');
+    assert.equal(response.json().keyVersion, activeVersion);
+    assert.deepEqual(derivationScope, {
+      contentHash: audioHash,
+      keyVersion: activeVersion,
       chainId: CHAIN_ID,
       runtimeAddress: RUNTIME
     });
