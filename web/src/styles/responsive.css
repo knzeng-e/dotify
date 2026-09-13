@@ -433,6 +433,64 @@
     width: 100%;
   }
 
+  .room-list-status {
+    width: 100%;
+  }
+
+  .rooms-discovery-layout {
+    display: block;
+  }
+
+  .room-detail-panel {
+    display: none;
+  }
+
+  .room-detail-sheet {
+    position: fixed;
+    right: max(0.75rem, var(--safe-right));
+    bottom: calc(var(--mobile-nav-height) + var(--dock-height) + var(--safe-bottom) + 0.75rem);
+    left: max(0.75rem, var(--safe-left));
+    z-index: 54;
+    display: grid;
+    max-height: min(72dvh, calc(100dvh - var(--safe-top) - var(--mobile-nav-height) - var(--dock-height) - 1.5rem));
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    align-items: start;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.85rem;
+  }
+
+  .room-detail-sheet::before {
+    position: absolute;
+    top: 0.45rem;
+    left: calc(50% - 1.6rem);
+    width: 3.2rem;
+    height: 0.25rem;
+    border-radius: var(--radius-full);
+    background: var(--line-strong);
+    content: '';
+  }
+
+  .room-detail-sheet .room-detail-art {
+    width: 5.5rem;
+    min-height: 5.5rem;
+  }
+
+  .room-detail-sheet .room-detail-copy {
+    padding: 0.8rem 3.2rem 0 0.85rem;
+  }
+
+  .room-detail-sheet .room-detail-copy h3 {
+    font-size: 1.75rem;
+    letter-spacing: 0;
+  }
+
+  .room-detail-sheet .room-detail-facts,
+  .room-detail-sheet .room-detail-state,
+  .room-detail-sheet .room-detail-join {
+    grid-column: 1 / -1;
+  }
+
   .player-stage {
     min-height: 0;
     grid-template-columns: minmax(0, 1fr);
@@ -982,6 +1040,22 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .room-live-card {
+    min-height: 8rem;
+    grid-template-columns: 6rem minmax(0, 1fr) auto;
+    gap: 0.8rem;
+  }
+
+  .room-live-art {
+    width: 6rem;
+    min-height: 6.4rem;
+  }
+
+  .room-live-main > strong {
+    font-size: 1.4rem;
+    letter-spacing: 0;
+  }
+
   .room-entry-card {
     row-gap: 1rem;
     border-right: 0;
@@ -1046,6 +1120,28 @@
     padding: 0.6rem 0 0;
   }
 
+  .room-detail-sheet {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .room-detail-sheet .room-detail-art {
+    width: 4.5rem;
+    min-height: 4.5rem;
+  }
+
+  .room-detail-sheet .room-detail-copy {
+    padding-left: 0.75rem;
+  }
+
+  .room-detail-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .room-detail-facts > div + div {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
   .room-entry-card {
     padding: 1.25rem;
   }
@@ -1096,6 +1192,21 @@
   .modal-actions > *,
   .create-room-actions > * {
     width: 100%;
+  }
+}
+
+@media (max-width: 48rem) and (max-height: 34rem) {
+  .room-detail-sheet {
+    max-height: min(68dvh, calc(100dvh - var(--safe-top) - var(--mobile-nav-height) - var(--dock-height) - 1rem));
+  }
+
+  .room-detail-sheet .room-detail-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .room-detail-sheet .room-detail-facts > div + div {
+    border-top: 0;
+    border-left: 1px solid var(--line);
   }
 }
 
