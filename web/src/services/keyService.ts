@@ -19,7 +19,7 @@ export type KeyRequestPurpose = 'individual' | 'room_host';
 export const PRODUCT_SR25519_SIGNATURE_SCHEME = 'product-sr25519-v1';
 export const LEGACY_CONTENT_KEY_VERSION = 'dotify-content-key-v1';
 export const RELEASE_BOUND_CONTENT_KEY_VERSION = 'dotify-content-key-v2';
-export type ContentKeyVersion = typeof LEGACY_CONTENT_KEY_VERSION | typeof RELEASE_BOUND_CONTENT_KEY_VERSION;
+export type ContentKeyVersion = `dotify-content-key-v${number}`;
 
 // Access model v2 (ticket 24 P1): a denial names the reason and the action the
 // listener can take. There is no degraded playback mode - the preview doctrine

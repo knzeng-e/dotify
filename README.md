@@ -147,25 +147,28 @@ cd services/api
 npm install
 cp .env.example .env
 # Edit .env: set PINATA_JWT and CONTENT_KEY_MASTER_SECRET
+# Optional rotation: set CONTENT_KEY_MASTER_SECRETS and CONTENT_KEY_ACTIVE_VERSION
 npm run dev
 ```
 
 **Environment variables** (see `services/api/.env.example`):
 
-| Variable                        | Required         | Purpose                                                   |
-| ------------------------------- | ---------------- | --------------------------------------------------------- |
-| `API_ORIGIN`                    | Compatibility    | Singular frontend CORS origin fallback                    |
-| `API_ORIGINS`                   | Production       | Comma-separated exact frontend CORS origins               |
-| `PASEO_ASSET_HUB_RPC`           | Key requests     | Paseo Asset Hub EVM RPC used for access checks            |
-| `DOTIFY_DIRECTORY_ADDRESS`      | Key requests     | ArtistDirectory address used to resolve artist runtimes   |
-| `DOTIFY_CHAIN_ID`               | Key requests     | Chain ID expected in wallet-signed key requests           |
-| `CATALOG_SNAPSHOT_PATH`         | Catalog API      | Durable JSON snapshot path (default `.data/catalog.json`) |
-| `CATALOG_POLL_INTERVAL_MS`      | Catalog API      | Confirmed event polling interval                          |
-| `CATALOG_RECONCILE_INTERVAL_MS` | Catalog API      | Full deterministic on-chain reconciliation interval       |
-| `CATALOG_STALE_AFTER_MS`        | Catalog API      | Age at which cached data reports `stale-cache`            |
-| `CATALOG_CONFIRMATIONS`         | Catalog API      | Blocks held back before indexing event changes            |
-| `PINATA_JWT`                    | For uploads      | Server-side Pinata token (never expose in frontend)       |
-| `CONTENT_KEY_MASTER_SECRET`     | For audio upload | 32-byte hex master secret for AES-256-GCM key derivation  |
+| Variable                        | Required         | Purpose                                                       |
+| ------------------------------- | ---------------- | ------------------------------------------------------------- |
+| `API_ORIGIN`                    | Compatibility    | Singular frontend CORS origin fallback                        |
+| `API_ORIGINS`                   | Production       | Comma-separated exact frontend CORS origins                   |
+| `PASEO_ASSET_HUB_RPC`           | Key requests     | Paseo Asset Hub EVM RPC used for access checks                |
+| `DOTIFY_DIRECTORY_ADDRESS`      | Key requests     | ArtistDirectory address used to resolve artist runtimes       |
+| `DOTIFY_CHAIN_ID`               | Key requests     | Chain ID expected in wallet-signed key requests               |
+| `CATALOG_SNAPSHOT_PATH`         | Catalog API      | Durable JSON snapshot path (default `.data/catalog.json`)     |
+| `CATALOG_POLL_INTERVAL_MS`      | Catalog API      | Confirmed event polling interval                              |
+| `CATALOG_RECONCILE_INTERVAL_MS` | Catalog API      | Full deterministic on-chain reconciliation interval           |
+| `CATALOG_STALE_AFTER_MS`        | Catalog API      | Age at which cached data reports `stale-cache`                |
+| `CATALOG_CONFIRMATIONS`         | Catalog API      | Blocks held back before indexing event changes                |
+| `PINATA_JWT`                    | For uploads      | Server-side Pinata token (never expose in frontend)           |
+| `CONTENT_KEY_MASTER_SECRET`     | For audio upload | 32-byte hex compatibility secret for v1/v2 key derivation     |
+| `CONTENT_KEY_MASTER_SECRETS`    | Rotation         | Optional JSON map of retained `dotify-content-key-vN` secrets |
+| `CONTENT_KEY_ACTIVE_VERSION`    | Rotation         | Optional active version for new encrypted audio uploads       |
 
 Set `VITE_DOTIFY_API_URL=http://localhost:8790` in `web/.env.local` to route
 audio, cover, and metadata uploads through the backend. In this mode the
@@ -404,7 +407,9 @@ See also:
   content-key requests, with demo/local browser encryption still available.
 - Access model v2: Free tracks play without a wallet, gated tracks show a gate
   with no preview fallback, and new production uploads use release-bound
-  `dotify:enc:v2:key-v2:ipfs://<CID>` chunked encrypted audio.
+  `dotify:enc:v2:key-vN:ipfs://<CID>` chunked encrypted audio. The default
+  active version remains `dotify-content-key-v2`; future rotations retain old
+  version secrets while using a new active version for new uploads.
 - Seed catalog browsable on the Music view.
 - SmartRuntime music pallets: registration, NFT ownership, access checks, paid
   access, listen recording, royalty split storage, and transfer gating by
@@ -417,9 +422,12 @@ See also:
 - **Client-side protection is best-effort**: local/demo encrypted audio improves
   development flows, but `VITE_CONTENT_SECRET` is still only a local/demo
   boundary. Production uploads and protected playback should use
-  `VITE_DOTIFY_API_URL` with the backend-held `CONTENT_KEY_MASTER_SECRET`.
+  `VITE_DOTIFY_API_URL` with backend-held content-key secrets.
   Production frontend builds should set `VITE_DOTIFY_DEPLOYMENT=production` so
   browser-bundled demo secrets fail the build.
+- **Key rotation is not revocation**: grants are short-lived, but derived audio
+  keys are deterministic. If a client already learned a key, changing the active
+  version cannot make that key unknown again.
 - **Wallet scope**: Dotify treats the connected EVM account as the primary
   artist and listener identity. Artist registration and release publication
   require a connected wallet; dev EVM accounts are not used as public fallback
@@ -429,7 +437,8 @@ See also:
 - **Browser-side Pinata JWT is demo/local only**: `VITE_PINATA_JWT` is used for
   direct browser uploads only when `VITE_DOTIFY_API_URL` is unset. Production
   uploads use the backend API; see `services/api/.env.example` for server-side
-  `PINATA_JWT` and `CONTENT_KEY_MASTER_SECRET`.
+  `PINATA_JWT`, `CONTENT_KEY_MASTER_SECRET`, and optional key-version rotation
+  variables.
 - **Single-host rooms**: no multi-host or handoff logic. If the host closes the
   tab, the room ends.
 - **Room stream capture limits**: room guests do not receive keys/source files,

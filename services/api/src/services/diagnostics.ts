@@ -15,6 +15,7 @@
 
 import { createPublicClient, http, type Address, type PublicClient } from 'viem';
 import { config } from '../config.js';
+import { getContentKeyVaultStatus } from './keyVault.js';
 
 const artistDirectoryAbi = [
   { type: 'function', name: 'artistCount', inputs: [], outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view' },
@@ -75,9 +76,16 @@ export function createDiagnostics(deps: DiagnosticsDeps = defaultDeps): () => Pr
     // RPC while staying fresh enough for operators.
     if (cached && deps.now() - cached.at < REPORT_CACHE_MS) return cached.report;
 
-    const contentKeySecret: DiagnosticCheck = config.CONTENT_KEY_MASTER_SECRET
-      ? { ok: true, detail: 'Content-key master secret is configured.' }
-      : { ok: false, detail: 'CONTENT_KEY_MASTER_SECRET is not configured; key derivation and uploads are disabled.' };
+    const keyVault = getContentKeyVaultStatus();
+    const contentKeySecret: DiagnosticCheck = keyVault.configured
+      ? {
+          ok: true,
+          detail: `Content-key vault is configured for active version ${keyVault.activeVersion} (${keyVault.configuredVersions.length} retained version${keyVault.configuredVersions.length === 1 ? '' : 's'}).`
+        }
+      : {
+          ok: false,
+          detail: keyVault.errors[0] ?? 'No content-key version secret is configured; key derivation and uploads are disabled.'
+        };
 
     const pinata: DiagnosticCheck = config.PINATA_JWT
       ? { ok: true, detail: 'Pinata JWT is configured.' }

@@ -59,14 +59,16 @@ See `.env.example` for local defaults and script-only variables.
 
 Uploaded audio is always hashed locally with blake2b-256. When
 `VITE_DOTIFY_API_URL` is configured, the browser sends the raw audio plus
-content hash to the backend, and the backend encrypts with its
-`CONTENT_KEY_MASTER_SECRET` before pinning to Pinata. In local demo mode, when
+content hash to the backend, and the backend encrypts with the active
+content-key version secret before pinning to Pinata. In local demo mode, when
 `VITE_DOTIFY_API_URL` is unset, the browser encrypts with `VITE_CONTENT_SECRET`
 and pins directly with `VITE_PINATA_JWT`.
 
-New backend uploads store `dotify:enc:v2:key-v2:ipfs://CID` in the on-chain
-`audioRef`; legacy encrypted refs remain supported. The raw IPFS object is not
-directly playable by an HTML audio element.
+New backend uploads store `dotify:enc:v2:key-vN:ipfs://CID` in the on-chain
+`audioRef`, where `key-vN` maps to a retained backend
+`dotify-content-key-vN` secret. The default active version remains v2; legacy
+encrypted refs remain supported. The raw IPFS object is not directly playable
+by an HTML audio element.
 
 Cover images and track manifests are also pinned through Pinata. Manifest reads
 and encrypted audio downloads use `fetchIpfsCid`, which tries the configured
@@ -76,8 +78,9 @@ breaking playback when a custom Pinata gateway returns `401` for public files.
 The production protection boundary is the backend API:
 
 - Pinata credentials stay server-side.
-- Content keys are derived from `CONTENT_KEY_MASTER_SECRET`; new backend
-  uploads bind the key scope to `chainId + runtimeAddress + contentHash`.
+- Content keys are derived from retained backend version secrets. New backend
+  uploads bind the key scope to the key version, chain ID, runtime address, and
+  content hash.
 - Full-track key delivery requires a signed-in session (one wallet signature
   per ~24h) or a wallet-signed request, plus an on-chain access check on
   every key request. Standalone clients use `eip191`; Product-host clients can
@@ -342,7 +345,7 @@ starting write flows.
 | Listener joins but audio negotiation times out after peer creation           | WebRTC cannot establish a media path across the host/listener networks. Signaling can be healthy while audio still fails.                               | Check `window.__DOTIFY_ROOM_QUALITY__.snapshot()`, `https://dotify-api.fly.dev/api/turn/grant`, coturn allocation logs, and Fly `dotify-signal` diagnostics. `peerConnectionAvailable=true` separates this path from the Product Mobile sandbox limitation. | Configure API TURN grants and verify the relay ports/firewall. Redeploy the frontend/Product bundle only if browser-visible `VITE_TURN_*` changed.                                        |
 | A room appears but cannot be entered                                         | The room reached the current listener cap, or the host is reconnecting and temporarily hidden from `/status`.                                           | `/status` exposes `listenerCount`, `maxListeners`, and `isFull` for visible rooms. The join ack returns `ROOM_FULL` or `HOST_RECONNECTING` for authoritative failures.                                                                                      | Wait for a listener to leave, open another room, or keep the cap conservative until SFU evidence supports a larger fan-out.                                                               |
 | Mobile host sees `captureStream()` unsupported                               | Safari/iOS does not expose `HTMLMediaElement.captureStream()` for host audio capture.                                                                   | Host card shows the capture error before any guest can hear the room.                                                                                                                                                                                       | Use the Web Audio fallback path; if both media capture APIs are unavailable, host from desktop/Android Chrome and join as a listener on iOS.                                              |
-| Production upload or full-track playback fails                               | Backend API is missing or cannot release keys.                                                                                                          | Check `VITE_DOTIFY_API_URL`, backend `/health`, and browser network requests to key/upload endpoints.                                                                                                                                                       | Deploy/fix the backend API and keep `PINATA_JWT` plus `CONTENT_KEY_MASTER_SECRET` server-side.                                                                                            |
+| Production upload or full-track playback fails                               | Backend API is missing or cannot release keys.                                                                                                          | Check `VITE_DOTIFY_API_URL`, backend `/health`, and browser network requests to key/upload endpoints.                                                                                                                                                       | Deploy/fix the backend API and keep `PINATA_JWT` plus the content-key secrets server-side.                                                                                                |
 | Protected track takes too long to start                                      | The IPFS gateway cannot serve DAV2 Range requests quickly, MSE is unsupported for the media type, or the backend key route is slow.                     | Inspect `window.__DOTIFY_AUDIO_STARTUP__.snapshot()` in the browser, or listen for `dotify:dav2-startup` and `dotify:host-audio-startup`, then inspect key/upload network requests.                                                                         | Compare selected gateway, hedged header/first-chunk timing, and first-audio timing; then decide whether a backend read-through gateway is needed.                                         |
 | A room disappears while the host tab is open                                 | Host heartbeat stopped, the host disconnected, or the room TTL expired.                                                                                 | Fly logs and `/status`; defaults are 120 seconds heartbeat timeout and 6 hours TTL.                                                                                                                                                                         | Keep the host tab awake/reconnected, or adjust `SIGNAL_HOST_TIMEOUT_MS` / `SIGNAL_ROOM_TTL_MS` deliberately.                                                                              |
 
@@ -505,6 +508,10 @@ appropriate component composition rather than shell-level prop drilling.
 - Playback protection is client-side best-effort only when the backend API is
   not configured. Production key delivery uses wallet-signed backend requests
   with explicit `eip191` or `product-sr25519-v1` signature schemes.
+- Key rotation is additive, not retroactive revocation. Existing protected
+  audio stays readable only while its exact key version secret is retained; a
+  client that already learned a derived key may keep using it outside Dotify's
+  grant window.
 - Artist registration and release publication require a connected EVM wallet in
   the tracked build. Local EVM dev accounts are no longer exposed as public
   artist fallbacks.

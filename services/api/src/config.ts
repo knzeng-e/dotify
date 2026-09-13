@@ -28,6 +28,14 @@ const optionalNonEmptyString = z.preprocess(
   z.string().optional(),
 );
 
+const optionalContentKeyVersion = z.preprocess(
+  value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z
+    .string()
+    .regex(/^dotify-content-key-v[1-9][0-9]*$/, 'CONTENT_KEY_ACTIVE_VERSION must look like dotify-content-key-vN')
+    .optional(),
+);
+
 const optionalOriginList = z.preprocess(
   value =>
     typeof value === 'string'
@@ -70,9 +78,10 @@ const envSchema = z.object({
   CATALOG_RECONCILE_INTERVAL_MS: z.coerce.number().int().min(10_000).default(300_000),
   CATALOG_STALE_AFTER_MS: z.coerce.number().int().min(1_000).default(60_000),
   CATALOG_CONFIRMATIONS: z.coerce.number().int().min(0).max(100).default(2),
-  // Master secret for HKDF per-track key derivation (hex, 32+ bytes). Must
-  // never reach the frontend. Both the upload encryption path and the
-  // content-key delivery path derive from this value (services/keyVault.ts).
+  // Compatibility master secret for HKDF per-track key derivation (hex, 32+
+  // bytes). Must never reach the frontend. When CONTENT_KEY_MASTER_SECRETS does
+  // not provide explicit versions, keyVault maps this value to legacy v1 and
+  // default release-bound v2 derivation.
   CONTENT_KEY_MASTER_SECRET: z.preprocess(
     value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
     z
@@ -80,6 +89,11 @@ const envSchema = z.object({
       .regex(/^(0x)?[0-9a-fA-F]{64,}$/, 'CONTENT_KEY_MASTER_SECRET must be hex encoding at least 32 bytes')
       .optional(),
   ),
+  // Optional JSON object mapping explicit content-key versions to 32+ byte hex
+  // secrets. CONTENT_KEY_MASTER_SECRET remains the legacy v1/v2 compatibility
+  // source when this map omits those versions.
+  CONTENT_KEY_MASTER_SECRETS: optionalNonEmptyString,
+  CONTENT_KEY_ACTIVE_VERSION: optionalContentKeyVersion,
   // Pinata JWT — must stay server-side only. Never expose in frontend env.
   PINATA_JWT: optionalNonEmptyString,
   // Upload authorizations are short-lived, single-use capabilities. Byte

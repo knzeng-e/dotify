@@ -160,6 +160,7 @@ describe('protected audio upload metadata', () => {
     const { protectedAudioUploadToKeyVersion } = await loadPinataService();
 
     expect(protectedAudioUploadToKeyVersion('dotify:enc:v2:key-v2:ipfs://release-cid')).toBe('dotify-content-key-v2');
+    expect(protectedAudioUploadToKeyVersion('dotify:enc:v2:key-v3:ipfs://release-cid')).toBe('dotify-content-key-v3');
     expect(protectedAudioUploadToKeyVersion('dotify:enc:v2:ipfs://legacy-dav2')).toBe('dotify-content-key-v1');
   });
 

@@ -1,5 +1,6 @@
 import { createHmac, hkdfSync, randomUUID, timingSafeEqual } from 'node:crypto';
 import { config } from '../config.js';
+import { getActiveContentKeyMasterSecret } from './keyVault.js';
 import { checkDotifyChainId } from './chainDomain.js';
 
 const HKDF_INFO = 'dotify-upload-authorization-v1';
@@ -107,7 +108,7 @@ export function createUploadAuthorizationService(options: UploadAuthorizationSer
   const epoch = options.epoch ?? randomUUID();
   const now = options.now ?? Date.now;
   const randomId = options.randomId ?? randomUUID;
-  const masterSecret = options.masterSecret ?? (() => config.CONTENT_KEY_MASTER_SECRET);
+  const masterSecret = options.masterSecret ?? getActiveContentKeyMasterSecret;
   const authorizationTtlMs = options.authorizationTtlMs ?? config.UPLOAD_AUTH_TTL_SECONDS * 1000;
   const quotaWindowMs = options.quotaWindowMs ?? config.UPLOAD_QUOTA_WINDOW_SECONDS * 1000;
   const principalByteLimit = options.principalByteLimit ?? config.UPLOAD_PRINCIPAL_BYTES_PER_WINDOW;

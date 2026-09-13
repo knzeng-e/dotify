@@ -20,6 +20,16 @@ describe('protected audio refs', () => {
     expect(contentKeyVersionForAudioRef(ref)).toBe(RELEASE_BOUND_CONTENT_KEY_VERSION);
   });
 
+  it('recognizes future release-bound key versions without a client code change', () => {
+    const ref = makeReleaseBoundEncryptedAudioV2Ref('release-cid-v3', 'dotify-content-key-v3');
+
+    expect(ref).toBe('dotify:enc:v2:key-v3:ipfs://release-cid-v3');
+    expect(isEncryptedAudioRef(ref)).toBe(true);
+    expect(isEncryptedAudioV2Ref(ref)).toBe(true);
+    expect(encryptedRefToCID(ref)).toBe('release-cid-v3');
+    expect(contentKeyVersionForAudioRef(ref)).toBe('dotify-content-key-v3');
+  });
+
   it('keeps legacy v1 and legacy DAV2 refs on contentHash-derived keys', () => {
     expect(contentKeyVersionForAudioRef('dotify:enc:ipfs://legacy-cid')).toBe(LEGACY_CONTENT_KEY_VERSION);
     expect(contentKeyVersionForAudioRef('dotify:enc:v2:ipfs://legacy-dav2-cid')).toBe(LEGACY_CONTENT_KEY_VERSION);

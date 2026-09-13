@@ -10,7 +10,7 @@ Dotify should be honest: this is protected distribution access, not absolute DRM
 
 - Full encrypted audio source files.
 - Per-track content keys.
-- Backend master secret or key derivation material.
+- Backend master secrets, retained key-version secrets, or key derivation material.
 - Pinata upload credentials.
 - Wallet-signature challenge integrity.
 - Access-policy correctness.
@@ -49,6 +49,8 @@ flowchart LR
 - Backend must fail closed on RPC/access ambiguity.
 - Room listeners must never receive content keys.
 - Room listeners must never receive encrypted source files through the key-delivery path.
+- Encrypted refs that name a key version must be resolved only with that retained
+  version secret; missing versions fail closed instead of falling back silently.
 
 ## Individual playback threat model
 
@@ -81,7 +83,7 @@ sequenceDiagram
 | Replay old signature | Nonce and expiry, one-time use. |
 | User lies about access | Backend ignores frontend access booleans and reads runtime. |
 | RPC unavailable | Fail closed for key release. |
-| Leaked temporary key | Keep key scoped to track/session; rotate strategy later. |
+| Leaked temporary key | Keep key scoped to track/release; remember that rotation cannot retract a key already learned by a client. |
 
 ## Room playback threat model
 
@@ -145,6 +147,29 @@ degraded playback mode - an unauthorized listener gets a reason plus an unlock
 CTA and no audio. Already-pinned manifests may still carry `previewCID`; the
 field is ignored and no new manifests produce it.
 
+## Content-key versions and recovery boundary
+
+Backend uploads use explicit `dotify-content-key-vN` secrets. New encrypted
+audio refs include the version as `dotify:enc:v2:key-vN:ipfs://<CID>`, and key
+delivery derives the same scoped key only after resolving the canonical release.
+
+Operational rules:
+
+- `CONTENT_KEY_MASTER_SECRET` is a compatibility secret for legacy v1 and the
+  default release-bound v2 scope.
+- `CONTENT_KEY_MASTER_SECRETS` retains a JSON map of version to secret, while
+  `CONTENT_KEY_ACTIVE_VERSION` selects the version for new uploads.
+- Rotation is additive. Old ciphertext remains readable only while its exact
+  version secret remains configured.
+- Missing key versions, malformed scopes, wrong release identity, and ambiguous
+  catalog state fail closed.
+- If a version secret is compromised, changing config protects only future
+  uploads. Recovery may require re-encrypting affected audio and publishing
+  updated release references.
+- While the backend remains indispensable for content-key custody, Dotify must
+  not claim complete artist-sovereign recovery. Artist export and
+  alternative-operator handoff need a separate authenticated custody design.
+
 ## Session auth: sign once, listen freely (ticket 24 P2)
 
 One SIWE-style SIGN_IN signature (nonce + expiry + replay protection, same
@@ -157,15 +182,16 @@ Properties and boundaries:
   access check for its own track against the token's address - a token never
   grants access by itself.
 - Tokens are HMAC-SHA256 over a strict two-claim-shape payload; the HMAC key
-  is HKDF-derived from CONTENT_KEY_MASTER_SECRET with a dedicated info label,
-  so token keys and content keys never share bytes and no new secret exists.
+  is HKDF-derived from the active content-key version secret with a dedicated
+  info label, so token keys and content keys never share bytes and no new
+  secret exists. Active-version rotation may require clients to sign in again.
 - A stolen token is bounded by TTL, server-side revocation (logout, also
   triggered by wallet disconnect in the app), and the fact that it can only
   fetch keys the address could already obtain.
 - Revocation is an in-memory jti blocklist: process-lifetime, matching the
   single-instance deployment. Scale-out needs a shared store first.
-- If the master secret is unconfigured, session auth returns 503 and clients
-  fall back to the per-request signed path (fail closed, never open).
+- If the active key-version secret is unconfigured, session auth returns 503 and
+  clients fall back to the per-request signed path (fail closed, never open).
 
 ## Logging rules
 
@@ -173,6 +199,7 @@ Never log:
 
 - content keys;
 - master secrets;
+- versioned content-key secret maps;
 - Pinata JWTs;
 - raw audio bytes;
 - full signed challenge payloads if they include sensitive session data.
@@ -201,6 +228,9 @@ type KeyRequestReason =
   | 'EXPIRED_SESSION'
   | 'NONCE_REPLAYED'
   | 'RPC_UNAVAILABLE'
+  | 'KEY_SCOPE_INVALID'
+  | 'KEY_VERSION_NOT_CONFIGURED'
+  | 'RELEASE_IDENTITY_MISMATCH'
   | 'RUNTIME_NOT_FOUND'
   | 'TRACK_NOT_FOUND';
 ```
@@ -215,5 +245,7 @@ Before merging key-delivery changes, verify:
 - chain access is checked server-side;
 - room listener key path does not exist;
 - unauthorized host receives a denial response and no content key;
+- missing key-version secrets fail closed and never fall back silently;
+- legacy encrypted refs remain readable when their retained version secret is configured;
 - docs do not claim absolute DRM;
 - tests cover denied, allowed, replay, and RPC failure paths.

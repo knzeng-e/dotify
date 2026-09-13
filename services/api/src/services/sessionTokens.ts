@@ -8,8 +8,8 @@
 // scaling requires a shared session/revocation store first.
 
 import { createHmac, hkdfSync, randomUUID, timingSafeEqual } from 'node:crypto';
-import { config } from '../config.js';
 import { checkDotifyChainId } from './chainDomain.js';
+import { getActiveContentKeyMasterSecret } from './keyVault.js';
 
 const HKDF_INFO = 'dotify-session-token-v1';
 const MIN_MASTER_SECRET_BYTES = 32;
@@ -68,7 +68,7 @@ function sign(payloadB64: string, key: Buffer): string {
 
 export function createSessionTokenService(options: SessionTokenServiceOptions = {}): SessionTokenService {
   const epoch = options.epoch ?? randomUUID();
-  const masterSecret = options.masterSecret ?? (() => config.CONTENT_KEY_MASTER_SECRET);
+  const masterSecret = options.masterSecret ?? getActiveContentKeyMasterSecret;
   const randomId = options.randomId ?? randomUUID;
   const revokedJtis = new Map<string, number>();
 

@@ -251,9 +251,9 @@ For a production uploaded track when `VITE_DOTIFY_API_URL` is configured:
 2. The browser computes a blake2b-256 content hash.
 3. The browser sends the raw audio file and content hash to the backend upload
    endpoint.
-4. The backend derives the per-track content key from
-   `CONTENT_KEY_MASTER_SECRET`, encrypts the full audio with AES-256-GCM, and
-   pins the encrypted bytes to Pinata.
+4. The backend derives the per-track content key from the active backend
+   content-key version, encrypts the full audio with AES-256-GCM, and pins the
+   encrypted bytes to Pinata.
 5. The cover image is uploaded through the backend.
 6. A canonical Dotify metadata manifest is validated and uploaded through the
    backend.
@@ -281,10 +281,12 @@ Encrypted audio uses:
 ```text
 dotify:enc:ipfs://<CID>
 dotify:enc:v2:ipfs://<CID>
+dotify:enc:v2:key-vN:ipfs://<CID>
 ```
 
 The first form is the legacy whole-file encrypted object. New production
-uploads use the DAV2 chunked container in the second form. Plain
+uploads use the DAV2 chunked container with an explicit `key-vN` token. The
+middle form is legacy DAV2 using the v1 `contentHash` key scope. Plain
 `ipfs://<CID>` audio references may still be handled by the frontend, but
 registered Dotify uploads should use encrypted refs.
 
@@ -293,7 +295,10 @@ registered Dotify uploads should use encrypted refs.
 Production audio protection uses the backend as the key boundary:
 
 - full audio is encrypted with AES-256-GCM server-side;
-- per-track keys are derived from backend-only `CONTENT_KEY_MASTER_SECRET`;
+- per-track keys are derived from backend-only versioned key material;
+- `CONTENT_KEY_MASTER_SECRET` remains the compatibility source for v1/v2, while
+  `CONTENT_KEY_MASTER_SECRETS` and `CONTENT_KEY_ACTIVE_VERSION` support
+  additive rotation for future uploads;
 - a wallet signature opens a short-lived session, with a legacy signed
   per-request fallback for older backends;
 - signature schemes are explicit: standalone clients use `eip191`, and Product
@@ -305,6 +310,11 @@ Production audio protection uses the backend as the key boundary:
 - Free-key requests need no wallet, but the backend still verifies the current
   zero-address access decision on-chain;
 - denials return no content key and no degraded audio.
+
+The grant is temporary; the derived AES key is deterministic for the release and
+version. Removing or rotating a secret cannot retract a key already learned by a
+client. Compromise recovery may require re-encrypting affected audio and
+updating releases to point at new refs.
 
 Demo/local audio protection is still best-effort and browser-side:
 
@@ -466,7 +476,9 @@ Server/script variables:
 | `DOTIFY_DIRECTORY_ADDRESS`  | backend ArtistDirectory address for runtime lookup   |
 | `DOTIFY_CHAIN_ID`           | chain ID expected in signed key requests             |
 | `PINATA_JWT`                | backend-only Pinata credential                       |
-| `CONTENT_KEY_MASTER_SECRET` | backend-only content-key derivation secret           |
+| `CONTENT_KEY_MASTER_SECRET` | backend-only compatibility content-key secret        |
+| `CONTENT_KEY_MASTER_SECRETS` | backend-only retained key-version map               |
+| `CONTENT_KEY_ACTIVE_VERSION` | backend-only active version for new encrypted audio |
 | `TURN_URLS`                 | public TURN relay URLs returned by `/api/turn/grant` |
 | `TURN_REST_SECRET`          | backend-only TURN REST HMAC secret                   |
 | `BULLETIN_ACCOUNT`          | dev account used by Bulletin deploy script           |

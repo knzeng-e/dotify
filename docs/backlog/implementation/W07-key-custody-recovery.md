@@ -9,7 +9,7 @@ Implement **W07** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Branch: `feat/key-custody-recovery` created from the latest tested `origin/dev` when work starts.
 - Dependencies: W03.
 - Release stage: Pilot.
-- Existing issue: No dedicated issue assigned yet; reuse a matching open issue or create a scoped ticket when this sequence starts.
+- Existing issue: #149.
 - Product purpose: effortless shared listening, meaningful artist control, transparent value, and a coherent poetic interface. Product DevNet is a first-class target alongside ordinary web.
 
 ## Outcome
