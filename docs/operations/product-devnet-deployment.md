@@ -336,8 +336,10 @@ CDM unlock as `blocked` and the room journey as `not-run`. Treat a static
 `smoke:pilot-release` wraps the Product journey gates into the W13 release
 package. It additionally verifies W01-W12 local evidence, issue/backlog mapping,
 the reversible pilot plan, contract inventory, and optional aggregate pilot
-metrics. It does not sign, deploy, contact participants, or treat missing live
-evidence as a pass.
+metrics. Optional pilot evidence must use schema v2 and bind the decision to
+the candidate git SHA, Product appVersion, deployed CID, capture time, outcome
+metrics, privacy flags, rollback, and join-count invariants. It does not sign,
+deploy, contact participants, or treat missing live evidence as a pass.
 
 The default build keeps the viem runtime adapter, which tree-shakes the Product
 contract graph away and publishes at roughly 4.4 MB. Building with

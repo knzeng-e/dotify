@@ -165,6 +165,49 @@ Collect aggregate facts only:
 | Support completion | Count completed and failed, with failure categories |
 | Understanding | Aggregate yes/no counts for artist control and value flow |
 
+The `--pilot-json` artifact must use pilot schema v2 and bind the aggregate
+decision to the exact candidate build being evaluated:
+
+```json
+{
+  "schemaVersion": 2,
+  "candidate": {
+    "gitSha": "<40-character-git-sha>",
+    "productAppVersion": "[0, 1, 18]",
+    "deployedCid": "<product-executable-cid>",
+    "capturedAt": "2026-09-13T12:00:00.000Z"
+  },
+  "participants": { "artists": 3, "hosts": 5, "listeners": 20 },
+  "tasks": {
+    "publish": true,
+    "startRoom": true,
+    "joinFromLinkOrQr": true,
+    "recoverAfterInterruption": true,
+    "inspectSplit": true,
+    "supportArtist": true
+  },
+  "outcomeMetrics": {
+    "timeToFirstSoundSeconds": { "median": 1.8, "p95": 3.4, "sampleSize": 20 },
+    "recoveryTimeSeconds": { "median": 4.2, "sampleSize": 7 },
+    "supportCompletion": { "completed": 8, "failed": 1, "failureCategories": { "userCanceled": 1 } },
+    "understanding": { "artistControlYes": 18, "artistControlNo": 2, "valueFlowYes": 17, "valueFlowNo": 3 }
+  },
+  "joinAttempts": { "observed": 20, "successful": 19 },
+  "privacy": {
+    "consentCaptured": true,
+    "aggregateOnly": true,
+    "continuousLocationCollected": false,
+    "walletLinkedListeningHistoryCollected": false,
+    "rawInterviewResponsesStored": false
+  },
+  "rollback": { "rehearsed": true, "catalogKeyCompatibility": "passed" },
+  "goNoGo": {
+    "decision": "hold",
+    "prioritizedFixes": ["Improve first-sound time", "Document Product host limits", "Rehearse support retry"]
+  }
+}
+```
+
 Do not collect continuous location, exact coordinates, wallet-linked listening
 history, contact details, raw interview answers, content keys, private keys,
 session tokens, signatures, or per-person traces.

@@ -15,7 +15,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { buildProductDevnetJourneyReport, gitCommit, readProductDevnetSnapshot, summarizeGates } from './product-devnet-journey-harness.mjs';
 
-export const PILOT_RELEASE_SCHEMA_VERSION = 1;
+export const PILOT_RELEASE_SCHEMA_VERSION = 2;
 
 const DEPENDENCIES = ['W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07', 'W08', 'W09', 'W10', 'W11', 'W12'];
 
@@ -43,10 +43,16 @@ const SENSITIVE_KEYS = [
   'nonce',
   'email',
   'phone',
+  'ipaddress',
+  'rawresponse',
+  'rawidentifier',
   'ip',
   'walletaddress',
   'listeneraddress'
 ];
+
+const REQUIRED_PILOT_METRIC_GROUPS = ['timeToFirstSoundSeconds', 'recoveryTimeSeconds', 'supportCompletion', 'understanding'];
+const ALLOWED_PRIVACY_STATUS_KEYS = new Set(['continuouslocationcollected', 'walletlinkedlisteninghistorycollected', 'rawinterviewresponsesstored']);
 
 function gate(status, id, label, detail, source = 'local') {
   return { id, label, status, detail, source };
@@ -74,6 +80,59 @@ function readJson(path) {
 
 function readOptionalJson(path) {
   return path ? readJson(path) : null;
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isNonNegativeInteger(value) {
+  return Number.isInteger(value) && value >= 0;
+}
+
+function isNonNegativeFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+function parseDateMs(value) {
+  if (typeof value !== 'string') return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isFullGitSha(value) {
+  return typeof value === 'string' && /^[0-9a-f]{40}$/i.test(value);
+}
+
+function isCidLike(value) {
+  if (typeof value !== 'string') return false;
+  const cid = value.trim().replace(/^ipfs:\/\//i, '');
+  return cid.length >= 20 && /^[a-z0-9]+$/i.test(cid);
+}
+
+function versionText(appVersion) {
+  if (Array.isArray(appVersion) && appVersion.every(part => Number.isInteger(part) && part >= 0)) return `[${appVersion.join(', ')}]`;
+  if (typeof appVersion === 'string') return appVersion.replace(/\s+/g, ' ').trim();
+  return null;
+}
+
+function containsSensitiveKeyVariant(key) {
+  const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (ALLOWED_PRIVACY_STATUS_KEYS.has(normalized)) return false;
+  if (SENSITIVE_KEYS.some(sensitive => (sensitive === 'ip' ? normalized === 'ip' : normalized.includes(sensitive)))) return true;
+  return (
+    normalized.includes('participantemail') ||
+    normalized.includes('contactdetail') ||
+    normalized.includes('walletlinkedhistory') ||
+    normalized.includes('listeninghistory') ||
+    normalized.includes('rawinterview') ||
+    normalized.includes('rawresponse') ||
+    normalized.includes('rawidentifier')
+  );
+}
+
+function containsSensitiveString(value) {
+  return /0x[0-9a-fA-F]{40}/.test(value) || /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(value) || /\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(value);
 }
 
 function gitSubjects(repoRoot) {
@@ -246,7 +305,7 @@ function containsSensitiveData(value, path = []) {
   if (value === null || value === undefined) return null;
 
   if (typeof value === 'string') {
-    if (/0x[0-9a-fA-F]{40}/.test(value)) return [...path, '<address-like-value>'].join('.');
+    if (containsSensitiveString(value)) return [...path, '<sensitive-like-value>'].join('.');
     return null;
   }
 
@@ -260,8 +319,7 @@ function containsSensitiveData(value, path = []) {
 
   if (typeof value === 'object') {
     for (const [key, child] of Object.entries(value)) {
-      const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (SENSITIVE_KEYS.includes(normalized)) return [...path, key].join('.');
+      if (containsSensitiveKeyVariant(key)) return [...path, key].join('.');
       const nested = containsSensitiveData(child, [...path, key]);
       if (nested) return nested;
     }
@@ -276,7 +334,125 @@ function taskSucceeded(value) {
   return false;
 }
 
-export function evaluatePilotEvidence(pilotEvidence) {
+function validatePilotCandidate(pilotEvidence, context = {}) {
+  const candidate = pilotEvidence?.candidate;
+  const expectedCommit = typeof context.commit === 'string' && context.commit !== 'unknown' ? context.commit : null;
+  const expectedAppVersion = versionText(context.productAppVersion);
+  const expectedDeployedCid = typeof context.deployedCid === 'string' && context.deployedCid.trim() ? context.deployedCid.trim() : null;
+  const generatedAtMs = parseDateMs(context.generatedAt) ?? Date.now();
+  const problems = [];
+
+  if (!isPlainObject(candidate)) {
+    return {
+      passed: false,
+      detail: 'Expected candidate.gitSha, candidate.productAppVersion, candidate.deployedCid, and candidate.capturedAt.'
+    };
+  }
+
+  if (!isFullGitSha(candidate.gitSha)) {
+    problems.push('candidate.gitSha must be a full 40-character git SHA');
+  } else if (expectedCommit && candidate.gitSha !== expectedCommit) {
+    problems.push(`candidate.gitSha ${candidate.gitSha} does not match ${expectedCommit}`);
+  }
+
+  const candidateVersion = versionText(candidate.productAppVersion);
+  if (!candidateVersion) {
+    problems.push('candidate.productAppVersion must be a Product appVersion string or number array');
+  } else if (expectedAppVersion && candidateVersion !== expectedAppVersion) {
+    problems.push(`candidate.productAppVersion ${candidateVersion} does not match ${expectedAppVersion}`);
+  }
+
+  if (!isCidLike(candidate.deployedCid)) {
+    problems.push('candidate.deployedCid must be an IPFS CID for the deployed candidate');
+  } else if (expectedDeployedCid && candidate.deployedCid.replace(/^ipfs:\/\//i, '') !== expectedDeployedCid.replace(/^ipfs:\/\//i, '')) {
+    problems.push(`candidate.deployedCid ${candidate.deployedCid} does not match ${expectedDeployedCid}`);
+  }
+
+  const capturedAtMs = parseDateMs(candidate.capturedAt);
+  if (capturedAtMs === null) {
+    problems.push('candidate.capturedAt must be an ISO timestamp');
+  } else if (capturedAtMs > generatedAtMs + 5 * 60_000) {
+    problems.push('candidate.capturedAt is later than the readiness report');
+  }
+
+  return {
+    passed: problems.length === 0,
+    detail: problems.length === 0 ? `Candidate ${candidate.gitSha} ${candidateVersion} deployed as ${candidate.deployedCid}.` : problems.join('; ')
+  };
+}
+
+function validateSecondsMetric(metrics, key, requiredFields, problems) {
+  const value = metrics[key];
+  if (!isPlainObject(value)) {
+    problems.push(`${key} is missing`);
+    return;
+  }
+
+  for (const field of requiredFields) {
+    if (!isNonNegativeFiniteNumber(value[field])) problems.push(`${key}.${field} must be a non-negative number`);
+  }
+  if (!isNonNegativeInteger(value.sampleSize) || value.sampleSize === 0) problems.push(`${key}.sampleSize must be a positive integer`);
+  if (isNonNegativeFiniteNumber(value.p95) && isNonNegativeFiniteNumber(value.median) && value.p95 < value.median) {
+    problems.push(`${key}.p95 must be greater than or equal to median`);
+  }
+}
+
+function validateCountMap(value, key, problems) {
+  if (!isPlainObject(value)) {
+    problems.push(`${key} must be an object`);
+    return;
+  }
+
+  for (const [name, count] of Object.entries(value)) {
+    if (!isNonNegativeInteger(count)) problems.push(`${key}.${name} must be a non-negative integer`);
+  }
+}
+
+function validateOutcomeMetrics(metrics) {
+  const problems = [];
+
+  if (!isPlainObject(metrics)) {
+    return {
+      passed: false,
+      detail: `Expected aggregate metrics: ${REQUIRED_PILOT_METRIC_GROUPS.join(', ')}.`
+    };
+  }
+
+  validateSecondsMetric(metrics, 'timeToFirstSoundSeconds', ['median', 'p95', 'sampleSize'], problems);
+  validateSecondsMetric(metrics, 'recoveryTimeSeconds', ['median', 'sampleSize'], problems);
+
+  const support = metrics.supportCompletion;
+  if (!isPlainObject(support)) {
+    problems.push('supportCompletion is missing');
+  } else {
+    if (!isNonNegativeInteger(support.completed)) problems.push('supportCompletion.completed must be a non-negative integer');
+    if (!isNonNegativeInteger(support.failed)) problems.push('supportCompletion.failed must be a non-negative integer');
+    if (isNonNegativeInteger(support.completed) && isNonNegativeInteger(support.failed) && support.completed + support.failed === 0) {
+      problems.push('supportCompletion must include at least one observed support attempt');
+    }
+    validateCountMap(support.failureCategories ?? {}, 'supportCompletion.failureCategories', problems);
+  }
+
+  const understanding = metrics.understanding;
+  if (!isPlainObject(understanding)) {
+    problems.push('understanding is missing');
+  } else {
+    for (const key of ['artistControlYes', 'artistControlNo', 'valueFlowYes', 'valueFlowNo']) {
+      if (!isNonNegativeInteger(understanding[key])) problems.push(`understanding.${key} must be a non-negative integer`);
+    }
+    const artistTotal = (understanding.artistControlYes ?? 0) + (understanding.artistControlNo ?? 0);
+    const valueTotal = (understanding.valueFlowYes ?? 0) + (understanding.valueFlowNo ?? 0);
+    if (artistTotal === 0) problems.push('understanding must include artist-control responses');
+    if (valueTotal === 0) problems.push('understanding must include value-flow responses');
+  }
+
+  return {
+    passed: problems.length === 0,
+    detail: problems.length === 0 ? 'Time-to-first-sound, recovery, support completion, and understanding aggregates are present.' : problems.join('; ')
+  };
+}
+
+export function evaluatePilotEvidence(pilotEvidence, context = {}) {
   const gates = [];
 
   if (!pilotEvidence) {
@@ -296,6 +472,7 @@ export function evaluatePilotEvidence(pilotEvidence) {
         'pilot JSON'
       )
     );
+    gates.push(notRun('pilot-outcome-metrics', 'Pilot outcome metrics', 'No aggregate outcome metrics have been captured.', 'pilot JSON'));
     gates.push(notRun('pilot-join-target', 'Pilot join target', 'No 20-attempt join sample has been captured.', 'pilot JSON'));
     gates.push(
       notRun(
@@ -308,6 +485,7 @@ export function evaluatePilotEvidence(pilotEvidence) {
     gates.push(
       blocked('rollback-rehearsal', 'Rollback rehearsal', 'Rollback needs a safe-environment rehearsal against the candidate release package.', 'pilot JSON')
     );
+    gates.push(notRun('pilot-candidate-identity', 'Pilot candidate identity', 'No pilot candidate identity was supplied.', 'pilot JSON'));
     gates.push(notRun('go-no-go-record', 'Go/no-go record', 'No pilot decision or three prioritized fixes supplied.', 'pilot JSON'));
     return gates;
   }
@@ -334,11 +512,27 @@ export function evaluatePilotEvidence(pilotEvidence) {
     );
   }
 
-  const participants = pilotEvidence.participants ?? {};
-  const artists = Number(participants.artists ?? 0);
-  const hosts = Number(participants.hosts ?? 0);
-  const listeners = Number(participants.listeners ?? 0);
-  if (artists >= 3 && hosts >= 5 && listeners >= 20) {
+  const candidate = validatePilotCandidate(pilotEvidence, context);
+  if (candidate.passed) {
+    gates.push(pass('pilot-candidate-identity', 'Pilot candidate identity', candidate.detail, 'pilot JSON'));
+  } else {
+    gates.push(fail('pilot-candidate-identity', 'Pilot candidate identity', candidate.detail, 'pilot JSON'));
+  }
+
+  const participants = pilotEvidence.participants;
+  const participantsAreCounts =
+    isPlainObject(participants) &&
+    isNonNegativeInteger(participants.artists) &&
+    isNonNegativeInteger(participants.hosts) &&
+    isNonNegativeInteger(participants.listeners);
+  const artists = participantsAreCounts ? participants.artists : 0;
+  const hosts = participantsAreCounts ? participants.hosts : 0;
+  const listeners = participantsAreCounts ? participants.listeners : 0;
+  if (!isPlainObject(participants)) {
+    gates.push(notRun('pilot-sample', 'Pilot sample', 'Expected participants.artists, participants.hosts, and participants.listeners.', 'pilot JSON'));
+  } else if (!participantsAreCounts) {
+    gates.push(fail('pilot-sample', 'Pilot sample', 'Participant counts must be non-negative integers.', 'pilot JSON'));
+  } else if (artists >= 3 && hosts >= 5 && listeners >= 20) {
     gates.push(pass('pilot-sample', 'Pilot sample', `${artists} artists, ${hosts} hosts, ${listeners} listeners.`, 'pilot JSON'));
   } else {
     gates.push(
@@ -346,35 +540,59 @@ export function evaluatePilotEvidence(pilotEvidence) {
     );
   }
 
+  const outcomeMetrics = validateOutcomeMetrics(pilotEvidence.outcomeMetrics);
+  if (outcomeMetrics.passed) {
+    gates.push(pass('pilot-outcome-metrics', 'Pilot outcome metrics', outcomeMetrics.detail, 'pilot JSON'));
+  } else {
+    const status = isPlainObject(pilotEvidence.outcomeMetrics) ? fail : notRun;
+    gates.push(status('pilot-outcome-metrics', 'Pilot outcome metrics', outcomeMetrics.detail, 'pilot JSON'));
+  }
+
   const tasks = pilotEvidence.tasks ?? {};
   const missingTasks = REQUIRED_PILOT_TASKS.filter(task => !taskSucceeded(tasks[task]));
-  if (missingTasks.length === 0) {
-    gates.push(pass('pilot-tasks', 'Pilot tasks', 'All W13 pilot tasks are marked observed/pass.', 'pilot JSON'));
+  if (missingTasks.length === 0 && outcomeMetrics.passed) {
+    gates.push(pass('pilot-tasks', 'Pilot tasks', 'All W13 pilot tasks are marked observed/pass with required outcome metrics.', 'pilot JSON'));
+  } else if (missingTasks.length === 0) {
+    gates.push(notRun('pilot-tasks', 'Pilot tasks', 'Pilot task flags are complete, but aggregate outcome metrics are missing or invalid.', 'pilot JSON'));
   } else {
     gates.push(notRun('pilot-tasks', 'Pilot tasks', `Missing or incomplete tasks: ${missingTasks.join(', ')}.`, 'pilot JSON'));
   }
 
-  const observedAttempts = Number(pilotEvidence.joinAttempts?.observed ?? 0);
-  const successfulAttempts = Number(pilotEvidence.joinAttempts?.successful ?? 0);
-  const joinRate = observedAttempts > 0 ? successfulAttempts / observedAttempts : 0;
-  if (observedAttempts >= 20 && joinRate >= 0.95) {
+  const joinAttempts = pilotEvidence.joinAttempts;
+  const observedAttempts = isPlainObject(joinAttempts) ? joinAttempts.observed : 0;
+  const successfulAttempts = isPlainObject(joinAttempts) ? joinAttempts.successful : 0;
+  if (!isPlainObject(joinAttempts)) {
+    gates.push(notRun('pilot-join-target', 'Pilot join target', 'Expected joinAttempts.observed and joinAttempts.successful.', 'pilot JSON'));
+  } else if (!isNonNegativeInteger(observedAttempts) || !isNonNegativeInteger(successfulAttempts) || successfulAttempts > observedAttempts) {
     gates.push(
-      pass(
+      fail(
         'pilot-join-target',
         'Pilot join target',
-        `${successfulAttempts}/${observedAttempts} successful supported-device joins (${Math.round(joinRate * 1000) / 10}%).`,
+        'Join attempts must be non-negative integers and successful must be less than or equal to observed.',
         'pilot JSON'
       )
     );
   } else {
-    gates.push(
-      notRun(
-        'pilot-join-target',
-        'Pilot join target',
-        `Target is >=95% over >=20 observed attempts; got ${successfulAttempts}/${observedAttempts}.`,
-        'pilot JSON'
-      )
-    );
+    const joinRate = observedAttempts > 0 ? successfulAttempts / observedAttempts : 0;
+    if (observedAttempts >= 20 && joinRate >= 0.95) {
+      gates.push(
+        pass(
+          'pilot-join-target',
+          'Pilot join target',
+          `${successfulAttempts}/${observedAttempts} successful supported-device joins (${Math.round(joinRate * 1000) / 10}%).`,
+          'pilot JSON'
+        )
+      );
+    } else {
+      gates.push(
+        notRun(
+          'pilot-join-target',
+          'Pilot join target',
+          `Target is >=95% over >=20 observed attempts; got ${successfulAttempts}/${observedAttempts}.`,
+          'pilot JSON'
+        )
+      );
+    }
   }
 
   const privacy = pilotEvidence.privacy ?? {};
@@ -406,8 +624,10 @@ export function evaluatePilotEvidence(pilotEvidence) {
 
   const decision = pilotEvidence.goNoGo?.decision;
   const fixes = pilotEvidence.goNoGo?.prioritizedFixes;
-  if ((decision === 'go' || decision === 'no-go' || decision === 'hold') && Array.isArray(fixes) && fixes.length === 3) {
+  if ((decision === 'go' || decision === 'no-go' || decision === 'hold') && Array.isArray(fixes) && fixes.length === 3 && candidate.passed) {
     gates.push(pass('go-no-go-record', 'Go/no-go record', `Decision ${decision} with three prioritized fixes.`, 'pilot JSON'));
+  } else if ((decision === 'go' || decision === 'no-go' || decision === 'hold') && Array.isArray(fixes) && fixes.length === 3) {
+    gates.push(fail('go-no-go-record', 'Go/no-go record', 'Decision cannot be accepted until candidate identity matches the readiness report.', 'pilot JSON'));
   } else {
     gates.push(notRun('go-no-go-record', 'Go/no-go record', 'Expected decision go/no-go/hold and exactly three prioritized fixes.', 'pilot JSON'));
   }
@@ -447,9 +667,17 @@ function buildInventory(snapshot) {
   };
 }
 
+function evidenceDeployedCid(evidence) {
+  for (const value of [evidence?.deployedCid, evidence?.candidate?.deployedCid, evidence?.context?.deployedCid, evidence?.context?.productExecutableCid]) {
+    if (isCidLike(value)) return value.replace(/^ipfs:\/\//i, '');
+  }
+  return null;
+}
+
 export function buildPilotReleaseReport(input) {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
   const snapshot = input.snapshot ?? readProductDevnetSnapshot(input.repoRoot);
+  const inventory = buildInventory(snapshot);
   const productJourney = buildProductDevnetJourneyReport({
     snapshot,
     productSmokeEvidence: input.productSmokeEvidence,
@@ -460,7 +688,12 @@ export function buildPilotReleaseReport(input) {
   const dependencyGates = evaluateDependencyEvidence(input.repoRoot);
   const releasePackageGates = evaluateReleasePackage(input.repoRoot);
   const contractGates = evaluateContractInventory(snapshot.deployments);
-  const pilotGates = evaluatePilotEvidence(input.pilotEvidence);
+  const pilotGates = evaluatePilotEvidence(input.pilotEvidence, {
+    commit: input.commit,
+    productAppVersion: inventory.appVersion,
+    deployedCid: evidenceDeployedCid(input.productSmokeEvidence) ?? evidenceDeployedCid(input.roomEvidence),
+    generatedAt
+  });
   const gates = [
     ...dependencyGates,
     ...releasePackageGates,
@@ -476,7 +709,7 @@ export function buildPilotReleaseReport(input) {
     generatedAt,
     commit: input.commit,
     summary: summarizeGates(gates),
-    inventory: buildInventory(snapshot),
+    inventory,
     dependencyGates,
     releasePackageGates,
     contractGates,
@@ -541,7 +774,7 @@ export function renderPilotReleaseMarkdown(report) {
     '',
     '- Product CDM payment/key smoke: pass `--product-smoke-json <product-cdm-host-smoke.json>` after running the explicit Product CDM smoke build in a funded Product host.',
     '- Product room smoke: pass `--room-json <room-evidence.json>` after a Product host shares a canonical room link and a browser guest hears audio without connecting an account.',
-    '- Pilot aggregate: pass `--pilot-json <aggregate-pilot-evidence.json>` after owner-authorized participant sessions. Store aggregate counts and timings only.'
+    '- Pilot aggregate: pass `--pilot-json <aggregate-pilot-evidence.json>` after owner-authorized participant sessions. Use pilot schema v2 with `candidate`, `participants`, `tasks`, `outcomeMetrics`, `joinAttempts`, `privacy`, `rollback`, and `goNoGo`; store aggregate counts and timings only.'
   ].join('\n');
 }
 
@@ -592,9 +825,11 @@ function help() {
 
 Reconciles W13 pilot-release readiness from checked-in evidence, Product DevNet
 configuration, optional live Product/room smoke exports, and optional aggregate
-pilot evidence. The command exits non-zero only when local release state is
-unsafe or inconsistent. Missing live/pilot evidence is reported as blocked or
-not-run.`;
+pilot evidence. Pilot JSON must use schemaVersion ${PILOT_RELEASE_SCHEMA_VERSION} and bind
+the decision to the candidate git SHA, Product appVersion, deployed CID, capture
+time, aggregate metrics, and join-count invariants. The command exits non-zero
+only when local release state is unsafe or inconsistent. Missing live/pilot
+evidence is reported as blocked or not-run.`;
 }
 
 async function main(argv = process.argv.slice(2)) {

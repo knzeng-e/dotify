@@ -661,7 +661,9 @@ npm run build:product-devnet
 static gates, the reversible W13 release plan, optional Product/room smoke
 exports, and optional aggregate pilot evidence. Missing live Product or
 participant evidence remains `blocked` or `not-run`; it is never counted as a
-passing pilot.
+passing pilot. If `--pilot-json` is supplied, it must use schema v2 and bind the
+decision to the candidate git SHA, Product appVersion, deployed CID, capture
+time, outcome metrics, privacy flags, rollback, and join-count invariants.
 
 7. For a Product release, complete the cross-origin room, mobile host
    permission, and host-account
