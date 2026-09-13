@@ -59,6 +59,7 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     activeSubstrateAddress,
     activeSubstrateSigner,
     artistTracks: catalog.allCatalogTracks,
+    nativePaymentSymbol: catalog.nativeRuntimePaymentAsset.symbol,
     setTransactionFeedback,
     refreshCatalogFromRegistry: catalog.refreshCatalogFromRegistry,
     setAudioCID: catalog.setAudioCID,

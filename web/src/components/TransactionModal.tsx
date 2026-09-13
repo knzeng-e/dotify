@@ -15,6 +15,7 @@ export function TransactionModal() {
     '--roadmap-progress-ratio': roadmapProgress / 100
   } as CSSProperties;
   const dismissible = feedback.tone !== 'pending';
+  const stepsContainTxHash = feedback.steps?.some(step => Boolean(step.txHash)) ?? false;
   const onClose = () => {
     if (feedback.tone !== 'pending') setTransactionFeedback(null);
   };
@@ -43,6 +44,26 @@ export function TransactionModal() {
         <h2 id='transaction-modal-title'>{feedback.title}</h2>
         <p>{feedback.message}</p>
       </div>
+      {feedback.facts && feedback.facts.length > 0 && (
+        <dl className='transaction-facts' aria-label='Transaction facts'>
+          {feedback.facts.map(fact => (
+            <div key={`${fact.label}-${fact.value}`}>
+              <dt>{fact.label}</dt>
+              <dd>
+                {fact.href ? (
+                  <a href={fact.href} target='_blank' rel='noreferrer'>
+                    {fact.value}
+                  </a>
+                ) : fact.code ? (
+                  <code>{fact.value}</code>
+                ) : (
+                  fact.value
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
       {feedback.steps && feedback.steps.length > 0 && (
         <ol className='transaction-roadmap' style={roadmapStyle} aria-label='Transaction approval roadmap'>
           {feedback.steps.map((step, index) => (
@@ -69,7 +90,7 @@ export function TransactionModal() {
           ))}
         </ol>
       )}
-      {feedback.txHash && (!feedback.steps || feedback.steps.length === 0) && (
+      {feedback.txHash && !stepsContainTxHash && (
         <div className='modal-hash'>
           <span>Transaction hash</span>
           <code>{shorten(feedback.txHash, 12)}</code>

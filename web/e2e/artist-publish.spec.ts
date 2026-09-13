@@ -14,6 +14,7 @@ type ArtistPublishE2eState = {
   registerTrackTransactions: number;
   transactionFailures: number;
   devAccountFallbackUsed: boolean;
+  tracks: Array<{ id: string; hash: `0x${string}` }>;
 };
 
 declare global {
@@ -27,6 +28,8 @@ const audioFixture = path.join(fixtureDir, 'artist-release.wav');
 const coverFixture = path.join(fixtureDir, 'artist-cover.svg');
 const E2E_NATIVE_PAYMENT_SYMBOL = 'PAS';
 const E2E_ARTIST_SHARE_PERCENT = '72.5';
+const E2E_ARTIST_RUNTIME = '0x000000000000000000000000000000000000a712';
+const E2E_ARTIST_COLLISION_RUNTIME = '0x000000000000000000000000000000000000b712';
 
 async function readArtistPublishState(page: Page) {
   return page.evaluate(() => window.__DOTIFY_E2E_ARTIST_PUBLISH__ as ArtistPublishE2eState | undefined);
@@ -64,7 +67,8 @@ async function createArtistProfile(page: Page, scenario = 'happy') {
   await expect(page.getByRole('tab', { name: /New Release/i })).toBeVisible();
 }
 
-async function completeReleaseDraft(page: Page) {
+async function completeReleaseDraft(page: Page, options: { royaltySharePercent?: string } = {}) {
+  const royaltySharePercent = options.royaltySharePercent ?? E2E_ARTIST_SHARE_PERCENT;
   await page.getByRole('tab', { name: /New Release/i }).click();
   await page.getByTestId('artist-audio-input').setInputFiles(audioFixture);
   await expect(page.getByText('Audio ready', { exact: true })).toBeVisible();
@@ -78,12 +82,23 @@ async function completeReleaseDraft(page: Page) {
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByTestId('release-access-select').selectOption('classic');
   await page.getByTestId('release-price-input').fill('0.75');
-  await page.getByTestId('release-royalty-input').fill(E2E_ARTIST_SHARE_PERCENT);
+  await page.getByTestId('release-royalty-input').fill(royaltySharePercent);
 
   await page.getByRole('button', { name: 'Continue' }).click();
   const reviewPanel = page.locator('.release-review');
   await expect(reviewPanel.getByText('E2E Published Signal')).toBeVisible();
-  await expect(reviewPanel.getByText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`)).toBeVisible();
+  await expect(page.getByTestId('release-preflight-panel')).toContainText('Controller');
+  await expect(page.getByTestId('release-preflight-panel')).toContainText('Catalog visibility');
+  await expect(page.getByTestId('release-preflight-panel')).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  if (Number(royaltySharePercent) > 0) {
+    await expect(page.getByTestId('release-value-flow')).toContainText('Artist share');
+    await expect(page.getByTestId('release-value-flow')).toContainText(`${royaltySharePercent}%`);
+    await expect(page.getByTestId('release-value-flow')).toContainText('Artist remainder');
+  } else {
+    await expect(page.getByTestId('release-value-flow')).toContainText('Payment split');
+    await expect(page.getByTestId('release-value-flow')).toContainText('Add at least 0.01%');
+    await expect(page.getByTestId('release-value-flow')).not.toContainText('Artist remainder');
+  }
 }
 
 test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }) => {
@@ -92,6 +107,8 @@ test('artist can create a runtime, publish a release, and see it in the listener
 
   await page.getByTestId('publish-release-button').click();
   await expect(page.getByRole('dialog')).toContainText('Track registered');
+  await expect(page.getByRole('dialog')).toContainText('Catalog read-back');
+  await expect(page.getByRole('dialog')).toContainText('Catalog visibility');
 
   const publishState = await readArtistPublishState(page);
   expect(publishState?.runtimeCreated).toBe(true);
@@ -139,6 +156,7 @@ test('upload failure surfaces an error and halts registration', async ({ page })
   await page.getByTestId('publish-release-button').click();
 
   await expect(page.getByRole('dialog')).toContainText('Registration failed');
+  await expect(page.getByRole('dialog')).toContainText('No release was published');
   await expect(page.getByRole('dialog')).toContainText('E2E metadata upload failed.');
 
   const state = await readArtistPublishState(page);
@@ -155,10 +173,79 @@ test('artist publish surfaces transaction failure after successful uploads', asy
   await page.getByTestId('publish-release-button').click();
 
   await expect(page.getByRole('dialog')).toContainText('Registration failed');
+  await expect(page.getByRole('dialog')).toContainText('No release was published');
   await expect(page.getByRole('dialog')).toContainText('E2E registration transaction rejected.');
 
   const state = await readArtistPublishState(page);
   expect(state?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 1 });
   expect(state?.transactionFailures).toBe(1);
   expect(state?.registerTrackTransactions).toBe(0);
+});
+
+test('artist publish blocks empty paid royalty splits before metadata and registry work', async ({ page }) => {
+  await createArtistProfile(page);
+  await completeReleaseDraft(page, { royaltySharePercent: '0' });
+
+  await expect(page.locator('.release-review .error-box')).toContainText('Add at least 0.01% to the artist or another rights holder before publishing.');
+  await expect(page.getByTestId('publish-release-button')).toBeDisabled();
+
+  const state = await readArtistPublishState(page);
+  expect(state?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 0 });
+  expect(state?.registerTrackTransactions).toBe(0);
+});
+
+test('artist publish keeps submitted but unconfirmed transactions at the registry stage', async ({ page }) => {
+  await createArtistProfile(page, 'transaction-timeout');
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Registration failed');
+  await expect(dialog).toContainText('did not confirm finality');
+  await expect(dialog).toContainText('runtime registration');
+  await expect(dialog).not.toContainText('catalog visibility yet');
+
+  const roadmapStatuses = await dialog.locator('.transaction-roadmap li').evaluateAll(items => items.map(item => item.getAttribute('data-status')));
+  expect(roadmapStatuses).toEqual(['complete', 'complete', 'submitted', 'upcoming']);
+
+  const state = await readArtistPublishState(page);
+  expect(state?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 1 });
+  expect(state?.transactionFailures).toBe(1);
+  expect(state?.registerTrackTransactions).toBe(1);
+  expect(state?.tracks).toHaveLength(0);
+});
+
+test('artist publish remains recoverable while catalog read-back is delayed', async ({ page }) => {
+  await createArtistProfile(page, 'catalog-delay');
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Registration accepted, catalog pending');
+  await expect(dialog).toContainText('transaction was submitted');
+  await expect(dialog).toContainText('will not mark the release as published');
+  await expect(dialog).toContainText('Catalog read-back');
+
+  const state = await readArtistPublishState(page);
+  expect(state?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 1 });
+  expect(state?.registerTrackTransactions).toBe(1);
+
+  await page.goto('/');
+  await expect(page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' })).toHaveCount(0);
+});
+
+test('artist publish does not accept a same-hash track from another runtime as visible', async ({ page }) => {
+  await createArtistProfile(page, 'catalog-hash-collision');
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Registration accepted, catalog pending');
+  await expect(dialog).toContainText('The catalog read-back did not include this release yet.');
+
+  const state = await readArtistPublishState(page);
+  expect(state?.registerTrackTransactions).toBe(1);
+  expect(state?.tracks).toHaveLength(1);
+  expect(state?.tracks[0]?.id.toLowerCase().startsWith(`${E2E_ARTIST_COLLISION_RUNTIME}:`)).toBe(true);
+  expect(state?.tracks.some(track => track.id.toLowerCase().startsWith(`${E2E_ARTIST_RUNTIME}:`))).toBe(false);
 });

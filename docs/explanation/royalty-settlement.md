@@ -53,6 +53,47 @@ each known runtime with a pending balance. Dotify does not display pending
 claimable funds as already received. Pre-W05 access-payment records are kept as
 legacy history because they do not contain per-recipient settlement evidence.
 
+### Before publishing a release
+
+The **New release** review step shows the facts the artist needs before the
+wallet prompt appears:
+
+- The artist wallet that controls the release.
+- The SmartRuntime that will receive the registration.
+- The access condition listeners will meet: Free, Human free, or Classic
+  support in the current runtime-native asset.
+- The total Classic support amount, when a payment is required.
+- The payment split, including collaborator shares and any artist remainder
+  that returns to the original artist address.
+- The fact that network fees are shown by the wallet or Product host before
+  signing.
+- The catalog visibility boundary: uploaded assets and a pinned manifest are
+  not a published release until the runtime registration and Dotify catalog
+  read-back both confirm it.
+
+Publication failures use that boundary. If the artist rejects the wallet
+signature or registration fails before a transaction hash exists, Dotify says no
+release was published and keeps the draft recoverable. If a transaction hash
+exists but the catalog does not show the release yet, Dotify keeps the hash
+visible and does not mark the release as published until a later read-back sees
+it.
+
+### Listener support receipts
+
+Classic support uses one receipt language in standalone web and Product CDM
+builds. The modal separates:
+
+- the amount and runtime-native asset;
+- the recipients and configured split;
+- the access condition acquired by the connected wallet;
+- pending, confirmed, failed, canceled, or included-but-unverified states;
+- the transaction hash link when one exists.
+
+A confirmed support receipt means the runtime accepted the payment and Dotify
+read back paid/playable access for that wallet. It does not mean every recipient
+received native tokens immediately; a failed recipient share may be claimable
+from the artist studio ledger.
+
 ---
 
 ## Technical mechanics

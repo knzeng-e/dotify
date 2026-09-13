@@ -34,6 +34,7 @@ describe('useArtistConsole publication guard', () => {
       activeSubstrateAddress: null,
       activeSubstrateSigner: null,
       artistTracks: [],
+      nativePaymentSymbol: 'PAS',
       setTransactionFeedback,
       refreshCatalogFromRegistry,
       setAudioCID,

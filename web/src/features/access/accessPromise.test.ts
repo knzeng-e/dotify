@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogTrack } from '../../shared/types';
-import { buildAccessGate, buildClassicAccessReceipt, buildClassicAccessVerifiedFeedback, buildIncludedPaymentUnverifiedMessage } from './accessPromise';
+import {
+  buildAccessGate,
+  buildClassicAccessReceipt,
+  buildClassicAccessVerifiedFeedback,
+  buildClassicSupportFacts,
+  buildIncludedPaymentUnverifiedMessage,
+  isUserRejectedSupportError
+} from './accessPromise';
 
 const nativePaymentAsset = { symbol: 'PAS' } as const;
 
@@ -81,13 +88,38 @@ describe('access promise copy', () => {
   });
 
   it('keeps success and included-but-unverified payment states distinct', () => {
-    const success = buildClassicAccessVerifiedFeedback(track(), `0x${'cd'.repeat(32)}`);
+    const success = buildClassicAccessVerifiedFeedback(track(), `0x${'cd'.repeat(32)}`, nativePaymentAsset);
     const unverified = buildIncludedPaymentUnverifiedMessage({ attempts: 3, error: 'still denies access', productCdm: false });
 
     expect(success.title).toBe('Access verified');
     expect(success.message).toContain('while the release remains active');
+    expect(success.facts).toContainEqual({ label: 'Amount', value: '0.5 PAS' });
+    expect(success.facts).toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Settlement', value: expect.stringContaining('claimable') })]));
     expect(unverified).toContain('payment transaction was included');
     expect(unverified).toContain('payment record may still exist');
     expect(unverified).toContain('will not open protected audio');
+  });
+
+  it('builds support facts for pending, unverified, failed, and canceled states', () => {
+    expect(buildClassicSupportFacts(track(), nativePaymentAsset, 'pending')).toContainEqual({
+      label: 'Settlement',
+      value: 'Pending until the transaction is included and verified.'
+    });
+    expect(buildClassicSupportFacts(track(), nativePaymentAsset, 'included-unverified')).toEqual(
+      expect.arrayContaining([expect.objectContaining({ label: 'Access', value: expect.stringContaining('stays closed') })])
+    );
+    expect(buildClassicSupportFacts(track(), nativePaymentAsset, 'failed')).toContainEqual({
+      label: 'Settlement',
+      value: 'No completed support is recorded by Dotify from this attempt.'
+    });
+    expect(buildClassicSupportFacts(track(), nativePaymentAsset, 'canceled')).toContainEqual({
+      label: 'Settlement',
+      value: 'No support transaction was completed from this attempt.'
+    });
+  });
+
+  it('recognizes wallet cancellation errors without treating them as chain receipts', () => {
+    expect(isUserRejectedSupportError(new Error('User rejected the request.'))).toBe(true);
+    expect(isUserRejectedSupportError(new Error('Timed out while waiting for transaction'))).toBe(false);
   });
 });

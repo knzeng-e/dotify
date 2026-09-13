@@ -12,6 +12,13 @@ export type TransactionFeedbackTone = 'pending' | 'success' | 'error';
 export type TransactionFeedbackStepStatus = 'complete' | 'active' | 'submitted' | 'upcoming';
 export type UiNoticeTone = 'info' | 'success' | 'error';
 
+export type TransactionFeedbackFact = {
+  label: string;
+  value: string;
+  href?: string;
+  code?: boolean;
+};
+
 export type RoyaltySplit = {
   label: string;
   recipient: `0x${string}`;
@@ -211,6 +218,7 @@ export type TransactionFeedback = {
   title: string;
   message: string;
   txHash?: `0x${string}`;
+  facts?: TransactionFeedbackFact[];
   steps?: {
     label: string;
     detail: string;
