@@ -142,6 +142,22 @@ reads beacons yet, so publishing room records would be exposure with no
 consumer, and the publish path has no live host evidence. See the deployment
 runbook for the opt-in build and the evidence procedure.
 
+### Nearby Discovery
+
+Nearby discovery is not part of the current Product deployment. The W18 design
+record, [Dotify Nearby Discovery Privacy Contract](../design/dotify-nearby-discovery-privacy.md),
+keeps it server-ephemeral and opt-in: hosts choose whether one live room appears
+in approximate-area discovery, listeners choose whether to search by device
+area or manual area, and no exact coordinates, wallet addresses, IP addresses,
+geohashes, or distance values enter the protocol.
+
+Product Desktop adds an extra constraint. The current Product permission model
+is host-governed and manifest-based; Dotify has verified remote/WebRTC
+permission paths, but no official Product host location capability for this
+app. W19 must therefore treat Product-native nearby as unsupported until an
+official host API is verified. The safe Product paths are manual area,
+venue QR, or external-browser continuation.
+
 ## Storage Boundaries
 
 Product static hosting replaces the web server for the Product build. It does

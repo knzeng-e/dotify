@@ -9,7 +9,7 @@ Implement **W18** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Branch: `docs/nearby-privacy-design` created from the latest tested `origin/dev` when work starts.
 - Dependencies: W09, W10.
 - Release stage: Later research.
-- Existing issue: No dedicated issue assigned yet; reuse a matching open issue or create a scoped ticket when this sequence starts.
+- Existing issue: #154.
 - Product purpose: effortless shared listening, meaningful artist control, transparent value, and a coherent poetic interface. Product DevNet is a first-class target alongside ordinary web.
 
 ## Outcome
