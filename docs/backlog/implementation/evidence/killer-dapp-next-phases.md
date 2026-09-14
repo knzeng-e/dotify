@@ -87,3 +87,28 @@ Keep the requested five review boundaries; split from the verified coherent bran
 5. **Manual-area nearby feasibility:** default-off client/server preview, privacy lifecycle, payload/network/storage tests, operational contract and W18/W19 limitations. Include relevant screenshots and the flags-off rehearsal.
 
 The next eligible work is review and extraction of PR 3 and PR 5, followed by an authorized device/pilot rehearsal. Full geographic discovery and community memory still require their stated evidence gates.
+
+## PR #164 review follow-up
+
+Reviewed head `083feae767220101b63fe6ced42418dfac72893b`.
+[Removed-request selection review](https://github.com/knzeng-e/dotify/pull/164#discussion_r4009447770):
+both remove-selected and clear-all scenarios failed before correction because
+Add sent an obsolete accepted-request ID and the queue remained empty.
+
+`HostLineup` now derives the displayed selection and submitted accepted ID from
+the current server request list. A vanished selection displays Host’s choice;
+adding the chosen track succeeds without consuming another request. The server
+still rejects a request that disappears after the last client snapshot, retaining
+the existing concurrency boundary and recoverable error.
+
+Both new browser regressions pass. PR #163's height-aware workspace is also
+integrated into this branch, preserving the existing shared queue and nearby
+styles and tests. The branch keeps #163 as its review base; neither PR is merged
+into dev by this work. Builds and synthetic browser coverage do not replace the
+physical-device and privacy review evidence listed above.
+
+Final combined-branch validation: 440 unit tests, 64 signaling tests and 42/42
+Chromium scenarios pass. Lint, formatting, TypeScript, ordinary Vite and Product
+DevNet Vite builds pass (three existing hook dependency warnings and existing
+large-bundle warnings remain). No catalog bootstrap regeneration. The suite
+includes both selected-request regressions and the inherited landscape fix.
