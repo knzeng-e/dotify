@@ -721,11 +721,45 @@ places in the same PR:
 
 `VITE_DOTIFY_ROOM_GALAXY=on` enables the existing optional 3D selector. It is
 absent/off by default in both ordinary and Product builds; 2D/list remains the
-complete discovery path. `VITE_DOTIFY_HOST_LINEUP=on` enables a host-only local
-planning preview. It is not a shared queue or autoplay feature and is cleared
-when the room/player unmounts. Flags are build-time values; changing either
-requires rebuilding. Do not enable them by URL or local storage. No additional
-service, key, permission, CORS origin or storage mount is required.
+complete discovery path.
+
+`VITE_DOTIFY_HOST_LINEUP=on` and `SIGNAL_HOST_LINEUP=on` enable the shared room
+queue. Both default off. Deploy the compatible signaling service before or with
+the opt-in frontend; a newer frontend against an older/off service shows the
+queue as unavailable. Room-local queue state survives host reconnects, but dies
+on room end or server restart. There is no autoplay, durable playlist, source
+key delivery or access bypass. The existing single-process room topology is
+unchanged; do not introduce another signaling replica without a room ownership
+strategy. Queue updates are host-only, capped at 12 tracks and 30 edits/10s per
+room, with 64 bounded retry fingerprints and a revision conflict response.
+
+`VITE_DOTIFY_NEARBY_PREVIEW=on` and `SIGNAL_NEARBY_PREVIEW=on` enable only the
+manual-area feasibility preview. Defaults are off on both surfaces. Host and
+listener consent are independent; location APIs are never invoked. The service
+accepts only named pilot area IDs (Lisbon, Paris, London regions), not arbitrary
+coordinates or cells. These choices express host/listener intent, not verified
+proximity. No public rollout is authorized by the prototype.
+
+Listings live in process memory for 90 seconds, with no background renewal.
+Disconnect, room close and expiry remove them. The frontend revokes when hidden,
+on pagehide, or when leaving the room view. A lost revoke may take the remaining
+TTL to disappear; search results may remain cached in page memory for at most
+30 seconds. IDs rotate after 15 minutes during deliberate renewals and on area
+change or re-publication after expiry/revocation. Stable room identity can still
+be correlated. Publishing is limited to 6/minute per room; searches to 6/minute
+per network address (subject to the existing `SIGNAL_TRUST_PROXY` configuration),
+at most 20 results. Co-located listeners may share that budget.
+
+No new database, mount, CORS origin, secret, permission or external service is
+needed. Nearby data is absent from application logs, `/status`, public room
+broadcasts, chain and Statement Store. Do not enable Socket.IO frame/body
+logging in the proxy or monitoring stack. IP metadata and host-supplied room
+copy can still disclose identity; coarse areas are not anonymity.
+
+Frontend flags require a rebuild; server flags require a process restart.
+Rollback by rebuilding with flags off and restarting signaling with both
+server flags off. Restart also ends rooms, as before; coordinate it with hosts.
+An off backend rejects collection even when an old opted-in frontend remains.
 
 For the reliable composer, release the signaling `room:chat` / `room:request`
 acknowledgement support before or together with the frontend. Old clients remain
@@ -735,7 +769,7 @@ message; there is no automatic retry or exactly-once guarantee. Request capacity
 and social rate limits remain server-enforced. Reactions are not buffered during
 transport loss.
 
-Rollback either experiment by rebuilding without its `on` value. Nearby and
-community memory remain documentation only: no new endpoint or location
-permission is configured by this pass. See
+Community memory remains documentation only. Geographic cells, device location,
+sparse-area expansion, native Product permissions and integration of proximity
+into the 3D renderer remain W19 follow-ups gated by privacy/pilot evidence. See
 [shared-presence pass](../design/dotify-shared-presence-pass.md).

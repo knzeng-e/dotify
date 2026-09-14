@@ -46,6 +46,8 @@ import type {
   RoomPlaybackMode,
   RoomReactionEvent,
   RoomRequest,
+  RoomLineup,
+  RoomLineupTrack,
   SessionAction,
   SoloListeningByTrackHash,
   SocketStatus,
@@ -196,6 +198,7 @@ export function useSession(deps: UseSessionDeps) {
   const [reactionFeed, setReactionFeed] = useState<RoomReactionEvent[]>([]);
   // Collaborative request queue: server-authoritative full-list broadcast,
   // so the client only ever mirrors what the room actually holds.
+  const [roomLineup, setRoomLineup] = useState<RoomLineup | null>(null);
   const [requestQueue, setRequestQueue] = useState<RoomRequest[]>([]);
 
   const roomIdRef = useRef('');
@@ -467,6 +470,7 @@ export function useSession(deps: UseSessionDeps) {
     setRoomPlaybackMode('full');
     setChatMessages([]);
     setReactionFeed([]);
+    setRoomLineup(null);
     setRequestQueue([]);
     setRemoteReady(false);
     setRemoteStreamVersion(version => version + 1);
@@ -679,6 +683,11 @@ export function useSession(deps: UseSessionDeps) {
       if (!reaction || typeof reaction.emoji !== 'string' || typeof reaction.id !== 'string') return;
       setReactionFeed(previous => [...previous.slice(-19), reaction]);
     });
+    socket.on('room:lineup', (payload: { roomId: string; lineup: RoomLineup }) => {
+      if (payload.roomId !== roomIdRef.current) return;
+      setRoomLineup(current => (!current || payload.lineup.revision >= current.revision ? payload.lineup : current));
+    });
+
     socket.on('room:requests', (requests: RoomRequest[]) => {
       // Full-list broadcast: guard each item's shape before accepting, matching
       // the per-message validation the chat handler above uses.
@@ -1476,6 +1485,7 @@ export function useSession(deps: UseSessionDeps) {
         setChatMessages([]);
         setReactionFeed([]);
         setRequestQueue([]);
+        setRoomLineup(response.lineup ?? null);
         setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
         requestOpenRooms();
       },
@@ -1541,6 +1551,7 @@ export function useSession(deps: UseSessionDeps) {
         setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
         setChatMessages(response.chatHistory ?? []);
         setRequestQueue(response.requests ?? []);
+        setRoomLineup(response.lineup ?? null);
         setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
         listenerOfferReceivedRef.current = false;
         listenerAudioRetryCountRef.current = 0;
@@ -1594,6 +1605,7 @@ export function useSession(deps: UseSessionDeps) {
       setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
       setChatMessages(response.chatHistory ?? []);
       setRequestQueue(response.requests ?? []);
+      setRoomLineup(response.lineup ?? null);
       setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
       listenerConnectionStartedAtRef.current = monotonicNow();
       startListenerConnectionTimeout();
@@ -1626,6 +1638,9 @@ export function useSession(deps: UseSessionDeps) {
         setRoomId(response.roomId);
         setHostName(response.hostName);
         applyListenerRoster(response.listeners);
+        if (response.chatHistory) setChatMessages(response.chatHistory);
+        if (response.requests) setRequestQueue(response.requests);
+        setRoomLineup(response.lineup ?? null);
         setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
         setError(null);
         publishRoomQuality('host-online', 'host', {
@@ -1734,6 +1749,28 @@ export function useSession(deps: UseSessionDeps) {
   // Social layer sends. The server validates, rate-limits, and echoes back to
   // the whole room (sender included), so local state only updates on receipt:
   // one render path, no optimistic divergence.
+  function updateRoomLineup(tracks: RoomLineupTrack[], acceptedRequestId?: string): Promise<{ ok: boolean; message?: string }> {
+    const socket = socketRef.current;
+    const targetRoom = roomIdRef.current;
+    if (!socket?.connected || modeRef.current !== 'host' || !targetRoom || !roomLineup) {
+      return Promise.resolve({ ok: false, message: 'Reconnect to edit the queue.' });
+    }
+    const payload = { operationId: crypto.randomUUID(), revision: roomLineup.revision, tracks, ...(acceptedRequestId ? { acceptedRequestId } : {}) };
+    return new Promise(resolve => {
+      socket
+        .timeout(5_000)
+        .volatile.emit('room:lineup:update', payload, (error: Error | null, response?: { ok: boolean; message?: string; lineup?: RoomLineup }) => {
+          if (roomIdRef.current !== targetRoom) return resolve({ ok: false, message: 'The room changed.' });
+          if (error || !response) return resolve({ ok: false, message: 'Change unconfirmed. Check the queue before trying again.' });
+          if (response.lineup) {
+            const snapshot = response.lineup;
+            setRoomLineup(current => (!current || snapshot.revision >= current.revision ? snapshot : current));
+          }
+          resolve(response);
+        });
+    });
+  }
+
   function sendRoomText(event: 'room:chat' | 'room:request', text: string, maxLength: number): Promise<{ ok: boolean; message?: string }> {
     const socket = socketRef.current;
     if (!roomIdRef.current || !socket?.connected) return Promise.resolve({ ok: false, message: 'Reconnecting. Your draft stays here.' });
@@ -1811,6 +1848,8 @@ export function useSession(deps: UseSessionDeps) {
     chatMessages,
     reactionFeed,
     requestQueue,
+    roomLineup,
+    updateRoomLineup,
     // Refs
     roomIdRef,
     hostIdRef,

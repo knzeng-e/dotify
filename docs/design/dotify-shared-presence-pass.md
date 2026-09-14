@@ -19,15 +19,19 @@ The initial 390 × 844 room had a 2,574px document, with its composer around 1,9
 
 ## Bounded experiments
 
-`VITE_DOTIFY_HOST_LINEUP=on` exposes a host-only local plan of up to 12 catalog tracks. It is deliberately labeled Preview, is neither saved nor shared, and clears when the player unmounts or the room changes. The host can order/remove items and open the next selection through the existing access gate. It has no autoplay, guest promise, synchronization, or bypass. This is a scaffold to test curation needs before changing the room protocol.
-
-A shared queue needs a separate implementation: host-authorized mutations, room revision numbers, bounded entries by stable catalog identity, reconnect snapshots, idempotency, stale-track removal, and explicit `planned → opening → playing / blocked` states. Publish only safe title/artist/identity metadata; never source references or keys. The host must resolve access on every selection; a blocked entry must not interrupt the room or claim it is playing. Participant requests stay separate until explicitly accepted. Test ordering conflicts, denied tracks, host resume, late join and room deletion before rollout.
+`VITE_DOTIFY_HOST_LINEUP=on` with `SIGNAL_HOST_LINEUP=on` now exposes a shared queue of up to 12 catalog tracks in Requests. Guests see the planned order; only the host adds, reorders or removes tracks. A host can map a text request to a catalog selection and accept both in one server change. The signaling service owns the revisioned state and restores it on join/resume. Updates use bounded operation IDs and reject stale revisions. Opening a track still uses the existing access flow and leaves it queued until the host removes it. Planned order is not a promise of playback; the server does not verify catalog labels or grant access. No autoplay or durable playlist is introduced.
 
 `VITE_DOTIFY_ROOM_GALAXY=on` enables the existing 3D renderer selector. Off is the shipping default. Real Socket.IO room data drives both modes. The 2D sky/list remains complete, including mobile, reduced motion, WebGL failure and context loss. Three.js loads only for the opted-in renderer on the ordinary web build. The current Product DevNet profile also emits separate chunks; the legacy Bulletin single-file profile can inline dependencies and needs its own measurement. Positions have no relationship to geography; visual movement is not a sound-energy claim.
 
-## Nearby: keep the research boundary
+## Nearby: manual-area preview and geographic follow-up
 
-Use the existing [W18 privacy contract](dotify-nearby-discovery-privacy.md) and typed protocol proposal. This pass collects no location and exposes no live nearby toggle.
+The follow-up implements a **manual-area feasibility preview**, behind both `VITE_DOTIFY_NEARBY_PREVIEW=on` and `SIGNAL_NEARBY_PREVIEW=on`. Hosts explicitly share one room for 90 seconds in a broad named pilot area; listeners separately search that area. No geolocation API is called. The initial choices are Lisbon, Paris and London regions, with no coordinate boundary or distance guarantee. The preview uses a narrower Socket.IO allowlist (`areaId`, `consent`) rather than shipping W18's geographic-cell protocol. It is not completion of W19. See the [follow-up evidence](../backlog/implementation/evidence/killer-dapp-next-phases.md) and [socket contract](../reference/socket-events.md).
+
+Listings are memory-only, host-bound, revoked on disconnect/room end and expired server-side. The UI requests revocation on hidden/pagehide/unmount and never automatically resumes publication. If that request is lost, expiry still applies. Search results expire within 30 seconds; revocation blocks new lookups immediately, but already loaded results may remain for that window. IDs rotate at 15 minutes and on area change, expiry or revoke/republication. Stable room IDs and timing still permit correlation. No wallet or source fields are added to nearby payloads, but the service sees coarse choice and connection address. No location is added to `/status`, public room broadcasts, application logs, analytics or persistent storage. Operators must also disable Socket.IO frame/body logging at proxies and monitoring agents.
+
+The remaining paragraphs specify the later geographic implementation, which remains gated on privacy review and real-device pilot evidence.
+
+Use the existing [W18 privacy contract](dotify-nearby-discovery-privacy.md) and typed protocol proposal for the later geographic implementation. The current preview transmits only an explicitly chosen named area; it does not request or derive device location.
 
 The first UX should present two independent decisions: a host chooses “Appear nearby for this room”; a listener chooses “Find rooms in an approximate area.” Before any browser permission, explain what the operator receives and the limits of coarse location. Offer “Choose an area” and a venue QR at the same level. Denial returns to normal rooms without a repeated prompt.
 
@@ -51,8 +55,8 @@ Validate with a few facilitated sessions: can guests join and hear, send a messa
 
 1. Visual tokens, landing hierarchy, responsive/readability polish, public page alignment.
 2. Active-room viewport, compact persistent playback, conversation panels, composer and draft behavior. Include text acknowledgements and their server tests here because reliable composing depends on them.
-3. Host lineup scaffold and existing request curation polish; default-off flag. Shared queue protocol stays a follow-up.
+3. Shared host queue, atomic request acceptance, revisioned signaling, join/resume snapshots and default-off client/server flags.
 4. Default-off gate around the existing galaxy and its regression evidence. Do not claim the existing renderer as newly implemented.
-5. Nearby/circles UX and architecture documentation, referencing W18 rather than rebuilding it. No geolocation runtime.
+5. Default-off manual-area nearby preview, lifecycle/privacy tests and W18/W19 boundary documentation. Circles remain an explicit-consent proposal. No geolocation runtime.
 
 Keep these as one reviewable working branch until the pass is accepted. Do not open five speculative PRs or claim unrelated readiness gates are complete.

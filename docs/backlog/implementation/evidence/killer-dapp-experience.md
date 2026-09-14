@@ -15,6 +15,8 @@ At 390 × 844, the original room document was 2,574px tall and its composer bega
 
 ## Experiments and strategy
 
+This section records the first pass at `8c12187`. The [next-phases follow-up](killer-dapp-next-phases.md) supersedes the local-lineup and documentation-only nearby status.
+
 - `VITE_DOTIFY_HOST_LINEUP=on`: host-only local planning preview, up to 12 selections, manual ordering/removal/opening. Access still goes through the existing gate. Not saved, synchronized or automatically played.
 - `VITE_DOTIFY_ROOM_GALAXY=on`: rollout gate and lazy component loading around the already-delivered Three.js renderer. Off by default. Existing 2D/list and degradation paths remain.
 - Nearby and circles: [UX/architecture proposal](../../../design/dotify-shared-presence-pass.md), extending the existing W18 privacy contract. No runtime geolocation or memory tracking.

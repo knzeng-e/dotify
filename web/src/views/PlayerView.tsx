@@ -1,4 +1,4 @@
-import { HostLineup } from '../components/HostLineup';
+import { NearbyHostPreview } from '../components/NearbyPreview';
 import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
 import {
   Copy,
@@ -598,7 +598,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 </details>
               )}
 
-              {roomExperienceFlags.hostLineup && <HostLineup key={roomId} />}
+              {roomExperienceFlags.nearby && <NearbyHostPreview key={roomId} />}
               <div className='listener-list'>
                 <div className='list-row'>
                   <div className='room-person-main'>

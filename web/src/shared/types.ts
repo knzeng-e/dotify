@@ -148,7 +148,12 @@ export type OpenRoom = {
 
 export type SoloListeningByTrackHash = Record<string, number>;
 
-export type CreateRoomResponse = { ok: true; roomId: string; hostName: string; hostResumeToken: string; expiresAt?: number } | { ok: false; error: string };
+export type RoomLineupTrack = { id: string; title: string; artist: string };
+export type RoomLineup = { revision: number; tracks: RoomLineupTrack[] };
+
+export type CreateRoomResponse =
+  | { ok: true; roomId: string; hostName: string; hostResumeToken: string; lineup?: RoomLineup; expiresAt?: number }
+  | { ok: false; error: string };
 
 export type ResumeRoomResponse =
   | {
@@ -157,6 +162,9 @@ export type ResumeRoomResponse =
       hostName: string;
       listenerCount: number;
       listeners: RoomPresenceListener[];
+      chatHistory?: RoomChatMessage[];
+      requests?: RoomRequest[];
+      lineup?: RoomLineup;
       expiresAt?: number;
     }
   | { ok: false; error: string; code?: string };
@@ -204,6 +212,7 @@ export type JoinRoomResponse =
       chatHistory?: RoomChatMessage[];
       requests?: RoomRequest[];
       listeners?: RoomPresenceListener[];
+      lineup?: RoomLineup;
       expiresAt?: number;
     }
   | { ok: false; error: string; code?: string };

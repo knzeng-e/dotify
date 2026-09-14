@@ -106,16 +106,15 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
   }
 });
 
-test('host plan preview opens a protected selection through the existing access gate', async ({ page }) => {
+test('shared queue retains a protected selection through the existing access gate', async ({ page }) => {
   await hostRoom(page);
-  await page.getByRole('tab', { name: /People/ }).click();
-  await page.locator('.host-lineup summary').click();
-  await page.getByLabel('Track for host plan').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
+  await page.getByRole('tab', { name: /Requests/ }).click();
+  await page.getByLabel('Track for room queue').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
   await page.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.locator('.host-lineup')).toContainText('Planned next');
   await page.getByRole('button', { name: 'Open next track' }).click();
   await expect(page.getByTestId('locked-player-state')).toBeVisible();
-  await expect(page.locator('.host-lineup')).not.toContainText('Planned next');
+  await expect(page.locator('.host-lineup')).toContainText('Planned next');
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
 });
 
@@ -167,3 +166,148 @@ test('room controls fit a small desktop and the QR remains discoverable', async 
   await page.getByRole('button', { name: 'Close projected QR' }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('shared queue reaches a late guest and host accepts a request without giving guests controls', async ({ browser }, testInfo) => {
+  const hostContext = await browser.newContext();
+  const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const host = await hostContext.newPage();
+    const roomId = await hostRoom(host);
+    await host.getByRole('tab', { name: /Requests/ }).click();
+    await host.getByLabel('Track for room queue').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
+    await host.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(host.getByLabel('Room queue', { exact: true })).toContainText('E2E Protected Room Track');
+    const guest = await guestContext.newPage();
+    await guest.goto(`/#/rooms/${roomId}`);
+    await guest.getByRole('textbox', { name: 'Your name in the room' }).fill('Mina');
+    await guest.getByRole('button', { name: 'Enter and listen' }).click();
+    await guest.getByRole('tab', { name: /Requests/ }).click();
+    await expect(guest.getByLabel('Room queue', { exact: true })).toContainText('E2E Protected Room Track');
+    await expect(guest.getByLabel('Track for room queue')).toHaveCount(0);
+    await guest.getByRole('textbox', { name: 'Request a track' }).fill('A public moment');
+    await guest.getByRole('button', { name: 'Send request' }).click();
+    await expect(host.getByLabel('For a request (optional)')).toContainText('A public moment');
+    await host.getByLabel('Track for room queue').selectOption({ label: 'E2E Public Room Track — Dotify Room Host' });
+    await host.getByLabel('For a request (optional)').selectOption({ label: 'Mina: A public moment' });
+    await host.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(guest.getByLabel('Room queue', { exact: true })).toContainText('E2E Public Room Track');
+    await expect(guest.locator('.room-req-row')).toHaveCount(0);
+    await host.getByRole('button', { name: 'Move E2E Public Room Track earlier' }).click();
+    await expect(guest.getByLabel('Room queue', { exact: true }).locator('li').first()).toContainText('E2E Public Room Track');
+    const composer = await guest.getByRole('textbox', { name: 'Request a track' }).boundingBox();
+    expect(composer!.y + composer!.height).toBeLessThan(844);
+    await guest.screenshot({ path: testInfo.outputPath('shared-queue-mobile.png') });
+    await host.screenshot({ path: testInfo.outputPath('shared-queue-desktop.png') });
+    await guestContext.setOffline(true);
+    await expect(guest.getByRole('button', { name: 'Send request' })).toBeDisabled();
+    await guestContext.setOffline(false);
+    await expect(guest.locator('.host-lineup')).not.toContainText('Reconnecting', { timeout: 20000 });
+    await expect(guest.getByLabel('Room queue', { exact: true }).locator('li').first()).toContainText('E2E Public Room Track');
+  } finally {
+    await guestContext.close();
+    await hostContext.close();
+  }
+});
+
+test('manual-area preview requires separate consent, forgets search and revokes publication', async ({ browser }, testInfo) => {
+  const hostContext = await browser.newContext();
+  const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const host = await hostContext.newPage();
+    const guest = await guestContext.newPage();
+    const frames: string[] = [];
+    for (const page of [host, guest]) {
+      page.on('websocket', socket =>
+        socket.on('framesent', frame => {
+          const text = String(frame.payload);
+          if (text.includes('nearby:')) frames.push(text);
+        })
+      );
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'geolocation', {
+          configurable: true,
+          get() {
+            throw new Error('Nearby preview must never access geolocation');
+          }
+        });
+      });
+    }
+    await hostRoom(host);
+    await guest.goto('/');
+    await guest.getByRole('button', { name: 'Rooms', exact: true }).click();
+    expect(frames).toHaveLength(0);
+    await guest.locator('.nearby-discovery summary').click();
+    await guest.getByRole('button', { name: 'Choose an area to search' }).click();
+    await guest.getByLabel('Pilot area').selectOption('lisbon-region');
+    await guest.getByRole('button', { name: 'Search this area' }).click();
+    await expect(guest.getByLabel('Rooms sharing this area')).toContainText('No hosts are sharing');
+    await host.getByRole('tab', { name: /People/ }).click();
+    await host.locator('.nearby-preview summary').click();
+    await host.getByRole('button', { name: 'Choose an area to share' }).click();
+    await host.getByLabel('Pilot area').selectOption('lisbon-region');
+    await host.getByRole('button', { name: 'Share this room for 90 seconds', exact: true }).click();
+    await expect(host.locator('.nearby-preview')).toContainText('Visible in Lisbon region');
+    await guest.getByRole('button', { name: 'Search this area' }).click();
+    await expect(guest.getByLabel('Rooms sharing this area')).toContainText('E2E Public Room Track');
+    await expect(guest.getByLabel('Rooms sharing this area')).toBeFocused();
+    const resultButton = guest.getByLabel('Rooms sharing this area').getByRole('button');
+    const resultBounds = await resultButton.boundingBox();
+    expect(resultBounds!.y + resultBounds!.height).toBeLessThan(844 - 150);
+    await guest.screenshot({ path: testInfo.outputPath('nearby-mobile.png') });
+    await host.screenshot({ path: testInfo.outputPath('nearby-host-desktop.png') });
+    await host.getByRole('button', { name: 'Stop sharing this area' }).click();
+    await expect(host.locator('.nearby-preview')).toContainText('Area sharing is off');
+    await guest.getByRole('button', { name: 'Search this area' }).click();
+    await expect(guest.getByLabel('Rooms sharing this area')).toContainText('No hosts are sharing');
+    await guest.getByRole('button', { name: 'Stop area search' }).click();
+    await expect(guest.getByLabel('Rooms sharing this area')).toHaveCount(0);
+    await expect(guest.getByLabel('Pilot area')).toHaveValue('');
+    await host.getByRole('button', { name: 'Share this room for 90 seconds', exact: true }).click();
+    await expect(host.locator('.nearby-preview')).toContainText('Visible in Lisbon region');
+    await host.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await expect(host.getByRole('button', { name: 'Stop sharing this area' })).toHaveCount(0);
+    await guest.getByLabel('Pilot area').selectOption('lisbon-region');
+    await guest.getByRole('button', { name: 'Search this area' }).click();
+    await expect(guest.getByLabel('Rooms sharing this area')).toContainText('No hosts are sharing');
+    for (const frame of frames.filter(value => /nearby:(search|publish)/.test(value))) {
+      const data = JSON.parse(frame.slice(frame.indexOf('['))) as [string, Record<string, unknown>];
+      expect(data[1]).toEqual({ areaId: 'lisbon-region', consent: true });
+    }
+    const stored = await guest.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage }));
+    expect(stored).not.toContain('lisbon-region');
+  } finally {
+    await guestContext.close();
+    await hostContext.close();
+  }
+});
+
+for (const removeAll of [false, true]) {
+  test(`queue Add ignores a selected request after ${removeAll ? 'clearing requests' : 'removing that request'}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await hostRoom(page);
+    await page.getByRole('tab', { name: /Requests/ }).click();
+    for (const text of ['A selected request', 'Keep this request']) {
+      await page.getByRole('textbox', { name: 'Request a track' }).fill(text);
+      await page.getByRole('button', { name: 'Send request' }).click();
+      await expect(page.getByLabel('Track requests', { exact: true })).toContainText(text);
+    }
+    const selected = page.getByLabel('For a request (optional)');
+    const value = await selected.locator('option').nth(1).getAttribute('value');
+    await selected.selectOption(value!);
+    await page.getByLabel('Track for room queue').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
+    if (removeAll) await page.getByRole('button', { name: 'Clear', exact: true }).click();
+    else await page.locator('.room-req-row').filter({ hasText: 'A selected request' }).getByRole('button').click();
+    await expect(page.locator('.room-req-row').filter({ hasText: 'A selected request' })).toHaveCount(0);
+    if (!removeAll) await expect(selected).toHaveValue('');
+    await page.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(page.getByLabel('Room queue', { exact: true })).toContainText('E2E Protected Room Track');
+    await expect(page.locator('.host-lineup')).not.toContainText('That request is no longer here');
+    if (!removeAll) {
+      await expect(selected).toHaveValue('');
+      await expect(page.getByLabel('Track requests', { exact: true })).toContainText('Keep this request');
+    }
+  });
+}
