@@ -11,6 +11,9 @@ export function HostLineup() {
   const session = useSessionContext();
   const [picked, setPicked] = useState('');
   const [requestId, setRequestId] = useState('');
+  // Requests can disappear while the host is choosing a track. Derive both
+  // the visible selection and accepted ID from the current server snapshot.
+  const acceptedRequestId = session.requestQueue.find(request => request.id === requestId)?.id;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const isHost = session.mode === 'host';
@@ -46,7 +49,7 @@ export function HostLineup() {
             event.preventDefault();
             const track = available.find(item => item.id === picked);
             if (!track || tracks.length >= 12 || disabled) return;
-            void update([...tracks, { id: track.id, title: track.title, artist: track.artist }], requestId || undefined).then(ok => {
+            void update([...tracks, { id: track.id, title: track.title, artist: track.artist }], acceptedRequestId).then(ok => {
               if (ok) {
                 setPicked('');
                 setRequestId('');
@@ -70,7 +73,7 @@ export function HostLineup() {
           {session.requestQueue.length > 0 && (
             <label className='lineup-request'>
               For a request (optional)
-              <select className='field' value={requestId} disabled={disabled} onChange={event => setRequestId(event.target.value)}>
+              <select className='field' value={acceptedRequestId ?? ''} disabled={disabled} onChange={event => setRequestId(event.target.value)}>
                 <option value=''>Host’s choice</option>
                 {session.requestQueue.map(request => (
                   <option key={request.id} value={request.id}>

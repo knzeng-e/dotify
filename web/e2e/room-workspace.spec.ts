@@ -276,3 +276,31 @@ test('manual-area preview requires separate consent, forgets search and revokes 
     await hostContext.close();
   }
 });
+
+for (const removeAll of [false, true]) {
+  test(`queue Add ignores a selected request after ${removeAll ? 'clearing requests' : 'removing that request'}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await hostRoom(page);
+    await page.getByRole('tab', { name: /Requests/ }).click();
+    for (const text of ['A selected request', 'Keep this request']) {
+      await page.getByRole('textbox', { name: 'Request a track' }).fill(text);
+      await page.getByRole('button', { name: 'Send request' }).click();
+      await expect(page.getByLabel('Track requests', { exact: true })).toContainText(text);
+    }
+    const selected = page.getByLabel('For a request (optional)');
+    const value = await selected.locator('option').nth(1).getAttribute('value');
+    await selected.selectOption(value!);
+    await page.getByLabel('Track for room queue').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
+    if (removeAll) await page.getByRole('button', { name: 'Clear', exact: true }).click();
+    else await page.locator('.room-req-row').filter({ hasText: 'A selected request' }).getByRole('button').click();
+    await expect(page.locator('.room-req-row').filter({ hasText: 'A selected request' })).toHaveCount(0);
+    if (!removeAll) await expect(selected).toHaveValue('');
+    await page.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(page.getByLabel('Room queue', { exact: true })).toContainText('E2E Protected Room Track');
+    await expect(page.locator('.host-lineup')).not.toContainText('That request is no longer here');
+    if (!removeAll) {
+      await expect(selected).toHaveValue('');
+      await expect(page.getByLabel('Track requests', { exact: true })).toContainText('Keep this request');
+    }
+  });
+}
