@@ -1,3 +1,4 @@
+import { NearbyListenerPreview } from '../components/NearbyPreview';
 import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
 import { ArrowRight, Box, Headphones, KeyRound, Link2, List, Radio, RefreshCw, Users, X } from 'lucide-react';
 import type { FormEvent, Ref } from 'react';
@@ -104,6 +105,8 @@ export function RoomsView({
           </dl>
         </div>
       </header>
+
+      {roomExperienceFlags.nearby && <NearbyListenerPreview onJoinRoom={onJoinRoom} disabled={isJoining} />}
 
       <section className='rooms-live-section' aria-labelledby='rooms-live-title'>
         <div className='section-heading'>

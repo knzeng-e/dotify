@@ -19,6 +19,8 @@ export default defineConfig({
       url: `${SIGNAL_URL}/health`,
       reuseExistingServer: false,
       env: {
+        SIGNAL_HOST_LINEUP: 'on',
+        SIGNAL_NEARBY_PREVIEW: 'on',
         SIGNAL_PORT,
         SIGNAL_HOST: '127.0.0.1'
       }
@@ -46,7 +48,8 @@ export default defineConfig({
         VITE_E2E_ROOM_JOIN: 'true',
         VITE_SIGNAL_URL: SIGNAL_URL,
         VITE_DOTIFY_ROOM_GALAXY: 'on',
-        VITE_DOTIFY_HOST_LINEUP: 'on'
+        VITE_DOTIFY_HOST_LINEUP: 'on',
+        VITE_DOTIFY_NEARBY_PREVIEW: 'on'
       }
     }
   ],

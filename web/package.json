@@ -10,7 +10,7 @@
 	"scripts": {
 		"dev": "vite --host 0.0.0.0 --port 5273",
 		"signal": "SIGNAL_PORT=8788 node server/signaling.mjs",
-		"test:signal": "node --test server/signaling.test.mjs server/signaling-smoke.test.mjs",
+		"test:signal": "node --test server/signaling.test.mjs server/signaling-smoke.test.mjs server/room-lineup.test.mjs server/nearby-preview.test.mjs",
 		"test:unit": "vitest run",
 		"test:e2e": "playwright test",
 		"dev:listen": "concurrently -n signal,web -c magenta,cyan \"npm:signal\" \"npm:dev\"",
@@ -27,6 +27,7 @@
 		"smoke:product-journey": "node scripts/product-devnet-journey-harness.mjs",
 		"smoke:pilot-release": "node scripts/pilot-release-readiness.mjs",
 		"smoke:product-cash-settlement": "node scripts/product-cash-settlement-readiness.mjs",
+		"smoke:room-experiments-off": "node scripts/room-experiments-off-smoke.mjs",
 		"smoke:nearby-privacy": "node scripts/nearby-privacy-simulation.mjs",
 		"smoke:signal": "node scripts/signaling-smoke.mjs",
 		"test:pilot-release-readiness": "node --test scripts/pilot-release-readiness.test.mjs",

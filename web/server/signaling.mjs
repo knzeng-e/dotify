@@ -18,6 +18,8 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypt
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
+import { createLineup, validLineupMutation } from './room-lineup.mjs';
+import { createNearbyPreview } from './nearby-preview.mjs';
 import {
   REQUEST_TEXT_MAX_LENGTH,
   clientKey,
@@ -53,6 +55,8 @@ export const defaultConfig = {
   // hear next; the host vetoes or clears. Lives in the room Map like chat
   // (dies with the room, never on /status). The queue is intent, not
   // playback -- the server never claims it auto-plays.
+  hostLineupEnabled: false,
+  nearbyPreviewEnabled: false,
   requestQueueLimit: 20,
   requestRateLimit: { limit: 5, windowMs: 10_000 },
   // Join/reconnect throttle keyed by network address. Chat and reaction
@@ -77,6 +81,8 @@ export function readConfigFromEnv(env = process.env) {
   const origins = (env.SIGNAL_ORIGINS ?? env.SIGNAL_ORIGIN ?? '*').trim();
   return {
     ...defaultConfig,
+    hostLineupEnabled: env.SIGNAL_HOST_LINEUP === 'on',
+    nearbyPreviewEnabled: env.SIGNAL_NEARBY_PREVIEW === 'on',
     port: Number(env.SIGNAL_PORT ?? defaultConfig.port),
     host: env.SIGNAL_HOST ?? defaultConfig.host,
     origins:
@@ -103,12 +109,14 @@ export function isSignalingOriginAllowed(origin, config) {
 export function startSignalingServer(overrides = {}) {
   const config = { ...defaultConfig, ...overrides };
   const rooms = new Map();
+  const nearby = createNearbyPreview({ enabled: config.nearbyPreviewEnabled });
   // One ephemeral solo-listening declaration per connected socket. No wallet,
   // address, IP, or durable profile is exposed; public clients receive only
   // aggregate counts keyed by the catalog track hash.
   const soloPresenceBySocket = new Map();
   const startedAt = Date.now();
   const chatLimiter = createWindowLimiter(config.chatRateLimit.limit, config.chatRateLimit.windowMs);
+  const lineupLimiter = createWindowLimiter(30, 10_000);
   const reactionLimiter = createWindowLimiter(config.reactionRateLimit.limit, config.reactionRateLimit.windowMs);
   const requestLimiter = createWindowLimiter(config.requestRateLimit.limit, config.requestRateLimit.windowMs);
   // Keyed by network address, never cleared on disconnect (that is the point):
@@ -257,6 +265,8 @@ export function startSignalingServer(overrides = {}) {
   function closeRoom(roomId, room, reason, event) {
     io.to(roomId).emit('room:closed', { reason });
     rooms.delete(roomId);
+    nearby.forget(roomId);
+    lineupLimiter.clear(roomId);
     io.in(roomId).socketsLeave(roomId);
     logEvent(event, { roomId, listenerCount: room.listeners.size, reason });
     emitRooms();
@@ -283,6 +293,24 @@ export function startSignalingServer(overrides = {}) {
   io.on('connection', socket => {
     socket.emit('rooms:updated', publicRooms());
     socket.emit('presence:solo:updated', publicSoloPresence());
+
+    // Manual-area preview is queried explicitly and never joins /status,
+    // public room broadcasts, lifecycle logs, or the Statement Store.
+    socket.on('nearby:areas', ack => {
+      if (typeof ack === 'function') ack({ ok: config.nearbyPreviewEnabled, areas: nearby.areas() });
+    });
+    socket.on('nearby:publish', (payload, ack) => {
+      const room = getHostedRoom(socket);
+      if (typeof ack !== 'function') return;
+      ack(room ? nearby.publish(socket.data.roomId, payload) : { ok: false, message: 'Only the connected host can share this room.' });
+    });
+    socket.on('nearby:revoke', ack => {
+      if (getHostedRoom(socket)) nearby.revoke(socket.data.roomId);
+      if (typeof ack === 'function') ack({ ok: true });
+    });
+    socket.on('nearby:search', (payload, ack) => {
+      if (typeof ack === 'function') ack(nearby.search(clientKey(socket, { trustProxy: config.trustProxy }), payload, publicRooms()));
+    });
 
     socket.on('presence:solo', (payload = {}) => {
       const trackHash = sanitizeTrackHash(payload.trackHash);
@@ -314,6 +342,8 @@ export function startSignalingServer(overrides = {}) {
         chat: [],
         // Collaborative request queue: same in-room-only doctrine as chat.
         requests: [],
+        lineup: createLineup(),
+        lineupOperations: new Map(),
         playerState: null,
         playbackMode: payload.playbackMode === 'preview' ? 'preview' : 'full',
         createdAt: Date.now(),
@@ -336,6 +366,7 @@ export function startSignalingServer(overrides = {}) {
         roomId,
         hostName: room.hostName,
         hostResumeToken: resumeCredential.token,
+        lineup: config.hostLineupEnabled ? room.lineup : undefined,
         expiresAt: room.createdAt + config.roomTtlMs
       });
       emitRooms();
@@ -376,6 +407,9 @@ export function startSignalingServer(overrides = {}) {
         hostName: room.hostName,
         listenerCount: room.listeners.size,
         listeners: listenerRoster(room),
+        chatHistory: room.chat,
+        requests: room.requests,
+        lineup: config.hostLineupEnabled ? room.lineup : undefined,
         expiresAt: room.createdAt + config.roomTtlMs
       });
       io.to(roomId).emit('room:host-connection', { status: 'online' });
@@ -441,6 +475,7 @@ export function startSignalingServer(overrides = {}) {
         chatHistory: room.chat,
         requests: room.requests,
         listeners: listenerRoster(room),
+        lineup: config.hostLineupEnabled ? room.lineup : undefined,
         expiresAt: room.createdAt + config.roomTtlMs
       });
 
@@ -452,6 +487,51 @@ export function startSignalingServer(overrides = {}) {
       io.to(roomId).emit('room:listener-count', { listenerCount });
       emitListenerRoster(roomId, room);
       emitRooms();
+    });
+
+    socket.on('room:lineup:update', (payload, ack) => {
+      const reply = typeof ack === 'function' ? ack : () => {};
+      const room = getHostedRoom(socket);
+      if (!config.hostLineupEnabled || !room) {
+        reply({ ok: false, message: 'The host can edit the queue when this preview is enabled.' });
+        return;
+      }
+      if (!validLineupMutation(payload)) {
+        reply({ ok: false, message: 'This queue change is not valid.' });
+        return;
+      }
+      const previous = room.lineupOperations.get(payload.operationId);
+      const fingerprint = JSON.stringify(payload);
+      if (previous) {
+        reply({ ok: previous === fingerprint, lineup: room.lineup, message: previous === fingerprint ? undefined : 'Use a new queue change.' });
+        return;
+      }
+      if (!lineupLimiter.allow(socket.data.roomId)) {
+        reply({ ok: false, message: 'Give the room a moment before changing the queue again.' });
+        return;
+      }
+      if (payload.revision !== room.lineup.revision) {
+        reply({ ok: false, lineup: room.lineup, message: 'The queue changed. Review the latest order and try again.' });
+        return;
+      }
+      if (payload.acceptedRequestId && !room.requests.some(request => request.id === payload.acceptedRequestId)) {
+        reply({ ok: false, message: 'That request is no longer here.' });
+        return;
+      }
+      if (payload.acceptedRequestId && !payload.tracks.some(track => !room.lineup.tracks.some(old => old.id === track.id))) {
+        reply({ ok: false, message: 'Choose a new track for this request.' });
+        return;
+      }
+      room.lineup = { revision: room.lineup.revision + 1, tracks: payload.tracks.map(({ id, title, artist }) => ({ id, title, artist })) };
+      room.lineupOperations.set(payload.operationId, fingerprint);
+      if (room.lineupOperations.size > 64) room.lineupOperations.delete(room.lineupOperations.keys().next().value);
+      touchHost(room);
+      io.to(socket.data.roomId).emit('room:lineup', { roomId: socket.data.roomId, lineup: room.lineup });
+      if (payload.acceptedRequestId) {
+        room.requests = room.requests.filter(request => request.id !== payload.acceptedRequestId);
+        io.to(socket.data.roomId).emit('room:requests', room.requests);
+      }
+      reply({ ok: true, lineup: room.lineup });
     });
 
     socket.on('room:track', track => {
@@ -754,6 +834,7 @@ export function startSignalingServer(overrides = {}) {
     // Reclaim expired join-throttle buckets (keyed by address, never cleared
     // on disconnect) so the limiter Map stays bounded.
     joinLimiter.prune(now);
+    nearby.sweep();
     for (const [roomId, room] of rooms) {
       if (now - room.createdAt > config.roomTtlMs) {
         closeRoom(roomId, room, 'Room expired', 'room:expired');
@@ -896,6 +977,7 @@ export function startSignalingServer(overrides = {}) {
     }
 
     if (role === 'host' && room.hostId === socket.id) {
+      nearby.revoke(roomId);
       room.hostId = null;
       touchHost(room);
       clearSocketRoom(socket);

@@ -1,3 +1,5 @@
+import { HostLineup } from './HostLineup';
+import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
 // Collaborative request queue (the "village square" queue named by the
 // improvement plan's room-social item).
 //
@@ -56,6 +58,7 @@ export function RoomRequests() {
       />
 
       <div className='room-chat-list' aria-live='polite' aria-label='Track requests'>
+        {roomExperienceFlags.hostLineup && <HostLineup />}
         {requestQueue.length === 0 ? (
           <p className='room-chat-empty'>No requests yet. Anyone here can suggest what to play next; the host decides what actually plays.</p>
         ) : (

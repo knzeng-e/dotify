@@ -1,84 +1,142 @@
 import { ArrowUp, ListMusic, X } from 'lucide-react';
 import { useState } from 'react';
-import { useCatalogContext, usePlaybackContext } from '../app/providers';
+import { useCatalogContext, usePlaybackContext, useSessionContext } from '../app/providers';
+import type { RoomLineupTrack } from '../shared/types';
 
-// A local host planning scaffold, deliberately distinct from shared Requests.
-// Existing openTrack remains the only authority for access and playback.
+// Shared intent, not an autoplay authority. Opening never removes an entry:
+// the host may still need access, or the track may no longer be available.
 export function HostLineup() {
   const catalog = useCatalogContext();
   const { openTrack } = usePlaybackContext();
-  const [ids, setIds] = useState<string[]>([]);
+  const session = useSessionContext();
   const [picked, setPicked] = useState('');
-  const tracks = ids.flatMap(id => {
-    const track = catalog.catalogTracks.find(item => item.id === id && item.active !== false);
-    return track ? [track] : [];
-  });
-  const available = catalog.catalogTracks.filter(track => track.active !== false && !ids.includes(track.id));
+  const [requestId, setRequestId] = useState('');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+  const isHost = session.mode === 'host';
+  const tracks = session.roomLineup?.tracks ?? [];
+  const connected = session.socketStatus === 'online';
+  const disabled = pending || !connected || !session.roomLineup;
+  const available = catalog.catalogTracks.filter(track => track.active !== false && !tracks.some(item => item.id === track.id));
+
+  async function update(next: RoomLineupTrack[], acceptedRequestId?: string) {
+    if (disabled) return false;
+    setPending(true);
+    setError('');
+    const result = await session.updateRoomLineup(next, acceptedRequestId);
+    setPending(false);
+    if (!result.ok) setError(result.message || 'The queue could not be updated.');
+    return result.ok;
+  }
+
   return (
-    <details className='host-lineup'>
+    <details className='host-lineup' open>
       <summary>
-        <ListMusic size={16} /> Host plan <span>Preview</span>
+        <ListMusic size={16} /> Up next <span>Preview · shared</span>
       </summary>
-      <p>Only on this screen. Not shared or saved. You open each track; its listening terms still apply.</p>
-      <form
-        onSubmit={event => {
-          event.preventDefault();
-          if (!available.some(track => track.id === picked) || tracks.length >= 12) return;
-          setIds(current => [...current.filter(id => catalog.catalogTracks.some(track => track.id === id && track.active !== false)), picked].slice(0, 12));
-          setPicked('');
-        }}
-      >
-        <label htmlFor='host-plan-track'>Track for host plan</label>
-        <select id='host-plan-track' className='field' value={picked} onChange={event => setPicked(event.target.value)}>
-          <option value=''>Choose a track</option>
-          {available.map(track => (
-            <option value={track.id} key={track.id}>
-              {track.title} — {track.artist}
-            </option>
-          ))}
-        </select>
-        <button type='submit' className='secondary-action' disabled={!picked || tracks.length >= 12}>
-          Add
-        </button>
-      </form>
+      <p>
+        {session.roomLineup
+          ? 'The host shapes the order and starts each track. The queue lasts for this room.'
+          : 'The shared queue is unavailable on this room service.'}
+      </p>
+      {!connected && <p role='status'>Reconnecting. This order may have changed.</p>}
+      {isHost && session.roomLineup && (
+        <form
+          onSubmit={event => {
+            event.preventDefault();
+            const track = available.find(item => item.id === picked);
+            if (!track || tracks.length >= 12 || disabled) return;
+            void update([...tracks, { id: track.id, title: track.title, artist: track.artist }], requestId || undefined).then(ok => {
+              if (ok) {
+                setPicked('');
+                setRequestId('');
+              }
+            });
+          }}
+          aria-busy={pending}
+        >
+          <label htmlFor='host-plan-track'>Track for room queue</label>
+          <select id='host-plan-track' className='field' value={picked} disabled={disabled} onChange={event => setPicked(event.target.value)}>
+            <option value=''>Choose a track</option>
+            {available.map(track => (
+              <option value={track.id} key={track.id}>
+                {track.title} — {track.artist}
+              </option>
+            ))}
+          </select>
+          <button type='submit' className='secondary-action' disabled={!picked || tracks.length >= 12 || disabled}>
+            Add
+          </button>
+          {session.requestQueue.length > 0 && (
+            <label className='lineup-request'>
+              For a request (optional)
+              <select className='field' value={requestId} disabled={disabled} onChange={event => setRequestId(event.target.value)}>
+                <option value=''>Host’s choice</option>
+                {session.requestQueue.map(request => (
+                  <option key={request.id} value={request.id}>
+                    {request.senderName}: {request.text}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </form>
+      )}
+      {error && <p role='status'>{error}</p>}
       {tracks.length ? (
-        <ol>
-          {tracks.map((track, index) => (
-            <li key={track.id}>
-              <span>
-                <small>{index === 0 ? 'Planned next' : `Then ${index + 1}`}</small>
-                {track.title}
-              </span>
-              <button
-                type='button'
-                disabled={index === 0}
-                aria-label={`Move ${track.title} earlier`}
-                onClick={() =>
-                  setIds(current => {
-                    const next = current.filter(id => catalog.catalogTracks.some(item => item.id === id && item.active !== false));
-                    [next[index - 1], next[index]] = [next[index], next[index - 1]];
-                    return next;
-                  })
-                }
-              >
-                <ArrowUp size={16} />
-              </button>
-              <button type='button' aria-label={`Remove ${track.title} from plan`} onClick={() => setIds(current => current.filter(id => id !== track.id))}>
-                <X size={16} />
-              </button>
-            </li>
-          ))}
+        <ol aria-label='Room queue'>
+          {tracks.map((track, index) => {
+            const playable = catalog.catalogTracks.find(item => item.id === track.id && item.active !== false);
+            return (
+              <li key={track.id}>
+                <span>
+                  <small>{index === 0 ? 'Planned next' : `Then ${index + 1}`}</small>
+                  {track.title}
+                  <small>{track.artist}</small>
+                  {isHost && !playable && <small>Unavailable in your catalog. Remove or choose another track.</small>}
+                </span>
+                {isHost && (
+                  <>
+                    <button
+                      type='button'
+                      disabled={index === 0 || disabled}
+                      aria-label={`Move ${track.title} earlier`}
+                      onClick={() => {
+                        const next = [...tracks];
+                        [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                        void update(next);
+                      }}
+                    >
+                      <ArrowUp size={16} />
+                    </button>
+                    <button
+                      type='button'
+                      disabled={disabled}
+                      aria-label={`Remove ${track.title} from queue`}
+                      onClick={() => void update(tracks.filter(item => item.id !== track.id))}
+                    >
+                      <X size={16} />
+                    </button>
+                  </>
+                )}
+              </li>
+            );
+          })}
         </ol>
       ) : (
-        <p>Add a few tracks to shape the room’s next moments.</p>
+        <p>{isHost ? 'Choose a few tracks for the room’s next moments.' : 'The host has not chosen the next track yet. You can send a request below.'}</p>
       )}
-      {tracks[0] && (
+      {isHost && tracks[0] && (
         <button
           type='button'
           className='secondary-action'
+          disabled={disabled || !catalog.catalogTracks.some(track => track.id === tracks[0].id && track.active !== false)}
           onClick={() => {
-            openTrack(tracks[0]);
-            setIds(current => current.filter(id => id !== tracks[0].id));
+            const track = catalog.catalogTracks.find(item => item.id === tracks[0].id && item.active !== false);
+            if (track) {
+              openTrack(track);
+              setError('Track selected. Start it when ready, then remove it from the queue. Listening terms still apply.');
+            }
           }}
         >
           Open next track

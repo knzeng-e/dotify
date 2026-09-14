@@ -503,3 +503,69 @@ socket.emit('peer:connected', { targetId: string /* host socket ID */ });
 // Host receives
 socket.on('peer:connected', (payload: { from: string }) => { ... });
 ```
+
+## Shared queue preview
+
+Requires `SIGNAL_HOST_LINEUP=on`; the frontend independently requires
+`VITE_DOTIFY_HOST_LINEUP=on`. Off by default. Create/join/resume acknowledgements
+include optional `lineup: { revision, tracks: [{ id, title, artist }] }`.
+Absent state means unavailable, not an empty queue. Host resume also restores
+`chatHistory` and `requests`, including activity received during its reconnect.
+
+The host sends `room:lineup:update` with `{ operationId, revision, tracks,
+acceptedRequestId? }`. Only its current hosted room is eligible; there is no
+caller-specified room ID. Entries are unique by opaque catalog ID, at most 12,
+with bounded ID/title/artist strings. Extra fields (including source references)
+are rejected. Labels come from the host; signaling does not authenticate catalog
+availability or bypass playback access.
+
+The acknowledgement is `{ ok, message?, lineup? }`. A stale revision returns the
+current snapshot and refuses the mutation. Successful edits increment the
+revision and broadcast `room:lineup` with `{ roomId, lineup }` to participants
+only. The last 64 operation IDs/fingerprints deduplicate identical retries;
+reuse with a different body is rejected. An older retry outside that window
+fails its original revision check. The frontend does not retry automatically:
+it retains the last confirmed order and reports uncertainty. A host may
+explicitly retry after reviewing the order.
+
+`acceptedRequestId` atomically removes an extant text request only when the new
+queue contains a newly added track. Free-text requests do not identify a release;
+the host deliberately chooses the matching catalog item. The existing
+`room:requests` broadcast communicates removal. Opening a queued track is local
+playback selection, not a queue mutation, and does not dequeue or claim success.
+
+State is room-memory only, survives the existing host resume flow, and is erased
+on room close/expiry/restart. Queue data is never included in `/status` or global
+room discovery. At most 30 edits per 10 seconds per room are accepted.
+
+## Manual-area nearby feasibility preview
+
+Requires `SIGNAL_NEARBY_PREVIEW=on` and `VITE_DOTIFY_NEARBY_PREVIEW=on` in the
+frontend. This is a bounded manual-choice transport, **not the full W18 cell
+protocol or completed W19**. No device location is collected. Supported IDs name
+broad pilot regions, with no coordinate boundaries or verified distances.
+
+| Event | Input | Acknowledgement / effect |
+| --- | --- | --- |
+| `nearby:areas` | none | `{ ok, areas: [{ id, label }] }`; metadata only |
+| `nearby:publish` | `{ areaId, consent: true }` | Host-only: `{ ok, areaId?, expiresAt?, message? }`; replaces its room listing for 90s |
+| `nearby:revoke` | none | Removes the caller's hosted-room listing; `{ ok: true }` when acknowledged |
+| `nearby:search` | `{ areaId, consent: true }` | `{ ok, results?, expiresAt?, resultBucket?, message? }` |
+
+Publish/search payloads reject every additional field and any unlisted area ID.
+Search results contain only `{ discoveryId, roomId, title, artist,
+listenerCountBucket, expiresAt }`, with at most 20 results and `0`, `1-3`, `4-9`,
+`10+` buckets. Search expiry is at most 30s and no later than the earliest listing
+expiry. Query intent is not stored; only a short-lived network-address rate
+bucket remains. The existing room list still has its own public counts, so
+bucketed nearby counts do not prevent cross-surface correlation.
+
+Server clocks own expiry. Listings rotate IDs after 15 minutes of deliberate
+renewals and on area change, expiry or revoke/republication. Disconnect removes
+visibility and resume does not restore it. Queries after revoke exclude the
+room immediately; previously received results can remain until their short
+client expiry. Clients clear results on hiding/disconnect/stop and stop host
+publication on hidden/pagehide/unmount. There is no background refresh, durable
+location history, wallet field or public location beacon. Same-area membership
+is self-declared. This preview does not solve malicious area choices, Sybil
+queries, proxy/operator observation, or correlation through stable room IDs.

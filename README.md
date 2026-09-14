@@ -546,3 +546,11 @@ Deferred cultural expansion:
     API/signaling health, and contract address availability.
 12. Improve room resilience with host handoff, reconnect recovery, and explicit
     room expiry.
+
+### Room experience previews
+
+The shared room queue and manual-area discovery preview remain off by default.
+Hosts curate the queue; listeners can see planned tracks and suggest their own.
+Nearby preview uses explicitly selected broad areas, never device location.
+See the [rollout flags and limits](docs/operations/deployment-configuration.md#shared-presence-room-rollout)
+and [implementation evidence](docs/backlog/implementation/evidence/killer-dapp-next-phases.md).

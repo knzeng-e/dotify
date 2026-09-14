@@ -553,3 +553,24 @@
     display: none;
   }
 }
+
+.host-lineup .lineup-request {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+}
+.room-requests-panel .host-lineup { margin: 0 0 16px; }
+
+.nearby-preview { border-top: 1px solid var(--line); padding-block: 12px; font-size: 13px; }
+.nearby-preview summary { cursor: pointer; font-weight: 600; }
+.nearby-preview summary svg { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.nearby-preview summary > span { color: var(--muted); font-size: 11px; margin-left: 6px; }
+.nearby-preview p { color: var(--muted); line-height: 1.6; margin-block: 10px; }
+.nearby-preview form, .nearby-area-choice, .nearby-results { display: grid; gap: 10px; }
+.nearby-preview form { margin-bottom: 10px; }
+.nearby-preview select { width: 100%; min-width: 0; }
+.nearby-results button { display: flex; justify-content: space-between; gap: 12px; text-align: left; }
+.nearby-results button > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.nearby-results small { display: block; }
+.nearby-discovery { max-width: 720px; margin-bottom: 24px; }
+.nearby-results { scroll-margin-block: 100px 200px; }
