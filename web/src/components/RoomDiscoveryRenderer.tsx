@@ -1,7 +1,8 @@
+import { RoomGalaxyScene } from './RoomGalaxyScene';
 import { SkyOfRooms } from './SkyOfRooms';
 import type { OpenRoom, SessionAction } from '../shared/types';
 
-export type RoomDiscoveryRendererKind = 'sky-2d';
+export type RoomDiscoveryRendererKind = 'galaxy-3d' | 'sky-2d';
 
 type RoomDiscoveryRendererProps = {
   renderer?: RoomDiscoveryRendererKind;
@@ -12,11 +13,13 @@ type RoomDiscoveryRendererProps = {
   onJoinRoom: (roomId: string) => void;
 };
 
-// Boundary for later immersive renderers. W10 keeps the honest DOM/CSS 2D sky
-// as the only implementation, so mobile/list users and Product hosts share the
-// same room data contract before any optional 3D surface is introduced.
+// Boundary for immersive renderers. The 3D galaxy is an enhancement over the
+// same real open-room data; the 2D sky and card grid remain the complete path
+// for reduced motion, mobile, unsupported graphics, and rollback.
 export function RoomDiscoveryRenderer({ renderer = 'sky-2d', rooms, selectedRoomId, sessionAction, onSelectRoom, onJoinRoom }: RoomDiscoveryRendererProps) {
-  if (renderer !== 'sky-2d') return null;
+  if (renderer === 'galaxy-3d') {
+    return <RoomGalaxyScene rooms={rooms} selectedRoomId={selectedRoomId} sessionAction={sessionAction} onSelectRoom={onSelectRoom} onJoinRoom={onJoinRoom} />;
+  }
 
   return <SkyOfRooms rooms={rooms} selectedRoomId={selectedRoomId} sessionAction={sessionAction} onSelectRoom={onSelectRoom} onJoinRoom={onJoinRoom} />;
 }

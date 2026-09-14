@@ -31,8 +31,9 @@ aura lights the whole field (`web/src/styles/aura.css`).
 
 - **Music**: real open rooms first, then the catalog, policy-aware listening,
   and one-step room hosting without a permanent player navigation tab.
-- **Rooms**: open listening rooms plus manual room-code entry. Room guests should
-  be able to join and listen without wallet friction.
+- **Rooms**: open listening rooms in the default 2D sky/list path, an optional
+  3D galaxy, and manual room-code entry. Room guests should be able to join and
+  listen without wallet friction.
 - **Artist portal**: a dedicated `/artists` onboarding and studio surface where
   artists connect a wallet, create their runtime, upload releases, configure
   access, add additional rights holders for royalty splits, and manage royalty
@@ -45,9 +46,9 @@ access mode its artist chose at upload. Any track can be opened as a room.
 
 ![Dotify catalog](docs/images/dotify-catalog.png)
 
-**Listening rooms** - open rooms appear as a galaxy. Every halo is a listening
-moment happening right now; discovery starts from someone listening rather than
-from a feed.
+**Listening rooms** - open rooms start in the 2D/list path and can opt into a
+galaxy view on supported desktops. Every halo is a listening moment happening
+right now; discovery starts from someone listening rather than from a feed.
 
 ![Dotify listening rooms](docs/images/dotify-rooms-galaxy.png)
 

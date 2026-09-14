@@ -133,10 +133,15 @@ One vocabulary declined everywhere, instead of a zoo of loaders:
 
 ## Technical constraints (these decide, not taste)
 
-- **The Bulletin build is a single-file artifact.** three.js costs roughly
-  150 kB gzipped more than needed. Use OGL (about 15 kB, the base of the
-  circular-gallery reference) or bare-canvas shaders, lazy-loaded outside the
-  critical bundle, with a CSS fallback. Phase A needs no WebGL at all.
+- **The 3D room galaxy is optional.** W14 adds a bare Three.js renderer behind
+  `RoomDiscoveryRenderer` because the implementation sequence explicitly tests
+  a true 3D room field. It must stay lazy-loaded, data-driven, disposable, and
+  reversible to the 2D sky/list fallback. The 2D renderer remains the default
+  until supported-device performance evidence justifies promoting the 3D view.
+  The normal web and Product builds keep the `three` code in an on-demand chunk;
+  the Bulletin single-file build inlines it by design, so Bulletin-first
+  releases should keep the 2D renderer as the default unless the size tradeoff
+  is intentional. Phase A needs no WebGL at all.
 - **The aura engine is the single color source.** Shaders and CSS effects read
   the `--aura-*` variables; the 3D inherits the existing system instead of
   inventing a second one.
@@ -152,15 +157,15 @@ One vocabulary declined everywhere, instead of a zoo of loaders:
 | Phase | Surface | Content | WebGL |
 | --- | --- | --- | --- |
 | A | Listen | Stage rail: arc + aura lamp + unlocked glare | none (CSS + rAF) |
-| B | Rooms | Sky of rooms: dot-spheres + presence orbits, grid fallback | none (see note) |
+| B | Rooms | Sky of rooms: dot-spheres + presence orbits, grid fallback, optional W14 3D renderer | optional Three.js |
 | C | Cross | Dot-birth loader, unlock ritual, reaction petals, studio orbit | none |
 
-Phase B note: the original plan allowed one lazy OGL canvas. The prototype
-showed DOM + CSS covers the visual completely at realistic room counts
-(tens, not thousands of points), so the dependency and single-file-bundle
-weight were not justified. OGL remains the designated escape hatch if the sky
-ever needs hundreds of simultaneous points (for example filaments once the
-ambassador data exists).
+Phase B note: the earlier prototype proved that DOM + CSS covers the essential
+room discovery experience at realistic room counts. W14 keeps that path as the
+complete fallback and adds a Three.js renderer only as a supported-desktop
+enhancement. Any future high-density graph, filament, or propagation visual
+must still prove real source data, performance, and Bulletin/Product packaging
+before it replaces the 2D/list path.
 
 `docs/index.html` (the public page) follows when a phase changes the outward
 visual identity, per the GitHub Pages alignment rule.

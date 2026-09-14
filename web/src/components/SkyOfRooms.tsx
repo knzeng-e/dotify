@@ -23,6 +23,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react';
 import { CoverImage } from './CoverImage';
 import { auraForTrack, hashHue } from '../shared/utils/aura';
+import { roomConstellationPosition } from '../features/rooms/roomConstellationLayout';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import type { OpenRoom, SessionAction } from '../shared/types';
 
@@ -34,7 +35,6 @@ type SkyOfRoomsProps = {
   onJoinRoom: (roomId: string) => void;
 };
 
-const GOLDEN_ANGLE = 137.508;
 const MAX_VISIBLE_PETALS = 10;
 const JOIN_FLOOD_MS = 420;
 const MIN_ZOOM = 0.72;
@@ -48,22 +48,6 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
 }
 
-// Deterministic constellation layout: a golden-angle spiral by index, with a
-// small jitter hashed from the roomId so the sky never looks mechanical while
-// staying stable for a given set of rooms.
-function dotPosition(index: number, total: number, roomId: string) {
-  const jitter = hashHue(roomId);
-  const angle = ((index * GOLDEN_ANGLE + (jitter % 21) - 10) * Math.PI) / 180;
-  const spread = total <= 1 ? 0 : Math.sqrt(index / (total - 1));
-  const radius = spread * (34 + (jitter % 7)); // percent of container half-size
-  return {
-    // Default framing keeps the complete sphere + label visible. Zoom and pan
-    // may crop it by choice, with Reset always restoring this safe overview.
-    x: clamp(50 + Math.cos(angle) * radius, 16, 84),
-    y: clamp(50 + Math.sin(angle) * radius * 0.72, 20, 68)
-  };
-}
-
 export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom, onJoinRoom }: SkyOfRoomsProps) {
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [camera, setCamera] = useState<SkyCamera>({ x: 0, y: 0, scale: 1 });
@@ -71,7 +55,7 @@ export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom,
   const [centeredRoomId, setCenteredRoomId] = useState<string | null>(null);
   const skyRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
-  const roomLayouts = rooms.map((room, index) => dotPosition(index, rooms.length, room.roomId));
+  const roomLayouts = rooms.map(room => roomConstellationPosition(room.roomId));
   const centeredRoomIndex = Math.max(
     0,
     rooms.findIndex(room => room.roomId === centeredRoomId)
@@ -153,8 +137,8 @@ export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom,
     setCamera(current => {
       const scale = Math.max(current.scale, 1);
       return {
-        x: -((layout.x - 50) / 100) * rect.width * scale,
-        y: -((layout.y - 50) / 100) * rect.height * scale,
+        x: -((layout.xPercent - 50) / 100) * rect.width * scale,
+        y: -((layout.yPercent - 50) / 100) * rect.height * scale,
         scale
       };
     });
@@ -279,8 +263,8 @@ export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom,
               disabled={!onSelectRoom && (sessionAction !== 'idle' || full)}
               style={
                 {
-                  left: `${roomLayouts[index].x}%`,
-                  top: `${roomLayouts[index].y}%`,
+                  left: `${roomLayouts[index].xPercent}%`,
+                  top: `${roomLayouts[index].yPercent}%`,
                   '--dot-size': `${size}px`,
                   '--dot-a': aura.a,
                   '--dot-b': aura.b,

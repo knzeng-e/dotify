@@ -80,3 +80,9 @@ honesty rule throughout.
   a static core, near-instant ritual, fade-only reactions, no arrival motion.
   Verified with the full gate plus a mid-flight screenshot of the unlock
   ritual on the seeded classic-unlock flow.
+- W14 promotes the room sky into an optional Three.js renderer behind
+  `RoomDiscoveryRenderer`: real open-room data only, stable positions keyed by
+  room identity, DOM controls/labels for accessible selection and direct join,
+  and automatic fallback to the 2D sky/list for mobile, reduced motion, graphics
+  failure, and feature-off rollback. The 2D/list path remains the supported
+  baseline.

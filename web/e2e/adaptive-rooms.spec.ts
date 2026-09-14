@@ -2,6 +2,21 @@ import { expect, test, type Page } from '@playwright/test';
 
 const PUBLIC_TITLE = 'E2E Public Room Track';
 
+declare global {
+  interface Window {
+    __DOTIFY_ROOM_GALAXY__?: {
+      snapshot: () => {
+        status: string;
+        roomCount: number;
+        visibleOverlayCount: number;
+        frameCount: number;
+        pixelRatio: number;
+        paused: boolean;
+      };
+    };
+  }
+}
+
 async function openPublicRoom(page: Page) {
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room' }).click();
@@ -20,12 +35,71 @@ async function openRoomsTab(page: Page, roomId: string) {
   return roomCard;
 }
 
+async function expectGalaxyReady(page: Page) {
+  await expect(page.getByTestId('room-galaxy-scene')).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const snapshot = window.__DOTIFY_ROOM_GALAXY__?.snapshot();
+        if (!snapshot) return 'missing';
+        return `${snapshot.status}:${snapshot.roomCount >= 1}:${snapshot.visibleOverlayCount >= 1}:${snapshot.frameCount > 0}`;
+      })
+    )
+    .toBe('ready:true:true:true');
+}
+
+async function expectGalaxyCanvasPainted(page: Page) {
+  const paintedPixels = await page.getByTestId('room-galaxy-canvas').evaluate((canvas: HTMLCanvasElement) => {
+    const sample = document.createElement('canvas');
+    sample.width = 96;
+    sample.height = 64;
+    const context = sample.getContext('2d', { willReadFrequently: true });
+    if (!context) return 0;
+    context.drawImage(canvas, 0, 0, sample.width, sample.height);
+    const pixels = context.getImageData(0, 0, sample.width, sample.height).data;
+    let painted = 0;
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (pixels[index + 3] > 0 && pixels[index] + pixels[index + 1] + pixels[index + 2] > 18) painted += 1;
+    }
+    return painted;
+  });
+
+  expect(paintedPixels).toBeGreaterThan(24);
+}
+
+async function disableWebGl(page: Page) {
+  await page.addInitScript(() => {
+    const nativeGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function getContextWithDisabledWebGl(type: string, ...args: unknown[]) {
+      if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') return null;
+      return nativeGetContext.call(this, type, ...args);
+    } as typeof HTMLCanvasElement.prototype.getContext;
+  });
+}
+
 test('room discovery exposes an inspection panel beside the desktop list', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const roomId = await openPublicRoom(page);
   const roomCard = await openRoomsTab(page, roomId);
 
   await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
+  await page.getByRole('button', { name: '3D' }).click();
+  await expectGalaxyReady(page);
+  await expectGalaxyCanvasPainted(page);
+  await expect(page.getByRole('button', { name: `Join room ${roomId}` })).toBeVisible();
+  await page.getByTestId('room-galaxy-scene').focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('+');
+  await page.keyboard.press('Home');
+  await expectGalaxyReady(page);
+  await page.getByTestId('room-galaxy-canvas').dispatchEvent('webglcontextlost');
+  await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
+  await page.getByRole('button', { name: '2D' }).click();
+  await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
+  await page.getByRole('button', { name: '3D' }).click();
+  await expectGalaxyReady(page);
+  await expectGalaxyCanvasPainted(page);
+
   await roomCard.click();
 
   const panel = page.getByTestId('room-detail-panel');
@@ -47,6 +121,30 @@ test('room discovery exposes an inspection panel beside the desktop list', async
 
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
   expect(layout.detailLeft).toBeGreaterThan(layout.mainRight);
+});
+
+test('room discovery falls back to the 2D sky when WebGL is unavailable', async ({ page }) => {
+  await disableWebGl(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const roomId = await openPublicRoom(page);
+  const roomCard = await openRoomsTab(page, roomId);
+
+  await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
+  await roomCard.click();
+  await expect(page.getByTestId('room-detail-panel')).toContainText(PUBLIC_TITLE);
+});
+
+test('room discovery keeps the card grid usable with reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const roomId = await openPublicRoom(page);
+  const roomCard = await openRoomsTab(page, roomId);
+
+  await expect(page.getByTestId('room-galaxy-scene')).toBeHidden();
+  await expect(page.getByTestId('sky-of-rooms')).toBeHidden();
+  await expect(roomCard).toBeVisible();
+  await roomCard.click();
+  await expect(page.getByTestId('room-detail-panel').getByRole('button', { name: 'Join room' })).toBeVisible();
 });
 
 test('room discovery uses a touch-safe inspection sheet above mobile playback controls', async ({ page }) => {
