@@ -175,9 +175,10 @@ tooling/CDM registry refresh, the re-pinned Bulletin descriptor, and the viem
 release-registration confirmation hardening for dropped or still-pending wallet
 hashes, plus the W06 removal of passkey-only wallet routes from the public
 Product and standalone account flows, W07 key-versioned protected audio refs,
-and the W14 optional room galaxy renderer behind the 2D/list fallback. The
-normal web and Product builds lazy-load the `three` chunk on demand; the
-Bulletin single-file build inlines it.
+and the W14 optional room galaxy renderer behind the 2D/list fallback. The 2D
+renderer remains the default until supported-device performance evidence
+justifies promoting 3D. The normal web and Product builds lazy-load the `three`
+chunk on demand; the Bulletin single-file build inlines it.
 
 Current Product host SDK dependencies:
 

@@ -40,7 +40,7 @@ export function RoomsView({
   onStartRoom
 }: RoomsViewProps) {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-  const [discoveryRenderer, setDiscoveryRenderer] = useState<RoomDiscoveryRendererKind>('galaxy-3d');
+  const [discoveryRenderer, setDiscoveryRenderer] = useState<RoomDiscoveryRendererKind>('sky-2d');
   const roomCardRefs = useRef(new Map<string, HTMLButtonElement>());
   const roomDetailsSheetRef = useRef<HTMLElement | null>(null);
   const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);

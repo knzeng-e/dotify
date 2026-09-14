@@ -82,6 +82,8 @@ test('room discovery exposes an inspection panel beside the desktop list', async
   const roomId = await openPublicRoom(page);
   const roomCard = await openRoomsTab(page, roomId);
 
+  await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
+  await page.getByRole('button', { name: '3D' }).click();
   await expectGalaxyReady(page);
   await expectGalaxyCanvasPainted(page);
   await expect(page.getByRole('button', { name: `Join room ${roomId}` })).toBeVisible();

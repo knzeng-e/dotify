@@ -136,10 +136,12 @@ One vocabulary declined everywhere, instead of a zoo of loaders:
 - **The 3D room galaxy is optional.** W14 adds a bare Three.js renderer behind
   `RoomDiscoveryRenderer` because the implementation sequence explicitly tests
   a true 3D room field. It must stay lazy-loaded, data-driven, disposable, and
-  reversible to the 2D sky/list fallback. The normal web and Product builds keep
-  the `three` code in an on-demand chunk; the Bulletin single-file build inlines
-  it by design, so Bulletin-first releases should use the 2D renderer unless
-  the size tradeoff is intentional. Phase A needs no WebGL at all.
+  reversible to the 2D sky/list fallback. The 2D renderer remains the default
+  until supported-device performance evidence justifies promoting the 3D view.
+  The normal web and Product builds keep the `three` code in an on-demand chunk;
+  the Bulletin single-file build inlines it by design, so Bulletin-first
+  releases should keep the 2D renderer as the default unless the size tradeoff
+  is intentional. Phase A needs no WebGL at all.
 - **The aura engine is the single color source.** Shaders and CSS effects read
   the `--aura-*` variables; the 3D inherits the existing system instead of
   inventing a second one.

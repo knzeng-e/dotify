@@ -415,9 +415,11 @@ browser.
 The W14 room galaxy lazy-loads `three` in the normal Vite build, so the
 standalone web bundle keeps the graphics code in a separate on-demand chunk.
 The Product build is multi-file and also preserves that chunking; the Bulletin
-single-file build inlines it by design. If Bulletin quota or first-load size is
-the priority for a release, switch the Rooms view back to the 2D renderer before
-publishing that profile and keep the card list as the supported path.
+single-file build inlines it by design. W14 keeps the 2D room sky as the
+default and exposes 3D as an opt-in desktop renderer until supported-device
+performance evidence justifies promoting it. If Bulletin quota or first-load
+size is the priority for a release, keep that default and do not promote 3D for
+that profile.
 
 Room continuity introduced in `[0, 1, 6]` also depends on the matching
 signaling server.
