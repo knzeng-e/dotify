@@ -1,7 +1,9 @@
 # Mobile composition and catalog discovery
 
-Branch: `fix/mobile-composer-and-discovery`  
-Reviewed base: `dev` at `6cdcd11a504aa602c0800bb4b28d91f286030493`  
+Branch: `fix/mobile-composer-and-discovery`
+
+Reviewed base: `dev` at `6cdcd11a504aa602c0800bb4b28d91f286030493`
+
 Scope: partial [#90](https://github.com/knzeng-e/dotify/issues/90), following the
 [product-readiness roadmap](../../polkadot-product-readiness-and-killer-dapp-roadmap.md)
 and [room resilience sequence](../W09-room-resilience.md).
