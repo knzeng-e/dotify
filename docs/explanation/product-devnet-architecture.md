@@ -225,7 +225,14 @@ CASH is represented separately as an unsupported `product-cash` rail. That is
 intentional. CASH lives on People chain while Dotify entitlements live in Asset
 Hub runtimes, so the Product-native path needs an explicit receipt or bridge
 model before any listener payment can execute. Dotify must not silently convert
-CASH to native runtime value or mark access paid without runtime evidence.
+CASH to native runtime value or mark access paid without runtime evidence. The
+W16 decision record now names the required future proof shape and the local
+harness that keeps this rail unavailable until Product supplies a verifiable
+CASH-to-runtime entitlement path. The proof must derive the payer H160 from the
+Product public key, identify the exact finalized CASH transfer, and correlate
+the Asset Hub entitlement to that same receipt rather than accepting pre-existing
+runtime access:
+[`Product CASH Settlement Decision`](../design/product-cash-settlement-decision.md).
 
 The CDM adapter has one deliberate gap: historical royalty payment events are
 not read through Product contract handles because the current SDK surface

@@ -147,6 +147,11 @@ native amount as a typed runtime payment intent before submitting
 Product CASH settlement is deliberately not executable through this path. CASH
 lives on People chain while Dotify runtime entitlements live on Asset Hub, so
 that future flow needs an explicit Product-confirmed receipt or bridge design.
+The current W16 decision record keeps CASH unavailable until that mechanism can
+bind the Product-derived payer identity, recipient, asset id, exact
+People-chain transfer finality, correlated Asset-Hub runtime entitlement, and
+replay prevention:
+[`Product CASH Settlement Decision`](../design/product-cash-settlement-decision.md).
 
 ### Royalty event structure
 
