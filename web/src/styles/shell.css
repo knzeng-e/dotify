@@ -128,10 +128,9 @@ button.wallet-pill:hover {
 }
 
 .wallet-pill[data-tone='muted'] {
-  border-color: var(--action);
-  background: var(--action);
-  color: var(--on-action);
-  box-shadow: 0 0 18px rgb(0 229 160 / 0.2);
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-soft);
 }
 
 button.wallet-pill[data-tone='muted']:hover {
@@ -175,7 +174,7 @@ button.wallet-pill[data-tone='muted']:hover {
 .artist-portal-main {
   width: min(100%, calc(var(--container) + (var(--content-pad) * 2)));
   margin: 0 auto;
-  padding: clamp(2.5rem, 6vw, 5.25rem) var(--content-pad) calc(var(--dock-height) + 5rem);
+  padding: clamp(2rem, 4vw, 3.5rem) var(--content-pad) calc(var(--dock-height) + 5rem);
 }
 
 .content-player {

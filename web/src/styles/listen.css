@@ -1,6 +1,6 @@
 .listen-home {
   display: grid;
-  gap: clamp(4.5rem, 8vw, 7.5rem);
+  gap: clamp(2.5rem, 5vw, 4rem);
 }
 
 .now-intro {
@@ -14,10 +14,10 @@
   max-width: 13ch;
   margin-top: 0.8rem;
   font-family: var(--font-editorial);
-  font-size: clamp(3.4rem, 7vw, 6.65rem);
+  font-size: clamp(3rem, 5.5vw, 5.25rem);
   font-weight: 600;
   letter-spacing: -0.055em;
-  line-height: 0.91;
+  line-height: 1.02;
 }
 
 .now-intro > p {
@@ -36,7 +36,7 @@
 .moment-feature {
   position: relative;
   display: grid;
-  min-height: 34rem;
+  min-height: 27rem;
   grid-template-columns: minmax(20rem, 0.84fr) minmax(26rem, 1.16fr);
   border-radius: var(--radius-xl);
   background: var(--night);
@@ -903,6 +903,8 @@
 }
 
 .ava {
+  width: var(--ava-size, 2rem);
+  height: var(--ava-size, 2rem);
   display: inline-grid;
   flex: 0 0 auto;
   place-items: center;

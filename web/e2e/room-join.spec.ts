@@ -200,6 +200,7 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await expect(secondListener.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
     await expect(secondListener.locator('.listener-list')).toContainText('Zed', { timeout: 20_000 });
 
+    await listener.getByRole('tab', { name: /People/ }).click();
     await listener.getByLabel('Your room name').fill('Nia');
     await listener.getByRole('button', { name: 'Update room name' }).click();
     await expect(host.locator('.listener-list')).toContainText('Nia', { timeout: 20_000 });
@@ -435,6 +436,7 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
 
     // An explicit close is authoritative and bypasses the transient transport
     // resume window, so listeners are notified immediately.
+    await host.getByRole('tab', { name: /People/ }).click();
     await host.getByRole('button', { name: 'Close room' }).click();
 
     await expect(listener.getByTestId('session-error')).toContainText(/host left|room closed|expired/i, { timeout: 20_000 });

@@ -32,7 +32,7 @@ aura lights the whole field (`web/src/styles/aura.css`).
 - **Music**: real open rooms first, then the catalog, policy-aware listening,
   and one-step room hosting without a permanent player navigation tab.
 - **Rooms**: open listening rooms in the default 2D sky/list path, an optional
-  3D galaxy, and manual room-code entry. Room guests should be able to join and
+  3D galaxy behind a build-time opt-in, and manual room-code entry. Room guests should be able to join and
   listen without wallet friction.
 - **Artist portal**: a dedicated `/artists` onboarding and studio surface where
   artists connect a wallet, create their runtime, upload releases, configure
@@ -53,7 +53,7 @@ right now; discovery starts from someone listening rather than from a feed.
 ![Dotify listening rooms](docs/images/dotify-rooms-galaxy.png)
 
 **Inside a room** - one shared player, a room chat and emoji reactions that live
-only as long as the room, and track requests the host decides on.
+only as long as the room, and track requests the host decides on. Mobile keeps the player and composer in view while Chat, Requests and People switch in place.
 
 ![Inside a Dotify room](docs/images/dotify-room.png)
 
