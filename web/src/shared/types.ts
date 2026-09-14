@@ -49,6 +49,8 @@ export type TrackInfo = {
 };
 
 export type PlayerState = {
+  /** Server-aged join snapshot: interrupted playback, not an intentional pause. */
+  stale?: boolean;
   playing: boolean;
   duration: number;
   updatedAt: number;

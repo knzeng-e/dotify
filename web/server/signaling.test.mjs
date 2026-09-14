@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 import { Fetch as EngineFetch } from 'engine.io-client';
 import { io as ioClient } from 'socket.io-client';
 import { isSignalingOriginAllowed, readConfigFromEnv, startSignalingServer } from './signaling.mjs';
-import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash } from './signaling-utils.mjs';
+import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash, sanitizePlayerState, snapshotPlayerState } from './signaling-utils.mjs';
 
 let server;
 let port;
@@ -1190,5 +1190,54 @@ describe('sanitizeTrackHash', () => {
   it('rejects arbitrary aggregate keys', () => {
     assert.equal(sanitizeTrackHash('Pyramides'), null);
     assert.equal(sanitizeTrackHash('0xabc'), null);
+  });
+});
+
+describe('shared playback clock', () => {
+  it('distinguishes stale playing snapshots from real pauses without extending the clock', () => {
+    const playing = { playing: true, currentTime: 30, duration: 60, updatedAt: -999999 };
+    assert.deepEqual(snapshotPlayerState(playing, 1000, 4000), {
+      ...playing,
+      playing: false,
+      currentTime: 32.5,
+      updatedAt: 4000,
+      stale: true
+    });
+    assert.equal(snapshotPlayerState({ ...playing, playing: false }, 1000, 60_000).stale, false);
+    assert.equal(snapshotPlayerState(playing, 1000, 1100).stale, false);
+    assert.equal(snapshotPlayerState(null, 1000, 4000), null);
+  });
+
+  it('does not accept a host-supplied stale marker as authoritative', () => {
+    const state = sanitizePlayerState({ playing: false, currentTime: 30, duration: 60, stale: true });
+    assert.equal(state.stale, undefined);
+    assert.equal(snapshotPlayerState(state, 1000, 60_000).stale, false);
+  });
+
+  it('late join uses server elapsed time, ignores guest seeks and clears clock for a new release', async () => {
+    const host = connectClient();
+    const created = await createRoom(host, { track: { hash: 'first', title: 'First' } });
+    const guest = connectClient();
+    await once(guest, 'connect');
+    await emitAck(guest, 'room:join', { roomId: created.roomId });
+    const stateArrives = once(guest, 'player:state');
+    host.emit('player:state', { playing: true, currentTime: 30, duration: 60, updatedAt: -999999999 });
+    await stateArrives;
+    await new Promise(resolve => setTimeout(resolve, 150));
+    const late = connectClient();
+    await once(late, 'connect');
+    const joined = await emitAck(late, 'room:join', { roomId: created.roomId });
+    assert.ok(joined.playerState.currentTime >= 30.1 && joined.playerState.currentTime < 31.5);
+    guest.emit('player:state', { playing: false, currentTime: 0, duration: 60 });
+    await emitAck(guest, 'room:rename', { displayName: 'Guest' });
+    const status = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    assert.equal(status.rooms[0].playerState.currentTime, 30);
+    assert.equal(status.rooms[0].playerState.playing, true);
+    const paused = once(guest, 'player:state');
+    host.emit('player:state', { playing: false, currentTime: 40, duration: 60 });
+    assert.equal((await paused).currentTime, 40);
+    const reset = once(guest, 'player:state');
+    host.emit('room:track', { hash: 'second', title: 'Second' });
+    assert.equal(await reset, null);
   });
 });

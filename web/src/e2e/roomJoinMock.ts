@@ -37,9 +37,11 @@ const PUBLIC_COVER =
 // A deterministic 2s 8-bit/8kHz silent WAV, built once at module load (pure,
 // no Date/random). It gives the host a real, finite-duration local source so
 // playback progresses deterministically for the room specs.
+const syncFixture = isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eSync') === 'on';
+
 function buildSilentWavDataUrl(fillValue = 128): string {
   const sampleRate = 8000;
-  const seconds = 2;
+  const seconds = syncFixture ? 60 : 2;
   const dataLen = sampleRate * seconds; // 8-bit mono
   const bytes = new Uint8Array(44 + dataLen);
   const view = new DataView(bytes.buffer);
@@ -60,6 +62,9 @@ function buildSilentWavDataUrl(fillValue = 128): string {
   writeAscii(36, 'data');
   view.setUint32(40, dataLen, true);
   bytes.fill(fillValue, 44); // unsigned 8-bit near-silence
+  if (syncFixture) {
+    for (let i = 0; i < dataLen; i++) bytes[44 + i] = 128 + Math.round(32 * Math.sin((2 * Math.PI * 440 * i) / sampleRate));
+  }
 
   let binary = '';
   for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);

@@ -399,8 +399,9 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   value={transportProgress}
                   style={transportProgressStyle}
                   onChange={event => playback.seekToProgress(Number(event.target.value))}
-                  disabled={!playback.canUseTransport || transportDuration <= 0}
-                  aria-label='Seek'
+                  disabled={!playback.canSeek}
+                  aria-label={mode === 'host' ? 'Seek' : 'Room progress'}
+                  title={mode === 'host' ? 'Seek' : 'The host controls seeking'}
                 />
                 <span>{formatTime(transportDuration)}</span>
               </div>
@@ -428,7 +429,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   type='button'
                   data-active={playback.repeatEnabled}
                   onClick={playback.toggleRepeat}
-                  disabled={!playback.canUseTransport}
+                  disabled={!playback.canRepeat || !playback.canUseTransport}
                   aria-pressed={playback.repeatEnabled}
                   title='Repeat this track'
                 >

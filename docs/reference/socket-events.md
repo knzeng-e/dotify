@@ -422,7 +422,26 @@ socket.emit('player:state', {
 socket.on('player:state', (state: PlayerState | null) => { ... });
 ```
 
-Listeners use `updatedAt` to compensate for network delay when displaying the progress indicator.
+The host is the only accepted publisher. Clients send transient samples only
+while connected. Forced transitions use reliable emission even when a connected
+transport is busy; periodic samples remain volatile. Forced transitions include
+fresh snapshots after room creation/resume and track publication. A changed track clears the previous clock with a `null` payload
+on the existing `player:state` event.
+
+Listeners interpolate from local monotonic receipt time, never by subtracting
+`updatedAt` from a different device's wall clock. A playing sample may advance
+for at most 2.5 seconds without an update; then output is silenced and the player
+shows "Syncing with host". A paused sample holds its position. The join ack
+projects the stored sample using its age on the server, also bounded to 2.5
+seconds. An optional server-derived `stale: true` marker on an aged playing
+join snapshot preserves the interruption state while `playing: false` keeps
+output silent, including on older clients. Real pauses are not marked stale;
+a fresh host sample clears the marker. Host-supplied markers are stripped.
+`updatedAt` is diagnostic, not an inter-device latency estimate.
+
+Only the host can seek or repeat. A guest pause silences that guest while the
+room clock keeps following the host. Remote media-element events cannot change
+the song position. See [playback synchronization](../explanation/room-playback-synchronization.md).
 
 ---
 
