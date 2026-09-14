@@ -23,6 +23,7 @@ Conceptual documents that help you understand why Dotify works the way it does.
 | [Royalty Settlement](./explanation/royalty-settlement.md) | All | How native runtime payments settle, become claimable on recipient failure, and stay separate from Product CASH |
 | [Listening Rooms](./explanation/listening-rooms.md) | All | WebRTC peer-to-peer streaming, signaling protocol, known limitations |
 | [Product DevNet Architecture](./explanation/product-devnet-architecture.md) | Maintainers | Dual-host boundaries, Product account capabilities, rooms, storage, and the proposed contract port |
+| [Product CASH Settlement Decision](./design/product-cash-settlement-decision.md) | Maintainers | Why CASH remains unavailable until Product supplies a verifiable CASH-to-runtime entitlement path |
 
 ---
 

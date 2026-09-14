@@ -112,5 +112,5 @@ export function createUnsupportedCashAccessPaymentIntent(input: {
 }
 
 export function cashSettlementUnavailableReason(): string {
-  return 'Product CASH settlement is not executable yet: CASH lives on People chain while Dotify runtime entitlements live on Asset Hub, and the receipt/bridge model still needs Product confirmation.';
+  return 'Product CASH settlement is not executable yet: CASH is spent through Coinage on People chain while Dotify runtime entitlements live on Asset Hub, and no Product-confirmed proof currently binds the payer, CASH asset, recipient, finality, and runtime access grant.';
 }

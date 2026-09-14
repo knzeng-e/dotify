@@ -322,6 +322,7 @@ npm run test:unit
 npm run smoke:devnet
 npm run smoke:product-journey -- --md-out /tmp/dotify-product-journey.md --json-out /tmp/dotify-product-journey.json
 npm run smoke:pilot-release -- --md-out /tmp/dotify-pilot-release-readiness.md --json-out /tmp/dotify-pilot-release-readiness.json
+npm run smoke:product-cash-settlement -- --md-out /tmp/dotify-product-cash-settlement.md --json-out /tmp/dotify-product-cash-settlement.json
 npm run build:product-devnet
 ```
 
@@ -340,6 +341,12 @@ metrics. Optional pilot evidence must use schema v2 and bind the decision to
 the candidate git SHA, Product appVersion, deployed CID, capture time, outcome
 metrics, privacy flags, rollback, and join-count invariants. It does not sign,
 deploy, contact participants, or treat missing live evidence as a pass.
+
+`smoke:product-cash-settlement` is also read-only. The expected result for the
+current Product SDK snapshot is `cash-settlement-unavailable`: local fail-closed
+gates pass, and the live CASH path remains blocked on a Product-confirmed
+CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
+operator-supplied evidence file is unsafe and must block the release.
 
 The default build keeps the viem runtime adapter, which tree-shakes the Product
 contract graph away and publishes at roughly 4.4 MB. Building with
@@ -636,6 +643,23 @@ npm run smoke:product-journey -- \
    `product-cdm` build must report **Payment included, access not verified**
    with the transaction hash instead of marking the track open.
    Keep the shipped profile on `viem`.
+
+   Product CASH is a separate future rail, not a replacement for this native
+   runtime smoke. A Host `PaymentManager` status of `Completed` is not enough
+   to unlock a Dotify track because it does not by itself update or prove
+   `musicAccHasPaid` on the Asset Hub runtime. If Product ships an
+   authoritative CASH settlement or attestation path, capture it with the W16
+   evidence schema and run:
+
+```bash
+npm run smoke:product-cash-settlement -- \
+  --evidence /path/to/product-cash-evidence.json \
+  --md-out /tmp/dotify-product-cash-settlement.md \
+  --json-out /tmp/dotify-product-cash-settlement.json
+```
+
+   Until that command passes with an explicitly supported authority, the UI and
+   backend must continue to leave Product CASH unavailable.
 
 7. A Product-origin host creates a room and copies a
    `https://dotify-test01.dev-dot.li/#/rooms/<code>` link.
