@@ -1,3 +1,4 @@
+import { useRoomViewport } from '../features/rooms/useRoomViewport';
 // Listener shell - the full listener-facing render tree (top bar, nav rail,
 // page views, player dock, room modals) plus the listener-only UI state and
 // handlers. It is self-contained: everything it needs comes from the provider
@@ -189,6 +190,8 @@ export function ListenerShell() {
     if (view === 'rooms') session.requestOpenRooms(true);
   }
   const navItems = NAV_ITEMS.map(item => ({ ...item, onSelect: () => handleNavSelect(item.view) }));
+  const roomFocused = activeView === 'player' && Boolean(session.roomId) && !publicArtistName;
+  const roomShellRef = useRoomViewport(roomFocused);
 
   return (
     <>
@@ -201,7 +204,7 @@ export function ListenerShell() {
         onEmitPlayerState={session.emitPlayerState}
       />
       <AuraBackground />
-      <div className='app-shell'>
+      <div className='app-shell' ref={roomShellRef} data-room-focus={roomFocused}>
         <a className='skip-link' href='#main-content'>
           Skip to content
         </a>
@@ -320,7 +323,7 @@ export function ListenerShell() {
             )}
 
             {session.sessionLink && (
-              <a className='floating-link' href={session.sessionLink}>
+              <a hidden={roomFocused} className='floating-link' href={session.sessionLink}>
                 <LinkIcon size={15} />
                 {session.roomId}
               </a>
@@ -331,7 +334,7 @@ export function ListenerShell() {
           </main>
         </div>
 
-        {activeView !== 'player' && !publicArtistName && (selectedTrack || catalog.trackInfo || session.roomId) && (
+        {(activeView !== 'player' || publicArtistName) && (selectedTrack || catalog.trackInfo || session.roomId) && (
           <PlayerDock
             track={selectedTrack}
             trackInfo={catalog.trackInfo}

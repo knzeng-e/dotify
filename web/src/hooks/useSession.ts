@@ -1734,27 +1734,36 @@ export function useSession(deps: UseSessionDeps) {
   // Social layer sends. The server validates, rate-limits, and echoes back to
   // the whole room (sender included), so local state only updates on receipt:
   // one render path, no optimistic divergence.
+  function sendRoomText(event: 'room:chat' | 'room:request', text: string, maxLength: number): Promise<{ ok: boolean; message?: string }> {
+    const socket = socketRef.current;
+    if (!roomIdRef.current || !socket?.connected) return Promise.resolve({ ok: false, message: 'Reconnecting. Your draft stays here.' });
+    const trimmed = text.trim().slice(0, maxLength);
+    if (!trimmed) return Promise.resolve({ ok: false, message: 'Write something first.' });
+    return new Promise(resolve => {
+      // Never buffer text for an automatic reconnect or render optimistically.
+      // Older signaling servers can echo without acknowledging: retain the
+      // draft on timeout and ask the sender to check before resending.
+      socket.timeout(5000).volatile.emit(event, { text: trimmed }, (error: Error | null, result?: { ok?: boolean; message?: string }) => {
+        resolve(
+          error || !result
+            ? { ok: false, message: 'Couldn’t confirm delivery. Check the room before resending.' }
+            : { ok: result.ok === true, message: result.message }
+        );
+      });
+    });
+  }
+
   function sendChatMessage(text: string) {
-    if (!roomIdRef.current) return;
-    const trimmed = text.trim().slice(0, CHAT_TEXT_MAX_LENGTH);
-    if (!trimmed) return;
-    socketRef.current?.emit('room:chat', { text: trimmed });
+    return sendRoomText('room:chat', text, CHAT_TEXT_MAX_LENGTH);
   }
 
   function sendRoomReaction(emoji: string) {
-    if (!roomIdRef.current) return;
-    socketRef.current?.emit('room:reaction', { emoji });
+    if (!roomIdRef.current || !socketRef.current?.connected) return;
+    socketRef.current.volatile.emit('room:reaction', { emoji });
   }
 
-  // Collaborative request queue. Any participant proposes; the server appends,
-  // caps, and rebroadcasts the full list. Host-only veto/clear are ignored by
-  // the server for non-hosts, so we do not gate them here beyond the room
-  // guard -- the server is the authority.
   function sendRoomRequest(text: string) {
-    if (!roomIdRef.current) return;
-    const trimmed = text.trim().slice(0, REQUEST_TEXT_MAX_LENGTH);
-    if (!trimmed) return;
-    socketRef.current?.emit('room:request', { text: trimmed });
+    return sendRoomText('room:request', text, REQUEST_TEXT_MAX_LENGTH);
   }
 
   function removeRoomRequest(id: string) {

@@ -16,40 +16,64 @@ import { Avatar } from './Presence';
 
 const REACTION_LABELS = ['heart', 'fire', 'leaf', 'sparkle', 'raise', 'tear'];
 
-export function RoomChat() {
+export function RoomChat({ active = true }: { active?: boolean }) {
   const session = useSessionContext();
   const { roomId, chatMessages, sendChatMessage, sendRoomReaction } = session;
   const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
+  const [unread, setUnread] = useState(false);
+  const followingRef = useRef(true);
+  const lastMessageIdRef = useRef<string>();
+  const connected = session.socketStatus === 'online';
   const listRef = useRef<HTMLDivElement | null>(null);
   const selfId = session.socketRef.current?.id;
 
   // Follow the conversation unless the reader has scrolled up into history.
   useEffect(() => {
     const list = listRef.current;
+    const latestId = chatMessages[chatMessages.length - 1]?.id;
+    const changed = latestId !== lastMessageIdRef.current;
+    lastMessageIdRef.current = latestId;
     if (!list) return;
-    const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 90;
-    if (nearBottom) {
+    if (active && followingRef.current) {
       list.scrollTop = list.scrollHeight;
-    }
-  }, [chatMessages]);
+      setUnread(false);
+    } else if (changed) setUnread(true);
+  }, [chatMessages, active]);
 
   if (!roomId) return null;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = draft.trim();
-    if (!text) return;
-    sendChatMessage(text);
-    setDraft('');
-    const list = listRef.current;
-    if (list) list.scrollTop = list.scrollHeight;
+    if (!text || sending || !connected) return;
+    setSending(true);
+    setSendError('');
+    followingRef.current = true;
+    const result = await sendChatMessage(text);
+    setSending(false);
+    if (result.ok) setDraft(current => (current.trim() === text ? '' : current));
+    else setSendError(result.message || 'Message not sent. Your draft is still here.');
   }
 
   return (
     <div className='doc-panel room-chat-panel'>
       <PanelTitle icon={MessageCircle} title='Room chat' meta='everyone here' />
 
-      <div className='room-chat-list' ref={listRef} aria-live='polite' aria-label='Room chat messages'>
+      <div
+        className='room-chat-list'
+        ref={listRef}
+        onScroll={event => {
+          const list = event.currentTarget;
+          followingRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 90;
+          if (followingRef.current) setUnread(false);
+        }}
+        role='log'
+        aria-live='polite'
+        aria-relevant='additions'
+        aria-label='Room chat messages'
+      >
         {chatMessages.length === 0 ? (
           <p className='room-chat-empty'>Say hello. Everyone in the room reads this, and it disappears when the room closes.</p>
         ) : (
@@ -68,12 +92,26 @@ export function RoomChat() {
         )}
       </div>
 
+      {unread && (
+        <button
+          type='button'
+          className='room-chat-latest'
+          onClick={() => {
+            followingRef.current = true;
+            setUnread(false);
+            if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+          }}
+        >
+          New messages ↓
+        </button>
+      )}
       <div className='room-chat-reactions' aria-label='Send a reaction to the room'>
         {ROOM_REACTIONS.map((emoji, index) => (
           <button
             className='room-react-btn'
             type='button'
             key={REACTION_LABELS[index]}
+            disabled={!connected}
             onClick={() => sendRoomReaction(emoji)}
             aria-label={`React ${REACTION_LABELS[index]}`}
           >
@@ -82,7 +120,12 @@ export function RoomChat() {
         ))}
       </div>
 
-      <form className='room-chat-form' onSubmit={handleSubmit}>
+      {(!connected || sendError) && (
+        <p className='room-chat-connection' role='status'>
+          {!connected ? 'Reconnecting. Your draft stays here.' : sendError}
+        </p>
+      )}
+      <form className='room-chat-form' onSubmit={event => void handleSubmit(event)} aria-busy={sending}>
         <input
           className='field'
           value={draft}
@@ -92,7 +135,7 @@ export function RoomChat() {
           aria-label='Message the room'
           autoComplete='off'
         />
-        <button className='room-chat-send' type='submit' disabled={!draft.trim()} aria-label='Send message'>
+        <button className='room-chat-send' type='submit' disabled={!draft.trim() || sending || !connected} aria-label='Send message'>
           <Send size={16} />
         </button>
       </form>

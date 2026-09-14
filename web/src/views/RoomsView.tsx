@@ -1,3 +1,4 @@
+import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
 import { ArrowRight, Box, Headphones, KeyRound, Link2, List, Radio, RefreshCw, Users, X } from 'lucide-react';
 import type { FormEvent, Ref } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -111,26 +112,28 @@ export function RoomsView({
             <h2 id='rooms-live-title'>Happening now</h2>
           </div>
           <div className='room-section-actions'>
-            <div className='room-renderer-switch' role='group' aria-label='Room discovery view'>
-              <button
-                type='button'
-                data-active={discoveryRenderer === 'galaxy-3d'}
-                aria-pressed={discoveryRenderer === 'galaxy-3d'}
-                onClick={() => setDiscoveryRenderer('galaxy-3d')}
-              >
-                <Box size={15} />
-                3D
-              </button>
-              <button
-                type='button'
-                data-active={discoveryRenderer === 'sky-2d'}
-                aria-pressed={discoveryRenderer === 'sky-2d'}
-                onClick={() => setDiscoveryRenderer('sky-2d')}
-              >
-                <List size={15} />
-                2D
-              </button>
-            </div>
+            {roomExperienceFlags.galaxy && (
+              <div className='room-renderer-switch' role='group' aria-label='Room discovery view'>
+                <button
+                  type='button'
+                  data-active={discoveryRenderer === 'galaxy-3d'}
+                  aria-pressed={discoveryRenderer === 'galaxy-3d'}
+                  onClick={() => setDiscoveryRenderer('galaxy-3d')}
+                >
+                  <Box size={15} />
+                  3D
+                </button>
+                <button
+                  type='button'
+                  data-active={discoveryRenderer === 'sky-2d'}
+                  aria-pressed={discoveryRenderer === 'sky-2d'}
+                  onClick={() => setDiscoveryRenderer('sky-2d')}
+                >
+                  <List size={15} />
+                  2D
+                </button>
+              </div>
+            )}
             <button className='text-action' type='button' onClick={onRefreshRooms} disabled={isRefreshingRooms}>
               <RefreshCw size={15} className={isRefreshingRooms ? 'spin' : undefined} />
               {isRefreshingRooms ? 'Refreshing' : 'Refresh'}

@@ -44,7 +44,9 @@ export default defineConfig({
         VITE_E2E_CLASSIC_UNLOCK: 'true',
         VITE_E2E_ARTIST_PUBLISH: 'true',
         VITE_E2E_ROOM_JOIN: 'true',
-        VITE_SIGNAL_URL: SIGNAL_URL
+        VITE_SIGNAL_URL: SIGNAL_URL,
+        VITE_DOTIFY_ROOM_GALAXY: 'on',
+        VITE_DOTIFY_HOST_LINEUP: 'on'
       }
     }
   ],

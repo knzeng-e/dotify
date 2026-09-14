@@ -561,13 +561,25 @@ export function startSignalingServer(overrides = {}) {
       });
     });
 
-    socket.on('room:chat', (payload = {}) => {
+    socket.on('room:chat', (payload = {}, ack) => {
+      const reply = result => {
+        if (typeof ack === 'function') ack(result);
+      };
       const participant = getParticipant(socket);
-      if (!participant) return;
-      if (!chatLimiter.allow(socket.id)) return;
+      if (!participant) {
+        reply({ ok: false, message: 'Reconnect to the room before sending.' });
+        return;
+      }
+      if (!chatLimiter.allow(socket.id)) {
+        reply({ ok: false, message: 'A little too fast. Try again in a moment.' });
+        return;
+      }
 
       const text = sanitizeChatText(payload.text);
-      if (!text) return;
+      if (!text) {
+        reply({ ok: false, message: 'Write a message first.' });
+        return;
+      }
 
       if (participant.role === 'host') touchHost(participant.room);
       const message = {
@@ -583,22 +595,36 @@ export function startSignalingServer(overrides = {}) {
         participant.room.chat.shift();
       }
       io.to(participant.roomId).emit('room:chat', message);
+      reply({ ok: true });
     });
 
     // Collaborative request queue. Any participant proposes a track to hear
     // next; the host vetoes or clears. Every mutation broadcasts the full
     // list (room:requests) so the queue has a single server-authoritative
     // render path, exactly like chat -- no optimistic divergence.
-    socket.on('room:request', (payload = {}) => {
+    socket.on('room:request', (payload = {}, ack) => {
+      const reply = result => {
+        if (typeof ack === 'function') ack(result);
+      };
       const participant = getParticipant(socket);
-      if (!participant) return;
-      if (!requestLimiter.allow(socket.id)) return;
+      if (!participant) {
+        reply({ ok: false, message: 'Reconnect to the room before sending.' });
+        return;
+      }
+      if (!requestLimiter.allow(socket.id)) {
+        reply({ ok: false, message: 'A little too fast. Try again in a moment.' });
+        return;
+      }
 
       const text = sanitizeChatText(payload.text, REQUEST_TEXT_MAX_LENGTH);
-      if (!text) return;
-      // When the queue is full we drop silently (fail closed); the host
-      // vetoes or clears to make room. No error channel to probe.
-      if (participant.room.requests.length >= config.requestQueueLimit) return;
+      if (!text) {
+        reply({ ok: false, message: 'Name a track first.' });
+        return;
+      }
+      if (participant.room.requests.length >= config.requestQueueLimit) {
+        reply({ ok: false, message: 'Requests are full. Wait for the host to make room.' });
+        return;
+      }
 
       if (participant.role === 'host') touchHost(participant.room);
       participant.room.requests.push({
@@ -609,6 +635,7 @@ export function startSignalingServer(overrides = {}) {
         ts: Date.now()
       });
       io.to(participant.roomId).emit('room:requests', participant.room.requests);
+      reply({ ok: true });
     });
 
     // Host veto: remove one request by id. Host-only.

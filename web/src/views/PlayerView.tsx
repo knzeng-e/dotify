@@ -1,3 +1,5 @@
+import { HostLineup } from '../components/HostLineup';
+import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
 import {
   Copy,
   Check,
@@ -10,11 +12,9 @@ import {
   Play,
   Radio,
   Repeat2,
-  ShieldCheck,
   Shuffle,
   SkipBack,
   SkipForward,
-  Users,
   Volume2,
   VolumeX,
   X
@@ -100,6 +100,16 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const effectivePaymentAmount = nativeRuntimeAmountLabel(effectivePriceDot, nativePaymentAsset);
   const [reactions, setReactions] = useState<Array<{ id: string; emoji: string; x: number; senderName: string; self: boolean }>>([]);
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
+  const [roomPanel, setRoomPanel] = useState<'chat' | 'requests' | 'people'>('chat');
+  useEffect(() => setRoomPanel('chat'), [roomId]);
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 769px)');
+    const resetPeople = () => {
+      if (desktop.matches) setRoomPanel(current => (current === 'people' ? 'chat' : current));
+    };
+    desktop.addEventListener('change', resetPeople);
+    return () => desktop.removeEventListener('change', resetPeople);
+  }, []);
 
   const { transport, status } = playback;
   const transportDuration = transport.duration || trackInfo?.duration || selectedTrack?.duration || 0;
@@ -223,14 +233,18 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     ) : null;
 
   return (
-    <section className={'content-grid player-view-grid' + (roomId ? ' player-room-mode' : '')}>
+    <section
+      className={'content-grid player-view-grid' + (roomId ? ' player-room-mode' : '')}
+      data-room-panel={roomPanel}
+      aria-label={roomId ? 'Shared listening room' : 'Player'}
+    >
       {roomId && (
         <div className='room-header'>
           <span className='room-live-chip'>
             <span className='live-dot' />
-            Live
+            {session.socketStatus === 'online' ? (mode === 'host' ? 'Hosting' : 'Together') : 'Reconnecting'}
           </span>
-          <span className='room-header-meta'>{mode === 'host' ? `${presenceCount} in the room` : `with ${hostName || 'the host'}`}</span>
+          <span className='room-header-meta'>{`${presenceCount} here · ${mode === 'host' ? 'you host' : hostName || 'the host'}`}</span>
           {/* Room playback mode metadata hook (always 'full' since access model
               v2 retired the preview; kept for wire compatibility); the visible cue lives
               in the rooms list and session status. */}
@@ -263,20 +277,78 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           </div>
         </div>
       )}
+      {roomId &&
+        (session.socketStatus !== 'online' ||
+          showManualAudioStart ||
+          showAudioRetry ||
+          productHostWebRtcUnavailable ||
+          error ||
+          /reconnecting/i.test(sessionStatus)) && (
+          <div className='room-connection-note' role='status'>
+            <span>
+              {error ||
+                (/reconnecting/i.test(sessionStatus) ? 'Reconnecting to the listening moment.' : '') ||
+                (session.socketStatus !== 'online'
+                  ? 'Reconnecting to the room. Your draft stays here.'
+                  : productHostWebRtcUnavailable
+                    ? 'Continue in your browser to hear this room.'
+                    : showManualAudioStart
+                      ? 'Tap to hear everyone’s listening moment.'
+                      : 'The host’s audio hasn’t arrived yet.')}
+            </span>
+            {productHostWebRtcUnavailable ? (
+              <button type='button' onClick={() => void session.openRoomInBrowser()}>
+                Continue in browser
+              </button>
+            ) : (
+              (showManualAudioStart || showAudioRetry) && (
+                <button type='button' onClick={() => (showManualAudioStart ? void playback.togglePlay() : onRetryRoomAudio())}>
+                  {showManualAudioStart ? 'Start audio' : 'Retry audio'}
+                </button>
+              )
+            )}
+          </div>
+        )}
       {roomId && (
-        <div className='room-promise-strip' aria-label='Room access model'>
-          <span>
-            <Users size={14} />
-            {presenceCount} present
-          </span>
-          <span>
-            <KeyRound size={14} />
-            Host stream
-          </span>
-          <span>
-            <ShieldCheck size={14} />
-            Live room
-          </span>
+        <div className='room-panel-switch' role='tablist' aria-label='Room views'>
+          {(['chat', 'requests', 'people'] as const).map(panel => (
+            <button
+              key={panel}
+              type='button'
+              role='tab'
+              id={`room-tab-${panel}`}
+              aria-controls={`room-panel-${panel}`}
+              aria-selected={roomPanel === panel}
+              tabIndex={roomPanel === panel ? 0 : -1}
+              onClick={() => setRoomPanel(panel)}
+              onKeyDown={event => {
+                const tabs = Array.from(event.currentTarget.parentElement!.querySelectorAll<HTMLButtonElement>('[role="tab"]')).filter(
+                  tab => tab.getClientRects().length > 0
+                );
+                const index = tabs.indexOf(event.currentTarget);
+                const next =
+                  event.key === 'ArrowRight'
+                    ? (index + 1) % tabs.length
+                    : event.key === 'ArrowLeft'
+                      ? (index + tabs.length - 1) % tabs.length
+                      : event.key === 'Home'
+                        ? 0
+                        : event.key === 'End'
+                          ? tabs.length - 1
+                          : -1;
+                if (next < 0) return;
+                event.preventDefault();
+                tabs[next].click();
+                tabs[next].focus();
+              }}
+            >
+              {panel === 'chat'
+                ? 'Chat'
+                : panel === 'requests'
+                  ? `Requests${session.requestQueue.length ? ` · ${session.requestQueue.length}` : ''}`
+                  : `People · ${presenceCount}`}
+            </button>
+          ))}
         </div>
       )}
       <div className='player-stage'>
@@ -341,8 +413,14 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <div className='track-copy'>
             <button className='player-artist-link' type='button' onClick={() => onOpenArtist(streamArtist)}>
               {streamArtist}
+              {roomId && <span className='room-artist-hint'> · artist &amp; support</span>}
             </button>
             <h2>{streamTitle}</h2>
+            {roomId && (
+              <button className='room-artist-support' type='button' onClick={() => onOpenArtist(streamArtist)}>
+                Artist &amp; support
+              </button>
+            )}
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : hostName || 'Room'}</span>
             <div className='access-badges'>
               <span
@@ -440,7 +518,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             {roomId && (
               <p className='room-sync-note'>
                 <span className='live-dot' />
-                {mode === 'host' ? 'You are hosting - everyone hears what you play.' : `Following ${hostName || 'the host'} - in sync`}
+                {mode === 'host' ? 'You choose the music. Everyone listens with you.' : roomListenerSyncLabel(remoteReady, sessionStatus)}
               </p>
             )}
 
@@ -471,7 +549,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <div>
             <span className='eyebrow'>One link away</span>
             <strong>Make this track a shared room.</strong>
-            <p>Live stream, one link, host-held access.</p>
+            <p>Invite someone into what you’re hearing. All they need is the link.</p>
           </div>
           <button className='primary-action compact-action' type='button' onClick={onShowCreateModal}>
             <Radio size={16} />
@@ -481,7 +559,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       )}
 
       <div className='player-lower-grid'>
-        <div className='doc-panel session-panel'>
+        <div className='doc-panel session-panel' id='room-panel-people' aria-label='People and room controls'>
           <PanelTitle icon={Radio} title={roomId ? 'In the room' : 'Listening room'} meta={roomId || 'offline'} />
 
           {/* State 1: not in any room */}
@@ -504,19 +582,23 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               </div>
 
               {sessionLink && (
-                <div className='room-share-card'>
-                  <div className='room-share-copy'>
-                    <strong>Scan to join</strong>
-                    <span>People can join from their camera.</span>
-                    <button className='room-project-btn' type='button' onClick={() => setIsQrProjectorOpen(true)}>
-                      <Maximize2 size={14} />
-                      Show big QR
-                    </button>
+                <details className='room-share-details'>
+                  <summary>Invite with a QR code</summary>
+                  <div className='room-share-card'>
+                    <div className='room-share-copy'>
+                      <strong>Scan to join</strong>
+                      <span>People can join from their camera.</span>
+                      <button className='room-project-btn' type='button' onClick={() => setIsQrProjectorOpen(true)}>
+                        <Maximize2 size={14} />
+                        Show big QR
+                      </button>
+                    </div>
+                    <RoomQrCode value={sessionLink} label={`QR code for room ${roomId}`} />
                   </div>
-                  <RoomQrCode value={sessionLink} label={`QR code for room ${roomId}`} />
-                </div>
+                </details>
               )}
 
+              {roomExperienceFlags.hostLineup && <HostLineup key={roomId} />}
               <div className='listener-list'>
                 <div className='list-row'>
                   <div className='room-person-main'>
@@ -671,30 +753,13 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
 
               <p className='room-doctrine-note'>You are listening with the host. The link is enough to be here.</p>
 
-              {(showManualAudioStart || showAudioRetry) && (
-                <button
-                  className='primary-action'
-                  type='button'
-                  onClick={() => {
-                    if (showManualAudioStart) {
-                      void playback.togglePlay();
-                      return;
-                    }
-                    onRetryRoomAudio();
-                  }}
-                >
-                  <Headphones size={16} />
-                  {showManualAudioStart ? 'Start audio' : 'Retry audio'}
-                </button>
-              )}
-
               <button className='secondary-action' type='button' onClick={onLeaveSession}>
                 Leave
               </button>
             </>
           )}
 
-          {productHostWebRtcUnavailable && (
+          {productHostWebRtcUnavailable && !roomId && (
             <button className='primary-action' type='button' onClick={() => void session.openRoomInBrowser()}>
               <ExternalLink size={16} />
               {roomId ? 'Continue in browser' : 'Open Dotify in browser'}
@@ -710,8 +775,18 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
 
         {roomId && (
           <div className='room-social-column'>
-            <RoomChat />
-            <RoomRequests />
+            <div id='room-panel-chat' className='room-conversation-pane' role='tabpanel' aria-labelledby='room-tab-chat' hidden={roomPanel !== 'chat'}>
+              <RoomChat key={roomId} active={roomPanel === 'chat'} />
+            </div>
+            <div
+              id='room-panel-requests'
+              className='room-conversation-pane'
+              role='tabpanel'
+              aria-labelledby='room-tab-requests'
+              hidden={roomPanel !== 'requests'}
+            >
+              <RoomRequests key={roomId} />
+            </div>
           </div>
         )}
 

@@ -715,3 +715,27 @@ places in the same PR:
   <https://fly.io/docs/apps/secrets/>
 - Fly app configuration:
   <https://www.fly.io/docs/reference/configuration/>
+
+
+## Shared-presence room rollout
+
+`VITE_DOTIFY_ROOM_GALAXY=on` enables the existing optional 3D selector. It is
+absent/off by default in both ordinary and Product builds; 2D/list remains the
+complete discovery path. `VITE_DOTIFY_HOST_LINEUP=on` enables a host-only local
+planning preview. It is not a shared queue or autoplay feature and is cleared
+when the room/player unmounts. Flags are build-time values; changing either
+requires rebuilding. Do not enable them by URL or local storage. No additional
+service, key, permission, CORS origin or storage mount is required.
+
+For the reliable composer, release the signaling `room:chat` / `room:request`
+acknowledgement support before or together with the frontend. Old clients remain
+compatible. New clients retain drafts and warn if an old server cannot confirm
+acceptance within five seconds. Check the room before resending an unconfirmed
+message; there is no automatic retry or exactly-once guarantee. Request capacity
+and social rate limits remain server-enforced. Reactions are not buffered during
+transport loss.
+
+Rollback either experiment by rebuilding without its `on` value. Nearby and
+community memory remain documentation only: no new endpoint or location
+permission is configured by this pass. See
+[shared-presence pass](../design/dotify-shared-presence-pass.md).

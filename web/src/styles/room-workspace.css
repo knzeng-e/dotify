@@ -1,0 +1,555 @@
+/* Active rooms have one bounded conversation area. Audio is still owned by
+   PersistentAudio; switching views only hides panels and preserves drafts. */
+.room-panel-switch {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.room-panel-switch button {
+  flex: 1;
+  min-height: var(--touch-target);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+.room-panel-switch button[aria-selected='true'] {
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+.room-conversation-pane[hidden] {
+  display: none;
+}
+.room-connection-note {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--warning-soft);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-size: var(--text-xs);
+}
+.room-connection-note button {
+  flex-shrink: 0;
+  min-height: var(--touch-target);
+  margin-left: auto;
+  background: transparent;
+  color: var(--action);
+}
+.player-room-mode .room-header {
+  border-top: 0;
+}
+.player-room-mode .room-copy-btn {
+  min-height: var(--touch-target);
+}
+.player-room-mode .room-conversation-pane {
+  min-height: 0;
+  height: 100%;
+}
+.player-room-mode .room-chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+}
+.player-room-mode .room-chat-list {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  padding: 0.25rem 0;
+}
+.player-room-mode .room-chat-empty {
+  padding: 1rem 0;
+  max-width: 34ch;
+}
+.player-room-mode .room-chat-reactions {
+  flex-shrink: 0;
+  justify-content: space-between;
+}
+.player-room-mode .room-react-btn {
+  width: var(--touch-target);
+  min-height: var(--touch-target);
+  border: 0;
+  background: transparent;
+}
+.player-room-mode .room-chat-form {
+  flex-shrink: 0;
+}
+.player-room-mode .room-chat-send {
+  background: var(--action);
+  color: var(--on-action);
+}
+.player-room-mode .room-chat-body {
+  max-width: 88%;
+}
+.player-room-mode .room-chat-text {
+  color: var(--ink);
+  line-height: 1.5;
+}
+.room-chat-connection {
+  font-size: var(--text-xs);
+  color: var(--warning);
+  margin-top: 0.5rem;
+}
+.room-chat-latest {
+  align-self: center;
+  min-height: var(--touch-target);
+  border-radius: var(--radius-full);
+  background: var(--surface-soft);
+  color: var(--action);
+  padding: 0.4rem 1rem;
+}
+
+@media (min-width: 769px) {
+  .app-shell[data-room-focus='true'] .content {
+    padding-block: 1rem;
+  }
+  .player-room-mode {
+    height: calc(100dvh - var(--header-height) - 2rem);
+    min-height: 43rem;
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.9fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr) minmax(0, 0.8fr);
+    gap: 0.8rem 1.25rem;
+  }
+  .player-room-mode .room-header {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .room-connection-note {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .room-panel-switch {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .player-room-mode .player-stage {
+    grid-column: 1;
+    grid-row: 3 / 5;
+    min-height: 0;
+    grid-template-columns: minmax(6rem, 0.6fr) minmax(0, 1fr);
+  }
+  .player-room-mode .player-cover-column {
+    padding: 1rem;
+  }
+  .player-room-mode .player-main-column {
+    min-width: 0;
+    padding: 1.25rem;
+  }
+  .player-room-mode .track-copy h2 {
+    font-size: clamp(1.4rem, 2.5vw, 2.6rem);
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+  }
+  .player-room-mode .player-transport {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1rem;
+  }
+  .player-room-mode .transport-progress {
+    width: 100%;
+    order: 3;
+  }
+  .player-room-mode .player-lower-grid,
+  .player-room-mode .room-social-column {
+    display: contents;
+  }
+  .player-room-mode .session-panel {
+    grid-column: 1;
+    grid-row: 5;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+  .player-room-mode .room-conversation-pane {
+    grid-column: 2;
+    grid-row: 4 / 6;
+  }
+  .player-room-mode .player-context-panel {
+    display: none;
+  }
+  .player-room-mode .room-share-card {
+    grid-template-columns: minmax(0, 1fr) 5rem;
+  }
+  .player-room-mode .room-code {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell[data-room-focus='true'] {
+    position: fixed;
+    top: var(--room-viewport-top, 0px);
+    left: 0;
+    right: 0;
+    height: var(--room-viewport-height, 100dvh);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .app-shell[data-room-focus='true'] .topbar {
+    flex-shrink: 0;
+  }
+  .app-shell[data-room-focus='true'] .app-content {
+    flex: 1;
+    min-height: 0;
+  }
+  .app-shell[data-room-focus='true'] .content {
+    height: 100%;
+    padding: 0.25rem var(--content-pad) 0.5rem;
+  }
+  .app-shell[data-room-focus='true'] .bottom-nav {
+    position: static;
+    flex-shrink: 0;
+  }
+  .app-shell[data-room-focus='true'][data-keyboard-open='true'] .topbar,
+  .app-shell[data-room-focus='true'][data-keyboard-open='true'] .bottom-nav {
+    display: none;
+  }
+  .player-room-mode {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .player-room-mode .room-header {
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    min-height: 2.75rem;
+    padding: 0;
+    gap: 0.5rem;
+  }
+  .player-room-mode .room-live-chip {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.625rem;
+  }
+  .player-room-mode .room-header-meta {
+    flex: 1;
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .player-room-mode .room-code-pill {
+    width: auto;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    min-height: 0;
+  }
+  .player-room-mode .room-code-pill > span {
+    display: none;
+  }
+  .player-room-mode .room-code-pill > strong {
+    font-size: 0.6875rem;
+  }
+  .player-room-mode .room-copy-btn {
+    padding: 0.35rem;
+    border: 0;
+    font-size: var(--text-xs);
+  }
+  .player-room-mode .player-stage {
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    min-height: 0;
+    gap: 0.75rem;
+    padding: 0.7rem;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    overflow: visible;
+  }
+  .player-room-mode .player-cover-column {
+    padding: 0;
+    align-self: start;
+    background: transparent;
+    overflow: visible;
+  }
+  .player-room-mode .cover-card {
+    width: 100%;
+    display: block;
+  }
+  .player-room-mode .cover {
+    border-radius: var(--radius-sm);
+    animation: none;
+  }
+  .player-room-mode .room-cover-glow,
+  .player-room-mode .sound-bars,
+  .player-room-mode .audio-stack {
+    display: none;
+  }
+  .player-room-mode .player-main-column {
+    padding: 0;
+    min-width: 0;
+  }
+  .player-room-mode .track-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .player-room-mode .track-copy h2 {
+    order: -1;
+    max-width: none;
+    margin: 0;
+    font-family: var(--font-interface);
+    font-size: 1rem;
+    line-height: 1.3;
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .player-room-mode .player-artist-link {
+    min-height: 1.6rem;
+    margin: 0;
+    font-size: var(--text-xs);
+    color: var(--ink-soft);
+  }
+  .player-room-mode .track-room-label,
+  .player-room-mode .room-sync-note {
+    display: none;
+  }
+  .player-room-mode .access-badges {
+    margin: 0;
+    gap: 0.25rem;
+  }
+  .player-room-mode .access-chip {
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font-size: 0.6875rem;
+  }
+  .player-room-mode .access-chip + .access-chip {
+    display: none;
+  }
+  .player-room-mode .player-transport {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin: 0.35rem 0 0;
+    padding: 0;
+    border: 0;
+    gap: 0;
+  }
+  .player-room-mode .transport-cluster,
+  .player-room-mode .transport-actions {
+    gap: 0.15rem;
+  }
+  .player-room-mode .transport-play,
+  .player-room-mode .transport-skip,
+  .player-room-mode .transport-actions button {
+    width: var(--touch-target);
+    min-width: var(--touch-target);
+    height: var(--touch-target);
+    min-height: var(--touch-target);
+  }
+  .player-room-mode .transport-progress {
+    display: none;
+  }
+  .player-room-mode .transport-actions button:not(:first-child) {
+    display: none;
+  }
+  .room-panel-switch {
+    order: 2;
+    flex-shrink: 0;
+  }
+  .player-room-mode .player-stage {
+    order: 1;
+  }
+  .player-room-mode .room-connection-note {
+    order: 1;
+    flex-shrink: 0;
+  }
+  .player-room-mode .player-lower-grid {
+    order: 3;
+    flex: 1;
+    min-height: 0;
+    display: block;
+    margin: 0;
+  }
+  .player-room-mode .room-social-column {
+    height: 100%;
+    min-height: 0;
+    display: block;
+    padding: 0;
+  }
+  .player-room-mode .session-panel {
+    display: none;
+    height: 100%;
+    overflow-y: auto;
+    padding: 0.5rem;
+  }
+  .player-room-mode[data-room-panel='people'] .session-panel {
+    display: grid;
+  }
+  .player-room-mode[data-room-panel='people'] .room-social-column {
+    display: none;
+  }
+  .player-room-mode .room-chat-panel {
+    padding: 0.65rem;
+    border: 0;
+    background: transparent;
+  }
+  .player-room-mode .room-chat-panel .panel-title {
+    display: none;
+  }
+  .player-room-mode .room-chat-reactions {
+    padding-top: 0.35rem;
+    margin-top: 0.35rem;
+  }
+  .player-room-mode .room-chat-form {
+    margin-top: 0.35rem;
+  }
+  .player-room-mode .room-chat-empty {
+    font-size: var(--text-sm);
+  }
+  .player-room-mode .player-context-panel {
+    display: none;
+  }
+}
+
+.app-shell[data-room-focus='true'] .floating-link {
+  display: none;
+}
+.player-room-mode .room-person-main .ava {
+  display: grid;
+  width: var(--ava-size);
+  height: var(--ava-size);
+  min-width: var(--ava-size);
+  flex: 0 0 var(--ava-size);
+  place-items: center;
+}
+.player-room-mode .room-person-main .ava-initials {
+  display: block;
+}
+@media (min-width: 769px) {
+  #room-tab-people {
+    display: none;
+  }
+}
+
+.room-artist-support {
+  justify-self: start;
+  align-self: flex-start;
+  background: transparent;
+  color: var(--action);
+  min-height: var(--touch-target);
+  font-size: var(--text-xs);
+  padding: 0;
+}
+.host-lineup {
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+  font-size: var(--text-sm);
+}
+.host-lineup summary {
+  cursor: pointer;
+  min-height: var(--touch-target);
+  align-items: center;
+}
+.host-lineup summary svg {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+.host-lineup summary span {
+  color: var(--muted);
+  margin-left: 0.5rem;
+  font-size: var(--text-xs);
+}
+.host-lineup p {
+  color: var(--muted);
+  margin-block: 0.65rem;
+}
+.host-lineup form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+.host-lineup label {
+  grid-column: 1 / -1;
+}
+.host-lineup select {
+  min-width: 0;
+}
+.host-lineup ol {
+  padding: 0;
+  list-style: none;
+}
+.host-lineup li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-top: 1px solid var(--line);
+  padding-block: 0.25rem;
+}
+.host-lineup li > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.host-lineup li small {
+  display: block;
+  color: var(--muted);
+}
+.host-lineup li button {
+  flex: 0 0 var(--touch-target);
+  width: var(--touch-target);
+  height: var(--touch-target);
+  background: transparent;
+  color: var(--ink-soft);
+}
+@media (max-width: 768px) {
+  .player-room-mode .room-artist-support {
+    display: none;
+  }
+  .player-room-mode .player-artist-link {
+    align-self: flex-start;
+  }
+}
+
+.room-artist-hint {
+  display: none;
+}
+@media (max-width: 768px) {
+  .room-artist-hint {
+    display: inline;
+    color: var(--action);
+    font-size: 0.6875rem;
+  }
+}
+
+.player-room-mode .room-person-main {
+  display: flex;
+}
+.room-share-details summary {
+  min-height: var(--touch-target);
+  padding-block: 0.5rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+/* Short phones need reading space, not a second navigation header. Account
+   access remains under You; a protected track also retains its sign-in gate. */
+@media (max-width: 768px) and (max-height: 680px) {
+  .app-shell[data-room-focus='true'] .topbar {
+    display: none;
+  }
+  .player-room-mode .player-stage {
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    padding: 0.5rem;
+  }
+  .player-room-mode .access-badges {
+    display: none;
+  }
+  .room-artist-hint {
+    display: none;
+  }
+}

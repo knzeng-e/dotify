@@ -27,7 +27,7 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background-image: linear-gradient(rgb(210 228 255 / 0.03) 1px, transparent 1px);
+  background-image: none;
   background-size: 100% 5.5rem;
   content: '';
   pointer-events: none;
@@ -429,3 +429,6 @@ select:focus {
     stroke: CanvasText;
   }
 }
+
+/* Keep reading and touch controls comfortable across the listening surfaces. */
+.field { font-size: max(1rem, 16px); }

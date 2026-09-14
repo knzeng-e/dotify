@@ -74,8 +74,8 @@ export function ListenView({
     <section className='listen-home' aria-labelledby='now-title'>
       <header className='now-intro'>
         <div>
-          <p className='eyebrow'>Shared listening, happening now</p>
-          <h1 id='now-title'>Let the Music connect the Dots.</h1>
+          <p className='eyebrow'>A place to listen together</p>
+          <h1 id='now-title'>Music brings us together.</h1>
         </div>
         <p>Enter a live room, or start one from a track.</p>
       </header>
@@ -339,7 +339,7 @@ export function ListenView({
               );
             })
           ) : catalogStatus === 'Loading registry catalog' ? (
-            <DotBirth size='panel' label={catalogStatus} />
+            <DotBirth size='panel' label='Finding the music…' />
           ) : (
             <div className='catalogue-empty'>
               <Library size={20} />
@@ -367,8 +367,8 @@ export function ListenView({
         <div>
           <KeyRound size={20} />
           <span>
-            <strong>Proof stays behind</strong>
-            Runtime and IPFS details stay available when needed.
+            <strong>Trust you can check</strong>
+            Your listening access and support details stay within reach.
           </span>
         </div>
       </section>

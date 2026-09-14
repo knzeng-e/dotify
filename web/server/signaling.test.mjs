@@ -818,6 +818,25 @@ describe('peer signaling authorization', () => {
 });
 
 describe('room social layer', () => {
+  it('acknowledges accepted text and rejects rate-limited or full requests without claiming delivery', async () => {
+    await server.close();
+    server = startSignalingServer({ port: 0, host: '127.0.0.1', chatRateLimit: { limit: 1, windowMs: 5000 }, requestQueueLimit: 1, logger: () => {} });
+    port = await server.listen();
+    const host = connectClient();
+    const created = await createRoom(host);
+    assert.equal((await emitAck(host, 'room:chat', { text: 'Hello' })).ok, true);
+    const rejected = await emitAck(host, 'room:chat', { text: 'Too soon' });
+    assert.equal(rejected.ok, false);
+    assert.match(rejected.message, /moment/);
+    assert.equal(server.rooms.get(created.roomId).chat.length, 1);
+    assert.equal((await emitAck(host, 'room:request', { text: 'First track' })).ok, true);
+    assert.equal((await emitAck(host, 'room:request', { text: 'Another track' })).ok, false);
+    assert.equal(server.rooms.get(created.roomId).requests.length, 1);
+    const outsider = connectClient();
+    await once(outsider, 'connect');
+    assert.equal((await emitAck(outsider, 'room:chat', { text: 'Outside' })).ok, false);
+  });
+
   it('broadcasts curated reactions to the whole room with sender attribution', async () => {
     const host = connectClient();
     const created = await createRoom(host, { displayName: 'Ada' });
