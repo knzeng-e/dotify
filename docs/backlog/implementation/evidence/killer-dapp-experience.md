@@ -66,4 +66,29 @@ Screenshots use synthetic E2E tracks and real local signaling, not production co
 4. **Galaxy prototype rollout:** default-off flag, lazy renderer boundary, existing painted-canvas/fallback regression evidence. The renderer itself predates this pass.
 5. **Nearby rooms design:** W18-linked consent, approximate zones, expiry/revocation, manual/QR fallback and reversible community-memory direction. Documentation only.
 
-This branch is one coherent pass. No PRs have been opened or split yet.
+The coherent pass was subsequently opened as PR #163 (experience polish) and
+stacked PR #164 (shared queue and manual-area previews).
+
+## PR #163 review follow-up
+
+Reviewed head `8c121872822e7a3b596b9adeaef6454eb0057f62`.
+[Landscape overflow review](https://github.com/knzeng-e/dotify/pull/163#discussion_r4009444971):
+width alone selected a 43rem-tall desktop workspace. The new 844×390 regression
+failed before correction (player bottom 530.95px in a 390px viewport).
+
+The tall desktop layout now requires at least 800px of height. Short wide
+windows use compact controls beside conversation, with navigation retained.
+People/room controls remain available through their tab. Portrait rules,
+conversation drafts and persistent media ownership are preserved.
+
+`npm run test:e2e -- --workers=1 room-workspace`: 10/10 pass, covering
+320×568, 390×844, 768×1024, 844×390, 1024×768, tall desktop, QR, drafts,
+protected-track planning, reconnect and simulated keyboard resizing. The
+landscape screenshot was visually inspected:
+[844×390 landscape room](../../../images/killer-dapp/landscape-after.png).
+Physical mobile browser chrome and keyboards still need device validation.
+
+Ordinary and Product DevNet builds pass, as do lint and formatting (three
+existing hook dependency warnings and existing bundle-size warnings remain).
+Product uses direct Vite after TypeScript checking, without regenerating catalog
+bootstrap data. No deployment configuration or protocol changes in this follow-up.

@@ -19,6 +19,8 @@ async function expectConversationFits(page: Page) {
       conversationHeight: conversation.height,
       playerTop: player.top,
       playerBottom: player.bottom,
+      playerRight: player.right,
+      composerLeft: composer.left,
       composerTop: composer.top,
       composerBottom: composer.bottom,
       bottom: nav.height ? nav.top : innerHeight,
@@ -28,7 +30,8 @@ async function expectConversationFits(page: Page) {
   });
   expect(bounds.conversationHeight).toBeGreaterThanOrEqual(80);
   expect(bounds.playerTop).toBeGreaterThanOrEqual(0);
-  expect(bounds.composerTop).toBeGreaterThanOrEqual(bounds.playerBottom - 1);
+  expect(bounds.composerTop >= bounds.playerBottom - 1 || bounds.composerLeft >= bounds.playerRight - 1).toBe(true);
+  expect(bounds.playerBottom).toBeLessThanOrEqual(bounds.bottom + 1);
   expect(bounds.composerBottom).toBeLessThanOrEqual(bounds.bottom + 1);
   expect(bounds.scrollWidth).toBeLessThanOrEqual(bounds.width);
 }
@@ -36,7 +39,9 @@ async function expectConversationFits(page: Page) {
 for (const [width, height] of [
   [320, 568],
   [390, 844],
-  [768, 1024]
+  [768, 1024],
+  [844, 390],
+  [1024, 768]
 ]) {
   test(`room conversation fits ${width}×${height} without losing playback or drafts`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height });
@@ -103,6 +108,7 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
 
 test('host plan preview opens a protected selection through the existing access gate', async ({ page }) => {
   await hostRoom(page);
+  await page.getByRole('tab', { name: /People/ }).click();
   await page.locator('.host-lineup summary').click();
   await page.getByLabel('Track for host plan').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
   await page.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
@@ -154,6 +160,7 @@ test('room controls fit a small desktop and the QR remains discoverable', async 
   await page.setViewportSize({ width: 1024, height: 768 });
   await hostRoom(page);
   await expect(page.getByRole('textbox', { name: 'Message the room' })).toBeVisible();
+  await page.getByRole('tab', { name: /People/ }).click();
   await page.locator('.room-share-details summary').click();
   await page.getByRole('button', { name: 'Show big QR' }).click();
   await expect(page.getByRole('dialog')).toContainText('Scan to join');
