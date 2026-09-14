@@ -44,12 +44,18 @@ responsible for obtaining and distributing authorized audio.
 
 ## Failure and compatibility
 
-Samples are transient and not buffered while disconnected. Room creation and
+Periodic samples are volatile. Forced transitions use reliable emission while
+connected, so backpressure cannot drop a paused seek with no later update.
+New commands are not buffered while disconnected. Room creation and
 host resume publish fresh state. No database, contract, permission, dependency,
 or environment variable changes are needed. All additional clock state is in
 memory. Guest access remains wallet-free and does not expose source keys.
 
-The event payload shape is unchanged. Update signaling and both frontend
+Join snapshots add an optional server-derived `stale` marker to distinguish an
+interrupted playing clock from an intentional pause. Both have `playing: false`
+for safe output on older clients; updated clients show "Syncing with host" for
+the stale case. Fresh host samples clear the marker. The server strips any
+host-supplied marker before storage. Other event fields are unchanged. Update signaling and both frontend
 surfaces for the full fix, then refresh both peers. Older listeners still have
 the competing clock behavior; older servers cannot age the join snapshot.
 

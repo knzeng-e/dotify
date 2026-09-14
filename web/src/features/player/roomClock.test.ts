@@ -20,3 +20,12 @@ it('bounds end-of-track and invalid numeric values', () => {
   expect(projectRoomClock({ playing: true, currentTime: NaN, duration: Infinity, updatedAt: 0 }, -100).state.currentTime).toBe(0);
   expect(projectRoomClock(null, 1000).state.playing).toBe(false);
 });
+
+it('keeps a stale join snapshot interrupted until a fresh host sample arrives', () => {
+  const stale = { playing: false, currentTime: 32.5, duration: 60, updatedAt: 1, stale: true };
+  expect(projectRoomClock(stale, 0)).toEqual({ state: stale, stale: true });
+  expect(projectRoomClock(stale, 60_000)).toEqual({ state: stale, stale: true });
+  const fresh = { playing: true, currentTime: 42, duration: 60, updatedAt: 2 };
+  expect(projectRoomClock(fresh, 0)).toEqual({ state: fresh, stale: false });
+  expect(projectRoomClock({ ...fresh, playing: false }, 60_000).stale).toBe(false);
+});

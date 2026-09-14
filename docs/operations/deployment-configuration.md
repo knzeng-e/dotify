@@ -38,6 +38,9 @@ directions, and repeat pause/resume while comparing the two progress indicators.
 Confirm silence during pause and continued sound after resume. Test foreground,
 background, and relay-only paths: a missing playing update for 2.5 seconds now
 silences guest output and shows "Syncing with host" until fresh state arrives.
+A late join must show the same interrupted state, not "Host paused". Also seek
+while paused with a busy signaling transport: the forced command must arrive
+after the transport drains, without requiring playback to resume.
 Record device/browser and drift; local Chromium coverage does not establish
 physical-device acoustic synchronization.
 

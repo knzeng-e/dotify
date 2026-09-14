@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 import { Fetch as EngineFetch } from 'engine.io-client';
 import { io as ioClient } from 'socket.io-client';
 import { isSignalingOriginAllowed, readConfigFromEnv, startSignalingServer } from './signaling.mjs';
-import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash } from './signaling-utils.mjs';
+import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash, sanitizePlayerState, snapshotPlayerState } from './signaling-utils.mjs';
 
 let server;
 let port;
@@ -1194,6 +1194,26 @@ describe('sanitizeTrackHash', () => {
 });
 
 describe('shared playback clock', () => {
+  it('distinguishes stale playing snapshots from real pauses without extending the clock', () => {
+    const playing = { playing: true, currentTime: 30, duration: 60, updatedAt: -999999 };
+    assert.deepEqual(snapshotPlayerState(playing, 1000, 4000), {
+      ...playing,
+      playing: false,
+      currentTime: 32.5,
+      updatedAt: 4000,
+      stale: true
+    });
+    assert.equal(snapshotPlayerState({ ...playing, playing: false }, 1000, 60_000).stale, false);
+    assert.equal(snapshotPlayerState(playing, 1000, 1100).stale, false);
+    assert.equal(snapshotPlayerState(null, 1000, 4000), null);
+  });
+
+  it('does not accept a host-supplied stale marker as authoritative', () => {
+    const state = sanitizePlayerState({ playing: false, currentTime: 30, duration: 60, stale: true });
+    assert.equal(state.stale, undefined);
+    assert.equal(snapshotPlayerState(state, 1000, 60_000).stale, false);
+  });
+
   it('late join uses server elapsed time, ignores guest seeks and clears clock for a new release', async () => {
     const host = connectClient();
     const created = await createRoom(host, { track: { hash: 'first', title: 'First' } });

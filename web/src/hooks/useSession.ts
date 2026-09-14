@@ -22,7 +22,7 @@ import {
   type RoomQualityPhase,
   type RoomQualityRole
 } from '../features/rooms/roomQualityTelemetry';
-import { createSignalClient, describeSignalConnectError } from '../features/rooms/signalClient';
+import { createSignalClient, describeSignalConnectError, publishPlayerState } from '../features/rooms/signalClient';
 import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
 import { ensureProductHostRoomPermissions, isProductHostWebRtcUnavailable, openProductHostExternalUrl } from '../features/productHost/productHost';
 import { useRoomBeacon } from './useRoomBeacon';
@@ -1072,7 +1072,7 @@ export function useSession(deps: UseSessionDeps) {
     };
 
     setPlayerState(state);
-    if (socketRef.current?.connected) socketRef.current.volatile.emit('player:state', state);
+    publishPlayerState(socketRef.current, state, force);
   }
 
   function startHostConnectionTimeout(listenerId: string, peer: RTCPeerConnection) {

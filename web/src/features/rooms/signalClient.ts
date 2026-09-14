@@ -1,5 +1,6 @@
 import { Fetch as EngineFetch, WebSocket as EngineWebSocket } from 'engine.io-client';
 import { io, type Socket } from 'socket.io-client';
+import type { PlayerState } from '../../shared/types';
 
 export type SignalRuntime = {
   protocol: string;
@@ -67,4 +68,13 @@ export function describeSignalConnectError(error: unknown): string {
   ].filter(Boolean);
 
   return [...new Set(details)].join(' - ');
+}
+
+/** Periodic samples may be dropped; explicit host transitions must survive backpressure. */
+export function publishPlayerState(socket: Socket | null, state: PlayerState, force: boolean): void {
+  if (!socket?.connected) return;
+  // Keep disconnected commands out of Socket.IO's reconnect buffer, but let
+  // connected forced transitions wait for an occupied transport to drain.
+  if (force) socket.emit('player:state', state);
+  else socket.volatile.emit('player:state', state);
 }

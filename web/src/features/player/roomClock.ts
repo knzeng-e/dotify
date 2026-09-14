@@ -10,8 +10,8 @@ export function projectRoomClock(sample: PlayerState | null, elapsedMs: number) 
   const elapsed = Number.isFinite(elapsedMs) ? Math.max(0, elapsedMs) : 0;
   const duration = Number.isFinite(sample.duration) ? Math.max(0, sample.duration) : 0;
   const position = Number.isFinite(sample.currentTime) ? Math.max(0, sample.currentTime) : 0;
-  const currentTime = position + (sample.playing ? Math.min(elapsed, ROOM_CLOCK_GRACE_MS) / 1000 : 0);
-  const stale = sample.playing && elapsed > ROOM_CLOCK_GRACE_MS;
+  const currentTime = position + (sample.playing && !sample.stale ? Math.min(elapsed, ROOM_CLOCK_GRACE_MS) / 1000 : 0);
+  const stale = sample.stale === true || (sample.playing && elapsed > ROOM_CLOCK_GRACE_MS);
   return {
     state: { ...sample, duration, currentTime: duration > 0 ? Math.min(duration, currentTime) : currentTime, playing: sample.playing && !stale },
     stale

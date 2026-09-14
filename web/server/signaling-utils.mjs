@@ -175,5 +175,11 @@ export function snapshotPlayerState(state, receivedAt, now = Date.now()) {
   const age = Math.max(0, now - receivedAt);
   const duration = Math.max(0, state.duration);
   const currentTime = Math.max(0, state.currentTime) + (state.playing ? Math.min(age, 2500) / 1000 : 0);
-  return { ...state, currentTime: duration > 0 ? Math.min(duration, currentTime) : currentTime, playing: state.playing && age <= 2500, updatedAt: now };
+  return {
+    ...state,
+    currentTime: duration > 0 ? Math.min(duration, currentTime) : currentTime,
+    playing: state.playing && age <= 2500,
+    stale: state.playing && age > 2500,
+    updatedAt: now
+  };
 }
