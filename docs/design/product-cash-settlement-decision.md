@@ -1,7 +1,9 @@
 # Product CASH Settlement Decision
 
-Status: W16 decision record.  
-Date: 2026-09-14.  
+Status: W16 decision record.
+
+Date: 2026-09-14.
+
 Decision: Product CASH access payments remain unavailable in Dotify until Product
 exposes an authoritative settlement or attestation path that can grant and
 verify Asset Hub runtime entitlement.
