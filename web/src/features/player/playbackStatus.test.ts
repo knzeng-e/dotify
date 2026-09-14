@@ -17,6 +17,9 @@ describe('playbackStatusLabel', () => {
     expect(playbackStatusLabel('playing', 'listener')).toBe('In sync');
     expect(playbackStatusLabel('ready', 'host')).toBe('Hosting');
     expect(playbackStatusLabel('ready', 'listener')).toBe('Connected');
+    expect(playbackStatusLabel('host-paused', 'listener')).toBe('Host paused');
+    expect(playbackStatusLabel('listener-paused', 'listener')).toBe('Paused for you');
+    expect(playbackStatusLabel('syncing', 'listener')).toBe('Syncing with host');
   });
 
   it('falls back for an unknown status', () => {
@@ -53,7 +56,7 @@ describe('listenerPlaybackStatusForHostState', () => {
   it('maps normal listener state from remote stream readiness and host playback', () => {
     expect(listenerPlaybackStatusForHostState('joining', false, true, false)).toBe('joining');
     expect(listenerPlaybackStatusForHostState('joining', true, true, false)).toBe('playing');
-    expect(listenerPlaybackStatusForHostState('playing', true, true, true)).toBe('ready');
-    expect(listenerPlaybackStatusForHostState('playing', true, false, false)).toBe('ready');
+    expect(listenerPlaybackStatusForHostState('playing', true, true, true)).toBe('listener-paused');
+    expect(listenerPlaybackStatusForHostState('playing', true, false, false)).toBe('host-paused');
   });
 });

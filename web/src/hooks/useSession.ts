@@ -468,6 +468,7 @@ export function useSession(deps: UseSessionDeps) {
     setChatMessages([]);
     setReactionFeed([]);
     setRequestQueue([]);
+    setPlayerState(null);
     setRemoteReady(false);
     setRemoteStreamVersion(version => version + 1);
     setSessionAction('idle');
@@ -979,6 +980,7 @@ export function useSession(deps: UseSessionDeps) {
       setTrackInfo(track);
       setSessionStatus(roomIdRef.current ? 'Live' : 'Audio ready');
       socketRef.current?.emit('room:track', track);
+      emitPlayerState(true);
 
       await publishLocalStreamToListeners(stream, { renegotiate: shouldRenegotiateListeners });
       if (previousPlaceholderStream && previousPlaceholderStream !== stream) {
@@ -1051,21 +1053,26 @@ export function useSession(deps: UseSessionDeps) {
 
   function emitPlayerState(force = false) {
     const audio = localAudioRef.current;
-    if (!audio) return;
+    if (!audio || modeRef.current !== 'host') return;
+    const playing = !audio.paused && !audio.ended && !audio.seeking && audio.readyState >= 3;
+    // Disable captured output during pause/seek/stall without ending tracks.
+    localStreamRef.current?.getAudioTracks().forEach(track => {
+      track.enabled = playing;
+    });
 
     const timestamp = Date.now();
     if (!force && timestamp - lastPlayerStateEmitRef.current < 900) return;
 
     lastPlayerStateEmitRef.current = timestamp;
     const state: PlayerState = {
-      playing: !audio.paused,
+      playing,
       currentTime: audio.currentTime,
       duration: Number.isFinite(audio.duration) ? audio.duration : 0,
       updatedAt: timestamp
     };
 
     setPlayerState(state);
-    socketRef.current?.emit('player:state', state);
+    if (socketRef.current?.connected) socketRef.current.volatile.emit('player:state', state);
   }
 
   function startHostConnectionTimeout(listenerId: string, peer: RTCPeerConnection) {
@@ -1468,6 +1475,7 @@ export function useSession(deps: UseSessionDeps) {
           listenerCount: 0
         });
         setRoomId(response.roomId);
+        emitPlayerState(true);
         setHostName(response.hostName);
         setListeners([]);
         listenersRef.current = [];
@@ -1624,6 +1632,7 @@ export function useSession(deps: UseSessionDeps) {
 
         roomIdRef.current = response.roomId;
         setRoomId(response.roomId);
+        emitPlayerState(true);
         setHostName(response.hostName);
         applyListenerRoster(response.listeners);
         setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');

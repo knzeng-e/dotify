@@ -1192,3 +1192,32 @@ describe('sanitizeTrackHash', () => {
     assert.equal(sanitizeTrackHash('0xabc'), null);
   });
 });
+
+describe('shared playback clock', () => {
+  it('late join uses server elapsed time, ignores guest seeks and clears clock for a new release', async () => {
+    const host = connectClient();
+    const created = await createRoom(host, { track: { hash: 'first', title: 'First' } });
+    const guest = connectClient();
+    await once(guest, 'connect');
+    await emitAck(guest, 'room:join', { roomId: created.roomId });
+    const stateArrives = once(guest, 'player:state');
+    host.emit('player:state', { playing: true, currentTime: 30, duration: 60, updatedAt: -999999999 });
+    await stateArrives;
+    await new Promise(resolve => setTimeout(resolve, 150));
+    const late = connectClient();
+    await once(late, 'connect');
+    const joined = await emitAck(late, 'room:join', { roomId: created.roomId });
+    assert.ok(joined.playerState.currentTime >= 30.1 && joined.playerState.currentTime < 31.5);
+    guest.emit('player:state', { playing: false, currentTime: 0, duration: 60 });
+    await emitAck(guest, 'room:rename', { displayName: 'Guest' });
+    const status = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    assert.equal(status.rooms[0].playerState.currentTime, 30);
+    assert.equal(status.rooms[0].playerState.playing, true);
+    const paused = once(guest, 'player:state');
+    host.emit('player:state', { playing: false, currentTime: 40, duration: 60 });
+    assert.equal((await paused).currentTime, 40);
+    const reset = once(guest, 'player:state');
+    host.emit('room:track', { hash: 'second', title: 'Second' });
+    assert.equal(await reset, null);
+  });
+});

@@ -26,6 +26,7 @@ import {
   normalizeRoomId,
   sanitizeChatText,
   sanitizePlayerState,
+  snapshotPlayerState,
   sanitizeReactionEmoji,
   sanitizeText,
   sanitizeTrack,
@@ -315,6 +316,7 @@ export function startSignalingServer(overrides = {}) {
         // Collaborative request queue: same in-room-only doctrine as chat.
         requests: [],
         playerState: null,
+        playerStateReceivedAt: 0,
         playbackMode: payload.playbackMode === 'preview' ? 'preview' : 'full',
         createdAt: Date.now(),
         lastHostSeenAt: Date.now()
@@ -436,7 +438,7 @@ export function startSignalingServer(overrides = {}) {
         hostName: room.hostName,
         listenerCount,
         track: room.track,
-        playerState: room.playerState,
+        playerState: snapshotPlayerState(room.playerState, room.playerStateReceivedAt),
         playbackMode: room.playbackMode,
         chatHistory: room.chat,
         requests: room.requests,
@@ -459,7 +461,13 @@ export function startSignalingServer(overrides = {}) {
       if (!room) return;
 
       touchHost(room);
-      room.track = sanitizeTrack(track);
+      const nextTrack = sanitizeTrack(track);
+      if (room.track?.hash !== nextTrack?.hash || room.track?.title !== nextTrack?.title) {
+        room.playerState = null;
+        room.playerStateReceivedAt = 0;
+        socket.to(socket.data.roomId).emit('player:state', null);
+      }
+      room.track = nextTrack;
       socket.to(socket.data.roomId).emit('room:track', room.track);
       emitRooms();
     });
@@ -520,6 +528,7 @@ export function startSignalingServer(overrides = {}) {
 
       touchHost(room);
       room.playerState = sanitizePlayerState(state);
+      room.playerStateReceivedAt = Date.now();
       socket.to(socket.data.roomId).emit('player:state', room.playerState);
       emitRooms();
     });

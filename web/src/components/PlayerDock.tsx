@@ -128,7 +128,7 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, a
               className='player-dock-iconbtn player-dock-modebtn'
               type='button'
               onClick={playback.toggleRepeat}
-              disabled={!playback.canUseTransport}
+              disabled={!playback.canRepeat || !playback.canUseTransport}
               aria-pressed={playback.repeatEnabled}
               aria-label='Repeat this track'
               title='Repeat this track'
@@ -147,8 +147,9 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, a
               value={progress}
               style={{ '--dock-progress': `${progress}%` } as CSSProperties}
               onChange={event => playback.seekToProgress(Number(event.target.value))}
-              disabled={!playback.canUseTransport || duration <= 0}
-              aria-label='Seek'
+              disabled={!playback.canSeek}
+              aria-label={mode === 'host' ? 'Seek' : 'Room progress'}
+              title={mode === 'host' ? 'Seek' : 'The host controls seeking'}
             />
             <small>{formatClock(duration)}</small>
           </div>

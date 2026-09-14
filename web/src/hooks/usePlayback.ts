@@ -14,12 +14,14 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
 import type { HostAudioStartupMetric } from '../features/catalog/audioStartupTelemetry';
 import type { CatalogTrack, Mode, PlayerState } from '../shared/types';
+import { useRoomClock } from '../features/player/useRoomClock';
 import { listenerPlaybackStatusForHostState, type AudioStatus } from '../features/player/playbackStatus';
 
 export type PlaybackControls = ReturnType<typeof usePlayback>;
 
 type UsePlaybackDeps = {
   mode: Mode;
+  roomId: string;
   localAudioRef: RefObject<HTMLAudioElement | null>;
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   audioSource: string | null;
@@ -56,6 +58,7 @@ function publishHostAudioStartupMetric(detail: HostAudioStartupMetric): void {
 export function usePlayback(deps: UsePlaybackDeps) {
   const {
     mode,
+    roomId,
     localAudioRef,
     remoteAudioRef,
     audioSource,
@@ -69,12 +72,22 @@ export function usePlayback(deps: UsePlaybackDeps) {
     onEmitPlayerState
   } = deps;
 
-  const [transport, setTransport] = useState<PlayerState>(() => ({ playing: false, duration: 0, currentTime: 0, updatedAt: Date.now() }));
+  const [localTransport, setTransport] = useState<PlayerState>(() => ({ playing: false, duration: 0, currentTime: 0, updatedAt: Date.now() }));
   const [status, setStatus] = useState<AudioStatus>('idle');
   const [muted, setMutedState] = useState(false);
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [shuffleEnabled, setShuffleEnabled] = useState(false);
   const [remotePausedByUser, setRemotePausedByUser] = useState(false);
+
+  const roomClock = useRoomClock(playerState, mode === 'listener' && remoteReady);
+  const transport = mode === 'listener' ? { ...roomClock.state, playing: roomClock.state.playing && remoteReady && !remotePausedByUser } : localTransport;
+  const remoteMuted = muted || mode !== 'listener' || !remoteReady || !playerState?.playing || remotePausedByUser || roomClock.stale;
+  const visibleStatus =
+    mode !== 'listener'
+      ? status
+      : roomClock.stale && remoteReady
+        ? 'syncing'
+        : listenerPlaybackStatusForHostState(status, remoteReady, playerState?.playing ?? false, remotePausedByUser);
 
   // When a track is opened/skipped we want sound to start as soon as the new
   // source is ready, without forcing the user to press play again.
@@ -88,27 +101,19 @@ export function usePlayback(deps: UsePlaybackDeps) {
     onOpenTrackRef.current = onOpenTrack;
   }, [onOpenTrack]);
 
-  const isAudioPlaying = useCallback((audio: HTMLAudioElement | null) => Boolean(audio && !audio.paused && !audio.ended), []);
-
-  const getModeAudio = useCallback(() => (mode === 'host' ? localAudioRef.current : remoteAudioRef.current), [mode, localAudioRef, remoteAudioRef]);
-
-  const getPlayingAudio = useCallback(() => {
-    const localAudio = localAudioRef.current;
-    const remoteAudio = remoteAudioRef.current;
-    if (isAudioPlaying(localAudio)) return localAudio;
-    if (isAudioPlaying(remoteAudio)) return remoteAudio;
-    return null;
-  }, [isAudioPlaying, localAudioRef, remoteAudioRef]);
-
-  const getControllingAudio = useCallback(() => getPlayingAudio() ?? getModeAudio(), [getPlayingAudio, getModeAudio]);
+  const getControllingAudio = useCallback(() => (mode === 'host' ? localAudioRef.current : remoteAudioRef.current), [mode, localAudioRef, remoteAudioRef]);
 
   const canUseTransport = transport.playing || (mode === 'host' ? Boolean(audioSource) : remoteReady);
+  const canSeek = mode === 'host' && canUseTransport && localTransport.duration > 0;
+  const canRepeat = mode === 'host';
   const canSkip = mode === 'host' && catalogTracks.length > 1;
   const canShuffle = mode === 'host' && catalogTracks.length > 1;
 
   const syncFromAudio = useCallback(
     (audio: HTMLAudioElement | null = getControllingAudio()) => {
-      if (!audio) return;
+      // A MediaStream's currentTime is time since reception, not song position.
+      // Neither its events nor a leftover solo element may own the room clock.
+      if (!audio || mode !== 'host' || audio !== localAudioRef.current) return;
       setTransport(previous => ({
         playing: !audio.paused,
         currentTime: audio.currentTime,
@@ -121,7 +126,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
         return mode === 'host' ? 'ready' : remoteReady ? 'ready' : previous;
       });
     },
-    [getControllingAudio, mode, remoteReady]
+    [getControllingAudio, localAudioRef, mode, remoteReady]
   );
 
   // Mark intent to start playback as soon as the active source is ready.
@@ -156,42 +161,39 @@ export function usePlayback(deps: UsePlaybackDeps) {
     setStatus('preparing');
   }, [audioSource, mode]);
 
-  // Listener: reflect the host's broadcast clock and the connection lifecycle.
   useEffect(() => {
-    if (mode !== 'listener') return;
-    if (playerState) {
-      setTransport(remotePausedByUser ? { ...playerState, playing: false, updatedAt: Date.now() } : playerState);
-    }
-  }, [mode, playerState, remotePausedByUser]);
+    setRemotePausedByUser(false);
+  }, [roomId]);
 
+  // Consume the live stream continuously, but disable/mute output during host
+  // pause or local listening pause. No seeks, stops or peer rebuilds are needed.
   useEffect(() => {
-    if (mode !== 'listener') return;
-    // Before the first broadcast arrives, a freshly connected listener is
-    // "Connected" rather than "In sync" - default to not-playing.
-    setStatus(previous => listenerPlaybackStatusForHostState(previous, remoteReady, playerState?.playing ?? false, remotePausedByUser));
-    // Depend only on the play flag: playerState is a fresh object on every host
-    // clock tick (~4 Hz), but only playing/paused changes the status.
-  }, [mode, remoteReady, remotePausedByUser, playerState?.playing]);
-
-  useEffect(() => {
-    if (mode !== 'listener' || !remoteReady) {
-      setRemotePausedByUser(false);
-    }
-  }, [mode, remoteReady]);
-
-  // Listener: as soon as the remote stream lands or is refreshed, attempt
-  // playback. `remoteReady` can remain true across host track changes, so the
-  // monotonic stream version is what re-arms this after renegotiation or a
-  // sender-track replacement.
-  useEffect(() => {
-    if (mode !== 'listener' || !remoteReady) return;
     const audio = remoteAudioRef.current;
-    if (!audio || !audio.srcObject) return;
+    if (!audio) return;
+    audio.muted = remoteMuted;
+    const stream = audio.srcObject as MediaStream | null;
+    stream?.getAudioTracks().forEach(track => {
+      track.enabled = !remoteMuted;
+    });
+  }, [remoteMuted, remoteAudioRef, remoteStreamVersion]);
+
+  useEffect(() => {
+    if (mode !== 'listener' || !remoteReady || remotePausedByUser) return;
+    const audio = remoteAudioRef.current;
+    if (!audio?.srcObject) return;
+    let obsolete = false;
     void audio
       .play()
-      .then(() => setStatus('playing'))
-      .catch(() => setStatus('autoplay-blocked'));
-  }, [mode, remoteReady, remoteStreamVersion, remoteAudioRef]);
+      .then(() => {
+        if (!obsolete) setStatus('ready');
+      })
+      .catch(() => {
+        if (!obsolete) setStatus('autoplay-blocked');
+      });
+    return () => {
+      obsolete = true;
+    };
+  }, [mode, remoteReady, remoteStreamVersion, remoteAudioRef, remotePausedByUser]);
 
   // Host capture lifecycle feeds the "Hosting" ready state.
   useEffect(() => {
@@ -212,58 +214,54 @@ export function usePlayback(deps: UsePlaybackDeps) {
     (next: boolean) => {
       setMutedState(next);
       if (localAudioRef.current) localAudioRef.current.muted = next;
-      if (remoteAudioRef.current) remoteAudioRef.current.muted = next;
     },
-    [localAudioRef, remoteAudioRef]
+    [localAudioRef]
   );
 
   const toggleMute = useCallback(() => applyMuted(!muted), [applyMuted, muted]);
 
   const togglePlay = useCallback(async () => {
-    const playingAudio = getPlayingAudio();
-    if (playingAudio) {
-      if (isAudioPlaying(localAudioRef.current)) {
-        localAudioRef.current?.pause();
-      }
-      if (isAudioPlaying(remoteAudioRef.current)) {
-        remoteAudioRef.current?.pause();
-        if (mode === 'listener') setRemotePausedByUser(true);
-      }
-      syncFromAudio(playingAudio);
-      if (mode === 'host' || playingAudio === localAudioRef.current) onEmitPlayerState(true);
-      return;
-    }
-
     const audio = getControllingAudio();
     if (!audio || !canUseTransport) return;
+    if (mode === 'listener') {
+      if (!remotePausedByUser && !audio.paused && playerState?.playing && status !== 'autoplay-blocked') {
+        setRemotePausedByUser(true);
+      } else {
+        setRemotePausedByUser(false);
+        try {
+          await audio.play();
+          setStatus('ready');
+        } catch {
+          setStatus('autoplay-blocked');
+        }
+      }
+      return;
+    }
     if (audio.paused) {
       try {
         await audio.play();
-        if (audio === remoteAudioRef.current) setRemotePausedByUser(false);
         setStatus('playing');
       } catch {
         setStatus('autoplay-blocked');
       }
     } else {
       audio.pause();
-      // Host idles back to its capturable "ready" state; a listener pausing a
-      // live stream keeps whatever connection status it already had.
-      setStatus(previous => (mode === 'host' ? 'ready' : previous));
+      setStatus('ready');
     }
     syncFromAudio(audio);
-    if (mode === 'host') onEmitPlayerState(true);
-  }, [getPlayingAudio, isAudioPlaying, localAudioRef, remoteAudioRef, mode, syncFromAudio, onEmitPlayerState, getControllingAudio, canUseTransport]);
+    onEmitPlayerState(true);
+  }, [getControllingAudio, canUseTransport, mode, remotePausedByUser, playerState?.playing, status, syncFromAudio, onEmitPlayerState]);
 
   const seekToProgress = useCallback(
     (progressPercent: number) => {
       const audio = getControllingAudio();
       const duration = transport.duration;
-      if (!audio || duration <= 0) return;
+      if (!canSeek || !audio || duration <= 0 || !Number.isFinite(progressPercent)) return;
       audio.currentTime = Math.min(duration, Math.max(0, (progressPercent / 100) * duration));
       syncFromAudio(audio);
       if (mode === 'host') onEmitPlayerState(true);
     },
-    [getControllingAudio, transport.duration, syncFromAudio, mode, onEmitPlayerState]
+    [getControllingAudio, transport.duration, syncFromAudio, mode, onEmitPlayerState, canSeek]
   );
 
   const getSkipTrack = useCallback(
@@ -295,16 +293,8 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const handleEnded = useCallback(
     (audio: HTMLAudioElement) => {
+      if (mode !== 'host') return;
       syncFromAudio(audio);
-      if (repeatEnabled) {
-        // Listener-only path now: the host element loops natively (audio.loop =
-        // repeatEnabled) so it never fires `ended` while repeat is on. This
-        // manual replay only reaches the listener's remote element, whose
-        // MediaStream can still end; it keeps that element cycling.
-        audio.currentTime = 0;
-        void audio.play().catch(() => undefined);
-        return;
-      }
       if (shuffleEnabled && mode === 'host' && catalogTracks.length > 1) {
         const next = getSkipTrack('next');
         if (next) {
@@ -313,7 +303,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
         }
       }
     },
-    [syncFromAudio, repeatEnabled, shuffleEnabled, mode, catalogTracks.length, getSkipTrack, requestAutoplay]
+    [syncFromAudio, shuffleEnabled, mode, catalogTracks.length, getSkipTrack, requestAutoplay]
   );
 
   // Called by <PersistentAudio> once the host source has loaded its metadata.
@@ -379,18 +369,23 @@ export function usePlayback(deps: UsePlaybackDeps) {
   }, []);
 
   const markNoAudio = useCallback(() => setStatus('no-audio'), []);
-  const toggleRepeat = useCallback(() => setRepeatEnabled(value => !value), []);
+  const toggleRepeat = useCallback(() => {
+    if (mode === 'host') setRepeatEnabled(value => !value);
+  }, [mode]);
   const toggleShuffle = useCallback(() => setShuffleEnabled(value => !value), []);
 
   return {
     // state
     transport,
-    status,
+    status: visibleStatus,
+    remoteMuted,
     muted,
     repeatEnabled,
     shuffleEnabled,
     // capability flags
     canUseTransport,
+    canSeek,
+    canRepeat,
     canSkip,
     canShuffle,
     // controls

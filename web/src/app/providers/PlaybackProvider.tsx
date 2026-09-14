@@ -52,6 +52,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
 
   const playback = usePlayback({
     mode: session.mode,
+    roomId: session.roomId,
     localAudioRef: catalog.localAudioRef,
     remoteAudioRef: session.remoteAudioRef,
     audioSource: catalog.audioSource,

@@ -25,6 +25,22 @@ Keep this document aligned with
 `docs/reference/environment-variables.md`, `web/README.md`, the relevant
 `docs/backlog/XX-*.md` ticket, and the hosted dashboard state.
 
+## Playback synchronization verification
+
+The [room clock fix](../explanation/room-playback-synchronization.md) changes
+signaling behavior without new configuration or storage. Release the signaling
+server and ordinary/Product frontend builds together for fresh late-join
+snapshots and pause silencing; refresh host and guest clients. Rollback uses the
+previous builds and requires no migration.
+
+After release, join halfway through a track from a second device, seek in both
+directions, and repeat pause/resume while comparing the two progress indicators.
+Confirm silence during pause and continued sound after resume. Test foreground,
+background, and relay-only paths: a missing playing update for 2.5 seconds now
+silences guest output and shows "Syncing with host" until fresh state arrives.
+Record device/browser and drift; local Chromium coverage does not establish
+physical-device acoustic synchronization.
+
 ## Hosted Surfaces
 
 | Surface          | Host                                  | App/project         | Source config                                                  | Purpose                                           |

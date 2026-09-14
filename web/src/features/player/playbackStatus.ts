@@ -9,6 +9,9 @@ export type AudioStatus =
   | 'idle' //            nothing selected yet
   | 'preparing' //       source set, decoding / loading metadata
   | 'autoplay-blocked' // play() was rejected; a tap is needed
+  | 'syncing' // waiting for fresh host clock
+  | 'host-paused'
+  | 'listener-paused'
   | 'ready' //           host source loaded and capturable ("Hosting")
   | 'playing' //         sound is actually playing
   | 'joining' //         room listener waiting for the live stream
@@ -22,7 +25,7 @@ export function listenerPlaybackStatusForHostState(
 ): AudioStatus {
   if (!remoteReady) return 'joining';
   if (previous === 'autoplay-blocked' || previous === 'no-audio') return previous;
-  return !remotePausedByUser && hostPlaying ? 'playing' : 'ready';
+  return remotePausedByUser ? 'listener-paused' : hostPlaying ? 'playing' : 'host-paused';
 }
 
 /** Human label for a playback status, phrased for the host or the listener. */
@@ -36,6 +39,12 @@ export function playbackStatusLabel(status: AudioStatus, mode: Mode, preparingDe
       return 'Joining live audio';
     case 'no-audio':
       return 'No audio available';
+    case 'syncing':
+      return 'Syncing with host';
+    case 'host-paused':
+      return 'Host paused';
+    case 'listener-paused':
+      return 'Paused for you';
     case 'playing':
       return mode === 'host' ? 'Playing' : 'In sync';
     case 'ready':
