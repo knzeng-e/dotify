@@ -226,7 +226,7 @@ function loadCoverTexture(runtime: GalaxyRuntime, object: RoomRenderObject, room
   loader.load(
     url,
     texture => {
-      if (object.disposed) {
+      if (object.disposed || object.textureRef !== imageRef) {
         texture.dispose();
         return;
       }
@@ -237,7 +237,7 @@ function loadCoverTexture(runtime: GalaxyRuntime, object: RoomRenderObject, room
     },
     undefined,
     () => {
-      if (object.disposed) return;
+      if (object.disposed || object.textureRef !== imageRef) return;
       object.texture = undefined;
       object.core.material.map = null;
       object.core.material.needsUpdate = true;
@@ -432,6 +432,7 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
   const roomsRef = useRef(rooms);
   const selectedRoomIdRef = useRef(selectedRoomId);
   const dragRef = useRef<DragState | null>(null);
+  const joinTimeoutRef = useRef<number | null>(null);
   const selectedRoomIndex = Math.max(
     0,
     rooms.findIndex(room => room.roomId === selectedRoomId)
@@ -524,12 +525,23 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
     };
   }, [rooms.length, status]);
 
+  useEffect(
+    () => () => {
+      if (joinTimeoutRef.current !== null) {
+        window.clearTimeout(joinTimeoutRef.current);
+        joinTimeoutRef.current = null;
+      }
+    },
+    []
+  );
+
   const enterRoom = useCallback(
     (roomId: string) => {
       if (sessionAction !== 'idle' || joiningId) return;
       if (rooms.find(room => room.roomId === roomId)?.isFull) return;
       setJoiningId(roomId);
-      window.setTimeout(() => {
+      joinTimeoutRef.current = window.setTimeout(() => {
+        joinTimeoutRef.current = null;
         setJoiningId(null);
         onJoinRoom(roomId);
       }, JOIN_FLOOD_MS);
