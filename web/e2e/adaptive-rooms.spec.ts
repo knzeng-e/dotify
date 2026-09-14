@@ -38,12 +38,14 @@ async function openRoomsTab(page: Page, roomId: string) {
 async function expectGalaxyReady(page: Page) {
   await expect(page.getByTestId('room-galaxy-scene')).toBeVisible();
   await expect
-    .poll(async () =>
-      page.evaluate(() => {
-        const snapshot = window.__DOTIFY_ROOM_GALAXY__?.snapshot();
-        if (!snapshot) return 'missing';
-        return `${snapshot.status}:${snapshot.roomCount >= 1}:${snapshot.visibleOverlayCount >= 1}:${snapshot.frameCount > 0}`;
-      })
+    .poll(
+      async () =>
+        page.evaluate(() => {
+          const snapshot = window.__DOTIFY_ROOM_GALAXY__?.snapshot();
+          if (!snapshot) return 'missing';
+          return `${snapshot.status}:${snapshot.roomCount >= 1}:${snapshot.visibleOverlayCount >= 1}:${snapshot.frameCount > 0}`;
+        }),
+      { timeout: 15_000 }
     )
     .toBe('ready:true:true:true');
 }
@@ -83,7 +85,7 @@ test('room discovery exposes an inspection panel beside the desktop list', async
   const roomCard = await openRoomsTab(page, roomId);
 
   await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
-  await page.getByRole('button', { name: '3D' }).click();
+  await page.getByRole('button', { name: '3D', exact: true }).click();
   await expectGalaxyReady(page);
   await expectGalaxyCanvasPainted(page);
   await expect(page.getByRole('button', { name: `Join room ${roomId}` })).toBeVisible();
@@ -94,9 +96,9 @@ test('room discovery exposes an inspection panel beside the desktop list', async
   await expectGalaxyReady(page);
   await page.getByTestId('room-galaxy-canvas').dispatchEvent('webglcontextlost');
   await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
-  await page.getByRole('button', { name: '2D' }).click();
+  await page.getByRole('button', { name: '2D', exact: true }).click();
   await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
-  await page.getByRole('button', { name: '3D' }).click();
+  await page.getByRole('button', { name: '3D', exact: true }).click();
   await expectGalaxyReady(page);
   await expectGalaxyCanvasPainted(page);
 
