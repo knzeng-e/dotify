@@ -12,6 +12,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { deriveH160 } from '@parity/product-sdk/address';
+
 export const PRODUCT_CASH_SETTLEMENT_SCHEMA_VERSION = 1;
 export const PRODUCT_CASH_DECISION_DATE = '2026-09-14';
 export const PRODUCT_CASH_DEVNET_RESET_AT = '2026-09-09T00:00:00.000Z';
@@ -48,6 +50,25 @@ function isHexAddress(value) {
 
 function isHexHash(value) {
   return typeof value === 'string' && /^0x[0-9a-fA-F]{64}$/.test(value);
+}
+
+function hexBytes(value, byteLength) {
+  if (typeof value !== 'string' || !value.startsWith('0x')) return null;
+  const hex = value.slice(2);
+  if (hex.length !== byteLength * 2 || !/^[0-9a-fA-F]+$/.test(hex)) return null;
+  return Uint8Array.from(Buffer.from(hex, 'hex'));
+}
+
+function deriveProductH160(productPublicKey) {
+  const publicKey = hexBytes(productPublicKey, 32);
+  if (!publicKey) return null;
+
+  try {
+    const derived = deriveH160(publicKey);
+    return isHexAddress(derived) ? derived : null;
+  } catch {
+    return null;
+  }
 }
 
 function isPositiveIntegerString(value) {
@@ -191,8 +212,8 @@ export function evaluateProductCashSettlementEvidence(evidence, options = {}) {
   evaluateContext(gates, evidence.context, source);
   evaluateQuote(gates, evidence.quote, source);
   evaluateHostPayment(gates, evidence.quote, evidence.hostPayment, source);
-  evaluateFinality(gates, evidence.finality, source);
-  evaluateRuntimeEntitlement(gates, evidence.quote, evidence.entitlement, source);
+  evaluateFinality(gates, evidence.quote, evidence.hostPayment, evidence.finality, source);
+  evaluateRuntimeEntitlement(gates, evidence.quote, evidence.hostPayment, evidence.finality, evidence.entitlement, source);
   evaluateReconciliation(gates, evidence.hostPayment, evidence.entitlement, evidence.reconciliation, source);
   evaluateAuthority(gates, evidence.settlementAuthority, { source });
 
@@ -242,10 +263,17 @@ function evaluateQuote(gates, quote, source) {
     fail(gates, 'quote:idempotency', 'Idempotency key', 'Quote must bind retries to a stable idempotency key.', source);
   }
 
-  if (isHexAddress(quote.payerH160) && typeof quote.payerProductPublicKey === 'string' && /^0x[0-9a-fA-F]{64}$/.test(quote.payerProductPublicKey)) {
-    pass(gates, 'quote:payer', 'Payer binding', 'Quote binds the Product account public key and derived H160 runtime identity.', source);
+  const derivedPayerH160 = deriveProductH160(quote.payerProductPublicKey);
+  if (isHexAddress(quote.payerH160) && derivedPayerH160 && sameText(quote.payerH160, derivedPayerH160)) {
+    pass(gates, 'quote:payer', 'Payer binding', 'Quote payerH160 matches deriveH160(payerProductPublicKey).', source);
   } else {
-    fail(gates, 'quote:payer', 'Payer binding', 'Quote must include payerH160 and payerProductPublicKey.', source);
+    fail(
+      gates,
+      'quote:payer',
+      'Payer binding',
+      `Quote must include payerH160 and a 32-byte payerProductPublicKey whose Product-derived H160 matches it; derived ${derivedPayerH160 ?? 'unavailable'}.`,
+      source
+    );
   }
 
   if (isHexAddress(quote.recipient)) {
@@ -299,7 +327,7 @@ function evaluateHostPayment(gates, quote, hostPayment, source) {
   }
 }
 
-function evaluateFinality(gates, finality, source) {
+function evaluateFinality(gates, quote, hostPayment, finality, source) {
   if (!isRecord(finality)) {
     blocked(gates, 'finality', 'People-chain finality', 'Missing finality evidence for the CASH movement.', source);
     return;
@@ -307,16 +335,49 @@ function evaluateFinality(gates, finality, source) {
 
   if (finality.peopleParaId !== PRODUCT_CASH_TOPOLOGY.peopleParaId) {
     fail(gates, 'finality:chain', 'Finality chain', 'Finality must be observed on People para 1004.', source);
-  } else if (finality.status === 'finalized' && isHexHash(finality.blockHash) && finality.reorgSafe === true) {
+    return;
+  }
+
+  if (finality.status === 'finalized' && isHexHash(finality.blockHash) && finality.reorgSafe === true) {
     pass(gates, 'finality:chain', 'Finality chain', 'People-chain CASH settlement is finalized and reorg-safe.', source);
   } else if (finality.status === 'included' || finality.status === 'pending') {
     blocked(gates, 'finality:chain', 'Finality chain', 'Payment is not finalized yet; do not grant runtime access.', source);
+    return;
   } else {
     fail(gates, 'finality:chain', 'Finality chain', 'Finality evidence must include finalized status, blockHash, and reorgSafe=true.', source);
+    return;
+  }
+
+  if (
+    isRecord(quote) &&
+    isRecord(hostPayment) &&
+    finality.quoteId === quote.quoteId &&
+    finality.paymentId === hostPayment.paymentId &&
+    sameText(finality.payerH160, quote.payerH160) &&
+    sameText(finality.recipient, quote.recipient) &&
+    finality.amountAtomic === quote.amountAtomic &&
+    finality.peopleAssetId === quote.peopleAssetId &&
+    isHexHash(finality.transactionHash)
+  ) {
+    pass(
+      gates,
+      'finality:payment-binding',
+      'Finalized CASH transfer binding',
+      'Finality identifies the exact CASH transfer and matches quoteId, paymentId, payer, recipient, amount, and People asset.',
+      source
+    );
+  } else {
+    fail(
+      gates,
+      'finality:payment-binding',
+      'Finalized CASH transfer binding',
+      'Finalized People-chain evidence must identify the CASH transfer and bind quoteId, paymentId, payerH160, recipient, amountAtomic, peopleAssetId, and transactionHash.',
+      source
+    );
   }
 }
 
-function evaluateRuntimeEntitlement(gates, quote, entitlement, source) {
+function evaluateRuntimeEntitlement(gates, quote, hostPayment, finality, entitlement, source) {
   if (!isRecord(entitlement)) {
     blocked(gates, 'entitlement', 'Asset Hub runtime entitlement', 'Missing runtime entitlement evidence. A Host payment receipt alone is not access.', source);
     return;
@@ -344,6 +405,65 @@ function evaluateRuntimeEntitlement(gates, quote, entitlement, source) {
   } else {
     fail(gates, 'entitlement:once', 'Exactly-once entitlement', 'Expected issuanceCount=1.', source);
   }
+
+  if (isHexHash(entitlement.transactionHash) && isHexHash(entitlement.blockHash) && parseDateMs(entitlement.issuedAt) !== null) {
+    pass(
+      gates,
+      'entitlement:write',
+      'Entitlement write evidence',
+      'Entitlement includes finalized Asset Hub transaction, block, and issuedAt timestamp.',
+      source
+    );
+  } else {
+    fail(
+      gates,
+      'entitlement:write',
+      'Entitlement write evidence',
+      'Entitlement must include transactionHash, blockHash, and issuedAt for the Asset Hub runtime write.',
+      source
+    );
+  }
+
+  if (
+    isRecord(quote) &&
+    isRecord(hostPayment) &&
+    isRecord(finality) &&
+    entitlement.quoteId === quote.quoteId &&
+    entitlement.paymentId === hostPayment.paymentId &&
+    sameText(entitlement.cashFinalityBlockHash, finality.blockHash) &&
+    sameText(entitlement.cashFinalityTransactionHash, finality.transactionHash)
+  ) {
+    pass(
+      gates,
+      'entitlement:cash-receipt',
+      'CASH receipt correlation',
+      'Runtime entitlement is correlated to the same quote, Host payment id, and finalized People-chain CASH transfer.',
+      source
+    );
+  } else {
+    fail(
+      gates,
+      'entitlement:cash-receipt',
+      'CASH receipt correlation',
+      'Runtime entitlement must bind quoteId, paymentId, cashFinalityBlockHash, and cashFinalityTransactionHash so pre-existing access cannot satisfy a later CASH receipt.',
+      source
+    );
+  }
+
+  const issuedAtMs = parseDateMs(entitlement.issuedAt);
+  const hostCompletedAtMs = isRecord(hostPayment) ? parseDateMs(hostPayment.completedAt) : null;
+  const finalizedAtMs = isRecord(finality) ? parseDateMs(finality.finalizedAt) : null;
+  if (issuedAtMs !== null && hostCompletedAtMs !== null && finalizedAtMs !== null && issuedAtMs >= hostCompletedAtMs && issuedAtMs >= finalizedAtMs) {
+    pass(gates, 'entitlement:timing', 'Entitlement timing', 'Runtime entitlement was issued after Host completion and People-chain finality.', source);
+  } else {
+    fail(
+      gates,
+      'entitlement:timing',
+      'Entitlement timing',
+      'Entitlement issuedAt must be present and no earlier than hostPayment.completedAt and finality.finalizedAt.',
+      source
+    );
+  }
 }
 
 function evaluateReconciliation(gates, hostPayment, entitlement, reconciliation, source) {
@@ -353,10 +473,27 @@ function evaluateReconciliation(gates, hostPayment, entitlement, reconciliation,
   }
 
   const receiptId = reconciliation.stableReceiptId;
-  if (typeof receiptId === 'string' && receiptId.trim() && (!isRecord(hostPayment) || receiptId === hostPayment.paymentId)) {
-    pass(gates, 'reconciliation:receipt-id', 'Stable receipt id', 'Stable receipt id is recorded and matches the Host payment id when present.', source);
+  if (
+    typeof receiptId === 'string' &&
+    receiptId.trim() &&
+    (!isRecord(hostPayment) || receiptId === hostPayment.paymentId) &&
+    (!isRecord(entitlement) || receiptId === entitlement.paymentId)
+  ) {
+    pass(
+      gates,
+      'reconciliation:receipt-id',
+      'Stable receipt id',
+      'Stable receipt id is recorded and matches the Host payment id and entitlement when present.',
+      source
+    );
   } else {
-    fail(gates, 'reconciliation:receipt-id', 'Stable receipt id', 'stableReceiptId must be present and match hostPayment.paymentId.', source);
+    fail(
+      gates,
+      'reconciliation:receipt-id',
+      'Stable receipt id',
+      'stableReceiptId must be present and match hostPayment.paymentId plus entitlement.paymentId when present.',
+      source
+    );
   }
 
   if (reconciliation.receiptAlreadyUsed === false) {

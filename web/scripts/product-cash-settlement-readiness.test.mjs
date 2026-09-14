@@ -9,12 +9,15 @@ import {
   packageLockVersion
 } from './product-cash-settlement-readiness.mjs';
 
-const ADDRESS = '0x1111111111111111111111111111111111111111';
+const PRODUCT_PUBLIC_KEY = `0x${'44'.repeat(32)}`;
+const ADDRESS = '0x0e8ce681fb6d8aa53c5302e72b80f654141a0e65';
+const WRONG_DERIVED_ADDRESS = '0x1111111111111111111111111111111111111111';
 const RECIPIENT = '0x2222222222222222222222222222222222222222';
 const RUNTIME = '0x3333333333333333333333333333333333333333';
 const CONTENT_HASH = `0x${'ab'.repeat(32)}`;
-const PRODUCT_PUBLIC_KEY = `0x${'44'.repeat(32)}`;
-const TX_HASH = `0x${'cd'.repeat(32)}`;
+const CASH_TX_HASH = `0x${'cd'.repeat(32)}`;
+const ENTITLEMENT_TX_HASH = `0x${'12'.repeat(32)}`;
+const ENTITLEMENT_BLOCK_HASH = `0x${'34'.repeat(32)}`;
 const BLOCK_HASH = `0x${'ef'.repeat(32)}`;
 
 function staticSnapshot(patch = {}) {
@@ -72,7 +75,15 @@ function completeEvidence(patch = {}) {
       peopleParaId: PRODUCT_CASH_TOPOLOGY.peopleParaId,
       status: 'finalized',
       blockHash: BLOCK_HASH,
-      reorgSafe: true
+      reorgSafe: true,
+      quoteId: quote.quoteId,
+      paymentId: hostPayment.paymentId,
+      payerH160: quote.payerH160,
+      recipient: quote.recipient,
+      amountAtomic: quote.amountAtomic,
+      peopleAssetId: quote.peopleAssetId,
+      transactionHash: CASH_TX_HASH,
+      finalizedAt: '2026-09-14T10:02:00.000Z'
     },
     entitlement: {
       status: 'verified',
@@ -82,8 +93,14 @@ function completeEvidence(patch = {}) {
       hasPaid: true,
       canAccess: true,
       finalized: true,
-      transactionHash: TX_HASH,
-      issuanceCount: 1
+      transactionHash: ENTITLEMENT_TX_HASH,
+      blockHash: ENTITLEMENT_BLOCK_HASH,
+      issuanceCount: 1,
+      quoteId: quote.quoteId,
+      paymentId: hostPayment.paymentId,
+      cashFinalityBlockHash: BLOCK_HASH,
+      cashFinalityTransactionHash: CASH_TX_HASH,
+      issuedAt: '2026-09-14T10:03:00.000Z'
     },
     reconciliation: {
       stableReceiptId: hostPayment.paymentId,
@@ -138,6 +155,30 @@ test('off-chain Host payment completion alone never grants Dotify access', () =>
   assert.equal(gate(report, 'host-payment:status').status, 'pass');
   assert.equal(gate(report, 'entitlement').status, 'blocked');
   assert.match(gate(report, 'entitlement').detail, /Host payment receipt alone is not access/);
+});
+
+test('valid but wrong Product payer mapping fails closed', () => {
+  const base = completeEvidence();
+  const report = reportFor(
+    completeEvidence({
+      quote: {
+        ...base.quote,
+        payerH160: WRONG_DERIVED_ADDRESS
+      },
+      finality: {
+        ...base.finality,
+        payerH160: WRONG_DERIVED_ADDRESS
+      },
+      entitlement: {
+        ...base.entitlement,
+        listenerAddress: WRONG_DERIVED_ADDRESS
+      }
+    })
+  );
+
+  assert.equal(report.summary.status, 'fail');
+  assert.equal(gate(report, 'quote:payer').status, 'fail');
+  assert.match(gate(report, 'quote:payer').detail, /derived 0x0e8ce681fb6d8aa53c5302e72b80f654141a0e65/);
 });
 
 test('wrong payer, recipient, asset, and chain evidence fails closed', () => {
@@ -237,12 +278,32 @@ test('included or reorg-unsafe payments stay blocked before entitlement', () => 
         status: 'included',
         blockHash: BLOCK_HASH,
         reorgSafe: false
-      }
+      },
+      entitlement: undefined,
+      reconciliation: undefined,
+      settlementAuthority: undefined
     })
   );
 
   assert.equal(report.summary.status, 'blocked');
   assert.equal(gate(report, 'finality:chain').status, 'blocked');
+});
+
+test('an unrelated finalized People block cannot prove CASH finality', () => {
+  const report = reportFor(
+    completeEvidence({
+      finality: {
+        peopleParaId: PRODUCT_CASH_TOPOLOGY.peopleParaId,
+        status: 'finalized',
+        blockHash: BLOCK_HASH,
+        reorgSafe: true
+      }
+    })
+  );
+
+  assert.equal(report.summary.status, 'fail');
+  assert.equal(gate(report, 'finality:chain').status, 'pass');
+  assert.equal(gate(report, 'finality:payment-binding').status, 'fail');
 });
 
 test('wrong or repeated runtime entitlement fails instead of issuing access', () => {
@@ -256,7 +317,7 @@ test('wrong or repeated runtime entitlement fails instead of issuing access', ()
         hasPaid: true,
         canAccess: true,
         finalized: true,
-        transactionHash: TX_HASH,
+        transactionHash: ENTITLEMENT_TX_HASH,
         issuanceCount: 2
       }
     })
@@ -265,6 +326,32 @@ test('wrong or repeated runtime entitlement fails instead of issuing access', ()
   assert.equal(report.summary.status, 'fail');
   assert.equal(gate(report, 'entitlement:binding').status, 'fail');
   assert.equal(gate(report, 'entitlement:once').status, 'fail');
+});
+
+test('pre-existing access cannot satisfy a later CASH receipt', () => {
+  const base = completeEvidence();
+  const report = reportFor(
+    completeEvidence({
+      entitlement: {
+        status: 'verified',
+        runtimeAddress: base.quote.runtimeAddress,
+        contentHash: base.quote.contentHash,
+        listenerAddress: base.quote.payerH160,
+        hasPaid: true,
+        canAccess: true,
+        finalized: true,
+        transactionHash: ENTITLEMENT_TX_HASH,
+        blockHash: ENTITLEMENT_BLOCK_HASH,
+        issuanceCount: 1,
+        issuedAt: '2026-09-14T10:03:00.000Z'
+      }
+    })
+  );
+
+  assert.equal(report.summary.status, 'fail');
+  assert.equal(gate(report, 'entitlement:state').status, 'pass');
+  assert.equal(gate(report, 'entitlement:binding').status, 'pass');
+  assert.equal(gate(report, 'entitlement:cash-receipt').status, 'fail');
 });
 
 test('trusted relay evidence is explicitly refused', () => {

@@ -75,15 +75,21 @@ A future CASH path must prove all of these before Dotify can label access as
 acquired:
 
 - quote id and idempotency key;
-- payer Product public key and derived H160 runtime address;
+- payer Product public key and H160 runtime address, with the H160 derived from
+  that exact public key through Product's address mapping;
 - recipient address;
 - CASH amount in atomic 6-decimal units;
 - People asset id `1`, Asset Hub protected asset id `50000413`, and Asset Hub
   EVM chain id `420420417`;
 - exact runtime address and content hash;
 - Host payment id and terminal status;
-- People-chain finality, including a reorg-safe block identity;
-- one Asset Hub runtime entitlement for the same payer/runtime/content hash;
+- People-chain finality for the exact CASH transfer, including quote id, Host
+  payment id, payer, recipient, amount, People asset id, transaction hash, and a
+  reorg-safe block identity;
+- one Asset Hub runtime entitlement for the same payer/runtime/content hash,
+  correlated to the same Host payment id and finalized People-chain transfer;
+- entitlement timing proving the runtime grant was issued after Host completion
+  and People-chain finality;
 - replay protection proving the same receipt was not reused;
 - reconciliation result for crashes, timeouts, duplicate retries, and payments
   that settled without entitlement.
