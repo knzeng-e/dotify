@@ -41,3 +41,32 @@ for (const width of [390, 1440]) {
     await expect(page.getByTestId('locked-player-state')).toBeVisible();
   });
 }
+
+test.describe('Turkish browser locale', () => {
+  test.use({ locale: 'tr-TR' });
+
+  test('catalog row search matches uppercase and lowercase titles and artists consistently', async ({ page }) => {
+    // Browser locale emulation does not consistently update String's default
+    // locale on every runner. Exercise native Turkish casing deterministically.
+    await page.addInitScript(() => {
+      const lower = String.prototype.toLocaleLowerCase;
+      String.prototype.toLocaleLowerCase = function (locales?: string | string[]) {
+        return lower.call(this, locales ?? 'tr-TR');
+      };
+    });
+    await page.goto('/?e2eRoom=public');
+    await expect(page.getByTestId('track-card')).toHaveCount(3);
+    // Verify this browser really uses Turkish case rules for the old code path.
+    expect(await page.evaluate(() => 'PUBLIC'.toLocaleLowerCase())).toBe('publıc');
+    const search = page.getByRole('searchbox', { name: 'Find a track or artist' });
+    for (const query of ['public', 'PUBLIC']) {
+      await search.fill(query);
+      await expect(page.getByTestId('track-card')).toHaveCount(1);
+      await expect(page.getByTestId('track-card')).toContainText('E2E Public Room Track');
+    }
+    for (const query of ['dotify room host', 'DOTIFY ROOM HOST']) {
+      await search.fill(query);
+      await expect(page.getByTestId('track-card')).toHaveCount(2);
+    }
+  });
+});

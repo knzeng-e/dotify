@@ -168,19 +168,21 @@ test('room controls fit a small desktop and the QR remains discoverable', async 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-for (const scenario of ['zoomed-chat', 'resized-requests']) {
+for (const scenario of ['zoomed-chat', 'zoomed-chat-tab', 'resized-requests']) {
   test(`composer remains above the keyboard with ${scenario}`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await hostRoom(page);
     if (scenario === 'resized-requests') await page.getByRole('tab', { name: /Requests/ }).click();
-    const input = page.getByRole('textbox', { name: scenario === 'zoomed-chat' ? 'Message the room' : 'Request a track' });
+    const input = page.getByRole('textbox', { name: scenario.startsWith('zoomed-chat') ? 'Message the room' : 'Request a track', includeHidden: true });
     await input.fill('My words remain visible');
     await expect(page.locator('.bottom-nav')).toBeHidden();
     await page.evaluate(kind => {
       Reflect.set(window, '__originalRoomAudio', document.querySelector('audio'));
       Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 310 });
       Object.defineProperty(window.visualViewport, 'offsetTop', { configurable: true, value: 24 });
-      Object.defineProperty(window.visualViewport, 'scale', { configurable: true, value: kind === 'zoomed-chat' ? 1.15 : 1 });
+      Object.defineProperty(window.visualViewport, 'scale', { configurable: true, value: kind.startsWith('zoomed-chat') ? 1.15 : 1 });
+      Object.defineProperty(window.visualViewport, 'width', { configurable: true, value: kind.startsWith('zoomed-chat') ? 320 : 390 });
+      Object.defineProperty(window.visualViewport, 'offsetLeft', { configurable: true, value: kind.startsWith('zoomed-chat') ? 35 : 0 });
       if (kind === 'resized-requests') Object.defineProperty(window, 'innerHeight', { configurable: true, value: 310 });
       window.visualViewport!.dispatchEvent(new Event('resize'));
     }, scenario);
@@ -190,13 +192,25 @@ for (const scenario of ['zoomed-chat', 'resized-requests']) {
     await expect(input).toHaveValue('My words remain visible');
     await expect(page.locator('.player-stage')).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath(`${scenario}.png`) });
-    await page.getByRole('button', { name: 'Finish typing' }).click();
+    if (scenario === 'zoomed-chat-tab') await page.getByRole('tab', { name: /Requests/ }).click();
+    else await page.getByRole('button', { name: 'Finish typing' }).click();
+    // WebKit may keep the keyboard geometry after focus has already left.
+    await expect(input).not.toBeFocused();
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await expect(page.locator('.app-shell')).toHaveAttribute('data-keyboard-open', 'true');
+    const closingBounds = await page.locator('.app-shell').boundingBox();
+    expect(closingBounds!.x).toBe(scenario.startsWith('zoomed-chat') ? 35 : 0);
+    expect(closingBounds!.width).toBe(scenario.startsWith('zoomed-chat') ? 320 : 390);
+    await expect(page.locator('.bottom-nav')).toBeHidden();
     await page.evaluate(() => {
-      for (const name of ['height', 'offsetTop', 'scale']) Reflect.deleteProperty(window.visualViewport!, name);
+      for (const name of ['height', 'offsetTop', 'scale', 'width', 'offsetLeft']) Reflect.deleteProperty(window.visualViewport!, name);
       Reflect.deleteProperty(window, 'innerHeight');
       window.visualViewport!.dispatchEvent(new Event('resize'));
     });
     await expect(page.locator('.bottom-nav')).toBeVisible();
+    const restoredBounds = await page.locator('.app-shell').boundingBox();
+    expect(restoredBounds!.x).toBe(0);
+    expect(restoredBounds!.width).toBe(390);
     await expect(input).toHaveValue('My words remain visible');
     expect(await page.evaluate(() => document.querySelector('audio') === Reflect.get(window, '__originalRoomAudio'))).toBe(true);
   });

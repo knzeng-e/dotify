@@ -68,7 +68,7 @@ npx playwright test --config playwright.webkit.config.ts
 
 The Product build command checks the existing catalog snapshot without
 regenerating it. No deployment, server configuration, migration, or new package
-is required. The WebKit config intentionally runs five layout regression
+is required. The WebKit config intentionally runs seven layout/search regression
 scenarios; real multi-peer audio remains covered by the Chromium suite.
 
 Automated viewport geometry is synthetic. Desktop WebKit is not an iPhone
@@ -80,7 +80,7 @@ that the text, Send button, current track and latest messages remain usable.
 Repeat with a hardware keyboard and accessibility text enlargement. Product
 DevNet build success likewise does not replace a real Product-host smoke test.
 
-### Recorded results, 2026-09-15
+### Initial delivery results, 2026-09-15
 
 - Unit tests: **450 passed**, 59 files.
 - Chromium: **45 passed**, two workers, full suite (1.7 minutes).
@@ -96,6 +96,28 @@ fix. The final full browser run was sequential with builds to avoid resource
 contention; timeout limits were not relaxed. An old compact-list card-height
 assertion was updated for the new cover-led row, retaining viewport and
 navigation bounds checks.
+
+### PR review follow-up
+
+Both P2 findings from the PR #166 review are addressed:
+
+- The room now uses one `composing = editing || keyboardOpen` condition for its
+  mode, width and horizontal offset. Blurring the field does not widen or shift
+  the room while delayed keyboard geometry is still present. Browser regressions
+  supply a narrower viewport and nonzero horizontal pan, exercise both Done and
+  a tab change, and verify the normal geometry returns after keyboard closure.
+- Catalog search uses locale-neutral `toLowerCase()` after removing diacritics.
+  The browser regression matches uppercase/lowercase title and artist queries
+  with native Turkish casing supplied as the default in an isolated page. This
+  override is test-only: Playwright locale emulation does not consistently change
+  the default locale used by String casing on every runner.
+
+The zoomed Done case and uppercase search failed before the fixes. After the
+fixes, all **18 affected Chromium scenarios** and **7 WebKit scenarios** pass.
+The 450 unit tests, lint (zero errors), TypeScript and both frontend builds also
+pass. Lint reports three existing hook-dependency warnings in App/ArtistShell;
+these files are unchanged. Build-size and dependency-annotation warnings remain.
+Physical iPhone keyboard acceptance remains unchanged.
 
 ## Durable follow-ups
 

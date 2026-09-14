@@ -27,13 +27,14 @@ export function useRoomViewport(active: boolean) {
       if (editing) composingSession = true;
       const height = viewport?.height ?? window.innerHeight;
       const keyboardOpen = composingSession && keyboardOccludesRoom(baselineHeight, height, viewport?.scale ?? 1);
-      if (!editing && !keyboardOpen) composingSession = false;
+      const composing = editing || keyboardOpen;
+      if (!composing) composingSession = false;
       shell.style.setProperty('--room-viewport-height', `${height}px`);
       shell.style.setProperty('--room-viewport-top', `${viewport?.offsetTop ?? 0}px`);
-      shell.style.setProperty('--room-viewport-width', `${editing ? (viewport?.width ?? window.innerWidth) : window.innerWidth}px`);
-      shell.style.setProperty('--room-viewport-left', `${editing ? (viewport?.offsetLeft ?? 0) : 0}px`);
+      shell.style.setProperty('--room-viewport-width', `${composing ? (viewport?.width ?? window.innerWidth) : window.innerWidth}px`);
+      shell.style.setProperty('--room-viewport-left', `${composing ? (viewport?.offsetLeft ?? 0) : 0}px`);
       shell.dataset.keyboardOpen = String(keyboardOpen);
-      shell.dataset.composing = String(editing || keyboardOpen);
+      shell.dataset.composing = String(composing);
     };
     const schedule = () => {
       cancelAnimationFrame(frame);
