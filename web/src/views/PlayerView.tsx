@@ -265,6 +265,17 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           >
             {roomPlaybackMode}
           </span>
+          <button
+            className='room-composer-done'
+            type='button'
+            aria-label='Finish typing'
+            onPointerDown={event => event.preventDefault()}
+            onClick={() => {
+              if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+            }}
+          >
+            Done
+          </button>
           <div className='room-code-pill'>
             <span>ROOM</span>
             <strong className='tnum' data-testid='room-code'>

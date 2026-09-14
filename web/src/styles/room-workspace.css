@@ -588,3 +588,46 @@
     grid-area: conversation;
   }
 }
+
+.room-composer-done {
+  display: none;
+}
+@media (max-width: 768px), (max-height: 799px) {
+  .app-shell[data-room-focus='true'] {
+    left: var(--room-viewport-left, 0px);
+    right: auto;
+    width: var(--room-viewport-width, 100%);
+  }
+  .player-room-mode .room-chat-form .field {
+    font-size: max(1rem, 16px);
+  }
+  .app-shell[data-room-focus='true'][data-composing='true'] .topbar,
+  .app-shell[data-room-focus='true'][data-composing='true'] .bottom-nav,
+  .app-shell[data-composing='true'] .room-chat-reactions,
+  .app-shell[data-composing='true'] .room-code-pill,
+  .app-shell[data-composing='true'] .player-room-mode .access-badges,
+  .app-shell[data-composing='true'] .player-room-mode .player-artist-link {
+    display: none;
+  }
+  .app-shell[data-composing='true'] .room-composer-done {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-target);
+    padding-inline: 0.75rem;
+    color: var(--action);
+    background: transparent;
+  }
+  .app-shell[data-composing='true'] .player-room-mode .player-stage {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    padding: 0.4rem;
+  }
+  .app-shell[data-composing='true'] .player-room-mode .player-transport {
+    margin-top: 0;
+  }
+  .app-shell[data-composing='true'] .player-room-mode .room-chat-panel {
+    padding-block: 0.25rem;
+  }
+  .app-shell[data-composing='true'] .player-room-mode .room-chat-list {
+    overscroll-behavior-y: contain;
+  }
+}
