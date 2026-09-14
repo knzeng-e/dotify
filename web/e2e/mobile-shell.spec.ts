@@ -27,7 +27,10 @@ test('mobile listener shell keeps music, transport, and navigation inside the vi
 
   expect(homeLayout.documentWidth).toBeLessThanOrEqual(homeLayout.viewportWidth);
   expect(homeLayout.cardWidth).toBeLessThanOrEqual(homeLayout.viewportWidth - 24);
-  expect(homeLayout.cardHeight).toBeLessThan(150);
+  // Cover-led tiles leave a glimpse of the next track and fit above the nav.
+  expect(homeLayout.cardWidth).toBeLessThan(homeLayout.viewportWidth * 0.6);
+  expect(homeLayout.cardHeight).toBeLessThan(homeLayout.viewportHeight / 2);
+  await expect(page.getByRole('region', { name: 'Music catalog' })).toHaveAttribute('data-layout', 'row');
   expect(Math.abs(homeLayout.navBottom - homeLayout.viewportHeight)).toBeLessThanOrEqual(1);
 
   await page.getByRole('button', { name: 'Open E2E Public Room Track by Dotify Room Host' }).click();
