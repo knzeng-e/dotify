@@ -4,7 +4,9 @@
   progress disagreement and repeated audio fragments during host pause.
 - Branch: `fix/room-playback-sync`, independent of experience PRs #163 and #164.
 - Reviewed base: `origin/dev` at `f6e6ee78645080cded22eafc1e45075cc9027016`.
-- Implementation: commit containing this record; PR linked in the handoff below.
+- Implementation: `660c24576814b0aa7a2ddca6584bb78892c761a8`.
+- PR: [#165](https://github.com/knzeng-e/dotify/pull/165), ready for review;
+  Project 5 fields mirror #89, status In Review, assignee knzeng-e.
 - Architecture: [shared room clock](../../../explanation/room-playback-synchronization.md).
 
 ## Evidence
