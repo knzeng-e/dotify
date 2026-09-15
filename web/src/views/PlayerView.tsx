@@ -1,24 +1,7 @@
+import { PlayerTransport } from '../components/PlayerTransport';
 import { HostLineup } from '../components/HostLineup';
 import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
-import {
-  Copy,
-  Check,
-  ExternalLink,
-  Headphones,
-  KeyRound,
-  Library,
-  Maximize2,
-  Pause,
-  Play,
-  Radio,
-  Repeat2,
-  Shuffle,
-  SkipBack,
-  SkipForward,
-  Volume2,
-  VolumeX,
-  X
-} from 'lucide-react';
+import { Copy, Check, ExternalLink, Headphones, KeyRound, Library, Maximize2, Radio, X } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
 import { CoverImage } from '../components/CoverImage';
@@ -29,11 +12,10 @@ import { RoomRequests } from '../components/RoomRequests';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
 import { hashHue, initialsFor } from '../shared/utils/aura';
-import { formatTime } from '../shared/utils/format';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
 import { isChosenDisplayName } from '../features/identity/walletIdentity';
 import { roomListenerSyncLabel, roomPresenceCount } from '../features/rooms/roomState';
-import { playbackStatusLabel, transportProgressPercent } from '../features/player/playbackStatus';
+import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
@@ -113,12 +95,10 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
 
   const { transport, status } = playback;
   const transportDuration = transport.duration || trackInfo?.duration || selectedTrack?.duration || 0;
-  const transportProgress = transportProgressPercent(transport.currentTime, transportDuration);
-  const transportProgressStyle = { '--progress': `${transportProgress}%` } as CSSProperties;
   const audioStartupDetail = status === 'idle' || status === 'preparing' ? (catalog.audioStartupStatus ?? undefined) : undefined;
   const isBusy = status === 'preparing' || status === 'joining' || Boolean(audioStartupDetail);
   const isOnAir = !isBusy && transport.playing;
-  const statusLabel = isOnAir ? 'ON AIR' : playbackStatusLabel(status, mode, audioStartupDetail);
+  const statusLabel = isOnAir ? 'ON AIR' : !roomId && status === 'ready' ? 'Ready to listen' : playbackStatusLabel(status, mode, audioStartupDetail);
   const isRoomGuest = mode === 'listener' && Boolean(roomId);
   const isManagedTrack = Boolean(selectedTrack && isPolicyManagedTrack(selectedTrack));
   const selectedTrackInactive = selectedTrack?.active === false;
@@ -366,31 +346,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         <div className='player-cover-column'>
           <div className={'room-cover-glow' + (transport.playing ? ' on' : '')} aria-hidden='true' />
           <div className='cover-card'>
-            <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
-              <CoverImage src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' fallbackLabel={streamTitle || 'Dotify'} />
-              <span className='sound-bars' aria-hidden='true'>
-                <i />
-                <i />
-                <i />
-                <i />
-              </span>
-              <span className='room-reactions' aria-hidden='true'>
-                {reactions.map(reaction => (
-                  <span
-                    className='room-reaction'
-                    key={reaction.id}
-                    data-self={reaction.self || undefined}
-                    style={{ left: `${reaction.x}%`, '--petal-hue': hashHue(reaction.senderName) } as CSSProperties}
-                  >
-                    <span className='room-reaction-emoji'>{reaction.emoji}</span>
-                    <span className='room-reaction-sender'>{initialsFor(reaction.senderName)}</span>
-                  </span>
-                ))}
-              </span>
-              {ritualKey !== 0 && <span className='unlock-ritual' key={ritualKey} aria-hidden='true' />}
-            </div>
             <div className={`audio-stack${showUnlockAction ? ' has-unlock-action' : ''}${showWideStatus ? ' has-wide-status' : ''}`}>
-              <div className='remote-state' data-active={transport.playing} data-busy={isBusy}>
+              <div className='remote-state' role='status' aria-label='Playback status' data-active={transport.playing} data-busy={isBusy}>
                 {isBusy ? (
                   <span className='remote-state-dots' aria-hidden='true'>
                     <i />
@@ -417,115 +374,45 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 </button>
               )}
             </div>
+            <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
+              <CoverImage src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' fallbackLabel={streamTitle || 'Dotify'} />
+              <span className='sound-bars' aria-hidden='true'>
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
+              <span className='room-reactions' aria-hidden='true'>
+                {reactions.map(reaction => (
+                  <span
+                    className='room-reaction'
+                    key={reaction.id}
+                    data-self={reaction.self || undefined}
+                    style={{ left: `${reaction.x}%`, '--petal-hue': hashHue(reaction.senderName) } as CSSProperties}
+                  >
+                    <span className='room-reaction-emoji'>{reaction.emoji}</span>
+                    <span className='room-reaction-sender'>{initialsFor(reaction.senderName)}</span>
+                  </span>
+                ))}
+              </span>
+              {ritualKey !== 0 && <span className='unlock-ritual' key={ritualKey} aria-hidden='true' />}
+            </div>
           </div>
         </div>
 
         <div className='player-main-column'>
           <div className='track-copy'>
+            <h2>{streamTitle}</h2>
             <button className='player-artist-link' type='button' onClick={() => onOpenArtist(streamArtist)}>
               {streamArtist}
               {roomId && <span className='room-artist-hint'> · artist &amp; support</span>}
             </button>
-            <h2>{streamTitle}</h2>
             {roomId && (
               <button className='room-artist-support' type='button' onClick={() => onOpenArtist(streamArtist)}>
                 Artist &amp; support
               </button>
             )}
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : hostName || 'Room'}</span>
-            <div className='access-badges'>
-              <span
-                className='access-chip'
-                data-tone={needsTrackAccess ? 'locked' : 'ready'}
-                data-testid={needsTrackAccess ? 'locked-player-state' : effectiveAccessMode === 'classic' ? 'full-playback-state' : undefined}
-              >
-                {accessStatusLabel}
-              </span>
-              <span className='access-chip' data-testid='player-access-price'>
-                {accessPriceLabel}
-              </span>
-            </div>
-
-            <div className='player-transport' data-playing={transport.playing}>
-              <div className='transport-cluster' aria-label='Track navigation'>
-                <button
-                  className='transport-skip'
-                  type='button'
-                  onClick={() => playback.skip('previous')}
-                  disabled={!playback.canSkip}
-                  aria-label='Previous track'
-                  title={playback.canSkip ? 'Previous track' : 'Add more tracks to skip'}
-                >
-                  <SkipBack size={16} />
-                </button>
-                <button
-                  className='transport-play'
-                  type='button'
-                  onClick={() => void playback.togglePlay()}
-                  disabled={!playback.canUseTransport}
-                  aria-label={transport.playing ? 'Pause' : 'Play'}
-                >
-                  {transport.playing ? <Pause size={18} /> : <Play size={18} />}
-                </button>
-                <button
-                  className='transport-skip'
-                  type='button'
-                  onClick={() => playback.skip('next')}
-                  disabled={!playback.canSkip}
-                  aria-label='Next track'
-                  title={playback.canSkip ? (playback.shuffleEnabled ? 'Shuffle next track' : 'Next track') : 'Add more tracks to skip'}
-                >
-                  <SkipForward size={16} />
-                </button>
-              </div>
-              <div className='transport-progress'>
-                <span>{formatTime(transport.currentTime)}</span>
-                <input
-                  type='range'
-                  min={0}
-                  max={100}
-                  step={0.1}
-                  value={transportProgress}
-                  style={transportProgressStyle}
-                  onChange={event => playback.seekToProgress(Number(event.target.value))}
-                  disabled={!playback.canSeek}
-                  aria-label={mode === 'host' ? 'Seek' : 'Room progress'}
-                  title={mode === 'host' ? 'Seek' : 'The host controls seeking'}
-                />
-                <span>{formatTime(transportDuration)}</span>
-              </div>
-              <div className='transport-actions' aria-label='Playback modes'>
-                <button
-                  type='button'
-                  data-active={playback.muted}
-                  onClick={playback.toggleMute}
-                  aria-pressed={playback.muted}
-                  title={playback.muted ? 'Unmute' : 'Mute'}
-                >
-                  {playback.muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                </button>
-                <button
-                  type='button'
-                  data-active={playback.shuffleEnabled}
-                  onClick={playback.toggleShuffle}
-                  disabled={!playback.canShuffle}
-                  aria-pressed={playback.shuffleEnabled}
-                  title={playback.canShuffle ? 'Shuffle' : 'Add more tracks to shuffle'}
-                >
-                  <Shuffle size={16} />
-                </button>
-                <button
-                  type='button'
-                  data-active={playback.repeatEnabled}
-                  onClick={playback.toggleRepeat}
-                  disabled={!playback.canRepeat || !playback.canUseTransport}
-                  aria-pressed={playback.repeatEnabled}
-                  title='Repeat this track'
-                >
-                  <Repeat2 size={16} />
-                </button>
-              </div>
-            </div>
 
             {roomId && (
               <p className='room-sync-note'>
@@ -553,6 +440,19 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               onSignIn={accessGate.actionType === 'signin' ? onShowWalletModal : undefined}
             />
           )}
+        </div>
+        <PlayerTransport playback={playback} duration={transportDuration} listener={isRoomGuest} />
+        <div className='access-badges' data-needs-access={needsTrackAccess}>
+          <span
+            className='access-chip'
+            data-tone={needsTrackAccess ? 'locked' : 'ready'}
+            data-testid={needsTrackAccess ? 'locked-player-state' : effectiveAccessMode === 'classic' ? 'full-playback-state' : undefined}
+          >
+            {accessStatusLabel}
+          </span>
+          <span className='access-chip' data-testid='player-access-price'>
+            {accessPriceLabel}
+          </span>
         </div>
       </div>
 

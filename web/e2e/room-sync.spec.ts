@@ -45,10 +45,15 @@ test('host seek is reflected by late guests and pause holds the host position an
   try {
     const host = await hostContext.newPage();
     const id = await hostRoom(host);
+    await expect(host.getByRole('slider', { name: 'Seek', exact: true })).toBeVisible();
     await seek(host, 50);
     await expect.poll(() => progress(host)).toBeCloseTo(50, 0);
     const guest = await guestContext.newPage();
     await join(guest, id);
+    await expect(guest.getByRole('slider', { name: 'Room progress', exact: true })).toBeVisible();
+    await expect(guest.getByRole('slider', { name: 'Room progress', exact: true })).toBeDisabled();
+    await expect(guest.getByRole('button', { name: 'Repeat this track', exact: true })).toBeVisible();
+    await expect(guest.getByRole('button', { name: 'Repeat this track', exact: true })).toBeDisabled();
     await expect.poll(() => progress(guest)).toBeCloseTo(50, 0);
     await guest.waitForTimeout(1200); // several remote timeupdate events must not overwrite the room clock
     expect(await progress(guest)).toBeCloseTo(50, 0);
@@ -77,7 +82,7 @@ test('host seek is reflected by late guests and pause holds the host position an
   }
 });
 
-test('real Web Audio stays silent through repeated host pauses and local pause survives host changes', async ({ browser }) => {
+test('real Web Audio stays silent through repeated host pauses and local pause survives host changes', async ({ browser }, testInfo) => {
   const hostContext = await browser.newContext();
   const guestContext = await browser.newContext();
   try {
@@ -94,6 +99,7 @@ test('real Web Audio stays silent through repeated host pauses and local pause s
       const stream = audio.srcObject as MediaStream;
       const context = new AudioContext();
       await context.resume();
+      Reflect.set(window, '__roomSyncContext', context);
       const analyser = context.createAnalyser();
       analyser.fftSize = 2048;
       context.createMediaStreamSource(stream).connect(analyser);
@@ -134,6 +140,30 @@ test('real Web Audio stays silent through repeated host pauses and local pause s
     await expect(guest.locator('.player-dock input[type=range]')).toBeDisabled();
     const dockProgress = Number(await guest.locator('.player-dock input[type=range]').inputValue());
     expect(Math.abs(dockProgress - (await progress(host)))).toBeLessThan(1.5);
+  } catch (error) {
+    const guest = guestContext.pages()[0];
+    if (guest)
+      await testInfo.attach('audio-meter-state', {
+        body: JSON.stringify(
+          await guest.evaluate(() => {
+            const context = Reflect.get(window, '__roomSyncContext') as AudioContext | undefined;
+            const audio = document.querySelectorAll<HTMLAudioElement>('audio.native-player-source')[1];
+            return {
+              meterState: context?.state,
+              meterTime: context?.currentTime,
+              visibility: document.visibilityState,
+              audioPaused: audio?.paused,
+              muted: audio?.muted,
+              tracks: (audio?.srcObject as MediaStream)
+                ?.getAudioTracks()
+                .map(track => ({ enabled: track.enabled, muted: track.muted, readyState: track.readyState })),
+              rms: Reflect.get(window, '__roomSyncMeter')?.()
+            };
+          })
+        ),
+        contentType: 'application/json'
+      });
+    throw error;
   } finally {
     await guestContext.close();
     await hostContext.close();
