@@ -4,14 +4,15 @@
   box-sizing: border-box;
 }
 
+/* Layout minimum stays stable when the listener enlarges text. */
 html {
-  min-width: 20rem;
+  min-width: 320px;
   scroll-behavior: smooth;
   scroll-padding-top: calc(var(--header-height) + 1.5rem);
 }
 
 body {
-  min-width: 20rem;
+  min-width: 320px;
   min-height: 100vh;
   margin: 0;
   background: var(--canvas);
@@ -431,4 +432,6 @@ select:focus {
 }
 
 /* Keep reading and touch controls comfortable across the listening surfaces. */
-.field { font-size: max(1rem, 16px); }
+.field {
+  font-size: max(1rem, 16px);
+}

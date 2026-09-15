@@ -1,6 +1,6 @@
-import { ArrowLeft, ArrowRight, CircleCheckBig, Headphones, KeyRound, Library, Search, Wallet, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CircleCheckBig, KeyRound, Library, Search, Wallet, X } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from 'react';
-import { CoverImage } from './CoverImage';
+import { TrackArtworkButton } from './TrackArtworkButton';
 import { DotBirth } from './DotBirth';
 import { auraStyleForTrack } from '../shared/utils/aura';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
@@ -18,6 +18,8 @@ type CatalogBrowserProps = {
   catalogAccessByTrackId: Record<string, boolean>;
   nativePaymentSymbol: string;
   onOpenTrack: (track: CatalogTrack) => void;
+  onPlayTrack: (track: CatalogTrack) => void;
+  roomGuest: boolean;
   onOpenArtist: (artist: string) => void;
 };
 
@@ -35,6 +37,8 @@ export function CatalogBrowser({
   catalogAccessByTrackId,
   nativePaymentSymbol,
   onOpenTrack,
+  onPlayTrack,
+  roomGuest,
   onOpenArtist
 }: CatalogBrowserProps) {
   const [query, setQueryState] = useState(journey.current.query);
@@ -177,12 +181,16 @@ export function CatalogBrowser({
                 key={track.id}
                 style={auraStyleForTrack(track) as CSSProperties}
               >
-                <span className='catalogue-cover-frame'>
-                  <CoverImage className='catalogue-cover' src={track.imageRef} alt='' fallbackLabel={track.title} />
-                  <span className='catalogue-card-action' aria-hidden='true'>
-                    <Headphones size={18} />
-                  </span>
-                </span>
+                <TrackArtworkButton
+                  track={track}
+                  canPlay={accessGranted && !roomGuest}
+                  target={`cover:${track.id}`}
+                  onActivate={() => {
+                    rememberTarget(`cover:${track.id}`);
+                    if (accessGranted && !roomGuest) onPlayTrack(track);
+                    else onOpenTrack(track);
+                  }}
+                />
                 <div className='catalogue-card-copy'>
                   <button
                     className='catalogue-card-open'
@@ -208,7 +216,6 @@ export function CatalogBrowser({
                   >
                     {track.artist}
                   </button>
-                  <p className='catalogue-card-description'>{track.description || 'A track ready for listening, rooms, and direct artist support.'}</p>
                 </div>
                 <div
                   className='catalogue-access-line'
@@ -219,7 +226,6 @@ export function CatalogBrowser({
                     {accessGranted ? <CircleCheckBig size={15} /> : track.accessMode === 'classic' ? <Wallet size={15} /> : <KeyRound size={15} />}
                     {catalogAccessLabel(track, nativePaymentSymbol)}
                   </span>
-                  <ArrowRight size={15} aria-hidden='true' />
                 </div>
               </article>
             );

@@ -748,30 +748,6 @@
   transform: scale(1.025);
 }
 
-.catalogue-card-action {
-  position: absolute;
-  right: 0.8rem;
-  bottom: 0.8rem;
-  display: grid;
-  width: 2.7rem;
-  height: 2.7rem;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--action);
-  color: var(--ink);
-  opacity: 0;
-  transform: translateY(0.4rem);
-  transition:
-    opacity var(--duration-fast) var(--ease),
-    transform var(--duration-fast) var(--ease);
-}
-
-.catalogue-card:hover .catalogue-card-action,
-.catalogue-card:focus-within .catalogue-card-action {
-  opacity: 1;
-  transform: none;
-}
-
 .catalogue-card-copy {
   display: flex;
   min-height: 9.5rem;

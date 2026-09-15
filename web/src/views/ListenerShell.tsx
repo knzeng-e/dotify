@@ -6,7 +6,7 @@ import { useRoomViewport } from '../features/rooms/useRoomViewport';
 // shell (see ArtistPortalView); App switches between the two.
 
 import { Link as LinkIcon } from 'lucide-react';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 
 import { emptyCatalogJourney } from '../components/CatalogBrowser';
 import { AuraBackground } from '../components/AuraBackground';
@@ -14,6 +14,7 @@ import { PersistentAudio } from '../components/PersistentAudio';
 import { PlayerDock } from '../components/PlayerDock';
 import { CreateRoomModal } from '../components/CreateRoomModal';
 import { JoinRoomModal } from '../components/JoinRoomModal';
+import { RoomReleaseDialog } from '../components/RoomReleaseDialog';
 import { TopBar } from '../components/TopBar';
 import { AccountWalletModal } from '../components/AccountWalletModal';
 import { TransactionModal } from '../components/TransactionModal';
@@ -77,6 +78,8 @@ export function ListenerShell() {
   const [joinRoomOpen, setJoinRoomOpen] = useState(false);
   const [pendingArtistTrack, setPendingArtistTrack] = useState<CatalogTrack | null>(null);
   const promptedInitialRoomRef = useRef(false);
+  const [inspectedRoomTrack, setInspectedRoomTrack] = useState<CatalogTrack | null>(null);
+  const pendingSoloTrackRef = useRef<CatalogTrack | null>(null);
 
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
   const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
@@ -133,6 +136,40 @@ export function ListenerShell() {
     setSessionDisplayName('');
     setJoinRoomOpen(true);
   }, [listenerEvmAddress, roomId, setSessionDisplayName]);
+
+  const handlePlayTrack = useCallback(
+    (track: CatalogTrack) => {
+      // Resume an already loaded source without reselecting (which pauses it).
+      // New sources continue through the catalog's authoritative access check.
+      if (session.mode !== 'listener' && track.id === catalog.selectedTrackId && catalog.audioSource && !catalog.accessGate) {
+        setPublicArtistName(null);
+        navigateToView('player');
+        if (!playback.transport.playing) void playback.togglePlay();
+        return;
+      }
+      openTrack(track);
+    },
+    [session.mode, catalog, playback, setPublicArtistName, navigateToView, openTrack]
+  );
+
+  function handleInspectTrack(track: CatalogTrack) {
+    if (isRoomGuest) setInspectedRoomTrack(track);
+    else openTrack(track);
+  }
+
+  useEffect(() => {
+    if (!isRoomGuest) setInspectedRoomTrack(null);
+  }, [isRoomGuest]);
+
+  // Wait for room cleanup to restore local transport before consuming an
+  // explicit leave-and-open choice. Browsing alone never selects a source.
+  useEffect(() => {
+    const pendingTrack = pendingSoloTrackRef.current;
+    if (!pendingTrack || roomId || session.mode !== 'host') return;
+    // Consume before catalog/navigation updates can trigger another render.
+    pendingSoloTrackRef.current = null;
+    handlePlayTrack(pendingTrack);
+  }, [roomId, session.mode, handlePlayTrack]);
 
   function handleOpenArtistProfile(name: string) {
     setPublicArtistName(name);
@@ -218,19 +255,35 @@ export function ListenerShell() {
           <DesktopNav items={navItems} activeView={activeView} />
         </TopBar>
 
+        {inspectedRoomTrack && isRoomGuest && (
+          <RoomReleaseDialog
+            track={inspectedRoomTrack}
+            hostName={session.hostName}
+            nativePaymentSymbol={nativePaymentSymbol}
+            onClose={() => setInspectedRoomTrack(null)}
+            onLeaveAndOpen={() => {
+              pendingSoloTrackRef.current = inspectedRoomTrack;
+              setInspectedRoomTrack(null);
+              session.leaveSession();
+            }}
+          />
+        )}
         <AccountWalletModal />
 
         <div className='app-content'>
           <main className={`content content-${activeView}`} id='main-content'>
             {publicArtistName ? (
               <ArtistProfileView
+                socketStatus={session.socketStatus}
                 artistName={publicArtistName}
                 catalogTracks={catalog.catalogTracks}
                 openRooms={session.openRooms}
                 catalogAccessByTrackId={catalog.catalogAccessByTrackId}
                 nativePaymentSymbol={nativePaymentSymbol}
                 onBack={() => setPublicArtistName(null)}
-                onOpenTrack={openTrack}
+                onOpenTrack={handleInspectTrack}
+                onPlayTrack={handlePlayTrack}
+                roomGuest={isRoomGuest}
                 onOpenArtistRoom={handleOpenArtistRoom}
                 onJoinRoom={handleJoinRoomFromProfile}
               />
@@ -245,7 +298,9 @@ export function ListenerShell() {
                     selectedTrackId={catalog.selectedTrackId}
                     catalogAccessByTrackId={catalog.catalogAccessByTrackId}
                     nativePaymentSymbol={nativePaymentSymbol}
-                    onOpenTrack={openTrack}
+                    onOpenTrack={handleInspectTrack}
+                    onPlayTrack={handlePlayTrack}
+                    roomGuest={isRoomGuest}
                     onOpenArtist={handleOpenArtistProfile}
                     onJoinRoom={handleJoinRoomRequest}
                     onStartRoom={track => {
@@ -286,9 +341,7 @@ export function ListenerShell() {
                     unlockedTracks={paidTracks.map(track => ({
                       id: track.id,
                       title: track.title,
-                      artist: track.artist,
-                      priceDot: track.priceDot,
-                      hash: track.hash
+                      artist: track.artist
                     }))}
                     productionReadiness={
                       showProductionReadinessPanel

@@ -1,4 +1,4 @@
-import { ArrowRight, ExternalLink, KeyRound, Mic2, Music2, Power, Sparkles, Users, Wallet } from 'lucide-react';
+import { ArrowRight, ExternalLink, LogOut, Mic2, Music2, Sparkles, Users, Wallet } from 'lucide-react';
 
 import { ProductionReadinessPanel, type ProductionReadinessPanelProps } from '../components/ProductionReadinessPanel';
 import type { WalletState } from '../hooks/useWallet';
@@ -6,7 +6,7 @@ import { getBlockscoutAddressUrl } from '../shared/utils/explorer';
 import { formatWeiAsDot, shortenAddress } from '../shared/utils/format';
 
 type AccountSupportedArtist = { artist: string; artistAddress?: `0x${string}`; trackCount: number };
-type AccountUnlockedTrack = { id: string; title: string; artist: string; priceDot: string; hash: `0x${string}` };
+type AccountUnlockedTrack = { id: string; title: string; artist: string };
 
 type YouViewProps = {
   walletState: WalletState;
@@ -50,93 +50,103 @@ export function YouView({
   return (
     <section className='you-view' aria-labelledby='you-view-title'>
       <header className='you-hero'>
-        <p className='eyebrow'>Your private space</p>
         <h2 id='you-view-title'>Your music.</h2>
-        <p>Keep payment records, supported artists, and your artist space close.</p>
+        <p>Your collection and the artists you support.</p>
       </header>
 
       <div className='you-layout'>
-        <section className='you-panel account-dashboard' aria-labelledby='account-dashboard-title'>
-          <div className='account-dashboard-head'>
-            <span className='you-panel-icon'>
-              <Music2 size={18} />
-            </span>
-            <div>
-              <h3 id='account-dashboard-title'>Your music</h3>
-              <p>Only support and access that Dotify can show for this wallet appears here.</p>
-            </div>
-            <div className='account-summary' aria-label='Music summary'>
-              <span>
-                <strong className='tnum'>{unlockedTrackCount}</strong>
-                payment records
+        {!isConnected ? (
+          <section className='you-panel you-invitation' aria-label='Your collection'>
+            <Music2 size={28} aria-hidden='true' />
+            <h3>Your collection</h3>
+            <p>Connect to find your supported tracks.</p>
+            <button className='primary-action' type='button' onClick={onShowWalletModal}>
+              Connect a wallet
+            </button>
+          </section>
+        ) : (
+          <section className='you-panel account-dashboard' aria-labelledby='account-dashboard-title'>
+            <div className='account-dashboard-head'>
+              <span className='you-panel-icon'>
+                <Music2 size={18} />
               </span>
-              <span>
-                <strong className='tnum'>{supportedArtistCount}</strong>
-                artists supported
-              </span>
+              <div>
+                <h3 id='account-dashboard-title'>Your support</h3>
+                <p>Listening access is checked when you open a track.</p>
+              </div>
+              {(unlockedTrackCount > 0 || supportedArtistCount > 0) && (
+                <div className='account-summary' aria-label='Music summary'>
+                  <span>
+                    <strong className='tnum'>{unlockedTrackCount}</strong>
+                    supported tracks
+                  </span>
+                  <span>
+                    <strong className='tnum'>{supportedArtistCount}</strong>
+                    artists supported
+                  </span>
+                </div>
+              )}
             </div>
-          </div>
 
-          <div className='account-detail-grid'>
-            <section className='account-detail-section' id='account-unlocked-tracks' tabIndex={-1} aria-labelledby='account-unlocked-title'>
-              <div className='account-detail-title'>
-                <Music2 size={16} />
-                <h4 id='account-unlocked-title'>Supported tracks</h4>
-              </div>
-              {unlockedTracks.length > 0 ? (
-                <div className='account-detail-list'>
-                  {unlockedTracks.map(track => (
-                    <div className='account-detail-row' key={track.id}>
-                      <span>
-                        <strong>{track.title}</strong>
-                        <small>
-                          {track.artist} / {track.priceDot} {nativePaymentSymbol} paid
-                        </small>
-                      </span>
-                      <code>{shortenAddress(track.hash)}</code>
-                    </div>
-                  ))}
+            <div className='account-detail-grid'>
+              <section className='account-detail-section' id='account-unlocked-tracks' tabIndex={-1} aria-labelledby='account-unlocked-title'>
+                <div className='account-detail-title'>
+                  <Music2 size={16} />
+                  <h4 id='account-unlocked-title'>Supported tracks</h4>
                 </div>
-              ) : (
-                <p className='account-empty'>Tracks you support will appear here after payment is verified.</p>
-              )}
-            </section>
+                {unlockedTracks.length > 0 ? (
+                  <div className='account-detail-list'>
+                    {unlockedTracks.map(track => (
+                      <div className='account-detail-row' key={track.id}>
+                        <span>
+                          <strong>{track.title}</strong>
+                          <small>{track.artist}</small>
+                        </span>
+                        <span className='support-record-label'>Payment recorded</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='account-empty'>Tracks you support will appear here after payment is verified.</p>
+                )}
+              </section>
 
-            <section className='account-detail-section' id='account-artists-backed' tabIndex={-1} aria-labelledby='account-artists-title'>
-              <div className='account-detail-title'>
-                <Users size={16} />
-                <h4 id='account-artists-title'>Artists supported</h4>
-              </div>
-              {supportedArtists.length > 0 ? (
-                <div className='account-detail-list'>
-                  {supportedArtists.map(artist => (
-                    <div className='account-detail-row' key={artist.artistAddress ?? artist.artist}>
-                      <span>
-                        <strong>{artist.artist}</strong>
-                        <small>
-                          {artist.trackCount} paid track{artist.trackCount === 1 ? '' : 's'}
-                        </small>
-                      </span>
-                      {artist.artistAddress && (
-                        <a
-                          className='icon-link'
-                          href={getBlockscoutAddressUrl(artist.artistAddress)}
-                          target='_blank'
-                          rel='noreferrer'
-                          aria-label={`Open ${artist.artist} on Blockscout`}
-                        >
-                          <ExternalLink size={14} />
-                        </a>
-                      )}
-                    </div>
-                  ))}
+              <section className='account-detail-section' id='account-artists-backed' tabIndex={-1} aria-labelledby='account-artists-title'>
+                <div className='account-detail-title'>
+                  <Users size={16} />
+                  <h4 id='account-artists-title'>Artists supported</h4>
                 </div>
-              ) : (
-                <p className='account-empty'>Artists you choose to support will appear here.</p>
-              )}
-            </section>
-          </div>
-        </section>
+                {supportedArtists.length > 0 ? (
+                  <div className='account-detail-list'>
+                    {supportedArtists.map(artist => (
+                      <div className='account-detail-row' key={artist.artistAddress ?? artist.artist}>
+                        <span>
+                          <strong>{artist.artist}</strong>
+                          <small>
+                            {artist.trackCount} paid track{artist.trackCount === 1 ? '' : 's'}
+                          </small>
+                        </span>
+                        {artist.artistAddress && (
+                          <a
+                            className='icon-link'
+                            href={getBlockscoutAddressUrl(artist.artistAddress)}
+                            target='_blank'
+                            rel='noreferrer'
+                            aria-label={`Open ${artist.artist} on Blockscout`}
+                          >
+                            <ExternalLink size={14} />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='account-empty'>Artists you choose to support will appear here.</p>
+                )}
+              </section>
+            </div>
+          </section>
+        )}
 
         <aside className='you-side' aria-label='Your artist and confirmation spaces'>
           {isArtist ? (
@@ -175,48 +185,44 @@ export function YouView({
                 </span>
                 <div>
                   <strong>Artist space</strong>
-                  <span>{isConnected ? 'Ready to set up' : 'Available when useful'}</span>
+                  <span>Share your music</span>
                 </div>
                 <ArrowRight className='you-card-arrow' size={18} />
               </div>
-              <p className='you-muted'>Publish tracks, host rooms, and receive direct support.</p>
+              <p className='you-muted'>Publish a release and receive support.</p>
               <span className='you-studio-cta'>
-                Explore the artist space
+                Open artist studio
                 <ArrowRight size={15} />
               </span>
             </button>
           )}
 
-          <section className='you-panel wallet-pass-panel' aria-label='Confirmation method'>
-            <div className='you-panel-head'>
-              <span className='you-panel-icon'>
-                <Wallet size={18} />
-              </span>
-              <div>
-                <strong>{wallet ? wallet.label : 'No wallet connected'}</strong>
-                <span>{isConnected ? 'Ready for protected actions' : 'Connect for support or protected access'}</span>
+          {isConnected && (
+            <section className='you-panel wallet-pass-panel' aria-label='Connected wallet'>
+              <div className='you-panel-head'>
+                <span className='you-panel-icon'>
+                  <Wallet size={18} />
+                </span>
+                <div>
+                  <strong>{wallet.label}</strong>
+                  <span>Connected</span>
+                </div>
               </div>
-            </div>
 
-            {isConnected ? (
               <code className='you-address'>{shortenAddress(identityAddress)}</code>
-            ) : (
-              <p className='you-muted'>Connect to support an artist or open protected access.</p>
-            )}
 
-            <div className='you-actions'>
-              <button className='primary-action compact-action' type='button' onClick={onShowWalletModal}>
-                <KeyRound size={16} />
-                {isConnected ? 'Manage' : 'Choose a method'}
-              </button>
-              {isConnected && (
+              <div className='you-actions'>
+                <button className='primary-action compact-action' type='button' onClick={onShowWalletModal}>
+                  <Wallet size={16} />
+                  Manage
+                </button>
                 <button className='secondary-action compact-action' type='button' onClick={onDisconnectWallet}>
-                  <Power size={16} />
+                  <LogOut size={16} />
                   Disconnect
                 </button>
-              )}
-            </div>
-          </section>
+              </div>
+            </section>
+          )}
 
           {productionReadiness && <ProductionReadinessPanel {...productionReadiness} />}
         </aside>

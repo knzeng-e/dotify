@@ -81,10 +81,12 @@ test('Classic payment record remains visible when runtime read-back denies playa
 
   const supportedTracks = page.getByLabel('Supported tracks');
   await expect(page.getByRole('heading', { name: 'Supported tracks' })).toBeVisible();
-  await expect(page.getByLabel('Music summary')).toContainText(/1\s*payment records/);
+  await expect(page.getByLabel('Music summary')).toContainText(/1\s*supported tracks/);
   await expect(page.getByLabel('Music summary')).toContainText(/1\s*artists supported/);
   await expect(supportedTracks.getByText('Deterministic Classic Unlock')).toBeVisible();
-  await expect(supportedTracks.getByText(`Dotify Test Artist / 0.5 ${E2E_NATIVE_PAYMENT_SYMBOL} paid`)).toBeVisible();
+  await expect(supportedTracks.getByText('Dotify Test Artist', { exact: true })).toBeVisible();
+  await expect(supportedTracks.getByText('Payment recorded', { exact: true })).toBeVisible();
+  await expect(supportedTracks.locator('code')).toHaveCount(0);
 });
 
 test.describe('mobile Classic support receipt states', () => {
