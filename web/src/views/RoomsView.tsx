@@ -1,5 +1,5 @@
 import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
-import { ArrowRight, Box, Headphones, KeyRound, Link2, List, Radio, RefreshCw, Users, X } from 'lucide-react';
+import { ArrowRight, Box, Headphones, KeyRound, List, Radio, RefreshCw, Users, X } from 'lucide-react';
 import type { FormEvent, Ref } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -84,7 +84,7 @@ export function RoomsView({
   }, [selectedRoomId]);
 
   return (
-    <section className='rooms-landing' aria-labelledby='rooms-title'>
+    <section className='rooms-landing rooms-landing-focused' aria-labelledby='rooms-title'>
       <header className='rooms-intro'>
         <div>
           <p className='eyebrow'>Listening rooms</p>
@@ -92,18 +92,44 @@ export function RoomsView({
         </div>
         <div className='rooms-intro-copy'>
           <p>Open a room from a track, or join with a code.</p>
-          <dl className='rooms-summary'>
-            <div>
-              <dt>Open rooms</dt>
-              <dd>{openRooms.length}</dd>
-            </div>
-            <div>
-              <dt>Listening now</dt>
-              <dd>{totalListening}</dd>
-            </div>
-          </dl>
+          {openRooms.length > 0 && (
+            <dl className='rooms-summary'>
+              <div>
+                <dt>Open rooms</dt>
+                <dd>{openRooms.length}</dd>
+              </div>
+              <div>
+                <dt>Listening now</dt>
+                <dd>{totalListening}</dd>
+              </div>
+            </dl>
+          )}
         </div>
       </header>
+
+      <section className='room-arrival' aria-label='Join or host a room'>
+        <form className='session-form room-action-form' onSubmit={onJoinSession}>
+          <label htmlFor='room-code-input'>Room code or link</label>
+          <div className='room-action-row'>
+            <input
+              id='room-code-input'
+              className='field code-field room-action-field'
+              value={joinCode}
+              onChange={event => onSetJoinCode(event.target.value)}
+              placeholder='ABC123 or a room link'
+              maxLength={140}
+              autoComplete='off'
+            />
+            <button className='primary-action room-action-submit' type='submit' disabled={sessionAction !== 'idle'}>
+              <Headphones size={17} />
+              {isJoining ? 'Joining…' : 'Join'}
+            </button>
+          </div>
+        </form>
+        <button className='secondary-action' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
+          <Radio size={18} /> Open a room
+        </button>
+      </section>
 
       <section className='rooms-live-section' aria-labelledby='rooms-live-title'>
         <div className='section-heading'>
@@ -141,9 +167,11 @@ export function RoomsView({
           </div>
         </div>
 
-        <p className='room-list-status' data-status={roomListStatus.tone}>
-          {roomListStatus.label}
-        </p>
+        {roomListStatus.tone !== 'ready' && (
+          <p className='room-list-status' role='status' data-status={roomListStatus.tone}>
+            {roomListStatus.label}
+          </p>
+        )}
 
         {openRooms.length > 0 ? (
           <div className='rooms-discovery-layout' data-has-selection={Boolean(selectedRoom)}>
@@ -231,75 +259,30 @@ export function RoomsView({
               <i />
             </span>
             <div>
-              <strong>{roomSignalUnavailable ? 'Room list is unavailable.' : 'No room is open right now.'}</strong>
-              <p>{roomSignalUnavailable ? 'Refresh when the room signal is back.' : 'Choose a track and open a room.'}</p>
+              <strong>
+                {roomSignalUnavailable ? 'Room list is unavailable.' : roomListStatus.tone === 'loading' ? 'Finding rooms…' : 'No room is open right now.'}
+              </strong>
+              <p>
+                {roomSignalUnavailable
+                  ? 'Refresh when the room signal is back.'
+                  : roomListStatus.tone === 'loading'
+                    ? 'Looking for people to listen with.'
+                    : 'Open a room above, choose music, and share the link.'}
+              </p>
             </div>
-            <button
-              className='secondary-action'
-              type='button'
-              onClick={roomSignalUnavailable ? onRefreshRooms : onStartRoom}
-              disabled={roomSignalUnavailable ? isRefreshingRooms : sessionAction !== 'idle'}
-            >
-              {roomSignalUnavailable ? <RefreshCw size={17} className={isRefreshingRooms ? 'spin' : undefined} /> : <Radio size={17} />}
-              {roomSignalUnavailable ? 'Refresh rooms' : 'Open the first room'}
-            </button>
+            {roomSignalUnavailable && (
+              <button
+                className='secondary-action'
+                type='button'
+                onClick={roomSignalUnavailable ? onRefreshRooms : onStartRoom}
+                disabled={roomSignalUnavailable ? isRefreshingRooms : sessionAction !== 'idle'}
+              >
+                {roomSignalUnavailable ? <RefreshCw size={17} className={isRefreshingRooms ? 'spin' : undefined} /> : <Radio size={17} />}
+                {roomSignalUnavailable ? 'Refresh rooms' : 'Open the first room'}
+              </button>
+            )}
           </div>
         )}
-      </section>
-
-      <section className='room-entry-section' aria-labelledby='room-entry-title'>
-        <div className='section-heading'>
-          <div>
-            <span className='section-index'>Rooms</span>
-            <h2 id='room-entry-title'>Start or join.</h2>
-          </div>
-        </div>
-
-        <div className='room-entry-grid'>
-          <article className='room-entry-card room-entry-create'>
-            <span className='room-entry-icon'>
-              <Radio size={21} />
-            </span>
-            <div>
-              <span className='room-entry-label'>Host a listening room</span>
-              <h3>Open a new room.</h3>
-              <p>Choose music, name the room, share the link.</p>
-            </div>
-            <button className='primary-action' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
-              Open a room
-              <ArrowRight size={17} />
-            </button>
-          </article>
-
-          <article className='room-entry-card room-entry-join'>
-            <span className='room-entry-icon'>
-              <Link2 size={21} />
-            </span>
-            <div>
-              <span className='room-entry-label'>Join a room</span>
-              <h3>Use the room code or link you received.</h3>
-              <p>Enter with a room code or link.</p>
-            </div>
-            <form className='session-form room-action-form' onSubmit={onJoinSession}>
-              <label htmlFor='room-code-input'>Room code or link</label>
-              <div className='room-action-row'>
-                <input
-                  id='room-code-input'
-                  className='field code-field room-action-field'
-                  value={joinCode}
-                  onChange={event => onSetJoinCode(event.target.value)}
-                  placeholder='ABC123 or a room link'
-                  maxLength={140}
-                  autoComplete='off'
-                />
-                <button className='primary-action room-action-submit' type='submit' disabled={sessionAction !== 'idle'}>
-                  <Headphones size={17} />
-                  {isJoining ? 'Joining…' : 'Join'}
-                </button>
-              </div>
-            </form>
-          </article>
-        </div>
       </section>
 
       <aside className='room-doctrine' aria-label='Room access model'>

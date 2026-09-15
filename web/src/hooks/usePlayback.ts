@@ -11,7 +11,7 @@
 // remoteAudioRef.current.srcObject - both refs are stable here.
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
+import { isRoomJoinE2eContext, roomJoinE2eAutoplayEnabled } from '../e2e/roomJoinMock';
 import type { HostAudioStartupMetric } from '../features/catalog/audioStartupTelemetry';
 import type { CatalogTrack, Mode, PlayerState } from '../shared/types';
 import { useRoomClock } from '../features/player/useRoomClock';
@@ -326,7 +326,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       // racing a sub-second autoplay window. Scope to room-join contexts only so
       // the classic-unlock and artist-publish suites keep their normal autoplay.
       // Manual togglePlay still works.
-      if (!autoplayIntentRef.current || isRoomJoinE2eContext()) {
+      if (!autoplayIntentRef.current || (isRoomJoinE2eContext() && !roomJoinE2eAutoplayEnabled())) {
         setStatus('ready');
         return;
       }

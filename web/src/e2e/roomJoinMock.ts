@@ -39,7 +39,7 @@ const PUBLIC_COVER =
 // playback progresses deterministically for the room specs.
 const syncFixture = isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eSync') === 'on';
 
-function buildSilentWavDataUrl(fillValue = 128): string {
+function buildSilentWavDataUrl(fillValue = 128, frequency = 440): string {
   const sampleRate = 8000;
   const seconds = syncFixture ? 60 : 2;
   const dataLen = sampleRate * seconds; // 8-bit mono
@@ -63,7 +63,7 @@ function buildSilentWavDataUrl(fillValue = 128): string {
   view.setUint32(40, dataLen, true);
   bytes.fill(fillValue, 44); // unsigned 8-bit near-silence
   if (syncFixture) {
-    for (let i = 0; i < dataLen; i++) bytes[44 + i] = 128 + Math.round(32 * Math.sin((2 * Math.PI * 440 * i) / sampleRate));
+    for (let i = 0; i < dataLen; i++) bytes[44 + i] = 128 + Math.round(32 * Math.sin((2 * Math.PI * frequency * i) / sampleRate));
   }
 
   let binary = '';
@@ -132,13 +132,23 @@ export function getRoomJoinE2eTracks(): CatalogTrack[] {
   if (isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eCatalog') === 'wide') {
     for (let index = 1; index <= 10; index++) tracks.push({ ...E2E_ROOM_PUBLIC_TRACK, id: `e2e-selection-${index}`, title: `Session selection ${index}` });
   }
+  if (isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eCatalog') === 'sequence') {
+    tracks.push({
+      ...E2E_ROOM_PUBLIC_TRACK,
+      id: `${E2E_ROOM_PUBLIC_ID}-sequence`,
+      title: 'Second room track',
+      hash: '0xb0b0000000000000000000000000000000000000000000000000000000000003',
+      localUrl: buildSilentWavDataUrl(128, 660),
+      audioRef: 'dotify:local:e2e-sequence'
+    });
+  }
   return tracks;
 }
 
 export function isRoomJoinE2eTrack(track: Pick<CatalogTrack, 'id'>) {
   if (!isRoomJoinE2e) return false;
   const id = track.id.toLowerCase();
-  return id === E2E_ROOM_PUBLIC_ID || id.startsWith(`${E2E_ROOM_RUNTIME.toLowerCase()}:`);
+  return id === E2E_ROOM_PUBLIC_ID || id === `${E2E_ROOM_PUBLIC_ID}-sequence` || id.startsWith(`${E2E_ROOM_RUNTIME.toLowerCase()}:`);
 }
 
 export function isRoomJoinE2eProtectedHash(contentHash: string) {
@@ -290,6 +300,10 @@ export function roomJoinE2eOfferSnapshot(description: RTCSessionDescriptionInit)
     .filter(line => !line.startsWith('a=candidate:') && line !== 'a=end-of-candidates')
     .join('\r\n');
   return { ...description, sdp };
+}
+
+export function roomJoinE2eAutoplayEnabled() {
+  return isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eAutoplay') === 'on';
 }
 
 export function shouldUseRoomJoinE2eSyntheticCapture() {

@@ -175,7 +175,7 @@ for (const scenario of ['zoomed-chat', 'zoomed-chat-tab', 'resized-requests']) {
     if (scenario === 'resized-requests') await page.getByRole('tab', { name: /Requests/ }).click();
     const input = page.getByRole('textbox', { name: scenario.startsWith('zoomed-chat') ? 'Message the room' : 'Request a track', includeHidden: true });
     await input.fill('My words remain visible');
-    await expect(page.locator('.bottom-nav')).toBeHidden();
+    await expect(page.locator('.bottom-nav')).toBeVisible();
     await page.evaluate(kind => {
       Reflect.set(window, '__originalRoomAudio', document.querySelector('audio'));
       Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 310 });
@@ -222,6 +222,10 @@ test('switching panels while typing keeps the tapped tab in place until release'
   await page.setViewportSize({ width: 768, height: 1024 });
   await hostRoom(page);
   await page.getByRole('textbox', { name: 'Message the room' }).fill('Keep my place');
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 430 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
   await expect(page.locator('.app-shell')).toHaveAttribute('data-composing', 'true');
   await expect(page.locator('.bottom-nav')).toBeHidden();
   const requests = page.getByRole('tab', { name: /Requests/ });
@@ -235,4 +239,101 @@ test('switching panels while typing keeps the tapped tab in place until release'
   await page.mouse.up();
   expect(duringPress!.y).toBeCloseTo(bounds!.y, 0);
   await expect(page.getByRole('textbox', { name: 'Request a track' })).toBeVisible();
+});
+
+test('focus waits for keyboard geometry without moving the player or tabs', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await hostRoom(page);
+  const stage = page.locator('.player-stage');
+  const before = await stage.boundingBox();
+  await page.getByRole('textbox', { name: 'Message the room' }).focus();
+  await page.waitForTimeout(550); // includes every bounded delayed viewport read
+  await expect(page.locator('.app-shell')).toHaveAttribute('data-composing', 'false');
+  await expect(page.locator('.bottom-nav')).toBeVisible();
+  const afterFocus = await stage.boundingBox();
+  expect(afterFocus!.y).toBeCloseTo(before!.y, 0);
+  expect(afterFocus!.height).toBeCloseTo(before!.height, 0);
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 430 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(page.locator('.app-shell')).toHaveAttribute('data-composing', 'true');
+  // Near-threshold frames during dismissal must not flip between two layouts.
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 740 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(page.locator('.app-shell')).toHaveAttribute('data-composing', 'true');
+  await page.evaluate(() => {
+    Reflect.deleteProperty(window.visualViewport!, 'height');
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(page.locator('.app-shell')).toHaveAttribute('data-composing', 'false');
+  const restored = await stage.boundingBox();
+  expect(restored!.height).toBeCloseTo(before!.height, 0);
+});
+
+test('keyboard restores the original browser inset after dismissal', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 644 });
+  });
+  await hostRoom(page);
+  const shell = page.locator('.app-shell');
+  await page.getByRole('textbox', { name: 'Message the room' }).fill('Keep my draft');
+  await expect(shell).toHaveAttribute('data-composing', 'false');
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 310 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(shell).toHaveAttribute('data-composing', 'true');
+  await page.getByRole('button', { name: 'Finish typing' }).click();
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 644 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(shell).toHaveAttribute('data-composing', 'false');
+  await expect(page.locator('.bottom-nav')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Message the room' })).toHaveValue('Keep my draft');
+});
+
+test('keyboard rotation preserves browser chrome and relearns the resting viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 644 });
+  });
+  await hostRoom(page);
+  const shell = page.locator('.app-shell');
+  const input = page.getByRole('textbox', { name: 'Message the room' });
+  await input.fill('Rotate without losing this');
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 310 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(shell).toHaveAttribute('data-composing', 'true');
+  // Publish the rotated layout and keyboard geometry atomically, as a single
+  // viewport observation. Native orientation/keyboard animation needs device QA.
+  await page.evaluate(() => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 390 });
+    Object.defineProperty(window.visualViewport, 'width', { configurable: true, value: 844 });
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 90 });
+    window.dispatchEvent(new Event('resize'));
+  });
+  await expect(shell).toHaveAttribute('data-composing', 'true');
+  await input.evaluate(element => element.blur());
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 310 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(shell).toHaveAttribute('data-composing', 'false');
+  await expect(page.locator('.bottom-nav')).toBeVisible();
+  await expect(input).toHaveValue('Rotate without losing this');
+  // New orientation has an 80px resting inset, rather than the old 200px.
+  await input.focus();
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 150 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(shell).toHaveAttribute('data-composing', 'true');
 });

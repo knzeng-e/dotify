@@ -8,6 +8,7 @@ import { useRoomViewport } from '../features/rooms/useRoomViewport';
 import { Link as LinkIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
+import { emptyCatalogJourney } from '../components/CatalogBrowser';
 import { AuraBackground } from '../components/AuraBackground';
 import { PersistentAudio } from '../components/PersistentAudio';
 import { PlayerDock } from '../components/PlayerDock';
@@ -71,6 +72,7 @@ export function ListenerShell() {
   const { artistName } = useReleaseForm();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
 
+  const catalogJourney = useRef(emptyCatalogJourney());
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
   const [joinRoomOpen, setJoinRoomOpen] = useState(false);
   const [pendingArtistTrack, setPendingArtistTrack] = useState<CatalogTrack | null>(null);
@@ -168,6 +170,10 @@ export function ListenerShell() {
   }
 
   function handleJoinRoomRequest(roomId: string) {
+    if (roomId === session.roomId) {
+      navigateToView('player');
+      return;
+    }
     session.setJoinCode(roomId);
     if (isChosenDisplayName(session.displayName)) {
       session.joinRoom(roomId);
@@ -208,7 +214,7 @@ export function ListenerShell() {
         <a className='skip-link' href='#main-content'>
           Skip to content
         </a>
-        <TopBar brandHref='#main-content' brandAriaLabel='Dotify home' onBrandClick={() => setPublicArtistName(null)} navAriaLabel='Primary navigation'>
+        <TopBar brandHref='#main-content' brandAriaLabel='Dotify home' onBrandClick={() => handleNavSelect('listen')} navAriaLabel='Primary navigation'>
           <DesktopNav items={navItems} activeView={activeView} />
         </TopBar>
 
@@ -235,7 +241,7 @@ export function ListenerShell() {
                     catalogTracks={catalog.catalogTracks}
                     catalogStatus={catalog.catalogStatus}
                     openRooms={session.openRooms}
-                    soloListeningByTrackHash={session.soloListeningByTrackHash}
+                    journey={catalogJourney}
                     selectedTrackId={catalog.selectedTrackId}
                     catalogAccessByTrackId={catalog.catalogAccessByTrackId}
                     nativePaymentSymbol={nativePaymentSymbol}
@@ -323,10 +329,10 @@ export function ListenerShell() {
             )}
 
             {session.sessionLink && (
-              <a hidden={roomFocused} className='floating-link' href={session.sessionLink}>
+              <button hidden={roomFocused} className='floating-link' type='button' aria-label='Return to your room' onClick={() => navigateToView('player')}>
                 <LinkIcon size={15} />
                 {session.roomId}
-              </a>
+              </button>
             )}
 
             <TransactionModal />

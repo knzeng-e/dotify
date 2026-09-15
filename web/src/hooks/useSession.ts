@@ -223,9 +223,8 @@ export function useSession(deps: UseSessionDeps) {
   const audioSourceRef = useRef<string | null>(audioSource);
   const trackInfoRef = useRef<TrackInfo | null>(trackInfo);
   // Which audioSource the current local stream was captured from. Capturing is
-  // idempotent per source: source changes renegotiate listeners onto a fresh
-  // receiver, while same-source play/pause/seek refreshes can stay on
-  // replaceTrack so a live listener is not rebuilt for every transport event.
+  // idempotent per source. New sources replace the sender track while the
+  // listener keeps the same receiver; renegotiation is a recovery fallback.
   const capturedSourceRef = useRef<string | null>(null);
   const captureStartedPausedRef = useRef(false);
   // Counts consecutive capture attempts that produced no live track for a
@@ -807,12 +806,14 @@ export function useSession(deps: UseSessionDeps) {
     // E2E: stream a synthetic near-silent track instead of capturing the local
     // element, so the host always has a transmittable audio track in CI.
     if (isRoomJoinE2e && shouldUseRoomJoinE2eSyntheticCapture()) return createRoomJoinE2eCaptureStream();
-    const capturable = audio as CapturableMediaElement;
-    const stream = capturable.captureStream?.() ?? capturable.mozCaptureStream?.();
-    if (stream) return stream;
-
+    // One Web Audio destination survives changes to the element's source.
+    // Native capture can retire its sender track between metadata and playing,
+    // leaving an established receiver silent on Next. Prefer the stable graph.
     const contextCtor = window.AudioContext ?? (window as AudioContextWindow).webkitAudioContext;
     if (!contextCtor) {
+      const capturable = audio as CapturableMediaElement;
+      const stream = capturable.captureStream?.() ?? capturable.mozCaptureStream?.();
+      if (stream) return stream;
       throw new Error('This browser cannot host room audio streams. Join as a listener from this device, or host from a browser with WebRTC audio capture.');
     }
 
@@ -916,6 +917,8 @@ export function useSession(deps: UseSessionDeps) {
 
     try {
       const capturableSource = await ensureCapturableAudioSource(currentAudioSource);
+      // A slow fetch must never publish a source superseded by another Next.
+      if (modeRef.current !== 'host' || localAudioRef.current !== audio || audio.getAttribute('src') !== currentAudioSource) return;
       if (capturableSource !== currentAudioSource) {
         setSessionStatus('Preparing source');
         setAudioSource(capturableSource);
@@ -969,9 +972,6 @@ export function useSession(deps: UseSessionDeps) {
         updatedAt: Date.now()
       };
 
-      const previousCapturedSource = capturedSourceRef.current;
-      const shouldRenegotiateListeners = Boolean(previousCapturedSource && previousCapturedSource !== currentAudioSource);
-
       const previousPlaceholderStream = placeholderAudioStreamRef.current?.stream ?? null;
       localStreamRef.current = stream;
       capturedSourceRef.current = currentAudioSource;
@@ -982,7 +982,7 @@ export function useSession(deps: UseSessionDeps) {
       socketRef.current?.emit('room:track', track);
       emitPlayerState(true);
 
-      await publishLocalStreamToListeners(stream, { renegotiate: shouldRenegotiateListeners });
+      await publishLocalStreamToListeners(stream);
       if (previousPlaceholderStream && previousPlaceholderStream !== stream) {
         closePlaceholderAudioStream();
       }
@@ -1000,22 +1000,20 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
-  async function publishLocalStreamToListeners(stream: MediaStream, options: { renegotiate?: boolean } = {}) {
-    const [audioTrack] = stream.getAudioTracks();
+  async function publishLocalStreamToListeners(stream: MediaStream) {
+    const audioTrack = stream.getAudioTracks().find(track => track.readyState === 'live');
     if (!audioTrack) return;
 
     await Promise.all(
       listenersRef.current.map(async listener => {
         const peer = hostPeersRef.current.get(listener.id);
         const sender = peer?.getSenders().find(candidate => candidate.track?.kind === 'audio');
-        if (options.renegotiate && peer?.connectionState !== 'closed') {
-          await createOfferForListener(listener.id);
-          return;
-        }
         if (peer && sender && peer.connectionState !== 'closed') {
           try {
-            await sender.replaceTrack(audioTrack);
-            if (isRoomJoinE2e) recordRoomJoinE2eReplaceTrack();
+            if (sender.track !== audioTrack) {
+              await sender.replaceTrack(audioTrack);
+              if (isRoomJoinE2e) recordRoomJoinE2eReplaceTrack();
+            }
             upsertListenerStatus(listener.id, getPeerStatus(peer.connectionState));
             return;
           } catch (replaceError) {
@@ -1497,6 +1495,12 @@ export function useSession(deps: UseSessionDeps) {
     const normalizedRoomId = normalizeRoomCode(roomCode);
     if (!normalizedRoomId) {
       setError('Room code required');
+      return;
+    }
+    // Discovery can show our own room. Returning is navigation, not a join:
+    // joining again would discard host authority and close its live peers.
+    if (normalizedRoomId === roomIdRef.current) {
+      navigateToView('player');
       return;
     }
     const joinDisplayName = options.displayName ?? displayName;
