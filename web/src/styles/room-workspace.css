@@ -171,7 +171,14 @@
 }
 
 @media (max-width: 768px), (max-height: 799px) {
+  html:has(.app-shell[data-room-focus='true']),
+  body:has(.app-shell[data-room-focus='true']) {
+    overflow: hidden;
+    overscroll-behavior-y: none;
+    scroll-behavior: auto;
+  }
   .app-shell[data-room-focus='true'] {
+    background-color: var(--canvas);
     position: fixed;
     top: var(--room-viewport-top, 0px);
     left: 0;
@@ -563,14 +570,15 @@
     width: var(--room-viewport-width, 100%);
   }
   .player-room-mode .room-chat-form .field {
+    height: var(--touch-target);
+    padding-block: 0.5rem;
     font-size: max(1rem, 16px);
   }
   .app-shell[data-room-focus='true'][data-composing='true'] .topbar,
   .app-shell[data-room-focus='true'][data-composing='true'] .bottom-nav,
   .app-shell[data-composing='true'] .room-chat-reactions,
   .app-shell[data-composing='true'] .room-code-pill,
-  .app-shell[data-composing='true'] .player-room-mode .access-badges,
-  .app-shell[data-composing='true'] .player-room-mode .player-artist-link {
+  .app-shell[data-composing='true'] .player-room-mode .access-badges {
     display: none;
   }
   .app-shell[data-composing='true'] .room-composer-done {
@@ -581,12 +589,17 @@
     color: var(--action);
     background: transparent;
   }
-  .app-shell[data-composing='true'] .player-room-mode .player-stage {
-    grid-template-columns: 2rem minmax(0, 1fr);
-    padding: 0.4rem;
+  /* Reclaim gaps around the composer instead of resizing the player. */
+  .app-shell[data-composing='true'] .player-room-mode {
+    gap: 0.25rem;
   }
-  .app-shell[data-composing='true'] .player-room-mode .room-chat-panel {
-    padding-block: 0.25rem;
+  .app-shell[data-composing='true'] .room-panel-switch,
+  .app-shell[data-composing='true'] .player-room-mode .room-chat-panel,
+  .app-shell[data-composing='true'] .player-room-mode .room-chat-list {
+    padding-block: 0;
+  }
+  .app-shell[data-composing='true'] .player-room-mode .room-chat-form {
+    margin-top: 0;
   }
   .app-shell[data-composing='true'] .player-room-mode .room-chat-list {
     overscroll-behavior-y: contain;

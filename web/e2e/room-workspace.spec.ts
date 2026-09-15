@@ -206,7 +206,9 @@ for (const scenario of ['zoomed-chat', 'zoomed-chat-tab', 'resized-requests']) {
     await expect(page.locator('.bottom-nav')).toBeHidden();
     await page.evaluate(() => {
       for (const name of ['height', 'offsetTop', 'scale', 'width', 'offsetLeft']) Reflect.deleteProperty(window.visualViewport!, name);
-      Reflect.deleteProperty(window, 'innerHeight');
+      // innerHeight is an own Window accessor: deleting it removes the real
+      // measurement too. Restore a valid resting height after the simulation.
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
       window.visualViewport!.dispatchEvent(new Event('resize'));
     });
     await expect(page.locator('.bottom-nav')).toBeVisible();
@@ -336,4 +338,51 @@ test('keyboard rotation preserves browser chrome and relearns the resting viewpo
     window.visualViewport!.dispatchEvent(new Event('resize'));
   });
   await expect(shell).toHaveAttribute('data-composing', 'true');
+});
+
+test('keyboard transition retains an opaque canvas, player geometry and drafts across transient empty frames', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await hostRoom(page);
+  const shell = page.locator('.app-shell');
+  const stage = page.locator('.player-stage');
+  const before = await stage.boundingBox();
+  await page.evaluate(() => Reflect.set(window, '__transitionAudio', document.querySelector('audio')));
+  for (const tab of ['Chat', 'Requests']) {
+    await page.getByRole('tab', { name: new RegExp(`^${tab}`) }).click();
+    const input = page.getByRole('textbox', { name: tab === 'Chat' ? 'Message the room' : 'Request a track' });
+    await input.fill(`Draft in ${tab}`);
+    for (const height of [0, 500, 0, 310, Number.NaN, 310]) {
+      const previous = await shell.boundingBox();
+      await page.evaluate(height => {
+        Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: height });
+        window.visualViewport!.dispatchEvent(new Event('resize'));
+        return new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      }, height);
+      if (!height || !Number.isFinite(height)) {
+        expect((await shell.boundingBox())!.height).toBe(previous!.height);
+      } else {
+        await expect(shell).toHaveAttribute('data-composing', 'true');
+        expect((await stage.boundingBox())!.height).toBeCloseTo(before!.height, 0);
+        const inputBounds = (await input.boundingBox())!;
+        expect(inputBounds.y + inputBounds.height).toBeLessThanOrEqual(height);
+      }
+      const canvas = await page.evaluate(() =>
+        [document.documentElement, document.body, document.querySelector('.app-shell')!].map(element => getComputedStyle(element).backgroundColor)
+      );
+      expect(canvas).toEqual(['rgb(5, 13, 26)', 'rgb(5, 13, 26)', 'rgb(5, 13, 26)']);
+      await expect(input).toHaveValue(`Draft in ${tab}`);
+    }
+    await page.screenshot({ path: testInfo.outputPath(`keyboard-${tab.toLowerCase()}.png`) });
+    await page.getByRole('button', { name: 'Finish typing' }).click();
+    await page.evaluate(() => {
+      Reflect.deleteProperty(window.visualViewport!, 'height');
+      window.visualViewport!.dispatchEvent(new Event('resize'));
+    });
+    await expect(shell).toHaveAttribute('data-composing', 'false');
+    await expect(page.locator('.bottom-nav')).toBeVisible();
+  }
+  expect(await page.evaluate(() => Reflect.get(window, '__transitionAudio') === document.querySelector('audio'))).toBe(true);
+  await page.locator('.bottom-nav').getByRole('button', { name: 'Music', exact: true }).click();
+  await expect(shell).toHaveAttribute('data-room-focus', 'false');
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflowY)).not.toBe('hidden');
 });

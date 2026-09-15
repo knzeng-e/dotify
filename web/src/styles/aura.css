@@ -15,7 +15,8 @@ body {
     radial-gradient(46rem 36rem at 14% 2%, color-mix(in oklab, var(--aura-a) calc(20% * var(--aura-strength)), transparent), transparent 66%),
     radial-gradient(42rem 34rem at 90% 12%, color-mix(in oklab, var(--aura-b) calc(13% * var(--aura-strength)), transparent), transparent 70%),
     radial-gradient(48rem 38rem at 76% 98%, color-mix(in oklab, var(--aura-accent) calc(10% * var(--aura-strength)), transparent), transparent 74%),
-    linear-gradient(180deg, #071120 0%, var(--canvas) 40%, var(--canvas-deep) 100%);
+    linear-gradient(180deg, #071120 0%, var(--canvas) 40%, var(--canvas-deep) 100%),
+    var(--canvas);
   transition: background 900ms ease;
 }
 

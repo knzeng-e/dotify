@@ -191,14 +191,6 @@
   .player-room-mode .player-transport {
     gap: 0;
   }
-  .app-shell[data-composing='true'] .player-room-mode .player-stage {
-    grid-template-columns: 2rem minmax(0, 1fr);
-    gap: 0.15rem 0.5rem;
-    padding: 0.35rem;
-  }
-  .app-shell[data-composing='true'] .player-room-mode .transport-progress input {
-    height: 1.5rem;
-  }
 }
 @media (min-width: 769px) and (max-height: 799px) {
   .player-room-mode {
