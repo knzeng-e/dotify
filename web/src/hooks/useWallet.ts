@@ -13,7 +13,7 @@
 // local credential metadata, origin, device sync, or PRF support changes.
 
 import type { PolkadotSigner } from 'polkadot-api';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { createWalletClient, custom, type WalletClient, type Chain } from 'viem';
 import { createClassicUnlockE2eWallet, isClassicUnlockE2e } from '../e2e/classicUnlockMock';
 import {
@@ -24,6 +24,8 @@ import {
 } from '../e2e/artistPublishMock';
 import { connectProductHostIdentity, probeProductHost, resolveProductHostConfig, type ProductHostStatus } from '../features/productHost/productHost';
 import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
+import { getStoredDisplayName } from '../features/identity/walletIdentity';
+import { shortenAddress } from '../shared/utils/format';
 import { getProviderErrorCode, parseChainId, toEip155ChainId } from '../features/wallet/network';
 import {
   clearLegacyPasskeyData,
@@ -44,8 +46,10 @@ export type WalletMethod = 'extension' | 'product-host';
 
 export type ConnectedWallet = {
   method: WalletMethod;
-  /** Short label shown in the UI (e.g. "5GrwvA…utQY" or "Polkadot app") */
+  /** Account label: host username when shared, otherwise a saved name or short address. */
   label: string;
+  /** Host-provided display name. Presentation only, not proof of identity. */
+  displayName?: string;
   /** Optional Substrate account used only for Bulletin Chain archival transactions */
   substrateAddress?: string;
   substrateSigner?: PolkadotSigner;
@@ -194,7 +198,11 @@ export function useWallet() {
   const [productHostStatus, setProductHostStatus] = useState<ProductHostStatus>(() => (productHostConfig.mode === 'off' ? 'off' : 'checking'));
   const [hasLegacyPasskeyData, setHasLegacyPasskeyData] = useState(hasLegacyPasskeyCredential);
 
+  const connectionAttemptRef = useRef(0);
+  const connectedMethod = state.status === 'connected' ? state.wallet.method : null;
+
   const connectExtension = useCallback(async () => {
+    const attempt = ++connectionAttemptRef.current;
     if (isArtistPublishE2e) {
       setState({ status: 'connected', wallet: createArtistPublishE2eWallet() });
       return;
@@ -206,27 +214,31 @@ export function useWallet() {
     setState({ status: 'connecting', via: 'extension' });
     try {
       const wallet = await withTimeout(extensionConnect(), 'Wallet connection timed out. Open your wallet, approve Dotify, then try again.');
+      if (attempt !== connectionAttemptRef.current) return;
       rememberExtensionWallet();
       setState({ status: 'connected', wallet });
     } catch (e) {
+      if (attempt !== connectionAttemptRef.current) return;
       setState({ status: 'error', message: e instanceof Error ? e.message : 'Wallet connection failed.' });
     }
   }, []);
 
   const connectProductHost = useCallback(async () => {
+    const attempt = ++connectionAttemptRef.current;
     setState({ status: 'connecting', via: 'product-host' });
     try {
       const identity = await withTimeout(
         connectProductHostIdentity(productHostConfig),
         'The Polkadot Product host did not answer in time. Reopen Dotify from the Product host and try again.'
       );
+      if (attempt !== connectionAttemptRef.current) return;
       setProductHostStatus('available');
       clearStoredWalletMethod();
       setState({
         status: 'connected',
         wallet: {
           method: 'product-host',
-          label: 'Polkadot app',
+          label: getStoredDisplayName(identity.evmAddress) ?? shortenAddress(identity.evmAddress),
           substrateAddress: identity.substrateAddress,
           evmAddress: identity.evmAddress,
           keyRequestSigner: {
@@ -237,7 +249,25 @@ export function useWallet() {
           }
         }
       });
+      // A name permission prompt must not block the account or undo a newer
+      // connect/disconnect. No global cache: each account reads its own profile.
+      void withTimeout(identity.readDisplayName(), 'Name sharing timed out.')
+        .then(name => {
+          if (!name || attempt !== connectionAttemptRef.current) return;
+          setState(current =>
+            attempt === connectionAttemptRef.current &&
+            current.status === 'connected' &&
+            current.wallet.method === 'product-host' &&
+            current.wallet.evmAddress === identity.evmAddress
+              ? { status: 'connected', wallet: { ...current.wallet, label: name, displayName: name } }
+              : current
+          );
+        })
+        .catch(() => {
+          /* Optional identity sharing does not disconnect an authorized account. */
+        });
     } catch (error) {
+      if (attempt !== connectionAttemptRef.current) return;
       setProductHostStatus('unavailable');
       setState({
         status: 'error',
@@ -247,6 +277,7 @@ export function useWallet() {
   }, []);
 
   const switchExtensionNetwork = useCallback(async (chain: Chain) => {
+    const attempt = ++connectionAttemptRef.current;
     if (isArtistPublishE2e) {
       const wallet = { ...createArtistPublishE2eWallet(), chainId: chain.id };
       setState({ status: 'connected', wallet });
@@ -258,12 +289,14 @@ export function useWallet() {
       return wallet;
     }
     const wallet = await withTimeout(switchExtensionChain(chain), 'Network switch timed out. Check your wallet, then try again.');
+    if (attempt !== connectionAttemptRef.current) return wallet;
     rememberExtensionWallet();
     setState({ status: 'connected', wallet });
     return wallet;
   }, []);
 
   const disconnect = useCallback(() => {
+    ++connectionAttemptRef.current;
     if (isArtistPublishE2e) {
       setState({ status: 'disconnected' });
       return;
@@ -284,15 +317,16 @@ export function useWallet() {
     const restoreMethod = lastMethod;
 
     async function restoreWallet() {
+      const attempt = ++connectionAttemptRef.current;
       setState({ status: 'connecting', via: restoreMethod });
       try {
         const wallet = await withTimeout(extensionConnect({ requestAccounts: false }), 'Wallet restore timed out.');
-        if (!cancelled) {
+        if (!cancelled && attempt === connectionAttemptRef.current) {
           setState({ status: 'connected', wallet });
         }
       } catch {
-        clearStoredWalletMethod();
-        if (!cancelled) {
+        if (!cancelled && attempt === connectionAttemptRef.current) {
+          clearStoredWalletMethod();
           setState({ status: 'disconnected' });
         }
       }
@@ -316,11 +350,14 @@ export function useWallet() {
 
   useEffect(() => {
     if (isClassicUnlockE2e || isArtistPublishE2e) return;
+    if (connectedMethod !== 'extension') return;
     const ethereum = getEthereumProvider();
     if (!ethereum?.on || !ethereum.removeListener) return;
     const provider = ethereum;
 
+    let cancelled = false;
     function handleAccountsChanged(accounts: unknown) {
+      const attempt = ++connectionAttemptRef.current;
       const evmAddress = Array.isArray(accounts) ? (accounts[0] as `0x${string}` | undefined) : undefined;
       if (!evmAddress) {
         clearStoredWalletMethod();
@@ -329,6 +366,7 @@ export function useWallet() {
       }
 
       void walletFromExtensionAddress(provider, evmAddress).then(wallet => {
+        if (cancelled || attempt !== connectionAttemptRef.current) return;
         rememberExtensionWallet();
         setState({ status: 'connected', wallet });
       });
@@ -344,6 +382,7 @@ export function useWallet() {
     }
 
     function handleDisconnect() {
+      ++connectionAttemptRef.current;
       clearStoredWalletMethod();
       setState({ status: 'disconnected' });
     }
@@ -353,11 +392,12 @@ export function useWallet() {
     provider.on?.('disconnect', handleDisconnect);
 
     return () => {
+      cancelled = true;
       provider.removeListener?.('accountsChanged', handleAccountsChanged);
       provider.removeListener?.('chainChanged', handleChainChanged);
       provider.removeListener?.('disconnect', handleDisconnect);
     };
-  }, []);
+  }, [connectedMethod]);
 
   const forgetLegacyPasskeyData = useCallback(() => {
     clearLegacyPasskeyData();

@@ -297,7 +297,6 @@ export function ListenerShell() {
                     journey={catalogJourney}
                     selectedTrackId={catalog.selectedTrackId}
                     catalogAccessByTrackId={catalog.catalogAccessByTrackId}
-                    nativePaymentSymbol={nativePaymentSymbol}
                     onOpenTrack={handleInspectTrack}
                     onPlayTrack={handlePlayTrack}
                     roomGuest={isRoomGuest}

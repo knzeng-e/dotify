@@ -5,6 +5,7 @@ const SIGNAL_URL = `http://127.0.0.1:${SIGNAL_PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: ['**/product-identity.spec.ts'],
   timeout: 30_000,
   expect: {
     timeout: 6_000

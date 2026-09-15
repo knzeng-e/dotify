@@ -1,4 +1,5 @@
 import { bytesToHex } from '@polkadot-apps/utils';
+import { sanitizeDisplayName } from '../identity/walletIdentity';
 import type { RemotePermissionItem } from '@parity/product-sdk/host';
 
 export type ProductHostMode = 'off' | 'auto' | 'required';
@@ -13,6 +14,8 @@ export type ProductHostIdentity = {
   evmAddress: `0x${string}`;
   substrateAddress: string;
   productPublicKey: `0x${string}`;
+  /** Optional profile read; never used as signing or access authority. */
+  readDisplayName: () => Promise<string | null>;
   signMessage: (message: string) => Promise<`0x${string}`>;
 };
 
@@ -35,7 +38,11 @@ type ProductAccountResult = {
 type ProductAccountSigner = {
   signBytes: (data: Uint8Array) => Promise<Uint8Array>;
 };
+type ProductUserIdResult = {
+  match: <T, E = T>(onOk: (value: { primaryUsername: string }) => T, onErr: (error: unknown) => E) => PromiseLike<T | E>;
+};
 type ProductAccountsProvider = {
+  getUserId?: () => ProductUserIdResult;
   getProductAccount: (dotNsIdentifier: string, derivationIndex?: number) => ProductAccountResult;
   getProductAccountSigner: (account: ProductAccount) => ProductAccountSigner;
 };
@@ -211,6 +218,20 @@ export async function openProductHostExternalUrl(rawUrl: string, deps?: ProductH
   return { ok: true };
 }
 
+// Older hosts, denied identity sharing and malformed responses keep the account
+// usable. Read only after an explicit connection, never while probing discovery.
+export async function readProductHostDisplayName(provider: Pick<ProductAccountsProvider, 'getUserId'>): Promise<string | null> {
+  try {
+    if (!provider.getUserId) return null;
+    return await provider.getUserId().match(
+      value => (typeof value?.primaryUsername === 'string' ? sanitizeDisplayName(value.primaryUsername) || null : null),
+      () => null
+    );
+  } catch {
+    return null;
+  }
+}
+
 export async function connectProductHostIdentity(config: ProductHostConfig, deps?: ProductHostIdentityDeps): Promise<ProductHostIdentity> {
   if (config.mode === 'off') {
     throw new Error('This Dotify build does not use the Polkadot Product host.');
@@ -231,6 +252,7 @@ export async function connectProductHostIdentity(config: ProductHostConfig, deps
   const signer = provider.getProductAccountSigner(account);
 
   return {
+    readDisplayName: () => readProductHostDisplayName(provider),
     substrateAddress: ss58Encode(account.publicKey),
     evmAddress: deriveH160(account.publicKey),
     productPublicKey: `0x${bytesToHex(account.publicKey)}` as `0x${string}`,

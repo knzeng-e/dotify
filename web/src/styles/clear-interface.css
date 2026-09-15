@@ -112,16 +112,16 @@
   background: var(--artwork-action-surface);
   color: #fff;
   pointer-events: none;
+  opacity: 0;
   transition: opacity var(--duration-fast) var(--ease);
 }
 @media (hover: hover) and (pointer: fine) {
-  .track-artwork-action {
-    opacity: 0;
-  }
-  .track-artwork-button:hover .track-artwork-action,
-  .track-artwork-button:focus-visible .track-artwork-action {
+  .track-artwork-button:hover .track-artwork-action {
     opacity: 1;
   }
+}
+.track-artwork-button:focus-visible .track-artwork-action {
+  opacity: 1;
 }
 .track-artwork-button:focus-visible {
   outline: 3px solid var(--focus);
@@ -145,10 +145,6 @@
 .catalogue-card[data-selected='true'] {
   border-color: var(--line-strong);
   box-shadow: none;
-}
-.catalogue-access-line {
-  border-top: 0;
-  color: var(--ink-soft);
 }
 
 .artist-profile-view {
@@ -407,4 +403,28 @@
   color: var(--ink-soft);
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+
+/* Keep long host usernames readable in account details without widening navigation. */
+.wallet-pill-open {
+  min-width: 0;
+}
+.wallet-pill-open span {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wallet-identity strong {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 768px) {
+  .wallet-pill-open span {
+    max-width: 8rem;
+  }
+}
+@media (max-width: 31rem) {
+  .wallet-pill-open span {
+    max-width: 5.5rem;
+  }
 }

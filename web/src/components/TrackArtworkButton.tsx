@@ -1,9 +1,9 @@
-import { ArrowRight, Play } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { CoverImage } from './CoverImage';
 import type { CatalogTrack } from '../shared/types';
 
-// Play means playable here. Locked releases and room guests open the existing
-// listening options instead; this affordance never grants access itself.
+// One listening affordance for every cover. Protected releases still open their
+// terms and room guests inspect details; the icon never grants access itself.
 export function TrackArtworkButton({ track, canPlay, onActivate, target }: { track: CatalogTrack; canPlay: boolean; onActivate: () => void; target?: string }) {
   return (
     <button
@@ -16,7 +16,7 @@ export function TrackArtworkButton({ track, canPlay, onActivate, target }: { tra
     >
       <CoverImage className='catalogue-cover' src={track.imageRef} alt='' fallbackLabel={track.title} />
       <span className='track-artwork-action' aria-hidden='true'>
-        {canPlay ? <Play size={24} fill='currentColor' /> : <ArrowRight size={24} />}
+        <Play size={24} fill='currentColor' />
       </span>
     </button>
   );

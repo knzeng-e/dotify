@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   connectProductHostIdentity,
+  readProductHostDisplayName,
   ensureProductHostRoomPermissions,
   isProductHostWebRtcUnavailable,
   openProductHostExternalUrl,
@@ -277,5 +278,44 @@ describe('ensureProductHostRoomPermissions', () => {
       expect(result.reason).toContain('Allow WebRTC');
     }
     expect(requestPermission).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Product host display name', () => {
+  it('reads the shared username, not the product identifier', async () => {
+    const getUserId = vi.fn(() => ({ match: async <T>(ok: (value: { primaryUsername: string }) => T) => ok({ primaryUsername: '  Gaby.dot  ' }) }));
+    await expect(readProductHostDisplayName({ getUserId })).resolves.toBe('Gaby.dot');
+    expect(getUserId).toHaveBeenCalledOnce();
+  });
+
+  it('does not cache a name across accounts', async () => {
+    let primaryUsername = 'Gaby.dot';
+    const provider = { getUserId: () => ({ match: async <T>(ok: (value: { primaryUsername: string }) => T) => ok({ primaryUsername }) }) };
+    await expect(readProductHostDisplayName(provider)).resolves.toBe('Gaby.dot');
+    primaryUsername = 'Ada.dot';
+    await expect(readProductHostDisplayName(provider)).resolves.toBe('Ada.dot');
+  });
+
+  it('allows connection when identity sharing is unsupported, denied or throws', async () => {
+    await expect(readProductHostDisplayName({})).resolves.toBeNull();
+    await expect(
+      readProductHostDisplayName({
+        getUserId: () => ({
+          match: async <T, E>(_ok: (value: { primaryUsername: string }) => T, err: (value: unknown) => E) => err({ reason: 'PermissionDenied' })
+        })
+      })
+    ).resolves.toBeNull();
+    await expect(
+      readProductHostDisplayName({
+        getUserId: () => {
+          throw new Error('Unsupported');
+        }
+      })
+    ).resolves.toBeNull();
+  });
+
+  it.each(['', '   ', undefined, 42, { name: 'Wrong shape' }])('ignores invalid profile name %j', async primaryUsername => {
+    const getUserId = () => ({ match: async <T>(ok: (value: { primaryUsername: string }) => T) => ok({ primaryUsername: primaryUsername as string }) });
+    await expect(readProductHostDisplayName({ getUserId })).resolves.toBeNull();
   });
 });

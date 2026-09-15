@@ -24,7 +24,7 @@ test('Classic track stays locked before payment and unlocks full playback after 
 
   const trackCard = page.getByTestId('track-card');
   await expect(trackCard).toContainText('Deterministic Classic Unlock');
-  await expect(trackCard).toContainText(`0.5 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(trackCard).not.toContainText(`0.5 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
 
   await page.getByTestId('track-card-open').click();
 
