@@ -353,14 +353,14 @@ test('protected room with authorized host: host gets the key, listener streams f
     await expectRemoteAudioPlaying(listener);
 
     const stateAfterSwitch = await readRoomJoinState(host);
-    expect(stateAfterSwitch?.offers ?? 0).toBeGreaterThan(stateBeforeSwitch?.offers ?? 0);
+    // Source changes keep the negotiated receiver instead of rebuilding it.
+    expect(stateAfterSwitch?.offers ?? 0).toBe(stateBeforeSwitch?.offers ?? 0);
     expect(stateAfterSwitch?.replaceTrackSwaps ?? 0).toBeGreaterThanOrEqual(stateBeforeSwitch?.replaceTrackSwaps ?? 0);
     expect(stateAfterSwitch?.captureTrackStops ?? 0).toBe(0);
     expect(stateAfterSwitch?.streamReadySignals ?? 0).toBeGreaterThan(stateBeforeSwitch?.streamReadySignals ?? 0);
 
-    // Switch back as well: source changes renegotiate a fresh WebRTC offer.
-    // Same-source recapture may still use replaceTrack, but the room must never
-    // stop browser-owned capture tracks and leave the listener on silent media.
+    // Switching back also preserves the receiver. Source replacement must
+    // never stop browser-owned tracks and leave listeners on silent media.
     await host.getByRole('button', { name: 'Previous track' }).click();
     await host.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
@@ -368,7 +368,7 @@ test('protected room with authorized host: host gets the key, listener streams f
     await expectRemoteAudioPlaying(listener);
 
     const stateAfterReturn = await readRoomJoinState(host);
-    expect(stateAfterReturn?.offers ?? 0).toBeGreaterThan(stateAfterSwitch?.offers ?? 0);
+    expect(stateAfterReturn?.offers ?? 0).toBe(stateAfterSwitch?.offers ?? 0);
     expect(stateAfterReturn?.replaceTrackSwaps ?? 0).toBeGreaterThanOrEqual(stateAfterSwitch?.replaceTrackSwaps ?? 0);
     expect(stateAfterReturn?.captureTrackStops ?? 0).toBe(0);
     expect(stateAfterReturn?.streamReadySignals ?? 0).toBeGreaterThan(stateAfterSwitch?.streamReadySignals ?? 0);

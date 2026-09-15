@@ -10,8 +10,10 @@ export function useRoomViewport(active: boolean) {
     if (!active || !shell) return;
     const viewport = window.visualViewport;
     let baselineHeight = window.innerHeight;
+    let restingInset = Math.max(0, baselineHeight - (viewport?.height ?? window.innerHeight) * (viewport?.scale ?? 1));
     let layoutWidth = window.innerWidth;
     let composingSession = false;
+    let wasKeyboardOpen = false;
     let frame = 0;
     let pressingControl = false;
     const timers: number[] = [];
@@ -21,14 +23,24 @@ export function useRoomViewport(active: boolean) {
       const focused = document.activeElement;
       const editing =
         focused instanceof HTMLElement && shell.contains(focused) && focused.matches('.room-chat-form input, .room-chat-form textarea, .room-composer-done');
-      if (Math.abs(window.innerWidth - layoutWidth) > 80) baselineHeight = window.innerHeight;
+      if (Math.abs(window.innerWidth - layoutWidth) > 80) {
+        baselineHeight = window.innerHeight;
+        restingInset = 0;
+      }
       layoutWidth = window.innerWidth;
       baselineHeight = Math.max(baselineHeight, window.innerHeight);
       if (editing) composingSession = true;
       const height = viewport?.height ?? window.innerHeight;
-      const keyboardOpen = composingSession && keyboardOccludesRoom(baselineHeight, height, viewport?.scale ?? 1);
-      const composing = editing || keyboardOpen;
-      if (!composing) composingSession = false;
+      const scale = viewport?.scale ?? 1;
+      // Existing browser chrome is not keyboard occlusion. Measure changes
+      // from the resting viewport, including during the closing animation.
+      const restingHeight = baselineHeight - restingInset;
+      const keyboardOpen = composingSession && (keyboardOccludesRoom(restingHeight, height, scale) || (wasKeyboardOpen && restingHeight - height * scale > 40));
+      // Focus precedes the keyboard animation. Compact only with measured
+      // occlusion, avoiding a full-height flash and hardware-keyboard jumps.
+      const composing = keyboardOpen;
+      wasKeyboardOpen = keyboardOpen;
+      if (!editing && !keyboardOpen) composingSession = false;
       shell.style.setProperty('--room-viewport-height', `${height}px`);
       shell.style.setProperty('--room-viewport-top', `${viewport?.offsetTop ?? 0}px`);
       shell.style.setProperty('--room-viewport-width', `${composing ? (viewport?.width ?? window.innerWidth) : window.innerWidth}px`);

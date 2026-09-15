@@ -27,7 +27,16 @@ export function TopBar({ className, brandHref, brandAriaLabel, onBrandClick, nav
   return (
     <header className={className ? `topbar ${className}` : 'topbar'}>
       <div className='topbar-inner'>
-        <a className='brand' href={brandHref} aria-label={brandAriaLabel} onClick={onBrandClick}>
+        <a
+          className='brand'
+          href={brandHref}
+          aria-label={brandAriaLabel}
+          onClick={event => {
+            if (!onBrandClick) return;
+            event.preventDefault();
+            onBrandClick();
+          }}
+        >
           <svg className='brand-mark' viewBox='0 0 48 48' aria-hidden='true' focusable='false'>
             <g className='brand-mark-orbit'>
               <ellipse cx='24' cy='5' rx='6.2' ry='3.5' />

@@ -1,12 +1,17 @@
 import { ArrowLeft, ArrowRight, CircleCheckBig, Headphones, KeyRound, Library, Search, Wallet, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from 'react';
 import { CoverImage } from './CoverImage';
 import { DotBirth } from './DotBirth';
 import { auraStyleForTrack } from '../shared/utils/aura';
 import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
 import type { CatalogTrack } from '../shared/types';
 
+// In-memory navigation state only. No listening/search history is persisted.
+export type CatalogJourney = { query: string; showAll: boolean; left: number; top: number; target: string | null };
+export const emptyCatalogJourney = (): CatalogJourney => ({ query: '', showAll: false, left: 0, top: 0, target: null });
+
 type CatalogBrowserProps = {
+  journey: MutableRefObject<CatalogJourney>;
   catalogTracks: CatalogTrack[];
   catalogStatus: string;
   selectedTrackId: string;
@@ -23,6 +28,7 @@ const fold = (value: string) =>
     .toLowerCase();
 
 export function CatalogBrowser({
+  journey,
   catalogTracks,
   catalogStatus,
   selectedTrackId,
@@ -31,8 +37,18 @@ export function CatalogBrowser({
   onOpenTrack,
   onOpenArtist
 }: CatalogBrowserProps) {
-  const [query, setQuery] = useState('');
-  const [showAll, setShowAll] = useState(false);
+  const [query, setQueryState] = useState(journey.current.query);
+  const [showAll, setShowAll] = useState(journey.current.showAll);
+  const previousLayout = useRef<string | null>(null);
+  const setQuery = (value: string) => {
+    journey.current.query = value;
+    journey.current.target = null;
+    setQueryState(value);
+  };
+  const rememberTarget = (target: string) => {
+    journey.current.target = target;
+    journey.current.top = window.scrollY;
+  };
   const [edges, setEdges] = useState({ start: true, end: true });
   const listRef = useRef<HTMLDivElement>(null);
   const tracks = useMemo(() => {
@@ -40,11 +56,26 @@ export function CatalogBrowser({
     return catalogTracks.filter(track => fold(`${track.title} ${track.artist}`).includes(term));
   }, [catalogTracks, query]);
   const trackIds = tracks.map(track => track.id).join('|');
-  useEffect(() => {
+  useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    list.scrollLeft = 0;
+    const layout = `${showAll}:${trackIds}`;
+    if (previousLayout.current === null || previousLayout.current === layout) {
+      list.scrollLeft = journey.current.left;
+      const target = Array.from(list.querySelectorAll<HTMLElement>('[data-catalog-target]')).find(
+        element => element.dataset.catalogTarget === journey.current.target
+      );
+      target?.focus({ preventScroll: true });
+      window.scrollTo({ top: journey.current.top, behavior: 'instant' });
+    } else {
+      list.scrollLeft = 0;
+    }
+    previousLayout.current = layout;
+    const rememberScroll = () => {
+      journey.current.top = window.scrollY;
+    };
     const measure = () => {
+      journey.current.left = list.scrollLeft;
       const next = { start: list.scrollLeft <= 2, end: list.scrollLeft + list.clientWidth >= list.scrollWidth - 2 };
       setEdges(previous => (previous.start === next.start && previous.end === next.end ? previous : next));
     };
@@ -52,11 +83,13 @@ export function CatalogBrowser({
     const observer = new ResizeObserver(measure);
     observer.observe(list);
     list.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('scroll', rememberScroll, { passive: true });
     return () => {
       observer.disconnect();
+      window.removeEventListener('scroll', rememberScroll);
       list.removeEventListener('scroll', measure);
     };
-  }, [trackIds, showAll]);
+  }, [trackIds, showAll, journey]);
   const move = (direction: number) => {
     const list = listRef.current;
     if (!list) return;
@@ -85,7 +118,16 @@ export function CatalogBrowser({
           )}
         </div>
         <div className='catalog-browse-actions'>
-          <button className='catalog-view-toggle' type='button' aria-pressed={showAll} onClick={() => setShowAll(value => !value)}>
+          <button
+            className='catalog-view-toggle'
+            type='button'
+            aria-pressed={showAll}
+            onClick={() => {
+              journey.current.showAll = !showAll;
+              journey.current.target = null;
+              setShowAll(!showAll);
+            }}
+          >
             {showAll ? 'Show as a row' : 'Show all tracks'}
           </button>
           {!showAll && (
@@ -100,8 +142,8 @@ export function CatalogBrowser({
           )}
         </div>
       </div>
-      <p className='catalog-results-count' role='status'>
-        {query ? `${tracks.length} matching tracks` : 'Find your next listening moment.'}
+      <p className='catalog-results-count' role='status' hidden={!query}>
+        {query ? `${tracks.length} matching tracks` : null}
       </p>
       <div
         ref={listRef}
@@ -146,12 +188,24 @@ export function CatalogBrowser({
                     className='catalogue-card-open'
                     type='button'
                     data-testid='track-card-open'
+                    data-catalog-target={`track:${track.id}`}
                     aria-label={`Open ${track.title} by ${track.artist}`}
-                    onClick={() => void onOpenTrack(track)}
+                    onClick={() => {
+                      rememberTarget(`track:${track.id}`);
+                      void onOpenTrack(track);
+                    }}
                   >
                     {track.title}
                   </button>
-                  <button className='artist-text-button' type='button' onClick={() => onOpenArtist(track.artist)}>
+                  <button
+                    className='artist-text-button'
+                    type='button'
+                    data-catalog-target={`artist:${track.id}`}
+                    onClick={() => {
+                      rememberTarget(`artist:${track.id}`);
+                      onOpenArtist(track.artist);
+                    }}
+                  >
                     {track.artist}
                   </button>
                   <p className='catalogue-card-description'>{track.description || 'A track ready for listening, rooms, and direct artist support.'}</p>
