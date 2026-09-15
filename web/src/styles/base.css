@@ -6,6 +6,8 @@
 
 /* Layout minimum stays stable when the listener enlarges text. */
 html {
+  background-color: var(--canvas);
+  color-scheme: dark;
   min-width: 320px;
   scroll-behavior: smooth;
   scroll-padding-top: calc(var(--header-height) + 1.5rem);
