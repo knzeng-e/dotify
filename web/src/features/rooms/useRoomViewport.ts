@@ -8,9 +8,10 @@ export function useRoomViewport(active: boolean) {
     const shell = ref.current;
     if (!active || !shell) return;
     const viewport = window.visualViewport;
-    let baselineHeight = window.innerHeight;
-    let restingInset = Math.max(0, baselineHeight - (viewport?.height ?? window.innerHeight) * (viewport?.scale ?? 1));
-    let layoutWidth = window.innerWidth;
+    let baselineHeight = 0;
+    let restingInset = 0;
+    let layoutWidth = 0;
+    let initialized = false;
     let composingSession = false;
     let wasKeyboardOpen = false;
     let frame = 0;
@@ -34,6 +35,14 @@ export function useRoomViewport(active: boolean) {
       const focused = document.activeElement;
       const editing =
         focused instanceof HTMLElement && shell.contains(focused) && focused.matches('.room-chat-form input, .room-chat-form textarea, .room-composer-done');
+      if (!initialized) {
+        baselineHeight = window.innerHeight;
+        // A keyboard may already be opening before the first valid sample.
+        // Learn browser chrome only at rest, never from an editing frame.
+        restingInset = editing ? 0 : Math.max(0, baselineHeight - height * scale);
+        layoutWidth = window.innerWidth;
+        initialized = true;
+      }
       if (Math.abs(window.innerWidth - layoutWidth) > 80) {
         baselineHeight = window.innerHeight;
         // Rotation can arrive while the keyboard is still open. Keep the

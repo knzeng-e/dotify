@@ -386,3 +386,30 @@ test('keyboard transition retains an opaque canvas, player geometry and drafts a
   await expect(shell).toHaveAttribute('data-room-focus', 'false');
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflowY)).not.toBe('hidden');
 });
+
+for (const initialHeight of [0, Number.NaN]) {
+  test(`keyboard transition recovers from invalid initial height ${initialHeight} after focus`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(height => {
+      Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: height });
+    }, initialHeight);
+    await hostRoom(page);
+    const input = page.getByRole('textbox', { name: 'Message the room' });
+    await input.fill('The first valid frame can arrive after focus');
+    await page.evaluate(() => {
+      Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 310 });
+      window.visualViewport!.dispatchEvent(new Event('resize'));
+    });
+    await expect(page.locator('.app-shell')).toHaveAttribute('data-composing', 'true');
+    const box = (await input.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(310);
+    await page.getByRole('button', { name: 'Finish typing' }).click();
+    await page.evaluate(() => {
+      Reflect.deleteProperty(window.visualViewport!, 'height');
+      window.visualViewport!.dispatchEvent(new Event('resize'));
+    });
+    await expect(page.locator('.app-shell')).toHaveAttribute('data-composing', 'false');
+    await expect(page.locator('.bottom-nav')).toBeVisible();
+    await expect(input).toHaveValue('The first valid frame can arrive after focus');
+  });
+}

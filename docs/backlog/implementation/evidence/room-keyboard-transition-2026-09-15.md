@@ -27,3 +27,13 @@ The dark area below the simulated visible viewport is not a rendered native
 keyboard. Native iOS/Polkadot Mobile compositor behavior still needs a repeat of
 the supplied recording on device. At 310px of visible height, the player and
 composer take priority; the message history becomes very short.
+
+
+Review follow-up: initialize the viewport baseline only from a valid sample.
+If the composer is already focused, do not learn browser chrome from that first
+keyboard-time frame. Two regressions cover initial zero and NaN geometry followed
+by focus, a 310px keyboard viewport, and successful dismissal. The initial
+implementation was `f847c8c`; the follow-up is recorded in a separate commit.
+The review follow-up passed 11 targeted Chromium scenarios and 10 WebKit
+scenarios, including both invalid-start cases. The initial PR's complete remote
+quality gates also passed before this follow-up.
