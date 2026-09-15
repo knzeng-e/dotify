@@ -4,7 +4,7 @@
 - Base: `8ff75de4a61269c4bf1f353f2b11c670ba7d5a1b` (`dev`, merged #169).
 - Branch: `fix/catalog-play-and-host-identity`.
 - Implementation commit: `2ce8ad11d8a5c214415b38c46865e3074f2c7756`.
-- PR: added after publication.
+- PR: [#170](https://github.com/knzeng-e/dotify/pull/170), targeting `dev`.
 - Design and SDK decision record: [clear covers and a personal connection](../../../design/catalog-and-host-identity-2026-09-15.md).
 
 ## Boundaries
