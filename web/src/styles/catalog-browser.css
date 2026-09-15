@@ -97,13 +97,6 @@
   font-size: 1rem;
   line-height: 1.35;
 }
-.catalogue-section .catalogue-grid[data-layout] .catalogue-card-description {
-  display: none;
-}
-.catalogue-section .catalogue-grid[data-layout] .catalogue-access-line {
-  margin-top: auto;
-  padding-inline: 0.75rem;
-}
 .catalogue-section .catalogue-grid[data-layout] .catalogue-empty {
   grid-column: 1 / -1;
 }

@@ -254,3 +254,6 @@ jobs:
 
       - name: Run deterministic core flows
         run: npm run test:e2e
+      - name: Verify Product host identity
+        working-directory: web
+        run: npx playwright test --config playwright.product-identity.config.ts --project=chromium --workers=2

@@ -1,9 +1,8 @@
-import { ArrowLeft, ArrowRight, CircleCheckBig, KeyRound, Library, Search, Wallet, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Library, Search, X } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from 'react';
 import { TrackArtworkButton } from './TrackArtworkButton';
 import { DotBirth } from './DotBirth';
 import { auraStyleForTrack } from '../shared/utils/aura';
-import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
 import type { CatalogTrack } from '../shared/types';
 
 // In-memory navigation state only. No listening/search history is persisted.
@@ -16,7 +15,6 @@ type CatalogBrowserProps = {
   catalogStatus: string;
   selectedTrackId: string;
   catalogAccessByTrackId: Record<string, boolean>;
-  nativePaymentSymbol: string;
   onOpenTrack: (track: CatalogTrack) => void;
   onPlayTrack: (track: CatalogTrack) => void;
   roomGuest: boolean;
@@ -35,7 +33,6 @@ export function CatalogBrowser({
   catalogStatus,
   selectedTrackId,
   catalogAccessByTrackId,
-  nativePaymentSymbol,
   onOpenTrack,
   onPlayTrack,
   roomGuest,
@@ -216,16 +213,6 @@ export function CatalogBrowser({
                   >
                     {track.artist}
                   </button>
-                </div>
-                <div
-                  className='catalogue-access-line'
-                  data-access={accessGranted ? 'granted' : 'locked'}
-                  aria-label={catalogAccessAriaLabel(track, hasCatalogAccess, nativePaymentSymbol)}
-                >
-                  <span>
-                    {accessGranted ? <CircleCheckBig size={15} /> : track.accessMode === 'classic' ? <Wallet size={15} /> : <KeyRound size={15} />}
-                    {catalogAccessLabel(track, nativePaymentSymbol)}
-                  </span>
                 </div>
               </article>
             );

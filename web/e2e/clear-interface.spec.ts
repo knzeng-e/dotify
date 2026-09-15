@@ -35,6 +35,40 @@ for (const width of [390, 1440]) {
       await expect(page.getByTestId('access-warning')).toBeVisible();
     });
 
+    test('shows Play only on the active cover and keeps access details out of the row', async ({ page }, testInfo) => {
+      await page.goto('/?e2eRoom=public&e2eCatalog=wide');
+      const actions = page.getByTestId('track-artwork-action');
+      const row = page.getByRole('region', { name: 'Music catalog', exact: true });
+      await expect(actions.first()).toBeVisible();
+      await expect(row.locator('.lucide-arrow-right')).toHaveCount(0);
+      await expect(row.locator('.catalogue-access-line')).toHaveCount(0);
+      await expect(actions.locator('.lucide-play')).toHaveCount(await actions.count());
+      await expect
+        .poll(() => actions.locator('.track-artwork-action').evaluateAll(elements => elements.every(el => getComputedStyle(el).opacity === '0')))
+        .toBe(true);
+      if (width === 1440) {
+        await actions.first().hover();
+        await expect(actions.first().locator('.track-artwork-action')).toHaveCSS('opacity', '1');
+        await expect(actions.nth(1).locator('.track-artwork-action')).toHaveCSS('opacity', '0');
+        await actions.nth(1).hover();
+        await expect(actions.first().locator('.track-artwork-action')).toHaveCSS('opacity', '0');
+        await expect(actions.nth(1).locator('.track-artwork-action')).toHaveCSS('opacity', '1');
+        await page.mouse.move(0, 0);
+      }
+      await row.evaluate(element => (element.scrollLeft = element.scrollWidth));
+      await expect.poll(() => row.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+      await expect
+        .poll(() => actions.locator('.track-artwork-action').evaluateAll(elements => elements.every(el => getComputedStyle(el).opacity === '0')))
+        .toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`catalog-scroll-${width}.png`), animations: 'disabled' });
+      // Disclosure remains available from the release, before a paid action.
+      await page.getByLabel('Find a track or artist').fill('E2E Protected Room Track');
+      const protectedCard = page.getByTestId('track-card').filter({ hasText: 'E2E Protected Room Track' });
+      await expect(protectedCard).not.toContainText('0.5 PAS');
+      await protectedCard.getByTestId('track-artwork-action').click();
+      await expect(page.getByTestId('access-warning')).toBeVisible();
+    });
+
     test('artist and personal screens lead with useful content', async ({ page }, testInfo) => {
       await page.goto('/?e2eRoom=public&e2eCatalog=wide');
       await page.locator('.catalogue-card .artist-text-button').first().click();

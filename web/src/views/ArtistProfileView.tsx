@@ -110,15 +110,14 @@ export function ArtistProfileView({
                     >
                       {track.title}
                     </button>
-                    <small aria-label={catalogAccessAriaLabel(track, catalogAccessByTrackId[track.id] === true, nativePaymentSymbol)}>
-                      {catalogAccessLabel(track, nativePaymentSymbol)}
-                    </small>
-                    {track.description && (
-                      <details className='release-description'>
-                        <summary>About this release</summary>
-                        <p>{track.description}</p>
-                      </details>
-                    )}
+                    <small>{track.artist}</small>
+                    <details className='release-description'>
+                      <summary>About this release</summary>
+                      <p aria-label={catalogAccessAriaLabel(track, catalogAccessByTrackId[track.id] === true, nativePaymentSymbol)}>
+                        {catalogAccessLabel(track, nativePaymentSymbol)}
+                      </p>
+                      {track.description && <p>{track.description}</p>}
+                    </details>
                   </div>
                 </article>
               ))

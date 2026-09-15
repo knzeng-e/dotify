@@ -4,10 +4,10 @@
 // dependency-injection signature; the wiring and the one-link-join effect move
 // here from App.tsx. Fail closed: the accessor throws outside the provider.
 
-import { createContext, useContext, useEffect, type ReactNode, type RefObject } from 'react';
+import { createContext, useContext, useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { useSession } from '../../hooks/useSession';
 import { getInitialRoomCode } from '../../features/rooms/roomState';
-import { getStoredDisplayName } from '../../features/identity/walletIdentity';
+import { DEFAULT_DISPLAY_NAME, getStoredDisplayName, isChosenDisplayName } from '../../features/identity/walletIdentity';
 import { useWalletContext } from './WalletProvider';
 import { useNavigation } from './NavigationProvider';
 import { useCatalogContext } from './CatalogProvider';
@@ -20,7 +20,7 @@ type SessionValue = ReturnType<typeof useSession>;
 const SessionContext = createContext<SessionValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const { activeIdentityAddress } = useWalletContext();
+  const { activeIdentityAddress, connectedWallet } = useWalletContext();
   const { navigateToView } = useNavigation();
   const catalog = useCatalogContext();
 
@@ -60,21 +60,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Wallet identity (off-chain): a connected wallet carries its chosen display
-  // name, so the user never retypes it. On connect, pre-fill the session name
-  // from the address's stored name; a guest with no wallet keeps whatever they
-  // typed. See features/identity/walletIdentity.ts.
-  // The name is persisted back to the wallet at the actual submit point
-  // (useSession.createSession / joinRoom), not reactively here: the modals wire
-  // the field's onChange straight to setDisplayName, so a reactive effect would
-  // write a partial name to storage on every keystroke.
+  // A chosen room alias wins over the optional host username. Only seed fields:
+  // sharing a profile must never silently rename someone in a live room or
+  // replace a name they are currently typing. Persistence remains at submit.
+  const hostDisplayName = connectedWallet?.displayName;
+  const nameSeedRef = useRef({ address: activeIdentityAddress, name: DEFAULT_DISPLAY_NAME });
   const setDisplayName = session.setDisplayName;
   useEffect(() => {
-    const stored = getStoredDisplayName(activeIdentityAddress);
-    if (stored) setDisplayName(stored);
-    // Re-run only when the connected address changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIdentityAddress]);
+    if (session.roomId) return;
+    const previous = nameSeedRef.current;
+    const name = getStoredDisplayName(activeIdentityAddress) ?? hostDisplayName ?? DEFAULT_DISPLAY_NAME;
+    nameSeedRef.current = { address: activeIdentityAddress, name };
+    setDisplayName(current => {
+      if (previous.address !== activeIdentityAddress) return name;
+      if (name === previous.name) return current;
+      return current === previous.name || !isChosenDisplayName(current) ? name : current;
+    });
+  }, [activeIdentityAddress, hostDisplayName, session.roomId, setDisplayName]);
 
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }

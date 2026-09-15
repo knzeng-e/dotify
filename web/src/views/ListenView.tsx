@@ -14,7 +14,6 @@ type ListenViewProps = {
   journey: MutableRefObject<CatalogJourney>;
   selectedTrackId: string;
   catalogAccessByTrackId: Record<string, boolean>;
-  nativePaymentSymbol: string;
   onOpenTrack: (track: CatalogTrack) => void;
   onPlayTrack: (track: CatalogTrack) => void;
   roomGuest: boolean;
@@ -30,7 +29,6 @@ export function ListenView({
   journey,
   selectedTrackId,
   catalogAccessByTrackId,
-  nativePaymentSymbol,
   onOpenTrack,
   onPlayTrack,
   roomGuest,
@@ -64,7 +62,6 @@ export function ListenView({
           catalogStatus={catalogStatus}
           selectedTrackId={selectedTrackId}
           catalogAccessByTrackId={catalogAccessByTrackId}
-          nativePaymentSymbol={nativePaymentSymbol}
           onOpenTrack={onOpenTrack}
           onPlayTrack={onPlayTrack}
           roomGuest={roomGuest}

@@ -297,7 +297,7 @@ export function WalletModal({
                 {productHostStatus === 'checking'
                   ? 'Checking the Product host...'
                   : productHostStatus === 'available'
-                    ? 'Use your app-scoped account.'
+                    ? 'Use your account and shared name.'
                     : 'Open Dotify inside the Product host.'}
               </small>
             </span>
