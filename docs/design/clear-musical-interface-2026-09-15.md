@@ -33,6 +33,7 @@ any particular visual treatment improves a measured conversion rate.
 | A screen-reader announcement has no `sr-only` CSS definition. | “Centered on…” becomes visible and overlaps the sky controls. | Add the missing semantic utility while retaining the live announcement. |
 | An off-center headphone glyph is decorative, and a stretched title pseudo-element catches clicks across the card. | Click ownership is opaque and the affordance does not explain the action. | Explicit native cover button, centered translucent affordance, separate title and artist buttons. Preserve search/focus when returning. |
 | Re-selecting an already loaded track pauses its source without necessarily triggering a new source-load autoplay. | A Play CTA could open a paused player. | The shell resumes a current ready source through the existing playback controller. New selections retain the catalog access check. |
+| Guest artwork promises listening options but the room hides the access gate. | Browsing another release can change the local selection without showing the promised options, with a delayed gate on exit. | Open a read-only release sheet from catalog and artist pages. Show real terms; keep the current stream and selection. Only an explicit leave-and-open choice goes through the individual access flow. |
 | Leaving a room retains the guest transport role even after the remote stream is cleared. | An available Play action opens a disabled local player after leaving. | Reset the local transport role when the room is cleared; a regression checks that leaving stays silent, then explicit Play and seek work while the host room survives. |
 | Artist profiles put generic explanation and an empty live panel before releases. | Music is buried under repeated positioning. | Releases immediately follow compact artist identity/actions; live rooms appear only when real rooms exist. Actual release description is disclosed on demand. |
 | Artist verification and a handle are inferred from catalog metadata. | An address/published release is presented as verified identity. | Remove the unsupported badge, invented handle and generated biography. Keep the real artist name, releases and live presence. |
@@ -51,7 +52,10 @@ uses an exit icon, retaining explicit accessible names.
 - The artwork button is a real keyboard/touch target, not an icon overlay that
   depends on clicking elsewhere. Its visible mark is at least 44 CSS pixels.
 - A cache-backed playable label is a navigation hint, never authorization. New
-  selections recheck access; room guests keep their existing listening authority.
+  selections recheck access. A room guest opens `RoomReleaseDialog` with already
+  loaded metadata, without selecting a source or requesting a content key. An
+  explicit leave-and-open choice is consumed once after local transport returns.
+  Protected releases then show the existing access gate.
 - The current ready track resumes through the existing controller; it does not
   construct a second player. Clearing a room restores the local transport role
   instead of leaving the controls attached to the retired guest stream. Next/Previous and keyboard
@@ -79,7 +83,8 @@ The room capture uses the existing 2D fallback. No competitor assets are reused.
 [Desktop artist](images/clear-interface/artist-1440.jpg) ·
 [Desktop You](images/clear-interface/you-1440.jpg) ·
 [Room discovery](images/clear-interface/rooms-online.jpg) ·
-[Enlarged text](images/clear-interface/artist-large-text.jpg)
+[Enlarged text](images/clear-interface/artist-large-text.jpg) ·
+[Guest release details](images/clear-interface/guest-release-details.jpg)
 
 ## Boundaries and next slices
 

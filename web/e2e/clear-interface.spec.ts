@@ -134,6 +134,9 @@ test('clear interface restores individual playback after leaving a room', async 
     await expect(guest.getByRole('button', { name: 'Play E2E Public Room Track by Dotify Room Host', exact: true })).toHaveCount(0);
     await expect(cover.first()).toBeVisible();
     await guest.getByRole('button', { name: 'View listening options for E2E Public Room Track by Dotify Room Host', exact: true }).click();
+    await expect(guest.getByRole('dialog')).toContainText('Release details');
+    await guest.getByRole('button', { name: 'Stay in room', exact: true }).click();
+    await guest.locator('.player-dock-art').click();
     await guest.getByRole('tab', { name: /People/ }).click();
     await guest.getByRole('button', { name: 'Leave', exact: true }).click();
     await expect(guest.locator('audio.native-player-source').last()).toHaveJSProperty('srcObject', null);
@@ -143,6 +146,59 @@ test('clear interface restores individual playback after leaving a room', async 
     await expect(guest.locator('audio.native-player-source').first()).toHaveJSProperty('paused', false);
     await expect(guest.getByRole('button', { name: 'Pause', exact: true })).toBeEnabled();
     await expect(guest.getByRole('slider', { name: /Seek/ })).toBeEnabled();
+    await expect(page.getByTestId('room-code')).toHaveText(code);
+  } finally {
+    await guestContext.close();
+  }
+});
+
+test('clear interface lets guests inspect releases without changing their listening source', async ({ page, browser }, testInfo) => {
+  await page.goto('/?e2eRoom=public');
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
+  const code = (await page.getByTestId('room-code').innerText()).trim();
+  const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  try {
+    const guest = await guestContext.newPage();
+    await guest.goto(`/?e2eRoom=public#/rooms/${code}`);
+    await expect(guest.locator('#join-room-title')).toContainText('welcomes you');
+    await guest.getByLabel('Your name in the room').fill('Curious listener');
+    await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+    await expect(guest.getByTestId('room-code')).toHaveText(code);
+    await guest.getByRole('button', { name: 'Music', exact: true }).click();
+    const originalSource = await guest.locator('audio.native-player-source').first().getAttribute('src');
+    const selectedTitle = await guest.locator('.catalogue-card[data-selected="true"] .catalogue-card-open').innerText();
+    const keyRequests = await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests);
+    const protectedAction = guest.getByRole('button', { name: 'View listening options for E2E Protected Room Track by Dotify Room Host', exact: true });
+    // Keyboard focus returns to the trigger; Safari pointer clicks do not focus buttons.
+    await protectedAction.focus();
+    await protectedAction.press('Enter');
+    const dialog = guest.getByRole('dialog', { name: 'E2E Protected Room Track', exact: true });
+    await expect(dialog).toContainText('Leave the room');
+    await expect(dialog).toContainText('0.5 PAS');
+    await expect(guest.getByTestId('access-warning')).toHaveCount(0);
+    expect(await guest.locator('audio.native-player-source').first().getAttribute('src')).toBe(originalSource);
+    expect(await guest.locator('.catalogue-card[data-selected="true"] .catalogue-card-open').innerText()).toBe(selectedTitle);
+    expect(await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests)).toBe(keyRequests);
+    await guest.screenshot({ path: testInfo.outputPath('guest-release-details.png'), animations: 'disabled' });
+    await dialog.getByRole('button', { name: 'Stay in room', exact: true }).click();
+    await expect(protectedAction).toBeFocused();
+    // Artist release actions must use the same read-only inspection path.
+    await guest
+      .getByTestId('track-card')
+      .filter({ hasText: 'E2E Protected Room Track' })
+      .getByRole('button', { name: 'Dotify Room Host', exact: true })
+      .click();
+    await protectedAction.click();
+    await expect(dialog).toBeVisible();
+    expect(await guest.locator('audio.native-player-source').first().getAttribute('src')).toBe(originalSource);
+    await dialog.getByRole('button', { name: 'Leave and open release', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(guest.getByTestId('room-code')).toHaveCount(0);
+    await expect(guest.getByTestId('access-warning')).toBeVisible();
+    await expect(guest.locator('audio.native-player-source').first()).toHaveJSProperty('paused', true);
     await expect(page.getByTestId('room-code')).toHaveText(code);
   } finally {
     await guestContext.close();
