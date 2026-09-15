@@ -128,7 +128,11 @@ export const E2E_ROOM_PUBLIC_TRACK: CatalogTrack = {
 // Ordered [protected, public] so the unauthorized-host scenario skips forward
 // from the protected track (index 0) to the public track (index 1).
 export function getRoomJoinE2eTracks(): CatalogTrack[] {
-  return [E2E_ROOM_PROTECTED_TRACK, E2E_ROOM_PUBLIC_TRACK];
+  const tracks = [E2E_ROOM_PROTECTED_TRACK, E2E_ROOM_PUBLIC_TRACK];
+  if (isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eCatalog') === 'wide') {
+    for (let index = 1; index <= 10; index++) tracks.push({ ...E2E_ROOM_PUBLIC_TRACK, id: `e2e-selection-${index}`, title: `Session selection ${index}` });
+  }
+  return tracks;
 }
 
 export function isRoomJoinE2eTrack(track: Pick<CatalogTrack, 'id'>) {

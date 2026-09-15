@@ -1,13 +1,12 @@
-import { ArrowRight, CircleCheckBig, Headphones, KeyRound, Library, Radio, ShieldCheck, Users, Wallet } from 'lucide-react';
+import { ArrowRight, Headphones, KeyRound, Radio, ShieldCheck, Users } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { CoverImage } from '../components/CoverImage';
-import { DotBirth } from '../components/DotBirth';
+import { CatalogBrowser } from '../components/CatalogBrowser';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import { auraStyleForTrack } from '../shared/utils/aura';
-import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
 import type { CatalogTrack, OpenRoom, SoloListeningByTrackHash } from '../shared/types';
 
 type ListenViewProps = {
@@ -46,7 +45,6 @@ export function ListenView({
   const latestTracks = useMemo(() => catalogTracks.slice(0, 5), [catalogTracks]);
   const latestTrackIds = latestTracks.map(track => track.id).join('|');
   const [featuredIndex, setFeaturedIndex] = useState(0);
-  const [carouselPaused, setCarouselPaused] = useState(false);
   const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
   const featured = latestTracks[featuredIndex] ?? latestTracks[0] ?? null;
   const featuredRooms = useMemo(() => (featured ? openRooms.filter(room => roomPlaysTrack(room, featured)) : []), [featured, openRooms]);
@@ -58,17 +56,6 @@ export function ListenView({
   useEffect(() => {
     setFeaturedIndex(0);
   }, [latestTrackIds]);
-
-  useEffect(() => {
-    if (latestTracks.length <= 1 || carouselPaused) return undefined;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
-
-    const intervalId = window.setInterval(() => {
-      setFeaturedIndex(currentIndex => (currentIndex + 1) % latestTracks.length);
-    }, 4600);
-
-    return () => window.clearInterval(intervalId);
-  }, [carouselPaused, latestTrackIds, latestTracks.length]);
 
   return (
     <section className='listen-home' aria-labelledby='now-title'>
@@ -84,16 +71,7 @@ export function ListenView({
         {featured ? (
           <article className='moment-feature' style={auraStyleForTrack(featured) as CSSProperties}>
             <div className='moment-art'>
-              <div
-                className='moment-carousel'
-                aria-label='Latest tracks'
-                onMouseEnter={() => setCarouselPaused(true)}
-                onMouseLeave={() => setCarouselPaused(false)}
-                onFocus={() => setCarouselPaused(true)}
-                onBlur={event => {
-                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setCarouselPaused(false);
-                }}
-              >
+              <div className='moment-carousel' aria-label='Latest tracks'>
                 <button
                   className='moment-carousel-main'
                   type='button'
@@ -289,64 +267,15 @@ export function ListenView({
 
         <p className='catalogue-intro'>Open tracks play immediately. Protected tracks show the artist's terms first.</p>
 
-        <div className='catalogue-grid'>
-          {catalogTracks.length > 0 ? (
-            catalogTracks.map(track => {
-              const hasCatalogAccess = catalogAccessByTrackId[track.id] === true;
-              const accessGranted = track.active !== false && (track.accessMode === 'free' || hasCatalogAccess);
-
-              return (
-                <article
-                  className='catalogue-card'
-                  data-selected={selectedTrackId === track.id}
-                  data-testid='track-card'
-                  key={track.id}
-                  style={auraStyleForTrack(track) as CSSProperties}
-                >
-                  <span className='catalogue-cover-frame'>
-                    <CoverImage className='catalogue-cover' src={track.imageRef} alt='' fallbackLabel={track.title} />
-                    <span className='catalogue-card-action' aria-hidden='true'>
-                      <Headphones size={18} />
-                    </span>
-                  </span>
-                  <div className='catalogue-card-copy'>
-                    <button
-                      className='catalogue-card-open'
-                      type='button'
-                      data-testid='track-card-open'
-                      aria-label={`Open ${track.title} by ${track.artist}`}
-                      onClick={() => void onOpenTrack(track)}
-                    >
-                      {track.title}
-                    </button>
-                    <button className='artist-text-button' type='button' onClick={() => onOpenArtist(track.artist)}>
-                      {track.artist}
-                    </button>
-                    <p className='catalogue-card-description'>{track.description || 'A track ready for listening, rooms, and direct artist support.'}</p>
-                  </div>
-                  <div
-                    className='catalogue-access-line'
-                    data-access={accessGranted ? 'granted' : 'locked'}
-                    aria-label={catalogAccessAriaLabel(track, hasCatalogAccess, nativePaymentSymbol)}
-                  >
-                    <span>
-                      {accessGranted ? <CircleCheckBig size={15} /> : track.accessMode === 'classic' ? <Wallet size={15} /> : <KeyRound size={15} />}
-                      {catalogAccessLabel(track, nativePaymentSymbol)}
-                    </span>
-                    <ArrowRight size={15} aria-hidden='true' />
-                  </div>
-                </article>
-              );
-            })
-          ) : catalogStatus === 'Loading registry catalog' ? (
-            <DotBirth size='panel' label='Finding the music…' />
-          ) : (
-            <div className='catalogue-empty'>
-              <Library size={20} />
-              <span>{catalogStatus}</span>
-            </div>
-          )}
-        </div>
+        <CatalogBrowser
+          catalogTracks={catalogTracks}
+          catalogStatus={catalogStatus}
+          selectedTrackId={selectedTrackId}
+          catalogAccessByTrackId={catalogAccessByTrackId}
+          nativePaymentSymbol={nativePaymentSymbol}
+          onOpenTrack={onOpenTrack}
+          onOpenArtist={onOpenArtist}
+        />
       </section>
 
       <section className='trust-line' aria-label='Dotify principles'>
