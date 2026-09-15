@@ -296,3 +296,44 @@ test('keyboard restores the original browser inset after dismissal', async ({ pa
   await expect(page.locator('.bottom-nav')).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Message the room' })).toHaveValue('Keep my draft');
 });
+
+test('keyboard rotation preserves browser chrome and relearns the resting viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 644 });
+  });
+  await hostRoom(page);
+  const shell = page.locator('.app-shell');
+  const input = page.getByRole('textbox', { name: 'Message the room' });
+  await input.fill('Rotate without losing this');
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 310 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(shell).toHaveAttribute('data-composing', 'true');
+  // Publish the rotated layout and keyboard geometry atomically, as a single
+  // viewport observation. Native orientation/keyboard animation needs device QA.
+  await page.evaluate(() => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 390 });
+    Object.defineProperty(window.visualViewport, 'width', { configurable: true, value: 844 });
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 90 });
+    window.dispatchEvent(new Event('resize'));
+  });
+  await expect(shell).toHaveAttribute('data-composing', 'true');
+  await input.evaluate(element => element.blur());
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 310 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(shell).toHaveAttribute('data-composing', 'false');
+  await expect(page.locator('.bottom-nav')).toBeVisible();
+  await expect(input).toHaveValue('Rotate without losing this');
+  // New orientation has an 80px resting inset, rather than the old 200px.
+  await input.focus();
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 150 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(shell).toHaveAttribute('data-composing', 'true');
+});

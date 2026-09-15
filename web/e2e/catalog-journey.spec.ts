@@ -32,13 +32,27 @@ for (const width of [390, 1440]) {
     const artist = page.getByTestId('track-card').nth(6).getByRole('button', { name: 'Dotify Room Host', exact: true });
     await artist.scrollIntoViewIfNeeded();
     await artist.focus();
-    const top = await page.evaluate(() => scrollY);
+    // Capture at activation: Playwright may scroll the button into a safe
+    // click position after focus, just as a browser can reveal a focused item.
+    await artist.evaluate(element => {
+      element.addEventListener('click', () => Reflect.set(window, '__catalogDepartureTop', scrollY), { once: true, capture: true });
+    });
     await artist.click();
+    const top = await page.evaluate(() => Reflect.get(window, '__catalogDepartureTop') as number);
     await page.getByRole('button', { name: 'Back to discovery', exact: true }).click();
     await expect(search).toHaveValue('selection');
     await expect(catalog).toHaveAttribute('data-layout', 'grid');
     await expect(artist).toBeFocused();
-    expect(Math.abs((await page.evaluate(() => scrollY)) - top)).toBeLessThan(3);
+    // Concurrent real rooms can shorten the footer; the browser must clamp
+    // restoration to the current document's scroll range in that case.
+    await expect
+      .poll(() =>
+        page.evaluate(savedTop => {
+          const maxTop = Math.max(0, document.documentElement.scrollHeight - innerHeight);
+          return Math.abs(scrollY - Math.min(savedTop, maxTop));
+        }, top)
+      )
+      .toBeLessThan(3);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 }

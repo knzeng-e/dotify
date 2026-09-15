@@ -31,7 +31,9 @@ the broader icon contract and artist onboarding remain separate future slices.
   between layouts during intermediate animation frames. Pointer-release guards,
   composer position, player visibility and draft retention remain intact. The
   initial browser inset is excluded from keyboard occlusion, so closing restores
-  the resting layout even when browser chrome already reduced the viewport.
+  the resting layout even when browser chrome already reduced the viewport. A
+  keyboard-time rotation retains the last known inset, then relearns it once
+  editing and keyboard occlusion end.
 
 ## Audio diagnosis and implementation
 
@@ -85,9 +87,9 @@ zoomed/panned viewport, resize, tab taps and draft retention.
 | Check | Result and scope |
 | --- | --- |
 | `npm run test:unit` | 450 tests in 59 files passed. |
-| `npm run test:e2e -- --workers=1` | 60 Chromium tests passed, including distinct received tones across Next/Previous, room return, catalog and arrival. |
-| `npm run test:e2e -- e2e/room-workspace.spec.ts --workers=1` | Final keyboard adjustment: all 16 cases passed, including the additional browser-inset regression (61 total suite cases now). |
-| `npx playwright test --config playwright.webkit.config.ts --workers=1` | 19 WebKit layout/navigation cases passed. This does not emulate a physical iOS keyboard. |
+| `npm run test:e2e -- --workers=2` | 61 Chromium tests passed with CI-style concurrency, including distinct received tones across Next/Previous, room return, catalog and arrival. |
+| `npm run test:e2e -- e2e/room-workspace.spec.ts --workers=1` | Final keyboard adjustment: all 17 cases passed, including browser inset and rotation regressions (62 total suite cases now). |
+| `npx playwright test --config playwright.webkit.config.ts --workers=1` | 20 WebKit layout/navigation cases passed. This does not emulate a physical iOS keyboard. |
 | `npm run fmt:check`, `npm run lint` | Passed; lint retains three existing hook-dependency warnings in `App.tsx` and `ArtistShell.tsx`. |
 | `npm run build` | TypeScript and ordinary web production build passed; existing chunk-size warnings. |
 | `npx vite build --config vite.product.config.ts --mode product-devnet` | Product bundle built from the checked-in bootstrap, without regeneration or deployment; existing chunk-size warnings. |
@@ -99,6 +101,18 @@ Visually inspected Chromium mobile and desktop captures (synthetic catalog art):
 [Rooms, desktop](../../../images/fluid-discovery/room-arrival-1440.jpg).
 The mobile arrival check additionally asserts a usable input width, rather than
 only checking that a severely compressed field is technically visible.
+
+The first CI run found two test assumptions about the shared signaling server:
+selecting the first room could target a concurrent host, and comparing scroll
+before Playwright's final click positioning was not the departure position. The
+continuity test now names/selects its own host; journey restoration compares the
+activation position clamped to the current document range. Arrival tests make no
+empty-server assumption. Audio frequency and stream-identity assertions remain
+unchanged. The subsequent local full run passed with two workers.
+
+PR review also identified losing the browser inset on keyboard-time rotation.
+The final regression checks rotation, dismissal, draft/navigation restoration and
+reopening with the new resting inset. It passes on Chromium and WebKit.
 
 No physical iPhone, native Product host, TURN-only network, background/lock-screen
 or assistive-technology certification is claimed. The stable graph introduces no

@@ -26,6 +26,8 @@ for (const capture of ['standard', 'without-native-api']) {
       await host.goto('/?e2eRoom=public&e2eSync=on&e2eCapture=web-audio&e2eCatalog=sequence&e2eAutoplay=on');
       await host.getByRole('button', { name: 'Open a room', exact: true }).click();
       await host.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
+      const hostName = `Continuity ${capture}`;
+      await host.getByLabel('Your name in the room').fill(hostName);
       await host.getByRole('button', { name: 'Open the room', exact: true }).click();
       const code = host.getByTestId('room-code');
       await expect(code).toHaveText(/[A-Z0-9]{4,}/);
@@ -110,7 +112,7 @@ for (const capture of ['standard', 'without-native-api']) {
       await expect(host.getByRole('heading', { name: 'Music brings us together.' })).toBeVisible();
       await expect.poll(async () => Math.abs((await tone()) - 660)).toBeLessThan(25);
       // Re-entering our own public card must return to the room, never join it as a guest.
-      await host.locator('.home-room-card').first().click();
+      await host.getByRole('button', { name: `Enter ${hostName}'s room`, exact: true }).click();
       await expect(code).toHaveText(roomId);
       await expect(host.locator('.room-live-chip')).toHaveText('Hosting');
       await expect.poll(async () => Math.abs((await tone()) - 660)).toBeLessThan(25);

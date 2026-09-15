@@ -15,7 +15,8 @@ for (const width of [390, 1440]) {
     const hostBox = await form.getByRole('button', { name: 'Open a room', exact: true }).boundingBox();
     const dock = await page.locator('.player-dock').boundingBox();
     for (const box of [inputBox, joinBox, hostBox]) expect(box!.y + box!.height).toBeLessThan(dock!.y);
-    await expect(page.getByText('No room is open right now.', { exact: true })).toBeVisible();
+    // Other workers may host real rooms. Arrival controls must remain usable
+    // regardless of whether discovery is empty or active.
     await expect(page.getByText('Room signal online', { exact: true })).toBeHidden();
     await page.screenshot({ path: testInfo.outputPath(`room-arrival-${width}.png`), fullPage: true });
     await code.fill('ABC123');

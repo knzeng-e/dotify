@@ -25,7 +25,9 @@ export function useRoomViewport(active: boolean) {
         focused instanceof HTMLElement && shell.contains(focused) && focused.matches('.room-chat-form input, .room-chat-form textarea, .room-composer-done');
       if (Math.abs(window.innerWidth - layoutWidth) > 80) {
         baselineHeight = window.innerHeight;
-        restingInset = 0;
+        // Rotation can arrive while the keyboard is still open. Keep the
+        // last known chrome inset instead of learning keyboard-time geometry.
+        restingInset = Math.min(restingInset, baselineHeight);
       }
       layoutWidth = window.innerWidth;
       baselineHeight = Math.max(baselineHeight, window.innerHeight);
@@ -40,7 +42,10 @@ export function useRoomViewport(active: boolean) {
       // occlusion, avoiding a full-height flash and hardware-keyboard jumps.
       const composing = keyboardOpen;
       wasKeyboardOpen = keyboardOpen;
-      if (!editing && !keyboardOpen) composingSession = false;
+      if (!editing && !keyboardOpen) {
+        composingSession = false;
+        restingInset = Math.max(0, baselineHeight - height * scale);
+      }
       shell.style.setProperty('--room-viewport-height', `${height}px`);
       shell.style.setProperty('--room-viewport-top', `${viewport?.offsetTop ?? 0}px`);
       shell.style.setProperty('--room-viewport-width', `${composing ? (viewport?.width ?? window.innerWidth) : window.innerWidth}px`);
