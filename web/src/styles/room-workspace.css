@@ -145,16 +145,6 @@
     line-height: 1.1;
     overflow-wrap: anywhere;
   }
-  .player-room-mode .player-transport {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.65rem;
-    margin-top: 1rem;
-  }
-  .player-room-mode .transport-progress {
-    width: 100%;
-    order: 3;
-  }
   .player-room-mode .player-lower-grid,
   .player-room-mode .room-social-column {
     display: contents;
@@ -328,33 +318,6 @@
   .player-room-mode .access-chip + .access-chip {
     display: none;
   }
-  .player-room-mode .player-transport {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    margin: 0.35rem 0 0;
-    padding: 0;
-    border: 0;
-    gap: 0;
-  }
-  .player-room-mode .transport-cluster,
-  .player-room-mode .transport-actions {
-    gap: 0.15rem;
-  }
-  .player-room-mode .transport-play,
-  .player-room-mode .transport-skip,
-  .player-room-mode .transport-actions button {
-    width: var(--touch-target);
-    min-width: var(--touch-target);
-    height: var(--touch-target);
-    min-height: var(--touch-target);
-  }
-  .player-room-mode .transport-progress {
-    display: none;
-  }
-  .player-room-mode .transport-actions button:not(:first-child) {
-    display: none;
-  }
   .room-panel-switch {
     order: 2;
     flex-shrink: 0;
@@ -435,6 +398,7 @@
 }
 
 .room-artist-support {
+  display: block;
   justify-self: start;
   align-self: flex-start;
   background: transparent;
@@ -620,9 +584,6 @@
   .app-shell[data-composing='true'] .player-room-mode .player-stage {
     grid-template-columns: 2rem minmax(0, 1fr);
     padding: 0.4rem;
-  }
-  .app-shell[data-composing='true'] .player-room-mode .player-transport {
-    margin-top: 0;
   }
   .app-shell[data-composing='true'] .player-room-mode .room-chat-panel {
     padding-block: 0.25rem;

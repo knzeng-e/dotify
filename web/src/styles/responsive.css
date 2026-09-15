@@ -102,15 +102,6 @@
     font-size: clamp(3rem, 6vw, 4.7rem);
   }
 
-  .player-transport {
-    grid-template-columns: 1fr auto;
-  }
-
-  .transport-progress {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
   .player-lower-grid,
   .player-room-mode .player-lower-grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -510,18 +501,6 @@
 
   .track-copy h2 {
     font-size: clamp(3.15rem, 14vw, 5rem);
-  }
-
-  .player-transport {
-    grid-template-columns: 1fr auto;
-  }
-
-  .transport-progress {
-    grid-column: 1 / -1;
-  }
-
-  .transport-actions button:nth-child(n + 2) {
-    display: none;
   }
 
   .room-header {
@@ -984,22 +963,6 @@
     margin-top: 0.85rem;
   }
 
-  .player-transport {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.65rem;
-    margin-top: 1.25rem;
-    padding: 0.75rem 0;
-  }
-
-  .transport-cluster {
-    justify-content: flex-start;
-  }
-
-  .transport-progress {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
   .solo-room-invite {
     align-items: stretch;
     gap: 1rem;
@@ -1163,19 +1126,6 @@
 
   .room-entry-card h3 {
     font-size: 2.15rem;
-  }
-
-  .player-transport {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .transport-cluster,
-  .transport-actions {
-    justify-content: center;
-  }
-
-  .transport-actions {
-    grid-row: 3;
   }
 
   .player-dock-track {

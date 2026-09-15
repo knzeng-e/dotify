@@ -191,6 +191,8 @@ for (const scenario of ['zoomed-chat', 'zoomed-chat-tab', 'resized-requests']) {
     expect(await input.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
     await expect(input).toHaveValue('My words remain visible');
     await expect(page.locator('.player-stage')).toBeVisible();
+    await expect(page.locator('.player-stage').getByRole('slider')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Repeat this track', exact: true })).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath(`${scenario}.png`) });
     if (scenario === 'zoomed-chat-tab') await page.getByRole('tab', { name: /Requests/ }).click();
     else await page.getByRole('button', { name: 'Finish typing' }).click();

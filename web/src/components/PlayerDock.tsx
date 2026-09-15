@@ -3,7 +3,7 @@
 // draggable seek bar, and mute all act in place and never navigate. Only the
 // artwork/title and the explicit "Player" affordance open the full player view.
 
-import { LockKeyhole, Maximize2, Pause, Play, Radio, Repeat2, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
+import { LockKeyhole, Maximize2, Pause, Play, Radio, Repeat1, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { CoverImage } from './CoverImage';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
@@ -133,7 +133,7 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, a
               aria-label='Repeat this track'
               title='Repeat this track'
             >
-              <Repeat2 size={15} />
+              <Repeat1 size={15} />
             </button>
           </div>
           <div className='player-dock-scrub'>
