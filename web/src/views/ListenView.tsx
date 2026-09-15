@@ -16,6 +16,8 @@ type ListenViewProps = {
   catalogAccessByTrackId: Record<string, boolean>;
   nativePaymentSymbol: string;
   onOpenTrack: (track: CatalogTrack) => void;
+  onPlayTrack: (track: CatalogTrack) => void;
+  roomGuest: boolean;
   onOpenArtist: (artistName: string) => void;
   onJoinRoom: (roomId: string) => void;
   onStartRoom: (track?: CatalogTrack) => void;
@@ -30,6 +32,8 @@ export function ListenView({
   catalogAccessByTrackId,
   nativePaymentSymbol,
   onOpenTrack,
+  onPlayTrack,
+  roomGuest,
   onOpenArtist,
   onJoinRoom,
   onStartRoom
@@ -54,8 +58,6 @@ export function ListenView({
           <span>{catalogTracks.length} available</span>
         </div>
 
-        <p className='catalogue-intro'>Open tracks play immediately. Protected tracks show the artist's terms first.</p>
-
         <CatalogBrowser
           journey={journey}
           catalogTracks={catalogTracks}
@@ -64,6 +66,8 @@ export function ListenView({
           catalogAccessByTrackId={catalogAccessByTrackId}
           nativePaymentSymbol={nativePaymentSymbol}
           onOpenTrack={onOpenTrack}
+          onPlayTrack={onPlayTrack}
+          roomGuest={roomGuest}
           onOpenArtist={onOpenArtist}
         />
       </section>

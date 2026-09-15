@@ -134,6 +134,18 @@ export function ListenerShell() {
     setJoinRoomOpen(true);
   }, [listenerEvmAddress, roomId, setSessionDisplayName]);
 
+  function handlePlayTrack(track: CatalogTrack) {
+    // Resume an already loaded source without reselecting (which pauses it).
+    // New sources continue through the catalog's authoritative access check.
+    if (session.mode !== 'listener' && track.id === catalog.selectedTrackId && catalog.audioSource && !catalog.accessGate) {
+      setPublicArtistName(null);
+      navigateToView('player');
+      if (!playback.transport.playing) void playback.togglePlay();
+      return;
+    }
+    openTrack(track);
+  }
+
   function handleOpenArtistProfile(name: string) {
     setPublicArtistName(name);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -224,6 +236,7 @@ export function ListenerShell() {
           <main className={`content content-${activeView}`} id='main-content'>
             {publicArtistName ? (
               <ArtistProfileView
+                socketStatus={session.socketStatus}
                 artistName={publicArtistName}
                 catalogTracks={catalog.catalogTracks}
                 openRooms={session.openRooms}
@@ -231,6 +244,8 @@ export function ListenerShell() {
                 nativePaymentSymbol={nativePaymentSymbol}
                 onBack={() => setPublicArtistName(null)}
                 onOpenTrack={openTrack}
+                onPlayTrack={handlePlayTrack}
+                roomGuest={isRoomGuest}
                 onOpenArtistRoom={handleOpenArtistRoom}
                 onJoinRoom={handleJoinRoomFromProfile}
               />
@@ -246,6 +261,8 @@ export function ListenerShell() {
                     catalogAccessByTrackId={catalog.catalogAccessByTrackId}
                     nativePaymentSymbol={nativePaymentSymbol}
                     onOpenTrack={openTrack}
+                    onPlayTrack={handlePlayTrack}
+                    roomGuest={isRoomGuest}
                     onOpenArtist={handleOpenArtistProfile}
                     onJoinRoom={handleJoinRoomRequest}
                     onStartRoom={track => {
@@ -286,9 +303,7 @@ export function ListenerShell() {
                     unlockedTracks={paidTracks.map(track => ({
                       id: track.id,
                       title: track.title,
-                      artist: track.artist,
-                      priceDot: track.priceDot,
-                      hash: track.hash
+                      artist: track.artist
                     }))}
                     productionReadiness={
                       showProductionReadinessPanel

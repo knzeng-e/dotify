@@ -459,6 +459,9 @@ export function useSession(deps: UseSessionDeps) {
     hostIdRef.current = '';
     hostResumeTokenRef.current = '';
     setRoomId('');
+    // Outside a room, transport belongs to the local source again. Keeping
+    // the guest role here leaves Play/seek targeting a cleared remote stream.
+    changeMode('host');
     setHostName('');
     setListeners([]);
     listenersRef.current = [];

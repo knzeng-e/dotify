@@ -1,0 +1,150 @@
+import { expect, test } from '@playwright/test';
+
+for (const width of [390, 1440]) {
+  test.describe(`clear interface ${width}px`, () => {
+    test.use({ viewport: { width, height: width === 390 ? 844 : 1000 }, hasTouch: width === 390 });
+
+    test('artwork is a real action and can resume the same source', async ({ page }, testInfo) => {
+      await page.goto('/?e2eRoom=public&e2eCatalog=wide&e2eAutoplay=on');
+      const action = page.getByRole('button', { name: 'Play E2E Public Room Track by Dotify Room Host', exact: true });
+      await action.scrollIntoViewIfNeeded();
+      await action.focus();
+      const artwork = await action.boundingBox();
+      const icon = await action.locator('.track-artwork-action').boundingBox();
+      expect(icon!.width).toBeGreaterThanOrEqual(44);
+      expect(Math.abs(icon!.x + icon!.width / 2 - artwork!.x - artwork!.width / 2)).toBeLessThan(1);
+      expect(Math.abs(icon!.y + icon!.height / 2 - artwork!.y - artwork!.height / 2)).toBeLessThan(1);
+      await expect(action.locator('.track-artwork-action')).toHaveCSS('opacity', '1');
+      await expect(page.locator('.catalogue-card-action')).toHaveCount(0);
+      await page.screenshot({ path: testInfo.outputPath(`music-${width}.png`), fullPage: false });
+      await action.click();
+      const audio = page.locator('audio.native-player-source').first();
+      await expect(audio).toHaveJSProperty('paused', false);
+      await page.evaluate(() => Reflect.set(window, '__artworkAudio', document.querySelector('audio')));
+      await page.getByRole('button', { name: 'Pause', exact: true }).click();
+      await expect(audio).toHaveJSProperty('paused', true);
+      await page.getByRole('button', { name: 'Music', exact: true }).click();
+      await expect(action).toBeFocused();
+      await action.click();
+      await expect(audio).toHaveJSProperty('paused', false);
+      expect(await page.evaluate(() => Reflect.get(window, '__artworkAudio') === document.querySelector('audio'))).toBe(true);
+      await page.getByRole('button', { name: 'Music', exact: true }).click();
+      // A locked release offers its terms, never an unearned Play promise.
+      const locked = page.getByRole('button', { name: 'View listening options for E2E Protected Room Track by Dotify Room Host', exact: true });
+      await locked.click();
+      await expect(page.getByTestId('access-warning')).toBeVisible();
+    });
+
+    test('artist and personal screens lead with useful content', async ({ page }, testInfo) => {
+      await page.goto('/?e2eRoom=public&e2eCatalog=wide');
+      await page.locator('.catalogue-card .artist-text-button').first().click();
+      await expect(page.getByRole('heading', { name: 'Releases', exact: true })).toBeVisible();
+      await expect(page.getByLabel('Verified artist')).toHaveCount(0);
+      await expect(page.getByText('Why it matters', { exact: true })).toHaveCount(0);
+      const release = await page.locator('.artist-release-card').first().boundingBox();
+      const dock = await page.locator('.player-dock').boundingBox();
+      expect(release!.y).toBeLessThan(dock!.y);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`artist-${width}.png`), fullPage: false });
+      await page.getByRole('button', { name: 'You', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Connect a wallet', exact: true })).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Your collection' })).toBeVisible();
+      await expect(page.locator('.account-summary,.account-detail-grid,.wallet-pass-panel')).toHaveCount(0);
+      await page.screenshot({ path: testInfo.outputPath(`you-${width}.png`), fullPage: false });
+      await page.getByRole('button', { name: 'Connect a wallet', exact: true }).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+    });
+  });
+}
+
+test('room presence stays quiet when online and remains honest offline', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/?e2eRoom=public');
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
+  await page.getByLabel('Your name in the room').fill('Quiet room host');
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
+  const code = (await page.getByTestId('room-code').innerText()).trim();
+  await page.getByRole('button', { name: 'Rooms', exact: true }).click();
+  await page.locator('.room-live-card').filter({ hasText: code }).click();
+  const panel = page.getByTestId('room-detail-panel');
+  await expect(panel.locator('.live-dot')).toHaveCSS('background-color', 'rgb(98, 221, 163)');
+  await expect(panel.locator('.room-detail-state')).toHaveCount(0);
+  await expect(page.getByText('Room signal online', { exact: true })).toHaveCount(0);
+  await expect(page.locator('.room-doctrine')).toHaveCount(0);
+  const announcement = page.locator('#sky-of-rooms .sr-only, [data-testid="sky-of-rooms"] .sr-only');
+  await expect(announcement).toHaveCount(1);
+  expect((await announcement.boundingBox())!.width).toBeLessThanOrEqual(1);
+  await page.locator('.rooms-live-section').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: testInfo.outputPath('rooms-online.png'), fullPage: false });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await panel.locator('.live-dot').evaluate(element => getComputedStyle(element, '::after').animationName)).toBe('none');
+  await page.context().setOffline(true);
+  await expect(page.locator('.room-list-status')).toBeVisible({ timeout: 15_000 });
+  await expect(panel.locator('.live-dot')).toHaveAttribute('data-online', 'false');
+  await expect(panel.getByRole('status')).toBeVisible();
+});
+
+test('clear interface supports doubled text on a narrow screen', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?e2eRoom=public&e2eCatalog=wide');
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  for (const surface of ['Music', 'Rooms', 'You', 'Artist']) {
+    if (surface === 'Artist') {
+      await page.getByRole('button', { name: 'Music', exact: true }).click();
+      await page.locator('.catalogue-card .artist-text-button').first().click();
+    } else if (surface !== 'Music') await page.getByRole('button', { name: surface, exact: true }).click();
+    await expect(page.getByRole('main')).toBeVisible();
+    const geometry = await page.evaluate(() => ({
+      width: document.documentElement.scrollWidth,
+      viewport: innerWidth,
+      wide: Array.from(document.querySelectorAll<HTMLElement>('main,section,header,nav,button,input,div'))
+        .filter(element => {
+          const box = element.getBoundingClientRect();
+          return box.width > innerWidth && !element.closest('.catalogue-grid');
+        })
+        .slice(0, 16)
+        .map(element => [element.className, element.getBoundingClientRect().width])
+    }));
+    expect(geometry.width, `${surface}: ${JSON.stringify(geometry.wide)}`).toBeLessThanOrEqual(geometry.viewport);
+  }
+  await page.screenshot({ path: testInfo.outputPath('artist-large-text.png') });
+});
+
+test('clear interface restores individual playback after leaving a room', async ({ page, browser }) => {
+  await page.goto('/?e2eRoom=public');
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
+  const code = (await page.getByTestId('room-code').innerText()).trim();
+  const guestContext = await browser.newContext();
+  try {
+    const guest = await guestContext.newPage();
+    await guest.goto(`/?e2eRoom=public&e2eAutoplay=on#/rooms/${code}`);
+    await expect(guest.locator('#join-room-title')).toContainText('welcomes you');
+    await guest.getByLabel('Your name in the room').fill('Returning listener');
+    await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+    await expect(guest.getByTestId('room-code')).toHaveText(code);
+    await guest.getByRole('button', { name: 'Music', exact: true }).click();
+    const cover = guest.getByTestId('track-artwork-action').filter({ has: guest.locator('img') });
+    await expect(guest.getByRole('button', { name: 'Play E2E Public Room Track by Dotify Room Host', exact: true })).toHaveCount(0);
+    await expect(cover.first()).toBeVisible();
+    await guest.getByRole('button', { name: 'View listening options for E2E Public Room Track by Dotify Room Host', exact: true }).click();
+    await guest.getByRole('tab', { name: /People/ }).click();
+    await guest.getByRole('button', { name: 'Leave', exact: true }).click();
+    await expect(guest.locator('audio.native-player-source').last()).toHaveJSProperty('srcObject', null);
+    await expect(guest.locator('audio.native-player-source').first()).toHaveJSProperty('paused', true);
+    await guest.getByRole('button', { name: 'Music', exact: true }).click();
+    await guest.getByRole('button', { name: 'Play E2E Public Room Track by Dotify Room Host', exact: true }).click();
+    await expect(guest.locator('audio.native-player-source').first()).toHaveJSProperty('paused', false);
+    await expect(guest.getByRole('button', { name: 'Pause', exact: true })).toBeEnabled();
+    await expect(guest.getByRole('slider', { name: /Seek/ })).toBeEnabled();
+    await expect(page.getByTestId('room-code')).toHaveText(code);
+  } finally {
+    await guestContext.close();
+  }
+});

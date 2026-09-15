@@ -1,4 +1,4 @@
-import { Box, ExternalLink, KeyRound, LockKeyhole, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
+import { Box, ExternalLink, KeyRound, LockKeyhole, LogOut, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
 import { Dialog } from './Dialog';
 import type { WalletState } from '../hooks/useWallet';
 import type { CatalogTrack } from '../shared/types';
@@ -16,18 +16,18 @@ export function WalletStatusPill({ state, onClick, onDisconnect }: { state: Wall
     return (
       <div className='status-pill wallet-pill' data-tone='green'>
         <button className='wallet-pill-open' type='button' onClick={onClick}>
-          <LockKeyhole size={14} />
+          <Wallet size={18} aria-hidden='true' />
           <span>{state.wallet.label}</span>
         </button>
         <button className='wallet-pill-disconnect' type='button' onClick={onDisconnect} aria-label='Disconnect wallet' title='Disconnect'>
-          <X size={14} />
+          <LogOut size={18} aria-hidden='true' />
         </button>
       </div>
     );
   }
   return (
     <button type='button' className='status-pill wallet-pill' data-tone='muted' onClick={onClick}>
-      <Power size={14} />
+      <Wallet size={18} aria-hidden='true' />
       <span>{state.status === 'connecting' ? 'Connecting…' : 'Connect'}</span>
     </button>
   );

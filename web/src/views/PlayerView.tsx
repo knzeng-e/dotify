@@ -220,8 +220,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     >
       {roomId && (
         <div className='room-header'>
-          <span className='room-live-chip'>
-            <span className='live-dot' />
+          <span className='room-live-chip' data-online={session.socketStatus === 'online'}>
+            <span className='live-dot' data-online={session.socketStatus === 'online'} aria-hidden='true' />
             {session.socketStatus === 'online' ? (mode === 'host' ? 'Hosting' : 'Together') : 'Reconnecting'}
           </span>
           <span className='room-header-meta'>{`${presenceCount} here · ${mode === 'host' ? 'you host' : hostName || 'the host'}`}</span>
@@ -414,10 +414,10 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             )}
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : hostName || 'Room'}</span>
 
-            {roomId && (
+            {roomId && mode === 'listener' && !remoteReady && (
               <p className='room-sync-note'>
-                <span className='live-dot' />
-                {mode === 'host' ? 'You choose the music. Everyone listens with you.' : roomListenerSyncLabel(remoteReady, sessionStatus)}
+                <span className='live-dot' data-online={session.socketStatus === 'online'} aria-hidden='true' />
+                {roomListenerSyncLabel(remoteReady, sessionStatus)}
               </p>
             )}
 
@@ -574,8 +574,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 )}
               </div>
 
-              <p className='room-doctrine-note'>You choose the music. Guests join and listen - only you need track access.</p>
-
               <button className='secondary-action' type='button' onClick={onLeaveSession}>
                 Close room
               </button>
@@ -662,8 +660,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   </button>
                 </div>
               </form>
-
-              <p className='room-doctrine-note'>You are listening with the host. The link is enough to be here.</p>
 
               <button className='secondary-action' type='button' onClick={onLeaveSession}>
                 Leave

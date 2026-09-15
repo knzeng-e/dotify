@@ -1,5 +1,5 @@
 import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
-import { ArrowRight, Box, Headphones, KeyRound, List, Radio, RefreshCw, Users, X } from 'lucide-react';
+import { ArrowRight, Box, Headphones, List, Radio, RefreshCw, Users, X } from 'lucide-react';
 import type { FormEvent, Ref } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -134,7 +134,6 @@ export function RoomsView({
       <section className='rooms-live-section' aria-labelledby='rooms-live-title'>
         <div className='section-heading'>
           <div>
-            <span className='section-index'>Live</span>
             <h2 id='rooms-live-title'>Happening now</h2>
           </div>
           <div className='room-section-actions'>
@@ -206,7 +205,7 @@ export function RoomsView({
                       </span>
                       <span className='room-live-main'>
                         <span className='room-live-kicker'>
-                          <span className='live-dot' />
+                          <span className='live-dot' data-online={socketStatus === 'online'} aria-hidden='true' />
                           {room.hostName} hosts
                         </span>
                         <strong>{room.track?.title ?? 'Audio session'}</strong>
@@ -284,22 +283,6 @@ export function RoomsView({
           </div>
         )}
       </section>
-
-      <aside className='room-doctrine' aria-label='Room access model'>
-        <div>
-          <Users size={20} />
-          <span>
-            <strong>Guests arrive as people, not accounts.</strong>A local room name is enough for presence.
-          </span>
-        </div>
-        <div>
-          <KeyRound size={20} />
-          <span>
-            <strong>The host carries access.</strong>
-            Guests receive the room stream, never the protected source key.
-          </span>
-        </div>
-      </aside>
     </section>
   );
 }
@@ -328,7 +311,7 @@ function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms
           </span>
           <p className='room-detail-kicker'>Select a room</p>
           <strong>Inspect the room before joining.</strong>
-          <span>{status.label}</span>
+          {status.tone !== 'ready' && <span role='status'>{status.label}</span>}
         </div>
       </aside>
     );
@@ -336,7 +319,6 @@ function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms
 
   const presence = roomPresenceCount(room.listenerCount, true);
   const joinDisabled = sessionAction !== 'idle' || room.isFull === true;
-  const playbackLabel = room.playbackMode === 'preview' ? 'Preview stream' : 'Full stream';
   const joinLabel = room.isFull ? 'Room full' : sessionAction === 'joining' ? 'Joining' : 'Join room';
 
   return (
@@ -359,31 +341,22 @@ function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms
 
       <div className='room-detail-copy'>
         <p className='room-detail-kicker'>
-          <span className='live-dot' />
+          <span className='live-dot' data-online={socketStatus === 'online'} aria-hidden='true' />
           {room.hostName} hosts
         </p>
         <h3>{room.track?.title ?? 'Audio session'}</h3>
         <p>{room.track?.artist ?? 'Live on Dotify'}</p>
       </div>
 
-      <dl className='room-detail-facts'>
-        <div>
-          <dt>Room</dt>
-          <dd>{room.roomId}</dd>
-        </div>
-        <div>
-          <dt>Presence</dt>
-          <dd>{presence} here</dd>
-        </div>
-        <div>
-          <dt>Stream</dt>
-          <dd>{playbackLabel}</dd>
-        </div>
-      </dl>
-
-      <div className='room-detail-state' data-status={room.isFull ? 'warning' : status.tone}>
-        <span>{room.isFull ? 'Full' : status.label}</span>
-      </div>
+      <p className='room-detail-presence'>
+        <Users size={18} aria-hidden='true' /> {presence} listening
+        {room.playbackMode === 'preview' && <span> · Preview</span>}
+      </p>
+      {status.tone !== 'ready' && (
+        <p className='room-detail-state' role='status' data-status={status.tone}>
+          {status.label}
+        </p>
+      )}
 
       <button className='primary-action room-detail-join' type='button' onClick={() => onJoinRoom(room.roomId)} disabled={joinDisabled}>
         <Headphones size={17} />
@@ -396,7 +369,7 @@ function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms
 function getRoomListStatus(socketStatus: SocketStatus, isRefreshingRooms: boolean) {
   if (isRefreshingRooms) return { label: 'Refreshing room list', tone: 'loading' as const };
   if (socketStatus === 'connecting') return { label: 'Reconnecting to rooms', tone: 'loading' as const };
-  if (socketStatus === 'error') return { label: 'Room signal unavailable', tone: 'warning' as const };
-  if (socketStatus === 'online') return { label: 'Room signal online', tone: 'ready' as const };
-  return { label: 'Room signal offline', tone: 'warning' as const };
+  if (socketStatus === 'error') return { label: 'Cannot load rooms. Try refreshing.', tone: 'warning' as const };
+  if (socketStatus === 'online') return { label: 'Rooms available', tone: 'ready' as const };
+  return { label: 'Connection lost. Trying to reconnect…', tone: 'warning' as const };
 }
