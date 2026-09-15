@@ -537,3 +537,18 @@ appropriate component composition rather than shell-level prop drilling.
    rooms, and chain access.
 6. Add release draft persistence and edit flows for the `/artists` portal.
 7. Add production monitoring for gateway fallback failures and signaling uptime.
+
+### Native artist-support validation build
+
+`npm run build:product-devnet:support` builds the existing Product CDM profile
+with recoverable Classic support payments. It does not deploy or enable CASH.
+See [the support recovery design](../docs/design/product-host-support-recovery-2026-09-15.md)
+for native-device acceptance and the tab-local payment reference boundary.
+
+The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
+Ordinary builds keep gifts off. A gift sends a chosen amount directly to the
+release's artist; it does not unlock access or follow the release's royalty
+splits. Native gifts use chain-reported precision and verified recipient
+mapping. Keep this flag gated until a real host approval and receipt have been
+checked. No live funds are used by the automated test fixtures. See
+[direct artist gifts](../docs/design/artist-gifts-2026-09-16.md).

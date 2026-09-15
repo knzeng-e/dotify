@@ -92,15 +92,20 @@ export function TransactionModal() {
       )}
       {feedback.txHash && !stepsContainTxHash && (
         <div className='modal-hash'>
-          <span>Transaction hash</span>
+          <span>Proof reference</span>
           <code>{shorten(feedback.txHash, 12)}</code>
           <a className='modal-link' href={getBlockscoutTxUrl(feedback.txHash)} target='_blank' rel='noreferrer'>
-            Don't trust. Verify on Blockscout.
+            View proof
           </a>
         </div>
       )}
       {dismissible && (
         <div className='modal-actions'>
+          {feedback.recoveryAction && (
+            <button className='modal-action' type='button' onClick={feedback.recoveryAction.run}>
+              {feedback.recoveryAction.label}
+            </button>
+          )}
           <button className='modal-action' type='button' onClick={onClose}>
             Close
           </button>

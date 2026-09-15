@@ -5,6 +5,7 @@
 // remains viem with the connected EVM wallet. Product CDM writes are
 // available only in builds that explicitly opt in to the Product contract graph.
 
+import { SupportNotSubmittedError } from '../payments/supportPayment';
 import type { getWalletClient } from '../../shared/config/contracts';
 import { createProductCdmRuntimeWriter } from './productCdmRuntimeAdapter';
 import { resolveRuntimeAdapterConfig, type RuntimeAdapterConfig } from './runtimeAdapterConfig';
@@ -40,6 +41,7 @@ type ProductSignerAccountLike = {
 };
 
 type ProductSignerManagerLike = {
+  getSigner: import('@parity/product-sdk/wallet').SignerManager['getSigner'];
   connect: (providerType?: string) => Promise<{ ok: true; value: ProductSignerAccountLike[] } | { ok: false; error: unknown }>;
   getState: () => { selectedAccount: ProductSignerAccountLike | null };
   destroy: () => void;
@@ -59,7 +61,7 @@ async function createViemWriter(deps: RuntimeWriterDeps): Promise<RuntimeWritePo
   return createViemRuntimeWriter({ ethRpcUrl: deps.ethRpcUrl, walletClient });
 }
 
-async function createProductSignerManager(account?: ProductRuntimeSignerAccount): Promise<ProductSignerManagerLike> {
+export async function createProductSignerManager(account?: ProductRuntimeSignerAccount): Promise<ProductSignerManagerLike> {
   const [{ SignerManager, HostProvider }, { deriveH160 }] = await Promise.all([
     import('@parity/product-sdk/wallet') as Promise<ProductSignerModule>,
     import('@parity/product-sdk/address') as Promise<ProductAddressModule>
@@ -86,7 +88,10 @@ async function createProductSignerManager(account?: ProductRuntimeSignerAccount)
     }
   });
 
-  const result = await manager.connect('host');
+  const result = await manager.connect('host').catch(error => {
+    manager.destroy();
+    throw error;
+  });
   if (!result.ok) {
     manager.destroy();
     throw new Error(`Product CDM signer connection failed: ${describe(result.error)}`);
@@ -159,7 +164,10 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
 
   function portForWrite(): Promise<RuntimeWritePort> {
     if (config.kind === 'viem') return createViemWriter(deps);
-    productPortPromise ??= createProductCdmWriter(config, deps.productAccount);
+    productPortPromise ??= createProductCdmWriter(config, deps.productAccount).catch(error => {
+      productPortPromise = null;
+      throw error;
+    });
     return productPortPromise;
   }
 
@@ -167,7 +175,15 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
     createRuntime: factoryAddress => portForWrite().then(port => port.createRuntime(factoryAddress)),
     installRuntimeStep: factoryAddress => portForWrite().then(port => port.installRuntimeStep(factoryAddress)),
     registerTrack: (runtimeAddress, registration: RuntimeTrackRegistration) => portForWrite().then(port => port.registerTrack(runtimeAddress, registration)),
-    payForAccess: intent => portForWrite().then(port => port.payForAccess(intent)),
+    payForAccess: async intent => {
+      let port: RuntimeWritePort;
+      try {
+        port = await portForWrite();
+      } catch (error) {
+        throw new SupportNotSubmittedError(error);
+      }
+      return port.payForAccess(intent);
+    },
     claimRoyalty: (runtimeAddress, recipientAddress) => portForWrite().then(port => port.claimRoyalty(runtimeAddress, recipientAddress)),
     setAccessMode: (runtimeAddress, update: RuntimeAccessPolicyUpdate) => portForWrite().then(port => port.setAccessMode(runtimeAddress, update)),
     setReleaseActive: (runtimeAddress, contentHash, active) => portForWrite().then(port => port.setReleaseActive(runtimeAddress, contentHash, active)),

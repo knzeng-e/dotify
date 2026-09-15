@@ -1,3 +1,4 @@
+import { formatEther } from 'viem';
 import type { AccessGate, CatalogTrack, TransactionFeedback, TransactionFeedbackFact } from '../../shared/types';
 import { shortenAddress } from '../../shared/utils/format';
 import { nativeRuntimeAmountLabel, type DotifyNativeRuntimeAsset } from '../payments/paymentModel';
@@ -37,7 +38,7 @@ export function buildClassicAccessReceipt(track: CatalogTrack, nativePaymentAsse
   }
 
   return {
-    supportAmount: nativeRuntimeAmountLabel(track.priceDot, nativePaymentAsset),
+    supportAmount: nativeRuntimeAmountLabel(track.pricePlanck === undefined ? track.priceDot : formatEther(track.pricePlanck), nativePaymentAsset),
     terms: [
       {
         label: 'You receive',
@@ -92,7 +93,7 @@ export function buildClassicSupportFacts(
 
 export function buildAccessGate(input: { track: CatalogTrack; connected: boolean; nativePaymentAsset: RuntimeAssetShape }): AccessGate {
   const { track, connected, nativePaymentAsset } = input;
-  const supportAmount = nativeRuntimeAmountLabel(track.priceDot, nativePaymentAsset);
+  const supportAmount = nativeRuntimeAmountLabel(track.pricePlanck === undefined ? track.priceDot : formatEther(track.pricePlanck), nativePaymentAsset);
 
   if (track.active === false) {
     return {
@@ -144,7 +145,7 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
 
 export function buildClassicAccessVerifiedFeedback(
   track: CatalogTrack,
-  txHash: `0x${string}`,
+  txHash: `0x${string}` | undefined,
   nativePaymentAsset: RuntimeAssetShape = { symbol: 'native token' }
 ): TransactionFeedback {
   return {

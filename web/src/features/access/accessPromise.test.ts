@@ -87,6 +87,12 @@ describe('access promise copy', () => {
     ]);
   });
 
+  it('shows the authoritative payment amount even when a display price is stale', () => {
+    const release = track({ priceDot: '99', pricePlanck: 500000000000000000n });
+    expect(buildClassicAccessReceipt(release, nativePaymentAsset).supportAmount).toBe('0.5 PAS');
+    expect(buildAccessGate({ track: release, connected: true, nativePaymentAsset }).message).toContain('0.5 PAS');
+  });
+
   it('keeps success and included-but-unverified payment states distinct', () => {
     const success = buildClassicAccessVerifiedFeedback(track(), `0x${'cd'.repeat(32)}`, nativePaymentAsset);
     const unverified = buildIncludedPaymentUnverifiedMessage({ attempts: 3, error: 'still denies access', productCdm: false });

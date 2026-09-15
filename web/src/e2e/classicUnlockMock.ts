@@ -1,5 +1,6 @@
 import { createWalletClient, http } from 'viem';
 import type { Chain } from 'viem';
+import type { RuntimeReadPort, RuntimeWritePort } from '../features/runtime/runtimePorts';
 import type { ConnectedWallet } from '../hooks/useWallet';
 import type { CatalogTrack } from '../shared/types';
 
@@ -48,6 +49,7 @@ export type ClassicUnlockE2eState = {
   deniedFullKeyRequests: number;
   paid: boolean;
   accessGranted: boolean;
+  paymentAttempts?: number;
 };
 
 declare global {
@@ -87,5 +89,29 @@ export function createClassicUnlockE2eWallet(): ConnectedWallet {
         chain,
         transport: http(rpcUrl)
       })
+  };
+}
+
+// Only selected by the build-time E2E flag and the exact fixture track. These
+// ports exercise the production support coordinator, rather than faking its UI.
+export function classicSupportE2ePorts(reader: RuntimeReadPort, writer: RuntimeWritePort) {
+  return {
+    reader: { ...reader, hasPaid: async () => getClassicUnlockE2eState().paid, canAccess: async () => getClassicUnlockE2eState().accessGranted },
+    writer: {
+      ...writer,
+      payForAccess: async () => {
+        const state = getClassicUnlockE2eState();
+        state.paymentAttempts = (state.paymentAttempts ?? 0) + 1;
+        if (new URLSearchParams(location.search).get('e2eClassic') === 'reject-payment' && state.paymentAttempts === 1) {
+          throw Object.assign(new Error('User rejected the request'), { code: 4001 });
+        }
+        state.paid = true;
+        return E2E_CLASSIC_TX_HASH;
+      },
+      waitForTransaction: async () => {
+        if (new URLSearchParams(location.search).get('e2eClassic') === 'confirmation-delayed') throw new Error('Confirmation timed out');
+        getClassicUnlockE2eState().accessGranted = !shouldDenyClassicUnlockAfterPaymentReadback();
+      }
+    }
   };
 }

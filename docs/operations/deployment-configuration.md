@@ -758,3 +758,27 @@ Rollback either experiment by rebuilding without its `on` value. Nearby and
 community memory remain documentation only: no new endpoint or location
 permission is configured by this pass. See
 [shared-presence pass](../design/dotify-shared-presence-pass.md).
+
+## Product artist-support validation profile
+
+`npm --prefix web run build:product-devnet:support` selects the existing explicit
+`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` profile for native Polkadot App support.
+It builds only; it does not deploy or alter the default tracked Product profile.
+The API/key authority, CORS and contract addresses remain unchanged. Product
+payments now request finalization before returning and have tab-local recovery;
+see [support recovery](../design/product-host-support-recovery-2026-09-15.md).
+
+Promote only after the existing W11 host approval/value-forwarding/access smoke
+has real device evidence. Check native transaction-reference explorer support.
+No real signing or funded transaction was performed as part of implementation
+checks. Roll back the frontend to the previous profile; no contract or backend
+migration is required. Preserve/check unresolved payment references before
+clearing host/browser storage.
+
+The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
+Ordinary builds keep gifts off. A gift sends a chosen amount directly to the
+release's artist; it does not unlock access or follow the release's royalty
+splits. Native gifts use chain-reported precision and verified recipient
+mapping. Keep this flag gated until a real host approval and receipt have been
+checked. No live funds are used by the automated test fixtures. See
+[direct artist gifts](../design/artist-gifts-2026-09-16.md).

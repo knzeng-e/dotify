@@ -219,6 +219,12 @@ jobs:
           CATALOG_API_URL: http://127.0.0.1:9
         run: npm run build:product-devnet
 
+      - name: Build native Product support profile
+        env:
+          VITE_DOTIFY_RUNTIME_ADAPTER: product-cdm
+          VITE_DOTIFY_ARTIST_DONATIONS: 'on'
+        run: npx vite build --config vite.product.config.ts --mode product-devnet
+
       - name: Fail on generated Product catalog drift
         working-directory: .
         run: |

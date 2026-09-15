@@ -5,6 +5,7 @@ type ClassicUnlockE2eState = {
   deniedFullKeyRequests: number;
   paid: boolean;
   accessGranted: boolean;
+  paymentAttempts?: number;
 };
 
 declare global {
@@ -18,6 +19,17 @@ async function readClassicUnlockState(page: Page) {
 }
 
 const E2E_NATIVE_PAYMENT_SYMBOL = 'PAS';
+
+// The deterministic payment fixture still resolves the chain's currency through
+// the real application path. Stub this external read so public RPC rate limits
+// cannot turn an access/recovery test into a network-availability test.
+test.beforeEach(async ({ page }) => {
+  await page.route('https://eth-rpc-testnet.polkadot.io/**', async route => {
+    const request = route.request().postDataJSON();
+    if (request?.method !== 'eth_chainId') return route.continue();
+    await route.fulfill({ json: { jsonrpc: '2.0', id: request.id, result: `0x${(420420417).toString(16)}` } });
+  });
+});
 
 test('Classic track stays locked before payment and unlocks full playback after payment', async ({ page }) => {
   await page.goto('/');
@@ -64,8 +76,8 @@ test('Classic payment record remains visible when runtime read-back denies playa
 
   await page.getByTestId('classic-unlock-button').click();
 
-  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Payment included, access not verified');
-  await expect(page.getByTestId('unlock-transaction-status')).toContainText('payment record may still exist');
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Listening access not verified');
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Check access again');
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('Protected audio stays closed');
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('Settlement');
   await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
@@ -110,8 +122,43 @@ test.describe('mobile Classic support receipt states', () => {
     await page.getByTestId('classic-unlock-button').click();
 
     const receipt = page.getByTestId('unlock-transaction-status');
-    await expect(receipt).toContainText('Payment included, access not verified');
+    await expect(receipt).toContainText('Listening access not verified');
     await expect(receipt).toContainText('Protected audio stays closed');
     await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
   });
+});
+
+for (const width of [390, 1440]) {
+  test(`support recovery at ${width}px checks access without a second payment`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/?e2eClassic=confirmation-delayed');
+    await page.getByTestId('track-card-open').click();
+    await page.getByTestId('classic-unlock-button').click();
+    const receipt = page.getByTestId('unlock-transaction-status');
+    await expect(receipt).toContainText('Payment status needs checking');
+    await expect(receipt).toContainText('Proof reference');
+    await expect(page.getByTestId('full-playback-state')).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath(`support-recovery-${width}.png`) });
+    // Simulate a late chain read-back; the real coordinator must use only reads.
+    await page.evaluate(() => {
+      window.__DOTIFY_E2E_CLASSIC_UNLOCK__!.accessGranted = true;
+    });
+    await page.getByRole('button', { name: 'Check access again' }).click();
+    await expect(receipt).toContainText('Access verified');
+    await expect(page.getByTestId('full-playback-state')).toBeVisible();
+    expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
+    expect((await readClassicUnlockState(page))?.deniedFullKeyRequests).toBe(0);
+  });
+}
+
+test('a rejected support signature allows an explicit fresh attempt', async ({ page }) => {
+  await page.goto('/?e2eClassic=reject-payment');
+  await page.getByTestId('track-card-open').click();
+  await page.getByTestId('classic-unlock-button').click();
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Support canceled');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Support and open', exact: true }).click();
+  await page.getByTestId('classic-unlock-button').click();
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Access verified');
+  expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(2);
 });

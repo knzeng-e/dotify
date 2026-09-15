@@ -945,3 +945,16 @@ EVM RPC endpoint used by Hardhat.
 | **Default**  | `0`        |
 
 Set to `1` to skip Blockscout verification after deployment.
+
+### `VITE_DOTIFY_ARTIST_DONATIONS`
+
+Build-time opt-in (`on`; absent/off by default) for direct, amount-of-choice gifts
+on public artist profiles. Gifts use the release's registered artist account and
+do not grant access or apply a royalty split. Standalone wallets use a native EVM
+value transfer. Polkadot App also requires `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`
+and uses native `Balances.transfer_keep_alive`, with native chain precision and
+verified H160-to-account mapping. The support validation build opts in to both.
+No new contract, server, location permission or secret is required.
+See [artist gifts](../design/artist-gifts-2026-09-16.md) for trust/recovery limits and
+required physical-host validation before promotion. Rebuild without `on` to hide
+gifts; inspect pending account activity before clearing browser storage.

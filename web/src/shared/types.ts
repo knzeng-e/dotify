@@ -216,6 +216,7 @@ export type CapturableMediaElement = HTMLMediaElement & {
 };
 
 export type TransactionFeedback = {
+  recoveryAction?: { label: string; run: () => void };
   tone: TransactionFeedbackTone;
   title: string;
   message: string;
