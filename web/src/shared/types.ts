@@ -17,6 +17,8 @@ export type TransactionFeedbackFact = {
   value: string;
   href?: string;
   code?: boolean;
+  copyValue?: string;
+  copyLabel?: string;
 };
 
 export type RoyaltySplit = {

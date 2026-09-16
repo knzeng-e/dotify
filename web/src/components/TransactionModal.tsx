@@ -1,4 +1,4 @@
-import { CircleAlert, CircleCheckBig, Disc3, X } from 'lucide-react';
+import { CircleAlert, CircleCheckBig, Copy, Disc3, X } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { Dialog } from './Dialog';
 import { getBlockscoutTxUrl } from '../shared/utils/explorer';
@@ -7,7 +7,7 @@ import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
 import type { TransactionFeedback } from '../shared/types';
 
 export function TransactionModal() {
-  const { transactionFeedback: feedback, setTransactionFeedback } = useUiFeedback();
+  const { transactionFeedback: feedback, setTransactionFeedback, pushNotice } = useUiFeedback();
   if (!feedback) return null;
 
   const roadmapProgress = feedback.steps ? getRoadmapProgress(feedback.steps) : 0;
@@ -20,6 +20,15 @@ export function TransactionModal() {
     if (feedback.tone !== 'pending') setTransactionFeedback(null);
   };
   const Icon = feedback.tone === 'pending' ? Disc3 : feedback.tone === 'success' ? CircleCheckBig : CircleAlert;
+
+  async function copyFactValue(label: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      pushNotice({ tone: 'success', title: 'Copied', message: `${label} is on your clipboard.` });
+    } catch {
+      pushNotice({ tone: 'error', title: 'Copy failed', message: 'The browser blocked clipboard access.' });
+    }
+  }
 
   return (
     <Dialog
@@ -50,14 +59,27 @@ export function TransactionModal() {
             <div key={`${fact.label}-${fact.value}`}>
               <dt>{fact.label}</dt>
               <dd>
-                {fact.href ? (
-                  <a href={fact.href} target='_blank' rel='noreferrer'>
-                    {fact.value}
-                  </a>
-                ) : fact.code ? (
-                  <code>{fact.value}</code>
-                ) : (
-                  fact.value
+                <span className='transaction-fact-value'>
+                  {fact.href ? (
+                    <a href={fact.href} target='_blank' rel='noreferrer'>
+                      {fact.value}
+                    </a>
+                  ) : fact.code ? (
+                    <code>{fact.value}</code>
+                  ) : (
+                    fact.value
+                  )}
+                </span>
+                {fact.copyValue && (
+                  <button
+                    className='transaction-fact-copy'
+                    type='button'
+                    onClick={() => void copyFactValue(fact.label, fact.copyValue!)}
+                    aria-label={fact.copyLabel ?? `Copy ${fact.label}`}
+                  >
+                    <Copy size={13} />
+                    <span>Copy</span>
+                  </button>
                 )}
               </dd>
             </div>
