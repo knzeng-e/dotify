@@ -7,10 +7,11 @@ small consented community is counted as served.
 
 ## Release Candidate
 
-- Branch: `feat/pilot-release`.
+- Release branch: create from the tested `dev` candidate selected for the pilot.
 - Issue: #158.
-- Integration base: `dev` at `383f75f80c21b29e8a63c5d96eb054fd44d1240f`.
-- Candidate SHA: use `git rev-parse HEAD` after the W13 PR head is pushed.
+- Current consolidation base: `dev` at
+  `f4d2d49721a85169c5f9c37d36ac2ef315396d57`.
+- Candidate SHA: use `git rev-parse HEAD` after the release branch is pushed.
 - Readiness command:
 
 ```bash
@@ -24,6 +25,12 @@ Add `--product-smoke-json`, `--room-json`, and `--pilot-json` only when those
 artifacts were captured from the same candidate build. Missing live artifacts
 must stay visible as `blocked` or `not-run`.
 
+The current consolidation is recorded in
+[`W13-consolidation-2026-09-17.md`](../backlog/implementation/evidence/W13-consolidation-2026-09-17.md).
+It verifies the merged code through PR #173, but it is not a deployed candidate
+identity. If `dev`, the Product appVersion, or the executable CID changes,
+recapture all live inputs instead of combining evidence from different builds.
+
 ## Environment And Config Diff
 
 The tracked W13 package does not change hosted secrets, origins, contract
@@ -34,7 +41,7 @@ release diff is the application bundle and this release/evidence package.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 18]` | Keep unless bundle code changes after this plan |
+| Product appVersion | `[0, 1, 19]` | Keep for this candidate; bump and recapture evidence if bundle code changes |
 | Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -173,7 +180,7 @@ decision to the exact candidate build being evaluated:
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 18]",
+    "productAppVersion": "[0, 1, 19]",
     "deployedCid": "<product-executable-cid>",
     "capturedAt": "2026-09-13T12:00:00.000Z"
   },
