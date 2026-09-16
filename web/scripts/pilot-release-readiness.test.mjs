@@ -133,7 +133,17 @@ test('pilot evidence rejects impossible join counts before computing the rate', 
   assert.equal(gates.find(gate => gate.id === 'pilot-join-target')?.status, 'fail');
 });
 
-test('candidate CID is the canonical deployment identity for downstream pilot checks', () => {
-  assert.equal(evidenceDeployedCid({ candidate: { deployedCid: `ipfs://${DEPLOYED_CID}` } }), DEPLOYED_CID);
-  assert.equal(evidenceDeployedCid({ context: { deployedCid: DEPLOYED_CID } }), DEPLOYED_CID);
+test('schema-v2 candidate CID is the only deployment identity used downstream', () => {
+  const legacyOverride = 'bafybeilegacyoverride00000000000000000000000000000000000';
+  assert.equal(
+    evidenceDeployedCid({
+      schemaVersion: 2,
+      deployedCid: legacyOverride,
+      candidate: { deployedCid: `ipfs://${DEPLOYED_CID}` },
+      context: { deployedCid: legacyOverride, productExecutableCid: legacyOverride }
+    }),
+    DEPLOYED_CID
+  );
+  assert.equal(evidenceDeployedCid({ schemaVersion: 2, deployedCid: legacyOverride, context: { deployedCid: legacyOverride } }), null);
+  assert.equal(evidenceDeployedCid({ schemaVersion: 1, candidate: { deployedCid: DEPLOYED_CID } }), null);
 });

@@ -668,10 +668,9 @@ function buildInventory(snapshot) {
 }
 
 export function evidenceDeployedCid(evidence) {
-  for (const value of [evidence?.deployedCid, evidence?.candidate?.deployedCid, evidence?.context?.deployedCid, evidence?.context?.productExecutableCid]) {
-    if (isCidLike(value)) return value.replace(/^ipfs:\/\//i, '');
-  }
-  return null;
+  if (evidence?.schemaVersion !== 2) return null;
+  const candidateCid = evidence?.candidate?.deployedCid;
+  return isCidLike(candidateCid) ? candidateCid.replace(/^ipfs:\/\//i, '') : null;
 }
 
 export function buildPilotReleaseReport(input) {
