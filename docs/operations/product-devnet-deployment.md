@@ -338,8 +338,10 @@ CDM unlock as `blocked` and the room journey as `not-run`. Treat a static
 package. It additionally verifies W01-W12 local evidence, issue/backlog mapping,
 the reversible pilot plan, contract inventory, and optional aggregate pilot
 metrics. Optional pilot evidence must use schema v2 and bind the decision to
-the candidate git SHA, Product appVersion, deployed CID, capture time, outcome
-metrics, privacy flags, rollback, and join-count invariants. It does not sign,
+the candidate git SHA, Product appVersion, default `viem` release CID, capture
+time, outcome metrics, privacy flags, rollback, and join-count invariants. Pass
+that independently recorded release CID with `--pilot-release-cid`; the command
+never substitutes the earlier `product-cdm` smoke or room CID. It does not sign,
 deploy, contact participants, or treat missing live evidence as a pass.
 
 `smoke:product-cash-settlement` is also read-only. The expected result for the
@@ -733,6 +735,31 @@ npm run smoke:product-journey -- \
    `hostSurface: "product-web-gateway"` only for a separate smoke captured
    from the Product Web gateway. A Product Desktop room smoke must not be reused
    as Product Web evidence.
+
+   This completes the validation deployment track. Before an authorized pilot,
+   republish the same SHA and Product appVersion with the tracked default
+   `viem` profile:
+
+```bash
+npm run deploy:product-devnet
+```
+
+   Record the new CID printed by this command. It is the pilot release CID and
+   is expected to differ from the earlier `product-cdm` CID because the bundles
+   differ. Run the aggregate readiness gate with both identities kept separate:
+
+```bash
+npm run smoke:pilot-release -- \
+  --product-smoke-json /path/to/product-cdm-host-smoke.json \
+  --room-json /path/to/product-cdm-room-evidence.json \
+  --pilot-release-cid <default-viem-pilot-release-cid> \
+  --pilot-json /path/to/aggregate-pilot-evidence.json
+```
+
+   The command rejects pilot evidence when `--pilot-release-cid` is absent,
+   malformed, or different from `pilot-json.candidate.deployedCid`. Product CDM
+   and room evidence can validate the experimental writer, but cannot approve
+   the release bundle used by participants.
 
 10. A Netlify-origin host and Product-origin guest also connect.
 11. Briefly interrupting the mobile network preserves and resumes the same room

@@ -21,15 +21,19 @@ npm run smoke:pilot-release -- \
   --json-out /tmp/dotify-pilot-release-readiness.json
 ```
 
-Add `--product-smoke-json`, `--room-json`, and `--pilot-json` only when those
-artifacts were captured from the same candidate build. Missing live artifacts
-must stay visible as `blocked` or `not-run`.
+Add `--product-smoke-json` and `--room-json` for the explicit `product-cdm`
+validation deployment. Add `--pilot-release-cid <cid>` and `--pilot-json` only
+after the same SHA and Product appVersion have been published again with the
+default `viem` release profile and the pilot was run on that release CID.
+Missing live artifacts must stay visible as `blocked` or `not-run`.
 
 The current consolidation is recorded in
 [`W13-consolidation-2026-09-17.md`](../backlog/implementation/evidence/W13-consolidation-2026-09-17.md).
 It verifies the merged code through PR #173, but it is not a deployed candidate
-identity. If `dev`, the Product appVersion, or the executable CID changes,
-recapture all live inputs instead of combining evidence from different builds.
+identity. If `dev` or the Product appVersion changes, recapture every live
+input. If the validation CID changes, recapture Product CDM and room evidence;
+if the default `viem` release CID changes, recapture pilot evidence. Never bind
+the pilot decision to the Product CDM validation CID.
 
 ## Environment And Config Diff
 
@@ -82,8 +86,12 @@ Product/CDM anchors:
 | Statement Store SDK | `@parity/product-sdk-statement-store@0.6.9` |
 | Product deploy CLI | `@polkadot-community-foundation/polkadot-app-deploy@0.16.2` |
 
-The Product executable CID is release-time evidence. Capture it from
-`npm run deploy:product-devnet` output only after deployment is authorized.
+Product has two deliberately separate deployment identities during this gate.
+Capture the `product-cdm` CID for payment/key and room validation only. After
+that validation, run the unmodified `npm run deploy:product-devnet` command and
+capture its default `viem` CID as the pilot release identity. Supply that second
+CID through `--pilot-release-cid`; the readiness script never infers it from the
+validation artifacts.
 
 ## Rollback
 
@@ -181,7 +189,7 @@ decision to the exact candidate build being evaluated:
   "candidate": {
     "gitSha": "<40-character-git-sha>",
     "productAppVersion": "[0, 1, 20]",
-    "deployedCid": "<product-executable-cid>",
+    "deployedCid": "<default-viem-pilot-release-cid>",
     "capturedAt": "2026-09-13T12:00:00.000Z"
   },
   "participants": { "artists": 3, "hosts": 5, "listeners": 20 },
@@ -218,6 +226,20 @@ decision to the exact candidate build being evaluated:
 Do not collect continuous location, exact coordinates, wallet-linked listening
 history, contact details, raw interview answers, content keys, private keys,
 session tokens, signatures, or per-person traces.
+
+Run the aggregate gate with the independently recorded release CID:
+
+```bash
+npm run smoke:pilot-release -- \
+  --product-smoke-json /path/to/product-cdm-host-smoke.json \
+  --room-json /path/to/product-cdm-room-evidence.json \
+  --pilot-release-cid <default-viem-pilot-release-cid> \
+  --pilot-json /path/to/aggregate-pilot-evidence.json
+```
+
+The Product smoke and room artifacts retain the `product-cdm` deployment CID.
+The pilot artifact and `--pilot-release-cid` retain the separately deployed
+default `viem` CID. Both tracks must use the same git SHA and Product appVersion.
 
 ## Go/No-Go Record
 

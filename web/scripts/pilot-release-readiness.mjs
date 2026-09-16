@@ -333,7 +333,8 @@ function validatePilotCandidate(pilotEvidence, context = {}) {
   const candidate = pilotEvidence?.candidate;
   const expectedCommit = typeof context.commit === 'string' && context.commit !== 'unknown' ? context.commit : null;
   const expectedAppVersion = versionText(context.productAppVersion);
-  const expectedDeployedCid = normalizeIpfsCid(context.deployedCid);
+  const expectedPilotReleaseCid = normalizeIpfsCid(context.pilotReleaseCid);
+  const requirePilotReleaseCid = context.requirePilotReleaseCid === true;
   const generatedAtMs = parseDateMs(context.generatedAt) ?? Date.now();
   const problems = [];
 
@@ -358,10 +359,13 @@ function validatePilotCandidate(pilotEvidence, context = {}) {
   }
 
   const candidateCid = normalizeIpfsCid(candidate.deployedCid);
+  if (requirePilotReleaseCid && !expectedPilotReleaseCid) {
+    problems.push('a valid --pilot-release-cid from the default viem deployment is required');
+  }
   if (!candidateCid) {
     problems.push('candidate.deployedCid must be a valid IPFS CID for the deployed candidate');
-  } else if (expectedDeployedCid && candidateCid !== expectedDeployedCid) {
-    problems.push(`candidate.deployedCid ${candidateCid} does not match ${expectedDeployedCid}`);
+  } else if (expectedPilotReleaseCid && candidateCid !== expectedPilotReleaseCid) {
+    problems.push(`candidate.deployedCid ${candidateCid} does not match pilot release ${expectedPilotReleaseCid}`);
   }
 
   const capturedAtMs = parseDateMs(candidate.capturedAt);
@@ -663,12 +667,6 @@ function buildInventory(snapshot) {
   };
 }
 
-export function evidenceDeployedCid(evidence) {
-  if (evidence?.schemaVersion !== 2) return null;
-  const candidateCid = evidence?.candidate?.deployedCid;
-  return normalizeIpfsCid(candidateCid);
-}
-
 export function buildPilotReleaseReport(input) {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
   const snapshot = input.snapshot ?? readProductDevnetSnapshot(input.repoRoot);
@@ -683,10 +681,12 @@ export function buildPilotReleaseReport(input) {
   const dependencyGates = evaluateDependencyEvidence(input.repoRoot);
   const releasePackageGates = evaluateReleasePackage(input.repoRoot);
   const contractGates = evaluateContractInventory(snapshot.deployments);
+  const pilotReleaseCid = normalizeIpfsCid(input.pilotReleaseCid);
   const pilotGates = evaluatePilotEvidence(input.pilotEvidence, {
     commit: input.commit,
     productAppVersion: inventory.appVersion,
-    deployedCid: evidenceDeployedCid(input.productSmokeEvidence) ?? evidenceDeployedCid(input.roomEvidence),
+    pilotReleaseCid: input.pilotReleaseCid,
+    requirePilotReleaseCid: true,
     generatedAt
   });
   const gates = [
@@ -705,6 +705,10 @@ export function buildPilotReleaseReport(input) {
     commit: input.commit,
     summary: summarizeGates(gates),
     inventory,
+    pilotReleaseCandidate: {
+      runtimeAdapterKind: 'viem',
+      deployedCid: pilotReleaseCid
+    },
     dependencyGates,
     releasePackageGates,
     contractGates,
@@ -729,6 +733,8 @@ export function renderPilotReleaseMarkdown(report) {
     `- Signaling: ${report.inventory.signalUrl}`,
     `- Asset Hub RPC: ${report.inventory.assetHubRpcUrl}`,
     `- Product executable appVersion: \`${report.inventory.appVersion}\``,
+    `- Pilot release profile: \`${report.pilotReleaseCandidate.runtimeAdapterKind}\``,
+    `- Pilot release CID: \`${report.pilotReleaseCandidate.deployedCid ?? 'not supplied'}\``,
     `- Factory: \`${report.inventory.factory}\``,
     `- ArtistDirectory: \`${report.inventory.directory}\``,
     `- Initializer: \`${report.inventory.initializer}\``,
@@ -769,6 +775,7 @@ export function renderPilotReleaseMarkdown(report) {
     '',
     '- Product CDM payment/key smoke: pass `--product-smoke-json <product-cdm-host-smoke.json>` after running the explicit Product CDM smoke build in a funded Product host.',
     '- Product room smoke: pass `--room-json <room-evidence.json>` after a Product host shares a canonical room link and a browser guest hears audio without connecting an account.',
+    '- Pilot release deployment: pass `--pilot-release-cid <cid>` using the CID printed by the default viem deployment. Product CDM smoke and room CIDs are validation-build evidence and never satisfy this release binding.',
     '- Pilot aggregate: pass `--pilot-json <aggregate-pilot-evidence.json>` after owner-authorized participant sessions. Use pilot schema v2 with `candidate`, `participants`, `tasks`, `outcomeMetrics`, `joinAttempts`, `privacy`, `rollback`, and `goNoGo`; store aggregate counts and timings only.'
   ].join('\n');
 }
@@ -779,6 +786,7 @@ export function parseArgs(argv) {
     productSmokeJson: null,
     roomJson: null,
     pilotJson: null,
+    pilotReleaseCid: null,
     jsonOut: null,
     mdOut: null,
     help: false
@@ -799,6 +807,9 @@ export function parseArgs(argv) {
     } else if (value === '--pilot-json' && next) {
       args.pilotJson = resolve(next);
       index += 1;
+    } else if (value === '--pilot-release-cid' && next) {
+      args.pilotReleaseCid = next;
+      index += 1;
     } else if (value === '--json-out' && next) {
       args.jsonOut = resolve(next);
       index += 1;
@@ -816,13 +827,16 @@ export function parseArgs(argv) {
 }
 
 function help() {
-  return `Usage: npm run smoke:pilot-release -- [--product-smoke-json <file>] [--room-json <file>] [--pilot-json <file>] [--json-out <file>] [--md-out <file>]
+  return `Usage: npm run smoke:pilot-release -- [--product-smoke-json <file>] [--room-json <file>] [--pilot-release-cid <cid>] [--pilot-json <file>] [--json-out <file>] [--md-out <file>]
 
 Reconciles W13 pilot-release readiness from checked-in evidence, Product DevNet
 configuration, optional live Product/room smoke exports, and optional aggregate
 pilot evidence. Pilot JSON must use schemaVersion ${PILOT_RELEASE_SCHEMA_VERSION} and bind
 the decision to the candidate git SHA, Product appVersion, deployed CID, capture
-time, aggregate metrics, and join-count invariants. The command exits non-zero
+time, aggregate metrics, and join-count invariants. When pilot JSON is supplied,
+--pilot-release-cid must be the CID printed by the separately deployed default
+viem release profile; Product CDM smoke CIDs are never reused for this binding.
+The command exits non-zero
 only when local release state is unsafe or inconsistent. Missing live/pilot
 evidence is reported as blocked or not-run.`;
 }
@@ -834,11 +848,16 @@ async function main(argv = process.argv.slice(2)) {
     return 0;
   }
 
+  if (args.pilotReleaseCid && !normalizeIpfsCid(args.pilotReleaseCid)) {
+    throw new Error('--pilot-release-cid must be a valid IPFS CID');
+  }
+
   const report = buildPilotReleaseReport({
     repoRoot: args.repoRoot,
     productSmokeEvidence: readOptionalJson(args.productSmokeJson),
     roomEvidence: readOptionalJson(args.roomJson),
     pilotEvidence: readOptionalJson(args.pilotJson),
+    pilotReleaseCid: args.pilotReleaseCid,
     commit: gitCommit(args.repoRoot)
   });
   const markdown = renderPilotReleaseMarkdown(report);
