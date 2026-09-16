@@ -1,5 +1,5 @@
-import { CircleAlert, CircleCheckBig, Disc3, X } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import { CircleAlert, CircleCheckBig, Copy, Disc3, X } from 'lucide-react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Dialog } from './Dialog';
 import { getBlockscoutTxUrl } from '../shared/utils/explorer';
 import { shorten } from '../shared/utils/format';
@@ -8,6 +8,12 @@ import type { TransactionFeedback } from '../shared/types';
 
 export function TransactionModal() {
   const { transactionFeedback: feedback, setTransactionFeedback } = useUiFeedback();
+  const [copyStatus, setCopyStatus] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    setCopyStatus(null);
+  }, [feedback]);
+
   if (!feedback) return null;
 
   const roadmapProgress = feedback.steps ? getRoadmapProgress(feedback.steps) : 0;
@@ -20,6 +26,15 @@ export function TransactionModal() {
     if (feedback.tone !== 'pending') setTransactionFeedback(null);
   };
   const Icon = feedback.tone === 'pending' ? Disc3 : feedback.tone === 'success' ? CircleCheckBig : CircleAlert;
+
+  async function copyFactValue(label: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyStatus({ tone: 'success', message: `${label} copied.` });
+    } catch {
+      setCopyStatus({ tone: 'error', message: 'Copy failed. The browser blocked clipboard access.' });
+    }
+  }
 
   return (
     <Dialog
@@ -50,19 +65,37 @@ export function TransactionModal() {
             <div key={`${fact.label}-${fact.value}`}>
               <dt>{fact.label}</dt>
               <dd>
-                {fact.href ? (
-                  <a href={fact.href} target='_blank' rel='noreferrer'>
-                    {fact.value}
-                  </a>
-                ) : fact.code ? (
-                  <code>{fact.value}</code>
-                ) : (
-                  fact.value
+                <span className='transaction-fact-value'>
+                  {fact.href ? (
+                    <a href={fact.href} target='_blank' rel='noreferrer'>
+                      {fact.value}
+                    </a>
+                  ) : fact.code ? (
+                    <code>{fact.value}</code>
+                  ) : (
+                    fact.value
+                  )}
+                </span>
+                {fact.copyValue && (
+                  <button
+                    className='transaction-fact-copy'
+                    type='button'
+                    onClick={() => void copyFactValue(fact.label, fact.copyValue!)}
+                    aria-label={fact.copyLabel ?? `Copy ${fact.label}`}
+                  >
+                    <Copy size={13} />
+                    <span>Copy</span>
+                  </button>
                 )}
               </dd>
             </div>
           ))}
         </dl>
+      )}
+      {copyStatus && (
+        <p className='transaction-copy-status' data-tone={copyStatus.tone} role='status' aria-live='polite'>
+          {copyStatus.message}
+        </p>
       )}
       {feedback.steps && feedback.steps.length > 0 && (
         <ol className='transaction-roadmap' style={roadmapStyle} aria-label='Transaction approval roadmap'>
