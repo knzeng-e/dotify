@@ -6,7 +6,7 @@
   artist-support follow-ups merged through PR #173.
 - Reviewed base: `dev` at
   `f4d2d49721a85169c5f9c37d36ac2ef315396d57`.
-- Product executable version: `[0, 1, 19]`.
+- Product executable version: `[0, 1, 20]`.
 - W13 issue: #158 remains open.
 - W13 release-package PR: #159 merged on 2026-09-14.
 - This record does not claim a deployment, a real Product payment, a physical
@@ -41,7 +41,7 @@ evidence below is captured against one exact deployed candidate.
 | --- | --- | --- |
 | W01-W12 dependency evidence | Pass | `smoke:pilot-release` finds every dependency evidence file and integrated PR. |
 | Current candidate contains merged follow-ups #165-#173 | Pass | `dev` history through `f4d2d49`; each merge is linked above. |
-| Pilot release package and static Product configuration | Pass | 77 pass, 0 fail; Product appVersion `[0, 1, 19]`, safe origins, no browser secrets, viem remains the default runtime writer. |
+| Pilot release package and static Product configuration | Pass | 77 pass, 0 fail; Product appVersion `[0, 1, 20]`, safe origins, no browser secrets, candidate-bound Product/room evidence, and viem remains the default runtime writer. |
 | Product CDM host Classic support and key opening | Blocked | No same-candidate Product host smoke JSON from a funded Product account. |
 | Product-hosted room to walletless browser guest | Not run | No same-candidate room evidence JSON with audible and in-sync result. |
 | Standalone desktop hosted smoke | Not run | The harness has no ordinary hosted Music/Rooms/Artist result for this candidate. |

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { evaluatePilotEvidence, PILOT_RELEASE_SCHEMA_VERSION } from './pilot-release-readiness.mjs';
+import { evidenceDeployedCid, evaluatePilotEvidence, PILOT_RELEASE_SCHEMA_VERSION } from './pilot-release-readiness.mjs';
 
 const CANDIDATE_SHA = '1234567890abcdef1234567890abcdef12345678';
 const DEPLOYED_CID = 'bafybeigdyrztxylm7b6f3v7uxx4pjv7k4n3m5q2p4w6r8t9y0abcde';
@@ -131,4 +131,9 @@ test('pilot evidence rejects impossible join counts before computing the rate', 
   const gates = evaluatePilotEvidence(validPilotEvidence({ joinAttempts: { observed: 20, successful: 21 } }), REPORT_CONTEXT);
 
   assert.equal(gates.find(gate => gate.id === 'pilot-join-target')?.status, 'fail');
+});
+
+test('candidate CID is the canonical deployment identity for downstream pilot checks', () => {
+  assert.equal(evidenceDeployedCid({ candidate: { deployedCid: `ipfs://${DEPLOYED_CID}` } }), DEPLOYED_CID);
+  assert.equal(evidenceDeployedCid({ context: { deployedCid: DEPLOYED_CID } }), DEPLOYED_CID);
 });

@@ -18,6 +18,8 @@ const CONTENT_HASH = `0x${'ab'.repeat(32)}` as const;
 const TX_HASH = `0x${'cd'.repeat(32)}` as const;
 const CONTENT_KEY = `0x${'ef'.repeat(32)}` as const;
 const PRODUCT_SIGNATURE = `0x${'44'.repeat(64)}` as const;
+const BUILD_SHA = '1234567890abcdef1234567890abcdef12345678';
+const DEPLOYED_CID = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3ooqb5x4nqyd7bkhzbr6f5o4e';
 
 function memoryStorage(entries: Array<[string, string]> = []) {
   const store = new Map(entries);
@@ -37,8 +39,9 @@ function memoryStorage(entries: Array<[string, string]> = []) {
 
 function smokeContext(overrides: Partial<ProductCdmHostSmokeContext> = {}): ProductCdmHostSmokeContext {
   return {
-    buildSha: 'abc123',
-    productAppVersion: '[0, 1, 17]',
+    buildSha: BUILD_SHA,
+    productAppVersion: '[0, 1, 20]',
+    deployedCid: DEPLOYED_CID,
     productId: 'dotify-test01.dot',
     publicAppUrl: 'https://dotify-test01.dev-dot.li',
     cdmRegistry: '0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f',
@@ -105,7 +108,10 @@ describe('product CDM host smoke evidence', () => {
     const evidence = buildProductCdmHostSmokeEvidence(smokeContext(), completeEvents(), new Date('2026-09-03T10:00:00.000Z'));
 
     expect(evidence.summary).toEqual({ tone: 'ok', label: 'Evidence complete', problemCount: 0 });
+    expect(evidence.schemaVersion).toBe(2);
+    expect(evidence.candidate).toEqual({ gitSha: BUILD_SHA, productAppVersion: '[0, 1, 20]', deployedCid: DEPLOYED_CID });
     expect(evidence.checks.map(check => [check.id, check.tone])).toEqual([
+      ['candidate-identity', 'ok'],
       ['product-account', 'ok'],
       ['product-cdm-adapter', 'ok'],
       ['host-approval', 'ok'],
@@ -115,6 +121,14 @@ describe('product CDM host smoke evidence', () => {
       ['same-identity', 'ok']
     ]);
     expect(evidence.events).toHaveLength(4);
+  });
+
+  it('keeps candidate evidence pending until a valid deployment CID is supplied', () => {
+    const missing = buildProductCdmHostSmokeEvidence(smokeContext({ deployedCid: null }), completeEvents());
+    const invalid = buildProductCdmHostSmokeEvidence(smokeContext({ deployedCid: 'not-a-cid' }), completeEvents());
+
+    expect(missing.checks.find(check => check.id === 'candidate-identity')?.tone).toBe('unknown');
+    expect(invalid.checks.find(check => check.id === 'candidate-identity')?.tone).toBe('error');
   });
 
   it('normalizes Product key events by allowlist so secrets are not persisted', () => {

@@ -41,7 +41,7 @@ release diff is the application bundle and this release/evidence package.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 19]` | Keep for this candidate; bump and recapture evidence if bundle code changes |
+| Product appVersion | `[0, 1, 20]` | Keep for this candidate; bump and recapture evidence if bundle code changes |
 | Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -180,7 +180,7 @@ decision to the exact candidate build being evaluated:
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 19]",
+    "productAppVersion": "[0, 1, 20]",
     "deployedCid": "<product-executable-cid>",
     "capturedAt": "2026-09-13T12:00:00.000Z"
   },
@@ -226,7 +226,7 @@ The pilot decision record must include:
 | Field | Requirement |
 | --- | --- |
 | Decision | `go`, `no-go`, or `hold` |
-| Candidate | Exact git SHA, Product appVersion, deployed CID if any |
+| Candidate | Exact git SHA, Product appVersion, exact deployed CID |
 | Join target | At least 20 supported-device attempts, target `>=95%` successful |
 | Failures | Count and category, not raw participant logs |
 | Rollback | Safe-environment rehearsal and catalog/key compatibility result |

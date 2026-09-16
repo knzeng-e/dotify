@@ -402,7 +402,7 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 19]`. This version keeps blocked
+The current Product executable is `[0, 1, 20]`. This version also binds Product payment and room evidence to the exact deployed CID so stale artifacts cannot satisfy pilot gates. It keeps blocked
 guest audio recovery visible in Product-hosted rooms, exposes W05 runtime claim
 writes through the shared runtime writer port, uses the refreshed September 2026
 Product SDK/tooling and re-pinned Bulletin descriptor, and removes
@@ -595,9 +595,28 @@ Then verify in the Product host:
    In every rejected case, playback must stop and offer an EVM wallet fallback.
    No path may release a key without a verified signature.
 
-6. Only for an explicit Product CDM write smoke build, set
-   `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` and
-   `VITE_DOTIFY_DEBUG_PANEL=true`, then use a funded Product account that has
+6. The tracked Product profile intentionally uses the `viem` writer, so that
+   published profile asks for an EVM-compatible wallet when it needs to write.
+   To test payment through the Product host instead, publish an explicit Product
+   CDM smoke build from the candidate commit:
+
+```bash
+VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm \
+VITE_DOTIFY_ARTIST_DONATIONS=on \
+VITE_DOTIFY_DEBUG_PANEL=true \
+npm run deploy:product-devnet
+```
+
+   The variables propagate through the deploy script's Product rebuild. For a
+   local build without publishing, run
+   `VITE_DOTIFY_DEBUG_PANEL=true npm run build:product-devnet:support`.
+   The `product-cdm` adapter still calls the EVM-compatible artist runtime, but
+   it signs through the Product host's sr25519 account. It must not ask for a
+   separate browser EVM wallet. Fund the Product/SS58 account shown as **Fund
+   this account** with Product DevNet PAS; the derived H160 is the runtime
+   identity used for access read-back, not a second account to refill.
+
+   Use a funded Product account that has
    not already paid for the target Classic track. Do not use this as the
    default `dotify-test01.dot` release gate until it has passed once end to
    end. Verify:
@@ -619,12 +638,14 @@ Then verify in the Product host:
    - the backend then releases the full key through the same Product identity.
 
    After the unlock attempt, open `You` -> `Production readiness` -> `Product
-CDM host smoke`, mark **Host approval prompt captured** if the host showed
-   an explicit transaction approval, then copy or download the smoke JSON. The
+   CDM host smoke`, paste the executable CID printed by that exact deployment,
+   mark **Host approval prompt captured** if the host showed an explicit
+   transaction approval, then copy or download the smoke JSON. The
    JSON is stored only in browser session storage and deliberately excludes
    content keys, signatures, nonces, and session tokens. It includes
-   browser-safe build identity (`buildSha`, Product app version, public app URL,
-   and CDM registry) so the local harness can reject stale exports from an old
+   browser-safe candidate identity (`gitSha`, Product app version, deployed CID,
+   public app URL, and CDM registry) so the local harness can reject missing,
+   stale, or cross-deployment exports from an old
    Product DevNet reset or a different build. Attach it with the Product host
    approval screenshot and Fly/API logs.
 
@@ -682,7 +703,12 @@ npm run smoke:product-journey -- \
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "candidate": {
+    "gitSha": "<40-character-git-sha>",
+    "productAppVersion": "[0, 1, 20]",
+    "deployedCid": "<same-product-executable-cid-as-payment-smoke>"
+  },
   "hostSurface": "product-desktop",
   "hostOrigin": "polkadot://dotify-test01.dot",
   "hostVersion": "Product Desktop 0.1.0",
@@ -695,7 +721,9 @@ npm run smoke:product-journey -- \
 }
 ```
 
-   Use `hostSurface: "product-web-gateway"` only for a separate smoke captured
+   The harness rejects the room file when any candidate field is missing or its
+   CID differs from the Product payment smoke. Use
+   `hostSurface: "product-web-gateway"` only for a separate smoke captured
    from the Product Web gateway. A Product Desktop room smoke must not be reused
    as Product Web evidence.
 

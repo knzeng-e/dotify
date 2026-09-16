@@ -667,7 +667,7 @@ function buildInventory(snapshot) {
   };
 }
 
-function evidenceDeployedCid(evidence) {
+export function evidenceDeployedCid(evidence) {
   for (const value of [evidence?.deployedCid, evidence?.candidate?.deployedCid, evidence?.context?.deployedCid, evidence?.context?.productExecutableCid]) {
     if (isCidLike(value)) return value.replace(/^ipfs:\/\//i, '');
   }

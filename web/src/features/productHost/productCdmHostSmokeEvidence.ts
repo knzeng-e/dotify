@@ -63,6 +63,7 @@ export type ProductCdmHostSmokeEvent =
 export type ProductCdmHostSmokeContext = {
   buildSha: string | null;
   productAppVersion: string | null;
+  deployedCid: string | null;
   productId: string;
   publicAppUrl: string | null;
   cdmRegistry: string | null;
@@ -84,9 +85,16 @@ export type ProductCdmHostSmokeCheck = {
   detail: string;
 };
 
+export type ProductCdmHostSmokeCandidate = {
+  gitSha: string | null;
+  productAppVersion: string | null;
+  deployedCid: string | null;
+};
+
 export type ProductCdmHostSmokeEvidence = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   capturedAt: string;
+  candidate: ProductCdmHostSmokeCandidate;
   summary: { tone: ProductCdmHostSmokeTone; label: string; problemCount: number };
   context: ProductCdmHostSmokeContext;
   checks: ProductCdmHostSmokeCheck[];
@@ -111,6 +119,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isHexString(value: unknown): value is `0x${string}` {
   return typeof value === 'string' && /^0x[0-9a-fA-F]+$/.test(value);
+}
+
+function isFullGitSha(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{40}$/i.test(value);
+}
+
+function isProductAppVersion(value: unknown): value is string {
+  return typeof value === 'string' && /^\[\d+(?:, \d+)*\]$/.test(value);
+}
+
+function isCidLike(value: unknown): value is string {
+  return typeof value === 'string' && /^(?:ipfs:\/\/)?(?:bafy|Qm)[A-Za-z0-9]+$/.test(value.trim());
 }
 
 function text(value: unknown, maxLength = 240): string | undefined {
@@ -443,7 +463,20 @@ export function summarizeProductCdmHostSmokeChecks(context: ProductCdmHostSmokeC
   const hasAddressMismatch =
     Boolean(context.listenerAddress) && eventAddresses.some(address => address.toLowerCase() !== context.listenerAddress?.toLowerCase());
 
+  const candidateComplete = isFullGitSha(context.buildSha) && isProductAppVersion(context.productAppVersion) && isCidLike(context.deployedCid);
+  const candidateInvalid = Boolean(context.deployedCid) && !isCidLike(context.deployedCid);
+
   return [
+    {
+      id: 'candidate-identity',
+      label: 'Deployed candidate',
+      tone: candidateComplete ? 'ok' : candidateInvalid ? 'error' : 'unknown',
+      detail: candidateComplete
+        ? `${context.buildSha} ${context.productAppVersion} deployed as ${context.deployedCid}.`
+        : candidateInvalid
+          ? 'The deployed CID is not a valid IPFS CID.'
+          : 'Paste the executable CID from the matching Product deployment before exporting evidence.'
+    },
     {
       id: 'product-account',
       label: 'Product account',
@@ -512,6 +545,7 @@ function sanitizeContext(context: ProductCdmHostSmokeContext): ProductCdmHostSmo
   return {
     buildSha: context.buildSha,
     productAppVersion: context.productAppVersion,
+    deployedCid: context.deployedCid,
     productId: context.productId,
     publicAppUrl: context.publicAppUrl,
     cdmRegistry: context.cdmRegistry,
@@ -536,8 +570,13 @@ export function buildProductCdmHostSmokeEvidence(
   const safeEvents = events.map(normalizeSmokeEvent).filter((event): event is ProductCdmHostSmokeEvent => Boolean(event));
   const checks = summarizeProductCdmHostSmokeChecks(safeContext, safeEvents);
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     capturedAt: capturedAt.toISOString(),
+    candidate: {
+      gitSha: safeContext.buildSha,
+      productAppVersion: safeContext.productAppVersion,
+      deployedCid: safeContext.deployedCid
+    },
     summary: summarizeProductCdmHostSmoke(checks),
     context: safeContext,
     checks,

@@ -24,7 +24,9 @@ type ProductCdmHostSmokeEvidencePanelProps = {
 export function ProductCdmHostSmokeEvidencePanel({ context }: ProductCdmHostSmokeEvidencePanelProps) {
   const { pushNotice } = useUiFeedback();
   const [events, setEvents] = useState<ProductCdmHostSmokeEvent[]>(() => readProductCdmHostSmokeEvents());
-  const evidence = useMemo(() => buildProductCdmHostSmokeEvidence(context, events), [context, events]);
+  const [deployedCid, setDeployedCid] = useState(context.deployedCid ?? '');
+  const evidenceContext = useMemo(() => ({ ...context, deployedCid: deployedCid.trim() || null }), [context, deployedCid]);
+  const evidence = useMemo(() => buildProductCdmHostSmokeEvidence(evidenceContext, events), [evidenceContext, events]);
   const serializedEvidence = useMemo(() => serializeProductCdmHostSmokeEvidence(evidence), [evidence]);
   const hostApprovalObserved = latestHostApprovalObservation(events);
 
@@ -91,6 +93,20 @@ export function ProductCdmHostSmokeEvidencePanel({ context }: ProductCdmHostSmok
         <span>{context.runtimeAdapterKind}</span>
         <span>{context.productHostStatus}</span>
       </div>
+
+      <label className='product-smoke-candidate'>
+        <span>Deployed executable CID</span>
+        <input
+          type='text'
+          value={deployedCid}
+          onChange={event => setDeployedCid(event.currentTarget.value)}
+          placeholder='bafy…'
+          autoCapitalize='none'
+          autoCorrect='off'
+          spellCheck={false}
+        />
+        <small>Paste the CID returned by the matching Product deployment before exporting evidence.</small>
+      </label>
 
       <label className='product-smoke-observation'>
         <input type='checkbox' checked={hostApprovalObserved} onChange={event => toggleHostApproval(event.currentTarget.checked)} />
