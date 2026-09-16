@@ -36,7 +36,7 @@ import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import {
   DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
   classicTrackPaymentAmountPlanck,
-  createNativeRuntimeAccessPaymentIntent,
+  createRuntimeNativeAccessPaymentIntent,
   nativeRuntimePaymentAssetFromChain
 } from '../features/payments/paymentModel';
 import { type RuntimeAccessPaymentVerificationResult } from '../features/payments/paymentReadback';
@@ -1124,12 +1124,13 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     let paymentIntent;
     try {
-      const chain = await resolveEvmChain(ethRpcUrl);
-      paymentIntent = createNativeRuntimeAccessPaymentIntent({
+      paymentIntent = await createRuntimeNativeAccessPaymentIntent({
         runtimeAddress,
         contentHash: track.hash,
         amountPlanck: classicTrackPaymentAmountPlanck(track),
-        asset: nativeRuntimePaymentAssetFromChain(chain)
+        adapterKind: runtimeAdapterConfig.kind,
+        currentAsset: nativeRuntimePaymentAsset,
+        resolveChain: () => resolveEvmChain(ethRpcUrl)
       });
     } catch (intentError) {
       setTransactionFeedback({

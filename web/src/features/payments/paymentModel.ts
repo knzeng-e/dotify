@@ -92,6 +92,24 @@ export function createNativeRuntimeAccessPaymentIntent(input: {
   };
 }
 
+export async function createRuntimeNativeAccessPaymentIntent(input: {
+  runtimeAddress: Address;
+  contentHash: Hash;
+  amountPlanck: bigint;
+  adapterKind: 'viem' | 'product-cdm';
+  currentAsset: DotifyNativeRuntimeAsset;
+  resolveChain: () => Promise<Pick<Chain, 'nativeCurrency'> | null | undefined>;
+}): Promise<NativeRuntimeAccessPaymentIntent> {
+  const asset = input.adapterKind === 'product-cdm' ? input.currentAsset : nativeRuntimePaymentAssetFromChain(await input.resolveChain());
+
+  return createNativeRuntimeAccessPaymentIntent({
+    runtimeAddress: input.runtimeAddress,
+    contentHash: input.contentHash,
+    amountPlanck: input.amountPlanck,
+    asset
+  });
+}
+
 export function createUnsupportedCashAccessPaymentIntent(input: {
   runtimeAddress: Address;
   contentHash: Hash;
