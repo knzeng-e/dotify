@@ -1535,7 +1535,7 @@
                 submission for protected key/session requests, and an opt-in CDM/PAPI path that can route runtime reads and write submissions through the
                 Product host signer. The tracked deployment still defaults to viem; Product writes now fail closed on Product public-key / pallet-revive H160
                 mismatch, poll post-payment access read-back before success, preserve transaction receipts when verification fails, and expose runtime royalty
-                claims through the shared writer port. They still need native payment forwarding, host-signed transaction evidence, a Product-supported CASH
+                claims through the shared writer port. Interrupted support can be checked again without another payment; a tab-local reference survives reloads. Optional direct artist gifts are implemented behind a build flag, separate from listening access and release royalty splits; native gifts still require device validation. The explicit Product support build waits for native payment finalization, but still needs host-signed transaction evidence and a Product-supported CASH
                 settlement proof, and CDM-installed runtime packages before becoming default. A Product DevNet journey harness now pins the static platform
                 gates and accepts live CDM/room evidence exports, so missing Product-host proof stays visible instead of being inferred from a web build.
                 Passkey-only wallet routes are retired for the pilot: guests still enter with no wallet, standalone paid/publish actions use an EVM wallet, and

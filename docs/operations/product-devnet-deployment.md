@@ -831,3 +831,19 @@ active.
   by the current Product contract handle API, so the full royalty settlement
   ledger needs an event/indexer source. Use `VITE_DOTIFY_DEBUG_PANEL=true` on
   that smoke build to export the Product CDM host evidence JSON.
+
+### Recoverable native support profile
+
+Use `npm run build:product-devnet:support` for the explicit CDM native-support
+validation build. This is shorthand for the existing adapter opt-in above,
+not a default-adapter or deployment change. See the
+[support recovery design](../design/product-host-support-recovery-2026-09-15.md)
+for pending references, read-only retries and the required physical-host smoke.
+
+The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
+Ordinary builds keep gifts off. A gift sends a chosen amount directly to the
+release's artist; it does not unlock access or follow the release's royalty
+splits. Native gifts use chain-reported precision and verified recipient
+mapping. Keep this flag gated until a real host approval and receipt have been
+checked. No live funds are used by the automated test fixtures. See
+[direct artist gifts](../design/artist-gifts-2026-09-16.md).

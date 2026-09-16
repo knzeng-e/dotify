@@ -863,3 +863,26 @@
   color: var(--muted);
   overflow-wrap: anywhere;
 }
+
+
+.artist-gift-dialog {
+  display: grid;
+  gap: 1rem;
+}
+.artist-gift-dialog form {
+  display: grid;
+  gap: 0.75rem;
+}
+.artist-gift-dialog .field {
+  font-size: max(1rem, 16px);
+}
+.artist-gift-dialog code {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+}
+.artist-gift-dialog summary {
+  cursor: pointer;
+  padding-block: 0.6rem;
+  color: var(--ink-soft);
+}

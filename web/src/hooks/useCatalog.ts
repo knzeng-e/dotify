@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { resolveDonationArtist } from '../features/donations/donationModel';
+import { formatEther } from 'viem';
+import { createSupportPaymentFlow } from '../features/payments/supportPayment';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
 import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
@@ -24,13 +27,7 @@ import {
   type ParsedAudioV2
 } from '../shared/utils/audioV2';
 import { isPolicyManagedTrack } from '../features/access/accessPolicy';
-import {
-  buildAccessGate,
-  buildClassicAccessVerifiedFeedback,
-  buildClassicSupportFacts,
-  buildIncludedPaymentUnverifiedMessage,
-  isUserRejectedSupportError
-} from '../features/access/accessPromise';
+import { buildAccessGate, buildClassicAccessVerifiedFeedback, buildClassicSupportFacts } from '../features/access/accessPromise';
 import { catalogApiStatus, catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
@@ -39,10 +36,10 @@ import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import {
   DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
   classicTrackPaymentAmountPlanck,
-  createNativeRuntimeAccessPaymentIntent,
+  createRuntimeNativeAccessPaymentIntent,
   nativeRuntimePaymentAssetFromChain
 } from '../features/payments/paymentModel';
-import { verifyRuntimeAccessPayment, type RuntimeAccessPaymentVerificationResult } from '../features/payments/paymentReadback';
+import { type RuntimeAccessPaymentVerificationResult } from '../features/payments/paymentReadback';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
 import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
@@ -57,11 +54,10 @@ import {
   E2E_CLASSIC_AUDIO_URL,
   E2E_CLASSIC_HASH,
   E2E_CLASSIC_TRACK,
-  E2E_CLASSIC_TX_HASH,
+  classicSupportE2ePorts,
   getClassicUnlockE2eState,
   isClassicUnlockE2e,
-  recordClassicUnlockFullKeyRequest,
-  shouldDenyClassicUnlockAfterPaymentReadback
+  recordClassicUnlockFullKeyRequest
 } from '../e2e/classicUnlockMock';
 import { getArtistPublishE2eTracks, isArtistPublishE2e, isArtistPublishE2eTrack } from '../e2e/artistPublishMock';
 import {
@@ -317,6 +313,13 @@ export function useCatalog(deps: UseCatalogDeps) {
     setDescription
   } = deps;
 
+  const [supportFlow] = useState(() => createSupportPaymentFlow(() => window.sessionStorage));
+  const supportBusyRef = useRef(false);
+  const supportAccount = `${connectedWallet?.method ?? ''}:${listenerEvmAddress?.toLowerCase() ?? ''}`;
+  const supportAccountRef = useRef(supportAccount);
+  useLayoutEffect(() => {
+    supportAccountRef.current = supportAccount;
+  }, [supportAccount]);
   const runtimeAdapterConfig = useMemo(() => resolveRuntimeAdapterConfig(import.meta.env), []);
   const productHostConfig = useMemo(() => resolveProductHostConfig(import.meta.env), []);
   const productRuntimeAccount = useMemo(() => {
@@ -409,18 +412,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       cancelled = true;
     };
   }, [ethRpcUrl]);
-
-  async function resolveNativeRuntimePaymentAssetForAction() {
-    try {
-      const chain = await resolveEvmChain(ethRpcUrl);
-      const asset = nativeRuntimePaymentAssetFromChain(chain);
-      setNativeRuntimePaymentAsset(asset);
-      return asset;
-    } catch {
-      setNativeRuntimePaymentAsset(DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET);
-      return DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET;
-    }
-  }
 
   function internalSetFileHash(hash: `0x${string}` | '') {
     setFileHashState(hash);
@@ -1065,24 +1056,42 @@ export function useCatalog(deps: UseCatalogDeps) {
   function explainRuntimeWriteWalletRequirement(): string | null {
     if (!connectedWallet) return null;
     if (runtimeAdapterConfig.kind === 'product-cdm') {
-      return connectedWallet.method === 'product-host'
-        ? null
-        : 'This Product CDM build signs runtime transactions with the Polkadot Product account. Connect with "Use Polkadot app", then try again.';
+      return connectedWallet.method === 'product-host' ? null : 'Connect with "Use Polkadot app" to confirm support in this app.';
     }
     return connectedWallet.createEvmClient
       ? null
-      : 'This action still requires an EVM wallet while Dotify contract writes are being validated on the Product DevNet host signer.';
+      : 'This version cannot approve support in Polkadot App. Open Dotify in a browser and connect a compatible wallet.';
   }
 
   async function payForTrackAccess(
     track: CatalogTrack,
     socketEmit?: (event: string, data: unknown) => void,
     setLocalStreamReady?: (ready: boolean) => void,
-    closeHostPeers?: () => void
+    closeHostPeers?: () => void,
+    readOnly = false
+  ) {
+    if (supportBusyRef.current) return;
+    supportBusyRef.current = true;
+    try {
+      await performTrackSupport(track, socketEmit, setLocalStreamReady, closeHostPeers, readOnly);
+    } finally {
+      supportBusyRef.current = false;
+    }
+  }
+
+  async function performTrackSupport(
+    track: CatalogTrack,
+    socketEmit?: (event: string, data: unknown) => void,
+    setLocalStreamReady?: (ready: boolean) => void,
+    closeHostPeers?: () => void,
+    readOnly = false
   ) {
     const unlockStartedTrackId = track.id;
     const unlockStartedView = activeViewRef.current;
-    const shouldRestoreUnlockedTrack = () => selectedTrackIdRef.current === unlockStartedTrackId && activeViewRef.current === unlockStartedView;
+    const accountAtStart = supportAccountRef.current;
+    const currentAccount = () => supportAccountRef.current === accountAtStart;
+    const shouldRestoreUnlockedTrack = () =>
+      currentAccount() && selectedTrackIdRef.current === unlockStartedTrackId && activeViewRef.current === unlockStartedView;
 
     if (!connectedWallet) {
       setAccessGate(buildAccessGateInfo(track));
@@ -1090,60 +1099,15 @@ export function useCatalog(deps: UseCatalogDeps) {
       return;
     }
 
-    const walletRequirement = explainRuntimeWriteWalletRequirement();
-    if (walletRequirement) {
+    const walletRequirement = readOnly ? null : explainRuntimeWriteWalletRequirement();
+    if (walletRequirement || !listenerEvmAddress) {
       setAccessGate(buildAccessGateInfo(track));
       setTransactionFeedback({
         tone: 'error',
         title: 'Payment signer unavailable',
-        message: walletRequirement,
+        message: walletRequirement || 'Reconnect your account before supporting this track.',
         facts: buildClassicSupportFacts(track, nativeRuntimePaymentAsset, 'failed')
       });
-      return;
-    }
-
-    if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
-      const supportAsset = await resolveNativeRuntimePaymentAssetForAction();
-      setAccessGate(null);
-      setTransactionFeedback({
-        tone: 'pending',
-        title: 'Support being confirmed',
-        message: `Confirming ${track.priceDot} ${supportAsset.symbol} of support to open "${track.title}".`,
-        facts: buildClassicSupportFacts(track, supportAsset, 'pending')
-      });
-      await new Promise(resolve => window.setTimeout(resolve, 20));
-      const e2eState = getClassicUnlockE2eState();
-      e2eState.paid = true;
-      setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-
-      if (shouldDenyClassicUnlockAfterPaymentReadback()) {
-        e2eClassicAccessGrantedRef.current = false;
-        e2eState.accessGranted = false;
-        setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: false }));
-        setTransactionFeedback({
-          tone: 'error',
-          title: 'Payment included, access not verified',
-          message: buildIncludedPaymentUnverifiedMessage({
-            attempts: 1,
-            error: 'The runtime recorded the payment, but still denies playable access for this account.',
-            productCdm: false
-          }),
-          txHash: E2E_CLASSIC_TX_HASH,
-          facts: buildClassicSupportFacts(track, supportAsset, 'included-unverified')
-        });
-        return;
-      }
-
-      e2eClassicAccessGrantedRef.current = true;
-      e2eState.accessGranted = true;
-      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setTransactionFeedback({
-        ...buildClassicAccessVerifiedFeedback(track, E2E_CLASSIC_TX_HASH, supportAsset)
-      });
-      if (shouldRestoreUnlockedTrack()) {
-        navigateToView('player');
-        await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
-      }
       return;
     }
 
@@ -1160,12 +1124,13 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     let paymentIntent;
     try {
-      const chain = await resolveEvmChain(ethRpcUrl);
-      paymentIntent = createNativeRuntimeAccessPaymentIntent({
+      paymentIntent = await createRuntimeNativeAccessPaymentIntent({
         runtimeAddress,
         contentHash: track.hash,
         amountPlanck: classicTrackPaymentAmountPlanck(track),
-        asset: nativeRuntimePaymentAssetFromChain(chain)
+        adapterKind: runtimeAdapterConfig.kind,
+        currentAsset: nativeRuntimePaymentAsset,
+        resolveChain: () => resolveEvmChain(ethRpcUrl)
       });
     } catch (intentError) {
       setTransactionFeedback({
@@ -1176,114 +1141,123 @@ export function useCatalog(deps: UseCatalogDeps) {
       return;
     }
 
+    if (!currentAccount()) return;
     setAccessGate(null);
-    setTransactionFeedback({
-      tone: 'pending',
-      title: 'Support being confirmed',
-      message: `Confirming ${track.priceDot} ${paymentIntent.asset.symbol} of support to open "${track.title}".`,
-      facts: buildClassicSupportFacts(track, paymentIntent.asset, 'pending')
+    const ports =
+      isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id
+        ? classicSupportE2ePorts(runtimeReader, runtimeWriter)
+        : { reader: runtimeReader, writer: runtimeWriter };
+    const result = await supportFlow.run({
+      network: `${runtimeAdapterConfig.kind}:${ethRpcUrl}`,
+      intent: paymentIntent,
+      listenerAddress: listenerEvmAddress!,
+      ...ports,
+      verificationOptions: isClassicUnlockE2e ? { attempts: 1, delayMs: 0 } : undefined,
+      currentAccount,
+      readOnly,
+      onProgress(stage, txHash) {
+        if (!currentAccount()) return;
+        const titles = {
+          checking: 'Checking your listening access',
+          approval: connectedWallet.method === 'product-host' ? 'Confirm in Polkadot App' : 'Confirm in your wallet',
+          confirming: 'Confirming your support',
+          verifying: 'Opening your listening access'
+        };
+        setTransactionFeedback({
+          tone: 'pending',
+          title: titles[stage],
+          message:
+            stage === 'approval'
+              ? `Review ${formatEther(paymentIntent.amountPlanck)} ${paymentIntent.asset.symbol} for “${track.title}” in the confirmation request.`
+              : 'Keep this page open. Dotify checks your access before opening the full track.',
+          txHash,
+          facts: stage === 'approval' ? buildClassicSupportFacts(track, paymentIntent.asset, 'pending') : undefined
+        });
+      }
     });
-
-    let includedTxHash: `0x${string}` | null = null;
-
-    try {
-      const txHash = await runtimeWriter.payForAccess(paymentIntent);
-      setTransactionFeedback({
-        tone: 'pending',
-        title: 'Awaiting confirmation',
-        message: 'Payment submitted. Waiting for finality before Dotify verifies playable access.',
-        txHash,
-        facts: buildClassicSupportFacts(track, paymentIntent.asset, 'pending')
-      });
-      await runtimeWriter.waitForTransaction(txHash);
-      includedTxHash = txHash;
-
-      setTransactionFeedback({
-        tone: 'pending',
-        title: 'Verifying runtime access',
-        message:
-          runtimeAdapterConfig.kind === 'product-cdm'
-            ? 'Payment included. Reading the Product runtime before opening the track.'
-            : 'Payment included. Reading the runtime before opening the track.',
-        txHash,
-        facts: buildClassicSupportFacts(track, paymentIntent.asset, 'pending')
-      });
-
-      if (!listenerEvmAddress) {
-        setTransactionFeedback({
-          tone: 'error',
-          title: 'Payment included, access not verified',
-          message: 'The payment transaction was included, but Dotify cannot verify runtime access without the connected account address.',
-          txHash,
-          facts: buildClassicSupportFacts(track, paymentIntent.asset, 'included-unverified')
-        });
-        return;
-      }
-
-      const verification = await verifyRuntimeAccessPayment({
-        reader: runtimeReader,
-        intent: paymentIntent,
-        listenerAddress: listenerEvmAddress
-      });
-
-      if (runtimeAdapterConfig.kind === 'product-cdm') {
-        publishProductCdmPaymentSmokeMetric(
-          buildProductCdmPaymentSmokeMetric({
-            verification,
-            txHash,
-            runtimeAddress: paymentIntent.runtimeAddress,
-            contentHash: paymentIntent.contentHash,
-            listenerAddress: listenerEvmAddress,
-            amountPlanck: paymentIntent.amountPlanck
-          })
-        );
-      }
-
-      if (verification.readback?.hasPaid) {
-        setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      }
-
-      if (!verification.ok) {
-        setTransactionFeedback({
-          tone: 'error',
-          title: 'Payment included, access not verified',
-          message: buildIncludedPaymentUnverifiedMessage({
-            attempts: verification.attempts,
-            error: verification.error,
-            productCdm: runtimeAdapterConfig.kind === 'product-cdm'
-          }),
-          txHash,
-          facts: buildClassicSupportFacts(track, paymentIntent.asset, 'included-unverified')
-        });
-        return;
-      }
-
-      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setTransactionFeedback(buildClassicAccessVerifiedFeedback(track, txHash, paymentIntent.asset));
-      if (shouldRestoreUnlockedTrack()) {
-        navigateToView('player');
-        await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
-      }
-    } catch (payError) {
-      const message = payError instanceof Error ? payError.message : 'Payment failed';
-      if (includedTxHash) {
-        setTransactionFeedback({
-          tone: 'error',
-          title: 'Payment included, access not verified',
-          message: `The payment transaction was included, but Dotify could not complete access verification: ${message}`,
-          txHash: includedTxHash,
-          facts: buildClassicSupportFacts(track, paymentIntent.asset, 'included-unverified')
-        });
-        return;
-      }
-      const canceled = isUserRejectedSupportError(payError);
+    if (!currentAccount()) {
       setTransactionFeedback({
         tone: 'error',
-        title: canceled ? 'Support canceled' : 'Payment failed',
-        message: canceled ? 'No payment was sent. You can review the amount and recipients before trying again.' : message,
-        facts: buildClassicSupportFacts(track, paymentIntent.asset, canceled ? 'canceled' : 'failed')
+        title: 'Account changed',
+        message: 'Your payment reference is kept in this tab. Reconnect the original account and check access before paying again.',
+        txHash: result.txHash
       });
+      return;
     }
+    if (result.verification && runtimeAdapterConfig.kind === 'product-cdm' && result.txHash) {
+      publishProductCdmPaymentSmokeMetric(
+        buildProductCdmPaymentSmokeMetric({
+          verification: result.verification,
+          txHash: result.txHash,
+          runtimeAddress: paymentIntent.runtimeAddress,
+          contentHash: paymentIntent.contentHash,
+          listenerAddress: listenerEvmAddress!,
+          amountPlanck: result.amountPlanck ?? paymentIntent.amountPlanck
+        })
+      );
+    }
+    const receiptTrack = result.amountPlanck === undefined ? track : { ...track, pricePlanck: result.amountPlanck };
+    const receiptAsset = { ...paymentIntent.asset, symbol: result.assetSymbol ?? paymentIntent.asset.symbol };
+    if (result.status === 'verified' || result.verification?.readback?.hasPaid || result.hasPaid) {
+      setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+    }
+    if (result.status === 'verified' || result.status === 'existing-access') {
+      if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) e2eClassicAccessGrantedRef.current = true;
+      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+      setTransactionFeedback(
+        result.status === 'verified'
+          ? buildClassicAccessVerifiedFeedback(receiptTrack, result.txHash, receiptAsset)
+          : { tone: 'success', title: 'Listening access available', message: 'This account can already listen. No payment was sent.' }
+      );
+      if (shouldRestoreUnlockedTrack()) {
+        navigateToView('player');
+        try {
+          await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+        } catch {
+          setTransactionFeedback({
+            tone: 'error',
+            title: 'Support recorded, audio unavailable',
+            message: 'Your access is verified. Reopen the track to try loading the audio again; no new payment is needed.',
+            txHash: result.txHash
+          });
+        }
+      }
+      return;
+    }
+    const recoverable = result.status === 'unverified' || result.status === 'uncertain';
+    setTransactionFeedback({
+      tone: 'error',
+      title:
+        result.status === 'canceled'
+          ? 'Support canceled'
+          : result.status === 'unverified'
+            ? 'Listening access not verified'
+            : result.status === 'uncertain'
+              ? 'Payment status needs checking'
+              : 'Support could not start',
+      message:
+        result.status === 'uncertain'
+          ? 'Confirmation was interrupted. Your payment may still complete. Check access here and your account activity in Polkadot App or your wallet before paying again.'
+          : result.message || 'Listening is not available yet.',
+      txHash: result.txHash,
+      facts: buildClassicSupportFacts(receiptTrack, receiptAsset, recoverable ? 'included-unverified' : result.status === 'canceled' ? 'canceled' : 'failed'),
+      recoveryAction: recoverable
+        ? {
+            label: 'Check access again',
+            run: () => {
+              if (!currentAccount()) {
+                setTransactionFeedback({
+                  tone: 'error',
+                  title: 'Account changed',
+                  message: 'Reconnect the account used for this support before checking its access.'
+                });
+                return;
+              }
+              void payForTrackAccess(track, socketEmit, setLocalStreamReady, closeHostPeers, true);
+            }
+          }
+        : undefined
+    });
   }
 
   async function fetchRuntimeCatalog(reader: RuntimeReadPort, artistAddress: `0x${string}`, runtimeAddress: `0x${string}`): Promise<RegistryCatalogTrack[]> {
@@ -1462,6 +1436,10 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   return {
+    resolveArtistForDonation: (track: CatalogTrack) =>
+      isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id
+        ? Promise.resolve({ name: track.artist, recipient: E2E_CLASSIC_TRACK.artistAddress!, releaseTitle: track.title })
+        : resolveDonationArtist(track, runtimeReader),
     // State
     catalogTracks,
     allCatalogTracks,

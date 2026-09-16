@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   DOTIFY_CASH_ASSET,
   DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
   cashSettlementUnavailableReason,
   classicTrackPaymentAmountPlanck,
   createNativeRuntimeAccessPaymentIntent,
+  createRuntimeNativeAccessPaymentIntent,
   createUnsupportedCashAccessPaymentIntent,
   nativeRuntimeAmountLabel,
   nativeRuntimePaymentAssetFromChain
@@ -49,6 +50,47 @@ describe('payment model', () => {
       contentHash,
       amountPlanck: 42n
     });
+  });
+
+  it('uses the already resolved asset for Product support without requiring an EVM RPC read', async () => {
+    const resolveChain = vi.fn(async () => {
+      throw new Error('RPC unavailable');
+    });
+
+    await expect(
+      createRuntimeNativeAccessPaymentIntent({
+        runtimeAddress,
+        contentHash,
+        amountPlanck: 42n,
+        adapterKind: 'product-cdm',
+        currentAsset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
+        resolveChain
+      })
+    ).resolves.toMatchObject({
+      asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
+      amountPlanck: 42n,
+      contentHash,
+      runtimeAddress
+    });
+    expect(resolveChain).not.toHaveBeenCalled();
+  });
+
+  it('keeps resolving the chain asset for direct Viem support', async () => {
+    const resolveChain = vi.fn(async () => ({ nativeCurrency: { name: 'Paseo', symbol: 'PAS', decimals: 18 } }));
+
+    await expect(
+      createRuntimeNativeAccessPaymentIntent({
+        runtimeAddress,
+        contentHash,
+        amountPlanck: 42n,
+        adapterKind: 'viem',
+        currentAsset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
+        resolveChain
+      })
+    ).resolves.toMatchObject({
+      asset: nativeAsset
+    });
+    expect(resolveChain).toHaveBeenCalledTimes(1);
   });
 
   it('fails closed before submitting zero-value Classic unlock payments', () => {

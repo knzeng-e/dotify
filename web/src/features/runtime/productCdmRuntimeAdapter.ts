@@ -76,8 +76,10 @@ export type ProductCdmRuntimeAdapterDeps = {
 };
 
 export class ProductCdmRuntimeError extends Error {
-  constructor(message: string) {
+  readonly cause: unknown;
+  constructor(message: string, options?: { cause?: unknown }) {
     super(message);
+    this.cause = options?.cause;
     this.name = 'ProductCdmRuntimeError';
   }
 }
@@ -266,7 +268,10 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeAdapterDeps
     // the viem writer's sibling `value` field. Only native runtime intents are
     // accepted here; Product CASH settlement needs a separate receipt path.
     payForAccess(intent) {
-      return txContract(deps.contracts.getRuntimeContract(intent.runtimeAddress), 'musicRoyPayAccess', [intent.contentHash, { value: intent.amountPlanck }]);
+      return txContract(deps.contracts.getRuntimeContract(intent.runtimeAddress), 'musicRoyPayAccess', [
+        intent.contentHash,
+        { value: intent.amountPlanck, waitFor: 'finalized' }
+      ]);
     },
 
     claimRoyalty(runtimeAddress, recipientAddress) {
@@ -286,6 +291,8 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeAdapterDeps
       return txContract(deps.contracts.getRuntimeContract(runtimeAddress), active ? 'musicRegReactivate' : 'musicRegDeactivate', [contentHash]);
     },
 
+    // Access payments explicitly await finalization above. Other writes use the
+    // SDK default inclusion boundary. This method does not submit a second tx.
     // Intentionally a no-op, and safe by construction: `.tx()` resolves at
     // best-block by default and its `TxResult` carries the including block, so
     // txContract has already awaited inclusion by the time it returns a hash.
@@ -339,7 +346,7 @@ async function txContract(contract: ProductCdmContractHandle, methodName: string
 
   const result = await method.tx(...args);
   if (!result.ok) {
-    throw new ProductCdmRuntimeError(`Product CDM transaction "${methodName}" failed: ${formatUnknown(result.error)}`);
+    throw new ProductCdmRuntimeError(`Product CDM transaction "${methodName}" failed: ${formatUnknown(result.error)}`, { cause: result.error });
   }
   if (!result.value.ok) {
     throw new ProductCdmRuntimeError(`Product CDM transaction "${methodName}" was rejected by the runtime: ${formatUnknown(result.value.dispatchError)}`);

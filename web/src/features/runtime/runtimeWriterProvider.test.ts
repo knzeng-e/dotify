@@ -188,6 +188,29 @@ describe('createRuntimeWriter', () => {
     expect(getViemWalletClient).not.toHaveBeenCalled();
   });
 
+  it('reconnects after an initial host setup failure without caching a rejected writer forever', async () => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    const { signerManager } = mockProductSigner();
+    signerManager.connect.mockRejectedValueOnce(new Error('Host unavailable'));
+    const resolver = {};
+    vi.doMock('./productCdmContracts', () => ({
+      createProductCdmContracts: vi.fn(async () => ({ resolver, verifyDeployment: vi.fn(async () => undefined) }))
+    }));
+    vi.resetModules();
+    const createRuntimeWriter = await loadProvider();
+    const writer = createRuntimeWriter({
+      ethRpcUrl: 'https://rpc.example',
+      getViemWalletClient: vi.fn(async () => ({}) as never),
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
+    });
+    await expect(writer.payForAccess(accessIntent(1n))).rejects.toMatchObject({ name: 'SupportNotSubmittedError' });
+    expect(productWriter.payForAccess).not.toHaveBeenCalled();
+    expect(signerManager.destroy).toHaveBeenCalledTimes(1);
+    await expect(writer.payForAccess(accessIntent(1n))).resolves.toBe(txHash);
+    expect(signerManager.connect).toHaveBeenCalledTimes(2);
+    expect(productWriter.payForAccess).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects Product writes when the host signer is not the connected Product account', async () => {
     vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
     const { signerManager } = mockProductSigner(productAccount(differentProductPublicKey));
