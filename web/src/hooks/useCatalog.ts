@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
 import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
-import { formatWeiAsDot } from '../shared/utils/format';
+import { formatWeiAsDot, shorten, shortenAddress } from '../shared/utils/format';
 import {
   LEGACY_CONTENT_KEY_VERSION,
   isKeyServiceConfigured,
@@ -80,6 +80,7 @@ import type {
   RoomPlaybackMode,
   TrackInfo,
   TransactionFeedback,
+  TransactionFeedbackFact,
   View
 } from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
@@ -513,6 +514,56 @@ export function useCatalog(deps: UseCatalogDeps) {
   // discovery surface.
   function buildAccessGateInfo(track: CatalogTrack): AccessGate {
     return buildAccessGate({ track, connected: Boolean(connectedWallet), nativePaymentAsset: nativeRuntimePaymentAsset });
+  }
+
+  function buildSupportAccountFacts(): TransactionFeedbackFact[] {
+    if (!connectedWallet || !listenerEvmAddress) return [];
+
+    if (connectedWallet.method === 'product-host') {
+      const facts: TransactionFeedbackFact[] = [
+        {
+          label: 'Paying as',
+          value: connectedWallet.displayName ?? connectedWallet.label
+        },
+        {
+          label: 'Fund this address',
+          value: shortenAddress(listenerEvmAddress),
+          code: true,
+          copyValue: listenerEvmAddress,
+          copyLabel: 'Copy address to fund'
+        }
+      ];
+
+      if (connectedWallet.substrateAddress) {
+        facts.push({
+          label: 'Polkadot account',
+          value: shorten(connectedWallet.substrateAddress, 10),
+          code: true,
+          copyValue: connectedWallet.substrateAddress,
+          copyLabel: 'Copy Polkadot account'
+        });
+      }
+
+      return facts;
+    }
+
+    return [
+      {
+        label: 'Paying wallet',
+        value: shortenAddress(listenerEvmAddress),
+        code: true,
+        copyValue: listenerEvmAddress,
+        copyLabel: 'Copy paying wallet'
+      }
+    ];
+  }
+
+  function buildSupportFacts(
+    track: CatalogTrack,
+    asset: typeof nativeRuntimePaymentAsset,
+    status: Parameters<typeof buildClassicSupportFacts>[2]
+  ): TransactionFeedbackFact[] {
+    return [...buildSupportAccountFacts(), ...buildClassicSupportFacts(track, asset, status)];
   }
 
   /**
@@ -1106,7 +1157,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         tone: 'error',
         title: 'Payment signer unavailable',
         message: walletRequirement || 'Reconnect your account before supporting this track.',
-        facts: buildClassicSupportFacts(track, nativeRuntimePaymentAsset, 'failed')
+        facts: buildSupportFacts(track, nativeRuntimePaymentAsset, 'failed')
       });
       return;
     }
@@ -1171,7 +1222,7 @@ export function useCatalog(deps: UseCatalogDeps) {
               ? `Review ${formatEther(paymentIntent.amountPlanck)} ${paymentIntent.asset.symbol} for “${track.title}” in the confirmation request.`
               : 'Keep this page open. Dotify checks your access before opening the full track.',
           txHash,
-          facts: stage === 'approval' ? buildClassicSupportFacts(track, paymentIntent.asset, 'pending') : undefined
+          facts: stage === 'approval' ? buildSupportFacts(track, paymentIntent.asset, 'pending') : undefined
         });
       }
     });
@@ -1206,7 +1257,10 @@ export function useCatalog(deps: UseCatalogDeps) {
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       setTransactionFeedback(
         result.status === 'verified'
-          ? buildClassicAccessVerifiedFeedback(receiptTrack, result.txHash, receiptAsset)
+          ? {
+              ...buildClassicAccessVerifiedFeedback(receiptTrack, result.txHash, receiptAsset),
+              facts: buildSupportFacts(receiptTrack, receiptAsset, 'confirmed')
+            }
           : { tone: 'success', title: 'Listening access available', message: 'This account can already listen. No payment was sent.' }
       );
       if (shouldRestoreUnlockedTrack()) {
@@ -1240,7 +1294,7 @@ export function useCatalog(deps: UseCatalogDeps) {
           ? 'Confirmation was interrupted. Your payment may still complete. Check access here and your account activity in Polkadot App or your wallet before paying again.'
           : result.message || 'Listening is not available yet.',
       txHash: result.txHash,
-      facts: buildClassicSupportFacts(receiptTrack, receiptAsset, recoverable ? 'included-unverified' : result.status === 'canceled' ? 'canceled' : 'failed'),
+      facts: buildSupportFacts(receiptTrack, receiptAsset, recoverable ? 'included-unverified' : result.status === 'canceled' ? 'canceled' : 'failed'),
       recoveryAction: recoverable
         ? {
             label: 'Check access again',

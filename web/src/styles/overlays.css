@@ -175,9 +175,38 @@
 }
 
 .transaction-facts dd {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
   color: var(--ink);
   text-align: right;
   overflow-wrap: anywhere;
+}
+
+.transaction-fact-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.transaction-fact-copy {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.7rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.2rem 0.45rem;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--panel) 78%, transparent);
+  font-size: var(--text-2xs);
+}
+
+.transaction-fact-copy:hover,
+.transaction-fact-copy:focus-visible {
+  border-color: color-mix(in srgb, var(--signal) 52%, var(--line));
+  color: var(--ink);
 }
 
 .transaction-facts code,
@@ -863,7 +892,6 @@
   color: var(--muted);
   overflow-wrap: anywhere;
 }
-
 
 .artist-gift-dialog {
   display: grid;

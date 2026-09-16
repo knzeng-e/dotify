@@ -691,6 +691,7 @@
 
   .transaction-facts dd,
   .release-fact-panel dd {
+    justify-content: flex-start;
     text-align: left;
   }
 
