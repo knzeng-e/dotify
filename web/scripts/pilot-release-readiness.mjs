@@ -13,6 +13,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { normalizeIpfsCid } from './lib/ipfs-cid.mjs';
 import { buildProductDevnetJourneyReport, gitCommit, readProductDevnetSnapshot, summarizeGates } from './product-devnet-journey-harness.mjs';
 
 export const PILOT_RELEASE_SCHEMA_VERSION = 2;
@@ -102,12 +103,6 @@ function parseDateMs(value) {
 
 function isFullGitSha(value) {
   return typeof value === 'string' && /^[0-9a-f]{40}$/i.test(value);
-}
-
-function isCidLike(value) {
-  if (typeof value !== 'string') return false;
-  const cid = value.trim().replace(/^ipfs:\/\//i, '');
-  return cid.length >= 20 && /^[a-z0-9]+$/i.test(cid);
 }
 
 function versionText(appVersion) {
@@ -338,7 +333,7 @@ function validatePilotCandidate(pilotEvidence, context = {}) {
   const candidate = pilotEvidence?.candidate;
   const expectedCommit = typeof context.commit === 'string' && context.commit !== 'unknown' ? context.commit : null;
   const expectedAppVersion = versionText(context.productAppVersion);
-  const expectedDeployedCid = typeof context.deployedCid === 'string' && context.deployedCid.trim() ? context.deployedCid.trim() : null;
+  const expectedDeployedCid = normalizeIpfsCid(context.deployedCid);
   const generatedAtMs = parseDateMs(context.generatedAt) ?? Date.now();
   const problems = [];
 
@@ -362,10 +357,11 @@ function validatePilotCandidate(pilotEvidence, context = {}) {
     problems.push(`candidate.productAppVersion ${candidateVersion} does not match ${expectedAppVersion}`);
   }
 
-  if (!isCidLike(candidate.deployedCid)) {
-    problems.push('candidate.deployedCid must be an IPFS CID for the deployed candidate');
-  } else if (expectedDeployedCid && candidate.deployedCid.replace(/^ipfs:\/\//i, '') !== expectedDeployedCid.replace(/^ipfs:\/\//i, '')) {
-    problems.push(`candidate.deployedCid ${candidate.deployedCid} does not match ${expectedDeployedCid}`);
+  const candidateCid = normalizeIpfsCid(candidate.deployedCid);
+  if (!candidateCid) {
+    problems.push('candidate.deployedCid must be a valid IPFS CID for the deployed candidate');
+  } else if (expectedDeployedCid && candidateCid !== expectedDeployedCid) {
+    problems.push(`candidate.deployedCid ${candidateCid} does not match ${expectedDeployedCid}`);
   }
 
   const capturedAtMs = parseDateMs(candidate.capturedAt);
@@ -670,7 +666,7 @@ function buildInventory(snapshot) {
 export function evidenceDeployedCid(evidence) {
   if (evidence?.schemaVersion !== 2) return null;
   const candidateCid = evidence?.candidate?.deployedCid;
-  return isCidLike(candidateCid) ? candidateCid.replace(/^ipfs:\/\//i, '') : null;
+  return normalizeIpfsCid(candidateCid);
 }
 
 export function buildPilotReleaseReport(input) {

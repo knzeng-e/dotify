@@ -21,6 +21,7 @@ const CONTENT_HASH = `0x${'ab'.repeat(32)}`;
 const TX_HASH = `0x${'cd'.repeat(32)}`;
 const CANDIDATE_SHA = '1234567890abcdef1234567890abcdef12345678';
 const DEPLOYED_CID = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3ooqb5x4nqyd7bkhzbr6f5o4e';
+const OTHER_DEPLOYED_CID = 'QmYwAPJzv5CZsnAzt8auVZRnGi2C19Rhdm9zYgC5xA7a7H';
 const APP_VERSION = '[0, 1, 20]';
 
 function lockfile() {
@@ -314,12 +315,25 @@ test('static gates fail when the configured HTTPS RPC is not the Product DevNet 
   assert.equal(report.staticGates.find(gate => gate.id === 'asset-hub-rpc')?.status, 'fail');
 });
 
+test('Product evidence rejects a CID-shaped string that is not a valid CID', () => {
+  const evidence = completeSmokeEvidence();
+  evidence.candidate.deployedCid = 'bafy0000000000000000';
+  evidence.context.deployedCid = 'bafy0000000000000000';
+  const gates = evaluateProductCdmSmokeEvidence(evidence, {
+    commit: CANDIDATE_SHA,
+    appVersion: [0, 1, 20],
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(gates.find(gate => gate.id === 'smoke-candidate')?.status, 'fail');
+});
+
 test('room evidence fails when its deployed CID differs from the Product payment evidence', () => {
   const report = buildProductDevnetJourneyReport({
     snapshot: staticSnapshot(),
     productSmokeEvidence: completeSmokeEvidence(),
     roomEvidence: completeRoomEvidence({
-      candidate: { gitSha: CANDIDATE_SHA, productAppVersion: APP_VERSION, deployedCid: 'bafybeiffffffffffffffffffffffffffffffffffffffffffffffffffff' }
+      candidate: { gitSha: CANDIDATE_SHA, productAppVersion: APP_VERSION, deployedCid: OTHER_DEPLOYED_CID }
     }),
     commit: CANDIDATE_SHA,
     generatedAt: '2026-09-13T10:00:00.000Z'

@@ -59,6 +59,7 @@
 		"@vitejs/plugin-react": "^4.3.4",
 		"engine.io-client": "6.6.6",
 		"lucide-react": "^1.8.0",
+		"multiformats": "14.0.5",
 		"pinata": "^2.5.5",
 		"polkadot-api": "^1.23.3",
 		"qrcode": "^1.5.4",

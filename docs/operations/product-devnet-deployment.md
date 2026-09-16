@@ -616,10 +616,16 @@ npm run deploy:product-devnet
    this account** with Product DevNet PAS; the derived H160 is the runtime
    identity used for access read-back, not a second account to refill.
 
-   Use a funded Product account that has
-   not already paid for the target Classic track. Do not use this as the
-   default `dotify-test01.dot` release gate until it has passed once end to
-   end. Verify:
+   Before the payment attempt, open `You` -> `Production readiness` ->
+   `Product CDM host smoke`, paste the executable CID printed by that exact
+   deployment, and select **Use this deployment**. This starts a fresh
+   candidate-bound capture. The panel ignores legacy v1 storage, rejects
+   malformed CIDs with the standards-compliant IPFS parser, and clears events
+   whenever SHA, Product appVersion, or CID changes.
+
+   Use a funded Product account that has not already paid for the target
+   Classic track. Do not use this as the default `dotify-test01.dot` release
+   gate until it has passed once end to end. Verify:
    - the connected Dotify Product account and the host-selected signer expose
      the same public key;
    - deriving `pallet-revive` H160 from that public key gives the same H160
@@ -637,11 +643,12 @@ npm run deploy:product-devnet
      and `ok`;
    - the backend then releases the full key through the same Product identity.
 
-   After the unlock attempt, open `You` -> `Production readiness` -> `Product
-   CDM host smoke`, paste the executable CID printed by that exact deployment,
-   mark **Host approval prompt captured** if the host showed an explicit
-   transaction approval, then copy or download the smoke JSON. The
-   JSON is stored only in browser session storage and deliberately excludes
+   After the unlock attempt, return to the candidate-bound `Product CDM host
+   smoke` panel, mark **Host approval prompt captured** if the host showed an
+   explicit transaction approval, then copy or download the smoke JSON. Its
+   `capturedAt` is the start of that bound evidence session, not the later
+   export time. The JSON is stored only in browser session storage and
+   deliberately excludes
    content keys, signatures, nonces, and session tokens. It includes
    browser-safe candidate identity (`gitSha`, Product app version, deployed CID,
    public app URL, and CDM registry) so the local harness can reject missing,

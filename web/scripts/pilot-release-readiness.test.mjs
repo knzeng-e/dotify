@@ -4,7 +4,8 @@ import test from 'node:test';
 import { evidenceDeployedCid, evaluatePilotEvidence, PILOT_RELEASE_SCHEMA_VERSION } from './pilot-release-readiness.mjs';
 
 const CANDIDATE_SHA = '1234567890abcdef1234567890abcdef12345678';
-const DEPLOYED_CID = 'bafybeigdyrztxylm7b6f3v7uxx4pjv7k4n3m5q2p4w6r8t9y0abcde';
+const DEPLOYED_CID = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3ooqb5x4nqyd7bkhzbr6f5o4e';
+const OTHER_DEPLOYED_CID = 'QmYwAPJzv5CZsnAzt8auVZRnGi2C19Rhdm9zYgC5xA7a7H';
 const CAPTURED_AT = '2026-09-13T12:00:00.000Z';
 const REPORT_CONTEXT = {
   commit: CANDIDATE_SHA,
@@ -116,7 +117,7 @@ test('pilot decision is rejected when candidate identity does not match the repo
       candidate: {
         gitSha: 'abcdefabcdefabcdefabcdefabcdefabcdefabcd',
         productAppVersion: '[0, 1, 17]',
-        deployedCid: 'bafybeidifferentcandidatecid000000000000000000000000',
+        deployedCid: OTHER_DEPLOYED_CID,
         capturedAt: CAPTURED_AT
       }
     }),
@@ -127,6 +128,15 @@ test('pilot decision is rejected when candidate identity does not match the repo
   assert.equal(gates.find(gate => gate.id === 'go-no-go-record')?.status, 'fail');
 });
 
+test('pilot evidence rejects CID-shaped values that are not valid CIDs', () => {
+  const gates = evaluatePilotEvidence(validPilotEvidence({ candidate: { ...validPilotEvidence().candidate, deployedCid: 'bafy0000000000000000' } }), {
+    ...REPORT_CONTEXT,
+    deployedCid: null
+  });
+
+  assert.equal(gates.find(gate => gate.id === 'pilot-candidate-identity')?.status, 'fail');
+});
+
 test('pilot evidence rejects impossible join counts before computing the rate', () => {
   const gates = evaluatePilotEvidence(validPilotEvidence({ joinAttempts: { observed: 20, successful: 21 } }), REPORT_CONTEXT);
 
@@ -134,7 +144,7 @@ test('pilot evidence rejects impossible join counts before computing the rate', 
 });
 
 test('schema-v2 candidate CID is the only deployment identity used downstream', () => {
-  const legacyOverride = 'bafybeilegacyoverride00000000000000000000000000000000000';
+  const legacyOverride = OTHER_DEPLOYED_CID;
   assert.equal(
     evidenceDeployedCid({
       schemaVersion: 2,

@@ -12,6 +12,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { normalizeIpfsCid } from './lib/ipfs-cid.mjs';
+
 export const PRODUCT_JOURNEY_SCHEMA_VERSION = 1;
 export const EXPECTED_PRODUCT_DEVNET = {
   productId: 'dotify-test01.dot',
@@ -132,12 +134,6 @@ function isFullGitSha(value) {
   return typeof value === 'string' && /^[0-9a-f]{40}$/i.test(value);
 }
 
-function isCidLike(value) {
-  if (typeof value !== 'string') return false;
-  const cid = value.trim().replace(/^ipfs:\/\//i, '');
-  return cid.length >= 20 && /^(?:bafy|Qm)[a-z0-9]+$/i.test(cid);
-}
-
 function parseDateMs(value) {
   if (typeof value !== 'string') return null;
   const parsed = Date.parse(value);
@@ -148,10 +144,6 @@ function versionText(appVersion) {
   if (Array.isArray(appVersion) && appVersion.every(part => Number.isInteger(part) && part >= 0)) return `[${appVersion.join(', ')}]`;
   if (typeof appVersion === 'string' && /^\[\d+(?:, \d+)*\]$/.test(appVersion.trim())) return appVersion.trim();
   return null;
-}
-
-function normalizedCid(value) {
-  return typeof value === 'string' ? value.trim().replace(/^ipfs:\/\//i, '') : '';
 }
 
 function sameValue(left, right) {
@@ -467,12 +459,12 @@ export function evaluateProductCdmSmokeEvidence(evidence, options = {}) {
   else if (expectedVersion && candidateVersion !== expectedVersion) {
     candidateProblems.push(`candidate.productAppVersion ${candidateVersion} does not match ${expectedVersion}`);
   }
-  if (!isCidLike(candidate.deployedCid)) candidateProblems.push('candidate.deployedCid must be the deployed executable IPFS CID');
+  const candidateCid = normalizeIpfsCid(candidate.deployedCid);
+  if (!candidateCid) candidateProblems.push('candidate.deployedCid must be a valid IPFS CID');
   if (candidate.gitSha !== context.buildSha) candidateProblems.push('candidate.gitSha does not match context.buildSha');
   if (candidateVersion !== context.productAppVersion) candidateProblems.push('candidate.productAppVersion does not match context.productAppVersion');
-  if (normalizedCid(candidate.deployedCid) !== normalizedCid(context.deployedCid)) {
-    candidateProblems.push('candidate.deployedCid does not match context.deployedCid');
-  }
+  const contextCid = normalizeIpfsCid(context.deployedCid);
+  if (candidateCid !== contextCid) candidateProblems.push('candidate.deployedCid does not match context.deployedCid');
   if (candidateProblems.length === 0) {
     pass(gates, 'smoke-candidate', 'Deployed candidate', `${candidate.gitSha} ${candidateVersion} deployed as ${candidate.deployedCid}.`, 'Product host JSON');
   } else {
@@ -621,7 +613,7 @@ export function evaluateRoomJourneyEvidence(roomEvidence, options = {}) {
   const publicAppUrl = normalizedOptions.publicAppUrl ?? EXPECTED_PRODUCT_DEVNET.publicAppUrl;
   const expectedCommit = typeof normalizedOptions.commit === 'string' && normalizedOptions.commit !== 'unknown' ? normalizedOptions.commit : null;
   const expectedVersion = versionText(normalizedOptions.appVersion);
-  const expectedCid = normalizedCid(normalizedOptions.deployedCid);
+  const expectedCid = normalizeIpfsCid(normalizedOptions.deployedCid);
   if (!roomEvidence) {
     notRun(
       gates,
@@ -649,8 +641,9 @@ export function evaluateRoomJourneyEvidence(roomEvidence, options = {}) {
   else if (expectedVersion && candidateVersion !== expectedVersion) {
     candidateProblems.push(`candidate.productAppVersion ${candidateVersion} does not match ${expectedVersion}`);
   }
-  if (!isCidLike(candidate.deployedCid)) candidateProblems.push('candidate.deployedCid must be the deployed executable IPFS CID');
-  else if (expectedCid && normalizedCid(candidate.deployedCid) !== expectedCid) {
+  const candidateCid = normalizeIpfsCid(candidate.deployedCid);
+  if (!candidateCid) candidateProblems.push('candidate.deployedCid must be a valid IPFS CID');
+  else if (expectedCid && candidateCid !== expectedCid) {
     candidateProblems.push(`candidate.deployedCid ${candidate.deployedCid} does not match ${normalizedOptions.deployedCid}`);
   }
   if (candidateProblems.length === 0) {
