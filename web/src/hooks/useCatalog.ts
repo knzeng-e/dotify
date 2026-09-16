@@ -524,25 +524,26 @@ export function useCatalog(deps: UseCatalogDeps) {
         {
           label: 'Paying as',
           value: connectedWallet.displayName ?? connectedWallet.label
-        },
-        {
-          label: 'Fund this address',
-          value: shortenAddress(listenerEvmAddress),
-          code: true,
-          copyValue: listenerEvmAddress,
-          copyLabel: 'Copy address to fund'
         }
       ];
 
       if (connectedWallet.substrateAddress) {
         facts.push({
-          label: 'Polkadot account',
+          label: 'Fund this account',
           value: shorten(connectedWallet.substrateAddress, 10),
           code: true,
           copyValue: connectedWallet.substrateAddress,
-          copyLabel: 'Copy Polkadot account'
+          copyLabel: 'Copy account to fund'
         });
       }
+
+      facts.push({
+        label: 'Runtime identity',
+        value: shortenAddress(listenerEvmAddress),
+        code: true,
+        copyValue: listenerEvmAddress,
+        copyLabel: 'Copy runtime identity'
+      });
 
       return facts;
     }

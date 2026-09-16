@@ -209,6 +209,21 @@
   color: var(--ink);
 }
 
+.transaction-copy-status {
+  margin: 0.85rem 0 0;
+  border: 1px solid color-mix(in srgb, var(--signal) 28%, var(--line));
+  border-radius: 1rem;
+  padding: 0.7rem 0.85rem;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--signal) 10%, var(--panel));
+  font-size: var(--text-xs);
+}
+
+.transaction-copy-status[data-tone='error'] {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
+  background: color-mix(in srgb, var(--danger) 12%, var(--panel));
+}
+
 .transaction-facts code,
 .transaction-facts a {
   color: inherit;

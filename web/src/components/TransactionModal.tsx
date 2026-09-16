@@ -1,5 +1,5 @@
 import { CircleAlert, CircleCheckBig, Copy, Disc3, X } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Dialog } from './Dialog';
 import { getBlockscoutTxUrl } from '../shared/utils/explorer';
 import { shorten } from '../shared/utils/format';
@@ -7,7 +7,13 @@ import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
 import type { TransactionFeedback } from '../shared/types';
 
 export function TransactionModal() {
-  const { transactionFeedback: feedback, setTransactionFeedback, pushNotice } = useUiFeedback();
+  const { transactionFeedback: feedback, setTransactionFeedback } = useUiFeedback();
+  const [copyStatus, setCopyStatus] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    setCopyStatus(null);
+  }, [feedback]);
+
   if (!feedback) return null;
 
   const roadmapProgress = feedback.steps ? getRoadmapProgress(feedback.steps) : 0;
@@ -24,9 +30,9 @@ export function TransactionModal() {
   async function copyFactValue(label: string, value: string) {
     try {
       await navigator.clipboard.writeText(value);
-      pushNotice({ tone: 'success', title: 'Copied', message: `${label} is on your clipboard.` });
+      setCopyStatus({ tone: 'success', message: `${label} copied.` });
     } catch {
-      pushNotice({ tone: 'error', title: 'Copy failed', message: 'The browser blocked clipboard access.' });
+      setCopyStatus({ tone: 'error', message: 'Copy failed. The browser blocked clipboard access.' });
     }
   }
 
@@ -85,6 +91,11 @@ export function TransactionModal() {
             </div>
           ))}
         </dl>
+      )}
+      {copyStatus && (
+        <p className='transaction-copy-status' data-tone={copyStatus.tone} role='status' aria-live='polite'>
+          {copyStatus.message}
+        </p>
       )}
       {feedback.steps && feedback.steps.length > 0 && (
         <ol className='transaction-roadmap' style={roadmapStyle} aria-label='Transaction approval roadmap'>
