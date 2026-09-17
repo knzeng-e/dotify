@@ -188,7 +188,7 @@ struct TrackData {
     string artistContractRef;
     uint256 royaltyBps;
     uint8 accessMode;         // 0 = human-free, 1 = classic
-    uint256 pricePlanck;       // Historical name; value is 18-decimal native token units.
+    uint256 pricePlanck;       // Historical name; value is 18-decimal EVM contract units.
     uint8 requiredPersonhood; // 0 = none, 1 = DIM1, 2 = DIM2
 }
 
@@ -466,9 +466,18 @@ chain's native currency (`PAS` on chain `420420417`).
 
 | Format                         | Example                   |
 | ------------------------------ | ------------------------- |
-| Native display amount          | `0.5`                     |
-| Stored value / EVM `msg.value` | `500_000_000_000_000_000` |
+| Native display amount                    | `0.5`                     |
+| Stored value / EVM `msg.value`           | `500_000_000_000_000_000` |
+| Paseo `Revive.call.value` (10 decimals)   | `5_000_000_000`           |
 
 Frontend conversion: `src/utils/format.ts` → `dotToPlanck()` for input and
 `formatWeiAsDot()` for display. The `dotToPlanck()` function name is legacy; it
-returns 18-decimal native units via `parseEther()`.
+returns 18-decimal EVM contract units via `parseEther()`.
+
+The viem adapter sends the stored value directly as EVM `msg.value`. The Product
+CDM adapter submits a native `pallet-revive` extrinsic instead, so it reads the
+connected chain's `tokenDecimals` and divides only `Revive.call.value` by
+`10^(18 - tokenDecimals)`. The pallet expands that native Balance back to the
+same 18-decimal EVM value before contract execution. The adapter rejects values
+that cannot be represented exactly; stored `pricePlanck` ABI arguments are never
+rescaled.

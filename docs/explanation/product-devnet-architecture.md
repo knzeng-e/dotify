@@ -217,9 +217,12 @@ payment intent first: asset symbol derived from the configured EVM chain
 DOT-backed Polkadot Hub EVM chain), rail
 `runtime-native`, runtime address, content hash, and 18-decimal native amount.
 The amount comes from the runtime or catalog API `pricePlanck` value when
-available; `priceDot` is only the rounded display string. The viem and Product
-CDM adapters both submit that same intent as `musicRoyPayAccess(contentHash)`
-plus `msg.value`.
+available; `priceDot` is only the rounded display string. The viem adapter sends
+that 18-decimal value directly as EVM `msg.value`. Product CDM builds a native
+`Revive.call` extrinsic: it reads `tokenDecimals` from the connected chain spec
+and converts only the extrinsic `value` into native Balance units. On Paseo,
+`4.2 × 10^18` contract units become `42_000_000_000` units at 10 decimals; the
+pallet restores the 18-decimal EVM value before the contract executes.
 
 CASH is represented separately as an unsupported `product-cash` rail. That is
 intentional. CASH lives on People chain while Dotify entitlements live in Asset

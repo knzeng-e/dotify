@@ -96,6 +96,8 @@ const defaultDeps: ProductCdmContractsDeps = {
 
 export type ProductCdmContracts = {
   resolver: ProductCdmRuntimeContractResolver;
+  /** Native Balance precision read from the connected Product chain spec. */
+  nativeTokenDecimals: number;
   /**
    * Confirm the connected chain actually holds Dotify's contracts. Call before
    * serving catalog reads: a wrong-chain connection otherwise looks like an
@@ -133,6 +135,16 @@ export async function createProductCdmContracts(
     throw new ProductCdmRuntimeError(
       `Product CDM mode needs a Polkadot Product host connection for the "${options.environment}" environment. Open Dotify inside the Product host, or keep the viem runtime adapter selected. Cause: ${describe(error)}`
     );
+  }
+
+  let nativeTokenDecimals: number;
+  try {
+    const spec = await client.raw.assetHub.getChainSpecData();
+    nativeTokenDecimals = productCdmNativeTokenDecimals(spec.properties);
+  } catch (error) {
+    client.destroy();
+    if (error instanceof ProductCdmRuntimeError) throw error;
+    throw new ProductCdmRuntimeError(`Product CDM could not verify the connected chain's native token precision. Cause: ${describe(error)}`);
   }
 
   const runtime = contracts.createContractRuntimeFromClient(client.raw.assetHub, descriptor);
@@ -202,7 +214,15 @@ export async function createProductCdmContracts(
     }
   }
 
-  return { resolver, verifyDeployment, destroy: () => client.destroy() };
+  return { resolver, nativeTokenDecimals, verifyDeployment, destroy: () => client.destroy() };
+}
+
+export function productCdmNativeTokenDecimals(properties: { tokenDecimals?: unknown }): number {
+  const raw = Array.isArray(properties.tokenDecimals) && properties.tokenDecimals.length === 1 ? properties.tokenDecimals[0] : properties.tokenDecimals;
+  if (!Number.isInteger(raw) || Number(raw) < 0 || Number(raw) > 18) {
+    throw new ProductCdmRuntimeError('Product CDM needs one verified native token precision between 0 and 18. No payment was prepared.');
+  }
+  return Number(raw);
 }
 
 function describe(error: unknown): string {

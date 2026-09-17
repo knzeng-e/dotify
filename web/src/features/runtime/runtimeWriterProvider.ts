@@ -7,7 +7,7 @@
 
 import { SupportNotSubmittedError } from '../payments/supportPayment';
 import type { getWalletClient } from '../../shared/config/contracts';
-import { createProductCdmRuntimeWriter } from './productCdmRuntimeAdapter';
+import { createProductCdmRuntimeWriter, productCdmPaymentWasNotSubmitted } from './productCdmRuntimeAdapter';
 import { resolveRuntimeAdapterConfig, type RuntimeAdapterConfig } from './runtimeAdapterConfig';
 import type { RuntimeAccessPolicyUpdate, RuntimeTrackRegistration, RuntimeWritePort } from './runtimePorts';
 import { createViemRuntimeWriter } from './viemRuntimeAdapter';
@@ -141,9 +141,12 @@ async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccou
   const { createProductCdmContracts } = await import('./productCdmContracts');
   const signerManager = await createProductSignerManager(productAccount);
   try {
-    const { resolver, verifyDeployment } = await createProductCdmContracts({ environment: config.productEnvironment, signerManager });
+    const { resolver, nativeTokenDecimals, verifyDeployment } = await createProductCdmContracts({
+      environment: config.productEnvironment,
+      signerManager
+    });
     await verifyDeployment();
-    return createProductCdmRuntimeWriter({ contracts: resolver });
+    return createProductCdmRuntimeWriter({ contracts: resolver, nativeTokenDecimals });
   } catch (error) {
     signerManager.destroy();
     throw error;
@@ -182,7 +185,17 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
       } catch (error) {
         throw new SupportNotSubmittedError(error);
       }
-      return port.payForAccess(intent);
+      try {
+        return await port.payForAccess(intent);
+      } catch (error) {
+        // Product contract sizing uses a dry-run before signing/submission. A
+        // documented pre-submit failure is safe to clear from the local payment
+        // journal; timeout/dispatch failures remain uncertain and are not retried.
+        if (config.kind === 'product-cdm' && productCdmPaymentWasNotSubmitted(error)) {
+          throw new SupportNotSubmittedError(error);
+        }
+        throw error;
+      }
     },
     claimRoyalty: (runtimeAddress, recipientAddress) => portForWrite().then(port => port.claimRoyalty(runtimeAddress, recipientAddress)),
     setAccessMode: (runtimeAddress, update: RuntimeAccessPolicyUpdate) => portForWrite().then(port => port.setAccessMode(runtimeAddress, update)),

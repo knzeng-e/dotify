@@ -45,7 +45,7 @@ release diff is the application bundle and this release/evidence package.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 20]` | Keep for this candidate; bump and recapture evidence if bundle code changes |
+| Product appVersion | `[0, 1, 21]` | Publish and recapture evidence; this bundle fixes Product CDM native payment units |
 | Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -188,7 +188,7 @@ decision to the exact candidate build being evaluated:
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 20]",
+    "productAppVersion": "[0, 1, 21]",
     "deployedCid": "<default-viem-pilot-release-cid>",
     "capturedAt": "2026-09-13T12:00:00.000Z"
   },

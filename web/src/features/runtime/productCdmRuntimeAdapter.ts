@@ -75,6 +75,13 @@ export type ProductCdmRuntimeAdapterDeps = {
   directoryPageSize?: bigint;
 };
 
+export type ProductCdmRuntimeWriterDeps = ProductCdmRuntimeAdapterDeps & {
+  /** Native Balance precision used by Revive.call.value on the connected chain. */
+  nativeTokenDecimals: number;
+};
+
+const EVM_VALUE_DECIMALS = 18;
+
 export class ProductCdmRuntimeError extends Error {
   readonly cause: unknown;
   constructor(message: string, options?: { cause?: unknown }) {
@@ -89,6 +96,50 @@ export class ProductCdmRuntimeUnsupportedOperationError extends ProductCdmRuntim
     super(message);
     this.name = 'ProductCdmRuntimeUnsupportedOperationError';
   }
+}
+
+export class ProductCdmNativeValueError extends ProductCdmRuntimeError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ProductCdmNativeValueError';
+  }
+}
+
+/**
+ * Convert a Solidity `msg.value` amount into the native Balance units expected
+ * by `pallet-revive`'s extrinsic. The pallet converts that native Balance back
+ * into 18-decimal EVM value before contract execution.
+ */
+export function evmValueToNativeUnits(value: bigint, nativeTokenDecimals: number): bigint {
+  if (!Number.isInteger(nativeTokenDecimals) || nativeTokenDecimals < 0 || nativeTokenDecimals > EVM_VALUE_DECIMALS) {
+    throw new ProductCdmNativeValueError(`Product CDM cannot convert an EVM payment using invalid native token precision ${String(nativeTokenDecimals)}.`);
+  }
+  if (value < 0n) throw new ProductCdmNativeValueError('Product CDM payment value cannot be negative.');
+
+  const nativeToEvmRatio = 10n ** BigInt(EVM_VALUE_DECIMALS - nativeTokenDecimals);
+  if (value % nativeToEvmRatio !== 0n) {
+    throw new ProductCdmNativeValueError(
+      `The 18-decimal contract payment ${value.toString()} cannot be represented exactly with ${nativeTokenDecimals} native decimals. No payment was submitted.`
+    );
+  }
+  return value / nativeToEvmRatio;
+}
+
+/** True only for Product contract failures documented to happen before submit. */
+export function productCdmPaymentWasNotSubmitted(error: unknown): boolean {
+  const preSubmissionNames = new Set([
+    'ProductCdmNativeValueError',
+    'ContractSignerMissingError',
+    'ContractInvalidOriginError',
+    'ContractDryRunFailedError',
+    'ContractRevertedError'
+  ]);
+  for (let depth = 0; error && typeof error === 'object' && depth < 8; depth += 1) {
+    const item = error as { name?: string; cause?: unknown };
+    if (item.name && preSubmissionNames.has(item.name)) return true;
+    error = item.cause;
+  }
+  return false;
 }
 
 export function createProductCdmRuntimeContractResolver(input: {
@@ -231,7 +282,7 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
   };
 }
 
-export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeAdapterDeps): RuntimeWritePort {
+export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps): RuntimeWritePort {
   return {
     createRuntime(factoryAddress) {
       return txContract(deps.contracts.getFactoryContract(factoryAddress), 'createRuntime');
@@ -261,16 +312,16 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeAdapterDeps
       ]);
     },
 
-    // Verified against @parity/product-sdk-contracts: contract methods take
-    // positional args followed by an optional options object, and `TxOptions`
-    // carries `value?: bigint`. txContract spreads this array, so the call is
-    // `musicRoyPayAccess.tx(contentHash, { value })` - the CDM equivalent of
-    // the viem writer's sibling `value` field. Only native runtime intents are
-    // accepted here; Product CASH settlement needs a separate receipt path.
+    // Catalog/runtime prices are Solidity values with 18 decimals. Product's
+    // contract SDK builds a native `Revive.call` extrinsic, whose `value` is a
+    // chain Balance. Convert only this extrinsic field: the pallet expands it
+    // back to 18 EVM decimals before `musicRoyPayAccess` sees `msg.value`.
+    // Contract ABI arguments such as `pricePlanck` remain unchanged.
     payForAccess(intent) {
+      const nativeValue = evmValueToNativeUnits(intent.amountPlanck, deps.nativeTokenDecimals);
       return txContract(deps.contracts.getRuntimeContract(intent.runtimeAddress), 'musicRoyPayAccess', [
         intent.contentHash,
-        { value: intent.amountPlanck, waitFor: 'finalized' }
+        { value: nativeValue, waitFor: 'finalized' }
       ]);
     },
 
