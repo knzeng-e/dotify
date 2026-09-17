@@ -3,8 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY,
   appendProductCdmHostSmokeEvent,
+  bindProductCdmHostSmokeCandidate,
   buildProductCdmHostSmokeEvidence,
+  getProductCdmHostSmokeSessionCandidate,
   normalizeProductHostKeySmokeDetail,
+  readProductCdmHostSmokeEvents,
   recordProductCdmHostSmokeEvent,
   serializeProductCdmHostSmokeEvidence,
   type ProductCdmHostSmokeContext,
@@ -18,6 +21,9 @@ const CONTENT_HASH = `0x${'ab'.repeat(32)}` as const;
 const TX_HASH = `0x${'cd'.repeat(32)}` as const;
 const CONTENT_KEY = `0x${'ef'.repeat(32)}` as const;
 const PRODUCT_SIGNATURE = `0x${'44'.repeat(64)}` as const;
+const BUILD_SHA = '1234567890abcdef1234567890abcdef12345678';
+const DEPLOYED_CID = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3ooqb5x4nqyd7bkhzbr6f5o4e';
+const OTHER_DEPLOYED_CID = 'QmYwAPJzv5CZsnAzt8auVZRnGi2C19Rhdm9zYgC5xA7a7H';
 
 function memoryStorage(entries: Array<[string, string]> = []) {
   const store = new Map(entries);
@@ -37,8 +43,9 @@ function memoryStorage(entries: Array<[string, string]> = []) {
 
 function smokeContext(overrides: Partial<ProductCdmHostSmokeContext> = {}): ProductCdmHostSmokeContext {
   return {
-    buildSha: 'abc123',
-    productAppVersion: '[0, 1, 17]',
+    buildSha: BUILD_SHA,
+    productAppVersion: '[0, 1, 20]',
+    deployedCid: DEPLOYED_CID,
     productId: 'dotify-test01.dot',
     publicAppUrl: 'https://dotify-test01.dev-dot.li',
     cdmRegistry: '0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f',
@@ -105,7 +112,10 @@ describe('product CDM host smoke evidence', () => {
     const evidence = buildProductCdmHostSmokeEvidence(smokeContext(), completeEvents(), new Date('2026-09-03T10:00:00.000Z'));
 
     expect(evidence.summary).toEqual({ tone: 'ok', label: 'Evidence complete', problemCount: 0 });
+    expect(evidence.schemaVersion).toBe(2);
+    expect(evidence.candidate).toEqual({ gitSha: BUILD_SHA, productAppVersion: '[0, 1, 20]', deployedCid: DEPLOYED_CID });
     expect(evidence.checks.map(check => [check.id, check.tone])).toEqual([
+      ['candidate-identity', 'ok'],
       ['product-account', 'ok'],
       ['product-cdm-adapter', 'ok'],
       ['host-approval', 'ok'],
@@ -115,6 +125,14 @@ describe('product CDM host smoke evidence', () => {
       ['same-identity', 'ok']
     ]);
     expect(evidence.events).toHaveLength(4);
+  });
+
+  it('keeps candidate evidence pending until a valid deployment CID is supplied', () => {
+    const missing = buildProductCdmHostSmokeEvidence(smokeContext({ deployedCid: null }), completeEvents());
+    const invalid = buildProductCdmHostSmokeEvidence(smokeContext({ deployedCid: 'bafy0000000000000000' }), completeEvents());
+
+    expect(missing.checks.find(check => check.id === 'candidate-identity')?.tone).toBe('unknown');
+    expect(invalid.checks.find(check => check.id === 'candidate-identity')?.tone).toBe('error');
   });
 
   it('normalizes Product key events by allowlist so secrets are not persisted', () => {
@@ -181,13 +199,34 @@ describe('product CDM host smoke evidence', () => {
     expect(appendProductCdmHostSmokeEvent(events, { ...event, timestamp: 5 }, 3).map(item => item.timestamp)).toEqual([3, 4, 5]);
   });
 
-  it('records smoke events in session storage-compatible storage', () => {
+  it('records events only inside a candidate-bound smoke session', () => {
     const { storage, store } = memoryStorage();
     const [event] = completeEvents();
 
-    const events = recordProductCdmHostSmokeEvent(event, storage);
+    expect(recordProductCdmHostSmokeEvent(event, storage)).toEqual([]);
+    const session = bindProductCdmHostSmokeCandidate(smokeContext(), storage);
+    expect(session?.events).toEqual([]);
+    expect(recordProductCdmHostSmokeEvent(event, storage)).toEqual([event]);
+    expect(readProductCdmHostSmokeEvents(storage)).toEqual([event]);
+    expect(JSON.parse(store.get(PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY) ?? '{}')).toEqual({
+      schemaVersion: 2,
+      startedAt: expect.any(String),
+      candidate: { gitSha: BUILD_SHA, productAppVersion: '[0, 1, 20]', deployedCid: DEPLOYED_CID },
+      events: [event]
+    });
+  });
 
-    expect(events).toEqual([event]);
-    expect(JSON.parse(store.get(PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY) ?? '[]')).toEqual([event]);
+  it('clears captured events when the deployment CID changes and ignores legacy storage', () => {
+    const legacy = JSON.stringify(completeEvents());
+    const { storage } = memoryStorage([[PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY, legacy]]);
+    expect(readProductCdmHostSmokeEvents(storage)).toEqual([]);
+
+    bindProductCdmHostSmokeCandidate(smokeContext(), storage);
+    recordProductCdmHostSmokeEvent(completeEvents()[0], storage);
+    const rebound = bindProductCdmHostSmokeCandidate(smokeContext({ deployedCid: OTHER_DEPLOYED_CID }), storage);
+
+    expect(rebound?.events).toEqual([]);
+    expect(getProductCdmHostSmokeSessionCandidate(storage)?.deployedCid).toBe(OTHER_DEPLOYED_CID);
+    expect(readProductCdmHostSmokeEvents(storage)).toEqual([]);
   });
 });

@@ -19,6 +19,10 @@ const RUNTIME = '0x2222222222222222222222222222222222222222';
 const PRODUCT_PUBLIC_KEY = `0x${'33'.repeat(32)}`;
 const CONTENT_HASH = `0x${'ab'.repeat(32)}`;
 const TX_HASH = `0x${'cd'.repeat(32)}`;
+const CANDIDATE_SHA = '1234567890abcdef1234567890abcdef12345678';
+const DEPLOYED_CID = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3ooqb5x4nqyd7bkhzbr6f5o4e';
+const OTHER_DEPLOYED_CID = 'QmYwAPJzv5CZsnAzt8auVZRnGi2C19Rhdm9zYgC5xA7a7H';
+const APP_VERSION = '[0, 1, 20]';
 
 function lockfile() {
   return {
@@ -63,7 +67,7 @@ function staticSnapshot(patch = {}) {
         '@dotify/artist-runtime-factory': { address: '0x835A626A9a6965b197D079aE56b1eC94033C2699' }
       }
     },
-    productDeployConfigText: "export default { domain: 'dotify-test01.dot', executables: [{ appVersion: [0, 1, 17] }] };",
+    productDeployConfigText: "export default { domain: 'dotify-test01.dot', executables: [{ appVersion: [0, 1, 20] }] };",
     runtimeAdapterConfigText: "const PRODUCT_ENVIRONMENTS = ['devnet'] as const;",
     apiFlyTomlText:
       'API_ORIGINS = "https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot"',
@@ -75,12 +79,14 @@ function staticSnapshot(patch = {}) {
 
 function completeSmokeEvidence() {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     capturedAt: '2026-09-13T10:00:00.000Z',
+    candidate: { gitSha: CANDIDATE_SHA, productAppVersion: APP_VERSION, deployedCid: DEPLOYED_CID },
     summary: { tone: 'ok', label: 'Evidence complete', problemCount: 0 },
     context: {
-      buildSha: 'abc123',
-      productAppVersion: '[0, 1, 17]',
+      buildSha: CANDIDATE_SHA,
+      productAppVersion: APP_VERSION,
+      deployedCid: DEPLOYED_CID,
       productId: EXPECTED_PRODUCT_DEVNET.productId,
       publicAppUrl: EXPECTED_PRODUCT_DEVNET.publicAppUrl,
       cdmRegistry: EXPECTED_PRODUCT_DEVNET.cdmRegistry,
@@ -144,6 +150,23 @@ function completeSmokeEvidence() {
   };
 }
 
+function completeRoomEvidence(overrides = {}) {
+  return {
+    schemaVersion: 2,
+    candidate: { gitSha: CANDIDATE_SHA, productAppVersion: APP_VERSION, deployedCid: DEPLOYED_CID },
+    hostSurface: 'product-desktop',
+    hostOrigin: 'polkadot://dotify-test01.dot',
+    hostVersion: 'Product Desktop 0.1.0',
+    guestOrigin: 'https://muzinga.netlify.app',
+    canonicalRoomUrl: `${EXPECTED_PRODUCT_DEVNET.publicAppUrl}/#/rooms/LIVE42`,
+    hostSharedCanonicalUrl: true,
+    guestAccountConnected: false,
+    guestJoined: true,
+    guestHeardAudio: true,
+    ...overrides
+  };
+}
+
 test('parseEnvFile ignores comments and preserves empty values', () => {
   assert.deepEqual(
     parseEnvFile(`
@@ -159,7 +182,7 @@ VITE_CONTENT_SECRET=
 });
 
 test('extractProductAppVersion reads the Product executable tuple', () => {
-  assert.deepEqual(extractProductAppVersion('export default { executables: [{ appVersion: [0, 1, 17] }] };'), [0, 1, 17]);
+  assert.deepEqual(extractProductAppVersion('export default { executables: [{ appVersion: [0, 1, 20] }] };'), [0, 1, 20]);
   assert.equal(extractProductAppVersion('export default {}'), null);
 });
 
@@ -168,7 +191,7 @@ test('local static gates can pass while missing live host evidence remains block
     snapshot: staticSnapshot(),
     productSmokeEvidence: null,
     roomEvidence: null,
-    commit: 'abc123',
+    commit: CANDIDATE_SHA,
     generatedAt: '2026-09-13T10:00:00.000Z'
   });
 
@@ -188,19 +211,8 @@ test('complete Product smoke and room evidence satisfy the live journey gates', 
   const report = buildProductDevnetJourneyReport({
     snapshot: staticSnapshot(),
     productSmokeEvidence: completeSmokeEvidence(),
-    roomEvidence: {
-      schemaVersion: 1,
-      hostSurface: 'product-desktop',
-      hostOrigin: 'polkadot://dotify-test01.dot',
-      hostVersion: 'Product Desktop 0.1.0',
-      guestOrigin: 'https://muzinga.netlify.app',
-      canonicalRoomUrl: `${EXPECTED_PRODUCT_DEVNET.publicAppUrl}/#/rooms/LIVE42`,
-      hostSharedCanonicalUrl: true,
-      guestAccountConnected: false,
-      guestJoined: true,
-      guestHeardAudio: true
-    },
-    commit: 'abc123',
+    roomEvidence: completeRoomEvidence(),
+    commit: CANDIDATE_SHA,
     generatedAt: '2026-09-13T10:00:00.000Z'
   });
 
@@ -221,12 +233,14 @@ test('ok-toned Product smoke checks fail when underlying facts do not match Prod
   const report = buildProductDevnetJourneyReport({
     snapshot: staticSnapshot(),
     productSmokeEvidence: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       capturedAt: '2026-09-01T10:00:00.000Z',
+      candidate: { gitSha: 'old-build', productAppVersion: APP_VERSION, deployedCid: DEPLOYED_CID },
       summary: { tone: 'ok', label: 'Evidence complete', problemCount: 0 },
       context: {
         buildSha: 'old-build',
-        productAppVersion: '[0, 1, 17]',
+        productAppVersion: APP_VERSION,
+        deployedCid: DEPLOYED_CID,
         productId: 'other-product.dot',
         publicAppUrl: 'https://other-product.dev-dot.li',
         cdmRegistry: EXPECTED_PRODUCT_DEVNET.retiredCdmRegistry,
@@ -250,7 +264,7 @@ test('ok-toned Product smoke checks fail when underlying facts do not match Prod
       limitations: []
     },
     roomEvidence: null,
-    commit: 'abc123',
+    commit: CANDIDATE_SHA,
     generatedAt: '2026-09-13T10:00:00.000Z'
   });
 
@@ -275,7 +289,7 @@ test('static gates fail when the tracked Product profile points at the retired C
     snapshot: staticSnapshot({ contractsCdm: { registry: EXPECTED_PRODUCT_DEVNET.retiredCdmRegistry } }),
     productSmokeEvidence: null,
     roomEvidence: null,
-    commit: 'abc123',
+    commit: CANDIDATE_SHA,
     generatedAt: '2026-09-13T10:00:00.000Z'
   });
 
@@ -293,7 +307,7 @@ test('static gates fail when the configured HTTPS RPC is not the Product DevNet 
     }),
     productSmokeEvidence: null,
     roomEvidence: null,
-    commit: 'abc123',
+    commit: CANDIDATE_SHA,
     generatedAt: '2026-09-13T10:00:00.000Z'
   });
 
@@ -301,23 +315,40 @@ test('static gates fail when the configured HTTPS RPC is not the Product DevNet 
   assert.equal(report.staticGates.find(gate => gate.id === 'asset-hub-rpc')?.status, 'fail');
 });
 
+test('Product evidence rejects a CID-shaped string that is not a valid CID', () => {
+  const evidence = completeSmokeEvidence();
+  evidence.candidate.deployedCid = 'bafy0000000000000000';
+  evidence.context.deployedCid = 'bafy0000000000000000';
+  const gates = evaluateProductCdmSmokeEvidence(evidence, {
+    commit: CANDIDATE_SHA,
+    appVersion: [0, 1, 20],
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(gates.find(gate => gate.id === 'smoke-candidate')?.status, 'fail');
+});
+
+test('room evidence fails when its deployed CID differs from the Product payment evidence', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: completeSmokeEvidence(),
+    roomEvidence: completeRoomEvidence({
+      candidate: { gitSha: CANDIDATE_SHA, productAppVersion: APP_VERSION, deployedCid: OTHER_DEPLOYED_CID }
+    }),
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.summary.status, 'fail');
+  assert.equal(report.roomGates.find(gate => gate.id === 'room-candidate')?.status, 'fail');
+});
+
 test('Product Desktop room evidence does not satisfy the separate Product Web gateway surface', () => {
   const report = buildProductDevnetJourneyReport({
     snapshot: staticSnapshot(),
     productSmokeEvidence: completeSmokeEvidence(),
-    roomEvidence: {
-      schemaVersion: 1,
-      hostSurface: 'product-desktop',
-      hostOrigin: 'polkadot://dotify-test01.dot',
-      hostVersion: 'Product Desktop 0.1.0',
-      guestOrigin: 'https://muzinga.netlify.app',
-      canonicalRoomUrl: `${EXPECTED_PRODUCT_DEVNET.publicAppUrl}/#/rooms/LIVE42`,
-      hostSharedCanonicalUrl: true,
-      guestAccountConnected: false,
-      guestJoined: true,
-      guestHeardAudio: true
-    },
-    commit: 'abc123',
+    roomEvidence: completeRoomEvidence(),
+    commit: CANDIDATE_SHA,
     generatedAt: '2026-09-13T10:00:00.000Z'
   });
 
@@ -329,15 +360,8 @@ test('room evidence must name the Product host surface before it can pass', () =
   const report = buildProductDevnetJourneyReport({
     snapshot: staticSnapshot(),
     productSmokeEvidence: completeSmokeEvidence(),
-    roomEvidence: {
-      schemaVersion: 1,
-      canonicalRoomUrl: `${EXPECTED_PRODUCT_DEVNET.publicAppUrl}/#/rooms/LIVE42`,
-      hostSharedCanonicalUrl: true,
-      guestAccountConnected: false,
-      guestJoined: true,
-      guestHeardAudio: true
-    },
-    commit: 'abc123',
+    roomEvidence: completeRoomEvidence({ hostSurface: undefined, hostOrigin: undefined, hostVersion: undefined, guestOrigin: undefined }),
+    commit: CANDIDATE_SHA,
     generatedAt: '2026-09-13T10:00:00.000Z'
   });
 

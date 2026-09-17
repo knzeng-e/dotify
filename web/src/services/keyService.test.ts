@@ -11,6 +11,8 @@ const KEY_VERSION = 'dotify-content-key-v2' as const;
 const RELEASE_ID = `${RUNTIME}:${CONTENT_HASH}`;
 const PRODUCT_PUBLIC_KEY = `0x${'22'.repeat(32)}` as const;
 const PRODUCT_SIGNATURE = `0x${'33'.repeat(64)}` as const;
+const BUILD_SHA = '1234567890abcdef1234567890abcdef12345678';
+const DEPLOYED_CID = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3ooqb5x4nqyd7bkhzbr6f5o4e';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -59,6 +61,27 @@ async function loadKeyService() {
   vi.resetModules();
   vi.stubEnv('VITE_DOTIFY_API_URL', 'https://api.test/');
   return import('./keyService');
+}
+
+async function bindSmokeCandidate() {
+  const { bindProductCdmHostSmokeCandidate } = await import('../features/productHost/productCdmHostSmokeEvidence');
+  bindProductCdmHostSmokeCandidate({
+    buildSha: BUILD_SHA,
+    productAppVersion: '[0, 1, 20]',
+    deployedCid: DEPLOYED_CID,
+    productId: 'dotify-test01.dot',
+    publicAppUrl: null,
+    cdmRegistry: null,
+    productHostMode: 'required',
+    productHostStatus: 'available',
+    runtimeAdapterKind: 'product-cdm',
+    walletMethod: 'product-host',
+    listenerAddress: ADDRESS,
+    substrateAddress: null,
+    productPublicKey: PRODUCT_PUBLIC_KEY,
+    expectedChainId: 420420417,
+    apiConfigured: true
+  });
 }
 
 function walletClient(signMessage = vi.fn(async () => `0x${'11'.repeat(65)}`)): WalletClient {
@@ -168,7 +191,6 @@ describe('keyService sessions', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     const { requestContentKey } = await loadKeyService();
-
     const response = await requestContentKey({
       contentHash: CONTENT_HASH,
       purpose: 'individual',
@@ -241,6 +263,7 @@ describe('keyService sessions', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     const { requestContentKey } = await loadKeyService();
+    await bindSmokeCandidate();
 
     const response = await requestContentKey({
       contentHash: CONTENT_HASH,
@@ -252,7 +275,7 @@ describe('keyService sessions', () => {
     expect(response.access).toBe('allowed');
     expect(signMessage).toHaveBeenCalledTimes(1);
 
-    const storedEvidence = sessionStore.get('dotify:product-cdm-host-smoke-evidence:v1') ?? '';
+    const storedEvidence = sessionStore.get('dotify:product-cdm-host-smoke-evidence:v2') ?? '';
     expect(storedEvidence).toContain('session-created');
     expect(storedEvidence).toContain('key-allowed');
     expect(storedEvidence).toContain(PRODUCT_PUBLIC_KEY);

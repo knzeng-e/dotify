@@ -7,10 +7,11 @@ small consented community is counted as served.
 
 ## Release Candidate
 
-- Branch: `feat/pilot-release`.
+- Release branch: create from the tested `dev` candidate selected for the pilot.
 - Issue: #158.
-- Integration base: `dev` at `383f75f80c21b29e8a63c5d96eb054fd44d1240f`.
-- Candidate SHA: use `git rev-parse HEAD` after the W13 PR head is pushed.
+- Current consolidation base: `dev` at
+  `f4d2d49721a85169c5f9c37d36ac2ef315396d57`.
+- Candidate SHA: use `git rev-parse HEAD` after the release branch is pushed.
 - Readiness command:
 
 ```bash
@@ -20,9 +21,19 @@ npm run smoke:pilot-release -- \
   --json-out /tmp/dotify-pilot-release-readiness.json
 ```
 
-Add `--product-smoke-json`, `--room-json`, and `--pilot-json` only when those
-artifacts were captured from the same candidate build. Missing live artifacts
-must stay visible as `blocked` or `not-run`.
+Add `--product-smoke-json` and `--room-json` for the explicit `product-cdm`
+validation deployment. Add `--pilot-release-cid <cid>` and `--pilot-json` only
+after the same SHA and Product appVersion have been published again with the
+default `viem` release profile and the pilot was run on that release CID.
+Missing live artifacts must stay visible as `blocked` or `not-run`.
+
+The current consolidation is recorded in
+[`W13-consolidation-2026-09-17.md`](../backlog/implementation/evidence/W13-consolidation-2026-09-17.md).
+It verifies the merged code through PR #173, but it is not a deployed candidate
+identity. If `dev` or the Product appVersion changes, recapture every live
+input. If the validation CID changes, recapture Product CDM and room evidence;
+if the default `viem` release CID changes, recapture pilot evidence. Never bind
+the pilot decision to the Product CDM validation CID.
 
 ## Environment And Config Diff
 
@@ -34,7 +45,7 @@ release diff is the application bundle and this release/evidence package.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 18]` | Keep unless bundle code changes after this plan |
+| Product appVersion | `[0, 1, 20]` | Keep for this candidate; bump and recapture evidence if bundle code changes |
 | Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -75,8 +86,12 @@ Product/CDM anchors:
 | Statement Store SDK | `@parity/product-sdk-statement-store@0.6.9` |
 | Product deploy CLI | `@polkadot-community-foundation/polkadot-app-deploy@0.16.2` |
 
-The Product executable CID is release-time evidence. Capture it from
-`npm run deploy:product-devnet` output only after deployment is authorized.
+Product has two deliberately separate deployment identities during this gate.
+Capture the `product-cdm` CID for payment/key and room validation only. After
+that validation, run the unmodified `npm run deploy:product-devnet` command and
+capture its default `viem` CID as the pilot release identity. Supply that second
+CID through `--pilot-release-cid`; the readiness script never infers it from the
+validation artifacts.
 
 ## Rollback
 
@@ -173,8 +188,8 @@ decision to the exact candidate build being evaluated:
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 18]",
-    "deployedCid": "<product-executable-cid>",
+    "productAppVersion": "[0, 1, 20]",
+    "deployedCid": "<default-viem-pilot-release-cid>",
     "capturedAt": "2026-09-13T12:00:00.000Z"
   },
   "participants": { "artists": 3, "hosts": 5, "listeners": 20 },
@@ -212,6 +227,20 @@ Do not collect continuous location, exact coordinates, wallet-linked listening
 history, contact details, raw interview answers, content keys, private keys,
 session tokens, signatures, or per-person traces.
 
+Run the aggregate gate with the independently recorded release CID:
+
+```bash
+npm run smoke:pilot-release -- \
+  --product-smoke-json /path/to/product-cdm-host-smoke.json \
+  --room-json /path/to/product-cdm-room-evidence.json \
+  --pilot-release-cid <default-viem-pilot-release-cid> \
+  --pilot-json /path/to/aggregate-pilot-evidence.json
+```
+
+The Product smoke and room artifacts retain the `product-cdm` deployment CID.
+The pilot artifact and `--pilot-release-cid` retain the separately deployed
+default `viem` CID. Both tracks must use the same git SHA and Product appVersion.
+
 ## Go/No-Go Record
 
 The pilot decision record must include:
@@ -219,7 +248,7 @@ The pilot decision record must include:
 | Field | Requirement |
 | --- | --- |
 | Decision | `go`, `no-go`, or `hold` |
-| Candidate | Exact git SHA, Product appVersion, deployed CID if any |
+| Candidate | Exact git SHA, Product appVersion, exact deployed CID |
 | Join target | At least 20 supported-device attempts, target `>=95%` successful |
 | Failures | Count and category, not raw participant logs |
 | Rollback | Safe-environment rehearsal and catalog/key compatibility result |

@@ -338,8 +338,10 @@ CDM unlock as `blocked` and the room journey as `not-run`. Treat a static
 package. It additionally verifies W01-W12 local evidence, issue/backlog mapping,
 the reversible pilot plan, contract inventory, and optional aggregate pilot
 metrics. Optional pilot evidence must use schema v2 and bind the decision to
-the candidate git SHA, Product appVersion, deployed CID, capture time, outcome
-metrics, privacy flags, rollback, and join-count invariants. It does not sign,
+the candidate git SHA, Product appVersion, default `viem` release CID, capture
+time, outcome metrics, privacy flags, rollback, and join-count invariants. Pass
+that independently recorded release CID with `--pilot-release-cid`; the command
+never substitutes the earlier `product-cdm` smoke or room CID. It does not sign,
 deploy, contact participants, or treat missing live evidence as a pass.
 
 `smoke:product-cash-settlement` is also read-only. The expected result for the
@@ -402,7 +404,7 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 19]`. This version keeps blocked
+The current Product executable is `[0, 1, 20]`. This version also binds Product payment and room evidence to the exact deployed CID so stale artifacts cannot satisfy pilot gates. It keeps blocked
 guest audio recovery visible in Product-hosted rooms, exposes W05 runtime claim
 writes through the shared runtime writer port, uses the refreshed September 2026
 Product SDK/tooling and re-pinned Bulletin descriptor, and removes
@@ -595,12 +597,37 @@ Then verify in the Product host:
    In every rejected case, playback must stop and offer an EVM wallet fallback.
    No path may release a key without a verified signature.
 
-6. Only for an explicit Product CDM write smoke build, set
-   `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` and
-   `VITE_DOTIFY_DEBUG_PANEL=true`, then use a funded Product account that has
-   not already paid for the target Classic track. Do not use this as the
-   default `dotify-test01.dot` release gate until it has passed once end to
-   end. Verify:
+6. The tracked Product profile intentionally uses the `viem` writer, so that
+   published profile asks for an EVM-compatible wallet when it needs to write.
+   To test payment through the Product host instead, publish an explicit Product
+   CDM smoke build from the candidate commit:
+
+```bash
+VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm \
+VITE_DOTIFY_ARTIST_DONATIONS=on \
+VITE_DOTIFY_DEBUG_PANEL=true \
+npm run deploy:product-devnet
+```
+
+   The variables propagate through the deploy script's Product rebuild. For a
+   local build without publishing, run
+   `VITE_DOTIFY_DEBUG_PANEL=true npm run build:product-devnet:support`.
+   The `product-cdm` adapter still calls the EVM-compatible artist runtime, but
+   it signs through the Product host's sr25519 account. It must not ask for a
+   separate browser EVM wallet. Fund the Product/SS58 account shown as **Fund
+   this account** with Product DevNet PAS; the derived H160 is the runtime
+   identity used for access read-back, not a second account to refill.
+
+   Before the payment attempt, open `You` -> `Production readiness` ->
+   `Product CDM host smoke`, paste the executable CID printed by that exact
+   deployment, and select **Use this deployment**. This starts a fresh
+   candidate-bound capture. The panel ignores legacy v1 storage, rejects
+   malformed CIDs with the standards-compliant IPFS parser, and clears events
+   whenever SHA, Product appVersion, or CID changes.
+
+   Use a funded Product account that has not already paid for the target
+   Classic track. Do not use this as the default `dotify-test01.dot` release
+   gate until it has passed once end to end. Verify:
    - the connected Dotify Product account and the host-selected signer expose
      the same public key;
    - deriving `pallet-revive` H160 from that public key gives the same H160
@@ -618,13 +645,16 @@ Then verify in the Product host:
      and `ok`;
    - the backend then releases the full key through the same Product identity.
 
-   After the unlock attempt, open `You` -> `Production readiness` -> `Product
-CDM host smoke`, mark **Host approval prompt captured** if the host showed
-   an explicit transaction approval, then copy or download the smoke JSON. The
-   JSON is stored only in browser session storage and deliberately excludes
+   After the unlock attempt, return to the candidate-bound `Product CDM host
+   smoke` panel, mark **Host approval prompt captured** if the host showed an
+   explicit transaction approval, then copy or download the smoke JSON. Its
+   `capturedAt` is the start of that bound evidence session, not the later
+   export time. The JSON is stored only in browser session storage and
+   deliberately excludes
    content keys, signatures, nonces, and session tokens. It includes
-   browser-safe build identity (`buildSha`, Product app version, public app URL,
-   and CDM registry) so the local harness can reject stale exports from an old
+   browser-safe candidate identity (`gitSha`, Product app version, deployed CID,
+   public app URL, and CDM registry) so the local harness can reject missing,
+   stale, or cross-deployment exports from an old
    Product DevNet reset or a different build. Attach it with the Product host
    approval screenshot and Fly/API logs.
 
@@ -682,7 +712,12 @@ npm run smoke:product-journey -- \
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "candidate": {
+    "gitSha": "<40-character-git-sha>",
+    "productAppVersion": "[0, 1, 20]",
+    "deployedCid": "<same-product-executable-cid-as-payment-smoke>"
+  },
   "hostSurface": "product-desktop",
   "hostOrigin": "polkadot://dotify-test01.dot",
   "hostVersion": "Product Desktop 0.1.0",
@@ -695,9 +730,36 @@ npm run smoke:product-journey -- \
 }
 ```
 
-   Use `hostSurface: "product-web-gateway"` only for a separate smoke captured
+   The harness rejects the room file when any candidate field is missing or its
+   CID differs from the Product payment smoke. Use
+   `hostSurface: "product-web-gateway"` only for a separate smoke captured
    from the Product Web gateway. A Product Desktop room smoke must not be reused
    as Product Web evidence.
+
+   This completes the validation deployment track. Before an authorized pilot,
+   republish the same SHA and Product appVersion with the tracked default
+   `viem` profile:
+
+```bash
+npm run deploy:product-devnet
+```
+
+   Record the new CID printed by this command. It is the pilot release CID and
+   is expected to differ from the earlier `product-cdm` CID because the bundles
+   differ. Run the aggregate readiness gate with both identities kept separate:
+
+```bash
+npm run smoke:pilot-release -- \
+  --product-smoke-json /path/to/product-cdm-host-smoke.json \
+  --room-json /path/to/product-cdm-room-evidence.json \
+  --pilot-release-cid <default-viem-pilot-release-cid> \
+  --pilot-json /path/to/aggregate-pilot-evidence.json
+```
+
+   The command rejects pilot evidence when `--pilot-release-cid` is absent,
+   malformed, or different from `pilot-json.candidate.deployedCid`. Product CDM
+   and room evidence can validate the experimental writer, but cannot approve
+   the release bundle used by participants.
 
 10. A Netlify-origin host and Product-origin guest also connect.
 11. Briefly interrupting the mobile network preserves and resumes the same room

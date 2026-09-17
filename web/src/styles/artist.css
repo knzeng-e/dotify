@@ -333,6 +333,7 @@ button.you-panel:hover {
 }
 
 .product-smoke-head > div,
+.product-smoke-candidate,
 .product-smoke-observation {
   display: grid;
   gap: 0.2rem;
@@ -340,6 +341,7 @@ button.you-panel:hover {
 
 .product-smoke-head span,
 .product-smoke-context,
+.product-smoke-candidate,
 .product-smoke-observation {
   color: var(--muted);
   font-size: var(--text-xs);
@@ -357,6 +359,20 @@ button.you-panel:hover {
   border: 1px solid var(--line);
   border-radius: var(--radius-full);
   padding: 0.25rem 0.45rem;
+}
+
+.product-smoke-candidate input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  color: var(--text);
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+}
+
+.product-smoke-candidate small {
+  color: var(--muted);
 }
 
 .product-smoke-observation {

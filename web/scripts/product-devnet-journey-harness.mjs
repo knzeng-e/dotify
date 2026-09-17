@@ -12,6 +12,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { normalizeIpfsCid } from './lib/ipfs-cid.mjs';
+
 export const PRODUCT_JOURNEY_SCHEMA_VERSION = 1;
 export const EXPECTED_PRODUCT_DEVNET = {
   productId: 'dotify-test01.dot',
@@ -128,6 +130,10 @@ function isPositivePlanck(value) {
   return typeof value === 'string' && /^[1-9][0-9]*$/.test(value);
 }
 
+function isFullGitSha(value) {
+  return typeof value === 'string' && /^[0-9a-f]{40}$/i.test(value);
+}
+
 function parseDateMs(value) {
   if (typeof value !== 'string') return null;
   const parsed = Date.parse(value);
@@ -135,7 +141,9 @@ function parseDateMs(value) {
 }
 
 function versionText(appVersion) {
-  return Array.isArray(appVersion) ? `[${appVersion.join(', ')}]` : null;
+  if (Array.isArray(appVersion) && appVersion.every(part => Number.isInteger(part) && part >= 0)) return `[${appVersion.join(', ')}]`;
+  if (typeof appVersion === 'string' && /^\[\d+(?:, \d+)*\]$/.test(appVersion.trim())) return appVersion.trim();
+  return null;
 }
 
 function sameValue(left, right) {
@@ -431,14 +439,36 @@ export function evaluateProductCdmSmokeEvidence(evidence, options = {}) {
   }
 
   const context = evidence.context ?? {};
+  const candidate = evidence.candidate ?? {};
   const events = smokeEvents(evidence);
   const payment = latestPaymentEvent(events);
   const allowedKey = latestAllowedKeyEvent(events, payment, context);
 
-  if (evidence.schemaVersion !== 1) {
-    fail(gates, 'smoke-schema', 'Smoke evidence schema', `Expected schemaVersion 1, found ${evidence.schemaVersion ?? 'missing'}.`, 'Product host JSON');
+  if (evidence.schemaVersion !== 2) {
+    fail(gates, 'smoke-schema', 'Smoke evidence schema', `Expected schemaVersion 2, found ${evidence.schemaVersion ?? 'missing'}.`, 'Product host JSON');
   } else {
-    pass(gates, 'smoke-schema', 'Smoke evidence schema', 'schemaVersion 1.', 'Product host JSON');
+    pass(gates, 'smoke-schema', 'Smoke evidence schema', 'schemaVersion 2.', 'Product host JSON');
+  }
+
+  const candidateProblems = [];
+  const candidateVersion = versionText(candidate.productAppVersion);
+  if (!isFullGitSha(candidate.gitSha)) candidateProblems.push('candidate.gitSha must be a full 40-character git SHA');
+  else if (expectedCommit && candidate.gitSha !== expectedCommit)
+    candidateProblems.push(`candidate.gitSha ${candidate.gitSha} does not match ${expectedCommit}`);
+  if (!candidateVersion) candidateProblems.push('candidate.productAppVersion must be a Product appVersion');
+  else if (expectedVersion && candidateVersion !== expectedVersion) {
+    candidateProblems.push(`candidate.productAppVersion ${candidateVersion} does not match ${expectedVersion}`);
+  }
+  const candidateCid = normalizeIpfsCid(candidate.deployedCid);
+  if (!candidateCid) candidateProblems.push('candidate.deployedCid must be a valid IPFS CID');
+  if (candidate.gitSha !== context.buildSha) candidateProblems.push('candidate.gitSha does not match context.buildSha');
+  if (candidateVersion !== context.productAppVersion) candidateProblems.push('candidate.productAppVersion does not match context.productAppVersion');
+  const contextCid = normalizeIpfsCid(context.deployedCid);
+  if (candidateCid !== contextCid) candidateProblems.push('candidate.deployedCid does not match context.deployedCid');
+  if (candidateProblems.length === 0) {
+    pass(gates, 'smoke-candidate', 'Deployed candidate', `${candidate.gitSha} ${candidateVersion} deployed as ${candidate.deployedCid}.`, 'Product host JSON');
+  } else {
+    fail(gates, 'smoke-candidate', 'Deployed candidate', candidateProblems.join('; '), 'Product host JSON');
   }
 
   const capturedAtMs = parseDateMs(evidence.capturedAt);
@@ -577,23 +607,49 @@ export function evaluateProductCdmSmokeEvidence(evidence, options = {}) {
   return gates;
 }
 
-export function evaluateRoomJourneyEvidence(roomEvidence, publicAppUrl = EXPECTED_PRODUCT_DEVNET.publicAppUrl) {
+export function evaluateRoomJourneyEvidence(roomEvidence, options = {}) {
   const gates = [];
+  const normalizedOptions = typeof options === 'string' ? { publicAppUrl: options } : options;
+  const publicAppUrl = normalizedOptions.publicAppUrl ?? EXPECTED_PRODUCT_DEVNET.publicAppUrl;
+  const expectedCommit = typeof normalizedOptions.commit === 'string' && normalizedOptions.commit !== 'unknown' ? normalizedOptions.commit : null;
+  const expectedVersion = versionText(normalizedOptions.appVersion);
+  const expectedCid = normalizeIpfsCid(normalizedOptions.deployedCid);
   if (!roomEvidence) {
     notRun(
       gates,
       'product-room-guest',
       'Product host room to browser guest',
-      'No Product room evidence JSON was supplied. Record host origin, canonical room URL, guest origin, walletless join, and audible/in-sync result.',
+      'No Product room evidence JSON was supplied. Record candidate identity, host origin, canonical room URL, guest origin, walletless join, and audible/in-sync result.',
       'manual room smoke'
     );
     return gates;
   }
 
-  if (roomEvidence.schemaVersion !== 1) {
-    fail(gates, 'room-schema', 'Room evidence schema', `Expected schemaVersion 1, found ${roomEvidence.schemaVersion ?? 'missing'}.`, 'room JSON');
+  if (roomEvidence.schemaVersion !== 2) {
+    fail(gates, 'room-schema', 'Room evidence schema', `Expected schemaVersion 2, found ${roomEvidence.schemaVersion ?? 'missing'}.`, 'room JSON');
   } else {
-    pass(gates, 'room-schema', 'Room evidence schema', 'schemaVersion 1.', 'room JSON');
+    pass(gates, 'room-schema', 'Room evidence schema', 'schemaVersion 2.', 'room JSON');
+  }
+
+  const candidate = roomEvidence.candidate ?? {};
+  const candidateVersion = versionText(candidate.productAppVersion);
+  const candidateProblems = [];
+  if (!isFullGitSha(candidate.gitSha)) candidateProblems.push('candidate.gitSha must be a full 40-character git SHA');
+  else if (expectedCommit && candidate.gitSha !== expectedCommit)
+    candidateProblems.push(`candidate.gitSha ${candidate.gitSha} does not match ${expectedCommit}`);
+  if (!candidateVersion) candidateProblems.push('candidate.productAppVersion must be a Product appVersion');
+  else if (expectedVersion && candidateVersion !== expectedVersion) {
+    candidateProblems.push(`candidate.productAppVersion ${candidateVersion} does not match ${expectedVersion}`);
+  }
+  const candidateCid = normalizeIpfsCid(candidate.deployedCid);
+  if (!candidateCid) candidateProblems.push('candidate.deployedCid must be a valid IPFS CID');
+  else if (expectedCid && candidateCid !== expectedCid) {
+    candidateProblems.push(`candidate.deployedCid ${candidate.deployedCid} does not match ${normalizedOptions.deployedCid}`);
+  }
+  if (candidateProblems.length === 0) {
+    pass(gates, 'room-candidate', 'Room candidate', `${candidate.gitSha} ${candidateVersion} deployed as ${candidate.deployedCid}.`, 'room JSON');
+  } else {
+    fail(gates, 'room-candidate', 'Room candidate', candidateProblems.join('; '), 'room JSON');
   }
 
   const hostSurface = roomEvidence.hostSurface;
@@ -650,7 +706,7 @@ function gatesPassed(gates, ids) {
 }
 
 function roomEvidenceSurface(roomEvidence, roomGates) {
-  if (!gatesPassed(roomGates, ['room-schema', 'room-surface', 'canonical-room-link', 'walletless-browser-guest'])) return null;
+  if (!gatesPassed(roomGates, ['room-schema', 'room-candidate', 'room-surface', 'canonical-room-link', 'walletless-browser-guest'])) return null;
   return roomEvidence?.hostSurface ?? null;
 }
 
@@ -658,6 +714,7 @@ export function buildSurfaceMatrix({ commit, appVersion, productSmokeGates, room
   const version = appVersion ? `[${appVersion.join(', ')}]` : 'unknown';
   const productPaymentComplete = gatesPassed(productSmokeGates, [
     'smoke-schema',
+    'smoke-candidate',
     'smoke-captured-at',
     'smoke-secrets',
     'smoke-build',
@@ -739,7 +796,12 @@ export function buildProductDevnetJourneyReport(input) {
     appVersion,
     generatedAt
   });
-  const roomGates = evaluateRoomJourneyEvidence(input.roomEvidence, input.snapshot.env?.VITE_PUBLIC_APP_URL);
+  const roomGates = evaluateRoomJourneyEvidence(input.roomEvidence, {
+    publicAppUrl: input.snapshot.env?.VITE_PUBLIC_APP_URL,
+    commit: input.commit ?? 'unknown',
+    appVersion,
+    deployedCid: input.productSmokeEvidence?.candidate?.deployedCid
+  });
   const surfaceMatrix = buildSurfaceMatrix({
     commit: input.commit ?? 'unknown',
     appVersion,
@@ -790,7 +852,7 @@ export function renderProductDevnetJourneyMarkdown(report) {
     '## Live Evidence Inputs',
     '',
     '- Product CDM payment/key smoke: pass `--smoke-json <downloaded-product-cdm-host-smoke.json>` after running the explicit `product-cdm` build from the same commit inside a funded Product host.',
-    '- Product room smoke: pass `--room-json <room-evidence.json>` with `schemaVersion`, `hostSurface`, `hostOrigin`, `hostVersion`, `guestOrigin`, `canonicalRoomUrl`, `guestAccountConnected`, `guestJoined`, and `guestHeardAudio` fields.',
+    '- Product room smoke: pass `--room-json <room-evidence.json>` with the same `candidate.gitSha`, `candidate.productAppVersion`, and `candidate.deployedCid`, plus `schemaVersion`, `hostSurface`, `hostOrigin`, `hostVersion`, `guestOrigin`, `canonicalRoomUrl`, `guestAccountConnected`, `guestJoined`, and `guestHeardAudio` fields.',
     '- Missing live inputs are reported as blocked/not-run, never as passed.'
   ].join('\n');
 }

@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { evaluatePilotEvidence, PILOT_RELEASE_SCHEMA_VERSION } from './pilot-release-readiness.mjs';
+import { evaluatePilotEvidence, parseArgs, PILOT_RELEASE_SCHEMA_VERSION } from './pilot-release-readiness.mjs';
 
 const CANDIDATE_SHA = '1234567890abcdef1234567890abcdef12345678';
-const DEPLOYED_CID = 'bafybeigdyrztxylm7b6f3v7uxx4pjv7k4n3m5q2p4w6r8t9y0abcde';
+const DEPLOYED_CID = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3ooqb5x4nqyd7bkhzbr6f5o4e';
+const OTHER_DEPLOYED_CID = 'QmYwAPJzv5CZsnAzt8auVZRnGi2C19Rhdm9zYgC5xA7a7H';
 const CAPTURED_AT = '2026-09-13T12:00:00.000Z';
 const REPORT_CONTEXT = {
   commit: CANDIDATE_SHA,
   productAppVersion: '[0, 1, 18]',
-  deployedCid: DEPLOYED_CID,
+  pilotReleaseCid: DEPLOYED_CID,
+  requirePilotReleaseCid: true,
   generatedAt: '2026-09-13T12:05:00.000Z'
 };
 
@@ -116,7 +118,7 @@ test('pilot decision is rejected when candidate identity does not match the repo
       candidate: {
         gitSha: 'abcdefabcdefabcdefabcdefabcdefabcdefabcd',
         productAppVersion: '[0, 1, 17]',
-        deployedCid: 'bafybeidifferentcandidatecid000000000000000000000000',
+        deployedCid: OTHER_DEPLOYED_CID,
         capturedAt: CAPTURED_AT
       }
     }),
@@ -127,8 +129,41 @@ test('pilot decision is rejected when candidate identity does not match the repo
   assert.equal(gates.find(gate => gate.id === 'go-no-go-record')?.status, 'fail');
 });
 
+test('pilot evidence rejects CID-shaped values that are not valid CIDs', () => {
+  const gates = evaluatePilotEvidence(validPilotEvidence({ candidate: { ...validPilotEvidence().candidate, deployedCid: 'bafy0000000000000000' } }), {
+    ...REPORT_CONTEXT,
+    pilotReleaseCid: null,
+    requirePilotReleaseCid: true
+  });
+
+  assert.equal(gates.find(gate => gate.id === 'pilot-candidate-identity')?.status, 'fail');
+});
+
 test('pilot evidence rejects impossible join counts before computing the rate', () => {
   const gates = evaluatePilotEvidence(validPilotEvidence({ joinAttempts: { observed: 20, successful: 21 } }), REPORT_CONTEXT);
 
   assert.equal(gates.find(gate => gate.id === 'pilot-join-target')?.status, 'fail');
+});
+
+test('pilot evidence requires a separately supplied release-profile CID', () => {
+  const missingBinding = evaluatePilotEvidence(validPilotEvidence(), {
+    ...REPORT_CONTEXT,
+    pilotReleaseCid: null
+  });
+  assert.equal(missingBinding.find(gate => gate.id === 'pilot-candidate-identity')?.status, 'fail');
+  assert.match(missingBinding.find(gate => gate.id === 'pilot-candidate-identity')?.detail ?? '', /--pilot-release-cid/);
+
+  const validationBuildCid = OTHER_DEPLOYED_CID;
+  const releaseBound = evaluatePilotEvidence(validPilotEvidence(), {
+    ...REPORT_CONTEXT,
+    pilotReleaseCid: DEPLOYED_CID,
+    productSmokeCid: validationBuildCid,
+    roomSmokeCid: validationBuildCid
+  });
+  assert.equal(releaseBound.find(gate => gate.id === 'pilot-candidate-identity')?.status, 'pass');
+});
+
+test('pilot release CID has its own CLI argument', () => {
+  const args = parseArgs(['--pilot-release-cid', `ipfs://${DEPLOYED_CID}`]);
+  assert.equal(args.pilotReleaseCid, `ipfs://${DEPLOYED_CID}`);
 });

@@ -1,7 +1,9 @@
+import { normalizeIpfsCid } from '../../shared/utils/ipfsCid';
+
 export const PRODUCT_CDM_PAYMENT_SMOKE_EVENT = 'dotify:product-cdm-payment-smoke';
 export const PRODUCT_HOST_KEY_SMOKE_EVENT = 'dotify:product-host-key-smoke';
 export const PRODUCT_CDM_HOST_SMOKE_EVIDENCE_EVENT = 'dotify:product-cdm-host-smoke-evidence';
-export const PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY = 'dotify:product-cdm-host-smoke-evidence:v1';
+export const PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY = 'dotify:product-cdm-host-smoke-evidence:v2';
 
 const PRODUCT_SR25519_SIGNATURE_SCHEME = 'product-sr25519-v1';
 const MAX_STORED_EVENTS = 40;
@@ -63,6 +65,7 @@ export type ProductCdmHostSmokeEvent =
 export type ProductCdmHostSmokeContext = {
   buildSha: string | null;
   productAppVersion: string | null;
+  deployedCid: string | null;
   productId: string;
   publicAppUrl: string | null;
   cdmRegistry: string | null;
@@ -84,14 +87,34 @@ export type ProductCdmHostSmokeCheck = {
   detail: string;
 };
 
+export type ProductCdmHostSmokeCandidate = {
+  gitSha: string | null;
+  productAppVersion: string | null;
+  deployedCid: string | null;
+};
+
 export type ProductCdmHostSmokeEvidence = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   capturedAt: string;
+  candidate: ProductCdmHostSmokeCandidate;
   summary: { tone: ProductCdmHostSmokeTone; label: string; problemCount: number };
   context: ProductCdmHostSmokeContext;
   checks: ProductCdmHostSmokeCheck[];
   events: ProductCdmHostSmokeEvent[];
   limitations: string[];
+};
+
+export type ProductCdmHostSmokeSessionCandidate = {
+  gitSha: string;
+  productAppVersion: string;
+  deployedCid: string;
+};
+
+export type ProductCdmHostSmokeSession = {
+  schemaVersion: 2;
+  startedAt: string;
+  candidate: ProductCdmHostSmokeSessionCandidate;
+  events: ProductCdmHostSmokeEvent[];
 };
 
 type SmokeStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -111,6 +134,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isHexString(value: unknown): value is `0x${string}` {
   return typeof value === 'string' && /^0x[0-9a-fA-F]+$/.test(value);
+}
+
+function isFullGitSha(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{40}$/i.test(value);
+}
+
+function isProductAppVersion(value: unknown): value is string {
+  return typeof value === 'string' && /^\[\d+(?:, \d+)*\]$/.test(value);
 }
 
 function text(value: unknown, maxLength = 240): string | undefined {
@@ -253,31 +284,105 @@ export function appendProductCdmHostSmokeEvent(
   return [...events, event].slice(-limit);
 }
 
-export function readProductCdmHostSmokeEvents(storage?: SmokeStorage | null): ProductCdmHostSmokeEvent[] {
+function normalizeSessionCandidate(value: unknown): ProductCdmHostSmokeSessionCandidate | null {
+  if (!isRecord(value) || !isFullGitSha(value.gitSha) || !isProductAppVersion(value.productAppVersion)) return null;
+  const deployedCid = normalizeIpfsCid(value.deployedCid);
+  return deployedCid ? { gitSha: value.gitSha, productAppVersion: value.productAppVersion, deployedCid } : null;
+}
+
+function candidateFromContext(context: ProductCdmHostSmokeContext): ProductCdmHostSmokeSessionCandidate | null {
+  return normalizeSessionCandidate({
+    gitSha: context.buildSha,
+    productAppVersion: context.productAppVersion,
+    deployedCid: context.deployedCid
+  });
+}
+
+function sameSessionCandidate(left: ProductCdmHostSmokeSessionCandidate, right: ProductCdmHostSmokeSessionCandidate): boolean {
+  return left.gitSha === right.gitSha && left.productAppVersion === right.productAppVersion && left.deployedCid === right.deployedCid;
+}
+
+function matchesCurrentBuild(candidate: ProductCdmHostSmokeSessionCandidate): boolean {
+  const buildSha = String(import.meta.env.VITE_DOTIFY_BUILD_SHA ?? '').trim();
+  const productAppVersion = String(import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION ?? '').trim();
+  if (isFullGitSha(buildSha) && candidate.gitSha !== buildSha) return false;
+  if (isProductAppVersion(productAppVersion) && candidate.productAppVersion !== productAppVersion) return false;
+  return true;
+}
+
+export function getProductCdmHostSmokeSession(storage?: SmokeStorage | null): ProductCdmHostSmokeSession | null {
   const target = getSmokeStorage(storage);
-  if (!target) return [];
+  if (!target) return null;
   try {
     const raw = target.getItem(PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map(normalizeSmokeEvent).filter((event): event is ProductCdmHostSmokeEvent => Boolean(event));
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      !isRecord(parsed) ||
+      parsed.schemaVersion !== 2 ||
+      typeof parsed.startedAt !== 'string' ||
+      !Number.isFinite(Date.parse(parsed.startedAt)) ||
+      !Array.isArray(parsed.events)
+    ) {
+      target.removeItem(PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY);
+      return null;
+    }
+    const candidate = normalizeSessionCandidate(parsed.candidate);
+    if (!candidate || !matchesCurrentBuild(candidate)) {
+      target.removeItem(PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY);
+      return null;
+    }
+    return {
+      schemaVersion: 2,
+      startedAt: parsed.startedAt,
+      candidate,
+      events: parsed.events.map(normalizeSmokeEvent).filter((event): event is ProductCdmHostSmokeEvent => Boolean(event))
+    };
   } catch {
-    return [];
+    try {
+      target.removeItem(PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY);
+    } catch {
+      // Storage may be unavailable; a malformed session still remains unusable.
+    }
+    return null;
   }
 }
 
-export function recordProductCdmHostSmokeEvent(event: ProductCdmHostSmokeEvent, storage?: SmokeStorage | null): ProductCdmHostSmokeEvent[] {
+function writeProductCdmHostSmokeSession(session: ProductCdmHostSmokeSession, storage?: SmokeStorage | null): void {
   const target = getSmokeStorage(storage);
-  const previous = readProductCdmHostSmokeEvents(target);
-  const next = appendProductCdmHostSmokeEvent(previous, event);
-  if (!target) return next;
+  if (!target) return;
   try {
-    target.setItem(PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY, JSON.stringify(next));
+    target.setItem(PRODUCT_CDM_HOST_SMOKE_STORAGE_KEY, JSON.stringify(session));
   } catch {
-    // Evidence is best-effort diagnostics. The browser event still gives a
-    // mounted panel a chance to capture the signal when storage is unavailable.
+    // Evidence capture remains fail-closed when session storage is unavailable.
   }
+}
+
+export function getProductCdmHostSmokeSessionCandidate(storage?: SmokeStorage | null): ProductCdmHostSmokeSessionCandidate | null {
+  return getProductCdmHostSmokeSession(storage)?.candidate ?? null;
+}
+
+export function bindProductCdmHostSmokeCandidate(context: ProductCdmHostSmokeContext, storage?: SmokeStorage | null): ProductCdmHostSmokeSession | null {
+  const candidate = candidateFromContext(context);
+  if (!candidate) return null;
+  const existing = getProductCdmHostSmokeSession(storage);
+  const session: ProductCdmHostSmokeSession =
+    existing && sameSessionCandidate(existing.candidate, candidate)
+      ? existing
+      : { schemaVersion: 2, startedAt: new Date().toISOString(), candidate, events: [] };
+  writeProductCdmHostSmokeSession(session, storage);
+  return session;
+}
+
+export function readProductCdmHostSmokeEvents(storage?: SmokeStorage | null): ProductCdmHostSmokeEvent[] {
+  return getProductCdmHostSmokeSession(storage)?.events ?? [];
+}
+
+export function recordProductCdmHostSmokeEvent(event: ProductCdmHostSmokeEvent, storage?: SmokeStorage | null): ProductCdmHostSmokeEvent[] {
+  const session = getProductCdmHostSmokeSession(storage);
+  if (!session) return [];
+  const next = appendProductCdmHostSmokeEvent(session.events, event);
+  writeProductCdmHostSmokeSession({ ...session, events: next }, storage);
   return next;
 }
 
@@ -443,7 +548,20 @@ export function summarizeProductCdmHostSmokeChecks(context: ProductCdmHostSmokeC
   const hasAddressMismatch =
     Boolean(context.listenerAddress) && eventAddresses.some(address => address.toLowerCase() !== context.listenerAddress?.toLowerCase());
 
+  const candidateComplete = isFullGitSha(context.buildSha) && isProductAppVersion(context.productAppVersion) && normalizeIpfsCid(context.deployedCid) !== null;
+  const candidateInvalid = Boolean(context.deployedCid) && normalizeIpfsCid(context.deployedCid) === null;
+
   return [
+    {
+      id: 'candidate-identity',
+      label: 'Deployed candidate',
+      tone: candidateComplete ? 'ok' : candidateInvalid ? 'error' : 'unknown',
+      detail: candidateComplete
+        ? `${context.buildSha} ${context.productAppVersion} deployed as ${context.deployedCid}.`
+        : candidateInvalid
+          ? 'The deployed CID is not a valid IPFS CID.'
+          : 'Paste the executable CID from the matching Product deployment before exporting evidence.'
+    },
     {
       id: 'product-account',
       label: 'Product account',
@@ -512,6 +630,7 @@ function sanitizeContext(context: ProductCdmHostSmokeContext): ProductCdmHostSmo
   return {
     buildSha: context.buildSha,
     productAppVersion: context.productAppVersion,
+    deployedCid: context.deployedCid,
     productId: context.productId,
     publicAppUrl: context.publicAppUrl,
     cdmRegistry: context.cdmRegistry,
@@ -536,8 +655,13 @@ export function buildProductCdmHostSmokeEvidence(
   const safeEvents = events.map(normalizeSmokeEvent).filter((event): event is ProductCdmHostSmokeEvent => Boolean(event));
   const checks = summarizeProductCdmHostSmokeChecks(safeContext, safeEvents);
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     capturedAt: capturedAt.toISOString(),
+    candidate: {
+      gitSha: safeContext.buildSha,
+      productAppVersion: safeContext.productAppVersion,
+      deployedCid: safeContext.deployedCid
+    },
     summary: summarizeProductCdmHostSmoke(checks),
     context: safeContext,
     checks,
