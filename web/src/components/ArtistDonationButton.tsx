@@ -18,7 +18,7 @@ type Quote = { artist: DonationArtist; port: DonationPort; account: string; send
 export function ArtistDonationButton({ track }: { track: CatalogTrack }) {
   const catalog = useCatalogContext();
   const wallet = useWalletContext();
-  const { setShowWalletModal } = useUiFeedback();
+  const { openWalletModal } = useUiFeedback();
   const [flow] = useState(() => createDonationFlow(() => sessionStorage));
   const [open, setOpen] = useState(false);
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -53,7 +53,7 @@ export function ArtistDonationButton({ track }: { track: CatalogTrack }) {
   }
   async function start() {
     if (!wallet.connectedWallet || !wallet.listenerEvmAddress) {
-      setShowWalletModal(true);
+      openWalletModal('support');
       return;
     }
     const current = ++generation.current;

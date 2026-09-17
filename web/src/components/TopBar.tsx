@@ -22,7 +22,7 @@ type TopBarProps = {
 
 export function TopBar({ className, brandHref, brandAriaLabel, onBrandClick, navAriaLabel, children }: TopBarProps) {
   const { walletState, disconnect } = useWalletContext();
-  const { setShowWalletModal } = useUiFeedback();
+  const { openWalletModal } = useUiFeedback();
 
   return (
     <header className={className ? `topbar ${className}` : 'topbar'}>
@@ -58,7 +58,7 @@ export function TopBar({ className, brandHref, brandAriaLabel, onBrandClick, nav
         </a>
         <nav className='nav-pills' aria-label={navAriaLabel}>
           {children}
-          <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnect} />
+          <WalletStatusPill state={walletState} onClick={() => openWalletModal('account')} onDisconnect={disconnect} />
         </nav>
       </div>
     </header>

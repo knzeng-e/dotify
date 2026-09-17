@@ -684,13 +684,15 @@
   }
 
   .transaction-facts > div,
-  .release-fact-panel dl > div {
+  .release-fact-panel dl > div,
+  .access-gate-receipt dl > div {
     grid-template-columns: minmax(0, 1fr);
     gap: 0.25rem;
   }
 
   .transaction-facts dd,
-  .release-fact-panel dd {
+  .release-fact-panel dd,
+  .access-gate-receipt dd {
     justify-content: flex-start;
     text-align: left;
   }

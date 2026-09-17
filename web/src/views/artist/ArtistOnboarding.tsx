@@ -9,7 +9,7 @@ import { useReleaseForm, useWalletContext, useUiFeedback, useCatalogContext, use
 export function ArtistOnboarding() {
   const { artistName, setArtistName } = useReleaseForm();
   const { connectedWallet, activeEvmAddress } = useWalletContext();
-  const { setShowWalletModal } = useUiFeedback();
+  const { openWalletModal } = useUiFeedback();
   const catalog = useCatalogContext();
   const { artistConsole } = useArtistStudio();
 
@@ -26,7 +26,7 @@ export function ArtistOnboarding() {
   const onRefreshArtistRuntime = () => {
     void artistConsole.refreshArtistRuntime(true);
   };
-  const onShowWalletModal = () => setShowWalletModal(true);
+  const onShowWalletModal = () => openWalletModal('artist');
 
   const [consented, setConsented] = useState(false);
   const needsWallet = !connectedWallet;

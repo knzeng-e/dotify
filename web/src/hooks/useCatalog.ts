@@ -288,7 +288,7 @@ export type UseCatalogDeps = {
   listenerEvmAddress: `0x${string}` | null;
   connectedWallet: ConnectedWallet | null;
   directoryAddress: `0x${string}` | undefined;
-  setShowWalletModal: (show: boolean) => void;
+  openSupportWalletModal: () => void;
   setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
   activeView: View;
   navigateToView: (view: 'listen' | 'player' | 'rooms') => void;
@@ -308,7 +308,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     listenerEvmAddress,
     connectedWallet,
     directoryAddress,
-    setShowWalletModal,
+    openSupportWalletModal,
     setTransactionFeedback,
     setTitle,
     activeView,
@@ -1010,7 +1010,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     track: CatalogTrack,
     socketEmit?: (event: string, data: unknown) => void,
     setLocalStreamReady?: (ready: boolean) => void,
-    closeHostPeers?: () => void
+    closeHostPeers?: () => void,
+    showAccessGateOnDenied = false
   ): Promise<TrackSelectionResult> {
     const selection = beginTrackSelection();
 
@@ -1053,7 +1054,10 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
       if (!hasAccess) {
-        setAccessGate(buildAccessGateInfo(track));
+        // A room host has just chosen this release from the lineup, so the
+        // access explanation is the direct result of that explicit action.
+        // Solo browsing stays calm until the listener presses the cover CTA.
+        if (showAccessGateOnDenied) setAccessGate(buildAccessGateInfo(track));
         setAudioStartupStatus(null);
       }
     }
@@ -1107,10 +1111,11 @@ export function useCatalog(deps: UseCatalogDeps) {
     track: CatalogTrack,
     socketEmit?: (event: string, data: unknown) => void,
     setLocalStreamReady?: (ready: boolean) => void,
-    closeHostPeers?: () => void
+    closeHostPeers?: () => void,
+    showAccessGateOnDenied = false
   ) {
     navigateToView('player');
-    return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+    return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers, showAccessGateOnDenied);
   }
 
   function explainRuntimeWriteWalletRequirement(): string | null {
@@ -1156,7 +1161,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     if (!connectedWallet) {
       setAccessGate(buildAccessGateInfo(track));
-      setShowWalletModal(true);
+      openSupportWalletModal();
       return;
     }
 

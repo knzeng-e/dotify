@@ -52,18 +52,19 @@ describe('access promise copy', () => {
 
     expect(gate.actionType).toBe('none');
     expect(gate.title).toBe('Release unavailable');
-    expect(gate.message).toContain('inactive');
-    expect(gate.message).toContain('not a guarantee of perpetual media availability');
+    expect(gate.message).toContain('currently unavailable');
+    expect(gate.message).toContain('does not guarantee');
     expect(gate.hint).toContain('No payment will be sent');
   });
 
-  it('describes Classic support with the resolved runtime asset and a fresh runtime check', () => {
+  it('describes Classic support with the resolved asset and plain listening language', () => {
     const gate = buildAccessGate({ track: track(), connected: true, nativePaymentAsset });
 
     expect(gate.actionType).toBe('payment');
     expect(gate.message).toContain('0.5 PAS');
-    expect(gate.message).toContain('fresh runtime access check');
-    expect(gate.hint).toContain('opens protected audio');
+    expect(gate.message).toContain('checks your listening access');
+    expect(gate.hint).toBe('Nothing is sent until you confirm.');
+    expect(`${gate.message} ${gate.hint}`).not.toMatch(/runtime|registry|chain|EVM/i);
   });
 
   it('builds a Classic receipt with amount, conditions, and recipient disclosure', () => {
@@ -71,14 +72,14 @@ describe('access promise copy', () => {
 
     expect(receipt.supportAmount).toBe('0.5 PAS');
     expect(receipt.terms).toEqual([
-      { label: 'You receive', value: 'A paid Classic access record for this wallet' },
+      { label: 'You receive', value: 'A listening access record for this account' },
       {
         label: 'Playback condition',
-        value: 'Full audio opens only while the release remains active and the runtime confirms access'
+        value: 'Full listening opens after payment is confirmed and the access check passes'
       },
       {
         label: 'Availability',
-        value: 'No fixed expiry is written here, but this is not a perpetual media availability guarantee'
+        value: 'The support record has no fixed expiry, but the artist may later withdraw the release'
       }
     ]);
     expect(receipt.recipients).toEqual([
@@ -98,12 +99,12 @@ describe('access promise copy', () => {
     const unverified = buildIncludedPaymentUnverifiedMessage({ attempts: 3, error: 'still denies access', productCdm: false });
 
     expect(success.title).toBe('Access verified');
-    expect(success.message).toContain('while the release remains active');
+    expect(success.message).toContain('while the release remains available');
     expect(success.facts).toContainEqual({ label: 'Amount', value: '0.5 PAS' });
-    expect(success.facts).toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Settlement', value: expect.stringContaining('claimable') })]));
-    expect(unverified).toContain('payment transaction was included');
+    expect(success.facts).toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Settlement', value: expect.stringContaining('claim') })]));
+    expect(unverified).toContain('payment was included');
     expect(unverified).toContain('payment record may still exist');
-    expect(unverified).toContain('will not open protected audio');
+    expect(unverified).toContain('protected audio stays closed');
   });
 
   it('builds support facts for pending, unverified, failed, and canceled states', () => {

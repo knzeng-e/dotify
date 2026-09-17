@@ -36,6 +36,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   }
 
   function handleOpenTrack(track: CatalogTrack) {
+    const showAccessGateOnDenied = session.mode === 'host' && Boolean(session.roomId);
     setPublicArtistName(null);
     if (isArtistPortal) {
       const nextState = { ...historyStateObject(window.history.state), dotifyView: 'player' };
@@ -43,11 +44,11 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       setActiveView('player');
       window.history.pushState(nextState, '', '/');
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      void catalog.selectTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
+      void catalog.selectTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers, showAccessGateOnDenied);
       return;
     }
 
-    void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
+    void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers, showAccessGateOnDenied);
   }
 
   const playback = usePlayback({

@@ -69,7 +69,7 @@ export function ListenerShell() {
     productHostMode,
     productHostStatus
   } = useWalletContext();
-  const { setShowWalletModal } = useUiFeedback();
+  const { openWalletModal } = useUiFeedback();
   const { artistName } = useReleaseForm();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
 
@@ -189,7 +189,7 @@ export function ListenerShell() {
       return;
     }
 
-    const selection = await catalog.openTrack(track).catch(() => null);
+    const selection = await catalog.openTrack(track, undefined, undefined, undefined, true).catch(() => null);
     session.createSession(trackInfo, 'full', undefined, { audioSourceHint: selection?.audioSource ?? null });
   }
 
@@ -375,7 +375,7 @@ export function ListenerShell() {
                         : null
                     }
                     onOpenArtistStudio={openArtistStudio}
-                    onShowWalletModal={() => setShowWalletModal(true)}
+                    onShowWalletModal={() => openWalletModal('account')}
                     onDisconnectWallet={disconnectWallet}
                   />
                 )}

@@ -32,7 +32,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { playback } = usePlaybackContext();
-  const { setShowWalletModal } = useUiFeedback();
+  const { openWalletModal } = useUiFeedback();
   const { navigateToView, setPublicArtistName } = useNavigation();
   const { title, artistName, accessMode, priceDot } = useReleaseForm();
 
@@ -69,7 +69,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const onPayForTrackAccess = (track: CatalogTrack) => {
     void catalog.payForTrackAccess(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
   };
-  const onShowWalletModal = () => setShowWalletModal(true);
+  const onShowSupportWalletModal = () => openWalletModal('support');
   const onNavigateToListen = () => navigateToView('listen');
   const onOpenArtist = (name: string) => {
     setPublicArtistName(name);
@@ -80,6 +80,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const effectivePriceDot = trackInfo?.priceDot ?? selectedTrack?.priceDot ?? priceDot;
   const nativePaymentAsset = catalog.nativeRuntimePaymentAsset;
   const effectivePaymentAmount = nativeRuntimeAmountLabel(effectivePriceDot, nativePaymentAsset);
+  const releaseDescription = trackInfo?.description ?? selectedTrack?.description;
   const [reactions, setReactions] = useState<Array<{ id: string; emoji: string; x: number; senderName: string; self: boolean }>>([]);
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
   const [roomPanel, setRoomPanel] = useState<'chat' | 'requests' | 'people'>('chat');
@@ -123,11 +124,12 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       : effectiveAccessMode === 'classic'
         ? needsTrackAccess
           ? effectivePaymentAmount
-          : 'Access verified'
+          : 'Full track opened'
         : effectiveAccessMode === 'free'
           ? 'Free for everyone'
           : 'Free for verified humans';
   const unlockCtaLabel = effectiveAccessMode === 'classic' ? 'Support and open' : 'Check access';
+  const canHostSelectedTrack = Boolean(selectedTrack && !selectedTrackInactive && !needsTrackAccess && catalog.audioSource);
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
   const disconnectedListeners = listeners.filter(listener => listener.status === 'disconnected');
@@ -419,6 +421,26 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             )}
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : visibleHostName ? `With ${visibleHostName}` : 'Listening together'}</span>
 
+            {!roomId && (
+              <div className='access-badges' data-needs-access={needsTrackAccess}>
+                {(selectedTrackInactive || needsTrackAccess) && (
+                  <span
+                    className='access-chip'
+                    data-tone={needsTrackAccess ? 'locked' : 'ready'}
+                    data-testid={needsTrackAccess ? 'locked-player-state' : undefined}
+                  >
+                    {accessStatusLabel}
+                  </span>
+                )}
+                <span
+                  className='access-chip'
+                  data-testid={!needsTrackAccess && !selectedTrackInactive && effectiveAccessMode === 'classic' ? 'full-playback-state' : 'player-access-price'}
+                >
+                  {accessPriceLabel}
+                </span>
+              </div>
+            )}
+
             {roomId && mode === 'listener' && !remoteReady && (
               <p className='room-sync-note'>
                 <span className='live-dot' data-online={session.socketStatus === 'online'} aria-hidden='true' />
@@ -442,26 +464,33 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                     }
                   : undefined
               }
-              onSignIn={accessGate.actionType === 'signin' ? onShowWalletModal : undefined}
+              onSignIn={
+                accessGate.actionType === 'signin'
+                  ? () => {
+                      onSetAccessGate(null);
+                      onShowSupportWalletModal();
+                    }
+                  : undefined
+              }
             />
           )}
         </div>
         <PlayerTransport playback={playback} duration={transportDuration} listener={isRoomGuest} />
-        <div className='access-badges' data-needs-access={needsTrackAccess}>
-          <span
-            className='access-chip'
-            data-tone={needsTrackAccess ? 'locked' : 'ready'}
-            data-testid={needsTrackAccess ? 'locked-player-state' : effectiveAccessMode === 'classic' ? 'full-playback-state' : undefined}
-          >
-            {accessStatusLabel}
-          </span>
-          <span className='access-chip' data-testid='player-access-price'>
-            {accessPriceLabel}
-          </span>
-        </div>
+        {roomId && (
+          <div className='access-badges' data-needs-access={needsTrackAccess}>
+            <span className='access-chip' data-tone={needsTrackAccess ? 'locked' : 'ready'} data-testid={needsTrackAccess ? 'locked-player-state' : undefined}>
+              {accessStatusLabel}
+            </span>
+            <span className='access-chip' data-testid='player-access-price'>
+              {accessPriceLabel}
+            </span>
+          </div>
+        )}
       </div>
 
-      {!roomId && (
+      {!roomId && releaseDescription && <p className='solo-release-note'>{releaseDescription}</p>}
+
+      {!roomId && canHostSelectedTrack && (
         <div className='solo-room-invite'>
           <div>
             <span className='eyebrow'>One link away</span>

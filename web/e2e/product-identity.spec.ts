@@ -84,7 +84,7 @@ test('remembered aliases stay account scoped and long usernames fit the mobile h
 
 test('extension events follow the extension account and cannot replace a Product connection', async ({ page }) => {
   await page.getByRole('button', { name: 'Connect', exact: true }).click();
-  await page.getByRole('button', { name: 'Use EVM wallet' }).click();
+  await page.getByRole('button', { name: 'Use browser wallet' }).click();
   await expect(page.locator('.wallet-pill-open')).toHaveText('0x1111…1111');
   await page.evaluate(() => window.identityFixture.emitExtension('accountsChanged', ['0x' + '22'.repeat(20)]));
   await expect(page.locator('.wallet-pill-open')).toHaveText('0x2222…2222');

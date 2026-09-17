@@ -42,19 +42,19 @@ export function buildClassicAccessReceipt(track: CatalogTrack, nativePaymentAsse
     terms: [
       {
         label: 'You receive',
-        value: 'A paid Classic access record for this wallet'
+        value: 'A listening access record for this account'
       },
       {
         label: 'Playback condition',
-        value: 'Full audio opens only while the release remains active and the runtime confirms access'
+        value: 'Full listening opens after payment is confirmed and the access check passes'
       },
       {
         label: 'Availability',
-        value: 'No fixed expiry is written here, but this is not a perpetual media availability guarantee'
+        value: 'The support record has no fixed expiry, but the artist may later withdraw the release'
       }
     ],
     recipients,
-    settlementNote: 'The artist-owned runtime applies this split when the support transaction is confirmed.'
+    settlementNote: 'Your support follows this split when confirmation completes.'
   };
 }
 
@@ -64,16 +64,16 @@ export function buildClassicSupportFacts(
   status: ClassicSupportStatus = 'pending'
 ): TransactionFeedbackFact[] {
   const receipt = buildClassicAccessReceipt(track, nativePaymentAsset);
-  const recipients = receipt.recipients.map(row => `${row.label}: ${row.value}`).join('; ') || 'Artist runtime recipient list';
+  const recipients = receipt.recipients.map(row => `${row.label}: ${row.value}`).join('; ') || 'Artist’s published recipient list';
   const accessValue =
     status === 'confirmed'
-      ? 'Paid access verified for this wallet while the release remains active.'
+      ? 'Listening access is verified for this account while the release remains available.'
       : status === 'included-unverified'
-        ? 'Protected audio stays closed until runtime read-back grants access.'
-        : 'Full audio opens only after runtime read-back confirms access.';
+        ? 'Protected audio stays closed until the access check passes.'
+        : 'Full listening opens only after the access check passes.';
   const settlementValue =
     status === 'confirmed'
-      ? 'Runtime accepted support; each share is settled now or claimable by its recipient.'
+      ? 'Support was accepted; each share is settled now or available for its recipient to claim.'
       : status === 'included-unverified'
         ? 'Payment may be recorded, but Dotify has not confirmed playable access.'
         : status === 'canceled'
@@ -87,7 +87,7 @@ export function buildClassicSupportFacts(
     { label: 'Access', value: accessValue },
     { label: 'Recipients', value: recipients },
     { label: 'Settlement', value: settlementValue },
-    { label: 'Network fee', value: 'Shown by the wallet or Product host before signing.' }
+    { label: 'Confirmation fee', value: 'Shown before you approve.' }
   ];
 }
 
@@ -99,8 +99,8 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
     return {
       track,
       title: 'Release unavailable',
-      message: `"${track.title}" is inactive in the artist runtime. A payment record is not a guarantee of perpetual media availability.`,
-      hint: 'No payment will be sent. If the artist reactivates the release, Dotify can check access again.',
+      message: `"${track.title}" is currently unavailable. Previous support does not guarantee that a release remains online forever.`,
+      hint: 'No payment will be sent. If the artist brings it back, Dotify can check your access again.',
       actionType: 'none'
     };
   }
@@ -110,7 +110,7 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
       return {
         track,
         title: 'Support and open this track',
-        message: `"${track.title}" opens for ${supportAmount} after the runtime confirms access for this wallet.`,
+        message: `"${track.title}" opens after ${supportAmount} of support. Review who receives it, then choose how to confirm.`,
         hint: 'Nothing is sent until you confirm.',
         actionType: 'signin'
       };
@@ -118,8 +118,8 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
     return {
       track,
       title: 'Verification needed',
-      message: `"${track.title}" is free for verified humans.`,
-      hint: 'Dotify only checks whether access should open.',
+      message: `"${track.title}" is free for verified humans. Connect to check your eligibility.`,
+      hint: 'No payment is required for this check.',
       actionType: 'signin'
     };
   }
@@ -129,7 +129,7 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
       track,
       title: 'Verification needed',
       message: `"${track.title}" is free for verified humans while the release remains active.`,
-      hint: 'No profile is created for this check.',
+      hint: 'No payment is required. Dotify only checks whether listening should open.',
       actionType: 'personhood'
     };
   }
@@ -137,8 +137,8 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
   return {
     track,
     title: 'Support and open this track',
-    message: `"${track.title}" opens after ${supportAmount} of support and a fresh runtime access check.`,
-    hint: 'The artist-owned runtime distributes the confirmed amount before Dotify opens protected audio.',
+    message: `"${track.title}" opens after ${supportAmount} of support. Dotify checks your listening access again after confirmation.`,
+    hint: 'Nothing is sent until you confirm.',
     actionType: 'payment'
   };
 }
@@ -151,16 +151,16 @@ export function buildClassicAccessVerifiedFeedback(
   return {
     tone: 'success',
     title: 'Access verified',
-    message: `Payment confirmed. Full listening for "${track.title}" is available to this wallet while the release remains active and runtime policy continues to grant access.`,
+    message: `Payment confirmed. Full listening for "${track.title}" is available to this account while the release remains available and access continues to be granted.`,
     txHash,
     facts: buildClassicSupportFacts(track, nativePaymentAsset, 'confirmed')
   };
 }
 
 export function buildIncludedPaymentUnverifiedMessage(input: { attempts: number; error: string; productCdm: boolean }): string {
-  const base = `The payment transaction was included, but Dotify could not verify playable runtime access after ${input.attempts} read-back attempts: ${input.error} Your payment record may still exist, but Dotify will not open protected audio until the runtime confirms access.`;
+  const base = `The payment was included, but Dotify could not verify listening access after ${input.attempts} checks: ${input.error} Your payment record may still exist, but protected audio stays closed until access is confirmed.`;
   if (!input.productCdm) return base;
-  return `${base} Keep Product writes disabled until native value forwarding and account mapping are verified in the Product host.`;
+  return `${base} Check your account activity in Polkadot app before trying again.`;
 }
 
 export function isUserRejectedSupportError(error: unknown): boolean {

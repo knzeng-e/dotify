@@ -9,6 +9,7 @@ type DialogProps = {
   describedBy?: string;
   dismissible?: boolean;
   labelledBy: string;
+  initialFocus?: 'dialog' | 'first';
   onClose?: () => void;
   size?: 'compact' | 'default' | 'wide';
   tone?: 'pending' | 'success' | 'error';
@@ -31,6 +32,7 @@ export function Dialog({
   describedBy,
   dismissible = true,
   labelledBy,
+  initialFocus = 'first',
   onClose,
   size = 'default',
   tone
@@ -58,8 +60,11 @@ export function Dialog({
     appRoot?.setAttribute('aria-hidden', 'true');
 
     const frame = window.requestAnimationFrame(() => {
-      const focusable = getFocusableElements(dialogRef.current);
-      (focusable[0] ?? dialogRef.current)?.focus();
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      dialog.scrollTop = 0;
+      const focusable = getFocusableElements(dialog);
+      (initialFocus === 'dialog' ? dialog : (focusable[0] ?? dialog)).focus({ preventScroll: true });
     });
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -104,7 +109,7 @@ export function Dialog({
       }
       previousActive?.focus();
     };
-  }, [dismissible]);
+  }, [dismissible, initialFocus]);
 
   const modal = (
     <div
