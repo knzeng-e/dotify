@@ -4,6 +4,21 @@ import type { CatalogTrack, RoyaltyRuntimeSummary } from '../../shared/types';
 
 type RuntimeCandidate = Omit<RoyaltyRuntimeSummary, 'claimableWei'>;
 
+export async function readRoyaltyRuntimeBalances(
+  candidates: RuntimeCandidate[],
+  readBalance: (runtimeAddress: `0x${string}`) => Promise<bigint>
+): Promise<RoyaltyRuntimeSummary[]> {
+  return Promise.all(
+    candidates.map(async candidate => {
+      try {
+        return { ...candidate, claimableWei: await readBalance(candidate.runtimeAddress) };
+      } catch {
+        return { ...candidate, claimableWei: null };
+      }
+    })
+  );
+}
+
 export function listKnownRoyaltyRuntimeCandidates(
   tracks: CatalogTrack[],
   recipientAddress: `0x${string}`,

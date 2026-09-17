@@ -1,7 +1,7 @@
 import { CircleAlert, CircleCheckBig, Copy, Disc3, X } from 'lucide-react';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Dialog } from './Dialog';
-import { getBlockscoutTxUrl } from '../shared/utils/explorer';
+import { getTransactionProofUrl } from '../shared/utils/explorer';
 import { shorten } from '../shared/utils/format';
 import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
 import type { TransactionFeedback } from '../shared/types';
@@ -22,6 +22,7 @@ export function TransactionModal() {
   } as CSSProperties;
   const dismissible = feedback.tone !== 'pending';
   const stepsContainTxHash = feedback.steps?.some(step => Boolean(step.txHash)) ?? false;
+  const proofKind = feedback.proofKind ?? 'evm-transaction';
   const onClose = () => {
     if (feedback.tone !== 'pending') setTransactionFeedback(null);
   };
@@ -114,7 +115,7 @@ export function TransactionModal() {
                 <strong>{step.label}</strong>
                 <small>{step.detail}</small>
                 {step.txHash && (
-                  <a href={getBlockscoutTxUrl(step.txHash)} target='_blank' rel='noreferrer'>
+                  <a href={getTransactionProofUrl(step.txHash, proofKind)} target='_blank' rel='noreferrer'>
                     {shorten(step.txHash, 10)}
                   </a>
                 )}
@@ -127,8 +128,17 @@ export function TransactionModal() {
         <div className='modal-hash'>
           <span>Proof reference</span>
           <code>{shorten(feedback.txHash, 12)}</code>
-          <a className='modal-link' href={getBlockscoutTxUrl(feedback.txHash)} target='_blank' rel='noreferrer'>
-            View proof
+          <button
+            className='transaction-fact-copy'
+            type='button'
+            onClick={() => void copyFactValue('Proof reference', feedback.txHash!)}
+            aria-label='Copy proof reference'
+          >
+            <Copy size={13} />
+            <span>Copy</span>
+          </button>
+          <a className='modal-link' href={getTransactionProofUrl(feedback.txHash, proofKind)} target='_blank' rel='noreferrer'>
+            {proofKind === 'substrate-extrinsic' ? 'View extrinsic' : 'View proof'}
           </a>
         </div>
       )}
