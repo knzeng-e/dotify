@@ -1,10 +1,10 @@
 # Dotify implementation playbook
 
-Twenty agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf`; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
+Twenty-six agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf`; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
 ## The branch workflow
 
-Keep all prompts together on `dev`. Create one short-lived implementation branch when its work starts, from the latest tested `origin/dev`. Review and merge its PR into `dev`, then create the next branch. This keeps subsequent agents on integrated code and makes the prompt travel with every branch. Pre-creating twenty branches would freeze twenty increasingly stale starting points.
+Keep all prompts together on `dev`. Create one short-lived implementation branch when its work starts, from the latest tested `origin/dev`. Review and merge its PR into `dev`, then create the next branch. This keeps subsequent agents on integrated code and makes the prompt travel with every branch. Pre-creating twenty-six branches would freeze twenty-six increasingly stale starting points.
 
 The documentation branch `docs/agent-implementation-playbook` introduces this playbook. Review/merge its PR into `dev` before starting W01. Do not build features on top of the documentation branch by default.
 
