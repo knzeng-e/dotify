@@ -4,7 +4,7 @@ import { Dialog } from './Dialog';
 import { CoverImage } from './CoverImage';
 import { AvatarStack, roomPresenceNames } from './Presence';
 import { isChosenDisplayName } from '../features/identity/walletIdentity';
-import { roomPresenceCount } from '../features/rooms/roomState';
+import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
 import type { OpenRoom, SessionAction } from '../shared/types';
 
 type JoinRoomModalProps = {
@@ -38,8 +38,10 @@ export function JoinRoomModal({
   const hasChosenName = isChosenDisplayName(displayName);
   const hasPrefilledCode = Boolean(joinCode.trim());
   const roomTrack = room?.track;
+  const hostDisplayName = roomHostDisplayName(room?.hostName);
   const peopleHere = room ? roomPresenceCount(room.listenerCount, true) : 0;
   const displayedRoomCode = room?.roomId ?? joinCode.trim().toUpperCase();
+  const allowAutomaticFocus = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -48,9 +50,11 @@ export function JoinRoomModal({
 
   const eyebrow = isFull ? 'Room full' : room ? 'Live room' : isResolving ? 'Finding room' : isUnavailable ? 'Room unavailable' : 'Join a room';
   const title = isFull
-    ? `${room?.hostName ?? 'This room'} is at capacity`
+    ? `${hostDisplayName ?? 'This room'} is at capacity`
     : room
-      ? `${room.hostName} welcomes you`
+      ? hostDisplayName
+        ? `${hostDisplayName} welcomes you`
+        : 'A listening room welcomes you'
       : isResolving
         ? 'Finding this room'
         : isUnavailable
@@ -83,16 +87,16 @@ export function JoinRoomModal({
       </div>
 
       {room && (
-        <section className='room-threshold-preview' aria-label={`Room hosted by ${room.hostName}`}>
+        <section className='room-threshold-preview' aria-label={hostDisplayName ? `Room hosted by ${hostDisplayName}` : 'Listening room preview'}>
           <div className='room-threshold-art' aria-hidden='true'>
             {roomTrack?.imageRef ? <CoverImage src={roomTrack.imageRef} alt='' fallbackLabel={roomTrack.title} /> : <Disc3 size={40} />}
           </div>
           <div className='room-threshold-copy'>
             <span className='room-threshold-live'>
-              <i aria-hidden='true' /> Live now
+              <i className='live-dot' data-online='true' aria-hidden='true' /> Live now
             </span>
             <strong>{roomTrack?.title ?? 'A shared listening moment'}</strong>
-            <span>{roomTrack?.artist ?? `${room.hostName}'s room`}</span>
+            <span>{roomTrack?.artist ?? 'Live on Dotify'}</span>
             <span className='room-threshold-presence'>
               <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={26} />
               <span>
@@ -117,7 +121,7 @@ export function JoinRoomModal({
               placeholder='How should people see you?'
               maxLength={32}
               autoComplete='nickname'
-              autoFocus={hasPrefilledCode}
+              autoFocus={hasPrefilledCode && allowAutomaticFocus}
             />
           </>
         )}
@@ -140,7 +144,7 @@ export function JoinRoomModal({
               placeholder='ABC123'
               maxLength={12}
               autoComplete='off'
-              autoFocus={!hasPrefilledCode}
+              autoFocus={!hasPrefilledCode && allowAutomaticFocus}
             />
           </>
         )}

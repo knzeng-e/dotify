@@ -4,6 +4,7 @@ async function hostRoom(page: Page) {
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
+  await page.getByLabel('Your name in the room').fill('Room host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   return (await page.getByTestId('room-code').innerText()).trim();
@@ -88,6 +89,11 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
     await guest.getByRole('textbox', { name: 'Message the room' }).fill('Here with you');
     await guest.getByRole('button', { name: 'Send message' }).click();
     await expect(host.getByRole('log')).toContainText('Here with you');
+    const ownMessage = guest.locator(".room-chat-row[data-self='true']").filter({ hasText: 'Here with you' });
+    await expect(ownMessage).toBeVisible();
+    const ownMessageBounds = await ownMessage.locator('.room-chat-body').boundingBox();
+    const chatBounds = await guest.getByRole('log').boundingBox();
+    expect(ownMessageBounds!.x + ownMessageBounds!.width / 2).toBeGreaterThan(chatBounds!.x + chatBounds!.width / 2);
     await guest.getByRole('tab', { name: /People/ }).click();
     await expect(guest.locator('.listener-list')).toContainText('Mina');
     await guest.getByRole('tab', { name: 'Chat', exact: true }).click();
@@ -106,17 +112,50 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
   }
 });
 
-test('host plan preview opens a protected selection through the existing access gate', async ({ page }) => {
+test('up next opens a protected selection through the existing access gate', async ({ page }) => {
   await hostRoom(page);
   await page.getByRole('tab', { name: /People/ }).click();
   await page.locator('.host-lineup summary').click();
-  await page.getByLabel('Track for host plan').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
+  await page.getByLabel('Choose a track').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
   await page.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.locator('.host-lineup')).toContainText('Planned next');
-  await page.getByRole('button', { name: 'Open next track' }).click();
+  await page.getByRole('button', { name: 'Play next' }).click();
   await expect(page.getByTestId('locked-player-state')).toBeVisible();
   await expect(page.locator('.host-lineup')).not.toContainText('Planned next');
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
+});
+
+test('a host sees one room code and an invite-first state while alone', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: async (data: ShareData) => Reflect.set(window, '__sharedRoomInvite', data)
+    });
+  });
+  const roomId = await hostRoom(page);
+
+  await expect(page.getByTestId('room-code')).toHaveCount(1);
+  await page.getByRole('tab', { name: /People/ }).click();
+  const invite = page.getByLabel('Invite people to this room');
+  await expect(invite).toContainText('Bring someone into this track');
+  await expect(invite.getByRole('button', { name: 'Copy invite' })).toBeVisible();
+  await expect(invite.getByRole('button', { name: 'Show QR' })).toBeVisible();
+  await invite.getByRole('button', { name: 'Share', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (Reflect.get(window, '__sharedRoomInvite') as ShareData | undefined)?.url)).toContain(`#/rooms/${roomId}`);
+});
+
+test('a room requires a chosen host name instead of presenting a role as identity', async ({ page }) => {
+  await page.goto('/?e2eRoom=public');
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  const name = page.getByLabel('Your name in the room');
+  const open = page.getByRole('button', { name: 'Open the room', exact: true });
+
+  await expect(name).toHaveValue('');
+  await expect(open).toBeDisabled();
+  await name.fill('Host');
+  await expect(open).toBeDisabled();
+  await name.fill('Gaby');
+  await expect(open).toBeEnabled();
 });
 
 test('compact keyboard viewport leaves space to compose and restores after resize', async ({ page }) => {
@@ -161,8 +200,7 @@ test('room controls fit a small desktop and the QR remains discoverable', async 
   await hostRoom(page);
   await expect(page.getByRole('textbox', { name: 'Message the room' })).toBeVisible();
   await page.getByRole('tab', { name: /People/ }).click();
-  await page.locator('.room-share-details summary').click();
-  await page.getByRole('button', { name: 'Show big QR' }).click();
+  await page.getByRole('button', { name: 'Show QR' }).click();
   await expect(page.getByRole('dialog')).toContainText('Scan to join');
   await page.getByRole('button', { name: 'Close projected QR' }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

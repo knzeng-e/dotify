@@ -4,6 +4,7 @@
 // room feels populated and people stay distinguishable.
 
 import type { CSSProperties } from 'react';
+import { roomHostDisplayName } from '../features/rooms/roomState';
 import { hashHue, initialsFor } from '../shared/utils/aura';
 
 type AvatarProps = {
@@ -43,7 +44,7 @@ type AvatarStackProps = {
 // inventing people or initials that the signaling payload never supplied.
 export function roomPresenceNames(hostName: string, listenerCount: number, _seed: string): string[] {
   const listeners = Array.from({ length: Math.max(0, listenerCount) }, () => '');
-  return [hostName || 'Host', ...listeners];
+  return [roomHostDisplayName(hostName) ?? '', ...listeners];
 }
 
 export function AvatarStack({ names, max = 4, size = 28 }: AvatarStackProps) {

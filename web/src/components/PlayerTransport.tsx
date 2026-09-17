@@ -28,58 +28,67 @@ export function PlayerTransport({ playback, duration, listener }: { playback: Pl
         />
         <span>{formatTime(duration)}</span>
       </div>
-      <div className='transport-cluster' role='group' aria-label='Track navigation'>
-        <button
-          type='button'
-          onClick={playback.toggleShuffle}
-          disabled={!playback.canShuffle}
-          aria-label='Shuffle'
-          aria-pressed={playback.canShuffle && playback.shuffleEnabled}
-          data-active={playback.canShuffle && playback.shuffleEnabled}
-          title={listener ? 'The host chooses the track order' : playback.canShuffle ? 'Shuffle' : 'Add more tracks to shuffle'}
-        >
-          <Shuffle size={18} />
-        </button>
-        <button
-          className='transport-skip'
-          type='button'
-          onClick={() => playback.skip('previous')}
-          disabled={!playback.canSkip}
-          aria-label='Previous track'
-          title={listener ? 'The host chooses the tracks' : 'Previous track'}
-        >
-          <SkipBack size={20} />
-        </button>
+      <div className='transport-cluster' role='group' aria-label={listener ? 'Your listening' : 'Track navigation'} data-listener={listener || undefined}>
+        {!listener && (
+          <>
+            <button
+              type='button'
+              onClick={playback.toggleShuffle}
+              disabled={!playback.canShuffle}
+              aria-label='Shuffle'
+              aria-pressed={playback.canShuffle && playback.shuffleEnabled}
+              data-active={playback.canShuffle && playback.shuffleEnabled}
+              title={playback.canShuffle ? 'Shuffle' : 'Add more tracks to shuffle'}
+            >
+              <Shuffle size={18} />
+            </button>
+            <button
+              className='transport-skip'
+              type='button'
+              onClick={() => playback.skip('previous')}
+              disabled={!playback.canSkip}
+              aria-label='Previous track'
+              title='Previous track'
+            >
+              <SkipBack size={20} />
+            </button>
+          </>
+        )}
         <button
           className='transport-play'
           type='button'
           onClick={() => void playback.togglePlay()}
           disabled={!playback.canUseTransport}
           aria-label={transport.playing ? 'Pause' : 'Play'}
+          title={listener ? (transport.playing ? 'Pause for me' : 'Resume room audio') : transport.playing ? 'Pause' : 'Play'}
         >
           {transport.playing ? <Pause size={24} /> : <Play size={24} />}
         </button>
-        <button
-          className='transport-skip'
-          type='button'
-          onClick={() => playback.skip('next')}
-          disabled={!playback.canSkip}
-          aria-label='Next track'
-          title={listener ? 'The host chooses the tracks' : playback.shuffleEnabled ? 'Shuffle next track' : 'Next track'}
-        >
-          <SkipForward size={20} />
-        </button>
-        <button
-          type='button'
-          onClick={playback.toggleRepeat}
-          disabled={!playback.canRepeat || !playback.canUseTransport}
-          aria-label='Repeat this track'
-          aria-pressed={playback.canRepeat && playback.repeatEnabled}
-          data-active={playback.canRepeat && playback.repeatEnabled}
-          title={listener ? 'The host controls repetition' : 'Repeat this track'}
-        >
-          <Repeat1 size={18} />
-        </button>
+        {!listener && (
+          <>
+            <button
+              className='transport-skip'
+              type='button'
+              onClick={() => playback.skip('next')}
+              disabled={!playback.canSkip}
+              aria-label='Next track'
+              title={playback.shuffleEnabled ? 'Shuffle next track' : 'Next track'}
+            >
+              <SkipForward size={20} />
+            </button>
+            <button
+              type='button'
+              onClick={playback.toggleRepeat}
+              disabled={!playback.canRepeat || !playback.canUseTransport}
+              aria-label='Repeat this track'
+              aria-pressed={playback.canRepeat && playback.repeatEnabled}
+              data-active={playback.canRepeat && playback.repeatEnabled}
+              title='Repeat this track'
+            >
+              <Repeat1 size={18} />
+            </button>
+          </>
+        )}
       </div>
       <div className='transport-actions' role='group' aria-label='Volume'>
         <button

@@ -17,9 +17,9 @@ export function HostLineup() {
   return (
     <details className='host-lineup'>
       <summary>
-        <ListMusic size={16} /> Host plan <span>Preview</span>
+        <ListMusic size={16} /> Up next
       </summary>
-      <p>Only on this screen. Not shared or saved. You open each track; its listening terms still apply.</p>
+      <p>Keep a few tracks close, then choose when the room moves to the next one.</p>
       <form
         onSubmit={event => {
           event.preventDefault();
@@ -28,7 +28,7 @@ export function HostLineup() {
           setPicked('');
         }}
       >
-        <label htmlFor='host-plan-track'>Track for host plan</label>
+        <label htmlFor='host-plan-track'>Choose a track</label>
         <select id='host-plan-track' className='field' value={picked} onChange={event => setPicked(event.target.value)}>
           <option value=''>Choose a track</option>
           {available.map(track => (
@@ -70,7 +70,7 @@ export function HostLineup() {
           ))}
         </ol>
       ) : (
-        <p>Add a few tracks to shape the room’s next moments.</p>
+        <p>Add tracks you may want to play next.</p>
       )}
       {tracks[0] && (
         <button
@@ -81,7 +81,7 @@ export function HostLineup() {
             setIds(current => current.filter(id => id !== tracks[0].id));
           }}
         >
-          Open next track
+          Play next
         </button>
       )}
     </details>

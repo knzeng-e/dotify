@@ -442,7 +442,7 @@
   align-items: center;
   gap: 0.45rem;
   margin-bottom: 0.45rem;
-  color: var(--artist);
+  color: var(--success);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -453,7 +453,8 @@
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 50%;
-  background: var(--presence);
+  background: var(--room-online);
+  box-shadow: none;
 }
 
 .room-threshold-presence {

@@ -26,7 +26,7 @@ import type {
 import { CoverImage } from './CoverImage';
 import { SkyOfRooms } from './SkyOfRooms';
 import { roomConstellationPosition, shouldShowConstellationLabel } from '../features/rooms/roomConstellationLayout';
-import { roomPresenceCount } from '../features/rooms/roomState';
+import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
 import { getGatewayUrlsForAssetRef } from '../services/pinata';
 import { auraForTrack } from '../shared/utils/aura';
 import type { OpenRoom, SessionAction } from '../shared/types';
@@ -653,6 +653,7 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
         {rooms.map((room, index) => {
           const overlay = overlayByRoom.get(room.roomId);
           const presence = roomPresenceCount(room.listenerCount, true);
+          const hostDisplayName = roomHostDisplayName(room.hostName);
           const selected = selectedRoomId === room.roomId;
           const full = room.isFull === true;
           const label = shouldShowConstellationLabel(room.roomId, rooms.length, selected);
@@ -673,7 +674,7 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
                 onClick={() => selectRoom(room.roomId)}
                 onFocus={() => focusRoomAt(index)}
                 aria-pressed={selected}
-                aria-label={`Inspect room ${room.roomId}: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`}
+                aria-label={`Inspect room ${room.roomId}: ${room.track?.title ?? 'audio session'}${hostDisplayName ? ` with ${hostDisplayName}` : ''}, ${presence} listening`}
               >
                 <span className='room-galaxy-cover' aria-hidden='true'>
                   {room.track?.imageRef ? <CoverImage src={room.track.imageRef} alt='' fallbackLabel={room.track.title} loading='lazy' /> : null}
@@ -681,7 +682,8 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
                 <span className='room-galaxy-copy'>
                   <strong>{room.track?.title ?? 'Audio session'}</strong>
                   <span>
-                    {room.hostName} - {presence} here
+                    {hostDisplayName ? `${hostDisplayName} · ` : ''}
+                    {presence} here
                     {full && ' - full'}
                   </span>
                 </span>
@@ -701,47 +703,49 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
         })}
       </div>
 
-      <div className='room-galaxy-controls' aria-label='3D galaxy navigation controls'>
-        <div className='sky-control-group'>
-          <button type='button' onClick={() => focusRoomAt(selectedRoomIndex - 1)} disabled={rooms.length < 2} aria-label='Center previous room'>
-            <ChevronLeft size={16} />
-          </button>
-          <button type='button' onClick={() => focusRoomAt(selectedRoomIndex)} aria-label='Center selected room'>
-            <LocateFixed size={16} />
-          </button>
-          <button type='button' onClick={() => focusRoomAt(selectedRoomIndex + 1)} disabled={rooms.length < 2} aria-label='Center next room'>
-            <ChevronRight size={16} />
-          </button>
+      {rooms.length > 1 && (
+        <div className='room-galaxy-controls' aria-label='3D galaxy navigation controls'>
+          <div className='sky-control-group'>
+            <button type='button' onClick={() => focusRoomAt(selectedRoomIndex - 1)} aria-label='Center previous room'>
+              <ChevronLeft size={16} />
+            </button>
+            <button type='button' onClick={() => focusRoomAt(selectedRoomIndex)} aria-label='Center selected room'>
+              <LocateFixed size={16} />
+            </button>
+            <button type='button' onClick={() => focusRoomAt(selectedRoomIndex + 1)} aria-label='Center next room'>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+          <div className='sky-control-group'>
+            <button
+              type='button'
+              onClick={() => updateControls(setControls, { distance: controls.distance + ZOOM_STEP })}
+              disabled={controls.distance >= MAX_DISTANCE}
+              aria-label='Zoom out'
+            >
+              <Minus size={16} />
+            </button>
+            <button
+              type='button'
+              onClick={() => updateControls(setControls, { distance: controls.distance - ZOOM_STEP })}
+              disabled={controls.distance <= MIN_DISTANCE}
+              aria-label='Zoom in'
+            >
+              <Plus size={16} />
+            </button>
+            <button
+              type='button'
+              onClick={() => updateControls(setControls, { paused: !controls.paused })}
+              aria-label={controls.paused ? 'Resume room galaxy motion' : 'Pause room galaxy motion'}
+            >
+              {controls.paused ? <Play size={15} /> : <Pause size={15} />}
+            </button>
+            <button type='button' onClick={resetCamera} aria-label='Reset galaxy view'>
+              <RotateCcw size={15} />
+            </button>
+          </div>
         </div>
-        <div className='sky-control-group'>
-          <button
-            type='button'
-            onClick={() => updateControls(setControls, { distance: controls.distance + ZOOM_STEP })}
-            disabled={controls.distance >= MAX_DISTANCE}
-            aria-label='Zoom out'
-          >
-            <Minus size={16} />
-          </button>
-          <button
-            type='button'
-            onClick={() => updateControls(setControls, { distance: controls.distance - ZOOM_STEP })}
-            disabled={controls.distance <= MIN_DISTANCE}
-            aria-label='Zoom in'
-          >
-            <Plus size={16} />
-          </button>
-          <button
-            type='button'
-            onClick={() => updateControls(setControls, { paused: !controls.paused })}
-            aria-label={controls.paused ? 'Resume room galaxy motion' : 'Pause room galaxy motion'}
-          >
-            {controls.paused ? <Play size={15} /> : <Pause size={15} />}
-          </button>
-          <button type='button' onClick={resetCamera} aria-label='Reset galaxy view'>
-            <RotateCcw size={15} />
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

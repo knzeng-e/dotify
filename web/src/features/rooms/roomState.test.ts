@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSessionLink, getInitialRoomCode, roomListenerSyncLabel, roomPresenceCount } from './roomState';
+import { buildSessionLink, getInitialRoomCode, roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount } from './roomState';
 
 describe('getInitialRoomCode', () => {
   it('reads and uppercases the preferred #/rooms/<id> form', () => {
@@ -47,6 +47,16 @@ describe('roomPresenceCount', () => {
 
   it('is zero when not in a room', () => {
     expect(roomPresenceCount(5, false)).toBe(0);
+  });
+});
+
+describe('roomHostDisplayName', () => {
+  it('returns only a name the person actually chose', () => {
+    expect(roomHostDisplayName('  Gaby  ')).toBe('Gaby');
+    expect(roomHostDisplayName('Listener')).toBeNull();
+    expect(roomHostDisplayName('Host')).toBeNull();
+    expect(roomHostDisplayName('')).toBeNull();
+    expect(roomHostDisplayName(undefined)).toBeNull();
   });
 });
 

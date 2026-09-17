@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CoverImage } from '../components/CoverImage';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { RoomDiscoveryRenderer, type RoomDiscoveryRendererKind } from '../components/RoomDiscoveryRenderer';
-import { roomPresenceCount } from '../features/rooms/roomState';
+import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
 import type { OpenRoom, SessionAction, SocketStatus } from '../shared/types';
 
 type RoomsViewProps = {
@@ -44,7 +44,6 @@ export function RoomsView({
   const [discoveryRenderer, setDiscoveryRenderer] = useState<RoomDiscoveryRendererKind>('sky-2d');
   const roomCardRefs = useRef(new Map<string, HTMLButtonElement>());
   const roomDetailsSheetRef = useRef<HTMLElement | null>(null);
-  const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
   const selectedRoom = selectedRoomId ? (openRooms.find(room => room.roomId === selectedRoomId) ?? null) : null;
   const isJoining = sessionAction === 'joining';
   const roomListStatus = getRoomListStatus(socketStatus, isRefreshingRooms);
@@ -92,18 +91,6 @@ export function RoomsView({
         </div>
         <div className='rooms-intro-copy'>
           <p>Open a room from a track, or join with a code.</p>
-          {openRooms.length > 0 && (
-            <dl className='rooms-summary'>
-              <div>
-                <dt>Open rooms</dt>
-                <dd>{openRooms.length}</dd>
-              </div>
-              <div>
-                <dt>Listening now</dt>
-                <dd>{totalListening}</dd>
-              </div>
-            </dl>
-          )}
         </div>
       </header>
 
@@ -137,7 +124,7 @@ export function RoomsView({
             <h2 id='rooms-live-title'>Happening now</h2>
           </div>
           <div className='room-section-actions'>
-            {roomExperienceFlags.galaxy && (
+            {roomExperienceFlags.galaxy && openRooms.length > 0 && (
               <div className='room-renderer-switch' role='group' aria-label='Room discovery view'>
                 <button
                   type='button'
@@ -159,10 +146,12 @@ export function RoomsView({
                 </button>
               </div>
             )}
-            <button className='text-action' type='button' onClick={onRefreshRooms} disabled={isRefreshingRooms}>
-              <RefreshCw size={15} className={isRefreshingRooms ? 'spin' : undefined} />
-              {isRefreshingRooms ? 'Refreshing' : 'Refresh'}
-            </button>
+            {roomSignalUnavailable && (
+              <button className='text-action' type='button' onClick={onRefreshRooms} disabled={isRefreshingRooms}>
+                <RefreshCw size={15} className={isRefreshingRooms ? 'spin' : undefined} />
+                {isRefreshingRooms ? 'Reconnecting' : 'Try again'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -187,6 +176,7 @@ export function RoomsView({
               <div className='room-card-grid'>
                 {openRooms.map(room => {
                   const presence = roomPresenceCount(room.listenerCount, true);
+                  const hostDisplayName = roomHostDisplayName(room.hostName);
                   const isSelected = selectedRoom?.roomId === room.roomId;
                   return (
                     <button
@@ -198,7 +188,11 @@ export function RoomsView({
                       data-full={room.isFull === true}
                       onClick={() => selectRoom(room.roomId)}
                       aria-pressed={isSelected}
-                      aria-label={`Inspect ${room.track?.title ?? 'live audio session'} hosted by ${room.hostName}`}
+                      aria-label={
+                        hostDisplayName
+                          ? `Inspect ${room.track?.title ?? 'live audio session'} hosted by ${hostDisplayName}`
+                          : `Inspect ${room.track?.title ?? 'live audio session'}`
+                      }
                     >
                       <span className='room-live-art' aria-hidden='true'>
                         {room.track?.imageRef ? <CoverImage src={room.track.imageRef} alt='' fallbackLabel={room.track.title} /> : <Radio size={24} />}
@@ -206,7 +200,7 @@ export function RoomsView({
                       <span className='room-live-main'>
                         <span className='room-live-kicker'>
                           <span className='live-dot' data-online={socketStatus === 'online'} aria-hidden='true' />
-                          {room.hostName} hosts
+                          {hostDisplayName ? `${hostDisplayName} hosts` : 'Live listening room'}
                         </span>
                         <strong>{room.track?.title ?? 'Audio session'}</strong>
                         <span>{room.track?.artist ?? 'Live on Dotify'}</span>
@@ -318,6 +312,7 @@ function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms
   }
 
   const presence = roomPresenceCount(room.listenerCount, true);
+  const hostDisplayName = roomHostDisplayName(room.hostName);
   const joinDisabled = sessionAction !== 'idle' || room.isFull === true;
   const joinLabel = room.isFull ? 'Room full' : sessionAction === 'joining' ? 'Joining' : 'Join room';
 
@@ -342,7 +337,7 @@ function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms
       <div className='room-detail-copy'>
         <p className='room-detail-kicker'>
           <span className='live-dot' data-online={socketStatus === 'online'} aria-hidden='true' />
-          {room.hostName} hosts
+          {hostDisplayName ? `${hostDisplayName} hosts` : 'Live listening room'}
         </p>
         <h3>{room.track?.title ?? 'Audio session'}</h3>
         <p>{room.track?.artist ?? 'Live on Dotify'}</p>
