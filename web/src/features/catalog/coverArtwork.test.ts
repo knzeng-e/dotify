@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   COVER_GATEWAY_TIMEOUT_MS,
   createCoverFallbackDataUri,
+  resolveCoverPresentation,
   shouldArmCoverGatewayTimeout,
   shouldUseLocalCoverFallbackAfterGatewayTimeout
 } from './coverArtwork';
@@ -46,5 +47,26 @@ describe('cover artwork fallbacks', () => {
     ).toBe(false);
     expect(shouldUseLocalCoverFallbackAfterGatewayTimeout(undefined, null, false)).toBe(false);
     expect(shouldUseLocalCoverFallbackAfterGatewayTimeout('https://gateway.pinata.cloud/ipfs/QmCoverCid', null, true)).toBe(false);
+  });
+
+  it('keeps a slow remote cover loading while its local fallback is visible', () => {
+    const remote = 'https://gateway.pinata.cloud/ipfs/QmCoverCid';
+    const fallback = 'data:image/svg+xml;utf8,fallback';
+
+    expect(resolveCoverPresentation(remote, fallback, null, false, true)).toEqual({
+      source: remote,
+      showFallbackBackground: true,
+      isReady: true
+    });
+  });
+
+  it('uses the fallback as the image source only after every gateway fails', () => {
+    const fallback = 'data:image/svg+xml;utf8,fallback';
+
+    expect(resolveCoverPresentation('https://gateway.pinata.cloud/ipfs/QmCoverCid', fallback, null, true, true)).toEqual({
+      source: fallback,
+      showFallbackBackground: false,
+      isReady: false
+    });
   });
 });

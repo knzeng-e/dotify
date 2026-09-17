@@ -14,6 +14,23 @@ export function shouldUseLocalCoverFallbackAfterGatewayTimeout(
   return Boolean(gatewaySource) && !didExhaustSources && loadedSource !== gatewaySource;
 }
 
+export function resolveCoverPresentation(
+  gatewaySource: string | undefined,
+  fallbackSource: string,
+  loadedSource: string | null,
+  didExhaustSources: boolean,
+  showLocalFallback: boolean
+) {
+  const source = didExhaustSources || !gatewaySource ? fallbackSource : gatewaySource;
+  const showFallbackBackground = showLocalFallback && source !== fallbackSource;
+
+  return {
+    source,
+    showFallbackBackground,
+    isReady: showFallbackBackground || loadedSource === source
+  };
+}
+
 export function createCoverFallbackDataUri(label = 'Dotify', seed = label): string {
   const displayLabel = label.trim() || 'Dotify';
   const aura = auraForTrack({ id: seed || displayLabel, title: displayLabel });
