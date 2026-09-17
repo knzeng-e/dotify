@@ -104,6 +104,37 @@
   padding: 0.4rem 1rem;
 }
 
+.room-invite-card {
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  padding: 0.9rem;
+}
+.room-invite-card[data-alone='true'] {
+  border-color: color-mix(in srgb, var(--action) 45%, var(--line));
+  background: linear-gradient(135deg, var(--action-soft), var(--surface-soft) 70%);
+}
+.room-invite-copy {
+  display: grid;
+  gap: 0.25rem;
+}
+.room-invite-copy span {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+.room-invite-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.5rem;
+}
+.room-invite-actions button {
+  justify-content: center;
+  padding-inline: 0.7rem;
+}
+
 @media (min-width: 769px) and (min-height: 800px) {
   .app-shell[data-room-focus='true'] .content {
     padding-block: 1rem;
@@ -161,9 +192,6 @@
   }
   .player-room-mode .player-context-panel {
     display: none;
-  }
-  .player-room-mode .room-share-card {
-    grid-template-columns: minmax(0, 1fr) 5rem;
   }
   .player-room-mode .room-code {
     display: none;
@@ -286,8 +314,11 @@
   }
   .player-room-mode .track-copy {
     display: flex;
+    width: 100%;
+    min-width: 0;
     flex-direction: column;
     gap: 0;
+    overflow: hidden;
   }
   .player-room-mode .track-copy h2 {
     order: -1;
@@ -302,10 +333,17 @@
     text-overflow: ellipsis;
   }
   .player-room-mode .player-artist-link {
+    display: block;
+    width: 100%;
+    max-width: 100%;
     min-height: 1.6rem;
     margin: 0;
     font-size: var(--text-xs);
     color: var(--ink-soft);
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .player-room-mode .track-room-label,
   .player-room-mode .room-sync-note {
@@ -498,13 +536,6 @@
 
 .player-room-mode .room-person-main {
   display: flex;
-}
-.room-share-details summary {
-  min-height: var(--touch-target);
-  padding-block: 0.5rem;
-  cursor: pointer;
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
 }
 
 /* Short phones need reading space, not a second navigation header. Account

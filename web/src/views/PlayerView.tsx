@@ -1,7 +1,7 @@
 import { PlayerTransport } from '../components/PlayerTransport';
 import { HostLineup } from '../components/HostLineup';
 import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
-import { Copy, Check, ExternalLink, Headphones, KeyRound, Library, Maximize2, Radio, X } from 'lucide-react';
+import { Copy, Check, ExternalLink, Headphones, KeyRound, Library, QrCode, Radio, Share2, X } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
 import { CoverImage } from '../components/CoverImage';
@@ -14,7 +14,7 @@ import { Dialog } from '../components/Dialog';
 import { hashHue, initialsFor } from '../shared/utils/aura';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
 import { isChosenDisplayName } from '../features/identity/walletIdentity';
-import { roomListenerSyncLabel, roomPresenceCount } from '../features/rooms/roomState';
+import { roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount } from '../features/rooms/roomState';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
@@ -131,6 +131,9 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
   const disconnectedListeners = listeners.filter(listener => listener.status === 'disconnected');
+  const visibleHostName = roomHostDisplayName(mode === 'host' ? hostName || displayName : hostName);
+  const hostIsAlone = mode === 'host' && activeListeners.length === 0;
+  const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
   const ownSocketId = session.socketRef.current?.id;
   const showManualAudioStart = Boolean(
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
@@ -224,7 +227,9 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             <span className='live-dot' data-online={session.socketStatus === 'online'} aria-hidden='true' />
             {session.socketStatus === 'online' ? (mode === 'host' ? 'Hosting' : 'Together') : 'Reconnecting'}
           </span>
-          <span className='room-header-meta'>{`${presenceCount} here · ${mode === 'host' ? 'you host' : hostName || 'the host'}`}</span>
+          <span className='room-header-meta'>
+            {presenceCount} here · {mode === 'host' ? 'you host' : visibleHostName ? `with ${visibleHostName}` : 'listening together'}
+          </span>
           {/* Room playback mode metadata hook (always 'full' since access model
               v2 retired the preview; kept for wire compatibility); the visible cue lives
               in the rooms list and session status. */}
@@ -412,7 +417,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 Artist &amp; support
               </button>
             )}
-            <span className='track-room-label'>{mode === 'host' ? 'Now playing' : hostName || 'Room'}</span>
+            <span className='track-room-label'>{mode === 'host' ? 'Now playing' : visibleHostName ? `With ${visibleHostName}` : 'Listening together'}</span>
 
             {roomId && mode === 'listener' && !remoteReady && (
               <p className='room-sync-note'>
@@ -472,7 +477,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
 
       <div className='player-lower-grid'>
         <div className='doc-panel session-panel' id='room-panel-people' aria-label='People and room controls'>
-          <PanelTitle icon={Radio} title={roomId ? 'In the room' : 'Listening room'} meta={roomId || 'offline'} />
+          <PanelTitle icon={Radio} title={roomId ? 'In the room' : 'Listening room'} meta={roomId ? `${presenceCount} here` : 'offline'} />
 
           {/* State 1: not in any room */}
           {!roomId && (
@@ -485,39 +490,39 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           {/* State 2: hosting a room */}
           {roomId && mode === 'host' && (
             <>
-              <div className='room-code'>
-                <span>Room code</span>
-                <strong>{roomId}</strong>
-                <button type='button' onClick={onCopySessionLink} title='Copy link' aria-label='Copy link'>
-                  <Copy size={16} />
-                </button>
-              </div>
-
               {sessionLink && (
-                <details className='room-share-details'>
-                  <summary>Invite with a QR code</summary>
-                  <div className='room-share-card'>
-                    <div className='room-share-copy'>
-                      <strong>Scan to join</strong>
-                      <span>People can join from their camera.</span>
-                      <button className='room-project-btn' type='button' onClick={() => setIsQrProjectorOpen(true)}>
-                        <Maximize2 size={14} />
-                        Show big QR
-                      </button>
-                    </div>
-                    <RoomQrCode value={sessionLink} label={`QR code for room ${roomId}`} />
+                <section className='room-invite-card' data-alone={hostIsAlone || undefined} aria-label='Invite people to this room'>
+                  <div className='room-invite-copy'>
+                    <strong>{hostIsAlone ? 'Bring someone into this track' : 'Invite another listener'}</strong>
+                    <span>{hostIsAlone ? 'Share one link. They can enter without an account.' : 'The same room link stays open while you listen.'}</span>
                   </div>
-                </details>
+                  <div className='room-invite-actions'>
+                    <button className={hostIsAlone ? 'primary-action' : 'secondary-action'} type='button' onClick={onCopySessionLink}>
+                      <Copy size={16} />
+                      Copy invite
+                    </button>
+                    {canNativeShare && (
+                      <button className='secondary-action' type='button' onClick={() => void session.shareSessionLink()}>
+                        <Share2 size={16} />
+                        Share
+                      </button>
+                    )}
+                    <button className='secondary-action' type='button' onClick={() => setIsQrProjectorOpen(true)}>
+                      <QrCode size={16} />
+                      Show QR
+                    </button>
+                  </div>
+                </section>
               )}
 
               {roomExperienceFlags.hostLineup && <HostLineup key={roomId} />}
               <div className='listener-list'>
                 <div className='list-row'>
                   <div className='room-person-main'>
-                    <Avatar name={hostName || 'You'} size={34} host />
+                    <Avatar name={visibleHostName ?? ''} size={34} host />
                     <div>
                       <strong>
-                        {hostName || 'You'}
+                        {visibleHostName ?? 'This listening room'}
                         <span className='room-person-tag'>host</span>
                       </strong>
                       <span>sharing the music</span>
@@ -585,10 +590,10 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             <>
               <div className='list-row'>
                 <div className='room-person-main'>
-                  <Avatar name={hostName || 'Host'} size={34} host />
+                  <Avatar name={visibleHostName ?? ''} size={34} host />
                   <div>
                     <strong>
-                      {hostName || 'Host'}
+                      {visibleHostName ?? 'This listening room'}
                       <span className='room-person-tag'>host</span>
                     </strong>
                     <span data-testid='room-listener-sync'>{roomListenerSyncLabel(remoteReady, sessionStatus)}</span>

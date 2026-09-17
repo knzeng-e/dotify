@@ -4,6 +4,7 @@ async function hostRoom(page: Page, captureMode = 'synthetic') {
   await page.goto(`/?e2eRoom=public&e2eSync=on&e2eCapture=${captureMode}`);
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
+  await page.getByLabel('Your name in the room').fill('Sync host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   await expect
@@ -52,8 +53,11 @@ test('host seek is reflected by late guests and pause holds the host position an
     await join(guest, id);
     await expect(guest.getByRole('slider', { name: 'Room progress', exact: true })).toBeVisible();
     await expect(guest.getByRole('slider', { name: 'Room progress', exact: true })).toBeDisabled();
-    await expect(guest.getByRole('button', { name: 'Repeat this track', exact: true })).toBeVisible();
-    await expect(guest.getByRole('button', { name: 'Repeat this track', exact: true })).toBeDisabled();
+    await expect(guest.getByRole('button', { name: 'Shuffle', exact: true })).toHaveCount(0);
+    await expect(guest.getByRole('button', { name: 'Previous track', exact: true })).toHaveCount(0);
+    await expect(guest.getByRole('button', { name: 'Next track', exact: true })).toHaveCount(0);
+    await expect(guest.getByRole('button', { name: 'Repeat this track', exact: true })).toHaveCount(0);
+    await expect(guest.getByRole('button', { name: 'Mute', exact: true })).toBeEnabled();
     await expect.poll(() => progress(guest)).toBeCloseTo(50, 0);
     await guest.waitForTimeout(1200); // several remote timeupdate events must not overwrite the room clock
     expect(await progress(guest)).toBeCloseTo(50, 0);

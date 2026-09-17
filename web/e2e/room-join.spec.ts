@@ -67,6 +67,7 @@ async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: stri
   // before the room exists. Pick the track inside the modal, then open.
   await page.getByRole('button', { name: 'Open a room' }).click();
   await page.getByRole('button', { name: `Select ${trackTitle}` }).click();
+  await page.getByLabel('Your name in the room').fill('Room host');
   await page.getByRole('button', { name: 'Open the room' }).click();
 
   const roomCode = page.getByTestId('room-code');
@@ -290,6 +291,7 @@ test('Product Mobile without RTCPeerConnection sends room audio to the external 
 
     await page.getByRole('button', { name: 'Open a room' }).click();
     await page.getByRole('button', { name: `Select ${PUBLIC_TITLE}` }).click();
+    await page.getByLabel('Your name in the room').fill('Room host');
     await page.getByRole('button', { name: 'Open the room' }).click();
 
     await expect(page.getByTestId('session-error')).toContainText('does not expose Product WebRTC');

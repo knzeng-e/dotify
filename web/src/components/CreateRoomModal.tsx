@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { CoverImage } from './CoverImage';
 import { Dialog } from './Dialog';
+import { roomHostDisplayName } from '../features/rooms/roomState';
 import type { CatalogTrack } from '../shared/types';
 
 function SvgBroadcast({ size }: { size: number }) {
@@ -61,6 +62,7 @@ type CreateRoomModalProps = {
 
 export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDisplayName, onClose, onOpenRoom }: CreateRoomModalProps) {
   const [picked, setPicked] = useState<CatalogTrack | undefined>(initialTrack ?? tracks[0]);
+  const hasChosenName = roomHostDisplayName(displayName) !== null;
 
   return (
     <Dialog className='create-room-modal' size='wide' labelledBy='create-room-title' onClose={onClose}>
@@ -118,15 +120,16 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
       <input
         id='create-room-name'
         className='field'
-        value={displayName}
+        value={hasChosenName ? displayName : ''}
         onChange={event => onSetDisplayName(event.target.value)}
         placeholder='How should people see you?'
         maxLength={32}
+        autoComplete='nickname'
         autoFocus
       />
 
       <div className='create-room-actions'>
-        <button className='primary-action wide' type='button' disabled={!picked || !displayName.trim()} onClick={() => picked && onOpenRoom(picked)}>
+        <button className='primary-action wide' type='button' disabled={!picked || !hasChosenName} onClick={() => picked && onOpenRoom(picked)}>
           <SvgBroadcast size={16} />
           Open the room
         </button>

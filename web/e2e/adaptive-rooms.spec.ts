@@ -21,6 +21,7 @@ async function openPublicRoom(page: Page) {
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room' }).click();
   await page.getByRole('button', { name: `Select ${PUBLIC_TITLE}` }).click();
+  await page.getByLabel('Your name in the room').fill('Discovery host');
   await page.getByRole('button', { name: 'Open the room' }).click();
   const roomCode = page.getByTestId('room-code');
   await expect(roomCode).toHaveText(/[A-Z0-9]{4,}/, { timeout: 15_000 });

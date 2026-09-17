@@ -528,34 +528,9 @@ input[type='range']::-moz-range-thumb {
   background: var(--surface-soft);
 }
 
-.room-share-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface-soft);
-  padding: 0.8rem;
-}
-
-.room-share-copy {
-  display: grid;
-  gap: 0.25rem;
-}
-
-.room-share-copy span,
 .room-doctrine-note {
   color: var(--muted);
   font-size: var(--text-xs);
-}
-
-.room-project-btn {
-  justify-content: flex-start;
-  min-height: 2rem;
-  background: transparent;
-  color: var(--signal);
-  padding: 0;
 }
 
 .room-qr-code,

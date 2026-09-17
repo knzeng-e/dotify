@@ -6,7 +6,7 @@ import { CoverImage } from '../components/CoverImage';
 import { TrackArtworkButton } from '../components/TrackArtworkButton';
 import { catalogAccessAriaLabel, catalogAccessCueLabel, normalizeDisplayText } from '../shared/utils/format';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
-import { roomPresenceCount } from '../features/rooms/roomState';
+import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
 import type { CatalogTrack, OpenRoom, SocketStatus } from '../shared/types';
 
 type ArtistProfileViewProps = {
@@ -142,21 +142,25 @@ export function ArtistProfileView({
           <section className='artist-profile-section artist-live-section' aria-labelledby='artist-live-title'>
             <h2 id='artist-live-title'>Listening now</h2>
             <div className='artist-live-list'>
-              {liveRooms.map(room => (
-                <button className='artist-live-room' type='button' key={room.roomId} onClick={() => onJoinRoom(room.roomId)} disabled={room.isFull}>
-                  <span>
-                    <strong>{room.track?.title ?? 'Audio session'}</strong>
-                    <small>
-                      <span className='live-dot' data-online={socketStatus === 'online'} aria-hidden='true' /> {room.hostName} hosts
-                    </small>
-                    <span className='home-room-presence'>
-                      <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={24} />
-                      <small>{roomPresenceCount(room.listenerCount, true)} listening</small>
+              {liveRooms.map(room => {
+                const hostDisplayName = roomHostDisplayName(room.hostName);
+                return (
+                  <button className='artist-live-room' type='button' key={room.roomId} onClick={() => onJoinRoom(room.roomId)} disabled={room.isFull}>
+                    <span>
+                      <strong>{room.track?.title ?? 'Audio session'}</strong>
+                      <small>
+                        <span className='live-dot' data-online={socketStatus === 'online'} aria-hidden='true' />{' '}
+                        {hostDisplayName ? `${hostDisplayName} hosts` : 'Live listening room'}
+                      </small>
+                      <span className='home-room-presence'>
+                        <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={24} />
+                        <small>{roomPresenceCount(room.listenerCount, true)} listening</small>
+                      </span>
                     </span>
-                  </span>
-                  <span className='artist-live-pill'>{room.isFull ? 'Full' : 'Join'}</span>
-                </button>
-              ))}
+                    <span className='artist-live-pill'>{room.isFull ? 'Full' : 'Join'}</span>
+                  </button>
+                );
+              })}
             </div>
           </section>
         )}

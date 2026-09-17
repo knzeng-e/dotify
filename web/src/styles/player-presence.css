@@ -37,6 +37,9 @@
   justify-items: center;
   min-width: 0;
 }
+.transport-cluster[data-listener='true'] {
+  grid-template-columns: minmax(0, 1fr);
+}
 .transport-actions {
   grid-column: 2;
   grid-row: 2;

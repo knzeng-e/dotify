@@ -24,7 +24,7 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent a
 import { CoverImage } from './CoverImage';
 import { auraForTrack, hashHue } from '../shared/utils/aura';
 import { roomConstellationPosition } from '../features/rooms/roomConstellationLayout';
-import { roomPresenceCount } from '../features/rooms/roomState';
+import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
 import type { OpenRoom, SessionAction } from '../shared/types';
 
 type SkyOfRoomsProps = {
@@ -223,7 +223,7 @@ export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom,
       role='region'
       tabIndex={0}
       aria-label='Navigable galaxy of open rooms'
-      aria-describedby='sky-navigation-help'
+      aria-describedby={rooms.length > 1 ? 'sky-navigation-help' : undefined}
       data-dragging={dragging}
       data-testid='sky-of-rooms'
       onDoubleClick={resetCamera}
@@ -241,6 +241,7 @@ export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom,
       >
         {rooms.map((room, index) => {
           const presence = roomPresenceCount(room.listenerCount, true);
+          const hostDisplayName = roomHostDisplayName(room.hostName);
           const aura = auraForTrack(room.track);
           const ember = !room.track;
           const live = room.playerState?.playing === true;
@@ -273,10 +274,10 @@ export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom,
               }
               aria-label={
                 onSelectRoom
-                  ? `Inspect room ${room.roomId}: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`
+                  ? `Inspect room ${room.roomId}: ${room.track?.title ?? 'audio session'}${hostDisplayName ? ` with ${hostDisplayName}` : ''}, ${presence} listening`
                   : full
-                    ? `Room ${room.roomId} is full: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`
-                    : `Enter room ${room.roomId}: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`
+                    ? `Room ${room.roomId} is full: ${room.track?.title ?? 'audio session'}${hostDisplayName ? ` with ${hostDisplayName}` : ''}, ${presence} listening`
+                    : `Enter room ${room.roomId}: ${room.track?.title ?? 'audio session'}${hostDisplayName ? ` with ${hostDisplayName}` : ''}, ${presence} listening`
               }
               onClick={() => activateRoom(room.roomId)}
             >
@@ -294,7 +295,8 @@ export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom,
               <span className='sky-label'>
                 <strong>{room.track?.title ?? 'Audio session'}</strong>
                 <span>
-                  {room.hostName} - {presence} listening
+                  {hostDisplayName ? `${hostDisplayName} · ` : ''}
+                  {presence} listening
                   {full && <em> full</em>}
                   {room.playbackMode === 'preview' && <em> preview</em>}
                 </span>
@@ -304,42 +306,52 @@ export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom,
         })}
       </div>
 
-      <div className='sky-navigation-note' id='sky-navigation-help'>
-        <Move size={14} aria-hidden='true' />
-        Drag to explore · scroll to zoom
-      </div>
+      {rooms.length > 1 && (
+        <>
+          <div className='sky-navigation-note' id='sky-navigation-help'>
+            <Move size={14} aria-hidden='true' />
+            Drag to explore · scroll to zoom
+          </div>
 
-      <div className='sky-controls' aria-label='Galaxy navigation controls'>
-        <div className='sky-control-group'>
-          <button type='button' onClick={() => centerRoom(centeredRoomIndex - 1)} disabled={rooms.length < 2} aria-label='Center previous room'>
-            <ChevronLeft size={16} />
-          </button>
-          <button type='button' onClick={() => centerRoom(centeredRoomIndex)} aria-label={`Center ${rooms[centeredRoomIndex]?.track?.title ?? 'current room'}`}>
-            <LocateFixed size={16} />
-          </button>
-          <button type='button' onClick={() => centerRoom(centeredRoomIndex + 1)} disabled={rooms.length < 2} aria-label='Center next room'>
-            <ChevronRight size={16} />
-          </button>
-        </div>
-        <div className='sky-control-group'>
-          <button type='button' onClick={() => zoomCamera(-ZOOM_STEP)} disabled={camera.scale <= MIN_ZOOM} aria-label='Zoom out'>
-            <Minus size={16} />
-          </button>
-          <output className='sky-zoom-level' aria-label='Galaxy zoom level'>
-            {Math.round(camera.scale * 100)}%
-          </output>
-          <button type='button' onClick={() => zoomCamera(ZOOM_STEP)} disabled={camera.scale >= MAX_ZOOM} aria-label='Zoom in'>
-            <Plus size={16} />
-          </button>
-          <button type='button' onClick={resetCamera} aria-label='Reset galaxy view'>
-            <RotateCcw size={15} />
-          </button>
-        </div>
-      </div>
+          <div className='sky-controls' aria-label='Galaxy navigation controls'>
+            <div className='sky-control-group'>
+              <button type='button' onClick={() => centerRoom(centeredRoomIndex - 1)} aria-label='Center previous room'>
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type='button'
+                onClick={() => centerRoom(centeredRoomIndex)}
+                aria-label={`Center ${rooms[centeredRoomIndex]?.track?.title ?? 'current room'}`}
+              >
+                <LocateFixed size={16} />
+              </button>
+              <button type='button' onClick={() => centerRoom(centeredRoomIndex + 1)} aria-label='Center next room'>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            <div className='sky-control-group'>
+              <button type='button' onClick={() => zoomCamera(-ZOOM_STEP)} disabled={camera.scale <= MIN_ZOOM} aria-label='Zoom out'>
+                <Minus size={16} />
+              </button>
+              <output className='sky-zoom-level' aria-label='Galaxy zoom level'>
+                {Math.round(camera.scale * 100)}%
+              </output>
+              <button type='button' onClick={() => zoomCamera(ZOOM_STEP)} disabled={camera.scale >= MAX_ZOOM} aria-label='Zoom in'>
+                <Plus size={16} />
+              </button>
+              <button type='button' onClick={resetCamera} aria-label='Reset galaxy view'>
+                <RotateCcw size={15} />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       <span className='sr-only' aria-live='polite'>
         {centeredRoomId
-          ? `Centered on ${rooms[centeredRoomIndex]?.track?.title ?? 'audio session'} hosted by ${rooms[centeredRoomIndex]?.hostName}`
+          ? `Centered on ${rooms[centeredRoomIndex]?.track?.title ?? 'audio session'}${
+              roomHostDisplayName(rooms[centeredRoomIndex]?.hostName) ? ` hosted by ${roomHostDisplayName(rooms[centeredRoomIndex]?.hostName)}` : ''
+            }`
           : 'Galaxy overview'}
       </span>
     </div>

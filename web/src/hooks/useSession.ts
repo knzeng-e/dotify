@@ -14,7 +14,7 @@ import {
   shouldUseRoomJoinE2eSyntheticCapture,
   roomJoinE2eIceServers
 } from '../e2e/roomJoinMock';
-import { buildSessionLink, getInitialRoomCode } from '../features/rooms/roomState';
+import { buildSessionLink, getInitialRoomCode, roomHostDisplayName } from '../features/rooms/roomState';
 import {
   publishRoomQualityMetric,
   summarizeRoomPeerStats,
@@ -1431,6 +1431,12 @@ export function useSession(deps: UseSessionDeps) {
     options: CreateSessionOptions = {}
   ) {
     event?.preventDefault();
+    const chosenDisplayName = sanitizeDisplayName(displayName);
+    if (!roomHostDisplayName(chosenDisplayName)) {
+      setSessionAction('idle');
+      setError('Choose the name people will see in the room.');
+      return;
+    }
     if (productHostWebRtcUnavailable) {
       setSessionAction('idle');
       changeMode('host');
@@ -1445,7 +1451,8 @@ export function useSession(deps: UseSessionDeps) {
     // Persist the chosen name on submit (not on every keystroke): storeDisplayName
     // no-ops for the untouched default, so a connected host is remembered without
     // recording a partial name typed into the create sheet.
-    storeDisplayName(identityAddress, displayName);
+    storeDisplayName(identityAddress, chosenDisplayName);
+    setDisplayName(chosenDisplayName);
     setSessionAction('creating');
     changeMode('host');
     navigateToView('player');
@@ -1459,7 +1466,7 @@ export function useSession(deps: UseSessionDeps) {
 
     emitAckWhenConnected<CreateRoomResponse>(
       'room:create',
-      { displayName, track: currentTrackInfo, playbackMode },
+      { displayName: chosenDisplayName, track: currentTrackInfo, playbackMode },
       (response: CreateRoomResponse) => {
         setSessionAction('idle');
         if (!response.ok) {
@@ -1730,6 +1737,27 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
+  async function shareSessionLink() {
+    const link = buildSessionLink(roomId, publicAppUrl || window.location.href);
+    if (!link) return;
+    if (typeof navigator.share !== 'function') {
+      await copySessionLink();
+      return;
+    }
+
+    try {
+      await navigator.share({
+        title: 'Listen together on Dotify',
+        text: 'Join this listening room.',
+        url: link
+      });
+      setSessionStatus('Invite shared');
+    } catch (shareError) {
+      if (shareError instanceof Error && shareError.name === 'AbortError') return;
+      await copySessionLink();
+    }
+  }
+
   function socketEmit(event: string, data: unknown) {
     socketRef.current?.emit(event, data);
   }
@@ -1859,6 +1887,7 @@ export function useSession(deps: UseSessionDeps) {
     prepareLocalStream,
     emitPlayerState,
     copySessionLink,
+    shareSessionLink,
     closeAllPeers,
     closeHostPeers,
     closeListenerPeer,
