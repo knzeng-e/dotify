@@ -10,6 +10,7 @@ export type ArtistTab = 'overview' | 'new' | 'releases' | 'royalties' | 'advance
 export type ReleaseStep = 'assets' | 'metadata' | 'access' | 'review';
 export type TransactionFeedbackTone = 'pending' | 'success' | 'error';
 export type TransactionFeedbackStepStatus = 'complete' | 'active' | 'submitted' | 'upcoming';
+export type TransactionProofKind = 'evm-transaction' | 'substrate-extrinsic';
 export type UiNoticeTone = 'info' | 'success' | 'error';
 
 export type TransactionFeedbackFact = {
@@ -223,6 +224,8 @@ export type TransactionFeedback = {
   title: string;
   message: string;
   txHash?: `0x${string}`;
+  /** Selects the explorer that can resolve the returned transaction hash. */
+  proofKind?: TransactionProofKind;
   facts?: TransactionFeedbackFact[];
   steps?: {
     label: string;

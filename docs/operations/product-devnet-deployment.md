@@ -404,7 +404,7 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 21]`. This version converts 18-decimal Solidity payment values into the connected chain's native `Revive.call` Balance precision, and it treats SDK dry-run failures as not submitted so users can retry safely. It also binds Product payment and room evidence to the exact deployed CID so stale artifacts cannot satisfy pilot gates. It keeps blocked
+The current Product executable is `[0, 1, 22]`. This version routes Product CDM payment hashes to Paseo Asset Hub Subscan as native extrinsics and identifies the remaining native-event indexing boundary in the artist ledger. It retains the `[0, 1, 21]` correction that converts 18-decimal Solidity payment values into the connected chain's native `Revive.call` Balance precision, and it treats SDK dry-run failures as not submitted so users can retry safely. It also binds Product payment and room evidence to the exact deployed CID so stale artifacts cannot satisfy pilot gates. It keeps blocked
 guest audio recovery visible in Product-hosted rooms, exposes W05 runtime claim
 writes through the shared runtime writer port, uses the refreshed September 2026
 Product SDK/tooling and re-pinned Bulletin descriptor, and removes
@@ -717,7 +717,7 @@ npm run smoke:product-journey -- \
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 21]",
+    "productAppVersion": "[0, 1, 22]",
     "deployedCid": "<same-product-executable-cid-as-payment-smoke>"
   },
   "hostSurface": "product-desktop",

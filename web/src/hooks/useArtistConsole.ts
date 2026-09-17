@@ -688,7 +688,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       setRoyaltyPayments(payments);
       const failedRuntimeCount = runtimeResults.filter(result => result.error).length;
       if (failedRuntimeCount > 0) {
-        setRoyaltyStatus(`Royalty balances loaded; ${failedRuntimeCount} runtime ledger${failedRuntimeCount === 1 ? '' : 's'} need event indexing`);
+        setRoyaltyStatus(
+          runtimeAdapterConfig.kind === 'product-cdm'
+            ? 'Claimable balances are up to date. Detailed Product payment history still needs native event indexing.'
+            : `Royalty balances loaded; ${failedRuntimeCount} runtime ledger${failedRuntimeCount === 1 ? '' : 's'} need event indexing`
+        );
       } else {
         setRoyaltyStatus(payments.length > 0 || claimableWei > 0n ? 'Royalty settlement indexed from known runtimes' : 'No access payments received yet');
       }

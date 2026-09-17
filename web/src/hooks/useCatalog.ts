@@ -1140,6 +1140,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   ) {
     const unlockStartedTrackId = track.id;
     const unlockStartedView = activeViewRef.current;
+    const supportProofKind = runtimeAdapterConfig.kind === 'product-cdm' ? 'substrate-extrinsic' : 'evm-transaction';
     const accountAtStart = supportAccountRef.current;
     const currentAccount = () => supportAccountRef.current === accountAtStart;
     const shouldRestoreUnlockedTrack = () =>
@@ -1223,6 +1224,7 @@ export function useCatalog(deps: UseCatalogDeps) {
               ? `Review ${formatEther(paymentIntent.amountPlanck)} ${paymentIntent.asset.symbol} for “${track.title}” in the confirmation request.`
               : 'Keep this page open. Dotify checks your access before opening the full track.',
           txHash,
+          proofKind: supportProofKind,
           facts: stage === 'approval' ? buildSupportFacts(track, paymentIntent.asset, 'pending') : undefined
         });
       }
@@ -1232,7 +1234,8 @@ export function useCatalog(deps: UseCatalogDeps) {
         tone: 'error',
         title: 'Account changed',
         message: 'Your payment reference is kept in this tab. Reconnect the original account and check access before paying again.',
-        txHash: result.txHash
+        txHash: result.txHash,
+        proofKind: supportProofKind
       });
       return;
     }
@@ -1260,6 +1263,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         result.status === 'verified'
           ? {
               ...buildClassicAccessVerifiedFeedback(receiptTrack, result.txHash, receiptAsset),
+              proofKind: supportProofKind,
               facts: buildSupportFacts(receiptTrack, receiptAsset, 'confirmed')
             }
           : { tone: 'success', title: 'Listening access available', message: 'This account can already listen. No payment was sent.' }
@@ -1273,7 +1277,8 @@ export function useCatalog(deps: UseCatalogDeps) {
             tone: 'error',
             title: 'Support recorded, audio unavailable',
             message: 'Your access is verified. Reopen the track to try loading the audio again; no new payment is needed.',
-            txHash: result.txHash
+            txHash: result.txHash,
+            proofKind: supportProofKind
           });
         }
       }
@@ -1295,6 +1300,7 @@ export function useCatalog(deps: UseCatalogDeps) {
           ? 'Confirmation was interrupted. Your payment may still complete. Check access here and your account activity in Polkadot App or your wallet before paying again.'
           : result.message || 'Listening is not available yet.',
       txHash: result.txHash,
+      proofKind: supportProofKind,
       facts: buildSupportFacts(receiptTrack, receiptAsset, recoverable ? 'included-unverified' : result.status === 'canceled' ? 'canceled' : 'failed'),
       recoveryAction: recoverable
         ? {

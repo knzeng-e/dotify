@@ -246,6 +246,14 @@ the shared writer port, but Product mode still needs the backend
 catalog/read-model indexer or a future Product event/indexer API for the full
 settlement history.
 
+Product CDM transaction hashes are native Substrate extrinsic hashes. Payment
+feedback therefore opens them on Paseo Asset Hub Subscan; Blockscout is reserved
+for transactions submitted through the EVM JSON-RPC path. The Subscan extrinsic
+shows the `Revive.call` and its raw `Revive.ContractEmitted` records. Turning
+those records into the cross-device artist royalty ledger still belongs in a
+native-event backend indexer; a browser-local payment history would be
+incomplete and easy to lose.
+
 ### The CDM Manifest Is Generated, Not Installed
 
 Dotify has no CDM-registered packages, and `cdm install` is not available. It

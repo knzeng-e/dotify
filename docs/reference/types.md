@@ -168,6 +168,7 @@ Controls the visual state of the `TransactionModal`.
 
 ```typescript
 type TransactionFeedbackStepStatus = 'complete' | 'active' | 'submitted' | 'upcoming';
+type TransactionProofKind = 'evm-transaction' | 'substrate-extrinsic';
 ```
 
 Controls an optional transaction roadmap inside the `TransactionModal`.
@@ -345,6 +346,7 @@ type TransactionFeedback = {
   title: string;
   message: string;
   txHash?: `0x${string}`; // Present after transaction submission
+  proofKind?: TransactionProofKind; // Routes the hash to Blockscout or Subscan
   steps?: {
     label: string;
     detail: string;
@@ -354,7 +356,7 @@ type TransactionFeedback = {
 };
 ```
 
-Drives the `TransactionModal`. Set to `{ tone: 'pending' }` before submitting a transaction, then updated to `'success'` or `'error'` after confirmation. `steps` is optional and is used for multi-approval flows such as staged artist runtime bootstrap. A step-level `txHash` should be attached only after that step is confirmed.
+Drives the `TransactionModal`. Set to `{ tone: 'pending' }` before submitting a transaction, then updated to `'success'` or `'error'` after confirmation. `steps` is optional and is used for multi-approval flows such as staged artist runtime bootstrap. A step-level `txHash` should be attached only after that step is confirmed. Product CDM returns a native Substrate extrinsic hash, so those flows set `proofKind: 'substrate-extrinsic'`; ordinary EVM transactions keep the Blockscout default.
 
 ---
 
