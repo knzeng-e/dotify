@@ -4,7 +4,19 @@ import type { CatalogTrack } from '../shared/types';
 
 // One listening affordance for every cover. Protected releases still open their
 // terms and room guests inspect details; the icon never grants access itself.
-export function TrackArtworkButton({ track, canPlay, onActivate, target }: { track: CatalogTrack; canPlay: boolean; onActivate: () => void; target?: string }) {
+export function TrackArtworkButton({
+  track,
+  canPlay,
+  onActivate,
+  target,
+  accessCue
+}: {
+  track: CatalogTrack;
+  canPlay: boolean;
+  onActivate: () => void;
+  target?: string;
+  accessCue?: string;
+}) {
   return (
     <button
       className='track-artwork-button'
@@ -12,7 +24,7 @@ export function TrackArtworkButton({ track, canPlay, onActivate, target }: { tra
       onClick={onActivate}
       data-catalog-target={target}
       data-testid='track-artwork-action'
-      aria-label={`${canPlay ? 'Play' : 'View listening options for'} ${track.title} by ${track.artist}`}
+      aria-label={`${canPlay ? 'Play' : 'View listening options for'} ${track.title} by ${track.artist}${accessCue ? `, ${accessCue}` : ''}`}
     >
       <CoverImage className='catalogue-cover' src={track.imageRef} alt='' fallbackLabel={track.title} />
       <span className='track-artwork-action' aria-hidden='true'>

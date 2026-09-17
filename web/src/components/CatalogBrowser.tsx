@@ -3,6 +3,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Mu
 import { TrackArtworkButton } from './TrackArtworkButton';
 import { DotBirth } from './DotBirth';
 import { auraStyleForTrack } from '../shared/utils/aura';
+import { catalogAccessAriaLabel, catalogAccessCueLabel, normalizeDisplayText } from '../shared/utils/format';
 import type { CatalogTrack } from '../shared/types';
 
 // In-memory navigation state only. No listening/search history is persisted.
@@ -15,6 +16,7 @@ type CatalogBrowserProps = {
   catalogStatus: string;
   selectedTrackId: string;
   catalogAccessByTrackId: Record<string, boolean>;
+  nativePaymentSymbol: string;
   onOpenTrack: (track: CatalogTrack) => void;
   onPlayTrack: (track: CatalogTrack) => void;
   roomGuest: boolean;
@@ -33,6 +35,7 @@ export function CatalogBrowser({
   catalogStatus,
   selectedTrackId,
   catalogAccessByTrackId,
+  nativePaymentSymbol,
   onOpenTrack,
   onPlayTrack,
   roomGuest,
@@ -169,6 +172,10 @@ export function CatalogBrowser({
           tracks.map(track => {
             const hasCatalogAccess = catalogAccessByTrackId[track.id] === true;
             const accessGranted = track.active !== false && (track.accessMode === 'free' || hasCatalogAccess);
+            const title = normalizeDisplayText(track.title);
+            const artist = normalizeDisplayText(track.artist);
+            const accessCue = catalogAccessCueLabel(track, nativePaymentSymbol);
+            const accessDescription = catalogAccessAriaLabel(track, accessGranted, nativePaymentSymbol);
 
             return (
               <article
@@ -181,6 +188,7 @@ export function CatalogBrowser({
                 <TrackArtworkButton
                   track={track}
                   canPlay={accessGranted && !roomGuest}
+                  accessCue={accessDescription}
                   target={`cover:${track.id}`}
                   onActivate={() => {
                     rememberTarget(`cover:${track.id}`);
@@ -194,13 +202,13 @@ export function CatalogBrowser({
                     type='button'
                     data-testid='track-card-open'
                     data-catalog-target={`track:${track.id}`}
-                    aria-label={`Open ${track.title} by ${track.artist}`}
+                    aria-label={`Open ${title} by ${artist}, ${accessDescription}`}
                     onClick={() => {
                       rememberTarget(`track:${track.id}`);
                       void onOpenTrack(track);
                     }}
                   >
-                    {track.title}
+                    {title}
                   </button>
                   <button
                     className='artist-text-button'
@@ -211,8 +219,9 @@ export function CatalogBrowser({
                       onOpenArtist(track.artist);
                     }}
                   >
-                    {track.artist}
+                    {artist}
                   </button>
+                  <span className='catalogue-access-cue'>{accessCue}</span>
                 </div>
               </article>
             );

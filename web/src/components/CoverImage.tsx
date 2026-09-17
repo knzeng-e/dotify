@@ -12,7 +12,7 @@ type CoverImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'crossOrigin' |
   fallbackLabel?: string;
 };
 
-export function CoverImage({ src, alt = '', fallbackLabel, loading, onError, onLoad, ...props }: CoverImageProps) {
+export function CoverImage({ src, alt = '', fallbackLabel, loading, onError, onLoad, className, ...props }: CoverImageProps) {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const sources = useMemo(() => getGatewayUrlsForAssetRef(src ?? ''), [src]);
   const fallbackSource = useMemo(
@@ -59,7 +59,7 @@ export function CoverImage({ src, alt = '', fallbackLabel, loading, onError, onL
   const lastSourceIndex = sources.length - 1;
   const boundedSourceIndex = Math.min(sourceIndex, Math.max(lastSourceIndex, 0));
   const gatewaySource = sources[boundedSourceIndex];
-  const activeSource = didExhaustSources || !gatewaySource ? fallbackSource : gatewaySource;
+  const activeSource = showLocalFallback || didExhaustSources || !gatewaySource ? fallbackSource : gatewaySource;
   const isInLoadRange = loading !== 'lazy' || lazyLoadRangeSource === (src ?? null);
   const canStartGatewayTimeout = shouldArmCoverGatewayTimeout(loading, isInLoadRange);
 
@@ -73,26 +73,17 @@ export function CoverImage({ src, alt = '', fallbackLabel, loading, onError, onL
     return () => window.clearTimeout(timeoutId);
   }, [canStartGatewayTimeout, didExhaustSources, gatewaySource, loadedSource]);
 
-  const localFallbackStyle =
-    showLocalFallback && activeSource !== fallbackSource
-      ? {
-          backgroundImage: `url("${fallbackSource}")`,
-          backgroundPosition: 'center',
-          backgroundSize: 'cover'
-        }
-      : undefined;
-
   return (
     <img
       {...props}
       ref={imageRef}
       src={activeSource}
       alt={alt}
+      className={['cover-image', className].filter(Boolean).join(' ')}
+      data-cover-loaded={loadedSource === activeSource}
       loading={loading}
-      style={localFallbackStyle ? { ...localFallbackStyle, ...props.style } : props.style}
       onLoad={event => {
         setLoadedSource(activeSource);
-        setShowLocalFallback(false);
         onLoad?.(event);
       }}
       onError={event => {

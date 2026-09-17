@@ -17,14 +17,15 @@ describe('cover artwork fallbacks', () => {
 
     expect(first).toBe(second);
     expect(first).toMatch(/^data:image\/svg\+xml;utf8,/);
-    expect(decodeDataUri(first)).toContain('Street Scriptures');
+    expect(decodeDataUri(first)).not.toContain('<text');
   });
 
-  it('escapes labels before embedding them in the SVG', () => {
+  it('never embeds track text in the generated artwork', () => {
     const svg = decodeDataUri(createCoverFallbackDataUri('<script>&'));
 
-    expect(svg).toContain('&lt;script&gt;&amp;');
+    expect(svg).not.toContain('&lt;script&gt;&amp;');
     expect(svg).not.toContain('<script>');
+    expect(svg).not.toContain('<text');
   });
 
   it('keeps slow gateway recovery inside the W08 cover budget', () => {

@@ -121,6 +121,18 @@ export function catalogAccessLabel(track: CatalogTrack, nativePaymentSymbol = 'n
   return track.accessMode === 'classic' ? `${track.priceDot} ${nativePaymentSymbol}` : 'Free for verified humans';
 }
 
+/** Compact policy wording for discovery cards. The player still performs the
+ * authoritative access check when the release is opened. */
+export function catalogAccessCueLabel(track: CatalogTrack, nativePaymentSymbol = 'native token') {
+  if (track.active === false) return 'Unavailable';
+  if (track.accessMode === 'free') return 'Free';
+  return track.accessMode === 'classic' ? `${track.priceDot} ${nativePaymentSymbol}` : 'Verified humans';
+}
+
+export function normalizeDisplayText(value: string) {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
 export function catalogAccessAriaLabel(track: CatalogTrack, hasAccess: boolean, nativePaymentSymbol = 'native token') {
   const status = track.active === false ? 'Access unavailable' : hasAccess ? 'Access already available' : 'Access required';
   return `${status}: ${catalogAccessLabel(track, nativePaymentSymbol)}`;

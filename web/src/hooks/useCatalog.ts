@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
 import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
-import { formatWeiAsDot, shorten, shortenAddress } from '../shared/utils/format';
+import { formatWeiAsDot, normalizeDisplayText, shorten, shortenAddress } from '../shared/utils/format';
 import {
   LEGACY_CONTENT_KEY_VERSION,
   isKeyServiceConfigured,
@@ -205,13 +205,21 @@ function createTrackInfo(
   metadata: Partial<TrackInfo> = {}
 ): TrackInfo {
   return {
-    title: title.trim() || 'Untitled',
-    artist: artist.trim() || 'Unknown artist',
+    title: normalizeDisplayText(title) || 'Untitled',
+    artist: normalizeDisplayText(artist) || 'Unknown artist',
     hash,
     bulletinRef,
     duration,
     updatedAt: Date.now(),
     ...metadata
+  };
+}
+
+function normalizeCatalogTrackDisplay(track: CatalogTrack): CatalogTrack {
+  return {
+    ...track,
+    title: normalizeDisplayText(track.title) || 'Untitled',
+    artist: normalizeDisplayText(track.artist) || 'Unknown artist'
   };
 }
 
@@ -228,7 +236,7 @@ function createTrackInfoFromCatalog(track: CatalogTrack): TrackInfo {
 }
 
 function catalogApiReleaseToTrack(release: CatalogApiRelease): CatalogTrack {
-  return {
+  return normalizeCatalogTrackDisplay({
     id: release.id,
     hash: release.hash,
     title: release.title,
@@ -252,7 +260,7 @@ function catalogApiReleaseToTrack(release: CatalogApiRelease): CatalogTrack {
     zone: 'Registry',
     encrypted: release.encrypted,
     registeredAtBlock: release.registeredAtBlock
-  };
+  });
 }
 
 function releaseIdentityFromTrack(track: CatalogTrack): ContentKeyReleaseIdentity | undefined {
@@ -1364,8 +1372,9 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   function commitCatalog(allTracks: CatalogTrack[], preferredTrackHash: `0x${string}` | undefined, status: string): CatalogTrack[] {
-    const nextCatalog = allTracks.filter(track => track.active !== false);
-    setAllCatalogTracks(allTracks);
+    const normalizedTracks = allTracks.map(normalizeCatalogTrackDisplay);
+    const nextCatalog = normalizedTracks.filter(track => track.active !== false);
+    setAllCatalogTracks(normalizedTracks);
     setCatalogTracks(nextCatalog);
     setSelectedTrackId(previous => {
       const preferredTrack = preferredTrackHash ? nextCatalog.find(track => track.hash.toLowerCase() === preferredTrackHash.toLowerCase()) : null;
@@ -1378,7 +1387,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
     if (isClassicUnlockE2e || isArtistPublishE2e || isRoomJoinE2e) {
-      const nextCatalog = getDeterministicE2eCatalogTracks();
+      const nextCatalog = getDeterministicE2eCatalogTracks().map(normalizeCatalogTrackDisplay);
       setAllCatalogTracks(nextCatalog);
       setCatalogTracks(nextCatalog);
       setSelectedTrackId(previous => {

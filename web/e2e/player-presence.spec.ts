@@ -33,7 +33,7 @@ for (const [width, height] of [
     await page.setViewportSize({ width, height });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?e2eRoom=public&e2eSync=on');
-    await page.getByRole('button', { name: 'Open E2E Public Room Track by Dotify Room Host', exact: true }).click();
+    await page.getByRole('button', { name: /^Open E2E Public Room Track by Dotify Room Host,/ }).click();
     const stage = page.locator('.player-stage');
     await expect(stage).toBeVisible();
     await expectControlsFit(page);

@@ -13,8 +13,10 @@ for (const width of [390, 1440]) {
     expect(inputBox!.width).toBeGreaterThanOrEqual(180);
     const joinBox = await form.getByRole('button', { name: 'Join', exact: true }).boundingBox();
     const hostBox = await form.getByRole('button', { name: 'Open a room', exact: true }).boundingBox();
-    const dock = await page.locator('.player-dock').boundingBox();
-    for (const box of [inputBox, joinBox, hostBox]) expect(box!.y + box!.height).toBeLessThan(dock!.y);
+    await expect(page.locator('.player-dock')).toHaveCount(0);
+    const bottomNav = width <= 768 ? await page.locator('.bottom-nav').boundingBox() : null;
+    const visibleBoundary = bottomNav?.y ?? page.viewportSize()!.height;
+    for (const box of [inputBox, joinBox, hostBox]) expect(box!.y + box!.height).toBeLessThan(visibleBoundary);
     // Other workers may host real rooms. Arrival controls must remain usable
     // regardless of whether discovery is empty or active.
     await expect(page.getByText('Room signal online', { exact: true })).toBeHidden();
