@@ -226,7 +226,7 @@ type CatalogTrack = {
   audioRef: string;
   imageRef: string;
   priceDot: string; // Legacy display-only decimal amount
-  pricePlanck?: bigint; // Authoritative 18-decimal native amount when loaded from chain/API
+  pricePlanck?: bigint; // Authoritative 18-decimal EVM contract amount when loaded from chain/API
   localUrl?: string; // Resolved playable URL (blob:, http:, etc.)
   duration?: number;
   hash: `0x${string}`;

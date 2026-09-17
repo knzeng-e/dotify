@@ -2,11 +2,15 @@
 
 ## Identity
 
-- Scope: reconcile the W13 pilot gate after the room, mobile, interface, and
-  artist-support follow-ups merged through PR #173.
+- Scope: reconcile the W13 pilot gate after the room, mobile, interface,
+  artist-support, and candidate-binding follow-ups merged through PR #174, then
+  validate the Product CDM native payment-unit correction.
 - Reviewed base: `dev` at
-  `f4d2d49721a85169c5f9c37d36ac2ef315396d57`.
-- Product executable version: `[0, 1, 20]`.
+  `7ae99893229a551673882401dfd5ec000b3c616a`.
+- Tested implementation candidate:
+  `956f71df2a9d3c3db35235bc4ba321c1d8f73fa7`. The later documentation-only
+  review follow-up does not change the tested Product bundle.
+- Product executable version: `[0, 1, 21]`.
 - W13 issue: #158 remains open.
 - W13 release-package PR: #159 merged on 2026-09-14.
 - This record does not claim a deployment, a real Product payment, a physical
@@ -34,14 +38,15 @@ evidence below is captured against one exact deployed candidate.
 | Clear musical interface | [#169](https://github.com/knzeng-e/dotify/pull/169) and [#170](https://github.com/knzeng-e/dotify/pull/170) reduced catalog/room noise, clarified actions, and displayed optional Product host profile names. | CI, Chromium/WebKit, accessibility-oriented browser checks, builds, and screenshots in [clear musical interface](clear-musical-interface.md) and [catalog and host identity](catalog-and-host-identity.md). | Presentation pass. Product names remain unverified display data; native Product and physical-device acceptance remain open. |
 | Keyboard transition | [#171](https://github.com/knzeng-e/dotify/pull/171) prevented invalid initial viewport samples from causing a visible layout jump. | Targeted Chromium/WebKit regressions, full build checks, and screenshots in [room keyboard transition](room-keyboard-transition-2026-09-15.md). | Synthetic viewport pass. The reported Polkadot Mobile/iPhone compositor path still needs a same-build device check. |
 | Purchase recovery and direct support | [#172](https://github.com/knzeng-e/dotify/pull/172) made uncertain purchases recoverable and added feature-flagged gifts; [#173](https://github.com/knzeng-e/dotify/pull/173) exposed the paying/funding account and runtime identity in the transaction dialog. | 512 unit tests and 79 Chromium scenarios on #172, focused WebKit/payment checks, Product support build, and all required CI checks on #173. See [artist support recovery](artist-support-recovery-2026-09-16.md). | Automated/local pass. No real Product approval, native value transfer, final receipt, protected-key opening, or physical iPhone payment was recorded. CASH settlement remains unavailable under W16. |
+| Product CDM native payment units | This consolidation fixes the Product contract path so an 18-decimal Solidity price is converted to the connected chain's native `Revive.call` Balance precision. | Focused adapter, chain-spec, and writer-provider tests cover the exact 4.2 PAS conversion and safe retry after an SDK dry-run rejection. | Automated/local pass. A newly published `[0, 1, 21]` Product build still needs one funded host payment and access read-back. |
 
 ## Current readiness snapshot
 
 | Gate | Status | Evidence or exact blocker |
 | --- | --- | --- |
 | W01-W12 dependency evidence | Pass | `smoke:pilot-release` finds every dependency evidence file and integrated PR. |
-| Current candidate contains merged follow-ups #165-#173 | Pass | `dev` history through `f4d2d49`; each merge is linked above. |
-| Pilot release package and static Product configuration | Pass | 77 pass, 0 fail; Product appVersion `[0, 1, 20]`, safe origins, no browser secrets, candidate-bound Product/room evidence, and viem remains the default runtime writer. |
+| Current candidate contains merged follow-ups #165-#174 and the Product payment correction | Pass | Reviewed `dev` base `7ae9989`; tested implementation candidate `956f71d`. |
+| Pilot release package and static Product configuration | Pass | 77 pass, 0 fail; Product appVersion `[0, 1, 21]`, safe origins, no browser secrets, candidate-bound Product/room evidence, and viem remains the default runtime writer. |
 | Product CDM host Classic support and key opening | Blocked | No same-candidate Product host smoke JSON from a funded Product account. |
 | Product-hosted room to walletless browser guest | Not run | No same-candidate room evidence JSON with audible and in-sync result. |
 | Standalone desktop hosted smoke | Not run | The harness has no ordinary hosted Music/Rooms/Artist result for this candidate. |
@@ -52,7 +57,7 @@ evidence below is captured against one exact deployed candidate.
 
 ## Reproduction
 
-Commands run locally from `web/` on the reviewed base:
+Commands run locally from `web/` on tested implementation candidate `956f71d`:
 
 ```sh
 npm run test:pilot-release-readiness
@@ -66,7 +71,7 @@ npm run smoke:product-journey -- \
 
 Observed results:
 
-- readiness tests: 6 passed;
+- readiness tests: 9 passed;
 - W13 release: `blocked` — 77 pass, 0 fail, 2 blocked, 8 not run;
 - Product journey: `blocked` — 26 pass, 0 fail, 1 blocked, 1 not run.
 

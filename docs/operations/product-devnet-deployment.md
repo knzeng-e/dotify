@@ -404,7 +404,7 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 20]`. This version also binds Product payment and room evidence to the exact deployed CID so stale artifacts cannot satisfy pilot gates. It keeps blocked
+The current Product executable is `[0, 1, 21]`. This version converts 18-decimal Solidity payment values into the connected chain's native `Revive.call` Balance precision, and it treats SDK dry-run failures as not submitted so users can retry safely. It also binds Product payment and room evidence to the exact deployed CID so stale artifacts cannot satisfy pilot gates. It keeps blocked
 guest audio recovery visible in Product-hosted rooms, exposes W05 runtime claim
 writes through the shared runtime writer port, uses the refreshed September 2026
 Product SDK/tooling and re-pinned Bulletin descriptor, and removes
@@ -634,8 +634,10 @@ npm run deploy:product-devnet
      address shown by Dotify and used in key/session requests;
    - clicking **Support and open** triggers an explicit host transaction
      approval, not a silent write;
-   - the submitted `musicRoyPayAccess(contentHash)` forwards the exact
-     `pricePlanck` native value;
+   - the submitted `musicRoyPayAccess(contentHash)` preserves the exact
+     18-decimal `pricePlanck` contract value while `Revive.call.value` uses the
+     equivalent chain-native Balance (`42_000_000_000` units for `4.2 PAS` on
+     a 10-decimal Paseo chain);
    - after inclusion, `musicAccHasPaid(contentHash, listenerH160)` and
      `musicAccCanAccess(contentHash, listenerH160)` both read `true`. Dotify
      polls this read-back with a bound before showing **Work opened** in a
@@ -715,7 +717,7 @@ npm run smoke:product-journey -- \
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 20]",
+    "productAppVersion": "[0, 1, 21]",
     "deployedCid": "<same-product-executable-cid-as-payment-smoke>"
   },
   "hostSurface": "product-desktop",

@@ -6,6 +6,8 @@ import {
   createProductCdmRuntimeContractResolver,
   createProductCdmRuntimeReader,
   createProductCdmRuntimeWriter,
+  evmValueToNativeUnits,
+  productCdmPaymentWasNotSubmitted,
   type ProductCdmContractHandle
 } from './productCdmRuntimeAdapter';
 import type { OnchainTrackRecord } from '../../shared/types';
@@ -219,6 +221,7 @@ describe('createProductCdmRuntimeWriter', () => {
     const musicRegSetAccessMode = txMethod();
     const musicRegDeactivate = txMethod();
     const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
       contracts: {
         getDirectoryContract: () => ({}),
         getFactoryContract: () => ({ createRuntime, installRuntimeStep }),
@@ -256,7 +259,7 @@ describe('createProductCdmRuntimeWriter', () => {
         createNativeRuntimeAccessPaymentIntent({
           runtimeAddress: runtime,
           contentHash: hash,
-          amountPlanck: 3n,
+          amountPlanck: 3_000_000_000_000_000_000n,
           asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
         })
       )
@@ -273,10 +276,25 @@ describe('createProductCdmRuntimeWriter', () => {
     await expect(writer.setReleaseActive(runtime, hash, false)).resolves.toBe(txHash);
     await expect(writer.waitForTransaction(txHash)).resolves.toBeUndefined();
 
-    expect(musicRoyPayAccess.tx).toHaveBeenCalledWith(hash, { value: 3n, waitFor: 'finalized' });
+    expect(musicRoyPayAccess.tx).toHaveBeenCalledWith(hash, { value: 30_000_000_000n, waitFor: 'finalized' });
     expect(musicRoyClaim.tx).toHaveBeenCalledWith(splitRecipient);
     expect(musicRegSetAccessMode.tx).toHaveBeenCalledWith(hash, 2, 0n, 1);
     expect(musicRegDeactivate.tx).toHaveBeenCalledWith(hash);
+  });
+
+  it('converts 18-decimal EVM value to the native Paseo balance without rounding', () => {
+    expect(evmValueToNativeUnits(4_200_000_000_000_000_000n, 10)).toBe(42_000_000_000n);
+    expect(evmValueToNativeUnits(4_200_000_000_000_000_000n, 18)).toBe(4_200_000_000_000_000_000n);
+    expect(() => evmValueToNativeUnits(4_200_000_000_000_000_001n, 10)).toThrow(/cannot be represented exactly/);
+    expect(() => evmValueToNativeUnits(1n, 19)).toThrow(/invalid native token precision/);
+  });
+
+  it('recognizes only documented Product pre-submission failures as safe to retry', () => {
+    const dryRun = Object.assign(new Error('insufficient balance'), { name: 'ContractDryRunFailedError' });
+    const wrapped = new ProductCdmRuntimeError('Product transaction failed', { cause: dryRun });
+
+    expect(productCdmPaymentWasNotSubmitted(wrapped)).toBe(true);
+    expect(productCdmPaymentWasNotSubmitted(Object.assign(new Error('status unknown'), { name: 'TxTimeoutError' }))).toBe(false);
   });
 
   it('throws when Product tx submission returns an error or invalid hash', async () => {
@@ -294,6 +312,7 @@ describe('createProductCdmRuntimeWriter', () => {
     };
 
     const failedWriter = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
       contracts: {
         getDirectoryContract: () => ({}),
         getFactoryContract: () => ({ createRuntime: failedTx }),
@@ -301,6 +320,7 @@ describe('createProductCdmRuntimeWriter', () => {
       }
     });
     const badHashWriter = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
       contracts: {
         getDirectoryContract: () => ({}),
         getFactoryContract: () => ({ createRuntime: badHashTx }),

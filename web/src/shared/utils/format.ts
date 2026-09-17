@@ -16,7 +16,7 @@ export function progressPercent(state: PlayerState | null) {
 }
 
 // The contract field is still named pricePlanck for historical/Substrate
-// context, but Asset Hub EVM msg.value uses 18-decimal native units.
+// context, but Asset Hub EVM msg.value uses 18-decimal contract units.
 export function dotToPlanck(dot: string) {
   return parseEther(dot.trim() || '0');
 }

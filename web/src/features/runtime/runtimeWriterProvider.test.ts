@@ -37,7 +37,8 @@ vi.mock('./viemRuntimeAdapter', () => ({
 }));
 
 vi.mock('./productCdmRuntimeAdapter', () => ({
-  createProductCdmRuntimeWriter: vi.fn(() => productWriter)
+  createProductCdmRuntimeWriter: vi.fn(() => productWriter),
+  productCdmPaymentWasNotSubmitted: vi.fn((error: unknown) => (error as { name?: string })?.name === 'ContractDryRunFailedError')
 }));
 
 afterEach(() => {
@@ -140,6 +141,7 @@ describe('createRuntimeWriter', () => {
     vi.doMock('./productCdmContracts', () => ({
       createProductCdmContracts: vi.fn(async () => ({
         resolver,
+        nativeTokenDecimals: 10,
         verifyDeployment,
         destroy: vi.fn()
       }))
@@ -180,12 +182,33 @@ describe('createRuntimeWriter', () => {
     expect(createProductCdmContracts).toHaveBeenCalledWith({ environment: 'devnet', signerManager });
     expect(verifyDeployment).toHaveBeenCalledTimes(1);
     expect(createProductCdmRuntimeWriter).toHaveBeenCalledTimes(1);
-    expect(createProductCdmRuntimeWriter).toHaveBeenCalledWith({ contracts: resolver });
+    expect(createProductCdmRuntimeWriter).toHaveBeenCalledWith({ contracts: resolver, nativeTokenDecimals: 10 });
     expect(productWriter.createRuntime).toHaveBeenCalledWith(factory);
     expect(productWriter.payForAccess).toHaveBeenCalledWith(intent);
     expect(productWriter.claimRoyalty).toHaveBeenCalledWith(runtime, productH160Address);
     expect(createViemRuntimeWriter).not.toHaveBeenCalled();
     expect(getViemWalletClient).not.toHaveBeenCalled();
+  });
+
+  it('marks a Product contract dry-run failure as not submitted', async () => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    mockProductSigner();
+    const resolver = {};
+    vi.doMock('./productCdmContracts', () => ({
+      createProductCdmContracts: vi.fn(async () => ({ resolver, nativeTokenDecimals: 10, verifyDeployment: vi.fn(async () => undefined) }))
+    }));
+    productWriter.payForAccess.mockRejectedValueOnce(Object.assign(new Error('insufficient balance'), { name: 'ContractDryRunFailedError' }));
+    vi.resetModules();
+    const createRuntimeWriter = await loadProvider();
+    const writer = createRuntimeWriter({
+      ethRpcUrl: 'https://rpc.example',
+      getViemWalletClient: vi.fn(async () => ({}) as never),
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
+    });
+
+    await expect(writer.payForAccess(accessIntent(4_200_000_000_000_000_000n))).rejects.toMatchObject({
+      name: 'SupportNotSubmittedError'
+    });
   });
 
   it('reconnects after an initial host setup failure without caching a rejected writer forever', async () => {
@@ -194,7 +217,7 @@ describe('createRuntimeWriter', () => {
     signerManager.connect.mockRejectedValueOnce(new Error('Host unavailable'));
     const resolver = {};
     vi.doMock('./productCdmContracts', () => ({
-      createProductCdmContracts: vi.fn(async () => ({ resolver, verifyDeployment: vi.fn(async () => undefined) }))
+      createProductCdmContracts: vi.fn(async () => ({ resolver, nativeTokenDecimals: 10, verifyDeployment: vi.fn(async () => undefined) }))
     }));
     vi.resetModules();
     const createRuntimeWriter = await loadProvider();

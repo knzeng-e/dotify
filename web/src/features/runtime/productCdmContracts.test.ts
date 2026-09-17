@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { DOTIFY_CDM_PACKAGES, createProductCdmContracts, type ProductCdmContractsDeps } from './productCdmContracts';
+import { DOTIFY_CDM_PACKAGES, createProductCdmContracts, productCdmNativeTokenDecimals, type ProductCdmContractsDeps } from './productCdmContracts';
 import cdmManifest from '../../generated/contracts/cdm.json';
 
 const DIRECTORY = cdmManifest.contracts['@dotify/artist-directory'].address as `0x${string}`;
 const FACTORY = cdmManifest.contracts['@dotify/artist-runtime-factory'].address as `0x${string}`;
 const RUNTIME = '0x00000000000000000000000000000000000000aa' as const;
 
-type Handles = { artistCountSuccess?: boolean };
+type Handles = { artistCountSuccess?: boolean; tokenDecimals?: unknown };
 
 function buildDeps(overrides: Handles = {}, spies: Record<string, ReturnType<typeof vi.fn>> = {}): ProductCdmContractsDeps {
   const artistCountQuery = vi.fn(async () => ({ success: overrides.artistCountSuccess ?? true, value: 3n, gasRequired: {} }));
@@ -33,15 +33,28 @@ function buildDeps(overrides: Handles = {}, spies: Record<string, ReturnType<typ
         createContractRuntimeFromClient: vi.fn(() => ({ runtime: true })),
         createContract
       }) as never,
-    loadChain: async () => ({ createChainClient: spies.createChainClient ?? vi.fn(async () => ({ raw: { assetHub: {} }, destroy })) }) as never,
+    loadChain: async () =>
+      ({
+        createChainClient:
+          spies.createChainClient ??
+          vi.fn(async () => ({
+            raw: {
+              assetHub: {
+                getChainSpecData: vi.fn(async () => ({ properties: { tokenDecimals: overrides.tokenDecimals ?? 10 } }))
+              }
+            },
+            destroy
+          }))
+      }) as never,
     loadDescriptor: async () => ({ descriptor: true })
   };
 }
 
 describe('createProductCdmContracts', () => {
-  it('resolves the manifest contracts by their deployed addresses', async () => {
-    const { resolver } = await createProductCdmContracts({ environment: 'devnet' }, buildDeps());
+  it('resolves the manifest contracts and native precision from the connected chain', async () => {
+    const { resolver, nativeTokenDecimals } = await createProductCdmContracts({ environment: 'devnet' }, buildDeps());
 
+    expect(nativeTokenDecimals).toBe(10);
     expect(() => resolver.getDirectoryContract(DIRECTORY)).not.toThrow();
     expect(() => resolver.getFactoryContract(FACTORY)).not.toThrow();
     await expect(resolver.hasContract?.(DIRECTORY)).resolves.toBe(true);
@@ -64,6 +77,17 @@ describe('createProductCdmContracts', () => {
     const [, address, abi] = createContract.mock.calls[0];
     expect(address).toBe(RUNTIME);
     expect(Array.isArray(abi)).toBe(true);
+  });
+
+  it('rejects missing or ambiguous native precision before preparing payments', async () => {
+    const destroy = vi.fn();
+
+    expect(productCdmNativeTokenDecimals({ tokenDecimals: [10] })).toBe(10);
+    expect(() => productCdmNativeTokenDecimals({ tokenDecimals: [10, 18] })).toThrow(/one verified native token precision/);
+    await expect(createProductCdmContracts({ environment: 'devnet' }, buildDeps({ tokenDecimals: [10, 18] }, { destroy }))).rejects.toThrow(
+      /one verified native token precision/
+    );
+    expect(destroy).toHaveBeenCalledTimes(1);
   });
 
   it('names the missing host connection instead of reporting an RPC failure', async () => {
