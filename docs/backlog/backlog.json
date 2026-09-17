@@ -373,6 +373,66 @@
       "track": "Design record",
       "phase": "Next",
       "note": "Activated implementation sequence for optional immersive room galaxy behind the 2D/list fallback."
+    },
+    {
+      "id": "W21",
+      "doc": "docs/backlog/implementation/W21-first-listening-screen.md",
+      "issue": 176,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Now",
+      "note": "UX audit 2026-09-17 follow-up: dead dock control, discreet card access cue (amends #170), text-free placeholders, catalog display hygiene."
+    },
+    {
+      "id": "W22",
+      "doc": "docs/backlog/implementation/W22-room-hosting-clarity.md",
+      "issue": 177,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Now",
+      "note": "UX audit 2026-09-17 follow-up: no role-as-name, invite-first host room, meaningful guest controls, calmer Rooms page."
+    },
+    {
+      "id": "W23",
+      "doc": "docs/backlog/implementation/W23-player-support-clarity.md",
+      "issue": 178,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Next",
+      "note": "UX audit 2026-09-17 follow-up: remove the solo player dashboard tail and write the support and wallet prompts in listener language."
+    },
+    {
+      "id": "W24",
+      "doc": "docs/backlog/implementation/W24-visual-system-contract.md",
+      "issue": 179,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Design record",
+      "phase": "Next",
+      "note": "UX audit 2026-09-17 follow-up: type scale, color roles, links, live indicator, glyph fallback, stylesheet consolidation after W21-W23/W25."
+    },
+    {
+      "id": "W25",
+      "doc": "docs/backlog/implementation/W25-artist-workspace-language.md",
+      "issue": 180,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Next",
+      "note": "UX audit 2026-09-17 follow-up: plain artist vocabulary, single review, no unverified badge/handle/durability claims."
+    },
+    {
+      "id": "W26",
+      "doc": "docs/backlog/implementation/W26-french-localization.md",
+      "issue": 181,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Design record",
+      "phase": "Later",
+      "note": "UX audit 2026-09-17 follow-up: French and English interface; Later by owner decision."
     }
   ]
 }

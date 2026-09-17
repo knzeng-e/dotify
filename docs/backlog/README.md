@@ -92,6 +92,19 @@ Deferred (needs a backend channel, deliberately not faked): persisted room mood.
 Ticket 24 supersedes the preview-based rows above: the 42% doctrine and the
 ticket 18 preview assets are consciously retired by access model v2.
 
+## UX audit follow-ups (September 2026)
+
+Source: `docs/design/ux-design-audit-2026-09-17.md`. Existing tickets were reused where they already own the scope: #87 keeps responsive cover variants (evidence added), #151/W10 and #156/W12 keep their delivered decisions, #160/W14 keeps the galaxy.
+
+| Backlog doc                                       | GitHub issue | Status | Goal                                                                   |
+| ------------------------------------------------- | ------------ | ------ | ---------------------------------------------------------------------- |
+| `implementation/W21-first-listening-screen.md`    | #176         | Todo   | No dead controls, discreet access cue on cards, text-free placeholders |
+| `implementation/W22-room-hosting-clarity.md`      | #177         | Todo   | No role-as-name, invite-first hosting, meaningful guest controls       |
+| `implementation/W23-player-support-clarity.md`    | #178         | Todo   | Immersive solo player and plain support/wallet prompts                 |
+| `implementation/W25-artist-workspace-language.md` | #180         | Todo   | Plain and truthful artist workspace                                    |
+| `implementation/W24-visual-system-contract.md`    | #179         | Todo   | One documented type, color and component system                        |
+| `implementation/W26-french-localization.md`       | #181         | Later  | French interface after the pilot                                       |
+
 ## Active production execution
 
 | Backlog doc                       | GitHub issue | Status          | Goal                                                                                      |

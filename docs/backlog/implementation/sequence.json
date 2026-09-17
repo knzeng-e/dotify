@@ -244,6 +244,80 @@
       ],
       "issue": 13,
       "phase": "Later research"
+    },
+    {
+      "id": "W21",
+      "title": "Make the first listening screen trustworthy",
+      "file": "W21-first-listening-screen.md",
+      "branch": "fix/first-listening-screen",
+      "dependencies": [
+        "W08",
+        "W10"
+      ],
+      "issue": 176,
+      "phase": "Pilot polish"
+    },
+    {
+      "id": "W22",
+      "title": "Make hosting and joining a room unmistakable",
+      "file": "W22-room-hosting-clarity.md",
+      "branch": "fix/room-hosting-clarity",
+      "dependencies": [
+        "W09",
+        "W10"
+      ],
+      "issue": 177,
+      "phase": "Pilot polish"
+    },
+    {
+      "id": "W23",
+      "title": "Keep the solo player immersive and the support prompt plain",
+      "file": "W23-player-support-clarity.md",
+      "branch": "fix/player-support-clarity",
+      "dependencies": [
+        "W04",
+        "W12"
+      ],
+      "issue": 178,
+      "phase": "Pilot polish"
+    },
+    {
+      "id": "W24",
+      "title": "Consolidate the visual system contract",
+      "file": "W24-visual-system-contract.md",
+      "branch": "feat/visual-system-contract",
+      "dependencies": [
+        "W21",
+        "W22",
+        "W23",
+        "W25"
+      ],
+      "issue": 179,
+      "phase": "Pilot polish"
+    },
+    {
+      "id": "W25",
+      "title": "Make the artist workspace plain and truthful",
+      "file": "W25-artist-workspace-language.md",
+      "branch": "fix/artist-workspace-language",
+      "dependencies": [
+        "W04",
+        "W12"
+      ],
+      "issue": 180,
+      "phase": "Pilot polish"
+    },
+    {
+      "id": "W26",
+      "title": "Offer Dotify in French",
+      "file": "W26-french-localization.md",
+      "branch": "feat/french-localization",
+      "dependencies": [
+        "W13",
+        "W24"
+      ],
+      "issue": 181,
+      "phase": "Later implementation"
     }
   ]
 }
