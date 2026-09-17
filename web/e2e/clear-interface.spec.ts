@@ -156,6 +156,7 @@ test('clear interface restores individual playback after leaving a room', async 
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
+  await page.getByLabel('Your name in the room').fill('Interface host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   const code = (await page.getByTestId('room-code').innerText()).trim();
@@ -194,6 +195,7 @@ test('clear interface lets guests inspect releases without changing their listen
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
+  await page.getByLabel('Your name in the room').fill('Interface host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   const code = (await page.getByTestId('room-code').innerText()).trim();
