@@ -144,6 +144,20 @@ test('a host sees one room code and an invite-first state while alone', async ({
   await expect.poll(() => page.evaluate(() => (Reflect.get(window, '__sharedRoomInvite') as ShareData | undefined)?.url)).toContain(`#/rooms/${roomId}`);
 });
 
+test('a room requires a chosen host name instead of presenting a role as identity', async ({ page }) => {
+  await page.goto('/?e2eRoom=public');
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  const name = page.getByLabel('Your name in the room');
+  const open = page.getByRole('button', { name: 'Open the room', exact: true });
+
+  await expect(name).toHaveValue('');
+  await expect(open).toBeDisabled();
+  await name.fill('Host');
+  await expect(open).toBeDisabled();
+  await name.fill('Gaby');
+  await expect(open).toBeEnabled();
+});
+
 test('compact keyboard viewport leaves space to compose and restores after resize', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await hostRoom(page);
