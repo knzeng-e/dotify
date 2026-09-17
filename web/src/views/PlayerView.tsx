@@ -504,6 +504,20 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         </div>
       )}
 
+      {productHostWebRtcUnavailable && !roomId && (
+        <div className='solo-browser-handoff'>
+          {error && (
+            <p className='error-box' data-testid='session-error'>
+              {error}
+            </p>
+          )}
+          <button className='primary-action' type='button' onClick={() => void session.openRoomInBrowser()}>
+            <ExternalLink size={16} />
+            Open Dotify in browser
+          </button>
+        </div>
+      )}
+
       <div className='player-lower-grid'>
         <div className='doc-panel session-panel' id='room-panel-people' aria-label='People and room controls'>
           <PanelTitle icon={Radio} title={roomId ? 'In the room' : 'Listening room'} meta={roomId ? `${presenceCount} here` : 'offline'} />
@@ -701,14 +715,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             </>
           )}
 
-          {productHostWebRtcUnavailable && !roomId && (
-            <button className='primary-action' type='button' onClick={() => void session.openRoomInBrowser()}>
-              <ExternalLink size={16} />
-              {roomId ? 'Continue in browser' : 'Open Dotify in browser'}
-            </button>
-          )}
-
-          {error && (
+          {error && !productHostWebRtcUnavailable && (
             <p className='error-box' data-testid='session-error'>
               {error}
             </p>
