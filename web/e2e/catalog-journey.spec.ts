@@ -8,15 +8,15 @@ for (const width of [390, 1440]) {
     await expect(page.getByTestId('track-card')).toHaveCount(13);
     const catalog = page.getByRole('region', { name: 'Music catalog' });
     const firstAction = await page.getByTestId('track-card-open').first().boundingBox();
-    const dock = await page.locator('.player-dock').boundingBox();
-    expect(firstAction!.y + firstAction!.height).toBeLessThan(dock!.y);
+    await expect(page.locator('.player-dock')).toHaveCount(0);
+    expect(firstAction!.y + firstAction!.height).toBeLessThan(page.viewportSize()!.height);
     await expect(page.locator('.moment-feature')).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath(`discovery-${width}.png`), fullPage: true });
 
     const search = page.getByRole('searchbox', { name: 'Find a track or artist' });
     await search.fill('selection');
     await expect(page.getByTestId('track-card')).toHaveCount(10);
-    const target = page.getByRole('button', { name: 'Open Session selection 7 by Dotify Room Host', exact: true });
+    const target = page.getByRole('button', { name: /^Open Session selection 7 by Dotify Room Host,/ });
     await target.scrollIntoViewIfNeeded();
     await target.focus();
     const left = await catalog.evaluate(element => element.scrollLeft);

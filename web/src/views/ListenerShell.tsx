@@ -295,8 +295,9 @@ export function ListenerShell() {
                     catalogStatus={catalog.catalogStatus}
                     openRooms={session.openRooms}
                     journey={catalogJourney}
-                    selectedTrackId={catalog.selectedTrackId}
+                    selectedTrackId={catalog.trackInfo ? catalog.selectedTrackId : ''}
                     catalogAccessByTrackId={catalog.catalogAccessByTrackId}
+                    nativePaymentSymbol={nativePaymentSymbol}
                     onOpenTrack={handleInspectTrack}
                     onPlayTrack={handlePlayTrack}
                     roomGuest={isRoomGuest}
@@ -393,7 +394,7 @@ export function ListenerShell() {
           </main>
         </div>
 
-        {(activeView !== 'player' || publicArtistName) && (selectedTrack || catalog.trackInfo || session.roomId) && (
+        {(activeView !== 'player' || publicArtistName) && (catalog.trackInfo || session.roomId) && (
           <PlayerDock
             track={selectedTrack}
             trackInfo={catalog.trackInfo}

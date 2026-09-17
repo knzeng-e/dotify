@@ -120,7 +120,7 @@ test('artist can create a runtime, publish a release, and see it in the listener
   await page.goto('/');
   const publishedCard = page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' });
   await expect(publishedCard).toContainText('E2E Artist');
-  await expect(publishedCard).not.toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(publishedCard).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
   await publishedCard.getByRole('button', { name: 'E2E Artist', exact: true }).click();
   const release = page.locator('.artist-release-card').filter({ hasText: 'E2E Published Signal' });
   await release.getByText('About this release', { exact: true }).click();

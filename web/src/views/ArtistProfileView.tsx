@@ -4,7 +4,7 @@ import { ArrowRight, Play, Radio } from 'lucide-react';
 import { useMemo, type CSSProperties } from 'react';
 import { CoverImage } from '../components/CoverImage';
 import { TrackArtworkButton } from '../components/TrackArtworkButton';
-import { catalogAccessAriaLabel, catalogAccessLabel } from '../shared/utils/format';
+import { catalogAccessAriaLabel, catalogAccessCueLabel, normalizeDisplayText } from '../shared/utils/format';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import type { CatalogTrack, OpenRoom, SocketStatus } from '../shared/types';
@@ -55,6 +55,7 @@ export function ArtistProfileView({
   onOpenArtistRoom,
   onJoinRoom
 }: ArtistProfileViewProps) {
+  const displayArtistName = normalizeDisplayText(artistName);
   const artistTracks = useMemo(() => catalogTracks.filter(track => track.artist === artistName), [artistName, catalogTracks]);
   const liveRooms = useMemo(() => openRooms.filter(room => room.track?.artist === artistName), [artistName, openRooms]);
   const leadTrack = artistTracks[0];
@@ -72,27 +73,29 @@ export function ArtistProfileView({
 
       <header className='artist-profile-hero'>
         <div className='artist-profile-art' aria-hidden='true'>
-          {leadTrack ? <CoverImage src={leadTrack.imageRef} alt='' fallbackLabel={artistName} /> : artistName.slice(0, 2).toUpperCase()}
+          {leadTrack ? <CoverImage src={leadTrack.imageRef} alt='' fallbackLabel={displayArtistName} /> : displayArtistName.slice(0, 2).toUpperCase()}
         </div>
         <div className='artist-profile-copy'>
           <p className='eyebrow'>Artist</p>
-          <h1>{artistName}</h1>
+          <h1>{displayArtistName}</h1>
           <div className='artist-profile-meta'>
             <span>
               {artistTracks.length} release{artistTracks.length === 1 ? '' : 's'}
             </span>
             {activeListeners > 0 && <span>{activeListeners} listening now</span>}
           </div>
-          <div className='artist-profile-actions'>
-            <button className='primary-action' type='button' onClick={() => leadTrack && activateTrack(leadTrack)} disabled={!leadTrack}>
-              {leadTrack && canPlay(leadTrack) ? <Play size={18} fill='currentColor' /> : <ArrowRight size={18} />}
-              {leadTrack && canPlay(leadTrack) ? 'Listen' : 'View release'}
-            </button>
-            <button className='secondary-action' type='button' onClick={() => leadTrack && onOpenArtistRoom(leadTrack)} disabled={!leadTrack}>
-              <Radio size={18} /> Open a room
-            </button>
-            {leadTrack && artistDonationsEnabled && <ArtistDonationButton track={leadTrack} />}
-          </div>
+          {leadTrack && (
+            <div className='artist-profile-actions'>
+              <button className='primary-action' type='button' onClick={() => activateTrack(leadTrack)}>
+                {canPlay(leadTrack) ? <Play size={18} fill='currentColor' /> : <ArrowRight size={18} />}
+                Listen to latest release
+              </button>
+              <button className='secondary-action' type='button' onClick={() => onOpenArtistRoom(leadTrack)}>
+                <Radio size={18} /> Open a room
+              </button>
+              {artistDonationsEnabled && <ArtistDonationButton track={leadTrack} />}
+            </div>
+          )}
         </div>
       </header>
 
@@ -101,29 +104,34 @@ export function ArtistProfileView({
           <h2 id='artist-releases-title'>Releases</h2>
           <div className='artist-release-grid'>
             {artistTracks.length > 0 ? (
-              artistTracks.map(track => (
-                <article className='artist-release-card' key={track.id}>
-                  <TrackArtworkButton track={track} canPlay={canPlay(track)} onActivate={() => activateTrack(track)} />
-                  <div className='artist-release-copy'>
-                    <button
-                      type='button'
-                      className='artist-release-title'
-                      onClick={() => onOpenTrack(track)}
-                      aria-label={`Open ${track.title} by ${track.artist}`}
-                    >
-                      {track.title}
-                    </button>
-                    <small>{track.artist}</small>
-                    <details className='release-description'>
-                      <summary>About this release</summary>
-                      <p aria-label={catalogAccessAriaLabel(track, catalogAccessByTrackId[track.id] === true, nativePaymentSymbol)}>
-                        {catalogAccessLabel(track, nativePaymentSymbol)}
-                      </p>
-                      {track.description && <p>{track.description}</p>}
-                    </details>
-                  </div>
-                </article>
-              ))
+              artistTracks.map(track => {
+                const title = normalizeDisplayText(track.title);
+                const accessCue = catalogAccessCueLabel(track, nativePaymentSymbol);
+                const hasAccess = track.active !== false && (track.accessMode === 'free' || catalogAccessByTrackId[track.id] === true);
+                const accessDescription = catalogAccessAriaLabel(track, hasAccess, nativePaymentSymbol);
+                return (
+                  <article className='artist-release-card' key={track.id}>
+                    <TrackArtworkButton track={track} canPlay={canPlay(track)} accessCue={accessDescription} onActivate={() => activateTrack(track)} />
+                    <div className='artist-release-copy'>
+                      <button
+                        type='button'
+                        className='artist-release-title'
+                        onClick={() => onOpenTrack(track)}
+                        aria-label={`Open ${title} by ${displayArtistName}, ${accessDescription}`}
+                      >
+                        {title}
+                      </button>
+                      <small className='catalogue-access-cue'>{accessCue}</small>
+                      {track.description && (
+                        <details className='release-description'>
+                          <summary>About this release</summary>
+                          <p>{track.description}</p>
+                        </details>
+                      )}
+                    </div>
+                  </article>
+                );
+              })
             ) : (
               <p className='empty-state'>No releases yet.</p>
             )}
