@@ -107,7 +107,8 @@
   margin: 0 1.5rem 1.5rem;
 }
 .player-view-grid:not(.player-room-mode) .player-stage,
-.player-view-grid:not(.player-room-mode) .solo-room-invite {
+.player-view-grid:not(.player-room-mode) .solo-room-invite,
+.player-view-grid:not(.player-room-mode) .solo-release-note {
   width: min(100%, 64rem);
   margin-inline: auto;
 }
@@ -138,6 +139,16 @@
 }
 .player-view-grid:not(.player-room-mode) .access-badges {
   margin-top: 0.5rem;
+}
+.player-view-grid:not(.player-room-mode) .player-lower-grid {
+  display: none;
+}
+.solo-release-note {
+  max-width: 62ch;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  text-wrap: pretty;
 }
 .player-room-mode .player-stage {
   grid-template-areas: 'artwork metadata' 'transport transport';

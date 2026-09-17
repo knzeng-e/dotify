@@ -78,7 +78,7 @@ export function ArtistConsole() {
   } = useReleaseForm();
   const { connectedWallet, activeEvmAddress, activeSubstrateAddress, expectedChainId, getActiveWalletClient, bulletinAccountIndex, setBulletinAccountIndex } =
     useWalletContext();
-  const { setShowWalletModal } = useUiFeedback();
+  const { openWalletModal } = useUiFeedback();
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { artistConsole, totalRoyaltyWei, uniqueRoyaltyListeners, paidRoyaltyTracks } = useArtistStudio();
@@ -147,7 +147,7 @@ export function ArtistConsole() {
   const onRefreshArtistRuntime = () => {
     void artistConsole.refreshArtistRuntime(true);
   };
-  const onShowWalletModal = () => setShowWalletModal(true);
+  const onShowWalletModal = () => openWalletModal('artist');
   const onRegisterRights = artistConsole.registerRights;
   const onUpdateReleaseAccessMode = artistConsole.updateReleaseAccessMode;
   const onSetReleaseActive = artistConsole.setReleaseActive;

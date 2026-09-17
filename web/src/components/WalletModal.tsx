@@ -6,10 +6,33 @@ import { getBlockscoutAddressUrl } from '../shared/utils/explorer';
 import { shortenAddress } from '../shared/utils/format';
 import { useWalletContext } from '../app/providers/WalletProvider';
 import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
+import type { WalletModalReason } from '../app/providers/UiFeedbackProvider';
 import { LEGACY_PASSKEY_LOCAL_DATA_MESSAGE } from '../features/wallet/passkeyPolicy';
 
 type WalletSupportedArtist = Pick<CatalogTrack, 'artist' | 'artistAddress'> & { trackCount: number };
 type WalletPaidTrack = Pick<CatalogTrack, 'id' | 'title' | 'artist' | 'artistAddress' | 'priceDot' | 'hash'>;
+
+export function walletModalCopy(reason: WalletModalReason) {
+  if (reason === 'support') {
+    return {
+      eyebrow: 'Support this artist',
+      title: 'Choose how to confirm',
+      description: 'Connect the account you want to use. You will review the amount and who receives it before anything is sent.'
+    };
+  }
+  if (reason === 'artist') {
+    return {
+      eyebrow: 'Artist tools',
+      title: 'Connect to continue',
+      description: 'Connect the account that will control your artist space and approve publishing.'
+    };
+  }
+  return {
+    eyebrow: 'Account',
+    title: 'Connect account',
+    description: 'Connect when you want to support an artist, open protected music, or publish.'
+  };
+}
 
 export function WalletStatusPill({ state, onClick, onDisconnect }: { state: WalletState; onClick: () => void; onDisconnect: () => void }) {
   if (state.status === 'connected') {
@@ -66,7 +89,7 @@ export function WalletModal({
     forgetLegacyPasskeyData,
     disconnect: onDisconnect
   } = useWalletContext();
-  const { showWalletModal, setShowWalletModal } = useUiFeedback();
+  const { showWalletModal, setShowWalletModal, walletModalReason } = useUiFeedback();
 
   if (!showWalletModal) return null;
 
@@ -74,6 +97,7 @@ export function WalletModal({
   const onExtension = () => void connectExtension();
   const onProductHost = () => void connectProductHost();
   const onSwitchNetwork = () => void switchNetwork();
+  const connectCopy = walletModalCopy(walletModalReason);
 
   if (state.status === 'connected') {
     const { wallet } = state;
@@ -125,9 +149,7 @@ export function WalletModal({
         {wallet.method === 'product-host' && (
           <>
             <p className='info-box'>
-              Your app-scoped Polkadot identity is active for presence, rooms, and protected playback. If the host signature is rejected, protected playback
-              fails closed. Paying for access and artist publishing still require an EVM wallet unless a Product CDM build is explicitly selected and
-              smoke-tested.
+              Your Polkadot app account is active for rooms and protected playback. This version may ask you to use a browser wallet for support or publishing.
             </p>
             <div className='wallet-options'>
               <button className='wallet-option' type='button' onClick={onExtension}>
@@ -135,8 +157,8 @@ export function WalletModal({
                   <Wallet size={18} />
                 </span>
                 <span className='wallet-option-copy'>
-                  <strong>Use EVM wallet</strong>
-                  <small>Enable paid access and publishing.</small>
+                  <strong>Use browser wallet</strong>
+                  <small>Continue support or publishing in an installed wallet.</small>
                 </span>
               </button>
             </div>
@@ -273,9 +295,9 @@ export function WalletModal({
         </button>
       </div>
       <div className='modal-copy'>
-        <p className='modal-eyebrow'>Account</p>
-        <h2 id='wallet-modal-title'>Connect wallet</h2>
-        <p id='wallet-modal-desc'>Listen first. Connect only when a paid, protected, or artist action needs it.</p>
+        <p className='modal-eyebrow'>{connectCopy.eyebrow}</p>
+        <h2 id='wallet-modal-title'>{connectCopy.title}</h2>
+        <p id='wallet-modal-desc'>{connectCopy.description}</p>
       </div>
 
       {state.status === 'error' && <p className='error-box'>{state.message}</p>}
@@ -309,10 +331,15 @@ export function WalletModal({
             <Wallet size={18} />
           </span>
           <span className='wallet-option-copy'>
-            <strong>Use EVM wallet</strong>
-            <small>Use an existing wallet for payments and publishing.</small>
+            <strong>Use browser wallet</strong>
+            <small>Use an installed wallet for support and publishing.</small>
           </span>
         </button>
+
+        <details className='wallet-technical-details'>
+          <summary>Technical details</summary>
+          <p>The browser option uses an EVM-compatible account. Polkadot app support depends on the Product build and action.</p>
+        </details>
 
         {hasLegacyPasskeyData && <p className='info-box'>{LEGACY_PASSKEY_LOCAL_DATA_MESSAGE}</p>}
         {hasLegacyPasskeyData && (

@@ -29,10 +29,12 @@ for (const width of [390, 1440]) {
       await expect(audio).toHaveJSProperty('paused', false);
       expect(await page.evaluate(() => Reflect.get(window, '__artworkAudio') === document.querySelector('audio'))).toBe(true);
       await page.getByRole('button', { name: 'Music', exact: true }).click();
-      // A locked release offers its terms, never an unearned Play promise.
+      // A locked release becomes the selected player state without interrupting
+      // discovery. Its support terms remain available through an explicit CTA.
       const locked = page.getByRole('button', { name: /^View listening options for E2E Protected Room Track by Dotify Room Host,/ });
       await locked.click();
-      await expect(page.getByTestId('access-warning')).toBeVisible();
+      await expect(page.getByTestId('access-warning')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
     });
 
     test('shows Play only on the active cover and keeps access cues concise', async ({ page }, testInfo) => {
@@ -64,12 +66,14 @@ for (const width of [390, 1440]) {
         .poll(() => actions.locator('.track-artwork-action').evaluateAll(elements => elements.every(el => getComputedStyle(el).opacity === '0')))
         .toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`catalog-scroll-${width}.png`), animations: 'disabled' });
-      // Disclosure remains available from the release, before a paid action.
+      // Selecting a locked release stays calm; disclosure starts from the
+      // explicit player CTA rather than opening over the catalog.
       await page.getByLabel('Find a track or artist').fill('E2E Protected Room Track');
       const protectedCard = page.getByTestId('track-card').filter({ hasText: 'E2E Protected Room Track' });
       await expect(protectedCard).toContainText('0.5 PAS');
       await protectedCard.getByTestId('track-artwork-action').click();
-      await expect(page.getByTestId('access-warning')).toBeVisible();
+      await expect(page.getByTestId('access-warning')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
     });
 
     test('artist and personal screens lead with useful content', async ({ page }, testInfo) => {
@@ -237,7 +241,8 @@ test('clear interface lets guests inspect releases without changing their listen
     await dialog.getByRole('button', { name: 'Leave and open release', exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await expect(guest.getByTestId('room-code')).toHaveCount(0);
-    await expect(guest.getByTestId('access-warning')).toBeVisible();
+    await expect(guest.getByTestId('access-warning')).toHaveCount(0);
+    await expect(guest.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
     await expect(guest.locator('audio.native-player-source').first()).toHaveJSProperty('paused', true);
     await expect(page.getByTestId('room-code')).toHaveText(code);
   } finally {

@@ -18,13 +18,16 @@ export function AccessGateOverlay({
   onSignIn?: () => void;
 }) {
   const classicReceipt =
-    gate.track.accessMode === 'classic' && gate.actionType === 'payment' ? buildClassicAccessReceipt(gate.track, nativePaymentAsset) : null;
+    gate.track.accessMode === 'classic' && (gate.actionType === 'payment' || gate.actionType === 'signin')
+      ? buildClassicAccessReceipt(gate.track, nativePaymentAsset)
+      : null;
 
   return (
     <Dialog
       className='access-gate'
       size='compact'
       dataAttributes={{ action: gate.actionType, access: gate.track.accessMode, testid: 'access-warning' }}
+      initialFocus='dialog'
       labelledBy='access-gate-title'
       describedBy='access-gate-message'
       onClose={onDismiss}
@@ -48,12 +51,6 @@ export function AccessGateOverlay({
             <strong>{classicReceipt.supportAmount}</strong>
           </div>
           <dl>
-            {classicReceipt.terms.map(term => (
-              <div key={term.label}>
-                <dt>{term.label}</dt>
-                <dd>{term.value}</dd>
-              </div>
-            ))}
             {classicReceipt.recipients.map(recipient => (
               <div key={`${recipient.label}-${recipient.value}`}>
                 <dt>{recipient.label}</dt>
@@ -61,11 +58,22 @@ export function AccessGateOverlay({
               </div>
             ))}
             <div>
-              <dt>Network fee</dt>
-              <dd>Shown by your confirmation method</dd>
+              <dt>Confirmation fee</dt>
+              <dd>Shown before you approve</dd>
             </div>
           </dl>
-          <p>{classicReceipt.settlementNote}</p>
+          <details className='access-gate-details'>
+            <summary>How access works</summary>
+            <dl>
+              {classicReceipt.terms.map(term => (
+                <div key={term.label}>
+                  <dt>{term.label}</dt>
+                  <dd>{term.value}</dd>
+                </div>
+              ))}
+            </dl>
+            <p>{classicReceipt.settlementNote}</p>
+          </details>
         </section>
       )}
       <div className='access-gate-actions'>
@@ -82,7 +90,7 @@ export function AccessGateOverlay({
         )}
         {gate.actionType === 'signin' && onSignIn && (
           <button className='primary-action access-gate-primary' type='button' onClick={onSignIn}>
-            Continue
+            Choose account
           </button>
         )}
         <button className='secondary-action' type='button' onClick={onDismiss}>

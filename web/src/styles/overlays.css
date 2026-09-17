@@ -572,7 +572,7 @@
 
 .access-gate-receipt dt,
 .access-gate-receipt dd,
-.access-gate-receipt > p {
+.access-gate-details > p {
   color: var(--ink-soft);
   font-size: var(--text-xs);
 }
@@ -582,7 +582,23 @@
   text-align: right;
 }
 
-.access-gate-receipt > p {
+.access-gate-details {
+  padding-top: 0.75rem;
+}
+
+.access-gate-details summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.access-gate-details dl {
+  margin-top: 0.65rem;
+}
+
+.access-gate-details > p {
   margin-top: 0.75rem;
   line-height: 1.5;
 }
@@ -756,6 +772,23 @@
   display: grid;
   gap: 0.65rem;
   margin-top: 1.25rem;
+}
+
+.wallet-technical-details {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.wallet-technical-details summary {
+  width: fit-content;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.wallet-technical-details p {
+  margin-top: 0.55rem;
+  line-height: 1.55;
 }
 
 .wallet-option {
