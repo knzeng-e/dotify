@@ -1,10 +1,10 @@
 # Dotify implementation playbook
 
-Twenty agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf`; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
+Twenty-six agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf`; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
 ## The branch workflow
 
-Keep all prompts together on `dev`. Create one short-lived implementation branch when its work starts, from the latest tested `origin/dev`. Review and merge its PR into `dev`, then create the next branch. This keeps subsequent agents on integrated code and makes the prompt travel with every branch. Pre-creating twenty branches would freeze twenty increasingly stale starting points.
+Keep all prompts together on `dev`. Create one short-lived implementation branch when its work starts, from the latest tested `origin/dev`. Review and merge its PR into `dev`, then create the next branch. This keeps subsequent agents on integrated code and makes the prompt travel with every branch. Pre-creating twenty-six branches would freeze twenty-six increasingly stale starting points.
 
 The documentation branch `docs/agent-implementation-playbook` introduces this playbook. Review/merge its PR into `dev` before starting W01. Do not build features on top of the documentation branch by default.
 
@@ -44,6 +44,8 @@ The first pilot includes responsive discovery, reliable rooms, an honest artist/
 
 **W14/W15** add the immersive galaxy and measured musical activity. A prototype can begin after W09/W10 without delaying W13. **W16/W17** investigate and implement only proven CASH/personhood paths. **W18/W19** add privacy-preserving nearby discovery later. **W20** chooses cultural/sovereignty expansion from actual pilot learning. None of W14–W20 is a prerequisite for the first pilot.
 
+**W21–W26** come from the [2026-09-17 UX and visual design audit](../../design/ux-design-audit-2026-09-17.md). Run them in the order **W21 → W22 → W23 → W25 → W24**; W24 consolidates styles after the structural and wording changes. W26 (French) is Later by owner decision. These sequences polish the pilot experience; they do not replace the W13 evidence gates.
+
 ## Sequences and branches
 
 | Prompt | Outcome | Branch created when work starts | Dependencies |
@@ -68,6 +70,12 @@ The first pilot includes responsive discovery, reliable rooms, an honest artist/
 | [W18](W18-nearby-privacy-design.md) | Design nearby discovery with explicit privacy boundaries | `docs/nearby-privacy-design` | W09, W10 |
 | [W19](W19-nearby-rooms.md) | Implement opt-in nearby room discovery | `feat/nearby-rooms` | W13, W18 |
 | [W20](W20-community-sovereignty.md) | Choose the next community and sovereignty increment | `docs/community-sovereignty` | W13 |
+| [W21](W21-first-listening-screen.md) | Make the first listening screen trustworthy | `fix/first-listening-screen` | W08, W10 |
+| [W22](W22-room-hosting-clarity.md) | Make hosting and joining a room unmistakable | `fix/room-hosting-clarity` | W09, W10 |
+| [W23](W23-player-support-clarity.md) | Keep the solo player immersive and the support prompt plain | `fix/player-support-clarity` | W04, W12 |
+| [W24](W24-visual-system-contract.md) | Consolidate the visual system contract | `feat/visual-system-contract` | W21, W22, W23, W25 |
+| [W25](W25-artist-workspace-language.md) | Make the artist workspace plain and truthful | `fix/artist-workspace-language` | W04, W12 |
+| [W26](W26-french-localization.md) | Offer Dotify in French (Later) | `feat/french-localization` | W13, W24 |
 
 `sequence.json` records these dependencies for inspection. It intentionally contains no workflow status. For pilot outcome gates, use W13 rather than treating every proposed enhancement as mandatory. Research sequences can finish with an evidenced unsupported result; this never means the corresponding feature shipped.
 
