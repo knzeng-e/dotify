@@ -17,7 +17,7 @@ import {
 import { chainMismatchMessage } from '../features/wallet/network';
 import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
-import { listKnownRoyaltyRuntimeCandidates } from '../features/runtime/royaltyRuntimeClaims';
+import { listKnownRoyaltyRuntimeCandidates, readRoyaltyRuntimeBalances } from '../features/runtime/royaltyRuntimeClaims';
 import {
   buildReleasePublicationFacts,
   buildReleasePublicationRoadmap,
@@ -602,12 +602,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
   async function readRoyaltyRuntimeSummaries(): Promise<RoyaltyRuntimeSummary[]> {
     const candidates = getKnownRoyaltyRuntimeCandidates();
-    return Promise.all(
-      candidates.map(async candidate => ({
-        ...candidate,
-        claimableWei: await runtimeReader.getRoyaltyClaimable(candidate.runtimeAddress, activeEvmAddress).catch(() => 0n)
-      }))
-    );
+    return readRoyaltyRuntimeBalances(candidates, runtimeAddress => runtimeReader.getRoyaltyClaimable(runtimeAddress, activeEvmAddress));
   }
 
   async function refreshArtistRoyalties(showBusy = false) {
@@ -634,23 +629,23 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           return runtimeAddress ? [[`${runtimeAddress.toLowerCase()}:${track.hash.toLowerCase()}`, track] as const] : [];
         })
       );
-      const runtimeResults = await Promise.all(
-        candidates.map(async candidate => {
-          const claimableWei = await runtimeReader.getRoyaltyClaimable(candidate.runtimeAddress, activeEvmAddress).catch(() => 0n);
-          try {
-            return {
-              candidate,
-              claimableWei,
-              logs: await runtimeReader.listRoyaltyPaymentLogs(candidate.runtimeAddress, activeEvmAddress),
-              error: null
-            };
-          } catch (error) {
-            return { candidate, claimableWei, logs: [], error };
-          }
-        })
-      );
-      const summaries = runtimeResults.map(({ candidate, claimableWei }) => ({ ...candidate, claimableWei }));
-      const claimableWei = summaries.reduce((total, summary) => total + summary.claimableWei, 0n);
+      const [summaries, runtimeResults] = await Promise.all([
+        readRoyaltyRuntimeSummaries(),
+        Promise.all(
+          candidates.map(async candidate => {
+            try {
+              return {
+                candidate,
+                logs: await runtimeReader.listRoyaltyPaymentLogs(candidate.runtimeAddress, activeEvmAddress),
+                error: null
+              };
+            } catch (error) {
+              return { candidate, logs: [], error };
+            }
+          })
+        )
+      ]);
+      const claimableWei = summaries.reduce((total, summary) => total + (summary.claimableWei ?? 0n), 0n);
       setClaimableRoyaltyWei(claimableWei);
       setRoyaltyRuntimeSummaries(summaries);
       const logs = runtimeResults.flatMap(result => result.logs);
@@ -686,12 +681,17 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         });
 
       setRoyaltyPayments(payments);
-      const failedRuntimeCount = runtimeResults.filter(result => result.error).length;
-      if (failedRuntimeCount > 0) {
+      const failedHistoryRuntimeCount = runtimeResults.filter(result => result.error).length;
+      const unavailableBalanceCount = summaries.filter(summary => summary.claimableWei === null).length;
+      if (unavailableBalanceCount > 0) {
+        setRoyaltyStatus(
+          `${unavailableBalanceCount} royalty balance${unavailableBalanceCount === 1 ? ' is' : 's are'} unavailable. Refresh to check again${failedHistoryRuntimeCount > 0 ? '; detailed payment history is also incomplete' : ''}.`
+        );
+      } else if (failedHistoryRuntimeCount > 0) {
         setRoyaltyStatus(
           runtimeAdapterConfig.kind === 'product-cdm'
             ? 'Claimable balances are up to date. Detailed Product payment history still needs native event indexing.'
-            : `Royalty balances loaded; ${failedRuntimeCount} runtime ledger${failedRuntimeCount === 1 ? '' : 's'} need event indexing`
+            : `Royalty balances loaded; ${failedHistoryRuntimeCount} runtime ledger${failedHistoryRuntimeCount === 1 ? '' : 's'} need event indexing`
         );
       } else {
         setRoyaltyStatus(payments.length > 0 || claimableWei > 0n ? 'Royalty settlement indexed from known runtimes' : 'No access payments received yet');
@@ -1311,8 +1311,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     setIsClaimingRoyalties(true);
     try {
       const summaries = await readRoyaltyRuntimeSummaries();
-      const claimTargets = summaries.filter(summary => summary.claimableWei > 0n);
-      const totalClaimableWei = summaries.reduce((total, summary) => total + summary.claimableWei, 0n);
+      const claimTargets = summaries.filter(
+        (summary): summary is RoyaltyRuntimeSummary & { claimableWei: bigint } => summary.claimableWei !== null && summary.claimableWei > 0n
+      );
+      const unreadableBalanceCount = summaries.filter(summary => summary.claimableWei === null).length;
+      const totalClaimableWei = summaries.reduce((total, summary) => total + (summary.claimableWei ?? 0n), 0n);
       setRoyaltyRuntimeSummaries(summaries);
       setClaimableRoyaltyWei(totalClaimableWei);
 
@@ -1326,6 +1329,14 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       }
 
       if (claimTargets.length === 0) {
+        if (unreadableBalanceCount > 0) {
+          setTransactionFeedback({
+            tone: 'error',
+            title: 'Royalty balance unavailable',
+            message: `Dotify could not read ${unreadableBalanceCount} known runtime balance${unreadableBalanceCount === 1 ? '' : 's'}. Nothing was submitted. Refresh the ledger before trying again.`
+          });
+          return;
+        }
         setTransactionFeedback({
           tone: 'success',
           title: 'No pending royalties',
@@ -1381,6 +1392,16 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           tone: 'error',
           title: 'Royalty claim still pending',
           message: 'At least one runtime still could not transfer the native-token balance. The amount remains claimable.',
+          txHash: lastTxHash
+        });
+        return;
+      }
+
+      if (unreadableBalanceCount > 0) {
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Some balances still need checking',
+          message: `Available royalties were claimed, but Dotify could not read ${unreadableBalanceCount} other runtime balance${unreadableBalanceCount === 1 ? '' : 's'}. Refresh the ledger before considering the settlement complete.`,
           txHash: lastTxHash
         });
         return;

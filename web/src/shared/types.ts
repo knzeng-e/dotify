@@ -128,7 +128,7 @@ export type RoyaltyRuntimeSummary = {
   artistName: string;
   trackCount: number;
   trackTitles: string[];
-  claimableWei: bigint;
+  claimableWei: bigint | null;
 };
 
 export type RoomPlaybackMode = 'full' | 'preview';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { listKnownRoyaltyRuntimeCandidates } from './royaltyRuntimeClaims';
+import { listKnownRoyaltyRuntimeCandidates, readRoyaltyRuntimeBalances } from './royaltyRuntimeClaims';
 import type { CatalogTrack } from '../../shared/types';
 
 const artistRuntime = '0x3000000000000000000000000000000000000000' as const;
@@ -79,6 +79,22 @@ describe('listKnownRoyaltyRuntimeCandidates', () => {
         trackCount: 2,
         trackTitles: ['Shared song', 'Second shared song']
       }
+    ]);
+  });
+});
+
+describe('readRoyaltyRuntimeBalances', () => {
+  it('keeps failed balance reads unavailable instead of converting them to zero', async () => {
+    const candidates = listKnownRoyaltyRuntimeCandidates([track()], collaboratorAddress, collaboratorRuntime);
+
+    await expect(
+      readRoyaltyRuntimeBalances(candidates, async runtimeAddress => {
+        if (runtimeAddress === artistRuntime) throw new Error('RPC unavailable');
+        return 42n;
+      })
+    ).resolves.toEqual([
+      expect.objectContaining({ runtimeAddress: artistRuntime, claimableWei: null }),
+      expect.objectContaining({ runtimeAddress: collaboratorRuntime, claimableWei: 42n })
     ]);
   });
 });

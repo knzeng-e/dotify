@@ -42,6 +42,7 @@ export function RoyaltiesTab({
   onClaimRoyalties
 }: RoyaltiesTabProps) {
   const claimableDot = formatWeiAsDot(claimableRoyaltyWei);
+  const unavailableBalanceCount = royaltyRuntimeSummaries.filter(summary => summary.claimableWei === null).length;
   const hasRoyaltyRuntime = Boolean(artistRuntimeAddress || royaltyRuntimeSummaries.length > 0);
 
   function settlementLabel(payment: RoyaltyPayment): string {
@@ -74,7 +75,16 @@ export function RoyaltiesTab({
         <PanelTitle icon={Wallet} title='Royalty ledger' meta={hasRoyaltyRuntime ? 'on-chain settlement' : 'profile needed'} />
         <div className='royalty-summary-grid'>
           <Metric label='settled' value={`${formatWeiAsDot(totalRoyaltyWei)} ${nativePaymentSymbol}`} />
-          <Metric label='claimable' value={`${claimableDot} ${nativePaymentSymbol}`} />
+          <Metric
+            label='claimable'
+            value={
+              unavailableBalanceCount > 0
+                ? claimableRoyaltyWei > 0n
+                  ? `${claimableDot} ${nativePaymentSymbol} + unavailable`
+                  : 'Unavailable'
+                : `${claimableDot} ${nativePaymentSymbol}`
+            }
+          />
           <Metric label='listeners' value={uniqueRoyaltyListeners.toString()} />
           <Metric label='tracks settled' value={paidRoyaltyTracks.toString()} />
         </div>
@@ -85,10 +95,10 @@ export function RoyaltiesTab({
               className='secondary-action compact-action'
               type='button'
               onClick={onClaimRoyalties}
-              disabled={isClaimingRoyalties || claimableRoyaltyWei <= 0n}
+              disabled={isClaimingRoyalties || (claimableRoyaltyWei <= 0n && unavailableBalanceCount === 0)}
             >
               {isClaimingRoyalties ? <Disc3 size={16} className='spin' /> : <Wallet size={16} />}
-              {isClaimingRoyalties ? 'Claiming...' : 'Claim pending'}
+              {isClaimingRoyalties ? 'Claiming...' : unavailableBalanceCount > 0 ? 'Check and claim' : 'Claim pending'}
             </button>
             <button className='secondary-action compact-action' type='button' onClick={onRefreshRoyalties} disabled={isRefreshingRoyalties}>
               {isRefreshingRoyalties ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
@@ -108,7 +118,7 @@ export function RoyaltiesTab({
                   </span>
                 </div>
                 <a className='verify-link' href={getBlockscoutAddressUrl(summary.runtimeAddress)} target='_blank' rel='noreferrer'>
-                  {formatWeiAsDot(summary.claimableWei)} {nativePaymentSymbol}
+                  {summary.claimableWei === null ? 'Balance unavailable' : `${formatWeiAsDot(summary.claimableWei)} ${nativePaymentSymbol}`}
                 </a>
               </div>
             ))}
