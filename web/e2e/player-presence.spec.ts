@@ -27,6 +27,7 @@ for (const [width, height] of [
   [320, 568],
   [390, 844],
   [844, 390],
+  [820, 1180],
   [1435, 833],
   [1440, 1000]
 ]) {
@@ -67,7 +68,7 @@ for (const [width, height] of [
     await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
     await expectControlsFit(page);
     await expect(stage.getByRole('slider', { name: 'Seek', exact: true })).toBeEnabled();
-    if (width >= 769 && height >= 800) {
+    if (width >= 1100 && height >= 800) {
       const artworkColumn = await stage.locator('.player-cover-column').boundingBox();
       const progress = await stage.locator('.transport-progress').boundingBox();
       expect(progress!.x).toBeGreaterThanOrEqual(artworkColumn!.x + artworkColumn!.width - 1);

@@ -162,9 +162,7 @@
     grid-column: 1;
     grid-row: 3 / 5;
     min-height: 0;
-    grid-template-areas: 'artwork metadata' 'artwork transport';
     grid-template-columns: minmax(6rem, 0.6fr) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
   }
   .player-room-mode .player-cover-column {
     padding: 1rem;
@@ -197,6 +195,13 @@
   }
   .player-room-mode .room-code {
     display: none;
+  }
+}
+
+@media (min-width: 1100px) and (min-height: 800px) {
+  .player-view-grid.player-room-mode .player-stage {
+    grid-template-areas: 'artwork metadata' 'artwork transport';
+    grid-template-rows: minmax(0, 1fr) auto;
   }
 }
 
