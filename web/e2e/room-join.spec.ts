@@ -442,6 +442,7 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
     await host.getByRole('button', { name: 'Close room' }).click();
 
     await expect(listener.getByTestId('session-error')).toContainText(/host left|room closed|expired/i, { timeout: 20_000 });
+    await expect(listener.getByRole('button', { name: 'Try another room', exact: true })).toBeVisible();
     // The room is gone from the listener UI (no lingering room code).
     await expect(listener.getByTestId('room-code')).toHaveCount(0);
   } finally {

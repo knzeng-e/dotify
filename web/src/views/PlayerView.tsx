@@ -141,6 +141,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
   );
   const showAudioRetry = Boolean(mode === 'listener' && roomId && !productHostWebRtcUnavailable && (!remoteReady || status === 'no-audio'));
+  const soloRoomRecoveryIsJoin = mode === 'listener' || /room closed|expired|host left/i.test(`${sessionStatus} ${error ?? ''}`);
 
   // Broadcast reactions: petals rise from real room:reaction events relayed by
   // the signaling server (sender included -- the echo is the single render
@@ -504,17 +505,21 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         </div>
       )}
 
-      {productHostWebRtcUnavailable && !roomId && (
-        <div className='solo-browser-handoff'>
-          {error && (
-            <p className='error-box' data-testid='session-error'>
-              {error}
-            </p>
+      {!roomId && error && (
+        <div className='solo-session-feedback'>
+          <p className='error-box' data-testid='session-error'>
+            {error}
+          </p>
+          {productHostWebRtcUnavailable ? (
+            <button className='primary-action' type='button' onClick={() => void session.openRoomInBrowser()}>
+              <ExternalLink size={16} />
+              Open Dotify in browser
+            </button>
+          ) : (
+            <button className='secondary-action' type='button' onClick={soloRoomRecoveryIsJoin ? onShowJoinModal : onShowCreateModal}>
+              {soloRoomRecoveryIsJoin ? 'Try another room' : 'Try opening a room again'}
+            </button>
           )}
-          <button className='primary-action' type='button' onClick={() => void session.openRoomInBrowser()}>
-            <ExternalLink size={16} />
-            Open Dotify in browser
-          </button>
         </div>
       )}
 
@@ -715,7 +720,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             </>
           )}
 
-          {error && !productHostWebRtcUnavailable && (
+          {error && roomId && (
             <p className='error-box' data-testid='session-error'>
               {error}
             </p>

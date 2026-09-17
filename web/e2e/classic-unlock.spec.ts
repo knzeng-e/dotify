@@ -24,6 +24,9 @@ async function openClassicSupport(page: Page) {
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText('Support and open this track', { exact: true })).toBeVisible();
   expect(await dialog.evaluate(element => element.scrollTop)).toBe(0);
+  await expect(dialog).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(dialog.getByRole('button', { name: 'Not now', exact: true })).toBeFocused();
 }
 
 const E2E_NATIVE_PAYMENT_SYMBOL = 'PAS';
