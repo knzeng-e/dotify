@@ -2,10 +2,14 @@
 
 ## Identity
 
-- Scope: reconcile the W13 pilot gate after the room, mobile, interface, and
-  artist-support follow-ups merged through PR #173.
+- Scope: reconcile the W13 pilot gate after the room, mobile, interface,
+  artist-support, and candidate-binding follow-ups merged through PR #174, then
+  validate the Product CDM native payment-unit correction.
 - Reviewed base: `dev` at
-  `f4d2d49721a85169c5f9c37d36ac2ef315396d57`.
+  `7ae99893229a551673882401dfd5ec000b3c616a`.
+- Tested implementation candidate:
+  `956f71df2a9d3c3db35235bc4ba321c1d8f73fa7`. The later documentation-only
+  review follow-up does not change the tested Product bundle.
 - Product executable version: `[0, 1, 21]`.
 - W13 issue: #158 remains open.
 - W13 release-package PR: #159 merged on 2026-09-14.
@@ -41,7 +45,7 @@ evidence below is captured against one exact deployed candidate.
 | Gate | Status | Evidence or exact blocker |
 | --- | --- | --- |
 | W01-W12 dependency evidence | Pass | `smoke:pilot-release` finds every dependency evidence file and integrated PR. |
-| Current candidate contains merged follow-ups #165-#173 | Pass | `dev` history through `f4d2d49`; each merge is linked above. |
+| Current candidate contains merged follow-ups #165-#174 and the Product payment correction | Pass | Reviewed `dev` base `7ae9989`; tested implementation candidate `956f71d`. |
 | Pilot release package and static Product configuration | Pass | 77 pass, 0 fail; Product appVersion `[0, 1, 21]`, safe origins, no browser secrets, candidate-bound Product/room evidence, and viem remains the default runtime writer. |
 | Product CDM host Classic support and key opening | Blocked | No same-candidate Product host smoke JSON from a funded Product account. |
 | Product-hosted room to walletless browser guest | Not run | No same-candidate room evidence JSON with audible and in-sync result. |
@@ -53,7 +57,7 @@ evidence below is captured against one exact deployed candidate.
 
 ## Reproduction
 
-Commands run locally from `web/` on the reviewed base:
+Commands run locally from `web/` on tested implementation candidate `956f71d`:
 
 ```sh
 npm run test:pilot-release-readiness
@@ -67,7 +71,7 @@ npm run smoke:product-journey -- \
 
 Observed results:
 
-- readiness tests: 6 passed;
+- readiness tests: 9 passed;
 - W13 release: `blocked` — 77 pass, 0 fail, 2 blocked, 8 not run;
 - Product journey: `blocked` — 26 pass, 0 fail, 1 blocked, 1 not run.
 
