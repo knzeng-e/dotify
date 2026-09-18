@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   DOTIFY_CASH_ASSET,
   DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
+  DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET,
   cashSettlementUnavailableReason,
   classicTrackPaymentAmountPlanck,
   createNativeRuntimeAccessPaymentIntent,
@@ -25,6 +26,7 @@ describe('payment model', () => {
       settlement: 'runtime-msg-value'
     });
     expect(nativeRuntimePaymentAssetFromChain(null)).toEqual(DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET);
+    expect(DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET).toEqual(nativeAsset);
   });
 
   it('formats visible native runtime amounts with the resolved chain symbol', () => {

@@ -9,6 +9,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
   vi.doUnmock('./productCdmContracts');
+  vi.doUnmock('./productCdmRuntimeAdapter');
 });
 
 async function loadProvider() {
@@ -58,5 +59,55 @@ describe('createRuntimeReader', () => {
 
     await expect(reader.getArtistCount('0x1' as never)).rejects.toThrow(/no host provider/);
     await expect(reader.ensureContract('0x1' as never)).rejects.toThrow(/no host provider/);
+  });
+
+  it('does not contact the Product host until an authoritative runtime read is requested', async () => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    const verifyDeployment = vi.fn(async () => undefined);
+    const productReader = {
+      getArtistCount: vi.fn(async () => 3n),
+      ensureContract: vi.fn(async () => true)
+    };
+    const createProductCdmContracts = vi.fn(async () => ({ resolver: {}, verifyDeployment }));
+    vi.doMock('./productCdmContracts', () => ({ createProductCdmContracts }));
+    vi.doMock('./productCdmRuntimeAdapter', () => ({
+      createProductCdmRuntimeReader: vi.fn(() => productReader)
+    }));
+    vi.resetModules();
+    const createRuntimeReader = await loadProvider();
+
+    const reader = createRuntimeReader({
+      ethRpcUrl: 'https://rpc.example',
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
+    });
+
+    expect(createProductCdmContracts).not.toHaveBeenCalled();
+    await expect(reader.getArtistCount('0x1' as never)).resolves.toBe(3n);
+    await expect(reader.ensureContract('0x1' as never)).resolves.toBe(true);
+    expect(createProductCdmContracts).toHaveBeenCalledTimes(1);
+    expect(verifyDeployment).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries Product reader setup after a host transport failure', async () => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    const productReader = { getArtistCount: vi.fn(async () => 4n) };
+    const createProductCdmContracts = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('protocol version mismatch'))
+      .mockResolvedValue({ resolver: {}, verifyDeployment: vi.fn(async () => undefined) });
+    vi.doMock('./productCdmContracts', () => ({ createProductCdmContracts }));
+    vi.doMock('./productCdmRuntimeAdapter', () => ({
+      createProductCdmRuntimeReader: vi.fn(() => productReader)
+    }));
+    vi.resetModules();
+    const createRuntimeReader = await loadProvider();
+    const reader = createRuntimeReader({
+      ethRpcUrl: 'https://rpc.example',
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
+    });
+
+    await expect(reader.getArtistCount('0x1' as never)).rejects.toThrow(/protocol version mismatch/);
+    await expect(reader.getArtistCount('0x1' as never)).resolves.toBe(4n);
+    expect(createProductCdmContracts).toHaveBeenCalledTimes(2);
   });
 });

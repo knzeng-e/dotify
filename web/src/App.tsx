@@ -15,11 +15,11 @@ import { ArtistShell } from './views/ArtistShell';
 // picks the shell and runs the handful of effects that span both shells.
 
 export default function App() {
-  const { isArtistPortal, publicArtistName } = useNavigation();
+  const { activeView, isArtistPortal, publicArtistName } = useNavigation();
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { artistConsole } = useArtistStudio();
-  const { activeEvmAddress, ethRpcUrl } = useWalletContext();
+  const { activeEvmAddress, connectedWallet, ethRpcUrl } = useWalletContext();
   const { setArtistName } = useReleaseForm();
   const directoryAddress = deployments.directory;
 
@@ -63,8 +63,13 @@ export default function App() {
   }, [activeEvmAddress, setArtistName]);
 
   useEffect(() => {
+    // Runtime identity is needed in the account and artist surfaces. Deferring
+    // this authoritative read keeps catalog browsing and shared-room arrival
+    // independent from Product CDM availability, even when Product has already
+    // supplied an account to the app shell.
+    if (!connectedWallet || (!isArtistPortal && activeView !== 'you')) return;
     void artistConsole.refreshArtistRuntime();
-  }, [activeEvmAddress, directoryAddress, ethRpcUrl]);
+  }, [activeEvmAddress, activeView, connectedWallet, directoryAddress, ethRpcUrl, isArtistPortal]);
 
   return isArtistPortal ? <ArtistShell /> : <ListenerShell />;
 }

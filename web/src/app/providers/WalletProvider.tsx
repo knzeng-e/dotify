@@ -19,6 +19,7 @@ import { getDefaultEthRpcUrl } from '../../shared/config/network';
 import { resolveEvmChain, getWalletClient } from '../../shared/config/contracts';
 import { chainMismatchMessage } from '../../features/wallet/network';
 import type { ProductHostMode, ProductHostStatus } from '../../features/productHost/productHost';
+import { PRODUCT_DEVNET_EVM_CHAIN_ID, resolveRuntimeAdapterConfig } from '../../features/runtime/runtimeAdapterConfig';
 import { useUiFeedback } from './UiFeedbackProvider';
 
 type WalletContextValue = {
@@ -67,6 +68,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   } = useWallet();
 
   const [ethRpcUrl] = useState(getDefaultEthRpcUrl);
+  const runtimeAdapterConfig = useMemo(() => resolveRuntimeAdapterConfig(import.meta.env), []);
   const [expectedChainId, setExpectedChainId] = useState<number | null>(null);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
   const [bulletinAccountIndex, setBulletinAccountIndex] = useState(0);
@@ -156,6 +158,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Resolve the RPC's chain id once so the wallet modal can flag a mismatch.
   useEffect(() => {
+    // Product CDM has one supported chain and routes its reads/writes through
+    // the Host. Do not open a parallel EVM RPC connection merely to rediscover
+    // the chain id while a guest is opening the catalog or a shared room.
+    if (runtimeAdapterConfig.kind === 'product-cdm') {
+      setExpectedChainId(PRODUCT_DEVNET_EVM_CHAIN_ID);
+      return;
+    }
+
     let cancelled = false;
     resolveEvmChain(ethRpcUrl)
       .then(chain => {
@@ -167,7 +177,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [ethRpcUrl]);
+  }, [ethRpcUrl, runtimeAdapterConfig.kind]);
 
   // Once a wallet connects, retire the connect modal.
   useEffect(() => {

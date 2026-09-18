@@ -15,6 +15,19 @@ export const DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET: DotifyNativeRuntimeAsset = {
   settlement: 'runtime-msg-value'
 } as const;
 
+// Product CDM is currently available only on the DevNet preset, whose
+// pallet-revive runtime is Paseo Asset Hub. Keep this label deterministic so a
+// Product surface does not open a direct EVM RPC connection merely to name the
+// asset before the user has requested any chain operation. Contract values
+// remain 18-decimal Solidity amounts; the writer converts only Revive.call's
+// native Balance field to the chain's 10-decimal precision.
+export const DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET: DotifyNativeRuntimeAsset = {
+  kind: 'native',
+  symbol: 'PAS',
+  decimals: 18,
+  settlement: 'runtime-msg-value'
+} as const;
+
 export const DOTIFY_CASH_ASSET = {
   kind: 'cash',
   symbol: 'CASH',

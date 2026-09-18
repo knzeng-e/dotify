@@ -35,6 +35,7 @@ import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../feat
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import {
   DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
+  DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET,
   classicTrackPaymentAmountPlanck,
   createRuntimeNativeAccessPaymentIntent,
   nativeRuntimePaymentAssetFromChain
@@ -366,7 +367,9 @@ export function useCatalog(deps: UseCatalogDeps) {
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
   const [catalogPaidAccessByTrackId, setCatalogPaidAccessByTrackId] = useState<Record<string, boolean>>({});
-  const [nativeRuntimePaymentAsset, setNativeRuntimePaymentAsset] = useState(DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET);
+  const [nativeRuntimePaymentAsset, setNativeRuntimePaymentAsset] = useState(() =>
+    runtimeAdapterConfig.kind === 'product-cdm' ? DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET : DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+  );
   const [audioSource, setAudioSource] = useState<string | null>(null);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
@@ -405,6 +408,14 @@ export function useCatalog(deps: UseCatalogDeps) {
   }, [activeView]);
 
   useEffect(() => {
+    // Product CDM has one supported environment (DevNet/Paseo). Its asset is
+    // known at build time, and opening a room or catalog must not trigger an
+    // unrelated direct EVM RPC request just to rediscover the PAS label.
+    if (runtimeAdapterConfig.kind === 'product-cdm') {
+      setNativeRuntimePaymentAsset(DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET);
+      return;
+    }
+
     let cancelled = false;
 
     async function resolveNativeRuntimePaymentAsset() {
@@ -420,7 +431,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     return () => {
       cancelled = true;
     };
-  }, [ethRpcUrl]);
+  }, [ethRpcUrl, runtimeAdapterConfig.kind]);
 
   function internalSetFileHash(hash: `0x${string}` | '') {
     setFileHashState(hash);

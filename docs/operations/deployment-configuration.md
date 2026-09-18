@@ -181,14 +181,21 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 22]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 23]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 22]` sends Product CDM proof links to the native Paseo Asset Hub extrinsic explorer and states clearly when detailed history still needs native event indexing. It retains the `[0, 1, 21]` Product CDM payment-unit fix by converting the 18-decimal Solidity amount into the connected chain's native `Revive.call` Balance precision. It binds Product payment and room evidence to the same deployed CID and carries the Product room guest audio recovery fix, the W05
+Version `[0, 1, 23]` defers Product CDM chain setup until an authoritative
+runtime read and uses the known DevNet PAS label without an initial direct EVM
+RPC lookup, so opening a shared room remains independent of Product Web's
+current Host-protocol mismatch. It retains the `[0, 1, 22]` native extrinsic
+proof links and the `[0, 1, 21]` Product CDM payment-unit fix by converting the
+18-decimal Solidity amount into the connected chain's native `Revive.call`
+Balance precision. It binds Product payment and room evidence to the same
+deployed CID and carries the Product room guest audio recovery fix, the W05
 royalty claim runtime writer path, the September 2026 Product DevNet
 tooling/CDM registry refresh, the re-pinned Bulletin descriptor, and the viem
 release-registration confirmation hardening for dropped or still-pending wallet
