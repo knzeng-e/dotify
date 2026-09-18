@@ -98,7 +98,7 @@ Source: `docs/design/ux-design-audit-2026-09-17.md`. Existing tickets were reuse
 
 | Backlog doc                                       | GitHub issue | Status | Goal                                                                   |
 | ------------------------------------------------- | ------------ | ------ | ---------------------------------------------------------------------- |
-| `implementation/W21-first-listening-screen.md`    | #176         | Todo   | No dead controls, discreet access cue on cards, text-free placeholders |
+| `implementation/W21-first-listening-screen.md`    | #176         | In Review | No dead controls, music-first cards with on-demand access details, text-free placeholders |
 | `implementation/W22-room-hosting-clarity.md`      | #177         | Todo   | No role-as-name, invite-first hosting, meaningful guest controls       |
 | `implementation/W23-player-support-clarity.md`    | #178         | Todo   | Immersive solo player and plain support/wallet prompts                 |
 | `implementation/W25-artist-workspace-language.md` | #180         | Todo   | Plain and truthful artist workspace                                    |

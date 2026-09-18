@@ -3,7 +3,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Mu
 import { TrackArtworkButton } from './TrackArtworkButton';
 import { DotBirth } from './DotBirth';
 import { auraStyleForTrack } from '../shared/utils/aura';
-import { catalogAccessAriaLabel, catalogAccessCueLabel, normalizeDisplayText } from '../shared/utils/format';
+import { catalogAccessAriaLabel, normalizeDisplayText } from '../shared/utils/format';
 import type { CatalogTrack } from '../shared/types';
 
 // In-memory navigation state only. No listening/search history is persisted.
@@ -174,7 +174,6 @@ export function CatalogBrowser({
             const accessGranted = track.active !== false && (track.accessMode === 'free' || hasCatalogAccess);
             const title = normalizeDisplayText(track.title);
             const artist = normalizeDisplayText(track.artist);
-            const accessCue = catalogAccessCueLabel(track, nativePaymentSymbol);
             const accessDescription = catalogAccessAriaLabel(track, accessGranted, nativePaymentSymbol);
 
             return (
@@ -221,7 +220,6 @@ export function CatalogBrowser({
                   >
                     {artist}
                   </button>
-                  <span className='catalogue-access-cue'>{accessCue}</span>
                 </div>
               </article>
             );

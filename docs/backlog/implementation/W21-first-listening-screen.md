@@ -35,7 +35,7 @@ Paths are starting points from the reviewed dev snapshot; locate moved files and
 
 1. Reproduce the audit at 390 and 1440 CSS px with the live-catalog shape and the e2e fixtures. Record before captures.
 2. Remove the dead first-render control: either keep the dock hidden until a person selects music, or make its Play control start the existing selection/access flow. Do not autoplay and do not request a key before an explicit gesture.
-3. Add the owner-approved access cue: one discreet text line under the artist on catalog and artist-release cards, derived from the same policy source the player uses (`Free`, `Verified humans`, the native price label). Nothing is drawn over the cover; touch covers stay clear. The accessible name includes the cue. Opening a release still rechecks access.
+3. Keep discovery cards focused on the release artwork, title, and artist. Do not render price, `Free`, or `Verified humans` as persistent card copy. Preserve the access condition in the accessible name, and disclose it in the player/listening options after the listener opens the release. Opening a release still rechecks access.
 4. Remove text from generated placeholders and replace late covers without progressive paint over the placeholder (for example reveal on load). Keep the W08 fallback budget; responsive variants stay in #87.
 5. Normalize whitespace when displaying titles and names; hide or clearly label directory artists without releases instead of showing a raw address as a name.
 6. On the artist profile, make the primary action say what it does (listen to the latest or first playable release) and stop repeating the artist name on that artist's own release cards.
@@ -45,7 +45,7 @@ Paths are starting points from the reviewed dev snapshot; locate moved files and
 - No disabled primary control is visible on first render without an adjacent explanation.
 - Access cues match policy for Free, Human free and Classic releases and stay consistent with the player/access gate; a protected release never looks free.
 - Placeholders contain no text; covers do not paint partially over placeholders.
-- `catalog-browser`, `catalog-journey`, `clear-interface`, `classic-unlock` and `player-presence` e2e specs pass; add focused regressions for the dock and the access line.
+- `catalog-browser`, `catalog-journey`, `clear-interface`, `classic-unlock` and `player-presence` e2e specs pass; add focused regressions for the dock, music-first cards, and on-demand access disclosure.
 - Screenshots before/after at 390 and 1440 px; 200% text check on Music and artist profile.
 
 Run the relevant command groups in common.md. Record commands, results, actual tested commit, and untested environments.

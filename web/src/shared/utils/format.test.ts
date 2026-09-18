@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogTrack } from '../types';
-import {
-  accessModeLabelFromState,
-  catalogAccessAriaLabel,
-  catalogAccessCueLabel,
-  catalogAccessLabel,
-  describeArtistRegistrationError,
-  normalizeDisplayText
-} from './format';
+import { accessModeLabelFromState, catalogAccessAriaLabel, catalogAccessLabel, describeArtistRegistrationError, normalizeDisplayText } from './format';
 
 const classicTrack = {
   accessMode: 'classic',
@@ -32,9 +25,6 @@ describe('catalog access labels', () => {
   it('uses direct-support language for Classic mode', () => {
     expect(accessModeLabelFromState('classic')).toBe('Direct support');
     expect(catalogAccessLabel(classicTrack, 'PAS')).toBe('0.5 PAS');
-    expect(catalogAccessCueLabel(classicTrack, 'PAS')).toBe('0.5 PAS');
-    expect(catalogAccessCueLabel({ ...classicTrack, accessMode: 'free' }, 'PAS')).toBe('Free');
-    expect(catalogAccessCueLabel({ ...classicTrack, accessMode: 'human-free' }, 'PAS')).toBe('Verified humans');
   });
 
   it('shows inactive releases as unavailable instead of payable', () => {
