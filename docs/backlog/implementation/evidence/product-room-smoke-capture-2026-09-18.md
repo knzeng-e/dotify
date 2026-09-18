@@ -73,7 +73,9 @@ The deployment refreshed the generated Product catalog snapshot from the live
 API immediately before compilation. The published artifact therefore contains
 ten releases rather than the eight-release snapshot present in the merged
 commit. This follow-up versions that public generated input so the deployed
-artifact can be reconstructed and reviewed from Git.
+artifact can be reconstructed and reviewed from Git. The deterministic catalog
+fixture carries the same ten-release payload, so the Product CI gate regenerates
+the deployed snapshot without drift.
 
 ## Verification
 
@@ -92,6 +94,7 @@ artifact can be reconstructed and reviewed from Git.
 | `node scripts/backlog-sync.mjs --check --offline` | Local repository | Passed with inherited 24 unmapped-active-item and duplicate-08 warnings | Terminal output |
 | GitHub `Dev Quality Gates`, backlog sync, and Claude review | PR #193 head after evidence commit | All required checks passed, including Web, Product DevNet build, contracts/ABI, API, signaling, repository hygiene, workflow syntax, and Playwright core flows | [PR #193 checks](https://github.com/knzeng-e/dotify/pull/193/checks) |
 | `VITE_DOTIFY_DEBUG_PANEL=true VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm VITE_DOTIFY_ARTIST_DONATIONS=on npm run deploy:product-devnet` | Merged `dev` SHA `2dc05aa`; Product app `[0, 1, 25]` | Passed; all 23 Bulletin chunks finalized, both DotNS records verified on-chain, and P2P retrieval completed in 73 ms | Root CID and transactions below |
+| `npm run generate:product-catalog-bootstrap:strict -- --input fixtures/product-devnet-catalog.json` | Ten-release public fixture captured from the deployed build input | Passed and regenerated the checked-in Product bootstrap without drift | `web/fixtures/product-devnet-catalog.json` |
 | Open `dotify-test01.dot` in Polkadot Desktop Dev | Native Product Desktop, published CID | Passed for resolution and first render: Dotify displayed 10 tracks, navigation, and the player before the expected backend-domain permission prompt | Manual Product Desktop observation |
 | Open `https://dotify-test01.dev-dot.li` in Google Chrome | Public Product web gateway with RPC gateway fallback | Passed: Product resolved and rendered the same 10-track catalog and room entry surface | Manual Chrome observation |
 | Open `https://dotify-test01.dev-dot.li` in headless Chromium | Diagnostic-only browser environment | Gateway returned HTTP 200, but its Smoldot light client crashed before executable load; normal Chrome passed | `/tmp/dotify-product-live.png`, transient |
