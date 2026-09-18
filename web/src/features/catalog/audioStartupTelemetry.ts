@@ -20,6 +20,7 @@ export type AudioV2StartupMetric = {
   chunkIndex?: number;
   hedged?: boolean;
   fromCache?: boolean;
+  decryptor?: 'worker' | 'main-thread';
   detail?: string;
 };
 
@@ -104,6 +105,7 @@ function isAudioV2StartupMetric(value: unknown): value is AudioV2StartupMetric {
     optionalNumber(value.chunkIndex) &&
     optionalBoolean(value.hedged) &&
     optionalBoolean(value.fromCache) &&
+    (value.decryptor === undefined || value.decryptor === 'worker' || value.decryptor === 'main-thread') &&
     optionalString(value.detail)
   );
 }

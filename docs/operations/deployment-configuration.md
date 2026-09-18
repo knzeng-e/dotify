@@ -181,15 +181,19 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 23]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 24]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 23]` defers Product CDM chain setup until an authoritative
-runtime read and uses the known DevNet PAS label without an initial direct EVM
+Version `[0, 1, 24]` moves DAV2 AES-GCM chunk decryption into a bounded Web
+Worker for both streaming and full-download recovery. Hosts that cannot start
+the worker within 1.5 seconds retain the same fail-closed main-thread Web Crypto
+path. It also retains the `[0, 1, 23]` behavior that defers Product CDM chain
+setup until an authoritative runtime read and uses the known DevNet PAS label
+without an initial direct EVM
 RPC lookup, so opening a shared room remains independent of Product Web's
 current Host-protocol mismatch. It retains the `[0, 1, 22]` native extrinsic
 proof links and the `[0, 1, 21]` Product CDM payment-unit fix by converting the
