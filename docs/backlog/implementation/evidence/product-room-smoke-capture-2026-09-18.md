@@ -78,8 +78,11 @@ the new title appeared over the outgoing track's completed progress and an
 apparently usable Play control. The follow-up branch adds an explicit
 `Preparing audio` handoff: outgoing audio stops immediately, progress resets,
 transport is disabled while access/fetch/decryption resolves, and autoplay
-continues once the new source is ready. A deterministic delayed-source
-Playwright scenario now covers this real Product condition.
+continues once the new source is ready. The handoff stays pending after a DAV2
+object URL is assigned and settles only when the media element reaches
+`canplay` (or reports a terminal error); a DAV2 fallback carries the pending
+source identity forward. A deterministic delayed-media Playwright scenario now
+covers the interval between source assignment and actual readiness.
 
 The public Product gateway also resolved and rendered the same ten-track app in
 a normal Google Chrome session. A separate headless Chromium probe reached the
@@ -125,7 +128,7 @@ the deployed snapshot without drift.
 | Open `https://dotify-test01.dev-dot.li` in headless Chromium | Diagnostic-only browser environment | Gateway returned HTTP 200, but its Smoldot light client crashed before executable load; normal Chrome passed | `/tmp/dotify-product-live.png`, transient |
 | Product Desktop host → ordinary Chrome guest room `FLFNQZ` | Published Product candidate as host; Netlify HTTPS guest with no wallet connection | Passed: 2 present, `In sync`, audible browser tab, synchronized progress and pause/resume, chat delivery, and host navigation continuity | Manual Product Desktop and Chrome observation |
 | Host Next across live Product tracks | Same two-surface room | Passed session continuity and eventual autoplay; exposed a >12 s source-resolution interval with stale outgoing progress | Manual Product Desktop and Chrome observation |
-| Delayed room track handoff | Local Playwright against `fix/room-track-handoff` | Passed in both native-capture variants: `Preparing audio`, zeroed progress, disabled Play during resolution, then new title/tone without stream replacement | `room-continuity.spec.ts` |
+| `npm run test:e2e -- e2e/room-continuity.spec.ts` | Local Playwright against `fix/room-track-handoff`; the second audio response is delayed after its source is assigned | 2 tests passed in both native-capture variants: `Preparing audio`, zeroed progress, disabled Play/Next until `canplay`, then new title/tone without stream replacement | `room-continuity.spec.ts` |
 | `npm run test:unit` | Local Node 22, follow-up branch | 70 files and 553 tests passed | Terminal output |
 | `npm run test:e2e -- --project=chromium e2e/room-continuity.spec.ts e2e/room-sync.spec.ts e2e/room-join.spec.ts` | Local Playwright, follow-up branch | 14 tests passed, including repeated pause silence, seek, public/protected joining, and Product Mobile fallback | Terminal output |
 | `npm run test:signal` | Local Node 22, follow-up branch | 59 tests passed | Terminal output |

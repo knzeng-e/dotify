@@ -33,6 +33,7 @@ export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, pl
           onEmitPlayerState(true);
           void onPrepareLocalStream();
         }}
+        onCanPlay={event => playback.handleHostCanPlay(event.currentTarget)}
         onPlay={() => {
           playback.syncFromAudio(localAudioRef.current);
           // Re-run capture now that audio is actually flowing: a captureStream()

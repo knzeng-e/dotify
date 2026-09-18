@@ -68,7 +68,6 @@ import {
   isRoomJoinE2eProtectedHash,
   isRoomJoinE2eTrack,
   recordRoomJoinE2eKeyRequest,
-  roomJoinE2ETrackSelectionDelayMs,
   roomJoinE2eHostHasAccess
 } from '../e2e/roomJoinMock';
 import type {
@@ -384,6 +383,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const objectUrlsRef = useRef<Set<string>>(new Set());
   const resolvedAudioSourcesRef = useRef<Map<string, string>>(new Map());
   const audioSourceRef = useRef<string | null>(null);
+  const pendingTrackMediaSourceRef = useRef<string | null>(null);
   const audioV2FallbacksRef = useRef<Set<string>>(new Set());
   const audioUploadRef = useRef<Promise<ProtectedAudioUpload> | null>(null);
   const coverUploadRef = useRef<Promise<string> | null>(null);
@@ -454,6 +454,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   function beginTrackSelection() {
     activeTrackSelectionRef.current?.controller.abort();
+    pendingTrackMediaSourceRef.current = null;
     setTrackSelectionPending(true);
     const selection = {
       id: (nextTrackSelectionIdRef.current += 1),
@@ -470,6 +471,13 @@ export function useCatalog(deps: UseCatalogDeps) {
   function abortActiveTrackSelection() {
     activeTrackSelectionRef.current?.controller.abort();
     activeTrackSelectionRef.current = null;
+    pendingTrackMediaSourceRef.current = null;
+    setTrackSelectionPending(false);
+  }
+
+  function settleTrackSelectionMedia(source: string | null) {
+    if (!source || pendingTrackMediaSourceRef.current !== source) return;
+    pendingTrackMediaSourceRef.current = null;
     setTrackSelectionPending(false);
   }
 
@@ -894,6 +902,9 @@ export function useCatalog(deps: UseCatalogDeps) {
       resolvedAudioSourcesRef.current.set(audioRef, fallbackUrl);
 
       if (audioSourceRef.current === failedObjectUrl) {
+        if (pendingTrackMediaSourceRef.current === failedObjectUrl) {
+          pendingTrackMediaSourceRef.current = fallbackUrl;
+        }
         setResolvedAudioSource(fallbackUrl);
       }
 
@@ -1054,6 +1065,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     showAccessGateOnDenied = false
   ): Promise<TrackSelectionResult> {
     const selection = beginTrackSelection();
+    let waitsForMediaReadiness = false;
 
     try {
       // Stop the outgoing track immediately. Resolving the new source (access
@@ -1083,12 +1095,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       // A socketEmit callback means this selection streams into a room: the
       // signer is the host, and only the host needs to satisfy the policy.
       keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
-
-      const e2eSelectionDelayMs = roomJoinE2ETrackSelectionDelayMs(track.id);
-      if (e2eSelectionDelayMs > 0) {
-        await new Promise(resolve => window.setTimeout(resolve, e2eSelectionDelayMs));
-        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
-      }
 
       // Access model v2: access is binary. An authorized listener plays the full
       // track; an unauthorized one gets the access gate and no audio at all. The
@@ -1136,6 +1142,11 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
 
       if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+      const sourceAlreadyReady = Boolean(
+        audioUrl && audioSourceRef.current === audioUrl && localAudioRef.current && localAudioRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
+      );
+      pendingTrackMediaSourceRef.current = sourceAlreadyReady ? null : audioUrl;
+      waitsForMediaReadiness = Boolean(audioUrl && !sourceAlreadyReady);
       setResolvedAudioSource(audioUrl);
       if (!audioUrl || !isEncryptedAudioV2Ref(track.audioRef)) setAudioStartupStatus(null);
 
@@ -1153,7 +1164,10 @@ export function useCatalog(deps: UseCatalogDeps) {
 
       return { playbackMode: 'full', audioSource: audioUrl };
     } finally {
-      if (isTrackSelectionCurrent(selection)) setTrackSelectionPending(false);
+      if (isTrackSelectionCurrent(selection) && !waitsForMediaReadiness) {
+        pendingTrackMediaSourceRef.current = null;
+        setTrackSelectionPending(false);
+      }
     }
   }
 
@@ -1579,6 +1593,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     usesCatalogApi,
     audioSource,
     trackSelectionPending,
+    settleTrackSelectionMedia,
     setAudioSource: setResolvedAudioSource,
     audioStartupStatus,
     trackInfo,

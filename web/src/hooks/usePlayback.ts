@@ -26,6 +26,7 @@ type UsePlaybackDeps = {
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   audioSource: string | null;
   trackSelectionPending: boolean;
+  onHostMediaSettled: (source: string | null) => void;
   remoteReady: boolean;
   remoteStreamVersion: number;
   localStreamReady: boolean;
@@ -64,6 +65,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     remoteAudioRef,
     audioSource,
     trackSelectionPending,
+    onHostMediaSettled,
     remoteReady,
     remoteStreamVersion,
     localStreamReady,
@@ -348,8 +350,17 @@ export function usePlayback(deps: UsePlaybackDeps) {
     [syncFromAudio]
   );
 
+  const handleHostCanPlay = useCallback(
+    (audio: HTMLAudioElement) => {
+      onHostMediaSettled(audioSource);
+      syncFromAudio(audio);
+    },
+    [audioSource, onHostMediaSettled, syncFromAudio]
+  );
+
   const handleHostPlaying = useCallback(
     (audio: HTMLAudioElement) => {
+      onHostMediaSettled(audioSource);
       syncFromAudio(audio);
       const startup = hostStartupRef.current;
       if (!startup || startup.firstAudioReported) return;
@@ -362,10 +373,11 @@ export function usePlayback(deps: UsePlaybackDeps) {
         timestamp: Date.now()
       });
     },
-    [syncFromAudio]
+    [audioSource, onHostMediaSettled, syncFromAudio]
   );
 
   const handleHostError = useCallback(() => {
+    onHostMediaSettled(audioSource);
     const startup = hostStartupRef.current;
     if (!startup || startup.errorReported) return;
     startup.errorReported = true;
@@ -375,7 +387,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       elapsedMs: Number((nowMs() - startup.startedAt).toFixed(1)),
       timestamp: Date.now()
     });
-  }, []);
+  }, [audioSource, onHostMediaSettled]);
 
   const markNoAudio = useCallback(() => setStatus('no-audio'), []);
   const toggleRepeat = useCallback(() => {
@@ -409,6 +421,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     syncFromAudio,
     handleEnded,
     handleHostLoadedMetadata,
+    handleHostCanPlay,
     handleHostPlaying,
     handleHostError,
     requestAutoplay,

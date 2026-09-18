@@ -27,6 +27,7 @@ export const E2E_ROOM_PROTECTED_HASH = '0xb0b00000000000000000000000000000000000
 export const E2E_ROOM_PUBLIC_ID = 'e2e-room-public';
 export const E2E_ROOM_PROTECTED_TITLE = 'E2E Protected Room Track';
 export const E2E_ROOM_PUBLIC_TITLE = 'E2E Public Room Track';
+export const E2E_ROOM_DELAYED_AUDIO_PATH = '/__dotify_e2e__/room-sequence.wav';
 
 // Two restrained aura covers so the host/listener cards render without remote assets.
 const PROTECTED_COVER =
@@ -133,12 +134,13 @@ export function getRoomJoinE2eTracks(): CatalogTrack[] {
     for (let index = 1; index <= 10; index++) tracks.push({ ...E2E_ROOM_PUBLIC_TRACK, id: `e2e-selection-${index}`, title: `Session selection ${index}` });
   }
   if (isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eCatalog') === 'sequence') {
+    const delayMediaReadiness = new URLSearchParams(window.location.search).get('e2eTrackDelay') === 'on';
     tracks.push({
       ...E2E_ROOM_PUBLIC_TRACK,
       id: `${E2E_ROOM_PUBLIC_ID}-sequence`,
       title: 'Second room track',
       hash: '0xb0b0000000000000000000000000000000000000000000000000000000000003',
-      localUrl: buildSilentWavDataUrl(128, 660),
+      localUrl: delayMediaReadiness ? E2E_ROOM_DELAYED_AUDIO_PATH : buildSilentWavDataUrl(128, 660),
       audioRef: 'dotify:local:e2e-sequence'
     });
   }
@@ -304,20 +306,6 @@ export function roomJoinE2eOfferSnapshot(description: RTCSessionDescriptionInit)
 
 export function roomJoinE2eAutoplayEnabled() {
   return isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eAutoplay') === 'on';
-}
-
-/**
- * Optional source-resolution delay for the second continuity fixture.
- *
- * Real Product tracks can spend several seconds fetching/decrypting after the
- * host chooses them. Keeping this delay opt-in lets Playwright exercise that
- * handoff without slowing the rest of the room suite or adding production
- * behavior.
- */
-export function roomJoinE2ETrackSelectionDelayMs(trackId: string): number {
-  if (!isRoomJoinE2e || typeof window === 'undefined') return 0;
-  if (trackId !== `${E2E_ROOM_PUBLIC_ID}-sequence`) return 0;
-  return new URLSearchParams(window.location.search).get('e2eTrackDelay') === 'on' ? 1_000 : 0;
 }
 
 export function shouldUseRoomJoinE2eSyntheticCapture() {
