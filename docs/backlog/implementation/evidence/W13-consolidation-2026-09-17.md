@@ -85,3 +85,12 @@ In the same device session, record the physical iPhone room audio/control and
 keyboard result plus one real native support result. Rehearse rollback before
 recruiting the aggregate-only pilot. Only then run the W13 harness with all
 three evidence inputs and produce the real go/no-go record.
+
+## 2026-09-18 room-evidence follow-up
+
+[PR #193](https://github.com/knzeng-e/dotify/pull/193) adds a candidate-bound
+Product room smoke export backed by live host telemetry and explicit
+guest-device observations. Its local verification and remaining live gates are
+recorded in
+[Product room smoke capture](product-room-smoke-capture-2026-09-18.md). This
+improves the evidence path; it does not change the blocked W13 release decision.
