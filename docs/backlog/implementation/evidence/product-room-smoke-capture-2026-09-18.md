@@ -8,7 +8,7 @@
 - Date: 2026-09-18.
 - Starting `dev` SHA: `ec3594a66b83369630ea0e3874443726d7118faf`.
 - Implementation SHA actually tested:
-  `2d6c1c849c78d3d6c5b2990c8d28a3739c2c72e6`.
+  `c351e81baf395eb09c02dd5929ecd9b9c06f4a23`.
 - Branch / PR / issue: `fix/product-pilot-readiness`,
   [PR #193](https://github.com/knzeng-e/dotify/pull/193), partial
   [W13 #158](https://github.com/knzeng-e/dotify/issues/158).
@@ -37,6 +37,12 @@ Product journey harness now independently requires the timestamp, candidate,
 surface, canonical URL, observed host transport, walletless audible/in-sync
 guest, and secret hygiene before the room surface can pass.
 
+The final review follow-up also covers the common share-link order where
+playback starts before the guest arrives. In that path, host stream readiness is
+established by an active captured stream plus a connected host peer even though
+the earlier `stream-ready` event was emitted before any listener existed. A
+connected peer without an active local stream still fails closed.
+
 The panel is compiled only when `VITE_DOTIFY_DEBUG_PANEL=true`; ordinary user
 flows remain unchanged. Session storage retains the operator's same-tab draft
 without creating a durable listening history. The export contains no wallet
@@ -47,7 +53,7 @@ audio.
 
 | Command or real scenario | Environment and build | Observed result | Artifact |
 | --- | --- | --- | --- |
-| `npm run test:unit` | Local Node 22, implementation SHA | 70 files and 552 tests passed | Terminal output |
+| `npm run test:unit` | Local Node 22, implementation SHA | 70 files and 553 tests passed | Terminal output |
 | `node --test scripts/product-devnet-journey-harness.test.mjs` | Local Node 22, implementation SHA | 15 tests passed | Terminal output |
 | `npm run test:pilot-release-readiness` | Local Node 22, implementation SHA | 9 tests passed | Terminal output |
 | `npm run lint` | Local Node 22, implementation SHA | 0 errors; 3 inherited React hook warnings in `App.tsx` and `ArtistShell.tsx` | Terminal output |
