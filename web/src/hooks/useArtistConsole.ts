@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { getAddress, isAddress } from 'viem';
 import { getWalletClient, resolveEvmChain } from '../shared/config/contracts';
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
@@ -270,7 +270,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     coverUploadRef
   } = deps;
 
-  const runtimeReader = createRuntimeReader({ ethRpcUrl });
+  const runtimeReader = useMemo(() => createRuntimeReader({ ethRpcUrl, config: runtimeAdapterConfig }), [ethRpcUrl]);
   const [artistRuntimeAddress, setArtistRuntimeAddress] = useState<`0x${string}` | null>(null);
   const [artistRegistrationStatus, setArtistRegistrationStatus] = useState('Checking artist registration');
   const [isRegisteringArtist, setIsRegisteringArtist] = useState(false);

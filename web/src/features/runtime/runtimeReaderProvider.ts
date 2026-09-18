@@ -38,11 +38,16 @@ async function createProductCdmReader(config: RuntimeAdapterConfig): Promise<Run
     );
   }
   const { createProductCdmContracts } = await import('./productCdmContracts');
-  const { resolver, verifyDeployment } = await createProductCdmContracts({ environment: config.productEnvironment });
+  const { resolver, verifyDeployment, destroy } = await createProductCdmContracts({ environment: config.productEnvironment });
   // Confirm the host connected a chain that actually holds Dotify's contracts
   // before any catalog read runs. Skipping this would surface a wrong-chain
   // connection as an empty catalog.
-  await verifyDeployment();
+  try {
+    await verifyDeployment();
+  } catch (error) {
+    destroy();
+    throw error;
+  }
   return createProductCdmRuntimeReader({ contracts: resolver });
 }
 

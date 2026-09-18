@@ -68,7 +68,7 @@ describe('createRuntimeReader', () => {
       getArtistCount: vi.fn(async () => 3n),
       ensureContract: vi.fn(async () => true)
     };
-    const createProductCdmContracts = vi.fn(async () => ({ resolver: {}, verifyDeployment }));
+    const createProductCdmContracts = vi.fn(async () => ({ resolver: {}, verifyDeployment, destroy: vi.fn() }));
     vi.doMock('./productCdmContracts', () => ({ createProductCdmContracts }));
     vi.doMock('./productCdmRuntimeAdapter', () => ({
       createProductCdmRuntimeReader: vi.fn(() => productReader)
@@ -88,13 +88,44 @@ describe('createRuntimeReader', () => {
     expect(verifyDeployment).toHaveBeenCalledTimes(1);
   });
 
+  it('destroys a Product client when deployment verification fails before retrying', async () => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    const destroyFailedClient = vi.fn();
+    const productReader = { getArtistCount: vi.fn(async () => 5n) };
+    const createProductCdmContracts = vi
+      .fn()
+      .mockResolvedValueOnce({
+        resolver: {},
+        verifyDeployment: vi.fn(async () => {
+          throw new Error('wrong Product chain');
+        }),
+        destroy: destroyFailedClient
+      })
+      .mockResolvedValue({ resolver: {}, verifyDeployment: vi.fn(async () => undefined), destroy: vi.fn() });
+    vi.doMock('./productCdmContracts', () => ({ createProductCdmContracts }));
+    vi.doMock('./productCdmRuntimeAdapter', () => ({
+      createProductCdmRuntimeReader: vi.fn(() => productReader)
+    }));
+    vi.resetModules();
+    const createRuntimeReader = await loadProvider();
+    const reader = createRuntimeReader({
+      ethRpcUrl: 'https://rpc.example',
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
+    });
+
+    await expect(reader.getArtistCount('0x1' as never)).rejects.toThrow(/wrong Product chain/);
+    expect(destroyFailedClient).toHaveBeenCalledTimes(1);
+    await expect(reader.getArtistCount('0x1' as never)).resolves.toBe(5n);
+    expect(createProductCdmContracts).toHaveBeenCalledTimes(2);
+  });
+
   it('retries Product reader setup after a host transport failure', async () => {
     vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
     const productReader = { getArtistCount: vi.fn(async () => 4n) };
     const createProductCdmContracts = vi
       .fn()
       .mockRejectedValueOnce(new Error('protocol version mismatch'))
-      .mockResolvedValue({ resolver: {}, verifyDeployment: vi.fn(async () => undefined) });
+      .mockResolvedValue({ resolver: {}, verifyDeployment: vi.fn(async () => undefined), destroy: vi.fn() });
     vi.doMock('./productCdmContracts', () => ({ createProductCdmContracts }));
     vi.doMock('./productCdmRuntimeAdapter', () => ({
       createProductCdmRuntimeReader: vi.fn(() => productReader)

@@ -17,6 +17,22 @@ export const DISPLAY_NAME_MAX_LENGTH = 32;
 // here so callers can tell "user has not chosen yet" from a real choice.
 export const DEFAULT_DISPLAY_NAME = 'Listener';
 
+type RuntimeIdentityWallet = {
+  method: string;
+  evmAddress: string;
+  chainId?: number;
+  label?: string;
+  displayName?: string;
+};
+
+// Artist runtime reads are keyed to signer identity and network capability.
+// Presentation-only changes such as a Product profile label must not open a
+// second CDM client or repeat the authoritative runtime lookup.
+export function runtimeIdentityKey(wallet: RuntimeIdentityWallet | null): string | null {
+  if (!wallet) return null;
+  return `${wallet.method}:${wallet.evmAddress.toLowerCase()}:${wallet.chainId ?? ''}`;
+}
+
 // Control characters (C0 range + DEL). Built via new RegExp with escaped
 // backslashes so the source stays ASCII (no literal control bytes in the file).
 // eslint-disable-next-line no-control-regex
