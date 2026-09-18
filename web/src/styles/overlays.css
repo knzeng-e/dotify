@@ -253,6 +253,16 @@
   margin-top: 0.75rem;
 }
 
+.transaction-proof-list {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.transaction-proof-list .modal-hash {
+  margin-top: 0;
+}
+
 .transaction-facts a {
   color: var(--signal);
   text-underline-offset: 0.2rem;

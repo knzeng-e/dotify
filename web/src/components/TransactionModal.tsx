@@ -22,6 +22,7 @@ export function TransactionModal() {
   } as CSSProperties;
   const dismissible = feedback.tone !== 'pending';
   const stepsContainTxHash = feedback.steps?.some(step => Boolean(step.txHash)) ?? false;
+  const technicalProofs = feedback.technicalFacts?.length ? collectTechnicalProofs(feedback) : [];
   const proofKind = feedback.proofKind ?? 'evm-transaction';
   const onClose = () => {
     if (feedback.tone !== 'pending') setTransactionFeedback(null);
@@ -117,22 +118,26 @@ export function TransactionModal() {
               </div>
             ))}
           </dl>
-          {feedback.txHash && (
-            <div className='modal-hash'>
-              <span>Proof reference</span>
-              <code>{shorten(feedback.txHash, 12)}</code>
-              <button
-                className='transaction-fact-copy'
-                type='button'
-                onClick={() => void copyFactValue('Proof reference', feedback.txHash!)}
-                aria-label='Copy proof reference'
-              >
-                <Copy size={13} />
-                <span>Copy</span>
-              </button>
-              <a className='modal-link' href={getTransactionProofUrl(feedback.txHash, proofKind)} target='_blank' rel='noreferrer'>
-                {proofKind === 'substrate-extrinsic' ? 'View extrinsic' : 'View proof'}
-              </a>
+          {technicalProofs.length > 0 && (
+            <div className='transaction-proof-list' aria-label='Technical proof references'>
+              {technicalProofs.map(proof => (
+                <div className='modal-hash' key={proof.txHash}>
+                  <span>{proof.label}</span>
+                  <code>{shorten(proof.txHash, 12)}</code>
+                  <button
+                    className='transaction-fact-copy'
+                    type='button'
+                    onClick={() => void copyFactValue(proof.label, proof.txHash)}
+                    aria-label={`Copy ${proof.label}`}
+                  >
+                    <Copy size={13} />
+                    <span>Copy</span>
+                  </button>
+                  <a className='modal-link' href={getTransactionProofUrl(proof.txHash, proofKind)} target='_blank' rel='noreferrer'>
+                    {proofKind === 'substrate-extrinsic' ? 'View extrinsic' : 'View proof'}
+                  </a>
+                </div>
+              ))}
             </div>
           )}
         </details>
@@ -207,4 +212,21 @@ function getRoadmapProgress(steps: TransactionFeedback['steps']) {
   const lastCompleteIndex = steps.reduce((lastIndex, step, index) => (step.status === 'complete' ? index : lastIndex), -1);
   if (lastCompleteIndex <= 0) return 0;
   return (lastCompleteIndex / (steps.length - 1)) * 100;
+}
+
+export function collectTechnicalProofs(feedback: TransactionFeedback): Array<{ label: string; txHash: `0x${string}` }> {
+  const proofs: Array<{ label: string; txHash: `0x${string}` }> = [];
+  const seen = new Set<string>();
+
+  for (const step of feedback.steps ?? []) {
+    if (!step.txHash || seen.has(step.txHash)) continue;
+    seen.add(step.txHash);
+    proofs.push({ label: step.label, txHash: step.txHash });
+  }
+
+  if (feedback.txHash && !seen.has(feedback.txHash)) {
+    proofs.push({ label: 'Proof reference', txHash: feedback.txHash });
+  }
+
+  return proofs;
 }
