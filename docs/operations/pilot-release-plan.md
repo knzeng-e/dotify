@@ -45,7 +45,7 @@ release diff is the application bundle and this release/evidence package.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 24]` | Publish and recapture evidence; this bundle moves DAV2 decryption off the rendering thread while retaining room-link arrival without Product chain setup, native extrinsic proof links, and the native-unit fix |
+| Product appVersion | `[0, 1, 25]` | Publish and recapture evidence; this bundle adds candidate-bound room smoke capture while retaining off-thread DAV2 decryption, room-link arrival without Product chain setup, native extrinsic proof links, and the native-unit fix |
 | Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -128,6 +128,7 @@ Before and during the pilot, use these surfaces:
 | Audio startup QA | `window.__DOTIFY_AUDIO_STARTUP__.snapshot()` |
 | Room quality QA | `window.__DOTIFY_ROOM_QUALITY__.snapshot()` |
 | Product CDM QA | Debug panel exported Product CDM host smoke JSON |
+| Product room QA | Debug panel exported Product room smoke JSON, derived from host telemetry plus explicit guest-device observations |
 
 Redact logs before sharing. Never store content keys, session tokens, raw
 signatures, private keys, IP addresses, exact locations, or wallet-linked
@@ -188,7 +189,7 @@ decision to the exact candidate build being evaluated:
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 24]",
+    "productAppVersion": "[0, 1, 25]",
     "deployedCid": "<default-viem-pilot-release-cid>",
     "capturedAt": "2026-09-13T12:00:00.000Z"
   },

@@ -404,8 +404,13 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The tracked Product executable candidate is `[0, 1, 24]`. This version moves
-DAV2 chunk decryption off the rendering thread through a bounded Web Worker.
+The tracked Product executable candidate is `[0, 1, 25]`. This version adds a
+candidate-bound Product room smoke capture to the debug readiness panel. It
+derives room creation, stream readiness, peer connection, listener count, and
+the canonical shared URL from the active host session while leaving guest
+audibility, sync, and account state as explicit device observations. It retains
+the `[0, 1, 24]` move of DAV2 chunk decryption off the rendering thread through
+a bounded Web Worker.
 Product hosts that cannot start the worker within 1.5 seconds retain the same
 fail-closed Web Crypto path. It also keeps the `[0, 1, 23]` shared-link arrival
 behavior free of chain setup: Product CDM readers connect only when an
@@ -717,7 +722,12 @@ npm run smoke:product-cash-settlement -- \
 9. The outside listener reaches `In sync` and hears the host stream; staying on
    `Connecting...` means host capture or WebRTC negotiation is still failing,
    not room creation.
-   Record the room result as JSON and rerun the journey harness with both live
+   In the debug build, open `You > Production readiness > Product room smoke`.
+   Bind the same deployment CID used by the payment/key smoke, start the hosted
+   room capture, and complete the guest-device observations. Dotify derives
+   room creation, stream readiness, peer connection, listener count, and the
+   canonical URL from live room state; it does not ask the operator to type
+   those facts. Download the JSON and rerun the journey harness with both live
    evidence files:
 
 ```bash
@@ -733,9 +743,10 @@ npm run smoke:product-journey -- \
 ```json
 {
   "schemaVersion": 2,
+  "capturedAt": "2026-09-18T12:00:00.000Z",
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 24]",
+    "productAppVersion": "[0, 1, 25]",
     "deployedCid": "<same-product-executable-cid-as-payment-smoke>"
   },
   "hostSurface": "product-desktop",
@@ -746,12 +757,18 @@ npm run smoke:product-journey -- \
   "hostSharedCanonicalUrl": true,
   "guestAccountConnected": false,
   "guestJoined": true,
-  "guestHeardAudio": true
+  "guestHeardAudio": true,
+  "guestInSync": true,
+  "hostRoomCreated": true,
+  "hostStreamReady": true,
+  "hostPeerConnected": true,
+  "hostListenerCount": 1
 }
 ```
 
-   The harness rejects the room file when any candidate field is missing or its
-   CID differs from the Product payment smoke. Use
+   The harness rejects the room file when its timestamp, candidate identity,
+   actual host transport facts, explicit guest observations, or secret hygiene
+   fail validation, and when its CID differs from the Product payment smoke. Use
    `hostSurface: "product-web-gateway"` only for a separate smoke captured
    from the Product Web gateway. A Product Desktop room smoke must not be reused
    as Product Web evidence.
@@ -902,7 +919,7 @@ active.
   preserves the transaction hash in the error state.
 - Product Web's current gateway can reject native Product CDM chain setup with
   `Malformed protocol error payload: expected 3 bytes, received 6`. Version
-  `[0, 1, 24]` retains the `[0, 1, 23]` safeguard that prevents that
+  `[0, 1, 25]` retains the `[0, 1, 23]` safeguard that prevents that
   host/version mismatch from running merely because
   a guest opened the catalog or a room link. Catalog API and public room
   discovery remain available; an actual protected-track access read still

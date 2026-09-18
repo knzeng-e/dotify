@@ -360,7 +360,8 @@ button.you-panel:hover {
   padding: 0.25rem 0.45rem;
 }
 
-.product-smoke-candidate input {
+.product-smoke-candidate input,
+.product-smoke-candidate select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -368,6 +369,11 @@ button.you-panel:hover {
   color: var(--text);
   padding: 0.65rem 0.75rem;
   font: inherit;
+}
+
+.product-smoke-observations {
+  display: grid;
+  gap: 0.55rem;
 }
 
 .product-smoke-candidate small {

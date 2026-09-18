@@ -334,7 +334,11 @@ For operator smoke checks, temporarily set `VITE_DOTIFY_DEBUG_PANEL=true` and
 open `You -> Production readiness`. The panel checks backend readiness,
 signaling health, chain RPC, factory/directory contract code, wallet-chain
 mismatch, catalog status, and IPFS gateway reads without exposing secrets or
-starting write flows.
+starting write flows. A Product candidate can additionally export payment/key
+and room evidence bound to its build SHA, app version, and deployed CID. The
+room capture reads creation, stream, peer, listener, and canonical-link facts
+from the active host session; the operator confirms walletless guest arrival,
+audible audio, and sync on the guest device before export.
 
 ### Production Troubleshooting
 
