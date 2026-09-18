@@ -263,12 +263,14 @@ resolve the current catalog's cover/audio CIDs quickly. A hanging first gateway
 can leave `<img>` requests pending without firing `error`, which makes covers
 appear blank or disappear while the app waits.
 
-Before publishing, spot-check one cover CID from the catalog:
+Before publishing, spot-check one cover ref from the catalog. For a new
+responsive ref, include its complete path and repeat the check with
+`cover/160.webp`; legacy refs remain a bare CID:
 
 ```bash
 curl -s -L -o /dev/null --max-time 12 \
   -w '%{http_code} %{content_type} %{size_download} %{time_total}\n' \
-  https://gateway.pinata.cloud/ipfs/<cover-cid>
+  https://gateway.pinata.cloud/ipfs/<cover-cid-or-cid/path>
 ```
 
 ## 3. Verify The Browser-Safe Build Profile
