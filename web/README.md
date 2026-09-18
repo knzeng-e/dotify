@@ -173,7 +173,9 @@ npm run deploy:product-devnet
 ```
 
 `build:bulletin` produces a single-file build via `vite-plugin-singlefile` so it
-can be distributed from a flat IPFS CID / DotNS record.
+can be distributed from a flat IPFS CID / DotNS record. The DAV2 decrypt Worker
+is inlined as a Blob Worker for this target, and the build fails if `index.html`
+references an external Worker or script asset.
 
 `build:product-devnet` produces `dist-product` with the checked-in
 `.env.product-devnet` profile. `deploy:product-devnet` uses

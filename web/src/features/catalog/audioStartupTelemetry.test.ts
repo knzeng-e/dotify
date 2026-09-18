@@ -26,7 +26,8 @@ const dav2Metric: AudioV2StartupMetric = {
   rangeEnd: 512,
   chunkIndex: 0,
   hedged: true,
-  fromCache: false
+  fromCache: false,
+  decryptor: 'worker'
 };
 
 const hostMetric: HostAudioStartupMetric = {

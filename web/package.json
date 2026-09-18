@@ -15,7 +15,7 @@
 		"test:e2e": "playwright test",
 		"dev:listen": "concurrently -n signal,web -c magenta,cyan \"npm:signal\" \"npm:dev\"",
 		"build": "tsc -b && vite build",
-		"build:bulletin": "tsc -b && vite build --config vite.bulletin.config.ts",
+		"build:bulletin": "tsc -b && vite build --config vite.bulletin.config.ts && node scripts/bulletin-artifact-smoke.mjs",
 		"build:product-devnet": "npm run generate:product-catalog-bootstrap && tsc -b && vite build --config vite.product.config.ts --mode product-devnet",
 		"build:product-devnet:support": "VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm VITE_DOTIFY_ARTIST_DONATIONS=on npm run build:product-devnet",
 		"build:product-devnet:beacons": "VITE_DOTIFY_ROOM_BEACONS=on npm run build:product-devnet",

@@ -19,10 +19,8 @@ import {
   AudioV2HeaderIncompleteError,
   audioV2ChunkBodyOffset,
   canStreamAudioV2WithMse,
-  decryptAudioV2Chunk,
-  decryptAudioV2Container,
-  importAudioV2ContentKey,
   initialAudioV2HeaderRangeEnd,
+  parseAudioV2Container,
   parseAudioV2HeaderPrefix,
   type ParsedAudioV2
 } from '../shared/utils/audioV2';
@@ -31,6 +29,7 @@ import { buildAccessGate, buildClassicAccessVerifiedFeedback, buildClassicSuppor
 import { catalogApiStatus, catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
+import { AudioV2DecryptAuthenticationError, createAudioV2ChunkDecryptor } from '../features/catalog/audioV2Decryptor';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import {
@@ -770,66 +769,74 @@ export function useCatalog(deps: UseCatalogDeps) {
     parsed: ParsedAudioV2,
     key: Uint8Array
   ): Promise<void> {
-    const cryptoKeyPromise = importAudioV2ContentKey(key).catch(error => {
+    const decryptorPromise = createAudioV2ChunkDecryptor({ header: parsed.header, key, signal: context.signal }).catch(error => {
+      if (isAbortError(error)) throw error;
       throw new AudioV2ChunkAuthenticationError(error);
     });
 
-    await pumpAudioV2ReadAhead({
-      chunks: parsed.header.chunks,
-      signal: context.signal,
-      prepareChunk: async (chunk, signal) => {
-        throwIfAborted(signal);
-        const chunkStart = parsed.bodyOffset + audioV2ChunkBodyOffset(parsed.header, chunk.index);
-        const chunkEnd = chunkStart + chunk.encryptedLength - 1;
-        const range = await fetchAudioV2Range(context, chunkStart, chunkEnd, chunk.index === 0 ? 'first-chunk' : 'chunk', signal);
-        if (chunk.index === 0) {
-          publishAudioV2StartupMetric(context, {
-            phase: 'first-range-ready',
-            gatewayUrl: range.gatewayUrl,
-            rangeStart: chunkStart,
-            rangeEnd: chunkEnd,
-            chunkIndex: chunk.index,
-            hedged: range.hedged,
-            fromCache: range.fromCache
-          });
-        }
+    try {
+      await pumpAudioV2ReadAhead({
+        chunks: parsed.header.chunks,
+        signal: context.signal,
+        prepareChunk: async (chunk, signal) => {
+          throwIfAborted(signal);
+          const chunkStart = parsed.bodyOffset + audioV2ChunkBodyOffset(parsed.header, chunk.index);
+          const chunkEnd = chunkStart + chunk.encryptedLength - 1;
+          const range = await fetchAudioV2Range(context, chunkStart, chunkEnd, chunk.index === 0 ? 'first-chunk' : 'chunk', signal);
+          if (chunk.index === 0) {
+            publishAudioV2StartupMetric(context, {
+              phase: 'first-range-ready',
+              gatewayUrl: range.gatewayUrl,
+              rangeStart: chunkStart,
+              rangeEnd: chunkEnd,
+              chunkIndex: chunk.index,
+              hedged: range.hedged,
+              fromCache: range.fromCache
+            });
+          }
 
-        const cryptoKey = await cryptoKeyPromise;
-        let clear: Uint8Array;
-        try {
-          clear = await decryptAudioV2Chunk(parsed.header, chunk.index, range.bytes, cryptoKey);
-        } catch (error) {
-          throw new AudioV2ChunkAuthenticationError(error);
+          const decryptor = await decryptorPromise;
+          let clear: Uint8Array;
+          try {
+            clear = await decryptor.decrypt(chunk.index, range.bytes, signal);
+          } catch (error) {
+            if (isAbortError(error)) throw error;
+            if (error instanceof AudioV2DecryptAuthenticationError) throw new AudioV2ChunkAuthenticationError(error);
+            throw error;
+          }
+          throwIfAborted(signal);
+          if (chunk.index === 0) {
+            publishAudioV2StartupMetric(context, {
+              phase: 'first-chunk-decrypted',
+              gatewayUrl: range.gatewayUrl,
+              rangeStart: chunkStart,
+              rangeEnd: chunkEnd,
+              chunkIndex: chunk.index,
+              hedged: range.hedged,
+              fromCache: range.fromCache,
+              decryptor: decryptor.execution
+            });
+          }
+          return { clear, range, chunkStart, chunkEnd };
+        },
+        appendChunk: async (chunk, prepared, signal) => {
+          await appendSourceBuffer(sourceBuffer, prepared.clear, signal);
+          if (chunk.index === 0) {
+            publishAudioV2StartupMetric(context, {
+              phase: 'first-chunk-appended',
+              gatewayUrl: prepared.range.gatewayUrl,
+              rangeStart: prepared.chunkStart,
+              rangeEnd: prepared.chunkEnd,
+              chunkIndex: chunk.index,
+              hedged: prepared.range.hedged,
+              fromCache: prepared.range.fromCache
+            });
+          }
         }
-        throwIfAborted(signal);
-        if (chunk.index === 0) {
-          publishAudioV2StartupMetric(context, {
-            phase: 'first-chunk-decrypted',
-            gatewayUrl: range.gatewayUrl,
-            rangeStart: chunkStart,
-            rangeEnd: chunkEnd,
-            chunkIndex: chunk.index,
-            hedged: range.hedged,
-            fromCache: range.fromCache
-          });
-        }
-        return { clear, range, chunkStart, chunkEnd };
-      },
-      appendChunk: async (chunk, prepared, signal) => {
-        await appendSourceBuffer(sourceBuffer, prepared.clear, signal);
-        if (chunk.index === 0) {
-          publishAudioV2StartupMetric(context, {
-            phase: 'first-chunk-appended',
-            gatewayUrl: prepared.range.gatewayUrl,
-            rangeStart: prepared.chunkStart,
-            rangeEnd: prepared.chunkEnd,
-            chunkIndex: chunk.index,
-            hedged: prepared.range.hedged,
-            fromCache: prepared.range.fromCache
-          });
-        }
-      }
-    });
+      });
+    } finally {
+      void decryptorPromise.then(decryptor => decryptor.close()).catch(() => undefined);
+    }
     if (mediaSource.readyState === 'open') mediaSource.endOfStream();
   }
 
@@ -838,9 +845,27 @@ export function useCatalog(deps: UseCatalogDeps) {
     const response = await fetchAudioIpfsCid(cid, { signal });
     if (!response.ok) throw new Error(`Unable to fetch DAV2 audio (${response.status})`);
     throwIfAborted(signal);
-    const decrypted = await decryptAudioV2Container(new Uint8Array(await response.arrayBuffer()), key);
+    const container = new Uint8Array(await response.arrayBuffer());
     throwIfAborted(signal);
-    const blob = new Blob([decrypted.bytes], { type: decrypted.mediaMime });
+    const parsed = parseAudioV2Container(container);
+    const decryptor = await createAudioV2ChunkDecryptor({ header: parsed.header, key, signal });
+    const bytes = new Uint8Array(parsed.header.plaintextLength);
+    let encryptedOffset = parsed.bodyOffset;
+    let clearOffset = 0;
+    try {
+      for (const chunk of parsed.header.chunks) {
+        throwIfAborted(signal);
+        const encrypted = container.subarray(encryptedOffset, encryptedOffset + chunk.encryptedLength);
+        const clear = await decryptor.decrypt(chunk.index, encrypted, signal);
+        bytes.set(clear, clearOffset);
+        encryptedOffset += chunk.encryptedLength;
+        clearOffset += clear.length;
+      }
+    } finally {
+      decryptor.close();
+    }
+    throwIfAborted(signal);
+    const blob = new Blob([bytes], { type: parsed.header.mediaMime });
     return URL.createObjectURL(blob);
   }
 

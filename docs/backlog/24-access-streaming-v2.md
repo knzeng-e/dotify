@@ -147,9 +147,14 @@ W08 first-sound slice:
   protected startup.
 - Cover artwork gateway recovery now has a 1.2 second per-gateway budget and a
   deterministic generated fallback when all sources fail or time out.
-- Remaining #88 work: worker-based decryption, first-chunk sizing experiments,
-  the browser/device validation matrix, cold/warm sample collection, and the
-  backend read-through gateway decision.
+- DAV2 AES-GCM chunk decryption now runs in a dedicated Web Worker in the MSE
+  pipeline and the full-download recovery path. Worker startup is bounded to
+  1.5 seconds, track changes terminate pending work, and hosts without Worker
+  support retain the same fail-closed Web Crypto fallback. Startup telemetry
+  records which execution path prepared the first chunk.
+- Remaining #88 work: first-chunk sizing experiments, the browser/device
+  validation matrix, cold/warm sample collection, and the backend read-through
+  gateway decision.
 
 Product SDK adaptation note (updated 2026-09-12):
 

@@ -404,8 +404,11 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 23]`. This version keeps shared-link
-arrival free of chain setup: Product CDM readers connect only when an
+The tracked Product executable candidate is `[0, 1, 24]`. This version moves
+DAV2 chunk decryption off the rendering thread through a bounded Web Worker.
+Product hosts that cannot start the worker within 1.5 seconds retain the same
+fail-closed Web Crypto path. It also keeps the `[0, 1, 23]` shared-link arrival
+behavior free of chain setup: Product CDM readers connect only when an
 authoritative runtime read is requested, and the known DevNet PAS label no
 longer opens a direct EVM RPC request during initial render. Direct Product CDM
 reads and writes still fail closed when the Host protocol is unavailable; there
@@ -732,7 +735,7 @@ npm run smoke:product-journey -- \
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 23]",
+    "productAppVersion": "[0, 1, 24]",
     "deployedCid": "<same-product-executable-cid-as-payment-smoke>"
   },
   "hostSurface": "product-desktop",
@@ -899,7 +902,8 @@ active.
   preserves the transaction hash in the error state.
 - Product Web's current gateway can reject native Product CDM chain setup with
   `Malformed protocol error payload: expected 3 bytes, received 6`. Version
-  `[0, 1, 23]` prevents that host/version mismatch from running merely because
+  `[0, 1, 24]` retains the `[0, 1, 23]` safeguard that prevents that
+  host/version mismatch from running merely because
   a guest opened the catalog or a room link. Catalog API and public room
   discovery remain available; an actual protected-track access read still
   fails closed until Product Web and the pinned TruAPI/Product SDK protocol are
