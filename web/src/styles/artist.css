@@ -780,8 +780,14 @@ button.you-panel:hover {
 
 .studio-head {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 1.25rem;
+}
+
+.studio-id {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .studio-avatar {
@@ -792,6 +798,8 @@ button.you-panel:hover {
 
 .studio-id h1 {
   display: flex;
+  max-width: 100%;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.55rem;
   font-family: var(--font-editorial);
@@ -799,6 +807,7 @@ button.you-panel:hover {
   font-weight: 600;
   letter-spacing: var(--tracking-display);
   line-height: 0.95;
+  overflow-wrap: anywhere;
 }
 
 .studio-id h1 svg {
