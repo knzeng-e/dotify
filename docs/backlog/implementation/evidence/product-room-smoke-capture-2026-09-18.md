@@ -14,6 +14,8 @@
 - Branch / PR / issue: `fix/product-pilot-readiness`,
   [PR #193](https://github.com/knzeng-e/dotify/pull/193), partial
   [W13 #158](https://github.com/knzeng-e/dotify/issues/158).
+- Deployment record branch / PR: `chore/w13-live-candidate-evidence`,
+  [PR #194](https://github.com/knzeng-e/dotify/pull/194).
 - Related dependency evidence:
   [W13 consolidation](W13-consolidation-2026-09-17.md),
   [W09](W09.md), and [W11](W11.md).
