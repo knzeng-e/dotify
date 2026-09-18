@@ -123,12 +123,19 @@ test('artist can create a runtime, publish a release, and see it in the listener
   await page.goto('/');
   const publishedCard = page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' });
   await expect(publishedCard).toContainText('E2E Artist');
-  await expect(publishedCard).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(publishedCard).not.toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(publishedCard.getByTestId('track-card-open')).toHaveAccessibleName(new RegExp(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`));
   await publishedCard.getByRole('button', { name: 'E2E Artist', exact: true }).click();
   const release = page.locator('.artist-release-card').filter({ hasText: 'E2E Published Signal' });
   await release.getByText('About this release', { exact: true }).click();
-  await expect(release).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(release).not.toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
   await expect(release).toContainText('A deterministic artist publish e2e release.');
+  await expect(release.getByRole('button', { name: /Open E2E Published Signal by E2E Artist/ })).toHaveAccessibleName(
+    new RegExp(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`)
+  );
+  await release.getByRole('button', { name: /Open E2E Published Signal by E2E Artist/ }).click();
+  await page.getByRole('button', { name: 'Support and open', exact: true }).click();
+  await expect(page.getByTestId('access-warning')).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
 });
 
 test('artist onboarding handles a missing wallet without enabling profile creation', async ({ page }) => {
