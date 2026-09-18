@@ -703,7 +703,9 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function failRoomPermission(message: string) {
-    setSocketStatus('error');
+    // A denied media/remote capability does not make an already-connected
+    // public signaling transport unhealthy. Keep transport status owned by
+    // Socket.IO so discovery and retry can continue truthfully.
     setSessionAction('idle');
     setIsRefreshingRooms(false);
     setSessionStatus('Error');

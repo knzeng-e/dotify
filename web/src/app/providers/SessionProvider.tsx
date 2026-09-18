@@ -8,6 +8,7 @@ import { createContext, useContext, useEffect, useRef, type ReactNode, type RefO
 import { useSession } from '../../hooks/useSession';
 import { getInitialRoomCode } from '../../features/rooms/roomState';
 import { DEFAULT_DISPLAY_NAME, getStoredDisplayName, isChosenDisplayName } from '../../features/identity/walletIdentity';
+import { requiresExplicitProductRoomEntry } from '../../features/productHost/productHost';
 import { useWalletContext } from './WalletProvider';
 import { useNavigation } from './NavigationProvider';
 import { useCatalogContext } from './CatalogProvider';
@@ -54,6 +55,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (!initialRoomCode || session.roomId) return;
     const remembered = getStoredDisplayName(activeIdentityAddress);
     if (!remembered) return;
+    // Product permission prompts need an explicit user gesture. The listener
+    // shell still discovers the room and opens the threshold with this name
+    // prefilled; ordinary browsers retain frictionless remembered-name join.
+    if (requiresExplicitProductRoomEntry()) return;
     session.setDisplayName(remembered);
     session.joinRoom(initialRoomCode, { displayName: remembered });
     // Run once per mount; the share-link code is read from the URL at mount time.

@@ -25,6 +25,13 @@ export type ProductHostRoomPermissionOptions = {
   remoteUrls?: string[];
 };
 
+export type ProductRoomEntryRuntime = {
+  protocol: string;
+  embedded: boolean;
+  hostWebView: boolean;
+  hostApiPort: boolean;
+};
+
 type EnvironmentLike = Record<string, string | boolean | number | null | undefined>;
 type HostRoomPermission = Extract<RemotePermissionItem, { tag: 'Remote' | 'WebRtc' }>;
 type ProductAccount = {
@@ -62,6 +69,31 @@ type ProductHostNavigationDeps = {
 function envValue(env: EnvironmentLike, key: string): string {
   const value = env[key];
   return value === null || value === undefined ? '' : String(value).trim();
+}
+
+function detectProductRoomEntryRuntime(): ProductRoomEntryRuntime {
+  if (typeof window === 'undefined') {
+    return { protocol: '', embedded: false, hostWebView: false, hostApiPort: false };
+  }
+  const hostWindow = window as Window & {
+    __HOST_WEBVIEW_MARK__?: boolean;
+    __HOST_API_PORT__?: MessagePort;
+  };
+  return {
+    protocol: window.location.protocol,
+    embedded: window.self !== window.top,
+    hostWebView: hostWindow.__HOST_WEBVIEW_MARK__ === true,
+    hostApiPort: hostWindow.__HOST_API_PORT__ != null
+  };
+}
+
+/**
+ * Product containers must ask for room capabilities from a user gesture.
+ * Keep remembered names as a convenience, but never turn them into a passive
+ * WebRTC/Remote permission request while a share link is mounting.
+ */
+export function requiresExplicitProductRoomEntry(runtime: ProductRoomEntryRuntime = detectProductRoomEntryRuntime()): boolean {
+  return runtime.protocol === 'polkadot:' || runtime.embedded || runtime.hostWebView || runtime.hostApiPort;
 }
 
 export function resolveProductHostConfig(env: EnvironmentLike): ProductHostConfig {

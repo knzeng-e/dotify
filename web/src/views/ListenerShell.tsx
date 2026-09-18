@@ -41,7 +41,7 @@ import { NAV_ITEMS } from '../app/navigation';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from '../features/catalog/trackModel';
 import { getStoredDisplayName, isChosenDisplayName } from '../features/identity/walletIdentity';
 import { isProductionReadinessPanelEnabled } from '../features/observability/productionReadiness';
-import { resolveProductHostConfig } from '../features/productHost/productHost';
+import { requiresExplicitProductRoomEntry, resolveProductHostConfig } from '../features/productHost/productHost';
 import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { getInitialRoomCode } from '../features/rooms/roomState';
 import { resolveRoomEntryState } from '../features/rooms/roomEntryState';
@@ -89,6 +89,7 @@ export function ListenerShell() {
   const initialRoomCode = getInitialRoomCode();
   const targetRoomCode = initialRoomCode || normalizeRoomCode(session.joinCode);
   const thresholdRoom = session.openRooms.find(room => room.roomId === targetRoomCode);
+  const explicitProductRoomEntry = requiresExplicitProductRoomEntry();
   const thresholdState = resolveRoomEntryState({
     initialRoomCode,
     joinedRoomId: roomId,
@@ -124,7 +125,7 @@ export function ListenerShell() {
     // SessionProvider owns remembered-name auto-join. Let that connection win
     // on share links instead of racing it with a second discovery request
     // during React StrictMode's mount replay.
-    if (getInitialRoomCode() && getStoredDisplayName(listenerEvmAddress)) return;
+    if (!explicitProductRoomEntry && getInitialRoomCode() && getStoredDisplayName(listenerEvmAddress)) return;
     session.requestOpenRooms(true);
     // The session facade owns socket lifecycle; this initial discovery should
     // run once per mounted listener shell, not whenever the facade object moves.
@@ -134,11 +135,12 @@ export function ListenerShell() {
   useEffect(() => {
     const initialRoomCode = getInitialRoomCode();
     if (promptedInitialRoomRef.current || !initialRoomCode || roomId) return;
-    if (getStoredDisplayName(listenerEvmAddress)) return;
+    const rememberedName = getStoredDisplayName(listenerEvmAddress);
+    if (rememberedName && !explicitProductRoomEntry) return;
     promptedInitialRoomRef.current = true;
-    setSessionDisplayName('');
+    setSessionDisplayName(rememberedName ?? '');
     setJoinRoomOpen(true);
-  }, [listenerEvmAddress, roomId, setSessionDisplayName]);
+  }, [explicitProductRoomEntry, listenerEvmAddress, roomId, setSessionDisplayName]);
 
   const handlePlayTrack = useCallback(
     (track: CatalogTrack) => {
