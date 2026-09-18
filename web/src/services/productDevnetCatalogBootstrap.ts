@@ -6,6 +6,70 @@ export const PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID = 'dotify-test01.dot';
 export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
   items: [
     {
+      id: '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85:0x34c852decafab4884ccbf96ea4e4e8823a8b4b9a62d44f234f2d03b04159444b',
+      hash: '0x34c852decafab4884ccbf96ea4e4e8823a8b4b9a62d44f234f2d03b04159444b',
+      runtimeAddress: '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85',
+      artistAddress: '0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809',
+      tokenId: '1',
+      title: 'MH Tribute',
+      artist: 'Black Panther',
+      description: 'Wakandian Song from GABON - By Lord Ékomy Ndong',
+      imageRef: 'ipfs://QmeYH4PfZVk5bj6AHW8UXrASY3E2wEqYHq6J6aU4YK5WTy',
+      coverVariants: ['ipfs://QmeYH4PfZVk5bj6AHW8UXrASY3E2wEqYHq6J6aU4YK5WTy'],
+      audioRef: 'dotify:enc:v2:key-v2:ipfs://QmdmT6qUXX45tgrbE8kkm3q7R1rbHiAjhst3vKnjkMLpf6',
+      metadataRef: 'ipfs://QmQGXBw9FyqjZLwkxuZK3tgK3TB2L7f8cDJogTMzaysWLs',
+      bulletinRef: '',
+      artistContractRef: 'dotify:self-certified:0x34c852decafab4884ccbf96ea4e4e8823a8b4b9a62d44f234f2d03b04159444b',
+      accessMode: 'classic',
+      priceWei: '6000000000000000000',
+      priceDot: '6',
+      personhoodLevel: 'DIM1',
+      active: true,
+      encrypted: true,
+      royaltyBps: 10000,
+      royaltySplits: [
+        {
+          label: 'Primary recipient',
+          recipient: '0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809',
+          bps: 10000
+        }
+      ],
+      registeredAtBlock: 13382756,
+      sourceBlock: 13382756
+    },
+    {
+      id: '0x95DDe50424d6278ccb91D36B36230105eE71Eb1E:0xd5381fc64aa48c66181062ca55a22bd2cf68cd408cdbda557d8419dd1f00e14f',
+      hash: '0xd5381fc64aa48c66181062ca55a22bd2cf68cd408cdbda557d8419dd1f00e14f',
+      runtimeAddress: '0x95DDe50424d6278ccb91D36B36230105eE71Eb1E',
+      artistAddress: '0xcE104CADBbF6E5DB3779F5E0921753Ff1e7d2de2',
+      tokenId: '1',
+      title: 'Bwiti -  Mogongo part 1',
+      artist: 'Gabon Discovery',
+      description: 'Traditional music instrument used in spiritual ceremonies of  Bwiti, in Gabon. \n\nMogongo artist: Felix Muemba\n\nDuree: 3:52',
+      imageRef: 'ipfs://QmdxH6J193N7kF22fqhmnSRPvoG7c4rWJia2q8kcJxib3S',
+      coverVariants: ['ipfs://QmdxH6J193N7kF22fqhmnSRPvoG7c4rWJia2q8kcJxib3S'],
+      audioRef: 'dotify:enc:v2:key-v2:ipfs://QmV5pjHof9Wi9TLCWL7A2JL6oGUsYisG7DKHMfCGrAgUHX',
+      metadataRef: 'ipfs://QmUqAGL9FKxj11ysFsWmPHfmDXzyjKZSJmP9zK6S11H73R',
+      bulletinRef: '',
+      artistContractRef: 'dotify:self-certified:0xd5381fc64aa48c66181062ca55a22bd2cf68cd408cdbda557d8419dd1f00e14f',
+      accessMode: 'free',
+      priceWei: '0',
+      priceDot: '0',
+      personhoodLevel: 'DIM1',
+      active: true,
+      encrypted: true,
+      royaltyBps: 10000,
+      royaltySplits: [
+        {
+          label: 'Primary recipient',
+          recipient: '0xcE104CADBbF6E5DB3779F5E0921753Ff1e7d2de2',
+          bps: 10000
+        }
+      ],
+      registeredAtBlock: 13221488,
+      sourceBlock: 13221488
+    },
+    {
       id: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0xabc5993ee6ce0044618e883f0e775e9fcbf0e7ade3e9b4d5c284a48615bdd135',
       hash: '0xabc5993ee6ce0044618e883f0e775e9fcbf0e7ade3e9b4d5c284a48615bdd135',
       runtimeAddress: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338',
@@ -288,19 +352,35 @@ export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
       releaseCount: 8,
       activeReleaseCount: 8,
       latestReleaseBlock: 13133435
+    },
+    {
+      artistAddress: '0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809',
+      runtimeAddress: '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85',
+      name: 'Black Panther',
+      releaseCount: 1,
+      activeReleaseCount: 1,
+      latestReleaseBlock: 13382756
+    },
+    {
+      artistAddress: '0xcE104CADBbF6E5DB3779F5E0921753Ff1e7d2de2',
+      runtimeAddress: '0x95DDe50424d6278ccb91D36B36230105eE71Eb1E',
+      name: 'Gabon Discovery',
+      releaseCount: 1,
+      activeReleaseCount: 1,
+      latestReleaseBlock: 13221488
     }
   ],
   pagination: {
     limit: 100,
     nextCursor: null,
-    total: 8
+    total: 10
   },
   meta: {
     state: 'stale-cache',
     cacheAvailable: true,
-    indexedAt: '2026-09-12T05:31:46.695Z',
-    lastIndexedBlock: 13214871,
-    chainHeadBlock: 13214873,
+    indexedAt: '2026-09-18T15:35:39.255Z',
+    lastIndexedBlock: 13406333,
+    chainHeadBlock: 13406335,
     blockLag: 2,
     staleAfterMs: 60000,
     lastErrorCode: null
