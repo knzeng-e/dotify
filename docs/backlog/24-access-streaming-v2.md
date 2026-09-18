@@ -160,7 +160,10 @@ W08 first-sound slice:
 
 - New backend cover uploads are decoded and normalized server-side into square
   WebP variants at 64, 160, 320, and 640 px plus a 24 px blurred placeholder.
-  The archival original remains in the same immutable IPFS directory.
+  The archival original remains in the same immutable IPFS directory. The API
+  serializes the memory-heavy normalization stage process-wide, decodes and
+  attention-crops the source once, then derives smaller variants sequentially
+  from the bounded 640 px canonical image.
 - The registry-compatible `imageRef` remains a normal image URI and now points
   to `<directory CID>/cover/640.webp`; no contract or manifest migration is
   required. Legacy single-file cover refs continue through the existing

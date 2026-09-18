@@ -268,7 +268,11 @@ New API cover uploads require the `sharp` native dependency included in the API
 image. The upload endpoint creates one public IPFS directory with
 `cover/placeholder.webp`, 64/160/320/640 px WebP variants, and the untouched
 `cover/original.<ext>`. The on-chain image ref points to `cover/640.webp`; the
-web client derives the other paths for `srcset`. After changing the API image,
+web client derives the other paths for `srcset`. On the current 512 MB single
+API machine, cover normalization is intentionally serialized process-wide; one
+large source is decoded and attention-cropped into a 640 px canonical image,
+then smaller variants are derived sequentially. Do not parallelize this stage
+without load-testing the deployed memory limit. After changing the API image,
 smoke both the primary and a thumbnail path before publishing a release:
 
 ```bash

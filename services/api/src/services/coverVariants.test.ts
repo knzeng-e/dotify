@@ -40,4 +40,25 @@ describe('responsive cover variants', () => {
   it('rejects bytes that only resemble an image signature', async () => {
     await assert.rejects(() => createResponsiveCover(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), 'png'));
   });
+
+  it('releases the process-wide image slot after a failed decode', async () => {
+    const valid = await sharp({
+      create: { width: 80, height: 120, channels: 3, background: { r: 20, g: 120, b: 180 } }
+    })
+      .png()
+      .toBuffer();
+
+    const [invalidResult, validResult] = await Promise.allSettled([
+      createResponsiveCover(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), 'png'),
+      createResponsiveCover(valid, 'png')
+    ]);
+
+    assert.equal(invalidResult.status, 'rejected');
+    assert.equal(validResult.status, 'fulfilled');
+    if (validResult.status === 'fulfilled') {
+      const primary = validResult.value.files.find(file => file.path === 'cover/640.webp');
+      assert.ok(primary);
+      assert.ok(primary.bytes.length > 0);
+    }
+  });
 });
