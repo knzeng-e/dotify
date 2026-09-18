@@ -16,7 +16,7 @@
   [W13 consolidation](W13-consolidation-2026-09-17.md),
   [W09](W09.md), and [W11](W11.md).
 - Product executable version: `[0, 1, 25]`.
-- Code readiness: locally verified; CI pending at capture time.
+- Code readiness: locally and CI verified.
 - Release readiness: not deployed and blocked on the live evidence below.
 
 ## Result and decisions
@@ -58,6 +58,7 @@ audio.
 | `npm run smoke:pilot-release` | Local implementation tree, no live JSON | Correctly blocked: 77 pass, 0 fail, 2 blocked, 8 not run | `/tmp/dotify-w13-room-capture.{md,json}`, transient |
 | `npm run smoke:product-journey` | Local implementation tree, no live JSON | Correctly blocked: 26 pass, 0 fail, 1 blocked, 1 not run | `/tmp/dotify-product-room-capture.{md,json}`, transient |
 | `node scripts/backlog-sync.mjs --check --offline` | Local repository | Passed with inherited 24 unmapped-active-item and duplicate-08 warnings | Terminal output |
+| GitHub `Dev Quality Gates`, backlog sync, and Claude review | PR #193 head after evidence commit | All required checks passed, including Web, Product DevNet build, contracts/ABI, API, signaling, repository hygiene, workflow syntax, and Playwright core flows | [PR #193 checks](https://github.com/knzeng-e/dotify/pull/193/checks) |
 
 No Product host, real wallet, live payment, audible two-device room, physical
 iPhone, external network, or deployed executable was used in these checks.
@@ -123,5 +124,6 @@ npm run smoke:product-journey -- \
   --json-out /tmp/dotify-product-journey.json
 ```
 
-- Project metadata: PR #193 must be added to Project 5 and mirror issue #158;
-  workflow/CI status must be updated after the documentation commit is pushed.
+- Project metadata: PR #193 is in Project 5 with `P1`, `Production spine`,
+  `Now`, `Work`, and the W13 backlog path mirrored from issue #158. Its workflow
+  state moves from `In Progress` to `In Review` when the draft is marked ready.
