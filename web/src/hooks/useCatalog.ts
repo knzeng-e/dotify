@@ -29,7 +29,7 @@ import { buildAccessGate, buildClassicAccessVerifiedFeedback, buildClassicSuppor
 import { catalogApiStatus, catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
-import { createAudioV2ChunkDecryptor } from '../features/catalog/audioV2Decryptor';
+import { AudioV2DecryptAuthenticationError, createAudioV2ChunkDecryptor } from '../features/catalog/audioV2Decryptor';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import {
@@ -801,7 +801,8 @@ export function useCatalog(deps: UseCatalogDeps) {
             clear = await decryptor.decrypt(chunk.index, range.bytes, signal);
           } catch (error) {
             if (isAbortError(error)) throw error;
-            throw new AudioV2ChunkAuthenticationError(error);
+            if (error instanceof AudioV2DecryptAuthenticationError) throw new AudioV2ChunkAuthenticationError(error);
+            throw error;
           }
           throwIfAborted(signal);
           if (chunk.index === 0) {

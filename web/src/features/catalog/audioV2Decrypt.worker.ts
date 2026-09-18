@@ -33,7 +33,7 @@ workerScope.onmessage = event => {
   }
 
   if (!header || !cryptoKey) {
-    workerScope.postMessage({ type: 'request-error', requestId: request.requestId, message: 'DAV2 decrypt worker is not ready' });
+    workerScope.postMessage({ type: 'authentication-error', requestId: request.requestId, message: 'DAV2 decrypt worker is not ready' });
     return;
   }
 
@@ -43,6 +43,6 @@ workerScope.onmessage = event => {
       workerScope.postMessage({ type: 'result', requestId: request.requestId, clear: clearBuffer }, [clearBuffer]);
     })
     .catch(error => {
-      workerScope.postMessage({ type: 'request-error', requestId: request.requestId, message: errorMessage(error) });
+      workerScope.postMessage({ type: 'authentication-error', requestId: request.requestId, message: errorMessage(error) });
     });
 };

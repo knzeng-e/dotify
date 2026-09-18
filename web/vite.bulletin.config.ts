@@ -9,6 +9,9 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 export default defineConfig({
   base: './',
   plugins: [react(), viteSingleFile()],
+  define: {
+    'import.meta.env.VITE_DOTIFY_INLINE_AUDIO_WORKER': JSON.stringify('true')
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')

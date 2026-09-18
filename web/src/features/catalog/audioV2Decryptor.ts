@@ -1,5 +1,6 @@
 import { decryptAudioV2Chunk, importAudioV2ContentKey, type AudioV2Header } from '../../shared/utils/audioV2';
 import type { AudioV2DecryptWorkerRequest, AudioV2DecryptWorkerResponse } from './audioV2DecryptorProtocol';
+import InlineAudioV2DecryptWorker from './audioV2Decrypt.worker?worker&inline';
 
 export type AudioV2DecryptExecution = 'worker' | 'main-thread';
 
@@ -8,6 +9,23 @@ export type AudioV2ChunkDecryptor = {
   decrypt: (chunkIndex: number, encrypted: Uint8Array, signal?: AbortSignal) => Promise<Uint8Array>;
   close: () => void;
 };
+
+export class AudioV2DecryptAuthenticationError extends Error {
+  constructor(readonly cause: unknown) {
+    super('DAV2 chunk authentication failed');
+    this.name = 'AudioV2DecryptAuthenticationError';
+  }
+}
+
+export class AudioV2WorkerTransportError extends Error {
+  constructor(
+    message: string,
+    readonly cause?: unknown
+  ) {
+    super(message);
+    this.name = 'AudioV2WorkerTransportError';
+  }
+}
 
 type WorkerLike = {
   onmessage: ((event: MessageEvent<AudioV2DecryptWorkerResponse>) => void) | null;
@@ -40,6 +58,9 @@ function createAbortError(): Error {
 }
 
 function defaultWorkerFactory(): WorkerLike {
+  if (import.meta.env.VITE_DOTIFY_INLINE_AUDIO_WORKER === 'true') {
+    return new InlineAudioV2DecryptWorker({ name: 'dotify-dav2-decrypt' });
+  }
   return new Worker(new URL('./audioV2Decrypt.worker.ts', import.meta.url), { type: 'module', name: 'dotify-dav2-decrypt' });
 }
 
@@ -51,9 +72,19 @@ function createMainThreadDecryptor(header: AudioV2Header, key: Uint8Array, paren
     execution: 'main-thread',
     async decrypt(chunkIndex, encrypted, signal) {
       if (closed || parentSignal?.aborted || signal?.aborted) throw createAbortError();
-      const cryptoKey = await cryptoKeyPromise;
+      let cryptoKey: CryptoKey;
+      try {
+        cryptoKey = await cryptoKeyPromise;
+      } catch (error) {
+        throw new AudioV2DecryptAuthenticationError(error);
+      }
       if (closed || parentSignal?.aborted || signal?.aborted) throw createAbortError();
-      const clear = await decryptAudioV2Chunk(header, chunkIndex, encrypted, cryptoKey);
+      let clear: Uint8Array;
+      try {
+        clear = await decryptAudioV2Chunk(header, chunkIndex, encrypted, cryptoKey);
+      } catch (error) {
+        throw new AudioV2DecryptAuthenticationError(error);
+      }
       if (closed || parentSignal?.aborted || signal?.aborted) throw createAbortError();
       return clear;
     },
@@ -65,6 +96,7 @@ function createMainThreadDecryptor(header: AudioV2Header, key: Uint8Array, paren
 
 async function createWorkerDecryptor(options: AudioV2DecryptorOptions, worker: WorkerLike): Promise<AudioV2ChunkDecryptor> {
   let closed = false;
+  let terminalError: Error | null = null;
   let nextRequestId = 1;
   const pending = new Map<number, PendingRequest>();
 
@@ -102,6 +134,7 @@ async function createWorkerDecryptor(options: AudioV2DecryptorOptions, worker: W
   const failWorker = (error: Error) => {
     if (closed) return;
     closed = true;
+    terminalError = error;
     clearReadyTimeout();
     worker.terminate();
     rejectReady(error);
@@ -117,7 +150,7 @@ async function createWorkerDecryptor(options: AudioV2DecryptorOptions, worker: W
       return;
     }
     if (response.type === 'fatal') {
-      failWorker(new Error(response.message));
+      failWorker(new AudioV2WorkerTransportError(response.message));
       return;
     }
 
@@ -125,14 +158,14 @@ async function createWorkerDecryptor(options: AudioV2DecryptorOptions, worker: W
     if (!request) return;
     pending.delete(response.requestId);
     request.cleanupAbort();
-    if (response.type === 'request-error') {
-      request.reject(new Error(response.message));
+    if (response.type === 'authentication-error') {
+      request.reject(new AudioV2DecryptAuthenticationError(new Error(response.message)));
       return;
     }
     request.resolve(new Uint8Array(response.clear));
   };
   worker.onerror = event => {
-    failWorker(new Error(event.message || 'DAV2 decrypt worker failed'));
+    failWorker(new AudioV2WorkerTransportError(event.message || 'DAV2 decrypt worker failed'));
   };
 
   if (options.signal?.aborted) {
@@ -149,14 +182,15 @@ async function createWorkerDecryptor(options: AudioV2DecryptorOptions, worker: W
   try {
     worker.postMessage({ type: 'init', header: options.header, key: keyBuffer }, [keyBuffer]);
   } catch (error) {
-    failWorker(error instanceof Error ? error : new Error('Unable to initialize DAV2 decrypt worker'));
+    failWorker(new AudioV2WorkerTransportError('Unable to initialize DAV2 decrypt worker', error));
   }
   await ready;
 
   return {
     execution: 'worker',
     decrypt(chunkIndex, encrypted, signal) {
-      if (closed || options.signal?.aborted || signal?.aborted) return Promise.reject(createAbortError());
+      if (options.signal?.aborted || signal?.aborted) return Promise.reject(createAbortError());
+      if (closed) return Promise.reject(terminalError ?? createAbortError());
       const requestId = nextRequestId++;
       const encryptedCopy = encrypted.slice();
       const encryptedBuffer = encryptedCopy.buffer as ArrayBuffer;
@@ -176,7 +210,7 @@ async function createWorkerDecryptor(options: AudioV2DecryptorOptions, worker: W
         } catch (error) {
           pending.delete(requestId);
           cleanupAbort();
-          reject(error instanceof Error ? error : new Error('Unable to send DAV2 chunk to decrypt worker'));
+          reject(new AudioV2WorkerTransportError('Unable to send DAV2 chunk to decrypt worker', error));
         }
       });
     },
@@ -196,7 +230,29 @@ export async function createAudioV2ChunkDecryptor(options: AudioV2DecryptorOptio
   let worker: WorkerLike | undefined;
   try {
     worker = workerFactory();
-    return await createWorkerDecryptor(options, worker);
+    const workerDecryptor = await createWorkerDecryptor(options, worker);
+    let activeDecryptor = workerDecryptor;
+    return {
+      get execution() {
+        return activeDecryptor.execution;
+      },
+      async decrypt(chunkIndex, encrypted, signal) {
+        try {
+          return await activeDecryptor.decrypt(chunkIndex, encrypted, signal);
+        } catch (error) {
+          if (!(error instanceof AudioV2WorkerTransportError)) throw error;
+          if (activeDecryptor === workerDecryptor) {
+            workerDecryptor.close();
+            activeDecryptor = createMainThreadDecryptor(options.header, options.key, options.signal);
+          }
+          return activeDecryptor.decrypt(chunkIndex, encrypted, signal);
+        }
+      },
+      close() {
+        activeDecryptor.close();
+        if (activeDecryptor !== workerDecryptor) workerDecryptor.close();
+      }
+    };
   } catch (error) {
     worker?.terminate();
     if (options.signal?.aborted || (error instanceof Error && error.name === 'AbortError')) throw error;

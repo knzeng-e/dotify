@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AudioV2Header } from '../../shared/utils/audioV2';
 import { decryptAudioV2Chunk, importAudioV2ContentKey } from '../../shared/utils/audioV2';
-import { createAudioV2ChunkDecryptor } from './audioV2Decryptor';
+import { AudioV2DecryptAuthenticationError, createAudioV2ChunkDecryptor } from './audioV2Decryptor';
 import type { AudioV2DecryptWorkerRequest, AudioV2DecryptWorkerResponse } from './audioV2DecryptorProtocol';
 
 const KEY = new Uint8Array(32).fill(0x7a);
@@ -46,7 +46,7 @@ class TestWorker {
   private header: AudioV2Header | null = null;
   private key: CryptoKey | null = null;
 
-  constructor(private readonly behavior: 'decrypt' | 'fatal-init' | 'stall' | 'stall-init') {}
+  constructor(private readonly behavior: 'decrypt' | 'fatal-init' | 'stall' | 'stall-init' | 'crash' | 'authentication-error') {}
 
   postMessage(message: AudioV2DecryptWorkerRequest, _transfer: Transferable[]): void {
     if (message.type === 'init') {
@@ -65,6 +65,18 @@ class TestWorker {
 
     this.decryptRequests += 1;
     if (this.behavior === 'stall') return;
+    if (this.behavior === 'crash') {
+      queueMicrotask(() => this.onerror?.({ message: 'worker crashed' } as ErrorEvent));
+      return;
+    }
+    if (this.behavior === 'authentication-error') {
+      queueMicrotask(() =>
+        this.onmessage?.({
+          data: { type: 'authentication-error', requestId: message.requestId, message: 'AES-GCM tag mismatch' }
+        } as MessageEvent<AudioV2DecryptWorkerResponse>)
+      );
+      return;
+    }
     void decryptAudioV2Chunk(this.header!, message.chunkIndex, new Uint8Array(message.encrypted), this.key!).then(clear => {
       const clearBuffer = clear.buffer.slice(clear.byteOffset, clear.byteOffset + clear.byteLength) as ArrayBuffer;
       this.onmessage?.({ data: { type: 'result', requestId: message.requestId, clear: clearBuffer } } as MessageEvent<AudioV2DecryptWorkerResponse>);
@@ -106,6 +118,25 @@ describe('DAV2 chunk decryptor', () => {
     expect(decryptor.execution).toBe('main-thread');
     await expect(decryptor.decrypt(0, await encryptedChunk())).resolves.toEqual(PLAIN);
     expect(worker.terminated).toBe(true);
+    decryptor.close();
+  });
+
+  it('recovers a worker transport crash through the main-thread decryptor', async () => {
+    const worker = new TestWorker('crash');
+    const decryptor = await createAudioV2ChunkDecryptor({ header: HEADER, key: KEY, workerFactory: () => worker });
+
+    await expect(decryptor.decrypt(0, await encryptedChunk())).resolves.toEqual(PLAIN);
+    expect(decryptor.execution).toBe('main-thread');
+    expect(worker.terminated).toBe(true);
+    decryptor.close();
+  });
+
+  it('keeps content authentication failures distinct from worker transport failures', async () => {
+    const worker = new TestWorker('authentication-error');
+    const decryptor = await createAudioV2ChunkDecryptor({ header: HEADER, key: KEY, workerFactory: () => worker });
+
+    await expect(decryptor.decrypt(0, await encryptedChunk())).rejects.toBeInstanceOf(AudioV2DecryptAuthenticationError);
+    expect(decryptor.execution).toBe('worker');
     decryptor.close();
   });
 

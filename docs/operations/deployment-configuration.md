@@ -269,6 +269,12 @@ therefore restricts DAV2 range reads and full-file recovery to Pinata gateways
 (`gateway.pinata.cloud` or a configured `*.mypinata.cloud` gateway). Keep
 generic `VITE_IPFS_READ_GATEWAYS` values for artwork/metadata fallback only.
 
+The flat-CID Bulletin build uploads only `dist-bulletin/index.html`. Its DAV2
+decrypt Worker is therefore compiled as an inline Blob Worker. The
+`build:bulletin` artifact smoke fails if that HTML references an external
+Worker or script asset; do not replace the inline path with a relative Worker
+URL unless Bulletin publication also starts uploading the full asset tree.
+
 The Product build also embeds a non-secret `dotify-test01.dot` bootstrap catalog
 snapshot. It prevents first-run mobile hosts from staying on `Loading registry
 catalog` when the Fly catalog request hangs; the Fly API remains the source of

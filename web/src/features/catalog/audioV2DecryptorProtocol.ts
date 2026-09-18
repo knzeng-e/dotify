@@ -16,5 +16,5 @@ export type AudioV2DecryptWorkerRequest =
 export type AudioV2DecryptWorkerResponse =
   | { type: 'ready' }
   | { type: 'result'; requestId: number; clear: ArrayBuffer }
-  | { type: 'request-error'; requestId: number; message: string }
+  | { type: 'authentication-error'; requestId: number; message: string }
   | { type: 'fatal'; message: string };
