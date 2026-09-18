@@ -10,32 +10,32 @@ export const ROYALTY_BPS_DENOMINATOR = 10_000;
 
 /** Ordered release wizard steps. Labels match what the studio renders. */
 export const RELEASE_STEPS: Array<{ id: ReleaseStep; label: string }> = [
-  { id: 'assets', label: 'Assets' },
+  { id: 'assets', label: 'Music' },
   { id: 'metadata', label: 'Details' },
-  { id: 'access', label: 'Access' },
+  { id: 'access', label: 'Listening' },
   { id: 'review', label: 'Review' }
 ];
 
 const PUBLICATION_ROADMAP_STEPS = [
   {
     id: 'assets',
-    label: 'Protected assets',
-    detail: 'Audio, cover, and the encrypted audio reference are ready for the artist runtime.'
+    label: 'Music ready',
+    detail: 'Audio and cover are protected and ready.'
   },
   {
     id: 'manifest',
-    label: 'Rights manifest',
-    detail: 'Release metadata, access policy, and payment split are pinned as the canonical manifest.'
+    label: 'Release details',
+    detail: 'The title, listening access, and support split are saved with the release.'
   },
   {
     id: 'registry',
-    label: 'Runtime registration',
-    detail: 'The artist wallet writes this release into the artist-owned SmartRuntime.'
+    label: 'Publication approval',
+    detail: 'Your connected artist account approves the release.'
   },
   {
     id: 'catalog',
-    label: 'Catalog read-back',
-    detail: 'Dotify refreshes the registry before treating the release as visible.'
+    label: 'Visible in Dotify',
+    detail: 'Dotify checks the catalog before showing the release as published.'
   }
 ] as const;
 
@@ -123,32 +123,13 @@ export function buildReleaseValueFlowRows(input: {
   primaryBps: number;
   additionalSplits: ReleaseRoyaltySplitDraft[];
 }): ReleaseValueFlowRow[] {
-  const artistLabel = input.artistRecipient ? shortenAddress(input.artistRecipient) : 'artist wallet';
-
   if (input.accessMode === 'free') {
     return [
       {
-        label: 'Artist wallet',
-        value: `${artistLabel} controls the release; no listener payment is collected.`
+        label: 'Support',
+        value: 'No listener payment is collected for this release.'
       }
     ];
-  }
-
-  const rows: ReleaseValueFlowRow[] = [];
-  if (input.primaryBps > 0) {
-    rows.push({
-      label: 'Artist share',
-      value: `${formatRoyaltyPercent(input.primaryBps)} to ${artistLabel}`
-    });
-  }
-
-  for (const split of input.additionalSplits) {
-    const hasDraft = split.label.trim() || split.recipient.trim() || split.bps > 0;
-    if (!hasDraft) continue;
-    rows.push({
-      label: split.label.trim() || 'Rights holder',
-      value: `${formatRoyaltyPercent(split.bps)} to ${split.recipient.trim() ? shortenAddress(split.recipient.trim()) : 'address needed'}`
-    });
   }
 
   const totalBps = royaltySplitTotal(input.primaryBps, input.additionalSplits);
@@ -161,10 +142,20 @@ export function buildReleaseValueFlowRows(input: {
     ];
   }
   const remainderBps = ROYALTY_BPS_DENOMINATOR - totalBps;
-  if (remainderBps > 0) {
+  const rows: ReleaseValueFlowRow[] = [];
+  const artistEffectiveBps = input.primaryBps + Math.max(0, remainderBps);
+  if (artistEffectiveBps > 0) {
     rows.push({
-      label: 'Artist remainder',
-      value: `${formatRoyaltyPercent(remainderBps)} also returns to ${artistLabel}`
+      label: 'You receive',
+      value: formatRoyaltyPercent(artistEffectiveBps)
+    });
+  }
+  for (const split of input.additionalSplits) {
+    const hasDraft = split.label.trim() || split.recipient.trim() || split.bps > 0;
+    if (!hasDraft) continue;
+    rows.push({
+      label: split.label.trim() || 'Rights holder',
+      value: split.bps > 0 ? `${formatRoyaltyPercent(split.bps)} receives support` : 'Add a share before publishing'
     });
   }
   if (totalBps > ROYALTY_BPS_DENOMINATOR) {
@@ -195,16 +186,7 @@ export function buildReleasePublicationFacts(input: {
 }): TransactionFeedbackFact[] {
   return [
     {
-      label: 'Controller',
-      value: input.artistRecipient ? `Artist wallet ${shortenAddress(input.artistRecipient)}` : 'Connect the artist wallet'
-    },
-    {
-      label: 'Runtime',
-      value: input.runtimeAddress ? shortenAddress(input.runtimeAddress) : 'Artist runtime required before publish',
-      code: Boolean(input.runtimeAddress)
-    },
-    {
-      label: 'Access',
+      label: 'Listening access',
       value: releaseAccessConditionLabel(input.accessMode, input.priceDot, input.nativePaymentSymbol, input.personhoodLevel)
     },
     {
@@ -213,17 +195,52 @@ export function buildReleasePublicationFacts(input: {
     },
     {
       label: 'Network fee',
-      value: 'Shown by the wallet or Product host before signing.'
+      value: 'Shown on your confirmation screen before approval.'
     },
     {
-      label: 'Catalog visibility',
-      value: 'Only after the registry transaction and catalog read-back confirm the release.'
+      label: 'Published when',
+      value: 'Your approval is confirmed and Dotify can see the release in the catalog.'
+    }
+  ];
+}
+
+export function buildReleaseTechnicalFacts(input: {
+  artistRecipient: string;
+  runtimeAddress: string | null;
+  uploadToBulletinEnabled: boolean;
+  additionalSplits?: ReleaseRoyaltySplitDraft[];
+}): TransactionFeedbackFact[] {
+  const facts: TransactionFeedbackFact[] = [
+    {
+      label: 'Artist account',
+      value: input.artistRecipient ? shortenAddress(input.artistRecipient) : 'Connect the artist account',
+      code: Boolean(input.artistRecipient)
+    },
+    {
+      label: 'Artist space record',
+      value: input.runtimeAddress ? shortenAddress(input.runtimeAddress) : 'Required before publication',
+      code: Boolean(input.runtimeAddress)
+    },
+    {
+      label: 'Release storage',
+      value: 'Protected audio and release details use IPFS-backed references.'
     },
     {
       label: 'Public archive',
       value: input.uploadToBulletinEnabled ? 'Bulletin archival enabled' : 'Bulletin archival off'
     }
   ];
+
+  for (const split of input.additionalSplits ?? []) {
+    if (!split.recipient.trim()) continue;
+    facts.push({
+      label: `${split.label.trim() || 'Rights holder'} address`,
+      value: shortenAddress(split.recipient.trim()),
+      code: true
+    });
+  }
+
+  return facts;
 }
 
 export function buildReleasePublicationRoadmap(stage: ReleasePublicationStage, txHash?: `0x${string}`): TransactionFeedback['steps'] {
@@ -246,12 +263,12 @@ export function buildReleasePublicationRoadmap(stage: ReleasePublicationStage, t
 
 export function buildReleaseRegistrationFailureMessage(input: { error: string; submittedTxHash?: `0x${string}`; registrationConfirmed?: boolean }): string {
   if (input.submittedTxHash && input.registrationConfirmed) {
-    return `The registration transaction was submitted, but Dotify did not confirm catalog visibility yet: ${input.error} Keep this transaction hash and refresh the catalog before retrying. Dotify will not mark the release as published until catalog read-back includes it.`;
+    return `Your publication approval was confirmed, but Dotify cannot see the release in the catalog yet: ${input.error} Keep the proof reference and refresh before retrying. Dotify will not call the release published until it appears in the catalog.`;
   }
   if (input.submittedTxHash) {
-    return `The registration transaction was submitted, but Dotify did not confirm finality: ${input.error} Keep this transaction hash and verify the runtime registration before retrying. Dotify will not mark the release as published until runtime registration and catalog read-back both confirm it.`;
+    return `Your publication approval was submitted, but confirmation did not finish: ${input.error} Keep the proof reference and check your account activity before retrying. Dotify will not submit another release automatically.`;
   }
-  return `No release was published. Asset uploads and manifest pinning can be retried from this draft without changing the artist runtime: ${input.error}`;
+  return `No release was published. Your music and draft are still here, so you can retry: ${input.error}`;
 }
 
 export type ArtistSetupState = 'Ready' | 'Registration needed' | 'Wallet needed';

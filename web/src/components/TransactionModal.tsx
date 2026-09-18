@@ -93,6 +93,50 @@ export function TransactionModal() {
           ))}
         </dl>
       )}
+      {feedback.technicalFacts && feedback.technicalFacts.length > 0 && (
+        <details className='transaction-technical'>
+          <summary>Technical details</summary>
+          <dl className='transaction-facts' aria-label='Technical transaction details'>
+            {feedback.technicalFacts.map(fact => (
+              <div key={`${fact.label}-${fact.value}`}>
+                <dt>{fact.label}</dt>
+                <dd>
+                  <span className='transaction-fact-value'>{fact.code ? <code>{fact.value}</code> : fact.value}</span>
+                  {fact.copyValue && (
+                    <button
+                      className='transaction-fact-copy'
+                      type='button'
+                      onClick={() => void copyFactValue(fact.label, fact.copyValue!)}
+                      aria-label={fact.copyLabel ?? `Copy ${fact.label}`}
+                    >
+                      <Copy size={13} />
+                      <span>Copy</span>
+                    </button>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {feedback.txHash && (
+            <div className='modal-hash'>
+              <span>Proof reference</span>
+              <code>{shorten(feedback.txHash, 12)}</code>
+              <button
+                className='transaction-fact-copy'
+                type='button'
+                onClick={() => void copyFactValue('Proof reference', feedback.txHash!)}
+                aria-label='Copy proof reference'
+              >
+                <Copy size={13} />
+                <span>Copy</span>
+              </button>
+              <a className='modal-link' href={getTransactionProofUrl(feedback.txHash, proofKind)} target='_blank' rel='noreferrer'>
+                {proofKind === 'substrate-extrinsic' ? 'View extrinsic' : 'View proof'}
+              </a>
+            </div>
+          )}
+        </details>
+      )}
       {copyStatus && (
         <p className='transaction-copy-status' data-tone={copyStatus.tone} role='status' aria-live='polite'>
           {copyStatus.message}
@@ -114,7 +158,7 @@ export function TransactionModal() {
               <span className='transaction-roadmap-copy'>
                 <strong>{step.label}</strong>
                 <small>{step.detail}</small>
-                {step.txHash && (
+                {step.txHash && !feedback.technicalFacts?.length && (
                   <a href={getTransactionProofUrl(step.txHash, proofKind)} target='_blank' rel='noreferrer'>
                     {shorten(step.txHash, 10)}
                   </a>
@@ -124,7 +168,7 @@ export function TransactionModal() {
           ))}
         </ol>
       )}
-      {feedback.txHash && !stepsContainTxHash && (
+      {feedback.txHash && !stepsContainTxHash && !feedback.technicalFacts?.length && (
         <div className='modal-hash'>
           <span>Proof reference</span>
           <code>{shorten(feedback.txHash, 12)}</code>

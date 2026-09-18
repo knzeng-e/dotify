@@ -4,6 +4,7 @@ import {
   buildReleasePublicationFacts,
   buildReleasePublicationRoadmap,
   buildReleaseRegistrationFailureMessage,
+  buildReleaseTechnicalFacts,
   buildReleaseValueFlowRows,
   formatRoyaltyPercent,
   artistStudioLocked,
@@ -92,7 +93,7 @@ describe('release publication disclosure helpers', () => {
     expect(releaseAccessConditionLabel('human-free', '0.75', 'PAS', 'DIM2')).toContain('extended human verification');
   });
 
-  it('shows artist control, catalog read-back, and Bulletin state as publication facts', () => {
+  it('shows listening, payment, fee, and publication boundary once in the main review', () => {
     const facts = buildReleasePublicationFacts({
       accessMode: 'classic',
       priceDot: '0.75',
@@ -103,12 +104,24 @@ describe('release publication disclosure helpers', () => {
       uploadToBulletinEnabled: true
     });
 
-    expect(facts).toContainEqual({ label: 'Controller', value: 'Artist wallet 0x111111...111111' });
-    expect(facts).toContainEqual({ label: 'Runtime', value: '0x222222...222222', code: true });
-    expect(facts).toEqual(
-      expect.arrayContaining([expect.objectContaining({ label: 'Catalog visibility', value: expect.stringContaining('catalog read-back') })])
-    );
+    expect(facts.map(fact => fact.label)).toEqual(['Listening access', 'Total support', 'Network fee', 'Published when']);
+    expect(facts).toContainEqual({ label: 'Total support', value: '0.75 PAS' });
+    expect(facts).toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Published when', value: expect.stringContaining('catalog') })]));
+    expect(facts).not.toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Artist space record' })]));
+  });
+
+  it('keeps addresses, storage, and archive state in technical details', () => {
+    const facts = buildReleaseTechnicalFacts({
+      artistRecipient: '0x1111111111111111111111111111111111111111',
+      runtimeAddress: '0x2222222222222222222222222222222222222222',
+      uploadToBulletinEnabled: true,
+      additionalSplits: [{ id: 'producer', label: 'Producer', recipient: '0x3333333333333333333333333333333333333333', bps: 2_000 }]
+    });
+
+    expect(facts).toContainEqual({ label: 'Artist account', value: '0x111111...111111', code: true });
+    expect(facts).toContainEqual({ label: 'Artist space record', value: '0x222222...222222', code: true });
     expect(facts).toContainEqual({ label: 'Public archive', value: 'Bulletin archival enabled' });
+    expect(facts).toContainEqual({ label: 'Producer address', value: '0x333333...333333', code: true });
   });
 
   it('explains who receives support, including the artist remainder', () => {
@@ -127,9 +140,8 @@ describe('release publication disclosure helpers', () => {
     });
 
     expect(rows).toEqual([
-      { label: 'Artist share', value: '72.5% to 0x111111...111111' },
-      { label: 'Producer', value: '20% to 0x222222...222222' },
-      { label: 'Artist remainder', value: '7.5% also returns to 0x111111...111111' }
+      { label: 'You receive', value: '80%' },
+      { label: 'Producer', value: '20% receives support' }
     ]);
   });
 
@@ -141,7 +153,7 @@ describe('release publication disclosure helpers', () => {
         primaryBps: 7250,
         additionalSplits: []
       })
-    ).toEqual([{ label: 'Artist wallet', value: '0x111111...111111 controls the release; no listener payment is collected.' }]);
+    ).toEqual([{ label: 'Support', value: 'No listener payment is collected for this release.' }]);
   });
 
   it('does not synthesize a 100% artist remainder for empty paid splits', () => {
@@ -191,12 +203,11 @@ describe('release publication disclosure helpers', () => {
     });
 
     expect(draftFailure).toContain('No release was published');
-    expect(draftFailure).toContain('can be retried from this draft');
-    expect(catalogFailure).toContain('transaction was submitted');
-    expect(catalogFailure).toContain('will not mark the release as published');
-    expect(catalogFailure).toContain('catalog visibility');
-    expect(submittedFailure).toContain('did not confirm finality');
-    expect(submittedFailure).toContain('runtime registration');
-    expect(submittedFailure).not.toContain('catalog visibility yet');
+    expect(draftFailure).toContain('draft are still here');
+    expect(catalogFailure).toContain('publication approval was confirmed');
+    expect(catalogFailure).toContain('will not call the release published');
+    expect(catalogFailure).toContain('catalog');
+    expect(submittedFailure).toContain('confirmation did not finish');
+    expect(submittedFailure).toContain('check your account activity');
   });
 });

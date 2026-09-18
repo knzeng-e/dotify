@@ -114,7 +114,7 @@ export function ReleasesTab({
               );
             })
           ) : (
-            <div className='empty-state'>No releases registered for this artist wallet yet.</div>
+            <div className='empty-state'>No published releases for this artist account yet.</div>
           )}
         </div>
       </aside>
@@ -142,7 +142,7 @@ export function ReleasesTab({
                     ? `${selectedRelease.priceDot} ${nativePaymentSymbol}`
                     : selectedRelease.accessMode === 'free'
                       ? 'Free'
-                      : 'Free for verified humans'}
+                      : 'Free with human verification'}
                 </span>
                 <span className='access-chip' data-tone={selectedReleaseActive ? 'ready' : 'locked'}>
                   {selectedReleaseActive ? 'Active' : 'Inactive'}
@@ -190,7 +190,7 @@ export function ReleasesTab({
                 onChange={event => setDraftAccessMode(event.target.value as AccessMode)}
                 disabled={!selectedReleaseActive || isBusy}
               >
-                <option value='human-free'>Free for verified humans</option>
+                <option value='human-free'>Free with human verification</option>
                 <option value='classic'>Direct support</option>
                 <option value='free'>Free</option>
               </select>
@@ -208,7 +208,7 @@ export function ReleasesTab({
               />
             </label>
             <label className='release-editor-field'>
-              <span>Humanity verified level required</span>
+              <span>Human verification level</span>
               <select
                 className='field'
                 value={draftPersonhoodLevel}
@@ -234,8 +234,8 @@ export function ReleasesTab({
                   : selectedRelease.accessMode === 'free'
                     ? 'Free for everyone'
                     : selectedRelease.personhoodLevel === 'DIM2'
-                      ? 'Free for verified humans · extended'
-                      : 'Free for verified humans · basic'
+                      ? 'Free with extended human verification'
+                      : 'Free with basic human verification'
               }
             />
             <EndpointRow

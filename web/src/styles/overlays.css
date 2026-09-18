@@ -231,6 +231,28 @@
   font-size: inherit;
 }
 
+.transaction-technical {
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.85rem;
+}
+
+.transaction-technical summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.transaction-technical[open] summary {
+  color: var(--ink);
+}
+
+.transaction-technical .transaction-facts {
+  margin-top: 0.75rem;
+}
+
 .transaction-facts a {
   color: var(--signal);
   text-underline-offset: 0.2rem;

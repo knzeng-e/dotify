@@ -599,8 +599,44 @@
   }
 
   .console-tabs {
+    padding-right: 3.5rem;
+    scrollbar-width: none;
+  }
+
+  .console-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .console-tabs-shell {
     margin-inline: calc(var(--content-pad) * -1);
-    padding-inline: var(--content-pad);
+    padding-left: var(--content-pad);
+    overflow: hidden;
+  }
+
+  .console-tabs-shell::after {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 3.5rem;
+    background: linear-gradient(90deg, transparent, var(--canvas) 82%);
+    content: '';
+    pointer-events: none;
+  }
+
+  .console-tabs-hint {
+    display: block;
+    padding: 0.35rem var(--content-pad) 0 0;
+    color: var(--muted);
+    font-size: var(--text-2xs);
+    text-align: right;
+    pointer-events: none;
+  }
+
+  .studio-next-step {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .studio-metric-row,
@@ -651,10 +687,6 @@
     flex-direction: column;
   }
 
-  .release-understanding-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .royalty-split-row {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -684,14 +716,16 @@
   }
 
   .transaction-facts > div,
-  .release-fact-panel dl > div,
+  .release-review-summary dl > div,
+  .release-technical-review dl > div,
   .access-gate-receipt dl > div {
     grid-template-columns: minmax(0, 1fr);
     gap: 0.25rem;
   }
 
   .transaction-facts dd,
-  .release-fact-panel dd,
+  .release-review-summary dd,
+  .release-technical-review dd,
   .access-gate-receipt dd {
     justify-content: flex-start;
     text-align: left;

@@ -54,15 +54,15 @@ export type UploadPhase = 'preparing' | 'uploading' | 'uploaded' | 'failed';
 const UPLOAD_STATUS: Record<UploadAssetKind, Record<UploadPhase, string>> = {
   audio: {
     preparing: 'Hashing audio',
-    uploading: 'Audio ready - uploading to IPFS...',
-    uploaded: 'Audio ready - protected and uploaded to IPFS',
-    failed: 'Audio ready (IPFS upload failed - will retry on register)'
+    uploading: 'Audio ready - saving securely...',
+    uploaded: 'Audio ready - protected and saved',
+    failed: 'Audio ready - secure save needs retrying when you publish'
   },
   cover: {
     preparing: 'Preparing cover image',
-    uploading: 'Cover ready - uploading to IPFS...',
-    uploaded: 'Cover ready - uploaded to IPFS',
-    failed: 'Cover ready (IPFS upload failed - will retry on register)'
+    uploading: 'Cover ready - saving...',
+    uploaded: 'Cover ready - saved',
+    failed: 'Cover ready - save needs retrying when you publish'
   }
 };
 
