@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { RuntimeReadPort, RuntimeWritePort } from '../runtime/runtimePorts';
-import { createSupportPaymentFlow, SupportNotSubmittedError, supportWasCanceled } from './supportPayment';
+import { createSupportPaymentFlow, SupportNotSubmittedError, supportNeedsFunding, supportWasCanceled } from './supportPayment';
 import { DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET } from './paymentModel';
 
 const txHash = `0x${'ab'.repeat(32)}` as const;
@@ -89,6 +89,33 @@ describe('support payment recovery', () => {
     f.writer.payForAccess.mockRejectedValueOnce(new SupportNotSubmittedError(new Error('Host connection failed')));
     await expect(f.flow.run(f.input)).resolves.toMatchObject({ status: 'failed' });
     await expect(f.flow.run(f.input)).resolves.toMatchObject({ status: 'verified' });
+  });
+  it('turns a Product transfer dry-run into funding guidance without exposing runtime internals', async () => {
+    const f = fixture();
+    const dryRun = Object.assign(
+      new Error(
+        'Product CDM transaction "musicRoyPayAccess" failed: Dry-run failed: {"type":"Module","value":{"type":"Revive","value":{"type":"TransferFailed"}}}'
+      ),
+      { name: 'ContractDryRunFailedError' }
+    );
+    f.writer.payForAccess.mockRejectedValueOnce(new SupportNotSubmittedError(dryRun));
+
+    const result = await f.flow.run(f.input);
+
+    expect(result).toMatchObject({
+      status: 'failed',
+      failureKind: 'funding-required',
+      message:
+        'This payment account could not cover the support and network fee. Add UNIT to the Polkadot account shown below, then try again. No payment was sent.'
+    });
+    expect(result.message).not.toContain('TransferFailed');
+    expect(f.items.size).toBe(0);
+  });
+  it('recognizes nested Product funding failures but not unrelated pre-submission errors', () => {
+    expect(supportNeedsFunding(new SupportNotSubmittedError(Object.assign(new Error('insufficient balance'), { name: 'ContractDryRunFailedError' })))).toBe(
+      true
+    );
+    expect(supportNeedsFunding(new SupportNotSubmittedError(new Error('Host connection failed')))).toBe(false);
   });
   it('does not mistake an access denial after submission for a canceled signature', async () => {
     const f = fixture();

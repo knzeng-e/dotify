@@ -635,6 +635,15 @@ npm run deploy:product-devnet
    this account** with Product DevNet PAS; the derived H160 is the runtime
    identity used for access read-back, not a second account to refill.
 
+   If the Product dry-run returns `Revive.TransferFailed`, first read the native
+   balance of the displayed SS58 account on Polkadot Hub TestNet. A zero or
+   insufficient balance means no transaction was submitted: fund that SS58
+   account, wait until the chain read reflects the deposit, and only then retry
+   **Support and open**. Do not send PAS separately to the derived H160. Dotify
+   should render **Add PAS to continue** with the funding account and suppress
+   the raw dry-run payload. An unknown post-submission failure is different and
+   must retain its payment reference rather than offering another payment.
+
    Before the payment attempt, open `You` -> `Production readiness` ->
    `Product CDM host smoke`, paste the executable CID printed by that exact
    deployment, and select **Use this deployment**. This starts a fresh

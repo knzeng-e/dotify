@@ -13,6 +13,15 @@ export class SupportNotSubmittedError extends Error {
   }
 }
 
+export function supportNeedsFunding(error: unknown): boolean {
+  for (let depth = 0; error && typeof error === 'object' && depth < 8; depth += 1) {
+    const item = error as { message?: string; cause?: unknown };
+    if (/TransferFailed|insufficient (?:balance|funds)/i.test(item.message ?? '')) return true;
+    error = item.cause;
+  }
+  return false;
+}
+
 export function supportWasCanceled(error: unknown): boolean {
   for (let depth = 0; error && typeof error === 'object' && depth < 8; depth++) {
     const item = error as { name?: string; code?: number; message?: string; cause?: unknown };
@@ -27,6 +36,7 @@ type Attempt = { version: 1; amountPlanck: string; symbol: string; txHash?: Hash
 export type SupportProgress = 'checking' | 'approval' | 'confirming' | 'verifying';
 export type SupportResult = {
   status: 'verified' | 'existing-access' | 'unverified' | 'uncertain' | 'canceled' | 'failed';
+  failureKind?: 'funding-required';
   txHash?: Hash;
   message?: string;
   verification?: RuntimeAccessPaymentVerificationResult;
@@ -125,6 +135,7 @@ export function createSupportPaymentFlow(storage: () => Pick<Storage, 'getItem' 
       if (!sending && !attempt) memory.delete(key);
       const canceled = !submitted && sending && supportWasCanceled(error);
       const safeToRetry = !submitted && sending && (canceled || error instanceof SupportNotSubmittedError);
+      const fundingRequired = safeToRetry && error instanceof SupportNotSubmittedError && supportNeedsFunding(error);
       if (safeToRetry) {
         memory.delete(key);
         try {
@@ -135,12 +146,15 @@ export function createSupportPaymentFlow(storage: () => Pick<Storage, 'getItem' 
       }
       return {
         status: canceled ? 'canceled' : !safeToRetry && (sending || attempt) ? 'uncertain' : 'failed',
+        failureKind: fundingRequired ? 'funding-required' : undefined,
         txHash: attempt?.txHash ?? memory.get(key)?.txHash,
         message: canceled
           ? 'No payment was sent. You can try again when you are ready.'
-          : error instanceof Error
-            ? error.message
-            : 'Payment could not be completed.'
+          : fundingRequired
+            ? `This payment account could not cover the support and network fee. Add ${input.intent.asset.symbol} to the Polkadot account shown below, then try again. No payment was sent.`
+            : error instanceof Error
+              ? error.message
+              : 'Payment could not be completed.'
       };
     }
   }

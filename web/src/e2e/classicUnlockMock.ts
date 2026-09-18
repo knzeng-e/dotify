@@ -1,6 +1,7 @@
 import { createWalletClient, http } from 'viem';
 import type { Chain } from 'viem';
 import type { RuntimeReadPort, RuntimeWritePort } from '../features/runtime/runtimePorts';
+import { SupportNotSubmittedError } from '../features/payments/supportPayment';
 import type { ConnectedWallet } from '../hooks/useWallet';
 import type { CatalogTrack } from '../shared/types';
 
@@ -104,6 +105,13 @@ export function classicSupportE2ePorts(reader: RuntimeReadPort, writer: RuntimeW
         state.paymentAttempts = (state.paymentAttempts ?? 0) + 1;
         if (new URLSearchParams(location.search).get('e2eClassic') === 'reject-payment' && state.paymentAttempts === 1) {
           throw Object.assign(new Error('User rejected the request'), { code: 4001 });
+        }
+        if (new URLSearchParams(location.search).get('e2eClassic') === 'funding-required') {
+          throw new SupportNotSubmittedError(
+            Object.assign(new Error('Dry-run failed: Revive.TransferFailed'), {
+              name: 'ContractDryRunFailedError'
+            })
+          );
         }
         state.paid = true;
         return E2E_CLASSIC_TX_HASH;
