@@ -1445,6 +1445,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     }
   }
 
+  function clearArtistRuntime() {
+    setArtistRuntimeAddress(null);
+    setArtistRegistrationStatus('Connect your artist account to check your artist space');
+  }
+
   const hasKnownRoyaltyRuntime = getKnownRoyaltyRuntimeCandidates().length > 0;
 
   return {
@@ -1475,6 +1480,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     // Functions
     registerArtist,
     refreshArtistRuntime,
+    clearArtistRuntime,
     registerRights,
     updateReleaseAccessMode,
     setReleaseActive,

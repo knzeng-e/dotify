@@ -67,7 +67,14 @@ export default function App() {
     // this authoritative read keeps catalog browsing and shared-room arrival
     // independent from Product CDM availability, even when Product has already
     // supplied an account to the app shell.
-    if (!connectedWallet || (!isArtistPortal && activeView !== 'you')) return;
+    if (!connectedWallet) {
+      artistConsole.clearArtistRuntime();
+      return;
+    }
+    if (!isArtistPortal && activeView !== 'you') return;
+    // Do not display the previous account's runtime while the authoritative
+    // lookup for the newly active identity is still in flight.
+    artistConsole.clearArtistRuntime();
     void artistConsole.refreshArtistRuntime();
   }, [activeEvmAddress, activeView, connectedWallet, directoryAddress, ethRpcUrl, isArtistPortal]);
 
