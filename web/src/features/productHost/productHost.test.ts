@@ -6,6 +6,7 @@ import {
   isProductHostWebRtcUnavailable,
   openProductHostExternalUrl,
   probeProductHost,
+  requiresExplicitProductRoomEntry,
   resolveProductHostConfig
 } from './productHost';
 
@@ -61,6 +62,16 @@ describe('probeProductHost', () => {
 });
 
 describe('Product host live-room navigation', () => {
+  it('requires an explicit room gesture on Product surfaces only', () => {
+    const browserRuntime = { protocol: 'https:', embedded: false, hostWebView: false, hostApiPort: false };
+
+    expect(requiresExplicitProductRoomEntry(browserRuntime)).toBe(false);
+    expect(requiresExplicitProductRoomEntry({ ...browserRuntime, embedded: true })).toBe(true);
+    expect(requiresExplicitProductRoomEntry({ ...browserRuntime, protocol: 'polkadot:' })).toBe(true);
+    expect(requiresExplicitProductRoomEntry({ ...browserRuntime, hostWebView: true })).toBe(true);
+    expect(requiresExplicitProductRoomEntry({ ...browserRuntime, hostApiPort: true })).toBe(true);
+  });
+
   it('detects the Product Mobile sandbox without masking browser WebRTC support', () => {
     const peerConnection = class {} as typeof RTCPeerConnection;
 

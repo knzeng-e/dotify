@@ -41,9 +41,10 @@ import { NAV_ITEMS } from '../app/navigation';
 import { catalogTrackToTrackInfo, isTrackManagedByArtist } from '../features/catalog/trackModel';
 import { getStoredDisplayName, isChosenDisplayName } from '../features/identity/walletIdentity';
 import { isProductionReadinessPanelEnabled } from '../features/observability/productionReadiness';
-import { resolveProductHostConfig } from '../features/productHost/productHost';
+import { requiresExplicitProductRoomEntry, resolveProductHostConfig } from '../features/productHost/productHost';
 import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { getInitialRoomCode } from '../features/rooms/roomState';
+import { resolveRoomEntryState } from '../features/rooms/roomEntryState';
 import { deriveSupportSummary } from '../features/wallet/supportSummary';
 import { getStoredArtistName } from '../hooks/useArtistConsole';
 import { normalizeRoomCode } from '../shared/utils/format';
@@ -88,14 +89,14 @@ export function ListenerShell() {
   const initialRoomCode = getInitialRoomCode();
   const targetRoomCode = initialRoomCode || normalizeRoomCode(session.joinCode);
   const thresholdRoom = session.openRooms.find(room => room.roomId === targetRoomCode);
-  const thresholdState =
-    !initialRoomCode || roomId
-      ? 'idle'
-      : thresholdRoom
-        ? 'ready'
-        : session.socketStatus === 'error' || (session.socketStatus === 'online' && !session.isRefreshingRooms)
-          ? 'unavailable'
-          : 'resolving';
+  const explicitProductRoomEntry = requiresExplicitProductRoomEntry();
+  const thresholdState = resolveRoomEntryState({
+    initialRoomCode,
+    joinedRoomId: roomId,
+    openRooms: session.openRooms,
+    socketStatus: session.socketStatus,
+    isRefreshingRooms: session.isRefreshingRooms
+  });
   const isRoomGuest = session.mode === 'listener' && Boolean(roomId);
   const soloTrackHash = playback.transport.playing && !roomId ? (selectedTrack?.hash ?? null) : null;
   const showProductionReadinessPanel = isProductionReadinessPanelEnabled({ VITE_DOTIFY_DEBUG_PANEL: import.meta.env.VITE_DOTIFY_DEBUG_PANEL });
@@ -121,6 +122,10 @@ export function ListenerShell() {
   // an action. Connecting here is read-only: it lists public room summaries and
   // never touches a wallet, key route, or protected source.
   useEffect(() => {
+    // SessionProvider owns remembered-name auto-join. Let that connection win
+    // on share links instead of racing it with a second discovery request
+    // during React StrictMode's mount replay.
+    if (!explicitProductRoomEntry && getInitialRoomCode() && getStoredDisplayName(listenerEvmAddress)) return;
     session.requestOpenRooms(true);
     // The session facade owns socket lifecycle; this initial discovery should
     // run once per mounted listener shell, not whenever the facade object moves.
@@ -130,11 +135,12 @@ export function ListenerShell() {
   useEffect(() => {
     const initialRoomCode = getInitialRoomCode();
     if (promptedInitialRoomRef.current || !initialRoomCode || roomId) return;
-    if (getStoredDisplayName(listenerEvmAddress)) return;
+    const rememberedName = getStoredDisplayName(listenerEvmAddress);
+    if (rememberedName && !explicitProductRoomEntry) return;
     promptedInitialRoomRef.current = true;
-    setSessionDisplayName('');
+    setSessionDisplayName(rememberedName ?? '');
     setJoinRoomOpen(true);
-  }, [listenerEvmAddress, roomId, setSessionDisplayName]);
+  }, [explicitProductRoomEntry, listenerEvmAddress, roomId, setSessionDisplayName]);
 
   const handlePlayTrack = useCallback(
     (track: CatalogTrack) => {
@@ -441,6 +447,7 @@ export function ListenerShell() {
               setJoinRoomOpen(false);
               session.joinRoom(code);
             }}
+            onRetry={() => session.requestOpenRooms(true)}
             onClose={() => setJoinRoomOpen(false)}
           />
         )}

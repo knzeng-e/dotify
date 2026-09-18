@@ -696,6 +696,12 @@ npm run smoke:product-cash-settlement -- \
 7. A Product-origin host creates a room and copies a
    `https://dotify-test01.dev-dot.li/#/rooms/<code>` link.
 8. A wallet-free browser joins that link from outside the Product host.
+   The public room lookup must start before any Product WebRTC/Remote
+   permission prompt. Dotify requests those host permissions only when the
+   person chooses to enter or host a room; merely opening a share link must be
+   enough to show the live host, track, and presence. If the signaling service
+   cannot be reached, the threshold sheet shows a retryable connection state.
+   Do not record that transport failure as an expired room.
 9. The outside listener reaches `In sync` and hears the host stream; staying on
    `Connecting...` means host capture or WebRTC negotiation is still failing,
    not room creation.

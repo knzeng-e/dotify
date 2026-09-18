@@ -217,6 +217,29 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
   }
 });
 
+test('embedded Product Web guest sees a live room before media permission', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const listenerContext = await browser.newContext();
+  try {
+    const host = await hostContext.newPage();
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE);
+
+    const listenerHost = await listenerContext.newPage();
+    await listenerHost.goto('/');
+    await listenerHost.evaluate(() => window.localStorage.setItem('dotify:display-name:guest', 'Product guest'));
+    await listenerHost.setContent(`<iframe title="Product Web" src="${new URL(`/#/rooms/${roomId}`, listenerHost.url())}"></iframe>`);
+
+    const embeddedDotify = listenerHost.frameLocator('iframe[title="Product Web"]');
+    await expect(embeddedDotify.locator('#join-room-title')).toContainText('welcomes you', { timeout: 15_000 });
+    await expect(embeddedDotify.locator('.room-threshold-preview')).toContainText(PUBLIC_TITLE);
+    await expect(embeddedDotify.getByLabel('Your name in the room')).toHaveValue('Product guest');
+    await expect(embeddedDotify.getByRole('button', { name: 'Enter and listen' })).toBeEnabled();
+  } finally {
+    await hostContext.close();
+    await listenerContext.close();
+  }
+});
+
 test('public room: listener can manually start audio when embedded autoplay is blocked', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();
