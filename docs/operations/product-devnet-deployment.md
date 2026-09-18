@@ -404,7 +404,16 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The current Product executable is `[0, 1, 22]`. This version routes Product CDM payment hashes to Paseo Asset Hub Subscan as native extrinsics and identifies the remaining native-event indexing boundary in the artist ledger. It retains the `[0, 1, 21]` correction that converts 18-decimal Solidity payment values into the connected chain's native `Revive.call` Balance precision, and it treats SDK dry-run failures as not submitted so users can retry safely. It also binds Product payment and room evidence to the exact deployed CID so stale artifacts cannot satisfy pilot gates. It keeps blocked
+The current Product executable is `[0, 1, 23]`. This version keeps shared-link
+arrival free of chain setup: Product CDM readers connect only when an
+authoritative runtime read is requested, and the known DevNet PAS label no
+longer opens a direct EVM RPC request during initial render. Direct Product CDM
+reads and writes still fail closed when the Host protocol is unavailable; there
+is no viem fallback for access decisions. It retains the `[0, 1, 22]` native
+extrinsic proof links and the `[0, 1, 21]` correction that converts 18-decimal
+Solidity payment values into the connected chain's native `Revive.call` Balance
+precision. It also binds Product payment and room evidence to the exact
+deployed CID so stale artifacts cannot satisfy pilot gates. It keeps blocked
 guest audio recovery visible in Product-hosted rooms, exposes W05 runtime claim
 writes through the shared runtime writer port, uses the refreshed September 2026
 Product SDK/tooling and re-pinned Bulletin descriptor, and removes
@@ -723,7 +732,7 @@ npm run smoke:product-journey -- \
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 22]",
+    "productAppVersion": "[0, 1, 23]",
     "deployedCid": "<same-product-executable-cid-as-payment-smoke>"
   },
   "hostSurface": "product-desktop",
@@ -888,6 +897,14 @@ active.
   poll `musicAccHasPaid` and `musicAccCanAccess` for that H160 account before
   surfacing success. If the payment was included but verification fails, the UI
   preserves the transaction hash in the error state.
+- Product Web's current gateway can reject native Product CDM chain setup with
+  `Malformed protocol error payload: expected 3 bytes, received 6`. Version
+  `[0, 1, 23]` prevents that host/version mismatch from running merely because
+  a guest opened the catalog or a room link. Catalog API and public room
+  discovery remain available; an actual protected-track access read still
+  fails closed until Product Web and the pinned TruAPI/Product SDK protocol are
+  compatible. Product Desktop remains the supported Product CDM payment
+  surface for the pilot candidate.
 - Rooms still depend on one in-memory Fly signaling machine.
 - Product-host cloud storage does not hold Dotify audio or content keys.
 - Product personhood is not yet an access decision source.

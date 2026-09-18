@@ -11,6 +11,9 @@
 
 export type RuntimeAdapterKind = 'viem' | 'product-cdm';
 
+/** EVM identity used by Dotify contracts on the Product DevNet Asset Hub. */
+export const PRODUCT_DEVNET_EVM_CHAIN_ID = 420420417;
+
 export type RuntimeAdapterConfig = {
   kind: RuntimeAdapterKind;
   /** Product chain environment used only when kind is 'product-cdm'. */

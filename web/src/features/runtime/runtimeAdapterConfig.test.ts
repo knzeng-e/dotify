@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { resolveRuntimeAdapterConfig } from './runtimeAdapterConfig';
+import { PRODUCT_DEVNET_EVM_CHAIN_ID, resolveRuntimeAdapterConfig } from './runtimeAdapterConfig';
 
 describe('resolveRuntimeAdapterConfig', () => {
+  it('pins Product DevNet to the Asset Hub EVM identity that owns the runtimes', () => {
+    expect(PRODUCT_DEVNET_EVM_CHAIN_ID).toBe(420420417);
+  });
+
   it('defaults to the viem adapter when nothing is configured', () => {
     expect(resolveRuntimeAdapterConfig({})).toEqual({ kind: 'viem', productEnvironment: 'devnet' });
   });

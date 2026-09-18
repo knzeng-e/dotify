@@ -4,6 +4,7 @@ import { deployments } from './shared/config/deployments';
 import { applyAura, auraForName, auraForTrack } from './shared/utils/aura';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { getStoredArtistName } from './hooks/useArtistConsole';
+import { runtimeIdentityKey } from './features/identity/walletIdentity';
 import { useNavigation, useCatalogContext, useSessionContext, useArtistStudio, useWalletContext, useReleaseForm } from './app/providers';
 
 import { ListenerShell } from './views/ListenerShell';
@@ -15,11 +16,12 @@ import { ArtistShell } from './views/ArtistShell';
 // picks the shell and runs the handful of effects that span both shells.
 
 export default function App() {
-  const { isArtistPortal, publicArtistName } = useNavigation();
+  const { activeView, isArtistPortal, publicArtistName } = useNavigation();
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { artistConsole } = useArtistStudio();
-  const { activeEvmAddress, ethRpcUrl } = useWalletContext();
+  const { activeEvmAddress, connectedWallet, ethRpcUrl } = useWalletContext();
+  const connectedArtistIdentity = runtimeIdentityKey(connectedWallet);
   const { setArtistName } = useReleaseForm();
   const directoryAddress = deployments.directory;
 
@@ -63,8 +65,20 @@ export default function App() {
   }, [activeEvmAddress, setArtistName]);
 
   useEffect(() => {
+    // Runtime identity is needed in the account and artist surfaces. Deferring
+    // this authoritative read keeps catalog browsing and shared-room arrival
+    // independent from Product CDM availability, even when Product has already
+    // supplied an account to the app shell.
+    if (!connectedArtistIdentity) {
+      artistConsole.clearArtistRuntime();
+      return;
+    }
+    if (!isArtistPortal && activeView !== 'you') return;
+    // Do not display the previous account's runtime while the authoritative
+    // lookup for the newly active identity is still in flight.
+    artistConsole.clearArtistRuntime();
     void artistConsole.refreshArtistRuntime();
-  }, [activeEvmAddress, directoryAddress, ethRpcUrl]);
+  }, [activeEvmAddress, activeView, connectedArtistIdentity, directoryAddress, ethRpcUrl, isArtistPortal]);
 
   return isArtistPortal ? <ArtistShell /> : <ListenerShell />;
 }

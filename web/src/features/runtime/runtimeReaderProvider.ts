@@ -38,21 +38,30 @@ async function createProductCdmReader(config: RuntimeAdapterConfig): Promise<Run
     );
   }
   const { createProductCdmContracts } = await import('./productCdmContracts');
-  const { resolver, verifyDeployment } = await createProductCdmContracts({ environment: config.productEnvironment });
+  const { resolver, verifyDeployment, destroy } = await createProductCdmContracts({ environment: config.productEnvironment });
   // Confirm the host connected a chain that actually holds Dotify's contracts
   // before any catalog read runs. Skipping this would surface a wrong-chain
   // connection as an empty catalog.
-  await verifyDeployment();
+  try {
+    await verifyDeployment();
+  } catch (error) {
+    destroy();
+    throw error;
+  }
   return createProductCdmRuntimeReader({ contracts: resolver });
 }
 
 /**
  * Build the configured read port.
  *
- * The returned object is usable immediately; each call awaits the underlying
- * port. A failed Product setup rejects every read with that error rather than
- * silently falling back to viem - the adapter in use must never be ambiguous,
- * because the artist runtime is the authority on access policy.
+ * The returned object is usable immediately; the first actual read creates the
+ * Product port and later reads reuse it. Creating this provider during React
+ * render must not contact the host: room guests and catalog-API readers do not
+ * need Product chain capabilities merely to open a shared link.
+ *
+ * A failed Product setup rejects that read rather than silently falling back to
+ * viem - the artist runtime is the authority on access policy. The rejected
+ * setup is cleared so a later, explicit read can retry after the host recovers.
  */
 export function createRuntimeReader(deps: RuntimeReaderDeps): RuntimeReadPort {
   const config = deps.config ?? resolveRuntimeAdapterConfig(import.meta.env);
@@ -61,19 +70,27 @@ export function createRuntimeReader(deps: RuntimeReaderDeps): RuntimeReadPort {
     return createViemRuntimeReader({ ethRpcUrl: deps.ethRpcUrl });
   }
 
-  const portPromise = createProductCdmReader(config);
+  let productPortPromise: Promise<RuntimeReadPort> | null = null;
+
+  function portForRead(): Promise<RuntimeReadPort> {
+    productPortPromise ??= createProductCdmReader(config).catch(error => {
+      productPortPromise = null;
+      throw error;
+    });
+    return productPortPromise;
+  }
 
   return {
-    ensureContract: (...args) => portPromise.then(port => port.ensureContract(...args)),
-    resolveArtistRuntime: (...args) => portPromise.then(port => port.resolveArtistRuntime(...args)),
-    getArtistCount: (...args) => portPromise.then(port => port.getArtistCount(...args)),
-    listArtistRuntimes: (...args) => portPromise.then(port => port.listArtistRuntimes(...args)),
-    listRuntimeTracks: (...args) => portPromise.then(port => port.listRuntimeTracks(...args)),
-    canAccess: (...args) => portPromise.then(port => port.canAccess(...args)),
-    hasPaid: (...args) => portPromise.then(port => port.hasPaid(...args)),
-    pendingRuntimeOf: (...args) => portPromise.then(port => port.pendingRuntimeOf(...args)),
-    pendingRuntimeStageOf: (...args) => portPromise.then(port => port.pendingRuntimeStageOf(...args)),
-    listRoyaltyPaymentLogs: (...args) => portPromise.then(port => port.listRoyaltyPaymentLogs(...args)),
-    getRoyaltyClaimable: (...args) => portPromise.then(port => port.getRoyaltyClaimable(...args))
+    ensureContract: (...args) => portForRead().then(port => port.ensureContract(...args)),
+    resolveArtistRuntime: (...args) => portForRead().then(port => port.resolveArtistRuntime(...args)),
+    getArtistCount: (...args) => portForRead().then(port => port.getArtistCount(...args)),
+    listArtistRuntimes: (...args) => portForRead().then(port => port.listArtistRuntimes(...args)),
+    listRuntimeTracks: (...args) => portForRead().then(port => port.listRuntimeTracks(...args)),
+    canAccess: (...args) => portForRead().then(port => port.canAccess(...args)),
+    hasPaid: (...args) => portForRead().then(port => port.hasPaid(...args)),
+    pendingRuntimeOf: (...args) => portForRead().then(port => port.pendingRuntimeOf(...args)),
+    pendingRuntimeStageOf: (...args) => portForRead().then(port => port.pendingRuntimeStageOf(...args)),
+    listRoyaltyPaymentLogs: (...args) => portForRead().then(port => port.listRoyaltyPaymentLogs(...args)),
+    getRoyaltyClaimable: (...args) => portForRead().then(port => port.getRoyaltyClaimable(...args))
   };
 }
