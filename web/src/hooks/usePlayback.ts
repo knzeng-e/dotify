@@ -25,6 +25,8 @@ type UsePlaybackDeps = {
   localAudioRef: RefObject<HTMLAudioElement | null>;
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   audioSource: string | null;
+  trackSelectionPending: boolean;
+  onHostMediaSettled: (source: string | null) => void;
   remoteReady: boolean;
   remoteStreamVersion: number;
   localStreamReady: boolean;
@@ -62,6 +64,8 @@ export function usePlayback(deps: UsePlaybackDeps) {
     localAudioRef,
     remoteAudioRef,
     audioSource,
+    trackSelectionPending,
+    onHostMediaSettled,
     remoteReady,
     remoteStreamVersion,
     localStreamReady,
@@ -80,11 +84,18 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const [remotePausedByUser, setRemotePausedByUser] = useState(false);
 
   const roomClock = useRoomClock(playerState, mode === 'listener' && remoteReady);
-  const transport = mode === 'listener' ? { ...roomClock.state, playing: roomClock.state.playing && remoteReady && !remotePausedByUser } : localTransport;
+  const transport =
+    mode === 'listener'
+      ? { ...roomClock.state, playing: roomClock.state.playing && remoteReady && !remotePausedByUser }
+      : trackSelectionPending
+        ? { playing: false, currentTime: 0, duration: 0, updatedAt: localTransport.updatedAt }
+        : localTransport;
   const remoteMuted = muted || mode !== 'listener' || !remoteReady || !playerState?.playing || remotePausedByUser || roomClock.stale;
   const visibleStatus =
     mode !== 'listener'
-      ? status
+      ? trackSelectionPending
+        ? 'preparing'
+        : status
       : roomClock.stale && remoteReady
         ? 'syncing'
         : listenerPlaybackStatusForHostState(status, remoteReady, playerState?.playing ?? false, remotePausedByUser);
@@ -103,10 +114,10 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const getControllingAudio = useCallback(() => (mode === 'host' ? localAudioRef.current : remoteAudioRef.current), [mode, localAudioRef, remoteAudioRef]);
 
-  const canUseTransport = transport.playing || (mode === 'host' ? Boolean(audioSource) : remoteReady);
+  const canUseTransport = !trackSelectionPending && (transport.playing || (mode === 'host' ? Boolean(audioSource) : remoteReady));
   const canSeek = mode === 'host' && canUseTransport && localTransport.duration > 0;
   const canRepeat = mode === 'host';
-  const canSkip = mode === 'host' && catalogTracks.length > 1;
+  const canSkip = mode === 'host' && !trackSelectionPending && catalogTracks.length > 1;
   const canShuffle = mode === 'host' && catalogTracks.length > 1;
 
   const syncFromAudio = useCallback(
@@ -339,8 +350,17 @@ export function usePlayback(deps: UsePlaybackDeps) {
     [syncFromAudio]
   );
 
+  const handleHostCanPlay = useCallback(
+    (audio: HTMLAudioElement) => {
+      onHostMediaSettled(audioSource);
+      syncFromAudio(audio);
+    },
+    [audioSource, onHostMediaSettled, syncFromAudio]
+  );
+
   const handleHostPlaying = useCallback(
     (audio: HTMLAudioElement) => {
+      onHostMediaSettled(audioSource);
       syncFromAudio(audio);
       const startup = hostStartupRef.current;
       if (!startup || startup.firstAudioReported) return;
@@ -353,10 +373,11 @@ export function usePlayback(deps: UsePlaybackDeps) {
         timestamp: Date.now()
       });
     },
-    [syncFromAudio]
+    [audioSource, onHostMediaSettled, syncFromAudio]
   );
 
   const handleHostError = useCallback(() => {
+    onHostMediaSettled(audioSource);
     const startup = hostStartupRef.current;
     if (!startup || startup.errorReported) return;
     startup.errorReported = true;
@@ -366,7 +387,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       elapsedMs: Number((nowMs() - startup.startedAt).toFixed(1)),
       timestamp: Date.now()
     });
-  }, []);
+  }, [audioSource, onHostMediaSettled]);
 
   const markNoAudio = useCallback(() => setStatus('no-audio'), []);
   const toggleRepeat = useCallback(() => {
@@ -400,6 +421,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     syncFromAudio,
     handleEnded,
     handleHostLoadedMetadata,
+    handleHostCanPlay,
     handleHostPlaying,
     handleHostError,
     requestAutoplay,

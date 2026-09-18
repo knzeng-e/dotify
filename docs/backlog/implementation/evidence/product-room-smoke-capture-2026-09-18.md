@@ -16,13 +16,16 @@
   [W13 #158](https://github.com/knzeng-e/dotify/issues/158).
 - Deployment record branch / PR: `chore/w13-live-candidate-evidence`,
   [PR #194](https://github.com/knzeng-e/dotify/pull/194).
+- Live room follow-up source base / branch:
+  `5c03fb9129399686cec2d432998fead3929e31f2` / `fix/room-track-handoff`.
 - Related dependency evidence:
   [W13 consolidation](W13-consolidation-2026-09-17.md),
   [W09](W09.md), and [W11](W11.md).
 - Product executable version: `[0, 1, 25]`.
 - Code readiness: locally and CI verified.
-- Release readiness: published to Product DevNet; payment/key and two-device
-  room evidence remain blocked below.
+- Release readiness: published to Product DevNet; the Product-hosted room path
+  passed against an ordinary browser guest. Payment/key, canonical Product Web
+  room entry, and the remaining device/operations gates stay open below.
 
 ## Result and decisions
 
@@ -59,15 +62,40 @@ The merged candidate was published on 2026-09-18 as
 both `dotify-test01.dot` and `app.dotify-test01.dot`. The Product Desktop host
 resolved the app, rendered the ten-track catalog, navigation, and player, and
 then presented the expected permission boundary for `dotify-signal.fly.dev`
-and `dotify-api.fly.dev`. No backend permission was granted during this
-capture, so it proves executable resolution and first render rather than the
-payment or room journey.
+and `dotify-api.fly.dev`. The operator granted persistent access to those two
+declared backends. The host then created room `FLFNQZ`, and an ordinary Chrome
+guest joined through the deployed Netlify web surface without connecting a
+wallet. Chrome showed two people, `In sync`, matching progress, and active tab
+audio while the host played the room stream. Host pause/resume muted and
+resumed the guest at the same position without reproducing the prior repeated
+pause artifact. Navigating the host back to Music preserved the room and its
+two-person presence.
+
+The host also advanced across multiple catalog tracks. Guest metadata and
+audio followed without replacing the room session, but Product source
+resolution took more than twelve seconds for one transition. During that gap,
+the new title appeared over the outgoing track's completed progress and an
+apparently usable Play control. The follow-up branch adds an explicit
+`Preparing audio` handoff: outgoing audio stops immediately, progress resets,
+transport is disabled while access/fetch/decryption resolves, and autoplay
+continues once the new source is ready. The handoff stays pending after a DAV2
+object URL is assigned and settles only when the media element reaches
+`canplay` (or reports a terminal error); a DAV2 fallback carries the pending
+source identity forward. A deterministic delayed-media Playwright scenario now
+covers the interval between source assignment and actual readiness.
 
 The public Product gateway also resolved and rendered the same ten-track app in
 a normal Google Chrome session. A separate headless Chromium probe reached the
 gateway shell but its embedded Smoldot client crashed before executable load;
 because the real browser path passed, that result is retained only as a test
 environment limitation rather than a public-gateway incident.
+
+The canonical Product Web room URL preserved `#/rooms/FLFNQZ` through the
+gateway into the embedded executable. That separate browser origin displayed
+the room as unavailable because it did not yet have the network permission
+already granted to Product Desktop. It therefore proves route propagation, not
+canonical Product Web room entry. The working guest evidence above uses the
+ordinary HTTPS Netlify surface.
 
 The deployment refreshed the generated Product catalog snapshot from the live
 API immediately before compilation. The published artifact therefore contains
@@ -98,10 +126,18 @@ the deployed snapshot without drift.
 | Open `dotify-test01.dot` in Polkadot Desktop Dev | Native Product Desktop, published CID | Passed for resolution and first render: Dotify displayed 10 tracks, navigation, and the player before the expected backend-domain permission prompt | Manual Product Desktop observation |
 | Open `https://dotify-test01.dev-dot.li` in Google Chrome | Public Product web gateway with RPC gateway fallback | Passed: Product resolved and rendered the same 10-track catalog and room entry surface | Manual Chrome observation |
 | Open `https://dotify-test01.dev-dot.li` in headless Chromium | Diagnostic-only browser environment | Gateway returned HTTP 200, but its Smoldot light client crashed before executable load; normal Chrome passed | `/tmp/dotify-product-live.png`, transient |
+| Product Desktop host → ordinary Chrome guest room `FLFNQZ` | Published Product candidate as host; Netlify HTTPS guest with no wallet connection | Passed: 2 present, `In sync`, audible browser tab, synchronized progress and pause/resume, chat delivery, and host navigation continuity | Manual Product Desktop and Chrome observation |
+| Host Next across live Product tracks | Same two-surface room | Passed session continuity and eventual autoplay; exposed a >12 s source-resolution interval with stale outgoing progress | Manual Product Desktop and Chrome observation |
+| `npm run test:e2e -- e2e/room-continuity.spec.ts` | Local Playwright against `fix/room-track-handoff`; the second audio response is delayed after its source is assigned | 2 tests passed in both native-capture variants: `Preparing audio`, zeroed progress, disabled Play/Next until `canplay`, then new title/tone without stream replacement | `room-continuity.spec.ts` |
+| `npm run test:unit` | Local Node 22, follow-up branch | 70 files and 553 tests passed | Terminal output |
+| `npm run test:e2e -- --project=chromium e2e/room-continuity.spec.ts e2e/room-sync.spec.ts e2e/room-join.spec.ts` | Local Playwright, follow-up branch | 14 tests passed, including repeated pause silence, seek, public/protected joining, and Product Mobile fallback | Terminal output |
+| `npm run test:signal` | Local Node 22, follow-up branch | 59 tests passed | Terminal output |
+| `npm run build`; Product CDM/support/debug build | Local Node 22, follow-up branch | Passed; existing build warnings remain | Terminal output |
 
-A real wallet, live payment, audible two-device room, physical iPhone, and
-independent external network were not used in these checks. Product Desktop
-backend access was not granted, so no room or payment claim is made.
+A live payment was not submitted in this capture. The room check used two real
+surfaces on one computer rather than two physical devices or an independent
+external network. Physical iPhone, independent TURN/network, and exported QA
+JSON evidence therefore remain open.
 
 ## Compatibility and operations
 
@@ -135,29 +171,33 @@ backend access was not granted, so no room or payment claim is made.
 | --- | --- | --- |
 | Traceable Product room candidate | Passed live | Merged SHA `2dc05aa`, app version `[0, 1, 25]`, finalized root CID, and both DotNS transactions are recorded above. |
 | Product executable resolves and renders | Passed live on Product Desktop | The native host loaded the finalized CID and rendered the ten-track Dotify catalog. |
-| Product host creates and streams a room | Not run live | The executable is live, but backend-domain access and a real host/listener session were not authorized during this capture. |
-| Walletless browser guest hears synchronized audio | Not run live | The export and harness require no account, audible audio, and `In sync`; no two-device session was performed. |
+| Product host creates and streams a room | Passed live | Product Desktop created `FLFNQZ`; Chrome received real audio, matching track/progress, pause/resume, chat, and subsequent track handoffs. |
+| Walletless browser guest hears synchronized audio | Passed live on the ordinary HTTPS surface | The Chrome guest connected no wallet, displayed `In sync`, showed an active audio tab, and remained synchronized with the Product host. The QA JSON export remains unavailable. |
 | Evidence excludes sensitive transport and identity data | Passed locally | Model tests and harness secret-key rejection cover wallet, SDP, ICE, IP, key, signature, token, and audio fields. |
 | Physical iPhone and supported-device checks | Not run | Requires the published candidate and real devices. |
 | Rollback and aggregate pilot | Blocked | No safe-environment rehearsal or owner-authorized participant evidence exists. |
 
 ## Remaining gates
 
-1. Grant the Product host one-session access to the declared signaling and API
-   domains, then capture the payment/key smoke and the room smoke against
-   that same candidate. The guest must be an ordinary HTTPS browser with no
-   account connection and must hear audio while showing `In sync`.
-2. Run the Product journey harness with both JSON files. Then complete physical
-   iPhone, independent-network/TURN, backgrounding, and keyboard checks.
-3. Retain the headless Smoldot limitation in automation notes and investigate
+1. Capture the live payment/key smoke against the same deployed candidate,
+   stopping for wallet confirmation before the transaction is submitted.
+2. Grant the canonical Product Web wrapper its own declared network access and
+   repeat room entry there; Product Desktop permission does not transfer to
+   that browser origin.
+3. Export the payment and room QA JSON when the compiled debug panel is
+   available, then run the Product journey harness with both files. Complete
+   physical iPhone, independent-network/TURN, backgrounding, and keyboard
+   checks.
+4. Retain the headless Smoldot limitation in automation notes and investigate
    only if it reproduces in a supported interactive browser.
-4. Rehearse rollback and complete the owner-authorized aggregate pilot before
+5. Rehearse rollback and complete the owner-authorized aggregate pilot before
    changing W13/#158 from blocked to shipped.
 
 ## Next agent
 
-- Next eligible work: live W13 payment/key and two-device room validation on the
-  published candidate; do not begin speculative feature expansion first.
+- Next eligible work: live W13 payment/key validation and canonical Product Web
+  room entry on the published candidate; do not begin speculative feature
+  expansion first.
 - Inspect first:
   `web/src/features/productHost/productRoomSmokeEvidence.ts`,
   `web/src/components/ProductRoomSmokeEvidencePanel.tsx`, and

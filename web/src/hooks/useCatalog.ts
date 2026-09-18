@@ -370,6 +370,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     runtimeAdapterConfig.kind === 'product-cdm' ? DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET : DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
   );
   const [audioSource, setAudioSource] = useState<string | null>(null);
+  const [trackSelectionPending, setTrackSelectionPending] = useState(false);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [accessGate, setAccessGate] = useState<AccessGate | null>(null);
@@ -382,6 +383,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const objectUrlsRef = useRef<Set<string>>(new Set());
   const resolvedAudioSourcesRef = useRef<Map<string, string>>(new Map());
   const audioSourceRef = useRef<string | null>(null);
+  const pendingTrackMediaSourceRef = useRef<string | null>(null);
   const audioV2FallbacksRef = useRef<Set<string>>(new Set());
   const audioUploadRef = useRef<Promise<ProtectedAudioUpload> | null>(null);
   const coverUploadRef = useRef<Promise<string> | null>(null);
@@ -452,6 +454,8 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   function beginTrackSelection() {
     activeTrackSelectionRef.current?.controller.abort();
+    pendingTrackMediaSourceRef.current = null;
+    setTrackSelectionPending(true);
     const selection = {
       id: (nextTrackSelectionIdRef.current += 1),
       controller: new AbortController()
@@ -467,6 +471,14 @@ export function useCatalog(deps: UseCatalogDeps) {
   function abortActiveTrackSelection() {
     activeTrackSelectionRef.current?.controller.abort();
     activeTrackSelectionRef.current = null;
+    pendingTrackMediaSourceRef.current = null;
+    setTrackSelectionPending(false);
+  }
+
+  function settleTrackSelectionMedia(source: string | null) {
+    if (!source || pendingTrackMediaSourceRef.current !== source) return;
+    pendingTrackMediaSourceRef.current = null;
+    setTrackSelectionPending(false);
   }
 
   function getDeterministicE2eCatalogTracks() {
@@ -890,6 +902,9 @@ export function useCatalog(deps: UseCatalogDeps) {
       resolvedAudioSourcesRef.current.set(audioRef, fallbackUrl);
 
       if (audioSourceRef.current === failedObjectUrl) {
+        if (pendingTrackMediaSourceRef.current === failedObjectUrl) {
+          pendingTrackMediaSourceRef.current = fallbackUrl;
+        }
         setResolvedAudioSource(fallbackUrl);
       }
 
@@ -1050,97 +1065,110 @@ export function useCatalog(deps: UseCatalogDeps) {
     showAccessGateOnDenied = false
   ): Promise<TrackSelectionResult> {
     const selection = beginTrackSelection();
+    let waitsForMediaReadiness = false;
 
-    // Stop the outgoing track immediately. Resolving the new source (access
-    // check + decrypt/fetch) is async, so without this the old audio keeps
-    // playing for the whole gap while the cover and title already show the new
-    // track. The new source autoplays once it loads.
-    const outgoingAudio = localAudioRef.current;
-    if (outgoingAudio && !outgoingAudio.paused) {
-      outgoingAudio.pause();
-    }
+    try {
+      // Stop the outgoing track immediately. Resolving the new source (access
+      // check + decrypt/fetch) is async, so without this the old audio keeps
+      // playing for the whole gap while the cover and title already show the new
+      // track. The new source autoplays once it loads.
+      const outgoingAudio = localAudioRef.current;
+      if (outgoingAudio && !outgoingAudio.paused) {
+        outgoingAudio.pause();
+      }
 
-    selectedTrackIdRef.current = track.id;
-    setSelectedTrackId(track.id);
-    setTitle(track.title);
-    setArtistName(track.artist);
-    setDescription(track.description);
-    setCoverSource(track.imageRef);
-    setBulletinManifestRef(track.metadataRef);
-    internalSetFileHash(track.hash);
-    setAccessMode(track.accessMode);
-    setPriceDot(track.priceDot);
-    setPersonhoodLevel(track.personhoodLevel);
-    setTrackInfo(createTrackInfoFromCatalog(track));
-    setPlayerState(null);
-    setAccessGate(null);
-    setAudioStartupStatus(track.encrypted ? 'Checking access' : null);
-    // A socketEmit callback means this selection streams into a room: the
-    // signer is the host, and only the host needs to satisfy the policy.
-    keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
+      selectedTrackIdRef.current = track.id;
+      setSelectedTrackId(track.id);
+      setTitle(track.title);
+      setArtistName(track.artist);
+      setDescription(track.description);
+      setCoverSource(track.imageRef);
+      setBulletinManifestRef(track.metadataRef);
+      internalSetFileHash(track.hash);
+      setAccessMode(track.accessMode);
+      setPriceDot(track.priceDot);
+      setPersonhoodLevel(track.personhoodLevel);
+      setTrackInfo(createTrackInfoFromCatalog(track));
+      setPlayerState(null);
+      setAccessGate(null);
+      setAudioStartupStatus(track.encrypted ? 'Checking access' : null);
+      // A socketEmit callback means this selection streams into a room: the
+      // signer is the host, and only the host needs to satisfy the policy.
+      keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
 
-    // Access model v2: access is binary. An authorized listener plays the full
-    // track; an unauthorized one gets the access gate and no audio at all. The
-    // 42% preview is retired.
-    let audioUrl: string | null = null;
-    let hasAccess = true;
+      // Access model v2: access is binary. An authorized listener plays the full
+      // track; an unauthorized one gets the access gate and no audio at all. The
+      // 42% preview is retired.
+      let audioUrl: string | null = null;
+      let hasAccess = true;
 
-    if (isPolicyManagedTrack(track)) {
-      hasAccess = await checkTrackAccess(track, listenerEvmAddress);
+      if (isPolicyManagedTrack(track)) {
+        hasAccess = await checkTrackAccess(track, listenerEvmAddress);
+        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+        setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
+        if (!hasAccess) {
+          // A room host has just chosen this release from the lineup, so the
+          // access explanation is the direct result of that explicit action.
+          // Solo browsing stays calm until the listener presses the cover CTA.
+          if (showAccessGateOnDenied) setAccessGate(buildAccessGateInfo(track));
+          setAudioStartupStatus(null);
+        }
+      }
+
+      if (hasAccess && track.localUrl) {
+        audioUrl = track.encrypted
+          ? await fetchAndDecryptAudio(
+              track.audioRef,
+              track.localUrl,
+              track.hash,
+              track.accessMode,
+              releaseIdentityFromTrack(track),
+              selection.controller.signal,
+              () => isTrackSelectionCurrent(selection)
+            ).catch(() => null)
+          : track.localUrl;
+        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+
+        if (!audioUrl && track.encrypted) {
+          // Access is granted but the key or decryption failed. Say so plainly
+          // instead of leaving a silent dead player.
+          setTransactionFeedback({
+            tone: 'error',
+            title: 'Protected playback unavailable',
+            message: 'Your access checks out, but the content key could not be obtained or used. The key service may be unreachable; try again shortly.'
+          });
+          setAudioStartupStatus(null);
+        }
+      }
+
       if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
-      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
-      if (!hasAccess) {
-        // A room host has just chosen this release from the lineup, so the
-        // access explanation is the direct result of that explicit action.
-        // Solo browsing stays calm until the listener presses the cover CTA.
-        if (showAccessGateOnDenied) setAccessGate(buildAccessGateInfo(track));
-        setAudioStartupStatus(null);
+      const sourceAlreadyReady = Boolean(
+        audioUrl && audioSourceRef.current === audioUrl && localAudioRef.current && localAudioRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
+      );
+      pendingTrackMediaSourceRef.current = sourceAlreadyReady ? null : audioUrl;
+      waitsForMediaReadiness = Boolean(audioUrl && !sourceAlreadyReady);
+      setResolvedAudioSource(audioUrl);
+      if (!audioUrl || !isEncryptedAudioV2Ref(track.audioRef)) setAudioStartupStatus(null);
+
+      if (!audioUrl) {
+        if (setLocalStreamReady) setLocalStreamReady(false);
+        if (closeHostPeers) closeHostPeers();
+      }
+
+      if (socketEmit) {
+        socketEmit('room:track', createTrackInfoFromCatalog(track));
+        // Rooms always carry the full track: a host who cannot play a track
+        // streams nothing (kept on the wire for protocol compatibility).
+        socketEmit('room:playback-mode', { playbackMode: 'full' });
+      }
+
+      return { playbackMode: 'full', audioSource: audioUrl };
+    } finally {
+      if (isTrackSelectionCurrent(selection) && !waitsForMediaReadiness) {
+        pendingTrackMediaSourceRef.current = null;
+        setTrackSelectionPending(false);
       }
     }
-
-    if (hasAccess && track.localUrl) {
-      audioUrl = track.encrypted
-        ? await fetchAndDecryptAudio(
-            track.audioRef,
-            track.localUrl,
-            track.hash,
-            track.accessMode,
-            releaseIdentityFromTrack(track),
-            selection.controller.signal,
-            () => isTrackSelectionCurrent(selection)
-          ).catch(() => null)
-        : track.localUrl;
-      if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
-
-      if (!audioUrl && track.encrypted) {
-        // Access is granted but the key or decryption failed. Say so plainly
-        // instead of leaving a silent dead player.
-        setTransactionFeedback({
-          tone: 'error',
-          title: 'Protected playback unavailable',
-          message: 'Your access checks out, but the content key could not be obtained or used. The key service may be unreachable; try again shortly.'
-        });
-        setAudioStartupStatus(null);
-      }
-    }
-
-    if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
-    setResolvedAudioSource(audioUrl);
-    if (!audioUrl || !isEncryptedAudioV2Ref(track.audioRef)) setAudioStartupStatus(null);
-
-    if (!audioUrl) {
-      if (setLocalStreamReady) setLocalStreamReady(false);
-      if (closeHostPeers) closeHostPeers();
-    }
-
-    if (socketEmit) {
-      socketEmit('room:track', createTrackInfoFromCatalog(track));
-      // Rooms always carry the full track: a host who cannot play a track
-      // streams nothing (kept on the wire for protocol compatibility).
-      socketEmit('room:playback-mode', { playbackMode: 'full' });
-    }
-
-    return { playbackMode: 'full', audioSource: audioUrl };
   }
 
   async function openTrack(
@@ -1564,6 +1592,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     nativeRuntimePaymentAsset,
     usesCatalogApi,
     audioSource,
+    trackSelectionPending,
+    settleTrackSelectionMedia,
     setAudioSource: setResolvedAudioSource,
     audioStartupStatus,
     trackInfo,

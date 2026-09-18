@@ -1,5 +1,28 @@
 import { expect, test } from '@playwright/test';
 
+function toneWav(frequency: number): Buffer {
+  const sampleRate = 8_000;
+  const dataLength = sampleRate * 60;
+  const bytes = Buffer.alloc(44 + dataLength);
+  bytes.write('RIFF', 0);
+  bytes.writeUInt32LE(36 + dataLength, 4);
+  bytes.write('WAVE', 8);
+  bytes.write('fmt ', 12);
+  bytes.writeUInt32LE(16, 16);
+  bytes.writeUInt16LE(1, 20);
+  bytes.writeUInt16LE(1, 22);
+  bytes.writeUInt32LE(sampleRate, 24);
+  bytes.writeUInt32LE(sampleRate, 28);
+  bytes.writeUInt16LE(1, 32);
+  bytes.writeUInt16LE(8, 34);
+  bytes.write('data', 36);
+  bytes.writeUInt32LE(dataLength, 40);
+  for (let index = 0; index < dataLength; index += 1) {
+    bytes[44 + index] = 128 + Math.round(32 * Math.sin((2 * Math.PI * frequency * index) / sampleRate));
+  }
+  return bytes;
+}
+
 for (const capture of ['standard', 'without-native-api']) {
   test(`room audio survives next and home navigation with ${capture} capture`, async ({ browser }, testInfo) => {
     const hostContext = await browser.newContext();
@@ -23,7 +46,11 @@ for (const capture of ['standard', 'without-native-api']) {
         });
       const host = await hostContext.newPage();
       const guest = await guestContext.newPage();
-      await host.goto('/?e2eRoom=public&e2eSync=on&e2eCapture=web-audio&e2eCatalog=sequence&e2eAutoplay=on');
+      await host.route('**/__dotify_e2e__/room-sequence.wav', async route => {
+        await new Promise(resolve => setTimeout(resolve, 1_000));
+        await route.fulfill({ contentType: 'audio/wav', body: toneWav(660) });
+      });
+      await host.goto('/?e2eRoom=public&e2eSync=on&e2eCapture=web-audio&e2eCatalog=sequence&e2eAutoplay=on&e2eTrackDelay=on');
       await host.getByRole('button', { name: 'Open a room', exact: true }).click();
       await host.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
       const hostName = `Continuity ${capture}`;
@@ -70,6 +97,14 @@ for (const capture of ['standard', 'without-native-api']) {
         ['Next track', 'Second room track', 660]
       ] as const) {
         await host.getByRole('button', { name: action, exact: true }).click();
+        if (title === 'Second room track') {
+          // The compact desktop room hides the cover status visually, but the
+          // same state remains in the DOM and drives the disabled transport.
+          await expect(host.locator('.remote-state')).toHaveText('Preparing audio');
+          await expect(host.locator('.transport-progress > span').first()).toHaveText('0:00');
+          await expect(host.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
+          await expect(host.getByRole('button', { name: 'Next track', exact: true })).toBeDisabled();
+        }
         await expect(guest.locator('.track-copy h2')).toHaveText(title);
         await expect(host.locator('audio').first()).toHaveJSProperty('paused', false);
         try {
