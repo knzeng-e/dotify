@@ -33,7 +33,7 @@
 .catalog-search input {
   min-width: 0;
   width: 100%;
-  font-size: max(1rem, 16px);
+  font-size: var(--text-base);
 }
 .catalog-search button,
 .catalog-row-controls button,
@@ -94,7 +94,7 @@
   justify-content: start;
 }
 .catalogue-section .catalogue-grid[data-layout] .catalogue-card-open {
-  font-size: 1rem;
+  font-size: var(--text-base);
   line-height: 1.35;
 }
 .catalogue-section .catalogue-grid[data-layout] .catalogue-empty {

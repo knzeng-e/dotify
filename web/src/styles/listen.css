@@ -5,26 +5,24 @@
 
 .now-intro {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.65fr);
-  align-items: end;
-  gap: clamp(2rem, 7vw, 7rem);
+  gap: var(--space-3);
 }
 
 .now-intro h1 {
   max-width: 13ch;
   margin-top: 0.8rem;
   font-family: var(--font-editorial);
-  font-size: clamp(3rem, 5.5vw, 5.25rem);
+  font-size: var(--text-display);
   font-weight: 600;
-  letter-spacing: -0.055em;
+  letter-spacing: var(--tracking-display);
   line-height: 1.02;
 }
 
-.now-intro > p {
+.now-intro-copy {
   max-width: 34rem;
-  border-top: 1px solid var(--line-strong);
+  margin-top: var(--space-3);
   color: var(--ink-soft);
-  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  font-size: var(--text-lg);
   line-height: 1.65;
   padding-top: 1.2rem;
 }
@@ -58,7 +56,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 1;
+  z-index: var(--layer-raised);
   height: 28%;
   background: linear-gradient(transparent, rgb(8 20 38 / 0.56));
   content: '';
@@ -209,7 +207,7 @@
 
 .moment-copy::before {
   position: absolute;
-  z-index: -2;
+  z-index: var(--layer-behind);
   width: 34rem;
   height: 34rem;
   border-radius: 50%;
@@ -223,7 +221,7 @@
 
 .moment-copy::after {
   position: absolute;
-  z-index: -1;
+  z-index: var(--layer-underlay);
   inset: 0;
   background: linear-gradient(140deg, rgb(8 20 38 / 0.42), transparent 55%), linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 45%);
   content: '';
@@ -243,9 +241,9 @@
   max-width: 9ch;
   margin-top: 1.15rem;
   font-family: var(--font-editorial);
-  font-size: clamp(3rem, 5vw, 5rem);
+  font-size: var(--text-display);
   font-weight: 600;
-  letter-spacing: -0.045em;
+  letter-spacing: var(--tracking-display);
   line-height: 0.92;
   overflow-wrap: anywhere;
 }
@@ -301,7 +299,7 @@
 .track-life-summary > div > span,
 .track-life-summary dt {
   color: rgb(213 228 240 / 0.62);
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -525,9 +523,9 @@
 .section-heading h2 {
   margin-top: 0.45rem;
   font-family: var(--font-editorial);
-  font-size: clamp(2.3rem, 4vw, 3.8rem);
+  font-size: var(--text-display-sm);
   font-weight: 600;
-  letter-spacing: -0.045em;
+  letter-spacing: var(--tracking-display);
   line-height: 0.98;
 }
 
@@ -591,7 +589,7 @@
 
 .home-room-copy > strong {
   margin-top: 0.2rem;
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -607,8 +605,8 @@
 }
 
 .home-room-host {
-  color: var(--artist);
-  font-size: 0.66rem;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
 }
 
 .home-room-presence {
@@ -725,7 +723,7 @@
 
 .catalogue-card[data-selected='true'] {
   border-color: var(--signal);
-  box-shadow: 0 0 0 2px rgb(125 155 255 / 0.22);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--signal) 22%, transparent);
 }
 
 .catalogue-cover-frame {
@@ -760,7 +758,7 @@
   width: 100%;
   background: transparent;
   color: var(--ink);
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   line-height: 1.2;
   text-align: left;
@@ -769,16 +767,16 @@
 .catalogue-card-open::after {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: var(--layer-base);
   content: '';
 }
 
 .artist-text-button {
   position: relative;
-  z-index: 1;
+  z-index: var(--layer-raised);
   min-height: 1.9rem;
   margin-top: 0.15rem;
-  color: var(--artist);
+  color: var(--ink-soft);
   padding: 0;
 }
 
@@ -888,7 +886,7 @@
   border-radius: 50%;
   background: var(--surface-cool);
   color: var(--ink);
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   line-height: 1;
   overflow: hidden;

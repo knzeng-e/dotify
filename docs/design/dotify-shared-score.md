@@ -184,6 +184,11 @@ Primary measure: link open to first audible remote frame.
 
 ## 6. Visual and interaction system
 
+The implemented token, typography, color, component and layering rules live in
+the [Dotify visual system contract](visual-system-contract.md). This section
+describes the broader product grammar; when values differ, the contract and
+`web/src/styles/tokens.css` are authoritative for the current interface.
+
 ### Foundation (Living Light amendment, 2026-07-12)
 
 - **Canvas:** deep navy `#050D1A` over `#03080F`; raised surfaces `#0C1A30`

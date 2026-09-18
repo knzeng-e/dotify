@@ -62,7 +62,7 @@ export function PlayerTransport({ playback, duration, listener }: { playback: Pl
           aria-label={transport.playing ? 'Pause' : 'Play'}
           title={listener ? (transport.playing ? 'Pause for me' : 'Resume room audio') : transport.playing ? 'Pause' : 'Play'}
         >
-          {transport.playing ? <Pause size={24} /> : <Play size={24} />}
+          {transport.playing ? <Pause size={24} /> : <Play size={24} fill='currentColor' />}
         </button>
         {!listener && (
           <>

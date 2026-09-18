@@ -88,9 +88,7 @@ export function RoomsView({
         <div>
           <p className='eyebrow'>Listening rooms</p>
           <h1 id='rooms-title'>Live listening rooms.</h1>
-        </div>
-        <div className='rooms-intro-copy'>
-          <p>Open a room from a track, or join with a code.</p>
+          <p className='rooms-intro-copy'>Open a room from a track, or join with a code.</p>
         </div>
       </header>
 
