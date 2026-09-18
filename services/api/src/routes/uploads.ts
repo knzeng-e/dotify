@@ -11,7 +11,8 @@ import {
   type ContentKeyVersion
 } from '../services/keyVault.js';
 import { detectAudioMedia, detectImageMedia } from '../services/mediaValidation.js';
-import { PinataError, PinataUnconfiguredError, pinFileToPinata, pinJsonToPinata } from '../services/pinata.js';
+import { createResponsiveCover, type ResponsiveCover } from '../services/coverVariants.js';
+import { PinataError, PinataUnconfiguredError, pinFilesToPinata, pinFileToPinata, pinJsonToPinata, type PinataFile } from '../services/pinata.js';
 import { verifySessionToken as defaultVerifySessionToken, type SessionVerification } from '../services/sessionTokens.js';
 import {
   uploadAuthorizationService,
@@ -88,6 +89,7 @@ const dotifyManifestSchema = z.object({
 }).strict();
 
 type PinFile = (bytes: Uint8Array, filename: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
+type PinFiles = (files: PinataFile[], name: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
 type PinJson = (json: unknown, name: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
 
 export type UploadRouteDeps = {
@@ -97,7 +99,9 @@ export type UploadRouteDeps = {
   getActiveContentKeyVersion: () => ContentKeyVersion;
   deriveContentKeyBytes: (input: ContentKeyDerivationInput) => Buffer | null;
   encryptAudio: typeof encryptAudioV2Container;
+  createCover: (bytes: Uint8Array, originalExtension: string) => Promise<ResponsiveCover>;
   pinFile: PinFile;
+  pinFiles: PinFiles;
   pinJson: PinJson;
 };
 
@@ -108,7 +112,9 @@ const defaultDeps: UploadRouteDeps = {
   getActiveContentKeyVersion,
   deriveContentKeyBytes: defaultDeriveContentKeyBytes,
   encryptAudio: encryptAudioV2Container,
+  createCover: createResponsiveCover,
   pinFile: pinFileToPinata,
+  pinFiles: pinFilesToPinata,
   pinJson: pinJsonToPinata
 };
 
@@ -355,14 +361,24 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
         const media = detectImageMedia(fileBuffer);
         if (!media) return badRequest(reply, 'Received bytes are not a supported cover image.', 'UPLOAD_MEDIA_INVALID');
 
+        let cover: ResponsiveCover;
+        try {
+          cover = await deps.createCover(new Uint8Array(fileBuffer), media.extension);
+        } catch {
+          request.log.info('Cover image processing rejected the uploaded bytes');
+          return badRequest(reply, 'The cover image could not be prepared. Choose a valid JPEG, PNG, WebP, or GIF image.', 'UPLOAD_MEDIA_INVALID');
+        }
+
         let cid: string;
         try {
-          cid = await deps.pinFile(
-            new Uint8Array(fileBuffer),
-            `${lease.payload.address.slice(2, 10)}-${lease.payload.jti}.${media.extension}`,
+          cid = await deps.pinFiles(
+            cover.files,
+            `${lease.payload.address.slice(2, 10)}-${lease.payload.jti}-cover`,
             {
               app: 'dotify',
-              type: 'cover'
+              type: 'responsive-cover',
+              variants: '64,160,320,640',
+              original: 'preserved'
             },
             abort.signal
           );
@@ -372,7 +388,16 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
 
         completed = lease.complete(fileBuffer.length);
         if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
-        return reply.status(200).send({ ref: `ipfs://${cid}` });
+        return reply.status(200).send({
+          ref: `ipfs://${cid}/${cover.primaryPath}`,
+          responsive: {
+            placeholder: `ipfs://${cid}/${cover.placeholderPath}`,
+            widths: [64, 160, 320, 640],
+            width: cover.width,
+            height: cover.height,
+            format: 'webp'
+          }
+        });
       } finally {
         abort.detach();
         if (!completed) lease.abort();

@@ -156,6 +156,25 @@ W08 first-sound slice:
   validation matrix, cold/warm sample collection, and the backend read-through
   gateway decision.
 
+#87 responsive-cover slice (2026-09-18):
+
+- New backend cover uploads are decoded and normalized server-side into square
+  WebP variants at 64, 160, 320, and 640 px plus a 24 px blurred placeholder.
+  The archival original remains in the same immutable IPFS directory. The API
+  serializes the memory-heavy normalization stage process-wide, decodes and
+  attention-crops the source once, then derives smaller variants sequentially
+  from the bounded 640 px canonical image.
+- The registry-compatible `imageRef` remains a normal image URI and now points
+  to `<directory CID>/cover/640.webp`; no contract or manifest migration is
+  required. Legacy single-file cover refs continue through the existing
+  gateway and generated-aura fallback path.
+- `CoverImage` derives same-CID `srcset` and placeholder URLs from that stable
+  directory shape, defaults non-hero artwork to lazy/async loading, and marks
+  the player hero as eager/high priority.
+- Remaining #87 work: perform a real authorized upload against Pinata, collect
+  cold mobile transfer/paint samples, decide the read-through edge policy, and
+  backfill selected legacy originals only after the new path is proven.
+
 Product SDK adaptation note (updated 2026-09-12):
 
 - Product SDK 0.27.0 and deploy tooling 0.16.2 remain

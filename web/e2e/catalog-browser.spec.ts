@@ -70,3 +70,23 @@ test.describe('Turkish browser locale', () => {
     }
   });
 });
+
+test('new covers expose responsive browser hints while legacy cards remain compatible', async ({ page }) => {
+  const requested = new Set<string>();
+  const webp = Buffer.from('UklGRjgAAABXRUJQVlA4ICwAAACwAQCdASoCAAIAAUAmJaACdLoABdQAAP6k15FIsZW//DlP/DlP/DlP+F/AAA==', 'base64');
+  await page.route('**/ipfs/bafy-e2e-cover/cover/**', async route => {
+    requested.add(new URL(route.request().url()).pathname);
+    await route.fulfill({ status: 200, contentType: 'image/webp', body: webp });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?e2eRoom=public&e2eResponsiveCover=on');
+
+  const image = page.getByTestId('track-card').filter({ hasText: 'E2E Public Room Track' }).locator('img');
+  await image.scrollIntoViewIfNeeded();
+  await expect(image).toHaveAttribute('loading', 'lazy');
+  await expect(image).toHaveAttribute('decoding', 'async');
+  await expect(image).toHaveAttribute('sizes', '(max-width: 520px) 42vw, 190px');
+  await expect(image).toHaveAttribute('srcset', /cover\/64\.webp 64w.*cover\/640\.webp 640w/);
+  await expect(image).toHaveAttribute('data-cover-loaded', 'true');
+  await expect.poll(() => Array.from(requested).some(path => /\/cover\/(64|160|320|640)\.webp$/.test(path))).toBe(true);
+});

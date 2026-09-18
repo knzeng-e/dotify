@@ -47,7 +47,7 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, a
       <div className='player-dock-inner'>
         <div className='player-dock-track'>
           <button className='player-dock-art' type='button' onClick={onOpenPlayer} aria-label={`Open ${title} in the player`}>
-            {cover && <CoverImage src={cover} alt='' fallbackLabel={title} />}
+            {cover && <CoverImage src={cover} alt='' fallbackLabel={title} loading='eager' sizes='64px' />}
           </button>
           <div className='player-dock-meta'>
             <button className='player-dock-title' type='button' onClick={onOpenPlayer} title={`Open ${title}`}>

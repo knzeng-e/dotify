@@ -264,6 +264,30 @@ currently pins through Pinata. Keep `https://gateway.pinata.cloud` first, with
 metadata fallback reads; otherwise cover images can hang in the browser without
 firing an image error.
 
+New API cover uploads require the `sharp` native dependency included in the API
+image. The upload endpoint creates one public IPFS directory with
+`cover/placeholder.webp`, 64/160/320/640 px WebP variants, and the untouched
+`cover/original.<ext>`. The on-chain image ref points to `cover/640.webp`; the
+web client derives the other paths for `srcset`. On the current 512 MB single
+API machine, cover normalization is intentionally serialized process-wide; one
+large source is decoded and attention-cropped into a 640 px canonical image,
+then smaller variants are derived sequentially. Do not parallelize this stage
+without load-testing the deployed memory limit. After changing the API image,
+smoke both the primary and a thumbnail path before publishing a release:
+
+```bash
+curl -s -L -o /dev/null --max-time 12 \
+  -w '%{http_code} %{content_type} %{size_download} %{time_total}\n' \
+  https://gateway.pinata.cloud/ipfs/<directory-cid>/cover/640.webp
+curl -s -L -o /dev/null --max-time 12 \
+  -w '%{http_code} %{content_type} %{size_download} %{time_total}\n' \
+  https://gateway.pinata.cloud/ipfs/<directory-cid>/cover/160.webp
+```
+
+Old single-file refs remain valid. Rolling the API/web code back does not
+invalidate responsive refs because the 640 px path is itself a normal image
+URL; older clients simply ignore the sibling variants.
+
 Encrypted audio byte reads are stricter than image and metadata reads: the
 browser fetch path requires CORS and range behavior that public gateways do not
 provide consistently for Dotify's Pinata-pinned DAV2 files. The web app
@@ -417,8 +441,10 @@ Artist upload and session-boundary variables:
 Production uploads require this sequence: signed EIP-191 or Product sr25519
 session, on-chain `ArtistDirectory.runtimeOf(requester)` verification, a
 short-lived capability bound to asset purpose and byte budget, then byte-level
-media validation before Pinata receives anything. Free key delivery and room
-guest entry remain unauthenticated.
+media validation before Pinata receives anything. Cover bytes additionally
+pass a bounded server-side decode before any variant is pinned; decode failure
+releases the upload lease and returns a plain invalid-media error. Free key
+delivery and room guest entry remain unauthenticated.
 
 Quota reservations, completed-byte counters, revoked session JTIs, and upload
 capabilities are process-local. `services/api/fly.toml` therefore enforces

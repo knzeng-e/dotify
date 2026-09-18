@@ -129,12 +129,16 @@ export const E2E_ROOM_PUBLIC_TRACK: CatalogTrack = {
 // Ordered [protected, public] so the unauthorized-host scenario skips forward
 // from the protected track (index 0) to the public track (index 1).
 export function getRoomJoinE2eTracks(): CatalogTrack[] {
-  const tracks = [E2E_ROOM_PROTECTED_TRACK, E2E_ROOM_PUBLIC_TRACK];
-  if (isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eCatalog') === 'wide') {
+  const params = isRoomJoinE2e && typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const responsiveImageRef = params?.get('e2eResponsiveCover') === 'on' ? 'ipfs://bafy-e2e-cover/cover/640.webp' : null;
+  const protectedTrack = responsiveImageRef ? { ...E2E_ROOM_PROTECTED_TRACK, imageRef: responsiveImageRef } : E2E_ROOM_PROTECTED_TRACK;
+  const publicTrack = responsiveImageRef ? { ...E2E_ROOM_PUBLIC_TRACK, imageRef: responsiveImageRef } : E2E_ROOM_PUBLIC_TRACK;
+  const tracks = [protectedTrack, publicTrack];
+  if (params?.get('e2eCatalog') === 'wide') {
     for (let index = 1; index <= 10; index++) tracks.push({ ...E2E_ROOM_PUBLIC_TRACK, id: `e2e-selection-${index}`, title: `Session selection ${index}` });
   }
-  if (isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eCatalog') === 'sequence') {
-    const delayMediaReadiness = new URLSearchParams(window.location.search).get('e2eTrackDelay') === 'on';
+  if (params?.get('e2eCatalog') === 'sequence') {
+    const delayMediaReadiness = params.get('e2eTrackDelay') === 'on';
     tracks.push({
       ...E2E_ROOM_PUBLIC_TRACK,
       id: `${E2E_ROOM_PUBLIC_ID}-sequence`,

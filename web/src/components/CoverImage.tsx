@@ -6,6 +6,7 @@ import {
   shouldArmCoverGatewayTimeout,
   shouldUseLocalCoverFallbackAfterGatewayTimeout
 } from '../features/catalog/coverArtwork';
+import { responsiveCoverSources } from '../features/catalog/responsiveCover';
 import { getGatewayUrlsForAssetRef } from '../services/pinata';
 
 type CoverImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'crossOrigin' | 'src'> & {
@@ -13,7 +14,19 @@ type CoverImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'crossOrigin' |
   fallbackLabel?: string;
 };
 
-export function CoverImage({ src, alt = '', fallbackLabel, loading, onError, onLoad, className, style, ...props }: CoverImageProps) {
+export function CoverImage({
+  src,
+  alt = '',
+  fallbackLabel,
+  loading = 'lazy',
+  decoding = 'async',
+  sizes,
+  onError,
+  onLoad,
+  className,
+  style,
+  ...props
+}: CoverImageProps) {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const sources = useMemo(() => getGatewayUrlsForAssetRef(src ?? ''), [src]);
   const fallbackSource = useMemo(
@@ -62,6 +75,7 @@ export function CoverImage({ src, alt = '', fallbackLabel, loading, onError, onL
   const gatewaySource = sources[boundedSourceIndex];
   const presentation = resolveCoverPresentation(gatewaySource, fallbackSource, loadedSource, didExhaustSources, showLocalFallback);
   const activeSource = presentation.source;
+  const responsive = useMemo(() => responsiveCoverSources(activeSource), [activeSource]);
   const isInLoadRange = loading !== 'lazy' || lazyLoadRangeSource === (src ?? null);
   const canStartGatewayTimeout = shouldArmCoverGatewayTimeout(loading, isInLoadRange);
 
@@ -75,9 +89,15 @@ export function CoverImage({ src, alt = '', fallbackLabel, loading, onError, onL
     return () => window.clearTimeout(timeoutId);
   }, [canStartGatewayTimeout, didExhaustSources, gatewaySource, loadedSource]);
 
-  const localFallbackStyle: CSSProperties | undefined = presentation.showFallbackBackground
+  const showResponsivePlaceholder = Boolean(responsive && loadedSource !== activeSource && !didExhaustSources);
+  const fallbackBackground = presentation.showFallbackBackground
+    ? `url("${fallbackSource}")`
+    : showResponsivePlaceholder
+      ? `url("${responsive?.placeholder}"), url("${fallbackSource}")`
+      : null;
+  const localFallbackStyle: CSSProperties | undefined = fallbackBackground
     ? {
-        backgroundImage: `url("${fallbackSource}")`,
+        backgroundImage: fallbackBackground,
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
         backgroundSize: 'cover'
@@ -89,11 +109,14 @@ export function CoverImage({ src, alt = '', fallbackLabel, loading, onError, onL
       {...props}
       ref={imageRef}
       src={activeSource}
+      srcSet={responsive?.srcSet}
+      sizes={responsive ? (sizes ?? '320px') : sizes}
       alt={alt}
       className={['cover-image', className].filter(Boolean).join(' ')}
-      data-cover-loaded={presentation.isReady}
+      data-cover-loaded={presentation.isReady || showResponsivePlaceholder}
       data-cover-fallback={presentation.showFallbackBackground || undefined}
       loading={loading}
+      decoding={decoding}
       style={localFallbackStyle ? { ...style, ...localFallbackStyle } : style}
       onLoad={event => {
         setLoadedSource(activeSource);
