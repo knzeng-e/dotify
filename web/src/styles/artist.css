@@ -19,9 +19,9 @@
   max-width: 12ch;
   margin-top: 0.65rem;
   font-family: var(--font-editorial);
-  font-size: clamp(3.4rem, 6vw, 5.8rem);
+  font-size: var(--text-display);
   font-weight: 600;
-  letter-spacing: -0.055em;
+  letter-spacing: var(--tracking-display);
   line-height: 0.92;
 }
 
@@ -61,7 +61,7 @@
 }
 
 .you-panel-head strong {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
 }
 
 .you-panel-head span {
@@ -105,7 +105,7 @@
 }
 
 .you-stats strong {
-  font-size: 1.15rem;
+  font-size: var(--text-lg);
 }
 
 .you-stats span {
@@ -162,7 +162,7 @@ button.you-panel:hover {
 
 .account-dashboard-head h3 {
   font-family: var(--font-editorial);
-  font-size: 1.75rem;
+  font-size: var(--text-title);
   font-weight: 600;
 }
 
@@ -191,7 +191,7 @@ button.you-panel:hover {
 
 .account-summary strong {
   color: var(--ink);
-  font-size: 1rem;
+  font-size: var(--text-base);
 }
 
 .account-detail-grid {
@@ -201,9 +201,8 @@ button.you-panel:hover {
 }
 
 .account-detail-section {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
+  border-top: 1px solid var(--line);
+  padding: 1rem 0 0;
 }
 
 .account-detail-title {
@@ -267,7 +266,7 @@ button.you-panel:hover {
 
 .readiness-summary[data-tone='ok'],
 .readiness-check-state[data-tone='ok'] {
-  border-color: rgb(0 229 160 / 0.32);
+  border-color: color-mix(in srgb, var(--success) 32%, transparent);
   background: var(--success-soft);
   color: var(--success);
 }
@@ -276,14 +275,14 @@ button.you-panel:hover {
 .readiness-check-state[data-tone='warning'],
 .readiness-summary[data-tone='unknown'],
 .readiness-check-state[data-tone='unknown'] {
-  border-color: rgb(125 155 255 / 0.35);
+  border-color: color-mix(in srgb, var(--signal) 35%, transparent);
   background: var(--signal-soft);
-  color: #bccdff;
+  color: var(--ink-soft);
 }
 
 .readiness-summary[data-tone='error'],
 .readiness-check-state[data-tone='error'] {
-  border-color: rgb(255 125 114 / 0.38);
+  border-color: color-mix(in srgb, var(--danger) 38%, transparent);
   background: var(--danger-soft);
   color: var(--danger);
 }
@@ -381,9 +380,8 @@ button.you-panel:hover {
 }
 
 .product-smoke-observation input {
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--signal);
+  align-self: start;
+  margin-top: 0.15rem;
 }
 
 .product-smoke-checks {
@@ -413,7 +411,7 @@ button.you-panel:hover {
   background: var(--artist-soft);
   color: var(--artist);
   font-family: var(--font-editorial);
-  font-size: 2.5rem;
+  font-size: var(--text-display-sm);
   font-weight: 600;
 }
 
@@ -423,9 +421,9 @@ button.you-panel:hover {
   gap: 0.65rem;
   margin-top: 0.4rem;
   font-family: var(--font-editorial);
-  font-size: clamp(3.5rem, 7vw, 6.5rem);
+  font-size: var(--text-display);
   font-weight: 600;
-  letter-spacing: -0.055em;
+  letter-spacing: var(--tracking-display);
   line-height: 0.9;
 }
 
@@ -577,7 +575,7 @@ button.you-panel:hover {
 .artist-publication-quarantine {
   display: grid;
   gap: 0.2rem;
-  border-color: rgb(240 180 41 / 0.42);
+  border-color: color-mix(in srgb, var(--warning) 42%, transparent);
   background: var(--warning-soft);
   color: var(--warning);
 }
@@ -604,9 +602,9 @@ button.you-panel:hover {
   max-width: 11ch;
   margin-top: 0.8rem;
   font-family: var(--font-editorial);
-  font-size: clamp(3.5rem, 7vw, 6.5rem);
+  font-size: var(--text-display);
   font-weight: 600;
-  letter-spacing: -0.055em;
+  letter-spacing: var(--tracking-display);
   line-height: 0.9;
 }
 
@@ -629,7 +627,7 @@ button.you-panel:hover {
   display: inline-flex;
   min-height: 2.875rem;
   align-items: center;
-  color: var(--signal);
+  color: var(--link);
   font-weight: 650;
   text-underline-offset: 0.2rem;
 }
@@ -643,8 +641,7 @@ button.you-panel:hover {
 
 .artist-claim-proof > div {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.7rem;
+  gap: 0.25rem;
   border-bottom: 1px solid var(--line);
   padding: 1rem 0;
 }
@@ -692,7 +689,7 @@ button.you-panel:hover {
 
 .onboarding-hero h2 {
   font-family: var(--font-editorial);
-  font-size: 2.5rem;
+  font-size: var(--text-display-sm);
   font-weight: 600;
 }
 
@@ -707,48 +704,6 @@ button.you-panel:hover {
   gap: 0.65rem;
   color: var(--ink-soft);
   font-size: var(--text-sm);
-}
-
-.consent-checkbox,
-.toggle-row input[type='checkbox'] {
-  appearance: none;
-  display: grid;
-  width: 1.2rem;
-  height: 1.2rem;
-  flex: 0 0 auto;
-  place-content: center;
-  margin-top: 0.1rem;
-  border: 1px solid var(--line-strong);
-  border-radius: 0.3rem;
-  background: var(--canvas);
-}
-
-.consent-checkbox::before,
-.toggle-row input[type='checkbox']::before {
-  width: 0.58rem;
-  height: 0.34rem;
-  border-bottom: 2px solid var(--canvas);
-  border-left: 2px solid var(--canvas);
-  content: '';
-  opacity: 0;
-  transform: translateY(-0.08rem) rotate(-45deg);
-}
-
-.consent-checkbox:checked,
-.toggle-row input[type='checkbox']:checked {
-  border-color: var(--signal);
-  background: var(--signal);
-}
-
-.consent-checkbox:checked::before,
-.toggle-row input[type='checkbox']:checked::before {
-  opacity: 1;
-}
-
-.consent-checkbox:focus-visible,
-.toggle-row input[type='checkbox']:focus-visible {
-  outline: 2px solid var(--signal);
-  outline-offset: 3px;
 }
 
 .onboarding-steps {
@@ -781,7 +736,7 @@ button.you-panel:hover {
 }
 
 .step-content h3 {
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
 }
 
 .step-content > p,
@@ -840,9 +795,9 @@ button.you-panel:hover {
   align-items: center;
   gap: 0.55rem;
   font-family: var(--font-editorial);
-  font-size: clamp(2.6rem, 5vw, 4.8rem);
+  font-size: var(--text-display);
   font-weight: 600;
-  letter-spacing: -0.05em;
+  letter-spacing: var(--tracking-display);
   line-height: 0.95;
 }
 
@@ -919,7 +874,7 @@ button.you-panel:hover {
 }
 
 .console-tabs span {
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
 }
 
 .artist-overview-grid {
@@ -947,9 +902,9 @@ button.you-panel:hover {
 
 .studio-next-step h2 {
   font-family: var(--font-editorial);
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-size: var(--text-display-sm);
   font-weight: 600;
-  letter-spacing: -0.035em;
+  letter-spacing: var(--tracking-display);
 }
 
 .studio-next-step p {
@@ -978,7 +933,7 @@ button.you-panel:hover {
 }
 
 .studio-metric strong {
-  font-size: 1.8rem;
+  font-size: var(--text-title);
 }
 
 .studio-metric span {
@@ -992,7 +947,7 @@ button.you-panel:hover {
 
 .studio-section-title {
   font-family: var(--font-editorial);
-  font-size: 1.55rem;
+  font-size: var(--text-title);
   font-weight: 600;
 }
 
@@ -1048,12 +1003,12 @@ button.you-panel:hover {
 
 .sovereign-card h3 {
   font-family: var(--font-editorial);
-  font-size: 2rem;
+  font-size: var(--text-display-sm);
   font-weight: 600;
 }
 
 .sovereign-lede {
-  color: #b7c9d8;
+  color: var(--ink-soft);
 }
 
 .sov-item {
@@ -1075,7 +1030,7 @@ button.you-panel:hover {
 
 .sov-item span,
 .sov-item p {
-  color: #b7c9d8;
+  color: var(--ink-soft);
   font-size: var(--text-sm);
 }
 
@@ -1126,7 +1081,7 @@ button.you-panel:hover {
   border-radius: var(--radius-full);
   color: var(--muted);
   font-family: var(--font-code);
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   line-height: 1;
 }
 
@@ -1146,8 +1101,8 @@ button.you-panel:hover {
 
 .release-stepper button[data-active='true'] .release-step-number,
 .release-stepper button[aria-current='step'] .release-step-number {
-  border-color: rgb(0 229 160 / 0.45);
-  background: rgb(0 229 160 / 0.16);
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
+  background: color-mix(in srgb, var(--success) 16%, transparent);
   color: var(--ink);
 }
 
@@ -1261,7 +1216,7 @@ button.you-panel:hover {
 
 .release-review-heading h3 {
   font-family: var(--font-editorial);
-  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-size: var(--text-display-sm);
   font-weight: 600;
 }
 
@@ -1436,7 +1391,7 @@ button.you-panel:hover {
 
 .release-preview-copy h2 {
   font-family: var(--font-editorial);
-  font-size: 2.2rem;
+  font-size: var(--text-display-sm);
   font-weight: 600;
   line-height: 0.98;
 }
@@ -1450,7 +1405,7 @@ button.you-panel:hover {
 }
 
 .release-preview-copy > p {
-  color: #b7c9d8;
+  color: var(--ink-soft);
   font-size: var(--text-sm);
 }
 
@@ -1529,9 +1484,9 @@ button.you-panel:hover {
 .release-focus-copy h2 {
   margin-top: 0.5rem;
   font-family: var(--font-editorial);
-  font-size: clamp(2.6rem, 5vw, 4.6rem);
+  font-size: var(--text-display);
   font-weight: 600;
-  letter-spacing: -0.05em;
+  letter-spacing: var(--tracking-display);
   line-height: 0.92;
 }
 
@@ -1564,7 +1519,7 @@ button.you-panel:hover {
 .release-ref-code {
   display: inline-block;
   max-width: 100%;
-  font-size: 0.65rem;
+  font-size: var(--text-xs);
   overflow-wrap: anywhere;
 }
 
@@ -1575,7 +1530,7 @@ button.you-panel:hover {
 .release-split-note {
   margin: 0.35rem 0 0.5rem;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   line-height: 1.45;
 }
 
@@ -1607,7 +1562,7 @@ button.you-panel:hover {
 }
 
 .royalty-summary-grid strong {
-  font-size: 1.35rem;
+  font-size: var(--text-xl);
 }
 
 .royalty-summary-grid span {

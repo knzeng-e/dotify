@@ -46,8 +46,8 @@ export function ListenView({
         <div>
           <p className='eyebrow'>A place to listen together</p>
           <h1 id='now-title'>Music brings us together.</h1>
+          <p className='now-intro-copy'>Enter a live room, or start one from a track.</p>
         </div>
-        <p>Enter a live room, or start one from a track.</p>
       </header>
 
       <section className='catalogue-section' aria-labelledby='tracks-title'>

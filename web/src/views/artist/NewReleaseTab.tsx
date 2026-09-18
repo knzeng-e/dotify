@@ -465,6 +465,8 @@ export function NewReleaseTab({
           </div>
         )}
 
+        <p className='rights-status'>{rightsStatus}</p>
+
         <div className='wizard-actions'>
           <button className='secondary-action compact-action' type='button' onClick={onGoToPreviousStep} disabled={releaseStepIndex === 0}>
             Back
@@ -486,8 +488,6 @@ export function NewReleaseTab({
             </button>
           )}
         </div>
-
-        <p className='rights-status'>{rightsStatus}</p>
       </div>
 
       <div className='doc-panel release-preview-panel'>

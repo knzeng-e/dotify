@@ -738,7 +738,7 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
               onClick={() => updateControls(setControls, { paused: !controls.paused })}
               aria-label={controls.paused ? 'Resume room galaxy motion' : 'Pause room galaxy motion'}
             >
-              {controls.paused ? <Play size={15} /> : <Pause size={15} />}
+              {controls.paused ? <Play size={15} fill='currentColor' /> : <Pause size={15} />}
             </button>
             <button type='button' onClick={resetCamera} aria-label='Reset galaxy view'>
               <RotateCcw size={15} />

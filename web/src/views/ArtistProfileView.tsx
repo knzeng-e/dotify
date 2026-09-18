@@ -1,6 +1,6 @@
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
 import { artistDonationsEnabled } from '../features/donations/donationModel';
-import { ArrowRight, Play, Radio } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Play, Radio } from 'lucide-react';
 import { useMemo, type CSSProperties } from 'react';
 import { CoverImage } from '../components/CoverImage';
 import { TrackArtworkButton } from '../components/TrackArtworkButton';
@@ -67,7 +67,8 @@ export function ArtistProfileView({
 
   return (
     <section className='artist-profile-view' style={profileVars(artistName)}>
-      <button className='secondary-action compact-action artist-profile-back' type='button' onClick={onBack}>
+      <button className='back-action artist-profile-back' type='button' onClick={onBack}>
+        <ArrowLeft size={18} aria-hidden='true' />
         Back to discovery
       </button>
 

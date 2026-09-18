@@ -111,7 +111,7 @@ test('room presence stays quiet when online and remains honest offline', async (
   await page.getByRole('button', { name: 'Rooms', exact: true }).click();
   await page.locator('.room-live-card').filter({ hasText: code }).click();
   const panel = page.getByTestId('room-detail-panel');
-  await expect(panel.locator('.live-dot')).toHaveCSS('background-color', 'rgb(98, 221, 163)');
+  await expect(panel.locator('.live-dot')).toHaveCSS('background-color', 'rgb(63, 224, 171)');
   await expect(panel.locator('.room-detail-state')).toHaveCount(0);
   await expect(page.getByText('Room signal online', { exact: true })).toHaveCount(0);
   await expect(page.locator('.room-doctrine')).toHaveCount(0);

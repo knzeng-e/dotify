@@ -159,7 +159,7 @@ export function ReleasesTab({
               <p className='release-description'>{selectedRelease.description}</p>
               <div className='release-actions release-primary-actions'>
                 <button className='primary-action compact-action' type='button' onClick={() => onOpenTrack(selectedRelease)} disabled={!selectedReleaseActive}>
-                  <Play size={15} />
+                  <Play size={15} fill='currentColor' />
                   Open track
                 </button>
                 {runtimeAddress && (

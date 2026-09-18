@@ -9,14 +9,14 @@
 }
 .listen-home-focused .now-intro h1 {
   max-width: none;
-  font-size: clamp(2rem, 3vw, 3rem);
+  font-size: var(--text-display-sm);
   margin-top: 0.3rem;
   line-height: 1.1;
 }
-.listen-home-focused .now-intro > p {
+.listen-home-focused .now-intro-copy {
   border: 0;
   padding: 0;
-  margin: 0;
+  margin-top: var(--space-2);
 }
 .listen-home-focused > .catalogue-section {
   order: 1;
@@ -27,8 +27,8 @@
 }
 .listen-home-focused .section-heading h2 {
   font-family: var(--font-interface);
-  font-size: 1.25rem;
-  letter-spacing: -0.025em;
+  font-size: var(--text-xl);
+  letter-spacing: var(--tracking-display);
   line-height: 1.3;
 }
 .listen-home-focused .catalogue-intro {
@@ -46,11 +46,8 @@
   .listen-home-focused {
     gap: 1.25rem;
   }
-  .listen-home-focused .now-intro {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .listen-home-focused .now-intro h1 {
-    font-size: 1.9rem;
+    font-size: var(--text-title);
   }
   .listen-home-focused .catalogue-section .section-heading {
     margin: 0;
@@ -72,7 +69,7 @@
 }
 .rooms-landing-focused .rooms-intro h1 {
   max-width: none;
-  font-size: clamp(2rem, 3vw, 3rem);
+  font-size: var(--text-display-sm);
   line-height: 1.1;
 }
 .room-arrival {
@@ -122,11 +119,11 @@
     align-self: flex-start;
   }
   .rooms-landing-focused .rooms-intro h1 {
-    font-size: 1.9rem;
+    font-size: var(--text-title);
   }
   .rooms-landing-focused .rooms-live-section .section-heading h2 {
     font-family: var(--font-interface);
-    font-size: 1.25rem;
+    font-size: var(--text-xl);
   }
 }
 
