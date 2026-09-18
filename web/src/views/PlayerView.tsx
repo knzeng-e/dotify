@@ -383,7 +383,14 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               )}
             </div>
             <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
-              <CoverImage src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource} alt='' fallbackLabel={streamTitle || 'Dotify'} />
+              <CoverImage
+                src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource}
+                alt=''
+                fallbackLabel={streamTitle || 'Dotify'}
+                loading='eager'
+                fetchPriority='high'
+                sizes='(max-width: 760px) calc(100vw - 40px), 440px'
+              />
               <span className='sound-bars' aria-hidden='true'>
                 <i />
                 <i />

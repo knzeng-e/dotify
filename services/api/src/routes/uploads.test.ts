@@ -60,7 +60,19 @@ async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
     getActiveContentKeyVersion: () => RELEASE_BOUND_CONTENT_KEY_VERSION,
     deriveContentKeyBytes: () => Buffer.alloc(32, 7),
     encryptAudio: bytes => Buffer.from(bytes),
+    createCover: async (bytes, originalExtension) => ({
+      files: [
+        { path: 'cover/placeholder.webp', bytes: new Uint8Array([1]), mime: 'image/webp' },
+        { path: 'cover/640.webp', bytes, mime: 'image/webp' },
+        { path: `cover/original.${originalExtension}`, bytes, mime: `image/${originalExtension}` }
+      ],
+      primaryPath: 'cover/640.webp',
+      placeholderPath: 'cover/placeholder.webp',
+      width: 640,
+      height: 640
+    }),
     pinFile: async () => 'file-cid',
+    pinFiles: async () => 'cover-directory-cid',
     pinJson: async () => 'json-cid',
     ...options.routeDeps
   };
@@ -263,6 +275,52 @@ describe('authorized upload routes', () => {
     assert.match(response.json().error, /contentHash does not match/i);
   });
 
+  it('pins one responsive cover directory while preserving the archival original', async () => {
+    let pinnedPaths: string[] = [];
+    let pinMetadata: Record<string, string> | undefined;
+    const server = await buildApp({
+      routeDeps: {
+        pinFiles: async (files, _name, keyvalues) => {
+          pinnedPaths = files.map(file => file.path);
+          pinMetadata = keyvalues;
+          return 'responsive-cover-cid';
+        }
+      }
+    });
+    const grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/cover',
+      headers: multipartHeaders(grant),
+      payload: multipartFile('cover', 'album.png', 'image/png', pngBytes)
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().ref, 'ipfs://responsive-cover-cid/cover/640.webp');
+    assert.equal(response.json().responsive.placeholder, 'ipfs://responsive-cover-cid/cover/placeholder.webp');
+    assert.deepEqual(pinnedPaths, ['cover/placeholder.webp', 'cover/640.webp', 'cover/original.png']);
+    assert.equal(pinMetadata?.type, 'responsive-cover');
+    assert.equal(pinMetadata?.original, 'preserved');
+  });
+
+  it('fails clearly and releases quota when image decoding fails', async () => {
+    const server = await buildApp({
+      authorizationOptions: { principalByteLimit: pngBytes.length, globalByteLimit: pngBytes.length },
+      routeDeps: { createCover: async () => Promise.reject(new Error('decode failed')) }
+    });
+    const grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/cover',
+      headers: multipartHeaders(grant),
+      payload: multipartFile('cover', 'album.png', 'image/png', pngBytes)
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().code, 'UPLOAD_MEDIA_INVALID');
+    assert.equal((await authorize(server, 'cover', pngBytes.length)).statusCode, 200);
+  });
+
   it('rejects replay after one successful upload', async () => {
     const server = await buildApp();
     const grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
@@ -273,6 +331,8 @@ describe('authorized upload routes', () => {
       payload: multipartFile('cover', 'cover.txt', 'text/plain', pngBytes)
     });
     assert.equal(first.statusCode, 200);
+    assert.equal(first.json().ref, 'ipfs://cover-directory-cid/cover/640.webp');
+    assert.deepEqual(first.json().responsive.widths, [64, 160, 320, 640]);
 
     const replay = await server.inject({
       method: 'POST',
@@ -304,7 +364,7 @@ describe('authorized upload routes', () => {
     interrupted.name = 'AbortError';
     const server = await buildApp({
       authorizationOptions: { principalByteLimit: pngBytes.length, globalByteLimit: pngBytes.length },
-      routeDeps: { pinFile: async () => Promise.reject(interrupted) }
+      routeDeps: { pinFiles: async () => Promise.reject(interrupted) }
     });
     const grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
     const response = await server.inject({

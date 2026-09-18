@@ -26,7 +26,7 @@ export function TrackArtworkButton({
       data-testid='track-artwork-action'
       aria-label={`${canPlay ? 'Play' : 'View listening options for'} ${track.title} by ${track.artist}${accessCue ? `, ${accessCue}` : ''}`}
     >
-      <CoverImage className='catalogue-cover' src={track.imageRef} alt='' fallbackLabel={track.title} />
+      <CoverImage className='catalogue-cover' src={track.imageRef} alt='' fallbackLabel={track.title} loading='lazy' sizes='(max-width: 520px) 42vw, 190px' />
       <span className='track-artwork-action' aria-hidden='true'>
         <Play size={24} fill='currentColor' />
       </span>
