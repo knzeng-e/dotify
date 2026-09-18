@@ -13,13 +13,29 @@ async function expectNoDocumentOverflow(page: Page) {
     const bounds = shell?.getBoundingClientRect();
     return {
       documentFits: document.documentElement.scrollWidth <= innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
       scrollX,
       shellLeft: bounds?.left ?? 0,
       shellRight: bounds?.right ?? innerWidth,
-      viewportWidth: innerWidth
+      viewportWidth: innerWidth,
+      overflowCandidates: Array.from(document.querySelectorAll<HTMLElement>('body *'))
+        .map(element => {
+          const rect = element.getBoundingClientRect();
+          return {
+            selector: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}${Array.from(element.classList)
+              .map(name => `.${name}`)
+              .join('')}`,
+            left: Math.round(rect.left * 10) / 10,
+            right: Math.round(rect.right * 10) / 10,
+            scrollWidth: element.scrollWidth,
+            text: element.textContent?.trim().replace(/\s+/g, ' ').slice(0, 80) ?? ''
+          };
+        })
+        .filter(candidate => candidate.left < -1 || candidate.right > innerWidth + 1)
+        .slice(0, 12)
     };
   });
-  expect(geometry.documentFits).toBe(true);
+  expect(geometry.documentFits, JSON.stringify(geometry, null, 2)).toBe(true);
   expect(geometry.scrollX).toBe(0);
   expect(geometry.shellLeft).toBeGreaterThanOrEqual(-1);
   expect(geometry.shellRight).toBeLessThanOrEqual(geometry.viewportWidth + 1);
