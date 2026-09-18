@@ -22,6 +22,7 @@ export function TransactionModal() {
   } as CSSProperties;
   const dismissible = feedback.tone !== 'pending';
   const stepsContainTxHash = feedback.steps?.some(step => Boolean(step.txHash)) ?? false;
+  const technicalProofs = feedback.technicalFacts?.length ? collectTechnicalProofs(feedback) : [];
   const proofKind = feedback.proofKind ?? 'evm-transaction';
   const onClose = () => {
     if (feedback.tone !== 'pending') setTransactionFeedback(null);
@@ -93,6 +94,54 @@ export function TransactionModal() {
           ))}
         </dl>
       )}
+      {feedback.technicalFacts && feedback.technicalFacts.length > 0 && (
+        <details className='transaction-technical'>
+          <summary>Technical details</summary>
+          <dl className='transaction-facts' aria-label='Technical transaction details'>
+            {feedback.technicalFacts.map(fact => (
+              <div key={`${fact.label}-${fact.value}`}>
+                <dt>{fact.label}</dt>
+                <dd>
+                  <span className='transaction-fact-value'>{fact.code ? <code>{fact.value}</code> : fact.value}</span>
+                  {fact.copyValue && (
+                    <button
+                      className='transaction-fact-copy'
+                      type='button'
+                      onClick={() => void copyFactValue(fact.label, fact.copyValue!)}
+                      aria-label={fact.copyLabel ?? `Copy ${fact.label}`}
+                    >
+                      <Copy size={13} />
+                      <span>Copy</span>
+                    </button>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {technicalProofs.length > 0 && (
+            <div className='transaction-proof-list' aria-label='Technical proof references'>
+              {technicalProofs.map(proof => (
+                <div className='modal-hash' key={proof.txHash}>
+                  <span>{proof.label}</span>
+                  <code>{shorten(proof.txHash, 12)}</code>
+                  <button
+                    className='transaction-fact-copy'
+                    type='button'
+                    onClick={() => void copyFactValue(proof.label, proof.txHash)}
+                    aria-label={`Copy ${proof.label}`}
+                  >
+                    <Copy size={13} />
+                    <span>Copy</span>
+                  </button>
+                  <a className='modal-link' href={getTransactionProofUrl(proof.txHash, proofKind)} target='_blank' rel='noreferrer'>
+                    {proofKind === 'substrate-extrinsic' ? 'View extrinsic' : 'View proof'}
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
+        </details>
+      )}
       {copyStatus && (
         <p className='transaction-copy-status' data-tone={copyStatus.tone} role='status' aria-live='polite'>
           {copyStatus.message}
@@ -114,7 +163,7 @@ export function TransactionModal() {
               <span className='transaction-roadmap-copy'>
                 <strong>{step.label}</strong>
                 <small>{step.detail}</small>
-                {step.txHash && (
+                {step.txHash && !feedback.technicalFacts?.length && (
                   <a href={getTransactionProofUrl(step.txHash, proofKind)} target='_blank' rel='noreferrer'>
                     {shorten(step.txHash, 10)}
                   </a>
@@ -124,7 +173,7 @@ export function TransactionModal() {
           ))}
         </ol>
       )}
-      {feedback.txHash && !stepsContainTxHash && (
+      {feedback.txHash && !stepsContainTxHash && !feedback.technicalFacts?.length && (
         <div className='modal-hash'>
           <span>Proof reference</span>
           <code>{shorten(feedback.txHash, 12)}</code>
@@ -163,4 +212,21 @@ function getRoadmapProgress(steps: TransactionFeedback['steps']) {
   const lastCompleteIndex = steps.reduce((lastIndex, step, index) => (step.status === 'complete' ? index : lastIndex), -1);
   if (lastCompleteIndex <= 0) return 0;
   return (lastCompleteIndex / (steps.length - 1)) * 100;
+}
+
+export function collectTechnicalProofs(feedback: TransactionFeedback): Array<{ label: string; txHash: `0x${string}` }> {
+  const proofs: Array<{ label: string; txHash: `0x${string}` }> = [];
+  const seen = new Set<string>();
+
+  for (const step of feedback.steps ?? []) {
+    if (!step.txHash || seen.has(step.txHash)) continue;
+    seen.add(step.txHash);
+    proofs.push({ label: step.label, txHash: step.txHash });
+  }
+
+  if (feedback.txHash && !seen.has(feedback.txHash)) {
+    proofs.push({ label: 'Proof reference', txHash: feedback.txHash });
+  }
+
+  return proofs;
 }

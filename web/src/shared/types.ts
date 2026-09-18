@@ -227,6 +227,8 @@ export type TransactionFeedback = {
   /** Selects the explorer that can resolve the returned transaction hash. */
   proofKind?: TransactionProofKind;
   facts?: TransactionFeedbackFact[];
+  /** Optional implementation records kept behind an explicit disclosure. */
+  technicalFacts?: TransactionFeedbackFact[];
   steps?: {
     label: string;
     detail: string;

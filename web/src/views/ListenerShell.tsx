@@ -49,7 +49,6 @@ import { getStoredArtistName } from '../hooks/useArtistConsole';
 import { normalizeRoomCode } from '../shared/utils/format';
 import type { CatalogTrack, View } from '../shared/types';
 
-const DEFAULT_ARTIST_NAME = 'Dotify Artist';
 const productHostConfig = resolveProductHostConfig(import.meta.env);
 const runtimeAdapterConfig = resolveRuntimeAdapterConfig(import.meta.env);
 const apiConfigured = Boolean((import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.trim());
@@ -330,7 +329,7 @@ export function ListenerShell() {
                 {activeView === 'you' && (
                   <YouView
                     walletState={walletState}
-                    artistName={artistName || getStoredArtistName(activeEvmAddress) || DEFAULT_ARTIST_NAME}
+                    artistName={artistName || getStoredArtistName(activeEvmAddress) || 'Your artist space'}
                     artistRuntimeAddress={artistConsole.artistRuntimeAddress}
                     artistReleaseCount={artistTracks.length}
                     totalRoyaltyWei={totalRoyaltyWei}

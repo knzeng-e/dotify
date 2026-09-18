@@ -72,7 +72,7 @@ export function RoyaltiesTab({
   return (
     <section className='content-grid royalties-grid'>
       <div className='doc-panel royalties-panel'>
-        <PanelTitle icon={Wallet} title='Royalty ledger' meta={hasRoyaltyRuntime ? 'on-chain settlement' : 'profile needed'} />
+        <PanelTitle icon={Wallet} title='Support and balances' meta={hasRoyaltyRuntime ? 'ready to review' : 'artist space needed'} />
         <div className='royalty-summary-grid'>
           <Metric label='settled' value={`${formatWeiAsDot(totalRoyaltyWei)} ${nativePaymentSymbol}`} />
           <Metric

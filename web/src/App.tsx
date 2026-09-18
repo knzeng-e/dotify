@@ -14,8 +14,6 @@ import { ArtistShell } from './views/ArtistShell';
 // the two shells (ListenerShell, ArtistShell) own their render trees. App only
 // picks the shell and runs the handful of effects that span both shells.
 
-const DEFAULT_ARTIST_NAME = 'Dotify Artist';
-
 export default function App() {
   const { isArtistPortal, publicArtistName } = useNavigation();
   const catalog = useCatalogContext();
@@ -61,7 +59,7 @@ export default function App() {
       setArtistName(storedName);
       return;
     }
-    setArtistName(previous => (previous.trim() && previous !== 'Dotify Artist' ? previous : DEFAULT_ARTIST_NAME));
+    setArtistName(previous => (previous.trim() && previous !== 'Dotify Artist' ? previous : ''));
   }, [activeEvmAddress, setArtistName]);
 
   useEffect(() => {

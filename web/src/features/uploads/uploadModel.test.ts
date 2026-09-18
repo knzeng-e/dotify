@@ -48,12 +48,12 @@ describe('buildDraftTrackInfo', () => {
 describe('uploadStatusMessage', () => {
   it('returns audio phase messages', () => {
     expect(uploadStatusMessage('audio', 'preparing')).toBe('Hashing audio');
-    expect(uploadStatusMessage('audio', 'uploaded')).toBe('Audio ready - protected and uploaded to IPFS');
-    expect(uploadStatusMessage('audio', 'failed')).toBe('Audio ready (IPFS upload failed - will retry on register)');
+    expect(uploadStatusMessage('audio', 'uploaded')).toBe('Audio ready - protected and saved');
+    expect(uploadStatusMessage('audio', 'failed')).toBe('Audio ready - secure save needs retrying when you publish');
   });
 
   it('returns cover phase messages', () => {
     expect(uploadStatusMessage('cover', 'preparing')).toBe('Preparing cover image');
-    expect(uploadStatusMessage('cover', 'uploaded')).toBe('Cover ready - uploaded to IPFS');
+    expect(uploadStatusMessage('cover', 'uploaded')).toBe('Cover ready - saved');
   });
 });

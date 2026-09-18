@@ -19,9 +19,9 @@ import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from 
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
 import { listKnownRoyaltyRuntimeCandidates, readRoyaltyRuntimeBalances } from '../features/runtime/royaltyRuntimeClaims';
 import {
-  buildReleasePublicationFacts,
   buildReleasePublicationRoadmap,
   buildReleaseRegistrationFailureMessage,
+  buildReleaseTechnicalFacts,
   releaseRoyaltySplitPreflightError,
   type ReleasePublicationStage
 } from '../features/artist-studio/releaseForm';
@@ -67,15 +67,15 @@ const productHostConfig = resolveProductHostConfig(import.meta.env);
 const runtimeBootstrapSteps = [
   {
     label: 'Claim your artist space',
-    detail: 'Create the on-chain home where your music and rights will live.'
+    detail: 'Create the home where your music and release choices will live.'
   },
   {
     label: 'Make the space findable',
-    detail: 'Let Dotify connect your wallet to the artist space listeners will discover.'
+    detail: 'Let Dotify connect your account to the artist space listeners will discover.'
   },
   {
     label: 'Keep creative control',
-    detail: 'Give your artist wallet the authority to care for this space over time.'
+    detail: 'Give your artist account permission to care for this space over time.'
   },
   {
     label: 'Open your music record',
@@ -95,7 +95,7 @@ const runtimeBootstrapSteps = [
   },
   {
     label: 'Own the artist space',
-    detail: 'Make your wallet responsible for the whole space, beyond the ownership of individual tracks.'
+    detail: 'Make your artist account responsible for the whole space and its releases.'
   }
 ] as const;
 
@@ -230,7 +230,6 @@ export type UseArtistConsoleDeps = {
   activeSubstrateAddress: string | null;
   activeSubstrateSigner: PolkadotSigner | null;
   artistTracks: CatalogTrack[];
-  nativePaymentSymbol: string;
   setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
   refreshCatalogFromRegistry: (hash?: `0x${string}`) => Promise<CatalogTrack[]>;
   setAudioCID: (cid: string) => void;
@@ -262,7 +261,6 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     activeSubstrateAddress,
     activeSubstrateSigner,
     artistTracks,
-    nativePaymentSymbol,
     setTransactionFeedback,
     refreshCatalogFromRegistry,
     setAudioCID,
@@ -333,22 +331,34 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
   async function getUploadIdentity(): Promise<BackendUploadIdentity | undefined> {
     if (!isBackendConfigured()) return undefined;
-    if (!connectedWallet) throw new Error('Connect the artist wallet before uploading release assets.');
+    if (!connectedWallet) throw new Error('Connect your artist account before uploading release assets.');
     const chainId = currentChainId ?? connectedWallet.chainId ?? (await resolveEvmChain(ethRpcUrl)).id;
     if (connectedWallet.keyRequestSigner) return { chainId, signer: connectedWallet.keyRequestSigner };
     return { chainId, walletClient: await getActiveWalletClient() };
   }
 
-  function releasePublicationFacts(runtimeAddress: string | null = artistRuntimeAddress): TransactionFeedback['facts'] {
-    return buildReleasePublicationFacts({
-      accessMode,
-      priceDot,
-      nativePaymentSymbol,
-      personhoodLevel,
+  function releasePublicationTechnicalFacts(runtimeAddress: string | null = artistRuntimeAddress): TransactionFeedback['technicalFacts'] {
+    return buildReleaseTechnicalFacts({
       artistRecipient: activeEvmAddress,
       runtimeAddress,
-      uploadToBulletinEnabled
+      uploadToBulletinEnabled,
+      additionalSplits: additionalRoyaltySplits
     });
+  }
+
+  function artistSpaceTechnicalFacts(runtimeAddress: string | null = artistRuntimeAddress): TransactionFeedback['technicalFacts'] {
+    return [
+      {
+        label: 'Artist account',
+        value: activeEvmAddress ? shorten(activeEvmAddress, 14) : 'Connect the artist account',
+        code: Boolean(activeEvmAddress)
+      },
+      {
+        label: 'Artist space record',
+        value: runtimeAddress ? shorten(runtimeAddress, 14) : 'Created after the approvals finish',
+        code: Boolean(runtimeAddress)
+      }
+    ];
   }
 
   async function refreshArtistRuntime(showBusy = false) {
@@ -356,17 +366,17 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       if (showBusy) {
         setIsRefreshingArtistRuntime(true);
       }
-      setArtistRegistrationStatus('Checking artist runtime');
+      setArtistRegistrationStatus('Checking your artist space');
       await new Promise(resolve => window.setTimeout(resolve, 10));
       const state = getArtistPublishE2eState();
       if (state.runtimeCreated) {
         setArtistRuntimeAddress(E2E_ARTIST_RUNTIME);
-        setArtistRegistrationStatus('Artist registered');
+        setArtistRegistrationStatus('Artist space ready');
         if (showBusy) setIsRefreshingArtistRuntime(false);
         return E2E_ARTIST_RUNTIME;
       }
       setArtistRuntimeAddress(null);
-      setArtistRegistrationStatus('Artist not registered yet');
+      setArtistRegistrationStatus('Artist space not created yet');
       if (showBusy) setIsRefreshingArtistRuntime(false);
       return null;
     }
@@ -377,7 +387,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     // artistRegistrationAvailable before sending transactions.
     if (!artistRegistrationConfigured) {
       setArtistRuntimeAddress(null);
-      setArtistRegistrationStatus('Artist runtime contracts are not deployed yet.');
+      setArtistRegistrationStatus('Artist publishing is not available yet.');
       return null;
     }
 
@@ -385,13 +395,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       setIsRefreshingArtistRuntime(true);
     }
 
-    setArtistRegistrationStatus('Checking artist runtime');
+    setArtistRegistrationStatus('Checking your artist space');
 
     try {
       const directoryExists = await runtimeReader.ensureContract(directoryAddress!);
       if (!directoryExists) {
         setArtistRuntimeAddress(null);
-        setArtistRegistrationStatus('Artist directory unavailable');
+        setArtistRegistrationStatus('Artist registration is unavailable');
         return null;
       }
 
@@ -399,15 +409,15 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       if (!runtimeAddress) {
         setArtistRuntimeAddress(null);
-        setArtistRegistrationStatus(artistPublicationQuarantined ? artistPublicationSafety.reason : 'Artist not registered yet');
+        setArtistRegistrationStatus(artistPublicationQuarantined ? artistPublicationSafety.reason : 'Artist space not created yet');
         return null;
       }
 
       setArtistRuntimeAddress(runtimeAddress);
-      setArtistRegistrationStatus('Artist registered');
+      setArtistRegistrationStatus('Artist space ready');
       return runtimeAddress;
     } catch (runtimeError) {
-      const message = runtimeError instanceof Error ? runtimeError.message : 'Unable to resolve artist runtime';
+      const message = runtimeError instanceof Error ? runtimeError.message : 'Unable to check your artist space';
       setArtistRuntimeAddress(null);
       setArtistRegistrationStatus(message);
       return null;
@@ -428,10 +438,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     if (!connectedWallet) {
       setTransactionFeedback({
         tone: 'error',
-        title: 'Wallet required',
-        message: 'Connect a wallet before creating an artist profile.'
+        title: 'Account required',
+        message: 'Connect your account before creating an artist space.'
       });
-      setArtistRegistrationStatus('Connect your wallet to claim an artist profile.');
+      setArtistRegistrationStatus('Connect your account to create an artist space.');
       return;
     }
 
@@ -449,16 +459,17 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       setIsRegisteringArtist(true);
       try {
-        setArtistRegistrationStatus('Creating artist runtime');
+        setArtistRegistrationStatus('Creating your artist space');
         await new Promise(resolve => window.setTimeout(resolve, 20));
         markArtistPublishRuntimeCreated();
         setArtistRuntimeAddress(E2E_ARTIST_RUNTIME);
-        setArtistRegistrationStatus('Artist registered');
-        setRightsStatus('Artist registered. Add audio and publish the first track.');
+        setArtistRegistrationStatus('Artist space ready');
+        setRightsStatus('Artist space ready. Add music to publish your first release.');
         setTransactionFeedback({
           tone: 'success',
           title: 'Artist registered',
-          message: 'The artist signer now owns a personal SmartRuntime and can publish music.',
+          message: 'Your artist space is ready. You can now prepare and publish music.',
+          technicalFacts: artistSpaceTechnicalFacts(E2E_ARTIST_RUNTIME),
           txHash: E2E_ARTIST_PROFILE_TX_HASH
         });
       } finally {
@@ -470,8 +481,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     if (!artistRegistrationAvailable) {
       setTransactionFeedback({
         tone: 'error',
-        title: 'Artist registry unavailable',
-        message: 'Deploy the ArtistRuntimeFactory and ArtistDirectory before registering an artist.'
+        title: 'Artist registration unavailable',
+        message: 'The publishing service is not configured yet. Technical details are available to the operator.'
       });
       return;
     }
@@ -484,7 +495,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         setTransactionFeedback({
           tone: 'success',
           title: 'Artist already registered',
-          message: 'This signer already owns a SmartRuntime and can publish music.'
+          message: 'This account already has an artist space and can publish music.'
         });
         return;
       }
@@ -493,8 +504,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       if (!factoryExists) {
         setTransactionFeedback({
           tone: 'error',
-          title: 'Factory unavailable',
-          message: 'ArtistRuntimeFactory not found at the configured address.'
+          title: 'Publishing service unavailable',
+          message: 'Dotify cannot reach the artist publishing service. Try again later or check Advanced for technical details.'
         });
         return;
       }
@@ -512,6 +523,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           tone: 'pending',
           title: 'Review artist registration',
           message: `Your artist space is created through ${runtimeBootstrapSteps.length} clear approvals. Each one adds a precise commitment you can review before continuing.`,
+          technicalFacts: artistSpaceTechnicalFacts(pendingRuntime),
           steps: artistRuntimeBootstrapRoadmap(0, 'active')
         });
 
@@ -520,8 +532,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         setTransactionFeedback({
           tone: 'pending',
           title: 'Registering artist',
-          message: 'Your artist space is being created on-chain. The next approval will appear after confirmation.',
+          message: 'Your artist space is being created. The next approval will appear after confirmation.',
           txHash,
+          technicalFacts: artistSpaceTechnicalFacts(pendingRuntime),
           steps: artistRuntimeBootstrapRoadmap(0, 'submitted', confirmedBootstrapTxHashes)
         });
 
@@ -534,6 +547,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           tone: 'pending',
           title: 'Resuming artist registration',
           message: `Continuing setup for ${shorten(pendingRuntime, 10)}. The next commitment is shown below.`,
+          technicalFacts: artistSpaceTechnicalFacts(pendingRuntime),
           steps: artistRuntimeBootstrapRoadmap(pendingStepIndex, 'active')
         });
       }
@@ -550,6 +564,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           tone: 'pending',
           title: 'Review artist registration',
           message: `Approval ${stepIndex + 1}/${runtimeBootstrapSteps.length}: ${step.detail}`,
+          technicalFacts: artistSpaceTechnicalFacts(pendingRuntime),
           steps: artistRuntimeBootstrapRoadmap(stepIndex, 'active', confirmedBootstrapTxHashes)
         });
 
@@ -558,8 +573,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         setTransactionFeedback({
           tone: 'pending',
           title: 'Registering artist',
-          message: `${step.label} is being confirmed on-chain. The next approval will appear when this is done.`,
+          message: `${step.label} is being confirmed. The next approval will appear when this is done.`,
           txHash,
+          technicalFacts: artistSpaceTechnicalFacts(pendingRuntime),
           steps: artistRuntimeBootstrapRoadmap(stepIndex, 'submitted', confirmedBootstrapTxHashes)
         });
 
@@ -572,15 +588,16 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       const runtimeAddress = await refreshArtistRuntime();
 
       if (!runtimeAddress) {
-        throw new Error('Artist runtime was not indexed after confirmation');
+        throw new Error('Your artist space was not available after confirmation');
       }
 
-      setRightsStatus('Artist registered. Add audio and publish the first track.');
+      setRightsStatus('Artist space ready. Add music to publish your first release.');
       setTransactionFeedback({
         tone: 'success',
         title: 'Artist registered',
-        message: 'The artist signer now owns a personal SmartRuntime and can publish music.',
+        message: 'Your artist space is ready. You can now prepare and publish music.',
         txHash,
+        technicalFacts: artistSpaceTechnicalFacts(runtimeAddress),
         steps: artistRuntimeBootstrapRoadmap(runtimeBootstrapSteps.length - 1, 'complete', confirmedBootstrapTxHashes)
       });
     } catch (registrationError) {
@@ -757,11 +774,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     }
 
     if (!connectedWallet) {
-      setRightsStatus('Connect your wallet before publishing');
+      setRightsStatus('Connect your account before publishing');
       setTransactionFeedback({
         tone: 'error',
-        title: 'Wallet required',
-        message: 'Connect the artist wallet before publishing a release.'
+        title: 'Account required',
+        message: 'Connect your artist account before publishing a release.'
       });
       return;
     }
@@ -778,7 +795,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         tone: 'error',
         title: 'Payment split incomplete',
         message: royaltySplitError,
-        facts: releasePublicationFacts(),
+        technicalFacts: releasePublicationTechnicalFacts(),
         steps: buildReleasePublicationRoadmap('assets')
       });
       return;
@@ -788,9 +805,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     let publicationStage: ReleasePublicationStage = 'assets';
     setTransactionFeedback({
       tone: 'pending',
-      title: 'Preparing registration',
-      message: 'Building the rights manifest and validating the selected services. Uploads alone will not publish the release.',
-      facts: releasePublicationFacts(),
+      title: 'Preparing your release',
+      message: 'Dotify is checking your music and the choices you reviewed. Nothing is published yet.',
+      technicalFacts: releasePublicationTechnicalFacts(),
       steps: buildReleasePublicationRoadmap(publicationStage)
     });
 
@@ -811,23 +828,23 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         if (!resolvedRuntime) {
           setTransactionFeedback({
             tone: 'error',
-            title: 'Artist registration required',
-            message: 'Register the artist first, then come back to publish tracks.',
-            facts: releasePublicationFacts(null)
+            title: 'Artist space required',
+            message: 'Create your artist space first, then return to publish this release.',
+            technicalFacts: releasePublicationTechnicalFacts(null)
           });
-          setRightsStatus('Register artist before managing releases');
+          setRightsStatus('Create your artist space before publishing');
           return;
         }
         runtimeAddress = resolvedRuntime;
       }
 
-      setRightsStatus('Awaiting IPFS uploads…');
+      setRightsStatus('Preparing your music…');
       publicationStage = 'assets';
       setTransactionFeedback({
         tone: 'pending',
-        title: 'Preparing protected assets',
-        message: 'Resolving encrypted audio and cover uploads for this artist runtime.',
-        facts: releasePublicationFacts(runtimeAddress),
+        title: 'Preparing your music',
+        message: 'Dotify is protecting the audio and preparing the cover.',
+        technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
         steps: buildReleasePublicationRoadmap(publicationStage)
       });
       // Raw audio bytes feed the protected (server-encrypted) upload. Access
@@ -848,12 +865,12 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           publicationRuntimeAddress: runtimeAddress,
           canRetry: Boolean(rawAudioBytes),
           onBeforeRetry: () => {
-            setRightsStatus('Artist runtime changed; uploading audio again');
+            setRightsStatus('Artist space changed; preparing audio again');
             setTransactionFeedback({
               tone: 'pending',
               title: 'Refreshing protected audio',
-              message: 'The prepared audio belongs to a different artist runtime, so Dotify is uploading it again before registration.',
-              facts: releasePublicationFacts(runtimeAddress),
+              message: 'The prepared audio belongs to another artist space, so Dotify is preparing it again before publication.',
+              technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
               steps: buildReleasePublicationRoadmap('assets')
             });
           },
@@ -880,13 +897,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       } = resolveReleaseRoyaltySplits(activeEvmAddress, accessMode, royaltyBps, additionalRoyaltySplits);
       const manifest = createRightsManifest(fileHash, royaltyRecipients, royaltyShares, resolvedAudioCID, resolvedCoverCID, resolvedAudioRef);
 
-      setRightsStatus('Publishing manifest to IPFS…');
+      setRightsStatus('Saving release details…');
       publicationStage = 'manifest';
       setTransactionFeedback({
         tone: 'pending',
-        title: 'Uploading to IPFS',
-        message: 'Pinning the track manifest to IPFS via Pinata.',
-        facts: releasePublicationFacts(runtimeAddress),
+        title: 'Saving release details',
+        message: 'Dotify is saving the listening and support choices attached to this release.',
+        technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
         steps: buildReleasePublicationRoadmap(publicationStage)
       });
       const metadataCID = await uploadJsonToPinata(manifest, `${manifest.track.title}.json`, { app: 'dotify', type: 'track-metadata' }, uploadIdentity);
@@ -894,7 +911,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       if (isArtistPublishE2e) {
         if (!runtimeAddress) {
-          throw new Error('Artist runtime missing');
+          throw new Error('Artist space missing');
         }
         const targetRuntimeAddress = runtimeAddress;
         const e2eScenario = getArtistPublishE2eScenario();
@@ -907,12 +924,12 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         if (e2eScenario === 'transaction-timeout') {
           recordArtistPublishTrackRegistration();
           recordArtistPublishTransactionFailure();
-          setRightsStatus('Waiting for transaction confirmation');
+          setRightsStatus('Waiting for your approval to confirm');
           setTransactionFeedback({
             tone: 'pending',
             title: 'Waiting for confirmation',
-            message: 'Transaction submitted. Waiting for the final receipt on the EVM network.',
-            facts: releasePublicationFacts(targetRuntimeAddress),
+            message: 'Your approval was submitted. Dotify is waiting for confirmation.',
+            technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
             steps: buildReleasePublicationRoadmap(publicationStage, E2E_ARTIST_RELEASE_TX_HASH),
             txHash: E2E_ARTIST_RELEASE_TX_HASH
           });
@@ -959,39 +976,39 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         }
         registrationTransactionConfirmed = true;
         publicationStage = 'catalog';
-        setRightsStatus('Verifying catalog visibility');
+        setRightsStatus('Checking that the release is visible');
         setTransactionFeedback({
           tone: 'pending',
-          title: 'Verifying catalog visibility',
-          message: 'Registration accepted. Reading the catalog before marking this release published.',
-          facts: releasePublicationFacts(targetRuntimeAddress),
+          title: 'Checking your release',
+          message: 'Your approval is confirmed. Dotify is checking the catalog before calling the release published.',
+          technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
           steps: buildReleasePublicationRoadmap('catalog', E2E_ARTIST_RELEASE_TX_HASH),
           txHash: E2E_ARTIST_RELEASE_TX_HASH
         });
         const refreshedTracks = await refreshCatalogFromRegistry(fileHash);
         const visible = refreshedTracks.some(refreshedTrack => isReleaseVisibleInRuntime(refreshedTrack, targetRuntimeAddress, fileHash));
         if (!visible) {
-          setRightsStatus('Registration accepted; catalog refresh pending');
+          setRightsStatus('Approval confirmed; catalog refresh pending');
           setTransactionFeedback({
             tone: 'error',
-            title: 'Registration accepted, catalog pending',
+            title: 'Approved, still waiting for the catalog',
             message: buildReleaseRegistrationFailureMessage({
               error: 'The catalog read-back did not include this release yet.',
               submittedTxHash: E2E_ARTIST_RELEASE_TX_HASH,
               registrationConfirmed: true
             }),
-            facts: releasePublicationFacts(targetRuntimeAddress),
+            technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
             steps: buildReleasePublicationRoadmap('catalog', E2E_ARTIST_RELEASE_TX_HASH),
             txHash: E2E_ARTIST_RELEASE_TX_HASH
           });
           return;
         }
-        setRightsStatus('Rights registered');
+        setRightsStatus('Release published');
         setTransactionFeedback({
           tone: 'success',
-          title: 'Track registered',
-          message: 'The release was added to the artist runtime and Dotify can see it in the catalog.',
-          facts: releasePublicationFacts(targetRuntimeAddress),
+          title: 'Release published',
+          message: 'Dotify can see this release in the catalog. The listening and support choices you reviewed are now active.',
+          technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
           steps: buildReleasePublicationRoadmap('complete', E2E_ARTIST_RELEASE_TX_HASH),
           txHash: E2E_ARTIST_RELEASE_TX_HASH
         });
@@ -1007,7 +1024,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
             tone: 'error',
             title: 'Bulletin signer missing',
             message,
-            facts: releasePublicationFacts(runtimeAddress),
+            technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
             steps: buildReleasePublicationRoadmap(publicationStage)
           });
           return;
@@ -1019,7 +1036,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           tone: 'pending',
           title: 'Authorizing Bulletin upload',
           message: 'Checking whether the selected Bulletin account can publish this manifest.',
-          facts: releasePublicationFacts(runtimeAddress),
+          technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
           steps: buildReleasePublicationRoadmap(publicationStage)
         });
         const authorized = await checkBulletinAuthorization(activeSubstrateAddress, manifestPayload.bytes.length);
@@ -1030,7 +1047,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
             tone: 'error',
             title: 'Bulletin upload blocked',
             message,
-            facts: releasePublicationFacts(runtimeAddress),
+            technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
             steps: buildReleasePublicationRoadmap(publicationStage)
           });
           return;
@@ -1041,7 +1058,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           tone: 'pending',
           title: 'Publishing manifest',
           message: 'Writing the compact rights manifest to Bulletin Chain.',
-          facts: releasePublicationFacts(runtimeAddress),
+          technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
           steps: buildReleasePublicationRoadmap(publicationStage)
         });
         const bulletinUpload = await uploadToBulletin(manifestPayload.bytes, activeSubstrateSigner);
@@ -1052,42 +1069,42 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         setRightsStatus('Rights staged');
         setTransactionFeedback({
           tone: 'success',
-          title: 'Rights prepared',
-          message: 'The release is ready in the studio. Deploy the factory contract to complete the onchain step.',
-          facts: releasePublicationFacts(runtimeAddress),
+          title: 'Release prepared',
+          message: 'The release draft is ready, but the publishing service must be configured before it can become visible.',
+          technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
           steps: buildReleasePublicationRoadmap(publicationStage)
         });
         return;
       }
 
-      setRightsStatus('Checking contracts');
+      setRightsStatus('Checking the publishing service');
       setTransactionFeedback({
         tone: 'pending',
-        title: 'Checking factory',
-        message: 'Verifying that the ArtistRuntimeFactory is reachable before submission.',
-        facts: releasePublicationFacts(runtimeAddress),
+        title: 'Checking publishing service',
+        message: 'Dotify is checking that publication is available before asking for approval.',
+        technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
         steps: buildReleasePublicationRoadmap(publicationStage)
       });
       const factoryExists = await runtimeReader.ensureContract(factoryAddress);
       if (!factoryExists) {
-        setRightsStatus('Factory not found');
+        setRightsStatus('Publishing service unavailable');
         setTransactionFeedback({
           tone: 'error',
-          title: 'Factory unavailable',
-          message: 'ArtistRuntimeFactory not found at the configured address.',
-          facts: releasePublicationFacts(runtimeAddress),
+          title: 'Publishing service unavailable',
+          message: 'Dotify cannot reach the publishing service. Try again later or ask the host operator to check Advanced.',
+          technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
           steps: buildReleasePublicationRoadmap(publicationStage)
         });
         return;
       }
 
       if (!runtimeAddress) {
-        setRightsStatus('Artist runtime missing');
+        setRightsStatus('Artist space missing');
         setTransactionFeedback({
           tone: 'error',
-          title: 'Artist runtime missing',
-          message: 'Register the artist first before submitting a track to the onchain registry.',
-          facts: releasePublicationFacts(null),
+          title: 'Artist space missing',
+          message: 'Create your artist space before publishing a release.',
+          technicalFacts: releasePublicationTechnicalFacts(null),
           steps: buildReleasePublicationRoadmap(publicationStage)
         });
         return;
@@ -1098,13 +1115,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       const ipfsAudioRef = resolvedAudioRef || localAudioRef(fileHash);
       const ipfsCoverRef = resolvedCoverCID ? `ipfs://${resolvedCoverCID}` : `dotify:cover:${fileHash}`;
 
-      setRightsStatus('Submitting rights transaction');
+      setRightsStatus('Waiting for publication approval');
       publicationStage = 'registry';
       setTransactionFeedback({
         tone: 'pending',
-        title: 'Registering track',
-        message: 'Review the registration in your wallet. Dotify will not mark the release as published until catalog read-back confirms it.',
-        facts: releasePublicationFacts(targetRuntimeAddress),
+        title: 'Approve publication',
+        message: 'Review the publication in your account. Dotify will only call the release published after it appears in the catalog.',
+        technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
         steps: buildReleasePublicationRoadmap(publicationStage)
       });
 
@@ -1125,52 +1142,52 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       });
       submittedRegistrationTxHash = txHash;
 
-      setRightsStatus('Waiting for transaction confirmation');
+      setRightsStatus('Waiting for your approval to confirm');
       setTransactionFeedback({
         tone: 'pending',
         title: 'Waiting for confirmation',
-        message: 'Transaction submitted. Waiting for the final receipt on the EVM network.',
+        message: 'Your approval was submitted. Dotify is waiting for confirmation.',
         txHash,
-        facts: releasePublicationFacts(targetRuntimeAddress),
+        technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
         steps: buildReleasePublicationRoadmap(publicationStage, txHash)
       });
       await runtimeWriter.waitForTransaction(txHash);
       registrationTransactionConfirmed = true;
       publicationStage = 'catalog';
-      setRightsStatus('Verifying catalog visibility');
+      setRightsStatus('Checking that the release is visible');
       setTransactionFeedback({
         tone: 'pending',
-        title: 'Verifying catalog visibility',
-        message: 'Registration confirmed. Reading the catalog before marking this release published.',
+        title: 'Checking your release',
+        message: 'Your approval is confirmed. Dotify is checking the catalog before calling the release published.',
         txHash,
-        facts: releasePublicationFacts(targetRuntimeAddress),
+        technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
         steps: buildReleasePublicationRoadmap(publicationStage, txHash)
       });
       const refreshedTracks = await refreshCatalogFromRegistry(fileHash);
       const visible = refreshedTracks.some(refreshedTrack => isReleaseVisibleInRuntime(refreshedTrack, targetRuntimeAddress, fileHash));
       if (!visible) {
-        setRightsStatus('Registration confirmed; catalog refresh pending');
+        setRightsStatus('Approval confirmed; catalog refresh pending');
         setTransactionFeedback({
           tone: 'error',
-          title: 'Registration confirmed, catalog pending',
+          title: 'Approved, still waiting for the catalog',
           message: buildReleaseRegistrationFailureMessage({
             error: 'The catalog read-back did not include this release yet.',
             submittedTxHash: txHash,
             registrationConfirmed: true
           }),
           txHash,
-          facts: releasePublicationFacts(targetRuntimeAddress),
+          technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
           steps: buildReleasePublicationRoadmap(publicationStage, txHash)
         });
         return;
       }
-      setRightsStatus('Rights registered');
+      setRightsStatus('Release published');
       setTransactionFeedback({
         tone: 'success',
-        title: 'Track registered',
-        message: 'The release was added to the artist runtime and Dotify can see it in the catalog.',
+        title: 'Release published',
+        message: 'Dotify can see this release in the catalog. The listening and support choices you reviewed are now active.',
         txHash,
-        facts: releasePublicationFacts(targetRuntimeAddress),
+        technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
         steps: buildReleasePublicationRoadmap('complete', txHash)
       });
     } catch (registrationError) {
@@ -1178,14 +1195,14 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       setRightsStatus(message);
       setTransactionFeedback({
         tone: 'error',
-        title: 'Registration failed',
+        title: 'Publication needs attention',
         message: buildReleaseRegistrationFailureMessage({
           error: message,
           submittedTxHash: submittedRegistrationTxHash,
           registrationConfirmed: registrationTransactionConfirmed
         }),
         txHash: submittedRegistrationTxHash,
-        facts: releasePublicationFacts(runtimeAddress),
+        technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
         steps: buildReleasePublicationRoadmap(registrationTransactionConfirmed ? 'catalog' : publicationStage, submittedRegistrationTxHash)
       });
     } finally {
@@ -1197,8 +1214,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     if (!connectedWallet) {
       setTransactionFeedback({
         tone: 'error',
-        title: 'Wallet required',
-        message: 'Connect the artist wallet before updating this release.'
+        title: 'Account required',
+        message: 'Connect your artist account before updating this release.'
       });
       return;
     }
@@ -1215,8 +1232,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     if (!runtimeAddress) {
       setTransactionFeedback({
         tone: 'error',
-        title: 'Artist runtime missing',
-        message: 'This release is not linked to an artist SmartRuntime.'
+        title: 'Artist space missing',
+        message: 'This release is not linked to an artist space.'
       });
       return;
     }
@@ -1256,8 +1273,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     if (!connectedWallet) {
       setTransactionFeedback({
         tone: 'error',
-        title: 'Wallet required',
-        message: 'Connect the artist wallet before updating this release.'
+        title: 'Account required',
+        message: 'Connect your artist account before updating this release.'
       });
       return;
     }
@@ -1266,8 +1283,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     if (!runtimeAddress) {
       setTransactionFeedback({
         tone: 'error',
-        title: 'Artist runtime missing',
-        message: 'This release is not linked to an artist SmartRuntime.'
+        title: 'Artist space missing',
+        message: 'This release is not linked to an artist space.'
       });
       return;
     }
@@ -1302,8 +1319,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     if (!connectedWallet) {
       setTransactionFeedback({
         tone: 'error',
-        title: 'Wallet required',
-        message: 'Connect the royalty recipient wallet before claiming pending royalties.'
+        title: 'Account required',
+        message: 'Connect the recipient account before collecting pending support.'
       });
       return;
     }
@@ -1322,8 +1339,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       if (summaries.length === 0) {
         setTransactionFeedback({
           tone: 'error',
-          title: 'Royalty runtime missing',
-          message: 'No known artist or split royalty runtime was found for this wallet.'
+          title: 'No support record found',
+          message: 'Dotify found no support balance for this account.'
         });
         return;
       }
@@ -1340,7 +1357,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         setTransactionFeedback({
           tone: 'success',
           title: 'No pending royalties',
-          message: 'This wallet has no claimable royalty balance in the known runtimes.'
+          message: 'This account has no support balance ready to collect.'
         });
         return;
       }
@@ -1353,7 +1370,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       setTransactionFeedback({
         tone: 'pending',
         title: 'Claiming royalties',
-        message: `Submitting ${claimTargets.length} pending runtime claim${claimTargets.length === 1 ? '' : 's'}.`
+        message: `Submitting ${claimTargets.length} pending support claim${claimTargets.length === 1 ? '' : 's'}.`
       });
 
       for (const target of claimTargets) {
@@ -1391,7 +1408,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         setTransactionFeedback({
           tone: 'error',
           title: 'Royalty claim still pending',
-          message: 'At least one runtime still could not transfer the native-token balance. The amount remains claimable.',
+          message: 'At least one support balance could not be transferred yet. The amount remains available to collect.',
           txHash: lastTxHash
         });
         return;
