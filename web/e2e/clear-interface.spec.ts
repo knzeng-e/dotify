@@ -37,16 +37,16 @@ for (const width of [390, 1440]) {
       await expect(page.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
     });
 
-    test('shows Play only on the active cover and keeps access cues concise', async ({ page }, testInfo) => {
+    test('shows Play only on the active cover and keeps cards focused on the music', async ({ page }, testInfo) => {
       await page.goto('/?e2eRoom=public&e2eCatalog=wide');
       const actions = page.getByTestId('track-artwork-action');
       const row = page.getByRole('region', { name: 'Music catalog', exact: true });
       await expect(actions.first()).toBeVisible();
       await expect(row.locator('.lucide-arrow-right')).toHaveCount(0);
       await expect(row.locator('.catalogue-access-line')).toHaveCount(0);
-      await expect(row.locator('.catalogue-access-cue')).toHaveCount(13);
-      await expect(row.getByText('0.5 PAS', { exact: true })).toHaveCount(2);
-      await expect(row.getByText('Verified humans', { exact: true })).toHaveCount(11);
+      await expect(row.locator('.catalogue-access-cue')).toHaveCount(0);
+      await expect(row.getByText('0.5 PAS', { exact: true })).toHaveCount(0);
+      await expect(row.getByText('Verified humans', { exact: true })).toHaveCount(0);
       await expect(actions.locator('.lucide-play')).toHaveCount(await actions.count());
       await expect
         .poll(() => actions.locator('.track-artwork-action').evaluateAll(elements => elements.every(el => getComputedStyle(el).opacity === '0')))
@@ -70,7 +70,7 @@ for (const width of [390, 1440]) {
       // explicit player CTA rather than opening over the catalog.
       await page.getByLabel('Find a track or artist').fill('E2E Protected Room Track');
       const protectedCard = page.getByTestId('track-card').filter({ hasText: 'E2E Protected Room Track' });
-      await expect(protectedCard).toContainText('0.5 PAS');
+      await expect(protectedCard).not.toContainText('0.5 PAS');
       await protectedCard.getByTestId('track-artwork-action').click();
       await expect(page.getByTestId('access-warning')).toHaveCount(0);
       await expect(page.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
@@ -82,6 +82,7 @@ for (const width of [390, 1440]) {
       await expect(page.getByRole('heading', { name: 'Releases', exact: true })).toBeVisible();
       await expect(page.getByLabel('Verified artist')).toHaveCount(0);
       await expect(page.getByText('Why it matters', { exact: true })).toHaveCount(0);
+      await expect(page.locator('.artist-release-card .catalogue-access-cue')).toHaveCount(0);
       const release = await page.locator('.artist-release-card').first().boundingBox();
       await expect(page.locator('.player-dock')).toHaveCount(0);
       expect(release!.y).toBeLessThan(page.viewportSize()!.height);

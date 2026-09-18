@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Play, Radio } from 'lucide-react';
 import { useMemo, type CSSProperties } from 'react';
 import { CoverImage } from '../components/CoverImage';
 import { TrackArtworkButton } from '../components/TrackArtworkButton';
-import { catalogAccessAriaLabel, catalogAccessCueLabel, normalizeDisplayText } from '../shared/utils/format';
+import { catalogAccessAriaLabel, normalizeDisplayText } from '../shared/utils/format';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
 import type { CatalogTrack, OpenRoom, SocketStatus } from '../shared/types';
@@ -107,7 +107,6 @@ export function ArtistProfileView({
             {artistTracks.length > 0 ? (
               artistTracks.map(track => {
                 const title = normalizeDisplayText(track.title);
-                const accessCue = catalogAccessCueLabel(track, nativePaymentSymbol);
                 const hasAccess = track.active !== false && (track.accessMode === 'free' || catalogAccessByTrackId[track.id] === true);
                 const accessDescription = catalogAccessAriaLabel(track, hasAccess, nativePaymentSymbol);
                 return (
@@ -122,7 +121,6 @@ export function ArtistProfileView({
                       >
                         {title}
                       </button>
-                      <small className='catalogue-access-cue'>{accessCue}</small>
                       {track.description && (
                         <details className='release-description'>
                           <summary>About this release</summary>
