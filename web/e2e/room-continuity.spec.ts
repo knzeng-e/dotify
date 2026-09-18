@@ -23,7 +23,7 @@ for (const capture of ['standard', 'without-native-api']) {
         });
       const host = await hostContext.newPage();
       const guest = await guestContext.newPage();
-      await host.goto('/?e2eRoom=public&e2eSync=on&e2eCapture=web-audio&e2eCatalog=sequence&e2eAutoplay=on');
+      await host.goto('/?e2eRoom=public&e2eSync=on&e2eCapture=web-audio&e2eCatalog=sequence&e2eAutoplay=on&e2eTrackDelay=on');
       await host.getByRole('button', { name: 'Open a room', exact: true }).click();
       await host.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
       const hostName = `Continuity ${capture}`;
@@ -70,6 +70,14 @@ for (const capture of ['standard', 'without-native-api']) {
         ['Next track', 'Second room track', 660]
       ] as const) {
         await host.getByRole('button', { name: action, exact: true }).click();
+        if (title === 'Second room track') {
+          // The compact desktop room hides the cover status visually, but the
+          // same state remains in the DOM and drives the disabled transport.
+          await expect(host.locator('.remote-state')).toHaveText('Preparing audio');
+          await expect(host.locator('.transport-progress > span').first()).toHaveText('0:00');
+          await expect(host.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
+          await expect(host.getByRole('button', { name: 'Next track', exact: true })).toBeDisabled();
+        }
         await expect(guest.locator('.track-copy h2')).toHaveText(title);
         await expect(host.locator('audio').first()).toHaveJSProperty('paused', false);
         try {

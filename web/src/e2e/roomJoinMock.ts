@@ -306,6 +306,20 @@ export function roomJoinE2eAutoplayEnabled() {
   return isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eAutoplay') === 'on';
 }
 
+/**
+ * Optional source-resolution delay for the second continuity fixture.
+ *
+ * Real Product tracks can spend several seconds fetching/decrypting after the
+ * host chooses them. Keeping this delay opt-in lets Playwright exercise that
+ * handoff without slowing the rest of the room suite or adding production
+ * behavior.
+ */
+export function roomJoinE2ETrackSelectionDelayMs(trackId: string): number {
+  if (!isRoomJoinE2e || typeof window === 'undefined') return 0;
+  if (trackId !== `${E2E_ROOM_PUBLIC_ID}-sequence`) return 0;
+  return new URLSearchParams(window.location.search).get('e2eTrackDelay') === 'on' ? 1_000 : 0;
+}
+
 export function shouldUseRoomJoinE2eSyntheticCapture() {
   if (!isRoomJoinE2e || typeof window === 'undefined') return false;
   return new URLSearchParams(window.location.search).get('e2eCapture') !== 'web-audio';
