@@ -226,8 +226,8 @@ export function buildProductRoomSmokeEvidence(
   const canonicalRoomUrl = activeRoom ? context.sessionLink : '';
   const expectedPrefix = context.publicAppUrl ? `${context.publicAppUrl.replace(/\/$/, '')}/#/rooms/${draft.roomId ?? ''}` : '';
   const hostRoomCreated = activeRoom && hasHostMetric(snapshot, context.roomId, startedAt, 'room-created');
-  const hostStreamReady = activeRoom && context.localStreamReady && hasHostMetric(snapshot, context.roomId, startedAt, 'stream-ready');
   const hostPeerConnected = activeRoom && hasHostMetric(snapshot, context.roomId, startedAt, 'peer-connected');
+  const hostStreamReady = activeRoom && context.localStreamReady && (hostPeerConnected || hasHostMetric(snapshot, context.roomId, startedAt, 'stream-ready'));
   const hostListenerCount = activeRoom ? Math.max(0, context.listenerCount) : 0;
   const guestJoined = hostPeerConnected && hostListenerCount > 0;
   const hostSurfaceReady = Boolean(

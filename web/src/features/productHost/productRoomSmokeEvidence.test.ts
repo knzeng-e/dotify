@@ -117,6 +117,28 @@ describe('Product room smoke evidence', () => {
     expect(evidence.guestJoined).toBe(false);
   });
 
+  it('recognizes a live stream that started before the guest peer connected', () => {
+    const storage = memoryStorage();
+    bindProductRoomSmokeCandidate(context(), CID, storage, new Date(1_000));
+    bindCurrentProductRoom('LIVE42', storage);
+    const draft = readProductRoomSmokeDraft(storage)!;
+    const guestJoinedAfterPlayback: RoomQualityTelemetrySnapshot = {
+      latestJoinToConnectedMs: null,
+      latestRemoteAudioMs: null,
+      relayConnectionCount: 0,
+      events: [
+        { phase: 'room-created', role: 'host', roomId: 'LIVE42', timestamp: 1_100 },
+        { phase: 'peer-connected', role: 'host', roomId: 'LIVE42', timestamp: 1_300, listenerCount: 1 }
+      ]
+    };
+
+    const evidence = buildProductRoomSmokeEvidence(context({ localStreamReady: true }), draft, guestJoinedAfterPlayback);
+
+    expect(evidence.hostPeerConnected).toBe(true);
+    expect(evidence.hostStreamReady).toBe(true);
+    expect(buildProductRoomSmokeEvidence(context({ localStreamReady: false }), draft, guestJoinedAfterPlayback).hostStreamReady).toBe(false);
+  });
+
   it('clears room observations when a different deployment is bound', () => {
     const storage = memoryStorage();
     bindProductRoomSmokeCandidate(context(), CID, storage, new Date(1_000));
