@@ -4,6 +4,7 @@ import { Dialog } from './Dialog';
 import { CoverImage } from './CoverImage';
 import { AvatarStack, roomPresenceNames } from './Presence';
 import { isChosenDisplayName } from '../features/identity/walletIdentity';
+import type { RoomEntryState } from '../features/rooms/roomEntryState';
 import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
 import type { OpenRoom, SessionAction } from '../shared/types';
 
@@ -11,11 +12,12 @@ type JoinRoomModalProps = {
   displayName: string;
   joinCode: string;
   room?: OpenRoom;
-  thresholdState?: 'idle' | 'resolving' | 'ready' | 'unavailable';
+  thresholdState?: RoomEntryState;
   sessionAction: SessionAction;
   onSetDisplayName: (name: string) => void;
   onSetJoinCode: (code: string) => void;
   onJoin: (code: string) => void;
+  onRetry: () => void;
   onClose: () => void;
 };
 
@@ -28,13 +30,15 @@ export function JoinRoomModal({
   onSetDisplayName,
   onSetJoinCode,
   onJoin,
+  onRetry,
   onClose
 }: JoinRoomModalProps) {
   const isJoining = sessionAction === 'joining';
   const isResolving = thresholdState === 'resolving';
-  const isUnavailable = thresholdState === 'unavailable';
+  const isServiceUnavailable = thresholdState === 'service-unavailable';
+  const isRoomUnavailable = thresholdState === 'room-unavailable';
   const isFull = room?.isFull === true;
-  const isThreshold = Boolean(room) || isResolving || isUnavailable;
+  const isThreshold = Boolean(room) || isResolving || isServiceUnavailable || isRoomUnavailable;
   const hasChosenName = isChosenDisplayName(displayName);
   const hasPrefilledCode = Boolean(joinCode.trim());
   const roomTrack = room?.track;
@@ -45,10 +49,20 @@ export function JoinRoomModal({
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!isResolving && !isUnavailable && !isFull && joinCode.trim() && hasChosenName) onJoin(joinCode.trim());
+    if (!isResolving && !isServiceUnavailable && !isRoomUnavailable && !isFull && joinCode.trim() && hasChosenName) onJoin(joinCode.trim());
   }
 
-  const eyebrow = isFull ? 'Room full' : room ? 'Live room' : isResolving ? 'Finding room' : isUnavailable ? 'Room unavailable' : 'Join a room';
+  const eyebrow = isFull
+    ? 'Room full'
+    : room
+      ? 'Live room'
+      : isResolving
+        ? 'Finding room'
+        : isServiceUnavailable
+          ? 'Connection interrupted'
+          : isRoomUnavailable
+            ? 'Room unavailable'
+            : 'Join a room';
   const title = isFull
     ? `${hostDisplayName ?? 'This room'} is at capacity`
     : room
@@ -57,18 +71,22 @@ export function JoinRoomModal({
         : 'A listening room welcomes you'
       : isResolving
         ? 'Finding this room'
-        : isUnavailable
-          ? 'This room is unavailable'
-          : 'Join a room';
+        : isServiceUnavailable
+          ? "We can't reach this room yet"
+          : isRoomUnavailable
+            ? 'This room is unavailable'
+            : 'Join a room';
   const description = room
     ? isFull
       ? `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here, which is the current listener cap.`
       : `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here. Choose a name to enter.`
     : isResolving
       ? 'Loading host, track, and presence.'
-      : isUnavailable
-        ? 'This room may have ended or expired.'
-        : 'Paste a room code or link.';
+      : isServiceUnavailable
+        ? 'The room may still be live. Reconnect before trying again.'
+        : isRoomUnavailable
+          ? 'This room may have ended or expired.'
+          : 'Paste a room code or link.';
 
   return (
     <Dialog className='join-room-modal' labelledBy='join-room-title' describedBy='join-room-description' onClose={onClose}>
@@ -108,7 +126,7 @@ export function JoinRoomModal({
       )}
 
       <form onSubmit={handleSubmit} aria-describedby='join-room-description' aria-busy={isResolving}>
-        {!isUnavailable && (
+        {!isServiceUnavailable && !isRoomUnavailable && (
           <>
             <label className='create-room-label' htmlFor='join-room-name'>
               Your name in the room
@@ -150,24 +168,30 @@ export function JoinRoomModal({
         )}
 
         <div className='create-room-actions'>
-          <button
-            className='primary-action wide'
-            type='submit'
-            disabled={isJoining || isResolving || isUnavailable || isFull || !joinCode.trim() || !hasChosenName}
-          >
-            {isJoining || isResolving ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
-            {isJoining
-              ? 'Entering...'
-              : isResolving
-                ? 'Finding room...'
-                : isUnavailable
-                  ? 'Room unavailable'
-                  : isFull
-                    ? 'Room full'
-                    : room
-                      ? 'Enter and listen'
-                      : 'Join room'}
-          </button>
+          {isServiceUnavailable ? (
+            <button className='primary-action wide' type='button' onClick={onRetry}>
+              <Radio size={16} /> Try again
+            </button>
+          ) : (
+            <button
+              className='primary-action wide'
+              type='submit'
+              disabled={isJoining || isResolving || isRoomUnavailable || isFull || !joinCode.trim() || !hasChosenName}
+            >
+              {isJoining || isResolving ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
+              {isJoining
+                ? 'Entering...'
+                : isResolving
+                  ? 'Finding room...'
+                  : isRoomUnavailable
+                    ? 'Room unavailable'
+                    : isFull
+                      ? 'Room full'
+                      : room
+                        ? 'Enter and listen'
+                        : 'Join room'}
+            </button>
+          )}
           <button className='secondary-action' type='button' onClick={onClose}>
             Cancel
           </button>

@@ -785,13 +785,12 @@ export function useSession(deps: UseSessionDeps) {
     if (showBusy) {
       setIsRefreshingRooms(true);
     }
-    const socket = await connectRoomSocket();
-    if (!socket) {
-      if (showBusy) {
-        setIsRefreshingRooms(false);
-      }
-      return;
-    }
+    // Discovery is public metadata and does not capture or receive media. Do
+    // not gate it on Product WebRTC/Remote permission preflight: Product Web
+    // can reject that passive prompt before Socket.IO gets a chance to list a
+    // perfectly live room. Join/create paths still call connectRoomSocket and
+    // request the host permissions at the user action boundary.
+    const socket = connectSocket();
     socket.emit('rooms:list', (rooms: OpenRoom[]) => {
       setOpenRooms(normalizeRooms(rooms));
       if (showBusy) {
