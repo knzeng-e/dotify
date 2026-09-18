@@ -153,6 +153,7 @@ function completeSmokeEvidence() {
 function completeRoomEvidence(overrides = {}) {
   return {
     schemaVersion: 2,
+    capturedAt: '2026-09-13T10:00:00.000Z',
     candidate: { gitSha: CANDIDATE_SHA, productAppVersion: APP_VERSION, deployedCid: DEPLOYED_CID },
     hostSurface: 'product-desktop',
     hostOrigin: 'polkadot://dotify-test01.dot',
@@ -163,6 +164,11 @@ function completeRoomEvidence(overrides = {}) {
     guestAccountConnected: false,
     guestJoined: true,
     guestHeardAudio: true,
+    guestInSync: true,
+    hostRoomCreated: true,
+    hostStreamReady: true,
+    hostPeerConnected: true,
+    hostListenerCount: 1,
     ...overrides
   };
 }
@@ -367,6 +373,40 @@ test('room evidence must name the Product host surface before it can pass', () =
 
   assert.equal(report.summary.status, 'fail');
   assert.equal(report.roomGates.find(gate => gate.id === 'room-surface')?.status, 'fail');
+});
+
+test('room evidence requires timestamped host transport facts and guest sync observation', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: completeSmokeEvidence(),
+    roomEvidence: completeRoomEvidence({
+      capturedAt: undefined,
+      guestInSync: false,
+      hostStreamReady: false,
+      hostPeerConnected: false,
+      hostListenerCount: 0
+    }),
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.summary.status, 'fail');
+  assert.equal(report.roomGates.find(gate => gate.id === 'room-captured-at')?.status, 'fail');
+  assert.equal(report.roomGates.find(gate => gate.id === 'host-room-observed')?.status, 'fail');
+  assert.equal(report.roomGates.find(gate => gate.id === 'walletless-browser-guest')?.status, 'fail');
+});
+
+test('room evidence rejects secret-bearing fields', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: completeSmokeEvidence(),
+    roomEvidence: completeRoomEvidence({ sessionToken: 'should-never-be-exported' }),
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.summary.status, 'fail');
+  assert.equal(report.roomGates.find(gate => gate.id === 'room-secrets')?.status, 'fail');
 });
 
 test('gitCommit resolves HEAD from linked Git worktrees', () => {

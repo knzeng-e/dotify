@@ -181,17 +181,19 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 24]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 25]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 24]` moves DAV2 AES-GCM chunk decryption into a bounded Web
-Worker for both streaming and full-download recovery. Hosts that cannot start
-the worker within 1.5 seconds retain the same fail-closed main-thread Web Crypto
-path. It also retains the `[0, 1, 23]` behavior that defers Product CDM chain
+Version `[0, 1, 25]` adds candidate-bound Product room evidence capture to the
+debug readiness panel and rejects hand-written room claims that lack current
+host transport telemetry. It retains the `[0, 1, 24]` bounded Web Worker for
+DAV2 AES-GCM chunk decryption and the fail-closed main-thread Web Crypto path
+when a worker cannot start within 1.5 seconds. It also retains the `[0, 1, 23]`
+behavior that defers Product CDM chain
 setup until an authoritative runtime read and uses the known DevNet PAS label
 without an initial direct EVM
 RPC lookup, so opening a shared room remains independent of Product Web's
@@ -538,6 +540,15 @@ because it serves authenticated upload and key-delivery routes.
 `isFull` values. When changing `SIGNAL_MAX_LISTENERS`, capture this metadata in
 room smoke evidence so the frontend capacity labels and server-enforced
 `ROOM_FULL` boundary stay aligned.
+
+For a candidate build with `VITE_DOTIFY_DEBUG_PANEL=true`, the Product room
+smoke panel exports the host-side evidence accepted by the Product journey
+harness. It derives room creation, stream readiness, peer connection, listener
+count, and canonical room URL from current room state and bounded telemetry.
+The operator must still confirm the ordinary browser guest was walletless,
+heard audio, and displayed `In sync`; those facts cannot be inferred honestly
+from the host. The export rejects cross-candidate CIDs and contains no wallet
+address, SDP, ICE candidate, IP address, key, signature, token, or audio.
 
 Do not store `SIGNAL_ORIGINS` as a Fly secret. If `/health` reports an old
 `allowedOrigins` list after deploy, the secret is probably overriding

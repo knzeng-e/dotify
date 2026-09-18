@@ -375,6 +375,22 @@ export function ListenerShell() {
                                   : null,
                               expectedChainId,
                               apiConfigured
+                            },
+                            productRoomSmoke: {
+                              buildSha: (import.meta.env.VITE_DOTIFY_BUILD_SHA as string | undefined) ?? null,
+                              productAppVersion: (import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION as string | undefined) ?? null,
+                              productId: productHostConfig.productId,
+                              publicAppUrl: (import.meta.env.VITE_PUBLIC_APP_URL as string | undefined) ?? null,
+                              productHostStatus,
+                              hostOrigin:
+                                window.location.origin !== 'null'
+                                  ? window.location.origin
+                                  : `${window.location.protocol}//${window.location.host || productHostConfig.productId}`,
+                              mode: session.mode,
+                              roomId: session.roomId,
+                              sessionLink: session.sessionLink,
+                              listenerCount: session.listenerCount,
+                              localStreamReady: session.localStreamReady
                             }
                           }
                         : null

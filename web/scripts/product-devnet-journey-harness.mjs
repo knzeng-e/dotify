@@ -41,6 +41,17 @@ const REQUIRED_PRODUCT_ORIGINS = [
 ];
 
 const FORBIDDEN_EVIDENCE_KEYS = ['contentKey', 'signature', 'nonce', 'sessionToken', 'token'];
+const FORBIDDEN_ROOM_EVIDENCE_KEYS = [
+  ...FORBIDDEN_EVIDENCE_KEYS,
+  'walletAddress',
+  'listenerAddress',
+  'substrateAddress',
+  'productPublicKey',
+  'sdp',
+  'iceCandidate',
+  'ipAddress',
+  'audio'
+];
 
 export function parseEnvFile(text) {
   const env = {};
@@ -370,12 +381,12 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
   return gates;
 }
 
-function containsForbiddenKey(value, path = []) {
+function containsForbiddenKey(value, path = [], forbiddenKeys = FORBIDDEN_EVIDENCE_KEYS) {
   if (!value || typeof value !== 'object') return null;
   for (const [key, child] of Object.entries(value)) {
     const nextPath = [...path, key];
-    if (FORBIDDEN_EVIDENCE_KEYS.includes(key)) return nextPath.join('.');
-    const nested = containsForbiddenKey(child, nextPath);
+    if (forbiddenKeys.includes(key)) return nextPath.join('.');
+    const nested = containsForbiddenKey(child, nextPath, forbiddenKeys);
     if (nested) return nested;
   }
   return null;
@@ -614,6 +625,8 @@ export function evaluateRoomJourneyEvidence(roomEvidence, options = {}) {
   const expectedCommit = typeof normalizedOptions.commit === 'string' && normalizedOptions.commit !== 'unknown' ? normalizedOptions.commit : null;
   const expectedVersion = versionText(normalizedOptions.appVersion);
   const expectedCid = normalizeIpfsCid(normalizedOptions.deployedCid);
+  const generatedAtMs = parseDateMs(normalizedOptions.generatedAt) ?? Date.now();
+  const devnetResetAtMs = parseDateMs(EXPECTED_PRODUCT_DEVNET.devnetResetAt);
   if (!roomEvidence) {
     notRun(
       gates,
@@ -652,6 +665,30 @@ export function evaluateRoomJourneyEvidence(roomEvidence, options = {}) {
     fail(gates, 'room-candidate', 'Room candidate', candidateProblems.join('; '), 'room JSON');
   }
 
+  const capturedAtMs = parseDateMs(roomEvidence.capturedAt);
+  if (capturedAtMs === null) {
+    fail(gates, 'room-captured-at', 'Room capture time', 'capturedAt must be an ISO timestamp.', 'room JSON');
+  } else if (devnetResetAtMs !== null && capturedAtMs < devnetResetAtMs) {
+    fail(
+      gates,
+      'room-captured-at',
+      'Room capture time',
+      `Evidence predates the Product DevNet reset at ${EXPECTED_PRODUCT_DEVNET.devnetResetAt}.`,
+      'room JSON'
+    );
+  } else if (capturedAtMs > generatedAtMs + 5 * 60_000) {
+    fail(gates, 'room-captured-at', 'Room capture time', 'capturedAt is later than the harness run.', 'room JSON');
+  } else {
+    pass(gates, 'room-captured-at', 'Room capture time', roomEvidence.capturedAt, 'room JSON');
+  }
+
+  const forbidden = containsForbiddenKey(roomEvidence, [], FORBIDDEN_ROOM_EVIDENCE_KEYS);
+  if (forbidden) {
+    fail(gates, 'room-secrets', 'Room evidence secret hygiene', `Forbidden key "${forbidden}" is present.`, 'room JSON');
+  } else {
+    pass(gates, 'room-secrets', 'Room evidence secret hygiene', 'No wallet, SDP, ICE, key, signature, nonce, or token field is present.', 'room JSON');
+  }
+
   const hostSurface = roomEvidence.hostSurface;
   if (
     (hostSurface === 'product-desktop' || hostSurface === 'product-web-gateway') &&
@@ -680,12 +717,35 @@ export function evaluateRoomJourneyEvidence(roomEvidence, options = {}) {
     fail(gates, 'canonical-room-link', 'Canonical room link', `Expected a ${publicAppUrl}/#/rooms/<code> URL shared by the Product host.`, 'room JSON');
   }
 
-  if (roomEvidence.guestAccountConnected === false && roomEvidence.guestJoined === true && roomEvidence.guestHeardAudio === true) {
+  if (
+    roomEvidence.hostRoomCreated === true &&
+    roomEvidence.hostStreamReady === true &&
+    roomEvidence.hostPeerConnected === true &&
+    Number.isInteger(roomEvidence.hostListenerCount) &&
+    roomEvidence.hostListenerCount >= 1
+  ) {
+    pass(gates, 'host-room-observed', 'Observed host transport', `Host stream reached ${roomEvidence.hostListenerCount} connected listener(s).`, 'room JSON');
+  } else {
+    fail(
+      gates,
+      'host-room-observed',
+      'Observed host transport',
+      'Expected hostRoomCreated=true, hostStreamReady=true, hostPeerConnected=true, and hostListenerCount>=1 from room telemetry.',
+      'room JSON'
+    );
+  }
+
+  if (
+    roomEvidence.guestAccountConnected === false &&
+    roomEvidence.guestJoined === true &&
+    roomEvidence.guestHeardAudio === true &&
+    roomEvidence.guestInSync === true
+  ) {
     pass(
       gates,
       'walletless-browser-guest',
       'Walletless browser guest',
-      'Guest joined and heard the Product host stream without account connection.',
+      'Guest joined, heard the Product host stream, and stayed in sync without account connection.',
       'room JSON'
     );
   } else {
@@ -693,7 +753,7 @@ export function evaluateRoomJourneyEvidence(roomEvidence, options = {}) {
       gates,
       'walletless-browser-guest',
       'Walletless browser guest',
-      'Expected guestAccountConnected=false, guestJoined=true, and guestHeardAudio=true.',
+      'Expected guestAccountConnected=false, guestJoined=true, guestHeardAudio=true, and guestInSync=true.',
       'room JSON'
     );
   }
@@ -706,7 +766,19 @@ function gatesPassed(gates, ids) {
 }
 
 function roomEvidenceSurface(roomEvidence, roomGates) {
-  if (!gatesPassed(roomGates, ['room-schema', 'room-candidate', 'room-surface', 'canonical-room-link', 'walletless-browser-guest'])) return null;
+  if (
+    !gatesPassed(roomGates, [
+      'room-schema',
+      'room-candidate',
+      'room-captured-at',
+      'room-secrets',
+      'room-surface',
+      'canonical-room-link',
+      'host-room-observed',
+      'walletless-browser-guest'
+    ])
+  )
+    return null;
   return roomEvidence?.hostSurface ?? null;
 }
 
@@ -800,7 +872,8 @@ export function buildProductDevnetJourneyReport(input) {
     publicAppUrl: input.snapshot.env?.VITE_PUBLIC_APP_URL,
     commit: input.commit ?? 'unknown',
     appVersion,
-    deployedCid: input.productSmokeEvidence?.candidate?.deployedCid
+    deployedCid: input.productSmokeEvidence?.candidate?.deployedCid,
+    generatedAt
   });
   const surfaceMatrix = buildSurfaceMatrix({
     commit: input.commit ?? 'unknown',
@@ -852,7 +925,7 @@ export function renderProductDevnetJourneyMarkdown(report) {
     '## Live Evidence Inputs',
     '',
     '- Product CDM payment/key smoke: pass `--smoke-json <downloaded-product-cdm-host-smoke.json>` after running the explicit `product-cdm` build from the same commit inside a funded Product host.',
-    '- Product room smoke: pass `--room-json <room-evidence.json>` with the same `candidate.gitSha`, `candidate.productAppVersion`, and `candidate.deployedCid`, plus `schemaVersion`, `hostSurface`, `hostOrigin`, `hostVersion`, `guestOrigin`, `canonicalRoomUrl`, `guestAccountConnected`, `guestJoined`, and `guestHeardAudio` fields.',
+    '- Product room smoke: pass `--room-json <room-evidence.json>` exported by the debug readiness panel with the same `candidate.gitSha`, `candidate.productAppVersion`, and `candidate.deployedCid`; the harness also requires current host room/stream/peer telemetry plus explicit walletless, audible, and in-sync guest observations.',
     '- Missing live inputs are reported as blocked/not-run, never as passed.'
   ].join('\n');
 }

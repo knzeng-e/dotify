@@ -18,6 +18,8 @@ import { EndpointRow } from '../shared/ui/EndpointRow';
 import type { CatalogTrack } from '../shared/types';
 import { ProductCdmHostSmokeEvidencePanel } from './ProductCdmHostSmokeEvidencePanel';
 import type { ProductCdmHostSmokeContext } from '../features/productHost/productCdmHostSmokeEvidence';
+import { ProductRoomSmokeEvidencePanel } from './ProductRoomSmokeEvidencePanel';
+import type { ProductRoomSmokeContext } from '../features/productHost/productRoomSmokeEvidence';
 
 const FETCH_TIMEOUT_MS = 5_000;
 const SIGNAL_URL = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
@@ -30,6 +32,7 @@ export type ProductionReadinessPanelProps = {
   expectedChainId: number | null;
   walletChainId?: number;
   productCdmHostSmoke?: ProductCdmHostSmokeContext;
+  productRoomSmoke?: ProductRoomSmokeContext;
 };
 
 export function ProductionReadinessPanel({
@@ -38,7 +41,8 @@ export function ProductionReadinessPanel({
   ethRpcUrl,
   expectedChainId,
   walletChainId,
-  productCdmHostSmoke
+  productCdmHostSmoke,
+  productRoomSmoke
 }: ProductionReadinessPanelProps) {
   const { pushNotice } = useUiFeedback();
   const [checks, setChecks] = useState<ReadinessCheck[]>([]);
@@ -113,6 +117,7 @@ export function ProductionReadinessPanel({
       </div>
 
       {productCdmHostSmoke && <ProductCdmHostSmokeEvidencePanel context={productCdmHostSmoke} />}
+      {productRoomSmoke && <ProductRoomSmokeEvidencePanel context={productRoomSmoke} />}
     </section>
   );
 }
