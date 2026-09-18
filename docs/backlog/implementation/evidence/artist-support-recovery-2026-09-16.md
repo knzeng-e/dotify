@@ -78,3 +78,30 @@ and [gift recovery](../../../design/assets/artist-support/gift-recovery-390.jpg)
   is a rebuild without the gift flag; keep native CDM opt-in until device proof.
 - Keyboard/compositor changes are independently reviewed in PR #171. This branch
   has no dependency on that PR and does not claim physical iOS validation.
+
+## Product funding follow-up — 2026-09-18
+
+A live Product Desktop attempt on the published `[0, 1, 25]` candidate reached
+the explicit Chain Submit permission, used **Allow Once**, and then stopped in
+the SDK dry-run with `Revive.TransferFailed`. Product reported that the
+transaction was not submitted. Independent read-only checks returned zero for
+both the displayed Product SS58 funding account and its matching derived H160
+runtime identity on Polkadot Hub TestNet. This establishes missing native PAS
+funding as the current smoke blocker; it is not evidence of a submitted or
+failed-on-chain payment.
+
+Follow-up branch `fix/product-host-funding-guidance`, based on `dev` at
+`5c03fb9129399686cec2d432998fead3929e31f2`, converts that proven
+pre-submission condition into **Add PAS to continue**. The receipt points to the
+already displayed SS58 funding account, confirms that no payment was sent, and
+does not expose `Revive`, `TransferFailed`, dry-run JSON, or the contract method
+name. The reservation is cleared only because the existing Product adapter
+proves this class of error occurs before submission.
+
+Targeted validation passes 28 coordinator/writer unit tests and a 390×844
+Playwright scenario that keeps the track closed, shows the native funding
+guidance, exposes no runtime diagnostics, offers no read-back recovery action,
+and records exactly one attempted approval with no payment. The live end-to-end
+gate remains open until the SS58 account is funded, a fresh balance read passes,
+and the same candidate records finality, paid/access read-back, and protected
+audio opening.

@@ -34,6 +34,11 @@ The same coordinator runs in browser tests with deterministic read/write ports.
   hash and the requested native amount/symbol replace it. It survives reloads.
 - A proven signing rejection or pre-submission writer setup failure allows an
   explicit new attempt. Broad words such as “denied” do not prove cancellation.
+- A Product dry-run `Revive.TransferFailed` or explicit insufficient-balance
+  error is also proven pre-submission. Dotify names the missing native funding,
+  keeps the track closed, shows the existing **Fund this account** SS58 fact,
+  and says that no payment was sent. Raw pallet/runtime diagnostics stay out of
+  the listener-facing receipt.
 - A timeout or unknown outcome retains the reservation/hash. Reopening that
   track checks the existing attempt; it cannot automatically submit another.
 - **Check access again** invokes only read ports. It never creates a writer,
@@ -66,6 +71,12 @@ check remains the final duplicate-payment boundary. Unknown submissions stay
 conservative, including a runtime failure whose final state cannot be proven
 through the current write port. Check host/account activity before attempting
 support elsewhere. No automatic financial retry or journal-expiry retry exists.
+
+The Product SS58 account is the account to fund with the chain's native asset.
+Its derived H160 is the runtime identity used for contract access and read-back;
+it is not a second balance that the listener should refill. A failed dry-run
+must be retried only after a fresh chain read shows enough native balance for
+the support amount and network fee.
 
 ## Product build and remaining device evidence
 

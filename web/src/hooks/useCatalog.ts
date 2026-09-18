@@ -1367,11 +1367,13 @@ export function useCatalog(deps: UseCatalogDeps) {
       title:
         result.status === 'canceled'
           ? 'Support canceled'
-          : result.status === 'unverified'
-            ? 'Listening access not verified'
-            : result.status === 'uncertain'
-              ? 'Payment status needs checking'
-              : 'Support could not start',
+          : result.failureKind === 'funding-required'
+            ? `Add ${receiptAsset.symbol} to continue`
+            : result.status === 'unverified'
+              ? 'Listening access not verified'
+              : result.status === 'uncertain'
+                ? 'Payment status needs checking'
+                : 'Support could not start',
       message:
         result.status === 'uncertain'
           ? 'Confirmation was interrupted. Your payment may still complete. Check access here and your account activity in Polkadot App or your wallet before paying again.'

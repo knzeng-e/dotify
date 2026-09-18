@@ -146,6 +146,23 @@ test.describe('mobile Classic support receipt states', () => {
     await expect(receipt).toContainText('Protected audio stays closed');
     await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
   });
+
+  test('mobile Product funding failure stays plain and confirms that nothing was sent', async ({ page }) => {
+    await page.goto('/?e2eClassic=funding-required');
+    await page.getByTestId('track-card-open').click();
+    await openClassicSupport(page);
+    await page.getByTestId('classic-unlock-button').click();
+
+    const receipt = page.getByTestId('unlock-transaction-status');
+    await expect(receipt).toContainText(`Add ${E2E_NATIVE_PAYMENT_SYMBOL} to continue`);
+    await expect(receipt).toContainText('could not cover the support and network fee');
+    await expect(receipt).toContainText('No payment was sent');
+    await expect(receipt).not.toContainText(/TransferFailed|Revive|dry-run|musicRoyPayAccess/i);
+    await expect(receipt.getByRole('button', { name: 'Check access again' })).toHaveCount(0);
+    await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
+    expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
+    expect((await readClassicUnlockState(page))?.paid).toBe(false);
+  });
 });
 
 for (const width of [390, 1440]) {
