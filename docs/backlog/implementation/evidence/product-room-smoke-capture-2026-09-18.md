@@ -63,6 +63,12 @@ and `dotify-api.fly.dev`. No backend permission was granted during this
 capture, so it proves executable resolution and first render rather than the
 payment or room journey.
 
+The public Product gateway also resolved and rendered the same ten-track app in
+a normal Google Chrome session. A separate headless Chromium probe reached the
+gateway shell but its embedded Smoldot client crashed before executable load;
+because the real browser path passed, that result is retained only as a test
+environment limitation rather than a public-gateway incident.
+
 The deployment refreshed the generated Product catalog snapshot from the live
 API immediately before compilation. The published artifact therefore contains
 ten releases rather than the eight-release snapshot present in the merged
@@ -87,7 +93,8 @@ artifact can be reconstructed and reviewed from Git.
 | GitHub `Dev Quality Gates`, backlog sync, and Claude review | PR #193 head after evidence commit | All required checks passed, including Web, Product DevNet build, contracts/ABI, API, signaling, repository hygiene, workflow syntax, and Playwright core flows | [PR #193 checks](https://github.com/knzeng-e/dotify/pull/193/checks) |
 | `VITE_DOTIFY_DEBUG_PANEL=true VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm VITE_DOTIFY_ARTIST_DONATIONS=on npm run deploy:product-devnet` | Merged `dev` SHA `2dc05aa`; Product app `[0, 1, 25]` | Passed; all 23 Bulletin chunks finalized, both DotNS records verified on-chain, and P2P retrieval completed in 73 ms | Root CID and transactions below |
 | Open `dotify-test01.dot` in Polkadot Desktop Dev | Native Product Desktop, published CID | Passed for resolution and first render: Dotify displayed 10 tracks, navigation, and the player before the expected backend-domain permission prompt | Manual Product Desktop observation |
-| Open `https://dotify-test01.dev-dot.li` in headless Chromium | Public Product web gateway | Gateway returned HTTP 200, but its Smoldot light client crashed before loading the executable | `/tmp/dotify-product-live.png`, transient |
+| Open `https://dotify-test01.dev-dot.li` in Google Chrome | Public Product web gateway with RPC gateway fallback | Passed: Product resolved and rendered the same 10-track catalog and room entry surface | Manual Chrome observation |
+| Open `https://dotify-test01.dev-dot.li` in headless Chromium | Diagnostic-only browser environment | Gateway returned HTTP 200, but its Smoldot light client crashed before executable load; normal Chrome passed | `/tmp/dotify-product-live.png`, transient |
 
 A real wallet, live payment, audible two-device room, physical iPhone, and
 independent external network were not used in these checks. Product Desktop
@@ -139,8 +146,8 @@ backend access was not granted, so no room or payment claim is made.
    account connection and must hear audio while showing `In sync`.
 2. Run the Product journey harness with both JSON files. Then complete physical
    iPhone, independent-network/TURN, backgrounding, and keyboard checks.
-3. Investigate the public Product gateway Smoldot crash separately from native
-   Product Desktop acceptance.
+3. Retain the headless Smoldot limitation in automation notes and investigate
+   only if it reproduces in a supported interactive browser.
 4. Rehearse rollback and complete the owner-authorized aggregate pilot before
    changing W13/#158 from blocked to shipped.
 
