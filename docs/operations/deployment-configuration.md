@@ -622,11 +622,12 @@ profile. The report prints every profile beside its surface. A blocked autoplay
 attempt is recorded as a terminal error, and a later explicit Play starts a
 fresh measurement. Reaching `canplay` only releases the loading affordance; the
 attempt remains cancellable until `playing` or a terminal error. Host events are
-correlated by playback-attempt identifier, so a delayed error from an outgoing
-source cannot settle a new selection. A muted or zero-volume `playing` event is
-recorded as an error. An unmuted `playing` event only proves that the media clock
-advanced; the operator confirmation supplies the evidence that sound reached
-the actual output route. The
+correlated to the concrete playback-attempt object that initiated them, so a
+delayed `play()` rejection or media error cannot settle a replacement attempt,
+including a new attempt for the same source. A muted or zero-volume `playing`
+event is recorded as an error. An unmuted `playing` event only proves that the
+media clock advanced; the operator confirmation supplies the evidence that
+sound reached the actual output route. The
 DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts are
 present; fewer attempts are reported as `not-run`, never rounded into a claim.
 Synthetic Chromium evidence validates the capture mechanism but does not count
