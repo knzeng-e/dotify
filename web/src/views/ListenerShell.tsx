@@ -247,6 +247,7 @@ export function ListenerShell() {
     <>
       <PersistentAudio
         audioSource={catalog.audioSource}
+        audioSourceGeneration={catalog.audioSourceGeneration}
         localAudioRef={catalog.localAudioRef}
         remoteAudioRef={session.remoteAudioRef}
         playback={playback}

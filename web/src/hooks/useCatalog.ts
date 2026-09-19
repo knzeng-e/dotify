@@ -386,6 +386,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     runtimeAdapterConfig.kind === 'product-cdm' ? DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET : DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
   );
   const [audioSource, setAudioSource] = useState<string | null>(null);
+  const [audioSourceGeneration, setAudioSourceGeneration] = useState(0);
   const [audioStartupAttemptId, setAudioStartupAttemptId] = useState<string | null>(null);
   const [trackSelectionPending, setTrackSelectionPending] = useState(false);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
@@ -458,6 +459,10 @@ export function useCatalog(deps: UseCatalogDeps) {
   function setResolvedAudioSource(source: string | null) {
     audioSourceRef.current = source;
     setAudioSource(source);
+    // A resolved source owns one media-element lifetime. Increment even when
+    // the URL is reused so an obsolete element cannot deliver a native media
+    // error into a later selection of the same source.
+    setAudioSourceGeneration(value => value + 1);
   }
 
   function retireAudioV2MseObjectUrl(audioRef: string, objectUrl: string) {
@@ -1687,6 +1692,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     nativeRuntimePaymentAsset,
     usesCatalogApi,
     audioSource,
+    audioSourceGeneration,
     audioStartupAttemptId,
     trackSelectionPending,
     settleTrackSelectionMedia,

@@ -2,9 +2,10 @@
 // Single owner of the media elements and transport state for the whole app.
 //
 // The two <audio> elements (host local source + room-listener remote stream)
-// are rendered once by <PersistentAudio> at the App root and never unmount, so
-// sound keeps playing while the listener moves between tabs. PlayerView and
-// PlayerDock both drive the same state through this hook; neither owns media.
+// live in <PersistentAudio> at the App root, so sound keeps playing while the
+// listener moves between tabs. The host node is renewed only when a resolved
+// source generation changes, isolating obsolete native media events. PlayerView
+// and PlayerDock both drive the same state through this hook; neither owns media.
 //
 // Host audio also feeds the WebRTC capture (useSession.prepareLocalStream reads
 // localAudioRef.current), and the room listener's stream lands on
@@ -25,6 +26,7 @@ type UsePlaybackDeps = {
   localAudioRef: RefObject<HTMLAudioElement | null>;
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   audioSource: string | null;
+  audioSourceGeneration: number;
   audioStartupAttemptId: string | null;
   trackSelectionPending: boolean;
   onHostMediaSettled: (source: string | null, terminal?: boolean, attemptId?: string | null) => void;
@@ -68,6 +70,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     localAudioRef,
     remoteAudioRef,
     audioSource,
+    audioSourceGeneration,
     audioStartupAttemptId,
     trackSelectionPending,
     onHostMediaSettled,
@@ -181,7 +184,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     });
     autoplayIntentRef.current = true;
     setStatus('preparing');
-  }, [audioSource, mode]);
+  }, [audioSource, audioSourceGeneration, mode]);
 
   useEffect(() => {
     setRemotePausedByUser(false);

@@ -183,6 +183,45 @@ test('a late play rejection cannot fail the replacement startup', async ({ page 
   expect(host.some(metric => metric.attemptId === replacementAttemptId && metric.phase === 'error')).toBe(false);
 });
 
+test('a native error from a retired media element cannot fail its replacement', async ({ page }) => {
+  await page.goto('/?e2eRoom=public&e2eCatalog=sequence&e2eAutoplay=on');
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
+  await expect(page.locator('audio.native-player-source').first()).toHaveJSProperty('paused', false);
+  await page.evaluate(() => {
+    Reflect.set(window, '__dotifyRetiredHostAudio', document.querySelector('audio.native-player-source'));
+    window.__DOTIFY_AUDIO_STARTUP__?.clear();
+  });
+
+  await page.getByRole('button', { name: 'Music', exact: true }).click();
+  await page.getByRole('button', { name: /^Play Second room track by Dotify Room Host,/ }).click();
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const retired = Reflect.get(window, '__dotifyRetiredHostAudio');
+        const current = document.querySelector('audio.native-player-source');
+        return Boolean(retired && current && retired !== current);
+      })
+    )
+    .toBe(true);
+
+  const replacementAttemptId = (await readStartupSnapshot(page))?.host.filter(metric => metric.phase === 'source-selected').at(-1)?.attemptId;
+  expect(replacementAttemptId).toBeTruthy();
+  await expect
+    .poll(async () => (await readStartupSnapshot(page))?.host.some(metric => metric.attemptId === replacementAttemptId && metric.phase === 'media-playing'))
+    .toBe(true);
+
+  await page.evaluate(() => {
+    const retired = Reflect.get(window, '__dotifyRetiredHostAudio') as HTMLAudioElement | undefined;
+    retired?.dispatchEvent(new Event('error'));
+  });
+  await page.waitForTimeout(100);
+
+  const host = (await readStartupSnapshot(page))?.host ?? [];
+  expect(host.some(metric => metric.attemptId === replacementAttemptId && metric.phase === 'media-playing')).toBe(true);
+  expect(host.some(metric => metric.attemptId === replacementAttemptId && metric.phase === 'error')).toBe(false);
+});
+
 test('replacing a pending track terminates its startup attempt before the next intent', async ({ page }) => {
   let releaseMediaRequest = () => undefined;
   const mediaRequestGate = new Promise<void>(resolve => {

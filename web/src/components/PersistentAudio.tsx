@@ -1,7 +1,8 @@
 // ── Persistent audio elements ───────────────────────────────────────────────
-// Rendered once at the App root, always mounted. Owns the two <audio> nodes so
-// playback survives tab navigation:
-//   - localAudioRef:  host source (also captured into the WebRTC stream)
+// Rendered once at the App root. Owns the two <audio> nodes so playback survives
+// tab navigation. The host node is replaced only for a new resolved source
+// generation, preventing retired resource errors from reaching its successor:
+//   - localAudioRef: host source (also captured into the WebRTC stream)
 //   - remoteAudioRef: room-listener stream (srcObject set by useSession.ontrack)
 // All transport state lives in usePlayback; this component only forwards DOM
 // media events into that shared state and the host streaming callbacks.
@@ -11,6 +12,7 @@ import type { PlaybackControls } from '../hooks/usePlayback';
 
 type PersistentAudioProps = {
   audioSource: string | null;
+  audioSourceGeneration: number;
   localAudioRef: RefObject<HTMLAudioElement | null>;
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   playback: PlaybackControls;
@@ -18,11 +20,20 @@ type PersistentAudioProps = {
   onEmitPlayerState: (force: boolean) => void;
 };
 
-export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, playback, onPrepareLocalStream, onEmitPlayerState }: PersistentAudioProps) {
+export function PersistentAudio({
+  audioSource,
+  audioSourceGeneration,
+  localAudioRef,
+  remoteAudioRef,
+  playback,
+  onPrepareLocalStream,
+  onEmitPlayerState
+}: PersistentAudioProps) {
   return (
     <div className='persistent-audio' aria-hidden='true'>
       {/* Host source: drives local playback and the WebRTC capture. */}
       <audio
+        key={audioSourceGeneration}
         className='native-player-source'
         ref={localAudioRef as RefObject<HTMLAudioElement>}
         src={audioSource ?? undefined}
