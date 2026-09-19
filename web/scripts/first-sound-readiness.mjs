@@ -97,8 +97,8 @@ export function validateFirstSoundEvidence(evidence) {
   return problems;
 }
 
-function sameCandidate(left, right) {
-  return left.gitSha === right.gitSha && left.productAppVersion === right.productAppVersion && left.deployedCid === right.deployedCid;
+function sameBuild(left, right) {
+  return left.gitSha === right.gitSha;
 }
 
 export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
@@ -118,14 +118,15 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
   }
 
   const candidate = evidence[0]?.candidate ?? null;
-  const candidateMismatch = candidate ? evidence.some(item => !sameCandidate(item.candidate, candidate)) : false;
+  const candidateMismatch = candidate ? evidence.some(item => !sameBuild(item.candidate, candidate)) : false;
   if (!candidate) gates.push(gate('candidate', 'Exact candidate', 'not-run', 'No valid evidence file supplied.'));
-  else if (candidateMismatch)
-    gates.push(gate('candidate', 'Exact candidate', 'fail', 'Evidence files refer to different builds, app versions, or deployment CIDs.'));
+  else if (candidateMismatch) gates.push(gate('candidate', 'Exact candidate', 'fail', 'Evidence files refer to different git commits.'));
   else if (options.expectedCommit && candidate.gitSha !== options.expectedCommit) {
     gates.push(gate('candidate', 'Exact candidate', 'fail', `Evidence SHA ${candidate.gitSha} does not match expected ${options.expectedCommit}.`));
   } else
-    gates.push(gate('candidate', 'Exact candidate', 'pass', `${candidate.gitSha}${candidate.productAppVersion ? ` ${candidate.productAppVersion}` : ''}.`));
+    gates.push(
+      gate('candidate', 'Exact candidate', 'pass', `${candidate.gitSha} across ${evidence.length} evidence export${evidence.length === 1 ? '' : 's'}.`)
+    );
 
   const samples = candidateMismatch ? [] : evidence.flatMap(item => item.samples);
   const sampleIds = new Set();
@@ -147,17 +148,27 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     )
   );
 
+  const productEvidence = evidence.filter(item => item.samples.some(sample => sample.surface.startsWith('product-')));
   const productSamples = samples.filter(sample => sample.surface.startsWith('product-'));
+  const productIdentities = new Set(
+    productEvidence
+      .filter(item => item.candidate.productAppVersion && item.candidate.deployedCid)
+      .map(item => `${item.candidate.productAppVersion}:${item.candidate.deployedCid}`)
+  );
+  const productIdentityComplete = productEvidence.every(item => item.candidate.productAppVersion && item.candidate.deployedCid);
+  const productIdentity = productEvidence.find(item => item.candidate.productAppVersion && item.candidate.deployedCid)?.candidate ?? null;
   gates.push(
     gate(
       'product-identity',
       'Product deployment identity',
-      productSamples.length === 0 ? 'not-run' : candidate?.productAppVersion && candidate?.deployedCid ? 'pass' : 'fail',
+      productSamples.length === 0 ? 'not-run' : productIdentityComplete && productIdentities.size === 1 ? 'pass' : 'fail',
       productSamples.length === 0
         ? 'No Product-host sample supplied.'
-        : candidate?.productAppVersion && candidate?.deployedCid
-          ? `${productSamples.length} Product samples are bound to ${candidate.productAppVersion} and ${candidate.deployedCid}.`
-          : 'Product samples require both productAppVersion and deployedCid.'
+        : productIdentityComplete && productIdentities.size === 1
+          ? `${productSamples.length} Product samples are bound to ${productIdentity.productAppVersion} and ${productIdentity.deployedCid}.`
+          : productIdentityComplete
+            ? 'Product samples refer to different app versions or deployment CIDs.'
+            : 'Every export containing Product samples requires both productAppVersion and deployedCid.'
     )
   );
 

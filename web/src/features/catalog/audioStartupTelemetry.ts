@@ -26,7 +26,7 @@ export type AudioV2StartupMetric = {
 };
 
 export type HostAudioStartupMetric = {
-  phase: 'source-selected' | 'metadata-ready' | 'first-audio' | 'error';
+  phase: 'playback-intent' | 'source-selected' | 'metadata-ready' | 'first-audio' | 'error';
   source: string;
   elapsedMs: number;
   timestamp: number;
@@ -67,7 +67,7 @@ const audioV2Phases = new Set<AudioV2StartupPhase>([
   'fallback',
   'error'
 ]);
-const hostPhases = new Set<HostAudioStartupMetric['phase']>(['source-selected', 'metadata-ready', 'first-audio', 'error']);
+const hostPhases = new Set<HostAudioStartupMetric['phase']>(['playback-intent', 'source-selected', 'metadata-ready', 'first-audio', 'error']);
 
 let dav2Metrics: AudioV2StartupMetric[] = [];
 let hostMetrics: HostAudioStartupMetric[] = [];
@@ -139,6 +139,14 @@ export function recordAudioV2StartupMetric(metric: AudioV2StartupMetric): void {
 
 export function recordHostAudioStartupMetric(metric: HostAudioStartupMetric): void {
   hostMetrics = pushBounded(hostMetrics, metric);
+}
+
+export function publishHostAudioStartupMetric(detail: HostAudioStartupMetric): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('dotify:host-audio-startup', { detail }));
+  if (import.meta.env.DEV) {
+    console.info('[dotify.audio.startup]', detail);
+  }
 }
 
 export function getAudioStartupTelemetrySnapshot(): AudioStartupTelemetrySnapshot {

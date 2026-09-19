@@ -225,11 +225,17 @@ export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot,
   if (!Number.isFinite(now) || now <= 0 || !current || !attempt) return null;
 
   const hostEvents = snapshot.host.filter(metric => metric.timestamp >= attempt.startedAt);
-  const sourceSelected = hostEvents.some(metric => metric.phase === 'source-selected');
-  const terminal = [...hostEvents].reverse().find(metric => metric.phase === 'first-audio' || metric.phase === 'error');
-  if (!sourceSelected || !terminal || (terminal.phase !== 'first-audio' && terminal.phase !== 'error')) return null;
+  const playbackIntent = hostEvents.find(metric => metric.phase === 'playback-intent');
+  if (!playbackIntent) return null;
 
-  const dav2Events = snapshot.dav2.filter(metric => metric.timestamp >= attempt.startedAt);
+  const correlatedHostEvents = hostEvents.filter(metric => metric.timestamp >= playbackIntent.timestamp);
+  const firstAudio = correlatedHostEvents.find(metric => metric.phase === 'first-audio');
+  const hostError = correlatedHostEvents.find(metric => metric.phase === 'error');
+  const dav2Events = snapshot.dav2.filter(metric => metric.timestamp >= playbackIntent.timestamp);
+  const dav2Error = dav2Events.find(metric => metric.phase === 'error');
+  const outcome = firstAudio ? 'first-audio' : hostError || dav2Error ? 'error' : null;
+  if (!outcome) return null;
+
   const firstRange = dav2Events.find(metric => metric.phase === 'first-range-ready' && metric.rangeStart !== undefined && metric.rangeEnd !== undefined);
   const decryptor = [...dav2Events].reverse().find(metric => metric.decryptor)?.decryptor ?? null;
   const sample: FirstSoundSample = {
@@ -237,8 +243,8 @@ export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot,
     surface: attempt.surface,
     flow: attempt.flow,
     cacheState: attempt.cacheState,
-    outcome: terminal.phase,
-    firstSoundMs: terminal.phase === 'first-audio' ? terminal.elapsedMs : null,
+    outcome,
+    firstSoundMs: firstAudio ? Math.max(0, firstAudio.timestamp - playbackIntent.timestamp) : null,
     capturedAt: new Date(now).toISOString(),
     dav2: {
       observed: dav2Events.length > 0,

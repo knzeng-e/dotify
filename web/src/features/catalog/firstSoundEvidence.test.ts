@@ -40,10 +40,11 @@ function snapshot(startedAt: number): AudioStartupTelemetrySnapshot {
       }
     ],
     host: [
-      { phase: 'source-selected', source: 'blob:private-source', elapsedMs: 0, timestamp: startedAt + 1 },
-      { phase: 'first-audio', source: 'blob:private-source', elapsedMs: 812.4, timestamp: startedAt + 30, durationSeconds: 120 }
+      { phase: 'playback-intent', source: 'private-track-id', elapsedMs: 0, timestamp: startedAt + 1 },
+      { phase: 'source-selected', source: 'blob:private-source', elapsedMs: 0, timestamp: startedAt + 500 },
+      { phase: 'first-audio', source: 'blob:private-source', elapsedMs: 312.4, timestamp: startedAt + 813, durationSeconds: 120 }
     ],
-    latestFirstSoundMs: 812.4
+    latestFirstSoundMs: 312.4
   };
 }
 
@@ -97,7 +98,7 @@ describe('first-sound evidence capture', () => {
         flow: 'authorized-protected',
         cacheState: 'warm',
         outcome: 'first-audio',
-        firstSoundMs: 812.4,
+        firstSoundMs: 812,
         dav2: {
           observed: true,
           fallback: false,
@@ -122,12 +123,39 @@ describe('first-sound evidence capture', () => {
     });
   });
 
-  it('does not capture before a source selection and terminal audio event are both observed', () => {
+  it('does not capture before playback intent and a terminal audio event are both observed', () => {
     bindFirstSoundCandidate({ buildSha: SHA, productAppVersion: null }, '');
     beginFirstSoundAttempt('ios-safari', 'free', 'cold', 1_000);
 
     expect(finishFirstSoundAttempt({ dav2: [], host: [], latestFirstSoundMs: null }, 2_000)).toBeNull();
     expect(readFirstSoundEvidenceDraft()?.activeAttempt).not.toBeNull();
+  });
+
+  it('captures a DAV2 failure that happens before an audio source exists', () => {
+    bindFirstSoundCandidate({ buildSha: SHA, productAppVersion: null }, '');
+    beginFirstSoundAttempt('standalone-chrome', 'authorized-protected', 'cold', 1_000);
+
+    const draft = finishFirstSoundAttempt(
+      {
+        host: [{ phase: 'playback-intent', source: 'private-track-id', elapsedMs: 0, timestamp: 1_100 }],
+        dav2: [
+          {
+            phase: 'error',
+            audioRef: 'dotify:enc:v2:ipfs://private-ref',
+            cid: 'private-cid',
+            elapsedMs: 600,
+            timestamp: 1_700,
+            detail: 'private gateway failure'
+          }
+        ],
+        latestFirstSoundMs: null
+      },
+      2_000
+    );
+
+    expect(draft?.activeAttempt).toBeNull();
+    expect(draft?.samples).toEqual([expect.objectContaining({ outcome: 'error', firstSoundMs: null, dav2: expect.objectContaining({ observed: true }) })]);
+    expect(serializeFirstSoundEvidence(buildFirstSoundEvidence(draft!, 3_000))).not.toContain('private gateway failure');
   });
 
   it('fails closed when persisted evidence is malformed', () => {

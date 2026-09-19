@@ -86,6 +86,36 @@ describe('first-sound readiness evidence', () => {
     assert.equal(duplicates.gates.find(row => row.id === 'sample-identity')?.status, 'fail');
   });
 
+  it('combines standalone and Product exports for one commit while keeping Product identity strict', () => {
+    const standalone = evidence([sample('standalone')], { gitSha: SHA, productAppVersion: null, deployedCid: null });
+    const product = evidence([sample('product', { surface: 'product-desktop' })]);
+    const combined = buildFirstSoundReadinessReport(
+      [
+        { path: 'standalone.json', data: standalone },
+        { path: 'product.json', data: product }
+      ],
+      { expectedCommit: SHA }
+    );
+
+    assert.equal(combined.gates.find(row => row.id === 'candidate')?.status, 'pass');
+    assert.equal(combined.gates.find(row => row.id === 'product-identity')?.status, 'pass');
+    assert.equal(combined.gates.find(row => row.id === 'sample-identity')?.detail, '2 unique samples.');
+
+    const otherProduct = evidence([sample('other-product', { surface: 'product-web-gateway' })], {
+      gitSha: SHA,
+      productAppVersion: '[0, 1, 26]',
+      deployedCid: CID
+    });
+    const mismatchedProduct = buildFirstSoundReadinessReport(
+      [
+        { path: 'product.json', data: product },
+        { path: 'other-product.json', data: otherProduct }
+      ],
+      { expectedCommit: SHA }
+    );
+    assert.equal(mismatchedProduct.gates.find(row => row.id === 'product-identity')?.status, 'fail');
+  });
+
   it('rejects privacy flags, extra sample fields, and Product samples without deployment identity', () => {
     const leaked = evidence([{ ...sample('leaked'), walletAddress: '0x1234' }]);
     leaked.privacy.walletAddressesCollected = true;

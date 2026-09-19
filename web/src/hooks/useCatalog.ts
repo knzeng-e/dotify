@@ -48,7 +48,7 @@ import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
 import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
 import { resolveProductHostConfig } from '../features/productHost/productHost';
 import { publishProductCdmPaymentSmokeMetric, type ProductCdmPaymentSmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
-import { audioV2StartupPhaseLabel, type AudioV2StartupMetric } from '../features/catalog/audioStartupTelemetry';
+import { audioV2StartupPhaseLabel, publishHostAudioStartupMetric, type AudioV2StartupMetric } from '../features/catalog/audioStartupTelemetry';
 import { fetchCatalog, isCatalogApiConfigured, readBundledCatalog, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
 import { createCoverFallbackDataUri } from '../features/catalog/coverArtwork';
 import {
@@ -1071,6 +1071,24 @@ export function useCatalog(deps: UseCatalogDeps) {
     showAccessGateOnDenied = false
   ): Promise<TrackSelectionResult> {
     const selection = beginTrackSelection();
+    const selectionStartedAt = nowMs();
+    publishHostAudioStartupMetric({
+      phase: 'playback-intent',
+      source: track.id,
+      elapsedMs: 0,
+      timestamp: Date.now()
+    });
+    let selectionFailureReported = false;
+    const reportSelectionFailure = () => {
+      if (selectionFailureReported || !isTrackSelectionCurrent(selection)) return;
+      selectionFailureReported = true;
+      publishHostAudioStartupMetric({
+        phase: 'error',
+        source: track.id,
+        elapsedMs: Number((nowMs() - selectionStartedAt).toFixed(1)),
+        timestamp: Date.now()
+      });
+    };
     let waitsForMediaReadiness = false;
 
     try {
@@ -1148,6 +1166,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
 
       if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+      if (!audioUrl) reportSelectionFailure();
       const sourceAlreadyReady = Boolean(
         audioUrl && audioSourceRef.current === audioUrl && localAudioRef.current && localAudioRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
       );
@@ -1167,8 +1186,10 @@ export function useCatalog(deps: UseCatalogDeps) {
         // streams nothing (kept on the wire for protocol compatibility).
         socketEmit('room:playback-mode', { playbackMode: 'full' });
       }
-
       return { playbackMode: 'full', audioSource: audioUrl };
+    } catch (error) {
+      reportSelectionFailure();
+      throw error;
     } finally {
       if (isTrackSelectionCurrent(selection) && !waitsForMediaReadiness) {
         pendingTrackMediaSourceRef.current = null;

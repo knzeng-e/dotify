@@ -47,6 +47,10 @@ test('audio startup telemetry is retained for QA in the browser', async ({ page 
 
   await expect.poll(() => page.evaluate(() => typeof window.__DOTIFY_AUDIO_STARTUP__?.snapshot === 'function')).toBe(true);
 
+  await page.evaluate(() => window.__DOTIFY_AUDIO_STARTUP__?.clear());
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
+  await expect.poll(async () => (await readStartupSnapshot(page))?.host.some(metric => metric.phase === 'playback-intent')).toBe(true);
+
   await page.evaluate(() => {
     window.__DOTIFY_AUDIO_STARTUP__?.clear();
     window.dispatchEvent(
@@ -81,7 +85,7 @@ test('audio startup telemetry is retained for QA in the browser', async ({ page 
 
   const dav2Snapshot = await readStartupSnapshot(page);
   expect(dav2Snapshot?.dav2).toEqual([expect.objectContaining({ phase: 'first-range-ready', elapsedMs: 317.4 })]);
-  expect(dav2Snapshot?.host).toEqual([expect.objectContaining({ phase: 'first-audio', elapsedMs: 821.6 })]);
+  expect(dav2Snapshot?.host).toEqual(expect.arrayContaining([expect.objectContaining({ phase: 'first-audio', elapsedMs: 821.6 })]));
   expect(dav2Snapshot?.latestFirstSoundMs).toBe(821.6);
 });
 
@@ -100,13 +104,18 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
   await page.evaluate(() => {
     const timestamp = Date.now();
     window.dispatchEvent(
+      new CustomEvent('dotify:host-audio-startup', {
+        detail: { phase: 'playback-intent', source: 'private-track-id', elapsedMs: 0, timestamp }
+      })
+    );
+    window.dispatchEvent(
       new CustomEvent('dotify:dav2-startup', {
         detail: {
           phase: 'first-range-ready',
           audioRef: 'dotify:enc:v2:ipfs://private-audio-ref',
           cid: 'private-cid',
           elapsedMs: 300,
-          timestamp,
+          timestamp: timestamp + 300,
           gatewayUrl: 'https://private-gateway.example/ipfs/private-cid',
           rangeStart: 100,
           rangeEnd: 399,
@@ -116,12 +125,12 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
     );
     window.dispatchEvent(
       new CustomEvent('dotify:host-audio-startup', {
-        detail: { phase: 'source-selected', source: 'blob:private-source', elapsedMs: 0, timestamp }
+        detail: { phase: 'source-selected', source: 'blob:private-source', elapsedMs: 0, timestamp: timestamp + 500 }
       })
     );
     window.dispatchEvent(
       new CustomEvent('dotify:host-audio-startup', {
-        detail: { phase: 'first-audio', source: 'blob:private-source', elapsedMs: 812, timestamp: timestamp + 1, durationSeconds: 10 }
+        detail: { phase: 'first-audio', source: 'blob:private-source', elapsedMs: 312, timestamp: timestamp + 812, durationSeconds: 10 }
       })
     );
   });

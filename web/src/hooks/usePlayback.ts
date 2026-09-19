@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { isRoomJoinE2eContext, roomJoinE2eAutoplayEnabled } from '../e2e/roomJoinMock';
-import type { HostAudioStartupMetric } from '../features/catalog/audioStartupTelemetry';
+import { publishHostAudioStartupMetric } from '../features/catalog/audioStartupTelemetry';
 import type { CatalogTrack, Mode, PlayerState } from '../shared/types';
 import { useRoomClock } from '../features/player/useRoomClock';
 import { listenerPlaybackStatusForHostState, type AudioStatus } from '../features/player/playbackStatus';
@@ -47,14 +47,6 @@ type HostAudioStartup = {
 
 function nowMs(): number {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
-}
-
-function publishHostAudioStartupMetric(detail: HostAudioStartupMetric): void {
-  if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent('dotify:host-audio-startup', { detail }));
-  if (import.meta.env.DEV) {
-    console.info('[dotify.audio.startup]', detail);
-  }
 }
 
 export function usePlayback(deps: UsePlaybackDeps) {
