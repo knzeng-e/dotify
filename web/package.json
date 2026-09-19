@@ -32,7 +32,7 @@
 		"smoke:nearby-privacy": "node scripts/nearby-privacy-simulation.mjs",
 		"smoke:signal": "node scripts/signaling-smoke.mjs",
 		"test:pilot-release-readiness": "node --test scripts/pilot-release-readiness.test.mjs",
-		"test:first-sound-readiness": "node --test scripts/first-sound-readiness.test.mjs",
+		"test:first-sound-readiness": "node --test scripts/build-identity.test.mjs scripts/first-sound-readiness.test.mjs",
 		"test:product-cash-settlement": "node --test scripts/product-cash-settlement-readiness.test.mjs",
 		"lint": "eslint .",
 		"fmt": "prettier --write 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",

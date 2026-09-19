@@ -6,9 +6,11 @@ import { clearAudioStartupTelemetry, getAudioStartupTelemetrySnapshot } from '..
 import {
   FIRST_SOUND_FLOWS,
   FIRST_SOUND_CACHE_STATES,
+  FIRST_SOUND_CONNECTIONS,
   FIRST_SOUND_SURFACES,
   beginFirstSoundAttempt,
   bindFirstSoundCandidate,
+  bindFirstSoundTestProfile,
   buildFirstSoundEvidence,
   cancelFirstSoundAttempt,
   clearFirstSoundEvidence,
@@ -20,6 +22,7 @@ import {
   surfaceNeedsProductCandidate,
   type FirstSoundEvidenceContext,
   type FirstSoundCacheState,
+  type FirstSoundConnection,
   type FirstSoundFlow,
   type FirstSoundSurface
 } from '../features/catalog/firstSoundEvidence';
@@ -55,15 +58,30 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
   const { pushNotice } = useUiFeedback();
   const [draft, setDraft] = useState(() => readFirstSoundEvidenceDraft());
   const [deployedCid, setDeployedCid] = useState(() => readFirstSoundEvidenceDraft()?.candidate.deployedCid ?? '');
-  const [surface, setSurface] = useState<FirstSoundSurface>('standalone-chrome');
+  const [surface, setSurface] = useState<FirstSoundSurface>(() => readFirstSoundEvidenceDraft()?.profile?.surface ?? 'standalone-chrome');
+  const [device, setDevice] = useState(() => readFirstSoundEvidenceDraft()?.profile?.device ?? '');
+  const [os, setOs] = useState(() => readFirstSoundEvidenceDraft()?.profile?.os ?? '');
+  const [browser, setBrowser] = useState(() => readFirstSoundEvidenceDraft()?.profile?.browser ?? '');
+  const [productHostVersion, setProductHostVersion] = useState(() => readFirstSoundEvidenceDraft()?.profile?.productHostVersion ?? '');
+  const [connection, setConnection] = useState<FirstSoundConnection>(() => readFirstSoundEvidenceDraft()?.profile?.connection ?? 'wifi');
   const [flow, setFlow] = useState<FirstSoundFlow>('free');
   const [cacheState, setCacheState] = useState<FirstSoundCacheState>('cold');
   const normalizedCid = normalizeIpfsCid(deployedCid) || null;
   const candidateActive = Boolean(
     draft &&
+    context.buildClean &&
     draft.candidate.gitSha === context.buildSha?.trim().toLowerCase() &&
     draft.candidate.productAppVersion === (context.productAppVersion?.trim() || null) &&
     draft.candidate.deployedCid === normalizedCid
+  );
+  const profileActive = Boolean(
+    candidateActive &&
+    draft?.profile?.surface === surface &&
+    draft.profile.device === device.trim().replace(/\s+/g, ' ') &&
+    draft.profile.os === os.trim().replace(/\s+/g, ' ') &&
+    draft.profile.browser === browser.trim().replace(/\s+/g, ' ') &&
+    draft.profile.productHostVersion === (surfaceNeedsProductCandidate(surface) ? productHostVersion.trim().replace(/\s+/g, ' ') || null : null) &&
+    draft.profile.connection === connection
   );
   const productReady = draft ? productCandidateComplete(draft.candidate) : false;
   const evidence = useMemo(() => (draft ? buildFirstSoundEvidence(draft) : null), [draft]);
@@ -83,13 +101,46 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
       pushNotice({
         tone: 'error',
         title: 'Candidate unavailable',
-        message: 'This QA capture needs the exact 40-character build SHA. Add a deployment CID for Product-host samples.'
+        message: context.buildClean
+          ? 'This QA capture needs the exact 40-character build SHA. Add a deployment CID for Product-host samples.'
+          : 'This build contains uncommitted changes. Commit them and rebuild before collecting candidate evidence.'
       });
       return;
     }
     setDraft(next);
     setDeployedCid(next.candidate.deployedCid ?? '');
     pushNotice({ tone: 'success', title: 'Candidate bound', message: 'Every new timing will belong to this exact build.' });
+  }
+
+  function bindProfile() {
+    const previousSamples = draft?.samples.length ?? 0;
+    const next = bindFirstSoundTestProfile({
+      surface,
+      device,
+      os,
+      browser,
+      productHostVersion: productHostVersion || null,
+      connection
+    });
+    if (!next) {
+      pushNotice({
+        tone: 'error',
+        title: 'Test profile incomplete',
+        message: surfaceNeedsProductCandidate(surface)
+          ? 'Record the device, OS, browser, Product host version, and connection before measuring.'
+          : 'Record the device, OS, browser, and connection before measuring.'
+      });
+      return;
+    }
+    setDraft(next);
+    pushNotice({
+      tone: 'success',
+      title: 'Test profile bound',
+      message:
+        previousSamples > 0 && next.samples.length === 0
+          ? 'The changed profile starts a separate evidence set.'
+          : 'New samples will include this device profile.'
+    });
   }
 
   function startAttempt() {
@@ -162,6 +213,11 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
     clearAudioStartupTelemetry();
     setDraft(null);
     setDeployedCid('');
+    setDevice('');
+    setOs('');
+    setBrowser('');
+    setProductHostVersion('');
+    setConnection('wifi');
     pushNotice({ tone: 'info', title: 'First-sound evidence reset', message: 'Bind a candidate to begin a fresh measurement set.' });
   }
 
@@ -180,7 +236,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
       <div className='product-smoke-context'>
         <code>{context.buildSha?.slice(0, 12) || 'build SHA unavailable'}</code>
         <span>{context.productAppVersion || 'Standalone build'}</span>
-        <span>No wallet or media identifiers</span>
+        <span>{context.buildClean ? 'Exact committed build' : 'Uncommitted build'}</span>
       </div>
 
       <div className='product-smoke-candidate'>
@@ -215,6 +271,70 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
             </option>
           ))}
         </select>
+        <label htmlFor='first-sound-device'>Device model</label>
+        <input
+          id='first-sound-device'
+          type='text'
+          value={device}
+          disabled={Boolean(draft?.activeAttempt)}
+          onChange={event => setDevice(event.currentTarget.value)}
+          placeholder='iPhone 13 Pro'
+          maxLength={80}
+        />
+        <label htmlFor='first-sound-os'>OS and version</label>
+        <input
+          id='first-sound-os'
+          type='text'
+          value={os}
+          disabled={Boolean(draft?.activeAttempt)}
+          onChange={event => setOs(event.currentTarget.value)}
+          placeholder='iOS 16.7'
+          maxLength={80}
+        />
+        <label htmlFor='first-sound-browser'>Browser and version</label>
+        <input
+          id='first-sound-browser'
+          type='text'
+          value={browser}
+          disabled={Boolean(draft?.activeAttempt)}
+          onChange={event => setBrowser(event.currentTarget.value)}
+          placeholder='Safari 16.6'
+          maxLength={80}
+        />
+        {surfaceNeedsProductCandidate(surface) && (
+          <>
+            <label htmlFor='first-sound-product-host-version'>Product host version</label>
+            <input
+              id='first-sound-product-host-version'
+              type='text'
+              value={productHostVersion}
+              disabled={Boolean(draft?.activeAttempt)}
+              onChange={event => setProductHostVersion(event.currentTarget.value)}
+              placeholder='Product Desktop 0.1.0'
+              maxLength={80}
+            />
+          </>
+        )}
+        <label htmlFor='first-sound-connection'>Connection profile</label>
+        <select
+          id='first-sound-connection'
+          value={connection}
+          disabled={Boolean(draft?.activeAttempt)}
+          onChange={event => setConnection(event.currentTarget.value as FirstSoundConnection)}
+        >
+          {FIRST_SOUND_CONNECTIONS.map(value => (
+            <option key={value} value={value}>
+              {value === 'wifi' ? 'Wi-Fi' : value === 'mobile' ? 'Mobile data' : value === 'ethernet' ? 'Ethernet' : 'Other network'}
+            </option>
+          ))}
+        </select>
+        <button className='secondary-action compact-action' type='button' disabled={!candidateActive || Boolean(draft?.activeAttempt)} onClick={bindProfile}>
+          {profileActive ? 'Test profile bound' : 'Use this test profile'}
+        </button>
+        <small>Changing this profile starts a separate evidence set so different devices and networks cannot be blended silently.</small>
+      </div>
+
+      <div className='product-smoke-candidate'>
         <label htmlFor='first-sound-flow'>Listening flow</label>
         <select
           id='first-sound-flow'
@@ -259,7 +379,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
           <button
             className='secondary-action compact-action'
             type='button'
-            disabled={!candidateActive || (surfaceNeedsProductCandidate(surface) && !productReady)}
+            disabled={!candidateActive || !profileActive || (surfaceNeedsProductCandidate(surface) && !productReady)}
             onClick={startAttempt}
           >
             <Play size={15} />

@@ -27,10 +27,24 @@ function sample(id, overrides = {}) {
   };
 }
 
-function evidence(samples, candidate = { gitSha: SHA, productAppVersion: '[0, 1, 25]', deployedCid: CID }) {
+function profile(surface = 'standalone-chrome', overrides = {}) {
   return {
-    schemaVersion: 1,
+    surface,
+    device: surface === 'ios-safari' ? 'iPhone 13 Pro' : 'MacBook Pro 13-inch',
+    os: surface === 'ios-safari' ? 'iOS 16.7' : 'macOS 15.6',
+    browser: surface === 'ios-safari' ? 'Safari 16.6' : 'Chrome 140',
+    productHostVersion: surface.startsWith('product-') ? 'Product Desktop 0.1.0' : null,
+    connection: surface === 'ios-safari' ? 'mobile' : 'wifi',
+    ...overrides
+  };
+}
+
+function evidence(samples, candidate = { gitSha: SHA, productAppVersion: '[0, 1, 25]', deployedCid: CID }, profileOverrides = {}) {
+  const surface = samples[0]?.surface ?? 'standalone-chrome';
+  return {
+    schemaVersion: 2,
     candidate,
+    profile: profile(surface, profileOverrides),
     capturedAt: '2026-09-19T12:05:00.000Z',
     samples,
     privacy: {
@@ -59,9 +73,13 @@ describe('first-sound readiness evidence', () => {
   it('does not let fast desktop samples hide a slow required surface', () => {
     const chromeSamples = Array.from({ length: 12 }, (_, index) => sample(`chrome-${index}`, { firstSoundMs: 400 + index * 10 }));
     const iosSamples = Array.from({ length: 4 }, (_, index) => sample(`ios-${index}`, { surface: 'ios-safari', firstSoundMs: 4_000 + index * 100 }));
-    const report = buildFirstSoundReadinessReport([{ path: 'mixed.json', data: evidence([...chromeSamples, ...iosSamples]) }], {
-      expectedCommit: SHA
-    });
+    const report = buildFirstSoundReadinessReport(
+      [
+        { path: 'chrome.json', data: evidence(chromeSamples) },
+        { path: 'ios.json', data: evidence(iosSamples) }
+      ],
+      { expectedCommit: SHA }
+    );
 
     assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
     assert.equal(report.surfaceBudgets.find(row => row.surface === 'standalone-chrome' && row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
@@ -140,6 +158,16 @@ describe('first-sound readiness evidence', () => {
     const product = evidence([sample('product', { surface: 'product-desktop' })], { gitSha: SHA, productAppVersion: null, deployedCid: null });
     const report = buildFirstSoundReadinessReport([{ path: 'product.json', data: product }], { expectedCommit: SHA });
     assert.equal(report.gates.find(row => row.id === 'product-identity')?.status, 'fail');
+  });
+
+  it('requires a sanitized device and network profile and renders it in the report', () => {
+    const invalid = evidence([sample('invalid')], undefined, { device: 'line one\nline two' });
+    assert.match(validateFirstSoundEvidence(invalid).join('; '), /profile.device/);
+
+    const report = buildFirstSoundReadinessReport([{ path: 'ios.json', data: evidence([sample('ios', { surface: 'ios-safari' })]) }], { expectedCommit: SHA });
+    assert.match(renderFirstSoundReadinessMarkdown(report), /iPhone 13 Pro/);
+    assert.match(renderFirstSoundReadinessMarkdown(report), /iOS 16\.7/);
+    assert.match(renderFirstSoundReadinessMarkdown(report), /mobile/);
   });
 
   it('requires enough DAV2 attempts before asserting the <1% fallback target', () => {

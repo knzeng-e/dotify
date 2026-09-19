@@ -362,6 +362,7 @@ export function ListenerShell() {
                             walletChainId: connectedWallet?.chainId,
                             firstSoundEvidence: {
                               buildSha: (import.meta.env.VITE_DOTIFY_BUILD_SHA as string | undefined) ?? null,
+                              buildClean: import.meta.env.VITE_DOTIFY_BUILD_CLEAN === 'true',
                               productAppVersion: (import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION as string | undefined) ?? null
                             },
                             productCdmHostSmoke: {

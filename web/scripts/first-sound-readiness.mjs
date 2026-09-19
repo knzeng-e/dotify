@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 const SURFACES = ['standalone-chrome', 'standalone-firefox', 'standalone-safari', 'ios-safari', 'android-chrome', 'product-desktop', 'product-web-gateway'];
 const FLOWS = ['free', 'authorized-protected', 'warm-next-track'];
 const CACHE_STATES = ['cold', 'warm'];
+const CONNECTIONS = ['wifi', 'mobile', 'ethernet', 'other'];
 const BUDGETS_MS = { free: 1_500, 'authorized-protected': 2_000, 'warm-next-track': 700 };
 const BUDGET_CELLS = [
   { flow: 'free', cacheState: 'cold' },
@@ -46,6 +47,35 @@ function validateCandidate(candidate) {
   return null;
 }
 
+function validProfileText(value) {
+  return (
+    typeof value === 'string' &&
+    value.length > 0 &&
+    value.length <= 80 &&
+    value === value.trim() &&
+    !Array.from(value).some(character => {
+      const code = character.charCodeAt(0);
+      return code < 32 || code === 127;
+    })
+  );
+}
+
+function validateProfile(profile) {
+  if (!exactKeys(profile, ['surface', 'device', 'os', 'browser', 'productHostVersion', 'connection']))
+    return 'profile must contain only surface, device, os, browser, productHostVersion, and connection';
+  if (!SURFACES.includes(profile.surface)) return `profile.surface ${profile.surface} is unsupported`;
+  for (const field of ['device', 'os', 'browser']) {
+    if (!validProfileText(profile[field])) return `profile.${field} must be a single sanitized line of at most 80 characters`;
+  }
+  if (!CONNECTIONS.includes(profile.connection)) return `profile.connection ${profile.connection} is unsupported`;
+  if (profile.surface.startsWith('product-')) {
+    if (!validProfileText(profile.productHostVersion)) return 'Product profiles require productHostVersion';
+  } else if (profile.productHostVersion !== null) {
+    return 'Standalone profiles must use productHostVersion=null';
+  }
+  return null;
+}
+
 function validateSample(sample) {
   if (!exactKeys(sample, ['id', 'surface', 'flow', 'cacheState', 'outcome', 'firstSoundMs', 'capturedAt', 'dav2']))
     return 'sample contains unknown or missing fields';
@@ -73,19 +103,22 @@ function validateSample(sample) {
 
 export function validateFirstSoundEvidence(evidence) {
   const problems = [];
-  if (!exactKeys(evidence, ['schemaVersion', 'candidate', 'capturedAt', 'samples', 'privacy'])) {
+  if (!exactKeys(evidence, ['schemaVersion', 'candidate', 'profile', 'capturedAt', 'samples', 'privacy'])) {
     problems.push('evidence contains unknown or missing top-level fields');
     return problems;
   }
-  if (evidence.schemaVersion !== 1) problems.push('schemaVersion must be 1');
+  if (evidence.schemaVersion !== 2) problems.push('schemaVersion must be 2');
   const candidateProblem = validateCandidate(evidence.candidate);
   if (candidateProblem) problems.push(candidateProblem);
+  const profileProblem = validateProfile(evidence.profile);
+  if (profileProblem) problems.push(profileProblem);
   if (typeof evidence.capturedAt !== 'string' || !Number.isFinite(Date.parse(evidence.capturedAt))) problems.push('capturedAt is invalid');
   if (!Array.isArray(evidence.samples)) problems.push('samples must be an array');
   else {
     for (const [index, sample] of evidence.samples.entries()) {
       const sampleProblem = validateSample(sample);
       if (sampleProblem) problems.push(`samples[${index}]: ${sampleProblem}`);
+      else if (sample.surface !== evidence.profile?.surface) problems.push(`samples[${index}]: sample.surface must match profile.surface`);
     }
   }
   if (
@@ -136,13 +169,24 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
         `schema:${item.path}`,
         `Evidence schema · ${item.path}`,
         problems.length === 0 ? 'pass' : 'fail',
-        problems.length === 0 ? 'Sanitized schema v1 accepted.' : problems.join('; ')
+        problems.length === 0 ? 'Sanitized schema v2 accepted.' : problems.join('; ')
       )
     );
     if (problems.length === 0) evidence.push(item.data);
   }
 
   const candidate = evidence[0]?.candidate ?? null;
+  const profiles = evidence.map(item => ({ ...item.profile }));
+  for (const [index, profile] of profiles.entries()) {
+    gates.push(
+      gate(
+        `profile:${index}`,
+        `Test profile · ${profile.surface}`,
+        'pass',
+        `${profile.device} · ${profile.os} · ${profile.browser} · ${profile.connection}${profile.productHostVersion ? ` · ${profile.productHostVersion}` : ''}`
+      )
+    );
+  }
   const candidateMismatch = candidate ? evidence.some(item => !sameBuild(item.candidate, candidate)) : false;
   if (!candidate) gates.push(gate('candidate', 'Exact candidate', 'not-run', 'No valid evidence file supplied.'));
   else if (candidateMismatch) gates.push(gate('candidate', 'Exact candidate', 'fail', 'Evidence files refer to different git commits.'));
@@ -259,8 +303,9 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     notRun: gates.filter(item => item.status === 'not-run').length
   };
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     candidate,
+    profiles,
     counts,
     gates,
     matrix,
@@ -271,12 +316,22 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
 }
 
 export function renderFirstSoundReadinessMarkdown(report) {
+  const profileRows = report.profiles.length
+    ? report.profiles.map(
+        profile =>
+          `| ${profile.surface} | ${profile.device.replaceAll('|', '\\|')} | ${profile.os.replaceAll('|', '\\|')} | ${profile.browser.replaceAll('|', '\\|')} | ${profile.connection} | ${(profile.productHostVersion ?? '—').replaceAll('|', '\\|')} |`
+      )
+    : ['| — | — | — | — | — | — |'];
   const lines = [
     '# Dotify first-sound readiness',
     '',
     report.candidate ? `Candidate: \`${report.candidate.gitSha}\`` : 'Candidate: not supplied',
     '',
     `Summary: ${report.counts.pass} pass, ${report.counts.fail} fail, ${report.counts.notRun} not run.`,
+    '',
+    '| Surface | Device | OS | Browser | Connection | Product host |',
+    '| --- | --- | --- | --- | --- | --- |',
+    ...profileRows,
     '',
     '| Gate | Status | Evidence |',
     '| --- | --- | --- |',

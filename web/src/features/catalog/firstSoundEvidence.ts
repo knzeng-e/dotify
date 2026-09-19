@@ -1,7 +1,7 @@
 import type { AudioStartupTelemetrySnapshot } from './audioStartupTelemetry';
 import { normalizeIpfsCid } from '../../shared/utils/ipfsCid';
 
-export const FIRST_SOUND_EVIDENCE_STORAGE_KEY = 'dotify:first-sound-evidence:v1';
+export const FIRST_SOUND_EVIDENCE_STORAGE_KEY = 'dotify:first-sound-evidence:v2';
 export const MAX_FIRST_SOUND_SAMPLES = 120;
 
 export const FIRST_SOUND_SURFACES = [
@@ -16,15 +16,26 @@ export const FIRST_SOUND_SURFACES = [
 
 export const FIRST_SOUND_FLOWS = ['free', 'authorized-protected', 'warm-next-track'] as const;
 export const FIRST_SOUND_CACHE_STATES = ['cold', 'warm'] as const;
+export const FIRST_SOUND_CONNECTIONS = ['wifi', 'mobile', 'ethernet', 'other'] as const;
 
 export type FirstSoundSurface = (typeof FIRST_SOUND_SURFACES)[number];
 export type FirstSoundFlow = (typeof FIRST_SOUND_FLOWS)[number];
 export type FirstSoundCacheState = (typeof FIRST_SOUND_CACHE_STATES)[number];
+export type FirstSoundConnection = (typeof FIRST_SOUND_CONNECTIONS)[number];
 
 export type FirstSoundCandidate = {
   gitSha: string;
   productAppVersion: string | null;
   deployedCid: string | null;
+};
+
+export type FirstSoundTestProfile = {
+  surface: FirstSoundSurface;
+  device: string;
+  os: string;
+  browser: string;
+  productHostVersion: string | null;
+  connection: FirstSoundConnection;
 };
 
 export type FirstSoundAttempt = {
@@ -54,15 +65,17 @@ export type FirstSoundSample = {
 };
 
 export type FirstSoundEvidenceDraft = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   candidate: FirstSoundCandidate;
+  profile: FirstSoundTestProfile | null;
   activeAttempt: FirstSoundAttempt | null;
   samples: FirstSoundSample[];
 };
 
 export type FirstSoundEvidence = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   candidate: FirstSoundCandidate;
+  profile: FirstSoundTestProfile;
   capturedAt: string;
   samples: FirstSoundSample[];
   privacy: {
@@ -75,11 +88,13 @@ export type FirstSoundEvidence = {
 
 export type FirstSoundEvidenceContext = {
   buildSha: string | null;
+  buildClean: boolean;
   productAppVersion: string | null;
 };
 
 const FULL_SHA = /^[0-9a-f]{40}$/i;
 const PRODUCT_VERSION = /^\[\d+,\s*\d+,\s*\d+\]$/;
+const PROFILE_TEXT_MAX_LENGTH = 80;
 
 function storage(): Storage | null {
   return typeof window === 'undefined' ? null : window.localStorage;
@@ -99,6 +114,37 @@ function isFlow(value: unknown): value is FirstSoundFlow {
 
 function isCacheState(value: unknown): value is FirstSoundCacheState {
   return typeof value === 'string' && (FIRST_SOUND_CACHE_STATES as readonly string[]).includes(value);
+}
+
+function isConnection(value: unknown): value is FirstSoundConnection {
+  return typeof value === 'string' && (FIRST_SOUND_CONNECTIONS as readonly string[]).includes(value);
+}
+
+function cleanProfileText(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const printable = Array.from(value, character => {
+    const code = character.charCodeAt(0);
+    return code < 32 || code === 127 ? ' ' : character;
+  }).join('');
+  return printable.replace(/\s+/g, ' ').trim().slice(0, PROFILE_TEXT_MAX_LENGTH);
+}
+
+function normalizeProfile(value: unknown): FirstSoundTestProfile | null {
+  if (!isRecord(value) || !isSurface(value.surface) || !isConnection(value.connection)) return null;
+  const device = cleanProfileText(value.device);
+  const os = cleanProfileText(value.os);
+  const browser = cleanProfileText(value.browser);
+  const productHostVersion = cleanProfileText(value.productHostVersion) || null;
+  if (!device || !os || !browser) return null;
+  if (surfaceNeedsProductCandidate(value.surface) && !productHostVersion) return null;
+  return {
+    surface: value.surface,
+    device,
+    os,
+    browser,
+    productHostVersion: surfaceNeedsProductCandidate(value.surface) ? productHostVersion : null,
+    connection: value.connection
+  };
 }
 
 function normalizeCandidate(candidate: FirstSoundCandidate): FirstSoundCandidate | null {
@@ -137,7 +183,7 @@ function parseAttempt(value: unknown): FirstSoundAttempt | null {
 }
 
 function parseDraft(value: unknown): FirstSoundEvidenceDraft | null {
-  if (!isRecord(value) || value.schemaVersion !== 1 || !isRecord(value.candidate) || !Array.isArray(value.samples)) return null;
+  if (!isRecord(value) || value.schemaVersion !== 2 || !isRecord(value.candidate) || !Array.isArray(value.samples)) return null;
   const candidate = normalizeCandidate({
     gitSha: typeof value.candidate.gitSha === 'string' ? value.candidate.gitSha : '',
     productAppVersion: typeof value.candidate.productAppVersion === 'string' ? value.candidate.productAppVersion : null,
@@ -146,9 +192,15 @@ function parseDraft(value: unknown): FirstSoundEvidenceDraft | null {
   if (!candidate) return null;
   const samples = value.samples.map(parseSample);
   if (samples.some(sample => !sample)) return null;
+  const profile = value.profile === null ? null : normalizeProfile(value.profile);
+  if (value.profile !== null && !profile) return null;
+  if (!profile && samples.length > 0) return null;
+  if (profile && samples.some(sample => sample?.surface !== profile.surface)) return null;
   const activeAttempt = value.activeAttempt === null ? null : parseAttempt(value.activeAttempt);
   if (value.activeAttempt !== null && !activeAttempt) return null;
-  return { schemaVersion: 1, candidate, activeAttempt, samples: samples.slice(-MAX_FIRST_SOUND_SAMPLES) as FirstSoundSample[] };
+  if (!profile && activeAttempt) return null;
+  if (profile && activeAttempt && activeAttempt.surface !== profile.surface) return null;
+  return { schemaVersion: 2, candidate, profile, activeAttempt, samples: samples.slice(-MAX_FIRST_SOUND_SAMPLES) as FirstSoundSample[] };
 }
 
 function sameCandidate(left: FirstSoundCandidate, right: FirstSoundCandidate): boolean {
@@ -178,6 +230,7 @@ export function readFirstSoundEvidenceDraft(): FirstSoundEvidenceDraft | null {
 }
 
 export function bindFirstSoundCandidate(context: FirstSoundEvidenceContext, deployedCid: string): FirstSoundEvidenceDraft | null {
+  if (!context.buildClean) return null;
   const candidate = normalizeCandidate({
     gitSha: context.buildSha ?? '',
     productAppVersion: context.productAppVersion,
@@ -186,7 +239,22 @@ export function bindFirstSoundCandidate(context: FirstSoundEvidenceContext, depl
   if (!candidate) return null;
   const current = readFirstSoundEvidenceDraft();
   if (current && sameCandidate(current.candidate, candidate)) return current;
-  const next: FirstSoundEvidenceDraft = { schemaVersion: 1, candidate, activeAttempt: null, samples: [] };
+  const next: FirstSoundEvidenceDraft = { schemaVersion: 2, candidate, profile: null, activeAttempt: null, samples: [] };
+  writeDraft(next);
+  return next;
+}
+
+export function bindFirstSoundTestProfile(value: FirstSoundTestProfile): FirstSoundEvidenceDraft | null {
+  const current = readFirstSoundEvidenceDraft();
+  const profile = normalizeProfile(value);
+  if (!current || current.activeAttempt || !profile) return null;
+  const unchanged = current.profile && JSON.stringify(current.profile) === JSON.stringify(profile);
+  const next: FirstSoundEvidenceDraft = {
+    ...current,
+    profile,
+    activeAttempt: null,
+    samples: unchanged ? current.samples : []
+  };
   writeDraft(next);
   return next;
 }
@@ -210,6 +278,8 @@ export function beginFirstSoundAttempt(
     !Number.isFinite(now) ||
     now <= 0 ||
     !current ||
+    !current.profile ||
+    current.profile.surface !== surface ||
     (flow === 'warm-next-track' && cacheState !== 'warm') ||
     (surfaceNeedsProductCandidate(surface) && !productCandidateComplete(current.candidate))
   )
@@ -281,10 +351,12 @@ export function clearFirstSoundEvidence(): void {
   writeDraft(null);
 }
 
-export function buildFirstSoundEvidence(draft: FirstSoundEvidenceDraft, now = Date.now()): FirstSoundEvidence {
+export function buildFirstSoundEvidence(draft: FirstSoundEvidenceDraft, now = Date.now()): FirstSoundEvidence | null {
+  if (!draft.profile) return null;
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     candidate: draft.candidate,
+    profile: draft.profile,
     capturedAt: new Date(now).toISOString(),
     samples: [...draft.samples],
     privacy: {

@@ -150,6 +150,11 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
   await expect(panel).toBeVisible();
   await panel.getByRole('button', { name: 'Use this candidate' }).click();
   await panel.getByLabel('Tested surface').selectOption('standalone-chrome');
+  await panel.getByLabel('Device model').fill('Playwright Desktop');
+  await panel.getByLabel('OS and version').fill('Linux CI');
+  await panel.getByLabel('Browser and version').fill('Chromium test');
+  await panel.getByLabel('Connection profile').selectOption('ethernet');
+  await panel.getByRole('button', { name: 'Use this test profile' }).click();
   await panel.getByLabel('Listening flow').selectOption('free');
   await panel.getByLabel('Cache condition').selectOption('cold');
   await panel.getByRole('button', { name: 'Start sample' }).click();
@@ -191,9 +196,11 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
   await panel.getByRole('button', { name: 'Capture result' }).click();
   await expect(panel.getByText('1 sanitized sample')).toBeVisible();
 
-  const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v1'));
+  const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v2'));
   expect(stored).toContain('"firstSoundMs":812');
   expect(stored).toContain('"cacheState":"cold"');
+  expect(stored).toContain('"device":"Playwright Desktop"');
+  expect(stored).toContain('"connection":"ethernet"');
   expect(stored).not.toContain('private-audio-ref');
   expect(stored).not.toContain('private-gateway');
   expect(stored).not.toContain('private-source');

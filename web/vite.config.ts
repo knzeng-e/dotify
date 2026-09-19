@@ -1,31 +1,24 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import { execFileSync } from "node:child_process";
 import path from "node:path";
 
 import { assertProductionEnvironment } from "./src/shared/config/deploymentSafety";
-
-function gitCommit(): string {
-	try {
-		return execFileSync("git", ["-C", __dirname, "rev-parse", "HEAD"], {
-			encoding: "utf8",
-			stdio: ["ignore", "pipe", "ignore"],
-		}).trim();
-	} catch {
-		return "unknown";
-	}
-}
+import { assertCleanEvidenceBuild, readGitBuildIdentity } from "./scripts/build-identity.mjs";
 
 export default defineConfig(({ command, mode }) => {
 	const env = { ...loadEnv(mode, process.cwd(), ""), ...process.env };
 	if (command === "build") assertProductionEnvironment(env);
-	const buildSha = String(env.VITE_DOTIFY_BUILD_SHA || "").trim() || gitCommit();
+	const gitIdentity = readGitBuildIdentity(__dirname);
+	assertCleanEvidenceBuild(command, env, gitIdentity);
+	const buildSha = String(env.VITE_DOTIFY_BUILD_SHA || "").trim() || gitIdentity.gitSha;
+	const buildClean = command === "serve" && env.VITE_E2E_READINESS_PANEL === "true" ? true : gitIdentity.clean;
 
 	return {
 		base: "./",
 		plugins: [react()],
 		define: {
 			"import.meta.env.VITE_DOTIFY_BUILD_SHA": JSON.stringify(buildSha),
+			"import.meta.env.VITE_DOTIFY_BUILD_CLEAN": JSON.stringify(String(buildClean)),
 		},
 		resolve: {
 			alias: {
