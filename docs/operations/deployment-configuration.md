@@ -629,11 +629,13 @@ replacement, including when a URL is reused. Capture-stream reuse requires the
 same media element as well as the same URL and a live track; a replacement
 element is always recaptured and republished to room listeners. Repeat is a
 declarative property of every generated host element, so a source replacement
-cannot silently reset an enabled loop. A muted or zero-volume `playing` event is
-recorded as an error. An unmuted `playing` event only proves that the media clock
-advanced; the operator confirmation supplies the evidence that sound reached
-the actual output route. The
-DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts are
+cannot silently reset an enabled loop. Once every listener sender has moved to
+the replacement stream, Dotify removes the retired element's volume listener,
+disconnects its Web Audio nodes, stops its destination track, and closes its
+AudioContext. A muted or zero-volume `playing` event is recorded as an error. An
+unmuted `playing` event only proves that the media clock advanced; the operator
+confirmation supplies the evidence that sound reached the actual output route.
+The DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts are
 present; fewer attempts are reported as `not-run`, never rounded into a claim.
 Synthetic Chromium evidence validates the capture mechanism but does not count
 as physical Safari, mobile, or Product-host evidence.
