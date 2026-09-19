@@ -603,7 +603,9 @@ Aggregate p75 remains visible but cannot compensate for a slow or undersampled
 profile. The report prints every profile beside its surface. A blocked autoplay
 attempt is recorded as a terminal error, and a later explicit Play starts a
 fresh measurement. Reaching `canplay` only releases the loading affordance; the
-attempt remains cancellable until `playing` or a terminal error. The
+attempt remains cancellable until `playing` or a terminal error. A muted or
+zero-volume `playing` event is recorded as an error because it does not prove
+audible first sound. The
 DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts are
 present; fewer attempts are reported as `not-run`, never rounded into a claim.
 Synthetic Chromium evidence validates the capture mechanism but does not count
