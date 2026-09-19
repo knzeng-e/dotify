@@ -408,7 +408,9 @@ also use executable metadata while refreshing an already-opened app.
 
 The tracked Product executable candidate is `[0, 1, 26]`. This version adds
 candidate-bound first-sound evidence with independent budgets for every tested
-surface, fresh warm-resume attempts, and terminal autoplay failures. It retains
+surface, explicit device/OS/browser/network/host profiles, clean-worktree
+candidate enforcement, fresh warm-resume attempts, and terminal autoplay
+failures. It retains
 the `[0, 1, 25]` candidate-bound Product room smoke capture and the
 `[0, 1, 24]` move of DAV2 chunk decryption off the rendering thread through a
 bounded Web Worker.
@@ -627,8 +629,12 @@ VITE_DOTIFY_DEBUG_PANEL=true \
 npm run deploy:product-devnet
 ```
 
+   Run this from a clean committed worktree. A debug/evidence build stops before
+   bundling when tracked or untracked changes are present, because a dirty
+   bundle cannot truthfully use the commit SHA as its candidate identity.
+
    The variables propagate through the deploy script's Product rebuild. For a
-   local build without publishing, run
+   local build without publishing, run from that same clean commit:
    `VITE_DOTIFY_DEBUG_PANEL=true npm run build:product-devnet:support`.
    The `product-cdm` adapter still calls the EVM-compatible artist runtime, but
    it signs through the Product host's sr25519 account. It must not ask for a

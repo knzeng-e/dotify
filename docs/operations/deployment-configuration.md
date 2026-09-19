@@ -541,21 +541,27 @@ listening.
 Every ordinary Vite build now embeds its exact git SHA in
 `VITE_DOTIFY_BUILD_SHA`, matching the Product build identity behavior. A smoke
 build with `VITE_DOTIFY_DEBUG_PANEL=true` exposes **First-sound evidence** under
-`You -> Production readiness`:
+`You -> Production readiness`. Evidence builds fail when `git status` is dirty;
+commit the exact candidate first so the embedded SHA identifies the bytes being
+measured.
 
 1. Bind the exact build. Add the deployment CID for Product Desktop or Product
    Web gateway samples.
-2. Choose the tested surface, listening flow, and explicit cold or warm cache
-   condition, then select **Start sample**.
-3. Start the track. Dotify records the real selection/playback intent as the
+2. Record and bind one test profile: surface, device model, OS/browser version,
+   connection type, and the visible Product host version on Product surfaces.
+3. Choose the listening flow and explicit cold or warm cache condition, then
+   select **Start sample**.
+4. Start the track. Dotify records the real selection/playback intent as the
    timing origin, including access, key, gateway, decrypt, and media startup.
    After audio begins or playback fails, select **Capture result**.
-4. Repeat cold and warm attempts, then download the candidate-bound JSON.
+5. Repeat cold and warm attempts, then download the candidate-bound JSON.
 
-The export keeps first-sound duration and coarse DAV2 path facts only. It omits
-wallet addresses, listener identity, audio refs/CIDs, gateway URLs, media source
-URLs, keys, signatures, and per-listener history. Changing the SHA, Product app
-version, or deployment CID starts a new evidence set instead of mixing builds.
+Schema v2 keeps first-sound duration, the sanitized test profile, and coarse
+DAV2 path facts only. It omits wallet addresses, listener identity, exact
+location, audio refs/CIDs, gateway URLs, media source URLs, keys, signatures,
+and per-listener history. Changing the SHA, Product app version, deployment
+CID, device profile, or network type starts a new evidence set instead of
+mixing candidates or materially different test conditions.
 The report combines ordinary-web and Product exports when their git SHA
 matches. Product samples must still carry one consistent Product app version
 and deployed CID; those Product-only fields do not invalidate ordinary-web
@@ -580,12 +586,13 @@ The strict gate requires evidence for desktop Chrome, Firefox, Safari, iOS
 Safari, Android Chrome, Product Desktop, and Product Web gateway. Every required
 surface needs at least four successful samples in each cold/warm p75 flow cell;
 aggregate p75 remains visible but cannot compensate for a slow or undersampled
-surface. A blocked autoplay attempt is recorded as a terminal error, and a later
-explicit Play starts a fresh measurement. The DAV2 fallback-rate target remains
-unproven until at least 100 DAV2 attempts are present; fewer attempts are
-reported as `not-run`, never rounded into a claim. Synthetic Chromium evidence
-validates the capture mechanism but does not count as physical Safari, mobile,
-or Product-host evidence.
+surface. The report prints every device, OS, browser, connection type, and
+Product host version beside its surface. A blocked autoplay attempt is recorded
+as a terminal error, and a later explicit Play starts a fresh measurement. The
+DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts are
+present; fewer attempts are reported as `not-run`, never rounded into a claim.
+Synthetic Chromium evidence validates the capture mechanism but does not count
+as physical Safari, mobile, or Product-host evidence.
 
 ## Fly Signaling
 
