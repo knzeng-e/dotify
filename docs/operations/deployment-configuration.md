@@ -576,12 +576,15 @@ npm run smoke:first-sound -- \
 ```
 
 The strict gate requires evidence for desktop Chrome, Firefox, Safari, iOS
-Safari, Android Chrome, Product Desktop, and Product Web gateway. It requires at
-least four successful samples before judging each cold/warm p75 flow cell. The DAV2
-fallback-rate target remains unproven until at least 100 DAV2 attempts are
-present; fewer attempts are reported as `not-run`, never rounded into a claim.
-Synthetic Chromium evidence validates the capture mechanism but does not count
-as physical Safari, mobile, or Product-host evidence.
+Safari, Android Chrome, Product Desktop, and Product Web gateway. Every required
+surface needs at least four successful samples in each cold/warm p75 flow cell;
+aggregate p75 remains visible but cannot compensate for a slow or undersampled
+surface. A blocked autoplay attempt is recorded as a terminal error, and a later
+explicit Play starts a fresh measurement. The DAV2 fallback-rate target remains
+unproven until at least 100 DAV2 attempts are present; fewer attempts are
+reported as `not-run`, never rounded into a claim. Synthetic Chromium evidence
+validates the capture mechanism but does not count as physical Safari, mobile,
+or Product-host evidence.
 
 ## Fly Signaling
 
