@@ -38,55 +38,57 @@ const authorizationRequestSchema = z.object({
   bytes: z.number().int().positive()
 });
 
-const dotifyManifestSchema = z.object({
-  schema: z.literal('dotify.track.v1'),
-  createdAt: z.string().datetime(),
-  assets: z
-    .object({
-      audioCID: z.string().min(1),
-      coverCID: z.string(),
-      encrypted: z.boolean().optional(),
-      keyVersion: z.string().min(1).max(80).optional(),
-      previewCID: z.string().optional()
-    })
-    .strict(),
-  track: z
-    .object({
-      contentHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
-      title: z.string().min(1).max(200),
-      artistName: z.string().min(1).max(200),
-      description: z.string().max(2000),
-      accessMode: z.enum(['human-free', 'classic', 'free']),
-      priceDot: z.string(),
-      requiredPersonhood: z.string(),
-      zone: z.string()
-    })
-    .strict(),
-  royalties: z
-    .array(
-      z
-        .object({
-          recipient: z.string().min(1),
-          bps: z.number().int().min(0).max(10000)
-        })
-        .strict()
-    )
-    .max(20),
-  settlement: z
-    .object({
-      target: z.literal('evm'),
-      royaltyBps: z.number().int().min(0).max(10000),
-      pricePlanck: z.string()
-    })
-    .strict(),
-  evm: z
-    .object({
-      txHash: z.string(),
-      contractAddress: z.string()
-    })
-    .strict()
-    .optional()
-}).strict();
+const dotifyManifestSchema = z
+  .object({
+    schema: z.literal('dotify.track.v1'),
+    createdAt: z.string().datetime(),
+    assets: z
+      .object({
+        audioCID: z.string().min(1),
+        coverCID: z.string(),
+        encrypted: z.boolean().optional(),
+        keyVersion: z.string().min(1).max(80).optional(),
+        previewCID: z.string().optional()
+      })
+      .strict(),
+    track: z
+      .object({
+        contentHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+        title: z.string().min(1).max(200),
+        artistName: z.string().min(1).max(200),
+        description: z.string().max(2000),
+        accessMode: z.enum(['human-free', 'classic', 'free']),
+        priceDot: z.string(),
+        requiredPersonhood: z.string(),
+        zone: z.string()
+      })
+      .strict(),
+    royalties: z
+      .array(
+        z
+          .object({
+            recipient: z.string().min(1),
+            bps: z.number().int().min(0).max(10000)
+          })
+          .strict()
+      )
+      .max(20),
+    settlement: z
+      .object({
+        target: z.literal('evm'),
+        royaltyBps: z.number().int().min(0).max(10000),
+        pricePlanck: z.string()
+      })
+      .strict(),
+    evm: z
+      .object({
+        txHash: z.string(),
+        contractAddress: z.string()
+      })
+      .strict()
+      .optional()
+  })
+  .strict();
 
 type PinFile = (bytes: Uint8Array, filename: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
 type PinFiles = (files: PinataFile[], name: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
@@ -294,7 +296,11 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
 
         let encrypted: Buffer;
         try {
-          encrypted = deps.encryptAudio(fileBuffer, contentKey, { contentHash: normalizedHash, mediaMime: media.mime });
+          encrypted = deps.encryptAudio(fileBuffer, contentKey, {
+            contentHash: normalizedHash,
+            mediaMime: media.mime,
+            leadingMetadataBytes: media.leadingMetadataBytes ?? 0
+          });
         } catch {
           request.log.error('Audio encryption failed');
           return reply.status(500).send({ error: 'Audio encryption failed.', code: 'AUDIO_ENCRYPTION_FAILED' });

@@ -109,7 +109,9 @@ P3 first vertical slice delivered (`agent/audio-v2-p3`):
 
 - Backend: `/api/uploads/audio` now writes a single `DAV2` IPFS object and
   returns `dotify:enc:v2:ipfs://<CID>`. The object keeps original media bytes,
-  stores a typed JSON header, and encrypts fixed-size chunks with AES-256-GCM.
+  stores a typed JSON header, and encrypts authenticated chunks with
+  AES-256-GCM. New uploads use a smaller first chunk while the table continues
+  to describe every exact chunk length.
 - Web: v2 refs request the backend-delivered content key, try Range + MSE
   playback through configured IPFS gateways, and fall back to full-file decrypt
   when Range or MSE is unavailable before streaming starts. v1 refs still play.
@@ -127,7 +129,9 @@ P3 first vertical slice delivered (`agent/audio-v2-p3`):
 - MSE playback now prepares the current chunk plus one future chunk while the
   current clear chunk is appended. Appends stay strictly ordered, track changes
   abort the bounded pipeline, and at most two container chunks are in the
-  default preparation window (about 1 MiB at the current 512 KiB default).
+  default preparation window. Existing uniform containers use about 1 MiB;
+  newly published containers use about 768 KiB for the 256 KiB first chunk and
+  one 512 KiB future chunk.
 - The browser imports the AES content key once per playback instead of once per
   chunk. Known chunk ranges must return the exact byte count; truncated or
   mismatched `206` responses retry another gateway instead of being
@@ -161,9 +165,18 @@ W08 first-sound slice:
   MiB; speculative headers above 256 KiB and first chunks above 768 KiB are
   refused. Startup telemetry distinguishes an intent-prefetched range from the
   existing winning-gateway cache.
-- Remaining #88 work: first-chunk sizing experiments, the browser/device
-  validation matrix, cold/warm sample collection, and the backend read-through
-  gateway decision.
+- New backend publications now use a 256 KiB baseline first clear chunk
+  followed by the existing 512 KiB steady-state chunks. For an MP3 with
+  validated leading ID3 metadata, the API expands that first chunk only enough
+  to retain up to 64 KiB of audio payload, capped at the former 512 KiB
+  boundary. An ordinary first encrypted media range therefore falls from
+  524,304 to 262,160 bytes including its AES-GCM tag without letting a large
+  cover tag consume the complete warm range. The DAV2 schema and key derivation
+  are unchanged, existing uniform containers remain readable, and explicit
+  chunk-size callers retain uniform behavior.
+- Remaining #88 work: validate the selected first-chunk size on the physical
+  browser/device matrix, collect cold/warm samples, and make the backend
+  read-through gateway decision from those measurements.
 
 #87 responsive-cover slice (2026-09-18):
 

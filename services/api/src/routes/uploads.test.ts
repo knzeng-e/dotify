@@ -19,6 +19,21 @@ function mpegFrame(): Buffer {
 }
 const audioBytes = Buffer.concat([mpegFrame(), mpegFrame()]);
 const audioHash = `0x${Buffer.from(blake2b(audioBytes, { dkLen: 32 })).toString('hex')}`;
+function id3Mpeg(tagBytes: number): Buffer {
+  const header = Buffer.from([
+    0x49,
+    0x44,
+    0x33,
+    0x04,
+    0x00,
+    0x00,
+    (tagBytes >>> 21) & 0x7f,
+    (tagBytes >>> 14) & 0x7f,
+    (tagBytes >>> 7) & 0x7f,
+    tagBytes & 0x7f
+  ]);
+  return Buffer.concat([header, Buffer.alloc(tagBytes, 0x20), mpegFrame(), mpegFrame()]);
+}
 const truncatedMpegBytes = mpegFrame();
 const truncatedMpegHash = `0x${Buffer.from(blake2b(truncatedMpegBytes, { dkLen: 32 })).toString('hex')}`;
 const pngBytes = Buffer.concat([
@@ -233,6 +248,31 @@ describe('authorized upload routes', () => {
       chainId: CHAIN_ID,
       runtimeAddress: RUNTIME
     });
+  });
+
+  it('carries a validated MP3 ID3 offset into DAV2 first-chunk sizing', async () => {
+    const tagBytes = 300 * 1024;
+    const taggedAudio = id3Mpeg(tagBytes);
+    const taggedHash = `0x${Buffer.from(blake2b(taggedAudio, { dkLen: 32 })).toString('hex')}`;
+    let encryptionOptions: Parameters<UploadRouteDeps['encryptAudio']>[2] | undefined;
+    const server = await buildApp({
+      routeDeps: {
+        encryptAudio: (bytes, _key, options) => {
+          encryptionOptions = options;
+          return Buffer.from(bytes);
+        }
+      }
+    });
+    const grant = (await authorize(server, 'audio', taggedAudio.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/audio',
+      headers: multipartHeaders(grant),
+      payload: multipartAudio(taggedAudio, taggedHash)
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(encryptionOptions?.leadingMetadataBytes, 10 + tagBytes);
   });
 
   it('rejects spoofed audio MIME when the received bytes are an image', async () => {
