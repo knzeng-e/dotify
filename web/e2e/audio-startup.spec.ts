@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 type AudioStartupSnapshot = {
   dav2: Array<{ phase: string; elapsedMs: number }>;
-  host: Array<{ phase: string; elapsedMs: number }>;
+  host: Array<{ phase: string; attemptId: string; elapsedMs: number }>;
   latestMediaPlayingMs: number | null;
 };
 
@@ -141,6 +141,46 @@ test('autoplay rejection terminates a new-source startup attempt', async ({ page
   const phases = (await readStartupSnapshot(page))?.host.map(metric => metric.phase) ?? [];
   expect(phases.indexOf('error')).toBeGreaterThan(phases.indexOf('playback-intent'));
   expect(phases).not.toContain('media-playing');
+});
+
+test('a late play rejection cannot fail the replacement startup', async ({ page }) => {
+  await page.goto('/?e2eRoom=public&e2eCatalog=sequence');
+  await page.getByRole('button', { name: /^Play Second room track by Dotify Room Host,/ }).click();
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
+
+  await page.evaluate(() => {
+    const nativePlay = HTMLMediaElement.prototype.play;
+    let deferFirstHostPlay = true;
+    HTMLMediaElement.prototype.play = function () {
+      const hostAudio = document.querySelector('audio.native-player-source');
+      if (this === hostAudio && deferFirstHostPlay) {
+        deferFirstHostPlay = false;
+        return new Promise<void>((_resolve, reject) => {
+          Reflect.set(window, '__dotifyRejectOldHostPlay', () => reject(new DOMException('Old source failed late', 'NotAllowedError')));
+        });
+      }
+      return nativePlay.call(this);
+    };
+  });
+  await page.evaluate(() => window.__DOTIFY_AUDIO_STARTUP__?.clear());
+
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => typeof Reflect.get(window, '__dotifyRejectOldHostPlay') === 'function')).toBe(true);
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect.poll(async () => (await readStartupSnapshot(page))?.host.filter(metric => metric.phase === 'playback-intent').length).toBe(2);
+
+  const replacementAttemptId = (await readStartupSnapshot(page))?.host.filter(metric => metric.phase === 'playback-intent').at(-1)?.attemptId;
+  expect(replacementAttemptId).toBeTruthy();
+  await expect
+    .poll(async () => (await readStartupSnapshot(page))?.host.some(metric => metric.attemptId === replacementAttemptId && metric.phase === 'media-playing'))
+    .toBe(true);
+
+  await page.evaluate(() => (Reflect.get(window, '__dotifyRejectOldHostPlay') as (() => void) | undefined)?.());
+  await page.waitForTimeout(100);
+
+  const host = (await readStartupSnapshot(page))?.host ?? [];
+  expect(host.some(metric => metric.attemptId === replacementAttemptId && metric.phase === 'media-playing')).toBe(true);
+  expect(host.some(metric => metric.attemptId === replacementAttemptId && metric.phase === 'error')).toBe(false);
 });
 
 test('replacing a pending track terminates its startup attempt before the next intent', async ({ page }) => {

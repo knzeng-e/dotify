@@ -70,9 +70,8 @@ export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, pl
           onEmitPlayerState(true);
           playback.handleEnded(event.currentTarget);
         }}
-        onError={() => {
-          playback.handleHostError();
-          if (audioSource) playback.markNoAudio();
+        onError={event => {
+          if (playback.handleHostError(event.currentTarget) && audioSource) playback.markNoAudio();
         }}
       />
 
