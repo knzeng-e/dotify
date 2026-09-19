@@ -210,6 +210,29 @@ describe('first-sound evidence capture', () => {
     expect(draft?.samples).toEqual([expect.objectContaining({ outcome: 'error', firstSoundMs: null })]);
   });
 
+  it('captures an interrupted selection before the replacement playback intent', () => {
+    bindCandidate();
+    bindProfile('standalone-chrome');
+    beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 1_000);
+
+    const draft = finishFirstSoundAttempt(
+      {
+        dav2: [],
+        host: [
+          { phase: 'playback-intent', source: 'first-private-track-id', elapsedMs: 0, timestamp: 1_100 },
+          { phase: 'error', source: 'first-private-track-id', elapsedMs: 75, timestamp: 1_175 },
+          { phase: 'playback-intent', source: 'replacement-private-track-id', elapsedMs: 0, timestamp: 1_200 },
+          { phase: 'first-audio', source: 'blob:replacement-private-source', elapsedMs: 90, timestamp: 1_290 }
+        ],
+        latestFirstSoundMs: 90
+      },
+      2_000
+    );
+
+    expect(draft?.activeAttempt).toBeNull();
+    expect(draft?.samples).toEqual([expect.objectContaining({ outcome: 'error', firstSoundMs: null })]);
+  });
+
   it('fails closed when persisted evidence is malformed', () => {
     window.localStorage.setItem(FIRST_SOUND_EVIDENCE_STORAGE_KEY, JSON.stringify({ schemaVersion: 1, candidate: { gitSha: 'wrong' }, samples: [] }));
     expect(readFirstSoundEvidenceDraft()).toBeNull();

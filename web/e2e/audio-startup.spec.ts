@@ -142,6 +142,38 @@ test('autoplay rejection terminates a new-source startup attempt', async ({ page
   expect(phases).not.toContain('first-audio');
 });
 
+test('replacing a pending track terminates its startup attempt before the next intent', async ({ page }) => {
+  let releaseMediaRequest = () => undefined;
+  const mediaRequestGate = new Promise<void>(resolve => {
+    releaseMediaRequest = resolve;
+  });
+  await page.route('**/__dotify_e2e__/room-sequence.wav', async route => {
+    await mediaRequestGate;
+    return route.abort();
+  });
+
+  try {
+    await page.goto('/?e2eRoom=public&e2eCatalog=sequence&e2eTrackDelay=on');
+    await page.evaluate(() => window.__DOTIFY_AUDIO_STARTUP__?.clear());
+
+    await page.getByRole('button', { name: /^Play Second room track by Dotify Room Host,/ }).click();
+    await expect.poll(async () => (await readStartupSnapshot(page))?.host.filter(metric => metric.phase === 'playback-intent').length).toBe(1);
+
+    await page.getByRole('button', { name: 'Music', exact: true }).click();
+    await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
+    await expect.poll(async () => (await readStartupSnapshot(page))?.host.filter(metric => metric.phase === 'playback-intent').length).toBe(2);
+
+    const phases = (await readStartupSnapshot(page))?.host.map(metric => metric.phase) ?? [];
+    const firstIntent = phases.indexOf('playback-intent');
+    const cancellation = phases.indexOf('error', firstIntent + 1);
+    const replacementIntent = phases.indexOf('playback-intent', firstIntent + 1);
+    expect(cancellation).toBeGreaterThan(firstIntent);
+    expect(cancellation).toBeLessThan(replacementIntent);
+  } finally {
+    releaseMediaRequest();
+  }
+});
+
 test('the readiness panel captures a candidate-bound first-sound sample without media identifiers', async ({ page }) => {
   await page.goto('/?e2eRoom=public&e2eReadiness=true');
   await page.getByRole('button', { name: 'You', exact: true }).click();
