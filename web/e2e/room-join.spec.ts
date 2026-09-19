@@ -58,10 +58,16 @@ async function readRoomQuality(page: Page) {
 
 // Host: open a deterministic e2e track and broadcast it as a room. Returns the
 // server-assigned room code so a listener context can join via its share link.
-async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: string, options: { captureMode?: HostCaptureMode; offerDelayMs?: number } = {}) {
+async function openHostRoom(
+  page: Page,
+  scenario: HostScenario,
+  trackTitle: string,
+  options: { captureMode?: HostCaptureMode; offerDelayMs?: number; catalogSequence?: boolean } = {}
+) {
   const params = new URLSearchParams({ e2eRoom: scenario });
   if (options.captureMode) params.set('e2eCapture', options.captureMode);
   if (options.offerDelayMs) params.set('e2eOfferDelayMs', String(options.offerDelayMs));
+  if (options.catalogSequence) params.set('e2eCatalog', 'sequence');
   await page.goto(`/?${params.toString()}`);
   // Open the room straight from the create-room modal so an unauthorized
   // protected track does not raise an access-gate overlay over the player
@@ -458,7 +464,7 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
   const listenerContext = await browser.newContext();
   try {
     const host = await hostContext.newPage();
-    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE);
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { captureMode: 'web-audio', catalogSequence: true });
 
     const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
@@ -472,6 +478,12 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
     await expect(listener.getByRole('button', { name: 'Try another room', exact: true })).toBeVisible();
     // The room is gone from the listener UI (no lingering room code).
     await expect(listener.getByTestId('room-code')).toHaveCount(0);
+
+    const stateAfterClose = await readRoomJoinState(host);
+    expect(stateAfterClose?.webAudioCaptureCloses ?? 0).toBe(0);
+    await host.getByRole('button', { name: 'Music', exact: true }).click();
+    await host.getByRole('button', { name: /^Play Second room track by Dotify Room Host,/ }).click();
+    await expect.poll(async () => (await readRoomJoinState(host))?.webAudioCaptureCloses ?? 0).toBeGreaterThan(0);
   } finally {
     await hostContext.close().catch(() => {});
     await listenerContext.close();

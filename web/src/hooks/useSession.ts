@@ -458,14 +458,28 @@ export function useSession(deps: UseSessionDeps) {
     pendingIceCandidatesRef.current.clear();
   }
 
+  function retireCapturedAudioElement(audio: HTMLAudioElement, stream: MediaStream | null) {
+    const retiredWebAudio = retireWebAudioElementCapture(audio);
+    if (!retiredWebAudio && stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+    if (capturedAudioElementRef.current === audio) {
+      capturedAudioElementRef.current = null;
+      capturedSourceRef.current = null;
+      captureStartedPausedRef.current = false;
+      if (localStreamRef.current === stream) localStreamRef.current = null;
+    }
+  }
+
   function closeAllPeers() {
     closeHostPeers();
     closeListenerPeer();
+    const placeholderStream = placeholderAudioStreamRef.current?.stream ?? null;
     closePlaceholderAudioStream();
-    localStreamRef.current = null;
-    capturedAudioElementRef.current = null;
-    capturedSourceRef.current = null;
-    captureStartedPausedRef.current = false;
+    if (localStreamRef.current === placeholderStream) localStreamRef.current = null;
+    // Keep ownership of a real host capture while solo playback continues.
+    // A later source generation can then retire that graph even though the room
+    // peers have already gone away.
     captureAttemptRef.current = { source: null, count: 0 };
     listenerAudioRetryCountRef.current = 0;
     hostRoomStartedAtRef.current = null;
@@ -948,8 +962,16 @@ export function useSession(deps: UseSessionDeps) {
 
   async function prepareLocalStream(currentAudioSource: string | null, currentTrackInfo: TrackInfo | null) {
     const audio = localAudioRef.current;
-    if (modeRef.current !== 'host') return;
-    if (!audio || !currentAudioSource) return;
+    if (!audio) return;
+    const previousCapturedAudio = capturedAudioElementRef.current;
+    const previousStream = localStreamRef.current;
+    if (modeRef.current !== 'host') {
+      if (previousCapturedAudio && previousCapturedAudio !== audio) {
+        retireCapturedAudioElement(previousCapturedAudio, previousStream);
+      }
+      return;
+    }
+    if (!currentAudioSource) return;
 
     try {
       const capturableSource = await ensureCapturableAudioSource(currentAudioSource);
@@ -975,11 +997,10 @@ export function useSession(deps: UseSessionDeps) {
           capturedAudioElementRef.current === audio
         )
       ) {
+        setLocalStreamReady(true);
         return;
       }
 
-      const previousCapturedAudio = capturedAudioElementRef.current;
-      const previousStream = localStreamRef.current;
       const stream = captureAudioStream(audio);
       if (!streamHasLiveAudio(stream)) {
         // No live track yet. This is normal for the first attempt (captured at
@@ -1024,10 +1045,7 @@ export function useSession(deps: UseSessionDeps) {
 
       await publishLocalStreamToListeners(stream);
       if (previousCapturedAudio && previousCapturedAudio !== audio) {
-        const retiredWebAudio = retireWebAudioElementCapture(previousCapturedAudio);
-        if (!retiredWebAudio && previousStream && previousStream !== stream) {
-          previousStream.getTracks().forEach(track => track.stop());
-        }
+        retireCapturedAudioElement(previousCapturedAudio, previousStream);
       }
       if (previousPlaceholderStream && previousPlaceholderStream !== stream) {
         closePlaceholderAudioStream();
