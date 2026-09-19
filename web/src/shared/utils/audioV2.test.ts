@@ -36,7 +36,7 @@ async function encryptChunk(header: Record<string, unknown>, index: number, plai
 
 async function makeContainer() {
   const plaintext = encoder.encode('hello chunked audio');
-  const chunks = [plaintext.slice(0, 7), plaintext.slice(7)];
+  const chunks = [plaintext.slice(0, 7), plaintext.slice(7, 14), plaintext.slice(14)];
   const noncePrefix = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
   const header = {
     schema: 'dotify.audio.v2',
@@ -102,6 +102,36 @@ describe('audioV2 browser helpers', () => {
     reorderedHeaderContainer.set(body, prefix.length + headerBytes.length);
 
     expect(() => parseAudioV2Container(reorderedHeaderContainer)).toThrow(/Non-monotonic/);
+  });
+
+  it('accepts a smaller first chunk described by the authenticated chunk table', async () => {
+    const plaintext = encoder.encode('small-first-larger-second');
+    const chunks = [plaintext.slice(0, 5), plaintext.slice(5, 16), plaintext.slice(16)];
+    const noncePrefix = new Uint8Array([8, 7, 6, 5, 4, 3, 2, 1]);
+    const header = {
+      schema: 'dotify.audio.v2',
+      version: 1,
+      algorithm: 'AES-256-GCM',
+      chunkSize: 11,
+      chunkCount: chunks.length,
+      plaintextLength: plaintext.length,
+      mediaMime: 'audio/mpeg',
+      contentHash: CONTENT_HASH,
+      noncePrefix: hex(noncePrefix),
+      chunks: chunks.map((chunk, index) => ({ index, plainLength: chunk.length, encryptedLength: chunk.length + 16 }))
+    };
+    const encryptedChunks = await Promise.all(chunks.map((chunk, index) => encryptChunk(header, index, chunk, noncePrefix)));
+    const headerBytes = encoder.encode(JSON.stringify(header));
+    const prefix = new Uint8Array([...encoder.encode('DAV2'), ...uint32be(headerBytes.length)]);
+    const container = new Uint8Array(prefix.length + headerBytes.length + encryptedChunks.reduce((sum, chunk) => sum + chunk.length, 0));
+    let offset = 0;
+    for (const part of [prefix, headerBytes, ...encryptedChunks]) {
+      container.set(part, offset);
+      offset += part.length;
+    }
+
+    const decrypted = await decryptAudioV2Container(container, KEY);
+    expect(decrypted.bytes).toEqual(plaintext);
   });
 
   it('rejects non-DAV2 bytes', () => {
