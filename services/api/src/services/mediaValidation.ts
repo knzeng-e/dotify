@@ -1,6 +1,7 @@
 export type ValidatedMedia = {
   mime: string;
   extension: string;
+  leadingMetadataBytes?: number;
 };
 
 function startsWith(bytes: Uint8Array, signature: number[], offset = 0): boolean {
@@ -57,9 +58,7 @@ function parseMpegAudioFrame(bytes: Uint8Array, offset = 0): MpegFrame | null {
 
   const padding = (bytes[offset + 2] >> 1) & 0x01;
   const length =
-    layer === 3
-      ? Math.floor((12 * bitrateBps) / sampleRateHz + padding) * 4
-      : Math.floor(((version === 3 ? 144 : 72) * bitrateBps) / sampleRateHz + padding);
+    layer === 3 ? Math.floor((12 * bitrateBps) / sampleRateHz + padding) * 4 : Math.floor(((version === 3 ? 144 : 72) * bitrateBps) / sampleRateHz + padding);
   if (length < 4 || offset + length > bytes.length) return null;
   return { length };
 }
@@ -107,26 +106,28 @@ function hasWavChunks(bytes: Uint8Array): boolean {
 export function detectAudioMedia(bytes: Uint8Array): ValidatedMedia | null {
   if (bytes.length < 4) return null;
   if (bytes.length >= 42 && ascii(bytes, 0, 4) === 'fLaC' && (bytes[4] & 0x7f) === 0 && ((bytes[5] << 16) | (bytes[6] << 8) | bytes[7]) === 34) {
-    return { mime: 'audio/flac', extension: 'flac' };
+    return { mime: 'audio/flac', extension: 'flac', leadingMetadataBytes: 0 };
   }
   if (bytes.length >= 27 && ascii(bytes, 0, 4) === 'OggS' && bytes[4] === 0 && 27 + bytes[26] <= bytes.length) {
-    return { mime: 'audio/ogg', extension: 'ogg' };
+    return { mime: 'audio/ogg', extension: 'ogg', leadingMetadataBytes: 0 };
   }
-  if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return { mime: 'audio/webm', extension: 'webm' };
+  if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return { mime: 'audio/webm', extension: 'webm', leadingMetadataBytes: 0 };
   if (bytes.length >= 44 && ascii(bytes, 0, 4) === 'RIFF' && ascii(bytes, 8, 4) === 'WAVE' && hasWavChunks(bytes)) {
-    return { mime: 'audio/wav', extension: 'wav' };
+    return { mime: 'audio/wav', extension: 'wav', leadingMetadataBytes: 0 };
   }
   if (bytes.length >= 24 && ascii(bytes, 4, 4) === 'ftyp' && includesAscii(bytes, 'mdat', 12)) {
-    return { mime: 'audio/mp4', extension: 'm4a' };
+    return { mime: 'audio/mp4', extension: 'm4a', leadingMetadataBytes: 0 };
   }
 
   const id3Start = id3AudioStart(bytes);
-  if (id3Start !== null && hasCompleteMpegAudioFrameSequence(bytes, id3Start)) return { mime: 'audio/mpeg', extension: 'mp3' };
-  if (hasCompleteMpegAudioFrameSequence(bytes)) return { mime: 'audio/mpeg', extension: 'mp3' };
+  if (id3Start !== null && hasCompleteMpegAudioFrameSequence(bytes, id3Start)) {
+    return { mime: 'audio/mpeg', extension: 'mp3', leadingMetadataBytes: id3Start };
+  }
+  if (hasCompleteMpegAudioFrameSequence(bytes)) return { mime: 'audio/mpeg', extension: 'mp3', leadingMetadataBytes: 0 };
 
   if (bytes.length >= 7 && bytes[0] === 0xff && (bytes[1] & 0xf6) === 0xf0) {
     const frameLength = ((bytes[3] & 0x03) << 11) | (bytes[4] << 3) | (bytes[5] >> 5);
-    if (frameLength >= 7 && frameLength <= bytes.length) return { mime: 'audio/aac', extension: 'aac' };
+    if (frameLength >= 7 && frameLength <= bytes.length) return { mime: 'audio/aac', extension: 'aac', leadingMetadataBytes: 0 };
   }
   return null;
 }

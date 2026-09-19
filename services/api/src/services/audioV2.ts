@@ -5,6 +5,7 @@ const PREFIX_BYTES = 8;
 const AUTH_TAG_BYTES = 16;
 export const DEFAULT_AUDIO_V2_CHUNK_SIZE = 512 * 1024;
 export const DEFAULT_AUDIO_V2_FIRST_CHUNK_SIZE = 256 * 1024;
+export const MIN_AUDIO_V2_FIRST_PAYLOAD_BYTES = 64 * 1024;
 
 export type AudioV2Header = {
   schema: 'dotify.audio.v2';
@@ -108,17 +109,23 @@ export function parseAudioV2Container(bytes: Uint8Array): ParsedAudioV2 {
 export function encryptAudioV2Container(
   plaintext: Uint8Array,
   key: Buffer,
-  options: { contentHash: string; mediaMime: string; chunkSize?: number; firstChunkSize?: number }
+  options: { contentHash: string; mediaMime: string; chunkSize?: number; firstChunkSize?: number; leadingMetadataBytes?: number }
 ): Buffer {
   if (plaintext.length === 0) throw new Error('Cannot encrypt an empty DAV2 audio payload');
   if (key.length !== 32) throw new Error('DAV2 encryption requires a 32-byte key');
 
   const chunkSize = options.chunkSize ?? DEFAULT_AUDIO_V2_CHUNK_SIZE;
   if (!Number.isSafeInteger(chunkSize) || chunkSize <= 0) throw new Error('Invalid DAV2 chunk size');
+  const leadingMetadataBytes = options.leadingMetadataBytes ?? 0;
+  if (!Number.isSafeInteger(leadingMetadataBytes) || leadingMetadataBytes < 0 || leadingMetadataBytes >= plaintext.length) {
+    throw new Error('Invalid DAV2 leading metadata size');
+  }
   // Preserve the explicit chunkSize option as a uniform-layout escape hatch
   // for fixtures and existing callers. New production uploads use a smaller
-  // first range, then return to the 512 KiB steady-state chunk budget.
-  const firstChunkSize = options.firstChunkSize ?? (options.chunkSize === undefined ? DEFAULT_AUDIO_V2_FIRST_CHUNK_SIZE : chunkSize);
+  // first range, expanded only when validated leading metadata would otherwise
+  // prevent it from containing audio payload.
+  const productionFirstChunkSize = Math.min(chunkSize, Math.max(DEFAULT_AUDIO_V2_FIRST_CHUNK_SIZE, leadingMetadataBytes + MIN_AUDIO_V2_FIRST_PAYLOAD_BYTES));
+  const firstChunkSize = options.firstChunkSize ?? (options.chunkSize === undefined ? productionFirstChunkSize : chunkSize);
   if (!Number.isSafeInteger(firstChunkSize) || firstChunkSize <= 0 || firstChunkSize > chunkSize) {
     throw new Error('Invalid DAV2 first chunk size');
   }

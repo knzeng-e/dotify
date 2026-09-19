@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   DEFAULT_AUDIO_V2_CHUNK_SIZE,
   DEFAULT_AUDIO_V2_FIRST_CHUNK_SIZE,
+  MIN_AUDIO_V2_FIRST_PAYLOAD_BYTES,
   decryptAudioV2Container,
   encryptAudioV2Container,
   parseAudioV2Container
@@ -73,6 +74,29 @@ describe('dotify.audio.v2 container', () => {
       frontLoaded.header.chunks.map(chunk => chunk.plainLength),
       [4, 10, 10, 1]
     );
+  });
+
+  it('expands the first range past validated leading metadata without exceeding the old 512 KiB boundary', () => {
+    const leadingMetadataBytes = 300 * 1024;
+    const plaintext = Buffer.alloc(DEFAULT_AUDIO_V2_CHUNK_SIZE * 2, 0x31);
+    const parsed = parseAudioV2Container(
+      encryptAudioV2Container(plaintext, KEY, {
+        contentHash: CONTENT_HASH,
+        mediaMime: 'audio/mpeg',
+        leadingMetadataBytes
+      })
+    );
+
+    assert.equal(parsed.header.chunks[0].plainLength, leadingMetadataBytes + MIN_AUDIO_V2_FIRST_PAYLOAD_BYTES);
+
+    const nearBoundary = parseAudioV2Container(
+      encryptAudioV2Container(plaintext, KEY, {
+        contentHash: CONTENT_HASH,
+        mediaMime: 'audio/mpeg',
+        leadingMetadataBytes: DEFAULT_AUDIO_V2_CHUNK_SIZE - 1024
+      })
+    );
+    assert.equal(nearBoundary.header.chunks[0].plainLength, DEFAULT_AUDIO_V2_CHUNK_SIZE);
   });
 
   it('rejects a first-chunk budget above the steady-state chunk size', () => {
