@@ -635,10 +635,15 @@ disconnects its Web Audio nodes, stops its destination track, and closes its
 AudioContext. A muted or zero-volume `playing` event is recorded as an error. An
 unmuted `playing` event only proves that the media clock advanced; the operator
 confirmation supplies the evidence that sound reached the actual output route.
-The DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts are
-present; fewer attempts are reported as `not-run`, never rounded into a claim.
+The DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts
+are present; fewer attempts are reported as `not-run`, never rounded into a claim.
 Synthetic Chromium evidence validates the capture mechanism but does not count
 as physical Safari, mobile, or Product-host evidence.
+
+Closing a room tears down peers but retains ownership of the current real audio
+capture while that track continues in solo playback. If the listener then
+chooses another track, the replacement element retires the retained listener,
+graph, destination track, and AudioContext even though no room is active.
 
 ## Fly Signaling
 
