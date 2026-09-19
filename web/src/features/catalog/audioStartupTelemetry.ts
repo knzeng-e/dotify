@@ -8,6 +8,9 @@ export type AudioV2StartupPhase =
   | 'fallback'
   | 'error';
 
+export type AudioV2StartupErrorKind = 'key-unavailable' | 'authentication';
+export type HostAudioTerminalReason = 'access-denied' | 'selection-failed' | 'selection-interrupted' | 'autoplay-blocked' | 'media-error' | 'muted-output';
+
 export type AudioV2StartupMetric = {
   phase: AudioV2StartupPhase;
   audioRef: string;
@@ -19,9 +22,11 @@ export type AudioV2StartupMetric = {
   rangeEnd?: number;
   chunkIndex?: number;
   hedged?: boolean;
+  gatewayRecovered?: boolean;
   fromCache?: boolean;
   intentPrefetched?: boolean;
   decryptor?: 'worker' | 'main-thread';
+  errorKind?: AudioV2StartupErrorKind;
   detail?: string;
 };
 
@@ -32,6 +37,7 @@ export type HostAudioStartupMetric = {
   elapsedMs: number;
   timestamp: number;
   durationSeconds?: number;
+  terminalReason?: HostAudioTerminalReason;
 };
 
 export type AudioStartupTelemetrySnapshot = {
@@ -69,6 +75,15 @@ const audioV2Phases = new Set<AudioV2StartupPhase>([
   'error'
 ]);
 const hostPhases = new Set<HostAudioStartupMetric['phase']>(['playback-intent', 'source-selected', 'metadata-ready', 'media-playing', 'error']);
+const audioV2ErrorKinds = new Set<AudioV2StartupErrorKind>(['key-unavailable', 'authentication']);
+const hostTerminalReasons = new Set<HostAudioTerminalReason>([
+  'access-denied',
+  'selection-failed',
+  'selection-interrupted',
+  'autoplay-blocked',
+  'media-error',
+  'muted-output'
+]);
 
 let dav2Metrics: AudioV2StartupMetric[] = [];
 let hostMetrics: HostAudioStartupMetric[] = [];
@@ -106,9 +121,11 @@ function isAudioV2StartupMetric(value: unknown): value is AudioV2StartupMetric {
     optionalNumber(value.rangeEnd) &&
     optionalNumber(value.chunkIndex) &&
     optionalBoolean(value.hedged) &&
+    optionalBoolean(value.gatewayRecovered) &&
     optionalBoolean(value.fromCache) &&
     optionalBoolean(value.intentPrefetched) &&
     (value.decryptor === undefined || value.decryptor === 'worker' || value.decryptor === 'main-thread') &&
+    (value.errorKind === undefined || audioV2ErrorKinds.has(value.errorKind as AudioV2StartupErrorKind)) &&
     optionalString(value.detail)
   );
 }
@@ -122,7 +139,8 @@ function isHostAudioStartupMetric(value: unknown): value is HostAudioStartupMetr
     typeof value.source === 'string' &&
     isFiniteNumber(value.elapsedMs) &&
     isFiniteNumber(value.timestamp) &&
-    optionalNumber(value.durationSeconds)
+    optionalNumber(value.durationSeconds) &&
+    (value.terminalReason === undefined || hostTerminalReasons.has(value.terminalReason as HostAudioTerminalReason))
   );
 }
 

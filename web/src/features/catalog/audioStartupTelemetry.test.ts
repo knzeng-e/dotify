@@ -26,6 +26,7 @@ const dav2Metric: AudioV2StartupMetric = {
   rangeEnd: 512,
   chunkIndex: 0,
   hedged: true,
+  gatewayRecovered: true,
   fromCache: false,
   intentPrefetched: true,
   decryptor: 'worker'

@@ -24,10 +24,10 @@ function bindCandidate(productAppVersion: string | null = null, deployedCid = ''
 function bindProfile(surface: 'standalone-chrome' | 'standalone-safari' | 'ios-safari' | 'product-desktop') {
   return bindFirstSoundTestProfile({
     surface,
-    device: surface === 'ios-safari' ? 'iPhone 13 Pro' : 'MacBook Pro 13-inch',
-    os: surface === 'ios-safari' ? 'iOS 16.7' : 'macOS 15.6',
-    browser: surface === 'standalone-chrome' ? 'Chrome 140' : 'Safari 18.6',
-    productHostVersion: surface === 'product-desktop' ? 'Product Desktop 0.1.0' : null,
+    device: surface === 'ios-safari' ? 'phone' : 'laptop',
+    os: surface === 'ios-safari' ? 'ios' : 'macos',
+    browser: surface === 'standalone-chrome' ? 'chrome' : 'safari',
+    productHostVersion: surface === 'product-desktop' ? '0.1.0' : null,
     connection: surface === 'ios-safari' ? 'mobile' : 'wifi'
   });
 }
@@ -35,6 +35,13 @@ function bindProfile(surface: 'standalone-chrome' | 'standalone-safari' | 'ios-s
 function snapshot(startedAt: number): AudioStartupTelemetrySnapshot {
   return {
     dav2: [
+      {
+        phase: 'key-authorized',
+        audioRef: 'dotify:enc:v2:ipfs://private-ref-not-exported',
+        cid: 'private-cid-not-exported',
+        elapsedMs: 240,
+        timestamp: startedAt + 5
+      },
       {
         phase: 'first-range-ready',
         audioRef: 'dotify:enc:v2:ipfs://private-ref-not-exported',
@@ -45,6 +52,7 @@ function snapshot(startedAt: number): AudioStartupTelemetrySnapshot {
         rangeStart: 120,
         rangeEnd: 511,
         hedged: true,
+        gatewayRecovered: true,
         intentPrefetched: true
       },
       {
@@ -129,20 +137,24 @@ describe('first-sound evidence capture', () => {
           observed: true,
           fallback: false,
           hedged: true,
+          gatewayRecovered: true,
           intentPrefetched: true,
           decryptor: 'worker',
-          firstRangeBytes: 392
-        }
+          firstRangeBytes: 392,
+          keyAuthorizationMs: 240,
+          authenticationFailed: false
+        },
+        hostTerminalReason: null
       })
     ]);
 
     const serialized = serializeFirstSoundEvidence(buildFirstSoundEvidence(draft!, 3_000)!);
     expect(JSON.parse(serialized).profile).toEqual({
       surface: 'product-desktop',
-      device: 'MacBook Pro 13-inch',
-      os: 'macOS 15.6',
-      browser: 'Safari 18.6',
-      productHostVersion: 'Product Desktop 0.1.0',
+      device: 'laptop',
+      os: 'macos',
+      browser: 'safari',
+      productHostVersion: '0.1.0',
       connection: 'wifi'
     });
     expect(serialized).not.toContain('private-ref');
@@ -227,7 +239,14 @@ describe('first-sound evidence capture', () => {
         dav2: [],
         host: [
           { phase: 'playback-intent', attemptId: 'attempt-a', source: 'first-private-track-id', elapsedMs: 0, timestamp: 1_100 },
-          { phase: 'error', attemptId: 'attempt-a', source: 'first-private-track-id', elapsedMs: 75, timestamp: 1_175 },
+          {
+            phase: 'error',
+            attemptId: 'attempt-a',
+            source: 'first-private-track-id',
+            elapsedMs: 75,
+            timestamp: 1_175,
+            terminalReason: 'selection-interrupted'
+          },
           { phase: 'playback-intent', attemptId: 'attempt-b', source: 'replacement-private-track-id', elapsedMs: 0, timestamp: 1_200 },
           { phase: 'media-playing', attemptId: 'attempt-b', source: 'blob:replacement-private-source', elapsedMs: 90, timestamp: 1_290 }
         ],
@@ -280,7 +299,7 @@ describe('first-sound evidence capture', () => {
     expect(readFirstSoundEvidenceDraft()).toBeNull();
   });
 
-  it('refuses to bind evidence to a dirty build and separates changed device profiles', () => {
+  it('refuses dirty builds and personal identifiers in bounded profiles', () => {
     expect(bindFirstSoundCandidate({ buildSha: SHA, buildConfigDigest: CONFIG_DIGEST, buildClean: false, productAppVersion: null }, '')).toBeNull();
 
     bindCandidate();
@@ -291,13 +310,24 @@ describe('first-sound evidence capture', () => {
 
     const changed = bindFirstSoundTestProfile({
       surface: 'standalone-chrome',
-      device: 'Different laptop',
-      os: 'macOS 15.6',
-      browser: 'Chrome 140',
+      device: 'desktop',
+      os: 'macos',
+      browser: 'chrome',
       productHostVersion: null,
       connection: 'ethernet'
     });
     expect(changed?.samples).toEqual([]);
+
+    expect(
+      bindFirstSoundTestProfile({
+        surface: 'standalone-chrome',
+        device: 'alice-macbook.local' as never,
+        os: 'macos',
+        browser: 'chrome',
+        productHostVersion: null,
+        connection: 'wifi'
+      })
+    ).toBeNull();
   });
 
   it('uses nearest-rank percentiles for release budgets', () => {

@@ -6,6 +6,10 @@ const SURFACES = ['standalone-chrome', 'standalone-firefox', 'standalone-safari'
 const FLOWS = ['free', 'authorized-protected', 'warm-next-track'];
 const CACHE_STATES = ['cold', 'warm'];
 const CONNECTIONS = ['wifi', 'mobile', 'ethernet', 'other'];
+const DEVICE_CLASSES = ['desktop', 'laptop', 'phone', 'tablet', 'product-host', 'other'];
+const OS_FAMILIES = ['windows', 'macos', 'linux', 'ios', 'android', 'product-host', 'other'];
+const BROWSER_FAMILIES = ['chrome', 'firefox', 'safari', 'edge', 'product-webview', 'other'];
+const HOST_TERMINAL_REASONS = ['access-denied', 'selection-failed', 'selection-interrupted', 'autoplay-blocked', 'media-error', 'muted-output'];
 const SCENARIO_EXPECTATIONS = {
   'ordinary-playback': 'first-audio',
   'denied-protected': 'error',
@@ -29,6 +33,8 @@ const FULL_SHA = /^[0-9a-f]{40}$/i;
 const CONFIG_DIGEST = /^[0-9a-f]{64}$/i;
 const PRODUCT_VERSION = /^\[\d+,\s*\d+,\s*\d+\]$/;
 const CID = /^(?:bafy[a-z2-7]{20,}|Qm[1-9A-HJ-NP-Za-km-z]{44})$/;
+const PRODUCT_HOST_VERSION = /^\d{1,4}(?:\.\d{1,4}){1,3}$/;
+const SLOW_KEY_PROOF_MS = 1_000;
 
 function isRecord(value) {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value));
@@ -59,29 +65,16 @@ function validateCandidate(candidate) {
   return null;
 }
 
-function validProfileText(value) {
-  return (
-    typeof value === 'string' &&
-    value.length > 0 &&
-    value.length <= 80 &&
-    value === value.trim() &&
-    !Array.from(value).some(character => {
-      const code = character.charCodeAt(0);
-      return code < 32 || code === 127;
-    })
-  );
-}
-
 function validateProfile(profile) {
   if (!exactKeys(profile, ['surface', 'device', 'os', 'browser', 'productHostVersion', 'connection']))
     return 'profile must contain only surface, device, os, browser, productHostVersion, and connection';
   if (!SURFACES.includes(profile.surface)) return `profile.surface ${profile.surface} is unsupported`;
-  for (const field of ['device', 'os', 'browser']) {
-    if (!validProfileText(profile[field])) return `profile.${field} must be a single sanitized line of at most 80 characters`;
-  }
+  if (!DEVICE_CLASSES.includes(profile.device)) return `profile.device ${profile.device} is unsupported`;
+  if (!OS_FAMILIES.includes(profile.os)) return `profile.os ${profile.os} is unsupported`;
+  if (!BROWSER_FAMILIES.includes(profile.browser)) return `profile.browser ${profile.browser} is unsupported`;
   if (!CONNECTIONS.includes(profile.connection)) return `profile.connection ${profile.connection} is unsupported`;
   if (profile.surface.startsWith('product-')) {
-    if (!validProfileText(profile.productHostVersion)) return 'Product profiles require productHostVersion';
+    if (!PRODUCT_HOST_VERSION.test(profile.productHostVersion ?? '')) return 'Product profiles require a numeric productHostVersion';
   } else if (profile.productHostVersion !== null) {
     return 'Standalone profiles must use productHostVersion=null';
   }
@@ -105,7 +98,20 @@ function profileDetail(profile) {
 
 function validateSample(sample) {
   if (
-    !exactKeys(sample, ['id', 'surface', 'flow', 'cacheState', 'scenario', 'expectedOutcome', 'outcome', 'measurement', 'firstSoundMs', 'capturedAt', 'dav2'])
+    !exactKeys(sample, [
+      'id',
+      'surface',
+      'flow',
+      'cacheState',
+      'scenario',
+      'expectedOutcome',
+      'outcome',
+      'measurement',
+      'firstSoundMs',
+      'capturedAt',
+      'dav2',
+      'hostTerminalReason'
+    ])
   )
     return 'sample contains unknown or missing fields';
   if (typeof sample.id !== 'string' || sample.id.length < 3 || sample.id.length > 160) return 'sample.id is invalid';
@@ -120,17 +126,52 @@ function validateSample(sample) {
   if (sample.outcome === 'first-audio' && (!Number.isFinite(sample.firstSoundMs) || sample.firstSoundMs < 0))
     return 'successful sample requires a non-negative firstSoundMs';
   if (sample.outcome === 'error' && sample.firstSoundMs !== null) return 'failed sample must use null firstSoundMs';
+  if (sample.hostTerminalReason !== null && !HOST_TERMINAL_REASONS.includes(sample.hostTerminalReason)) return 'sample.hostTerminalReason is invalid';
+  if (sample.outcome === 'first-audio' && sample.hostTerminalReason !== null) return 'successful sample cannot carry a terminal host reason';
   if (typeof sample.capturedAt !== 'string' || !Number.isFinite(Date.parse(sample.capturedAt))) return 'sample.capturedAt is invalid';
-  if (!exactKeys(sample.dav2, ['observed', 'fallback', 'hedged', 'intentPrefetched', 'decryptor', 'firstRangeBytes']))
+  if (
+    !exactKeys(sample.dav2, [
+      'observed',
+      'fallback',
+      'hedged',
+      'gatewayRecovered',
+      'intentPrefetched',
+      'decryptor',
+      'firstRangeBytes',
+      'keyAuthorizationMs',
+      'authenticationFailed'
+    ])
+  )
     return 'sample.dav2 contains unknown or missing fields';
-  for (const field of ['observed', 'fallback', 'hedged', 'intentPrefetched']) {
+  for (const field of ['observed', 'fallback', 'hedged', 'gatewayRecovered', 'intentPrefetched', 'authenticationFailed']) {
     if (typeof sample.dav2[field] !== 'boolean') return `sample.dav2.${field} must be boolean`;
   }
   if (![null, 'worker', 'main-thread'].includes(sample.dav2.decryptor)) return 'sample.dav2.decryptor is invalid';
   if (sample.dav2.firstRangeBytes !== null && (!Number.isSafeInteger(sample.dav2.firstRangeBytes) || sample.dav2.firstRangeBytes <= 0)) {
     return 'sample.dav2.firstRangeBytes is invalid';
   }
+  if (sample.dav2.keyAuthorizationMs !== null && (!Number.isFinite(sample.dav2.keyAuthorizationMs) || sample.dav2.keyAuthorizationMs < 0))
+    return 'sample.dav2.keyAuthorizationMs is invalid';
+  if ((sample.dav2.authenticationFailed || sample.dav2.keyAuthorizationMs !== null) && !sample.dav2.observed)
+    return 'DAV2 proof signals require dav2.observed=true';
   return null;
+}
+
+function controlledScenarioProofMatches(sample) {
+  switch (sample.scenario) {
+    case 'denied-protected':
+      return sample.hostTerminalReason === 'access-denied';
+    case 'broken-gateway':
+      return sample.dav2.observed && sample.dav2.gatewayRecovered;
+    case 'slow-key-service':
+      return sample.dav2.observed && sample.dav2.keyAuthorizationMs !== null && sample.dav2.keyAuthorizationMs >= SLOW_KEY_PROOF_MS;
+    case 'interrupted-navigation':
+      return sample.hostTerminalReason === 'selection-interrupted';
+    case 'corrupted-dav2':
+      return sample.dav2.observed && sample.dav2.authenticationFailed;
+    default:
+      return true;
+  }
 }
 
 export function validateFirstSoundEvidence(evidence) {
@@ -139,7 +180,7 @@ export function validateFirstSoundEvidence(evidence) {
     problems.push('evidence contains unknown or missing top-level fields');
     return problems;
   }
-  if (evidence.schemaVersion !== 4) problems.push('schemaVersion must be 4');
+  if (evidence.schemaVersion !== 5) problems.push('schemaVersion must be 5');
   const candidateProblem = validateCandidate(evidence.candidate);
   if (candidateProblem) problems.push(candidateProblem);
   const profileProblem = validateProfile(evidence.profile);
@@ -195,7 +236,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
         `schema:${item.path}`,
         `Evidence schema · ${item.path}`,
         problems.length === 0 ? 'pass' : 'fail',
-        problems.length === 0 ? 'Sanitized schema v4 accepted.' : problems.join('; ')
+        problems.length === 0 ? 'Sanitized schema v5 accepted.' : problems.join('; ')
       )
     );
     if (problems.length === 0) evidence.push(item.data);
@@ -328,7 +369,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
   const scenarios = CONTROLLED_SCENARIOS.map(scenario => {
     const scenarioSamples = samples.filter(sample => sample.scenario === scenario);
     const expectedOutcome = SCENARIO_EXPECTATIONS[scenario];
-    const matched = scenarioSamples.filter(sample => sample.outcome === expectedOutcome).length;
+    const matched = scenarioSamples.filter(sample => sample.outcome === expectedOutcome && controlledScenarioProofMatches(sample)).length;
     const successfulTimings = scenarioSamples.filter(sample => sample.outcome === 'first-audio').map(sample => sample.firstSoundMs);
     const p75Ms = percentile(successfulTimings, 0.75);
     return {
@@ -349,7 +390,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
         row.status,
         row.samples === 0
           ? `No evidence; expected ${row.expectedOutcome}.`
-          : `${row.matched}/${row.samples} attempts produced the expected ${row.expectedOutcome}.${timing}`
+          : `${row.matched}/${row.samples} attempts produced the expected ${row.expectedOutcome} with scenario-specific telemetry proof.${timing}`
       )
     );
   }
@@ -404,7 +445,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     notRun: gates.filter(item => item.status === 'not-run').length
   };
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     candidate,
     profiles,
     counts,

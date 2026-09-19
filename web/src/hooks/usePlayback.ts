@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { isRoomJoinE2eContext, roomJoinE2eAutoplayEnabled } from '../e2e/roomJoinMock';
-import { publishHostAudioStartupMetric } from '../features/catalog/audioStartupTelemetry';
+import { publishHostAudioStartupMetric, type HostAudioTerminalReason } from '../features/catalog/audioStartupTelemetry';
 import type { CatalogTrack, Mode, PlayerState } from '../shared/types';
 import { useRoomClock } from '../features/player/useRoomClock';
 import { listenerPlaybackStatusForHostState, type AudioStatus } from '../features/player/playbackStatus';
@@ -253,7 +253,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     });
   }, [audioSource, selectedTrackId]);
 
-  const reportHostPlaybackError = useCallback(() => {
+  const reportHostPlaybackError = useCallback((terminalReason: HostAudioTerminalReason) => {
     const startup = hostStartupRef.current;
     if (!startup || startup.errorReported) return;
     startup.errorReported = true;
@@ -262,7 +262,8 @@ export function usePlayback(deps: UsePlaybackDeps) {
       attemptId: startup.attemptId,
       source: startup.source,
       elapsedMs: Number((nowMs() - startup.startedAt).toFixed(1)),
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      terminalReason
     });
   }, []);
 
@@ -293,7 +294,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
         await audio.play();
         setStatus('playing');
       } catch {
-        reportHostPlaybackError();
+        reportHostPlaybackError('autoplay-blocked');
         setStatus('autoplay-blocked');
       }
     } else {
@@ -403,7 +404,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
           // explicit Play starts a new attempt; it must not inherit the wait
           // between the blocked autoplay and the person's next gesture.
           onHostMediaSettled(audioSource, true, hostStartupRef.current?.attemptId ?? null);
-          reportHostPlaybackError();
+          reportHostPlaybackError('autoplay-blocked');
           setStatus('autoplay-blocked');
         });
     },
@@ -428,7 +429,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       // hear it. A muted or zero-volume run must never satisfy physical-device
       // first-sound budgets; close the attempt as a controlled terminal error.
       if (audio.muted || audio.volume === 0) {
-        reportHostPlaybackError();
+        reportHostPlaybackError('muted-output');
         return;
       }
       startup.mediaPlayingReported = true;
@@ -446,7 +447,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const handleHostError = useCallback(() => {
     onHostMediaSettled(audioSource, true, hostStartupRef.current?.attemptId ?? null);
-    reportHostPlaybackError();
+    reportHostPlaybackError('media-error');
   }, [audioSource, onHostMediaSettled, reportHostPlaybackError]);
 
   const markNoAudio = useCallback(() => setStatus('no-audio'), []);

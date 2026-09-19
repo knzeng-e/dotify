@@ -47,6 +47,7 @@ describe('audioV2 gateway range fetching', () => {
 
     expect(result.bytes).toEqual(new Uint8Array(9).fill(3));
     expect(result.gatewayUrl).toBe(PRIMARY);
+    expect(result.recovered).toBe(false);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([PRIMARY, PRIMARY]);
   });
 
@@ -65,6 +66,7 @@ describe('audioV2 gateway range fetching', () => {
 
     expect(first.bytes).toEqual(new Uint8Array(9).fill(9));
     expect(first.gatewayUrl).toBe(FALLBACK);
+    expect(first.recovered).toBe(true);
     expect(getCachedAudioV2Gateway(CID)).toBe(FALLBACK);
 
     const second = await fetchAudioV2RangeThroughGateways(CID, 9, 12, {
@@ -74,6 +76,7 @@ describe('audioV2 gateway range fetching', () => {
     });
 
     expect(second.bytes).toEqual(new Uint8Array(4).fill(10));
+    expect(second.recovered).toBe(false);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([PRIMARY, FALLBACK, FALLBACK]);
   });
 
@@ -100,6 +103,7 @@ describe('audioV2 gateway range fetching', () => {
     expect(result.bytes).toEqual(new Uint8Array(9).fill(7));
     expect(result.gatewayUrl).toBe(FALLBACK);
     expect(result.hedged).toBe(true);
+    expect(result.recovered).toBe(true);
     expect(primarySignal?.aborted).toBe(true);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([PRIMARY, FALLBACK]);
   });

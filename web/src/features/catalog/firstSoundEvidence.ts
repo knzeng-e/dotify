@@ -1,7 +1,7 @@
-import type { AudioStartupTelemetrySnapshot } from './audioStartupTelemetry';
+import type { AudioStartupTelemetrySnapshot, HostAudioTerminalReason } from './audioStartupTelemetry';
 import { normalizeIpfsCid } from '../../shared/utils/ipfsCid';
 
-export const FIRST_SOUND_EVIDENCE_STORAGE_KEY = 'dotify:first-sound-evidence:v4';
+export const FIRST_SOUND_EVIDENCE_STORAGE_KEY = 'dotify:first-sound-evidence:v5';
 export const MAX_FIRST_SOUND_SAMPLES = 120;
 
 export const FIRST_SOUND_SURFACES = [
@@ -17,6 +17,9 @@ export const FIRST_SOUND_SURFACES = [
 export const FIRST_SOUND_FLOWS = ['free', 'authorized-protected', 'warm-next-track'] as const;
 export const FIRST_SOUND_CACHE_STATES = ['cold', 'warm'] as const;
 export const FIRST_SOUND_CONNECTIONS = ['wifi', 'mobile', 'ethernet', 'other'] as const;
+export const FIRST_SOUND_DEVICE_CLASSES = ['desktop', 'laptop', 'phone', 'tablet', 'product-host', 'other'] as const;
+export const FIRST_SOUND_OS_FAMILIES = ['windows', 'macos', 'linux', 'ios', 'android', 'product-host', 'other'] as const;
+export const FIRST_SOUND_BROWSER_FAMILIES = ['chrome', 'firefox', 'safari', 'edge', 'product-webview', 'other'] as const;
 export const FIRST_SOUND_SCENARIOS = [
   'ordinary-playback',
   'denied-protected',
@@ -30,6 +33,9 @@ export type FirstSoundSurface = (typeof FIRST_SOUND_SURFACES)[number];
 export type FirstSoundFlow = (typeof FIRST_SOUND_FLOWS)[number];
 export type FirstSoundCacheState = (typeof FIRST_SOUND_CACHE_STATES)[number];
 export type FirstSoundConnection = (typeof FIRST_SOUND_CONNECTIONS)[number];
+export type FirstSoundDeviceClass = (typeof FIRST_SOUND_DEVICE_CLASSES)[number];
+export type FirstSoundOsFamily = (typeof FIRST_SOUND_OS_FAMILIES)[number];
+export type FirstSoundBrowserFamily = (typeof FIRST_SOUND_BROWSER_FAMILIES)[number];
 export type FirstSoundScenario = (typeof FIRST_SOUND_SCENARIOS)[number];
 export type FirstSoundExpectedOutcome = 'first-audio' | 'error';
 
@@ -51,9 +57,9 @@ export type FirstSoundCandidate = {
 
 export type FirstSoundTestProfile = {
   surface: FirstSoundSurface;
-  device: string;
-  os: string;
-  browser: string;
+  device: FirstSoundDeviceClass;
+  os: FirstSoundOsFamily;
+  browser: FirstSoundBrowserFamily;
   productHostVersion: string | null;
   connection: FirstSoundConnection;
 };
@@ -83,14 +89,18 @@ export type FirstSoundSample = {
     observed: boolean;
     fallback: boolean;
     hedged: boolean;
+    gatewayRecovered: boolean;
     intentPrefetched: boolean;
     decryptor: 'worker' | 'main-thread' | null;
     firstRangeBytes: number | null;
+    keyAuthorizationMs: number | null;
+    authenticationFailed: boolean;
   };
+  hostTerminalReason: HostAudioTerminalReason | null;
 };
 
 export type FirstSoundEvidenceDraft = {
-  schemaVersion: 4;
+  schemaVersion: 5;
   candidate: FirstSoundCandidate;
   profile: FirstSoundTestProfile | null;
   activeAttempt: FirstSoundAttempt | null;
@@ -98,7 +108,7 @@ export type FirstSoundEvidenceDraft = {
 };
 
 export type FirstSoundEvidence = {
-  schemaVersion: 4;
+  schemaVersion: 5;
   candidate: FirstSoundCandidate;
   profile: FirstSoundTestProfile;
   capturedAt: string;
@@ -121,7 +131,7 @@ export type FirstSoundEvidenceContext = {
 const FULL_SHA = /^[0-9a-f]{40}$/i;
 const CONFIG_DIGEST = /^[0-9a-f]{64}$/i;
 const PRODUCT_VERSION = /^\[\d+,\s*\d+,\s*\d+\]$/;
-const PROFILE_TEXT_MAX_LENGTH = 80;
+const PRODUCT_HOST_VERSION = /^\d{1,4}(?:\.\d{1,4}){1,3}$/;
 
 function storage(): Storage | null {
   return typeof window === 'undefined' ? null : window.localStorage;
@@ -147,32 +157,40 @@ function isConnection(value: unknown): value is FirstSoundConnection {
   return typeof value === 'string' && (FIRST_SOUND_CONNECTIONS as readonly string[]).includes(value);
 }
 
+function isDeviceClass(value: unknown): value is FirstSoundDeviceClass {
+  return typeof value === 'string' && (FIRST_SOUND_DEVICE_CLASSES as readonly string[]).includes(value);
+}
+
+function isOsFamily(value: unknown): value is FirstSoundOsFamily {
+  return typeof value === 'string' && (FIRST_SOUND_OS_FAMILIES as readonly string[]).includes(value);
+}
+
+function isBrowserFamily(value: unknown): value is FirstSoundBrowserFamily {
+  return typeof value === 'string' && (FIRST_SOUND_BROWSER_FAMILIES as readonly string[]).includes(value);
+}
+
 function isScenario(value: unknown): value is FirstSoundScenario {
   return typeof value === 'string' && (FIRST_SOUND_SCENARIOS as readonly string[]).includes(value);
 }
 
-function cleanProfileText(value: unknown): string {
-  if (typeof value !== 'string') return '';
-  const printable = Array.from(value, character => {
-    const code = character.charCodeAt(0);
-    return code < 32 || code === 127 ? ' ' : character;
-  }).join('');
-  return printable.replace(/\s+/g, ' ').trim().slice(0, PROFILE_TEXT_MAX_LENGTH);
-}
-
 function normalizeProfile(value: unknown): FirstSoundTestProfile | null {
-  if (!isRecord(value) || !isSurface(value.surface) || !isConnection(value.connection)) return null;
-  const device = cleanProfileText(value.device);
-  const os = cleanProfileText(value.os);
-  const browser = cleanProfileText(value.browser);
-  const productHostVersion = cleanProfileText(value.productHostVersion) || null;
-  if (!device || !os || !browser) return null;
+  if (
+    !isRecord(value) ||
+    !isSurface(value.surface) ||
+    !isConnection(value.connection) ||
+    !isDeviceClass(value.device) ||
+    !isOsFamily(value.os) ||
+    !isBrowserFamily(value.browser)
+  )
+    return null;
+  const productHostVersion =
+    typeof value.productHostVersion === 'string' && PRODUCT_HOST_VERSION.test(value.productHostVersion) ? value.productHostVersion : null;
   if (surfaceNeedsProductCandidate(value.surface) && !productHostVersion) return null;
   return {
     surface: value.surface,
-    device,
-    os,
-    browser,
+    device: value.device,
+    os: value.os,
+    browser: value.browser,
     productHostVersion: surfaceNeedsProductCandidate(value.surface) ? productHostVersion : null,
     connection: value.connection
   };
@@ -211,9 +229,18 @@ function parseSample(value: unknown): FirstSoundSample | null {
   if (decryptor !== null && decryptor !== 'worker' && decryptor !== 'main-thread') return null;
   const firstRangeBytes = value.dav2.firstRangeBytes;
   if (firstRangeBytes !== null && (!Number.isSafeInteger(firstRangeBytes) || (firstRangeBytes as number) <= 0)) return null;
-  for (const field of ['observed', 'fallback', 'hedged', 'intentPrefetched'] as const) {
+  const keyAuthorizationMs = value.dav2.keyAuthorizationMs;
+  if (keyAuthorizationMs !== null && (typeof keyAuthorizationMs !== 'number' || !Number.isFinite(keyAuthorizationMs) || keyAuthorizationMs < 0)) return null;
+  for (const field of ['observed', 'fallback', 'hedged', 'gatewayRecovered', 'intentPrefetched', 'authenticationFailed'] as const) {
     if (typeof value.dav2[field] !== 'boolean') return null;
   }
+  if (
+    value.hostTerminalReason !== null &&
+    !['access-denied', 'selection-failed', 'selection-interrupted', 'autoplay-blocked', 'media-error', 'muted-output'].includes(
+      value.hostTerminalReason as string
+    )
+  )
+    return null;
   return value as FirstSoundSample;
 }
 
@@ -234,7 +261,7 @@ function parseAttempt(value: unknown): FirstSoundAttempt | null {
 }
 
 function parseDraft(value: unknown): FirstSoundEvidenceDraft | null {
-  if (!isRecord(value) || value.schemaVersion !== 4 || !isRecord(value.candidate) || !Array.isArray(value.samples)) return null;
+  if (!isRecord(value) || value.schemaVersion !== 5 || !isRecord(value.candidate) || !Array.isArray(value.samples)) return null;
   const candidate = normalizeCandidate({
     gitSha: typeof value.candidate.gitSha === 'string' ? value.candidate.gitSha : '',
     buildConfigDigest: typeof value.candidate.buildConfigDigest === 'string' ? value.candidate.buildConfigDigest : '',
@@ -252,7 +279,7 @@ function parseDraft(value: unknown): FirstSoundEvidenceDraft | null {
   if (value.activeAttempt !== null && !activeAttempt) return null;
   if (!profile && activeAttempt) return null;
   if (profile && activeAttempt && activeAttempt.surface !== profile.surface) return null;
-  return { schemaVersion: 4, candidate, profile, activeAttempt, samples: samples.slice(-MAX_FIRST_SOUND_SAMPLES) as FirstSoundSample[] };
+  return { schemaVersion: 5, candidate, profile, activeAttempt, samples: samples.slice(-MAX_FIRST_SOUND_SAMPLES) as FirstSoundSample[] };
 }
 
 function sameCandidate(left: FirstSoundCandidate, right: FirstSoundCandidate): boolean {
@@ -297,7 +324,7 @@ export function bindFirstSoundCandidate(context: FirstSoundEvidenceContext, depl
   if (!candidate) return null;
   const current = readFirstSoundEvidenceDraft();
   if (current && sameCandidate(current.candidate, candidate)) return current;
-  const next: FirstSoundEvidenceDraft = { schemaVersion: 4, candidate, profile: null, activeAttempt: null, samples: [] };
+  const next: FirstSoundEvidenceDraft = { schemaVersion: 5, candidate, profile: null, activeAttempt: null, samples: [] };
   writeDraft(next);
   return next;
 }
@@ -385,6 +412,7 @@ export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot,
 
   const firstRange = dav2Events.find(metric => metric.phase === 'first-range-ready' && metric.rangeStart !== undefined && metric.rangeEnd !== undefined);
   const decryptor = [...dav2Events].reverse().find(metric => metric.decryptor)?.decryptor ?? null;
+  const keyAuthorization = dav2Events.find(metric => metric.phase === 'key-authorized');
   const sample: FirstSoundSample = {
     id: attempt.id,
     surface: attempt.surface,
@@ -400,10 +428,14 @@ export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot,
       observed: dav2Events.length > 0,
       fallback: dav2Events.some(metric => metric.phase === 'fallback'),
       hedged: dav2Events.some(metric => metric.hedged === true),
+      gatewayRecovered: dav2Events.some(metric => metric.gatewayRecovered === true),
       intentPrefetched: dav2Events.some(metric => metric.intentPrefetched === true),
       decryptor,
-      firstRangeBytes: firstRange?.rangeStart !== undefined && firstRange.rangeEnd !== undefined ? firstRange.rangeEnd - firstRange.rangeStart + 1 : null
-    }
+      firstRangeBytes: firstRange?.rangeStart !== undefined && firstRange.rangeEnd !== undefined ? firstRange.rangeEnd - firstRange.rangeStart + 1 : null,
+      keyAuthorizationMs: keyAuthorization?.elapsedMs ?? null,
+      authenticationFailed: dav2Events.some(metric => metric.phase === 'error' && metric.errorKind === 'authentication')
+    },
+    hostTerminalReason: hostError?.terminalReason ?? null
   };
   const next: FirstSoundEvidenceDraft = {
     ...current,
@@ -429,7 +461,7 @@ export function clearFirstSoundEvidence(): void {
 export function buildFirstSoundEvidence(draft: FirstSoundEvidenceDraft, now = Date.now()): FirstSoundEvidence | null {
   if (!draft.profile) return null;
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     candidate: draft.candidate,
     profile: draft.profile,
     capturedAt: new Date(now).toISOString(),

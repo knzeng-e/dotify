@@ -7,6 +7,9 @@ import {
   FIRST_SOUND_FLOWS,
   FIRST_SOUND_CACHE_STATES,
   FIRST_SOUND_CONNECTIONS,
+  FIRST_SOUND_DEVICE_CLASSES,
+  FIRST_SOUND_OS_FAMILIES,
+  FIRST_SOUND_BROWSER_FAMILIES,
   FIRST_SOUND_SURFACES,
   FIRST_SOUND_SCENARIOS,
   FIRST_SOUND_SCENARIO_EXPECTATIONS,
@@ -25,6 +28,9 @@ import {
   type FirstSoundEvidenceContext,
   type FirstSoundCacheState,
   type FirstSoundConnection,
+  type FirstSoundDeviceClass,
+  type FirstSoundOsFamily,
+  type FirstSoundBrowserFamily,
   type FirstSoundFlow,
   type FirstSoundScenario,
   type FirstSoundSurface
@@ -66,14 +72,33 @@ const FLOW_BUDGET_MS: Record<FirstSoundFlow, number> = {
   'warm-next-track': 700
 };
 
+const PROFILE_LABELS: Record<FirstSoundDeviceClass | FirstSoundOsFamily | FirstSoundBrowserFamily, string> = {
+  desktop: 'Desktop computer',
+  laptop: 'Laptop',
+  phone: 'Phone',
+  tablet: 'Tablet',
+  'product-host': 'Product host device',
+  windows: 'Windows',
+  macos: 'macOS',
+  linux: 'Linux',
+  ios: 'iOS / iPadOS',
+  android: 'Android',
+  chrome: 'Chrome / Chromium',
+  firefox: 'Firefox',
+  safari: 'Safari',
+  edge: 'Edge',
+  'product-webview': 'Product webview',
+  other: 'Other / undisclosed'
+};
+
 export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProps) {
   const { pushNotice } = useUiFeedback();
   const [draft, setDraft] = useState(() => readFirstSoundEvidenceDraft());
   const [deployedCid, setDeployedCid] = useState(() => readFirstSoundEvidenceDraft()?.candidate.deployedCid ?? '');
   const [surface, setSurface] = useState<FirstSoundSurface>(() => readFirstSoundEvidenceDraft()?.profile?.surface ?? 'standalone-chrome');
-  const [device, setDevice] = useState(() => readFirstSoundEvidenceDraft()?.profile?.device ?? '');
-  const [os, setOs] = useState(() => readFirstSoundEvidenceDraft()?.profile?.os ?? '');
-  const [browser, setBrowser] = useState(() => readFirstSoundEvidenceDraft()?.profile?.browser ?? '');
+  const [device, setDevice] = useState<FirstSoundDeviceClass>(() => readFirstSoundEvidenceDraft()?.profile?.device ?? 'laptop');
+  const [os, setOs] = useState<FirstSoundOsFamily>(() => readFirstSoundEvidenceDraft()?.profile?.os ?? 'macos');
+  const [browser, setBrowser] = useState<FirstSoundBrowserFamily>(() => readFirstSoundEvidenceDraft()?.profile?.browser ?? 'chrome');
   const [productHostVersion, setProductHostVersion] = useState(() => readFirstSoundEvidenceDraft()?.profile?.productHostVersion ?? '');
   const [connection, setConnection] = useState<FirstSoundConnection>(() => readFirstSoundEvidenceDraft()?.profile?.connection ?? 'wifi');
   const [flow, setFlow] = useState<FirstSoundFlow>('free');
@@ -91,10 +116,10 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
   const profileActive = Boolean(
     candidateActive &&
     draft?.profile?.surface === surface &&
-    draft.profile.device === device.trim().replace(/\s+/g, ' ') &&
-    draft.profile.os === os.trim().replace(/\s+/g, ' ') &&
-    draft.profile.browser === browser.trim().replace(/\s+/g, ' ') &&
-    draft.profile.productHostVersion === (surfaceNeedsProductCandidate(surface) ? productHostVersion.trim().replace(/\s+/g, ' ') || null : null) &&
+    draft.profile.device === device &&
+    draft.profile.os === os &&
+    draft.profile.browser === browser &&
+    draft.profile.productHostVersion === (surfaceNeedsProductCandidate(surface) ? productHostVersion.trim() || null : null) &&
     draft.profile.connection === connection
   );
   const productReady = draft ? productCandidateComplete(draft.candidate) : false;
@@ -236,9 +261,9 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
     clearAudioStartupTelemetry();
     setDraft(null);
     setDeployedCid('');
-    setDevice('');
-    setOs('');
-    setBrowser('');
+    setDevice('laptop');
+    setOs('macos');
+    setBrowser('chrome');
     setProductHostVersion('');
     setConnection('wifi');
     pushNotice({ tone: 'info', title: 'First-sound evidence reset', message: 'Bind a candidate to begin a fresh measurement set.' });
@@ -295,36 +320,45 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
             </option>
           ))}
         </select>
-        <label htmlFor='first-sound-device'>Device model</label>
-        <input
+        <label htmlFor='first-sound-device'>Device class</label>
+        <select
           id='first-sound-device'
-          type='text'
           value={device}
           disabled={Boolean(draft?.activeAttempt)}
-          onChange={event => setDevice(event.currentTarget.value)}
-          placeholder='iPhone 13 Pro'
-          maxLength={80}
-        />
-        <label htmlFor='first-sound-os'>OS and version</label>
-        <input
+          onChange={event => setDevice(event.currentTarget.value as FirstSoundDeviceClass)}
+        >
+          {FIRST_SOUND_DEVICE_CLASSES.map(value => (
+            <option key={value} value={value}>
+              {PROFILE_LABELS[value]}
+            </option>
+          ))}
+        </select>
+        <label htmlFor='first-sound-os'>Operating system</label>
+        <select
           id='first-sound-os'
-          type='text'
           value={os}
           disabled={Boolean(draft?.activeAttempt)}
-          onChange={event => setOs(event.currentTarget.value)}
-          placeholder='iOS 16.7'
-          maxLength={80}
-        />
-        <label htmlFor='first-sound-browser'>Browser and version</label>
-        <input
+          onChange={event => setOs(event.currentTarget.value as FirstSoundOsFamily)}
+        >
+          {FIRST_SOUND_OS_FAMILIES.map(value => (
+            <option key={value} value={value}>
+              {PROFILE_LABELS[value]}
+            </option>
+          ))}
+        </select>
+        <label htmlFor='first-sound-browser'>Browser family</label>
+        <select
           id='first-sound-browser'
-          type='text'
           value={browser}
           disabled={Boolean(draft?.activeAttempt)}
-          onChange={event => setBrowser(event.currentTarget.value)}
-          placeholder='Safari 16.6'
-          maxLength={80}
-        />
+          onChange={event => setBrowser(event.currentTarget.value as FirstSoundBrowserFamily)}
+        >
+          {FIRST_SOUND_BROWSER_FAMILIES.map(value => (
+            <option key={value} value={value}>
+              {PROFILE_LABELS[value]}
+            </option>
+          ))}
+        </select>
         {surfaceNeedsProductCandidate(surface) && (
           <>
             <label htmlFor='first-sound-product-host-version'>Product host version</label>
@@ -334,8 +368,10 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
               value={productHostVersion}
               disabled={Boolean(draft?.activeAttempt)}
               onChange={event => setProductHostVersion(event.currentTarget.value)}
-              placeholder='Product Desktop 0.1.0'
-              maxLength={80}
+              placeholder='0.1.0'
+              inputMode='numeric'
+              pattern='[0-9]{1,4}(\.[0-9]{1,4}){1,3}'
+              maxLength={19}
             />
           </>
         )}
@@ -355,7 +391,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
         <button className='secondary-action compact-action' type='button' disabled={!candidateActive || Boolean(draft?.activeAttempt)} onClick={bindProfile}>
           {profileActive ? 'Test profile bound' : 'Use this test profile'}
         </button>
-        <small>Changing this profile starts a separate evidence set so different devices and networks cannot be blended silently.</small>
+        <small>Only coarse technical categories are exported; device names, account names, hostnames, and serial numbers are never requested.</small>
       </div>
 
       <div className='product-smoke-candidate'>

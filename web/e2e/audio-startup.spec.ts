@@ -223,9 +223,9 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
   await expect(panel).toBeVisible();
   await panel.getByRole('button', { name: 'Use this candidate' }).click();
   await panel.getByLabel('Tested surface').selectOption('standalone-chrome');
-  await panel.getByLabel('Device model').fill('Playwright Desktop');
-  await panel.getByLabel('OS and version').fill('Linux CI');
-  await panel.getByLabel('Browser and version').fill('Chromium test');
+  await panel.getByLabel('Device class').selectOption('desktop');
+  await panel.getByLabel('Operating system').selectOption('linux');
+  await panel.getByLabel('Browser family').selectOption('chrome');
   await panel.getByLabel('Connection profile').selectOption('ethernet');
   await panel.getByRole('button', { name: 'Use this test profile' }).click();
   await panel.getByLabel('Listening flow').selectOption('free');
@@ -276,7 +276,7 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
   await panel.getByRole('button', { name: 'I hear the music / capture error' }).click();
   await expect(panel.getByText('1 sanitized sample')).toBeVisible();
 
-  const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v4'));
+  const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v5'));
   const firstSoundMs = JSON.parse(stored ?? '{}').samples?.[0]?.firstSoundMs;
   expect(firstSoundMs).toBeGreaterThanOrEqual(0);
   expect(firstSoundMs).toBeLessThan(2_000);
@@ -284,7 +284,7 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
   expect(stored).toContain('"scenario":"ordinary-playback"');
   expect(stored).toContain('"expectedOutcome":"first-audio"');
   expect(stored).toContain('"measurement":"human-confirmed"');
-  expect(stored).toContain('"device":"Playwright Desktop"');
+  expect(stored).toContain('"device":"desktop"');
   expect(stored).toContain('"connection":"ethernet"');
   expect(stored).not.toContain('private-audio-ref');
   expect(stored).not.toContain('private-gateway');

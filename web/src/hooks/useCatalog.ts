@@ -48,7 +48,12 @@ import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
 import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
 import { resolveProductHostConfig } from '../features/productHost/productHost';
 import { publishProductCdmPaymentSmokeMetric, type ProductCdmPaymentSmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
-import { audioV2StartupPhaseLabel, publishHostAudioStartupMetric, type AudioV2StartupMetric } from '../features/catalog/audioStartupTelemetry';
+import {
+  audioV2StartupPhaseLabel,
+  publishHostAudioStartupMetric,
+  type AudioV2StartupMetric,
+  type HostAudioTerminalReason
+} from '../features/catalog/audioStartupTelemetry';
 import { fetchCatalog, isCatalogApiConfigured, readBundledCatalog, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
 import { createCoverFallbackDataUri } from '../features/catalog/coverArtwork';
 import {
@@ -473,7 +478,8 @@ export function useCatalog(deps: UseCatalogDeps) {
         attemptId: activeSelection.attemptId,
         source: activeSelection.source,
         elapsedMs: Number((nowMs() - activeSelection.startedAt).toFixed(1)),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        terminalReason: 'selection-interrupted'
       });
     }
     activeSelection?.controller.abort();
@@ -731,6 +737,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         rangeStart: 0,
         rangeEnd,
         hedged: range.hedged,
+        gatewayRecovered: range.recovered,
         fromCache: range.fromCache,
         intentPrefetched: range.intentPrefetched
       });
@@ -742,6 +749,7 @@ export function useCatalog(deps: UseCatalogDeps) {
           rangeStart: 0,
           rangeEnd,
           hedged: range.hedged,
+          gatewayRecovered: range.recovered,
           fromCache: range.fromCache,
           intentPrefetched: range.intentPrefetched
         });
@@ -849,6 +857,7 @@ export function useCatalog(deps: UseCatalogDeps) {
               rangeEnd: chunkEnd,
               chunkIndex: chunk.index,
               hedged: range.hedged,
+              gatewayRecovered: range.recovered,
               fromCache: range.fromCache,
               intentPrefetched: range.intentPrefetched
             });
@@ -872,6 +881,7 @@ export function useCatalog(deps: UseCatalogDeps) {
               rangeEnd: chunkEnd,
               chunkIndex: chunk.index,
               hedged: range.hedged,
+              gatewayRecovered: range.recovered,
               fromCache: range.fromCache,
               intentPrefetched: range.intentPrefetched,
               decryptor: decryptor.execution
@@ -889,6 +899,7 @@ export function useCatalog(deps: UseCatalogDeps) {
               rangeEnd: prepared.chunkEnd,
               chunkIndex: chunk.index,
               hedged: prepared.range.hedged,
+              gatewayRecovered: prepared.range.recovered,
               fromCache: prepared.range.fromCache,
               intentPrefetched: prepared.range.intentPrefetched
             });
@@ -992,6 +1003,7 @@ export function useCatalog(deps: UseCatalogDeps) {
             console.warn('DAV2 chunk authentication failed', authenticationError);
             publishAudioV2StartupMetric(context, {
               phase: 'error',
+              errorKind: 'authentication',
               detail: errorMessage(authenticationError)
             });
           }
@@ -1073,6 +1085,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (!serverKey) {
         publishAudioV2StartupMetric(context, {
           phase: 'error',
+          errorKind: 'key-unavailable',
           detail: 'DAV2 content key unavailable.'
         });
         throw new Error('DAV2 content key unavailable.');
@@ -1123,7 +1136,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       timestamp: Date.now()
     });
     let selectionFailureReported = false;
-    const reportSelectionFailure = () => {
+    const reportSelectionFailure = (terminalReason: HostAudioTerminalReason) => {
       if (selectionFailureReported || !isTrackSelectionCurrent(selection)) return;
       selectionFailureReported = true;
       selection.terminalReported = true;
@@ -1132,7 +1145,8 @@ export function useCatalog(deps: UseCatalogDeps) {
         attemptId: selection.attemptId,
         source: track.id,
         elapsedMs: Number((nowMs() - selectionStartedAt).toFixed(1)),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        terminalReason
       });
     };
     let waitsForMediaReadiness = false;
@@ -1212,7 +1226,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
 
       if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
-      if (!audioUrl) reportSelectionFailure();
+      if (!audioUrl) reportSelectionFailure(hasAccess ? 'selection-failed' : 'access-denied');
       const sourceAlreadyReady = Boolean(
         audioUrl && audioSourceRef.current === audioUrl && localAudioRef.current && localAudioRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
       );
@@ -1234,7 +1248,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
       return { playbackMode: 'full', audioSource: audioUrl };
     } catch (error) {
-      reportSelectionFailure();
+      reportSelectionFailure('selection-failed');
       throw error;
     } finally {
       if (isTrackSelectionCurrent(selection) && !waitsForMediaReadiness) {

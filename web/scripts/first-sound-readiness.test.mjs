@@ -24,10 +24,14 @@ function sample(id, overrides = {}) {
       observed: true,
       fallback: false,
       hedged: false,
+      gatewayRecovered: false,
       intentPrefetched: false,
       decryptor: 'worker',
-      firstRangeBytes: 262_160
+      firstRangeBytes: 262_160,
+      keyAuthorizationMs: 240,
+      authenticationFailed: false
     },
+    hostTerminalReason: null,
     ...overrides
   };
 }
@@ -35,10 +39,10 @@ function sample(id, overrides = {}) {
 function profile(surface = 'standalone-chrome', overrides = {}) {
   return {
     surface,
-    device: surface === 'ios-safari' ? 'iPhone 13 Pro' : 'MacBook Pro 13-inch',
-    os: surface === 'ios-safari' ? 'iOS 16.7' : 'macOS 15.6',
-    browser: surface === 'ios-safari' ? 'Safari 16.6' : 'Chrome 140',
-    productHostVersion: surface.startsWith('product-') ? 'Product Desktop 0.1.0' : null,
+    device: surface === 'ios-safari' ? 'phone' : 'laptop',
+    os: surface === 'ios-safari' ? 'ios' : 'macos',
+    browser: surface === 'ios-safari' ? 'safari' : 'chrome',
+    productHostVersion: surface.startsWith('product-') ? '0.1.0' : null,
     connection: surface === 'ios-safari' ? 'mobile' : 'wifi',
     ...overrides
   };
@@ -51,7 +55,7 @@ function evidence(
 ) {
   const surface = samples[0]?.surface ?? 'standalone-chrome';
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     candidate,
     profile: profile(surface, profileOverrides),
     capturedAt: '2026-09-19T12:05:00.000Z',
@@ -74,7 +78,7 @@ describe('first-sound readiness evidence', () => {
     assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
     assert.equal(
       report.profileBudgets.find(
-        row => row.profile.surface === 'standalone-chrome' && row.profile.device === 'MacBook Pro 13-inch' && row.flow === 'free' && row.cacheState === 'cold'
+        row => row.profile.surface === 'standalone-chrome' && row.profile.device === 'laptop' && row.flow === 'free' && row.cacheState === 'cold'
       )?.status,
       'pass'
     );
@@ -104,9 +108,10 @@ describe('first-sound readiness evidence', () => {
   });
 
   it('never pools different profiles on one surface to satisfy a budget', () => {
+    const deviceClasses = ['desktop', 'laptop', 'phone', 'tablet'];
     const mixedProfiles = Array.from({ length: 4 }, (_, index) => ({
       path: `chrome-${index}.json`,
-      data: evidence([sample(`chrome-${index}`)], undefined, { device: `MacBook profile ${index + 1}` })
+      data: evidence([sample(`chrome-${index}`)], undefined, { device: deviceClasses[index] })
     }));
     const mixedReport = buildFirstSoundReadinessReport(mixedProfiles, { expectedCommit: SHA });
 
@@ -140,22 +145,49 @@ describe('first-sound readiness evidence', () => {
   it('keeps controlled fault evidence out of normal success budgets and requires its expected outcome', () => {
     const ordinary = Array.from({ length: 4 }, (_, index) => sample(`ordinary-${index}`));
     const controlled = [
-      sample('denied', { scenario: 'denied-protected', expectedOutcome: 'error', outcome: 'error', measurement: 'automatic-error', firstSoundMs: null }),
-      sample('gateway', { scenario: 'broken-gateway', expectedOutcome: 'first-audio', outcome: 'first-audio', firstSoundMs: 1_100 }),
-      sample('slow-key', { scenario: 'slow-key-service', expectedOutcome: 'first-audio', outcome: 'first-audio', firstSoundMs: 2_800 }),
+      sample('denied', {
+        scenario: 'denied-protected',
+        expectedOutcome: 'error',
+        outcome: 'error',
+        measurement: 'automatic-error',
+        firstSoundMs: null,
+        hostTerminalReason: 'access-denied'
+      }),
+      sample('gateway', {
+        scenario: 'broken-gateway',
+        expectedOutcome: 'first-audio',
+        outcome: 'first-audio',
+        firstSoundMs: 1_100,
+        dav2: { ...sample('base').dav2, gatewayRecovered: true }
+      }),
+      sample('slow-key', {
+        scenario: 'slow-key-service',
+        expectedOutcome: 'first-audio',
+        outcome: 'first-audio',
+        firstSoundMs: 2_800,
+        dav2: { ...sample('base').dav2, keyAuthorizationMs: 1_400 }
+      }),
       sample('navigation', {
         scenario: 'interrupted-navigation',
         expectedOutcome: 'error',
         outcome: 'error',
         measurement: 'automatic-error',
-        firstSoundMs: null
+        firstSoundMs: null,
+        hostTerminalReason: 'selection-interrupted'
       }),
-      sample('corrupted', { scenario: 'corrupted-dav2', expectedOutcome: 'error', outcome: 'error', measurement: 'automatic-error', firstSoundMs: null })
+      sample('corrupted', {
+        scenario: 'corrupted-dav2',
+        expectedOutcome: 'error',
+        outcome: 'error',
+        measurement: 'automatic-error',
+        firstSoundMs: null,
+        dav2: { ...sample('base').dav2, authenticationFailed: true }
+      })
     ];
     const report = buildFirstSoundReadinessReport(
       [
         { path: 'ordinary.json', data: evidence(ordinary) },
-        { path: 'controlled.json', data: evidence(controlled, undefined, { device: 'Fault lab', connection: 'other' }) }
+        { path: 'controlled.json', data: evidence(controlled, undefined, { device: 'other', connection: 'other' }) }
       ],
       { expectedCommit: SHA }
     );
@@ -165,21 +197,45 @@ describe('first-sound readiness evidence', () => {
     assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.p75Ms, 800);
     assert.ok(report.scenarios.every(row => row.status === 'pass'));
     assert.equal(
-      report.profileBudgets.some(row => row.profile.device === 'Fault lab'),
+      report.profileBudgets.some(row => row.profile.device === 'other'),
       false
     );
 
     const wrongOutcome = controlled.map(item =>
-      item.scenario === 'interrupted-navigation' ? { ...item, outcome: 'first-audio', measurement: 'human-confirmed', firstSoundMs: 50 } : item
+      item.scenario === 'interrupted-navigation'
+        ? { ...item, outcome: 'first-audio', measurement: 'human-confirmed', firstSoundMs: 50, hostTerminalReason: null }
+        : item
     );
     const failing = buildFirstSoundReadinessReport(
       [
         { path: 'ordinary.json', data: evidence(ordinary) },
-        { path: 'controlled.json', data: evidence(wrongOutcome, undefined, { device: 'Fault lab', connection: 'other' }) }
+        { path: 'controlled.json', data: evidence(wrongOutcome, undefined, { device: 'other', connection: 'other' }) }
       ],
       { expectedCommit: SHA }
     );
     assert.equal(failing.gates.find(row => row.id === 'scenario:interrupted-navigation')?.status, 'fail');
+  });
+
+  it('rejects controlled scenario labels without their telemetry proof', () => {
+    const mislabeled = [
+      sample('denied', { scenario: 'denied-protected', expectedOutcome: 'error', outcome: 'error', measurement: 'automatic-error', firstSoundMs: null }),
+      sample('gateway', { scenario: 'broken-gateway', expectedOutcome: 'first-audio' }),
+      sample('slow-key', { scenario: 'slow-key-service', expectedOutcome: 'first-audio' }),
+      sample('navigation', {
+        scenario: 'interrupted-navigation',
+        expectedOutcome: 'error',
+        outcome: 'error',
+        measurement: 'automatic-error',
+        firstSoundMs: null,
+        hostTerminalReason: 'selection-failed'
+      }),
+      sample('corrupted', { scenario: 'corrupted-dav2', expectedOutcome: 'error', outcome: 'error', measurement: 'automatic-error', firstSoundMs: null })
+    ];
+    const report = buildFirstSoundReadinessReport([{ path: 'mislabeled.json', data: evidence(mislabeled) }], { expectedCommit: SHA });
+
+    for (const scenario of ['denied-protected', 'broken-gateway', 'slow-key-service', 'interrupted-navigation', 'corrupted-dav2']) {
+      assert.equal(report.gates.find(row => row.id === `scenario:${scenario}`)?.status, 'fail');
+    }
   });
 
   it('rejects mixed candidates and duplicate samples', () => {
@@ -273,13 +329,13 @@ describe('first-sound readiness evidence', () => {
     assert.equal(report.gates.find(row => row.id === 'product-identity')?.status, 'fail');
   });
 
-  it('requires a sanitized device and network profile and renders it in the report', () => {
+  it('requires a bounded device and network profile and renders it in the report', () => {
     const invalid = evidence([sample('invalid')], undefined, { device: 'line one\nline two' });
     assert.match(validateFirstSoundEvidence(invalid).join('; '), /profile.device/);
 
     const report = buildFirstSoundReadinessReport([{ path: 'ios.json', data: evidence([sample('ios', { surface: 'ios-safari' })]) }], { expectedCommit: SHA });
-    assert.match(renderFirstSoundReadinessMarkdown(report), /iPhone 13 Pro/);
-    assert.match(renderFirstSoundReadinessMarkdown(report), /iOS 16\.7/);
+    assert.match(renderFirstSoundReadinessMarkdown(report), /phone/);
+    assert.match(renderFirstSoundReadinessMarkdown(report), /ios/);
     assert.match(renderFirstSoundReadinessMarkdown(report), /mobile/);
   });
 
