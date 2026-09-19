@@ -124,10 +124,10 @@ P3 first vertical slice delivered (`agent/audio-v2-p3`):
 - DAV2 Range reads now use bounded gateway requests, hedge the header and first
   chunk against a second gateway when the first one stalls, and cache the
   winning gateway per CID for the browser session.
-- MSE playback now prepares the current chunk plus two future chunks while the
+- MSE playback now prepares the current chunk plus one future chunk while the
   current clear chunk is appended. Appends stay strictly ordered, track changes
-  abort the bounded pipeline, and at most three container chunks are in the
-  preparation window (about 1.5 MiB at the current 512 KiB default).
+  abort the bounded pipeline, and at most two container chunks are in the
+  default preparation window (about 1 MiB at the current 512 KiB default).
 - The browser imports the AES content key once per playback instead of once per
   chunk. Known chunk ranges must return the exact byte count; truncated or
   mismatched `206` responses retry another gateway instead of being
@@ -152,6 +152,15 @@ W08 first-sound slice:
   1.5 seconds, track changes terminate pending work, and hosts without Worker
   support retain the same fail-closed Web Crypto fallback. Startup telemetry
   records which execution path prepared the first chunk.
+- Deliberate track intent now warms the public encrypted DAV2 header and first
+  chunk during cover hover/focus/touch and room-track choice. It never performs
+  an access read, asks for a signature, requests a content key, decrypts media,
+  or starts playback.
+- Playback shares an in-flight intent request or reuses exact encrypted ranges
+  for at most 90 seconds. The session-only LRU is bounded to 8 entries and 3
+  MiB; speculative headers above 256 KiB and first chunks above 768 KiB are
+  refused. Startup telemetry distinguishes an intent-prefetched range from the
+  existing winning-gateway cache.
 - Remaining #88 work: first-chunk sizing experiments, the browser/device
   validation matrix, cold/warm sample collection, and the backend read-through
   gateway decision.
