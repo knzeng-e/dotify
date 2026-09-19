@@ -165,11 +165,15 @@ W08 first-sound slice:
   MiB; speculative headers above 256 KiB and first chunks above 768 KiB are
   refused. Startup telemetry distinguishes an intent-prefetched range from the
   existing winning-gateway cache.
-- New backend publications now use a 256 KiB first clear chunk followed by the
-  existing 512 KiB steady-state chunks. The first encrypted media range falls
-  from 524,304 to 262,160 bytes including its AES-GCM tag. The DAV2 schema and
-  key derivation are unchanged, existing uniform containers remain readable,
-  and explicit chunk-size callers retain uniform behavior.
+- New backend publications now use a 256 KiB baseline first clear chunk
+  followed by the existing 512 KiB steady-state chunks. For an MP3 with
+  validated leading ID3 metadata, the API expands that first chunk only enough
+  to retain up to 64 KiB of audio payload, capped at the former 512 KiB
+  boundary. An ordinary first encrypted media range therefore falls from
+  524,304 to 262,160 bytes including its AES-GCM tag without letting a large
+  cover tag consume the complete warm range. The DAV2 schema and key derivation
+  are unchanged, existing uniform containers remain readable, and explicit
+  chunk-size callers retain uniform behavior.
 - Remaining #88 work: validate the selected first-chunk size on the physical
   browser/device matrix, collect cold/warm samples, and make the backend
   read-through gateway decision from those measurements.
