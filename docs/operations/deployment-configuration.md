@@ -546,14 +546,20 @@ build with `VITE_DOTIFY_DEBUG_PANEL=true` exposes **First-sound evidence** under
    Web gateway samples.
 2. Choose the tested surface, listening flow, and explicit cold or warm cache
    condition, then select **Start sample**.
-3. Start the track. After audio begins or playback fails, select **Capture
-   result**.
+3. Start the track. Dotify records the real selection/playback intent as the
+   timing origin, including access, key, gateway, decrypt, and media startup.
+   After audio begins or playback fails, select **Capture result**.
 4. Repeat cold and warm attempts, then download the candidate-bound JSON.
 
 The export keeps first-sound duration and coarse DAV2 path facts only. It omits
 wallet addresses, listener identity, audio refs/CIDs, gateway URLs, media source
 URLs, keys, signatures, and per-listener history. Changing the SHA, Product app
 version, or deployment CID starts a new evidence set instead of mixing builds.
+The report combines ordinary-web and Product exports when their git SHA
+matches. Product samples must still carry one consistent Product app version
+and deployed CID; those Product-only fields do not invalidate ordinary-web
+exports where they are intentionally absent. A final key or gateway failure is
+recorded even when no playable media source was created.
 
 Combine exports from physical surfaces and produce the release report with:
 
