@@ -481,6 +481,19 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
 
     const stateAfterClose = await readRoomJoinState(host);
     expect(stateAfterClose?.webAudioCaptureCloses ?? 0).toBe(0);
+
+    // Reopening on the same element/source reuses the retained live capture
+    // and must restore the host-ready UI even though no new media event fires.
+    await host.getByRole('button', { name: 'Open room', exact: true }).click();
+    await host.getByLabel('Your name in the room').fill('Room host');
+    await host.getByRole('button', { name: 'Open the room', exact: true }).click();
+    await expect(host.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/, { timeout: 15_000 });
+    await expect(host.locator('.player-stage .cover')).toHaveAttribute('data-live', 'true');
+    await host.getByRole('tab', { name: /People/ }).click();
+    await host.getByRole('button', { name: 'Close room' }).click();
+
+    // Once solo playback moves to another source generation, the retained
+    // capture owner is finally retired and its Web Audio graph is closed.
     await host.getByRole('button', { name: 'Music', exact: true }).click();
     await host.getByRole('button', { name: /^Play Second room track by Dotify Room Host,/ }).click();
     await expect.poll(async () => (await readRoomJoinState(host))?.webAudioCaptureCloses ?? 0).toBeGreaterThan(0);
