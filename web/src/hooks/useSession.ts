@@ -8,6 +8,7 @@ import {
   recordRoomJoinE2eReplaceTrack,
   recordRoomJoinE2eStreamReadySignal,
   recordRoomJoinE2eWebAudioCapture,
+  recordRoomJoinE2eWebAudioCaptureClose,
   recordRoomJoinE2eWebAudioMonitorGain,
   roomJoinE2eOfferDelayMs,
   roomJoinE2eOfferSnapshot,
@@ -73,6 +74,7 @@ type WebAudioElementCapture = {
   destination: MediaStreamAudioDestinationNode;
   monitorGain: GainNode;
   stream: MediaStream;
+  onVolumeChange: () => void;
 };
 
 type PlaceholderAudioStream = {
@@ -96,6 +98,24 @@ function syncWebAudioMonitorGain(audio: HTMLMediaElement, capture: WebAudioEleme
   const gain = audio.muted ? 0 : audio.volume;
   capture.monitorGain.gain.value = Number.isFinite(gain) ? gain : 1;
   if (isRoomJoinE2e) recordRoomJoinE2eWebAudioMonitorGain(capture.monitorGain.gain.value);
+}
+
+function retireWebAudioElementCapture(audio: HTMLMediaElement) {
+  const capture = webAudioElementCaptures.get(audio);
+  if (!capture) return false;
+  webAudioElementCaptures.delete(audio);
+  audio.removeEventListener('volumechange', capture.onVolumeChange);
+  for (const node of [capture.source, capture.monitorGain, capture.destination]) {
+    try {
+      node.disconnect();
+    } catch {
+      // The browser may have already detached part of the retired graph.
+    }
+  }
+  capture.stream.getTracks().forEach(track => track.stop());
+  void capture.context.close().catch(() => undefined);
+  if (isRoomJoinE2e) recordRoomJoinE2eWebAudioCaptureClose();
+  return true;
 }
 
 function shouldMaterializeRemoteSource(source: string) {
@@ -841,9 +861,17 @@ export function useSession(deps: UseSessionDeps) {
     // The WebRTC leg is connected before this gain, so host mute only affects
     // the host's local output and never silences room listeners.
     source.connect(monitorGain).connect(context.destination);
-    const fallbackCapture = { context, source, destination, monitorGain, stream: destination.stream };
+    const fallbackCapture: WebAudioElementCapture = {
+      context,
+      source,
+      destination,
+      monitorGain,
+      stream: destination.stream,
+      onVolumeChange: () => undefined
+    };
+    fallbackCapture.onVolumeChange = () => syncWebAudioMonitorGain(audio, fallbackCapture);
     syncWebAudioMonitorGain(audio, fallbackCapture);
-    audio.addEventListener('volumechange', () => syncWebAudioMonitorGain(audio, fallbackCapture));
+    audio.addEventListener('volumechange', fallbackCapture.onVolumeChange);
     webAudioElementCaptures.set(audio, fallbackCapture);
     void context.resume().catch(() => undefined);
     if (isRoomJoinE2e) recordRoomJoinE2eWebAudioCapture();
@@ -950,6 +978,8 @@ export function useSession(deps: UseSessionDeps) {
         return;
       }
 
+      const previousCapturedAudio = capturedAudioElementRef.current;
+      const previousStream = localStreamRef.current;
       const stream = captureAudioStream(audio);
       if (!streamHasLiveAudio(stream)) {
         // No live track yet. This is normal for the first attempt (captured at
@@ -993,17 +1023,18 @@ export function useSession(deps: UseSessionDeps) {
       emitPlayerState(true);
 
       await publishLocalStreamToListeners(stream);
+      if (previousCapturedAudio && previousCapturedAudio !== audio) {
+        const retiredWebAudio = retireWebAudioElementCapture(previousCapturedAudio);
+        if (!retiredWebAudio && previousStream && previousStream !== stream) {
+          previousStream.getTracks().forEach(track => track.stop());
+        }
+      }
       if (previousPlaceholderStream && previousPlaceholderStream !== stream) {
         closePlaceholderAudioStream();
       }
-      // Do not stop tracks from an older captureStream() result here. Media
-      // element capture streams follow source selection: when <audio>.src
-      // changes, the browser can add the new source track to every existing
-      // captured stream before this replacement finishes. Stopping the old
-      // stream would then stop the newly selected source and leave listeners
-      // with a live-looking but silent sender. Once sender replacement or
-      // renegotiation completes, the previous stream is unreferenced and the
-      // browser can retire it.
+      // A recapture on the same element can share browser-owned tracks, so it
+      // stays alive. A retired element generation is independent and is closed
+      // only after every listener sender has moved to the replacement stream.
     } catch (streamError) {
       setError(streamError instanceof Error ? streamError.message : 'Audio capture unavailable in this browser');
       setSessionStatus('Capture unavailable');
