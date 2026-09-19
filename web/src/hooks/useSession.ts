@@ -222,9 +222,12 @@ export function useSession(deps: UseSessionDeps) {
   const placeholderAudioStreamRef = useRef<PlaceholderAudioStream | null>(null);
   const audioSourceRef = useRef<string | null>(audioSource);
   const trackInfoRef = useRef<TrackInfo | null>(trackInfo);
-  // Which audioSource the current local stream was captured from. Capturing is
-  // idempotent per source. New sources replace the sender track while the
-  // listener keeps the same receiver; renegotiation is a recovery fallback.
+  // Which media element and audioSource the current local stream was captured
+  // from. Capturing is idempotent only while both remain current: a resolved URL
+  // may be reused by a later element generation. New captures replace the sender
+  // track while the listener keeps the same receiver; renegotiation is a recovery
+  // fallback.
+  const capturedAudioElementRef = useRef<HTMLAudioElement | null>(null);
   const capturedSourceRef = useRef<string | null>(null);
   const captureStartedPausedRef = useRef(false);
   // Counts consecutive capture attempts that produced no live track for a
@@ -440,6 +443,7 @@ export function useSession(deps: UseSessionDeps) {
     closeListenerPeer();
     closePlaceholderAudioStream();
     localStreamRef.current = null;
+    capturedAudioElementRef.current = null;
     capturedSourceRef.current = null;
     captureStartedPausedRef.current = false;
     captureAttemptRef.current = { source: null, count: 0 };
@@ -939,7 +943,8 @@ export function useSession(deps: UseSessionDeps) {
           currentAudioSource,
           streamHasLiveAudio(localStreamRef.current),
           captureStartedPausedRef.current,
-          audio.paused
+          audio.paused,
+          capturedAudioElementRef.current === audio
         )
       ) {
         return;
@@ -978,6 +983,7 @@ export function useSession(deps: UseSessionDeps) {
 
       const previousPlaceholderStream = placeholderAudioStreamRef.current?.stream ?? null;
       localStreamRef.current = stream;
+      capturedAudioElementRef.current = audio;
       capturedSourceRef.current = currentAudioSource;
       captureStartedPausedRef.current = audio.paused;
       setLocalStreamReady(true);
