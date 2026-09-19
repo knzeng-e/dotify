@@ -189,7 +189,7 @@ permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
 Version `[0, 1, 26]` adds candidate-bound first-sound evidence, independent
-surface budgets, fresh warm-resume attempts, and terminal autoplay failures.
+exact-profile budgets, fresh warm-resume attempts, and terminal autoplay failures.
 It retains the `[0, 1, 25]` Product room evidence capture and rejection of
 hand-written room claims without current host transport telemetry, plus the
 `[0, 1, 24]` bounded Web Worker for DAV2 AES-GCM chunk decryption and the
@@ -543,7 +543,9 @@ Every ordinary Vite build now embeds its exact git SHA in
 build with `VITE_DOTIFY_DEBUG_PANEL=true` exposes **First-sound evidence** under
 `You -> Production readiness`. Evidence builds fail when `git status` is dirty;
 commit the exact candidate first so the embedded SHA identifies the bytes being
-measured.
+measured. Production builds derive this identity from the checked-out commit and
+reject a mismatched `VITE_DOTIFY_BUILD_SHA`; that override is reserved for the
+explicit Playwright readiness-panel dev server.
 
 1. Bind the exact build. Add the deployment CID for Product Desktop or Product
    Web gateway samples.
@@ -583,11 +585,12 @@ npm run smoke:first-sound -- \
 ```
 
 The strict gate requires evidence for desktop Chrome, Firefox, Safari, iOS
-Safari, Android Chrome, Product Desktop, and Product Web gateway. Every required
+Safari, Android Chrome, Product Desktop, and Product Web gateway. Every exact
+device, OS, browser, connection, and Product-host profile supplied for a required
 surface needs at least four successful samples in each cold/warm p75 flow cell;
-aggregate p75 remains visible but cannot compensate for a slow or undersampled
-surface. The report prints every device, OS, browser, connection type, and
-Product host version beside its surface. A blocked autoplay attempt is recorded
+exports with different profiles never pool their sample floor or latency budget.
+Aggregate p75 remains visible but cannot compensate for a slow or undersampled
+profile. The report prints every profile beside its surface. A blocked autoplay attempt is recorded
 as a terminal error, and a later explicit Play starts a fresh measurement. The
 DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts are
 present; fewer attempts are reported as `not-run`, never rounded into a claim.

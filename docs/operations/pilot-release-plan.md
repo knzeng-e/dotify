@@ -45,7 +45,7 @@ release diff is the application bundle and this release/evidence package.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 26]` | Publish and recapture evidence; this bundle adds candidate-bound first-sound evidence and per-surface budgets while retaining room smoke capture, off-thread DAV2 decryption, room-link arrival without Product chain setup, native extrinsic proof links, and the native-unit fix |
+| Product appVersion | `[0, 1, 26]` | Publish and recapture evidence; this bundle adds candidate-bound first-sound evidence and exact-profile budgets while retaining room smoke capture, off-thread DAV2 decryption, room-link arrival without Product chain setup, native extrinsic proof links, and the native-unit fix |
 | Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |

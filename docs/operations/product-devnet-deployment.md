@@ -407,8 +407,8 @@ assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
 The tracked Product executable candidate is `[0, 1, 26]`. This version adds
-candidate-bound first-sound evidence with independent budgets for every tested
-surface, explicit device/OS/browser/network/host profiles, clean-worktree
+candidate-bound first-sound evidence with independent budgets for every exact
+device/OS/browser/network/host profile, clean-worktree and checked-out-commit
 candidate enforcement, fresh warm-resume attempts, and terminal autoplay
 failures. It retains
 the `[0, 1, 25]` candidate-bound Product room smoke capture and the
