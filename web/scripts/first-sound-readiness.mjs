@@ -6,6 +6,15 @@ const SURFACES = ['standalone-chrome', 'standalone-firefox', 'standalone-safari'
 const FLOWS = ['free', 'authorized-protected', 'warm-next-track'];
 const CACHE_STATES = ['cold', 'warm'];
 const CONNECTIONS = ['wifi', 'mobile', 'ethernet', 'other'];
+const SCENARIO_EXPECTATIONS = {
+  'ordinary-playback': 'first-audio',
+  'denied-protected': 'error',
+  'broken-gateway': 'first-audio',
+  'slow-key-service': 'first-audio',
+  'interrupted-navigation': 'error',
+  'corrupted-dav2': 'error'
+};
+const CONTROLLED_SCENARIOS = Object.keys(SCENARIO_EXPECTATIONS).filter(scenario => scenario !== 'ordinary-playback');
 const BUDGETS_MS = { free: 1_500, 'authorized-protected': 2_000, 'warm-next-track': 700 };
 const BUDGET_CELLS = [
   { flow: 'free', cacheState: 'cold' },
@@ -92,13 +101,15 @@ function profileDetail(profile) {
 }
 
 function validateSample(sample) {
-  if (!exactKeys(sample, ['id', 'surface', 'flow', 'cacheState', 'outcome', 'firstSoundMs', 'capturedAt', 'dav2']))
+  if (!exactKeys(sample, ['id', 'surface', 'flow', 'cacheState', 'scenario', 'expectedOutcome', 'outcome', 'firstSoundMs', 'capturedAt', 'dav2']))
     return 'sample contains unknown or missing fields';
   if (typeof sample.id !== 'string' || sample.id.length < 3 || sample.id.length > 160) return 'sample.id is invalid';
   if (!SURFACES.includes(sample.surface)) return `sample.surface ${sample.surface} is unsupported`;
   if (!FLOWS.includes(sample.flow)) return `sample.flow ${sample.flow} is unsupported`;
   if (!CACHE_STATES.includes(sample.cacheState)) return `sample.cacheState ${sample.cacheState} is unsupported`;
   if (sample.flow === 'warm-next-track' && sample.cacheState !== 'warm') return 'warm-next-track samples must use cacheState=warm';
+  if (!Object.hasOwn(SCENARIO_EXPECTATIONS, sample.scenario)) return 'sample.scenario is invalid';
+  if (sample.expectedOutcome !== SCENARIO_EXPECTATIONS[sample.scenario]) return 'sample.expectedOutcome does not match the scenario contract';
   if (!['first-audio', 'error'].includes(sample.outcome)) return 'sample.outcome is invalid';
   if (sample.outcome === 'first-audio' && (!Number.isFinite(sample.firstSoundMs) || sample.firstSoundMs < 0))
     return 'successful sample requires a non-negative firstSoundMs';
@@ -122,7 +133,7 @@ export function validateFirstSoundEvidence(evidence) {
     problems.push('evidence contains unknown or missing top-level fields');
     return problems;
   }
-  if (evidence.schemaVersion !== 2) problems.push('schemaVersion must be 2');
+  if (evidence.schemaVersion !== 3) problems.push('schemaVersion must be 3');
   const candidateProblem = validateCandidate(evidence.candidate);
   if (candidateProblem) problems.push(candidateProblem);
   const profileProblem = validateProfile(evidence.profile);
@@ -182,7 +193,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
         `schema:${item.path}`,
         `Evidence schema · ${item.path}`,
         problems.length === 0 ? 'pass' : 'fail',
-        problems.length === 0 ? 'Sanitized schema v2 accepted.' : problems.join('; ')
+        problems.length === 0 ? 'Sanitized schema v3 accepted.' : problems.join('; ')
       )
     );
     if (problems.length === 0) evidence.push(item.data);
@@ -225,6 +236,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     );
 
   const samples = candidateMismatch ? [] : evidence.flatMap(item => item.samples);
+  const ordinarySamples = samples.filter(sample => sample.scenario === 'ordinary-playback');
   const sampleIds = new Set();
   const duplicateIds = [];
   for (const sample of samples) {
@@ -269,7 +281,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
   );
 
   const matrix = SURFACES.map(surface => {
-    const surfaceSamples = samples.filter(sample => sample.surface === surface);
+    const surfaceSamples = ordinarySamples.filter(sample => sample.surface === surface);
     const successful = surfaceSamples.filter(sample => sample.outcome === 'first-audio').length;
     return {
       surface,
@@ -289,7 +301,36 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     );
   }
 
-  const budgets = BUDGET_CELLS.map(({ flow, cacheState }) => buildBudgetRow(samples, flow, cacheState));
+  const scenarios = CONTROLLED_SCENARIOS.map(scenario => {
+    const scenarioSamples = samples.filter(sample => sample.scenario === scenario);
+    const expectedOutcome = SCENARIO_EXPECTATIONS[scenario];
+    const matched = scenarioSamples.filter(sample => sample.outcome === expectedOutcome).length;
+    const successfulTimings = scenarioSamples.filter(sample => sample.outcome === 'first-audio').map(sample => sample.firstSoundMs);
+    const p75Ms = percentile(successfulTimings, 0.75);
+    return {
+      scenario,
+      expectedOutcome,
+      samples: scenarioSamples.length,
+      matched,
+      p75Ms,
+      status: scenarioSamples.length === 0 ? 'not-run' : matched === scenarioSamples.length ? 'pass' : 'fail'
+    };
+  });
+  for (const row of scenarios) {
+    const timing = row.p75Ms === null ? '' : ` Observed p75 ${Math.round(row.p75Ms)} ms.`;
+    gates.push(
+      gate(
+        `scenario:${row.scenario}`,
+        `Controlled scenario · ${row.scenario}`,
+        row.status,
+        row.samples === 0
+          ? `No evidence; expected ${row.expectedOutcome}.`
+          : `${row.matched}/${row.samples} attempts produced the expected ${row.expectedOutcome}.${timing}`
+      )
+    );
+  }
+
+  const budgets = BUDGET_CELLS.map(({ flow, cacheState }) => buildBudgetRow(ordinarySamples, flow, cacheState));
   for (const row of budgets) {
     gates.push(gate(`budget:${row.flow}:${row.cacheState}`, `Aggregate p75 · ${row.flow} · ${row.cacheState}`, row.status, budgetDetail(row)));
   }
@@ -298,14 +339,16 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
   // bound environment: exports from different devices, browsers, networks, or
   // Product hosts must never combine to satisfy the sample floor. Strict
   // readiness therefore owns one budget for every exact profile/cell pair.
-  const profileBudgets = profileGroups.flatMap((group, profileIndex) =>
-    BUDGET_CELLS.map(({ flow, cacheState }) =>
-      buildBudgetRow(candidateMismatch ? [] : group.samples, flow, cacheState, {
+  const profileBudgets = profileGroups.flatMap((group, profileIndex) => {
+    const profileOrdinarySamples = group.samples.filter(sample => sample.scenario === 'ordinary-playback');
+    if (profileOrdinarySamples.length === 0) return [];
+    return BUDGET_CELLS.map(({ flow, cacheState }) =>
+      buildBudgetRow(candidateMismatch ? [] : profileOrdinarySamples, flow, cacheState, {
         profileIndex,
         profile: { ...group.profile }
       })
-    )
-  );
+    );
+  });
   for (const row of profileBudgets) {
     gates.push(
       gate(
@@ -317,7 +360,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     );
   }
 
-  const dav2Samples = samples.filter(sample => sample.dav2.observed);
+  const dav2Samples = ordinarySamples.filter(sample => sample.dav2.observed);
   const fallbackCount = dav2Samples.filter(sample => sample.dav2.fallback).length;
   const fallbackRate = dav2Samples.length === 0 ? null : fallbackCount / dav2Samples.length;
   gates.push(
@@ -337,12 +380,13 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     notRun: gates.filter(item => item.status === 'not-run').length
   };
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     candidate,
     profiles,
     counts,
     gates,
     matrix,
+    scenarios,
     budgets,
     profileBudgets,
     fallback: { samples: dav2Samples.length, count: fallbackCount, rate: fallbackRate }

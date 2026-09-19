@@ -1,7 +1,7 @@
 import type { AudioStartupTelemetrySnapshot } from './audioStartupTelemetry';
 import { normalizeIpfsCid } from '../../shared/utils/ipfsCid';
 
-export const FIRST_SOUND_EVIDENCE_STORAGE_KEY = 'dotify:first-sound-evidence:v2';
+export const FIRST_SOUND_EVIDENCE_STORAGE_KEY = 'dotify:first-sound-evidence:v3';
 export const MAX_FIRST_SOUND_SAMPLES = 120;
 
 export const FIRST_SOUND_SURFACES = [
@@ -17,11 +17,30 @@ export const FIRST_SOUND_SURFACES = [
 export const FIRST_SOUND_FLOWS = ['free', 'authorized-protected', 'warm-next-track'] as const;
 export const FIRST_SOUND_CACHE_STATES = ['cold', 'warm'] as const;
 export const FIRST_SOUND_CONNECTIONS = ['wifi', 'mobile', 'ethernet', 'other'] as const;
+export const FIRST_SOUND_SCENARIOS = [
+  'ordinary-playback',
+  'denied-protected',
+  'broken-gateway',
+  'slow-key-service',
+  'interrupted-navigation',
+  'corrupted-dav2'
+] as const;
 
 export type FirstSoundSurface = (typeof FIRST_SOUND_SURFACES)[number];
 export type FirstSoundFlow = (typeof FIRST_SOUND_FLOWS)[number];
 export type FirstSoundCacheState = (typeof FIRST_SOUND_CACHE_STATES)[number];
 export type FirstSoundConnection = (typeof FIRST_SOUND_CONNECTIONS)[number];
+export type FirstSoundScenario = (typeof FIRST_SOUND_SCENARIOS)[number];
+export type FirstSoundExpectedOutcome = 'first-audio' | 'error';
+
+export const FIRST_SOUND_SCENARIO_EXPECTATIONS: Record<FirstSoundScenario, FirstSoundExpectedOutcome> = {
+  'ordinary-playback': 'first-audio',
+  'denied-protected': 'error',
+  'broken-gateway': 'first-audio',
+  'slow-key-service': 'first-audio',
+  'interrupted-navigation': 'error',
+  'corrupted-dav2': 'error'
+};
 
 export type FirstSoundCandidate = {
   gitSha: string;
@@ -43,6 +62,8 @@ export type FirstSoundAttempt = {
   surface: FirstSoundSurface;
   flow: FirstSoundFlow;
   cacheState: FirstSoundCacheState;
+  scenario: FirstSoundScenario;
+  expectedOutcome: FirstSoundExpectedOutcome;
   startedAt: number;
 };
 
@@ -51,6 +72,8 @@ export type FirstSoundSample = {
   surface: FirstSoundSurface;
   flow: FirstSoundFlow;
   cacheState: FirstSoundCacheState;
+  scenario: FirstSoundScenario;
+  expectedOutcome: FirstSoundExpectedOutcome;
   outcome: 'first-audio' | 'error';
   firstSoundMs: number | null;
   capturedAt: string;
@@ -65,7 +88,7 @@ export type FirstSoundSample = {
 };
 
 export type FirstSoundEvidenceDraft = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   candidate: FirstSoundCandidate;
   profile: FirstSoundTestProfile | null;
   activeAttempt: FirstSoundAttempt | null;
@@ -73,7 +96,7 @@ export type FirstSoundEvidenceDraft = {
 };
 
 export type FirstSoundEvidence = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   candidate: FirstSoundCandidate;
   profile: FirstSoundTestProfile;
   capturedAt: string;
@@ -120,6 +143,10 @@ function isConnection(value: unknown): value is FirstSoundConnection {
   return typeof value === 'string' && (FIRST_SOUND_CONNECTIONS as readonly string[]).includes(value);
 }
 
+function isScenario(value: unknown): value is FirstSoundScenario {
+  return typeof value === 'string' && (FIRST_SOUND_SCENARIOS as readonly string[]).includes(value);
+}
+
 function cleanProfileText(value: unknown): string {
   if (typeof value !== 'string') return '';
   const printable = Array.from(value, character => {
@@ -159,7 +186,16 @@ function normalizeCandidate(candidate: FirstSoundCandidate): FirstSoundCandidate
 }
 
 function parseSample(value: unknown): FirstSoundSample | null {
-  if (!isRecord(value) || typeof value.id !== 'string' || !isSurface(value.surface) || !isFlow(value.flow) || !isCacheState(value.cacheState)) return null;
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'string' ||
+    !isSurface(value.surface) ||
+    !isFlow(value.flow) ||
+    !isCacheState(value.cacheState) ||
+    !isScenario(value.scenario) ||
+    value.expectedOutcome !== FIRST_SOUND_SCENARIO_EXPECTATIONS[value.scenario]
+  )
+    return null;
   if (value.flow === 'warm-next-track' && value.cacheState !== 'warm') return null;
   if (value.outcome !== 'first-audio' && value.outcome !== 'error') return null;
   if (value.firstSoundMs !== null && (typeof value.firstSoundMs !== 'number' || !Number.isFinite(value.firstSoundMs) || value.firstSoundMs < 0)) return null;
@@ -176,14 +212,23 @@ function parseSample(value: unknown): FirstSoundSample | null {
 }
 
 function parseAttempt(value: unknown): FirstSoundAttempt | null {
-  if (!isRecord(value) || typeof value.id !== 'string' || !isSurface(value.surface) || !isFlow(value.flow) || !isCacheState(value.cacheState)) return null;
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'string' ||
+    !isSurface(value.surface) ||
+    !isFlow(value.flow) ||
+    !isCacheState(value.cacheState) ||
+    !isScenario(value.scenario) ||
+    value.expectedOutcome !== FIRST_SOUND_SCENARIO_EXPECTATIONS[value.scenario]
+  )
+    return null;
   if (value.flow === 'warm-next-track' && value.cacheState !== 'warm') return null;
   if (typeof value.startedAt !== 'number' || !Number.isFinite(value.startedAt) || value.startedAt <= 0) return null;
   return value as FirstSoundAttempt;
 }
 
 function parseDraft(value: unknown): FirstSoundEvidenceDraft | null {
-  if (!isRecord(value) || value.schemaVersion !== 2 || !isRecord(value.candidate) || !Array.isArray(value.samples)) return null;
+  if (!isRecord(value) || value.schemaVersion !== 3 || !isRecord(value.candidate) || !Array.isArray(value.samples)) return null;
   const candidate = normalizeCandidate({
     gitSha: typeof value.candidate.gitSha === 'string' ? value.candidate.gitSha : '',
     productAppVersion: typeof value.candidate.productAppVersion === 'string' ? value.candidate.productAppVersion : null,
@@ -200,7 +245,7 @@ function parseDraft(value: unknown): FirstSoundEvidenceDraft | null {
   if (value.activeAttempt !== null && !activeAttempt) return null;
   if (!profile && activeAttempt) return null;
   if (profile && activeAttempt && activeAttempt.surface !== profile.surface) return null;
-  return { schemaVersion: 2, candidate, profile, activeAttempt, samples: samples.slice(-MAX_FIRST_SOUND_SAMPLES) as FirstSoundSample[] };
+  return { schemaVersion: 3, candidate, profile, activeAttempt, samples: samples.slice(-MAX_FIRST_SOUND_SAMPLES) as FirstSoundSample[] };
 }
 
 function sameCandidate(left: FirstSoundCandidate, right: FirstSoundCandidate): boolean {
@@ -239,7 +284,7 @@ export function bindFirstSoundCandidate(context: FirstSoundEvidenceContext, depl
   if (!candidate) return null;
   const current = readFirstSoundEvidenceDraft();
   if (current && sameCandidate(current.candidate, candidate)) return current;
-  const next: FirstSoundEvidenceDraft = { schemaVersion: 2, candidate, profile: null, activeAttempt: null, samples: [] };
+  const next: FirstSoundEvidenceDraft = { schemaVersion: 3, candidate, profile: null, activeAttempt: null, samples: [] };
   writeDraft(next);
   return next;
 }
@@ -271,6 +316,7 @@ export function beginFirstSoundAttempt(
   surface: FirstSoundSurface,
   flow: FirstSoundFlow,
   cacheState: FirstSoundCacheState,
+  scenario: FirstSoundScenario,
   now = Date.now()
 ): FirstSoundEvidenceDraft | null {
   const current = readFirstSoundEvidenceDraft();
@@ -280,11 +326,23 @@ export function beginFirstSoundAttempt(
     !current ||
     !current.profile ||
     current.profile.surface !== surface ||
+    !isScenario(scenario) ||
     (flow === 'warm-next-track' && cacheState !== 'warm') ||
     (surfaceNeedsProductCandidate(surface) && !productCandidateComplete(current.candidate))
   )
     return null;
-  const next = { ...current, activeAttempt: { id: createAttemptId(now), surface, flow, cacheState, startedAt: now } };
+  const next = {
+    ...current,
+    activeAttempt: {
+      id: createAttemptId(now),
+      surface,
+      flow,
+      cacheState,
+      scenario,
+      expectedOutcome: FIRST_SOUND_SCENARIO_EXPECTATIONS[scenario],
+      startedAt: now
+    }
+  };
   writeDraft(next);
   return next;
 }
@@ -318,6 +376,8 @@ export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot,
     surface: attempt.surface,
     flow: attempt.flow,
     cacheState: attempt.cacheState,
+    scenario: attempt.scenario,
+    expectedOutcome: attempt.expectedOutcome,
     outcome,
     firstSoundMs: firstAudio ? Math.max(0, firstAudio.timestamp - playbackIntent.timestamp) : null,
     capturedAt: new Date(now).toISOString(),
@@ -354,7 +414,7 @@ export function clearFirstSoundEvidence(): void {
 export function buildFirstSoundEvidence(draft: FirstSoundEvidenceDraft, now = Date.now()): FirstSoundEvidence | null {
   if (!draft.profile) return null;
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     candidate: draft.candidate,
     profile: draft.profile,
     capturedAt: new Date(now).toISOString(),

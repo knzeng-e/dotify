@@ -85,7 +85,7 @@ describe('first-sound evidence capture', () => {
     expect(first?.candidate).toEqual({ gitSha: SHA, productAppVersion: '[0, 1, 25]', deployedCid: CID });
 
     bindProfile('standalone-chrome');
-    beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 1_000);
+    beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 'ordinary-playback', 1_000);
     finishFirstSoundAttempt(snapshot(1_000), 2_000);
     expect(readFirstSoundEvidenceDraft()?.samples).toHaveLength(1);
 
@@ -99,15 +99,15 @@ describe('first-sound evidence capture', () => {
     bindCandidate();
     bindProfile('standalone-safari');
 
-    expect(beginFirstSoundAttempt('standalone-safari', 'free', 'cold', 1_000)?.activeAttempt?.surface).toBe('standalone-safari');
-    expect(beginFirstSoundAttempt('standalone-safari', 'warm-next-track', 'cold', 1_500)).toBeNull();
-    expect(beginFirstSoundAttempt('product-desktop', 'free', 'cold', 2_000)).toBeNull();
+    expect(beginFirstSoundAttempt('standalone-safari', 'free', 'cold', 'ordinary-playback', 1_000)?.activeAttempt?.surface).toBe('standalone-safari');
+    expect(beginFirstSoundAttempt('standalone-safari', 'warm-next-track', 'cold', 'ordinary-playback', 1_500)).toBeNull();
+    expect(beginFirstSoundAttempt('product-desktop', 'free', 'cold', 'ordinary-playback', 2_000)).toBeNull();
   });
 
   it('captures sanitized timing and DAV2 path facts after an audible result', () => {
     bindCandidate('[0, 1, 25]', CID);
     bindProfile('product-desktop');
-    beginFirstSoundAttempt('product-desktop', 'authorized-protected', 'warm', 1_000);
+    beginFirstSoundAttempt('product-desktop', 'authorized-protected', 'warm', 'ordinary-playback', 1_000);
     const draft = finishFirstSoundAttempt(snapshot(1_000), 2_000);
 
     expect(draft?.activeAttempt).toBeNull();
@@ -153,7 +153,7 @@ describe('first-sound evidence capture', () => {
   it('does not capture before playback intent and a terminal audio event are both observed', () => {
     bindCandidate();
     bindProfile('ios-safari');
-    beginFirstSoundAttempt('ios-safari', 'free', 'cold', 1_000);
+    beginFirstSoundAttempt('ios-safari', 'free', 'cold', 'ordinary-playback', 1_000);
 
     expect(finishFirstSoundAttempt({ dav2: [], host: [], latestFirstSoundMs: null }, 2_000)).toBeNull();
     expect(readFirstSoundEvidenceDraft()?.activeAttempt).not.toBeNull();
@@ -162,7 +162,7 @@ describe('first-sound evidence capture', () => {
   it('captures a DAV2 failure that happens before an audio source exists', () => {
     bindCandidate();
     bindProfile('standalone-chrome');
-    beginFirstSoundAttempt('standalone-chrome', 'authorized-protected', 'cold', 1_000);
+    beginFirstSoundAttempt('standalone-chrome', 'authorized-protected', 'cold', 'ordinary-playback', 1_000);
 
     const draft = finishFirstSoundAttempt(
       {
@@ -190,7 +190,7 @@ describe('first-sound evidence capture', () => {
   it('keeps an autoplay failure terminal when a later Play starts another intent', () => {
     bindCandidate();
     bindProfile('ios-safari');
-    beginFirstSoundAttempt('ios-safari', 'free', 'cold', 1_000);
+    beginFirstSoundAttempt('ios-safari', 'free', 'cold', 'ordinary-playback', 1_000);
 
     const draft = finishFirstSoundAttempt(
       {
@@ -213,7 +213,7 @@ describe('first-sound evidence capture', () => {
   it('captures an interrupted selection before the replacement playback intent', () => {
     bindCandidate();
     bindProfile('standalone-chrome');
-    beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 1_000);
+    beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 'interrupted-navigation', 1_000);
 
     const draft = finishFirstSoundAttempt(
       {
@@ -230,7 +230,9 @@ describe('first-sound evidence capture', () => {
     );
 
     expect(draft?.activeAttempt).toBeNull();
-    expect(draft?.samples).toEqual([expect.objectContaining({ outcome: 'error', firstSoundMs: null })]);
+    expect(draft?.samples).toEqual([
+      expect.objectContaining({ scenario: 'interrupted-navigation', expectedOutcome: 'error', outcome: 'error', firstSoundMs: null })
+    ]);
   });
 
   it('fails closed when persisted evidence is malformed', () => {
@@ -243,7 +245,7 @@ describe('first-sound evidence capture', () => {
 
     bindCandidate();
     bindProfile('standalone-chrome');
-    beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 1_000);
+    beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 'ordinary-playback', 1_000);
     finishFirstSoundAttempt(snapshot(1_000), 2_000);
     expect(readFirstSoundEvidenceDraft()?.samples).toHaveLength(1);
 

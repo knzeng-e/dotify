@@ -26,7 +26,7 @@ type UsePlaybackDeps = {
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   audioSource: string | null;
   trackSelectionPending: boolean;
-  onHostMediaSettled: (source: string | null) => void;
+  onHostMediaSettled: (source: string | null, terminal?: boolean) => void;
   remoteReady: boolean;
   remoteStreamVersion: number;
   localStreamReady: boolean;
@@ -388,11 +388,12 @@ export function usePlayback(deps: UsePlaybackDeps) {
           // Autoplay rejection is terminal for the selection attempt. A later
           // explicit Play starts a new attempt; it must not inherit the wait
           // between the blocked autoplay and the person's next gesture.
+          onHostMediaSettled(audioSource, true);
           reportHostPlaybackError();
           setStatus('autoplay-blocked');
         });
     },
-    [reportHostPlaybackError, syncFromAudio]
+    [audioSource, onHostMediaSettled, reportHostPlaybackError, syncFromAudio]
   );
 
   const handleHostCanPlay = useCallback(
@@ -405,7 +406,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const handleHostPlaying = useCallback(
     (audio: HTMLAudioElement) => {
-      onHostMediaSettled(audioSource);
+      onHostMediaSettled(audioSource, true);
       syncFromAudio(audio);
       const startup = hostStartupRef.current;
       if (!startup || startup.firstAudioReported) return;
@@ -422,7 +423,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
   );
 
   const handleHostError = useCallback(() => {
-    onHostMediaSettled(audioSource);
+    onHostMediaSettled(audioSource, true);
     reportHostPlaybackError();
   }, [audioSource, onHostMediaSettled, reportHostPlaybackError]);
 

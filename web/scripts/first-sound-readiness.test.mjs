@@ -12,6 +12,8 @@ function sample(id, overrides = {}) {
     surface: 'standalone-chrome',
     flow: 'free',
     cacheState: 'cold',
+    scenario: 'ordinary-playback',
+    expectedOutcome: 'first-audio',
     outcome: 'first-audio',
     firstSoundMs: 800,
     capturedAt: '2026-09-19T12:00:00.000Z',
@@ -42,7 +44,7 @@ function profile(surface = 'standalone-chrome', overrides = {}) {
 function evidence(samples, candidate = { gitSha: SHA, productAppVersion: '[0, 1, 25]', deployedCid: CID }, profileOverrides = {}) {
   const surface = samples[0]?.surface ?? 'standalone-chrome';
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     candidate,
     profile: profile(surface, profileOverrides),
     capturedAt: '2026-09-19T12:05:00.000Z',
@@ -126,6 +128,43 @@ describe('first-sound readiness evidence', () => {
 
     assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.status, 'fail');
     assert.equal(report.matrix.find(row => row.surface === 'standalone-chrome')?.status, 'fail');
+  });
+
+  it('keeps controlled fault evidence out of normal success budgets and requires its expected outcome', () => {
+    const ordinary = Array.from({ length: 4 }, (_, index) => sample(`ordinary-${index}`));
+    const controlled = [
+      sample('denied', { scenario: 'denied-protected', expectedOutcome: 'error', outcome: 'error', firstSoundMs: null }),
+      sample('gateway', { scenario: 'broken-gateway', expectedOutcome: 'first-audio', outcome: 'first-audio', firstSoundMs: 1_100 }),
+      sample('slow-key', { scenario: 'slow-key-service', expectedOutcome: 'first-audio', outcome: 'first-audio', firstSoundMs: 2_800 }),
+      sample('navigation', { scenario: 'interrupted-navigation', expectedOutcome: 'error', outcome: 'error', firstSoundMs: null }),
+      sample('corrupted', { scenario: 'corrupted-dav2', expectedOutcome: 'error', outcome: 'error', firstSoundMs: null })
+    ];
+    const report = buildFirstSoundReadinessReport(
+      [
+        { path: 'ordinary.json', data: evidence(ordinary) },
+        { path: 'controlled.json', data: evidence(controlled, undefined, { device: 'Fault lab', connection: 'other' }) }
+      ],
+      { expectedCommit: SHA }
+    );
+
+    assert.equal(report.matrix.find(row => row.surface === 'standalone-chrome')?.status, 'pass');
+    assert.equal(report.matrix.find(row => row.surface === 'standalone-chrome')?.samples, 4);
+    assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.p75Ms, 800);
+    assert.ok(report.scenarios.every(row => row.status === 'pass'));
+    assert.equal(
+      report.profileBudgets.some(row => row.profile.device === 'Fault lab'),
+      false
+    );
+
+    const wrongOutcome = controlled.map(item => (item.scenario === 'interrupted-navigation' ? { ...item, outcome: 'first-audio', firstSoundMs: 50 } : item));
+    const failing = buildFirstSoundReadinessReport(
+      [
+        { path: 'ordinary.json', data: evidence(ordinary) },
+        { path: 'controlled.json', data: evidence(wrongOutcome, undefined, { device: 'Fault lab', connection: 'other' }) }
+      ],
+      { expectedCommit: SHA }
+    );
+    assert.equal(failing.gates.find(row => row.id === 'scenario:interrupted-navigation')?.status, 'fail');
   });
 
   it('rejects mixed candidates and duplicate samples', () => {

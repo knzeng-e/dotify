@@ -505,9 +505,16 @@ export function useCatalog(deps: UseCatalogDeps) {
     setTrackSelectionPending(false);
   }
 
-  function settleTrackSelectionMedia(source: string | null) {
-    if (!source || pendingTrackMediaSourceRef.current !== source) return;
-    if (activeTrackSelectionRef.current) activeTrackSelectionRef.current.pending = false;
+  function settleTrackSelectionMedia(source: string | null, terminal = false) {
+    if (!source) return;
+    // `canplay` makes transport usable, but it is not terminal evidence: the
+    // following play can still be rejected or the listener can replace the
+    // track before a frame is heard. Keep cancellation armed until playing or
+    // an explicit playback error closes the startup attempt.
+    if (terminal && audioSourceRef.current === source && activeTrackSelectionRef.current) {
+      activeTrackSelectionRef.current.pending = false;
+    }
+    if (pendingTrackMediaSourceRef.current !== source) return;
     pendingTrackMediaSourceRef.current = null;
     setTrackSelectionPending(false);
   }

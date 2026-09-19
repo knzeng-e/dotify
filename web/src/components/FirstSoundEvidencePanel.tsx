@@ -8,6 +8,8 @@ import {
   FIRST_SOUND_CACHE_STATES,
   FIRST_SOUND_CONNECTIONS,
   FIRST_SOUND_SURFACES,
+  FIRST_SOUND_SCENARIOS,
+  FIRST_SOUND_SCENARIO_EXPECTATIONS,
   beginFirstSoundAttempt,
   bindFirstSoundCandidate,
   bindFirstSoundTestProfile,
@@ -24,6 +26,7 @@ import {
   type FirstSoundCacheState,
   type FirstSoundConnection,
   type FirstSoundFlow,
+  type FirstSoundScenario,
   type FirstSoundSurface
 } from '../features/catalog/firstSoundEvidence';
 import { normalizeIpfsCid } from '../shared/utils/ipfsCid';
@@ -48,6 +51,15 @@ const SURFACE_LABELS: Record<FirstSoundSurface, string> = {
   'product-web-gateway': 'Product Web gateway'
 };
 
+const SCENARIO_LABELS: Record<FirstSoundScenario, string> = {
+  'ordinary-playback': 'Ordinary playback',
+  'denied-protected': 'Denied protected track',
+  'broken-gateway': 'Broken gateway with recovery',
+  'slow-key-service': 'Slow key service',
+  'interrupted-navigation': 'Interrupted navigation',
+  'corrupted-dav2': 'Corrupted DAV2 chunk'
+};
+
 const FLOW_BUDGET_MS: Record<FirstSoundFlow, number> = {
   free: 1_500,
   'authorized-protected': 2_000,
@@ -66,6 +78,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
   const [connection, setConnection] = useState<FirstSoundConnection>(() => readFirstSoundEvidenceDraft()?.profile?.connection ?? 'wifi');
   const [flow, setFlow] = useState<FirstSoundFlow>('free');
   const [cacheState, setCacheState] = useState<FirstSoundCacheState>('cold');
+  const [scenario, setScenario] = useState<FirstSoundScenario>('ordinary-playback');
   const normalizedCid = normalizeIpfsCid(deployedCid) || null;
   const candidateActive = Boolean(
     draft &&
@@ -88,7 +101,12 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
   const serializedEvidence = useMemo(() => (evidence ? serializeFirstSoundEvidence(evidence) : ''), [evidence]);
   const flowSamples =
     draft?.samples.filter(
-      sample => sample.flow === flow && sample.cacheState === cacheState && sample.outcome === 'first-audio' && sample.firstSoundMs !== null
+      sample =>
+        sample.scenario === 'ordinary-playback' &&
+        sample.flow === flow &&
+        sample.cacheState === cacheState &&
+        sample.outcome === 'first-audio' &&
+        sample.firstSoundMs !== null
     ) ?? [];
   const p75 = percentile(
     flowSamples.map(sample => sample.firstSoundMs as number),
@@ -145,7 +163,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
 
   function startAttempt() {
     clearAudioStartupTelemetry();
-    const next = beginFirstSoundAttempt(surface, flow, cacheState);
+    const next = beginFirstSoundAttempt(surface, flow, cacheState, scenario);
     if (!next) {
       pushNotice({
         tone: 'error',
@@ -365,12 +383,27 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
             </option>
           ))}
         </select>
+        <label htmlFor='first-sound-scenario'>Test scenario</label>
+        <select
+          id='first-sound-scenario'
+          value={scenario}
+          disabled={Boolean(draft?.activeAttempt)}
+          onChange={event => setScenario(event.currentTarget.value as FirstSoundScenario)}
+        >
+          {FIRST_SOUND_SCENARIOS.map(value => (
+            <option key={value} value={value}>
+              {SCENARIO_LABELS[value]}
+            </option>
+          ))}
+        </select>
         <small>
-          {flowSamples.length === 0
-            ? `No successful ${cacheState} ${FLOW_LABELS[flow].toLowerCase()} samples yet.`
-            : `Observed ${cacheState} p75 ${Math.round(p75 ?? 0)} ms from ${flowSamples.length} sample${flowSamples.length === 1 ? '' : 's'}; ${
-                flowSamples.length < 4 ? 'four samples are required before judging' : `target under ${FLOW_BUDGET_MS[flow]} ms`
-              }.`}
+          {scenario === 'ordinary-playback'
+            ? flowSamples.length === 0
+              ? `No successful ${cacheState} ${FLOW_LABELS[flow].toLowerCase()} samples yet.`
+              : `Observed ${cacheState} p75 ${Math.round(p75 ?? 0)} ms from ${flowSamples.length} sample${flowSamples.length === 1 ? '' : 's'}; ${
+                  flowSamples.length < 4 ? 'four samples are required before judging' : `target under ${FLOW_BUDGET_MS[flow]} ms`
+                }.`
+            : `Expected result: ${FIRST_SOUND_SCENARIO_EXPECTATIONS[scenario] === 'first-audio' ? 'audio recovers and starts' : 'playback ends with a controlled error'}. Fault scenarios are reported separately from normal playback budgets.`}
         </small>
       </div>
 

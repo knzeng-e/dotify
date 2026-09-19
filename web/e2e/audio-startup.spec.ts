@@ -174,6 +174,29 @@ test('replacing a pending track terminates its startup attempt before the next i
   }
 });
 
+test('canplay keeps cancellation armed until the track reaches a terminal event', async ({ page }) => {
+  await page.goto('/?e2eRoom=public&e2eCatalog=sequence');
+  await page.evaluate(() => window.__DOTIFY_AUDIO_STARTUP__?.clear());
+
+  await page.getByRole('button', { name: /^Play Second room track by Dotify Room Host,/ }).click();
+  await expect
+    .poll(async () => (await readStartupSnapshot(page))?.host.map(metric => metric.phase))
+    .toEqual(expect.arrayContaining(['playback-intent', 'source-selected', 'metadata-ready']));
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
+  expect((await readStartupSnapshot(page))?.host.map(metric => metric.phase)).not.toContain('first-audio');
+
+  await page.getByRole('button', { name: 'Music', exact: true }).click();
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
+  await expect.poll(async () => (await readStartupSnapshot(page))?.host.filter(metric => metric.phase === 'playback-intent').length).toBe(2);
+
+  const phases = (await readStartupSnapshot(page))?.host.map(metric => metric.phase) ?? [];
+  const firstIntent = phases.indexOf('playback-intent');
+  const cancellation = phases.indexOf('error', firstIntent + 1);
+  const replacementIntent = phases.indexOf('playback-intent', firstIntent + 1);
+  expect(cancellation).toBeGreaterThan(firstIntent);
+  expect(cancellation).toBeLessThan(replacementIntent);
+});
+
 test('the readiness panel captures a candidate-bound first-sound sample without media identifiers', async ({ page }) => {
   await page.goto('/?e2eRoom=public&e2eReadiness=true');
   await page.getByRole('button', { name: 'You', exact: true }).click();
@@ -228,9 +251,11 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
   await panel.getByRole('button', { name: 'Capture result' }).click();
   await expect(panel.getByText('1 sanitized sample')).toBeVisible();
 
-  const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v2'));
+  const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v3'));
   expect(stored).toContain('"firstSoundMs":812');
   expect(stored).toContain('"cacheState":"cold"');
+  expect(stored).toContain('"scenario":"ordinary-playback"');
+  expect(stored).toContain('"expectedOutcome":"first-audio"');
   expect(stored).toContain('"device":"Playwright Desktop"');
   expect(stored).toContain('"connection":"ethernet"');
   expect(stored).not.toContain('private-audio-ref');
