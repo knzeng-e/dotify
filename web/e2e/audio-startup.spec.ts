@@ -197,6 +197,23 @@ test('canplay keeps cancellation armed until the track reaches a terminal event'
   expect(cancellation).toBeLessThan(replacementIntent);
 });
 
+test('muted playback cannot satisfy a first-sound measurement', async ({ page }) => {
+  await page.goto('/?e2eRoom=public&e2eCatalog=sequence');
+
+  await page.getByRole('button', { name: /^Play Second room track by Dotify Room Host,/ }).click();
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Mute', exact: true }).click();
+
+  await page.evaluate(() => window.__DOTIFY_AUDIO_STARTUP__?.clear());
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect
+    .poll(async () => (await readStartupSnapshot(page))?.host.map(metric => metric.phase))
+    .toEqual(expect.arrayContaining(['playback-intent', 'error']));
+
+  const phases = (await readStartupSnapshot(page))?.host.map(metric => metric.phase) ?? [];
+  expect(phases).not.toContain('first-audio');
+});
+
 test('the readiness panel captures a candidate-bound first-sound sample without media identifiers', async ({ page }) => {
   await page.goto('/?e2eRoom=public&e2eReadiness=true');
   await page.getByRole('button', { name: 'You', exact: true }).click();

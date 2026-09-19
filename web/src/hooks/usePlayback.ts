@@ -409,7 +409,14 @@ export function usePlayback(deps: UsePlaybackDeps) {
       onHostMediaSettled(audioSource, true);
       syncFromAudio(audio);
       const startup = hostStartupRef.current;
-      if (!startup || startup.firstAudioReported) return;
+      if (!startup || startup.firstAudioReported || startup.errorReported) return;
+      // `playing` means the media clock is advancing, not that a person can
+      // hear it. A muted or zero-volume run must never satisfy physical-device
+      // first-sound budgets; close the attempt as a controlled terminal error.
+      if (audio.muted || audio.volume === 0) {
+        reportHostPlaybackError();
+        return;
+      }
       startup.firstAudioReported = true;
       publishHostAudioStartupMetric({
         phase: 'first-audio',
@@ -419,7 +426,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
         timestamp: Date.now()
       });
     },
-    [audioSource, onHostMediaSettled, syncFromAudio]
+    [audioSource, onHostMediaSettled, reportHostPlaybackError, syncFromAudio]
   );
 
   const handleHostError = useCallback(() => {
