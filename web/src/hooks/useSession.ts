@@ -900,6 +900,20 @@ export function useSession(deps: UseSessionDeps) {
     return Boolean(stream && stream.getAudioTracks().some(track => track.readyState === 'live'));
   }
 
+  function hasReusableLocalCapture(): boolean {
+    const audio = localAudioRef.current;
+    const source = audioSourceRef.current;
+    if (!audio || !source) return false;
+    return shouldReuseCapture(
+      capturedSourceRef.current,
+      source,
+      streamHasLiveAudio(localStreamRef.current),
+      captureStartedPausedRef.current,
+      audio.paused,
+      capturedAudioElementRef.current === audio
+    );
+  }
+
   function closePlaceholderAudioStream() {
     const placeholder = placeholderAudioStreamRef.current;
     if (!placeholder) return;
@@ -987,16 +1001,7 @@ export function useSession(deps: UseSessionDeps) {
       // This is what makes play/pause/seek cheap: they re-trigger this path but
       // must not rebuild every listener peer. Only a real source change
       // (skip/next/loop-into-new-track) falls through to re-capture.
-      if (
-        shouldReuseCapture(
-          capturedSourceRef.current,
-          currentAudioSource,
-          streamHasLiveAudio(localStreamRef.current),
-          captureStartedPausedRef.current,
-          audio.paused,
-          capturedAudioElementRef.current === audio
-        )
-      ) {
+      if (hasReusableLocalCapture()) {
         setLocalStreamReady(true);
         return;
       }
@@ -1094,7 +1099,8 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   async function pairListenerOrPrepareStream(listenerId: string) {
-    if (localStreamRef.current) {
+    if (localStreamRef.current && hasReusableLocalCapture()) {
+      setLocalStreamReady(true);
       await createOfferForListener(listenerId, { allowPlaceholder: Boolean(audioSourceRef.current) });
       return;
     }
@@ -1548,7 +1554,9 @@ export function useSession(deps: UseSessionDeps) {
         setChatMessages([]);
         setReactionFeed([]);
         setRequestQueue([]);
-        setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
+        const retainedCaptureReady = hasReusableLocalCapture();
+        setLocalStreamReady(retainedCaptureReady);
+        setSessionStatus(retainedCaptureReady ? 'Live' : 'Room open');
         requestOpenRooms();
       },
       () => {
