@@ -22,3 +22,23 @@ export function assertCleanEvidenceBuild(command, env, identity) {
     'First-sound evidence builds require a clean git worktree. Commit or discard local changes, then rebuild so the embedded SHA identifies the exact bytes.'
   );
 }
+
+export function resolveEmbeddedBuildIdentity(command, env, identity) {
+  const override = String(env.VITE_DOTIFY_BUILD_SHA ?? '').trim();
+  const e2eServe = command === 'serve' && env.VITE_E2E_READINESS_PANEL === 'true';
+
+  if (e2eServe) {
+    return {
+      gitSha: override || identity.gitSha,
+      clean: true
+    };
+  }
+
+  if (command === 'build' && override && override !== identity.gitSha) {
+    throw new Error(
+      `VITE_DOTIFY_BUILD_SHA (${override}) does not match the checked-out commit (${identity.gitSha}). Evidence builds must derive their identity from git.`
+    );
+  }
+
+  return identity;
+}

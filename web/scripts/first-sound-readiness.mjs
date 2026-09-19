@@ -76,6 +76,21 @@ function validateProfile(profile) {
   return null;
 }
 
+function profileKey(profile) {
+  return JSON.stringify({
+    surface: profile.surface,
+    device: profile.device,
+    os: profile.os,
+    browser: profile.browser,
+    productHostVersion: profile.productHostVersion,
+    connection: profile.connection
+  });
+}
+
+function profileDetail(profile) {
+  return `${profile.device} · ${profile.os} · ${profile.browser} · ${profile.connection}${profile.productHostVersion ? ` · ${profile.productHostVersion}` : ''}`;
+}
+
 function validateSample(sample) {
   if (!exactKeys(sample, ['id', 'surface', 'flow', 'cacheState', 'outcome', 'firstSoundMs', 'capturedAt', 'dav2']))
     return 'sample contains unknown or missing fields';
@@ -134,16 +149,14 @@ function sameBuild(left, right) {
   return left.gitSha === right.gitSha;
 }
 
-function buildBudgetRow(samples, flow, cacheState, surface = null) {
+function buildBudgetRow(samples, flow, cacheState, scope = {}) {
   const successful = samples
-    .filter(
-      sample => (surface === null || sample.surface === surface) && sample.flow === flow && sample.cacheState === cacheState && sample.outcome === 'first-audio'
-    )
+    .filter(sample => sample.flow === flow && sample.cacheState === cacheState && sample.outcome === 'first-audio')
     .map(sample => sample.firstSoundMs);
   const p75Ms = percentile(successful, 0.75);
   const targetMs = BUDGETS_MS[flow];
   return {
-    ...(surface === null ? {} : { surface }),
+    ...scope,
     flow,
     cacheState,
     samples: successful.length,
@@ -176,14 +189,28 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
   }
 
   const candidate = evidence[0]?.candidate ?? null;
-  const profiles = evidence.map(item => ({ ...item.profile }));
-  for (const [index, profile] of profiles.entries()) {
+  const profileGroups = [];
+  const profileGroupsByKey = new Map();
+  for (const item of evidence) {
+    const key = profileKey(item.profile);
+    let group = profileGroupsByKey.get(key);
+    if (!group) {
+      group = { key, profile: { ...item.profile }, exports: 0, samples: [] };
+      profileGroupsByKey.set(key, group);
+      profileGroups.push(group);
+    }
+    group.exports += 1;
+    group.samples.push(...item.samples);
+  }
+  const profiles = profileGroups.map(group => ({ ...group.profile }));
+  for (const [index, group] of profileGroups.entries()) {
+    const profile = group.profile;
     gates.push(
       gate(
         `profile:${index}`,
         `Test profile · ${profile.surface}`,
         'pass',
-        `${profile.device} · ${profile.os} · ${profile.browser} · ${profile.connection}${profile.productHostVersion ? ` · ${profile.productHostVersion}` : ''}`
+        `${profileDetail(profile)} · ${group.exports} export${group.exports === 1 ? '' : 's'}`
       )
     );
   }
@@ -268,15 +295,22 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
   }
 
   // Aggregate p75 remains useful as a rollout overview, but it cannot prove a
-  // required surface: a large fast Chrome sample could otherwise hide a slow
-  // iPhone, Safari, Android, or Product host. Strict readiness therefore owns
-  // an independent sample floor and budget for every surface/cell pair.
-  const surfaceBudgets = SURFACES.flatMap(surface => BUDGET_CELLS.map(({ flow, cacheState }) => buildBudgetRow(samples, flow, cacheState, surface)));
-  for (const row of surfaceBudgets) {
+  // bound environment: exports from different devices, browsers, networks, or
+  // Product hosts must never combine to satisfy the sample floor. Strict
+  // readiness therefore owns one budget for every exact profile/cell pair.
+  const profileBudgets = profileGroups.flatMap((group, profileIndex) =>
+    BUDGET_CELLS.map(({ flow, cacheState }) =>
+      buildBudgetRow(candidateMismatch ? [] : group.samples, flow, cacheState, {
+        profileIndex,
+        profile: { ...group.profile }
+      })
+    )
+  );
+  for (const row of profileBudgets) {
     gates.push(
       gate(
-        `surface-budget:${row.surface}:${row.flow}:${row.cacheState}`,
-        `Surface p75 · ${row.surface} · ${row.flow} · ${row.cacheState}`,
+        `profile-budget:${row.profileIndex}:${row.flow}:${row.cacheState}`,
+        `Profile p75 · ${row.profile.surface} · ${row.profile.device} · ${row.flow} · ${row.cacheState}`,
         row.status,
         budgetDetail(row)
       )
@@ -310,7 +344,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     gates,
     matrix,
     budgets,
-    surfaceBudgets,
+    profileBudgets,
     fallback: { samples: dav2Samples.length, count: fallbackCount, rate: fallbackRate }
   };
 }

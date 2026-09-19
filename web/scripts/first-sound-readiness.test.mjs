@@ -63,7 +63,12 @@ describe('first-sound readiness evidence', () => {
 
     assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.p75Ms, 900);
     assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
-    assert.equal(report.surfaceBudgets.find(row => row.surface === 'standalone-chrome' && row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
+    assert.equal(
+      report.profileBudgets.find(
+        row => row.profile.surface === 'standalone-chrome' && row.profile.device === 'MacBook Pro 13-inch' && row.flow === 'free' && row.cacheState === 'cold'
+      )?.status,
+      'pass'
+    );
     assert.equal(report.matrix.find(row => row.surface === 'standalone-chrome')?.status, 'pass');
     assert.equal(report.matrix.find(row => row.surface === 'ios-safari')?.status, 'not-run');
     assert.equal(report.gates.find(row => row.id === 'fallback-rate')?.status, 'not-run');
@@ -82,8 +87,36 @@ describe('first-sound readiness evidence', () => {
     );
 
     assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
-    assert.equal(report.surfaceBudgets.find(row => row.surface === 'standalone-chrome' && row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
-    assert.equal(report.surfaceBudgets.find(row => row.surface === 'ios-safari' && row.flow === 'free' && row.cacheState === 'cold')?.status, 'fail');
+    assert.equal(
+      report.profileBudgets.find(row => row.profile.surface === 'standalone-chrome' && row.flow === 'free' && row.cacheState === 'cold')?.status,
+      'pass'
+    );
+    assert.equal(report.profileBudgets.find(row => row.profile.surface === 'ios-safari' && row.flow === 'free' && row.cacheState === 'cold')?.status, 'fail');
+  });
+
+  it('never pools different profiles on one surface to satisfy a budget', () => {
+    const mixedProfiles = Array.from({ length: 4 }, (_, index) => ({
+      path: `chrome-${index}.json`,
+      data: evidence([sample(`chrome-${index}`)], undefined, { device: `MacBook profile ${index + 1}` })
+    }));
+    const mixedReport = buildFirstSoundReadinessReport(mixedProfiles, { expectedCommit: SHA });
+
+    assert.equal(mixedReport.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
+    const mixedProfileBudgets = mixedReport.profileBudgets.filter(
+      row => row.profile.surface === 'standalone-chrome' && row.flow === 'free' && row.cacheState === 'cold'
+    );
+    assert.equal(mixedProfileBudgets.length, 4);
+    assert.ok(mixedProfileBudgets.every(row => row.samples === 1 && row.status === 'not-run'));
+
+    const sameProfileReport = buildFirstSoundReadinessReport(
+      Array.from({ length: 4 }, (_, index) => ({ path: `same-${index}.json`, data: evidence([sample(`same-${index}`)]) })),
+      { expectedCommit: SHA }
+    );
+    const sameProfileBudget = sameProfileReport.profileBudgets.find(
+      row => row.profile.surface === 'standalone-chrome' && row.flow === 'free' && row.cacheState === 'cold'
+    );
+    assert.equal(sameProfileBudget?.samples, 4);
+    assert.equal(sameProfileBudget?.status, 'pass');
   });
 
   it('fails a performance budget and does not hide playback errors from the surface gate', () => {
