@@ -1,7 +1,7 @@
 import { resolveDonationArtist } from '../features/donations/donationModel';
 import { formatEther } from 'viem';
 import { createSupportPaymentFlow } from '../features/payments/supportPayment';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
 import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
@@ -31,6 +31,7 @@ import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
 import { AudioV2DecryptAuthenticationError, createAudioV2ChunkDecryptor } from '../features/catalog/audioV2Decryptor';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
+import { prefetchAudioV2TrackIntent } from '../features/catalog/audioV2IntentPrefetch';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import {
   DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
@@ -687,7 +688,8 @@ export function useCatalog(deps: UseCatalogDeps) {
         rangeStart: 0,
         rangeEnd,
         hedged: range.hedged,
-        fromCache: range.fromCache
+        fromCache: range.fromCache,
+        intentPrefetched: range.intentPrefetched
       });
       try {
         const parsed = parseAudioV2HeaderPrefix(range.bytes);
@@ -697,7 +699,8 @@ export function useCatalog(deps: UseCatalogDeps) {
           rangeStart: 0,
           rangeEnd,
           hedged: range.hedged,
-          fromCache: range.fromCache
+          fromCache: range.fromCache,
+          intentPrefetched: range.intentPrefetched
         });
         return parsed;
       } catch (error) {
@@ -803,7 +806,8 @@ export function useCatalog(deps: UseCatalogDeps) {
               rangeEnd: chunkEnd,
               chunkIndex: chunk.index,
               hedged: range.hedged,
-              fromCache: range.fromCache
+              fromCache: range.fromCache,
+              intentPrefetched: range.intentPrefetched
             });
           }
 
@@ -826,6 +830,7 @@ export function useCatalog(deps: UseCatalogDeps) {
               chunkIndex: chunk.index,
               hedged: range.hedged,
               fromCache: range.fromCache,
+              intentPrefetched: range.intentPrefetched,
               decryptor: decryptor.execution
             });
           }
@@ -841,7 +846,8 @@ export function useCatalog(deps: UseCatalogDeps) {
               rangeEnd: prepared.chunkEnd,
               chunkIndex: chunk.index,
               hedged: prepared.range.hedged,
-              fromCache: prepared.range.fromCache
+              fromCache: prepared.range.fromCache,
+              intentPrefetched: prepared.range.intentPrefetched
             });
           }
         }
@@ -1181,6 +1187,11 @@ export function useCatalog(deps: UseCatalogDeps) {
     navigateToView('player');
     return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers, showAccessGateOnDenied);
   }
+
+  const prefetchTrackAudio = useCallback((track: CatalogTrack): void => {
+    if (!track.encrypted || !isEncryptedAudioV2Ref(track.audioRef)) return;
+    void prefetchAudioV2TrackIntent(track.audioRef).catch(() => undefined);
+  }, []);
 
   function explainRuntimeWriteWalletRequirement(): string | null {
     if (!connectedWallet) return null;
@@ -1621,6 +1632,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     // Functions
     selectTrack,
     openTrack,
+    prefetchTrackAudio,
     checkTrackAccess,
     checkTrackPaidAccess,
     buildAccessGateInfo,

@@ -18,6 +18,7 @@ type ArtistProfileViewProps = {
   onBack: () => void;
   onOpenTrack: (track: CatalogTrack) => void;
   onPlayTrack: (track: CatalogTrack) => void;
+  onTrackIntent: (track: CatalogTrack) => void;
   roomGuest: boolean;
   socketStatus: SocketStatus;
   onOpenArtistRoom: (track: CatalogTrack) => void;
@@ -50,6 +51,7 @@ export function ArtistProfileView({
   onBack,
   onOpenTrack,
   onPlayTrack,
+  onTrackIntent,
   roomGuest,
   socketStatus,
   onOpenArtistRoom,
@@ -87,7 +89,14 @@ export function ArtistProfileView({
           </div>
           {leadTrack && (
             <div className='artist-profile-actions'>
-              <button className='primary-action' type='button' onClick={() => activateTrack(leadTrack)}>
+              <button
+                className='primary-action'
+                type='button'
+                onPointerEnter={() => onTrackIntent(leadTrack)}
+                onPointerDown={() => onTrackIntent(leadTrack)}
+                onFocus={() => onTrackIntent(leadTrack)}
+                onClick={() => activateTrack(leadTrack)}
+              >
                 {canPlay(leadTrack) ? <Play size={18} fill='currentColor' /> : <ArrowRight size={18} />}
                 Listen to latest release
               </button>
@@ -111,7 +120,13 @@ export function ArtistProfileView({
                 const accessDescription = catalogAccessAriaLabel(track, hasAccess, nativePaymentSymbol);
                 return (
                   <article className='artist-release-card' key={track.id}>
-                    <TrackArtworkButton track={track} canPlay={canPlay(track)} accessCue={accessDescription} onActivate={() => activateTrack(track)} />
+                    <TrackArtworkButton
+                      track={track}
+                      canPlay={canPlay(track)}
+                      accessCue={accessDescription}
+                      onIntent={() => onTrackIntent(track)}
+                      onActivate={() => activateTrack(track)}
+                    />
                     <div className='artist-release-copy'>
                       <button
                         type='button'
