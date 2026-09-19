@@ -621,10 +621,11 @@ Aggregate p75 remains visible but cannot compensate for a slow or undersampled
 profile. The report prints every profile beside its surface. A blocked autoplay
 attempt is recorded as a terminal error, and a later explicit Play starts a
 fresh measurement. Reaching `canplay` only releases the loading affordance; the
-attempt remains cancellable until `playing` or a terminal error. Host events are
-correlated to the concrete playback-attempt object that initiated them, so a
-delayed `play()` rejection or media error cannot settle a replacement attempt,
-including a new attempt for the same source. A muted or zero-volume `playing`
+attempt remains cancellable until `playing` or a terminal error. Asynchronous
+play results are correlated to the concrete playback-attempt object that
+initiated them. Each resolved source also receives a distinct host media-element
+generation, so a delayed native error from a retired element cannot reach its
+replacement, including when a URL is reused. A muted or zero-volume `playing`
 event is recorded as an error. An unmuted `playing` event only proves that the
 media clock advanced; the operator confirmation supplies the evidence that
 sound reached the actual output route. The
