@@ -67,7 +67,7 @@ describe('first-sound evidence capture', () => {
     const first = bindFirstSoundCandidate({ buildSha: SHA, productAppVersion: '[0, 1, 25]' }, CID);
     expect(first?.candidate).toEqual({ gitSha: SHA, productAppVersion: '[0, 1, 25]', deployedCid: CID });
 
-    beginFirstSoundAttempt('standalone-chrome', 'free', 1_000);
+    beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 1_000);
     finishFirstSoundAttempt(snapshot(1_000), 2_000);
     expect(readFirstSoundEvidenceDraft()?.samples).toHaveLength(1);
 
@@ -80,13 +80,14 @@ describe('first-sound evidence capture', () => {
     expect(bindFirstSoundCandidate({ buildSha: SHA, productAppVersion: '[0, 1, 25]' }, 'not-a-cid')).toBeNull();
     bindFirstSoundCandidate({ buildSha: SHA, productAppVersion: null }, '');
 
-    expect(beginFirstSoundAttempt('standalone-safari', 'free', 1_000)?.activeAttempt?.surface).toBe('standalone-safari');
-    expect(beginFirstSoundAttempt('product-desktop', 'free', 2_000)).toBeNull();
+    expect(beginFirstSoundAttempt('standalone-safari', 'free', 'cold', 1_000)?.activeAttempt?.surface).toBe('standalone-safari');
+    expect(beginFirstSoundAttempt('standalone-safari', 'warm-next-track', 'cold', 1_500)).toBeNull();
+    expect(beginFirstSoundAttempt('product-desktop', 'free', 'cold', 2_000)).toBeNull();
   });
 
   it('captures sanitized timing and DAV2 path facts after an audible result', () => {
     bindFirstSoundCandidate({ buildSha: SHA, productAppVersion: '[0, 1, 25]' }, CID);
-    beginFirstSoundAttempt('product-desktop', 'authorized-protected', 1_000);
+    beginFirstSoundAttempt('product-desktop', 'authorized-protected', 'warm', 1_000);
     const draft = finishFirstSoundAttempt(snapshot(1_000), 2_000);
 
     expect(draft?.activeAttempt).toBeNull();
@@ -94,6 +95,7 @@ describe('first-sound evidence capture', () => {
       expect.objectContaining({
         surface: 'product-desktop',
         flow: 'authorized-protected',
+        cacheState: 'warm',
         outcome: 'first-audio',
         firstSoundMs: 812.4,
         dav2: {
@@ -122,7 +124,7 @@ describe('first-sound evidence capture', () => {
 
   it('does not capture before a source selection and terminal audio event are both observed', () => {
     bindFirstSoundCandidate({ buildSha: SHA, productAppVersion: null }, '');
-    beginFirstSoundAttempt('ios-safari', 'free', 1_000);
+    beginFirstSoundAttempt('ios-safari', 'free', 'cold', 1_000);
 
     expect(finishFirstSoundAttempt({ dav2: [], host: [], latestFirstSoundMs: null }, 2_000)).toBeNull();
     expect(readFirstSoundEvidenceDraft()?.activeAttempt).not.toBeNull();

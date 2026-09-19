@@ -4,7 +4,15 @@ import { fileURLToPath } from 'node:url';
 
 const SURFACES = ['standalone-chrome', 'standalone-firefox', 'standalone-safari', 'ios-safari', 'android-chrome', 'product-desktop', 'product-web-gateway'];
 const FLOWS = ['free', 'authorized-protected', 'warm-next-track'];
+const CACHE_STATES = ['cold', 'warm'];
 const BUDGETS_MS = { free: 1_500, 'authorized-protected': 2_000, 'warm-next-track': 700 };
+const BUDGET_CELLS = [
+  { flow: 'free', cacheState: 'cold' },
+  { flow: 'free', cacheState: 'warm' },
+  { flow: 'authorized-protected', cacheState: 'cold' },
+  { flow: 'authorized-protected', cacheState: 'warm' },
+  { flow: 'warm-next-track', cacheState: 'warm' }
+];
 const MIN_BUDGET_SAMPLES = 4;
 const MIN_FALLBACK_SAMPLES = 100;
 const FULL_SHA = /^[0-9a-f]{40}$/i;
@@ -39,10 +47,13 @@ function validateCandidate(candidate) {
 }
 
 function validateSample(sample) {
-  if (!exactKeys(sample, ['id', 'surface', 'flow', 'outcome', 'firstSoundMs', 'capturedAt', 'dav2'])) return 'sample contains unknown or missing fields';
+  if (!exactKeys(sample, ['id', 'surface', 'flow', 'cacheState', 'outcome', 'firstSoundMs', 'capturedAt', 'dav2']))
+    return 'sample contains unknown or missing fields';
   if (typeof sample.id !== 'string' || sample.id.length < 3 || sample.id.length > 160) return 'sample.id is invalid';
   if (!SURFACES.includes(sample.surface)) return `sample.surface ${sample.surface} is unsupported`;
   if (!FLOWS.includes(sample.flow)) return `sample.flow ${sample.flow} is unsupported`;
+  if (!CACHE_STATES.includes(sample.cacheState)) return `sample.cacheState ${sample.cacheState} is unsupported`;
+  if (sample.flow === 'warm-next-track' && sample.cacheState !== 'warm') return 'warm-next-track samples must use cacheState=warm';
   if (!['first-audio', 'error'].includes(sample.outcome)) return 'sample.outcome is invalid';
   if (sample.outcome === 'first-audio' && (!Number.isFinite(sample.firstSoundMs) || sample.firstSoundMs < 0))
     return 'successful sample requires a non-negative firstSoundMs';
@@ -171,12 +182,15 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     );
   }
 
-  const budgets = FLOWS.map(flow => {
-    const successful = samples.filter(sample => sample.flow === flow && sample.outcome === 'first-audio').map(sample => sample.firstSoundMs);
+  const budgets = BUDGET_CELLS.map(({ flow, cacheState }) => {
+    const successful = samples
+      .filter(sample => sample.flow === flow && sample.cacheState === cacheState && sample.outcome === 'first-audio')
+      .map(sample => sample.firstSoundMs);
     const p75Ms = percentile(successful, 0.75);
     const targetMs = BUDGETS_MS[flow];
     return {
       flow,
+      cacheState,
       samples: successful.length,
       p75Ms,
       targetMs,
@@ -186,8 +200,8 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
   for (const row of budgets) {
     gates.push(
       gate(
-        `budget:${row.flow}`,
-        `p75 · ${row.flow}`,
+        `budget:${row.flow}:${row.cacheState}`,
+        `p75 · ${row.flow} · ${row.cacheState}`,
         row.status,
         row.samples < MIN_BUDGET_SAMPLES
           ? `${row.samples}/${MIN_BUDGET_SAMPLES} successful samples; insufficient for the bounded p75 gate.`

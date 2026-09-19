@@ -544,7 +544,8 @@ build with `VITE_DOTIFY_DEBUG_PANEL=true` exposes **First-sound evidence** under
 
 1. Bind the exact build. Add the deployment CID for Product Desktop or Product
    Web gateway samples.
-2. Choose the tested surface and listening flow, then select **Start sample**.
+2. Choose the tested surface, listening flow, and explicit cold or warm cache
+   condition, then select **Start sample**.
 3. Start the track. After audio begins or playback fails, select **Capture
    result**.
 4. Repeat cold and warm attempts, then download the candidate-bound JSON.
@@ -570,7 +571,7 @@ npm run smoke:first-sound -- \
 
 The strict gate requires evidence for desktop Chrome, Firefox, Safari, iOS
 Safari, Android Chrome, Product Desktop, and Product Web gateway. It requires at
-least four successful samples before judging each p75 flow budget. The DAV2
+least four successful samples before judging each cold/warm p75 flow cell. The DAV2
 fallback-rate target remains unproven until at least 100 DAV2 attempts are
 present; fewer attempts are reported as `not-run`, never rounded into a claim.
 Synthetic Chromium evidence validates the capture mechanism but does not count

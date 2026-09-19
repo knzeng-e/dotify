@@ -15,9 +15,11 @@ export const FIRST_SOUND_SURFACES = [
 ] as const;
 
 export const FIRST_SOUND_FLOWS = ['free', 'authorized-protected', 'warm-next-track'] as const;
+export const FIRST_SOUND_CACHE_STATES = ['cold', 'warm'] as const;
 
 export type FirstSoundSurface = (typeof FIRST_SOUND_SURFACES)[number];
 export type FirstSoundFlow = (typeof FIRST_SOUND_FLOWS)[number];
+export type FirstSoundCacheState = (typeof FIRST_SOUND_CACHE_STATES)[number];
 
 export type FirstSoundCandidate = {
   gitSha: string;
@@ -29,6 +31,7 @@ export type FirstSoundAttempt = {
   id: string;
   surface: FirstSoundSurface;
   flow: FirstSoundFlow;
+  cacheState: FirstSoundCacheState;
   startedAt: number;
 };
 
@@ -36,6 +39,7 @@ export type FirstSoundSample = {
   id: string;
   surface: FirstSoundSurface;
   flow: FirstSoundFlow;
+  cacheState: FirstSoundCacheState;
   outcome: 'first-audio' | 'error';
   firstSoundMs: number | null;
   capturedAt: string;
@@ -93,6 +97,10 @@ function isFlow(value: unknown): value is FirstSoundFlow {
   return typeof value === 'string' && (FIRST_SOUND_FLOWS as readonly string[]).includes(value);
 }
 
+function isCacheState(value: unknown): value is FirstSoundCacheState {
+  return typeof value === 'string' && (FIRST_SOUND_CACHE_STATES as readonly string[]).includes(value);
+}
+
 function normalizeCandidate(candidate: FirstSoundCandidate): FirstSoundCandidate | null {
   const gitSha = candidate.gitSha.trim().toLowerCase();
   const productAppVersion = candidate.productAppVersion?.trim() || null;
@@ -105,7 +113,8 @@ function normalizeCandidate(candidate: FirstSoundCandidate): FirstSoundCandidate
 }
 
 function parseSample(value: unknown): FirstSoundSample | null {
-  if (!isRecord(value) || typeof value.id !== 'string' || !isSurface(value.surface) || !isFlow(value.flow)) return null;
+  if (!isRecord(value) || typeof value.id !== 'string' || !isSurface(value.surface) || !isFlow(value.flow) || !isCacheState(value.cacheState)) return null;
+  if (value.flow === 'warm-next-track' && value.cacheState !== 'warm') return null;
   if (value.outcome !== 'first-audio' && value.outcome !== 'error') return null;
   if (value.firstSoundMs !== null && (typeof value.firstSoundMs !== 'number' || !Number.isFinite(value.firstSoundMs) || value.firstSoundMs < 0)) return null;
   if (typeof value.capturedAt !== 'string' || !Number.isFinite(Date.parse(value.capturedAt))) return null;
@@ -121,7 +130,8 @@ function parseSample(value: unknown): FirstSoundSample | null {
 }
 
 function parseAttempt(value: unknown): FirstSoundAttempt | null {
-  if (!isRecord(value) || typeof value.id !== 'string' || !isSurface(value.surface) || !isFlow(value.flow)) return null;
+  if (!isRecord(value) || typeof value.id !== 'string' || !isSurface(value.surface) || !isFlow(value.flow) || !isCacheState(value.cacheState)) return null;
+  if (value.flow === 'warm-next-track' && value.cacheState !== 'warm') return null;
   if (typeof value.startedAt !== 'number' || !Number.isFinite(value.startedAt) || value.startedAt <= 0) return null;
   return value as FirstSoundAttempt;
 }
@@ -189,10 +199,22 @@ export function surfaceNeedsProductCandidate(surface: FirstSoundSurface): boolea
   return surface === 'product-desktop' || surface === 'product-web-gateway';
 }
 
-export function beginFirstSoundAttempt(surface: FirstSoundSurface, flow: FirstSoundFlow, now = Date.now()): FirstSoundEvidenceDraft | null {
+export function beginFirstSoundAttempt(
+  surface: FirstSoundSurface,
+  flow: FirstSoundFlow,
+  cacheState: FirstSoundCacheState,
+  now = Date.now()
+): FirstSoundEvidenceDraft | null {
   const current = readFirstSoundEvidenceDraft();
-  if (!Number.isFinite(now) || now <= 0 || !current || (surfaceNeedsProductCandidate(surface) && !productCandidateComplete(current.candidate))) return null;
-  const next = { ...current, activeAttempt: { id: createAttemptId(now), surface, flow, startedAt: now } };
+  if (
+    !Number.isFinite(now) ||
+    now <= 0 ||
+    !current ||
+    (flow === 'warm-next-track' && cacheState !== 'warm') ||
+    (surfaceNeedsProductCandidate(surface) && !productCandidateComplete(current.candidate))
+  )
+    return null;
+  const next = { ...current, activeAttempt: { id: createAttemptId(now), surface, flow, cacheState, startedAt: now } };
   writeDraft(next);
   return next;
 }
@@ -214,6 +236,7 @@ export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot,
     id: attempt.id,
     surface: attempt.surface,
     flow: attempt.flow,
+    cacheState: attempt.cacheState,
     outcome: terminal.phase,
     firstSoundMs: terminal.phase === 'first-audio' ? terminal.elapsedMs : null,
     capturedAt: new Date(now).toISOString(),

@@ -11,6 +11,7 @@ function sample(id, overrides = {}) {
     id,
     surface: 'standalone-chrome',
     flow: 'free',
+    cacheState: 'cold',
     outcome: 'first-audio',
     firstSoundMs: 800,
     capturedAt: '2026-09-19T12:00:00.000Z',
@@ -46,8 +47,8 @@ describe('first-sound readiness evidence', () => {
     const samples = [400, 700, 900, 1_200].map((firstSoundMs, index) => sample(`free-${index}`, { firstSoundMs }));
     const report = buildFirstSoundReadinessReport([{ path: 'chrome.json', data: evidence(samples) }], { expectedCommit: SHA });
 
-    assert.equal(report.budgets.find(row => row.flow === 'free')?.p75Ms, 900);
-    assert.equal(report.budgets.find(row => row.flow === 'free')?.status, 'pass');
+    assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.p75Ms, 900);
+    assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
     assert.equal(report.matrix.find(row => row.surface === 'standalone-chrome')?.status, 'pass');
     assert.equal(report.matrix.find(row => row.surface === 'ios-safari')?.status, 'not-run');
     assert.equal(report.gates.find(row => row.id === 'fallback-rate')?.status, 'not-run');
@@ -59,7 +60,7 @@ describe('first-sound readiness evidence', () => {
     samples.push(sample('failed', { outcome: 'error', firstSoundMs: null }));
     const report = buildFirstSoundReadinessReport([{ path: 'chrome.json', data: evidence(samples) }], { expectedCommit: SHA });
 
-    assert.equal(report.budgets.find(row => row.flow === 'free')?.status, 'fail');
+    assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.status, 'fail');
     assert.equal(report.matrix.find(row => row.surface === 'standalone-chrome')?.status, 'fail');
   });
 

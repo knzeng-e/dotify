@@ -5,6 +5,7 @@ import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
 import { clearAudioStartupTelemetry, getAudioStartupTelemetrySnapshot } from '../features/catalog/audioStartupTelemetry';
 import {
   FIRST_SOUND_FLOWS,
+  FIRST_SOUND_CACHE_STATES,
   FIRST_SOUND_SURFACES,
   beginFirstSoundAttempt,
   bindFirstSoundCandidate,
@@ -18,6 +19,7 @@ import {
   serializeFirstSoundEvidence,
   surfaceNeedsProductCandidate,
   type FirstSoundEvidenceContext,
+  type FirstSoundCacheState,
   type FirstSoundFlow,
   type FirstSoundSurface
 } from '../features/catalog/firstSoundEvidence';
@@ -55,6 +57,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
   const [deployedCid, setDeployedCid] = useState(() => readFirstSoundEvidenceDraft()?.candidate.deployedCid ?? '');
   const [surface, setSurface] = useState<FirstSoundSurface>('standalone-chrome');
   const [flow, setFlow] = useState<FirstSoundFlow>('free');
+  const [cacheState, setCacheState] = useState<FirstSoundCacheState>('cold');
   const normalizedCid = normalizeIpfsCid(deployedCid) || null;
   const candidateActive = Boolean(
     draft &&
@@ -65,7 +68,10 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
   const productReady = draft ? productCandidateComplete(draft.candidate) : false;
   const evidence = useMemo(() => (draft ? buildFirstSoundEvidence(draft) : null), [draft]);
   const serializedEvidence = useMemo(() => (evidence ? serializeFirstSoundEvidence(evidence) : ''), [evidence]);
-  const flowSamples = draft?.samples.filter(sample => sample.flow === flow && sample.outcome === 'first-audio' && sample.firstSoundMs !== null) ?? [];
+  const flowSamples =
+    draft?.samples.filter(
+      sample => sample.flow === flow && sample.cacheState === cacheState && sample.outcome === 'first-audio' && sample.firstSoundMs !== null
+    ) ?? [];
   const p75 = percentile(
     flowSamples.map(sample => sample.firstSoundMs as number),
     0.75
@@ -88,7 +94,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
 
   function startAttempt() {
     clearAudioStartupTelemetry();
-    const next = beginFirstSoundAttempt(surface, flow);
+    const next = beginFirstSoundAttempt(surface, flow, cacheState);
     if (!next) {
       pushNotice({
         tone: 'error',
@@ -214,7 +220,11 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
           id='first-sound-flow'
           value={flow}
           disabled={Boolean(draft?.activeAttempt)}
-          onChange={event => setFlow(event.currentTarget.value as FirstSoundFlow)}
+          onChange={event => {
+            const nextFlow = event.currentTarget.value as FirstSoundFlow;
+            setFlow(nextFlow);
+            if (nextFlow === 'warm-next-track') setCacheState('warm');
+          }}
         >
           {FIRST_SOUND_FLOWS.map(value => (
             <option key={value} value={value}>
@@ -222,10 +232,23 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
             </option>
           ))}
         </select>
+        <label htmlFor='first-sound-cache-state'>Cache condition</label>
+        <select
+          id='first-sound-cache-state'
+          value={cacheState}
+          disabled={Boolean(draft?.activeAttempt) || flow === 'warm-next-track'}
+          onChange={event => setCacheState(event.currentTarget.value as FirstSoundCacheState)}
+        >
+          {FIRST_SOUND_CACHE_STATES.map(value => (
+            <option key={value} value={value}>
+              {value === 'cold' ? 'Cold start' : 'Warm start'}
+            </option>
+          ))}
+        </select>
         <small>
           {flowSamples.length === 0
-            ? `No successful ${FLOW_LABELS[flow].toLowerCase()} samples yet.`
-            : `Observed p75 ${Math.round(p75 ?? 0)} ms from ${flowSamples.length} sample${flowSamples.length === 1 ? '' : 's'}; ${
+            ? `No successful ${cacheState} ${FLOW_LABELS[flow].toLowerCase()} samples yet.`
+            : `Observed ${cacheState} p75 ${Math.round(p75 ?? 0)} ms from ${flowSamples.length} sample${flowSamples.length === 1 ? '' : 's'}; ${
                 flowSamples.length < 4 ? 'four samples are required before judging' : `target under ${FLOW_BUDGET_MS[flow]} ms`
               }.`}
         </small>

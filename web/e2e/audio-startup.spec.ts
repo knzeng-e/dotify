@@ -94,6 +94,7 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
   await panel.getByRole('button', { name: 'Use this candidate' }).click();
   await panel.getByLabel('Tested surface').selectOption('standalone-chrome');
   await panel.getByLabel('Listening flow').selectOption('free');
+  await panel.getByLabel('Cache condition').selectOption('cold');
   await panel.getByRole('button', { name: 'Start sample' }).click();
 
   await page.evaluate(() => {
@@ -130,6 +131,7 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
 
   const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v1'));
   expect(stored).toContain('"firstSoundMs":812');
+  expect(stored).toContain('"cacheState":"cold"');
   expect(stored).not.toContain('private-audio-ref');
   expect(stored).not.toContain('private-gateway');
   expect(stored).not.toContain('private-source');
