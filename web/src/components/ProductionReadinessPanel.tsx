@@ -1,5 +1,5 @@
 import { Activity, CircleAlert, CircleCheckBig, CircleHelp, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 
 import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
 import {
@@ -16,6 +16,7 @@ import { deployments } from '../shared/config/deployments';
 import { ensureContract, getPublicClient } from '../shared/config/contracts';
 import { EndpointRow } from '../shared/ui/EndpointRow';
 import type { CatalogTrack } from '../shared/types';
+import type { FirstSoundEvidenceContext } from '../features/catalog/firstSoundEvidence';
 import { ProductCdmHostSmokeEvidencePanel } from './ProductCdmHostSmokeEvidencePanel';
 import type { ProductCdmHostSmokeContext } from '../features/productHost/productCdmHostSmokeEvidence';
 import { ProductRoomSmokeEvidencePanel } from './ProductRoomSmokeEvidencePanel';
@@ -24,6 +25,7 @@ import type { ProductRoomSmokeContext } from '../features/productHost/productRoo
 const FETCH_TIMEOUT_MS = 5_000;
 const SIGNAL_URL = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const BACKEND_API_URL = import.meta.env.VITE_DOTIFY_API_URL as string | undefined;
+const FirstSoundEvidencePanel = lazy(() => import('./FirstSoundEvidencePanel').then(module => ({ default: module.FirstSoundEvidencePanel })));
 
 export type ProductionReadinessPanelProps = {
   catalogTracks: CatalogTrack[];
@@ -31,6 +33,7 @@ export type ProductionReadinessPanelProps = {
   ethRpcUrl: string;
   expectedChainId: number | null;
   walletChainId?: number;
+  firstSoundEvidence?: FirstSoundEvidenceContext;
   productCdmHostSmoke?: ProductCdmHostSmokeContext;
   productRoomSmoke?: ProductRoomSmokeContext;
 };
@@ -41,6 +44,7 @@ export function ProductionReadinessPanel({
   ethRpcUrl,
   expectedChainId,
   walletChainId,
+  firstSoundEvidence,
   productCdmHostSmoke,
   productRoomSmoke
 }: ProductionReadinessPanelProps) {
@@ -116,6 +120,11 @@ export function ProductionReadinessPanel({
         ))}
       </div>
 
+      {firstSoundEvidence && (
+        <Suspense fallback={null}>
+          <FirstSoundEvidencePanel context={firstSoundEvidence} />
+        </Suspense>
+      )}
       {productCdmHostSmoke && <ProductCdmHostSmokeEvidencePanel context={productCdmHostSmoke} />}
       {productRoomSmoke && <ProductRoomSmokeEvidencePanel context={productRoomSmoke} />}
     </section>

@@ -125,7 +125,7 @@ Before and during the pilot, use these surfaces:
 | Signaling | `GET https://dotify-signal.fly.dev/health` and `/status` |
 | Product static gates | `npm run smoke:product-journey` |
 | Pilot release gate | `npm run smoke:pilot-release` |
-| Audio startup QA | `window.__DOTIFY_AUDIO_STARTUP__.snapshot()` |
+| Audio startup QA | Candidate-bound First-sound evidence export under `You -> Production readiness`; raw bounded snapshot remains available at `window.__DOTIFY_AUDIO_STARTUP__.snapshot()` |
 | Room quality QA | `window.__DOTIFY_ROOM_QUALITY__.snapshot()` |
 | Product CDM QA | Debug panel exported Product CDM host smoke JSON |
 | Product room QA | Debug panel exported Product room smoke JSON, derived from host telemetry plus explicit guest-device observations |

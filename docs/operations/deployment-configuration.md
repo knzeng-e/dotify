@@ -145,7 +145,7 @@ Optional production variables:
 
 | Key                            | When to set                                                                                                                                        |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_DOTIFY_DEBUG_PANEL=true` | Temporary operator smoke checks and Product CDM host evidence export under `You -> Production readiness`; unset for ordinary listener deployments. |
+| `VITE_DOTIFY_DEBUG_PANEL=true` | Temporary operator smoke checks plus first-sound, Product CDM, and room evidence exports under `You -> Production readiness`; unset for ordinary listener deployments. |
 | `VITE_TURN_URL`                | Browser-visible TURN fallback for DevNet/static credentials. Prefer API grants for production. Accepts comma-separated `turn:` / `turns:` URLs.    |
 | `VITE_TURN_USERNAME`           | Static fallback only. Do not use long-lived production credentials here.                                                                           |
 | `VITE_TURN_CREDENTIAL`         | Static fallback only. Do not use long-lived production credentials here.                                                                           |
@@ -534,6 +534,47 @@ sr25519 key/session outcomes, and the operator-marked host approval observation.
 Validate Product protected playback through host smoke tests after each Product
 publication before treating Product identity as production-ready for gated
 listening.
+
+### First-sound candidate evidence
+
+Every ordinary Vite build now embeds its exact git SHA in
+`VITE_DOTIFY_BUILD_SHA`, matching the Product build identity behavior. A smoke
+build with `VITE_DOTIFY_DEBUG_PANEL=true` exposes **First-sound evidence** under
+`You -> Production readiness`:
+
+1. Bind the exact build. Add the deployment CID for Product Desktop or Product
+   Web gateway samples.
+2. Choose the tested surface and listening flow, then select **Start sample**.
+3. Start the track. After audio begins or playback fails, select **Capture
+   result**.
+4. Repeat cold and warm attempts, then download the candidate-bound JSON.
+
+The export keeps first-sound duration and coarse DAV2 path facts only. It omits
+wallet addresses, listener identity, audio refs/CIDs, gateway URLs, media source
+URLs, keys, signatures, and per-listener history. Changing the SHA, Product app
+version, or deployment CID starts a new evidence set instead of mixing builds.
+
+Combine exports from physical surfaces and produce the release report with:
+
+```bash
+cd web
+npm run smoke:first-sound -- \
+  --evidence-json /path/to/chrome.json \
+  --evidence-json /path/to/safari.json \
+  --evidence-json /path/to/product-desktop.json \
+  --expected-commit <40-character-candidate-sha> \
+  --md-out /tmp/dotify-first-sound.md \
+  --json-out /tmp/dotify-first-sound.json \
+  --strict
+```
+
+The strict gate requires evidence for desktop Chrome, Firefox, Safari, iOS
+Safari, Android Chrome, Product Desktop, and Product Web gateway. It requires at
+least four successful samples before judging each p75 flow budget. The DAV2
+fallback-rate target remains unproven until at least 100 DAV2 attempts are
+present; fewer attempts are reported as `not-run`, never rounded into a claim.
+Synthetic Chromium evidence validates the capture mechanism but does not count
+as physical Safari, mobile, or Product-host evidence.
 
 ## Fly Signaling
 

@@ -99,7 +99,9 @@ export function ListenerShell() {
   });
   const isRoomGuest = session.mode === 'listener' && Boolean(roomId);
   const soloTrackHash = playback.transport.playing && !roomId ? (selectedTrack?.hash ?? null) : null;
-  const showProductionReadinessPanel = isProductionReadinessPanelEnabled({ VITE_DOTIFY_DEBUG_PANEL: import.meta.env.VITE_DOTIFY_DEBUG_PANEL });
+  const showProductionReadinessPanel =
+    isProductionReadinessPanelEnabled({ VITE_DOTIFY_DEBUG_PANEL: import.meta.env.VITE_DOTIFY_DEBUG_PANEL }) ||
+    (import.meta.env.VITE_E2E_READINESS_PANEL === 'true' && new URLSearchParams(window.location.search).get('e2eReadiness') === 'true');
   const connectedWallet = walletState.status === 'connected' ? walletState.wallet : null;
   const nativePaymentSymbol = catalog.nativeRuntimePaymentAsset.symbol;
 
@@ -358,6 +360,10 @@ export function ListenerShell() {
                             ethRpcUrl,
                             expectedChainId,
                             walletChainId: connectedWallet?.chainId,
+                            firstSoundEvidence: {
+                              buildSha: (import.meta.env.VITE_DOTIFY_BUILD_SHA as string | undefined) ?? null,
+                              productAppVersion: (import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION as string | undefined) ?? null
+                            },
                             productCdmHostSmoke: {
                               buildSha: (import.meta.env.VITE_DOTIFY_BUILD_SHA as string | undefined) ?? null,
                               productAppVersion: (import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION as string | undefined) ?? null,

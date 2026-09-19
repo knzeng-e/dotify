@@ -85,6 +85,56 @@ test('audio startup telemetry is retained for QA in the browser', async ({ page 
   expect(dav2Snapshot?.latestFirstSoundMs).toBe(821.6);
 });
 
+test('the readiness panel captures a candidate-bound first-sound sample without media identifiers', async ({ page }) => {
+  await page.goto('/?e2eRoom=public&e2eReadiness=true');
+  await page.getByRole('button', { name: 'You', exact: true }).click();
+
+  const panel = page.locator('[aria-labelledby="first-sound-evidence-title"]');
+  await expect(panel).toBeVisible();
+  await panel.getByRole('button', { name: 'Use this candidate' }).click();
+  await panel.getByLabel('Tested surface').selectOption('standalone-chrome');
+  await panel.getByLabel('Listening flow').selectOption('free');
+  await panel.getByRole('button', { name: 'Start sample' }).click();
+
+  await page.evaluate(() => {
+    const timestamp = Date.now();
+    window.dispatchEvent(
+      new CustomEvent('dotify:dav2-startup', {
+        detail: {
+          phase: 'first-range-ready',
+          audioRef: 'dotify:enc:v2:ipfs://private-audio-ref',
+          cid: 'private-cid',
+          elapsedMs: 300,
+          timestamp,
+          gatewayUrl: 'https://private-gateway.example/ipfs/private-cid',
+          rangeStart: 100,
+          rangeEnd: 399,
+          intentPrefetched: true
+        }
+      })
+    );
+    window.dispatchEvent(
+      new CustomEvent('dotify:host-audio-startup', {
+        detail: { phase: 'source-selected', source: 'blob:private-source', elapsedMs: 0, timestamp }
+      })
+    );
+    window.dispatchEvent(
+      new CustomEvent('dotify:host-audio-startup', {
+        detail: { phase: 'first-audio', source: 'blob:private-source', elapsedMs: 812, timestamp: timestamp + 1, durationSeconds: 10 }
+      })
+    );
+  });
+
+  await panel.getByRole('button', { name: 'Capture result' }).click();
+  await expect(panel.getByText('1 sanitized sample')).toBeVisible();
+
+  const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v1'));
+  expect(stored).toContain('"firstSoundMs":812');
+  expect(stored).not.toContain('private-audio-ref');
+  expect(stored).not.toContain('private-gateway');
+  expect(stored).not.toContain('private-source');
+});
+
 test('DAV2 chunk decryption runs in a real browser worker', async ({ page }) => {
   await page.goto('/?e2eRoom=public');
 
