@@ -17,6 +17,7 @@ type RoomJoinE2eState = {
   replaceTrackSwaps: number;
   captureTrackStops: number;
   webAudioCaptures: number;
+  webAudioCaptureCloses: number;
   webAudioMonitorGain: number;
   streamReadySignals: number;
   remotePlaybackCues: number;
@@ -57,10 +58,16 @@ async function readRoomQuality(page: Page) {
 
 // Host: open a deterministic e2e track and broadcast it as a room. Returns the
 // server-assigned room code so a listener context can join via its share link.
-async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: string, options: { captureMode?: HostCaptureMode; offerDelayMs?: number } = {}) {
+async function openHostRoom(
+  page: Page,
+  scenario: HostScenario,
+  trackTitle: string,
+  options: { captureMode?: HostCaptureMode; offerDelayMs?: number; catalogSequence?: boolean } = {}
+) {
   const params = new URLSearchParams({ e2eRoom: scenario });
   if (options.captureMode) params.set('e2eCapture', options.captureMode);
   if (options.offerDelayMs) params.set('e2eOfferDelayMs', String(options.offerDelayMs));
+  if (options.catalogSequence) params.set('e2eCatalog', 'sequence');
   await page.goto(`/?${params.toString()}`);
   // Open the room straight from the create-room modal so an unauthorized
   // protected track does not raise an access-gate overlay over the player
@@ -350,7 +357,7 @@ test('protected room with authorized host: host gets the key, listener streams f
   const listenerContext = await browser.newContext();
   try {
     const host = await hostContext.newPage();
-    const roomId = await openHostRoom(host, 'protected-authorized', PROTECTED_TITLE);
+    const roomId = await openHostRoom(host, 'protected-authorized', PROTECTED_TITLE, { captureMode: 'web-audio' });
     await expect(host.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
 
     // The host satisfied the policy and received a content key.
@@ -369,6 +376,7 @@ test('protected room with authorized host: host gets the key, listener streams f
     expect(stateBeforeSwitch?.offers ?? 0).toBeGreaterThanOrEqual(1);
     expect(stateBeforeSwitch?.replaceTrackSwaps ?? 0).toBe(0);
     expect(stateBeforeSwitch?.captureTrackStops ?? 0).toBe(0);
+    expect(stateBeforeSwitch?.webAudioCaptureCloses ?? 0).toBe(0);
 
     await host.getByRole('button', { name: 'Next track' }).click();
     await host.getByRole('button', { name: 'Play', exact: true }).click();
@@ -382,10 +390,11 @@ test('protected room with authorized host: host gets the key, listener streams f
     expect(stateAfterSwitch?.offers ?? 0).toBe(stateBeforeSwitch?.offers ?? 0);
     expect(stateAfterSwitch?.replaceTrackSwaps ?? 0).toBeGreaterThanOrEqual(stateBeforeSwitch?.replaceTrackSwaps ?? 0);
     expect(stateAfterSwitch?.captureTrackStops ?? 0).toBe(0);
+    expect(stateAfterSwitch?.webAudioCaptureCloses ?? 0).toBeGreaterThan(stateBeforeSwitch?.webAudioCaptureCloses ?? 0);
     expect(stateAfterSwitch?.streamReadySignals ?? 0).toBeGreaterThan(stateBeforeSwitch?.streamReadySignals ?? 0);
 
-    // Switching back also preserves the receiver. Source replacement must
-    // never stop browser-owned tracks and leave listeners on silent media.
+    // Switching back also preserves the receiver. Source replacement retires
+    // the old Web Audio graph only after its sender has moved to the new track.
     await host.getByRole('button', { name: 'Previous track' }).click();
     await host.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
@@ -396,6 +405,7 @@ test('protected room with authorized host: host gets the key, listener streams f
     expect(stateAfterReturn?.offers ?? 0).toBe(stateAfterSwitch?.offers ?? 0);
     expect(stateAfterReturn?.replaceTrackSwaps ?? 0).toBeGreaterThanOrEqual(stateAfterSwitch?.replaceTrackSwaps ?? 0);
     expect(stateAfterReturn?.captureTrackStops ?? 0).toBe(0);
+    expect(stateAfterReturn?.webAudioCaptureCloses ?? 0).toBeGreaterThan(stateAfterSwitch?.webAudioCaptureCloses ?? 0);
     expect(stateAfterReturn?.streamReadySignals ?? 0).toBeGreaterThan(stateAfterSwitch?.streamReadySignals ?? 0);
 
     const listenerAfterReturn = await readRoomJoinState(listener);
@@ -454,7 +464,7 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
   const listenerContext = await browser.newContext();
   try {
     const host = await hostContext.newPage();
-    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE);
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { captureMode: 'web-audio', catalogSequence: true });
 
     const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
@@ -468,6 +478,25 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
     await expect(listener.getByRole('button', { name: 'Try another room', exact: true })).toBeVisible();
     // The room is gone from the listener UI (no lingering room code).
     await expect(listener.getByTestId('room-code')).toHaveCount(0);
+
+    const stateAfterClose = await readRoomJoinState(host);
+    expect(stateAfterClose?.webAudioCaptureCloses ?? 0).toBe(0);
+
+    // Reopening on the same element/source reuses the retained live capture
+    // and must restore the host-ready UI even though no new media event fires.
+    await host.getByRole('button', { name: 'Open room', exact: true }).click();
+    await host.getByLabel('Your name in the room').fill('Room host');
+    await host.getByRole('button', { name: 'Open the room', exact: true }).click();
+    await expect(host.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/, { timeout: 15_000 });
+    await expect(host.locator('.player-stage .cover')).toHaveAttribute('data-live', 'true');
+    await host.getByRole('tab', { name: /People/ }).click();
+    await host.getByRole('button', { name: 'Close room' }).click();
+
+    // Once solo playback moves to another source generation, the retained
+    // capture owner is finally retired and its Web Audio graph is closed.
+    await host.getByRole('button', { name: 'Music', exact: true }).click();
+    await host.getByRole('button', { name: /^Play Second room track by Dotify Room Host,/ }).click();
+    await expect.poll(async () => (await readRoomJoinState(host))?.webAudioCaptureCloses ?? 0).toBeGreaterThan(0);
   } finally {
     await hostContext.close().catch(() => {});
     await listenerContext.close();

@@ -8,6 +8,7 @@ export type AudioV2RangeResult = {
   elapsedMs: number;
   fromCache: boolean;
   hedged: boolean;
+  recovered: boolean;
   intentPrefetched?: boolean;
 };
 
@@ -355,6 +356,7 @@ export async function fetchAudioV2RangeThroughGateways(cid: string, start: numbe
         elapsedMs: outcome.elapsedMs,
         fromCache: outcome.fromCache,
         hedged,
+        recovered: outcome.id > 0,
         intentPrefetched: false
       };
     }

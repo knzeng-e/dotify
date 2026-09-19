@@ -33,7 +33,8 @@ function rangeResult(bytes: Uint8Array): AudioV2RangeResult {
     gatewayUrl: `https://gateway.example/ipfs/${CID}`,
     elapsedMs: 20,
     fromCache: false,
-    hedged: false
+    hedged: false,
+    recovered: false
   };
 }
 
