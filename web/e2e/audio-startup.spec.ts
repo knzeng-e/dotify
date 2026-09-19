@@ -116,6 +116,32 @@ test('resuming an already loaded track records a fresh warm startup attempt', as
   expect(snapshot?.latestFirstSoundMs).not.toBeNull();
 });
 
+test('autoplay rejection terminates a new-source startup attempt', async ({ page }) => {
+  await page.addInitScript(() => {
+    const nativePlay = HTMLMediaElement.prototype.play;
+    Reflect.set(window, '__dotifyRejectNextHostPlay', true);
+    HTMLMediaElement.prototype.play = function () {
+      const hostAudio = document.querySelector('audio.native-player-source');
+      if (this === hostAudio && Reflect.get(window, '__dotifyRejectNextHostPlay')) {
+        Reflect.set(window, '__dotifyRejectNextHostPlay', false);
+        return Promise.reject(new DOMException('Autoplay blocked for test', 'NotAllowedError'));
+      }
+      return nativePlay.call(this);
+    };
+  });
+  await page.goto('/?e2eRoom=public&e2eAutoplay=on');
+  await page.evaluate(() => window.__DOTIFY_AUDIO_STARTUP__?.clear());
+
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
+  await expect
+    .poll(async () => (await readStartupSnapshot(page))?.host.map(metric => metric.phase))
+    .toEqual(expect.arrayContaining(['playback-intent', 'metadata-ready', 'error']));
+
+  const phases = (await readStartupSnapshot(page))?.host.map(metric => metric.phase) ?? [];
+  expect(phases.indexOf('error')).toBeGreaterThan(phases.indexOf('playback-intent'));
+  expect(phases).not.toContain('first-audio');
+});
+
 test('the readiness panel captures a candidate-bound first-sound sample without media identifiers', async ({ page }) => {
   await page.goto('/?e2eRoom=public&e2eReadiness=true');
   await page.getByRole('button', { name: 'You', exact: true }).click();

@@ -49,10 +49,23 @@ describe('first-sound readiness evidence', () => {
 
     assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.p75Ms, 900);
     assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
+    assert.equal(report.surfaceBudgets.find(row => row.surface === 'standalone-chrome' && row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
     assert.equal(report.matrix.find(row => row.surface === 'standalone-chrome')?.status, 'pass');
     assert.equal(report.matrix.find(row => row.surface === 'ios-safari')?.status, 'not-run');
     assert.equal(report.gates.find(row => row.id === 'fallback-rate')?.status, 'not-run');
-    assert.match(renderFirstSoundReadinessMarkdown(report), /5 pass/);
+    assert.match(renderFirstSoundReadinessMarkdown(report), /standalone-chrome/);
+  });
+
+  it('does not let fast desktop samples hide a slow required surface', () => {
+    const chromeSamples = Array.from({ length: 12 }, (_, index) => sample(`chrome-${index}`, { firstSoundMs: 400 + index * 10 }));
+    const iosSamples = Array.from({ length: 4 }, (_, index) => sample(`ios-${index}`, { surface: 'ios-safari', firstSoundMs: 4_000 + index * 100 }));
+    const report = buildFirstSoundReadinessReport([{ path: 'mixed.json', data: evidence([...chromeSamples, ...iosSamples]) }], {
+      expectedCommit: SHA
+    });
+
+    assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
+    assert.equal(report.surfaceBudgets.find(row => row.surface === 'standalone-chrome' && row.flow === 'free' && row.cacheState === 'cold')?.status, 'pass');
+    assert.equal(report.surfaceBudgets.find(row => row.surface === 'ios-safari' && row.flow === 'free' && row.cacheState === 'cold')?.status, 'fail');
   });
 
   it('fails a performance budget and does not hide playback errors from the surface gate', () => {

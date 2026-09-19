@@ -384,9 +384,15 @@ export function usePlayback(deps: UsePlaybackDeps) {
       void audio
         .play()
         .then(() => setStatus('playing'))
-        .catch(() => setStatus('autoplay-blocked'));
+        .catch(() => {
+          // Autoplay rejection is terminal for the selection attempt. A later
+          // explicit Play starts a new attempt; it must not inherit the wait
+          // between the blocked autoplay and the person's next gesture.
+          reportHostPlaybackError();
+          setStatus('autoplay-blocked');
+        });
     },
-    [syncFromAudio]
+    [reportHostPlaybackError, syncFromAudio]
   );
 
   const handleHostCanPlay = useCallback(

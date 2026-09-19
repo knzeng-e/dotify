@@ -101,6 +101,31 @@ function sameBuild(left, right) {
   return left.gitSha === right.gitSha;
 }
 
+function buildBudgetRow(samples, flow, cacheState, surface = null) {
+  const successful = samples
+    .filter(
+      sample => (surface === null || sample.surface === surface) && sample.flow === flow && sample.cacheState === cacheState && sample.outcome === 'first-audio'
+    )
+    .map(sample => sample.firstSoundMs);
+  const p75Ms = percentile(successful, 0.75);
+  const targetMs = BUDGETS_MS[flow];
+  return {
+    ...(surface === null ? {} : { surface }),
+    flow,
+    cacheState,
+    samples: successful.length,
+    p75Ms,
+    targetMs,
+    status: successful.length < MIN_BUDGET_SAMPLES ? 'not-run' : p75Ms < targetMs ? 'pass' : 'fail'
+  };
+}
+
+function budgetDetail(row) {
+  return row.samples < MIN_BUDGET_SAMPLES
+    ? `${row.samples}/${MIN_BUDGET_SAMPLES} successful samples; insufficient for the bounded p75 gate.`
+    : `${Math.round(row.p75Ms)} ms observed; target < ${row.targetMs} ms.`;
+}
+
 export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
   const gates = [];
   const evidence = [];
@@ -193,30 +218,23 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     );
   }
 
-  const budgets = BUDGET_CELLS.map(({ flow, cacheState }) => {
-    const successful = samples
-      .filter(sample => sample.flow === flow && sample.cacheState === cacheState && sample.outcome === 'first-audio')
-      .map(sample => sample.firstSoundMs);
-    const p75Ms = percentile(successful, 0.75);
-    const targetMs = BUDGETS_MS[flow];
-    return {
-      flow,
-      cacheState,
-      samples: successful.length,
-      p75Ms,
-      targetMs,
-      status: successful.length < MIN_BUDGET_SAMPLES ? 'not-run' : p75Ms < targetMs ? 'pass' : 'fail'
-    };
-  });
+  const budgets = BUDGET_CELLS.map(({ flow, cacheState }) => buildBudgetRow(samples, flow, cacheState));
   for (const row of budgets) {
+    gates.push(gate(`budget:${row.flow}:${row.cacheState}`, `Aggregate p75 · ${row.flow} · ${row.cacheState}`, row.status, budgetDetail(row)));
+  }
+
+  // Aggregate p75 remains useful as a rollout overview, but it cannot prove a
+  // required surface: a large fast Chrome sample could otherwise hide a slow
+  // iPhone, Safari, Android, or Product host. Strict readiness therefore owns
+  // an independent sample floor and budget for every surface/cell pair.
+  const surfaceBudgets = SURFACES.flatMap(surface => BUDGET_CELLS.map(({ flow, cacheState }) => buildBudgetRow(samples, flow, cacheState, surface)));
+  for (const row of surfaceBudgets) {
     gates.push(
       gate(
-        `budget:${row.flow}:${row.cacheState}`,
-        `p75 · ${row.flow} · ${row.cacheState}`,
+        `surface-budget:${row.surface}:${row.flow}:${row.cacheState}`,
+        `Surface p75 · ${row.surface} · ${row.flow} · ${row.cacheState}`,
         row.status,
-        row.samples < MIN_BUDGET_SAMPLES
-          ? `${row.samples}/${MIN_BUDGET_SAMPLES} successful samples; insufficient for the bounded p75 gate.`
-          : `${Math.round(row.p75Ms)} ms observed; target < ${row.targetMs} ms.`
+        budgetDetail(row)
       )
     );
   }
@@ -240,7 +258,16 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     fail: gates.filter(item => item.status === 'fail').length,
     notRun: gates.filter(item => item.status === 'not-run').length
   };
-  return { schemaVersion: 1, candidate, counts, gates, matrix, budgets, fallback: { samples: dav2Samples.length, count: fallbackCount, rate: fallbackRate } };
+  return {
+    schemaVersion: 1,
+    candidate,
+    counts,
+    gates,
+    matrix,
+    budgets,
+    surfaceBudgets,
+    fallback: { samples: dav2Samples.length, count: fallbackCount, rate: fallbackRate }
+  };
 }
 
 export function renderFirstSoundReadinessMarkdown(report) {
