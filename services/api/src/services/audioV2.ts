@@ -4,6 +4,7 @@ const MAGIC = Buffer.from('DAV2', 'ascii');
 const PREFIX_BYTES = 8;
 const AUTH_TAG_BYTES = 16;
 export const DEFAULT_AUDIO_V2_CHUNK_SIZE = 512 * 1024;
+export const DEFAULT_AUDIO_V2_FIRST_CHUNK_SIZE = 256 * 1024;
 
 export type AudioV2Header = {
   schema: 'dotify.audio.v2';
@@ -42,9 +43,9 @@ function chunkAad(header: AudioV2Header, index: number, plainLength: number): Bu
       String(header.plaintextLength),
       header.mediaMime,
       String(index),
-      String(plainLength),
+      String(plainLength)
     ].join('|'),
-    'utf8',
+    'utf8'
   );
 }
 
@@ -91,7 +92,9 @@ export function parseAudioV2Container(bytes: Uint8Array): ParsedAudioV2 {
   for (let index = 0; index < parsed.chunks.length; index += 1) {
     const chunk = parsed.chunks[index];
     if (chunk.index !== index) throw new Error('Non-monotonic DAV2 chunk table');
-    if (!Number.isSafeInteger(chunk.plainLength) || chunk.plainLength <= 0) throw new Error('Invalid DAV2 plain chunk length');
+    if (!Number.isSafeInteger(chunk.plainLength) || chunk.plainLength <= 0 || chunk.plainLength > parsed.chunkSize) {
+      throw new Error('Invalid DAV2 plain chunk length');
+    }
     if (chunk.encryptedLength !== chunk.plainLength + AUTH_TAG_BYTES) throw new Error('Invalid DAV2 encrypted chunk length');
     plaintextTotal += chunk.plainLength;
     encryptedTotal += chunk.encryptedLength;
@@ -105,14 +108,21 @@ export function parseAudioV2Container(bytes: Uint8Array): ParsedAudioV2 {
 export function encryptAudioV2Container(
   plaintext: Uint8Array,
   key: Buffer,
-  options: { contentHash: string; mediaMime: string; chunkSize?: number },
+  options: { contentHash: string; mediaMime: string; chunkSize?: number; firstChunkSize?: number }
 ): Buffer {
   if (plaintext.length === 0) throw new Error('Cannot encrypt an empty DAV2 audio payload');
   if (key.length !== 32) throw new Error('DAV2 encryption requires a 32-byte key');
 
   const chunkSize = options.chunkSize ?? DEFAULT_AUDIO_V2_CHUNK_SIZE;
   if (!Number.isSafeInteger(chunkSize) || chunkSize <= 0) throw new Error('Invalid DAV2 chunk size');
-  const chunkCount = Math.ceil(plaintext.length / chunkSize);
+  // Preserve the explicit chunkSize option as a uniform-layout escape hatch
+  // for fixtures and existing callers. New production uploads use a smaller
+  // first range, then return to the 512 KiB steady-state chunk budget.
+  const firstChunkSize = options.firstChunkSize ?? (options.chunkSize === undefined ? DEFAULT_AUDIO_V2_FIRST_CHUNK_SIZE : chunkSize);
+  if (!Number.isSafeInteger(firstChunkSize) || firstChunkSize <= 0 || firstChunkSize > chunkSize) {
+    throw new Error('Invalid DAV2 first chunk size');
+  }
+  const chunkCount = plaintext.length <= firstChunkSize ? 1 : 1 + Math.ceil((plaintext.length - firstChunkSize) / chunkSize);
   if (chunkCount > 0xffffffff) throw new Error('DAV2 chunk count is out of range');
   const noncePrefix = randomBytes(8);
 
@@ -126,14 +136,15 @@ export function encryptAudioV2Container(
     mediaMime: options.mediaMime || 'application/octet-stream',
     contentHash: normalizeContentHash(options.contentHash),
     noncePrefix: noncePrefix.toString('hex'),
-    chunks: [],
+    chunks: []
   };
 
   const encryptedChunks: Buffer[] = [];
+  let plaintextOffset = 0;
   for (let index = 0; index < chunkCount; index += 1) {
-    const start = index * chunkSize;
-    const end = Math.min(start + chunkSize, plaintext.length);
-    const chunk = Buffer.from(plaintext.subarray(start, end));
+    const plainBudget = index === 0 ? firstChunkSize : chunkSize;
+    const end = Math.min(plaintextOffset + plainBudget, plaintext.length);
+    const chunk = Buffer.from(plaintext.subarray(plaintextOffset, end));
     const cipher = createCipheriv('aes-256-gcm', key, chunkNonce(noncePrefix, index));
     cipher.setAAD(chunkAad(header, index, chunk.length));
     const ciphertext = Buffer.concat([cipher.update(chunk), cipher.final()]);
@@ -141,6 +152,7 @@ export function encryptAudioV2Container(
     const encrypted = Buffer.concat([ciphertext, authTag]);
     header.chunks.push({ index, plainLength: chunk.length, encryptedLength: encrypted.length });
     encryptedChunks.push(encrypted);
+    plaintextOffset = end;
   }
 
   return Buffer.concat([encodeHeader(header), ...encryptedChunks]);

@@ -94,7 +94,9 @@ function validateHeader(header: AudioV2Header, bodyLength?: number): void {
   for (let index = 0; index < header.chunks.length; index += 1) {
     const chunk = header.chunks[index];
     if (chunk.index !== index) throw new Error('Non-monotonic DAV2 chunk table');
-    if (!Number.isSafeInteger(chunk.plainLength) || chunk.plainLength <= 0) throw new Error('Invalid DAV2 plain chunk length');
+    if (!Number.isSafeInteger(chunk.plainLength) || chunk.plainLength <= 0 || chunk.plainLength > header.chunkSize) {
+      throw new Error('Invalid DAV2 plain chunk length');
+    }
     if (chunk.encryptedLength !== chunk.plainLength + AUTH_TAG_BYTES) throw new Error('Invalid DAV2 encrypted chunk length');
     plainTotal += chunk.plainLength;
     encryptedTotal += chunk.encryptedLength;
