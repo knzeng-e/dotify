@@ -222,7 +222,9 @@ test('clear interface lets guests inspect releases without changing their listen
     await protectedAction.press('Enter');
     const dialog = guest.getByRole('dialog', { name: 'E2E Protected Room Track', exact: true });
     await expect(dialog).toContainText('Leave the room');
-    await expect(dialog).toContainText('0.5 PAS');
+    // The ordinary-web harness resolves the native symbol from its active
+    // runtime, so local and CI chains may expose different test symbols.
+    await expect(dialog.locator('.room-release-terms')).toHaveText(/^0\.5 [A-Z][A-Z0-9]*$/);
     await expect(guest.getByTestId('access-warning')).toHaveCount(0);
     expect(await guest.locator('audio.native-player-source').first().getAttribute('src')).toBe(originalSource);
     expect(await guest.locator('.catalogue-card[data-selected="true"] .catalogue-card-open').innerText()).toBe(selectedTitle);
