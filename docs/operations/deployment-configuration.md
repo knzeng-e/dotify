@@ -643,7 +643,10 @@ as physical Safari, mobile, or Product-host evidence.
 Closing a room tears down peers but retains ownership of the current real audio
 capture while that track continues in solo playback. If the listener then
 chooses another track, the replacement element retires the retained listener,
-graph, destination track, and AudioContext even though no room is active.
+graph, destination track, and AudioContext even though no room is active. If the
+host instead opens another room on the same element and source, Dotify restores
+the ready state from the retained live capture without waiting for another
+`loadedmetadata`, `play`, or `playing` event.
 
 ## Fly Signaling
 
