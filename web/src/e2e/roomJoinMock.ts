@@ -201,6 +201,7 @@ export type RoomJoinE2eState = {
   replaceTrackSwaps: number;
   captureTrackStops: number;
   webAudioCaptures: number;
+  webAudioCaptureCloses: number;
   webAudioMonitorGain: number;
   streamReadySignals: number;
   remotePlaybackCues: number;
@@ -222,6 +223,7 @@ export function getRoomJoinE2eState(): RoomJoinE2eState {
       replaceTrackSwaps: 0,
       captureTrackStops: 0,
       webAudioCaptures: 0,
+      webAudioCaptureCloses: 0,
       webAudioMonitorGain: 1,
       streamReadySignals: 0,
       remotePlaybackCues: 0
@@ -235,6 +237,7 @@ export function getRoomJoinE2eState(): RoomJoinE2eState {
     replaceTrackSwaps: 0,
     captureTrackStops: 0,
     webAudioCaptures: 0,
+    webAudioCaptureCloses: 0,
     webAudioMonitorGain: 1,
     streamReadySignals: 0,
     remotePlaybackCues: 0
@@ -243,6 +246,7 @@ export function getRoomJoinE2eState(): RoomJoinE2eState {
   window.__DOTIFY_E2E_ROOM_JOIN__.replaceTrackSwaps ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.captureTrackStops ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.webAudioCaptures ??= 0;
+  window.__DOTIFY_E2E_ROOM_JOIN__.webAudioCaptureCloses ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.webAudioMonitorGain ??= 1;
   window.__DOTIFY_E2E_ROOM_JOIN__.streamReadySignals ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.remotePlaybackCues ??= 0;
@@ -269,6 +273,11 @@ export function recordRoomJoinE2eReplaceTrack() {
 export function recordRoomJoinE2eWebAudioCapture() {
   if (typeof window === 'undefined') return;
   getRoomJoinE2eState().webAudioCaptures += 1;
+}
+
+export function recordRoomJoinE2eWebAudioCaptureClose() {
+  if (typeof window === 'undefined') return;
+  getRoomJoinE2eState().webAudioCaptureCloses += 1;
 }
 
 export function recordRoomJoinE2eWebAudioMonitorGain(gain: number) {

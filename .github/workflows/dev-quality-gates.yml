@@ -93,6 +93,9 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
+      - name: First-sound evidence tests
+        run: npm run test:first-sound-readiness
+
       - name: Build
         run: npm run build
 

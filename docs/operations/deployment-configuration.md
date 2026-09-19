@@ -145,7 +145,7 @@ Optional production variables:
 
 | Key                            | When to set                                                                                                                                        |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_DOTIFY_DEBUG_PANEL=true` | Temporary operator smoke checks and Product CDM host evidence export under `You -> Production readiness`; unset for ordinary listener deployments. |
+| `VITE_DOTIFY_DEBUG_PANEL=true` | Temporary operator smoke checks plus first-sound, Product CDM, and room evidence exports under `You -> Production readiness`; unset for ordinary listener deployments. |
 | `VITE_TURN_URL`                | Browser-visible TURN fallback for DevNet/static credentials. Prefer API grants for production. Accepts comma-separated `turn:` / `turns:` URLs.    |
 | `VITE_TURN_USERNAME`           | Static fallback only. Do not use long-lived production credentials here.                                                                           |
 | `VITE_TURN_CREDENTIAL`         | Static fallback only. Do not use long-lived production credentials here.                                                                           |
@@ -181,19 +181,20 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 25]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 26]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 25]` adds candidate-bound Product room evidence capture to the
-debug readiness panel and rejects hand-written room claims that lack current
-host transport telemetry. It retains the `[0, 1, 24]` bounded Web Worker for
-DAV2 AES-GCM chunk decryption and the fail-closed main-thread Web Crypto path
-when a worker cannot start within 1.5 seconds. It also retains the `[0, 1, 23]`
-behavior that defers Product CDM chain
+Version `[0, 1, 26]` adds candidate-bound first-sound evidence, independent
+exact-profile budgets, fresh warm-resume attempts, and terminal autoplay failures.
+It retains the `[0, 1, 25]` Product room evidence capture and rejection of
+hand-written room claims without current host transport telemetry, plus the
+`[0, 1, 24]` bounded Web Worker for DAV2 AES-GCM chunk decryption and the
+fail-closed main-thread Web Crypto path when a worker cannot start within 1.5
+seconds. It also retains the `[0, 1, 23]` behavior that defers Product CDM chain
 setup until an authoritative runtime read and uses the known DevNet PAS label
 without an initial direct EVM
 RPC lookup, so opening a shared room remains independent of Product Web's
@@ -534,6 +535,118 @@ sr25519 key/session outcomes, and the operator-marked host approval observation.
 Validate Product protected playback through host smoke tests after each Product
 publication before treating Product identity as production-ready for gated
 listening.
+
+### First-sound candidate evidence
+
+Every ordinary Vite build now embeds its exact git SHA in
+`VITE_DOTIFY_BUILD_SHA`, matching the Product build identity behavior. A smoke
+build with `VITE_DOTIFY_DEBUG_PANEL=true` exposes **First-sound evidence** under
+`You -> Production readiness`. Evidence builds fail when `git status` is dirty;
+commit the exact candidate first so the embedded SHA identifies the bytes being
+measured. Production builds derive this identity from the checked-out commit and
+reject a mismatched `VITE_DOTIFY_BUILD_SHA`; that override is reserved for the
+explicit Playwright readiness-panel dev server.
+
+The bundle also embeds `VITE_DOTIFY_BUILD_CONFIG_DIGEST`, a SHA-256 digest of
+the public `VITE_*` inputs used to build it. The digest excludes the build
+identity variables themselves and never exposes input values. Standalone and
+Product exports may have different digests because they are different build
+families, but exports within each family must agree before the report can call
+the candidate ready.
+
+1. Bind the exact build. Add the deployment CID for Product Desktop or Product
+   Web gateway samples.
+2. Record and bind one test profile using only the provided coarse device, OS,
+   browser, and connection categories. Product surfaces also require the
+   numeric host version. Do not enter device names, account names, hostnames, or
+   serial numbers; the UI and schema do not accept free-form profile fields.
+3. Choose the listening flow, explicit cold or warm cache condition, and the
+   scenario being exercised, then select **Start sample**. Use **Ordinary
+   playback** for release-latency measurements; use the named controlled
+   scenarios only while deliberately exercising their corresponding failure or
+   recovery path.
+4. Start the track. Dotify records the real selection/playback intent as the
+   timing origin, including access, key, gateway, decrypt, and media startup.
+   Press **I hear the music** at the first sound you actually hear. If playback
+   fails, use the same action after Dotify shows the error; an automatic
+   terminal failure is recorded without an audible confirmation.
+5. Repeat cold and warm attempts, then download the candidate-bound JSON.
+
+Schema v5 keeps first-sound duration, its `human-confirmed` or `automatic-error`
+measurement method, the sanitized test profile, the declared scenario with its
+fixed expected outcome, a bounded host terminal reason, and coarse DAV2 path
+facts only. It
+omits wallet addresses, listener identity, exact
+location, audio refs/CIDs, gateway URLs, media source URLs, keys, signatures,
+and per-listener history. Changing the SHA, public build-configuration digest,
+Product app version, deployment CID, device profile, or network type starts a
+new evidence set instead of mixing candidates or materially different test
+conditions.
+The report combines ordinary-web and Product exports when their git SHA
+matches. Product samples must still carry one consistent Product app version
+and deployed CID; those Product-only fields do not invalidate ordinary-web
+exports where they are intentionally absent. A final key or gateway failure is
+recorded even when no playable media source was created. Ordinary playback
+alone supplies the surface-success, p75, and fallback-rate gates. Denied
+protected access, broken-gateway recovery, slow-key recovery, interrupted
+navigation, and corrupted DAV2 each have a separate gate against their declared
+expected outcome, so an intentional controlled error cannot be mistaken for a
+normal-playback regression. The label alone is insufficient: those gates also
+require, respectively, an `access-denied` host reason, a successful failover to
+a later DAV2 gateway, at least
+1,000 ms before DAV2 key authorization, a `selection-interrupted` host reason,
+or a DAV2 authentication failure.
+
+Combine exports from physical surfaces and produce the release report with:
+
+```bash
+cd web
+npm run smoke:first-sound -- \
+  --evidence-json /path/to/chrome.json \
+  --evidence-json /path/to/safari.json \
+  --evidence-json /path/to/product-desktop.json \
+  --expected-commit <40-character-candidate-sha> \
+  --md-out /tmp/dotify-first-sound.md \
+  --json-out /tmp/dotify-first-sound.json \
+  --strict
+```
+
+The strict gate requires evidence for desktop Chrome, Firefox, Safari, iOS
+Safari, Android Chrome, Product Desktop, and Product Web gateway, plus evidence
+for every controlled scenario listed above. Every exact
+device, OS, browser, connection, and Product-host profile supplied for a required
+surface needs at least four successful samples in each cold/warm p75 flow cell;
+exports with different profiles never pool their sample floor or latency budget.
+Aggregate p75 remains visible but cannot compensate for a slow or undersampled
+profile. The report prints every profile beside its surface. A blocked autoplay
+attempt is recorded as a terminal error, and a later explicit Play starts a
+fresh measurement. Reaching `canplay` only releases the loading affordance; the
+attempt remains cancellable until `playing` or a terminal error. Asynchronous
+play results are correlated to the concrete playback-attempt object that
+initiated them. Each resolved source also receives a distinct host media-element
+generation, so a delayed native error from a retired element cannot reach its
+replacement, including when a URL is reused. Capture-stream reuse requires the
+same media element as well as the same URL and a live track; a replacement
+element is always recaptured and republished to room listeners. Repeat is a
+declarative property of every generated host element, so a source replacement
+cannot silently reset an enabled loop. Once every listener sender has moved to
+the replacement stream, Dotify removes the retired element's volume listener,
+disconnects its Web Audio nodes, stops its destination track, and closes its
+AudioContext. A muted or zero-volume `playing` event is recorded as an error. An
+unmuted `playing` event only proves that the media clock advanced; the operator
+confirmation supplies the evidence that sound reached the actual output route.
+The DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts
+are present; fewer attempts are reported as `not-run`, never rounded into a claim.
+Synthetic Chromium evidence validates the capture mechanism but does not count
+as physical Safari, mobile, or Product-host evidence.
+
+Closing a room tears down peers but retains ownership of the current real audio
+capture while that track continues in solo playback. If the listener then
+chooses another track, the replacement element retires the retained listener,
+graph, destination track, and AudioContext even though no room is active. If the
+host instead opens another room on the same element and source, Dotify restores
+the ready state from the retained live capture without waiting for another
+`loadedmetadata`, `play`, or `playing` event.
 
 ## Fly Signaling
 

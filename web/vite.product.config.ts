@@ -1,22 +1,11 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { assertProductionEnvironment } from './src/shared/config/deploymentSafety';
 import productDeployConfig from './polkadot-app-deploy.config';
-
-function gitCommit(): string {
-  try {
-    return execFileSync('git', ['-C', __dirname, 'rev-parse', 'HEAD'], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore']
-    }).trim();
-  } catch {
-    return 'unknown';
-  }
-}
+import { assertCleanEvidenceBuild, computeBuildConfigDigest, readGitBuildIdentity, resolveEmbeddedBuildIdentity } from './scripts/build-identity.mjs';
 
 function productAppVersion(): string {
   const executable = productDeployConfig.executables.find(item => item.kind === 'app');
@@ -37,15 +26,22 @@ function cdmRegistry(): string {
 export default defineConfig(({ command, mode }) => {
   const env = { ...loadEnv(mode, process.cwd(), ''), ...process.env };
   if (command === 'build') assertProductionEnvironment(env);
-  const buildSha = String(env.VITE_DOTIFY_BUILD_SHA || '').trim() || gitCommit();
+  const gitIdentity = readGitBuildIdentity(__dirname);
+  assertCleanEvidenceBuild(command, env, gitIdentity);
+  const buildIdentity = resolveEmbeddedBuildIdentity(command, env, gitIdentity);
+  const appVersion = productAppVersion();
+  const registry = cdmRegistry();
+  const buildConfigDigest = computeBuildConfigDigest(mode, env, { productAppVersion: appVersion, cdmRegistry: registry });
 
   return {
     base: './',
     plugins: [react()],
     define: {
-      'import.meta.env.VITE_DOTIFY_BUILD_SHA': JSON.stringify(buildSha),
-      'import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION': JSON.stringify(productAppVersion()),
-      'import.meta.env.VITE_DOTIFY_CDM_REGISTRY': JSON.stringify(cdmRegistry())
+      'import.meta.env.VITE_DOTIFY_BUILD_SHA': JSON.stringify(buildIdentity.gitSha),
+      'import.meta.env.VITE_DOTIFY_BUILD_CLEAN': JSON.stringify(String(buildIdentity.clean)),
+      'import.meta.env.VITE_DOTIFY_BUILD_CONFIG_DIGEST': JSON.stringify(buildConfigDigest),
+      'import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION': JSON.stringify(appVersion),
+      'import.meta.env.VITE_DOTIFY_CDM_REGISTRY': JSON.stringify(registry)
     },
     resolve: {
       alias: {

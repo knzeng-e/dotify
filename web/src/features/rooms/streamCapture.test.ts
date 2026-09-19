@@ -25,6 +25,10 @@ describe('shouldReuseCapture', () => {
   it('reuses a paused capture while playback is still paused', () => {
     expect(shouldReuseCapture('blob:a', 'blob:a', true, true, true)).toBe(true);
   });
+
+  it('does not reuse a live capture from a retired media element', () => {
+    expect(shouldReuseCapture('blob:a', 'blob:a', true, false, false, false)).toBe(false);
+  });
 });
 
 describe('nextCaptureAttempt', () => {

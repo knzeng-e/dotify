@@ -8,6 +8,7 @@ import {
   recordRoomJoinE2eReplaceTrack,
   recordRoomJoinE2eStreamReadySignal,
   recordRoomJoinE2eWebAudioCapture,
+  recordRoomJoinE2eWebAudioCaptureClose,
   recordRoomJoinE2eWebAudioMonitorGain,
   roomJoinE2eOfferDelayMs,
   roomJoinE2eOfferSnapshot,
@@ -73,6 +74,7 @@ type WebAudioElementCapture = {
   destination: MediaStreamAudioDestinationNode;
   monitorGain: GainNode;
   stream: MediaStream;
+  onVolumeChange: () => void;
 };
 
 type PlaceholderAudioStream = {
@@ -96,6 +98,24 @@ function syncWebAudioMonitorGain(audio: HTMLMediaElement, capture: WebAudioEleme
   const gain = audio.muted ? 0 : audio.volume;
   capture.monitorGain.gain.value = Number.isFinite(gain) ? gain : 1;
   if (isRoomJoinE2e) recordRoomJoinE2eWebAudioMonitorGain(capture.monitorGain.gain.value);
+}
+
+function retireWebAudioElementCapture(audio: HTMLMediaElement) {
+  const capture = webAudioElementCaptures.get(audio);
+  if (!capture) return false;
+  webAudioElementCaptures.delete(audio);
+  audio.removeEventListener('volumechange', capture.onVolumeChange);
+  for (const node of [capture.source, capture.monitorGain, capture.destination]) {
+    try {
+      node.disconnect();
+    } catch {
+      // The browser may have already detached part of the retired graph.
+    }
+  }
+  capture.stream.getTracks().forEach(track => track.stop());
+  void capture.context.close().catch(() => undefined);
+  if (isRoomJoinE2e) recordRoomJoinE2eWebAudioCaptureClose();
+  return true;
 }
 
 function shouldMaterializeRemoteSource(source: string) {
@@ -222,9 +242,12 @@ export function useSession(deps: UseSessionDeps) {
   const placeholderAudioStreamRef = useRef<PlaceholderAudioStream | null>(null);
   const audioSourceRef = useRef<string | null>(audioSource);
   const trackInfoRef = useRef<TrackInfo | null>(trackInfo);
-  // Which audioSource the current local stream was captured from. Capturing is
-  // idempotent per source. New sources replace the sender track while the
-  // listener keeps the same receiver; renegotiation is a recovery fallback.
+  // Which media element and audioSource the current local stream was captured
+  // from. Capturing is idempotent only while both remain current: a resolved URL
+  // may be reused by a later element generation. New captures replace the sender
+  // track while the listener keeps the same receiver; renegotiation is a recovery
+  // fallback.
+  const capturedAudioElementRef = useRef<HTMLAudioElement | null>(null);
   const capturedSourceRef = useRef<string | null>(null);
   const captureStartedPausedRef = useRef(false);
   // Counts consecutive capture attempts that produced no live track for a
@@ -435,13 +458,28 @@ export function useSession(deps: UseSessionDeps) {
     pendingIceCandidatesRef.current.clear();
   }
 
+  function retireCapturedAudioElement(audio: HTMLAudioElement, stream: MediaStream | null) {
+    const retiredWebAudio = retireWebAudioElementCapture(audio);
+    if (!retiredWebAudio && stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+    if (capturedAudioElementRef.current === audio) {
+      capturedAudioElementRef.current = null;
+      capturedSourceRef.current = null;
+      captureStartedPausedRef.current = false;
+      if (localStreamRef.current === stream) localStreamRef.current = null;
+    }
+  }
+
   function closeAllPeers() {
     closeHostPeers();
     closeListenerPeer();
+    const placeholderStream = placeholderAudioStreamRef.current?.stream ?? null;
     closePlaceholderAudioStream();
-    localStreamRef.current = null;
-    capturedSourceRef.current = null;
-    captureStartedPausedRef.current = false;
+    if (localStreamRef.current === placeholderStream) localStreamRef.current = null;
+    // Keep ownership of a real host capture while solo playback continues.
+    // A later source generation can then retire that graph even though the room
+    // peers have already gone away.
     captureAttemptRef.current = { source: null, count: 0 };
     listenerAudioRetryCountRef.current = 0;
     hostRoomStartedAtRef.current = null;
@@ -837,9 +875,17 @@ export function useSession(deps: UseSessionDeps) {
     // The WebRTC leg is connected before this gain, so host mute only affects
     // the host's local output and never silences room listeners.
     source.connect(monitorGain).connect(context.destination);
-    const fallbackCapture = { context, source, destination, monitorGain, stream: destination.stream };
+    const fallbackCapture: WebAudioElementCapture = {
+      context,
+      source,
+      destination,
+      monitorGain,
+      stream: destination.stream,
+      onVolumeChange: () => undefined
+    };
+    fallbackCapture.onVolumeChange = () => syncWebAudioMonitorGain(audio, fallbackCapture);
     syncWebAudioMonitorGain(audio, fallbackCapture);
-    audio.addEventListener('volumechange', () => syncWebAudioMonitorGain(audio, fallbackCapture));
+    audio.addEventListener('volumechange', fallbackCapture.onVolumeChange);
     webAudioElementCaptures.set(audio, fallbackCapture);
     void context.resume().catch(() => undefined);
     if (isRoomJoinE2e) recordRoomJoinE2eWebAudioCapture();
@@ -852,6 +898,20 @@ export function useSession(deps: UseSessionDeps) {
 
   function streamHasLiveAudio(stream: MediaStream | null): boolean {
     return Boolean(stream && stream.getAudioTracks().some(track => track.readyState === 'live'));
+  }
+
+  function hasReusableLocalCapture(): boolean {
+    const audio = localAudioRef.current;
+    const source = audioSourceRef.current;
+    if (!audio || !source) return false;
+    return shouldReuseCapture(
+      capturedSourceRef.current,
+      source,
+      streamHasLiveAudio(localStreamRef.current),
+      captureStartedPausedRef.current,
+      audio.paused,
+      capturedAudioElementRef.current === audio
+    );
   }
 
   function closePlaceholderAudioStream() {
@@ -916,8 +976,16 @@ export function useSession(deps: UseSessionDeps) {
 
   async function prepareLocalStream(currentAudioSource: string | null, currentTrackInfo: TrackInfo | null) {
     const audio = localAudioRef.current;
-    if (modeRef.current !== 'host') return;
-    if (!audio || !currentAudioSource) return;
+    if (!audio) return;
+    const previousCapturedAudio = capturedAudioElementRef.current;
+    const previousStream = localStreamRef.current;
+    if (modeRef.current !== 'host') {
+      if (previousCapturedAudio && previousCapturedAudio !== audio) {
+        retireCapturedAudioElement(previousCapturedAudio, previousStream);
+      }
+      return;
+    }
+    if (!currentAudioSource) return;
 
     try {
       const capturableSource = await ensureCapturableAudioSource(currentAudioSource);
@@ -933,15 +1001,8 @@ export function useSession(deps: UseSessionDeps) {
       // This is what makes play/pause/seek cheap: they re-trigger this path but
       // must not rebuild every listener peer. Only a real source change
       // (skip/next/loop-into-new-track) falls through to re-capture.
-      if (
-        shouldReuseCapture(
-          capturedSourceRef.current,
-          currentAudioSource,
-          streamHasLiveAudio(localStreamRef.current),
-          captureStartedPausedRef.current,
-          audio.paused
-        )
-      ) {
+      if (hasReusableLocalCapture()) {
+        setLocalStreamReady(true);
         return;
       }
 
@@ -978,6 +1039,7 @@ export function useSession(deps: UseSessionDeps) {
 
       const previousPlaceholderStream = placeholderAudioStreamRef.current?.stream ?? null;
       localStreamRef.current = stream;
+      capturedAudioElementRef.current = audio;
       capturedSourceRef.current = currentAudioSource;
       captureStartedPausedRef.current = audio.paused;
       setLocalStreamReady(true);
@@ -987,17 +1049,15 @@ export function useSession(deps: UseSessionDeps) {
       emitPlayerState(true);
 
       await publishLocalStreamToListeners(stream);
+      if (previousCapturedAudio && previousCapturedAudio !== audio) {
+        retireCapturedAudioElement(previousCapturedAudio, previousStream);
+      }
       if (previousPlaceholderStream && previousPlaceholderStream !== stream) {
         closePlaceholderAudioStream();
       }
-      // Do not stop tracks from an older captureStream() result here. Media
-      // element capture streams follow source selection: when <audio>.src
-      // changes, the browser can add the new source track to every existing
-      // captured stream before this replacement finishes. Stopping the old
-      // stream would then stop the newly selected source and leave listeners
-      // with a live-looking but silent sender. Once sender replacement or
-      // renegotiation completes, the previous stream is unreferenced and the
-      // browser can retire it.
+      // A recapture on the same element can share browser-owned tracks, so it
+      // stays alive. A retired element generation is independent and is closed
+      // only after every listener sender has moved to the replacement stream.
     } catch (streamError) {
       setError(streamError instanceof Error ? streamError.message : 'Audio capture unavailable in this browser');
       setSessionStatus('Capture unavailable');
@@ -1039,7 +1099,8 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   async function pairListenerOrPrepareStream(listenerId: string) {
-    if (localStreamRef.current) {
+    if (localStreamRef.current && hasReusableLocalCapture()) {
+      setLocalStreamReady(true);
       await createOfferForListener(listenerId, { allowPlaceholder: Boolean(audioSourceRef.current) });
       return;
     }
@@ -1493,7 +1554,9 @@ export function useSession(deps: UseSessionDeps) {
         setChatMessages([]);
         setReactionFeed([]);
         setRequestQueue([]);
-        setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
+        const retainedCaptureReady = hasReusableLocalCapture();
+        setLocalStreamReady(retainedCaptureReady);
+        setSessionStatus(retainedCaptureReady ? 'Live' : 'Room open');
         requestOpenRooms();
       },
       () => {

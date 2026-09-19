@@ -406,13 +406,14 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The tracked Product executable candidate is `[0, 1, 25]`. This version adds a
-candidate-bound Product room smoke capture to the debug readiness panel. It
-derives room creation, stream readiness, peer connection, listener count, and
-the canonical shared URL from the active host session while leaving guest
-audibility, sync, and account state as explicit device observations. It retains
-the `[0, 1, 24]` move of DAV2 chunk decryption off the rendering thread through
-a bounded Web Worker.
+The tracked Product executable candidate is `[0, 1, 26]`. This version adds
+candidate-bound first-sound evidence with independent budgets for every exact
+device/OS/browser/network/host profile, clean-worktree and checked-out-commit
+candidate enforcement, fresh warm-resume attempts, and terminal autoplay
+failures. It retains
+the `[0, 1, 25]` candidate-bound Product room smoke capture and the
+`[0, 1, 24]` move of DAV2 chunk decryption off the rendering thread through a
+bounded Web Worker.
 Product hosts that cannot start the worker within 1.5 seconds retain the same
 fail-closed Web Crypto path. It also keeps the `[0, 1, 23]` shared-link arrival
 behavior free of chain setup: Product CDM readers connect only when an
@@ -628,8 +629,12 @@ VITE_DOTIFY_DEBUG_PANEL=true \
 npm run deploy:product-devnet
 ```
 
+   Run this from a clean committed worktree. A debug/evidence build stops before
+   bundling when tracked or untracked changes are present, because a dirty
+   bundle cannot truthfully use the commit SHA as its candidate identity.
+
    The variables propagate through the deploy script's Product rebuild. For a
-   local build without publishing, run
+   local build without publishing, run from that same clean commit:
    `VITE_DOTIFY_DEBUG_PANEL=true npm run build:product-devnet:support`.
    The `product-cdm` adapter still calls the EVM-compatible artist runtime, but
    it signs through the Product host's sr25519 account. It must not ask for a
@@ -757,7 +762,7 @@ npm run smoke:product-journey -- \
   "capturedAt": "2026-09-18T12:00:00.000Z",
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 25]",
+    "productAppVersion": "[0, 1, 26]",
     "deployedCid": "<same-product-executable-cid-as-payment-smoke>"
   },
   "hostSurface": "product-desktop",
@@ -930,7 +935,7 @@ active.
   preserves the transaction hash in the error state.
 - Product Web's current gateway can reject native Product CDM chain setup with
   `Malformed protocol error payload: expected 3 bytes, received 6`. Version
-  `[0, 1, 25]` retains the `[0, 1, 23]` safeguard that prevents that
+  `[0, 1, 26]` retains the `[0, 1, 23]` safeguard that prevents that
   host/version mismatch from running merely because
   a guest opened the catalog or a room link. Catalog API and public room
   discovery remain available; an actual protected-track access read still

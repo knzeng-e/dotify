@@ -48,7 +48,10 @@ export default defineConfig({
         VITE_SIGNAL_URL: SIGNAL_URL,
         VITE_DOTIFY_ROOM_GALAXY: 'on',
         VITE_DOTIFY_HOST_LINEUP: 'on',
-        VITE_DOTIFY_ARTIST_DONATIONS: 'on'
+        VITE_DOTIFY_ARTIST_DONATIONS: 'on',
+        VITE_E2E_READINESS_PANEL: 'true',
+        VITE_DOTIFY_BUILD_SHA: '1234567890abcdef1234567890abcdef12345678',
+        VITE_DOTIFY_PRODUCT_APP_VERSION: '[0, 1, 26]'
       }
     }
   ],

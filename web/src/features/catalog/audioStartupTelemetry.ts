@@ -8,6 +8,9 @@ export type AudioV2StartupPhase =
   | 'fallback'
   | 'error';
 
+export type AudioV2StartupErrorKind = 'key-unavailable' | 'authentication';
+export type HostAudioTerminalReason = 'access-denied' | 'selection-failed' | 'selection-interrupted' | 'autoplay-blocked' | 'media-error' | 'muted-output';
+
 export type AudioV2StartupMetric = {
   phase: AudioV2StartupPhase;
   audioRef: string;
@@ -19,24 +22,28 @@ export type AudioV2StartupMetric = {
   rangeEnd?: number;
   chunkIndex?: number;
   hedged?: boolean;
+  gatewayRecovered?: boolean;
   fromCache?: boolean;
   intentPrefetched?: boolean;
   decryptor?: 'worker' | 'main-thread';
+  errorKind?: AudioV2StartupErrorKind;
   detail?: string;
 };
 
 export type HostAudioStartupMetric = {
-  phase: 'source-selected' | 'metadata-ready' | 'first-audio' | 'error';
+  phase: 'playback-intent' | 'source-selected' | 'metadata-ready' | 'media-playing' | 'error';
+  attemptId: string;
   source: string;
   elapsedMs: number;
   timestamp: number;
   durationSeconds?: number;
+  terminalReason?: HostAudioTerminalReason;
 };
 
 export type AudioStartupTelemetrySnapshot = {
   dav2: AudioV2StartupMetric[];
   host: HostAudioStartupMetric[];
-  latestFirstSoundMs: number | null;
+  latestMediaPlayingMs: number | null;
 };
 
 export type AudioStartupTelemetryApi = {
@@ -67,7 +74,16 @@ const audioV2Phases = new Set<AudioV2StartupPhase>([
   'fallback',
   'error'
 ]);
-const hostPhases = new Set<HostAudioStartupMetric['phase']>(['source-selected', 'metadata-ready', 'first-audio', 'error']);
+const hostPhases = new Set<HostAudioStartupMetric['phase']>(['playback-intent', 'source-selected', 'metadata-ready', 'media-playing', 'error']);
+const audioV2ErrorKinds = new Set<AudioV2StartupErrorKind>(['key-unavailable', 'authentication']);
+const hostTerminalReasons = new Set<HostAudioTerminalReason>([
+  'access-denied',
+  'selection-failed',
+  'selection-interrupted',
+  'autoplay-blocked',
+  'media-error',
+  'muted-output'
+]);
 
 let dav2Metrics: AudioV2StartupMetric[] = [];
 let hostMetrics: HostAudioStartupMetric[] = [];
@@ -105,9 +121,11 @@ function isAudioV2StartupMetric(value: unknown): value is AudioV2StartupMetric {
     optionalNumber(value.rangeEnd) &&
     optionalNumber(value.chunkIndex) &&
     optionalBoolean(value.hedged) &&
+    optionalBoolean(value.gatewayRecovered) &&
     optionalBoolean(value.fromCache) &&
     optionalBoolean(value.intentPrefetched) &&
     (value.decryptor === undefined || value.decryptor === 'worker' || value.decryptor === 'main-thread') &&
+    (value.errorKind === undefined || audioV2ErrorKinds.has(value.errorKind as AudioV2StartupErrorKind)) &&
     optionalString(value.detail)
   );
 }
@@ -116,10 +134,13 @@ function isHostAudioStartupMetric(value: unknown): value is HostAudioStartupMetr
   if (!isRecord(value)) return false;
   return (
     hostPhases.has(value.phase as HostAudioStartupMetric['phase']) &&
+    typeof value.attemptId === 'string' &&
+    value.attemptId.length > 0 &&
     typeof value.source === 'string' &&
     isFiniteNumber(value.elapsedMs) &&
     isFiniteNumber(value.timestamp) &&
-    optionalNumber(value.durationSeconds)
+    optionalNumber(value.durationSeconds) &&
+    (value.terminalReason === undefined || hostTerminalReasons.has(value.terminalReason as HostAudioTerminalReason))
   );
 }
 
@@ -141,12 +162,20 @@ export function recordHostAudioStartupMetric(metric: HostAudioStartupMetric): vo
   hostMetrics = pushBounded(hostMetrics, metric);
 }
 
+export function publishHostAudioStartupMetric(detail: HostAudioStartupMetric): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('dotify:host-audio-startup', { detail }));
+  if (import.meta.env.DEV) {
+    console.info('[dotify.audio.startup]', detail);
+  }
+}
+
 export function getAudioStartupTelemetrySnapshot(): AudioStartupTelemetrySnapshot {
-  const latestFirstAudio = [...hostMetrics].reverse().find(metric => metric.phase === 'first-audio');
+  const latestMediaPlaying = [...hostMetrics].reverse().find(metric => metric.phase === 'media-playing');
   return {
     dav2: [...dav2Metrics],
     host: [...hostMetrics],
-    latestFirstSoundMs: latestFirstAudio?.elapsedMs ?? null
+    latestMediaPlayingMs: latestMediaPlaying?.elapsedMs ?? null
   };
 }
 

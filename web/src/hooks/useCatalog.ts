@@ -48,7 +48,12 @@ import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
 import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
 import { resolveProductHostConfig } from '../features/productHost/productHost';
 import { publishProductCdmPaymentSmokeMetric, type ProductCdmPaymentSmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
-import { audioV2StartupPhaseLabel, type AudioV2StartupMetric } from '../features/catalog/audioStartupTelemetry';
+import {
+  audioV2StartupPhaseLabel,
+  publishHostAudioStartupMetric,
+  type AudioV2StartupMetric,
+  type HostAudioTerminalReason
+} from '../features/catalog/audioStartupTelemetry';
 import { fetchCatalog, isCatalogApiConfigured, readBundledCatalog, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
 import { createCoverFallbackDataUri } from '../features/catalog/coverArtwork';
 import {
@@ -100,6 +105,16 @@ type AudioV2StartupContext = {
 export type TrackSelectionResult = {
   playbackMode: RoomPlaybackMode;
   audioSource: string | null;
+};
+
+type ActiveTrackSelection = {
+  id: number;
+  attemptId: string;
+  controller: AbortController;
+  source: string;
+  startedAt: number;
+  pending: boolean;
+  terminalReported: boolean;
 };
 
 function nowMs(): number {
@@ -371,6 +386,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     runtimeAdapterConfig.kind === 'product-cdm' ? DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET : DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
   );
   const [audioSource, setAudioSource] = useState<string | null>(null);
+  const [audioSourceGeneration, setAudioSourceGeneration] = useState(0);
+  const [audioStartupAttemptId, setAudioStartupAttemptId] = useState<string | null>(null);
   const [trackSelectionPending, setTrackSelectionPending] = useState(false);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
@@ -391,7 +408,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
   const selectedTrackIdRef = useRef(selectedTrackId);
   const activeViewRef = useRef(activeView);
-  const activeTrackSelectionRef = useRef<{ id: number; controller: AbortController } | null>(null);
+  const activeTrackSelectionRef = useRef<ActiveTrackSelection | null>(null);
   const nextTrackSelectionIdRef = useRef(0);
   const e2eClassicAccessGrantedRef = useRef(false);
   // Session cache of backend-delivered content keys: one wallet signature per
@@ -442,6 +459,10 @@ export function useCatalog(deps: UseCatalogDeps) {
   function setResolvedAudioSource(source: string | null) {
     audioSourceRef.current = source;
     setAudioSource(source);
+    // A resolved source owns one media-element lifetime. Increment even when
+    // the URL is reused so an obsolete element cannot deliver a native media
+    // error into a later selection of the same source.
+    setAudioSourceGeneration(value => value + 1);
   }
 
   function retireAudioV2MseObjectUrl(audioRef: string, objectUrl: string) {
@@ -453,31 +474,64 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
   }
 
-  function beginTrackSelection() {
-    activeTrackSelectionRef.current?.controller.abort();
+  function retireActiveTrackSelection(reportCancellation: boolean) {
+    const activeSelection = activeTrackSelectionRef.current;
+    if (activeSelection && reportCancellation && activeSelection.pending && !activeSelection.terminalReported && !activeSelection.controller.signal.aborted) {
+      activeSelection.terminalReported = true;
+      publishHostAudioStartupMetric({
+        phase: 'error',
+        attemptId: activeSelection.attemptId,
+        source: activeSelection.source,
+        elapsedMs: Number((nowMs() - activeSelection.startedAt).toFixed(1)),
+        timestamp: Date.now(),
+        terminalReason: 'selection-interrupted'
+      });
+    }
+    activeSelection?.controller.abort();
+    activeTrackSelectionRef.current = null;
     pendingTrackMediaSourceRef.current = null;
+  }
+
+  function beginTrackSelection(source: string, startedAt: number) {
+    // A new choice ends the previous in-flight attempt. Publish its terminal
+    // event before the next playback intent so evidence correlation does not
+    // strand an interrupted attempt in "Timing active".
+    retireActiveTrackSelection(true);
     setTrackSelectionPending(true);
-    const selection = {
-      id: (nextTrackSelectionIdRef.current += 1),
-      controller: new AbortController()
+    const id = (nextTrackSelectionIdRef.current += 1);
+    const selection: ActiveTrackSelection = {
+      id,
+      attemptId: `selection:${id}`,
+      controller: new AbortController(),
+      source,
+      startedAt,
+      pending: true,
+      terminalReported: false
     };
     activeTrackSelectionRef.current = selection;
+    setAudioStartupAttemptId(selection.attemptId);
     return selection;
   }
 
-  function isTrackSelectionCurrent(selection: { id: number; controller: AbortController }): boolean {
+  function isTrackSelectionCurrent(selection: ActiveTrackSelection): boolean {
     return activeTrackSelectionRef.current?.id === selection.id && !selection.controller.signal.aborted;
   }
 
   function abortActiveTrackSelection() {
-    activeTrackSelectionRef.current?.controller.abort();
-    activeTrackSelectionRef.current = null;
-    pendingTrackMediaSourceRef.current = null;
+    retireActiveTrackSelection(true);
     setTrackSelectionPending(false);
   }
 
-  function settleTrackSelectionMedia(source: string | null) {
-    if (!source || pendingTrackMediaSourceRef.current !== source) return;
+  function settleTrackSelectionMedia(source: string | null, terminal = false, attemptId: string | null = null) {
+    if (!source) return;
+    // `canplay` makes transport usable, but it is not terminal evidence: the
+    // following play can still be rejected or the listener can replace the
+    // track before a frame is heard. Keep cancellation armed until playing or
+    // an explicit playback error closes the startup attempt.
+    if (terminal && audioSourceRef.current === source && activeTrackSelectionRef.current && activeTrackSelectionRef.current.attemptId === attemptId) {
+      activeTrackSelectionRef.current.pending = false;
+    }
+    if (pendingTrackMediaSourceRef.current !== source) return;
     pendingTrackMediaSourceRef.current = null;
     setTrackSelectionPending(false);
   }
@@ -688,6 +742,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         rangeStart: 0,
         rangeEnd,
         hedged: range.hedged,
+        gatewayRecovered: range.recovered,
         fromCache: range.fromCache,
         intentPrefetched: range.intentPrefetched
       });
@@ -699,6 +754,7 @@ export function useCatalog(deps: UseCatalogDeps) {
           rangeStart: 0,
           rangeEnd,
           hedged: range.hedged,
+          gatewayRecovered: range.recovered,
           fromCache: range.fromCache,
           intentPrefetched: range.intentPrefetched
         });
@@ -806,6 +862,7 @@ export function useCatalog(deps: UseCatalogDeps) {
               rangeEnd: chunkEnd,
               chunkIndex: chunk.index,
               hedged: range.hedged,
+              gatewayRecovered: range.recovered,
               fromCache: range.fromCache,
               intentPrefetched: range.intentPrefetched
             });
@@ -829,6 +886,7 @@ export function useCatalog(deps: UseCatalogDeps) {
               rangeEnd: chunkEnd,
               chunkIndex: chunk.index,
               hedged: range.hedged,
+              gatewayRecovered: range.recovered,
               fromCache: range.fromCache,
               intentPrefetched: range.intentPrefetched,
               decryptor: decryptor.execution
@@ -846,6 +904,7 @@ export function useCatalog(deps: UseCatalogDeps) {
               rangeEnd: prepared.chunkEnd,
               chunkIndex: chunk.index,
               hedged: prepared.range.hedged,
+              gatewayRecovered: prepared.range.recovered,
               fromCache: prepared.range.fromCache,
               intentPrefetched: prepared.range.intentPrefetched
             });
@@ -949,6 +1008,7 @@ export function useCatalog(deps: UseCatalogDeps) {
             console.warn('DAV2 chunk authentication failed', authenticationError);
             publishAudioV2StartupMetric(context, {
               phase: 'error',
+              errorKind: 'authentication',
               detail: errorMessage(authenticationError)
             });
           }
@@ -1030,6 +1090,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (!serverKey) {
         publishAudioV2StartupMetric(context, {
           phase: 'error',
+          errorKind: 'key-unavailable',
           detail: 'DAV2 content key unavailable.'
         });
         throw new Error('DAV2 content key unavailable.');
@@ -1070,7 +1131,29 @@ export function useCatalog(deps: UseCatalogDeps) {
     closeHostPeers?: () => void,
     showAccessGateOnDenied = false
   ): Promise<TrackSelectionResult> {
-    const selection = beginTrackSelection();
+    const selectionStartedAt = nowMs();
+    const selection = beginTrackSelection(track.id, selectionStartedAt);
+    publishHostAudioStartupMetric({
+      phase: 'playback-intent',
+      attemptId: selection.attemptId,
+      source: track.id,
+      elapsedMs: 0,
+      timestamp: Date.now()
+    });
+    let selectionFailureReported = false;
+    const reportSelectionFailure = (terminalReason: HostAudioTerminalReason) => {
+      if (selectionFailureReported || !isTrackSelectionCurrent(selection)) return;
+      selectionFailureReported = true;
+      selection.terminalReported = true;
+      publishHostAudioStartupMetric({
+        phase: 'error',
+        attemptId: selection.attemptId,
+        source: track.id,
+        elapsedMs: Number((nowMs() - selectionStartedAt).toFixed(1)),
+        timestamp: Date.now(),
+        terminalReason
+      });
+    };
     let waitsForMediaReadiness = false;
 
     try {
@@ -1148,6 +1231,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
 
       if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+      if (!audioUrl) reportSelectionFailure(hasAccess ? 'selection-failed' : 'access-denied');
       const sourceAlreadyReady = Boolean(
         audioUrl && audioSourceRef.current === audioUrl && localAudioRef.current && localAudioRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
       );
@@ -1167,10 +1251,13 @@ export function useCatalog(deps: UseCatalogDeps) {
         // streams nothing (kept on the wire for protocol compatibility).
         socketEmit('room:playback-mode', { playbackMode: 'full' });
       }
-
       return { playbackMode: 'full', audioSource: audioUrl };
+    } catch (error) {
+      reportSelectionFailure('selection-failed');
+      throw error;
     } finally {
       if (isTrackSelectionCurrent(selection) && !waitsForMediaReadiness) {
+        selection.pending = false;
         pendingTrackMediaSourceRef.current = null;
         setTrackSelectionPending(false);
       }
@@ -1605,6 +1692,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     nativeRuntimePaymentAsset,
     usesCatalogApi,
     audioSource,
+    audioSourceGeneration,
+    audioStartupAttemptId,
     trackSelectionPending,
     settleTrackSelectionMedia,
     setAudioSource: setResolvedAudioSource,

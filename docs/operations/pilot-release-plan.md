@@ -45,7 +45,7 @@ release diff is the application bundle and this release/evidence package.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 25]` | Publish and recapture evidence; this bundle adds candidate-bound room smoke capture while retaining off-thread DAV2 decryption, room-link arrival without Product chain setup, native extrinsic proof links, and the native-unit fix |
+| Product appVersion | `[0, 1, 26]` | Publish and recapture evidence; this bundle adds candidate-bound first-sound evidence and exact-profile budgets while retaining room smoke capture, off-thread DAV2 decryption, room-link arrival without Product chain setup, native extrinsic proof links, and the native-unit fix |
 | Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -125,7 +125,7 @@ Before and during the pilot, use these surfaces:
 | Signaling | `GET https://dotify-signal.fly.dev/health` and `/status` |
 | Product static gates | `npm run smoke:product-journey` |
 | Pilot release gate | `npm run smoke:pilot-release` |
-| Audio startup QA | `window.__DOTIFY_AUDIO_STARTUP__.snapshot()` |
+| Audio startup QA | Clean-candidate First-sound evidence export with one explicit device/OS/browser/network profile under `You -> Production readiness`; raw bounded snapshot remains available at `window.__DOTIFY_AUDIO_STARTUP__.snapshot()` |
 | Room quality QA | `window.__DOTIFY_ROOM_QUALITY__.snapshot()` |
 | Product CDM QA | Debug panel exported Product CDM host smoke JSON |
 | Product room QA | Debug panel exported Product room smoke JSON, derived from host telemetry plus explicit guest-device observations |
@@ -189,7 +189,7 @@ decision to the exact candidate build being evaluated:
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 25]",
+    "productAppVersion": "[0, 1, 26]",
     "deployedCid": "<default-viem-pilot-release-cid>",
     "capturedAt": "2026-09-13T12:00:00.000Z"
   },

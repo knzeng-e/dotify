@@ -200,7 +200,10 @@ readiness, signaling health, chain RPC, configured contracts, wallet-chain
 mismatch, catalog status, and IPFS gateway reads. Product candidate builds also
 offer candidate-bound payment/key and room evidence exports; the room export
 derives host transport facts from live telemetry and keeps guest audibility and
-sync as explicit operator observations.
+sync as explicit operator observations. The same panel captures sanitized,
+candidate-bound first-sound samples across desktop, mobile, and Product
+surfaces; combine the downloaded files with `npm run smoke:first-sound` rather
+than inferring physical-device performance from Chromium automation.
 
 **Demo/local mode** (no backend): set `VITE_PINATA_JWT` in `web/.env.local` with
 a restricted upload-only Pinata token. Do not use an unrestricted token in demos.
