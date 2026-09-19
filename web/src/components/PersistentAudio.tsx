@@ -39,6 +39,7 @@ export function PersistentAudio({
         src={audioSource ?? undefined}
         crossOrigin='anonymous'
         muted={playback.muted}
+        loop={playback.repeatEnabled}
         onLoadedMetadata={() => {
           playback.handleHostLoadedMetadata(localAudioRef.current!);
           onEmitPlayerState(true);

@@ -222,6 +222,32 @@ test('a native error from a retired media element cannot fail its replacement', 
   expect(host.some(metric => metric.attemptId === replacementAttemptId && metric.phase === 'error')).toBe(false);
 });
 
+test('repeat remains applied when a new host media generation replaces the track', async ({ page }) => {
+  await page.goto('/?e2eRoom=public&e2eCatalog=sequence');
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
+
+  const repeat = page.getByRole('button', { name: 'Repeat this track', exact: true });
+  await repeat.click();
+  await expect(repeat).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => page.locator('audio.native-player-source').first().evaluate((audio: HTMLAudioElement) => audio.loop)).toBe(true);
+
+  await page.evaluate(() => Reflect.set(window, '__dotifyRepeatHostAudio', document.querySelector('audio.native-player-source')));
+  await page.getByRole('button', { name: 'Music', exact: true }).click();
+  await page.getByRole('button', { name: /^Play Second room track by Dotify Room Host,/ }).click();
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const previous = Reflect.get(window, '__dotifyRepeatHostAudio');
+        const current = document.querySelector('audio.native-player-source');
+        return Boolean(previous && current && previous !== current);
+      })
+    )
+    .toBe(true);
+  await expect(repeat).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => page.locator('audio.native-player-source').first().evaluate((audio: HTMLAudioElement) => audio.loop)).toBe(true);
+});
+
 test('replacing a pending track terminates its startup attempt before the next intent', async ({ page }) => {
   let releaseMediaRequest = () => undefined;
   const mediaRequestGate = new Promise<void>(resolve => {
