@@ -6,7 +6,7 @@ import {
   type ParsedAudioV2
 } from '../../shared/utils/audioV2';
 import { encryptedRefToCID, isEncryptedAudioV2Ref } from '../../shared/utils/protectedAudio';
-import { prefetchAudioV2RangeThroughGateways, type AudioV2RangeResult } from './audioV2Gateway';
+import { evictAudioV2IntentRange, prefetchAudioV2RangeThroughGateways, type AudioV2RangeResult } from './audioV2Gateway';
 
 type PrefetchRange = (
   cid: string,
@@ -17,6 +17,7 @@ type PrefetchRange = (
 
 type IntentPrefetchOptions = {
   fetchRange?: PrefetchRange;
+  evictRange?: (cid: string, start: number, end: number) => void;
 };
 
 const AUDIO_V2_INTENT_MAX_HEADER_BYTES = 256 * 1024;
@@ -28,7 +29,12 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
 }
 
-async function prefetchHeader(cid: string, signal: AbortSignal, fetchRange: PrefetchRange): Promise<ParsedAudioV2 | null> {
+async function prefetchHeader(
+  cid: string,
+  signal: AbortSignal,
+  fetchRange: PrefetchRange,
+  evictRange: (cid: string, start: number, end: number) => void
+): Promise<ParsedAudioV2 | null> {
   let rangeEnd = initialAudioV2HeaderRangeEnd();
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const range = await fetchRange(cid, 0, rangeEnd, { phase: 'header', signal });
@@ -40,15 +46,21 @@ async function prefetchHeader(cid: string, signal: AbortSignal, fetchRange: Pref
         rangeEnd = error.neededBytes - 1;
         continue;
       }
+      evictRange(cid, 0, rangeEnd);
       throw error;
     }
   }
   throw new Error('Unable to prefetch DAV2 header');
 }
 
-async function runIntentPrefetch(audioRef: string, signal: AbortSignal, fetchRange: PrefetchRange): Promise<void> {
+async function runIntentPrefetch(
+  audioRef: string,
+  signal: AbortSignal,
+  fetchRange: PrefetchRange,
+  evictRange: (cid: string, start: number, end: number) => void
+): Promise<void> {
   const cid = encryptedRefToCID(audioRef);
-  const parsed = await prefetchHeader(cid, signal, fetchRange);
+  const parsed = await prefetchHeader(cid, signal, fetchRange, evictRange);
   if (!parsed) return;
   const firstChunk = parsed.header.chunks[0];
   if (!firstChunk || firstChunk.encryptedLength > AUDIO_V2_INTENT_MAX_FIRST_CHUNK_BYTES) return;
@@ -68,7 +80,8 @@ export function prefetchAudioV2TrackIntent(audioRef: string, options: IntentPref
   activeIntent?.controller.abort();
   const controller = new AbortController();
   const fetchRange = options.fetchRange ?? prefetchAudioV2RangeThroughGateways;
-  const request = runIntentPrefetch(audioRef, controller.signal, fetchRange)
+  const evictRange = options.evictRange ?? evictAudioV2IntentRange;
+  const request = runIntentPrefetch(audioRef, controller.signal, fetchRange, evictRange)
     .catch(error => {
       if (!isAbortError(error)) throw error;
     })

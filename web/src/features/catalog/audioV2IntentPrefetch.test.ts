@@ -73,4 +73,14 @@ describe('DAV2 intent prefetch', () => {
     expect(fetchRange).toHaveBeenCalledTimes(1);
     expect(fetchRange).toHaveBeenCalledWith(CID, 0, 65_535, expect.objectContaining({ phase: 'header' }));
   });
+
+  it('evicts a transport-valid header range when DAV2 parsing rejects it', async () => {
+    const malformed = new TextEncoder().encode('not-a-dav2-header');
+    const fetchRange = vi.fn(async () => rangeResult(malformed));
+    const evictRange = vi.fn();
+
+    await expect(prefetchAudioV2TrackIntent(AUDIO_REF, { fetchRange, evictRange })).rejects.toThrow();
+
+    expect(evictRange).toHaveBeenCalledWith(CID, 0, 65_535);
+  });
 });

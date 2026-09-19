@@ -4,6 +4,7 @@ import {
   AUDIO_V2_RANGE_ATTEMPTS_PER_GATEWAY,
   AUDIO_V2_RANGE_TIMEOUT_MS,
   clearAudioV2GatewayCache,
+  evictAudioV2IntentRange,
   fetchAudioV2RangeThroughGateways,
   getCachedAudioV2Gateway,
   prefetchAudioV2RangeThroughGateways
@@ -214,6 +215,27 @@ describe('audioV2 gateway range fetching', () => {
     expect(playbackRange.bytes).toEqual(new Uint8Array(9).fill(4));
     expect(playbackRange.intentPrefetched).toBe(true);
     expect(playbackRange.elapsedMs).toBe(0);
+  });
+
+  it('does not reuse an intent range after semantic validation evicts it', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(rangeResponse(9, 4, 'bytes 0-8/100'))
+      .mockResolvedValueOnce(rangeResponse(9, 7, 'bytes 0-8/100'));
+    const options = {
+      fetchImpl: fetchMock,
+      getGatewayUrlsForCid: () => [PRIMARY],
+      phase: 'header' as const,
+      hedge: false
+    };
+
+    await prefetchAudioV2RangeThroughGateways(CID, 0, 8, options);
+    evictAudioV2IntentRange(CID, 0, 8);
+    const playbackRange = await fetchAudioV2RangeThroughGateways(CID, 0, 8, options);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(playbackRange.bytes).toEqual(new Uint8Array(9).fill(7));
+    expect(playbackRange.intentPrefetched).toBe(false);
   });
 
   it('lets playback share an in-flight intent range', async () => {

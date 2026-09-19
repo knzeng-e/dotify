@@ -254,6 +254,15 @@ export function clearAudioV2GatewayCache(): void {
   intentCacheGeneration += 1;
 }
 
+/**
+ * Remove one speculative encrypted range after the caller discovers that its
+ * contents are not a valid DAV2 structure. Transport-level range validation
+ * cannot establish that semantic guarantee on its own.
+ */
+export function evictAudioV2IntentRange(cid: string, start: number, end: number): void {
+  removeIntentRange(intentRangeKey(cid, start, end));
+}
+
 export function getCachedAudioV2Gateway(cid: string): string | undefined {
   return winningGatewayByCid.get(cid);
 }
