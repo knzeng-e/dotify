@@ -556,8 +556,10 @@ the candidate ready.
 
 1. Bind the exact build. Add the deployment CID for Product Desktop or Product
    Web gateway samples.
-2. Record and bind one test profile: surface, device model, OS/browser version,
-   connection type, and the visible Product host version on Product surfaces.
+2. Record and bind one test profile using only the provided coarse device, OS,
+   browser, and connection categories. Product surfaces also require the
+   numeric host version. Do not enter device names, account names, hostnames, or
+   serial numbers; the UI and schema do not accept free-form profile fields.
 3. Choose the listening flow, explicit cold or warm cache condition, and the
    scenario being exercised, then select **Start sample**. Use **Ordinary
    playback** for release-latency measurements; use the named controlled
@@ -570,9 +572,10 @@ the candidate ready.
    terminal failure is recorded without an audible confirmation.
 5. Repeat cold and warm attempts, then download the candidate-bound JSON.
 
-Schema v4 keeps first-sound duration, its `human-confirmed` or `automatic-error`
+Schema v5 keeps first-sound duration, its `human-confirmed` or `automatic-error`
 measurement method, the sanitized test profile, the declared scenario with its
-fixed expected outcome, and coarse DAV2 path facts only. It
+fixed expected outcome, a bounded host terminal reason, and coarse DAV2 path
+facts only. It
 omits wallet addresses, listener identity, exact
 location, audio refs/CIDs, gateway URLs, media source URLs, keys, signatures,
 and per-listener history. Changing the SHA, public build-configuration digest,
@@ -588,7 +591,11 @@ alone supplies the surface-success, p75, and fallback-rate gates. Denied
 protected access, broken-gateway recovery, slow-key recovery, interrupted
 navigation, and corrupted DAV2 each have a separate gate against their declared
 expected outcome, so an intentional controlled error cannot be mistaken for a
-normal-playback regression.
+normal-playback regression. The label alone is insufficient: those gates also
+require, respectively, an `access-denied` host reason, a successful failover to
+a later DAV2 gateway, at least
+1,000 ms before DAV2 key authorization, a `selection-interrupted` host reason,
+or a DAV2 authentication failure.
 
 Combine exports from physical surfaces and produce the release report with:
 
