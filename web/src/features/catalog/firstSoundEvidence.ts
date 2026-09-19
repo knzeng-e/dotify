@@ -225,15 +225,20 @@ export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot,
   if (!Number.isFinite(now) || now <= 0 || !current || !attempt) return null;
 
   const hostEvents = snapshot.host.filter(metric => metric.timestamp >= attempt.startedAt);
-  const playbackIntent = hostEvents.find(metric => metric.phase === 'playback-intent');
+  const playbackIntentIndex = hostEvents.findIndex(metric => metric.phase === 'playback-intent');
+  const playbackIntent = hostEvents[playbackIntentIndex];
   if (!playbackIntent) return null;
 
-  const correlatedHostEvents = hostEvents.filter(metric => metric.timestamp >= playbackIntent.timestamp);
-  const firstAudio = correlatedHostEvents.find(metric => metric.phase === 'first-audio');
-  const hostError = correlatedHostEvents.find(metric => metric.phase === 'error');
-  const dav2Events = snapshot.dav2.filter(metric => metric.timestamp >= playbackIntent.timestamp);
+  const nextIntentOffset = hostEvents.slice(playbackIntentIndex + 1).findIndex(metric => metric.phase === 'playback-intent');
+  const nextIntentIndex = nextIntentOffset < 0 ? hostEvents.length : playbackIntentIndex + 1 + nextIntentOffset;
+  const nextIntent = hostEvents[nextIntentIndex];
+  const correlatedHostEvents = hostEvents.slice(playbackIntentIndex, nextIntentIndex);
+  const dav2Events = snapshot.dav2.filter(metric => metric.timestamp >= playbackIntent.timestamp && (!nextIntent || metric.timestamp < nextIntent.timestamp));
+  const hostTerminal = correlatedHostEvents.find(metric => metric.phase === 'first-audio' || metric.phase === 'error');
   const dav2Error = dav2Events.find(metric => metric.phase === 'error');
-  const outcome = firstAudio ? 'first-audio' : hostError || dav2Error ? 'error' : null;
+  const terminal = [hostTerminal, dav2Error].filter(metric => metric !== undefined).sort((left, right) => left.timestamp - right.timestamp)[0];
+  const firstAudio = terminal?.phase === 'first-audio' ? terminal : null;
+  const outcome = firstAudio ? 'first-audio' : terminal?.phase === 'error' ? 'error' : null;
   if (!outcome) return null;
 
   const firstRange = dav2Events.find(metric => metric.phase === 'first-range-ready' && metric.rangeStart !== undefined && metric.rangeEnd !== undefined);

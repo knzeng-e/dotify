@@ -158,6 +158,28 @@ describe('first-sound evidence capture', () => {
     expect(serializeFirstSoundEvidence(buildFirstSoundEvidence(draft!, 3_000))).not.toContain('private gateway failure');
   });
 
+  it('keeps an autoplay failure terminal when a later Play starts another intent', () => {
+    bindFirstSoundCandidate({ buildSha: SHA, productAppVersion: null }, '');
+    beginFirstSoundAttempt('ios-safari', 'free', 'cold', 1_000);
+
+    const draft = finishFirstSoundAttempt(
+      {
+        dav2: [],
+        host: [
+          { phase: 'playback-intent', source: 'track-id', elapsedMs: 0, timestamp: 1_100 },
+          { phase: 'metadata-ready', source: 'blob:first', elapsedMs: 50, timestamp: 1_150 },
+          { phase: 'error', source: 'blob:first', elapsedMs: 100, timestamp: 1_200 },
+          { phase: 'playback-intent', source: 'track-id', elapsedMs: 0, timestamp: 1_500 },
+          { phase: 'first-audio', source: 'blob:first', elapsedMs: 100, timestamp: 1_600 }
+        ],
+        latestFirstSoundMs: 100
+      },
+      2_000
+    );
+
+    expect(draft?.samples).toEqual([expect.objectContaining({ outcome: 'error', firstSoundMs: null })]);
+  });
+
   it('fails closed when persisted evidence is malformed', () => {
     window.localStorage.setItem(FIRST_SOUND_EVIDENCE_STORAGE_KEY, JSON.stringify({ schemaVersion: 1, candidate: { gitSha: 'wrong' }, samples: [] }));
     expect(readFirstSoundEvidenceDraft()).toBeNull();
