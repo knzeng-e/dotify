@@ -89,6 +89,33 @@ test('audio startup telemetry is retained for QA in the browser', async ({ page 
   expect(dav2Snapshot?.latestFirstSoundMs).toBe(821.6);
 });
 
+test('resuming an already loaded track records a fresh warm startup attempt', async ({ page }) => {
+  await page.goto('/?e2eRoom=public&e2eSync=on&e2eAutoplay=on');
+
+  const trackAction = page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ });
+  await trackAction.click();
+  const audio = page.locator('audio.native-player-source').first();
+  await expect(audio).toHaveJSProperty('paused', false);
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(audio).toHaveJSProperty('paused', true);
+
+  await page.evaluate(() => window.__DOTIFY_AUDIO_STARTUP__?.clear());
+  await page.getByRole('button', { name: 'Music', exact: true }).click();
+  await trackAction.click();
+  await expect(audio).toHaveJSProperty('paused', false);
+
+  await expect
+    .poll(async () => (await readStartupSnapshot(page))?.host.map(metric => metric.phase))
+    .toEqual(expect.arrayContaining(['playback-intent', 'first-audio']));
+
+  const snapshot = await readStartupSnapshot(page);
+  const playbackIntentIndex = snapshot?.host.findIndex(metric => metric.phase === 'playback-intent') ?? -1;
+  const firstAudioIndex = snapshot?.host.findIndex(metric => metric.phase === 'first-audio') ?? -1;
+  expect(playbackIntentIndex).toBeGreaterThanOrEqual(0);
+  expect(firstAudioIndex).toBeGreaterThan(playbackIntentIndex);
+  expect(snapshot?.latestFirstSoundMs).not.toBeNull();
+});
+
 test('the readiness panel captures a candidate-bound first-sound sample without media identifiers', async ({ page }) => {
   await page.goto('/?e2eRoom=public&e2eReadiness=true');
   await page.getByRole('button', { name: 'You', exact: true }).click();

@@ -223,6 +223,36 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const toggleMute = useCallback(() => applyMuted(!muted), [applyMuted, muted]);
 
+  const beginLoadedSourcePlaybackAttempt = useCallback(() => {
+    if (!audioSource) return;
+    const startedAt = nowMs();
+    hostStartupRef.current = {
+      source: audioSource,
+      startedAt,
+      metadataReported: true,
+      firstAudioReported: false,
+      errorReported: false
+    };
+    publishHostAudioStartupMetric({
+      phase: 'playback-intent',
+      source: selectedTrackId || audioSource,
+      elapsedMs: 0,
+      timestamp: Date.now()
+    });
+  }, [audioSource, selectedTrackId]);
+
+  const reportHostPlaybackError = useCallback(() => {
+    const startup = hostStartupRef.current;
+    if (!startup || startup.errorReported) return;
+    startup.errorReported = true;
+    publishHostAudioStartupMetric({
+      phase: 'error',
+      source: startup.source,
+      elapsedMs: Number((nowMs() - startup.startedAt).toFixed(1)),
+      timestamp: Date.now()
+    });
+  }, []);
+
   const togglePlay = useCallback(async () => {
     const audio = getControllingAudio();
     if (!audio || !canUseTransport) return;
@@ -241,10 +271,16 @@ export function usePlayback(deps: UsePlaybackDeps) {
       return;
     }
     if (audio.paused) {
+      // A loaded source can resume without going back through selectTrack.
+      // Treat that user gesture as a fresh startup attempt so warm/replay
+      // evidence measures from the click and the next `playing` event is not
+      // suppressed by the completed attempt for the original source load.
+      beginLoadedSourcePlaybackAttempt();
       try {
         await audio.play();
         setStatus('playing');
       } catch {
+        reportHostPlaybackError();
         setStatus('autoplay-blocked');
       }
     } else {
@@ -253,7 +289,18 @@ export function usePlayback(deps: UsePlaybackDeps) {
     }
     syncFromAudio(audio);
     onEmitPlayerState(true);
-  }, [getControllingAudio, canUseTransport, mode, remotePausedByUser, playerState?.playing, status, syncFromAudio, onEmitPlayerState]);
+  }, [
+    getControllingAudio,
+    canUseTransport,
+    mode,
+    remotePausedByUser,
+    playerState?.playing,
+    status,
+    beginLoadedSourcePlaybackAttempt,
+    reportHostPlaybackError,
+    syncFromAudio,
+    onEmitPlayerState
+  ]);
 
   const seekToProgress = useCallback(
     (progressPercent: number) => {
@@ -370,16 +417,8 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const handleHostError = useCallback(() => {
     onHostMediaSettled(audioSource);
-    const startup = hostStartupRef.current;
-    if (!startup || startup.errorReported) return;
-    startup.errorReported = true;
-    publishHostAudioStartupMetric({
-      phase: 'error',
-      source: startup.source,
-      elapsedMs: Number((nowMs() - startup.startedAt).toFixed(1)),
-      timestamp: Date.now()
-    });
-  }, [audioSource, onHostMediaSettled]);
+    reportHostPlaybackError();
+  }, [audioSource, onHostMediaSettled, reportHostPlaybackError]);
 
   const markNoAudio = useCallback(() => setStatus('no-audio'), []);
   const toggleRepeat = useCallback(() => {
