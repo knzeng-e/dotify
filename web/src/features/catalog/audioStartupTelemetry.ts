@@ -26,7 +26,8 @@ export type AudioV2StartupMetric = {
 };
 
 export type HostAudioStartupMetric = {
-  phase: 'playback-intent' | 'source-selected' | 'metadata-ready' | 'first-audio' | 'error';
+  phase: 'playback-intent' | 'source-selected' | 'metadata-ready' | 'media-playing' | 'error';
+  attemptId: string;
   source: string;
   elapsedMs: number;
   timestamp: number;
@@ -36,7 +37,7 @@ export type HostAudioStartupMetric = {
 export type AudioStartupTelemetrySnapshot = {
   dav2: AudioV2StartupMetric[];
   host: HostAudioStartupMetric[];
-  latestFirstSoundMs: number | null;
+  latestMediaPlayingMs: number | null;
 };
 
 export type AudioStartupTelemetryApi = {
@@ -67,7 +68,7 @@ const audioV2Phases = new Set<AudioV2StartupPhase>([
   'fallback',
   'error'
 ]);
-const hostPhases = new Set<HostAudioStartupMetric['phase']>(['playback-intent', 'source-selected', 'metadata-ready', 'first-audio', 'error']);
+const hostPhases = new Set<HostAudioStartupMetric['phase']>(['playback-intent', 'source-selected', 'metadata-ready', 'media-playing', 'error']);
 
 let dav2Metrics: AudioV2StartupMetric[] = [];
 let hostMetrics: HostAudioStartupMetric[] = [];
@@ -116,6 +117,8 @@ function isHostAudioStartupMetric(value: unknown): value is HostAudioStartupMetr
   if (!isRecord(value)) return false;
   return (
     hostPhases.has(value.phase as HostAudioStartupMetric['phase']) &&
+    typeof value.attemptId === 'string' &&
+    value.attemptId.length > 0 &&
     typeof value.source === 'string' &&
     isFiniteNumber(value.elapsedMs) &&
     isFiniteNumber(value.timestamp) &&
@@ -150,11 +153,11 @@ export function publishHostAudioStartupMetric(detail: HostAudioStartupMetric): v
 }
 
 export function getAudioStartupTelemetrySnapshot(): AudioStartupTelemetrySnapshot {
-  const latestFirstAudio = [...hostMetrics].reverse().find(metric => metric.phase === 'first-audio');
+  const latestMediaPlaying = [...hostMetrics].reverse().find(metric => metric.phase === 'media-playing');
   return {
     dav2: [...dav2Metrics],
     host: [...hostMetrics],
-    latestFirstSoundMs: latestFirstAudio?.elapsedMs ?? null
+    latestMediaPlayingMs: latestMediaPlaying?.elapsedMs ?? null
   };
 }
 

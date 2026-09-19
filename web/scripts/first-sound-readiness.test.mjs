@@ -4,6 +4,8 @@ import { describe, it } from 'node:test';
 import { buildFirstSoundReadinessReport, renderFirstSoundReadinessMarkdown, validateFirstSoundEvidence } from './first-sound-readiness.mjs';
 
 const SHA = '1234567890abcdef1234567890abcdef12345678';
+const CONFIG_DIGEST = 'ab'.repeat(32);
+const PRODUCT_CONFIG_DIGEST = 'ef'.repeat(32);
 const CID = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3ooqb5x4nqyd7bkhzbr6f5o4e';
 
 function sample(id, overrides = {}) {
@@ -15,6 +17,7 @@ function sample(id, overrides = {}) {
     scenario: 'ordinary-playback',
     expectedOutcome: 'first-audio',
     outcome: 'first-audio',
+    measurement: 'human-confirmed',
     firstSoundMs: 800,
     capturedAt: '2026-09-19T12:00:00.000Z',
     dav2: {
@@ -41,10 +44,14 @@ function profile(surface = 'standalone-chrome', overrides = {}) {
   };
 }
 
-function evidence(samples, candidate = { gitSha: SHA, productAppVersion: '[0, 1, 25]', deployedCid: CID }, profileOverrides = {}) {
+function evidence(
+  samples,
+  candidate = { gitSha: SHA, buildConfigDigest: CONFIG_DIGEST, productAppVersion: '[0, 1, 25]', deployedCid: CID },
+  profileOverrides = {}
+) {
   const surface = samples[0]?.surface ?? 'standalone-chrome';
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     candidate,
     profile: profile(surface, profileOverrides),
     capturedAt: '2026-09-19T12:05:00.000Z',
@@ -123,7 +130,7 @@ describe('first-sound readiness evidence', () => {
 
   it('fails a performance budget and does not hide playback errors from the surface gate', () => {
     const samples = [1_500, 1_700, 1_900, 2_100].map((firstSoundMs, index) => sample(`free-${index}`, { firstSoundMs }));
-    samples.push(sample('failed', { outcome: 'error', firstSoundMs: null }));
+    samples.push(sample('failed', { outcome: 'error', measurement: 'automatic-error', firstSoundMs: null }));
     const report = buildFirstSoundReadinessReport([{ path: 'chrome.json', data: evidence(samples) }], { expectedCommit: SHA });
 
     assert.equal(report.budgets.find(row => row.flow === 'free' && row.cacheState === 'cold')?.status, 'fail');
@@ -133,11 +140,17 @@ describe('first-sound readiness evidence', () => {
   it('keeps controlled fault evidence out of normal success budgets and requires its expected outcome', () => {
     const ordinary = Array.from({ length: 4 }, (_, index) => sample(`ordinary-${index}`));
     const controlled = [
-      sample('denied', { scenario: 'denied-protected', expectedOutcome: 'error', outcome: 'error', firstSoundMs: null }),
+      sample('denied', { scenario: 'denied-protected', expectedOutcome: 'error', outcome: 'error', measurement: 'automatic-error', firstSoundMs: null }),
       sample('gateway', { scenario: 'broken-gateway', expectedOutcome: 'first-audio', outcome: 'first-audio', firstSoundMs: 1_100 }),
       sample('slow-key', { scenario: 'slow-key-service', expectedOutcome: 'first-audio', outcome: 'first-audio', firstSoundMs: 2_800 }),
-      sample('navigation', { scenario: 'interrupted-navigation', expectedOutcome: 'error', outcome: 'error', firstSoundMs: null }),
-      sample('corrupted', { scenario: 'corrupted-dav2', expectedOutcome: 'error', outcome: 'error', firstSoundMs: null })
+      sample('navigation', {
+        scenario: 'interrupted-navigation',
+        expectedOutcome: 'error',
+        outcome: 'error',
+        measurement: 'automatic-error',
+        firstSoundMs: null
+      }),
+      sample('corrupted', { scenario: 'corrupted-dav2', expectedOutcome: 'error', outcome: 'error', measurement: 'automatic-error', firstSoundMs: null })
     ];
     const report = buildFirstSoundReadinessReport(
       [
@@ -156,7 +169,9 @@ describe('first-sound readiness evidence', () => {
       false
     );
 
-    const wrongOutcome = controlled.map(item => (item.scenario === 'interrupted-navigation' ? { ...item, outcome: 'first-audio', firstSoundMs: 50 } : item));
+    const wrongOutcome = controlled.map(item =>
+      item.scenario === 'interrupted-navigation' ? { ...item, outcome: 'first-audio', measurement: 'human-confirmed', firstSoundMs: 50 } : item
+    );
     const failing = buildFirstSoundReadinessReport(
       [
         { path: 'ordinary.json', data: evidence(ordinary) },
@@ -172,7 +187,10 @@ describe('first-sound readiness evidence', () => {
     const report = buildFirstSoundReadinessReport(
       [
         { path: 'one.json', data: evidence([sample('same')]) },
-        { path: 'two.json', data: evidence([sample('same')], { gitSha: otherSha, productAppVersion: '[0, 1, 25]', deployedCid: CID }) }
+        {
+          path: 'two.json',
+          data: evidence([sample('same')], { gitSha: otherSha, buildConfigDigest: CONFIG_DIGEST, productAppVersion: '[0, 1, 25]', deployedCid: CID })
+        }
       ],
       { expectedCommit: SHA }
     );
@@ -187,11 +205,28 @@ describe('first-sound readiness evidence', () => {
       { expectedCommit: SHA }
     );
     assert.equal(duplicates.gates.find(row => row.id === 'sample-identity')?.status, 'fail');
+
+    const changedConfig = buildFirstSoundReadinessReport(
+      [
+        { path: 'one.json', data: evidence([sample('config-one')]) },
+        {
+          path: 'two.json',
+          data: evidence([sample('config-two')], { gitSha: SHA, buildConfigDigest: 'cd'.repeat(32), productAppVersion: '[0, 1, 25]', deployedCid: CID })
+        }
+      ],
+      { expectedCommit: SHA }
+    );
+    assert.equal(changedConfig.gates.find(row => row.id === 'candidate')?.status, 'fail');
   });
 
   it('combines standalone and Product exports for one commit while keeping Product identity strict', () => {
-    const standalone = evidence([sample('standalone')], { gitSha: SHA, productAppVersion: null, deployedCid: null });
-    const product = evidence([sample('product', { surface: 'product-desktop' })]);
+    const standalone = evidence([sample('standalone')], { gitSha: SHA, buildConfigDigest: CONFIG_DIGEST, productAppVersion: null, deployedCid: null });
+    const product = evidence([sample('product', { surface: 'product-desktop' })], {
+      gitSha: SHA,
+      buildConfigDigest: PRODUCT_CONFIG_DIGEST,
+      productAppVersion: '[0, 1, 25]',
+      deployedCid: CID
+    });
     const combined = buildFirstSoundReadinessReport(
       [
         { path: 'standalone.json', data: standalone },
@@ -206,6 +241,7 @@ describe('first-sound readiness evidence', () => {
 
     const otherProduct = evidence([sample('other-product', { surface: 'product-web-gateway' })], {
       gitSha: SHA,
+      buildConfigDigest: PRODUCT_CONFIG_DIGEST,
       productAppVersion: '[0, 1, 26]',
       deployedCid: CID
     });
@@ -227,7 +263,12 @@ describe('first-sound readiness evidence', () => {
       'privacy flags must explicitly confirm that no identifying or media-reference data was collected'
     ]);
 
-    const product = evidence([sample('product', { surface: 'product-desktop' })], { gitSha: SHA, productAppVersion: null, deployedCid: null });
+    const product = evidence([sample('product', { surface: 'product-desktop' })], {
+      gitSha: SHA,
+      buildConfigDigest: CONFIG_DIGEST,
+      productAppVersion: null,
+      deployedCid: null
+    });
     const report = buildFirstSoundReadinessReport([{ path: 'product.json', data: product }], { expectedCommit: SHA });
     assert.equal(report.gates.find(row => row.id === 'product-identity')?.status, 'fail');
   });

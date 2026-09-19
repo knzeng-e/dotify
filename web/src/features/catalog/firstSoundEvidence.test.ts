@@ -14,10 +14,11 @@ import {
 } from './firstSoundEvidence';
 
 const SHA = '1234567890abcdef1234567890abcdef12345678';
+const CONFIG_DIGEST = 'ab'.repeat(32);
 const CID = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3ooqb5x4nqyd7bkhzbr6f5o4e';
 
 function bindCandidate(productAppVersion: string | null = null, deployedCid = '') {
-  return bindFirstSoundCandidate({ buildSha: SHA, buildClean: true, productAppVersion }, deployedCid);
+  return bindFirstSoundCandidate({ buildSha: SHA, buildConfigDigest: CONFIG_DIGEST, buildClean: true, productAppVersion }, deployedCid);
 }
 
 function bindProfile(surface: 'standalone-chrome' | 'standalone-safari' | 'ios-safari' | 'product-desktop') {
@@ -56,11 +57,11 @@ function snapshot(startedAt: number): AudioStartupTelemetrySnapshot {
       }
     ],
     host: [
-      { phase: 'playback-intent', source: 'private-track-id', elapsedMs: 0, timestamp: startedAt + 1 },
-      { phase: 'source-selected', source: 'blob:private-source', elapsedMs: 0, timestamp: startedAt + 500 },
-      { phase: 'first-audio', source: 'blob:private-source', elapsedMs: 312.4, timestamp: startedAt + 813, durationSeconds: 120 }
+      { phase: 'playback-intent', attemptId: 'attempt-a', source: 'private-track-id', elapsedMs: 0, timestamp: startedAt + 1 },
+      { phase: 'source-selected', attemptId: 'attempt-a', source: 'blob:private-source', elapsedMs: 0, timestamp: startedAt + 500 },
+      { phase: 'media-playing', attemptId: 'attempt-a', source: 'blob:private-source', elapsedMs: 312.4, timestamp: startedAt + 813, durationSeconds: 120 }
     ],
-    latestFirstSoundMs: 312.4
+    latestMediaPlayingMs: 312.4
   };
 }
 
@@ -82,20 +83,25 @@ describe('first-sound evidence capture', () => {
 
   it('binds samples to an exact candidate and clears data when the candidate changes', () => {
     const first = bindCandidate('[0, 1, 25]', CID);
-    expect(first?.candidate).toEqual({ gitSha: SHA, productAppVersion: '[0, 1, 25]', deployedCid: CID });
+    expect(first?.candidate).toEqual({ gitSha: SHA, buildConfigDigest: CONFIG_DIGEST, productAppVersion: '[0, 1, 25]', deployedCid: CID });
 
     bindProfile('standalone-chrome');
     beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 'ordinary-playback', 1_000);
-    finishFirstSoundAttempt(snapshot(1_000), 2_000);
+    finishFirstSoundAttempt(snapshot(1_000), 1_813, true);
     expect(readFirstSoundEvidenceDraft()?.samples).toHaveLength(1);
 
-    const next = bindFirstSoundCandidate({ buildSha: 'abcdefabcdefabcdefabcdefabcdefabcdefabcd', buildClean: true, productAppVersion: '[0, 1, 26]' }, CID);
+    const next = bindFirstSoundCandidate(
+      { buildSha: 'abcdefabcdefabcdefabcdefabcdefabcdefabcd', buildConfigDigest: CONFIG_DIGEST, buildClean: true, productAppVersion: '[0, 1, 26]' },
+      CID
+    );
     expect(next?.samples).toEqual([]);
     expect(next?.activeAttempt).toBeNull();
   });
 
   it('requires complete Product deployment identity only for Product surfaces', () => {
-    expect(bindFirstSoundCandidate({ buildSha: SHA, buildClean: true, productAppVersion: '[0, 1, 25]' }, 'not-a-cid')).toBeNull();
+    expect(
+      bindFirstSoundCandidate({ buildSha: SHA, buildConfigDigest: CONFIG_DIGEST, buildClean: true, productAppVersion: '[0, 1, 25]' }, 'not-a-cid')
+    ).toBeNull();
     bindCandidate();
     bindProfile('standalone-safari');
 
@@ -108,7 +114,7 @@ describe('first-sound evidence capture', () => {
     bindCandidate('[0, 1, 25]', CID);
     bindProfile('product-desktop');
     beginFirstSoundAttempt('product-desktop', 'authorized-protected', 'warm', 'ordinary-playback', 1_000);
-    const draft = finishFirstSoundAttempt(snapshot(1_000), 2_000);
+    const draft = finishFirstSoundAttempt(snapshot(1_000), 1_813, true);
 
     expect(draft?.activeAttempt).toBeNull();
     expect(draft?.samples).toEqual([
@@ -117,6 +123,7 @@ describe('first-sound evidence capture', () => {
         flow: 'authorized-protected',
         cacheState: 'warm',
         outcome: 'first-audio',
+        measurement: 'human-confirmed',
         firstSoundMs: 812,
         dav2: {
           observed: true,
@@ -155,7 +162,7 @@ describe('first-sound evidence capture', () => {
     bindProfile('ios-safari');
     beginFirstSoundAttempt('ios-safari', 'free', 'cold', 'ordinary-playback', 1_000);
 
-    expect(finishFirstSoundAttempt({ dav2: [], host: [], latestFirstSoundMs: null }, 2_000)).toBeNull();
+    expect(finishFirstSoundAttempt({ dav2: [], host: [], latestMediaPlayingMs: null }, 2_000, true)).toBeNull();
     expect(readFirstSoundEvidenceDraft()?.activeAttempt).not.toBeNull();
   });
 
@@ -166,7 +173,7 @@ describe('first-sound evidence capture', () => {
 
     const draft = finishFirstSoundAttempt(
       {
-        host: [{ phase: 'playback-intent', source: 'private-track-id', elapsedMs: 0, timestamp: 1_100 }],
+        host: [{ phase: 'playback-intent', attemptId: 'attempt-a', source: 'private-track-id', elapsedMs: 0, timestamp: 1_100 }],
         dav2: [
           {
             phase: 'error',
@@ -177,7 +184,7 @@ describe('first-sound evidence capture', () => {
             detail: 'private gateway failure'
           }
         ],
-        latestFirstSoundMs: null
+        latestMediaPlayingMs: null
       },
       2_000
     );
@@ -196,13 +203,13 @@ describe('first-sound evidence capture', () => {
       {
         dav2: [],
         host: [
-          { phase: 'playback-intent', source: 'track-id', elapsedMs: 0, timestamp: 1_100 },
-          { phase: 'metadata-ready', source: 'blob:first', elapsedMs: 50, timestamp: 1_150 },
-          { phase: 'error', source: 'blob:first', elapsedMs: 100, timestamp: 1_200 },
-          { phase: 'playback-intent', source: 'track-id', elapsedMs: 0, timestamp: 1_500 },
-          { phase: 'first-audio', source: 'blob:first', elapsedMs: 100, timestamp: 1_600 }
+          { phase: 'playback-intent', attemptId: 'attempt-a', source: 'track-id', elapsedMs: 0, timestamp: 1_100 },
+          { phase: 'metadata-ready', attemptId: 'attempt-a', source: 'blob:first', elapsedMs: 50, timestamp: 1_150 },
+          { phase: 'error', attemptId: 'attempt-a', source: 'blob:first', elapsedMs: 100, timestamp: 1_200 },
+          { phase: 'playback-intent', attemptId: 'attempt-b', source: 'track-id', elapsedMs: 0, timestamp: 1_500 },
+          { phase: 'media-playing', attemptId: 'attempt-b', source: 'blob:first', elapsedMs: 100, timestamp: 1_600 }
         ],
-        latestFirstSoundMs: 100
+        latestMediaPlayingMs: 100
       },
       2_000
     );
@@ -219,12 +226,12 @@ describe('first-sound evidence capture', () => {
       {
         dav2: [],
         host: [
-          { phase: 'playback-intent', source: 'first-private-track-id', elapsedMs: 0, timestamp: 1_100 },
-          { phase: 'error', source: 'first-private-track-id', elapsedMs: 75, timestamp: 1_175 },
-          { phase: 'playback-intent', source: 'replacement-private-track-id', elapsedMs: 0, timestamp: 1_200 },
-          { phase: 'first-audio', source: 'blob:replacement-private-source', elapsedMs: 90, timestamp: 1_290 }
+          { phase: 'playback-intent', attemptId: 'attempt-a', source: 'first-private-track-id', elapsedMs: 0, timestamp: 1_100 },
+          { phase: 'error', attemptId: 'attempt-a', source: 'first-private-track-id', elapsedMs: 75, timestamp: 1_175 },
+          { phase: 'playback-intent', attemptId: 'attempt-b', source: 'replacement-private-track-id', elapsedMs: 0, timestamp: 1_200 },
+          { phase: 'media-playing', attemptId: 'attempt-b', source: 'blob:replacement-private-source', elapsedMs: 90, timestamp: 1_290 }
         ],
-        latestFirstSoundMs: 90
+        latestMediaPlayingMs: 90
       },
       2_000
     );
@@ -235,18 +242,51 @@ describe('first-sound evidence capture', () => {
     ]);
   });
 
+  it('requires human confirmation after media starts before recording audible first sound', () => {
+    bindCandidate();
+    bindProfile('standalone-chrome');
+    beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 'ordinary-playback', 1_000);
+
+    expect(finishFirstSoundAttempt(snapshot(1_000), 1_813)).toBeNull();
+    const draft = finishFirstSoundAttempt(snapshot(1_000), 1_900, true);
+    expect(draft?.samples).toEqual([expect.objectContaining({ outcome: 'first-audio', measurement: 'human-confirmed', firstSoundMs: 899 })]);
+  });
+
+  it('ignores a stale outgoing-source terminal event from another attempt', () => {
+    bindCandidate();
+    bindProfile('standalone-chrome');
+    beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 'ordinary-playback', 1_000);
+
+    const draft = finishFirstSoundAttempt(
+      {
+        dav2: [],
+        host: [
+          { phase: 'playback-intent', attemptId: 'new-selection', source: 'new-track', elapsedMs: 0, timestamp: 1_100 },
+          { phase: 'error', attemptId: 'outgoing-source', source: 'blob:old-track', elapsedMs: 20, timestamp: 1_120 },
+          { phase: 'source-selected', attemptId: 'new-selection', source: 'blob:new-track', elapsedMs: 200, timestamp: 1_300 },
+          { phase: 'media-playing', attemptId: 'new-selection', source: 'blob:new-track', elapsedMs: 300, timestamp: 1_400 }
+        ],
+        latestMediaPlayingMs: 300
+      },
+      1_450,
+      true
+    );
+
+    expect(draft?.samples).toEqual([expect.objectContaining({ outcome: 'first-audio', measurement: 'human-confirmed', firstSoundMs: 350 })]);
+  });
+
   it('fails closed when persisted evidence is malformed', () => {
     window.localStorage.setItem(FIRST_SOUND_EVIDENCE_STORAGE_KEY, JSON.stringify({ schemaVersion: 1, candidate: { gitSha: 'wrong' }, samples: [] }));
     expect(readFirstSoundEvidenceDraft()).toBeNull();
   });
 
   it('refuses to bind evidence to a dirty build and separates changed device profiles', () => {
-    expect(bindFirstSoundCandidate({ buildSha: SHA, buildClean: false, productAppVersion: null }, '')).toBeNull();
+    expect(bindFirstSoundCandidate({ buildSha: SHA, buildConfigDigest: CONFIG_DIGEST, buildClean: false, productAppVersion: null }, '')).toBeNull();
 
     bindCandidate();
     bindProfile('standalone-chrome');
     beginFirstSoundAttempt('standalone-chrome', 'free', 'cold', 'ordinary-playback', 1_000);
-    finishFirstSoundAttempt(snapshot(1_000), 2_000);
+    finishFirstSoundAttempt(snapshot(1_000), 1_813, true);
     expect(readFirstSoundEvidenceDraft()?.samples).toHaveLength(1);
 
     const changed = bindFirstSoundTestProfile({

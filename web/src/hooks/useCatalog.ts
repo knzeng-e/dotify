@@ -104,6 +104,7 @@ export type TrackSelectionResult = {
 
 type ActiveTrackSelection = {
   id: number;
+  attemptId: string;
   controller: AbortController;
   source: string;
   startedAt: number;
@@ -380,6 +381,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     runtimeAdapterConfig.kind === 'product-cdm' ? DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET : DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
   );
   const [audioSource, setAudioSource] = useState<string | null>(null);
+  const [audioStartupAttemptId, setAudioStartupAttemptId] = useState<string | null>(null);
   const [trackSelectionPending, setTrackSelectionPending] = useState(false);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
@@ -468,6 +470,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       activeSelection.terminalReported = true;
       publishHostAudioStartupMetric({
         phase: 'error',
+        attemptId: activeSelection.attemptId,
         source: activeSelection.source,
         elapsedMs: Number((nowMs() - activeSelection.startedAt).toFixed(1)),
         timestamp: Date.now()
@@ -484,8 +487,10 @@ export function useCatalog(deps: UseCatalogDeps) {
     // strand an interrupted attempt in "Timing active".
     retireActiveTrackSelection(true);
     setTrackSelectionPending(true);
+    const id = (nextTrackSelectionIdRef.current += 1);
     const selection: ActiveTrackSelection = {
-      id: (nextTrackSelectionIdRef.current += 1),
+      id,
+      attemptId: `selection:${id}`,
       controller: new AbortController(),
       source,
       startedAt,
@@ -493,6 +498,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       terminalReported: false
     };
     activeTrackSelectionRef.current = selection;
+    setAudioStartupAttemptId(selection.attemptId);
     return selection;
   }
 
@@ -505,13 +511,13 @@ export function useCatalog(deps: UseCatalogDeps) {
     setTrackSelectionPending(false);
   }
 
-  function settleTrackSelectionMedia(source: string | null, terminal = false) {
+  function settleTrackSelectionMedia(source: string | null, terminal = false, attemptId: string | null = null) {
     if (!source) return;
     // `canplay` makes transport usable, but it is not terminal evidence: the
     // following play can still be rejected or the listener can replace the
     // track before a frame is heard. Keep cancellation armed until playing or
     // an explicit playback error closes the startup attempt.
-    if (terminal && audioSourceRef.current === source && activeTrackSelectionRef.current) {
+    if (terminal && audioSourceRef.current === source && activeTrackSelectionRef.current && activeTrackSelectionRef.current.attemptId === attemptId) {
       activeTrackSelectionRef.current.pending = false;
     }
     if (pendingTrackMediaSourceRef.current !== source) return;
@@ -1111,6 +1117,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const selection = beginTrackSelection(track.id, selectionStartedAt);
     publishHostAudioStartupMetric({
       phase: 'playback-intent',
+      attemptId: selection.attemptId,
       source: track.id,
       elapsedMs: 0,
       timestamp: Date.now()
@@ -1122,6 +1129,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       selection.terminalReported = true;
       publishHostAudioStartupMetric({
         phase: 'error',
+        attemptId: selection.attemptId,
         source: track.id,
         elapsedMs: Number((nowMs() - selectionStartedAt).toFixed(1)),
         timestamp: Date.now()
@@ -1665,6 +1673,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     nativeRuntimePaymentAsset,
     usesCatalogApi,
     audioSource,
+    audioStartupAttemptId,
     trackSelectionPending,
     settleTrackSelectionMedia,
     setAudioSource: setResolvedAudioSource,

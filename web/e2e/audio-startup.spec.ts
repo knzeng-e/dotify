@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 type AudioStartupSnapshot = {
   dav2: Array<{ phase: string; elapsedMs: number }>;
   host: Array<{ phase: string; elapsedMs: number }>;
-  latestFirstSoundMs: number | null;
+  latestMediaPlayingMs: number | null;
 };
 
 declare global {
@@ -73,7 +73,8 @@ test('audio startup telemetry is retained for QA in the browser', async ({ page 
     window.dispatchEvent(
       new CustomEvent('dotify:host-audio-startup', {
         detail: {
-          phase: 'first-audio',
+          phase: 'media-playing',
+          attemptId: 'synthetic-a',
           source: 'data:audio/wav;base64,test',
           elapsedMs: 821.6,
           timestamp: Date.now(),
@@ -85,8 +86,8 @@ test('audio startup telemetry is retained for QA in the browser', async ({ page 
 
   const dav2Snapshot = await readStartupSnapshot(page);
   expect(dav2Snapshot?.dav2).toEqual([expect.objectContaining({ phase: 'first-range-ready', elapsedMs: 317.4 })]);
-  expect(dav2Snapshot?.host).toEqual(expect.arrayContaining([expect.objectContaining({ phase: 'first-audio', elapsedMs: 821.6 })]));
-  expect(dav2Snapshot?.latestFirstSoundMs).toBe(821.6);
+  expect(dav2Snapshot?.host).toEqual(expect.arrayContaining([expect.objectContaining({ phase: 'media-playing', elapsedMs: 821.6 })]));
+  expect(dav2Snapshot?.latestMediaPlayingMs).toBe(821.6);
 });
 
 test('resuming an already loaded track records a fresh warm startup attempt', async ({ page }) => {
@@ -106,14 +107,14 @@ test('resuming an already loaded track records a fresh warm startup attempt', as
 
   await expect
     .poll(async () => (await readStartupSnapshot(page))?.host.map(metric => metric.phase))
-    .toEqual(expect.arrayContaining(['playback-intent', 'first-audio']));
+    .toEqual(expect.arrayContaining(['playback-intent', 'media-playing']));
 
   const snapshot = await readStartupSnapshot(page);
   const playbackIntentIndex = snapshot?.host.findIndex(metric => metric.phase === 'playback-intent') ?? -1;
-  const firstAudioIndex = snapshot?.host.findIndex(metric => metric.phase === 'first-audio') ?? -1;
+  const mediaPlayingIndex = snapshot?.host.findIndex(metric => metric.phase === 'media-playing') ?? -1;
   expect(playbackIntentIndex).toBeGreaterThanOrEqual(0);
-  expect(firstAudioIndex).toBeGreaterThan(playbackIntentIndex);
-  expect(snapshot?.latestFirstSoundMs).not.toBeNull();
+  expect(mediaPlayingIndex).toBeGreaterThan(playbackIntentIndex);
+  expect(snapshot?.latestMediaPlayingMs).not.toBeNull();
 });
 
 test('autoplay rejection terminates a new-source startup attempt', async ({ page }) => {
@@ -139,7 +140,7 @@ test('autoplay rejection terminates a new-source startup attempt', async ({ page
 
   const phases = (await readStartupSnapshot(page))?.host.map(metric => metric.phase) ?? [];
   expect(phases.indexOf('error')).toBeGreaterThan(phases.indexOf('playback-intent'));
-  expect(phases).not.toContain('first-audio');
+  expect(phases).not.toContain('media-playing');
 });
 
 test('replacing a pending track terminates its startup attempt before the next intent', async ({ page }) => {
@@ -183,7 +184,7 @@ test('canplay keeps cancellation armed until the track reaches a terminal event'
     .poll(async () => (await readStartupSnapshot(page))?.host.map(metric => metric.phase))
     .toEqual(expect.arrayContaining(['playback-intent', 'source-selected', 'metadata-ready']));
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
-  expect((await readStartupSnapshot(page))?.host.map(metric => metric.phase)).not.toContain('first-audio');
+  expect((await readStartupSnapshot(page))?.host.map(metric => metric.phase)).not.toContain('media-playing');
 
   await page.getByRole('button', { name: 'Music', exact: true }).click();
   await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
@@ -211,7 +212,7 @@ test('muted playback cannot satisfy a first-sound measurement', async ({ page })
     .toEqual(expect.arrayContaining(['playback-intent', 'error']));
 
   const phases = (await readStartupSnapshot(page))?.host.map(metric => metric.phase) ?? [];
-  expect(phases).not.toContain('first-audio');
+  expect(phases).not.toContain('media-playing');
 });
 
 test('the readiness panel captures a candidate-bound first-sound sample without media identifiers', async ({ page }) => {
@@ -235,7 +236,7 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
     const timestamp = Date.now();
     window.dispatchEvent(
       new CustomEvent('dotify:host-audio-startup', {
-        detail: { phase: 'playback-intent', source: 'private-track-id', elapsedMs: 0, timestamp }
+        detail: { phase: 'playback-intent', attemptId: 'evidence-a', source: 'private-track-id', elapsedMs: 0, timestamp }
       })
     );
     window.dispatchEvent(
@@ -255,24 +256,34 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
     );
     window.dispatchEvent(
       new CustomEvent('dotify:host-audio-startup', {
-        detail: { phase: 'source-selected', source: 'blob:private-source', elapsedMs: 0, timestamp: timestamp + 500 }
+        detail: { phase: 'source-selected', attemptId: 'evidence-a', source: 'blob:private-source', elapsedMs: 0, timestamp: timestamp + 500 }
       })
     );
     window.dispatchEvent(
       new CustomEvent('dotify:host-audio-startup', {
-        detail: { phase: 'first-audio', source: 'blob:private-source', elapsedMs: 312, timestamp: timestamp + 812, durationSeconds: 10 }
+        detail: {
+          phase: 'media-playing',
+          attemptId: 'evidence-a',
+          source: 'blob:private-source',
+          elapsedMs: 312,
+          timestamp: timestamp + 812,
+          durationSeconds: 10
+        }
       })
     );
   });
 
-  await panel.getByRole('button', { name: 'Capture result' }).click();
+  await panel.getByRole('button', { name: 'I hear the music / capture error' }).click();
   await expect(panel.getByText('1 sanitized sample')).toBeVisible();
 
-  const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v3'));
-  expect(stored).toContain('"firstSoundMs":812');
+  const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v4'));
+  const firstSoundMs = JSON.parse(stored ?? '{}').samples?.[0]?.firstSoundMs;
+  expect(firstSoundMs).toBeGreaterThanOrEqual(0);
+  expect(firstSoundMs).toBeLessThan(2_000);
   expect(stored).toContain('"cacheState":"cold"');
   expect(stored).toContain('"scenario":"ordinary-playback"');
   expect(stored).toContain('"expectedOutcome":"first-audio"');
+  expect(stored).toContain('"measurement":"human-confirmed"');
   expect(stored).toContain('"device":"Playwright Desktop"');
   expect(stored).toContain('"connection":"ethernet"');
   expect(stored).not.toContain('private-audio-ref');

@@ -84,6 +84,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
     draft &&
     context.buildClean &&
     draft.candidate.gitSha === context.buildSha?.trim().toLowerCase() &&
+    draft.candidate.buildConfigDigest === context.buildConfigDigest?.trim().toLowerCase() &&
     draft.candidate.productAppVersion === (context.productAppVersion?.trim() || null) &&
     draft.candidate.deployedCid === normalizedCid
   );
@@ -120,7 +121,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
         tone: 'error',
         title: 'Candidate unavailable',
         message: context.buildClean
-          ? 'This QA capture needs the exact 40-character build SHA. Add a deployment CID for Product-host samples.'
+          ? 'This QA capture needs the exact build SHA and public build-configuration digest. Add a deployment CID for Product-host samples.'
           : 'This build contains uncommitted changes. Commit them and rebuild before collecting candidate evidence.'
       });
       return;
@@ -173,16 +174,20 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
       return;
     }
     setDraft(next);
-    pushNotice({ tone: 'info', title: 'Timing started', message: 'Play the chosen track now, then capture after sound begins or an error appears.' });
+    pushNotice({
+      tone: 'info',
+      title: 'Timing started',
+      message: 'Play the chosen track now. Press “I hear the music” at the first audible sound, or capture after an error appears.'
+    });
   }
 
   function captureAttempt() {
-    const next = finishFirstSoundAttempt(getAudioStartupTelemetrySnapshot());
+    const next = finishFirstSoundAttempt(getAudioStartupTelemetrySnapshot(), Date.now(), true);
     if (!next) {
       pushNotice({
         tone: 'info',
         title: 'No final result yet',
-        message: 'Dotify has not observed both source selection and first sound or a playback error for this attempt.'
+        message: 'Dotify has not observed media playback or a correlated playback error for this attempt.'
       });
       return;
     }
@@ -253,6 +258,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
 
       <div className='product-smoke-context'>
         <code>{context.buildSha?.slice(0, 12) || 'build SHA unavailable'}</code>
+        <code>{context.buildConfigDigest?.slice(0, 12) || 'build config unavailable'}</code>
         <span>{context.productAppVersion || 'Standalone build'}</span>
         <span>{context.buildClean ? 'Exact committed build' : 'Uncommitted build'}</span>
       </div>
@@ -269,7 +275,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
           autoCorrect='off'
           spellCheck={false}
         />
-        <small>Changing the build, app version, or CID starts a separate evidence set.</small>
+        <small>Changing the commit, public build configuration, app version, or CID starts a separate evidence set.</small>
         <button className='secondary-action compact-action' type='button' onClick={bindCandidate}>
           {candidateActive ? 'Candidate bound' : 'Use this candidate'}
         </button>
@@ -421,8 +427,7 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
         ) : (
           <>
             <button className='secondary-action compact-action' type='button' onClick={captureAttempt}>
-              <Square size={15} />
-              Capture result
+              <Square size={15} />I hear the music / capture error
             </button>
             <button className='secondary-action compact-action' type='button' onClick={cancelAttempt}>
               Cancel

@@ -1,7 +1,7 @@
 import type { AudioStartupTelemetrySnapshot } from './audioStartupTelemetry';
 import { normalizeIpfsCid } from '../../shared/utils/ipfsCid';
 
-export const FIRST_SOUND_EVIDENCE_STORAGE_KEY = 'dotify:first-sound-evidence:v3';
+export const FIRST_SOUND_EVIDENCE_STORAGE_KEY = 'dotify:first-sound-evidence:v4';
 export const MAX_FIRST_SOUND_SAMPLES = 120;
 
 export const FIRST_SOUND_SURFACES = [
@@ -44,6 +44,7 @@ export const FIRST_SOUND_SCENARIO_EXPECTATIONS: Record<FirstSoundScenario, First
 
 export type FirstSoundCandidate = {
   gitSha: string;
+  buildConfigDigest: string;
   productAppVersion: string | null;
   deployedCid: string | null;
 };
@@ -75,6 +76,7 @@ export type FirstSoundSample = {
   scenario: FirstSoundScenario;
   expectedOutcome: FirstSoundExpectedOutcome;
   outcome: 'first-audio' | 'error';
+  measurement: 'human-confirmed' | 'automatic-error';
   firstSoundMs: number | null;
   capturedAt: string;
   dav2: {
@@ -88,7 +90,7 @@ export type FirstSoundSample = {
 };
 
 export type FirstSoundEvidenceDraft = {
-  schemaVersion: 3;
+  schemaVersion: 4;
   candidate: FirstSoundCandidate;
   profile: FirstSoundTestProfile | null;
   activeAttempt: FirstSoundAttempt | null;
@@ -96,7 +98,7 @@ export type FirstSoundEvidenceDraft = {
 };
 
 export type FirstSoundEvidence = {
-  schemaVersion: 3;
+  schemaVersion: 4;
   candidate: FirstSoundCandidate;
   profile: FirstSoundTestProfile;
   capturedAt: string;
@@ -111,11 +113,13 @@ export type FirstSoundEvidence = {
 
 export type FirstSoundEvidenceContext = {
   buildSha: string | null;
+  buildConfigDigest: string | null;
   buildClean: boolean;
   productAppVersion: string | null;
 };
 
 const FULL_SHA = /^[0-9a-f]{40}$/i;
+const CONFIG_DIGEST = /^[0-9a-f]{64}$/i;
 const PRODUCT_VERSION = /^\[\d+,\s*\d+,\s*\d+\]$/;
 const PROFILE_TEXT_MAX_LENGTH = 80;
 
@@ -176,13 +180,14 @@ function normalizeProfile(value: unknown): FirstSoundTestProfile | null {
 
 function normalizeCandidate(candidate: FirstSoundCandidate): FirstSoundCandidate | null {
   const gitSha = candidate.gitSha.trim().toLowerCase();
+  const buildConfigDigest = candidate.buildConfigDigest.trim().toLowerCase();
   const productAppVersion = candidate.productAppVersion?.trim() || null;
   const rawCid = candidate.deployedCid?.trim() ?? '';
   const deployedCid = normalizeIpfsCid(rawCid) || null;
-  if (!FULL_SHA.test(gitSha)) return null;
+  if (!FULL_SHA.test(gitSha) || !CONFIG_DIGEST.test(buildConfigDigest)) return null;
   if (productAppVersion && !PRODUCT_VERSION.test(productAppVersion)) return null;
   if (rawCid && !deployedCid) return null;
-  return { gitSha, productAppVersion, deployedCid };
+  return { gitSha, buildConfigDigest, productAppVersion, deployedCid };
 }
 
 function parseSample(value: unknown): FirstSoundSample | null {
@@ -198,6 +203,7 @@ function parseSample(value: unknown): FirstSoundSample | null {
     return null;
   if (value.flow === 'warm-next-track' && value.cacheState !== 'warm') return null;
   if (value.outcome !== 'first-audio' && value.outcome !== 'error') return null;
+  if (value.measurement !== (value.outcome === 'first-audio' ? 'human-confirmed' : 'automatic-error')) return null;
   if (value.firstSoundMs !== null && (typeof value.firstSoundMs !== 'number' || !Number.isFinite(value.firstSoundMs) || value.firstSoundMs < 0)) return null;
   if (typeof value.capturedAt !== 'string' || !Number.isFinite(Date.parse(value.capturedAt))) return null;
   if (!isRecord(value.dav2)) return null;
@@ -228,9 +234,10 @@ function parseAttempt(value: unknown): FirstSoundAttempt | null {
 }
 
 function parseDraft(value: unknown): FirstSoundEvidenceDraft | null {
-  if (!isRecord(value) || value.schemaVersion !== 3 || !isRecord(value.candidate) || !Array.isArray(value.samples)) return null;
+  if (!isRecord(value) || value.schemaVersion !== 4 || !isRecord(value.candidate) || !Array.isArray(value.samples)) return null;
   const candidate = normalizeCandidate({
     gitSha: typeof value.candidate.gitSha === 'string' ? value.candidate.gitSha : '',
+    buildConfigDigest: typeof value.candidate.buildConfigDigest === 'string' ? value.candidate.buildConfigDigest : '',
     productAppVersion: typeof value.candidate.productAppVersion === 'string' ? value.candidate.productAppVersion : null,
     deployedCid: typeof value.candidate.deployedCid === 'string' ? value.candidate.deployedCid : null
   });
@@ -245,11 +252,16 @@ function parseDraft(value: unknown): FirstSoundEvidenceDraft | null {
   if (value.activeAttempt !== null && !activeAttempt) return null;
   if (!profile && activeAttempt) return null;
   if (profile && activeAttempt && activeAttempt.surface !== profile.surface) return null;
-  return { schemaVersion: 3, candidate, profile, activeAttempt, samples: samples.slice(-MAX_FIRST_SOUND_SAMPLES) as FirstSoundSample[] };
+  return { schemaVersion: 4, candidate, profile, activeAttempt, samples: samples.slice(-MAX_FIRST_SOUND_SAMPLES) as FirstSoundSample[] };
 }
 
 function sameCandidate(left: FirstSoundCandidate, right: FirstSoundCandidate): boolean {
-  return left.gitSha === right.gitSha && left.productAppVersion === right.productAppVersion && left.deployedCid === right.deployedCid;
+  return (
+    left.gitSha === right.gitSha &&
+    left.buildConfigDigest === right.buildConfigDigest &&
+    left.productAppVersion === right.productAppVersion &&
+    left.deployedCid === right.deployedCid
+  );
 }
 
 function writeDraft(draft: FirstSoundEvidenceDraft | null): void {
@@ -278,13 +290,14 @@ export function bindFirstSoundCandidate(context: FirstSoundEvidenceContext, depl
   if (!context.buildClean) return null;
   const candidate = normalizeCandidate({
     gitSha: context.buildSha ?? '',
+    buildConfigDigest: context.buildConfigDigest ?? '',
     productAppVersion: context.productAppVersion,
     deployedCid
   });
   if (!candidate) return null;
   const current = readFirstSoundEvidenceDraft();
   if (current && sameCandidate(current.candidate, candidate)) return current;
-  const next: FirstSoundEvidenceDraft = { schemaVersion: 3, candidate, profile: null, activeAttempt: null, samples: [] };
+  const next: FirstSoundEvidenceDraft = { schemaVersion: 4, candidate, profile: null, activeAttempt: null, samples: [] };
   writeDraft(next);
   return next;
 }
@@ -347,7 +360,7 @@ export function beginFirstSoundAttempt(
   return next;
 }
 
-export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot, now = Date.now()): FirstSoundEvidenceDraft | null {
+export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot, now = Date.now(), audibleConfirmed = false): FirstSoundEvidenceDraft | null {
   const current = readFirstSoundEvidenceDraft();
   const attempt = current?.activeAttempt;
   if (!Number.isFinite(now) || now <= 0 || !current || !attempt) return null;
@@ -357,16 +370,17 @@ export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot,
   const playbackIntent = hostEvents[playbackIntentIndex];
   if (!playbackIntent) return null;
 
+  const attemptId = playbackIntent.attemptId;
   const nextIntentOffset = hostEvents.slice(playbackIntentIndex + 1).findIndex(metric => metric.phase === 'playback-intent');
   const nextIntentIndex = nextIntentOffset < 0 ? hostEvents.length : playbackIntentIndex + 1 + nextIntentOffset;
   const nextIntent = hostEvents[nextIntentIndex];
-  const correlatedHostEvents = hostEvents.slice(playbackIntentIndex, nextIntentIndex);
+  const correlatedHostEvents = hostEvents.filter(metric => metric.attemptId === attemptId);
   const dav2Events = snapshot.dav2.filter(metric => metric.timestamp >= playbackIntent.timestamp && (!nextIntent || metric.timestamp < nextIntent.timestamp));
-  const hostTerminal = correlatedHostEvents.find(metric => metric.phase === 'first-audio' || metric.phase === 'error');
+  const hostError = correlatedHostEvents.find(metric => metric.phase === 'error');
+  const mediaPlaying = correlatedHostEvents.find(metric => metric.phase === 'media-playing');
   const dav2Error = dav2Events.find(metric => metric.phase === 'error');
-  const terminal = [hostTerminal, dav2Error].filter(metric => metric !== undefined).sort((left, right) => left.timestamp - right.timestamp)[0];
-  const firstAudio = terminal?.phase === 'first-audio' ? terminal : null;
-  const outcome = firstAudio ? 'first-audio' : terminal?.phase === 'error' ? 'error' : null;
+  const terminalError = [hostError, dav2Error].filter(metric => metric !== undefined).sort((left, right) => left.timestamp - right.timestamp)[0];
+  const outcome = terminalError ? 'error' : audibleConfirmed && mediaPlaying ? 'first-audio' : null;
   if (!outcome) return null;
 
   const firstRange = dav2Events.find(metric => metric.phase === 'first-range-ready' && metric.rangeStart !== undefined && metric.rangeEnd !== undefined);
@@ -379,7 +393,8 @@ export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot,
     scenario: attempt.scenario,
     expectedOutcome: attempt.expectedOutcome,
     outcome,
-    firstSoundMs: firstAudio ? Math.max(0, firstAudio.timestamp - playbackIntent.timestamp) : null,
+    measurement: outcome === 'first-audio' ? 'human-confirmed' : 'automatic-error',
+    firstSoundMs: outcome === 'first-audio' ? Math.max(0, now - playbackIntent.timestamp) : null,
     capturedAt: new Date(now).toISOString(),
     dav2: {
       observed: dav2Events.length > 0,
@@ -414,7 +429,7 @@ export function clearFirstSoundEvidence(): void {
 export function buildFirstSoundEvidence(draft: FirstSoundEvidenceDraft, now = Date.now()): FirstSoundEvidence | null {
   if (!draft.profile) return null;
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     candidate: draft.candidate,
     profile: draft.profile,
     capturedAt: new Date(now).toISOString(),

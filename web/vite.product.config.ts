@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import { assertProductionEnvironment } from './src/shared/config/deploymentSafety';
 import productDeployConfig from './polkadot-app-deploy.config';
-import { assertCleanEvidenceBuild, readGitBuildIdentity, resolveEmbeddedBuildIdentity } from './scripts/build-identity.mjs';
+import { assertCleanEvidenceBuild, computeBuildConfigDigest, readGitBuildIdentity, resolveEmbeddedBuildIdentity } from './scripts/build-identity.mjs';
 
 function productAppVersion(): string {
   const executable = productDeployConfig.executables.find(item => item.kind === 'app');
@@ -29,6 +29,9 @@ export default defineConfig(({ command, mode }) => {
   const gitIdentity = readGitBuildIdentity(__dirname);
   assertCleanEvidenceBuild(command, env, gitIdentity);
   const buildIdentity = resolveEmbeddedBuildIdentity(command, env, gitIdentity);
+  const appVersion = productAppVersion();
+  const registry = cdmRegistry();
+  const buildConfigDigest = computeBuildConfigDigest(mode, env, { productAppVersion: appVersion, cdmRegistry: registry });
 
   return {
     base: './',
@@ -36,8 +39,9 @@ export default defineConfig(({ command, mode }) => {
     define: {
       'import.meta.env.VITE_DOTIFY_BUILD_SHA': JSON.stringify(buildIdentity.gitSha),
       'import.meta.env.VITE_DOTIFY_BUILD_CLEAN': JSON.stringify(String(buildIdentity.clean)),
-      'import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION': JSON.stringify(productAppVersion()),
-      'import.meta.env.VITE_DOTIFY_CDM_REGISTRY': JSON.stringify(cdmRegistry())
+      'import.meta.env.VITE_DOTIFY_BUILD_CONFIG_DIGEST': JSON.stringify(buildConfigDigest),
+      'import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION': JSON.stringify(appVersion),
+      'import.meta.env.VITE_DOTIFY_CDM_REGISTRY': JSON.stringify(registry)
     },
     resolve: {
       alias: {

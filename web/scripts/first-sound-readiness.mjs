@@ -26,6 +26,7 @@ const BUDGET_CELLS = [
 const MIN_BUDGET_SAMPLES = 4;
 const MIN_FALLBACK_SAMPLES = 100;
 const FULL_SHA = /^[0-9a-f]{40}$/i;
+const CONFIG_DIGEST = /^[0-9a-f]{64}$/i;
 const PRODUCT_VERSION = /^\[\d+,\s*\d+,\s*\d+\]$/;
 const CID = /^(?:bafy[a-z2-7]{20,}|Qm[1-9A-HJ-NP-Za-km-z]{44})$/;
 
@@ -48,8 +49,10 @@ function gate(id, label, status, detail) {
 }
 
 function validateCandidate(candidate) {
-  if (!exactKeys(candidate, ['gitSha', 'productAppVersion', 'deployedCid'])) return 'candidate must contain only gitSha, productAppVersion, and deployedCid';
+  if (!exactKeys(candidate, ['gitSha', 'buildConfigDigest', 'productAppVersion', 'deployedCid']))
+    return 'candidate must contain only gitSha, buildConfigDigest, productAppVersion, and deployedCid';
   if (!FULL_SHA.test(candidate.gitSha ?? '')) return 'candidate.gitSha must be a full 40-character SHA';
+  if (!CONFIG_DIGEST.test(candidate.buildConfigDigest ?? '')) return 'candidate.buildConfigDigest must be a 64-character SHA-256 digest';
   if (candidate.productAppVersion !== null && !PRODUCT_VERSION.test(candidate.productAppVersion ?? ''))
     return 'candidate.productAppVersion must be null or [major, minor, patch]';
   if (candidate.deployedCid !== null && !CID.test(candidate.deployedCid ?? '')) return 'candidate.deployedCid must be null or a canonical IPFS CID';
@@ -101,7 +104,9 @@ function profileDetail(profile) {
 }
 
 function validateSample(sample) {
-  if (!exactKeys(sample, ['id', 'surface', 'flow', 'cacheState', 'scenario', 'expectedOutcome', 'outcome', 'firstSoundMs', 'capturedAt', 'dav2']))
+  if (
+    !exactKeys(sample, ['id', 'surface', 'flow', 'cacheState', 'scenario', 'expectedOutcome', 'outcome', 'measurement', 'firstSoundMs', 'capturedAt', 'dav2'])
+  )
     return 'sample contains unknown or missing fields';
   if (typeof sample.id !== 'string' || sample.id.length < 3 || sample.id.length > 160) return 'sample.id is invalid';
   if (!SURFACES.includes(sample.surface)) return `sample.surface ${sample.surface} is unsupported`;
@@ -111,6 +116,7 @@ function validateSample(sample) {
   if (!Object.hasOwn(SCENARIO_EXPECTATIONS, sample.scenario)) return 'sample.scenario is invalid';
   if (sample.expectedOutcome !== SCENARIO_EXPECTATIONS[sample.scenario]) return 'sample.expectedOutcome does not match the scenario contract';
   if (!['first-audio', 'error'].includes(sample.outcome)) return 'sample.outcome is invalid';
+  if (sample.measurement !== (sample.outcome === 'first-audio' ? 'human-confirmed' : 'automatic-error')) return 'sample.measurement does not match its outcome';
   if (sample.outcome === 'first-audio' && (!Number.isFinite(sample.firstSoundMs) || sample.firstSoundMs < 0))
     return 'successful sample requires a non-negative firstSoundMs';
   if (sample.outcome === 'error' && sample.firstSoundMs !== null) return 'failed sample must use null firstSoundMs';
@@ -133,7 +139,7 @@ export function validateFirstSoundEvidence(evidence) {
     problems.push('evidence contains unknown or missing top-level fields');
     return problems;
   }
-  if (evidence.schemaVersion !== 3) problems.push('schemaVersion must be 3');
+  if (evidence.schemaVersion !== 4) problems.push('schemaVersion must be 4');
   const candidateProblem = validateCandidate(evidence.candidate);
   if (candidateProblem) problems.push(candidateProblem);
   const profileProblem = validateProfile(evidence.profile);
@@ -154,10 +160,6 @@ export function validateFirstSoundEvidence(evidence) {
     problems.push('privacy flags must explicitly confirm that no identifying or media-reference data was collected');
   }
   return problems;
-}
-
-function sameBuild(left, right) {
-  return left.gitSha === right.gitSha;
 }
 
 function buildBudgetRow(samples, flow, cacheState, scope = {}) {
@@ -193,7 +195,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
         `schema:${item.path}`,
         `Evidence schema · ${item.path}`,
         problems.length === 0 ? 'pass' : 'fail',
-        problems.length === 0 ? 'Sanitized schema v3 accepted.' : problems.join('; ')
+        problems.length === 0 ? 'Sanitized schema v4 accepted.' : problems.join('; ')
       )
     );
     if (problems.length === 0) evidence.push(item.data);
@@ -225,14 +227,36 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
       )
     );
   }
-  const candidateMismatch = candidate ? evidence.some(item => !sameBuild(item.candidate, candidate)) : false;
+  const commitMismatch = candidate ? evidence.some(item => item.candidate.gitSha !== candidate.gitSha) : false;
+  const standaloneConfigDigests = new Set(
+    evidence.filter(item => item.samples.some(sample => !sample.surface.startsWith('product-'))).map(item => item.candidate.buildConfigDigest)
+  );
+  const productConfigDigests = new Set(
+    evidence.filter(item => item.samples.some(sample => sample.surface.startsWith('product-'))).map(item => item.candidate.buildConfigDigest)
+  );
+  const candidateMismatch = commitMismatch || standaloneConfigDigests.size > 1 || productConfigDigests.size > 1;
   if (!candidate) gates.push(gate('candidate', 'Exact candidate', 'not-run', 'No valid evidence file supplied.'));
-  else if (candidateMismatch) gates.push(gate('candidate', 'Exact candidate', 'fail', 'Evidence files refer to different git commits.'));
+  else if (candidateMismatch)
+    gates.push(
+      gate(
+        'candidate',
+        'Exact candidate',
+        'fail',
+        commitMismatch
+          ? 'Evidence files refer to different git commits.'
+          : 'Evidence files mix public build configurations within the standalone or Product deployment family.'
+      )
+    );
   else if (options.expectedCommit && candidate.gitSha !== options.expectedCommit) {
     gates.push(gate('candidate', 'Exact candidate', 'fail', `Evidence SHA ${candidate.gitSha} does not match expected ${options.expectedCommit}.`));
   } else
     gates.push(
-      gate('candidate', 'Exact candidate', 'pass', `${candidate.gitSha} across ${evidence.length} evidence export${evidence.length === 1 ? '' : 's'}.`)
+      gate(
+        'candidate',
+        'Exact candidate',
+        'pass',
+        `${candidate.gitSha} · standalone config ${[...standaloneConfigDigests][0]?.slice(0, 12) ?? 'none'} · Product config ${[...productConfigDigests][0]?.slice(0, 12) ?? 'none'} across ${evidence.length} evidence export${evidence.length === 1 ? '' : 's'}.`
+      )
     );
 
   const samples = candidateMismatch ? [] : evidence.flatMap(item => item.samples);
@@ -380,7 +404,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     notRun: gates.filter(item => item.status === 'not-run').length
   };
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     candidate,
     profiles,
     counts,

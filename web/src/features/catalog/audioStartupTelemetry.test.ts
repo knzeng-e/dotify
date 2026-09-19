@@ -32,7 +32,8 @@ const dav2Metric: AudioV2StartupMetric = {
 };
 
 const hostMetric: HostAudioStartupMetric = {
-  phase: 'first-audio',
+  phase: 'media-playing',
+  attemptId: 'attempt-a',
   source: 'blob:http://localhost/audio',
   elapsedMs: 820.2,
   timestamp: 1_700_000_000_100,
@@ -51,7 +52,7 @@ describe('audio startup telemetry', () => {
     expect(getAudioStartupTelemetrySnapshot()).toEqual({
       dav2: [dav2Metric],
       host: [hostMetric],
-      latestFirstSoundMs: 820.2
+      latestMediaPlayingMs: 820.2
     });
   });
 
@@ -66,7 +67,7 @@ describe('audio startup telemetry', () => {
     expect(target.__DOTIFY_AUDIO_STARTUP__?.snapshot()).toEqual({
       dav2: [dav2Metric],
       host: [hostMetric],
-      latestFirstSoundMs: 820.2
+      latestMediaPlayingMs: 820.2
     });
 
     cleanup();

@@ -1,4 +1,20 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+
+const IDENTITY_ENV_KEYS = new Set(['VITE_DOTIFY_BUILD_SHA', 'VITE_DOTIFY_BUILD_CLEAN', 'VITE_DOTIFY_BUILD_CONFIG_DIGEST']);
+
+export function computeBuildConfigDigest(mode, env, extras = {}) {
+  const publicBuildEnv = Object.fromEntries(
+    Object.entries(env)
+      .filter(([key, value]) => key.startsWith('VITE_') && !IDENTITY_ENV_KEYS.has(key) && value !== undefined)
+      .map(([key, value]) => [key, String(value)])
+      .sort(([left], [right]) => left.localeCompare(right))
+  );
+  const stableExtras = Object.fromEntries(Object.entries(extras).sort(([left], [right]) => left.localeCompare(right)));
+  return createHash('sha256')
+    .update(JSON.stringify({ mode, publicBuildEnv, extras: stableExtras }))
+    .digest('hex');
+}
 
 export function readGitBuildIdentity(cwd, run = execFileSync) {
   try {
