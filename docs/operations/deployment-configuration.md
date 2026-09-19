@@ -551,15 +551,19 @@ explicit Playwright readiness-panel dev server.
    Web gateway samples.
 2. Record and bind one test profile: surface, device model, OS/browser version,
    connection type, and the visible Product host version on Product surfaces.
-3. Choose the listening flow and explicit cold or warm cache condition, then
-   select **Start sample**.
+3. Choose the listening flow, explicit cold or warm cache condition, and the
+   scenario being exercised, then select **Start sample**. Use **Ordinary
+   playback** for release-latency measurements; use the named controlled
+   scenarios only while deliberately exercising their corresponding failure or
+   recovery path.
 4. Start the track. Dotify records the real selection/playback intent as the
    timing origin, including access, key, gateway, decrypt, and media startup.
    After audio begins or playback fails, select **Capture result**.
 5. Repeat cold and warm attempts, then download the candidate-bound JSON.
 
-Schema v2 keeps first-sound duration, the sanitized test profile, and coarse
-DAV2 path facts only. It omits wallet addresses, listener identity, exact
+Schema v3 keeps first-sound duration, the sanitized test profile, the declared
+scenario with its fixed expected outcome, and coarse DAV2 path facts only. It
+omits wallet addresses, listener identity, exact
 location, audio refs/CIDs, gateway URLs, media source URLs, keys, signatures,
 and per-listener history. Changing the SHA, Product app version, deployment
 CID, device profile, or network type starts a new evidence set instead of
@@ -568,7 +572,12 @@ The report combines ordinary-web and Product exports when their git SHA
 matches. Product samples must still carry one consistent Product app version
 and deployed CID; those Product-only fields do not invalidate ordinary-web
 exports where they are intentionally absent. A final key or gateway failure is
-recorded even when no playable media source was created.
+recorded even when no playable media source was created. Ordinary playback
+alone supplies the surface-success, p75, and fallback-rate gates. Denied
+protected access, broken-gateway recovery, slow-key recovery, interrupted
+navigation, and corrupted DAV2 each have a separate gate against their declared
+expected outcome, so an intentional controlled error cannot be mistaken for a
+normal-playback regression.
 
 Combine exports from physical surfaces and produce the release report with:
 
@@ -585,13 +594,16 @@ npm run smoke:first-sound -- \
 ```
 
 The strict gate requires evidence for desktop Chrome, Firefox, Safari, iOS
-Safari, Android Chrome, Product Desktop, and Product Web gateway. Every exact
+Safari, Android Chrome, Product Desktop, and Product Web gateway, plus evidence
+for every controlled scenario listed above. Every exact
 device, OS, browser, connection, and Product-host profile supplied for a required
 surface needs at least four successful samples in each cold/warm p75 flow cell;
 exports with different profiles never pool their sample floor or latency budget.
 Aggregate p75 remains visible but cannot compensate for a slow or undersampled
-profile. The report prints every profile beside its surface. A blocked autoplay attempt is recorded
-as a terminal error, and a later explicit Play starts a fresh measurement. The
+profile. The report prints every profile beside its surface. A blocked autoplay
+attempt is recorded as a terminal error, and a later explicit Play starts a
+fresh measurement. Reaching `canplay` only releases the loading affordance; the
+attempt remains cancellable until `playing` or a terminal error. The
 DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts are
 present; fewer attempts are reported as `not-run`, never rounded into a claim.
 Synthetic Chromium evidence validates the capture mechanism but does not count
