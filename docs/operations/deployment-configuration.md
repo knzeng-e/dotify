@@ -547,6 +547,13 @@ measured. Production builds derive this identity from the checked-out commit and
 reject a mismatched `VITE_DOTIFY_BUILD_SHA`; that override is reserved for the
 explicit Playwright readiness-panel dev server.
 
+The bundle also embeds `VITE_DOTIFY_BUILD_CONFIG_DIGEST`, a SHA-256 digest of
+the public `VITE_*` inputs used to build it. The digest excludes the build
+identity variables themselves and never exposes input values. Standalone and
+Product exports may have different digests because they are different build
+families, but exports within each family must agree before the report can call
+the candidate ready.
+
 1. Bind the exact build. Add the deployment CID for Product Desktop or Product
    Web gateway samples.
 2. Record and bind one test profile: surface, device model, OS/browser version,
@@ -558,16 +565,20 @@ explicit Playwright readiness-panel dev server.
    recovery path.
 4. Start the track. Dotify records the real selection/playback intent as the
    timing origin, including access, key, gateway, decrypt, and media startup.
-   After audio begins or playback fails, select **Capture result**.
+   Press **I hear the music** at the first sound you actually hear. If playback
+   fails, use the same action after Dotify shows the error; an automatic
+   terminal failure is recorded without an audible confirmation.
 5. Repeat cold and warm attempts, then download the candidate-bound JSON.
 
-Schema v3 keeps first-sound duration, the sanitized test profile, the declared
-scenario with its fixed expected outcome, and coarse DAV2 path facts only. It
+Schema v4 keeps first-sound duration, its `human-confirmed` or `automatic-error`
+measurement method, the sanitized test profile, the declared scenario with its
+fixed expected outcome, and coarse DAV2 path facts only. It
 omits wallet addresses, listener identity, exact
 location, audio refs/CIDs, gateway URLs, media source URLs, keys, signatures,
-and per-listener history. Changing the SHA, Product app version, deployment
-CID, device profile, or network type starts a new evidence set instead of
-mixing candidates or materially different test conditions.
+and per-listener history. Changing the SHA, public build-configuration digest,
+Product app version, deployment CID, device profile, or network type starts a
+new evidence set instead of mixing candidates or materially different test
+conditions.
 The report combines ordinary-web and Product exports when their git SHA
 matches. Product samples must still carry one consistent Product app version
 and deployed CID; those Product-only fields do not invalidate ordinary-web
@@ -603,9 +614,12 @@ Aggregate p75 remains visible but cannot compensate for a slow or undersampled
 profile. The report prints every profile beside its surface. A blocked autoplay
 attempt is recorded as a terminal error, and a later explicit Play starts a
 fresh measurement. Reaching `canplay` only releases the loading affordance; the
-attempt remains cancellable until `playing` or a terminal error. A muted or
-zero-volume `playing` event is recorded as an error because it does not prove
-audible first sound. The
+attempt remains cancellable until `playing` or a terminal error. Host events are
+correlated by playback-attempt identifier, so a delayed error from an outgoing
+source cannot settle a new selection. A muted or zero-volume `playing` event is
+recorded as an error. An unmuted `playing` event only proves that the media clock
+advanced; the operator confirmation supplies the evidence that sound reached
+the actual output route. The
 DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts are
 present; fewer attempts are reported as `not-run`, never rounded into a claim.
 Synthetic Chromium evidence validates the capture mechanism but does not count
