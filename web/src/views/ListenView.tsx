@@ -17,6 +17,7 @@ type ListenViewProps = {
   nativePaymentSymbol: string;
   onOpenTrack: (track: CatalogTrack) => void;
   onPlayTrack: (track: CatalogTrack) => void;
+  onTrackIntent: (track: CatalogTrack) => void;
   roomGuest: boolean;
   onOpenArtist: (artistName: string) => void;
   onJoinRoom: (roomId: string) => void;
@@ -33,6 +34,7 @@ export function ListenView({
   nativePaymentSymbol,
   onOpenTrack,
   onPlayTrack,
+  onTrackIntent,
   roomGuest,
   onOpenArtist,
   onJoinRoom,
@@ -67,6 +69,7 @@ export function ListenView({
           nativePaymentSymbol={nativePaymentSymbol}
           onOpenTrack={onOpenTrack}
           onPlayTrack={onPlayTrack}
+          onTrackIntent={onTrackIntent}
           roomGuest={roomGuest}
           onOpenArtist={onOpenArtist}
         />

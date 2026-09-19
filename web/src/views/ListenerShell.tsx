@@ -288,6 +288,7 @@ export function ListenerShell() {
                 onBack={() => setPublicArtistName(null)}
                 onOpenTrack={handleInspectTrack}
                 onPlayTrack={handlePlayTrack}
+                onTrackIntent={catalog.prefetchTrackAudio}
                 roomGuest={isRoomGuest}
                 onOpenArtistRoom={handleOpenArtistRoom}
                 onJoinRoom={handleJoinRoomFromProfile}
@@ -305,6 +306,7 @@ export function ListenerShell() {
                     nativePaymentSymbol={nativePaymentSymbol}
                     onOpenTrack={handleInspectTrack}
                     onPlayTrack={handlePlayTrack}
+                    onTrackIntent={catalog.prefetchTrackAudio}
                     roomGuest={isRoomGuest}
                     onOpenArtist={handleOpenArtistProfile}
                     onJoinRoom={handleJoinRoomRequest}
@@ -438,6 +440,7 @@ export function ListenerShell() {
             initialTrack={pendingArtistTrack ?? selectedTrack ?? catalog.catalogTracks[0]}
             displayName={session.displayName}
             onSetDisplayName={session.setDisplayName}
+            onTrackIntent={catalog.prefetchTrackAudio}
             onClose={() => {
               setCreateRoomOpen(false);
               setPendingArtistTrack(null);

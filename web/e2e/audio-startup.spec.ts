@@ -19,6 +19,29 @@ async function readStartupSnapshot(page: Page) {
   return page.evaluate(() => window.__DOTIFY_AUDIO_STARTUP__?.snapshot());
 }
 
+function dav2IntentFixture(): Uint8Array {
+  const header = new TextEncoder().encode(
+    JSON.stringify({
+      schema: 'dotify.audio.v2',
+      version: 1,
+      algorithm: 'AES-256-GCM',
+      mediaMime: 'audio/mpeg',
+      chunkSize: 4,
+      chunkCount: 1,
+      plaintextLength: 4,
+      contentHash: `0x${'11'.repeat(32)}`,
+      noncePrefix: '22'.repeat(8),
+      chunks: [{ index: 0, plainLength: 4, encryptedLength: 20 }]
+    })
+  );
+  const container = new Uint8Array(8 + header.length + 20);
+  container.set(new TextEncoder().encode('DAV2'));
+  new DataView(container.buffer).setUint32(4, header.length, false);
+  container.set(header, 8);
+  container.fill(5, 8 + header.length);
+  return container;
+}
+
 test('audio startup telemetry is retained for QA in the browser', async ({ page }) => {
   await page.goto('/?e2eRoom=public');
 
@@ -108,4 +131,37 @@ test('DAV2 chunk decryption runs in a real browser worker', async ({ page }) => 
   });
 
   expect(result).toEqual({ execution: 'worker', text: 'real browser worker audio' });
+});
+
+test('track intent warms encrypted DAV2 bytes without requesting a content key', async ({ page }) => {
+  const container = dav2IntentFixture();
+  const ranges: string[] = [];
+  await page.route('**/ipfs/bafy-e2e-intent-audio', async route => {
+    const range = route.request().headers().range;
+    ranges.push(range ?? '');
+    const match = /^bytes=(\d+)-(\d+)$/.exec(range ?? '');
+    if (!match) return route.fulfill({ status: 400, body: 'range required' });
+    const start = Number(match[1]);
+    const requestedEnd = Number(match[2]);
+    const end = Math.min(requestedEnd, container.length - 1);
+    return route.fulfill({
+      status: 206,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Accept-Ranges': 'bytes',
+        'Content-Type': 'application/octet-stream',
+        'Content-Range': `bytes ${start}-${end}/${container.length}`
+      },
+      body: Buffer.from(container.slice(start, end + 1))
+    });
+  });
+
+  await page.goto('/?e2eRoom=protected-authorized&e2eDav2Intent=on');
+  const protectedCover = page.getByTestId('track-card').filter({ hasText: 'E2E Protected Room Track' }).getByTestId('track-artwork-action');
+  await protectedCover.hover();
+
+  await expect.poll(() => ranges.length).toBe(2);
+  expect(ranges[0]).toBe('bytes=0-65535');
+  expect(ranges[1]).toMatch(/^bytes=\d+-\d+$/);
+  expect(await page.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
 });

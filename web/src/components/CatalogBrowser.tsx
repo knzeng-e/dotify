@@ -19,6 +19,7 @@ type CatalogBrowserProps = {
   nativePaymentSymbol: string;
   onOpenTrack: (track: CatalogTrack) => void;
   onPlayTrack: (track: CatalogTrack) => void;
+  onTrackIntent: (track: CatalogTrack) => void;
   roomGuest: boolean;
   onOpenArtist: (artist: string) => void;
 };
@@ -38,6 +39,7 @@ export function CatalogBrowser({
   nativePaymentSymbol,
   onOpenTrack,
   onPlayTrack,
+  onTrackIntent,
   roomGuest,
   onOpenArtist
 }: CatalogBrowserProps) {
@@ -189,6 +191,7 @@ export function CatalogBrowser({
                   canPlay={accessGranted && !roomGuest}
                   accessCue={accessDescription}
                   target={`cover:${track.id}`}
+                  onIntent={() => onTrackIntent(track)}
                   onActivate={() => {
                     rememberTarget(`cover:${track.id}`);
                     if (accessGranted && !roomGuest) onPlayTrack(track);

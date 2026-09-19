@@ -8,12 +8,14 @@ export function TrackArtworkButton({
   track,
   canPlay,
   onActivate,
+  onIntent,
   target,
   accessCue
 }: {
   track: CatalogTrack;
   canPlay: boolean;
   onActivate: () => void;
+  onIntent?: () => void;
   target?: string;
   accessCue?: string;
 }) {
@@ -22,6 +24,9 @@ export function TrackArtworkButton({
       className='track-artwork-button'
       type='button'
       onClick={onActivate}
+      onPointerEnter={onIntent}
+      onPointerDown={onIntent}
+      onFocus={onIntent}
       data-catalog-target={target}
       data-testid='track-artwork-action'
       aria-label={`${canPlay ? 'Play' : 'View listening options for'} ${track.title} by ${track.artist}${accessCue ? `, ${accessCue}` : ''}`}

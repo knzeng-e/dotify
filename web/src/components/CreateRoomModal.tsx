@@ -4,7 +4,7 @@
 // shareable link is shown as pending until the server assigns a room code (no
 // fabricated URL); the room header then exposes the real Copy link.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CoverImage } from './CoverImage';
 import { Dialog } from './Dialog';
 import { roomHostDisplayName } from '../features/rooms/roomState';
@@ -58,11 +58,16 @@ type CreateRoomModalProps = {
   onSetDisplayName: (name: string) => void;
   onClose: () => void;
   onOpenRoom: (track: CatalogTrack) => void;
+  onTrackIntent: (track: CatalogTrack) => void;
 };
 
-export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDisplayName, onClose, onOpenRoom }: CreateRoomModalProps) {
+export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDisplayName, onClose, onOpenRoom, onTrackIntent }: CreateRoomModalProps) {
   const [picked, setPicked] = useState<CatalogTrack | undefined>(initialTrack ?? tracks[0]);
   const hasChosenName = roomHostDisplayName(displayName) !== null;
+
+  useEffect(() => {
+    if (picked) onTrackIntent(picked);
+  }, [onTrackIntent, picked]);
 
   return (
     <Dialog className='create-room-modal' size='wide' labelledBy='create-room-title' onClose={onClose}>
@@ -103,7 +108,12 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
                 key={track.id}
                 className={'create-room-pick' + (picked?.id === track.id ? ' is-on' : '')}
                 type='button'
-                onClick={() => setPicked(track)}
+                onPointerEnter={() => onTrackIntent(track)}
+                onFocus={() => onTrackIntent(track)}
+                onClick={() => {
+                  onTrackIntent(track);
+                  setPicked(track);
+                }}
                 aria-label={`Select ${track.title}`}
                 aria-pressed={picked?.id === track.id}
               >

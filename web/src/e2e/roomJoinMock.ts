@@ -131,7 +131,11 @@ export const E2E_ROOM_PUBLIC_TRACK: CatalogTrack = {
 export function getRoomJoinE2eTracks(): CatalogTrack[] {
   const params = isRoomJoinE2e && typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const responsiveImageRef = params?.get('e2eResponsiveCover') === 'on' ? 'ipfs://bafy-e2e-cover/cover/640.webp' : null;
-  const protectedTrack = responsiveImageRef ? { ...E2E_ROOM_PROTECTED_TRACK, imageRef: responsiveImageRef } : E2E_ROOM_PROTECTED_TRACK;
+  const protectedTrack = {
+    ...E2E_ROOM_PROTECTED_TRACK,
+    ...(responsiveImageRef ? { imageRef: responsiveImageRef } : {}),
+    ...(params?.get('e2eDav2Intent') === 'on' ? { audioRef: 'dotify:enc:v2:ipfs://bafy-e2e-intent-audio' } : {})
+  };
   const publicTrack = responsiveImageRef ? { ...E2E_ROOM_PUBLIC_TRACK, imageRef: responsiveImageRef } : E2E_ROOM_PUBLIC_TRACK;
   const tracks = [protectedTrack, publicTrack];
   if (params?.get('e2eCatalog') === 'wide') {
