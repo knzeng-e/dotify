@@ -52,7 +52,9 @@ function staticSnapshot(patch = {}) {
     },
     webPackageJson: {
       scripts: {
-        'deploy:product-devnet': `npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
+        'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
+        'build:product-devnet:frozen': 'tsc -b && vite build',
+        'deploy:product-devnet': `npm run build:product-devnet:frozen && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
       }
     },
     webPackageLock: lockfile(),
@@ -211,6 +213,50 @@ test('local static gates can pass while missing live host evidence remains block
   );
   assert.equal(report.productSmokeGates[0].id, 'product-cdm-live-unlock');
   assert.equal(report.productSmokeGates[0].status, 'blocked');
+});
+
+test('static gates reject a mnemonic expanded into Product deploy arguments', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot({
+      webPackageJson: {
+        scripts: {
+          'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
+          'build:product-devnet:frozen': 'tsc -b && vite build',
+          'deploy:product-devnet': `npm run build:product-devnet:frozen && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad --mnemonic "$MNEMONIC"`
+        }
+      }
+    }),
+    productSmokeEvidence: null,
+    roomEvidence: null,
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  const boundary = report.staticGates.find(gate => gate.id === 'deploy-secret-boundary');
+  assert.equal(boundary?.status, 'fail');
+  assert.match(boundary?.detail ?? '', /must not be expanded/);
+});
+
+test('static gates reject Product deploys that refresh the live catalog', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot({
+      webPackageJson: {
+        scripts: {
+          'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
+          'build:product-devnet:frozen': 'tsc -b && vite build',
+          'deploy:product-devnet': `npm run build:product-devnet && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
+        }
+      }
+    }),
+    productSmokeEvidence: null,
+    roomEvidence: null,
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  const snapshotGate = report.staticGates.find(gate => gate.id === 'deploy-catalog-snapshot');
+  assert.equal(snapshotGate?.status, 'fail');
+  assert.match(snapshotGate?.detail ?? '', /frozen build/);
 });
 
 test('complete Product smoke and room evidence satisfy the live journey gates', () => {

@@ -169,6 +169,7 @@ npm run build
 npm run build:bulletin
 npm run deploy:bulletin
 npm run build:product-devnet
+npm run build:product-devnet:frozen
 npm run deploy:product-devnet
 ```
 
@@ -178,15 +179,22 @@ is inlined as a Blob Worker for this target, and the build fails if `index.html`
 references an external Worker or script asset.
 
 `build:product-devnet` produces `dist-product` with the checked-in
-`.env.product-devnet` profile. `deploy:product-devnet` uses
+`.env.product-devnet` profile and refreshes the bootstrap catalogue when the
+configured API is available. `build:product-devnet:frozen` performs no catalogue
+request and builds the reviewed, committed snapshot. Signer-free CI and
+`deploy:product-devnet` both use that frozen build so publication cannot pick up
+unreviewed live catalogue drift. `deploy:product-devnet` uses
 `@polkadot-community-foundation/polkadot-app-deploy@0.16.2` through `npx`,
 uploads static chunks to Product DevNet Bulletin, and binds `dotify-test01.dot`
-through the post-September 2026 DotNS tooling. Browse listing is a separate
-operator step because it has its own signer/personhood boundary. The Product
-account currently provides app-scoped identity for presence and rooms in the
-shipped UI. The API can verify `product-sr25519-v1` key/session requests, but
-native Product contract writes remain opt-in behind `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`
-until live host payment evidence is recorded.
+through the post-September 2026 DotNS tooling. The owner mnemonic is accepted
+only from the local `MNEMONIC` environment and is never an argument or GitHub
+Actions secret; inject it with a silent prompt and unset it immediately after
+publication. Browse listing is a separate operator step because it has its own
+signer/personhood boundary. The Product account currently provides app-scoped
+identity for presence and rooms in the shipped UI. The API can verify
+`product-sr25519-v1` key/session requests, but native Product contract writes
+remain opt-in behind `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` until live host
+payment evidence is recorded.
 
 See
 [`docs/explanation/product-devnet-architecture.md`](../docs/explanation/product-devnet-architecture.md)

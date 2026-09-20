@@ -207,10 +207,49 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
   checkPackage(gates, snapshot.webPackageLock, '@parity/product-sdk-statement-store', EXPECTED_PRODUCT_DEVNET.productSdkStatementStore);
 
   const deployScript = snapshot.webPackageJson?.scripts?.['deploy:product-devnet'] ?? '';
+  const frozenBuildScript = snapshot.webPackageJson?.scripts?.['build:product-devnet:frozen'] ?? '';
   if (deployScript.includes(`@polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli}`)) {
     pass(gates, 'deploy-cli', 'Product deploy CLI', `Pinned to ${EXPECTED_PRODUCT_DEVNET.productDeployCli}.`, 'web/package.json');
   } else {
     fail(gates, 'deploy-cli', 'Product deploy CLI', `Expected deploy script to pin ${EXPECTED_PRODUCT_DEVNET.productDeployCli}.`, 'web/package.json');
+  }
+
+  if (/--mnemonic(?:=|\s)/.test(deployScript)) {
+    fail(
+      gates,
+      'deploy-secret-boundary',
+      'Product deploy signer boundary',
+      'The owner mnemonic must not be expanded into process arguments.',
+      'web/package.json'
+    );
+  } else {
+    pass(
+      gates,
+      'deploy-secret-boundary',
+      'Product deploy signer boundary',
+      'The deploy CLI reads the owner mnemonic from the local child-process environment.',
+      'web/package.json'
+    );
+  }
+
+  const frozenBuildSkipsCatalogRefresh =
+    frozenBuildScript.includes('tsc -b') && frozenBuildScript.includes('vite build') && !frozenBuildScript.includes('generate:product-catalog-bootstrap');
+  if (frozenBuildSkipsCatalogRefresh && deployScript.includes('npm run build:product-devnet:frozen')) {
+    pass(
+      gates,
+      'deploy-catalog-snapshot',
+      'Product deploy catalog snapshot',
+      'Candidate validation and local publication build from the committed catalog snapshot without a live refresh.',
+      'web/package.json'
+    );
+  } else {
+    fail(
+      gates,
+      'deploy-catalog-snapshot',
+      'Product deploy catalog snapshot',
+      'The frozen build must skip catalog generation and the deploy command must use that frozen build.',
+      'web/package.json'
+    );
   }
 
   if (env.VITE_DOTIFY_HOST_MODE === 'required') {

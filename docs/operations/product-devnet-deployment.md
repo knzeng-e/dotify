@@ -310,6 +310,12 @@ npm run generate:product-catalog-bootstrap:strict
 git -C .. diff -- web/src/services/productDevnetCatalogBootstrap.ts
 ```
 
+After reviewing and committing that generated file, use
+`npm run build:product-devnet:frozen` for the exact release candidate. This
+command performs no catalog request and builds only from the committed snapshot.
+Both signer-free CI and the local publish command use this frozen path, so the
+validated catalogue cannot change between review and publication.
+
 When the deployed contract addresses or indexed releases change, update the API
 configuration first, wait until `https://dotify-api.fly.dev/api/catalog` returns
 the new catalog, run the strict generator, commit the generated snapshot change,
@@ -325,7 +331,7 @@ npm run smoke:devnet
 npm run smoke:product-journey -- --md-out /tmp/dotify-product-journey.md --json-out /tmp/dotify-product-journey.json
 npm run smoke:pilot-release -- --md-out /tmp/dotify-pilot-release-readiness.md --json-out /tmp/dotify-pilot-release-readiness.json
 npm run smoke:product-cash-settlement -- --md-out /tmp/dotify-product-cash-settlement.md --json-out /tmp/dotify-product-cash-settlement.json
-npm run build:product-devnet
+npm run build:product-devnet:frozen
 ```
 
 Expected output is `web/dist-product`. The production guard must fail if a
@@ -365,8 +371,8 @@ the experimental deploy tool to the application dependency tree.
 
 `npm run deploy:product-devnet` signs DotNS updates with the owner mnemonic from
 `MNEMONIC`. Do not rely on `pad login` for this path: `pad login` and
-`pad whoami` describe the mobile Product session only, not the local mnemonic
-used by `--mnemonic`.
+`pad whoami` describe the mobile Product session only, not the local owner
+signer.
 
 ```bash
 read -rs MNEMONIC
@@ -375,13 +381,37 @@ export MNEMONIC
 
 Paste the DotNS owner mnemonic, then press Enter. Prefer a password manager or
 another non-history shell injection in normal operation; do not commit it or
-store it in `.env`, Netlify, or Fly. If the owner account uses a derivation
-path, add that path to the deploy script or run the equivalent `pad` command
-with `--derivation-path`.
+store it in `.env`, GitHub Actions, Netlify, or Fly. The deploy command lets
+`polkadot-app-deploy` read `MNEMONIC` from the local child-process environment;
+it does not expand the phrase into the command arguments, where local process
+inspection could expose it. Run `unset MNEMONIC` immediately after the publish.
+If the owner account uses a derivation path, add that path to the deploy script
+or run the equivalent `pad` command with `--derivation-path`.
 
 The preflight output must show the H160 owner of `dotify-test01.dot`. If it
 shows a different H160, stop before publishing and check the mnemonic or
 derivation path.
+
+GitHub Actions never receives DotNS signing authority. The manual **Validate
+Product candidate** workflow accepts only an exact full commit SHA and a
+`validation` or `release` profile. It checks out and builds that immutable
+candidate with no mnemonic, signer, upload, or network write. The validation
+profile enables the Product CDM adapter, artist gifts, and the operator-only
+readiness panel; the release profile retains the tracked viem defaults.
+
+```bash
+gh workflow run deploy-frontend.yml \
+  --ref <candidate-branch> \
+  -f profile=validation \
+  -f expected-sha=<full-candidate-sha>
+```
+
+The workflow checks out the supplied SHA directly, requires a clean tree, runs
+the Product static gates, builds the chosen profile from the committed catalogue
+snapshot, refuses generated source drift, and records that it held no signing
+authority. Publication is a distinct local operator step from the same checked-out
+SHA and uses that same frozen build command. Review the local deploy output for
+the finalized CID before using the build as W13 evidence.
 
 ## 6. Publish
 
@@ -392,13 +422,20 @@ npm run deploy:product-devnet
 The command:
 
 1. refuses to continue when `MNEMONIC` is empty;
-2. refreshes the bundled Product catalog snapshot from the Fly catalog API;
+2. builds from the committed Product catalog snapshot without querying the
+   mutable Fly catalog API;
 3. rebuilds `dist-product`;
 4. validates `polkadot-app-deploy.config.ts`;
 5. creates content-addressed chunks with the JavaScript merkle implementation;
 6. uploads changed content to Product DevNet Bulletin;
 7. updates `dotify-test01.dot` directly with the `$MNEMONIC` owner signer;
 8. writes the Product manifest and executable records.
+
+After recording the finalized CID, remove the local process credential:
+
+```bash
+unset MNEMONIC
+```
 
 Bump the Product executable `appVersion` in
 `web/polkadot-app-deploy.config.ts` whenever the Product bundle changes runtime
