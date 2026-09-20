@@ -291,7 +291,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Record",
-      "note": "Delivered by PR #133. CI and branch-protection guidance exist; applying repository branch protection remains a separate administration action."
+      "note": "Delivered by PR #133. The documented eight-check dev branch protection was applied on 2026-09-20 during #204 reconciliation."
     },
     {
       "id": "W02",

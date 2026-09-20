@@ -15,9 +15,9 @@ It does not use repository secrets and should remain safe for fork pull
 requests. Live Product host, real-wallet, device, deployment, and fund-moving
 checks stay outside this workflow as explicit release evidence.
 
-## Stable required checks
+## Required checks
 
-Suggested branch protection for `dev` should require these check names:
+Branch protection for `dev` requires these check names:
 
 - `W01 / Workflow syntax`
 - `W01 / Repository hygiene`
@@ -56,10 +56,12 @@ set.
 
 ## Operations
 
-Enabling branch protection is a repository administration action and is not
-performed by this PR. After merging W01, configure `dev` branch protection to
-require the stable checks above and to keep Project 5 as the workflow-status
-source.
+Branch protection was enabled on 2026-09-20 after the backlog reconciliation PR
+was opened. It applies to administrators, requires a pull request with every
+conversation resolved, requires the eight checks above against an up-to-date
+`dev`, and rejects force pushes and branch deletion. The repository currently
+has one maintainer, so it requires no approving review; review comments and all
+checks still have to resolve before merge.
 
 Rollback is straightforward: remove the required checks from branch protection,
 then revert the W01 workflow commit if the workflow itself is the blocker. Do
