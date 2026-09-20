@@ -4,6 +4,20 @@ This folder contains the execution backlog for moving Dotify from prototype to p
 
 The backlog is organized as engineering sprints. Each ticket has a dedicated Markdown instruction file intended for Claude Code, Codex, or a senior engineer working inside the repository.
 
+## Status contract
+
+GitHub Project 5 owns live workflow status. This document records scope,
+delivery boundaries, and the small set of remaining outcomes; it must not keep
+a second Todo/In Review board in prose.
+
+An implementation issue is complete when its acceptance scope is reviewed and
+merged into `dev`, even when broader live-device or pilot evidence is still
+required. Those release gates belong to W13 or to an explicitly named
+operational issue such as #87, #88, or #89. Because pull requests target `dev`
+while `main` is the GitHub default branch, closing keywords do not close these
+issues automatically; the merge handoff must close the issue and set its
+Project item to Done explicitly.
+
 ## Product north star
 
 Dotify is not a Spotify clone. Dotify is a decentralized cultural social hub where music becomes a live social connector, artists retain sovereignty over catalog/access/royalties, and listeners can discover music through shared real-time presence.
@@ -67,7 +81,7 @@ specific pattern with real data.
 | `15-immersive-room-parity.md`             | Delivered (chat via #20)                                                     | Room code pill + copy, access chips, sync note; the deferred chatter aside landed with `20-room-social-layer.md`                                                                                                                                                                           |
 | `16-wallet-connected-identity-card.md`    | Delivered on `main`                                                          | Calm connected-wallet identity card with real, non-fabricated stats                                                                                                                                                                                                                        |
 | `17-artist-studio-living-light-parity.md` | Delivered on `main`                                                          | Studio identity header, metric cards, sovereignty card, releases + support showcase                                                                                                                                                                                                        |
-| `19-constellation-design-track.md`        | Phases A-C prototyped; W14 optional 3D room galaxy in progress               | Constellation direction: The Stage (aura lamp rail), Sky of rooms, optional 3D room galaxy, micro-moments (`docs/design/dotify-constellation-ux.md`)                                                                                                                                          |
+| `19-constellation-design-track.md`        | Phases A-C and the optional W14 3D room galaxy delivered; 2D/list remains default | Constellation direction: The Stage (aura lamp rail), Sky of rooms, optional 3D room galaxy, micro-moments (`docs/design/dotify-constellation-ux.md`)                                                                                                                                       |
 | `20-room-social-layer.md`                 | Delivered on `main` (PR #67)                                                 | Broadcast reactions (attributed petals) + in-room chat over the signaling relay; 50-message in-room history, rate-limited, fail closed                                                                                                                                                     |
 | `22-living-interface.md`                  | Delivered on `design/living-interface`                                       | Living Interface: borders replaced by aura-tinted tonal layering, relaxed geometry, deep-glass floating layers, conversational chat bubbles, one breathing motion curve (`docs/design/dotify-living-interface.md`)                                                                         |
 | `23-room-identity.md`                     | Layer 1 delivered on `feat/room-identity`                                    | A pseudonym set once per wallet: off-chain per-address display name, auto-filled into room create/join; Layer 2 (link/QR join step) and on-chain handle registry are future (`docs/design/room-identity.md`)                                                                               |
@@ -96,21 +110,32 @@ ticket 18 preview assets are consciously retired by access model v2.
 
 Source: `docs/design/ux-design-audit-2026-09-17.md`. Existing tickets were reused where they already own the scope: #87 keeps responsive cover variants (evidence added), #151/W10 and #156/W12 keep their delivered decisions, #160/W14 keeps the galaxy.
 
-| Backlog doc                                       | GitHub issue | Status | Goal                                                                   |
-| ------------------------------------------------- | ------------ | ------ | ---------------------------------------------------------------------- |
-| `implementation/W21-first-listening-screen.md`    | #176         | In Review | No dead controls, music-first cards with on-demand access details, text-free placeholders |
-| `implementation/W22-room-hosting-clarity.md`      | #177         | Todo   | No role-as-name, invite-first hosting, meaningful guest controls       |
-| `implementation/W23-player-support-clarity.md`    | #178         | Todo   | Immersive solo player and plain support/wallet prompts                 |
-| `implementation/W25-artist-workspace-language.md` | #180         | Todo   | Plain and truthful artist workspace                                    |
-| `implementation/W24-visual-system-contract.md`    | #179         | Todo   | One documented type, color and component system                        |
-| `implementation/W26-french-localization.md`       | #181         | Later  | French interface after the pilot                                       |
+| Backlog doc                                       | GitHub issue | Delivery record | Goal                                                                   |
+| ------------------------------------------------- | ------------ | --------------- | ---------------------------------------------------------------------- |
+| `implementation/W21-first-listening-screen.md`    | #176         | Delivered by #184; card presentation refined by #195 | No dead controls, music-first cards with on-demand access details, text-free placeholders |
+| `implementation/W22-room-hosting-clarity.md`      | #177         | Delivered by #185 | No role-as-name, invite-first hosting, meaningful guest controls       |
+| `implementation/W23-player-support-clarity.md`    | #178         | Delivered by #186 | Immersive solo player and plain support/wallet prompts                 |
+| `implementation/W25-artist-workspace-language.md` | #180         | Delivered by #188 | Plain and truthful artist workspace                                    |
+| `implementation/W24-visual-system-contract.md`    | #179         | Delivered by #189 | One documented type, color and component system                        |
+| `implementation/W26-french-localization.md`       | #181         | Later           | French interface after the pilot                                       |
 
-## Active production execution
+## Remaining execution map
 
-| Backlog doc                       | GitHub issue | Status          | Goal                                                                                      |
-| --------------------------------- | ------------ | --------------- | ----------------------------------------------------------------------------------------- |
-| `26-cached-catalog-read-model.md` | #86          | Closed / Record | One cacheable catalog request backed by confirmed events and deterministic reconciliation |
-| `24-access-streaming-v2.md`       | #88          | In Review       | Validate DAV2 startup across real browsers, devices, and gateways                         |
+The current implementation backlog is deliberately small. Consult Project 5
+for Todo/In Progress/In Review; the table below defines why each issue remains
+open.
+
+| Priority | GitHub issue | Phase | Remaining outcome |
+| -------- | ------------ | ----- | ----------------- |
+| P0 | #158 / W13 | Now | Bind Product payment/access, room, first-sound, rollback, release-profile, and consented pilot evidence to one accepted candidate. |
+| P0 | #88 | Next | Measure DAV2 first sound on physical browsers/devices and real gateway conditions. |
+| P1 | #87 | Next | Validate responsive covers on live uploads/mobile and decide the cache-edge/legacy-backfill boundary. |
+| P1 | #89 | Next | Exercise forced TURN, independent networks, mobile recovery, host capacity, and the mesh/SFU decision. |
+| P1 | #85 | Product feasibility | Maintain the Product capability/compatibility epic around evidence that the current Host actually exposes. |
+| P1 | #90 | Next | Re-scope only the wallet-later gaps observed in pilot evidence; do not replay the delivered UX work. |
+| P2 | #12 | Product feasibility | Prove a private personhood source and address binding before implementing Human free. |
+| P3 | #13 | Later | Design consented cultural propagation after the first pilot. |
+| P2 | #181 / W26 | Later | Add French after W13 and the visual contract are accepted. |
 
 ## Strategic improvement plan
 
@@ -180,21 +205,21 @@ spine, a 3D prototype can start early, and nearby discovery comes later after
 privacy design. The historical order below remains context; the playbook is the
 current sequencing guide. Project 5 continues to own workflow status.
 
-Sprint 0, Sprint 1, ticket 24 P1/P2/P3 first slice, and ticket 25 are delivered
-on `main`. The remaining order is:
+Sprint 0, Sprint 1, ticket 24 P1/P2/P3 first slice, ticket 25, W01-W12,
+W14, W16, W18, and W21-W25 have delivered implementation records. W13 remains
+the release gate. The remaining order is:
 
-1. Reconcile GitHub Project 5 with this local backlog and keep issue status in
-   the project, not scattered through prose. Public wallet/device validation is
-   closed through #33 and should stay a record.
-2. Finish standalone production operation: DAV2 real-browser and gateway
-   validation plus backend read-through decisioning through #88. Hosted
-   signaling and production-env evidence are closed through #36/#37.
-3. Improve room resilience and shared-listening depth only where it preserves
-   the link-first guest doctrine.
-4. Validate the delivered Product host/account and Bulletin/DotNS baseline,
-   then wire real CDM-installed runtime packages through the Product CDM/PAPI
-   adapter, wire frontend Product-signed key/session requests, and run bounded
-   resource-allocation/Statement Store spikes.
+1. Finish W13 against the published Product CDM validation CID: reuse an
+   existing entitlement, capture Product payment/access read-back, host-to-
+   walletless-listener room evidence, physical first-sound samples, forced
+   TURN/independent-network behavior, and iPhone behavior.
+2. Use the same campaign to finish the evidence boundaries in #87, #88, and
+   #89. Change code only when measured failures justify it.
+3. Choose the accepted Product write profile from the evidence, rehearse
+   rollback/restore, publish the distinct pilot release identity, and open the
+   `dev` to `main` promotion for review.
+4. Run the consented aggregate pilot and record `go`, `hold`, or `no-go` before
+   starting W15, W19, or W20.
 5. Build live Humanity / Individuality only after the research ticket proves a
    privacy-preserving source, proof shape, address-binding story, and fallback
    UX.

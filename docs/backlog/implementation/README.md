@@ -2,11 +2,32 @@
 
 Twenty-six agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf`; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
+## Current execution state — 2026-09-20
+
+The sequences are recipes; they are not a second workflow board. GitHub Project
+5 owns live status, and each evidence file records the delivered boundary.
+
+| State | Sequences | Meaning |
+| --- | --- | --- |
+| Delivered implementation records | W01-W12, W14, W18, W21-W25 | Their acceptance scope is merged into `dev`. Broader live-device evidence belongs to W13 or to #87, #88, and #89. |
+| Delivered feasibility record | W16 | Product CASH cannot currently authorize Asset Hub access with the evidence exposed by the Product APIs; PAS remains the executable pilot rail. |
+| Active release gate | W13 | Product CDM validation app `[0, 1, 26]` is published; payment/access, room, physical-device, rollback, release-profile, and aggregate pilot evidence remain. |
+| Not activated | W15, W17, W19, W20, W26 | Do not start before their dependency and pilot gates are satisfied. |
+
+W14 is complete as an optional implementation with a full 2D/list fallback;
+that does not authorize making 3D the default. W18 is complete as a privacy
+design and inert scaffold; it does not authorize collecting location or
+starting W19. W21's original card-level policy cue was intentionally refined by
+PR #195, so its evidence is a historical design iteration rather than an
+instruction to restore the cue.
+
 ## The branch workflow
 
 Keep all prompts together on `dev`. Create one short-lived implementation branch when its work starts, from the latest tested `origin/dev`. Review and merge its PR into `dev`, then create the next branch. This keeps subsequent agents on integrated code and makes the prompt travel with every branch. Pre-creating twenty-six branches would freeze twenty-six increasingly stale starting points.
 
-The documentation branch `docs/agent-implementation-playbook` introduces this playbook. Review/merge its PR into `dev` before starting W01. Do not build features on top of the documentation branch by default.
+The documentation branch `docs/agent-implementation-playbook` introduced this
+playbook in merged PR #131. New work starts from the latest tested `dev`, never
+from that historical documentation branch.
 
 1. Select an eligible sequence below. Check dependency evidence and Project 5.
 2. Give the agent the launcher below, replacing W01/file with the selected sequence.
@@ -32,11 +53,16 @@ and report the precise remaining gate. Do not start the next sequence.
 
 The full content of any sequence file can also be pasted directly. It instructs the agent to read the common contract, so the repository must be available. No separate hidden conversation context is required.
 
-## Fastest sensible delivery order
+## Historical delivery order and current next gate
 
-Start with **W01**. Then prioritize **W08 (first sound)** and **W09 (room reliability)** to get real listening feedback early. W02–W07 harden the specific trust boundaries; W10 establishes the responsive interface; W11 proves Product DevNet; W12 connects artist publication and transparent support. Finish with **W13**, the release and pilot gate. These IDs identify scopes, not a mandatory numeric queue.
+The original order started with **W01**, then prioritized **W08 (first sound)**
+and **W09 (room reliability)** before the trust, Product, artist, and UX slices.
+Those implementation slices are now merged. The current next gate is **W13**:
+collect candidate-bound Product/room/device evidence, rehearse rollback, choose
+the release profile, and run the consented pilot. These IDs identify scopes,
+not a mandatory numeric queue.
 
-Suggested solo order: **W01 → W08 → W09 → W02 → W03 → W04 → W05 → W06 → W07 → W10 → W11 → W12 → W13**. If an outcome already works on current dev, verify and record it; do not manufacture a rewrite or empty feature PR. W02 may use two linked implementation slices if upload authorization and durable revocation need separate migrations.
+Historical solo order: **W01 → W08 → W09 → W02 → W03 → W04 → W05 → W06 → W07 → W10 → W11 → W12 → W13**. Do not replay it. Reconcile already-delivered work and use the remaining W13 evidence gates as the source of truth.
 
 For independently staffed work, W08, W02, W04, W06, and W10 can start after W01. Coordinate shared-file edits: W02/W03/W07 touch API trust boundaries; W04/W05/W12 touch access/royalties; W06/W11 touch identity; W10/W14 touch discovery styles. Use separate worktrees and merge shared interfaces first. Do not run multiple agents in one working tree. Parallel staffing is optional, not assumed by these prompts.
 
