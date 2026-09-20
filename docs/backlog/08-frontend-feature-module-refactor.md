@@ -101,7 +101,7 @@ Third PR on `refactor/frontend-player-module` (stacked on the catalog PR):
 - Added `features/player/playbackStatus.ts` - the `AudioStatus` model, `playbackStatusLabel` (moved from `usePlayback.ts`), and `transportProgressPercent` (extracted from `PlayerView.tsx`'s inline math). Co-located `playbackStatus.test.ts`.
 - Rewired `usePlayback.ts` (imports the `AudioStatus` type), `PlayerView.tsx` (label + progress helper), and `PlayerDock.tsx` (label). No behavior change.
 
-Fourth PR on `refactor/frontend-wallet-module`: added `features/wallet/network.ts` (`parseChainId`, `toEip155ChainId`, `getProviderErrorCode` moved from `useWallet.ts`; `chainMismatchMessage` deduping the identical string in `App.tsx` + `useArtistConsole.ts`) and the PR tracker `docs/backlog/08-frontend-refactor-tracker.md`.
+Fourth PR on `refactor/frontend-wallet-module`: added `features/wallet/network.ts` (`parseChainId`, `toEip155ChainId`, `getProviderErrorCode` moved from `useWallet.ts`; `chainMismatchMessage` deduping the identical string in `App.tsx` + `useArtistConsole.ts`) and the PR tracker `docs/backlog/frontend-refactor-tracker.md`.
 
 Fifth PR on `refactor/frontend-uploads-module`: added `features/uploads/uploadModel.ts` (`buildDraftTrackInfo`, `nextTitleFromUpload`, `DEFAULT_TRACK_TITLE`, `uploadStatusMessage`) and extended `features/catalog/trackModel.ts` with `priceDotForAccessMode` + `localAudioRef`. Slimmed `App.tsx`'s `handleAudioFile`/`handleCoverFile` and de-duplicated the access-mode price (4 sites) and local-audio-ref (2 sites) across `App.tsx` and `useArtistConsole.ts`.
 
@@ -117,4 +117,4 @@ App-shell decomposition PRs (branched from `main`): `refactor/frontend-primary-n
 
 `refactor/frontend-topbar` extracted a shared `components/TopBar` (Dotify brand + wallet status pill) now used by both the listener shell and `ArtistPortalView`, de-duplicating the two near-identical inline headers.
 
-The running plan and status for the remaining PRs lives in `docs/backlog/08-frontend-refactor-tracker.md`. Remaining there: decomposing the listener render tree behind a providers/context boundary so `App.tsx` is composition-only (PR8b) and the `shared/` tree relocation (PR9), both broad structural moves best done one at a time against an up-to-date `main`.
+The running plan and status for the remaining PRs lives in `docs/backlog/frontend-refactor-tracker.md`. Remaining there: decomposing the listener render tree behind a providers/context boundary so `App.tsx` is composition-only (PR8b) and the `shared/` tree relocation (PR9), both broad structural moves best done one at a time against an up-to-date `main`.
