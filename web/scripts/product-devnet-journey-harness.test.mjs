@@ -213,6 +213,26 @@ test('local static gates can pass while missing live host evidence remains block
   assert.equal(report.productSmokeGates[0].status, 'blocked');
 });
 
+test('static gates reject a mnemonic expanded into Product deploy arguments', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot({
+      webPackageJson: {
+        scripts: {
+          'deploy:product-devnet': `npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad --mnemonic "$MNEMONIC"`
+        }
+      }
+    }),
+    productSmokeEvidence: null,
+    roomEvidence: null,
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  const boundary = report.staticGates.find(gate => gate.id === 'deploy-secret-boundary');
+  assert.equal(boundary?.status, 'fail');
+  assert.match(boundary?.detail ?? '', /must not be expanded/);
+});
+
 test('complete Product smoke and room evidence satisfy the live journey gates', () => {
   const report = buildProductDevnetJourneyReport({
     snapshot: staticSnapshot(),

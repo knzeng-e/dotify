@@ -375,19 +375,21 @@ export MNEMONIC
 
 Paste the DotNS owner mnemonic, then press Enter. Prefer a password manager or
 another non-history shell injection in normal operation; do not commit it or
-store it in `.env`, Netlify, or Fly. If the owner account uses a derivation
-path, add that path to the deploy script or run the equivalent `pad` command
-with `--derivation-path`.
+store it in `.env`, GitHub Actions, Netlify, or Fly. The deploy command lets
+`polkadot-app-deploy` read `MNEMONIC` from the local child-process environment;
+it does not expand the phrase into the command arguments, where local process
+inspection could expose it. Run `unset MNEMONIC` immediately after the publish.
+If the owner account uses a derivation path, add that path to the deploy script
+or run the equivalent `pad` command with `--derivation-path`.
 
 The preflight output must show the H160 owner of `dotify-test01.dot`. If it
 shows a different H160, stop before publishing and check the mnemonic or
 derivation path.
 
-For a reviewable remote publish, the manual **Deploy Product candidate to
-DotNS** workflow accepts only an exact full commit SHA, a `validation` or
-`release` profile, and the literal `dotify-test01.dot` confirmation. It uses
-the repository `DOTNS_MNEMONIC` secret and fails before building when that
-secret is absent. It has no development-account fallback. The validation
+GitHub Actions never receives DotNS signing authority. The manual **Validate
+Product candidate** workflow accepts only an exact full commit SHA and a
+`validation` or `release` profile. It checks out and builds that immutable
+candidate with no mnemonic, signer, upload, or network write. The validation
 profile enables the Product CDM adapter, artist gifts, and the operator-only
 readiness panel; the release profile retains the tracked viem defaults.
 
@@ -395,14 +397,14 @@ readiness panel; the release profile retains the tracked viem defaults.
 gh workflow run deploy-frontend.yml \
   --ref <candidate-branch> \
   -f profile=validation \
-  -f expected-sha=<full-candidate-sha> \
-  -f confirm-domain=dotify-test01.dot
+  -f expected-sha=<full-candidate-sha>
 ```
 
 The workflow checks out the supplied SHA directly, requires a clean tree, runs
-the Product static gates, and records the profile and candidate identity in the
-GitHub Actions summary. Review the deploy output for the finalized CID before
-using the build as W13 evidence.
+the Product static gates, builds the chosen profile, refuses generated source
+drift, and records that it held no signing authority. Publication is a distinct
+local operator step from the same checked-out SHA. Review the local deploy
+output for the finalized CID before using the build as W13 evidence.
 
 ## 6. Publish
 
@@ -420,6 +422,12 @@ The command:
 6. uploads changed content to Product DevNet Bulletin;
 7. updates `dotify-test01.dot` directly with the `$MNEMONIC` owner signer;
 8. writes the Product manifest and executable records.
+
+After recording the finalized CID, remove the local process credential:
+
+```bash
+unset MNEMONIC
+```
 
 Bump the Product executable `appVersion` in
 `web/polkadot-app-deploy.config.ts` whenever the Product bundle changes runtime

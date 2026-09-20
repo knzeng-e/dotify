@@ -213,6 +213,24 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
     fail(gates, 'deploy-cli', 'Product deploy CLI', `Expected deploy script to pin ${EXPECTED_PRODUCT_DEVNET.productDeployCli}.`, 'web/package.json');
   }
 
+  if (/--mnemonic(?:=|\s)/.test(deployScript)) {
+    fail(
+      gates,
+      'deploy-secret-boundary',
+      'Product deploy signer boundary',
+      'The owner mnemonic must not be expanded into process arguments.',
+      'web/package.json'
+    );
+  } else {
+    pass(
+      gates,
+      'deploy-secret-boundary',
+      'Product deploy signer boundary',
+      'The deploy CLI reads the owner mnemonic from the local child-process environment.',
+      'web/package.json'
+    );
+  }
+
   if (env.VITE_DOTIFY_HOST_MODE === 'required') {
     pass(gates, 'host-mode', 'Product host mode', 'Product profile requires the host.', 'web/.env.product-devnet');
   } else {

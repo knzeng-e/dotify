@@ -322,21 +322,22 @@ export MNEMONIC
 npm run generate:product-catalog-bootstrap:strict
 npm run build:product-devnet
 npm run deploy:product-devnet
+unset MNEMONIC
 ```
 
 `deploy:product-devnet` requires `MNEMONIC` and passes it to
-`polkadot-app-deploy` with `--mnemonic "$MNEMONIC"
---no-transfer-to-signedin-user`. This intentionally avoids the mobile
+`polkadot-app-deploy` through the local child-process environment, without
+placing the phrase in command arguments. It also passes
+`--no-transfer-to-signedin-user`. This intentionally avoids the mobile
 `pad login` session for DotNS updates. `pad whoami` reports the mobile Product
 session, not the mnemonic-derived owner signer.
 
 The manual GitHub Actions workflow `.github/workflows/deploy-frontend.yml`
-provides the same Product-specific path for exact candidate SHAs. It requires
-the repository `DOTNS_MNEMONIC` secret, an explicit validation/release profile,
-and confirmation of `dotify-test01.dot`; it fails closed when the secret is
-missing and never falls back to a shared development signer. Validation builds
-enable the Product CDM adapter and operator readiness panel. Release builds use
-the checked-in viem profile.
+validates an exact candidate SHA but cannot publish it. It receives no mnemonic
+or signer and performs no Product write. Validation builds enable the Product
+CDM adapter and operator readiness panel; release builds use the checked-in
+viem profile. DotNS publication remains a local operator action from the same
+clean SHA.
 
 Use
 [`docs/operations/product-devnet-deployment.md`](product-devnet-deployment.md)

@@ -1,10 +1,10 @@
-name: Deploy Product candidate to DotNS
+name: Validate Product candidate
 
 on:
   workflow_dispatch:
     inputs:
       profile:
-        description: Product bundle profile to publish
+        description: Product bundle profile to validate
         type: choice
         required: true
         default: validation
@@ -15,36 +15,29 @@ on:
         description: Full commit SHA that must be checked out and embedded
         type: string
         required: true
-      confirm-domain:
-        description: Type dotify-test01.dot to confirm the target
-        type: string
-        required: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: deploy-product-candidate-${{ github.ref }}
+  group: validate-product-candidate-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Validate and publish
+  validate:
+    name: Build without signing authority
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs['expected-sha'] }}
 
-      - name: Verify deployment authority and exact candidate
+      - name: Verify exact candidate
         shell: bash
         run: |
           set -euo pipefail
-          test "${{ inputs['confirm-domain'] }}" = "dotify-test01.dot"
-          test -n "${MNEMONIC:-}"
+          [[ "${{ inputs['expected-sha'] }}" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "${{ inputs['expected-sha'] }}"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
 
@@ -66,28 +59,36 @@ jobs:
           npm run smoke:devnet
           npm run smoke:product-journey -- --md-out /tmp/product-journey.md --json-out /tmp/product-journey.json
 
-      - name: Publish validation profile
+      - name: Build validation profile
         if: inputs.profile == 'validation'
         working-directory: web
         env:
           VITE_DOTIFY_RUNTIME_ADAPTER: product-cdm
           VITE_DOTIFY_ARTIST_DONATIONS: on
           VITE_DOTIFY_DEBUG_PANEL: 'true'
-        run: npm run deploy:product-devnet
+        run: npm run build:product-devnet
 
-      - name: Publish release profile
+      - name: Build release profile
         if: inputs.profile == 'release'
         working-directory: web
-        run: npm run deploy:product-devnet
+        run: npm run build:product-devnet
+
+      - name: Refuse generated source drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
 
       - name: Record candidate identity
         if: always()
         shell: bash
         run: |
           {
-            echo "## Product candidate"
+            echo "## Product candidate validation"
             echo "- Commit: \`${{ inputs['expected-sha'] }}\`"
             echo "- Profile: \`${{ inputs.profile }}\`"
-            echo "- Domain: \`dotify-test01.dot\`"
+            echo "- Domain from tracked config: \`dotify-test01.dot\`"
             echo "- App version: \`[0, 1, 26]\`"
+            echo "- Signing authority: \`none\`"
+            echo "- Network writes: \`none\`"
           } >> "$GITHUB_STEP_SUMMARY"
