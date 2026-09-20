@@ -313,6 +313,13 @@ default generator keeps the existing snapshot if the API is unavailable; use
 `npm run generate:product-catalog-bootstrap:strict` before releases or after
 contract address changes so a stale API fails visibly.
 
+Release preparation and publication are deliberately separate. Refresh with
+the strict generator, review and commit the generated snapshot, then build the
+exact candidate with `npm run build:product-devnet:frozen`. The frozen command
+does not contact the catalog API. Signer-free CI and `deploy:product-devnet`
+both use it, preventing live catalog drift between the validated commit and the
+locally signed publication.
+
 Build and publication:
 
 ```bash
@@ -320,7 +327,7 @@ cd web
 read -rs MNEMONIC
 export MNEMONIC
 npm run generate:product-catalog-bootstrap:strict
-npm run build:product-devnet
+npm run build:product-devnet:frozen
 npm run deploy:product-devnet
 unset MNEMONIC
 ```
@@ -336,8 +343,9 @@ The manual GitHub Actions workflow `.github/workflows/deploy-frontend.yml`
 validates an exact candidate SHA but cannot publish it. It receives no mnemonic
 or signer and performs no Product write. Validation builds enable the Product
 CDM adapter and operator readiness panel; release builds use the checked-in
-viem profile. DotNS publication remains a local operator action from the same
-clean SHA.
+viem profile. Both profiles consume the committed catalog snapshot through the
+same frozen build used by local publication. DotNS publication remains a local
+operator action from the same clean SHA.
 
 Use
 [`docs/operations/product-devnet-deployment.md`](product-devnet-deployment.md)

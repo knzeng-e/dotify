@@ -169,6 +169,7 @@ npm run build
 npm run build:bulletin
 npm run deploy:bulletin
 npm run build:product-devnet
+npm run build:product-devnet:frozen
 npm run deploy:product-devnet
 ```
 
@@ -178,7 +179,11 @@ is inlined as a Blob Worker for this target, and the build fails if `index.html`
 references an external Worker or script asset.
 
 `build:product-devnet` produces `dist-product` with the checked-in
-`.env.product-devnet` profile. `deploy:product-devnet` uses
+`.env.product-devnet` profile and refreshes the bootstrap catalogue when the
+configured API is available. `build:product-devnet:frozen` performs no catalogue
+request and builds the reviewed, committed snapshot. Signer-free CI and
+`deploy:product-devnet` both use that frozen build so publication cannot pick up
+unreviewed live catalogue drift. `deploy:product-devnet` uses
 `@polkadot-community-foundation/polkadot-app-deploy@0.16.2` through `npx`,
 uploads static chunks to Product DevNet Bulletin, and binds `dotify-test01.dot`
 through the post-September 2026 DotNS tooling. The owner mnemonic is accepted

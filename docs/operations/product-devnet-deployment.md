@@ -310,6 +310,12 @@ npm run generate:product-catalog-bootstrap:strict
 git -C .. diff -- web/src/services/productDevnetCatalogBootstrap.ts
 ```
 
+After reviewing and committing that generated file, use
+`npm run build:product-devnet:frozen` for the exact release candidate. This
+command performs no catalog request and builds only from the committed snapshot.
+Both signer-free CI and the local publish command use this frozen path, so the
+validated catalogue cannot change between review and publication.
+
 When the deployed contract addresses or indexed releases change, update the API
 configuration first, wait until `https://dotify-api.fly.dev/api/catalog` returns
 the new catalog, run the strict generator, commit the generated snapshot change,
@@ -325,7 +331,7 @@ npm run smoke:devnet
 npm run smoke:product-journey -- --md-out /tmp/dotify-product-journey.md --json-out /tmp/dotify-product-journey.json
 npm run smoke:pilot-release -- --md-out /tmp/dotify-pilot-release-readiness.md --json-out /tmp/dotify-pilot-release-readiness.json
 npm run smoke:product-cash-settlement -- --md-out /tmp/dotify-product-cash-settlement.md --json-out /tmp/dotify-product-cash-settlement.json
-npm run build:product-devnet
+npm run build:product-devnet:frozen
 ```
 
 Expected output is `web/dist-product`. The production guard must fail if a
@@ -365,8 +371,8 @@ the experimental deploy tool to the application dependency tree.
 
 `npm run deploy:product-devnet` signs DotNS updates with the owner mnemonic from
 `MNEMONIC`. Do not rely on `pad login` for this path: `pad login` and
-`pad whoami` describe the mobile Product session only, not the local mnemonic
-used by `--mnemonic`.
+`pad whoami` describe the mobile Product session only, not the local owner
+signer.
 
 ```bash
 read -rs MNEMONIC
@@ -401,10 +407,11 @@ gh workflow run deploy-frontend.yml \
 ```
 
 The workflow checks out the supplied SHA directly, requires a clean tree, runs
-the Product static gates, builds the chosen profile, refuses generated source
-drift, and records that it held no signing authority. Publication is a distinct
-local operator step from the same checked-out SHA. Review the local deploy
-output for the finalized CID before using the build as W13 evidence.
+the Product static gates, builds the chosen profile from the committed catalogue
+snapshot, refuses generated source drift, and records that it held no signing
+authority. Publication is a distinct local operator step from the same checked-out
+SHA and uses that same frozen build command. Review the local deploy output for
+the finalized CID before using the build as W13 evidence.
 
 ## 6. Publish
 
@@ -415,7 +422,8 @@ npm run deploy:product-devnet
 The command:
 
 1. refuses to continue when `MNEMONIC` is empty;
-2. refreshes the bundled Product catalog snapshot from the Fly catalog API;
+2. builds from the committed Product catalog snapshot without querying the
+   mutable Fly catalog API;
 3. rebuilds `dist-product`;
 4. validates `polkadot-app-deploy.config.ts`;
 5. creates content-addressed chunks with the JavaScript merkle implementation;

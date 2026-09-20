@@ -63,20 +63,15 @@ jobs:
         if: inputs.profile == 'validation'
         working-directory: web
         env:
-          # Exact candidates build from the committed snapshot. The read-only
-          # DevNet smoke above verifies the mutable live services separately.
-          CATALOG_API_URL: http://127.0.0.1:9
           VITE_DOTIFY_RUNTIME_ADAPTER: product-cdm
           VITE_DOTIFY_ARTIST_DONATIONS: on
           VITE_DOTIFY_DEBUG_PANEL: 'true'
-        run: npm run build:product-devnet
+        run: npm run build:product-devnet:frozen
 
       - name: Build release profile
         if: inputs.profile == 'release'
         working-directory: web
-        env:
-          CATALOG_API_URL: http://127.0.0.1:9
-        run: npm run build:product-devnet
+        run: npm run build:product-devnet:frozen
 
       - name: Refuse generated source drift
         shell: bash
