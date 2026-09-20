@@ -1547,9 +1547,12 @@
               </p>
               <p>
                 The September 2026 Product DevNet reset is now explicit in the codebase: new app publications use the refreshed Bulletin/DotNS tooling, Dotify's
-                Product CDM registry points at the current DevNet registry, and the Bulletin descriptor is pinned to the post-reset runtime. Published bundles
-                and CDM registrations remain release-time artifacts, so the public host must still be republished and smoke-tested after merge before it counts
-                as Product evidence.
+                Product CDM registry points at the current DevNet registry, and the Bulletin descriptor is pinned to the post-reset runtime. The merged
+                <code>[0, 1, 26]</code> Product CDM validation profile is now published on <code>dotify-test01.dot</code> and
+                <code>app.dotify-test01.dot</code>, bound to its reviewed merge SHA and a verified Bulletin CID; the post-publish DevNet service smoke passes.
+                This proves reproducible delivery, not the listening journey: Product Desktop still needs candidate-bound payment/key and room evidence plus
+                physical-device checks. The default <code>viem</code> pilot release remains a separate, unpublished identity and must receive its own CID before
+                W13 can collect aggregate pilot evidence.
               </p>
               <p>
                 Product DevNet is a first-class delivery target alongside ordinary mobile and desktop web. The next pilot must demonstrate discovery, listening,
