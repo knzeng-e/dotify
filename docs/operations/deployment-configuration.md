@@ -330,6 +330,14 @@ npm run deploy:product-devnet
 `pad login` session for DotNS updates. `pad whoami` reports the mobile Product
 session, not the mnemonic-derived owner signer.
 
+The manual GitHub Actions workflow `.github/workflows/deploy-frontend.yml`
+provides the same Product-specific path for exact candidate SHAs. It requires
+the repository `DOTNS_MNEMONIC` secret, an explicit validation/release profile,
+and confirmation of `dotify-test01.dot`; it fails closed when the secret is
+missing and never falls back to a shared development signer. Validation builds
+enable the Product CDM adapter and operator readiness panel. Release builds use
+the checked-in viem profile.
+
 Use
 [`docs/operations/product-devnet-deployment.md`](product-devnet-deployment.md)
 for authentication, publication, validation, and rollback.

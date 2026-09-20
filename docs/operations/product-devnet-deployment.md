@@ -383,6 +383,27 @@ The preflight output must show the H160 owner of `dotify-test01.dot`. If it
 shows a different H160, stop before publishing and check the mnemonic or
 derivation path.
 
+For a reviewable remote publish, the manual **Deploy Product candidate to
+DotNS** workflow accepts only an exact full commit SHA, a `validation` or
+`release` profile, and the literal `dotify-test01.dot` confirmation. It uses
+the repository `DOTNS_MNEMONIC` secret and fails before building when that
+secret is absent. It has no development-account fallback. The validation
+profile enables the Product CDM adapter, artist gifts, and the operator-only
+readiness panel; the release profile retains the tracked viem defaults.
+
+```bash
+gh workflow run deploy-frontend.yml \
+  --ref <candidate-branch> \
+  -f profile=validation \
+  -f expected-sha=<full-candidate-sha> \
+  -f confirm-domain=dotify-test01.dot
+```
+
+The workflow checks out the supplied SHA directly, requires a clean tree, runs
+the Product static gates, and records the profile and candidate identity in the
+GitHub Actions summary. Review the deploy output for the finalized CID before
+using the build as W13 evidence.
+
 ## 6. Publish
 
 ```bash
