@@ -4,7 +4,7 @@
 
 - Scope: W13 follow-up after PR #205 merged the backlog reconciliation.
 - Starting `dev` SHA: `a36d60e6848cfde55511a1cba8b934cd213af8b9`.
-- Reviewed implementation commit: `35dc70df97c0fdf2fe749dcd50788184f1a16d44`.
+- Reviewed implementation commit: `c8f1a0d1e13efc16a5dc76909d37dadf45d59e52`.
 - Branch: `feat/w13-candidate-validation`.
 - Issue: partial W13 issue #158.
 - Tracked Product executable version: `[0, 1, 27]`.
