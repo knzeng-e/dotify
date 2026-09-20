@@ -208,10 +208,6 @@ export function useWallet() {
       return;
     }
     if (isClassicUnlockE2e) {
-      if (shouldAllowClassicUnlockAccountLoss()) {
-        setState({ status: 'disconnected' });
-        return;
-      }
       setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
       return;
     }
@@ -306,6 +302,10 @@ export function useWallet() {
       return;
     }
     if (isClassicUnlockE2e) {
+      if (shouldAllowClassicUnlockAccountLoss()) {
+        setState({ status: 'disconnected' });
+        return;
+      }
       setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
       return;
     }

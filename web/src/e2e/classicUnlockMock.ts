@@ -74,7 +74,8 @@ export function shouldDenyClassicUnlockAfterPaymentReadback(): boolean {
 
 export function shouldAllowClassicUnlockAccountLoss(): boolean {
   if (typeof window === 'undefined') return false;
-  return new URLSearchParams(window.location.search).get('e2eClassic') === 'account-loss';
+  const scenario = new URLSearchParams(window.location.search).get('e2eClassic');
+  return scenario === 'account-loss' || scenario === 'intent-account-loss';
 }
 
 export function recordClassicUnlockFullKeyRequest(authorized: boolean) {

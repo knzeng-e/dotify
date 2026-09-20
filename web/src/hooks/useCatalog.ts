@@ -1374,7 +1374,10 @@ export function useCatalog(deps: UseCatalogDeps) {
       return;
     }
 
-    if (!currentAccount()) return;
+    if (!currentAccount()) {
+      openSupportWalletModal();
+      return;
+    }
     const ports =
       isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id
         ? classicSupportE2ePorts(runtimeReader, runtimeWriter)

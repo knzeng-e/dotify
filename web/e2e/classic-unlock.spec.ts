@@ -102,6 +102,40 @@ test('account loss during support hands off to one visible account dialog', asyn
   expect((await readClassicUnlockState(page))?.paymentAttempts ?? 0).toBe(0);
 });
 
+test('account loss while the payment intent resolves keeps recovery visible', async ({ page }) => {
+  await page.unroute('https://eth-rpc-testnet.polkadot.io/**');
+
+  let markChainReadStarted: () => void;
+  const chainReadStarted = new Promise<void>(resolve => {
+    markChainReadStarted = resolve;
+  });
+  let releaseChainRead: () => void;
+  const chainReadReleased = new Promise<void>(resolve => {
+    releaseChainRead = resolve;
+  });
+
+  await page.route('https://eth-rpc-testnet.polkadot.io/**', async route => {
+    const request = route.request().postDataJSON();
+    if (request?.method !== 'eth_chainId') return route.continue();
+    markChainReadStarted();
+    await chainReadReleased;
+    await route.fulfill({ json: { jsonrpc: '2.0', id: request.id, result: `0x${(420420417).toString(16)}` } });
+  });
+
+  await page.goto('/?e2eClassic=intent-account-loss');
+  await page.getByTestId('track-card-open').click();
+  await openClassicSupport(page);
+
+  await page.getByTestId('classic-unlock-button').click();
+  await chainReadStarted;
+  await page.locator('.wallet-pill-disconnect').evaluate(button => (button as HTMLButtonElement).click());
+  releaseChainRead();
+
+  await expect(page.getByRole('heading', { name: 'Choose how to confirm' })).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  expect((await readClassicUnlockState(page))?.paymentAttempts ?? 0).toBe(0);
+});
+
 test('Classic payment record remains visible when runtime read-back denies playable access', async ({ page }) => {
   await page.goto('/?e2eClassic=paid-without-access');
 

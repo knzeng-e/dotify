@@ -32,12 +32,14 @@ selector could remain behind the receipt and make the confirmation appear
 unresponsive.
 
 The support flow now clears the receipt before every handoff to account
-selection, signer/setup errors, or transaction progress. A deterministic
-Playwright scenario removes the account at the receipt boundary and verifies
-that exactly one dialog remains, no payment attempt starts, and the visible
-dialog asks the person how to connect. Product `appVersion` advances to
-`[0, 1, 27]` because the change affects runtime payment behavior and host cache
-freshness.
+selection, signer/setup errors, or transaction progress. It rechecks the
+account again after asynchronous payment-intent preparation and restores the
+account dialog when that identity changed while the chain lookup was pending.
+Deterministic Playwright scenarios cover account loss both before confirmation
+and during intent preparation; each verifies that exactly one dialog remains,
+no payment attempt starts, and recovery stays visible. Product `appVersion`
+advances to `[0, 1, 27]` because the change affects runtime payment behavior
+and host cache freshness.
 
 The Product runbook now rejects stale host UI as release evidence. If the
 expected readiness panel or current labels are missing, the operator must stop,
@@ -49,8 +51,8 @@ This cache operation does not authorize a payment or a publish.
 
 | Command or scenario | Environment | Result |
 | --- | --- | --- |
-| `npm run test:e2e -- e2e/classic-unlock.spec.ts -g 'account loss during support' --reporter=line` | Local Chromium | Passed: 1 regression scenario. |
-| `npm run test:e2e -- e2e/classic-unlock.spec.ts --reporter=line` | Local Chromium | Passed: 9 Classic access/payment/recovery scenarios. |
+| `npm run test:e2e -- e2e/classic-unlock.spec.ts -g 'account loss' --reporter=line` | Local Chromium | Passed: 2 regression scenarios covering loss before confirmation and during intent preparation. |
+| `npm run test:e2e -- e2e/classic-unlock.spec.ts --reporter=line` | Local Chromium | Passed: 10 Classic access/payment/recovery scenarios. |
 | `npm run test:unit` | Local Node 22 | Passed: 73 files, 580 tests. |
 | `npm run lint` | Local | Passed with 0 errors and 3 inherited React hook dependency warnings in `App.tsx` and `ArtistShell.tsx`. |
 | `npm run build` | Local | Passed. Inherited Rollup annotation, mixed-import, and large-chunk warnings remain. |
