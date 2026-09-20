@@ -457,11 +457,11 @@
       "id": "backlog-reconciliation",
       "doc": "docs/backlog/README.md",
       "issue": 204,
-      "kind": "work",
+      "kind": "record",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "One-time reconciliation of delivered implementation records, active pilot gates, GitHub issue state, and Project 5 metadata."
+      "phase": "Record",
+      "note": "Reconciliation record carried by PR #205: delivered implementation records, active pilot gates, issue state, Project 5 metadata, and dev protection were synchronized on 2026-09-20."
     }
   ]
 }
