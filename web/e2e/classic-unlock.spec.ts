@@ -83,6 +83,25 @@ test('Classic track stays locked before payment and unlocks full playback after 
   expect(afterPayment?.deniedFullKeyRequests ?? 0).toBe(0);
 });
 
+test('account loss during support hands off to one visible account dialog', async ({ page }) => {
+  await page.goto('/?e2eClassic=account-loss');
+  await page.getByTestId('track-card-open').click();
+  await openClassicSupport(page);
+
+  // Reproduce an account disappearing after the receipt was prepared but
+  // before its confirmation action runs. Extension and Product host sessions
+  // can both change asynchronously at this boundary.
+  await page.locator('.wallet-pill-disconnect').evaluate(button => (button as HTMLButtonElement).click());
+  await expect(page.locator('.status-pill.wallet-pill')).toContainText('Connect');
+
+  await page.getByTestId('classic-unlock-button').click();
+
+  await expect(page.getByTestId('access-warning')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Choose how to confirm' })).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  expect((await readClassicUnlockState(page))?.paymentAttempts ?? 0).toBe(0);
+});
+
 test('Classic payment record remains visible when runtime read-back denies playable access', async ({ page }) => {
   await page.goto('/?e2eClassic=paid-without-access');
 

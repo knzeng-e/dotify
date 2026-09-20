@@ -1322,14 +1322,16 @@ export function useCatalog(deps: UseCatalogDeps) {
       currentAccount() && selectedTrackIdRef.current === unlockStartedTrackId && activeViewRef.current === unlockStartedView;
 
     if (!connectedWallet) {
-      setAccessGate(buildAccessGateInfo(track));
+      // The access receipt is itself a modal. Dismiss it before handing off to
+      // account selection so Product hosts never render two dialogs at once.
+      setAccessGate(null);
       openSupportWalletModal();
       return;
     }
 
     const walletRequirement = readOnly ? null : explainRuntimeWriteWalletRequirement();
     if (walletRequirement || !listenerEvmAddress) {
-      setAccessGate(buildAccessGateInfo(track));
+      setAccessGate(null);
       setTransactionFeedback({
         tone: 'error',
         title: 'Payment signer unavailable',
@@ -1350,6 +1352,9 @@ export function useCatalog(deps: UseCatalogDeps) {
       return;
     }
 
+    // Every subsequent state is rendered by TransactionModal. Clear the
+    // receipt first, including when intent preparation fails synchronously.
+    setAccessGate(null);
     let paymentIntent;
     try {
       paymentIntent = await createRuntimeNativeAccessPaymentIntent({
@@ -1370,7 +1375,6 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
 
     if (!currentAccount()) return;
-    setAccessGate(null);
     const ports =
       isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id
         ? classicSupportE2ePorts(runtimeReader, runtimeWriter)
