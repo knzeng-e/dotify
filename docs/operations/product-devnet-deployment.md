@@ -443,12 +443,15 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The tracked Product executable candidate is `[0, 1, 26]`. This version adds
-candidate-bound first-sound evidence with independent budgets for every exact
-device/OS/browser/network/host profile, clean-worktree and checked-out-commit
-candidate enforcement, fresh warm-resume attempts, and terminal autoplay
-failures. It retains
-the `[0, 1, 25]` candidate-bound Product room smoke capture and the
+The tracked Product executable candidate is `[0, 1, 27]`. This version makes
+the Classic support receipt hand off to account selection, signer errors, and
+payment progress as a single-dialog transition. Its version bump also gives
+Product hosts an explicit cache-refresh signal for the changed payment flow.
+It retains the `[0, 1, 26]` candidate-bound first-sound evidence with
+independent budgets for every exact device/OS/browser/network/host profile,
+clean-worktree and checked-out-commit candidate enforcement, fresh warm-resume
+attempts, and terminal autoplay failures, the `[0, 1, 25]` candidate-bound
+Product room smoke capture, and the
 `[0, 1, 24]` move of DAV2 chunk decryption off the rendering thread through a
 bounded Web Worker.
 Product hosts that cannot start the worker within 1.5 seconds retain the same
@@ -688,6 +691,16 @@ npm run deploy:product-devnet
    the raw dry-run payload. An unknown post-submission failure is different and
    must retain its payment reference rather than offering another payment.
 
+   Before collecting evidence, verify that the Product host is actually
+   rendering the expected candidate. If the candidate's `Production readiness`
+   panel is absent or labels match an older build, stop: the host cache is not
+   valid release evidence. In Product Desktop, close Dotify, clear only the
+   Dotify app cache from its app settings, reopen the DotNS app, accept the
+   required domain/WebRTC permissions, and verify the expected UI and
+   `appVersion` before continuing. Clearing the cache is a local destructive
+   operation and requires the operator's explicit confirmation; it does not
+   authorize a payment or a publish.
+
    Before the payment attempt, open `You` -> `Production readiness` ->
    `Product CDM host smoke`, paste the executable CID printed by that exact
    deployment, and select **Use this deployment**. This starts a fresh
@@ -799,7 +812,7 @@ npm run smoke:product-journey -- \
   "capturedAt": "2026-09-18T12:00:00.000Z",
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 26]",
+    "productAppVersion": "[0, 1, 27]",
     "deployedCid": "<same-product-executable-cid-as-payment-smoke>"
   },
   "hostSurface": "product-desktop",
@@ -972,7 +985,7 @@ active.
   preserves the transaction hash in the error state.
 - Product Web's current gateway can reject native Product CDM chain setup with
   `Malformed protocol error payload: expected 3 bytes, received 6`. Version
-  `[0, 1, 26]` retains the `[0, 1, 23]` safeguard that prevents that
+  `[0, 1, 27]` retains the `[0, 1, 23]` safeguard that prevents that
   host/version mismatch from running merely because
   a guest opened the catalog or a room link. Catalog API and public room
   discovery remain available; an actual protected-track access read still

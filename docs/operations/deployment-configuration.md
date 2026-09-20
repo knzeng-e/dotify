@@ -181,16 +181,20 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 26]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 27]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 26]` adds candidate-bound first-sound evidence, independent
-exact-profile budgets, fresh warm-resume attempts, and terminal autoplay failures.
-It retains the `[0, 1, 25]` Product room evidence capture and rejection of
+Version `[0, 1, 27]` prevents the Classic support receipt from remaining
+mounted while account selection, signer errors, or payment progress are shown.
+The version bump also gives Product hosts an explicit cache-refresh signal for
+this payment-flow change. It retains the `[0, 1, 26]` candidate-bound
+first-sound evidence, independent exact-profile budgets, fresh warm-resume
+attempts, and terminal autoplay failures, plus the `[0, 1, 25]` Product room
+evidence capture and rejection of
 hand-written room claims without current host transport telemetry, plus the
 `[0, 1, 24]` bounded Web Worker for DAV2 AES-GCM chunk decryption and the
 fail-closed main-thread Web Crypto path when a worker cannot start within 1.5
