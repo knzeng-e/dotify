@@ -45,7 +45,7 @@ release diff is the application bundle and this release/evidence package.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 27]` | Publish and recapture evidence; this bundle adds single-dialog Classic support handoff and a Product cache-refresh signal while retaining candidate-bound first-sound evidence, room smoke capture, off-thread DAV2 decryption, room-link arrival without Product chain setup, native extrinsic proof links, and the native-unit fix |
+| Product appVersion | `[0, 1, 27]` | Published as the Product CDM validation profile at CID `bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca`; this bundle adds single-dialog Classic support handoff and a Product cache-refresh signal while retaining candidate-bound first-sound evidence, room smoke capture, off-thread DAV2 decryption, room-link arrival without Product chain setup, native extrinsic proof links, and the native-unit fix. Host payment/key, room, physical-device, rollback, and default-`viem` release evidence remain pending. |
 | Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
