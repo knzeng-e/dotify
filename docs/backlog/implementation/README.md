@@ -2,7 +2,7 @@
 
 Twenty-six agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf`; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
-## Current execution state — 2026-09-20
+## Current execution state — 2026-09-21
 
 The sequences are recipes; they are not a second workflow board. GitHub Project
 5 owns live status, and each evidence file records the delivered boundary.
@@ -11,7 +11,7 @@ The sequences are recipes; they are not a second workflow board. GitHub Project
 | --- | --- | --- |
 | Delivered implementation records | W01-W12, W14, W18, W21-W25 | Their acceptance scope is merged into `dev`. Broader live-device evidence belongs to W13 or to #87, #88, and #89. |
 | Delivered feasibility record | W16 | Product CASH cannot currently authorize Asset Hub access with the evidence exposed by the Product APIs; PAS remains the executable pilot rail. |
-| Active release gate | W13 | Product CDM validation app `[0, 1, 26]` is published; payment/access, room, physical-device, rollback, release-profile, and aggregate pilot evidence remain. |
+| Active release gate | W13 | Product CDM validation app `[0, 1, 27]` is published at CID `bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca`; payment/access, room, physical-device, rollback, release-profile, and aggregate pilot evidence remain. |
 | Not activated | W15, W17, W19, W20, W26 | Do not start before their dependency and pilot gates are satisfied. |
 
 W14 is complete as an optional implementation with a full 2D/list fallback;

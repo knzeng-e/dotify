@@ -8,12 +8,13 @@
 - Branch: `feat/w13-candidate-validation`.
 - Issue: partial W13 issue #158.
 - Tracked Product executable version: `[0, 1, 27]`.
-- Published Product executable: `[0, 1, 26]`, merge SHA `1a226f4`, CID
-  `bafybeibbxfn5nw3mb7hgxoou357xiee5ow2iyxlpfycwd3pdigitgrth2i`.
+- Published Product executable: `[0, 1, 27]`, merge SHA
+  `a08de52e1bc5a9db5dfd34ae96b7250cbe567276`, CID
+  `bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca`.
 - Code readiness: locally verified.
-- Release readiness: **hold**. Version `[0, 1, 27]` is not published, and no
-  payment, room, physical-device, rollback, or participant evidence was created
-  in this follow-up.
+- Release readiness: **hold**. Version `[0, 1, 27]` is published and the
+  read-only Product DevNet smoke passes, but no candidate-bound payment/key,
+  room, physical-device, rollback, or participant evidence has been accepted.
 
 ## Result and decisions
 
@@ -80,16 +81,13 @@ This cache operation does not authorize a payment or a publish.
 
 ## Remaining gates
 
-1. Review and merge this candidate, then publish `[0, 1, 27]` from its exact
-   merge SHA under a new CID. Do not use the earlier `[0, 1, 26]` CID as evidence
-   for the changed code.
-2. Confirm host cache freshness, then reuse the existing paid entitlement to
+1. Confirm host cache freshness, then reuse the existing paid entitlement to
    export Product payment/access read-back without submitting another payment.
-3. Export a Product-hosted room journey with a walletless listener, and capture
+2. Export a Product-hosted room journey with a walletless listener, and capture
    physical iPhone first-sound plus independent-network/TURN evidence.
-4. Rehearse the recorded `[0, 1, 25]` rollback and restore `[0, 1, 27]`, then
+3. Rehearse the recorded `[0, 1, 25]` rollback and restore `[0, 1, 27]`, then
    publish the distinct default-`viem` release candidate.
-5. Run the consented aggregate pilot before recording `go` or closing #158.
+4. Run the consented aggregate pilot before recording `go` or closing #158.
 
 Implementation summary: candidate `[0, 1, 27]` removes a modal-stacking dead end
 from Classic support, makes Product cache freshness an explicit evidence gate,
@@ -119,3 +117,45 @@ transaction, signature request, cache deletion, or participant contact was
 performed. The next candidate identity is the future merge SHA of this
 correction; signer-free validation and local publication must bind to that SHA,
 not to `1bb86cf` or the implementation commit above.
+
+## Product CDM validation publication — 2026-09-21
+
+PR #207 merged into `dev` at
+`a08de52e1bc5a9db5dfd34ae96b7250cbe567276`. The exact SHA was checked out in a
+clean detached worktree at `/tmp/dotify-product-0-1-27`, built with the Product
+CDM validation profile, and published locally with the authorized DotNS owner
+mnemonic supplied through an ephemeral FIFO. The mnemonic was not written to a
+file, committed, added to GitHub secrets, or printed in command output.
+
+The Product DevNet publication completed successfully:
+
+- Product appVersion: `[0, 1, 27]`.
+- Root CID: `bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca`.
+- Domain: `dotify-test01.dot`.
+- Product account: `5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca`.
+- Product H160: `0xe3e3a0916d27c5174313f16e1507a286985a8ac8`.
+- Storage Phase A finalised at block `933425`, tx
+  `0x3d935fc48ccedf7b98427dbb286e8c5250f7f58a0624d0ee4ee16d879d9d2745`.
+- Storage Phase B finalised at block `933429`, tx
+  `0x020eca9a63a88d619bde9fb7ac8ed98368fd1135b0d642e45d4180f41f5aa203`.
+- `dotify-test01.dot` contenthash finalised at block `13516739`, tx
+  `0xf8841c8678acd61da4bf2d8cf8eb4d0a7ad1935c2e325f8d8eabe9e8cb461080`.
+- `app.dotify-test01.dot` contenthash finalised at block `13516753`, tx
+  `0xd58c6a247a446e5ffd1faeaca2cb3957ef9863f613ff6e1bfa3b4300d409d85a`.
+- `app.dotify-test01.dot` text record `executable` was verified as
+  `{"$v":1,"kind":"app","appVersion":[0,1,27]}` with tx
+  `0xd6155e5765dd9e9e4564e25d471255ecf481df13535f449acf18c929e7b62d94`.
+- P2P retrieval passed in `46ms`.
+
+Post-publish validation passed with network access:
+
+| Command or scenario | Environment | Result |
+| --- | --- | --- |
+| `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm VITE_DOTIFY_ARTIST_DONATIONS=on VITE_DOTIFY_DEBUG_PANEL=true npm run deploy:product-devnet` | Exact merge SHA `a08de52`, local DotNS owner mnemonic via FIFO | Passed: build, Bulletin upload, finality, DotNS contenthash, executable text record, and P2P retrieval. |
+| `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm VITE_DOTIFY_ARTIST_DONATIONS=on VITE_DOTIFY_DEBUG_PANEL=true npm run smoke:devnet` | Live read-only Product DevNet endpoints | Passed: 6 checks at Asset Hub head `13516791`, including chain `420420417`, factory/directory bytecode, Bulletin, and IPFS responses. |
+| `npm run smoke:pilot-release -- --md-out /tmp/dotify-pilot-release-after-0-1-27-publication.md --json-out /tmp/dotify-pilot-release-after-0-1-27-publication.json` | Local release-readiness gate after publication | Expected `blocked`: 79 pass, 0 fail, 2 blocked, 8 not run. Product CDM host smoke, room evidence, rollback, pilot release CID, and aggregate pilot evidence remain missing. |
+
+This publication proves reproducible Product CDM delivery for `[0, 1, 27]`. It
+does not prove the W13 pilot journey. Payment verification remains suspended by
+operator instruction, and the next accepted evidence must come from the
+candidate-bound Product host UI after cache freshness is confirmed.
