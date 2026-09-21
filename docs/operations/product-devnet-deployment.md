@@ -409,7 +409,10 @@ gh workflow run deploy-frontend.yml \
 The workflow checks out the supplied SHA directly, requires a clean tree, runs
 the Product static gates, builds the chosen profile from the committed catalogue
 snapshot, refuses generated source drift, and records that it held no signing
-authority. Publication is a distinct local operator step from the same checked-out
+authority. Its evidence summary reads the executable `appVersion` directly from
+`polkadot-app-deploy.config.ts` and fails if that identity is absent or invalid,
+so a version bump cannot leave the validation record on an older hard-coded
+value. Publication is a distinct local operator step from the same checked-out
 SHA and uses that same frozen build command. Review the local deploy output for
 the finalized CID before using the build as W13 evidence.
 
