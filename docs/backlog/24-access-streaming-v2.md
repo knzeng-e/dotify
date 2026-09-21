@@ -161,10 +161,21 @@ W08 first-sound slice:
   an access read, asks for a signature, requests a content key, decrypts media,
   or starts playback.
 - Playback shares an in-flight intent request or reuses exact encrypted ranges
-  for at most 90 seconds. The session-only LRU is bounded to 8 entries and 3
+  for 90 seconds, extended for the current two transport neighbors while
+  listening. The session-only LRU remains bounded to 8 entries and 3
   MiB; speculative headers above 256 KiB and first chunks above 768 KiB are
   refused. Startup telemetry distinguishes an intent-prefetched range from the
   existing winning-gateway cache.
+- Next and Previous share a stable neighbor plan with their preparation path,
+  including a single shuffle choice. After playback has enough buffered audio,
+  the host prepares the next and previous DAV2 headers and first chunks
+  sequentially. Backgrounding, pause, seek, buffering, offline, and reported
+  data-saving/2G connections suspend that speculative work. Explicit transport
+  intent takes priority and adopts a matching in-flight neighbor request.
+  Direction changes remain available while loading; selection cancellation and
+  media-generation ownership discard obsolete results. This adds no key
+  request, download right, queue, or gapless guarantee. See the
+  [dated Next/Previous evidence](implementation/evidence/W08-next-previous-2026-09-21.md).
 - New backend publications now use a 256 KiB baseline first clear chunk
   followed by the existing 512 KiB steady-state chunks. For an MP3 with
   validated leading ID3 metadata, the API expands that first chunk only enough
