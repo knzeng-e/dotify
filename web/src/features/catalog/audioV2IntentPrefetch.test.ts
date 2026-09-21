@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cancelAudioV2TrackIntentPrefetch, prefetchAudioV2TrackIntent } from './audioV2IntentPrefetch';
+import { cancelAudioV2TrackIntentPrefetch, prefetchAudioV2TrackIntent, startAudioV2NeighborPrefetch } from './audioV2IntentPrefetch';
 import type { AudioV2RangeResult } from './audioV2Gateway';
 
 const CID = 'QmIntentAudio';
@@ -83,5 +83,69 @@ describe('DAV2 intent prefetch', () => {
     await expect(prefetchAudioV2TrackIntent(AUDIO_REF, { fetchRange, evictRange })).rejects.toThrow();
 
     expect(evictRange).toHaveBeenCalledWith(CID, 0, 65_535);
+  });
+
+  it('warms at most two distinct DAV2 neighbors sequentially, including Previous', async () => {
+    const calls: string[] = [];
+    const fetchRange = vi.fn(async (cid: string, _start: number, _end: number, { phase }: { phase: string }) => {
+      calls.push(`${cid}:${phase}`);
+      return rangeResult(phase === 'header' ? dav2HeaderPrefix() : new Uint8Array(20));
+    });
+    const previous = 'dotify:enc:v2:ipfs://QmPrevious';
+    const stop = startAudioV2NeighborPrefetch([AUDIO_REF, AUDIO_REF, 'dotify:local:ignored', previous, 'dotify:enc:v2:ipfs://QmThird'], { fetchRange });
+    await vi.waitFor(() => expect(calls).toHaveLength(4));
+    expect(calls).toEqual([`${CID}:header`, `${CID}:first-chunk`, 'QmPrevious:header', 'QmPrevious:first-chunk']);
+    stop();
+  });
+
+  it('promotes an in-flight neighbor on explicit intent without abort or duplicate fetch', async () => {
+    let resolveHeader!: (result: AudioV2RangeResult) => void;
+    let signal!: AbortSignal;
+    const fetchRange = vi.fn(async (_cid: string, _start: number, _end: number, options: { phase: string; signal: AbortSignal }) => {
+      signal = options.signal;
+      if (options.phase === 'header')
+        return new Promise<AudioV2RangeResult>(resolve => {
+          resolveHeader = resolve;
+        });
+      return rangeResult(new Uint8Array(20));
+    });
+    const stop = startAudioV2NeighborPrefetch([AUDIO_REF, 'dotify:enc:v2:ipfs://QmPrevious'], { fetchRange });
+    await vi.waitFor(() => expect(fetchRange).toHaveBeenCalledTimes(1));
+    const intent = prefetchAudioV2TrackIntent(AUDIO_REF, { fetchRange });
+    stop(); // React cleanup after the track selection must not abort the promoted job.
+    expect(signal.aborted).toBe(false);
+    resolveHeader(rangeResult(dav2HeaderPrefix()));
+    await intent;
+    expect(fetchRange).toHaveBeenCalledTimes(2);
+    expect(fetchRange.mock.calls.every(([cid]) => cid === CID)).toBe(true);
+  });
+
+  it('cancels stale speculative work when another explicit target wins', async () => {
+    let signal!: AbortSignal;
+    const backgroundFetch = vi.fn((_cid: string, _start: number, _end: number, options: { signal: AbortSignal }) => {
+      signal = options.signal;
+      return new Promise<AudioV2RangeResult>((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(new DOMException('cancelled', 'AbortError')), { once: true });
+      });
+    });
+    startAudioV2NeighborPrefetch([AUDIO_REF, 'dotify:enc:v2:ipfs://QmPrevious'], { fetchRange: backgroundFetch });
+    await vi.waitFor(() => expect(backgroundFetch).toHaveBeenCalledTimes(1));
+    const intentFetch = vi.fn(async (_cid: string, _start: number, _end: number, { phase }: { phase: string }) =>
+      rangeResult(phase === 'header' ? dav2HeaderPrefix() : new Uint8Array(20))
+    );
+    await prefetchAudioV2TrackIntent('dotify:enc:v2:ipfs://QmChosen', { fetchRange: intentFetch });
+    expect(signal.aborted).toBe(true);
+    expect(backgroundFetch).toHaveBeenCalledTimes(1);
+    expect(intentFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('still prepares Previous when Next fails, and does not surface a playback error', async () => {
+    const fetchRange = vi.fn(async (cid: string, _start: number, _end: number, { phase }: { phase: string }) => {
+      if (cid === CID) throw new Error('gateway unavailable');
+      return rangeResult(phase === 'header' ? dav2HeaderPrefix() : new Uint8Array(20));
+    });
+    startAudioV2NeighborPrefetch([AUDIO_REF, 'dotify:enc:v2:ipfs://QmPrevious'], { fetchRange });
+    await vi.waitFor(() => expect(fetchRange).toHaveBeenCalledTimes(3));
+    expect(fetchRange.mock.calls[2][0]).toBe('QmPrevious');
   });
 });

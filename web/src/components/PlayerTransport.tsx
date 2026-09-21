@@ -46,6 +46,9 @@ export function PlayerTransport({ playback, duration, listener }: { playback: Pl
               className='transport-skip'
               type='button'
               onClick={() => playback.skip('previous')}
+              onPointerEnter={() => playback.prefetchSkip('previous')}
+              onPointerDown={() => playback.prefetchSkip('previous')}
+              onFocus={() => playback.prefetchSkip('previous')}
               disabled={!playback.canSkip}
               aria-label='Previous track'
               title='Previous track'
@@ -70,6 +73,9 @@ export function PlayerTransport({ playback, duration, listener }: { playback: Pl
               className='transport-skip'
               type='button'
               onClick={() => playback.skip('next')}
+              onPointerEnter={() => playback.prefetchSkip('next')}
+              onPointerDown={() => playback.prefetchSkip('next')}
+              onFocus={() => playback.prefetchSkip('next')}
               disabled={!playback.canSkip}
               aria-label='Next track'
               title={playback.shuffleEnabled ? 'Shuffle next track' : 'Next track'}

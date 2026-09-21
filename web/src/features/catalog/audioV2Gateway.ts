@@ -55,7 +55,8 @@ const AUDIO_V2_INTENT_CACHE_MAX_ENTRIES = 8;
 const AUDIO_V2_INTENT_CACHE_MAX_BYTES = 3 * 1024 * 1024;
 
 const winningGatewayByCid = new Map<string, string>();
-const intentRangeCache = new Map<string, { result: AudioV2RangeResult; expiresAt: number }>();
+const intentRangeCache = new Map<string, { result: AudioV2RangeResult; expiresAt: number; cid: string }>();
+const intentRangeLeases = new Map<symbol, ReadonlySet<string>>();
 const intentRangeRequests = new Map<string, Promise<AudioV2RangeResult>>();
 let intentRangeCacheBytes = 0;
 let intentCacheGeneration = 0;
@@ -102,20 +103,23 @@ function removeIntentRange(key: string): void {
 function readIntentRange(key: string): AudioV2RangeResult | null {
   const entry = intentRangeCache.get(key);
   if (!entry) return null;
-  if (entry.expiresAt <= Date.now()) {
+  if (entry.expiresAt <= Date.now() && ![...intentRangeLeases.values()].some(cids => cids.has(entry.cid))) {
     removeIntentRange(key);
     return null;
   }
 
   // Refresh insertion order so eviction behaves as a tiny LRU.
+  // A leased neighbor can wait through a long track. Once chosen, give real
+  // playback the ordinary TTL to consume its ranges after access verification.
+  if ([...intentRangeLeases.values()].some(cids => cids.has(entry.cid))) entry.expiresAt = Date.now() + AUDIO_V2_INTENT_CACHE_TTL_MS;
   intentRangeCache.delete(key);
   intentRangeCache.set(key, entry);
   return { ...entry.result, elapsedMs: 0, intentPrefetched: true };
 }
 
-function storeIntentRange(key: string, result: AudioV2RangeResult): void {
+function storeIntentRange(key: string, cid: string, result: AudioV2RangeResult): void {
   removeIntentRange(key);
-  intentRangeCache.set(key, { result: { ...result, intentPrefetched: false }, expiresAt: Date.now() + AUDIO_V2_INTENT_CACHE_TTL_MS });
+  intentRangeCache.set(key, { cid, result: { ...result, intentPrefetched: false }, expiresAt: Date.now() + AUDIO_V2_INTENT_CACHE_TTL_MS });
   intentRangeCacheBytes += result.bytes.byteLength;
 
   while (intentRangeCache.size > AUDIO_V2_INTENT_CACHE_MAX_ENTRIES || intentRangeCacheBytes > AUDIO_V2_INTENT_CACHE_MAX_BYTES) {
@@ -251,8 +255,19 @@ export function clearAudioV2GatewayCache(): void {
   winningGatewayByCid.clear();
   intentRangeCache.clear();
   intentRangeRequests.clear();
+  intentRangeLeases.clear();
   intentRangeCacheBytes = 0;
   intentCacheGeneration += 1;
+}
+
+/** Keep at most two active neighbors warm through long tracks. The 3 MiB LRU
+ * budget still wins; this lease affects age only and contains no clear media. */
+export function retainAudioV2IntentRanges(cids: readonly string[]): () => void {
+  const lease = Symbol('playback-neighbors');
+  intentRangeLeases.set(lease, new Set(cids.slice(0, 2)));
+  return () => {
+    intentRangeLeases.delete(lease);
+  };
 }
 
 /**
@@ -391,7 +406,7 @@ export async function prefetchAudioV2RangeThroughGateways(
   intentRangeRequests.set(key, request);
   try {
     const result = await request;
-    if (generation === intentCacheGeneration) storeIntentRange(key, result);
+    if (generation === intentCacheGeneration) storeIntentRange(key, cid, result);
     return result;
   } finally {
     if (intentRangeRequests.get(key) === request) intentRangeRequests.delete(key);

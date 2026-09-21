@@ -31,7 +31,7 @@ import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
 import { AudioV2DecryptAuthenticationError, createAudioV2ChunkDecryptor } from '../features/catalog/audioV2Decryptor';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
-import { prefetchAudioV2TrackIntent } from '../features/catalog/audioV2IntentPrefetch';
+import { cancelAudioV2TrackIntentPrefetch, prefetchAudioV2TrackIntent } from '../features/catalog/audioV2IntentPrefetch';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import {
   DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
@@ -1133,6 +1133,11 @@ export function useCatalog(deps: UseCatalogDeps) {
   ): Promise<TrackSelectionResult> {
     const selectionStartedAt = nowMs();
     const selection = beginTrackSelection(track.id, selectionStartedAt);
+    // Fetch only public ciphertext in parallel with access verification. This
+    // promotes an in-flight neighbor before playback pauses/cancels its batch.
+    // All existing key and access checks still precede decryption and playback.
+    if (track.encrypted && isEncryptedAudioV2Ref(track.audioRef)) void prefetchAudioV2TrackIntent(track.audioRef).catch(() => undefined);
+    else cancelAudioV2TrackIntentPrefetch();
     publishHostAudioStartupMetric({
       phase: 'playback-intent',
       attemptId: selection.attemptId,

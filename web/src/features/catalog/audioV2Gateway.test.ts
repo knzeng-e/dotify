@@ -7,7 +7,8 @@ import {
   evictAudioV2IntentRange,
   fetchAudioV2RangeThroughGateways,
   getCachedAudioV2Gateway,
-  prefetchAudioV2RangeThroughGateways
+  prefetchAudioV2RangeThroughGateways,
+  retainAudioV2IntentRanges
 } from './audioV2Gateway';
 
 const CID = 'QmDav2Audio';
@@ -272,10 +273,27 @@ describe('audioV2 gateway range fetching', () => {
       hedge: false
     };
 
+    const release = retainAudioV2IntentRanges([CID]);
     await prefetchAudioV2RangeThroughGateways(CID, 0, length - 1, options);
     const playbackRange = await fetchAudioV2RangeThroughGateways(CID, 0, length - 1, options);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(playbackRange.intentPrefetched).toBe(false);
+    release();
+  });
+
+  it('keeps an active neighbor through a long track, then restores ordinary expiration', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(rangeResponse(9, 4, 'bytes 0-8/100')));
+    const options = { fetchImpl: fetchMock, getGatewayUrlsForCid: () => [PRIMARY], hedge: false };
+    const release = retainAudioV2IntentRanges([CID]);
+    await prefetchAudioV2RangeThroughGateways(CID, 0, 8, options);
+    await vi.advanceTimersByTimeAsync(300_000);
+    expect((await fetchAudioV2RangeThroughGateways(CID, 0, 8, options)).intentPrefetched).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    release();
+    await vi.advanceTimersByTimeAsync(90_001);
+    expect((await fetchAudioV2RangeThroughGateways(CID, 0, 8, options)).intentPrefetched).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
