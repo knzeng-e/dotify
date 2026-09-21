@@ -41,6 +41,27 @@ jobs:
           test "$(git rev-parse HEAD)" = "${{ inputs['expected-sha'] }}"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
 
+      - name: Read Product executable identity
+        id: product-identity
+        working-directory: web
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync } from 'node:fs';
+
+          const config = readFileSync('polkadot-app-deploy.config.ts', 'utf8');
+          const match = config.match(/appVersion\s*:\s*\[([^\]]+)\]/m);
+          if (!match) throw new Error('Product executable appVersion is missing');
+
+          const parts = match[1].split(',').map(part => Number.parseInt(part.trim(), 10));
+          if (parts.length === 0 || parts.some(part => !Number.isInteger(part) || part < 0)) {
+            throw new Error('Product executable appVersion is invalid');
+          }
+
+          appendFileSync(process.env.GITHUB_OUTPUT, `app-version=[${parts.join(', ')}]\n`);
+          NODE
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -88,7 +109,7 @@ jobs:
             echo "- Commit: \`${{ inputs['expected-sha'] }}\`"
             echo "- Profile: \`${{ inputs.profile }}\`"
             echo "- Domain from tracked config: \`dotify-test01.dot\`"
-            echo "- App version: \`[0, 1, 26]\`"
+            echo "- App version: \`${{ steps.product-identity.outputs.app-version }}\`"
             echo "- Signing authority: \`none\`"
             echo "- Network writes: \`none\`"
           } >> "$GITHUB_STEP_SUMMARY"
