@@ -6,7 +6,7 @@ import {
   type ParsedAudioV2
 } from '../../shared/utils/audioV2';
 import { encryptedRefToCID, isEncryptedAudioV2Ref } from '../../shared/utils/protectedAudio';
-import { evictAudioV2IntentRange, prefetchAudioV2RangeThroughGateways, type AudioV2RangeResult } from './audioV2Gateway';
+import { evictAudioV2IntentRange, prefetchAudioV2RangeThroughGateways, retainAudioV2IntentRanges, type AudioV2RangeResult } from './audioV2Gateway';
 
 type PrefetchRange = (
   cid: string,
@@ -23,7 +23,9 @@ type IntentPrefetchOptions = {
 const AUDIO_V2_INTENT_MAX_HEADER_BYTES = 256 * 1024;
 const AUDIO_V2_INTENT_MAX_FIRST_CHUNK_BYTES = 768 * 1024;
 
-let activeIntent: { audioRef: string; controller: AbortController; request: Promise<void> } | null = null;
+type PrefetchJob = { audioRef: string; controller: AbortController; request: Promise<void> };
+let activeIntent: PrefetchJob | null = null;
+let activeNeighbors: { stop: () => void; promote: (audioRef: string) => PrefetchJob | null } | null = null;
 
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
@@ -61,11 +63,24 @@ async function runIntentPrefetch(
 ): Promise<void> {
   const cid = encryptedRefToCID(audioRef);
   const parsed = await prefetchHeader(cid, signal, fetchRange, evictRange);
-  if (!parsed) return;
+  if (!parsed || signal.aborted) return;
   const firstChunk = parsed.header.chunks[0];
   if (!firstChunk || firstChunk.encryptedLength > AUDIO_V2_INTENT_MAX_FIRST_CHUNK_BYTES) return;
   const start = parsed.bodyOffset + audioV2ChunkBodyOffset(parsed.header, firstChunk.index);
   await fetchRange(cid, start, start + firstChunk.encryptedLength - 1, { phase: 'first-chunk', signal });
+}
+
+function createPrefetchJob(audioRef: string, options: IntentPrefetchOptions): PrefetchJob {
+  const controller = new AbortController();
+  const request = runIntentPrefetch(
+    audioRef,
+    controller.signal,
+    options.fetchRange ?? prefetchAudioV2RangeThroughGateways,
+    options.evictRange ?? evictAudioV2IntentRange
+  ).catch(error => {
+    if (!isAbortError(error)) throw error;
+  });
+  return { audioRef, controller, request };
 }
 
 /**
@@ -78,21 +93,59 @@ export function prefetchAudioV2TrackIntent(audioRef: string, options: IntentPref
   if (activeIntent?.audioRef === audioRef) return activeIntent.request;
 
   activeIntent?.controller.abort();
-  const controller = new AbortController();
-  const fetchRange = options.fetchRange ?? prefetchAudioV2RangeThroughGateways;
-  const evictRange = options.evictRange ?? evictAudioV2IntentRange;
-  const request = runIntentPrefetch(audioRef, controller.signal, fetchRange, evictRange)
-    .catch(error => {
-      if (!isAbortError(error)) throw error;
-    })
-    .finally(() => {
-      if (activeIntent?.request === request) activeIntent = null;
-    });
-  activeIntent = { audioRef, controller, request };
-  return request;
+  const release = retainAudioV2IntentRanges([encryptedRefToCID(audioRef)]);
+  // Take ownership before cancelling the background batch: a click on the
+  // neighbor already being fetched must reuse, rather than abort, that request.
+  const promoted = activeNeighbors?.promote(audioRef);
+  activeNeighbors?.stop();
+  const job = promoted ?? createPrefetchJob(audioRef, options);
+  activeIntent = job;
+  return job.request.finally(() => {
+    release();
+    if (activeIntent === job) activeIntent = null;
+  });
 }
 
 export function cancelAudioV2TrackIntentPrefetch(): void {
   activeIntent?.controller.abort();
   activeIntent = null;
+  activeNeighbors?.stop();
+}
+
+/** Serial, cancellable preparation of Next and Previous. A deliberate intent
+ * always takes priority. No key/access/signature path is reachable here. */
+export function startAudioV2NeighborPrefetch(audioRefs: readonly string[], options: IntentPrefetchOptions = {}): () => void {
+  activeNeighbors?.stop();
+  const refs = [...new Set(audioRefs.filter(isEncryptedAudioV2Ref))].slice(0, 2);
+  const release = retainAudioV2IntentRanges(refs.map(encryptedRefToCID));
+  let stopped = false;
+  let current: PrefetchJob | null = null;
+  const batch = {
+    stop() {
+      stopped = true;
+      current?.controller.abort();
+      current = null;
+      release();
+      if (activeNeighbors === batch) activeNeighbors = null;
+    },
+    promote(audioRef: string): PrefetchJob | null {
+      if (current?.audioRef !== audioRef) return null;
+      const job = current;
+      current = null;
+      batch.stop();
+      return job;
+    }
+  };
+  activeNeighbors = batch;
+  void (async () => {
+    // Don't compete with an intentional card/transport gesture already running.
+    await activeIntent?.request.catch(() => undefined);
+    for (const audioRef of refs) {
+      if (stopped || activeIntent) return;
+      current = createPrefetchJob(audioRef, options);
+      await current.request.catch(() => undefined);
+      current = null;
+    }
+  })();
+  return batch.stop;
 }

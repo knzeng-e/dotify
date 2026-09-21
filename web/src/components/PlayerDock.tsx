@@ -67,6 +67,9 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, a
               className='player-dock-iconbtn player-dock-skipbtn'
               type='button'
               onClick={() => playback.skip('previous')}
+              onPointerEnter={() => playback.prefetchSkip('previous')}
+              onPointerDown={() => playback.prefetchSkip('previous')}
+              onFocus={() => playback.prefetchSkip('previous')}
               disabled={!playback.canSkip}
               aria-label='Previous track'
               title={playback.canSkip ? 'Previous track' : 'Add more tracks to skip'}
@@ -97,6 +100,9 @@ export function PlayerDock({ track, trackInfo, playback, mode, roomId, locked, a
               className='player-dock-iconbtn player-dock-skipbtn'
               type='button'
               onClick={() => playback.skip('next')}
+              onPointerEnter={() => playback.prefetchSkip('next')}
+              onPointerDown={() => playback.prefetchSkip('next')}
+              onFocus={() => playback.prefetchSkip('next')}
               disabled={!playback.canSkip}
               aria-label='Next track'
               title={playback.canSkip ? (playback.shuffleEnabled ? 'Shuffle next track' : 'Next track') : 'Add more tracks to skip'}

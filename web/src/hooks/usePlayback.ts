@@ -11,12 +11,15 @@
 // localAudioRef.current), and the room listener's stream lands on
 // remoteAudioRef.current.srcObject - both refs are stable here.
 
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { isRoomJoinE2eContext, roomJoinE2eAutoplayEnabled } from '../e2e/roomJoinMock';
 import { publishHostAudioStartupMetric, type HostAudioTerminalReason } from '../features/catalog/audioStartupTelemetry';
 import type { CatalogTrack, Mode, PlayerState } from '../shared/types';
 import { useRoomClock } from '../features/player/useRoomClock';
 import { listenerPlaybackStatusForHostState, type AudioStatus } from '../features/player/playbackStatus';
+import { planTrackNeighbors } from '../features/player/trackNavigation';
+import { playbackPrefetchAllowed, usePlaybackPrefetch } from '../features/player/usePlaybackPrefetch';
+import { prefetchAudioV2TrackIntent } from '../features/catalog/audioV2IntentPrefetch';
 
 export type PlaybackControls = ReturnType<typeof usePlayback>;
 
@@ -129,8 +132,31 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const canUseTransport = !trackSelectionPending && (transport.playing || (mode === 'host' ? Boolean(audioSource) : remoteReady));
   const canSeek = mode === 'host' && canUseTransport && localTransport.duration > 0;
   const canRepeat = mode === 'host';
-  const canSkip = mode === 'host' && !trackSelectionPending && catalogTracks.length > 1;
+  // A newer selection aborts the older one in useCatalog. Loading must not trap
+  // someone on a slow track or prevent changing direction.
+  const canSkip = mode === 'host' && catalogTracks.length > 1;
   const canShuffle = mode === 'host' && catalogTracks.length > 1;
+
+  const neighbors = useMemo(
+    () =>
+      planTrackNeighbors(
+        catalogTracks.map(track => track.id),
+        selectedTrackId,
+        shuffleEnabled
+      ),
+    [catalogTracks, selectedTrackId, shuffleEnabled]
+  );
+  const neighborsRef = useRef(neighbors);
+  useEffect(() => {
+    neighborsRef.current = neighbors;
+  }, [neighbors]);
+  usePlaybackPrefetch(
+    localAudioRef,
+    mode === 'host' && !trackSelectionPending && Boolean(audioSource),
+    audioSourceGeneration,
+    catalogTracks.find(track => track.id === neighbors.nextId)?.audioRef,
+    catalogTracks.find(track => track.id === neighbors.previousId)?.audioRef
+  );
 
   const syncFromAudio = useCallback(
     (audio: HTMLAudioElement | null = getControllingAudio()) => {
@@ -340,18 +366,19 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const getSkipTrack = useCallback(
     (direction: 'previous' | 'next') => {
-      if (catalogTracks.length === 0) return null;
-      if (direction === 'next' && shuffleEnabled) {
-        const pool = catalogTracks.filter(track => track.id !== selectedTrackId);
-        return pool[Math.floor(Math.random() * pool.length)] ?? catalogTracks[0] ?? null;
-      }
-      const currentIndex = catalogTracks.findIndex(track => track.id === selectedTrackId);
-      const safeIndex = currentIndex >= 0 ? currentIndex : 0;
-      const offset = direction === 'next' ? 1 : -1;
-      const nextIndex = (safeIndex + offset + catalogTracks.length) % catalogTracks.length;
-      return catalogTracks[nextIndex] ?? null;
+      const id = direction === 'next' ? neighborsRef.current.nextId : neighborsRef.current.previousId;
+      return catalogTracks.find(track => track.id === id) ?? null;
     },
-    [catalogTracks, selectedTrackId, shuffleEnabled]
+    [catalogTracks]
+  );
+
+  const prefetchSkip = useCallback(
+    (direction: 'previous' | 'next') => {
+      if (!canSkip || !playbackPrefetchAllowed()) return;
+      const track = getSkipTrack(direction);
+      if (track) void prefetchAudioV2TrackIntent(track.audioRef).catch(() => undefined);
+    },
+    [canSkip, getSkipTrack]
   );
 
   const skip = useCallback(
@@ -359,10 +386,17 @@ export function usePlayback(deps: UsePlaybackDeps) {
       if (!canSkip) return;
       const next = getSkipTrack(direction);
       if (!next) return;
+      // Advance immediately, including two commands received before React's
+      // next commit. The final catalog selection remains the source of truth.
+      neighborsRef.current = planTrackNeighbors(
+        catalogTracks.map(track => track.id),
+        next.id,
+        shuffleEnabled
+      );
       requestAutoplay();
       onOpenTrackRef.current(next);
     },
-    [canSkip, getSkipTrack, requestAutoplay]
+    [canSkip, getSkipTrack, requestAutoplay, catalogTracks, shuffleEnabled]
   );
 
   const handleEnded = useCallback(
@@ -495,6 +529,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     seekToProgress,
     toggleMute,
     skip,
+    prefetchSkip,
     toggleRepeat,
     toggleShuffle,
     // wiring used by <PersistentAudio>

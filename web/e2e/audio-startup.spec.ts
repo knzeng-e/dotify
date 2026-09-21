@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 type AudioStartupSnapshot = {
   dav2: Array<{ phase: string; elapsedMs: number }>;
-  host: Array<{ phase: string; attemptId: string; elapsedMs: number }>;
+  host: Array<{ phase: string; attemptId: string; elapsedMs: number; terminalReason?: string }>;
   latestMediaPlayingMs: number | null;
 };
 
@@ -229,7 +229,14 @@ test('repeat remains applied when a new host media generation replaces the track
   const repeat = page.getByRole('button', { name: 'Repeat this track', exact: true });
   await repeat.click();
   await expect(repeat).toHaveAttribute('aria-pressed', 'true');
-  await expect.poll(() => page.locator('audio.native-player-source').first().evaluate((audio: HTMLAudioElement) => audio.loop)).toBe(true);
+  await expect
+    .poll(() =>
+      page
+        .locator('audio.native-player-source')
+        .first()
+        .evaluate((audio: HTMLAudioElement) => audio.loop)
+    )
+    .toBe(true);
 
   await page.evaluate(() => Reflect.set(window, '__dotifyRepeatHostAudio', document.querySelector('audio.native-player-source')));
   await page.getByRole('button', { name: 'Music', exact: true }).click();
@@ -245,7 +252,14 @@ test('repeat remains applied when a new host media generation replaces the track
     )
     .toBe(true);
   await expect(repeat).toHaveAttribute('aria-pressed', 'true');
-  await expect.poll(() => page.locator('audio.native-player-source').first().evaluate((audio: HTMLAudioElement) => audio.loop)).toBe(true);
+  await expect
+    .poll(() =>
+      page
+        .locator('audio.native-player-source')
+        .first()
+        .evaluate((audio: HTMLAudioElement) => audio.loop)
+    )
+    .toBe(true);
 });
 
 test('replacing a pending track terminates its startup attempt before the next intent', async ({ page }) => {
@@ -301,6 +315,47 @@ test('canplay keeps cancellation armed until the track reaches a terminal event'
   const replacementIntent = phases.indexOf('playback-intent', firstIntent + 1);
   expect(cancellation).toBeGreaterThan(firstIntent);
   expect(cancellation).toBeLessThan(replacementIntent);
+});
+
+test('Previous stays available during a slow Next and the final direction wins', async ({ page }) => {
+  let releaseMediaRequest!: () => void;
+  const gate = new Promise<void>(resolve => {
+    releaseMediaRequest = resolve;
+  });
+  await page.route('**/__dotify_e2e__/room-sequence.wav', async route => {
+    await gate;
+    await route.abort();
+  });
+  try {
+    await page.goto('/?e2eRoom=public&e2eCatalog=sequence&e2eTrackDelay=on&e2eSync=on&e2eAutoplay=on');
+    await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
+    const audio = page.locator('audio.native-player-source').first();
+    await expect(audio).toHaveJSProperty('paused', false);
+    await page.evaluate(() => window.__DOTIFY_AUDIO_STARTUP__?.clear());
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await page.getByRole('button', { name: 'Next track', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Second room track', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
+      await page.getByRole('button', { name: 'Previous track', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'E2E Public Room Track', exact: true })).toBeVisible();
+      await expect(audio).toHaveJSProperty('paused', false);
+    }
+    releaseMediaRequest();
+    await page.waitForTimeout(200);
+    const host = (await readStartupSnapshot(page))?.host ?? [];
+    const intents = host.filter(metric => metric.phase === 'playback-intent');
+    expect(intents).toHaveLength(4);
+    for (const cancelled of [intents[0], intents[2]]) {
+      expect(
+        host.some(metric => metric.attemptId === cancelled.attemptId && metric.phase === 'error' && metric.terminalReason === 'selection-interrupted')
+      ).toBe(true);
+      expect(host.some(metric => metric.attemptId === cancelled.attemptId && metric.phase === 'media-playing')).toBe(false);
+    }
+    expect(host.some(metric => metric.attemptId === intents[3].attemptId && metric.phase === 'media-playing')).toBe(true);
+    await expect(audio).toHaveJSProperty('paused', false);
+  } finally {
+    releaseMediaRequest();
+  }
 });
 
 test('muted playback cannot satisfy a first-sound measurement', async ({ page }) => {
@@ -476,3 +531,58 @@ test('track intent warms encrypted DAV2 bytes without requesting a content key',
   expect(ranges[1]).toMatch(/^bytes=\d+-\d+$/);
   expect(await page.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
 });
+
+for (const saveData of [false, true]) {
+  test(`transport prepares an encrypted neighbor only after playback (saveData=${saveData})`, async ({ page }) => {
+    if (saveData) {
+      await page.addInitScript(() => {
+        const connection = new EventTarget();
+        Object.assign(connection, { saveData: true, effectiveType: '4g' });
+        Object.defineProperty(navigator, 'connection', { configurable: true, value: connection });
+      });
+    }
+    const container = dav2IntentFixture();
+    const ranges: string[] = [];
+    await page.route('**/ipfs/bafy-e2e-intent-audio', async route => {
+      const range = route.request().headers().range ?? '';
+      ranges.push(range);
+      const match = /^bytes=(\d+)-(\d+)$/.exec(range);
+      if (!match) return route.fulfill({ status: 400, body: 'range required' });
+      const start = Number(match[1]);
+      const end = Math.min(Number(match[2]), container.length - 1);
+      await route.fulfill({
+        status: 206,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/octet-stream',
+          'Content-Range': `bytes ${start}-${end}/${container.length}`
+        },
+        body: Buffer.from(container.slice(start, end + 1))
+      });
+    });
+    await page.goto('/?e2eRoom=protected-unauthorized&e2eDav2Intent=on&e2eSync=on');
+    await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
+    await page.mouse.move(0, 0);
+    const audio = page.locator('audio.native-player-source').first();
+    await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
+    await page.waitForTimeout(800);
+    expect(ranges).toHaveLength(0);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect(audio).toHaveJSProperty('paused', false);
+    if (saveData) {
+      await page.waitForTimeout(1000);
+      expect(ranges).toHaveLength(0);
+    } else {
+      await expect.poll(() => ranges.length).toBe(2);
+      expect(ranges[0]).toBe('bytes=0-65535');
+      // Hover/focus uses the same cached two ranges, not a second download.
+      await page.getByRole('button', { name: 'Previous track', exact: true }).hover();
+      await page.waitForTimeout(200);
+      expect(ranges).toHaveLength(2);
+      await page.getByRole('button', { name: 'Previous track', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'E2E Protected Room Track', exact: true })).toBeVisible();
+      await expect(audio).toHaveJSProperty('paused', true);
+    }
+    expect(await page.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
+  });
+}

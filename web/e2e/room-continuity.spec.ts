@@ -103,7 +103,8 @@ for (const capture of ['standard', 'without-native-api']) {
           await expect(host.locator('.remote-state')).toHaveText('Preparing audio');
           await expect(host.locator('.transport-progress > span').first()).toHaveText('0:00');
           await expect(host.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
-          await expect(host.getByRole('button', { name: 'Next track', exact: true })).toBeDisabled();
+          await expect(host.getByRole('button', { name: 'Next track', exact: true })).toBeEnabled();
+          await expect(host.getByRole('button', { name: 'Previous track', exact: true })).toBeEnabled();
         }
         await expect(guest.locator('.track-copy h2')).toHaveText(title);
         await expect(host.locator('audio').first()).toHaveJSProperty('paused', false);
