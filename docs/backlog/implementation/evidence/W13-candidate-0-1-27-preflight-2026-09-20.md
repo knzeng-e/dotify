@@ -107,8 +107,9 @@ would make the otherwise exact-SHA evidence ambiguous.
 
 Commit `98f3b35dee35181bd9562e07de1d3202b7f97c4e` removes the duplicate version
 constant. The workflow now parses `appVersion` from the same tracked Product
-deploy config used by publication, validates the tuple, and writes that value
-to the workflow summary. A missing or invalid version fails before the build.
+deploy config used by publication, validates every complete decimal token and
+safe integer in the tuple, and writes that value to the workflow summary. A
+missing, partial, non-decimal, or unsafe version fails before the build.
 
 Local verification passed: the workflow YAML parses, the identity parser emits
 `[0, 1, 27]`, the nine pilot-readiness tests pass, the Product journey reports

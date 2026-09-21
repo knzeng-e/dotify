@@ -54,10 +54,13 @@ jobs:
           const match = config.match(/appVersion\s*:\s*\[([^\]]+)\]/m);
           if (!match) throw new Error('Product executable appVersion is missing');
 
-          const parts = match[1].split(',').map(part => Number.parseInt(part.trim(), 10));
-          if (parts.length === 0 || parts.some(part => !Number.isInteger(part) || part < 0)) {
+          const tokens = match[1].split(',').map(part => part.trim());
+          if (tokens.length === 0 || tokens.some(token => !/^(?:0|[1-9][0-9]*)$/.test(token))) {
             throw new Error('Product executable appVersion is invalid');
           }
+
+          const parts = tokens.map(Number);
+          if (parts.some(part => !Number.isSafeInteger(part))) throw new Error('Product executable appVersion is unsafe');
 
           appendFileSync(process.env.GITHUB_OUTPUT, `app-version=[${parts.join(', ')}]\n`);
           NODE
