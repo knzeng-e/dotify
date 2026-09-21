@@ -53,6 +53,7 @@ This cache operation does not authorize a payment or a publish.
 | --- | --- | --- |
 | `npm run test:e2e -- e2e/classic-unlock.spec.ts -g 'account loss' --reporter=line` | Local Chromium | Passed: 2 regression scenarios covering loss before confirmation and during intent preparation. |
 | `npm run test:e2e -- e2e/classic-unlock.spec.ts --reporter=line` | Local Chromium | Passed: 10 Classic access/payment/recovery scenarios. |
+| `npm run test:e2e -- e2e/design-surfaces.spec.ts -g 'core navigation reflows' --repeat-each=5 --workers=2 --reporter=line` | Local Chromium | Passed: 20 checks across 360, 390, 768, and 1440 px. The test now waits for the selected client-side view and loaded fonts before polling layout overflow, removing the stale-frame race seen twice in CI. |
 | `npm run test:unit` | Local Node 22 | Passed: 73 files, 580 tests. |
 | `npm run lint` | Local | Passed with 0 errors and 3 inherited React hook dependency warnings in `App.tsx` and `ArtistShell.tsx`. |
 | `npm run build` | Local | Passed. Inherited Rollup annotation, mixed-import, and large-chunk warnings remain. |
