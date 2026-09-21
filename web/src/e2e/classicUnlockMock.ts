@@ -72,6 +72,12 @@ export function shouldDenyClassicUnlockAfterPaymentReadback(): boolean {
   return new URLSearchParams(window.location.search).get('e2eClassic') === 'paid-without-access';
 }
 
+export function shouldAllowClassicUnlockAccountLoss(): boolean {
+  if (typeof window === 'undefined') return false;
+  const scenario = new URLSearchParams(window.location.search).get('e2eClassic');
+  return scenario === 'account-loss' || scenario === 'intent-account-loss';
+}
+
 export function recordClassicUnlockFullKeyRequest(authorized: boolean) {
   const state = getClassicUnlockE2eState();
   state.fullKeyRequests += 1;

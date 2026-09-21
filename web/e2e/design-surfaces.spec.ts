@@ -63,11 +63,17 @@ for (const width of [360, 390, 768, 1440]) {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?e2eRoom=public&e2eCatalog=wide');
     await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+    await page.evaluate(() => document.fonts.ready);
 
     for (const destination of ['Music', 'Rooms', 'You'] as const) {
-      await page.getByRole('button', { name: destination, exact: true }).click();
+      const destinationButton = page.getByRole('button', { name: destination, exact: true });
+      await destinationButton.click();
+      // The same <main> remains mounted across these client-side views. Wait
+      // for the selected view and its enlarged-font layout to settle before
+      // measuring the document instead of sampling the previous frame.
+      await expect(destinationButton).toHaveAttribute('aria-current', 'page');
       await expect(page.getByRole('main')).toBeVisible();
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     }
   });
 }

@@ -15,7 +15,7 @@
 import type { PolkadotSigner } from 'polkadot-api';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createWalletClient, custom, type WalletClient, type Chain } from 'viem';
-import { createClassicUnlockE2eWallet, isClassicUnlockE2e } from '../e2e/classicUnlockMock';
+import { createClassicUnlockE2eWallet, isClassicUnlockE2e, shouldAllowClassicUnlockAccountLoss } from '../e2e/classicUnlockMock';
 import {
   createArtistPublishE2eWallet,
   isArtistPublishE2e,
@@ -302,6 +302,10 @@ export function useWallet() {
       return;
     }
     if (isClassicUnlockE2e) {
+      if (shouldAllowClassicUnlockAccountLoss()) {
+        setState({ status: 'disconnected' });
+        return;
+      }
       setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
       return;
     }
