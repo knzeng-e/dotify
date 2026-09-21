@@ -5,6 +5,7 @@
 - Date: 2026-09-21.
 - Reviewed base: `898579df5c403d9a3ea1c3eb39d9309e83c2cae2` (`dev`, PR #208).
 - Branch: `perf/fluid-next-previous`.
+- PR: [#209](https://github.com/knzeng-e/dotify/pull/209), draft into `dev`.
 - Implementation: `3f84a5c` (source and regression tests; this record is a later documentation commit).
 - Refs #88; room regression coverage also relates to #89. Neither epic is completed by this slice.
 - Scope: the first listening-performance increment requested after the roadmap audit. Existing visual work is retained; Product messaging, queues, download rights, and NFTs are separate increments.
@@ -66,7 +67,7 @@ not change room signaling or replace WebRTC peers.
 | Focused DAV2/navigation unit tests | Sequential Next/Previous, deduplication, bounded count/size, promotion without duplicate fetch, obsolete-request cancellation, failure isolation, long-track TTL, data-saving and buffer policy. |
 | `npm --prefix web run build` | Passed; unchanged Rollup warnings for large chunks, mixed imports, and a dependency annotation. |
 | `npm --prefix web run lint` | Passed, zero errors; three existing hook-dependency warnings in unchanged App/ArtistShell. |
-| `npm --prefix web run build:product-devnet:frozen` | Validates the Product package using the committed catalog bootstrap; does not refresh live catalog data or deploy. |
+| `npm --prefix web run build:product-devnet:frozen` | Passed on finalized source. Validates the Product package using the committed catalog bootstrap; does not refresh live catalog data or deploy. |
 | `npm --prefix web run test:e2e -- --workers=2` | 116 tests passed in 2.9 minutes on the finalized source, including both capture paths, mobile/desktop layouts, room sync, blocked autoplay, access and artist/support journeys. |
 | Visual inspection | Inspected generated player screenshots at 390×844 and room screenshots at 1435×833; cover, timeline, transport and conversation remain separate and visible. |
 | Formatting, `git diff --check`, offline backlog sync | Passed for changed source/tests and backlog consistency. |
@@ -88,6 +89,14 @@ files and two workers and passed all 116 tests; the interrupted run is not
 treated as release evidence.
 
 ## Remaining acceptance and exact next step
+
+PR #209 is assigned to `knzeng-e`, labeled `P0`, `audio`, `testing`, and
+`dotify-backlog`, and attached to Project 5. Its fields mirror #88:
+Priority=P0, Track=Production spine, Phase=Next, Type=Work,
+Backlog doc=`docs/backlog/24-access-streaming-v2.md`; draft status is In Progress.
+No active milestone or other reviewer ownership was identified. Project fields
+were read and set through the existing signed-in browser because the CLI token
+does not have the Projects scope; the shared project view was restored afterward.
 
 - Physical Product Desktop, Safari/iPhone, Firefox and Android timing is **not
   measured** by these fixtures. No sub-two-second or gapless claim is made.
