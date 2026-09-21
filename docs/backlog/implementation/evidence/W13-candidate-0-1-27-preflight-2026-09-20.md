@@ -95,3 +95,27 @@ Implementation summary: candidate `[0, 1, 27]` removes a modal-stacking dead end
 from Classic support, makes Product cache freshness an explicit evidence gate,
 and keeps W13 on hold until the new executable is reviewed, published, and
 validated on its supported live surfaces.
+
+## Post-merge candidate identity gate — 2026-09-21
+
+PR #206 merged into `dev` at
+`1bb86cf9bbd1f38ff6f6ae96c1e1213dc586edce`. Before dispatching the
+signer-free validation workflow, the operator found that its human-readable
+summary still hard-coded `[0, 1, 26]` even though the tracked deploy config and
+the actual bundle were `[0, 1, 27]`. Publishing was paused because that mismatch
+would make the otherwise exact-SHA evidence ambiguous.
+
+Commit `98f3b35dee35181bd9562e07de1d3202b7f97c4e` removes the duplicate version
+constant. The workflow now parses `appVersion` from the same tracked Product
+deploy config used by publication, validates every complete decimal token and
+safe integer in the tuple, and writes that value to the workflow summary. A
+missing, partial, non-decimal, or unsafe version fails before the build.
+
+Local verification passed: the workflow YAML parses, the identity parser emits
+`[0, 1, 27]`, the nine pilot-readiness tests pass, the Product journey reports
+28 static passes with zero failures, and the offline backlog check passes. No
+mnemonic was available to the agent process, and no publish, payment,
+transaction, signature request, cache deletion, or participant contact was
+performed. The next candidate identity is the future merge SHA of this
+correction; signer-free validation and local publication must bind to that SHA,
+not to `1bb86cf` or the implementation commit above.
