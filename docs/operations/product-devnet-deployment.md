@@ -884,9 +884,10 @@ standard publication. `web/.env.product-devnet` sets
 `VITE_DOTIFY_ROOM_BEACONS=off`, and `npm run deploy:product-devnet` rebuilds in
 that mode, so a normal publish announces no rooms.
 
-That is deliberate. Nothing reads beacons yet, so publishing room records to a
-public chain would be exposure with no consumer, and the publish path has no
-live host evidence. Treat this section as the procedure for collecting that
+That is deliberate. The Product discovery reader is implemented, but the
+publish/subscribe round trip still has no live host evidence. Publishing room
+records to a public chain before that check would create exposure without a
+proven product benefit. Treat this section as the procedure for collecting the
 evidence, not as part of a routine release.
 
 ### Prerequisites
@@ -924,9 +925,13 @@ Inside the Product host, with the announcing build open:
 3. Confirm hosting is unaffected in every case: the room must still be
    joinable from its share link by a wallet-free browser. A beacon failure that
    degrades hosting is a defect, not a limitation.
-4. With a second client in the host, confirm the room appears through
-   `subscribeRoomBeacons` and disappears within roughly the statement TTL plus
-   one sweep after the host stops.
+4. With a second Product client, open Dotify's room discovery screen. Confirm
+   the announced room appears there, that a duplicate Socket.IO record retains
+   its richer capacity/playback state, and that a beacon-only room does not hide
+   a warning when the live room connection is unavailable.
+5. Stop the host and confirm the room disappears within roughly the statement
+   TTL plus one sweep. Join the live room from its ordinary share link with a
+   wallet-free browser to prove the discovery path did not replace room entry.
 
 Record the outcome in the release evidence. Until step 2 shows a published
 beacon, treat the capability as unproven regardless of unit coverage.

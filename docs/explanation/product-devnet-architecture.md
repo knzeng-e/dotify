@@ -137,10 +137,15 @@ exactly one live statement no matter how often it refreshes. Host mode signs
 through the product's allowance account on the RFC-10 sponsored path, so
 hosting does not require the host to hold an Individuality allowance.
 
-`VITE_DOTIFY_ROOM_BEACONS` is `off` in the tracked Product profile: nothing
-reads beacons yet, so publishing room records would be exposure with no
-consumer, and the publish path has no live host evidence. See the deployment
-runbook for the opt-in build and the evidence procedure.
+When the feature flag is enabled, the same Product build subscribes to live
+beacons and merges them into Dotify's existing room discovery surfaces. A
+Socket.IO record wins when both transports announce the same room because it
+alone owns current capacity, playback, and join state. A beacon-only room is
+still an announcement, not proof that its live connection will succeed.
+
+`VITE_DOTIFY_ROOM_BEACONS` remains `off` in the tracked Product profile until a
+real host-to-host publish, discovery, expiry, and link-join round trip is
+captured. See the deployment runbook for the opt-in build and evidence steps.
 
 ### Nearby Discovery
 

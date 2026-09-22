@@ -46,7 +46,7 @@ export function RoomsView({
   const roomDetailsSheetRef = useRef<HTMLElement | null>(null);
   const selectedRoom = selectedRoomId ? (openRooms.find(room => room.roomId === selectedRoomId) ?? null) : null;
   const isJoining = sessionAction === 'joining';
-  const roomListStatus = getRoomListStatus(socketStatus, isRefreshingRooms);
+  const roomListStatus = getRoomListStatus(socketStatus, isRefreshingRooms, openRooms.length > 0);
   const roomSignalUnavailable = socketStatus === 'error' || socketStatus === 'offline';
   const setRoomCardRef = useCallback((roomId: string, element: HTMLButtonElement | null) => {
     if (element) {
@@ -197,7 +197,7 @@ export function RoomsView({
                       </span>
                       <span className='room-live-main'>
                         <span className='room-live-kicker'>
-                          <span className='live-dot' data-online={socketStatus === 'online'} aria-hidden='true' />
+                          <span className='live-dot' data-online={room.discoverySource === 'statement-store' || socketStatus === 'online'} aria-hidden='true' />
                           {hostDisplayName ? `${hostDisplayName} hosts` : 'Live listening room'}
                         </span>
                         <strong>{room.track?.title ?? 'Audio session'}</strong>
@@ -291,7 +291,7 @@ type RoomDetailsPanelProps = {
 };
 
 function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms, variant, panelRef, onClose, onJoinRoom }: RoomDetailsPanelProps) {
-  const status = getRoomListStatus(socketStatus, isRefreshingRooms);
+  const status = getRoomListStatus(socketStatus, isRefreshingRooms, room?.discoverySource === 'statement-store');
   const className = variant === 'sheet' ? 'room-detail room-detail-sheet' : 'room-detail room-detail-panel';
 
   if (!room) {
@@ -334,7 +334,7 @@ function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms
 
       <div className='room-detail-copy'>
         <p className='room-detail-kicker'>
-          <span className='live-dot' data-online={socketStatus === 'online'} aria-hidden='true' />
+          <span className='live-dot' data-online={room.discoverySource === 'statement-store' || socketStatus === 'online'} aria-hidden='true' />
           {hostDisplayName ? `${hostDisplayName} hosts` : 'Live listening room'}
         </p>
         <h3>{room.track?.title ?? 'Audio session'}</h3>
@@ -359,10 +359,18 @@ function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms
   );
 }
 
-function getRoomListStatus(socketStatus: SocketStatus, isRefreshingRooms: boolean) {
+function getRoomListStatus(socketStatus: SocketStatus, isRefreshingRooms: boolean, hasDiscoveredRooms = false) {
   if (isRefreshingRooms) return { label: 'Refreshing room list', tone: 'loading' as const };
   if (socketStatus === 'connecting') return { label: 'Reconnecting to rooms', tone: 'loading' as const };
-  if (socketStatus === 'error') return { label: 'Cannot load rooms. Try refreshing.', tone: 'warning' as const };
+  if (socketStatus === 'error') {
+    return {
+      label: hasDiscoveredRooms ? 'Rooms found. Live connection is unavailable.' : 'Cannot load rooms. Try refreshing.',
+      tone: 'warning' as const
+    };
+  }
   if (socketStatus === 'online') return { label: 'Rooms available', tone: 'ready' as const };
-  return { label: 'Connection lost. Trying to reconnect…', tone: 'warning' as const };
+  return {
+    label: hasDiscoveredRooms ? 'Rooms found. Reconnecting before you join…' : 'Connection lost. Trying to reconnect…',
+    tone: 'warning' as const
+  };
 }

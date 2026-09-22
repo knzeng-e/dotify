@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import {
   createRoomJoinE2eCaptureStream,
@@ -27,6 +27,8 @@ import { createSignalClient, describeSignalConnectError, publishPlayerState } fr
 import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
 import { ensureProductHostRoomPermissions, isProductHostWebRtcUnavailable, openProductHostExternalUrl } from '../features/productHost/productHost';
 import { useRoomBeacon } from './useRoomBeacon';
+import { useRoomBeaconDiscovery } from './useRoomBeaconDiscovery';
+import { mergeDiscoveredRooms } from '../features/rooms/roomBeaconDiscovery';
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH, ROOM_LINEUP_CLIENT_LIMIT } from '../shared/social';
@@ -199,7 +201,9 @@ export function useSession(deps: UseSessionDeps) {
   const [remoteReady, setRemoteReady] = useState(false);
   const [remoteStreamVersion, setRemoteStreamVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [openRooms, setOpenRooms] = useState<OpenRoom[]>([]);
+  const [signalRooms, setSignalRooms] = useState<OpenRoom[]>([]);
+  const beaconRooms = useRoomBeaconDiscovery();
+  const openRooms = useMemo(() => mergeDiscoveredRooms(signalRooms, beaconRooms), [signalRooms, beaconRooms]);
   const [soloListeningByTrackHash, setSoloListeningByTrackHash] = useState<SoloListeningByTrackHash>({});
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('offline');
   const [joinCode, setJoinCode] = useState(() => getInitialRoomCode());
@@ -542,7 +546,7 @@ export function useSession(deps: UseSessionDeps) {
       diagnosisStarted = false;
       setSocketStatus('online');
       setError(null);
-      socket.emit('rooms:list', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
+      socket.emit('rooms:list', (rooms: OpenRoom[]) => setSignalRooms(normalizeRooms(rooms)));
       if (soloTrackHashRef.current && !roomIdRef.current) {
         socket.emit('presence:solo', { trackHash: soloTrackHashRef.current });
       }
@@ -595,7 +599,7 @@ export function useSession(deps: UseSessionDeps) {
         publishRoomQuality('peer-disconnected', 'listener', { detail: 'signal-disconnect' });
       }
     });
-    socket.on('rooms:updated', (rooms: OpenRoom[]) => setOpenRooms(normalizeRooms(rooms)));
+    socket.on('rooms:updated', (rooms: OpenRoom[]) => setSignalRooms(normalizeRooms(rooms)));
     socket.on('presence:solo:updated', (payload: unknown) => {
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
         setSoloListeningByTrackHash({});
@@ -838,7 +842,7 @@ export function useSession(deps: UseSessionDeps) {
     // request the host permissions at the user action boundary.
     const socket = connectSocket();
     socket.emit('rooms:list', (rooms: OpenRoom[]) => {
-      setOpenRooms(normalizeRooms(rooms));
+      setSignalRooms(normalizeRooms(rooms));
       if (showBusy) {
         setIsRefreshingRooms(false);
       }
