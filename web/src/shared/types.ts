@@ -162,6 +162,7 @@ export type ResumeRoomResponse =
       hostName: string;
       listenerCount: number;
       listeners: RoomPresenceListener[];
+      lineup?: RoomLineupItem[];
       expiresAt?: number;
     }
   | { ok: false; error: string; code?: string };
@@ -196,6 +197,19 @@ export type RoomRequest = {
   ts: number;
 };
 
+// Public, ephemeral room playback plan. It intentionally carries presentation
+// metadata only: listeners receive the host's WebRTC stream, never an audio or
+// manifest reference. The server accepts updates from the authenticated host
+// socket only and drops the list when the room closes.
+export type RoomLineupItem = {
+  trackId: string;
+  title: string;
+  artist: string;
+  imageRef?: string;
+  hash: `0x${string}` | '';
+  accessMode?: AccessMode;
+};
+
 export type JoinRoomResponse =
   | {
       ok: true;
@@ -208,6 +222,7 @@ export type JoinRoomResponse =
       playbackMode?: RoomPlaybackMode;
       chatHistory?: RoomChatMessage[];
       requests?: RoomRequest[];
+      lineup?: RoomLineupItem[];
       listeners?: RoomPresenceListener[];
       expiresAt?: number;
     }

@@ -67,6 +67,22 @@ export function sanitizeTrack(track) {
   };
 }
 
+export function sanitizeLineupItem(item) {
+  if (!item || typeof item !== 'object') return null;
+  const trackId = sanitizeText(item.trackId, '', 180);
+  if (!trackId) return null;
+  const track = sanitizeTrack(item);
+  if (!track) return null;
+  return {
+    trackId,
+    title: track.title,
+    artist: track.artist,
+    imageRef: track.imageRef,
+    hash: track.hash,
+    accessMode: track.accessMode
+  };
+}
+
 // Curated room reaction language. Keep in sync with ROOM_REACTIONS in
 // web/src/shared/social.ts (the client copy). The bar is a designed set,
 // not an open emoji picker.

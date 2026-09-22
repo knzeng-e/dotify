@@ -115,6 +115,7 @@ socket.emit('room:join', {
   playbackMode?: 'full' | 'preview';
   chatHistory?: RoomChatMessage[];   // Up to the last 50 in-room messages
   requests?: RoomRequest[];          // Current collaborative request queue
+  lineup?: RoomLineupItem[];         // Host-curated playback order, max 12
   expiresAt?: number;
 }
 
@@ -170,6 +171,35 @@ socket.emit('room:track', track /* TrackInfo | null */);
 // Listener receives
 socket.on('room:track', (track: TrackInfo | null) => { ... });
 ```
+
+---
+
+### `room:lineup`
+
+**Direction:** Client (host) → Server → Room
+
+Replaces the room's ordered "Up next" list. The server accepts this event only
+from the current host socket, removes duplicate or malformed identities, caps
+the list at 12, strips source and manifest references, and broadcasts the
+sanitized snapshot to every participant. Late join and host-resume replies carry
+the same current snapshot. The list is in memory only and dies with the room.
+
+```typescript
+type RoomLineupItem = {
+  trackId: string;
+  title: string;
+  artist: string;
+  imageRef?: string;
+  hash: `0x${string}` | '';
+  accessMode?: 'free' | 'classic' | 'human-free';
+};
+
+socket.emit('room:lineup', lineup /* RoomLineupItem[] */);
+socket.on('room:lineup', (lineup: RoomLineupItem[]) => { ... });
+```
+
+The event communicates intent, not access. Opening an item still runs the
+host's normal access check. It never signs, pays, or releases a content key.
 
 ---
 

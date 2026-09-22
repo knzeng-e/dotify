@@ -928,11 +928,11 @@ places in the same PR:
 
 `VITE_DOTIFY_ROOM_GALAXY=on` enables the existing optional 3D selector. It is
 absent/off by default in both ordinary and Product builds; 2D/list remains the
-complete discovery path. `VITE_DOTIFY_HOST_LINEUP=on` enables a host-only local
-planning preview. It is not a shared queue or autoplay feature and is cleared
-when the room/player unmounts. Flags are build-time values; changing either
-requires rebuilding. Do not enable them by URL or local storage. No additional
-service, key, permission, CORS origin or storage mount is required.
+complete discovery path. The room lineup is part of the normal room protocol:
+the host publishes a bounded metadata-only order through signaling and every
+participant receives the same ephemeral snapshot. It needs no frontend flag,
+key, permission, CORS origin, or storage mount. Changing the galaxy flag still
+requires rebuilding; it cannot be enabled by URL or local storage.
 
 For the reliable composer, release the signaling `room:chat` / `room:request`
 acknowledgement support before or together with the frontend. Old clients remain
@@ -942,7 +942,10 @@ message; there is no automatic retry or exactly-once guarantee. Request capacity
 and social rate limits remain server-enforced. Reactions are not buffered during
 transport loss.
 
-Rollback either experiment by rebuilding without its `on` value. Nearby and
+Rollback the galaxy experiment by rebuilding without its `on` value. The room
+lineup requires a coordinated frontend/signaling rollback because old signaling
+servers ignore its events while the current frontend keeps playback functional.
+Nearby and
 community memory remain documentation only: no new endpoint or location
 permission is configured by this pass. See
 [shared-presence pass](../design/dotify-shared-presence-pass.md).

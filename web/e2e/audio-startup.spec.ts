@@ -579,8 +579,14 @@ for (const saveData of [false, true]) {
       await page.getByRole('button', { name: 'Previous track', exact: true }).hover();
       await page.waitForTimeout(200);
       expect(ranges).toHaveLength(2);
+      // Previous restarts the current track after three seconds. Exercise the
+      // actual previous-track branch here, after verifying its bytes are warm.
+      await audio.evaluate(element => {
+        element.currentTime = 1;
+        element.dispatchEvent(new Event('timeupdate'));
+      });
       await page.getByRole('button', { name: 'Previous track', exact: true }).click();
-      await expect(page.getByRole('heading', { name: 'E2E Protected Room Track', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Deterministic Classic Unlock', exact: true })).toBeVisible();
       await expect(audio).toHaveJSProperty('paused', true);
     }
     expect(await page.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);

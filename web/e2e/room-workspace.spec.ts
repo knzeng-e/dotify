@@ -116,12 +116,12 @@ test('up next opens a protected selection through the existing access gate', asy
   await hostRoom(page);
   await page.getByRole('tab', { name: /People/ }).click();
   await page.locator('.host-lineup summary').click();
-  await page.getByLabel('Choose a track').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
+  await page.getByLabel('Add from the catalog').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
   await page.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.locator('.host-lineup')).toContainText('Planned next');
+  await expect(page.locator('.host-lineup')).toContainText('Next');
   await page.getByRole('button', { name: 'Play next' }).click();
   await expect(page.getByTestId('locked-player-state')).toBeVisible();
-  await expect(page.locator('.host-lineup')).not.toContainText('Planned next');
+  await expect(page.locator('.host-lineup summary')).toContainText('Nothing queued');
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
 });
 

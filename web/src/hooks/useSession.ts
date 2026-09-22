@@ -29,7 +29,7 @@ import { ensureProductHostRoomPermissions, isProductHostWebRtcUnavailable, openP
 import { useRoomBeacon } from './useRoomBeacon';
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
-import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH } from '../shared/social';
+import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH, ROOM_LINEUP_CLIENT_LIMIT } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
 import { getTurnIceServers, hasTurnIceServer } from '../services/turn';
 import type {
@@ -47,6 +47,7 @@ import type {
   RoomPlaybackMode,
   RoomReactionEvent,
   RoomRequest,
+  RoomLineupItem,
   SessionAction,
   SoloListeningByTrackHash,
   SocketStatus,
@@ -217,6 +218,7 @@ export function useSession(deps: UseSessionDeps) {
   // Collaborative request queue: server-authoritative full-list broadcast,
   // so the client only ever mirrors what the room actually holds.
   const [requestQueue, setRequestQueue] = useState<RoomRequest[]>([]);
+  const [roomLineup, setRoomLineup] = useState<RoomLineupItem[]>([]);
 
   const roomIdRef = useRef('');
   const hostIdRef = useRef('');
@@ -508,6 +510,7 @@ export function useSession(deps: UseSessionDeps) {
     setChatMessages([]);
     setReactionFeed([]);
     setRequestQueue([]);
+    setRoomLineup([]);
     setPlayerState(null);
     setRemoteReady(false);
     setRemoteStreamVersion(version => version + 1);
@@ -661,6 +664,9 @@ export function useSession(deps: UseSessionDeps) {
       setListenerCount(payload.listenerCount);
     });
     socket.on('room:track', (track: TrackInfo | null) => setTrackInfo(track));
+    socket.on('room:lineup', (lineup: RoomLineupItem[]) => {
+      setRoomLineup(Array.isArray(lineup) ? lineup.slice(0, ROOM_LINEUP_CLIENT_LIMIT) : []);
+    });
     socket.on('player:state', (state: PlayerState | null) => setPlayerState(state));
     socket.on('room:playback-mode', (payload: { playbackMode?: 'full' | 'preview' }) => {
       const playbackMode = payload?.playbackMode === 'preview' ? 'preview' : 'full';
@@ -1554,6 +1560,7 @@ export function useSession(deps: UseSessionDeps) {
         setChatMessages([]);
         setReactionFeed([]);
         setRequestQueue([]);
+        setRoomLineup([]);
         const retainedCaptureReady = hasReusableLocalCapture();
         setLocalStreamReady(retainedCaptureReady);
         setSessionStatus(retainedCaptureReady ? 'Live' : 'Room open');
@@ -1627,6 +1634,7 @@ export function useSession(deps: UseSessionDeps) {
         setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
         setChatMessages(response.chatHistory ?? []);
         setRequestQueue(response.requests ?? []);
+        setRoomLineup(response.lineup ?? []);
         setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
         listenerOfferReceivedRef.current = false;
         listenerAudioRetryCountRef.current = 0;
@@ -1680,6 +1688,7 @@ export function useSession(deps: UseSessionDeps) {
       setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
       setChatMessages(response.chatHistory ?? []);
       setRequestQueue(response.requests ?? []);
+      setRoomLineup(response.lineup ?? []);
       setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
       listenerConnectionStartedAtRef.current = monotonicNow();
       startListenerConnectionTimeout();
@@ -1713,6 +1722,7 @@ export function useSession(deps: UseSessionDeps) {
         emitPlayerState(true);
         setHostName(response.hostName);
         applyListenerRoster(response.listeners);
+        setRoomLineup(response.lineup ?? []);
         setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
         setError(null);
         publishRoomQuality('host-online', 'host', {
@@ -1884,6 +1894,13 @@ export function useSession(deps: UseSessionDeps) {
     socketRef.current?.emit('room:request:clear');
   }
 
+  function updateRoomLineup(lineup: RoomLineupItem[]) {
+    if (modeRef.current !== 'host' || !roomIdRef.current) return;
+    const next = lineup.slice(0, ROOM_LINEUP_CLIENT_LIMIT);
+    setRoomLineup(next);
+    socketRef.current?.emit('room:lineup', next);
+  }
+
   function destroySession() {
     socketRef.current?.emit('room:leave');
     socketRef.current?.disconnect();
@@ -1919,6 +1936,7 @@ export function useSession(deps: UseSessionDeps) {
     chatMessages,
     reactionFeed,
     requestQueue,
+    roomLineup,
     // Refs
     roomIdRef,
     hostIdRef,
@@ -1966,6 +1984,7 @@ export function useSession(deps: UseSessionDeps) {
     sendRoomRequest,
     removeRoomRequest,
     clearRoomRequests,
+    updateRoomLineup,
     destroySession,
     sessionLink: buildSessionLink(roomId, publicAppUrl || window.location.href)
   };

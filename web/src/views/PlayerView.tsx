@@ -1,6 +1,5 @@
 import { PlayerTransport } from '../components/PlayerTransport';
 import { HostLineup } from '../components/HostLineup';
-import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
 import { Copy, Check, ExternalLink, Headphones, KeyRound, Library, QrCode, Radio, Share2, X } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
@@ -570,7 +569,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 </section>
               )}
 
-              {roomExperienceFlags.hostLineup && <HostLineup key={roomId} />}
+              <HostLineup key={roomId} />
               <div className='listener-list'>
                 <div className='list-row'>
                   <div className='room-person-main'>
@@ -643,6 +642,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           {/* State 3: listening in a room */}
           {roomId && mode === 'listener' && (
             <>
+              <HostLineup key={roomId} />
               <div className='list-row'>
                 <div className='room-person-main'>
                   <Avatar name={visibleHostName ?? ''} size={34} host />
