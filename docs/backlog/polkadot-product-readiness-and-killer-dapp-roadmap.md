@@ -168,10 +168,13 @@ Goal: prove the Product host path with small spikes before committing the app.
 - Delivered on the room-beacon branch: Statement Store presence with strict
   payload, TTL, and signer limits. Host-only publication, per-room last-write-
   wins channels, 512-byte and 1024-byte budgets enforced before writing, and
-  expiry-based eviction on the reading side. Ships dormant
-  (`VITE_DOTIFY_ROOM_BEACONS=off`) until discovery has a reader and live host
-  evidence exists; joining stays on Socket.IO/WebRTC because moving it would
-  require every guest to hold an identity.
+  expiry-based eviction on the reading side.
+- Delivered on the Product room-discovery follow-up: subscribe to those
+  beacons, adapt them into the existing room discovery surfaces, and prefer the
+  Socket.IO record when both transports announce the same room. The tracked
+  profile remains dormant (`VITE_DOTIFY_ROOM_BEACONS=off`) until a live host
+  round trip is captured. Joining stays on Socket.IO/WebRTC because moving it
+  would require every guest to hold an identity.
 
 ### Phase 4 - Product integration
 

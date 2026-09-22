@@ -154,8 +154,8 @@ for a `.dot` deployment.
 | **Default**  | `off`         |
 | **Example**  | `off`         |
 
-Publishes a small beacon to the Statement Store while hosting a room, so the
-room can be discovered without Dotify's signaling server.
+Publishes a small beacon to the Statement Store while hosting a room and
+subscribes to live beacons for the existing room discovery surfaces.
 
 This is **discovery only**. A beacon never carries SDP, ICE, chat, or audio, and
 is never required to join: a share link still works with no wallet, no account,
@@ -173,6 +173,11 @@ A beacon carries the room code, host display name, and an aggregate listener
 count - never listener identities. Now-playing is opt-in per host, because a
 beacon is globally readable and outlives the room by up to the retention window,
 which is a different exposure than sharing a link.
+
+The subscriber merges beacon-only rooms with Socket.IO discovery. Socket.IO
+wins duplicate room codes because it remains authoritative for room capacity,
+playback state, and joining. Seeing a beacon does not guarantee that the live
+connection is currently reachable.
 
 **Build size.** Enabling this adds about 24 KB. A build with it `off` still
 carries a ~69 KB statement-store chunk that is never fetched at runtime: Rollup

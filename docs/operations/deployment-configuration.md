@@ -241,10 +241,9 @@ deployable dependency bump.
 
 `VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
 publication announces no rooms on the Statement Store. The capability ships
-dormant on purpose: nothing reads beacons yet, so publishing room records to a
-public chain would be exposure with no consumer, and the publish path has no
-live host evidence. Enabling also adds about 24 KB to every publication, against
-a finite Bulletin quota.
+dormant on purpose: the reader is implemented, but the Product host
+publish/discover/expiry round trip has no live evidence yet. Enabling also adds
+about 24 KB to every publication, against a finite Bulletin quota.
 
 To publish a build that does announce:
 

@@ -149,6 +149,8 @@ export type OpenRoom = {
   playbackMode?: RoomPlaybackMode;
   hostAccessRequired?: boolean;
   listenersNeedWalletAccess?: false;
+  /** Discovery transport only; it does not change the Socket.IO join path. */
+  discoverySource?: 'signal' | 'statement-store';
 };
 
 export type SoloListeningByTrackHash = Record<string, number>;
