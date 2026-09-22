@@ -41,7 +41,7 @@
 | --- | --- |
 | Frontend unit suite | 594 passed |
 | Signaling integration suite | 60 passed |
-| Playwright suite, two workers | 117 passed |
+| Playwright suite, two workers | 118 passed |
 | Frontend production build | passed |
 | Frozen Product DevNet build | passed |
 | ESLint | 0 errors; 3 pre-existing warnings |
@@ -50,8 +50,10 @@
 
 The browser journey uses two contexts: a desktop host publishes a lineup, a
 mobile listener receives it, an ended event advances playback for the room, and
-Previous returns to the real prior title. Desktop and 390 x 844 mobile captures
-were inspected locally; generated Playwright artifacts remain untracked.
+Previous returns to the real prior title. A second regression journey delivers
+two Next commands in one browser task and proves that they consume distinct
+entries. Desktop and 390 x 844 mobile captures were inspected locally;
+generated Playwright artifacts remain untracked.
 
 ## Deliberate limits and follow-up
 

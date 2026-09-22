@@ -11,7 +11,7 @@
 // localAudioRef.current), and the room listener's stream lands on
 // remoteAudioRef.current.srcObject - both refs are stable here.
 
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { isRoomJoinE2eContext, roomJoinE2eAutoplayEnabled } from '../e2e/roomJoinMock';
 import { publishHostAudioStartupMetric, type HostAudioTerminalReason } from '../features/catalog/audioStartupTelemetry';
 import type { CatalogTrack, Mode, PlayerState, RoomLineupItem } from '../shared/types';
@@ -137,12 +137,13 @@ export function usePlayback(deps: UsePlaybackDeps) {
   }, [onLineupChange]);
 
   const playbackHistoryRef = useRef<string[]>([]);
+  const selectedTrackIdRef = useRef(selectedTrackId);
+  useLayoutEffect(() => {
+    selectedTrackIdRef.current = selectedTrackId;
+  }, [selectedTrackId]);
   const commitPlaybackHistory = useCallback((next: string[]) => {
     playbackHistoryRef.current = next;
   }, []);
-  useEffect(() => {
-    commitPlaybackHistory(recordPlaybackHistory(playbackHistoryRef.current, selectedTrackId));
-  }, [commitPlaybackHistory, selectedTrackId]);
 
   const getControllingAudio = useCallback(() => (mode === 'host' ? localAudioRef.current : remoteAudioRef.current), [mode, localAudioRef, remoteAudioRef]);
 
@@ -398,17 +399,30 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const getNextTrack = useCallback(() => queuedTracksRef.current[0] ?? getCatalogSkipTrack('next'), [getCatalogSkipTrack]);
 
-  const consumeLineupTrack = useCallback((trackId: string) => {
-    const index = lineupRef.current.findIndex(item => item.trackId === trackId);
-    if (index < 0) return;
-    const next = lineupRef.current.slice(index + 1);
-    lineupRef.current = next;
-    onLineupChangeRef.current(next);
-  }, []);
+  const commitLineup = useCallback(
+    (next: RoomLineupItem[]) => {
+      const bounded = next.slice(0, ROOM_LINEUP_LIMIT);
+      lineupRef.current = bounded;
+      // Keep the resolved queue synchronous with the public snapshot. Two Next
+      // commands can arrive before React commits the server echo; the second
+      // command must already see the remaining entry.
+      queuedTracksRef.current = playableLineupTracks(bounded, catalogTracks);
+      onLineupChangeRef.current(bounded);
+    },
+    [catalogTracks]
+  );
+
+  const consumeLineupTrack = useCallback(
+    (trackId: string) => {
+      const index = lineupRef.current.findIndex(item => item.trackId === trackId);
+      if (index < 0) return;
+      commitLineup(lineupRef.current.slice(index + 1));
+    },
+    [commitLineup]
+  );
 
   const openPlaybackTrack = useCallback(
-    (track: CatalogTrack, options: { recordHistory?: boolean; consumeLineup?: boolean } = {}) => {
-      if (options.recordHistory !== false) commitPlaybackHistory(recordPlaybackHistory(playbackHistoryRef.current, track.id));
+    (track: CatalogTrack, options: { consumeLineup?: boolean } = {}) => {
       if (options.consumeLineup) consumeLineupTrack(track.id);
       neighborsRef.current = planTrackNeighbors(
         catalogTracks.map(item => item.id),
@@ -418,7 +432,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       requestAutoplay();
       onOpenTrackRef.current(track);
     },
-    [catalogTracks, commitPlaybackHistory, consumeLineupTrack, requestAutoplay, shuffleEnabled]
+    [catalogTracks, consumeLineupTrack, requestAutoplay, shuffleEnabled]
   );
 
   const prefetchSkip = useCallback(
@@ -452,7 +466,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
           const previous = catalogTracks.find(track => track.id === decision.trackId && track.active !== false);
           if (previous) {
             commitPlaybackHistory(decision.history);
-            openPlaybackTrack(previous, { recordHistory: false });
+            openPlaybackTrack(previous);
             return;
           }
         }
@@ -499,33 +513,26 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const addToLineup = useCallback(
     (track: CatalogTrack) => {
       if (mode !== 'host' || !roomId || lineupRef.current.length >= ROOM_LINEUP_LIMIT || lineupRef.current.some(item => item.trackId === track.id)) return;
-      const next = [...lineupRef.current, lineupItemFromTrack(track)];
-      lineupRef.current = next;
-      onLineupChangeRef.current(next);
+      commitLineup([...lineupRef.current, lineupItemFromTrack(track)]);
     },
-    [mode, roomId]
+    [commitLineup, mode, roomId]
   );
 
-  const removeFromLineup = useCallback((trackId: string) => {
-    const next = lineupRef.current.filter(item => item.trackId !== trackId);
-    lineupRef.current = next;
-    onLineupChangeRef.current(next);
-  }, []);
+  const removeFromLineup = useCallback((trackId: string) => commitLineup(lineupRef.current.filter(item => item.trackId !== trackId)), [commitLineup]);
 
-  const moveLineupTrack = useCallback((trackId: string, direction: -1 | 1) => {
-    const next = [...lineupRef.current];
-    const from = next.findIndex(item => item.trackId === trackId);
-    const to = from + direction;
-    if (from < 0 || to < 0 || to >= next.length) return;
-    [next[from], next[to]] = [next[to], next[from]];
-    lineupRef.current = next;
-    onLineupChangeRef.current(next);
-  }, []);
+  const moveLineupTrack = useCallback(
+    (trackId: string, direction: -1 | 1) => {
+      const next = [...lineupRef.current];
+      const from = next.findIndex(item => item.trackId === trackId);
+      const to = from + direction;
+      if (from < 0 || to < 0 || to >= next.length) return;
+      [next[from], next[to]] = [next[to], next[from]];
+      commitLineup(next);
+    },
+    [commitLineup]
+  );
 
-  const clearLineup = useCallback(() => {
-    lineupRef.current = [];
-    onLineupChangeRef.current([]);
-  }, []);
+  const clearLineup = useCallback(() => commitLineup([]), [commitLineup]);
 
   // Called by <PersistentAudio> once the host source has loaded its metadata.
   const handleHostLoadedMetadata = useCallback(
@@ -575,10 +582,16 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const handleHostCanPlay = useCallback(
     (audio: HTMLAudioElement) => {
       const startup = startupForAudio(audio);
-      if (startup) onHostMediaSettled(startup.source, false, startup.attemptId);
+      if (startup) {
+        onHostMediaSettled(startup.source, false, startup.attemptId);
+        // Selection changes happen before access/decryption. Record only after
+        // a real media source reaches readiness so defaults and denied tracks
+        // never become fictional listening history.
+        commitPlaybackHistory(recordPlaybackHistory(playbackHistoryRef.current, selectedTrackIdRef.current));
+      }
       syncFromAudio(audio);
     },
-    [onHostMediaSettled, startupForAudio, syncFromAudio]
+    [commitPlaybackHistory, onHostMediaSettled, startupForAudio, syncFromAudio]
   );
 
   const handleHostPlaying = useCallback(

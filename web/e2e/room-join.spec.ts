@@ -118,6 +118,40 @@ test('host lineup is shared, advances on track end, and Previous follows real hi
   }
 });
 
+test('rapid host Next commands consume distinct lineup entries', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  try {
+    const host = await hostContext.newPage();
+    await openHostRoom(host, 'public', PUBLIC_TITLE, { catalogSequence: true });
+
+    const hostPeople = host.getByRole('tab', { name: /People/ });
+    if (await hostPeople.isVisible()) await hostPeople.click();
+    await host.locator('.host-lineup summary').click();
+    const picker = host.getByLabel('Add from the catalog');
+    const add = host.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true });
+    await picker.selectOption('e2e-room-public-sequence');
+    await add.click();
+    await picker.selectOption({ label: `${PROTECTED_TITLE} — Dotify Room Host` });
+    await add.click();
+    await expect(host.locator('.host-lineup ol > li')).toHaveCount(2);
+
+    // Same-task clicks reproduce hardware media keys or rapid touch input
+    // before React can render the signaling echo.
+    await host
+      .locator('.host-lineup-actions')
+      .getByRole('button', { name: 'Play next' })
+      .evaluate(button => {
+        (button as HTMLButtonElement).click();
+        (button as HTMLButtonElement).click();
+      });
+
+    await expect(host.locator('.host-lineup summary')).toContainText('Nothing queued');
+    await expect(host.locator('.track-copy h2')).toHaveText(PROTECTED_TITLE);
+  } finally {
+    await hostContext.close();
+  }
+});
+
 type JoinAsListenerOptions = {
   storedDisplayName?: string;
   displayName?: string;
