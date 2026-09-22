@@ -1172,7 +1172,7 @@
     height: 3rem;
   }
 
-  .player-dock-meta button:last-child {
+  .player-dock-artist {
     display: none;
   }
 

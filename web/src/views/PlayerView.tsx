@@ -14,6 +14,7 @@ import { hashHue, initialsFor } from '../shared/utils/aura';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
 import { isChosenDisplayName } from '../features/identity/walletIdentity';
 import { roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount } from '../features/rooms/roomState';
+import { playbackTrack } from '../features/player/playbackPresentation';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
@@ -55,8 +56,9 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     productHostWebRtcUnavailable,
     error
   } = session;
-  const streamTitle = trackInfo?.title || selectedTrack?.title || title;
-  const streamArtist = trackInfo?.artist || selectedTrack?.artist || artistName;
+  const currentTrack = playbackTrack(mode, trackInfo, selectedTrack);
+  const streamTitle = currentTrack?.title || (mode === 'listener' ? 'Waiting for the host’s track' : title);
+  const streamArtist = currentTrack?.artist || (mode === 'listener' ? '' : artistName);
   const selectedTrackHasAccess = selectedTrack ? trackHasAccess(selectedTrack, catalog.catalogAccessByTrackId) : false;
 
   const onLeaveSession = session.leaveSession;
@@ -94,8 +96,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   }, []);
 
   const { transport, status } = playback;
-  const transportDuration = transport.duration || trackInfo?.duration || selectedTrack?.duration || 0;
-  const audioStartupDetail = status === 'idle' || status === 'preparing' ? (catalog.audioStartupStatus ?? undefined) : undefined;
+  const transportDuration = transport.duration || currentTrack?.duration || 0;
+  const audioStartupDetail = mode === 'host' && (status === 'idle' || status === 'preparing') ? (catalog.audioStartupStatus ?? undefined) : undefined;
   const isBusy = status === 'preparing' || status === 'joining' || Boolean(audioStartupDetail);
   const isOnAir = !isBusy && transport.playing;
   const statusLabel = isOnAir ? 'ON AIR' : !roomId && status === 'ready' ? 'Ready to listen' : playbackStatusLabel(status, mode, audioStartupDetail);
@@ -383,7 +385,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             </div>
             <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
               <CoverImage
-                src={trackInfo?.imageRef ?? selectedTrack?.imageRef ?? coverSource}
+                src={currentTrack?.imageRef ?? (mode === 'host' ? coverSource : undefined)}
                 alt=''
                 fallbackLabel={streamTitle || 'Dotify'}
                 loading='eager'
@@ -417,14 +419,18 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         <div className='player-main-column'>
           <div className='track-copy'>
             <h2>{streamTitle}</h2>
-            <button className='player-artist-link' type='button' onClick={() => onOpenArtist(streamArtist)}>
-              {streamArtist}
-              {roomId && <span className='room-artist-hint'> · artist &amp; support</span>}
-            </button>
-            {roomId && (
-              <button className='room-artist-support' type='button' onClick={() => onOpenArtist(streamArtist)}>
-                Artist &amp; support
-              </button>
+            {streamArtist && (
+              <>
+                <button className='player-artist-link' type='button' onClick={() => onOpenArtist(streamArtist)}>
+                  {streamArtist}
+                  {roomId && <span className='room-artist-hint'> · artist &amp; support</span>}
+                </button>
+                {roomId && (
+                  <button className='room-artist-support' type='button' onClick={() => onOpenArtist(streamArtist)}>
+                    Artist &amp; support
+                  </button>
+                )}
+              </>
             )}
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : visibleHostName ? `With ${visibleHostName}` : 'Listening together'}</span>
 

@@ -9,6 +9,7 @@
 import { MessageCircle, Send } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSessionContext } from '../app/providers';
+import { roomPresenceCount } from '../features/rooms/roomState';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { CHAT_TEXT_MAX_LENGTH, ROOM_REACTIONS } from '../shared/social';
 import { formatClockTime } from '../shared/utils/format';
@@ -59,7 +60,7 @@ export function RoomChat({ active = true }: { active?: boolean }) {
 
   return (
     <div className='doc-panel room-chat-panel'>
-      <PanelTitle icon={MessageCircle} title='Room chat' meta='everyone here' />
+      <PanelTitle icon={MessageCircle} title='Room chat' meta={connected ? `${roomPresenceCount(session.listenerCount, true)} here` : 'Reconnecting'} />
 
       <div
         className='room-chat-list'
