@@ -144,6 +144,15 @@
       "note": "Superseded by access model v2; keep as delivery history."
     },
     {
+      "id": "21",
+      "doc": "docs/backlog/21-room-collaborative-queue.md",
+      "issue": 210,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Room reliability",
+      "phase": "Now"
+    },
+    {
       "id": "24",
       "doc": "docs/backlog/24-access-streaming-v2.md",
       "issue": null,
