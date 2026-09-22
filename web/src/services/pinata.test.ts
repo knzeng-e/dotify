@@ -89,6 +89,20 @@ describe('getAudioGatewayUrls', () => {
 
     expect(getAudioGatewayUrls('QmAudioCid')).toEqual(['https://artist-space.mypinata.cloud/ipfs/QmAudioCid', 'https://gateway.pinata.cloud/ipfs/QmAudioCid']);
   });
+
+  it('keeps independent gateways available for the full-file audio fallback', async () => {
+    const { getAudioFallbackGatewayUrls } = await loadPinataService({
+      VITE_IPFS_READ_GATEWAYS: 'https://ipfs.io,https://dweb.link'
+    });
+
+    expect(getAudioFallbackGatewayUrls('QmAudioCid')).toEqual([
+      'https://gateway.pinata.cloud/ipfs/QmAudioCid',
+      'https://ipfs.io/ipfs/QmAudioCid',
+      'https://dweb.link/ipfs/QmAudioCid',
+      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmAudioCid',
+      'https://bulletin-kubo.tservices.es:9443/ipfs/QmAudioCid'
+    ]);
+  });
 });
 
 describe('fetchAssetRef', () => {
@@ -122,14 +136,14 @@ describe('fetchAssetRef', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does not retry encrypted audio through public non-Pinata gateways', async () => {
+  it('recovers a full encrypted audio read through an independent gateway', async () => {
     const { fetchAudioIpfsCid } = await loadPinataService({
       VITE_IPFS_READ_GATEWAYS: 'https://ipfs.io,https://dweb.link'
     });
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(new Response('audio'));
 
-    await expect(fetchAudioIpfsCid('QmAudioCid')).rejects.toThrow('Failed to fetch');
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['https://gateway.pinata.cloud/ipfs/QmAudioCid']);
+    await expect(fetchAudioIpfsCid('QmAudioCid').then(response => response.text())).resolves.toBe('audio');
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['https://gateway.pinata.cloud/ipfs/QmAudioCid', 'https://ipfs.io/ipfs/QmAudioCid']);
   });
 });
 

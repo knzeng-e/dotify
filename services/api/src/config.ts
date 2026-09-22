@@ -36,6 +36,11 @@ const optionalContentKeyVersion = z.preprocess(
     .optional(),
 );
 
+const optionalCapabilitySecret = z.preprocess(
+  value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().min(32, 'TURN_CAPABILITY_SECRET must contain at least 32 characters').optional(),
+);
+
 const optionalOriginList = z.preprocess(
   value =>
     typeof value === 'string'
@@ -130,6 +135,10 @@ const envSchema = z.object({
   TURN_USERNAME: optionalNonEmptyString,
   TURN_CREDENTIAL: optionalNonEmptyString,
   TURN_TTL_SECONDS: z.coerce.number().int().min(60).max(24 * 60 * 60).default(3600),
+  // Shared only with the signaling service. It signs short-lived proof that a
+  // browser is already participating in a room before the API reveals relay
+  // credentials. This is distinct from TURN_REST_SECRET.
+  TURN_CAPABILITY_SECRET: optionalCapabilitySecret,
   // Deploy-time commit SHA surfaced by /version (set by CI/Docker builds; the
   // service falls back to `git rev-parse HEAD` in dev checkouts).
   GIT_COMMIT_SHA: optionalNonEmptyString,

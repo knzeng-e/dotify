@@ -48,7 +48,7 @@ export function createTurnGrant(input: TurnGrantInput): TurnGrant | null {
       iceServers: [{ urls, username, credential, credentialType: 'password' }],
       ttlSeconds: input.ttlSeconds,
       expiresAt,
-      credentialMode: 'rest',
+      credentialMode: 'rest'
     };
   }
 
@@ -57,14 +57,14 @@ export function createTurnGrant(input: TurnGrantInput): TurnGrant | null {
       iceServers: [{ urls, username: input.staticUsername, credential: input.staticCredential, credentialType: 'password' }],
       ttlSeconds: input.ttlSeconds,
       expiresAt,
-      credentialMode: 'static',
+      credentialMode: 'static'
     };
   }
 
   return null;
 }
 
-export function createConfiguredTurnGrant(config: Config, now = new Date()): TurnGrant | null {
+export function createConfiguredTurnGrant(config: Config, now = new Date(), subject?: string): TurnGrant | null {
   return createTurnGrant({
     urls: config.TURN_URLS,
     restSecret: config.TURN_REST_SECRET,
@@ -72,5 +72,6 @@ export function createConfiguredTurnGrant(config: Config, now = new Date()): Tur
     staticCredential: config.TURN_CREDENTIAL,
     ttlSeconds: config.TURN_TTL_SECONDS,
     now,
+    subject
   });
 }

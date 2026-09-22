@@ -14,7 +14,7 @@
 // host heartbeat, per-room listener cap, structured lifecycle logs, and a
 // status endpoint exposing public room metadata.
 
-import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
@@ -75,6 +75,10 @@ export const defaultConfig = {
   // Native hosts/webviews may omit Origin entirely on Socket.IO handshakes.
   // This does not allow the literal "null" origin from sandboxed/file pages.
   allowMissingOrigin: false,
+  // Shared only with the backend API. It signs a short-lived proof that the
+  // requesting socket currently belongs to a room; it never reaches clients.
+  turnCapabilitySecret: '',
+  turnCapabilityTtlMs: 2 * 60 * 1000,
   logger: line => console.log(line)
 };
 
@@ -95,7 +99,9 @@ export function readConfigFromEnv(env = process.env) {
     hostHeartbeatTimeoutMs: Number(env.SIGNAL_HOST_TIMEOUT_MS ?? defaultConfig.hostHeartbeatTimeoutMs),
     maxListenersPerRoom: Number(env.SIGNAL_MAX_LISTENERS ?? defaultConfig.maxListenersPerRoom),
     trustProxy: /^(1|true|yes)$/i.test(String(env.SIGNAL_TRUST_PROXY ?? '').trim()),
-    allowMissingOrigin: /^(1|true|yes)$/i.test(String(env.SIGNAL_ALLOW_MISSING_ORIGIN ?? '').trim())
+    allowMissingOrigin: /^(1|true|yes)$/i.test(String(env.SIGNAL_ALLOW_MISSING_ORIGIN ?? '').trim()),
+    turnCapabilitySecret: String(env.SIGNAL_TURN_CAPABILITY_SECRET ?? '').trim(),
+    turnCapabilityTtlMs: Math.min(5 * 60 * 1000, Math.max(30 * 1000, Number(env.SIGNAL_TURN_CAPABILITY_TTL_MS ?? defaultConfig.turnCapabilityTtlMs)))
   };
 }
 
@@ -107,6 +113,9 @@ export function isSignalingOriginAllowed(origin, config) {
 
 export function startSignalingServer(overrides = {}) {
   const config = { ...defaultConfig, ...overrides };
+  if (config.turnCapabilitySecret && config.turnCapabilitySecret.length < 32) {
+    throw new Error('SIGNAL_TURN_CAPABILITY_SECRET must contain at least 32 characters');
+  }
   const rooms = new Map();
   // One ephemeral solo-listening declaration per connected socket. No wallet,
   // address, IP, or durable profile is exposed; public clients receive only
@@ -165,6 +174,7 @@ export function startSignalingServer(overrides = {}) {
         // which origin policy and room lifetimes a deployment is running.
         allowedOrigins: config.origins,
         allowMissingOrigin: config.allowMissingOrigin,
+        turnCapabilityConfigured: Boolean(config.turnCapabilitySecret),
         roomTtlMs: config.roomTtlMs,
         hostHeartbeatTimeoutMs: config.hostHeartbeatTimeoutMs,
         maxListenersPerRoom: config.maxListenersPerRoom
@@ -285,6 +295,37 @@ export function startSignalingServer(overrides = {}) {
     return candidate.length === room.hostResumeTokenHash.length && timingSafeEqual(candidate, room.hostResumeTokenHash);
   }
 
+  function currentRoomMembership(socket) {
+    const roomId = socket.data.roomId;
+    const role = socket.data.role;
+    const room = typeof roomId === 'string' ? rooms.get(roomId) : null;
+    if (!room || (role !== 'host' && role !== 'listener')) return null;
+    if (role === 'host' && room.hostId !== socket.id) return null;
+    if (role === 'listener' && !room.listeners.has(socket.id)) return null;
+    return { roomId, role };
+  }
+
+  function issueTurnCapability(socket, now = Date.now()) {
+    if (!config.turnCapabilitySecret) return null;
+    const membership = currentRoomMembership(socket);
+    if (!membership) return null;
+    const iat = Math.floor(now / 1000);
+    const exp = Math.floor((now + config.turnCapabilityTtlMs) / 1000);
+    const payload = Buffer.from(
+      JSON.stringify({
+        v: 1,
+        aud: 'dotify-turn',
+        roomId: membership.roomId,
+        participantId: socket.id,
+        role: membership.role,
+        iat,
+        exp
+      })
+    ).toString('base64url');
+    const signature = createHmac('sha256', config.turnCapabilitySecret).update(payload).digest('base64url');
+    return { token: `${payload}.${signature}`, expiresAt: exp * 1000 };
+  }
+
   io.on('connection', socket => {
     socket.emit('rooms:updated', publicRooms());
     socket.emit('presence:solo:updated', publicSoloPresence());
@@ -301,6 +342,19 @@ export function startSignalingServer(overrides = {}) {
       if (soloPresenceBySocket.get(socket.id) === trackHash) return;
       soloPresenceBySocket.set(socket.id, trackHash);
       emitSoloPresence();
+    });
+
+    socket.on('room:turn-capability', (_payload = {}, reply) => {
+      if (!config.turnCapabilitySecret) {
+        reply?.({ ok: false, error: 'Room relay authorization is not configured.', code: 'TURN_CAPABILITY_NOT_CONFIGURED' });
+        return;
+      }
+      const capability = issueTurnCapability(socket);
+      if (!capability) {
+        reply?.({ ok: false, error: 'Join or open a room before requesting relay access.', code: 'ROOM_MEMBERSHIP_REQUIRED' });
+        return;
+      }
+      reply?.({ ok: true, capability: capability.token, expiresAt: capability.expiresAt });
     });
 
     socket.on('room:create', (payload = {}, reply) => {

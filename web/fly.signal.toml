@@ -10,6 +10,9 @@ primary_region = "ams"
   SIGNAL_ROOM_TTL_MS = "21600000"
   SIGNAL_HOST_TIMEOUT_MS = "120000"
   SIGNAL_MAX_LISTENERS = "24"
+  SIGNAL_TURN_CAPABILITY_TTL_MS = "120000"
+  # SIGNAL_TURN_CAPABILITY_SECRET is a Fly secret shared with the API app as
+  # TURN_CAPABILITY_SECRET. Never track its value here.
   # Polkadot Desktop/native hosts can omit Origin on Socket.IO handshakes.
   # Keep literal Origin: null rejected; this only permits a missing header.
   SIGNAL_ALLOW_MISSING_ORIGIN = "true"

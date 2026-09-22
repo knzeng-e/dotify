@@ -230,6 +230,8 @@ export type JoinRoomResponse =
     }
   | { ok: false; error: string; code?: string };
 
+export type TurnCapabilityResponse = { ok: true; capability: string; expiresAt: number } | { ok: false; error: string; code?: string };
+
 export type CapturableMediaElement = HTMLMediaElement & {
   captureStream?: () => MediaStream;
   mozCaptureStream?: () => MediaStream;

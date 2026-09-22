@@ -556,6 +556,32 @@ Maximum listeners allowed in one room.
 
 ---
 
+### `SIGNAL_TURN_CAPABILITY_SECRET`
+
+| Property     | Value                          |
+| ------------ | ------------------------------ |
+| **Type**     | Secret string, 32+ characters  |
+| **Required** | Production TURN                |
+| **Default**  | None                           |
+
+Shared only with the backend API's `TURN_CAPABILITY_SECRET`. The signaling
+service uses it to sign short-lived proof that a socket is currently a room
+host or listener. Keep it distinct from the relay's `TURN_REST_SECRET` and
+rotate the signaling and API values together.
+
+### `SIGNAL_TURN_CAPABILITY_TTL_MS`
+
+| Property     | Value                |
+| ------------ | -------------------- |
+| **Type**     | Integer milliseconds |
+| **Required** | No                   |
+| **Default**  | `120000`             |
+
+Lifetime of room-membership proof accepted by the TURN grant endpoint. Values
+are bounded between 30 seconds and 5 minutes.
+
+---
+
 ### `BULLETIN_ACCOUNT`
 
 | Property     | Value   |
@@ -881,6 +907,22 @@ credential path is server-minted.
 Backend-only secret shared with the TURN relay's REST authentication mechanism
 such as Coturn `static-auth-secret`. Dotify returns a short-lived username and
 HMAC-SHA1 credential from `/api/turn/grant`; it never returns this secret.
+
+---
+
+### `TURN_CAPABILITY_SECRET`
+
+| Property     | Value                         |
+| ------------ | ----------------------------- |
+| **Type**     | Secret string, 32+ characters |
+| **Required** | Production TURN               |
+| **Default**  | None                          |
+
+Backend verifier for the short-lived room-membership capability issued by
+signaling. Set it to the exact value of `SIGNAL_TURN_CAPABILITY_SECRET`, keep it
+distinct from `TURN_REST_SECRET`, and rotate both services together. The API
+returns no relay credential when this verifier is absent or the proof is
+missing, forged, malformed, or expired.
 
 ---
 

@@ -82,8 +82,13 @@ function readFreshCachedGrant(now = Date.now()): RTCIceServer[] {
   return cachedTurnGrant.iceServers;
 }
 
-async function fetchTurnGrant(fetchImpl: typeof fetch): Promise<RTCIceServer[]> {
-  if (!API_URL) return [];
+type TurnGrantOptions = {
+  roomCapability?: string | null;
+  fetchImpl?: typeof fetch;
+};
+
+async function fetchTurnGrant(roomCapability: string | null | undefined, fetchImpl: typeof fetch): Promise<RTCIceServer[]> {
+  if (!API_URL || !roomCapability) return [];
 
   const cached = readFreshCachedGrant();
   if (cached.length) return cached;
@@ -94,6 +99,7 @@ async function fetchTurnGrant(fetchImpl: typeof fetch): Promise<RTCIceServer[]> 
   try {
     const response = await fetchImpl(`${API_URL}/api/turn/grant`, {
       method: 'GET',
+      headers: { Authorization: `Bearer ${roomCapability}` },
       signal: controller.signal
     });
     if (!response.ok) return [];
@@ -114,8 +120,8 @@ async function fetchTurnGrant(fetchImpl: typeof fetch): Promise<RTCIceServer[]> 
   }
 }
 
-export async function getTurnIceServers(fetchImpl: typeof fetch = fetch): Promise<RTCIceServer[]> {
-  return [...getStaticTurnIceServers(), ...(await fetchTurnGrant(fetchImpl))];
+export async function getTurnIceServers(options: TurnGrantOptions = {}): Promise<RTCIceServer[]> {
+  return [...getStaticTurnIceServers(), ...(await fetchTurnGrant(options.roomCapability, options.fetchImpl ?? fetch))];
 }
 
 export function hasConfiguredTurnRelay(): boolean {

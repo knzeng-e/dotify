@@ -129,6 +129,30 @@ Known failure codes include `ROOM_NOT_FOUND`, `HOST_RECONNECTING`,
 
 ---
 
+### `room:turn-capability`
+
+**Direction:** Client → Server (with ack)
+
+Requests short-lived proof that the current socket is already the room host or
+a joined listener. The frontend sends this opaque capability to the backend
+`GET /api/turn/grant` endpoint; it is not a wallet token and does not grant
+content access.
+
+```typescript
+socket.emit('room:turn-capability', {}, (response) => { ... });
+
+// Ack — success
+{ ok: true; capability: string; expiresAt: number }
+
+// Ack — failure
+{ ok: false; error: string; code: 'ROOM_MEMBERSHIP_REQUIRED' | 'TURN_CAPABILITY_NOT_CONFIGURED' }
+```
+
+The capability is HMAC-signed, expires after two minutes by default, and is
+never returned by room discovery or public status endpoints.
+
+---
+
 ### `room:leave`
 
 **Direction:** Client → Server (no ack)

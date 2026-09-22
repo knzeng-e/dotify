@@ -139,8 +139,12 @@ but symmetric NAT, carrier NAT, VPNs, and some corporate firewalls can block
 peer-to-peer media even when signaling works. Configure a TURN relay for
 production room reliability. The preferred path is the backend
 `GET /api/turn/grant` endpoint (`TURN_URLS` plus `TURN_REST_SECRET` on the
-API); browser-visible `VITE_TURN_URL` credentials are only a DevNet/static
-fallback.
+API). Before calling it, the browser asks signaling for a two-minute
+room-membership capability. Signaling issues proof only to the current host or
+a joined listener; the API verifies it with the shared capability secret before
+returning relay credentials. This keeps link entry walletless without turning
+the relay into a public credential service. Browser-visible `VITE_TURN_URL`
+credentials are only a DevNet/static fallback.
 
 ### One peer connection per listener
 

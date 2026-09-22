@@ -286,8 +286,10 @@ solo presence keyed by track hash.
 Signaling does not relay audio. For reliable audio across mobile, carrier,
 VPN, or symmetric-NAT boundaries, configure a TURN relay. The production path is
 API-issued short-lived credentials from `GET /api/turn/grant` using
-server-side `TURN_URLS` and `TURN_REST_SECRET`; browser-visible `VITE_TURN_*`
-values are only a DevNet/static fallback.
+server-side `TURN_URLS` and `TURN_REST_SECRET`. Signaling first proves that the
+requesting socket is a current room host or listener through the separate
+`SIGNAL_TURN_CAPABILITY_SECRET` / `TURN_CAPABILITY_SECRET` boundary;
+browser-visible `VITE_TURN_*` values are only a DevNet/static fallback.
 
 **Host-based room access.** Rooms never become a wallet checkpoint:
 
