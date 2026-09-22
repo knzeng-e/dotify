@@ -45,7 +45,7 @@ release diff is the application bundle and this release/evidence package.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 27]` | Published as the Product CDM validation profile at CID `bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca`; this bundle adds single-dialog Classic support handoff and a Product cache-refresh signal while retaining candidate-bound first-sound evidence, room smoke capture, off-thread DAV2 decryption, room-link arrival without Product chain setup, native extrinsic proof links, and the native-unit fix. Host payment/key, room, physical-device, rollback, and default-`viem` release evidence remain pending. |
+| Product appVersion | `[0, 1, 28]` | Prepared release candidate with room-authorized TURN grants and independent full-audio IPFS recovery. It is not published yet. `[0, 1, 27]` remains the last Product CDM validation profile at CID `bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca`; publication, payment/key, room, physical-device, rollback, and default-`viem` release evidence must be recaptured for `[0, 1, 28]`. |
 | Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -121,7 +121,7 @@ Before and during the pilot, use these surfaces:
 | --- | --- |
 | API health | `GET https://dotify-api.fly.dev/health` and `/health/ready` |
 | Catalog | `GET https://dotify-api.fly.dev/api/catalog` with block lag and item count |
-| TURN | `GET https://dotify-api.fly.dev/api/turn/grant` for route availability only |
+| TURN | Join/open a room, request a signaling capability, then call `GET https://dotify-api.fly.dev/api/turn/grant` with that bearer proof; an anonymous request must return `401` |
 | Signaling | `GET https://dotify-signal.fly.dev/health` and `/status` |
 | Product static gates | `npm run smoke:product-journey` |
 | Pilot release gate | `npm run smoke:pilot-release` |
@@ -189,7 +189,7 @@ decision to the exact candidate build being evaluated:
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 27]",
+    "productAppVersion": "[0, 1, 28]",
     "deployedCid": "<default-viem-pilot-release-cid>",
     "capturedAt": "2026-09-13T12:00:00.000Z"
   },

@@ -26,6 +26,8 @@ primary_region = "ams"
   DOTIFY_FACTORY_ADDRESS = "0x835a626a9a6965b197d079ae56b1ec94033c2699"
   DOTIFY_DIRECTORY_ADDRESS = "0x4e883827d61e573094c7b777bae323070ea9f954"
   DOTIFY_CHAIN_ID = "420420417"
+  # TURN_CAPABILITY_SECRET is a Fly secret shared with the signaling app as
+  # SIGNAL_TURN_CAPABILITY_SECRET. Never track its value here.
 
 [http_service]
   internal_port = 8790

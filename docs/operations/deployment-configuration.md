@@ -181,17 +181,18 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 27]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 28]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 27]` prevents the Classic support receipt from remaining
-mounted while account selection, signer errors, or payment progress are shown.
-The version bump also gives Product hosts an explicit cache-refresh signal for
-this payment-flow change. It retains the `[0, 1, 26]` candidate-bound
+Version `[0, 1, 28]` adds room-authorized TURN credential delivery and an
+independent IPFS fallback for full encrypted-audio recovery. The version bump
+gives Product hosts an explicit cache-refresh signal for these playback and
+room reliability changes. It retains the `[0, 1, 27]` single-dialog Classic
+support handoff and the `[0, 1, 26]` candidate-bound
 first-sound evidence, independent exact-profile budgets, fresh warm-resume
 attempts, and terminal autoplay failures, plus the `[0, 1, 25]` Product room
 evidence capture and rejection of
@@ -397,6 +398,7 @@ Set server-side values in the app's Secrets area:
 | `CONTENT_KEY_ACTIVE_VERSION` | New encrypted uploads        | Optional active version for new backend uploads. Default is `dotify-content-key-v2`; change only after backing up and configuring the matching secret.       |
 | `GIT_COMMIT_SHA`            | Optional                      | Set by CI/build automation when available; `/version` can fall back in dev checkouts.                                                                      |
 | `TURN_REST_SECRET`          | Reliable rooms                | Backend-only HMAC secret shared with the TURN relay REST auth mechanism. Preferred production path.                                                        |
+| `TURN_CAPABILITY_SECRET`    | Reliable rooms                | 32+ character secret shared only with signaling; verifies that TURN grant callers are current room participants. Keep distinct from `TURN_REST_SECRET`.     |
 | `TURN_USERNAME`             | Optional fallback             | Static DevNet TURN username when REST auth is unavailable.                                                                                                 |
 | `TURN_CREDENTIAL`           | Optional fallback             | Static DevNet TURN password when REST auth is unavailable.                                                                                                 |
 
@@ -504,21 +506,24 @@ TURN relay variables:
 | ----------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TURN_URLS`                         | unset   | Set to comma-separated public relay URLs when deploying reliable room audio, for example `turn:turn.example.org:3478?transport=udp,turns:turn.example.org:443?transport=tcp`. |
 | `TURN_REST_SECRET`                  | unset   | Preferred production credential path. Store as a Fly secret only.                                                                                                             |
+| `TURN_CAPABILITY_SECRET`            | unset   | Required with TURN. Store as a Fly secret and set the same value as `SIGNAL_TURN_CAPABILITY_SECRET` on signaling. Keep it distinct from `TURN_REST_SECRET`.                      |
 | `TURN_USERNAME` / `TURN_CREDENTIAL` | unset   | Rotated DevNet/static fallback only when the relay cannot mint REST credentials. Store as Fly secrets.                                                                        |
 | `TURN_TTL_SECONDS`                  | `3600`  | Adjust only with relay policy. REST credentials embed this expiry in the username.                                                                                            |
 
-The API exposes `GET /api/turn/grant` for the frontend room code. If `TURN_URLS`
-and either `TURN_REST_SECRET` or static credentials are configured, the response
-contains browser-safe `RTCIceServer` credentials. If not, the route returns
-`TURN_NOT_CONFIGURED` and the room client falls back to STUN plus any
-browser-visible `VITE_TURN_*` values.
+The API exposes `GET /api/turn/grant` for the frontend room code. The signaling
+service first issues a two-minute room-membership capability to the connected
+host or listener; the frontend sends it as a bearer token. The API verifies it
+with `TURN_CAPABILITY_SECRET` before returning any relay credential. Missing,
+expired, or forged proof fails closed. Without relay config the room client
+falls back to STUN plus any browser-visible `VITE_TURN_*` values.
 
 For production, prefer TURN REST credentials because the shared relay secret
 stays on Fly. `VITE_TURN_USERNAME` and `VITE_TURN_CREDENTIAL` are public bundle
 values and should be limited to rotated DevNet/static tests.
-The grant endpoint is intentionally walletless so room guests can join from a
-link; protect the relay with short TTLs, API rate limits, relay quotas, and
-secret rotation rather than listener authentication.
+The grant endpoint remains walletless so room guests can join from a link, but
+it is no longer public: only a socket currently joined as host or listener can
+obtain the short-lived proof. Keep API rate limits, relay quotas, and secret
+rotation as additional boundaries.
 
 ### Backend Signature Schemes
 
@@ -681,6 +686,7 @@ Non-secret runtime values are tracked in `web/fly.signal.toml`:
 | `SIGNAL_ROOM_TTL_MS`          | `21600000`                                                                                                                                                                                                                   |
 | `SIGNAL_HOST_TIMEOUT_MS`      | `120000`                                                                                                                                                                                                                     |
 | `SIGNAL_MAX_LISTENERS`        | `24`                                                                                                                                                                                                                         |
+| `SIGNAL_TURN_CAPABILITY_TTL_MS` | `120000`                                                                                                                                                                                                                   |
 | `SIGNAL_ALLOW_MISSING_ORIGIN` | `true`                                                                                                                                                                                                                       |
 | `SIGNAL_ORIGINS`              | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 
@@ -688,6 +694,11 @@ The production origins are public configuration tracked in
 `web/fly.signal.toml`; they are not secrets. Temporary preview origins may be
 set through Fly configuration, but the tracked production allowlist must be
 restored after validation.
+
+Set `SIGNAL_TURN_CAPABILITY_SECRET` as a Fly secret on `dotify-signal`, using
+the exact same 32+ character random value stored as `TURN_CAPABILITY_SECRET` on
+`dotify-api`. Rotate both services together. A mismatch disables TURN relay
+access while leaving room signaling and direct/STUN WebRTC available.
 
 `SIGNAL_ALLOW_MISSING_ORIGIN=true` exists for Polkadot Desktop/native hosts
 whose Socket.IO handshakes omit the `Origin` header. It does not allow the

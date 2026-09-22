@@ -446,11 +446,12 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The tracked Product executable candidate is `[0, 1, 27]`. This version makes
-the Classic support receipt hand off to account selection, signer errors, and
-payment progress as a single-dialog transition. Its version bump also gives
-Product hosts an explicit cache-refresh signal for the changed payment flow.
-It retains the `[0, 1, 26]` candidate-bound first-sound evidence with
+The tracked Product executable candidate is `[0, 1, 28]`. This version protects
+TURN credentials with short-lived room-membership proof and restores an
+independent IPFS source for bounded full-file audio recovery. Its version bump
+also gives Product hosts an explicit cache-refresh signal for the changed room
+and playback paths. It retains the `[0, 1, 27]` single-dialog Classic support
+handoff and the `[0, 1, 26]` candidate-bound first-sound evidence with
 independent budgets for every exact device/OS/browser/network/host profile,
 clean-worktree and checked-out-commit candidate enforcement, fresh warm-resume
 attempts, and terminal autoplay failures, the `[0, 1, 25]` candidate-bound
@@ -815,7 +816,7 @@ npm run smoke:product-journey -- \
   "capturedAt": "2026-09-18T12:00:00.000Z",
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 27]",
+    "productAppVersion": "[0, 1, 28]",
     "deployedCid": "<same-product-executable-cid-as-payment-smoke>"
   },
   "hostSurface": "product-desktop",
@@ -993,7 +994,7 @@ active.
   preserves the transaction hash in the error state.
 - Product Web's current gateway can reject native Product CDM chain setup with
   `Malformed protocol error payload: expected 3 bytes, received 6`. Version
-  `[0, 1, 27]` retains the `[0, 1, 23]` safeguard that prevents that
+  `[0, 1, 28]` retains the `[0, 1, 23]` safeguard that prevents that
   host/version mismatch from running merely because
   a guest opened the catalog or a room link. Catalog API and public room
   discovery remain available; an actual protected-track access read still

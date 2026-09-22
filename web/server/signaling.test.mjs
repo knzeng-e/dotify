@@ -1,6 +1,7 @@
 // Integration tests for the Dotify signaling server (Ticket 04).
 // Run with: npm run test:signal
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { Fetch as EngineFetch } from 'engine.io-client';
 import { io as ioClient } from 'socket.io-client';
@@ -10,6 +11,7 @@ import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash, sanit
 let server;
 let port;
 let clients;
+const turnCapabilitySecret = 'room-capability-secret-with-at-least-32-bytes';
 
 function connectClient() {
   const client = ioClient(`http://127.0.0.1:${port}`, { transports: ['websocket'] });
@@ -44,6 +46,7 @@ beforeEach(async () => {
     port: 0,
     host: '127.0.0.1',
     maxListenersPerRoom: 2,
+    turnCapabilitySecret,
     sweepIntervalMs: 40,
     logger: () => {}
   });
@@ -90,6 +93,30 @@ describe('signaling server', () => {
     assert.equal(joined.playbackMode, 'full');
     assert.equal(joined.track.title, 'Night Drive');
     assert.equal(joined.hostResumeToken, undefined);
+  });
+
+  it('issues relay proof only to current room participants', async () => {
+    const outsider = connectClient();
+    await once(outsider, 'connect');
+    const rejected = await emitAck(outsider, 'room:turn-capability', {});
+    assert.equal(rejected.ok, false);
+    assert.equal(rejected.code, 'ROOM_MEMBERSHIP_REQUIRED');
+
+    const host = connectClient();
+    const created = await createRoom(host);
+    const granted = await emitAck(host, 'room:turn-capability', {});
+    assert.equal(granted.ok, true);
+    assert.ok(granted.expiresAt > Date.now());
+
+    const [encodedPayload, encodedSignature] = granted.capability.split('.');
+    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+    const expectedSignature = createHmac('sha256', turnCapabilitySecret).update(encodedPayload).digest('base64url');
+    assert.equal(encodedSignature, expectedSignature);
+    assert.equal(payload.aud, 'dotify-turn');
+    assert.equal(payload.roomId, created.roomId);
+    assert.equal(payload.participantId, host.id);
+    assert.equal(payload.role, 'host');
+    assert.ok(payload.exp - payload.iat <= 5 * 60);
   });
 
   it('keeps a Product-style Fetch polling host connected without a WebSocket upgrade', async () => {
@@ -192,6 +219,7 @@ describe('signaling server', () => {
     assert.equal(body.listeners, 0);
     assert.equal(body.soloListeners, 0);
     assert.equal(body.allowedOrigins, '*');
+    assert.equal(body.turnCapabilityConfigured, true);
     assert.equal(typeof body.roomTtlMs, 'number');
     assert.equal(typeof body.hostHeartbeatTimeoutMs, 'number');
     assert.equal(body.maxListenersPerRoom, 2);

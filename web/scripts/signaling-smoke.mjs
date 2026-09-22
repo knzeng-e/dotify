@@ -301,6 +301,7 @@ export async function runSignalingSmoke(options) {
       listeners: health.body.listeners,
       soloListeners: health.body.soloListeners,
       allowedOrigins: health.body.allowedOrigins,
+      turnCapabilityConfigured: health.body.turnCapabilityConfigured,
       roomTtlMs: health.body.roomTtlMs,
       hostHeartbeatTimeoutMs: health.body.hostHeartbeatTimeoutMs,
       maxListenersPerRoom: health.body.maxListenersPerRoom

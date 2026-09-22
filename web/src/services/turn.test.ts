@@ -35,7 +35,7 @@ describe('TURN service', () => {
       VITE_TURN_CREDENTIAL: 'rotated-password'
     });
 
-    await expect(getTurnIceServers(vi.fn())).resolves.toEqual([
+    await expect(getTurnIceServers({ fetchImpl: vi.fn() })).resolves.toEqual([
       {
         urls: ['turn:turn.example.org:3478?transport=udp', 'turns:turn.example.org:443?transport=tcp'],
         username: 'dotify-devnet',
@@ -63,16 +63,19 @@ describe('TURN service', () => {
     });
     clearTurnGrantCacheForTests();
 
-    await expect(getTurnIceServers(fetchMock as unknown as typeof fetch)).resolves.toEqual([
+    await expect(getTurnIceServers({ roomCapability: 'room-proof', fetchImpl: fetchMock as unknown as typeof fetch })).resolves.toEqual([
       {
         urls: ['turn:relay.example.org:3478?transport=udp'],
         username: '1785892200:listener',
         credential: 'signed'
       }
     ]);
-    await expect(getTurnIceServers(fetchMock as unknown as typeof fetch)).resolves.toHaveLength(1);
+    await expect(getTurnIceServers({ roomCapability: 'room-proof', fetchImpl: fetchMock as unknown as typeof fetch })).resolves.toHaveLength(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith('https://api.example/api/turn/grant', expect.objectContaining({ method: 'GET' }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example/api/turn/grant',
+      expect.objectContaining({ method: 'GET', headers: { Authorization: 'Bearer room-proof' } })
+    );
   });
 
   it('falls back cleanly when the API grant route is unavailable', async () => {
@@ -81,7 +84,7 @@ describe('TURN service', () => {
       VITE_DOTIFY_API_URL: 'https://api.example/'
     });
 
-    await expect(getTurnIceServers(fetchMock as unknown as typeof fetch)).resolves.toEqual([]);
+    await expect(getTurnIceServers({ roomCapability: 'room-proof', fetchImpl: fetchMock as unknown as typeof fetch })).resolves.toEqual([]);
   });
 
   it('drops malformed API ICE servers instead of passing them to RTCPeerConnection', async () => {
@@ -98,6 +101,14 @@ describe('TURN service', () => {
       VITE_DOTIFY_API_URL: 'https://api.example/'
     });
 
-    await expect(getTurnIceServers(fetchMock as unknown as typeof fetch)).resolves.toEqual([]);
+    await expect(getTurnIceServers({ roomCapability: 'room-proof', fetchImpl: fetchMock as unknown as typeof fetch })).resolves.toEqual([]);
+  });
+
+  it('does not request API relay credentials without room proof', async () => {
+    const fetchMock = vi.fn();
+    const { getTurnIceServers } = await loadTurnService({ VITE_DOTIFY_API_URL: 'https://api.example/' });
+
+    await expect(getTurnIceServers({ fetchImpl: fetchMock as unknown as typeof fetch })).resolves.toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

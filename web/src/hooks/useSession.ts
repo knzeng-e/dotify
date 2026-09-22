@@ -53,7 +53,8 @@ import type {
   SessionAction,
   SoloListeningByTrackHash,
   SocketStatus,
-  TrackInfo
+  TrackInfo,
+  TurnCapabilityResponse
 } from '../shared/types';
 import type { FormEvent } from 'react';
 
@@ -337,6 +338,20 @@ export function useSession(deps: UseSessionDeps) {
     });
   }
 
+  async function requestTurnCapability(): Promise<string | null> {
+    const socket = socketRef.current;
+    if (!dotifyApiUrl || !socket?.connected || !roomIdRef.current) return null;
+    return new Promise(resolve => {
+      socket.timeout(SIGNAL_ACK_TIMEOUT_MS).emit('room:turn-capability', {}, (error: Error | null, response: TurnCapabilityResponse | undefined) => {
+        if (error || !response?.ok) {
+          resolve(null);
+          return;
+        }
+        resolve(response.capability);
+      });
+    });
+  }
+
   async function resolveRoomIceServers(): Promise<RTCIceServer[]> {
     if (isRoomJoinE2e) {
       const iceServers = roomJoinE2eIceServers();
@@ -348,7 +363,8 @@ export function useSession(deps: UseSessionDeps) {
       return iceServers;
     }
 
-    const turnServers = await getTurnIceServers();
+    const roomCapability = await requestTurnCapability();
+    const turnServers = await getTurnIceServers({ roomCapability });
     const iceServers = [...stunIceServers, ...turnServers];
     turnRelayAvailableRef.current = hasTurnIceServer(iceServers);
     publishRoomQuality('ice-servers-resolved', modeRef.current, {

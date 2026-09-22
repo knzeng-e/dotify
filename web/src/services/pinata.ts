@@ -120,6 +120,14 @@ export function getAudioGatewayUrls(cid: string): string[] {
   return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
 }
 
+// DAV2 range reads stay on gateways known to serve encrypted byte ranges
+// consistently. If range playback cannot start, the bounded full-file decrypt
+// fallback may use every configured IPFS reader so a Pinata outage does not
+// silence an otherwise available release.
+export function getAudioFallbackGatewayUrls(cid: string): string[] {
+  return getGatewayUrls(cid);
+}
+
 function extractIpfsPath(ref: string): string | null {
   if (ref.startsWith('ipfs://')) {
     return ref.slice('ipfs://'.length);
@@ -157,7 +165,7 @@ export async function fetchIpfsCid(cid: string, options: GatewayReadOptions = {}
 
 export async function fetchAudioIpfsCid(cid: string, options: GatewayReadOptions = {}): Promise<Response> {
   throwIfGatewayReadAborted(options.signal);
-  return fetchThroughGateways(getAudioGatewayUrls(cid), {
+  return fetchThroughGateways(getAudioFallbackGatewayUrls(cid), {
     signal: options.signal,
     timeoutMs: AUDIO_READ_TIMEOUT_MS,
     hedgeDelayMs: AUDIO_READ_HEDGE_DELAY_MS,
