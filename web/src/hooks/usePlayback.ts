@@ -16,6 +16,7 @@ import { isRoomJoinE2eContext, roomJoinE2eAutoplayEnabled } from '../e2e/roomJoi
 import { publishHostAudioStartupMetric, type HostAudioTerminalReason } from '../features/catalog/audioStartupTelemetry';
 import type { CatalogTrack, Mode, PlayerState, RoomLineupItem } from '../shared/types';
 import { useRoomClock } from '../features/player/useRoomClock';
+import { pauseHostAudio, resumeHostAudioOutput } from '../features/player/hostAudioOutput';
 import { listenerPlaybackStatusForHostState, type AudioStatus } from '../features/player/playbackStatus';
 import { planTrackNeighbors } from '../features/player/trackNavigation';
 import { playbackPrefetchAllowed, usePlaybackPrefetch } from '../features/player/usePlaybackPrefetch';
@@ -116,12 +117,13 @@ export function usePlayback(deps: UsePlaybackDeps) {
         ? 'syncing'
         : listenerPlaybackStatusForHostState(status, remoteReady, playerState?.playing ?? false, remotePausedByUser);
 
-  // When a track is opened/skipped we want sound to start as soon as the new
-  // source is ready, without forcing the user to press play again.
+  // An explicit Play arms autoplay; a paused Next/Previous keeps that intent
+  // paused even if the source is replaced by capture or DAV2 recovery later.
   const autoplayIntentRef = useRef(false);
+  const userPausedRef = useRef(false);
   const hostStartupRef = useRef<HostAudioStartup | null>(null);
   const audioStartupAttemptIdRef = useRef(audioStartupAttemptId);
-  useEffect(() => {
+  useLayoutEffect(() => {
     audioStartupAttemptIdRef.current = audioStartupAttemptId;
   }, [audioStartupAttemptId]);
 
@@ -205,12 +207,13 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   // Mark intent to start playback as soon as the active source is ready.
   const requestAutoplay = useCallback(() => {
+    userPausedRef.current = false;
     autoplayIntentRef.current = true;
   }, []);
 
-  // Host: a new decoded source arrived. Move to "preparing" and arm autoplay so
-  // the next loadedmetadata kicks playback off inside the user's gesture chain.
-  useEffect(() => {
+  // Install the source owner before native metadata events can arrive. Source
+  // readiness must respect the last explicit transport command.
+  useLayoutEffect(() => {
     if (mode !== 'host') return;
     if (!audioSource) {
       hostStartupRef.current = null;
@@ -233,7 +236,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       elapsedMs: 0,
       timestamp: Date.now()
     });
-    autoplayIntentRef.current = true;
+    autoplayIntentRef.current = !userPausedRef.current;
     setStatus('preparing');
   }, [audioSource, audioSourceGeneration, mode]);
 
@@ -324,10 +327,13 @@ export function usePlayback(deps: UsePlaybackDeps) {
     return true;
   }, []);
 
-  const startupForAudio = useCallback((audio: HTMLAudioElement): HostAudioStartup | null => {
-    const startup = hostStartupRef.current;
-    return startup && startupOwnsAudio(startup, audio) ? startup : null;
-  }, []);
+  const startupForAudio = useCallback(
+    (audio: HTMLAudioElement): HostAudioStartup | null => {
+      const startup = hostStartupRef.current;
+      return audio === localAudioRef.current && startup && startupOwnsAudio(startup, audio) ? startup : null;
+    },
+    [localAudioRef]
+  );
 
   const togglePlay = useCallback(async () => {
     const audio = getControllingAudio();
@@ -347,19 +353,23 @@ export function usePlayback(deps: UsePlaybackDeps) {
       return;
     }
     if (audio.paused) {
+      userPausedRef.current = false;
       // A loaded source can resume without going back through selectTrack.
       // Treat that user gesture as a fresh startup attempt so warm/replay
       // evidence measures from the click and the next `playing` event is not
       // suppressed by the completed attempt for the original source load.
       const startup = beginLoadedSourcePlaybackAttempt();
       try {
-        await audio.play();
-        if (hostStartupRef.current === startup) setStatus('playing');
+        await Promise.all([resumeHostAudioOutput(audio), audio.play()]);
+        if (hostStartupRef.current === startup && !userPausedRef.current && audio === localAudioRef.current) setStatus('playing');
       } catch {
+        if (userPausedRef.current || audio !== localAudioRef.current) return;
         if (reportHostPlaybackError(startup, 'autoplay-blocked')) setStatus('autoplay-blocked');
       }
     } else {
-      audio.pause();
+      userPausedRef.current = true;
+      autoplayIntentRef.current = false;
+      pauseHostAudio(audio);
       setStatus('ready');
     }
     syncFromAudio(audio);
@@ -373,6 +383,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     status,
     beginLoadedSourcePlaybackAttempt,
     reportHostPlaybackError,
+    localAudioRef,
     syncFromAudio,
     onEmitPlayerState
   ]);
@@ -429,10 +440,9 @@ export function usePlayback(deps: UsePlaybackDeps) {
         track.id,
         shuffleEnabled
       );
-      requestAutoplay();
       onOpenTrackRef.current(track);
     },
-    [catalogTracks, consumeLineupTrack, requestAutoplay, shuffleEnabled]
+    [catalogTracks, consumeLineupTrack, shuffleEnabled]
   );
 
   const prefetchSkip = useCallback(
@@ -495,7 +505,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const handleEnded = useCallback(
     (audio: HTMLAudioElement) => {
-      if (mode !== 'host') return;
+      if (mode !== 'host' || audio !== localAudioRef.current) return;
       syncFromAudio(audio);
       // Native `loop` normally suppresses `ended`, but keep repeat deterministic
       // on engines that still dispatch it at the media boundary.
@@ -507,7 +517,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       const next = getNextTrack();
       if (next) openPlaybackTrack(next, { consumeLineup: lineupRef.current.some(item => item.trackId === next.id) });
     },
-    [getNextTrack, mode, openPlaybackTrack, repeatEnabled, syncFromAudio]
+    [getNextTrack, localAudioRef, mode, openPlaybackTrack, repeatEnabled, syncFromAudio]
   );
 
   const addToLineup = useCallback(
@@ -565,9 +575,10 @@ export function usePlayback(deps: UsePlaybackDeps) {
       void audio
         .play()
         .then(() => {
-          if (hostStartupRef.current === playbackStartup) setStatus('playing');
+          if (hostStartupRef.current === playbackStartup && !userPausedRef.current) setStatus('playing');
         })
         .catch(() => {
+          if (userPausedRef.current || audio !== localAudioRef.current) return;
           // Autoplay rejection is terminal for the selection attempt. A later
           // explicit Play starts a new attempt; it must not inherit the wait
           // between the blocked autoplay and the person's next gesture.
@@ -576,7 +587,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
           setStatus('autoplay-blocked');
         });
     },
-    [onHostMediaSettled, reportHostPlaybackError, startupForAudio, syncFromAudio]
+    [localAudioRef, onHostMediaSettled, reportHostPlaybackError, startupForAudio, syncFromAudio]
   );
 
   const handleHostCanPlay = useCallback(

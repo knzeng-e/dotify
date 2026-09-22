@@ -44,6 +44,16 @@ after the transport drains, without requiring playback to resume.
 Record device/browser and drift; local Chromium coverage does not establish
 physical-device acoustic synchronization.
 
+Product candidate `[0, 1, 29]` adds local host-output gating, paused track
+switching, source retirement, and mobile room color parity. These fixes need
+only updated ordinary/Product frontend bundles; no additional signaling, API,
+CDM, or contract deployment is needed. After publishing, reopen Dotify in the
+mobile host, play A, pause, choose B, and confirm silence until Play starts B.
+Repeat Previous/Next, background/foreground, and the same sequence with a room
+guest. Compare the same room and track on desktop/mobile. Record the actual
+build SHA, CID, Product/OS/device versions and results; automated WebKit tests
+do not certify the physical host. Rollback republishes the prior frontend.
+
 ## Hosted Surfaces
 
 | Surface          | Host                                  | App/project         | Source config                                                  | Purpose                                           |
@@ -181,14 +191,15 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 28]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 29]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 28]` adds room-authorized TURN credential delivery and an
+Version `[0, 1, 29]` fixes host pause/source ownership and restores the desktop
+room palette on mobile. It retains `[0, 1, 28]` room-authorized TURN credential delivery and an
 independent IPFS fallback for full encrypted-audio recovery. The version bump
 gives Product hosts an explicit cache-refresh signal for these playback and
 room reliability changes. It retains the `[0, 1, 27]` single-dialog Classic

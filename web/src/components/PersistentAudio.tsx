@@ -7,13 +7,14 @@
 // All transport state lives in usePlayback; this component only forwards DOM
 // media events into that shared state and the host streaming callbacks.
 
-import type { RefObject } from 'react';
+import { useCallback, type MutableRefObject, type RefObject } from 'react';
 import type { PlaybackControls } from '../hooks/usePlayback';
+import { retireHostAudio } from '../features/player/hostAudioOutput';
 
 type PersistentAudioProps = {
   audioSource: string | null;
   audioSourceGeneration: number;
-  localAudioRef: RefObject<HTMLAudioElement | null>;
+  localAudioRef: MutableRefObject<HTMLAudioElement | null>;
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   playback: PlaybackControls;
   onPrepareLocalStream: () => void;
@@ -29,25 +30,37 @@ export function PersistentAudio({
   onPrepareLocalStream,
   onEmitPlayerState
 }: PersistentAudioProps) {
+  const attachHostAudio = useCallback(
+    (audio: HTMLAudioElement | null) => {
+      const previous = localAudioRef.current;
+      localAudioRef.current = audio;
+      if (previous && previous !== audio) retireHostAudio(previous);
+    },
+    [localAudioRef]
+  );
+
   return (
     <div className='persistent-audio' aria-hidden='true'>
       {/* Host source: drives local playback and the WebRTC capture. */}
       <audio
         key={audioSourceGeneration}
         className='native-player-source'
-        ref={localAudioRef as RefObject<HTMLAudioElement>}
+        ref={attachHostAudio}
         src={audioSource ?? undefined}
         crossOrigin='anonymous'
         muted={playback.muted}
         loop={playback.repeatEnabled}
-        onLoadedMetadata={() => {
-          playback.handleHostLoadedMetadata(localAudioRef.current!);
+        playsInline
+        onLoadedMetadata={event => {
+          if (event.currentTarget !== localAudioRef.current) return;
+          playback.handleHostLoadedMetadata(event.currentTarget);
           onEmitPlayerState(true);
           void onPrepareLocalStream();
         }}
         onCanPlay={event => playback.handleHostCanPlay(event.currentTarget)}
-        onPlay={() => {
-          playback.syncFromAudio(localAudioRef.current);
+        onPlay={event => {
+          if (event.currentTarget !== localAudioRef.current) return;
+          playback.syncFromAudio(event.currentTarget);
           // Re-run capture now that audio is actually flowing: a captureStream()
           // taken at loadedmetadata can have no live track yet. This is a cheap
           // no-op once the current source is already streaming (guarded in
@@ -56,8 +69,9 @@ export function PersistentAudio({
           void onPrepareLocalStream();
           onEmitPlayerState(true);
         }}
-        onPlaying={() => {
-          playback.handleHostPlaying(localAudioRef.current!);
+        onPlaying={event => {
+          if (event.currentTarget !== localAudioRef.current) return;
+          playback.handleHostPlaying(event.currentTarget);
           onEmitPlayerState(true);
           // Some browsers expose a track at `play` before media frames are
           // actually flowing. Re-check at `playing`; prepareLocalStream keeps

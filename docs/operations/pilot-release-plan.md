@@ -45,7 +45,7 @@ release diff is the application bundle and this release/evidence package.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 28]` | Prepared release candidate with room-authorized TURN grants and independent full-audio IPFS recovery. It is not published yet. `[0, 1, 27]` remains the last Product CDM validation profile at CID `bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca`; publication, payment/key, room, physical-device, rollback, and default-`viem` release evidence must be recaptured for `[0, 1, 28]`. |
+| Product appVersion | `[0, 1, 29]` | Prepared candidate with local host pause/source retirement and mobile room color parity, retaining the `[0, 1, 28]` TURN/IPFS fixes. This change does not publish it. `[0, 1, 27]` remains the recorded Product CDM validation profile at CID `bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca`; publication, payment/key, room, physical-device, rollback, and default-`viem` release evidence must be recaptured for `[0, 1, 29]`. |
 | Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |

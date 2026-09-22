@@ -42,6 +42,33 @@ Muting both element and tracks covers normal playback and Web Audio consumers.
 The host's existing capture backend, access checks, and source lifecycle remain
 responsible for obtaining and distributing authorized audio.
 
+## Host pause and source ownership
+
+The Web Audio graph also gates the local speaker. A shared playback gain before
+the speaker and room branches becomes zero on pause, seek, or loss of media
+readiness; host mute still controls only the separate speaker gain. This stops
+residual engine frames from sounding locally while the transport says paused.
+Play resumes an existing AudioContext in the same gesture as the media element.
+
+Next/Previous preserve an explicit pause. Choosing Play from the catalog starts
+a new playback intent. Capture URL replacement and DAV2 recovery preserve that
+intent rather than forcing autoplay. A replacement URL also takes over any
+pending media-readiness wait.
+
+Changing tracks immediately silences and releases the old Web Audio graph,
+clears its media source, and resets the element. The keyed PersistentAudio ref
+also retires a replaced node, including recovery-driven replacements. Delayed
+capture requests can no longer match the retired DOM source. Media startup
+events and Play completions must belong to the current element. Guests retain
+their receiver while the existing sender replacement path attaches the new
+stream; pause alone never rebuilds the connection.
+
+`mobile-host-playback.spec.ts` measures local output RMS, including an injected
+residual signal, and distinguishes the selected 440 Hz and 660 Hz tracks. It
+also exercises a suspended AudioContext and delayed capture fetch in Chromium
+and WebKit with an iPhone viewport. These are controlled browser tests, not a
+recording from a physical Product host.
+
 ## Failure and compatibility
 
 Periodic samples are volatile. Forced transitions use reliable emission while
