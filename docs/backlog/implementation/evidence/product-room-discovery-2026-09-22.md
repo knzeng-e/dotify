@@ -5,6 +5,8 @@
 - Branch: `feat/product-room-discovery`
 - Reviewed base: `dev` at `7dcd72954c0f6a24b742282aa7c8d8098cf43a05`
 - Tested implementation: `60d77dadc5acc509b9ccfb5e022f0640ba98984d`
+- Tested review fix: `6efebea` (lazy-load/subscription failures now degrade
+  without an unhandled rejection or connected-client leak)
 - Pull request: [#213](https://github.com/knzeng-e/dotify/pull/213)
 - Scope: complete the dormant Statement Store beacon loop by reading recent
   host announcements into Dotify's existing room discovery surfaces.
@@ -28,7 +30,7 @@
 
 | Check | Result |
 | --- | --- |
-| Full frontend unit suite | 599 passed, including 26 focused beacon publisher/discovery tests |
+| Full frontend unit suite | 600 passed, including 27 focused beacon publisher/discovery tests |
 | Playwright browser suite | 118 passed, including room discovery, join, sync, continuity, and responsive workspace journeys |
 | Frontend production build | Passed; existing Rollup annotation, mixed static/dynamic import, and chunk-size warnings only |
 | Product beacons build | Passed with `VITE_DOTIFY_ROOM_BEACONS=on`; Statement Store publisher chunk emitted and production guards accepted the Product profile |
