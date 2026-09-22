@@ -4,6 +4,8 @@
 
 - Branch: `feat/product-room-discovery`
 - Reviewed base: `dev` at `7dcd72954c0f6a24b742282aa7c8d8098cf43a05`
+- Tested implementation: `60d77dadc5acc509b9ccfb5e022f0640ba98984d`
+- Pull request: [#213](https://github.com/knzeng-e/dotify/pull/213)
 - Scope: complete the dormant Statement Store beacon loop by reading recent
   host announcements into Dotify's existing room discovery surfaces.
 - Backlog: Product SDK epic #85.
