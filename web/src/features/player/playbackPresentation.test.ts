@@ -1,9 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogTrack, TrackInfo } from '../../shared/types';
-import { playbackTrack, roomPlaybackPresentation } from './playbackPresentation';
+import { playbackTrack, playbackTrackDetails, roomPlaybackPresentation } from './playbackPresentation';
 
-const solo = { title: 'Solo track', artist: 'Solo artist', imageRef: 'solo-cover', duration: 240 } as CatalogTrack;
-const room = { title: 'Room track', artist: 'Room artist', duration: 120 } as TrackInfo;
+const solo = {
+  title: 'Solo track',
+  artist: 'Solo artist',
+  imageRef: 'solo-cover',
+  duration: 240,
+  accessMode: 'free',
+  priceDot: '0',
+  description: 'Solo release note'
+} as CatalogTrack;
+const room = {
+  title: 'Room track',
+  artist: 'Room artist',
+  duration: 120,
+  accessMode: 'classic',
+  priceDot: '4.2',
+  description: 'Room access note'
+} as TrackInfo;
 
 describe('playback metadata authority', () => {
   it('uses the complete room snapshot even with a different local selection', () => {
@@ -17,6 +32,18 @@ describe('playback metadata authority', () => {
     expect(playbackTrack('host', room, solo)).toBe(solo);
     expect(playbackTrack('host', null, solo)).toBe(solo);
     expect(playbackTrack('host', room, undefined)).toBe(room);
+  });
+  it('uses the same authority for access labels and release copy', () => {
+    expect(playbackTrackDetails('host', room, solo, { accessMode: 'human-free', priceDot: '1' })).toEqual({
+      accessMode: 'free',
+      priceDot: '0',
+      description: 'Solo release note'
+    });
+    expect(playbackTrackDetails('listener', room, solo, { accessMode: 'human-free', priceDot: '1' })).toEqual({
+      accessMode: 'classic',
+      priceDot: '4.2',
+      description: 'Room access note'
+    });
   });
 });
 

@@ -14,7 +14,7 @@ import { hashHue, initialsFor } from '../shared/utils/aura';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
 import { isChosenDisplayName } from '../features/identity/walletIdentity';
 import { roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount } from '../features/rooms/roomState';
-import { playbackTrack } from '../features/player/playbackPresentation';
+import { playbackTrack, playbackTrackDetails } from '../features/player/playbackPresentation';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
@@ -77,11 +77,12 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const effectiveAccessMode = trackInfo?.accessMode ?? selectedTrack?.accessMode ?? accessMode;
-  const effectivePriceDot = trackInfo?.priceDot ?? selectedTrack?.priceDot ?? priceDot;
+  const trackDetails = playbackTrackDetails(mode, trackInfo, selectedTrack, { accessMode, priceDot });
+  const effectiveAccessMode = trackDetails.accessMode;
+  const effectivePriceDot = trackDetails.priceDot;
   const nativePaymentAsset = catalog.nativeRuntimePaymentAsset;
   const effectivePaymentAmount = nativeRuntimeAmountLabel(effectivePriceDot, nativePaymentAsset);
-  const releaseDescription = trackInfo?.description ?? selectedTrack?.description;
+  const releaseDescription = trackDetails.description;
   const [reactions, setReactions] = useState<Array<{ id: string; emoji: string; x: number; senderName: string; self: boolean }>>([]);
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
   const [roomPanel, setRoomPanel] = useState<'chat' | 'requests' | 'people'>('chat');

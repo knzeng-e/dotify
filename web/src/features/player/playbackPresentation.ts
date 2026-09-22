@@ -1,4 +1,4 @@
-import type { CatalogTrack, Mode, SocketStatus, TrackInfo } from '../../shared/types';
+import type { AccessMode, CatalogTrack, Mode, SocketStatus, TrackInfo } from '../../shared/types';
 import { playbackStatusLabel, type AudioStatus } from './playbackStatus';
 
 /** Room metadata is a complete snapshot, never a patch over a solo selection. */
@@ -6,6 +6,20 @@ export function playbackTrack(mode: Mode, trackInfo: TrackInfo | null, selectedT
   // Leaving a room restores the local transport before its last remote
   // metadata is cleared. The local selection must own that transition too.
   return mode === 'listener' ? trackInfo : (selectedTrack ?? trackInfo);
+}
+
+export function playbackTrackDetails(
+  mode: Mode,
+  trackInfo: TrackInfo | null,
+  selectedTrack: CatalogTrack | undefined,
+  draft: { accessMode: AccessMode; priceDot: string }
+) {
+  const track = playbackTrack(mode, trackInfo, selectedTrack);
+  return {
+    accessMode: track?.accessMode ?? draft.accessMode,
+    priceDot: track?.priceDot ?? draft.priceDot,
+    description: track?.description
+  };
 }
 
 export function roomPlaybackPresentation(mode: Mode, status: AudioStatus, socketStatus: SocketStatus) {
