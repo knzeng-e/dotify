@@ -125,12 +125,13 @@ host name, and an aggregate listener count - never SDP, ICE, audio, chat,
 listener identities, or source keys. Now-playing is opt-in per host, because a
 beacon is globally readable and outlives the room by up to the statement TTL.
 
-Joining deliberately does not move here, and cannot. A WebRTC offer is 1.5-4 KB
-against a 512-byte statement ceiling and a 1024-byte per-account total, so a
-peer cannot hold even one. More decisively, a guest would have to publish an
-answer to complete the handshake, which requires an identity and an allowance -
-turning every listener into a registered person. Only the host publishes,
-because the host is already identified.
+Joining deliberately does not move in this slice. The pinned Statement Store
+SDK enforces a 512-byte statement ceiling and a 1024-byte per-account total,
+while a WebRTC offer is commonly 1.5-4 KB. A Product-only experiment could add
+compression, fragmentation, acknowledgement and reassembly, but a wallet-free
+guest would still need a publish path for its answer. Requiring an identity and
+allowance there would violate Dotify's link-first promise. Only the host
+publishes the current beacon because the host is already identified.
 
 Beacons are per-room channels for last-write-wins, so one hosted room occupies
 exactly one live statement no matter how often it refreshes. Host mode signs
@@ -146,6 +147,22 @@ still an announcement, not proof that its live connection will succeed.
 `VITE_DOTIFY_ROOM_BEACONS` remains `off` in the tracked Product profile until a
 real host-to-host publish, discovery, expiry, and link-join round trip is
 captured. See the deployment runbook for the opt-in build and evidence steps.
+
+### Celerity Realtime Direction
+
+Celerity is the Statement Store protocol used by the beacon above. It is a
+candidate for more of Dotify's signed, short-lived social layer, but the
+protocol itself is best effort: applications must supply confidentiality,
+ordering, acknowledgements, replay protection and convergence where those
+properties matter.
+
+W27 / #214 is the post-pilot proving ground. It first places room events behind
+a typed transport port and compares Socket.IO with Celerity in observation or
+dual-publish mode. Coarse presence, reactions and typing may tolerate loss;
+requests, chat, player state, queue mutations, admission and SDP/ICE each need
+stronger and different guarantees. Socket.IO remains the anonymous guest and
+reliability path until each responsibility has equivalent Product evidence.
+WebRTC plus TURN or a future SFU remains the media path throughout.
 
 ### Nearby Discovery
 

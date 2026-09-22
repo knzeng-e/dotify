@@ -318,6 +318,19 @@
       ],
       "issue": 181,
       "phase": "Later implementation"
+    },
+    {
+      "id": "W27",
+      "title": "Prove Product-native room realtime with Celerity",
+      "file": "W27-celerity-room-realtime.md",
+      "branch": "feat/celerity-room-realtime",
+      "dependencies": [
+        "W09",
+        "W11",
+        "W13"
+      ],
+      "issue": 214,
+      "phase": "Next Product sprint"
     }
   ]
 }

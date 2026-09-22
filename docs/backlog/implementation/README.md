@@ -1,18 +1,18 @@
 # Dotify implementation playbook
 
-Twenty-six agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf`; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
+Twenty-seven agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf` and extended with W27 on 2026-09-22; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
 ## Current execution state — 2026-09-21
 
 The sequences are recipes; they are not a second workflow board. GitHub Project
 5 owns live status, and each evidence file records the delivered boundary.
 
-| State | Sequences | Meaning |
-| --- | --- | --- |
-| Delivered implementation records | W01-W12, W14, W18, W21-W25 | Their acceptance scope is merged into `dev`. Broader live-device evidence belongs to W13 or to #87, #88, and #89. |
-| Delivered feasibility record | W16 | Product CASH cannot currently authorize Asset Hub access with the evidence exposed by the Product APIs; PAS remains the executable pilot rail. |
-| Active release gate | W13 | Product CDM validation app `[0, 1, 27]` is published at CID `bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca`; payment/access, room, physical-device, rollback, release-profile, and aggregate pilot evidence remain. |
-| Not activated | W15, W17, W19, W20, W26 | Do not start before their dependency and pilot gates are satisfied. |
+| State                            | Sequences                    | Meaning                                                                                                                                                                                                                           |
+| -------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Delivered implementation records | W01-W12, W14, W18, W21-W25   | Their acceptance scope is merged into `dev`. Broader live-device evidence belongs to W13 or to #87, #88, and #89.                                                                                                                 |
+| Delivered feasibility record     | W16                          | Product CASH cannot currently authorize Asset Hub access with the evidence exposed by the Product APIs; PAS remains the executable pilot rail.                                                                                    |
+| Active release gate              | W13                          | Product CDM validation app `[0, 1, 27]` is published at CID `bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca`; payment/access, room, physical-device, rollback, release-profile, and aggregate pilot evidence remain. |
+| Not activated                    | W15, W17, W19, W20, W26, W27 | Do not start before their dependency and pilot gates are satisfied.                                                                                                                                                               |
 
 W14 is complete as an optional implementation with a full 2D/list fallback;
 that does not authorize making 3D the default. W18 is complete as a privacy
@@ -72,36 +72,43 @@ The first pilot includes responsive discovery, reliable rooms, an honest artist/
 
 **W21–W26** come from the [2026-09-17 UX and visual design audit](../../design/ux-design-audit-2026-09-17.md). Run them in the order **W21 → W22 → W23 → W25 → W24**; W24 consolidates styles after the structural and wording changes. W26 (French) is Later by owner decision. These sequences polish the pilot experience; they do not replace the W13 evidence gates.
 
+**W27** is the post-pilot Celerity realtime sprint. Celerity is the Statement
+Store protocol already used by the room-beacon slice. W27 adds a transport
+boundary and measured dual operation before moving social or session events;
+it preserves Socket.IO for anonymous guests and for every guarantee Celerity
+has not yet proven.
+
 ## Sequences and branches
 
-| Prompt | Outcome | Branch created when work starts | Dependencies |
-| --- | --- | --- | --- |
-| [W01](W01-dev-quality-gates.md) | Make dev a tested integration branch | `chore/dev-quality-gates` | — |
-| [W02](W02-upload-session-boundaries.md) | Protect upload resources and session revocation | `feat/upload-session-boundaries` | W01 |
-| [W03](W03-canonical-release-access.md) | Bind key delivery to the canonical release | `feat/canonical-release-access` | W02 |
-| [W04](W04-access-promise.md) | Make purchased access and ownership claims truthful | `fix/access-promise` | W01 |
-| [W05](W05-royalty-failure-isolation.md) | Prevent one royalty recipient from blocking everyone | `feat/royalty-failure-isolation` | W04 |
-| [W06](W06-returning-identity.md) | Make returning accounts and wallet-later UX safe | `feat/returning-identity` | W01 |
-| [W07](W07-key-custody-recovery.md) | Version content keys and rehearse recovery | `feat/key-custody-recovery` | W03 |
-| [W08](W08-first-sound.md) | Make artwork and first sound dependable | `feat/first-sound` | W01 |
-| [W09](W09-room-resilience.md) | Keep shared listening alive across real networks | `feat/room-resilience` | W08 |
-| [W10](W10-adaptive-design.md) | Establish the responsive musical identity | `feat/adaptive-design` | W01 |
-| [W11](W11-product-devnet-journey.md) | Prove the Product DevNet user journey | `feat/product-devnet-journey` | W03, W04, W06, W05 |
-| [W12](W12-artist-support-experience.md) | Make artist publication and support understandable | `feat/artist-support-experience` | W02, W04, W05, W10, W11 |
-| [W13](W13-pilot-release.md) | Ship and evaluate the first coherent pilot | `feat/pilot-release` | W01, W02, W03, W04, W05, W06, W07, W08, W09, W10, W11, W12 |
-| [W14](W14-room-galaxy.md) | Build an optional immersive 3D room galaxy | `feat/room-galaxy` | W09, W10 |
-| [W15](W15-live-musical-presence.md) | Make the galaxy respond honestly to music | `feat/live-musical-presence` | W14 |
-| [W16](W16-product-cash-settlement.md) | Prove a real Product CASH settlement path | `feat/product-cash-settlement` | W05, W11 |
-| [W17](W17-human-free-evidence.md) | Bind Human free access to real private personhood | `feat/human-free-evidence` | W03, W11 |
-| [W18](W18-nearby-privacy-design.md) | Design nearby discovery with explicit privacy boundaries | `docs/nearby-privacy-design` | W09, W10 |
-| [W19](W19-nearby-rooms.md) | Implement opt-in nearby room discovery | `feat/nearby-rooms` | W13, W18 |
-| [W20](W20-community-sovereignty.md) | Choose the next community and sovereignty increment | `docs/community-sovereignty` | W13 |
-| [W21](W21-first-listening-screen.md) | Make the first listening screen trustworthy | `fix/first-listening-screen` | W08, W10 |
-| [W22](W22-room-hosting-clarity.md) | Make hosting and joining a room unmistakable | `fix/room-hosting-clarity` | W09, W10 |
-| [W23](W23-player-support-clarity.md) | Keep the solo player immersive and the support prompt plain | `fix/player-support-clarity` | W04, W12 |
-| [W24](W24-visual-system-contract.md) | Consolidate the visual system contract | `feat/visual-system-contract` | W21, W22, W23, W25 |
-| [W25](W25-artist-workspace-language.md) | Make the artist workspace plain and truthful | `fix/artist-workspace-language` | W04, W12 |
-| [W26](W26-french-localization.md) | Offer Dotify in French (Later) | `feat/french-localization` | W13, W24 |
+| Prompt                                  | Outcome                                                     | Branch created when work starts  | Dependencies                                               |
+| --------------------------------------- | ----------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------- |
+| [W01](W01-dev-quality-gates.md)         | Make dev a tested integration branch                        | `chore/dev-quality-gates`        | —                                                          |
+| [W02](W02-upload-session-boundaries.md) | Protect upload resources and session revocation             | `feat/upload-session-boundaries` | W01                                                        |
+| [W03](W03-canonical-release-access.md)  | Bind key delivery to the canonical release                  | `feat/canonical-release-access`  | W02                                                        |
+| [W04](W04-access-promise.md)            | Make purchased access and ownership claims truthful         | `fix/access-promise`             | W01                                                        |
+| [W05](W05-royalty-failure-isolation.md) | Prevent one royalty recipient from blocking everyone        | `feat/royalty-failure-isolation` | W04                                                        |
+| [W06](W06-returning-identity.md)        | Make returning accounts and wallet-later UX safe            | `feat/returning-identity`        | W01                                                        |
+| [W07](W07-key-custody-recovery.md)      | Version content keys and rehearse recovery                  | `feat/key-custody-recovery`      | W03                                                        |
+| [W08](W08-first-sound.md)               | Make artwork and first sound dependable                     | `feat/first-sound`               | W01                                                        |
+| [W09](W09-room-resilience.md)           | Keep shared listening alive across real networks            | `feat/room-resilience`           | W08                                                        |
+| [W10](W10-adaptive-design.md)           | Establish the responsive musical identity                   | `feat/adaptive-design`           | W01                                                        |
+| [W11](W11-product-devnet-journey.md)    | Prove the Product DevNet user journey                       | `feat/product-devnet-journey`    | W03, W04, W06, W05                                         |
+| [W12](W12-artist-support-experience.md) | Make artist publication and support understandable          | `feat/artist-support-experience` | W02, W04, W05, W10, W11                                    |
+| [W13](W13-pilot-release.md)             | Ship and evaluate the first coherent pilot                  | `feat/pilot-release`             | W01, W02, W03, W04, W05, W06, W07, W08, W09, W10, W11, W12 |
+| [W14](W14-room-galaxy.md)               | Build an optional immersive 3D room galaxy                  | `feat/room-galaxy`               | W09, W10                                                   |
+| [W15](W15-live-musical-presence.md)     | Make the galaxy respond honestly to music                   | `feat/live-musical-presence`     | W14                                                        |
+| [W16](W16-product-cash-settlement.md)   | Prove a real Product CASH settlement path                   | `feat/product-cash-settlement`   | W05, W11                                                   |
+| [W17](W17-human-free-evidence.md)       | Bind Human free access to real private personhood           | `feat/human-free-evidence`       | W03, W11                                                   |
+| [W18](W18-nearby-privacy-design.md)     | Design nearby discovery with explicit privacy boundaries    | `docs/nearby-privacy-design`     | W09, W10                                                   |
+| [W19](W19-nearby-rooms.md)              | Implement opt-in nearby room discovery                      | `feat/nearby-rooms`              | W13, W18                                                   |
+| [W20](W20-community-sovereignty.md)     | Choose the next community and sovereignty increment         | `docs/community-sovereignty`     | W13                                                        |
+| [W21](W21-first-listening-screen.md)    | Make the first listening screen trustworthy                 | `fix/first-listening-screen`     | W08, W10                                                   |
+| [W22](W22-room-hosting-clarity.md)      | Make hosting and joining a room unmistakable                | `fix/room-hosting-clarity`       | W09, W10                                                   |
+| [W23](W23-player-support-clarity.md)    | Keep the solo player immersive and the support prompt plain | `fix/player-support-clarity`     | W04, W12                                                   |
+| [W24](W24-visual-system-contract.md)    | Consolidate the visual system contract                      | `feat/visual-system-contract`    | W21, W22, W23, W25                                         |
+| [W25](W25-artist-workspace-language.md) | Make the artist workspace plain and truthful                | `fix/artist-workspace-language`  | W04, W12                                                   |
+| [W26](W26-french-localization.md)       | Offer Dotify in French (Later)                              | `feat/french-localization`       | W13, W24                                                   |
+| [W27](W27-celerity-room-realtime.md)    | Prove Product-native room realtime with Celerity            | `feat/celerity-room-realtime`    | W09, W11, W13, merged room-beacon discovery                |
 
 `sequence.json` records these dependencies for inspection. It intentionally contains no workflow status. For pilot outcome gates, use W13 rather than treating every proposed enhancement as mandatory. Research sequences can finish with an evidenced unsupported result; this never means the corresponding feature shipped.
 
