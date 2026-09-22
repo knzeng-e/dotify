@@ -6,7 +6,8 @@ Refs #89; targeted follow-up to [W09](../W09-room-resilience.md) and the
 [visual contract](../../../design/visual-system-contract.md).
 
 Base: tested `dev` at `69e8ef8de49e5fdf764e8281fdd156b4be3d3c2d`.
-Implementation: `cdfad8f7f6e3d8dcf5e030e16442f1c94300874b` (including
+Implementation: `647ac48488f901c27f4ef4123cfbc8b4f236cce0` (including
+`cdfad8f7f6e3d8dcf5e030e16442f1c94300874b` and
 `505c47a29b01fd3d4383e838318b2598d1df3f0f`). Product candidate: `[0, 1, 29]`.
 
 The user reports repeating audio after Pause/Next and Play resuming the wrong
@@ -50,7 +51,7 @@ no dependency, credential, persistent schema, or host permission.
 | --- | --- |
 | `npm --prefix web run test:unit` | 77 files, 608 tests passed. |
 | `npm --prefix web run test:e2e -- --workers=2` | 124 passed, including real Web Audio room synchronization, source-generation races, guest recovery, and keyboard geometry. |
-| From `web`: `npx playwright test --config playwright.mobile-host.config.ts --workers=2` | 6 passed across Chromium and WebKit iPhone 13 emulation; no autoplay-enabling browser flags. |
+| From `web`: `npx playwright test --config playwright.mobile-host.config.ts --workers=2` | 8 passed across Chromium and WebKit iPhone 13 emulation; no autoplay-enabling browser flags. This includes opening a room on a different track after pausing solo playback. |
 | `npm --prefix web run build` | Passed. |
 | `npm --prefix web run build:product-devnet:frozen` | Passed without refreshing the catalog fixture or publishing. |
 | `npm --prefix web run lint` | Zero errors; three existing hook dependency warnings in App and ArtistShell. |
@@ -75,6 +76,11 @@ The first full run found that removing mobile opacity broke the existing
 keyboard transition invariant. The final solution shares the gradient while
 retaining opacity; the full 124-test suite then passed without weakening that
 keyboard assertion.
+
+PR review found one additional intent boundary: creating a room for a different
+track called the catalog directly. A previous solo Pause could therefore keep
+the new room source paused. The explicit Open-room action now rearms playback
+before selection; a dedicated mobile regression passes in Chromium and WebKit.
 
 ### Visual evidence
 
