@@ -196,6 +196,10 @@ export function ListenerShell() {
       return;
     }
 
+    // Opening a room is an explicit playback action. Re-arm intent before the
+    // source changes so a previous solo Pause does not keep the room track
+    // silent. Transport Next/Previous still preserves pause independently.
+    playback.requestAutoplay();
     const selection = await catalog.openTrack(track, undefined, undefined, undefined, true).catch(() => null);
     session.createSession(trackInfo, 'full', undefined, { audioSourceHint: selection?.audioSource ?? null });
   }
