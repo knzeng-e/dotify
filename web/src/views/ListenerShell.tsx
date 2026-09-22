@@ -433,6 +433,8 @@ export function ListenerShell() {
             playback={playback}
             mode={session.mode}
             roomId={session.roomId}
+            listenerCount={session.listenerCount}
+            socketStatus={session.socketStatus}
             locked={Boolean(
               !isRoomGuest && selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true
             )}

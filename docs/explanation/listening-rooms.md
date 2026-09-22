@@ -34,6 +34,25 @@ If autoplay is blocked by the browser, a manual play prompt appears.
 
 ---
 
+## Listening while browsing
+
+Returning to Music, Rooms, or an artist page keeps the room audio running.
+The compact player follows the host’s current track, including changes made
+while you browse. Its “Room live” indicator and people count distinguish a room
+stream from individual playback; hosts see “Hosting live”. Tap the indicator,
+artwork, or title to return to the room.
+
+The green pulse appears only during connected playback. Host pause, local pause,
+missing audio, and reconnecting have separate labels; disconnected counts are
+hidden until signaling reconnects. Counts include you and the host, and reflect
+room connections, not verified identities or guaranteed audible playback.
+
+Listeners can pause their own listening or mute without controlling the host.
+Their progress bar follows the host and cannot seek; skip, shuffle, and repeat
+are reserved for local playback and hosting.
+
+---
+
 ## What listeners can and cannot do
 
 | Capability                         | Host | Listener          |
