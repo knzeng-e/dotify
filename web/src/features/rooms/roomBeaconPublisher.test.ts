@@ -9,7 +9,7 @@ async function loadModule() {
   return import('./roomBeaconPublisher');
 }
 
-function fakeClient(overrides: { publishOk?: boolean; publishThrows?: boolean } = {}) {
+function fakeClient(overrides: { publishOk?: boolean; publishThrows?: boolean; subscribeThrows?: boolean } = {}) {
   const published: Array<{ data: unknown; options: unknown }> = [];
   let handler: ((statement: { data: unknown; expiry?: bigint }) => void) | null = null;
   const client = {
@@ -19,6 +19,7 @@ function fakeClient(overrides: { publishOk?: boolean; publishThrows?: boolean } 
       return { ok: overrides.publishOk ?? true };
     }),
     subscribe: vi.fn((callback: (statement: { data: unknown; expiry?: bigint }) => void) => {
+      if (overrides.subscribeThrows) throw new Error('subscription unavailable');
       handler = callback;
       return { unsubscribe: vi.fn() };
     }),
@@ -206,6 +207,16 @@ describe('subscribeRoomBeacons', () => {
     const { subscribeRoomBeacons } = await loadModule();
 
     await expect(subscribeRoomBeacons({}, { createClient: vi.fn() })).resolves.toBeNull();
+  });
+
+  it('releases a connected client when subscription setup fails', async () => {
+    vi.stubEnv('VITE_DOTIFY_ROOM_BEACONS', 'on');
+    vi.resetModules();
+    const { subscribeRoomBeacons } = await loadModule();
+    const { client } = fakeClient({ subscribeThrows: true });
+
+    await expect(subscribeRoomBeacons({}, { createClient: async () => client })).resolves.toBeNull();
+    expect(client.destroy).toHaveBeenCalledOnce();
   });
 
   it('evicts a room once its statement expires', async () => {

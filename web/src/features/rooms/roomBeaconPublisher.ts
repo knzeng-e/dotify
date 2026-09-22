@@ -237,23 +237,35 @@ export async function subscribeRoomBeacons(
     if (removed) options.onChange?.(live());
   }
 
-  const subscription = client.subscribe(
-    statement => {
-      const beacon = parseRoomBeacon(statement.data);
-      if (!beacon) return;
-      if (options.roomCode && beacon.room !== options.roomCode.toUpperCase()) return;
+  let subscription: ReturnType<BeaconClient['subscribe']>;
+  try {
+    subscription = client.subscribe(
+      statement => {
+        const beacon = parseRoomBeacon(statement.data);
+        if (!beacon) return;
+        if (options.roomCode && beacon.room !== options.roomCode.toUpperCase()) return;
 
-      const expirySeconds = beaconExpirySeconds(statement.expiry);
-      const expiresAtMs = expirySeconds !== null ? expirySeconds * 1000 : now() + ASSUMED_LIFETIME_MS;
+        const expirySeconds = beaconExpirySeconds(statement.expiry);
+        const expiresAtMs = expirySeconds !== null ? expirySeconds * 1000 : now() + ASSUMED_LIFETIME_MS;
 
-      // An already-expired statement is ignored rather than shown then swept.
-      if (expiresAtMs <= now()) return;
+        // An already-expired statement is ignored rather than shown then swept.
+        if (expiresAtMs <= now()) return;
 
-      seen.set(beacon.room, { beacon, expiresAtMs });
-      options.onChange?.(live());
-    },
-    options.roomCode ? { topic2: roomBeaconTopic(options.roomCode) } : undefined
-  );
+        seen.set(beacon.room, { beacon, expiresAtMs });
+        options.onChange?.(live());
+      },
+      options.roomCode ? { topic2: roomBeaconTopic(options.roomCode) } : undefined
+    );
+  } catch {
+    // A connected SDK client still owns transport resources when subscription
+    // setup fails. Release it before degrading to ordinary room discovery.
+    try {
+      client.destroy();
+    } catch {
+      // The failed subscription may already have torn down the client.
+    }
+    return null;
+  }
 
   const sweeper = setInterval(sweep, BEACON_SWEEP_MS);
 

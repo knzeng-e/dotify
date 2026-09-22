@@ -36,7 +36,11 @@ export function useRoomBeaconDiscovery(): OpenRoom[] {
         return;
       }
       stop = listener?.stop;
-    })();
+    })().catch(error => {
+      if (!cancelled) {
+        console.warn('[dotify] Product room discovery could not start; continuing with the room service.', error);
+      }
+    });
 
     return () => {
       cancelled = true;
