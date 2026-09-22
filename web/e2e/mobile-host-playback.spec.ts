@@ -156,10 +156,13 @@ test('room colors stay consistent between desktop and mobile in either system th
   const colors = () =>
     page.evaluate(() => {
       const style = getComputedStyle(document.documentElement);
+      const shell = getComputedStyle(document.querySelector('.app-shell')!);
+      const backdrop = shell.backgroundColor === 'rgba(0, 0, 0, 0)' ? getComputedStyle(document.body) : shell;
       return {
         tokens: ['--canvas', '--ink', '--action', '--aura-a', '--aura-b', '--aura-accent'].map(name => style.getPropertyValue(name)),
-        shell: getComputedStyle(document.querySelector('.app-shell')!).backgroundColor,
-        background: getComputedStyle(document.body).backgroundImage,
+        canvas: backdrop.backgroundColor,
+        background: backdrop.backgroundImage,
+        aura: getComputedStyle(document.querySelector('.app-shell > .aura-bg')!).backgroundImage,
         play: getComputedStyle(document.querySelector('.transport-play')!).backgroundColor
       };
     });

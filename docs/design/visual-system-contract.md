@@ -48,10 +48,10 @@ common developer-font fallbacks.
 
 Track aura may tint the canvas, but readable text remains on the deep canvas or
 bounded surfaces. Aura does not replace a semantic state color.
-The room shell stays transparent at every breakpoint so mobile retains the
-desktop canvas and track aura. Fixing the mobile viewport for the keyboard
-must not add an opaque canvas over that shared background. System light/dark
-preferences do not select a different Dotify palette.
+The fixed mobile room shell retains an opaque keyboard-safe canvas, painted
+with the same `--listening-background` as desktop. Its aura lives inside the
+shell, above that canvas and below controls, so viewport fixing cannot mask the
+track's light. System light/dark preferences do not select a different palette.
 
 ## Components and layers
 

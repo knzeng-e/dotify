@@ -254,8 +254,8 @@ export function ListenerShell() {
         onPrepareLocalStream={prepareLocalStream}
         onEmitPlayerState={session.emitPlayerState}
       />
-      <AuraBackground />
       <div className='app-shell' ref={roomShellRef} data-room-focus={roomFocused}>
+        <AuraBackground />
         <a className='skip-link' href='#main-content'>
           Skip to content
         </a>

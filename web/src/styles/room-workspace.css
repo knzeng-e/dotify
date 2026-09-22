@@ -213,6 +213,8 @@
     scroll-behavior: auto;
   }
   .app-shell[data-room-focus='true'] {
+    background-color: var(--canvas);
+    background-image: var(--listening-background);
     position: fixed;
     top: var(--room-viewport-top, 0px);
     left: 0;
