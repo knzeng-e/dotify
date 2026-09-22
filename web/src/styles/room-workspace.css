@@ -510,6 +510,15 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.host-lineup li strong,
+.host-lineup li em {
+  display: block;
+  font-style: normal;
+}
+.host-lineup li em {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
 .host-lineup li small {
   display: block;
   color: var(--muted);
@@ -520,6 +529,26 @@
   height: var(--touch-target);
   background: transparent;
   color: var(--ink-soft);
+}
+.host-lineup-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.host-lineup-actions .quiet-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: var(--touch-target);
+  padding-inline: 0.65rem;
+  background: transparent;
+  color: var(--muted);
+}
+.host-lineup-actions .quiet-action:hover,
+.host-lineup-actions .quiet-action:focus-visible {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--panel-2) 72%, transparent);
 }
 @media (max-width: 768px), (max-height: 799px) {
   .player-room-mode .room-artist-support {

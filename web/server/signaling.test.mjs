@@ -958,6 +958,50 @@ describe('room social layer', () => {
     assert.equal(server.rooms.get(created.roomId).chat.length, 0);
   });
 
+  it('lets only the host publish a bounded source-free playback lineup and replays it to late joiners', async () => {
+    const host = connectClient();
+    const created = await createRoom(host, { displayName: 'Ada' });
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Gabe' });
+
+    const rejected = collect(host, 'room:lineup');
+    listener.emit('room:lineup', [{ trackId: 'intrusion', title: 'Nope', artist: 'Guest' }]);
+    assert.equal((await rejected).length, 0);
+    assert.equal(server.rooms.get(created.roomId).lineup.length, 0);
+
+    const privateSource = 'dotify:enc:ipfs://private-lineup-source';
+    const privateManifest = 'ipfs://private-lineup-manifest';
+    const proposed = Array.from({ length: 14 }, (_, index) => ({
+      trackId: `track-${index}`,
+      title: `Song ${index}`,
+      artist: 'Ada',
+      hash: `0x${String(index).padStart(64, '0')}`,
+      accessMode: 'free',
+      audioRef: privateSource,
+      metadataRef: privateManifest
+    }));
+    proposed.splice(1, 0, proposed[0]);
+
+    const received = once(listener, 'room:lineup');
+    host.emit('room:lineup', proposed);
+    const lineup = await received;
+    assert.equal(lineup.length, 12);
+    assert.equal(new Set(lineup.map(item => item.trackId)).size, 12);
+    assert.equal(lineup[0].title, 'Song 0');
+    assert.equal(JSON.stringify(lineup).includes(privateSource), false);
+    assert.equal(JSON.stringify(lineup).includes(privateManifest), false);
+
+    const late = connectClient();
+    await once(late, 'connect');
+    const joined = await emitAck(late, 'room:join', { roomId: created.roomId, displayName: 'Late' });
+    assert.deepEqual(joined.lineup, lineup);
+
+    const response = await fetch(`http://127.0.0.1:${port}/status`);
+    const status = await response.json();
+    assert.equal(status.rooms.find(room => room.roomId === created.roomId).lineup, undefined);
+  });
+
   it('broadcasts the request queue to the room with attribution and replays it to late joiners', async () => {
     const host = connectClient();
     const created = await createRoom(host, { displayName: 'Ada' });

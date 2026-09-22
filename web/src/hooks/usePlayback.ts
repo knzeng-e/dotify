@@ -11,15 +11,16 @@
 // localAudioRef.current), and the room listener's stream lands on
 // remoteAudioRef.current.srcObject - both refs are stable here.
 
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { isRoomJoinE2eContext, roomJoinE2eAutoplayEnabled } from '../e2e/roomJoinMock';
 import { publishHostAudioStartupMetric, type HostAudioTerminalReason } from '../features/catalog/audioStartupTelemetry';
-import type { CatalogTrack, Mode, PlayerState } from '../shared/types';
+import type { CatalogTrack, Mode, PlayerState, RoomLineupItem } from '../shared/types';
 import { useRoomClock } from '../features/player/useRoomClock';
 import { listenerPlaybackStatusForHostState, type AudioStatus } from '../features/player/playbackStatus';
 import { planTrackNeighbors } from '../features/player/trackNavigation';
 import { playbackPrefetchAllowed, usePlaybackPrefetch } from '../features/player/usePlaybackPrefetch';
 import { prefetchAudioV2TrackIntent } from '../features/catalog/audioV2IntentPrefetch';
+import { lineupItemFromTrack, playableLineupTracks, previousTrackDecision, recordPlaybackHistory, ROOM_LINEUP_LIMIT } from '../features/player/playbackQueue';
 
 export type PlaybackControls = ReturnType<typeof usePlayback>;
 
@@ -39,6 +40,8 @@ type UsePlaybackDeps = {
   playerState: PlayerState | null;
   catalogTracks: CatalogTrack[];
   selectedTrackId: string;
+  lineup: RoomLineupItem[];
+  onLineupChange: (lineup: RoomLineupItem[]) => void;
   onOpenTrack: (track: CatalogTrack) => void;
   onEmitPlayerState: (force: boolean) => void;
 };
@@ -83,6 +86,8 @@ export function usePlayback(deps: UsePlaybackDeps) {
     playerState,
     catalogTracks,
     selectedTrackId,
+    lineup,
+    onLineupChange,
     onOpenTrack,
     onEmitPlayerState
   } = deps;
@@ -123,9 +128,22 @@ export function usePlayback(deps: UsePlaybackDeps) {
   // Latest-ref for onOpenTrack: the parent passes a fresh closure every render,
   // so reading it through a ref keeps skip/handleEnded callbacks stable.
   const onOpenTrackRef = useRef(onOpenTrack);
+  const onLineupChangeRef = useRef(onLineupChange);
   useEffect(() => {
     onOpenTrackRef.current = onOpenTrack;
   }, [onOpenTrack]);
+  useEffect(() => {
+    onLineupChangeRef.current = onLineupChange;
+  }, [onLineupChange]);
+
+  const playbackHistoryRef = useRef<string[]>([]);
+  const selectedTrackIdRef = useRef(selectedTrackId);
+  useLayoutEffect(() => {
+    selectedTrackIdRef.current = selectedTrackId;
+  }, [selectedTrackId]);
+  const commitPlaybackHistory = useCallback((next: string[]) => {
+    playbackHistoryRef.current = next;
+  }, []);
 
   const getControllingAudio = useCallback(() => (mode === 'host' ? localAudioRef.current : remoteAudioRef.current), [mode, localAudioRef, remoteAudioRef]);
 
@@ -134,7 +152,14 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const canRepeat = mode === 'host';
   // A newer selection aborts the older one in useCatalog. Loading must not trap
   // someone on a slow track or prevent changing direction.
-  const canSkip = mode === 'host' && catalogTracks.length > 1;
+  const queuedTracks = useMemo(() => playableLineupTracks(lineup, catalogTracks), [lineup, catalogTracks]);
+  const lineupRef = useRef(lineup);
+  const queuedTracksRef = useRef(queuedTracks);
+  useEffect(() => {
+    lineupRef.current = lineup;
+    queuedTracksRef.current = queuedTracks;
+  }, [lineup, queuedTracks]);
+  const canSkip = mode === 'host' && (catalogTracks.length > 1 || queuedTracks.length > 0);
   const canShuffle = mode === 'host' && catalogTracks.length > 1;
 
   const neighbors = useMemo(
@@ -154,7 +179,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     localAudioRef,
     mode === 'host' && !trackSelectionPending && Boolean(audioSource),
     audioSourceGeneration,
-    catalogTracks.find(track => track.id === neighbors.nextId)?.audioRef,
+    queuedTracks[0]?.audioRef ?? catalogTracks.find(track => track.id === neighbors.nextId)?.audioRef,
     catalogTracks.find(track => track.id === neighbors.previousId)?.audioRef
   );
 
@@ -364,7 +389,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     [getControllingAudio, transport.duration, syncFromAudio, mode, onEmitPlayerState, canSeek]
   );
 
-  const getSkipTrack = useCallback(
+  const getCatalogSkipTrack = useCallback(
     (direction: 'previous' | 'next') => {
       const id = direction === 'next' ? neighborsRef.current.nextId : neighborsRef.current.previousId;
       return catalogTracks.find(track => track.id === id) ?? null;
@@ -372,47 +397,142 @@ export function usePlayback(deps: UsePlaybackDeps) {
     [catalogTracks]
   );
 
+  const getNextTrack = useCallback(() => queuedTracksRef.current[0] ?? getCatalogSkipTrack('next'), [getCatalogSkipTrack]);
+
+  const commitLineup = useCallback(
+    (next: RoomLineupItem[]) => {
+      const bounded = next.slice(0, ROOM_LINEUP_LIMIT);
+      lineupRef.current = bounded;
+      // Keep the resolved queue synchronous with the public snapshot. Two Next
+      // commands can arrive before React commits the server echo; the second
+      // command must already see the remaining entry.
+      queuedTracksRef.current = playableLineupTracks(bounded, catalogTracks);
+      onLineupChangeRef.current(bounded);
+    },
+    [catalogTracks]
+  );
+
+  const consumeLineupTrack = useCallback(
+    (trackId: string) => {
+      const index = lineupRef.current.findIndex(item => item.trackId === trackId);
+      if (index < 0) return;
+      commitLineup(lineupRef.current.slice(index + 1));
+    },
+    [commitLineup]
+  );
+
+  const openPlaybackTrack = useCallback(
+    (track: CatalogTrack, options: { consumeLineup?: boolean } = {}) => {
+      if (options.consumeLineup) consumeLineupTrack(track.id);
+      neighborsRef.current = planTrackNeighbors(
+        catalogTracks.map(item => item.id),
+        track.id,
+        shuffleEnabled
+      );
+      requestAutoplay();
+      onOpenTrackRef.current(track);
+    },
+    [catalogTracks, consumeLineupTrack, requestAutoplay, shuffleEnabled]
+  );
+
   const prefetchSkip = useCallback(
     (direction: 'previous' | 'next') => {
       if (!canSkip || !playbackPrefetchAllowed()) return;
-      const track = getSkipTrack(direction);
+      const history = recordPlaybackHistory(playbackHistoryRef.current, selectedTrackId);
+      const previousId = history.length > 1 ? history[history.length - 2] : null;
+      const track =
+        direction === 'next'
+          ? getNextTrack()
+          : (catalogTracks.find(item => item.id === previousId && item.active !== false) ?? getCatalogSkipTrack('previous'));
       if (track) void prefetchAudioV2TrackIntent(track.audioRef).catch(() => undefined);
     },
-    [canSkip, getSkipTrack]
+    [canSkip, catalogTracks, getCatalogSkipTrack, getNextTrack, selectedTrackId]
   );
 
   const skip = useCallback(
     (direction: 'previous' | 'next') => {
       if (!canSkip) return;
-      const next = getSkipTrack(direction);
-      if (!next) return;
-      // Advance immediately, including two commands received before React's
-      // next commit. The final catalog selection remains the source of truth.
-      neighborsRef.current = planTrackNeighbors(
-        catalogTracks.map(track => track.id),
-        next.id,
-        shuffleEnabled
-      );
-      requestAutoplay();
-      onOpenTrackRef.current(next);
+      if (direction === 'previous') {
+        const audio = getControllingAudio();
+        const decision = previousTrackDecision(playbackHistoryRef.current, selectedTrackId, trackSelectionPending ? 0 : (audio?.currentTime ?? 0));
+        if (decision.action === 'restart') {
+          if (!audio) return;
+          audio.currentTime = 0;
+          syncFromAudio(audio);
+          onEmitPlayerState(true);
+          return;
+        }
+        if (decision.action === 'open') {
+          const previous = catalogTracks.find(track => track.id === decision.trackId && track.active !== false);
+          if (previous) {
+            commitPlaybackHistory(decision.history);
+            openPlaybackTrack(previous);
+            return;
+          }
+        }
+        const previous = getCatalogSkipTrack('previous');
+        if (previous) openPlaybackTrack(previous);
+        return;
+      }
+
+      const next = getNextTrack();
+      if (next) openPlaybackTrack(next, { consumeLineup: lineupRef.current.some(item => item.trackId === next.id) });
     },
-    [canSkip, getSkipTrack, requestAutoplay, catalogTracks, shuffleEnabled]
+    [
+      canSkip,
+      catalogTracks,
+      commitPlaybackHistory,
+      getCatalogSkipTrack,
+      getControllingAudio,
+      getNextTrack,
+      onEmitPlayerState,
+      openPlaybackTrack,
+      selectedTrackId,
+      syncFromAudio,
+      trackSelectionPending
+    ]
   );
 
   const handleEnded = useCallback(
     (audio: HTMLAudioElement) => {
       if (mode !== 'host') return;
       syncFromAudio(audio);
-      if (shuffleEnabled && mode === 'host' && catalogTracks.length > 1) {
-        const next = getSkipTrack('next');
-        if (next) {
-          requestAutoplay();
-          onOpenTrackRef.current(next);
-        }
+      // Native `loop` normally suppresses `ended`, but keep repeat deterministic
+      // on engines that still dispatch it at the media boundary.
+      if (repeatEnabled) {
+        audio.currentTime = 0;
+        void audio.play().catch(() => setStatus('autoplay-blocked'));
+        return;
       }
+      const next = getNextTrack();
+      if (next) openPlaybackTrack(next, { consumeLineup: lineupRef.current.some(item => item.trackId === next.id) });
     },
-    [syncFromAudio, shuffleEnabled, mode, catalogTracks.length, getSkipTrack, requestAutoplay]
+    [getNextTrack, mode, openPlaybackTrack, repeatEnabled, syncFromAudio]
   );
+
+  const addToLineup = useCallback(
+    (track: CatalogTrack) => {
+      if (mode !== 'host' || !roomId || lineupRef.current.length >= ROOM_LINEUP_LIMIT || lineupRef.current.some(item => item.trackId === track.id)) return;
+      commitLineup([...lineupRef.current, lineupItemFromTrack(track)]);
+    },
+    [commitLineup, mode, roomId]
+  );
+
+  const removeFromLineup = useCallback((trackId: string) => commitLineup(lineupRef.current.filter(item => item.trackId !== trackId)), [commitLineup]);
+
+  const moveLineupTrack = useCallback(
+    (trackId: string, direction: -1 | 1) => {
+      const next = [...lineupRef.current];
+      const from = next.findIndex(item => item.trackId === trackId);
+      const to = from + direction;
+      if (from < 0 || to < 0 || to >= next.length) return;
+      [next[from], next[to]] = [next[to], next[from]];
+      commitLineup(next);
+    },
+    [commitLineup]
+  );
+
+  const clearLineup = useCallback(() => commitLineup([]), [commitLineup]);
 
   // Called by <PersistentAudio> once the host source has loaded its metadata.
   const handleHostLoadedMetadata = useCallback(
@@ -462,10 +582,16 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const handleHostCanPlay = useCallback(
     (audio: HTMLAudioElement) => {
       const startup = startupForAudio(audio);
-      if (startup) onHostMediaSettled(startup.source, false, startup.attemptId);
+      if (startup) {
+        onHostMediaSettled(startup.source, false, startup.attemptId);
+        // Selection changes happen before access/decryption. Record only after
+        // a real media source reaches readiness so defaults and denied tracks
+        // never become fictional listening history.
+        commitPlaybackHistory(recordPlaybackHistory(playbackHistoryRef.current, selectedTrackIdRef.current));
+      }
       syncFromAudio(audio);
     },
-    [onHostMediaSettled, startupForAudio, syncFromAudio]
+    [commitPlaybackHistory, onHostMediaSettled, startupForAudio, syncFromAudio]
   );
 
   const handleHostPlaying = useCallback(
@@ -518,6 +644,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     muted,
     repeatEnabled,
     shuffleEnabled,
+    lineup,
     // capability flags
     canUseTransport,
     canSeek,
@@ -532,6 +659,10 @@ export function usePlayback(deps: UsePlaybackDeps) {
     prefetchSkip,
     toggleRepeat,
     toggleShuffle,
+    addToLineup,
+    removeFromLineup,
+    moveLineupTrack,
+    clearLineup,
     // wiring used by <PersistentAudio>
     getActiveAudio: getControllingAudio,
     syncFromAudio,

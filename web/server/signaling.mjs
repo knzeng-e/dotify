@@ -28,6 +28,7 @@ import {
   sanitizePlayerState,
   snapshotPlayerState,
   sanitizeReactionEmoji,
+  sanitizeLineupItem,
   sanitizeText,
   sanitizeTrack,
   sanitizeTrackHash
@@ -56,6 +57,9 @@ export const defaultConfig = {
   // playback -- the server never claims it auto-plays.
   requestQueueLimit: 20,
   requestRateLimit: { limit: 5, windowMs: 10_000 },
+  // Host-curated playback order. Metadata only; source and manifest refs are
+  // stripped by sanitizeLineupItem before the list reaches any listener.
+  lineupLimit: 12,
   // Join/reconnect throttle keyed by network address. Chat and reaction
   // limits stay per-socket so co-located listeners each keep their own budget
   // (Dotify's core scenario is people physically together on one network).
@@ -315,6 +319,7 @@ export function startSignalingServer(overrides = {}) {
         chat: [],
         // Collaborative request queue: same in-room-only doctrine as chat.
         requests: [],
+        lineup: [],
         playerState: null,
         playerStateReceivedAt: 0,
         playbackMode: payload.playbackMode === 'preview' ? 'preview' : 'full',
@@ -378,6 +383,7 @@ export function startSignalingServer(overrides = {}) {
         hostName: room.hostName,
         listenerCount: room.listeners.size,
         listeners: listenerRoster(room),
+        lineup: room.lineup,
         expiresAt: room.createdAt + config.roomTtlMs
       });
       io.to(roomId).emit('room:host-connection', { status: 'online' });
@@ -442,6 +448,7 @@ export function startSignalingServer(overrides = {}) {
         playbackMode: room.playbackMode,
         chatHistory: room.chat,
         requests: room.requests,
+        lineup: room.lineup,
         listeners: listenerRoster(room),
         expiresAt: room.createdAt + config.roomTtlMs
       });
@@ -470,6 +477,24 @@ export function startSignalingServer(overrides = {}) {
       room.track = nextTrack;
       socket.to(socket.data.roomId).emit('room:track', room.track);
       emitRooms();
+    });
+
+    socket.on('room:lineup', (payload = []) => {
+      const room = getHostedRoom(socket);
+      if (!room || !Array.isArray(payload)) return;
+
+      touchHost(room);
+      const seen = new Set();
+      room.lineup = payload
+        .slice(0, config.lineupLimit * 2)
+        .map(sanitizeLineupItem)
+        .filter(item => {
+          if (!item || seen.has(item.trackId)) return false;
+          seen.add(item.trackId);
+          return true;
+        })
+        .slice(0, config.lineupLimit);
+      io.to(socket.data.roomId).emit('room:lineup', room.lineup);
     });
 
     // Host-declared playback mode: 'full' when the host satisfies the track

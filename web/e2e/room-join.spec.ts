@@ -62,12 +62,13 @@ async function openHostRoom(
   page: Page,
   scenario: HostScenario,
   trackTitle: string,
-  options: { captureMode?: HostCaptureMode; offerDelayMs?: number; catalogSequence?: boolean } = {}
+  options: { captureMode?: HostCaptureMode; offerDelayMs?: number; catalogSequence?: boolean; autoplay?: boolean } = {}
 ) {
   const params = new URLSearchParams({ e2eRoom: scenario });
   if (options.captureMode) params.set('e2eCapture', options.captureMode);
   if (options.offerDelayMs) params.set('e2eOfferDelayMs', String(options.offerDelayMs));
   if (options.catalogSequence) params.set('e2eCatalog', 'sequence');
+  if (options.autoplay) params.set('e2eAutoplay', 'on');
   await page.goto(`/?${params.toString()}`);
   // Open the room straight from the create-room modal so an unauthorized
   // protected track does not raise an access-gate overlay over the player
@@ -81,6 +82,75 @@ async function openHostRoom(
   await expect(roomCode).toHaveText(/[A-Z0-9]{4,}/, { timeout: 15_000 });
   return (await roomCode.textContent())?.trim() ?? '';
 }
+
+test('host lineup is shared, advances on track end, and Previous follows real history', async ({ browser }, testInfo) => {
+  const hostContext = await browser.newContext();
+  const listenerContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const host = await hostContext.newPage();
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { captureMode: 'web-audio', catalogSequence: true });
+
+    const hostPeople = host.getByRole('tab', { name: /People/ });
+    if (await hostPeople.isVisible()) await hostPeople.click();
+    await host.locator('.host-lineup summary').click();
+    await host.getByLabel('Add from the catalog').selectOption('e2e-room-public-sequence');
+    await host.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(host.locator('.host-lineup')).toContainText('Second room track');
+
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
+    const listenerPeople = listener.getByRole('tab', { name: /People/ });
+    if (await listenerPeople.isVisible()) await listenerPeople.click();
+    await expect(listener.locator('.host-lineup summary')).toContainText('Second room track');
+    await Promise.all([
+      host.screenshot({ path: testInfo.outputPath('host-lineup-desktop.png'), fullPage: true }),
+      listener.screenshot({ path: testInfo.outputPath('listener-lineup-mobile.png'), fullPage: true })
+    ]);
+
+    await host.locator('audio.native-player-source').first().dispatchEvent('ended');
+    await expect(listener.locator('.track-copy h2')).toHaveText('Second room track', { timeout: 20_000 });
+    await expect(listener.locator('.host-lineup summary')).toContainText('Nothing queued');
+
+    await host.getByRole('button', { name: 'Previous track' }).click();
+    await expect(listener.locator('.track-copy h2')).toHaveText(PUBLIC_TITLE, { timeout: 20_000 });
+  } finally {
+    await hostContext.close();
+    await listenerContext.close();
+  }
+});
+
+test('rapid host Next commands consume distinct lineup entries', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  try {
+    const host = await hostContext.newPage();
+    await openHostRoom(host, 'public', PUBLIC_TITLE, { catalogSequence: true });
+
+    const hostPeople = host.getByRole('tab', { name: /People/ });
+    if (await hostPeople.isVisible()) await hostPeople.click();
+    await host.locator('.host-lineup summary').click();
+    const picker = host.getByLabel('Add from the catalog');
+    const add = host.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true });
+    await picker.selectOption('e2e-room-public-sequence');
+    await add.click();
+    await picker.selectOption({ label: `${PROTECTED_TITLE} — Dotify Room Host` });
+    await add.click();
+    await expect(host.locator('.host-lineup ol > li')).toHaveCount(2);
+
+    // Same-task clicks reproduce hardware media keys or rapid touch input
+    // before React can render the signaling echo.
+    await host
+      .locator('.host-lineup-actions')
+      .getByRole('button', { name: 'Play next' })
+      .evaluate(button => {
+        (button as HTMLButtonElement).click();
+        (button as HTMLButtonElement).click();
+      });
+
+    await expect(host.locator('.host-lineup summary')).toContainText('Nothing queued');
+    await expect(host.locator('.track-copy h2')).toHaveText(PROTECTED_TITLE);
+  } finally {
+    await hostContext.close();
+  }
+});
 
 type JoinAsListenerOptions = {
   storedDisplayName?: string;

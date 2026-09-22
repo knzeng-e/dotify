@@ -579,8 +579,19 @@ for (const saveData of [false, true]) {
       await page.getByRole('button', { name: 'Previous track', exact: true }).hover();
       await page.waitForTimeout(200);
       expect(ranges).toHaveLength(2);
+      // Previous restarts the current track after three seconds. Exercise the
+      // actual previous-track branch here, after verifying its bytes are warm.
+      await audio.evaluate(element => {
+        element.currentTime = 1;
+        element.dispatchEvent(new Event('timeupdate'));
+      });
       await page.getByRole('button', { name: 'Previous track', exact: true }).click();
-      await expect(page.getByRole('heading', { name: 'E2E Protected Room Track', exact: true })).toBeVisible();
+      // The initial catalog default never became a media source, so it is not
+      // playback history. With no prior played title, Previous follows catalog
+      // order to the protected neighbor and fails closed without a source.
+      // Solo browsing deliberately keeps the payment sheet closed until an
+      // explicit artwork CTA, so the transport state is the assertion here.
+      await expect(page.locator('.track-copy h2')).toHaveText('E2E Protected Room Track');
       await expect(audio).toHaveJSProperty('paused', true);
     }
     expect(await page.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);

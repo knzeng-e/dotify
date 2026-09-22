@@ -1,5 +1,27 @@
 # 21 - Room collaborative request queue with host veto
 
+## Playback-lineup promotion — 2026-09-22
+
+The original request queue below remains the participant-to-host suggestion
+surface. The former host-only planning preview is now a separate, real playback
+lineup:
+
+- only the authenticated room host can publish its ordered catalog identities;
+- the signaling server sanitizes, deduplicates and caps the list at 12;
+- hosts and listeners receive one metadata-only snapshot, including late join
+  and host resume;
+- Next and natural track endings consume the lineup before catalog order;
+- Previous follows the host's actual playback history and restarts the current
+  title when it is already more than three seconds in;
+- every selection reuses the existing access gate; queueing never signs, pays,
+  or releases a key, and a locked selection never claims to be playing;
+- the lineup is ephemeral, excluded from public room/status data, and deleted
+  with the room.
+
+Requests are not automatically promoted. The host must resolve a request to a
+real catalog track and add it deliberately. Persistence, participant reordering,
+voting, crossfade, and permanent listening history remain outside this slice.
+
 ## Sprint
 
 Design track - social presence (first slice of the "village square" room-social
@@ -20,12 +42,12 @@ clears. Builds directly on the ticket 20 social layer (reactions + chat).
 ## Context
 
 Rooms are host-access based (ticket 04): listeners join with a link, no wallet.
-Listeners have no in-room catalog browser, so a playable, catalog-bound queue
-would require either faking listener catalog access or wiring the WebRTC /
-content-key access path - both violate the honesty rule or destabilize the
-spine. The honest first slice is therefore a request queue: shared intent that
-the host curates, never a claim of auto-play. Playable, catalog-backed queue
-items and host-click-to-play are explicit future work (see Non-goals).
+Listeners have no in-room catalog browser. The original delivery therefore
+started with an honest request queue: shared intent that the host curates,
+never a claim of auto-play. The 2026-09-22 promotion above adds a distinct
+catalog-backed host lineup while preserving that boundary: listeners receive
+only presentation metadata, and playback still travels through the existing
+host access and WebRTC paths.
 
 The queue rides the existing signaling relay exactly like chat, and its message
 shape is transport-agnostic so a future Statement Store presence layer can adopt
@@ -93,10 +115,9 @@ Curated constants: `REQUEST_TEXT_MAX_LENGTH` / `requestQueueLimit` in
 - Existing room flows (create, join, WebRTC pairing, playback modes, preview
   gating, chat, reactions) unchanged.
 
-## Non-goals
+## Original request-queue non-goals
 
-- Playable, catalog-backed queue items or host-click-to-play (needs an in-room
-  catalog surface and touches the access path; future slice).
+- Automatically resolving free-text requests into catalog tracks.
 - Upvotes / reordering / persistence / moderation tooling.
 - Statement Store presence layer (future work; the transport-agnostic message
   shape is the seam - see ticket 12).
@@ -108,3 +129,6 @@ Server behavior covered by 6 new integration tests in
 `web/server/signaling.test.mjs` (broadcast + attribution + late-join replay,
 host-only veto/clear with listener rejection, participant verification, rate
 limiting, cap enforcement, `/status` privacy).
+
+The playback-lineup promotion is recorded in
+`docs/backlog/implementation/evidence/host-listening-lineup-2026-09-22.md`.

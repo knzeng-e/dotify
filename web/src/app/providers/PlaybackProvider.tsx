@@ -67,6 +67,8 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     playerState: catalog.playerState,
     catalogTracks: catalog.catalogTracks,
     selectedTrackId: catalog.selectedTrackId,
+    lineup: session.roomLineup,
+    onLineupChange: session.updateRoomLineup,
     onOpenTrack: handleOpenTrack,
     onEmitPlayerState: session.emitPlayerState
   });
