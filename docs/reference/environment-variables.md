@@ -10,6 +10,52 @@ for future env/config changes, see
 
 ---
 
+## Operator deployment variables (shell only)
+
+These variables are consumed by local deployment scripts. They are not bundled
+into the web app and must not be stored in `.env` files, Netlify, Fly, or the
+repository.
+
+### `MNEMONIC`
+
+| Property     | Value                    |
+| ------------ | ------------------------ |
+| **Type**     | BIP-39 mnemonic          |
+| **Required** | Product DevNet publish   |
+| **Default**  | None                     |
+| **Example**  | `<dotns-owner-mnemonic>` |
+
+DotNS owner mnemonic used by `npm run deploy:product-devnet`. The script
+refuses to deploy when this value is empty, then passes it to
+`polkadot-app-deploy` as `--mnemonic "$MNEMONIC"
+--no-transfer-to-signedin-user`.
+
+This is different from `pad login`: `pad login` and `pad whoami` describe the
+mobile Product session, not the mnemonic-derived signer used for DotNS updates.
+If the owner account uses a derivation path, keep that path aligned with the
+deploy command before publishing.
+
+### `CATALOG_API_URL`
+
+| Property     | Value                                            |
+| ------------ | ------------------------------------------------ |
+| **Type**     | HTTPS URL                                        |
+| **Required** | No                                               |
+| **Default**  | `VITE_DOTIFY_API_URL` from `.env.product-devnet` |
+| **Example**  | `https://dotify-api.fly.dev`                     |
+
+Optional override used by
+`npm run generate:product-catalog-bootstrap`. The generator refreshes the
+Product DevNet bootstrap catalog from
+`$CATALOG_API_URL/api/catalog?limit=100&includeInactive=true`, validates the
+response, and writes `web/src/services/productDevnetCatalogBootstrap.ts`.
+
+Use this only in the local operator shell when refreshing a Product build from a
+non-default catalog API. It is not bundled into the browser and must not be set
+in Netlify or Fly.
+
+---
+
 ## Web app variables (`web/.env.local`)
 
 Variables prefixed with `VITE_` are bundled into the browser. Do not put secrets
@@ -36,20 +82,187 @@ production build contract without printing real secret values.
 
 ---
 
+### `VITE_DOTIFY_HOST_MODE`
+
+| Property     | Value                        |
+| ------------ | ---------------------------- |
+| **Type**     | `off`, `auto`, or `required` |
+| **Required** | Product builds               |
+| **Default**  | `off`                        |
+| **Example**  | `required`                   |
+
+Controls Product host discovery. `off` keeps the standalone app independent
+from the Product SDK. `auto` enables progressive host detection. `required`
+marks a Product-targeted build but does not block catalog, Free playback, or
+wallet-free room entry when opened outside the host.
+
+Host detection does not request an account. The account is requested only when
+the listener selects **Use Polkadot app**.
+
+---
+
+### `VITE_DOTIFY_RUNTIME_ADAPTER`
+
+| Property     | Value                   |
+| ------------ | ----------------------- |
+| **Type**     | `viem` or `product-cdm` |
+| **Required** | No                      |
+| **Default**  | `viem`                  |
+| **Example**  | `viem`                  |
+
+Selects which adapter backs the runtime contract ports. `viem` is the only path
+with production evidence. `product-cdm` routes reads and write submissions
+through the Product SDK contract handles over the generated `cdm.json` snapshot.
+The frontend now uses the same `RuntimeWritePort` for Classic unlock payments in
+both modes, but Product CDM writes remain an operator opt-in until real
+host-signed transaction evidence is captured. In a `product-cdm` build, Classic
+unlock success also requires a bounded post-inclusion read-back where
+`musicAccHasPaid(contentHash, listenerH160)` and
+`musicAccCanAccess(contentHash, listenerH160)` both return `true` for the same
+Product-derived H160 account. An included transaction whose read-back never
+confirms access remains visible to the user with its transaction hash instead
+of being reported as a generic payment failure.
+
+Any unrecognised value falls back to `viem`, so a typo cannot silently disable
+contract reads. `product-cdm` additionally requires `VITE_DOTIFY_HOST_MODE` to
+be `auto` or `required`: the Product chain client connects only through a host
+container and has no direct-WebSocket fallback. The production guard rejects
+that combination rather than shipping a frontend that cannot read the catalog.
+
+**Build size.** This flag is read at build time, not runtime. A `viem` build
+tree-shakes the entire Product contract graph away; opting in pulls it back in
+along with `@parity/product-sdk-descriptors`, whose shared descriptors module
+references every chain's metadata. Measured on this branch:
+
+| Build                                         | Output size |
+| --------------------------------------------- | ----------- |
+| `VITE_DOTIFY_RUNTIME_ADAPTER` unset or `viem` | 4.4 MB      |
+| `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`     | 10 MB       |
+
+Only one metadata chunk is ever fetched at runtime, but all of them are
+published. Weigh that against the Bulletin storage quota before enabling this
+for a `.dot` deployment.
+
+---
+
+### `VITE_DOTIFY_ROOM_BEACONS`
+
+| Property     | Value         |
+| ------------ | ------------- |
+| **Type**     | `on` or `off` |
+| **Required** | No            |
+| **Default**  | `off`         |
+| **Example**  | `off`         |
+
+Publishes a small beacon to the Statement Store while hosting a room and
+subscribes to live beacons for the existing room discovery surfaces.
+
+This is **discovery only**. A beacon never carries SDP, ICE, chat, or audio, and
+is never required to join: a share link still works with no wallet, no account,
+and no chain. Joining cannot move here - a WebRTC offer is 1.5-4 KB against a
+512-byte statement ceiling, and a guest would have to publish an answer, which
+needs an identity and an allowance. That would turn every listener into a
+registered person.
+
+Only a host publishes, and only while hosting. Requires `VITE_DOTIFY_HOST_MODE`
+to be `auto` or `required`: the statement store client runs only inside the
+Product host container, so enabling beacons without it would ship chain code
+that can never connect. The production guard rejects that combination.
+
+A beacon carries the room code, host display name, and an aggregate listener
+count - never listener identities. Now-playing is opt-in per host, because a
+beacon is globally readable and outlives the room by up to the retention window,
+which is a different exposure than sharing a link.
+
+The subscriber merges beacon-only rooms with Socket.IO discovery. Socket.IO
+wins duplicate room codes because it remains authoritative for room capacity,
+playback state, and joining. Seeing a beacon does not guarantee that the live
+connection is currently reachable.
+
+**Build size.** Enabling this adds about 24 KB. A build with it `off` still
+carries a ~69 KB statement-store chunk that is never fetched at runtime: Rollup
+emits a chunk for the nested dynamic import before it can prove the build-time
+guard makes it unreachable. That is ~1.5% of the bundle, and the code never
+executes, but it is published weight against the Bulletin quota.
+
+---
+
+### `VITE_DOTIFY_PRODUCT_CHAIN`
+
+| Property     | Value    |
+| ------------ | -------- |
+| **Type**     | `devnet` |
+| **Required** | No       |
+| **Default**  | `devnet` |
+| **Example**  | `devnet` |
+
+Product chain preset used only when `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`.
+
+`devnet` is the only accepted value, and that is a correctness constraint.
+Product DevNet is a preset over the Paseo system parachains - Asset Hub (1000),
+People (1004), Bulletin (1010) - at EVM chain `420420417`, which is exactly
+where Dotify's contracts are deployed.
+
+The SDK's `paseo` preset is _not_ an alternative: it targets Paseo Next
+(Asset Hub Next 1500 / People Next 1502), which the Product documentation calls
+a different network. Selecting it would resolve every manifest address to an
+account with no code - indistinguishable from artists with no releases.
+`verifyDeployment()` turns that into an explicit error at startup, and the
+config layer refuses the value outright.
+
+Regenerate the manifest with `npm run generate:cdm` after any contract
+redeploy, or the addresses in `cdm.json` go stale.
+
+---
+
+### `VITE_DOTIFY_PRODUCT_ID`
+
+| Property     | Value                  |
+| ------------ | ---------------------- |
+| **Type**     | Lowercase `.dot` name  |
+| **Required** | Host mode is not `off` |
+| **Default**  | `dotify-test01.dot`    |
+| **Example**  | `dotify-test01.dot`    |
+
+DotNS identifier used by the Product host to derive Dotify's app-scoped
+account. Changing it changes the Product account boundary and requires an
+identity/access migration review.
+
+---
+
+### `VITE_PUBLIC_APP_URL`
+
+| Property     | Value                              |
+| ------------ | ---------------------------------- |
+| **Type**     | HTTPS URL                          |
+| **Required** | Product production builds          |
+| **Default**  | Current browser URL                |
+| **Example**  | `https://dotify-test01.dev-dot.li` |
+
+Canonical public origin used when copying room links and when a Product runtime
+needs to continue a room in the external browser. Product builds must set this
+so invitations and browser fallbacks never expose an internal host/container or
+raw gateway URL.
+
+---
+
 ### `VITE_DOTIFY_DEBUG_PANEL`
 
-| Property     | Value             |
-| ------------ | ----------------- |
-| **Type**     | Boolean string    |
-| **Required** | No                |
-| **Default**  | `false`           |
-| **Example**  | `true`            |
+| Property     | Value          |
+| ------------ | -------------- |
+| **Type**     | Boolean string |
+| **Required** | No             |
+| **Default**  | `false`        |
+| **Example**  | `true`         |
 
 Enables the optional Production readiness panel under the `You` tab. The panel
 performs read-only checks for the backend readiness endpoint, signaling health,
 chain RPC, configured factory/directory contract code, wallet-chain mismatch,
-catalog status, and IPFS gateway reads. Leave this unset for ordinary listener
-deployments unless operators need in-app diagnostics.
+catalog status, and IPFS gateway reads. In an explicit Product CDM write smoke
+build, it also exposes the Product CDM host evidence collector for payment
+read-back, native `amountPlanck`, Product sr25519 key/session outcomes, and the
+operator-marked host approval observation. Leave this unset for ordinary
+listener deployments unless operators need in-app diagnostics.
 
 ---
 
@@ -78,8 +291,10 @@ Production deployments must use a publicly reachable HTTPS endpoint.
 
 Backend API base URL. When set, audio, cover, and metadata uploads go through
 the backend. Full-track playback can request content keys with wallet-signed
-requests. When unset, the web app falls back to local/demo browser-side Pinata
-upload and `VITE_CONTENT_SECRET` encryption.
+requests. The backend accepts the default `eip191` signature scheme and the
+Product-host `product-sr25519-v1` scheme without an additional env flag. When
+unset, the web app falls back to local/demo browser-side Pinata upload and
+`VITE_CONTENT_SECRET` encryption.
 
 ---
 
@@ -89,9 +304,10 @@ upload and `VITE_CONTENT_SECRET` encryption.
 | ------------ | -------------------------------------- |
 | **Type**     | WebSocket URL                          |
 | **Required** | No                                     |
-| **Default**  | `wss://paseo-bulletin-rpc.polkadot.io` |
+| **Default**  | `wss://bulletin-paseo.tservices.es:8443` |
 
-Paseo Bulletin Chain RPC used when an artist enables Bulletin archival.
+Product DevNet Bulletin Chain RPC used when an artist enables Bulletin
+archival.
 
 ---
 
@@ -148,13 +364,23 @@ unset. Do not use an unrestricted Pinata JWT here. Production uploads should set
 
 ### `VITE_PINATA_GATEWAY`
 
-| Property     | Value                            |
-| ------------ | -------------------------------- |
-| **Type**     | URL string                       |
-| **Required** | No                               |
-| **Default**  | `https://paseo-ipfs.polkadot.io` |
+| Property     | Value                          |
+| ------------ | ------------------------------ |
+| **Type**     | URL string                     |
+| **Required** | No                             |
+| **Default**  | `https://gateway.pinata.cloud` |
 
-Primary IPFS gateway for fetching audio, cover images, and metadata.
+Primary IPFS gateway for fetching cover images, metadata, and Pinata-backed
+encrypted audio bytes.
+
+For Product DevNet builds, keep `https://gateway.pinata.cloud` here while track
+assets are pinned through the API/Pinata path. The Product IPFS gateway is still
+used to publish the app bundle, but generic public gateways may not resolve
+freshly pinned track CIDs quickly enough for browser image rendering. DAV2 audio
+range reads and full-file recovery are stricter: the browser path only uses
+Pinata gateways (`gateway.pinata.cloud` or a configured `*.mypinata.cloud`)
+because the public fallback gateways do not provide reliable CORS/range behavior
+for encrypted audio fetches.
 
 ---
 
@@ -164,9 +390,12 @@ Primary IPFS gateway for fetching audio, cover images, and metadata.
 | ------------ | ------------------------------------------------------------------ |
 | **Type**     | Comma-separated URL list                                           |
 | **Required** | No                                                                 |
-| **Default**  | `https://paseo-ipfs.polkadot.io,https://ipfs.io,https://dweb.link` |
+| **Default**  | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
 
-Fallback IPFS gateways tried after `VITE_PINATA_GATEWAY`.
+Fallback IPFS gateways tried after `VITE_PINATA_GATEWAY`. Put gateways that
+resolve the current catalog's public track CIDs before Product storage gateways;
+otherwise image elements can sit pending without an `error` event and delay the
+fallback path.
 
 ---
 
@@ -187,14 +416,21 @@ use this as a production key boundary; production should use the backend
 
 ### `VITE_TURN_URL`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL`
 
-| Property     | Value                             |
-| ------------ | --------------------------------- |
-| **Type**     | TURN URL and optional credentials |
-| **Required** | Recommended for production rooms  |
-| **Default**  | None                              |
+| Property     | Value                                                  |
+| ------------ | ------------------------------------------------------ |
+| **Type**     | Comma-separated TURN URL list and optional credentials |
+| **Required** | No                                                     |
+| **Default**  | None                                                   |
 
-Optional TURN relay configuration for WebRTC rooms. Without TURN, STUN-only
-connections can fail behind symmetric NATs and some corporate firewalls.
+Optional browser-visible TURN relay fallback for WebRTC rooms. `VITE_TURN_URL`
+accepts one or more comma-separated `turn:` / `turns:` URLs, for example
+`turn:turn.example.org:3478?transport=udp,turns:turn.example.org:443?transport=tcp`.
+
+Prefer the backend `/api/turn/grant` path for production so the shared TURN
+REST secret stays server-side. These `VITE_*` values are readable from the
+published bundle and should be limited to rotated DevNet/static credentials.
+Without any TURN relay, STUN-only connections can fail behind symmetric NATs,
+carrier NAT, VPNs, and some corporate firewalls.
 
 ---
 
@@ -241,16 +477,46 @@ Network interface to bind.
 
 ### `SIGNAL_ORIGINS`
 
-| Property     | Value                                               |
-| ------------ | --------------------------------------------------- |
-| **Type**     | Comma-separated URL list or `*`                     |
-| **Required** | No                                                  |
-| **Default**  | `*`                                                 |
-| **Example**  | `https://muzinga.netlify.app,https://dotify.dot.li` |
+| Property     | Value                                                                                                                                                                                                                        |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Type**     | Comma-separated URL list or `*`                                                                                                                                                                                              |
+| **Required** | No                                                                                                                                                                                                                           |
+| **Default**  | `*`                                                                                                                                                                                                                          |
+| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 
 CORS allowed origins for Socket.IO and status endpoints. Set explicit frontend
 origins in production. `SIGNAL_ORIGIN` is still accepted as a backwards-compatible
 singular alias.
+
+Product deployments need every observed exact HTTPS origin:
+`dotify-test01.dev-dot.li` is the public top-level gateway and canonical
+room-link origin, desktop host iframe requests originate from
+`dotify-test01.app.dev-dot.li`, Product host requests have also been observed
+from `dotify-test01.app.dot.li`, and Product mobile host webviews can originate
+from `dotify-test01.dot` or `polkadot://dotify-test01.dot`.
+
+On Fly, keep this value in `web/fly.signal.toml`. Do not define
+`SIGNAL_ORIGINS` as a Fly secret: secrets override `[env]` values and can leave
+the live service using a stale origin list after redeploy.
+
+---
+
+### `SIGNAL_ALLOW_MISSING_ORIGIN`
+
+| Property     | Value   |
+| ------------ | ------- |
+| **Type**     | Boolean |
+| **Required** | No      |
+| **Default**  | `false` |
+| **Example**  | `true`  |
+
+Allows Socket.IO handshakes with no `Origin` header. This is for
+Polkadot Desktop/native hosts that do not send browser-style CORS origins on
+the signaling connection.
+
+This does not allow the literal `Origin: null` header. Keep `null` rejected:
+sandboxed iframes and `file://` pages can use it. Do not mirror this behavior
+to the backend API, which serves authenticated upload and content-key routes.
 
 ---
 
@@ -290,6 +556,32 @@ Maximum listeners allowed in one room.
 
 ---
 
+### `SIGNAL_TURN_CAPABILITY_SECRET`
+
+| Property     | Value                          |
+| ------------ | ------------------------------ |
+| **Type**     | Secret string, 32+ characters  |
+| **Required** | Production TURN                |
+| **Default**  | None                           |
+
+Shared only with the backend API's `TURN_CAPABILITY_SECRET`. The signaling
+service uses it to sign short-lived proof that a socket is currently a room
+host or listener. Keep it distinct from the relay's `TURN_REST_SECRET` and
+rotate the signaling and API values together.
+
+### `SIGNAL_TURN_CAPABILITY_TTL_MS`
+
+| Property     | Value                |
+| ------------ | -------------------- |
+| **Type**     | Integer milliseconds |
+| **Required** | No                   |
+| **Default**  | `120000`             |
+
+Lifetime of room-membership proof accepted by the TURN grant endpoint. Values
+are bounded between 30 seconds and 5 minutes.
+
+---
+
 ### `BULLETIN_ACCOUNT`
 
 | Property     | Value   |
@@ -300,6 +592,20 @@ Maximum listeners allowed in one room.
 
 Dev account used by web Bulletin scripts in local development or CI. Never use
 this as a production user fallback.
+
+---
+
+### `BULLETIN_GATEWAY_URL`
+
+| Property     | Value                                           |
+| ------------ | ----------------------------------------------- |
+| **Type**     | HTTP(S) URL prefix                              |
+| **Required** | No                                              |
+| **Default**  | `https://bulletin-kubo.tservices.es:9443/ipfs/` |
+
+Gateway URL prefix printed by `web/scripts/deploy-bulletin.cjs` after upload.
+It does not change the chain used for the upload; use `VITE_BULLETIN_WS_URL`
+for that.
 
 ---
 
@@ -327,7 +633,34 @@ Port the backend API listens on.
 | **Required** | Production              |
 | **Default**  | `http://localhost:5273` |
 
-Frontend origin allowed by backend CORS.
+Singular frontend origin allowed by backend CORS. This remains as a
+backwards-compatible fallback when `API_ORIGINS` is not set.
+
+---
+
+### `API_ORIGINS`
+
+| Property     | Value                                                                                                                                                                                                                        |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Type**     | Comma-separated URL origin list                                                                                                                                                                                              |
+| **Required** | Multiple hosted frontends                                                                                                                                                                                                    |
+| **Default**  | The single `API_ORIGIN` value                                                                                                                                                                                                |
+| **Example**  | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
+
+Exact frontend origins accepted by backend CORS. When set, it takes precedence
+over `API_ORIGIN`. Do not use `*`: the API carries authenticated upload and
+content-key routes.
+
+The Product Host execution origins are distinct from the public DotNS URL, so
+`https://dotify-test01.dev-dot.li`, `https://dotify-test01.app.dev-dot.li`,
+`https://dotify-test01.app.dot.li`, `https://dotify-test01.dot`, and
+`polkadot://dotify-test01.dot` must be present when observed. Do not replace
+the canonical `VITE_PUBLIC_APP_URL` with a host
+execution origin.
+
+On Fly, keep this value in `services/api/fly.toml`. Do not define
+`API_ORIGINS` as a Fly secret: secrets override `[env]` values and can leave
+the live API using a stale origin list after redeploy.
 
 ---
 
@@ -452,8 +785,55 @@ Number of chain-head blocks held back before catalog events are indexed.
 | **Required** | Server-side audio encryption and key delivery |
 | **Default**  | None                                          |
 
-Backend-only master secret used to derive per-track AES-256-GCM content keys.
-Never expose this value to the frontend.
+Backend-only compatibility secret used to derive AES-256-GCM content keys.
+When `CONTENT_KEY_MASTER_SECRETS` is not set, this value backs both
+`dotify-content-key-v1` legacy assets and `dotify-content-key-v2` release-bound
+assets. Never expose this value to the frontend.
+
+Keep an operator-side backup outside Fly before setting or rotating this value:
+Fly secrets can be overwritten or unset, but they cannot be read back as a
+recovery copy.
+
+---
+
+### `CONTENT_KEY_MASTER_SECRETS`
+
+| Property     | Value                                         |
+| ------------ | --------------------------------------------- |
+| **Type**     | JSON object: key version -> 32+ byte hex      |
+| **Required** | Only for explicit key-version rotation        |
+| **Default**  | None                                          |
+
+Backend-only retained key-version map. Use it when adding a future active
+version while keeping old releases decryptable:
+
+```json
+{
+  "dotify-content-key-v1": "<old-hex>",
+  "dotify-content-key-v2": "<old-hex>",
+  "dotify-content-key-v3": "<new-hex>"
+}
+```
+
+The backend accepts version names shaped as `dotify-content-key-vN`. Missing
+versions fail closed: a `key-v3` audio ref cannot be served by a service that
+does not retain `dotify-content-key-v3`.
+
+---
+
+### `CONTENT_KEY_ACTIVE_VERSION`
+
+| Property     | Value                    |
+| ------------ | ------------------------ |
+| **Type**     | `dotify-content-key-vN`  |
+| **Required** | No                       |
+| **Default**  | `dotify-content-key-v2`  |
+
+Content-key version used for new backend audio uploads. Do not change this
+without first configuring and backing up the matching entry in
+`CONTENT_KEY_MASTER_SECRETS`. Rotating the active version affects future
+uploads only; it does not revoke keys already delivered to clients and does not
+change older ciphertext.
 
 ---
 
@@ -466,6 +846,111 @@ Never expose this value to the frontend.
 | **Default**  | None                |
 
 Backend-only Pinata token for IPFS uploads.
+
+---
+
+### `UPLOAD_AUTH_TTL_SECONDS`
+
+| Property     | Value           |
+| ------------ | --------------- |
+| **Type**     | Integer seconds |
+| **Required** | No              |
+| **Default**  | `300`           |
+
+Lifetime of a single-use artist upload authorization. Each capability is bound
+to the signed-in address, configured chain, one asset purpose, one byte budget,
+and the current API process epoch.
+
+---
+
+### Upload quota variables
+
+| Variable                            | Default      | Scope                         |
+| ----------------------------------- | ------------ | ----------------------------- |
+| `UPLOAD_QUOTA_WINDOW_SECONDS`       | `3600`       | Rolling completed-byte window |
+| `UPLOAD_PRINCIPAL_BYTES_PER_WINDOW` | `209715200`  | One artist address            |
+| `UPLOAD_GLOBAL_BYTES_PER_WINDOW`    | `2147483648` | Entire API process            |
+| `UPLOAD_PRINCIPAL_CONCURRENCY`      | `2`          | Outstanding grants per artist |
+| `UPLOAD_GLOBAL_CONCURRENCY`         | `8`          | Outstanding grants globally   |
+
+Quota state is memory-only and intentionally supports one API instance. The
+tracked Fly configuration limits the service to one machine. A process restart
+clears counters and invalidates all outstanding upload authorizations and
+sessions; horizontal scaling requires a shared transactional quota and session
+store first.
+
+---
+
+### `TURN_URLS`
+
+| Property     | Value                                   |
+| ------------ | --------------------------------------- |
+| **Type**     | Comma-separated `turn:` / `turns:` list |
+| **Required** | Reliable production rooms               |
+| **Default**  | None                                    |
+
+Public TURN relay URLs returned by `GET /api/turn/grant`, for example
+`turn:turn.example.org:3478?transport=udp,turns:turn.example.org:443?transport=tcp`.
+This value is not secret, but it belongs on the API because the recommended
+credential path is server-minted.
+
+---
+
+### `TURN_REST_SECRET`
+
+| Property     | Value              |
+| ------------ | ------------------ |
+| **Type**     | Shared HMAC secret |
+| **Required** | Production TURN    |
+| **Default**  | None               |
+
+Backend-only secret shared with the TURN relay's REST authentication mechanism
+such as Coturn `static-auth-secret`. Dotify returns a short-lived username and
+HMAC-SHA1 credential from `/api/turn/grant`; it never returns this secret.
+
+---
+
+### `TURN_CAPABILITY_SECRET`
+
+| Property     | Value                         |
+| ------------ | ----------------------------- |
+| **Type**     | Secret string, 32+ characters |
+| **Required** | Production TURN               |
+| **Default**  | None                          |
+
+Backend verifier for the short-lived room-membership capability issued by
+signaling. Set it to the exact value of `SIGNAL_TURN_CAPABILITY_SECRET`, keep it
+distinct from `TURN_REST_SECRET`, and rotate both services together. The API
+returns no relay credential when this verifier is absent or the proof is
+missing, forged, malformed, or expired.
+
+---
+
+### `TURN_USERNAME`, `TURN_CREDENTIAL`
+
+| Property     | Value                         |
+| ------------ | ----------------------------- |
+| **Type**     | Static TURN username/password |
+| **Required** | No                            |
+| **Default**  | None                          |
+
+Fallback for rotated DevNet/static TURN credentials when `TURN_REST_SECRET` is
+not available. Prefer `TURN_REST_SECRET` for production because static
+credentials are replayable until rotated.
+
+---
+
+### `TURN_TTL_SECONDS`
+
+| Property     | Value           |
+| ------------ | --------------- |
+| **Type**     | Integer seconds |
+| **Required** | No              |
+| **Default**  | `3600`          |
+
+Lifetime used for `/api/turn/grant` responses. REST-mode credentials are
+embedded with this expiry in the username; static-mode credentials use it only
+as the client cache lifetime.
 
 ---
 
@@ -507,3 +992,16 @@ EVM RPC endpoint used by Hardhat.
 | **Default**  | `0`        |
 
 Set to `1` to skip Blockscout verification after deployment.
+
+### `VITE_DOTIFY_ARTIST_DONATIONS`
+
+Build-time opt-in (`on`; absent/off by default) for direct, amount-of-choice gifts
+on public artist profiles. Gifts use the release's registered artist account and
+do not grant access or apply a royalty split. Standalone wallets use a native EVM
+value transfer. Polkadot App also requires `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`
+and uses native `Balances.transfer_keep_alive`, with native chain precision and
+verified H160-to-account mapping. The support validation build opts in to both.
+No new contract, server, location permission or secret is required.
+See [artist gifts](../design/artist-gifts-2026-09-16.md) for trust/recovery limits and
+required physical-host validation before promotion. Rebuild without `on` to hide
+gifts; inspect pending account activity before clearing browser storage.

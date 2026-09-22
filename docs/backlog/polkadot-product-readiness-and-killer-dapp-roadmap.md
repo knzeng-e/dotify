@@ -1,15 +1,22 @@
 # Polkadot product readiness and killer dapp roadmap
 
-Status: active planning note, supersedes the stale draft from PR #91.
+Status: active execution note; the Product DevNet baseline is delivered on
+`dev` and remains tracked through Product compatibility issue #85.
 
-Last Product SDK verification: 2026-07-14 against
-`paritytech/product-sdk@2f359bba28ca72855207a0a519d4118b37b4438c`
-(`@parity/product-sdk` 0.17.0).
+Last Product SDK package check: 2026-09-12. Dotify currently pins
+`@parity/product-sdk` 0.27.0, host 0.19.1, statement-store 0.6.9,
+descriptors 0.11.0, and
+`@polkadot-community-foundation/polkadot-app-deploy` 0.16.2. This aligns the
+Product app bundle and descriptors with the September 2026 Product DevNet
+DotNS/CDM registry refresh. npm also publishes `polkadot-api` 3.0.0, but
+Dotify keeps root PAPI on 1.23.3 because the current Product SDK packages use
+PAPI 2.2.x and `@polkadot-apps` chain-client/keys/signer use PAPI 1.23.x. Root
+PAPI 3 remains blocked until the official SDK graph converges.
 
 ## Verdict
 
-Dotify should align with the Polkadot product ecosystem, but it should not
-replace its standalone production path with Product SDK assumptions yet.
+Dotify should align with the Polkadot product ecosystem without replacing its
+standalone production path with Product SDK assumptions.
 
 The right product shape is dual-mode:
 
@@ -23,6 +30,21 @@ The right product shape is dual-mode:
   product failure state. It must not fall back to demo secrets, hidden signers,
   or bypassed access checks.
 
+The first adaptive slice is now implemented:
+
+- a separate Product DevNet build and `dotify-test01.dot` manifest;
+- explicit Host detection and app-scoped Product account connection;
+- Product identity for room presence without claiming EVM/EIP-191 authority;
+- canonical `.dev-dot.li` room links;
+- shared Fly API/signaling allowlists for Netlify and Product origins;
+- Product Mobile WebRTC boundary detection with an external-browser
+  continuation when the host sandbox does not expose `RTCPeerConnection`;
+- a pinned build/deploy workflow and operator rollback guide.
+
+Typed runtime ports are now extracted in the follow-up branch. Product-native
+contract writes, Product-signed key requests, Product personhood, and Product
+presence transport remain gated follow-up work.
+
 ## Product ecosystem evidence
 
 The current Parity product direction is coherent: Levity for publishing,
@@ -35,9 +57,8 @@ The SDK details matter for Dotify:
 
 - Product SDK and Playground are explicitly prototype / reference / unaudited
   code.
-- Product SDK preset chains are live for Paseo and Summit. Polkadot and Kusama
-  preset paths are gated because Bulletin / Individuality descriptors are not
-  live there.
+- Product DevNet exposes the Asset Hub, People, and Bulletin system-chain
+  topology used by the current Product tooling.
 - Product SDK contract helpers target `pallet-revive`, PolkaVM artifacts, and
   CDM manifests. Dotify currently uses Hardhat Solidity, generated EVM ABIs,
   viem, and Paseo Asset Hub EVM RPCs.
@@ -107,9 +128,9 @@ testnet users.
   frontend public-env validation are delivered/closed.
 - #33 public injected-wallet/device validation is delivered/closed; Product
   host/account integration remains scoped to #85, not reopened here.
-- #86 cached catalog implementation is active: the browser uses one cacheable
-  API request, while the backend persists and reconciles SmartRuntime state.
-  Keep it open until review and public warm/cold p75 evidence are attached.
+- #86 cached catalog implementation is closed/record: the browser uses one
+  cacheable API request, while the backend persists and reconciles SmartRuntime
+  state. Residual first-sound and gateway evidence belongs to #88, not #86.
 - Validate DAV2 Range/MSE and fallback behavior across browsers and gateways
   through #88.
 - Decide whether a backend read-through gateway is needed for reliable first
@@ -122,6 +143,10 @@ Goal: deepen rooms without breaking the room-guest doctrine.
 
 - Preserve walletless guest entry for room listening.
 - Add TURN/SFU/reconnect only where it improves room reliability.
+- Keep TURN/network failures separate from Product Mobile runtime-capability
+  failures: missing `RTCPeerConnection` happens before ICE and cannot be fixed
+  by a relay. Upstream Product Mobile clarification is tracked in
+  [dotli-community#27](https://github.com/Polkadot-Community-Foundation/dotli-community/issues/27).
 - Keep Statement Store limited to host-signed presence/discovery until its
   constraints are solved for richer behavior.
 - Treat provenance and ambassador work as consent/anti-abuse design first,
@@ -131,24 +156,101 @@ Goal: deepen rooms without breaking the room-guest doctrine.
 
 Goal: prove the Product host path with small spikes before committing the app.
 
-- Pin Product SDK versions and add a compatibility matrix.
-- Detect Host availability and supported chain/capability surfaces.
-- Prototype Product account connection, signing, identity prompt behavior, and
-  resource allocation.
+- Delivered: pin Product SDK/deploy versions and add a compatibility matrix.
+- Delivered: detect Host availability without blocking standalone first sound.
+- Delivered: connect the app-scoped Product account only on explicit action and
+  separate identity capability from EVM signing capability.
+- Delivered: publishable Bulletin/DotNS build and dual-origin Fly boundary.
+- Delivered: align the Product SDK set with the 2026-08-26 npm latest at that
+  time while keeping standalone/Product builds green.
+- Remaining: prototype host transaction signing and resource allocation.
 - Compare Dotify's Hardhat/EVM runtime with Product SDK PolkaVM/CDM contracts.
-- Prototype Playground deployment against Dotify's single-file build and secret
-  boundary.
-- Prototype Statement Store presence with strict payload, TTL, and signer
-  limits.
+- Delivered on the room-beacon branch: Statement Store presence with strict
+  payload, TTL, and signer limits. Host-only publication, per-room last-write-
+  wins channels, 512-byte and 1024-byte budgets enforced before writing, and
+  expiry-based eviction on the reading side.
+- Delivered on the Product room-discovery follow-up: subscribe to those
+  beacons, adapt them into the existing room discovery surfaces, and prefer the
+  Socket.IO record when both transports announce the same room. The tracked
+  profile remains dormant (`VITE_DOTIFY_ROOM_BEACONS=off`) until a live host
+  round trip is captured. Joining stays on Socket.IO/WebRTC because moving it
+  would require every guest to hold an identity.
+- Planned as W27 / #214 after the pilot: treat Celerity and Statement Store as
+  the same realtime protocol, place the existing room layer behind a typed
+  transport port, and run Celerity in observation or dual-publish mode before
+  moving any social or session authority. Presence and reactions are the first
+  candidates; chat requires encryption and delivery semantics, player state
+  requires host-signed convergence, and join/capacity stays on Socket.IO until
+  an anonymous path with equivalent guarantees is proven.
 
 ### Phase 4 - Product integration
 
-Goal: ship Product mode as progressive enhancement.
+Goal: deepen the delivered Product mode one adapter at a time.
 
-- Add Product-mode adapters behind explicit ports, leaving standalone adapters
-  intact.
-- Use Host signing and Product accounts only when the Host path is available.
-- Surface Host permission denial as actionable UI state.
+- Delivered: keep standalone adapters intact and lazy-load Product host code.
+- Delivered: use the Product account as presence identity only when available.
+- Delivered: surface host absence and unsupported signer boundaries explicitly.
+- Delivered on the follow-up branch: extract typed runtime read/write ports and
+  move the current viem runtime implementation behind `RuntimeReadPort` /
+  `RuntimeWritePort`.
+- Delivered on the next follow-up branch: add an experimental CDM/PAPI adapter
+  behind those ports. It is not selected by default until Dotify has
+  CDM-installed Product runtime packages and host-signed transaction evidence.
+- Delivered on the next follow-up branch: add an API-side Product sr25519
+  signature scheme for key delivery and session sign-in. It binds the Product
+  account public key to the derived H160 requester before nonce consumption and
+  access checks.
+- Delivered on the next follow-up branch: wire Product-host frontend key and
+  session requests to that signature scheme.
+- Delivered on the next follow-up branch: generate the CDM manifest and typed
+  contract augmentation from the same Hardhat artifacts as the viem bindings,
+  and implement the real Product contract resolver behind the runtime ports.
+  Selection stays opt-in behind `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`.
+- Delivered on the next follow-up branch: route Classic unlock payments through
+  `RuntimeWritePort` instead of constructing a viem writer inside the catalog
+  hook. The tracked Product deployment still defaults to viem, but a
+  `product-cdm` build now changes the runtime write adapter at the same seam as
+  reads.
+- Delivered on the next follow-up branch: make Classic unlock payments a typed
+  native runtime payment intent before they reach `RuntimeWritePort`. The code
+  now has an explicit unsupported `product-cash` rail, so future CASH work can
+  add receipt/bridge settlement without pretending CASH is already executable
+  through `msg.value`.
+- Delivered on the next follow-up branch: Product CDM writes now verify both
+  the selected host signer public key and its derived `pallet-revive` H160
+  address against the Product account Dotify connected for key/session requests.
+  This prevents a Product-host transaction from marking access for a different
+  runtime account than the one the UI and backend authenticated.
+- Delivered on the next follow-up branch: Product CDM Classic unlocks now
+  perform a bounded post-inclusion read-back before showing success. A
+  `product-cdm` build polls `musicAccHasPaid(contentHash, listenerH160)` and
+  `musicAccCanAccess(contentHash, listenerH160)` for the connected Product
+  account, emits a `dotify:product-cdm-payment-smoke` evidence event, and keeps
+  the transaction hash visible if verification fails.
+- Delivered on `/product-cdm-host-smoke-evidence`: the debug Production
+  readiness panel now captures Product CDM payment read-back, native
+  `amountPlanck`, Product sr25519 session/key outcomes, and the operator-marked
+  host approval observation into a copyable JSON bundle. The bundle deliberately
+  omits content keys, signatures, nonces, and session tokens; real Product host
+  screenshots and backend logs are still required evidence.
+- Settled: the chain question. Product DevNet is a preset over the Paseo system
+  parachains (Asset Hub 1000, People 1004, Bulletin 1010) at EVM chain
+  420420417, not a separate network. Dotify's contracts are already there,
+  verified by byte-identical ArtistDirectory code served from both the DevNet
+  and Hub TestNet endpoints. No contract redeploy is needed to port to DevNet.
+  The SDK's `paseo` preset is Paseo Next (1500/1502), a different network, so
+  `devnet` is the only environment Dotify can serve a catalog from.
+- Next: run the real host-signed transaction smoke using that evidence bundle
+  before Product writes can replace the EVM wallet path. The remaining evidence
+  is native value forwarding, host approval UX, and a successful post-payment
+  read-back from inside the Product container.
+- Next: revisit root `polkadot-api` 3 after Product SDK and `@polkadot-apps`
+  packages publish on a compatible PAPI major line.
+- Next: confirm the Product-supported CASH settlement model before exposing any
+  native/CASH conversion, bridge, or receipt UI. Dotify must keep runtime access
+  grants tied to verifiable settlement evidence.
+- Next: run real Product host smoke tests for protected playback and attach the
+  Product sr25519 request evidence bundle with backend logs.
 - Keep backend key delivery authoritative unless a Product-host design proves a
   stronger key-custody boundary.
 - Keep `.dot`/Playground deployment separate from access enforcement.
@@ -189,7 +291,7 @@ Use this workflow to keep the board and local backlog synchronized:
    cards.
 6. PRs run `node scripts/backlog-sync.mjs --check --offline`.
 7. Manual/scheduled project audits run `node scripts/backlog-sync.mjs --check
-   --live` with a user-scoped `PROJECT_SYNC_TOKEN`.
+--live` with a user-scoped `PROJECT_SYNC_TOKEN`.
 8. Closing an issue moves it to Done; reopening moves it to Todo; labels and
    Project fields identify track, phase, type, priority, and source doc.
 
@@ -219,10 +321,12 @@ Recommended Project 5 fields:
 - #36: closed after hosted signaling operation evidence.
 - #37: closed after #99 and manually checked deploy-host production env
   evidence.
-- #85: split into Product SDK baseline, contract portability, Playground deploy,
-  Statement Store presence, and integration adapter spikes.
-- #86: implementation active on `codex/86-catalog-read-model`; keep In Progress
-  until review and public performance evidence close the warm/cold budgets.
+- #85: Product SDK baseline, Product DevNet deployment slice, and typed runtime
+  port extraction implemented; keep open for CDM/PAPI contract portability,
+  backend Product signatures, resource allocation, and bounded Statement Store
+  presence.
+- #86: closed/record after the cached catalog read model landed. Do not reopen
+  it for DAV2 or gateway timing; those budgets belong to #88.
 - #87: keep for responsive cover/gateway pipeline.
 - #88: keep for DAV2 startup and backend read-through gateway decision.
 - #89: keep for TURN/SFU/reconnect; constrain Statement Store to presence.

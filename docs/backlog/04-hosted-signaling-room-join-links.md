@@ -33,7 +33,9 @@ Room playback uses **host-based access**.
 
 - If a room track is public, the host can stream the full track.
 - If a room track is protected and the host has access, the host receives the temporary key and streams the full track to listeners through WebRTC.
-- If a room track is protected and the host does **not** have access, Dotify plays the 42% preview, shows a discreet host-facing notice/CTA, then automatically advances to the next playlist track.
+- If a room track is protected and the host does **not** have access, Dotify
+  keeps the room open but streams no protected audio until the host unlocks,
+  proves the required access, or selects a playable track.
 - Listeners do not need to connect a wallet, sign, pay, or prove access merely to listen inside a room.
 - Listeners do not receive the protected source file or decryption key; they only receive the ephemeral WebRTC stream.
 
@@ -81,11 +83,11 @@ https://<app>/rooms/<roomId>
   - host left;
   - room expired;
   - unsupported browser;
-  - host preview mode.
+  - host access blocked.
 - Host-facing protected-track states:
   - checking host access;
   - full stream available;
-  - preview fallback;
+  - no protected stream;
   - unlock full stream CTA;
   - personhood required CTA.
 
@@ -114,7 +116,8 @@ Room listeners never receive content keys or encrypted source files.
 - Room metadata exposes current track, playback mode (`full` or `preview`), and whether listeners need wallet access (`false` for room playback).
 - Protected room tracks check host access only.
 - Authorized host streams full protected track.
-- Unauthorized host fallback plays 42% preview, shows a discreet host CTA to unlock/personhood, then auto-advances.
+- Unauthorized host fallback streams no protected audio and shows a discreet
+  host CTA to unlock/personhood or choose another playable track.
 - Room disappears after host disconnect or expiry.
 - UI displays clear error when signaling URL is unavailable.
 - README documents hosted signaling deployment and host-based room access.
@@ -150,7 +153,10 @@ Benchmark Jukebox Duo / Spotify Jam simplicity: room creation must feel like sha
   - share links use `#/rooms/<roomId>` (legacy `#/?room=` still parses); landing on a link auto-joins with zero wallet friction;
   - listener auto-rejoin after a socket reconnect ("Reconnecting" state); `room:closed` clears room state so dead rooms are not rejoined, with the reason ("Host left the room", "Room expired", "Host connection lost") surfaced;
   - host emits `room:playback-mode` when selecting a track (preview vs full); listeners see "Host preview mode"; the rooms list shows a preview chip;
-  - unauthorized host preview now auto-advances to the next catalog track at the 42% cutoff while the unlock CTA stays visible (room is never blocked);
+  - unauthorized host preview originally auto-advanced to the next catalog track
+    at the 42% cutoff while the unlock CTA stayed visible. Ticket 24 later
+    retired this preview behavior: current unauthorized protected playback
+    streams no audio and keeps the host-facing gate visible;
   - host heartbeat while hosting an open room.
 
 ### Decisions
@@ -163,7 +169,13 @@ Benchmark Jukebox Duo / Spotify Jam simplicity: room creation must feel like sha
 
 - The signaling server relays SDP/ICE and room metadata only; it cannot verify what audio the host actually streams. `playbackMode` is host-declared.
 - WebRTC listeners can hear and record the stream. The protection boundary remains: no content keys, no encrypted source files for listeners.
-- For reliable rooms across symmetric NAT, deploy a TURN relay (`VITE_TURN_URL`).
+- For reliable rooms across symmetric NAT, deploy a TURN relay. Prefer API
+  TURN grants (`TURN_URLS` + `TURN_REST_SECRET`) over browser-visible
+  `VITE_TURN_*` credentials.
+- TURN cannot compensate for a host that removes `RTCPeerConnection` before ICE
+  starts. The current iOS Product sandbox has this boundary; Dotify provides an
+  external-browser continuation, while native in-app room audio remains an
+  upstream Product host capability dependency.
 
 ## Operation evidence update (2026-07-17)
 

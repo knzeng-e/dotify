@@ -17,14 +17,28 @@ type RoomJoinE2eState = {
   replaceTrackSwaps: number;
   captureTrackStops: number;
   webAudioCaptures: number;
+  webAudioCaptureCloses: number;
   webAudioMonitorGain: number;
   streamReadySignals: number;
   remotePlaybackCues: number;
 };
 
+type RoomQualitySnapshot = {
+  events: {
+    phase: string;
+    role: string;
+    elapsedMs?: number;
+    stats?: { relay?: boolean | null };
+  }[];
+  latestJoinToConnectedMs: number | null;
+  latestRemoteAudioMs: number | null;
+  relayConnectionCount: number;
+};
+
 declare global {
   interface Window {
     __DOTIFY_E2E_ROOM_JOIN__?: RoomJoinE2eState;
+    __DOTIFY_ROOM_QUALITY__?: { snapshot: () => RoomQualitySnapshot };
   }
 }
 
@@ -38,23 +52,105 @@ async function readRoomJoinState(page: Page) {
   return page.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__);
 }
 
+async function readRoomQuality(page: Page) {
+  return page.evaluate(() => window.__DOTIFY_ROOM_QUALITY__?.snapshot());
+}
+
 // Host: open a deterministic e2e track and broadcast it as a room. Returns the
 // server-assigned room code so a listener context can join via its share link.
-async function openHostRoom(page: Page, scenario: HostScenario, trackTitle: string, options: { captureMode?: HostCaptureMode } = {}) {
+async function openHostRoom(
+  page: Page,
+  scenario: HostScenario,
+  trackTitle: string,
+  options: { captureMode?: HostCaptureMode; offerDelayMs?: number; catalogSequence?: boolean; autoplay?: boolean } = {}
+) {
   const params = new URLSearchParams({ e2eRoom: scenario });
   if (options.captureMode) params.set('e2eCapture', options.captureMode);
+  if (options.offerDelayMs) params.set('e2eOfferDelayMs', String(options.offerDelayMs));
+  if (options.catalogSequence) params.set('e2eCatalog', 'sequence');
+  if (options.autoplay) params.set('e2eAutoplay', 'on');
   await page.goto(`/?${params.toString()}`);
   // Open the room straight from the create-room modal so an unauthorized
   // protected track does not raise an access-gate overlay over the player
   // before the room exists. Pick the track inside the modal, then open.
   await page.getByRole('button', { name: 'Open a room' }).click();
   await page.getByRole('button', { name: `Select ${trackTitle}` }).click();
+  await page.getByLabel('Your name in the room').fill('Room host');
   await page.getByRole('button', { name: 'Open the room' }).click();
 
   const roomCode = page.getByTestId('room-code');
   await expect(roomCode).toHaveText(/[A-Z0-9]{4,}/, { timeout: 15_000 });
   return (await roomCode.textContent())?.trim() ?? '';
 }
+
+test('host lineup is shared, advances on track end, and Previous follows real history', async ({ browser }, testInfo) => {
+  const hostContext = await browser.newContext();
+  const listenerContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const host = await hostContext.newPage();
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { captureMode: 'web-audio', catalogSequence: true });
+
+    const hostPeople = host.getByRole('tab', { name: /People/ });
+    if (await hostPeople.isVisible()) await hostPeople.click();
+    await host.locator('.host-lineup summary').click();
+    await host.getByLabel('Add from the catalog').selectOption('e2e-room-public-sequence');
+    await host.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(host.locator('.host-lineup')).toContainText('Second room track');
+
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
+    const listenerPeople = listener.getByRole('tab', { name: /People/ });
+    if (await listenerPeople.isVisible()) await listenerPeople.click();
+    await expect(listener.locator('.host-lineup summary')).toContainText('Second room track');
+    await Promise.all([
+      host.screenshot({ path: testInfo.outputPath('host-lineup-desktop.png'), fullPage: true }),
+      listener.screenshot({ path: testInfo.outputPath('listener-lineup-mobile.png'), fullPage: true })
+    ]);
+
+    await host.locator('audio.native-player-source').first().dispatchEvent('ended');
+    await expect(listener.locator('.track-copy h2')).toHaveText('Second room track', { timeout: 20_000 });
+    await expect(listener.locator('.host-lineup summary')).toContainText('Nothing queued');
+
+    await host.getByRole('button', { name: 'Previous track' }).click();
+    await expect(listener.locator('.track-copy h2')).toHaveText(PUBLIC_TITLE, { timeout: 20_000 });
+  } finally {
+    await hostContext.close();
+    await listenerContext.close();
+  }
+});
+
+test('rapid host Next commands consume distinct lineup entries', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  try {
+    const host = await hostContext.newPage();
+    await openHostRoom(host, 'public', PUBLIC_TITLE, { catalogSequence: true });
+
+    const hostPeople = host.getByRole('tab', { name: /People/ });
+    if (await hostPeople.isVisible()) await hostPeople.click();
+    await host.locator('.host-lineup summary').click();
+    const picker = host.getByLabel('Add from the catalog');
+    const add = host.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true });
+    await picker.selectOption('e2e-room-public-sequence');
+    await add.click();
+    await picker.selectOption({ label: `${PROTECTED_TITLE} — Dotify Room Host` });
+    await add.click();
+    await expect(host.locator('.host-lineup ol > li')).toHaveCount(2);
+
+    // Same-task clicks reproduce hardware media keys or rapid touch input
+    // before React can render the signaling echo.
+    await host
+      .locator('.host-lineup-actions')
+      .getByRole('button', { name: 'Play next' })
+      .evaluate(button => {
+        (button as HTMLButtonElement).click();
+        (button as HTMLButtonElement).click();
+      });
+
+    await expect(host.locator('.host-lineup summary')).toContainText('Nothing queued');
+    await expect(host.locator('.track-copy h2')).toHaveText(PROTECTED_TITLE);
+  } finally {
+    await hostContext.close();
+  }
+});
 
 type JoinAsListenerOptions = {
   storedDisplayName?: string;
@@ -84,16 +180,12 @@ async function joinAsListener(context: BrowserContext, roomId: string, options: 
   if (options.delaySignalMessagesMs) {
     // Socket.IO can satisfy the room lookup over its polling transport before
     // the WebSocket delay is visible, so this delayed path may already have
-    // reached the join sheet. If the loading affordance is observable, it must
-    // still be disabled.
+    // reached the join sheet. The durable contract is that lookup resolves to
+    // the room threshold sheet before the guest chooses a display name.
     await expect(page.locator('#join-room-title')).toHaveText(/Finding this room|welcomes you/);
-    const findingButton = page.getByRole('button', { name: 'Finding room...' });
-    if (await findingButton.isVisible().catch(() => false)) {
-      await expect(findingButton).toBeDisabled();
-    }
   }
   if (options.displayName) {
-    await expect(page.locator('#join-room-title')).toContainText('welcomes you');
+    await expect(page.locator('#join-room-title')).toContainText('welcomes you', { timeout: 15_000 });
     await expect(page.locator('.room-threshold-preview')).toBeVisible();
     await expect(page.locator('.room-threshold-code')).toContainText(roomId);
     await expect(page.getByRole('button', { name: 'Enter and listen' })).toBeDisabled();
@@ -128,6 +220,24 @@ async function removeMediaElementCaptureSupport(context: BrowserContext) {
   });
 }
 
+async function blockFirstRemoteStreamAutoplay(context: BrowserContext) {
+  await context.addInitScript(() => {
+    const nativePlay = HTMLMediaElement.prototype.play;
+    let blocked = false;
+
+    HTMLMediaElement.prototype.play = function playWithBlockedFirstRemoteStream() {
+      const remoteAudio = document.querySelectorAll<HTMLAudioElement>('audio.native-player-source')[1];
+      if (!blocked && remoteAudio === this) {
+        blocked = true;
+        this.pause();
+        return Promise.reject(new DOMException('Autoplay blocked in Product iframe', 'NotAllowedError'));
+      }
+
+      return nativePlay.call(this);
+    };
+  });
+}
+
 test('public room: listener joins via link, hears full playback, no wallet, no content key', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();
@@ -144,6 +254,18 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await expect(listener.getByRole('button', { name: 'Connect' })).toBeVisible();
     // Real WebRTC stream reaches the listener.
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await expect
+      .poll(async () => {
+        const quality = await readRoomQuality(listener);
+        return Boolean(quality?.events.some(event => event.phase === 'room-joined') && quality.latestRemoteAudioMs !== null);
+      })
+      .toBe(true);
+    await expect
+      .poll(async () => {
+        const quality = await readRoomQuality(host);
+        return Boolean(quality?.events.some(event => event.phase === 'offer-sent'));
+      })
+      .toBe(true);
     await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
     await expectRoomGuestAccessBoundary(listener);
     await expect(host.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
@@ -156,6 +278,7 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await expect(secondListener.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
     await expect(secondListener.locator('.listener-list')).toContainText('Zed', { timeout: 20_000 });
 
+    await listener.getByRole('tab', { name: /People/ }).click();
     await listener.getByLabel('Your room name').fill('Nia');
     await listener.getByRole('button', { name: 'Update room name' }).click();
     await expect(host.locator('.listener-list')).toContainText('Nia', { timeout: 20_000 });
@@ -168,6 +291,54 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await hostContext.close();
     await listenerContext.close();
     await secondListenerContext.close();
+  }
+});
+
+test('embedded Product Web guest sees a live room before media permission', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const listenerContext = await browser.newContext();
+  try {
+    const host = await hostContext.newPage();
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE);
+
+    const listenerHost = await listenerContext.newPage();
+    await listenerHost.goto('/');
+    await listenerHost.evaluate(() => window.localStorage.setItem('dotify:display-name:guest', 'Product guest'));
+    await listenerHost.setContent(`<iframe title="Product Web" src="${new URL(`/#/rooms/${roomId}`, listenerHost.url())}"></iframe>`);
+
+    const embeddedDotify = listenerHost.frameLocator('iframe[title="Product Web"]');
+    await expect(embeddedDotify.locator('#join-room-title')).toContainText('welcomes you', { timeout: 15_000 });
+    await expect(embeddedDotify.locator('.room-threshold-preview')).toContainText(PUBLIC_TITLE);
+    await expect(embeddedDotify.getByLabel('Your name in the room')).toHaveValue('Product guest');
+    await expect(embeddedDotify.getByRole('button', { name: 'Enter and listen' })).toBeEnabled();
+  } finally {
+    await hostContext.close();
+    await listenerContext.close();
+  }
+});
+
+test('public room: listener can manually start audio when embedded autoplay is blocked', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const listenerContext = await browser.newContext();
+  try {
+    await blockFirstRemoteStreamAutoplay(listenerContext);
+
+    const host = await hostContext.newPage();
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE);
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Product guest' });
+
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    const startAudio = listener.getByRole('button', { name: 'Start audio' });
+    await expect(startAudio).toBeVisible({ timeout: 15_000 });
+    await listener.waitForTimeout(2_000);
+    await expect(startAudio).toBeVisible();
+
+    await startAudio.click();
+    await expectRemoteAudioPlaying(listener);
+    await expect(listener.getByTestId('session-error')).toHaveCount(0);
+  } finally {
+    await hostContext.close();
+    await listenerContext.close();
   }
 });
 
@@ -208,12 +379,55 @@ test('public room: mobile-style host without captureStream uses Web Audio captur
   }
 });
 
+test('Product Mobile without RTCPeerConnection sends room audio to the external browser', async ({ browser }) => {
+  const context = await browser.newContext();
+  try {
+    await context.addInitScript(() => {
+      Object.defineProperty(window, '__HOST_WEBVIEW_MARK__', { value: true, configurable: true });
+      Object.defineProperty(window, 'RTCPeerConnection', { value: undefined, configurable: true });
+    });
+    const page = await context.newPage();
+    await page.goto('/?e2eRoom=public');
+
+    await page.getByRole('button', { name: 'Open a room' }).click();
+    await page.getByRole('button', { name: `Select ${PUBLIC_TITLE}` }).click();
+    await page.getByLabel('Your name in the room').fill('Room host');
+    await page.getByRole('button', { name: 'Open the room' }).click();
+
+    await expect(page.getByTestId('session-error')).toContainText('does not expose Product WebRTC');
+    await expect(page.getByRole('button', { name: 'Open Dotify in browser' })).toBeVisible();
+    await expect(page.getByTestId('room-code')).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
+test('public room: listener keeps trickled ICE candidates that arrive before the host offer', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const listenerContext = await browser.newContext();
+  try {
+    const host = await hostContext.newPage();
+    // The e2e harness snapshots an SDP without embedded candidates and delays
+    // the offer. Real host candidates therefore arrive first, matching Product
+    // Mobile Fetch polling and exercising the pre-offer candidate queue.
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { offerDelayMs: 800 });
+    const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Early ICE guest' });
+
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await expectRemoteAudioPlaying(listener);
+    await expect(listener.getByTestId('session-error')).toHaveCount(0);
+  } finally {
+    await hostContext.close();
+    await listenerContext.close();
+  }
+});
+
 test('protected room with authorized host: host gets the key, listener streams full without one', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();
   try {
     const host = await hostContext.newPage();
-    const roomId = await openHostRoom(host, 'protected-authorized', PROTECTED_TITLE);
+    const roomId = await openHostRoom(host, 'protected-authorized', PROTECTED_TITLE, { captureMode: 'web-audio' });
     await expect(host.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
 
     // The host satisfied the policy and received a content key.
@@ -232,6 +446,7 @@ test('protected room with authorized host: host gets the key, listener streams f
     expect(stateBeforeSwitch?.offers ?? 0).toBeGreaterThanOrEqual(1);
     expect(stateBeforeSwitch?.replaceTrackSwaps ?? 0).toBe(0);
     expect(stateBeforeSwitch?.captureTrackStops ?? 0).toBe(0);
+    expect(stateBeforeSwitch?.webAudioCaptureCloses ?? 0).toBe(0);
 
     await host.getByRole('button', { name: 'Next track' }).click();
     await host.getByRole('button', { name: 'Play', exact: true }).click();
@@ -241,14 +456,15 @@ test('protected room with authorized host: host gets the key, listener streams f
     await expectRemoteAudioPlaying(listener);
 
     const stateAfterSwitch = await readRoomJoinState(host);
-    expect(stateAfterSwitch?.offers ?? 0).toBeGreaterThan(stateBeforeSwitch?.offers ?? 0);
+    // Source changes keep the negotiated receiver instead of rebuilding it.
+    expect(stateAfterSwitch?.offers ?? 0).toBe(stateBeforeSwitch?.offers ?? 0);
     expect(stateAfterSwitch?.replaceTrackSwaps ?? 0).toBeGreaterThanOrEqual(stateBeforeSwitch?.replaceTrackSwaps ?? 0);
     expect(stateAfterSwitch?.captureTrackStops ?? 0).toBe(0);
+    expect(stateAfterSwitch?.webAudioCaptureCloses ?? 0).toBeGreaterThan(stateBeforeSwitch?.webAudioCaptureCloses ?? 0);
     expect(stateAfterSwitch?.streamReadySignals ?? 0).toBeGreaterThan(stateBeforeSwitch?.streamReadySignals ?? 0);
 
-    // Switch back as well: source changes renegotiate a fresh WebRTC offer.
-    // Same-source recapture may still use replaceTrack, but the room must never
-    // stop browser-owned capture tracks and leave the listener on silent media.
+    // Switching back also preserves the receiver. Source replacement retires
+    // the old Web Audio graph only after its sender has moved to the new track.
     await host.getByRole('button', { name: 'Previous track' }).click();
     await host.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
@@ -256,9 +472,10 @@ test('protected room with authorized host: host gets the key, listener streams f
     await expectRemoteAudioPlaying(listener);
 
     const stateAfterReturn = await readRoomJoinState(host);
-    expect(stateAfterReturn?.offers ?? 0).toBeGreaterThan(stateAfterSwitch?.offers ?? 0);
+    expect(stateAfterReturn?.offers ?? 0).toBe(stateAfterSwitch?.offers ?? 0);
     expect(stateAfterReturn?.replaceTrackSwaps ?? 0).toBeGreaterThanOrEqual(stateAfterSwitch?.replaceTrackSwaps ?? 0);
     expect(stateAfterReturn?.captureTrackStops ?? 0).toBe(0);
+    expect(stateAfterReturn?.webAudioCaptureCloses ?? 0).toBeGreaterThan(stateAfterSwitch?.webAudioCaptureCloses ?? 0);
     expect(stateAfterReturn?.streamReadySignals ?? 0).toBeGreaterThan(stateAfterSwitch?.streamReadySignals ?? 0);
 
     const listenerAfterReturn = await readRoomJoinState(listener);
@@ -290,7 +507,7 @@ test('protected room with unauthorized host: no stream, no keys, host moves to a
     // The listener can be in the room, but with no stream they are connected,
     // not in sync.
     const listener = await joinAsListener(listenerContext, roomId, { displayName: 'Rin' });
-    await expect(listener.getByTestId('room-listener-sync')).toHaveText('Connecting...', { timeout: 20_000 });
+    await expect(listener.getByTestId('room-listener-sync')).toHaveText('Waiting for host', { timeout: 20_000 });
 
     // The host dismisses the gate and moves the room to the public track;
     // playback starts on the explicit Play (e2e disables autoplay).
@@ -312,23 +529,44 @@ test('protected room with unauthorized host: no stream, no keys, host moves to a
   }
 });
 
-test('host disconnect: the room is removed and the listener sees a clear closed state', async ({ browser }) => {
+test('host explicitly closes: the room is removed and the listener sees a clear closed state', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();
   try {
     const host = await hostContext.newPage();
-    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE);
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { captureMode: 'web-audio', catalogSequence: true });
 
     const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
 
-    // Host leaves: closing the context disconnects the host socket, so the
-    // server removes the room (no zombie) and notifies the listener.
-    await hostContext.close();
+    // An explicit close is authoritative and bypasses the transient transport
+    // resume window, so listeners are notified immediately.
+    await host.getByRole('tab', { name: /People/ }).click();
+    await host.getByRole('button', { name: 'Close room' }).click();
 
     await expect(listener.getByTestId('session-error')).toContainText(/host left|room closed|expired/i, { timeout: 20_000 });
+    await expect(listener.getByRole('button', { name: 'Try another room', exact: true })).toBeVisible();
     // The room is gone from the listener UI (no lingering room code).
     await expect(listener.getByTestId('room-code')).toHaveCount(0);
+
+    const stateAfterClose = await readRoomJoinState(host);
+    expect(stateAfterClose?.webAudioCaptureCloses ?? 0).toBe(0);
+
+    // Reopening on the same element/source reuses the retained live capture
+    // and must restore the host-ready UI even though no new media event fires.
+    await host.getByRole('button', { name: 'Open room', exact: true }).click();
+    await host.getByLabel('Your name in the room').fill('Room host');
+    await host.getByRole('button', { name: 'Open the room', exact: true }).click();
+    await expect(host.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/, { timeout: 15_000 });
+    await expect(host.locator('.player-stage .cover')).toHaveAttribute('data-live', 'true');
+    await host.getByRole('tab', { name: /People/ }).click();
+    await host.getByRole('button', { name: 'Close room' }).click();
+
+    // Once solo playback moves to another source generation, the retained
+    // capture owner is finally retired and its Web Audio graph is closed.
+    await host.getByRole('button', { name: 'Music', exact: true }).click();
+    await host.getByRole('button', { name: /^Play Second room track by Dotify Room Host,/ }).click();
+    await expect.poll(async () => (await readRoomJoinState(host))?.webAudioCaptureCloses ?? 0).toBeGreaterThan(0);
   } finally {
     await hostContext.close().catch(() => {});
     await listenerContext.close();

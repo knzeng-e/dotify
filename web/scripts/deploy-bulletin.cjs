@@ -22,8 +22,9 @@ const { sr25519CreateDerive } = require(path.join(nm, '@polkadot-labs/hdkd'));
 const { DEV_PHRASE, entropyToMiniSecret, mnemonicToEntropy, ss58Address } = require(path.join(nm, '@polkadot-labs/hdkd-helpers'));
 const { getPolkadotSigner } = require(path.join(nm, 'polkadot-api/dist/reexports/signer.js'));
 
-const BULLETIN_WS = process.env.VITE_BULLETIN_WS_URL || 'wss://paseo-bulletin-rpc.polkadot.io';
-const GATEWAY = 'https://paseo-ipfs.polkadot.io/ipfs/';
+// Product DevNet Bulletin (Paseo Bulletin, para 1010).
+const BULLETIN_WS = process.env.VITE_BULLETIN_WS_URL || 'wss://bulletin-paseo.tservices.es:8443';
+const GATEWAY = process.env.BULLETIN_GATEWAY_URL || 'https://bulletin-kubo.tservices.es:9443/ipfs/';
 const UPLOAD_TIMEOUT_MS = 120_000;
 const HTML_PATH = path.resolve(__dirname, '../dist-bulletin/index.html');
 
@@ -41,10 +42,16 @@ function base32lower(bytes) {
   return out;
 }
 
+// Multihash code for blake2b-256 is 0xb220, which is 45600 and therefore needs three
+// varint bytes: 0xa0 0xe4 0x02. The single byte 0x1e used here previously is blake3 - an
+// algorithm the Bulletin Chain does not even accept - so the digest was correct but
+// tagged as the wrong function, and the resulting CID resolved nowhere. Verified against
+// @parity/bulletin-sdk `calculateCid(bytes, 0x55, 45600)`, which produces this prefix.
+const BLAKE2B_256_MULTIHASH = [0xa0, 0xe4, 0x02, 0x20];
+
 function cidFromBytes(bytes) {
   const hash = blake2b(bytes, null, 32);
-  const mh = new Uint8Array([0x1e, 0x20, ...hash]); // blake2b-256 multihash
-  const cid = new Uint8Array([0x01, 0x55, ...mh]);   // CIDv1 + raw codec
+  const cid = new Uint8Array([0x01, 0x55, ...BLAKE2B_256_MULTIHASH, ...hash]); // CIDv1 + raw codec
   return 'b' + base32lower(cid);
 }
 

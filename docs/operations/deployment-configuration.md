@@ -1,7 +1,7 @@
 # Deployment Configuration Runbook
 
 This runbook is the operator checklist for Dotify's hosted configuration across
-Netlify and Fly.io. Use it when changing dashboard values, deploy contexts,
+Netlify, Product DevNet, and Fly.io. Use it when changing dashboard values, deploy contexts,
 `*.toml` settings, hosted origins, secrets, catalog persistence, or production
 smoke settings.
 
@@ -25,26 +25,61 @@ Keep this document aligned with
 `docs/reference/environment-variables.md`, `web/README.md`, the relevant
 `docs/backlog/XX-*.md` ticket, and the hosted dashboard state.
 
+## Playback synchronization verification
+
+The [room clock fix](../explanation/room-playback-synchronization.md) changes
+signaling behavior without new configuration or storage. Release the signaling
+server and ordinary/Product frontend builds together for fresh late-join
+snapshots and pause silencing; refresh host and guest clients. Rollback uses the
+previous builds and requires no migration.
+
+After release, join halfway through a track from a second device, seek in both
+directions, and repeat pause/resume while comparing the two progress indicators.
+Confirm silence during pause and continued sound after resume. Test foreground,
+background, and relay-only paths: a missing playing update for 2.5 seconds now
+silences guest output and shows "Syncing with host" until fresh state arrives.
+A late join must show the same interrupted state, not "Host paused". Also seek
+while paused with a busy signaling transport: the forced command must arrive
+after the transport drains, without requiring playback to resume.
+Record device/browser and drift; local Chromium coverage does not establish
+physical-device acoustic synchronization.
+
 ## Hosted Surfaces
 
-| Surface | Host | App/project | Source config | Purpose |
-| --- | --- | --- | --- | --- |
-| Frontend | Netlify | `muzinga` | `netlify.toml` | Static Vite web app |
-| Backend API | Fly.io | `dotify-api` | `services/api/fly.toml` | Uploads, key delivery, catalog read model, health |
-| Signaling | Fly.io | `dotify-signal` | `web/fly.signal.toml` | Socket.IO room discovery and WebRTC signaling |
+| Surface          | Host                                  | App/project         | Source config                                                  | Purpose                                           |
+| ---------------- | ------------------------------------- | ------------------- | -------------------------------------------------------------- | ------------------------------------------------- |
+| Frontend         | Netlify                               | `muzinga`           | `netlify.toml`                                                 | Static Vite web app                               |
+| Product frontend | Bulletin + DotNS                      | `dotify-test01.dot` | `web/.env.product-devnet`, `web/polkadot-app-deploy.config.ts` | Product-host static app                           |
+| Backend API      | Fly.io                                | `dotify-api`        | `services/api/fly.toml`                                        | Uploads, key delivery, catalog read model, health |
+| Signaling        | Fly.io                                | `dotify-signal`     | `web/fly.signal.toml`                                          | Socket.IO room discovery and WebRTC signaling     |
+| TURN relay       | Managed provider or self-hosted relay | TBD                 | Backend `TURN_*` env                                           | WebRTC media relay for restrictive networks       |
 
 Production URLs currently assumed by the app and docs:
 
 ```txt
-Frontend:       https://<netlify-or-custom-domain>
-Backend API:    https://dotify-api.fly.dev
-Signaling:      https://dotify-signal.fly.dev
-IPFS gateway:   https://paseo-ipfs.polkadot.io
-Asset Hub RPC:  https://eth-rpc-testnet.polkadot.io/
+Standalone:          https://muzinga.netlify.app
+Product public URL:  https://dotify-test01.dev-dot.li
+Product Host origin: https://dotify-test01.app.dev-dot.li
+Product Host dot.li: https://dotify-test01.app.dot.li
+Product mobile origin: https://dotify-test01.dot
+Product mobile native: polkadot://dotify-test01.dot
+Backend API:         https://dotify-api.fly.dev
+Signaling:           https://dotify-signal.fly.dev
+Product IPFS:        https://devnet-ipfs.api.polkadotcommunity.foundation
+Track asset IPFS:    https://gateway.pinata.cloud, https://ipfs.io, https://dweb.link
+Asset Hub RPC:       https://eth-rpc-testnet.polkadot.io/
 ```
 
-Use the exact current frontend origin for CORS and signaling origin values. Do
-not include a trailing slash.
+Use the exact current frontend origins for CORS and signaling values. Do not
+include a trailing slash. The Product URL visible in the browser remains
+`dotify-test01.dev-dot.li`, but the Host executes the Product inside an HTTPS
+iframe whose requests carry `Origin: https://dotify-test01.app.dev-dot.li`.
+Product host requests have also been observed from
+`Origin: https://dotify-test01.app.dot.li`, and Product mobile host webviews can
+carry `Origin: https://dotify-test01.dot` or
+`Origin: polkadot://dotify-test01.dot`. Allow all observed exact Product
+origins; keep `VITE_PUBLIC_APP_URL` on the public URL so shared room links do
+not expose the internal execution origin.
 
 ## Security Boundary
 
@@ -63,10 +98,16 @@ Keep production upload and key material server-side on Fly:
 ```txt
 PINATA_JWT
 CONTENT_KEY_MASTER_SECRET
+CONTENT_KEY_MASTER_SECRETS
+CONTENT_KEY_ACTIVE_VERSION
 ```
 
-`CONTENT_KEY_MASTER_SECRET` derives per-track keys. Do not rotate it casually:
-rotating it changes the key derivation boundary for existing tracks.
+`CONTENT_KEY_MASTER_SECRET` is the compatibility secret for existing v1/v2 key
+derivation. `CONTENT_KEY_MASTER_SECRETS` is the optional retained version map,
+and `CONTENT_KEY_ACTIVE_VERSION` selects which version encrypts new backend
+uploads. Do not remove an old version until every release encrypted with it has
+been re-encrypted and republished; the API fails closed instead of guessing a
+different secret.
 
 ## Netlify Frontend
 
@@ -82,43 +123,237 @@ uses them.
 
 Build settings for the repo-root Netlify site:
 
-| Setting | Value |
-| --- | --- |
-| Base directory | `web` |
-| Build command | `npm run build` |
+| Setting           | Value                                                                 |
+| ----------------- | --------------------------------------------------------------------- |
+| Base directory    | `web`                                                                 |
+| Build command     | `npm run build`                                                       |
 | Publish directory | `web/dist` in the UI, equivalent to `dist` relative to `base = "web"` |
-| Node version | `22` |
+| Node version      | `22`                                                                  |
 
 Required production variables:
 
-| Key | Value | Notes |
-| --- | --- | --- |
-| `VITE_DOTIFY_DEPLOYMENT` | `production` | Enables fail-closed production env validation. |
-| `VITE_SIGNAL_URL` | `https://dotify-signal.fly.dev` | Public Socket.IO signaling origin. |
-| `VITE_DOTIFY_API_URL` | `https://dotify-api.fly.dev` | Backend API for uploads, key delivery, and cached catalog reads. |
-| `VITE_PINATA_GATEWAY` | `https://paseo-ipfs.polkadot.io` | Primary browser read gateway. |
-| `VITE_IPFS_READ_GATEWAYS` | `https://paseo-ipfs.polkadot.io,https://ipfs.io,https://dweb.link` | Ordered fallback gateway list. |
+| Key                       | Value                                                                                                                            | Notes                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `VITE_DOTIFY_DEPLOYMENT`  | `production`                                                                                                                     | Enables fail-closed production env validation.                   |
+| `VITE_DOTIFY_HOST_MODE`   | `off`                                                                                                                            | Prevents the standalone build from probing Product host APIs.    |
+| `VITE_SIGNAL_URL`         | `https://dotify-signal.fly.dev`                                                                                                  | Public Socket.IO signaling origin.                               |
+| `VITE_DOTIFY_API_URL`     | `https://dotify-api.fly.dev`                                                                                                     | Backend API for uploads, key delivery, and cached catalog reads. |
+| `VITE_PINATA_GATEWAY`     | `https://gateway.pinata.cloud`                                                                                                   | Primary browser read gateway for Pinata-backed track assets.     |
+| `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` | Ordered fallback gateway list.                                   |
 
 Optional production variables:
 
-| Key | When to set |
-| --- | --- |
-| `VITE_DOTIFY_DEBUG_PANEL=true` | Temporary operator smoke checks under `You -> Production readiness`; unset for ordinary listener deployments. |
-| `VITE_TURN_URL` | Reliable WebRTC rooms across restrictive NATs. |
-| `VITE_TURN_USERNAME` | Required with TURN credentials. |
-| `VITE_TURN_CREDENTIAL` | Required with TURN credentials. |
-| `VITE_ETH_RPC_URL` | Override the default Paseo Asset Hub EVM RPC. Must be HTTPS in production. |
-| `VITE_WS_URL` | Override the default Polkadot WebSocket RPC. Must be WSS in production. |
-| `VITE_BULLETIN_WS_URL` | Override the default Paseo Bulletin RPC. Must be WSS in production. |
-| `VITE_BLOCKSCOUT_BASE_URL` | Override explorer links. Must be HTTPS in production. |
+| Key                            | When to set                                                                                                                                        |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_DOTIFY_DEBUG_PANEL=true` | Temporary operator smoke checks plus first-sound, Product CDM, and room evidence exports under `You -> Production readiness`; unset for ordinary listener deployments. |
+| `VITE_TURN_URL`                | Browser-visible TURN fallback for DevNet/static credentials. Prefer API grants for production. Accepts comma-separated `turn:` / `turns:` URLs.    |
+| `VITE_TURN_USERNAME`           | Static fallback only. Do not use long-lived production credentials here.                                                                           |
+| `VITE_TURN_CREDENTIAL`         | Static fallback only. Do not use long-lived production credentials here.                                                                           |
+| `VITE_ETH_RPC_URL`             | Override the default Paseo Asset Hub EVM RPC. Must be HTTPS in production.                                                                         |
+| `VITE_WS_URL`                  | Override the default Polkadot WebSocket RPC. Must be WSS in production.                                                                            |
+| `VITE_BULLETIN_WS_URL`         | Override the default Product DevNet Bulletin RPC. Must be WSS in production.                                                                       |
+| `VITE_BLOCKSCOUT_BASE_URL`     | Override explorer links. Must be HTTPS in production.                                                                                              |
 
 Deploy-preview note:
 
 Netlify deploy previews usually have their own origin. The signaling service
-can allow multiple origins with `SIGNAL_ORIGINS`, but the backend API currently
-accepts one `API_ORIGIN`. For PR evidence, use a stable frontend origin, a
-dedicated staging site, or temporarily set `API_ORIGIN` to the deploy-preview
-origin and restore it after validation.
+and backend both allow multiple exact origins with `SIGNAL_ORIGINS` and
+`API_ORIGINS`. Add only the specific preview origin needed for evidence, then
+remove it after validation. Never use `*` on the backend.
+
+## Product DevNet Frontend
+
+The browser-safe Product build profile is tracked in
+`web/.env.product-devnet`. The manifest is
+`web/polkadot-app-deploy.config.ts`.
+
+Required Product values:
+
+| Key                             | Current value                                                                                                                    |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_DOTIFY_DEPLOYMENT`        | `production`                                                                                                                     |
+| `VITE_DOTIFY_HOST_MODE`         | `required`                                                                                                                       |
+| `VITE_DOTIFY_PRODUCT_ID`        | `dotify-test01.dot`                                                                                                              |
+| `VITE_PUBLIC_APP_URL`           | `https://dotify-test01.dev-dot.li`                                                                                               |
+| `VITE_DOTIFY_API_URL`           | `https://dotify-api.fly.dev`                                                                                                     |
+| `VITE_SIGNAL_URL`               | `https://dotify-signal.fly.dev`                                                                                                  |
+| `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                                                            |
+| `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
+| `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
+| `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
+| Product executable `appVersion` | `[0, 1, 28]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+
+The Product executable version is part of the published Product manifest. Bump
+it whenever the Product bundle changes runtime behavior, host SDK integration,
+permissions, metadata, or cache-sensitive assets. A new CID alone proves the
+bundle changed on-chain, but the mobile host can still use executable metadata
+when deciding whether to refresh a previously opened app.
+Version `[0, 1, 28]` adds room-authorized TURN credential delivery and an
+independent IPFS fallback for full encrypted-audio recovery. The version bump
+gives Product hosts an explicit cache-refresh signal for these playback and
+room reliability changes. It retains the `[0, 1, 27]` single-dialog Classic
+support handoff and the `[0, 1, 26]` candidate-bound
+first-sound evidence, independent exact-profile budgets, fresh warm-resume
+attempts, and terminal autoplay failures, plus the `[0, 1, 25]` Product room
+evidence capture and rejection of
+hand-written room claims without current host transport telemetry, plus the
+`[0, 1, 24]` bounded Web Worker for DAV2 AES-GCM chunk decryption and the
+fail-closed main-thread Web Crypto path when a worker cannot start within 1.5
+seconds. It also retains the `[0, 1, 23]` behavior that defers Product CDM chain
+setup until an authoritative runtime read and uses the known DevNet PAS label
+without an initial direct EVM
+RPC lookup, so opening a shared room remains independent of Product Web's
+current Host-protocol mismatch. It retains the `[0, 1, 22]` native extrinsic
+proof links and the `[0, 1, 21]` Product CDM payment-unit fix by converting the
+18-decimal Solidity amount into the connected chain's native `Revive.call`
+Balance precision. It binds Product payment and room evidence to the same
+deployed CID and carries the Product room guest audio recovery fix, the W05
+royalty claim runtime writer path, the September 2026 Product DevNet
+tooling/CDM registry refresh, the re-pinned Bulletin descriptor, and the viem
+release-registration confirmation hardening for dropped or still-pending wallet
+hashes, plus the W06 removal of passkey-only wallet routes from the public
+Product and standalone account flows, W07 key-versioned protected audio refs,
+and the W14 optional room galaxy renderer behind the 2D/list fallback. The 2D
+renderer remains the default until supported-device performance evidence
+justifies promoting 3D. The normal web and Product builds lazy-load the `three`
+chunk on demand; the Bulletin single-file build inlines it.
+
+Current Product host SDK dependencies:
+
+| Package                                              | Current value | Latest checked 2026-09-12 |
+| ---------------------------------------------------- | ------------- | ------------------------- |
+| `@parity/product-sdk`                                | `0.27.0`      | `0.27.0`                  |
+| `@parity/product-sdk-host`                           | `0.19.1`      | `0.19.1`                  |
+| `@parity/product-sdk-statement-store`                | `0.6.9`       | `0.6.9`                   |
+| `@parity/product-sdk-descriptors`                    | `0.11.0`      | `0.11.0`                  |
+| `polkadot-api`                                       | `1.23.3`      | `3.0.0`                   |
+| `@polkadot-community-foundation/polkadot-app-deploy` | `0.16.2`      | `0.16.2`                  |
+| `engine.io-client`                                   | `6.6.6`       | `6.6.6`                   |
+
+Keep the Product SDK packages pinned exactly during Product DevNet hardening.
+Recheck npm and the official Product docs before changing them because the
+mobile host API is still moving quickly. `polkadot-api` remains on `1.23.3` at
+the Dotify root even though npm publishes `3.0.0`: Product SDK `0.27.0` brings
+its own PAPI `2.2.x` tree, while `@polkadot-apps` chain-client/keys/signer still
+depend on PAPI `1.23.x`. A direct root PAPI 3 trial failed type compatibility
+for the `PolkadotSigner` export and `ChainDefinition` / `TypedApi` boundaries,
+so PAPI 3 is tracked as a blocked compatibility migration rather than a
+deployable dependency bump.
+
+`VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
+publication announces no rooms on the Statement Store. The capability ships
+dormant on purpose: the reader is implemented, but the Product host
+publish/discover/expiry round trip has no live evidence yet. Enabling also adds
+about 24 KB to every publication, against a finite Bulletin quota.
+
+To publish a build that does announce:
+
+```bash
+cd web
+npm run deploy:product-devnet:beacons
+```
+
+Rolling back is a normal republication with the flag absent - the standard
+`npm run deploy:product-devnet` produces the `off` build. Beacons already
+published expire on their own within the statement TTL; there is no revocation
+step, and none is needed.
+
+`VITE_PINATA_JWT` and `VITE_CONTENT_SECRET` are explicitly empty in that
+profile so a developer's generic local `.env` cannot leak demo credentials
+into the Product bundle.
+
+The Product IPFS gateway is the publication storage endpoint for the app bundle,
+not the most reliable first read path for the public track assets Dotify
+currently pins through Pinata. Keep `https://gateway.pinata.cloud` first, with
+`ipfs.io` and `dweb.link` before Product storage gateways for artwork and
+metadata fallback reads; otherwise cover images can hang in the browser without
+firing an image error.
+
+New API cover uploads require the `sharp` native dependency included in the API
+image. The upload endpoint creates one public IPFS directory with
+`cover/placeholder.webp`, 64/160/320/640 px WebP variants, and the untouched
+`cover/original.<ext>`. The on-chain image ref points to `cover/640.webp`; the
+web client derives the other paths for `srcset`. On the current 512 MB single
+API machine, cover normalization is intentionally serialized process-wide; one
+large source is decoded and attention-cropped into a 640 px canonical image,
+then smaller variants are derived sequentially. Do not parallelize this stage
+without load-testing the deployed memory limit. After changing the API image,
+smoke both the primary and a thumbnail path before publishing a release:
+
+```bash
+curl -s -L -o /dev/null --max-time 12 \
+  -w '%{http_code} %{content_type} %{size_download} %{time_total}\n' \
+  https://gateway.pinata.cloud/ipfs/<directory-cid>/cover/640.webp
+curl -s -L -o /dev/null --max-time 12 \
+  -w '%{http_code} %{content_type} %{size_download} %{time_total}\n' \
+  https://gateway.pinata.cloud/ipfs/<directory-cid>/cover/160.webp
+```
+
+Old single-file refs remain valid. Rolling the API/web code back does not
+invalidate responsive refs because the 640 px path is itself a normal image
+URL; older clients simply ignore the sibling variants.
+
+Encrypted audio byte reads are stricter than image and metadata reads: the
+browser fetch path requires CORS and range behavior that public gateways do not
+provide consistently for Dotify's Pinata-pinned DAV2 files. The web app
+therefore restricts DAV2 range reads and full-file recovery to Pinata gateways
+(`gateway.pinata.cloud` or a configured `*.mypinata.cloud` gateway). Keep
+generic `VITE_IPFS_READ_GATEWAYS` values for artwork/metadata fallback only.
+
+The flat-CID Bulletin build uploads only `dist-bulletin/index.html`. Its DAV2
+decrypt Worker is therefore compiled as an inline Blob Worker. The
+`build:bulletin` artifact smoke fails if that HTML references an external
+Worker or script asset; do not replace the inline path with a relative Worker
+URL unless Bulletin publication also starts uploading the full asset tree.
+
+The Product build also embeds a non-secret `dotify-test01.dot` bootstrap catalog
+snapshot. It prevents first-run mobile hosts from staying on `Loading registry
+catalog` when the Fly catalog request hangs; the Fly API remains the source of
+truth once reachable. `npm run build:product-devnet` refreshes
+`web/src/services/productDevnetCatalogBootstrap.ts` from
+`VITE_DOTIFY_API_URL` before building. Set shell-only `CATALOG_API_URL` only
+when deliberately generating the snapshot from a different catalog API. The
+default generator keeps the existing snapshot if the API is unavailable; use
+`npm run generate:product-catalog-bootstrap:strict` before releases or after
+contract address changes so a stale API fails visibly.
+
+Release preparation and publication are deliberately separate. Refresh with
+the strict generator, review and commit the generated snapshot, then build the
+exact candidate with `npm run build:product-devnet:frozen`. The frozen command
+does not contact the catalog API. Signer-free CI and `deploy:product-devnet`
+both use it, preventing live catalog drift between the validated commit and the
+locally signed publication.
+
+Build and publication:
+
+```bash
+cd web
+read -rs MNEMONIC
+export MNEMONIC
+npm run generate:product-catalog-bootstrap:strict
+npm run build:product-devnet:frozen
+npm run deploy:product-devnet
+unset MNEMONIC
+```
+
+`deploy:product-devnet` requires `MNEMONIC` and passes it to
+`polkadot-app-deploy` through the local child-process environment, without
+placing the phrase in command arguments. It also passes
+`--no-transfer-to-signedin-user`. This intentionally avoids the mobile
+`pad login` session for DotNS updates. `pad whoami` reports the mobile Product
+session, not the mnemonic-derived owner signer.
+
+The manual GitHub Actions workflow `.github/workflows/deploy-frontend.yml`
+validates an exact candidate SHA but cannot publish it. It receives no mnemonic
+or signer and performs no Product write. Validation builds enable the Product
+CDM adapter and operator readiness panel; release builds use the checked-in
+viem profile. Both profiles consume the committed catalog snapshot through the
+same frozen build used by local publication. DotNS publication remains a local
+operator action from the same clean SHA.
+
+Use
+[`docs/operations/product-devnet-deployment.md`](product-devnet-deployment.md)
+for authentication, publication, validation, and rollback.
 
 ## Fly Backend API
 
@@ -132,33 +367,73 @@ Open app `dotify-api`.
 
 Non-secret runtime values are tracked in `services/api/fly.toml`:
 
-| Key | Current value |
-| --- | --- |
-| `API_PORT` | `8790` |
-| `NODE_ENV` | `production` |
-| `PASEO_ASSET_HUB_RPC` | `https://eth-rpc-testnet.polkadot.io/` |
-| `DOTIFY_FACTORY_ADDRESS` | `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72` |
-| `DOTIFY_DIRECTORY_ADDRESS` | `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108` |
-| `DOTIFY_CHAIN_ID` | `420420417` |
+| Key                        | Current value                                                                                                                                                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `API_PORT`                 | `8790`                                                                                                                                                                                                                       |
+| `NODE_ENV`                 | `production`                                                                                                                                                                                                                 |
+| `API_ORIGINS`              | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
+| `PASEO_ASSET_HUB_RPC`      | `https://eth-rpc-testnet.polkadot.io/`                                                                                                                                                                                       |
+| `DOTIFY_FACTORY_ADDRESS`   | `0x835a626a9a6965b197d079ae56b1ec94033c2699`                                                                                                                                                                                 |
+| `DOTIFY_DIRECTORY_ADDRESS` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
+| `DOTIFY_CHAIN_ID`          | `420420417`                                                                                                                                                                                                                  |
+
+Do not store `API_ORIGINS` as a Fly secret. Fly secrets override `[env]` values
+from `fly.toml`, so a stale secret can keep CORS broken after a clean deploy.
+Audit before origin changes:
+
+```bash
+cd services/api
+flyctl secrets list
+flyctl secrets unset API_ORIGINS
+flyctl deploy
+```
 
 Set server-side values in the app's Secrets area:
 
-| Secret | Required | Notes |
-| --- | --- | --- |
-| `API_ORIGIN` | Production | Exact frontend origin allowed by API CORS. One URL only. |
-| `PINATA_JWT` | Uploads | Backend-only Pinata token. Never expose in Netlify. |
-| `CONTENT_KEY_MASTER_SECRET` | Audio upload and key delivery | 64+ hex chars, at least 32 random bytes. Do not rotate casually. |
-| `GIT_COMMIT_SHA` | Optional | Set by CI/build automation when available; `/version` can fall back in dev checkouts. |
+| Secret                      | Required                      | Notes                                                                                                                                                      |
+| --------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PINATA_JWT`                | Uploads                       | Backend-only Pinata token. Never expose in Netlify.                                                                                                        |
+| `CONTENT_KEY_MASTER_SECRET` | Audio upload and key delivery | 64+ hex chars, at least 32 random bytes. Compatibility source for v1/v2 when the explicit version map omits them. Never expose or rely on Fly as a backup. |
+| `CONTENT_KEY_MASTER_SECRETS` | Key rotation                 | Optional JSON object from `dotify-content-key-vN` to 64+ hex chars. Keep every retained version needed by existing releases.                               |
+| `CONTENT_KEY_ACTIVE_VERSION` | New encrypted uploads        | Optional active version for new backend uploads. Default is `dotify-content-key-v2`; change only after backing up and configuring the matching secret.       |
+| `GIT_COMMIT_SHA`            | Optional                      | Set by CI/build automation when available; `/version` can fall back in dev checkouts.                                                                      |
+| `TURN_REST_SECRET`          | Reliable rooms                | Backend-only HMAC secret shared with the TURN relay REST auth mechanism. Preferred production path.                                                        |
+| `TURN_CAPABILITY_SECRET`    | Reliable rooms                | 32+ character secret shared only with signaling; verifies that TURN grant callers are current room participants. Keep distinct from `TURN_REST_SECRET`.     |
+| `TURN_USERNAME`             | Optional fallback             | Static DevNet TURN username when REST auth is unavailable.                                                                                                 |
+| `TURN_CREDENTIAL`           | Optional fallback             | Static DevNet TURN password when REST auth is unavailable.                                                                                                 |
+
+Content-key rotation procedure:
+
+1. Export the current key material from the operator's secret manager, not from
+   Fly. Fly secrets are write-only from the app operator perspective.
+2. Create a new 32-byte hex secret locally with
+   `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+3. Build a retained JSON map containing every version that still has published
+   ciphertext, for example v1, v2, and a new v3. Store that JSON in the secret
+   manager before deploying.
+4. Set `CONTENT_KEY_MASTER_SECRETS` and `CONTENT_KEY_ACTIVE_VERSION` on Fly,
+   then deploy the API. Existing v1/v2 releases should still decrypt; new
+   uploads should return an audio ref shaped like
+   `dotify:enc:v2:key-v3:ipfs://<CID>`.
+5. Run `npm --prefix services/api run key-custody:rehearse` locally. The script
+   uses synthetic secrets and writes only a synthetic backup under `/tmp`; it is
+   a rehearsal of the operator process, not a production export.
+6. Smoke one existing protected release and one newly uploaded release through
+   the deployed API before depending on the rotation for the pilot catalog.
+
+Changing the active version cannot revoke keys already delivered to browsers or
+room hosts. If a secret is compromised, plan a re-encryption and release-update
+operation for affected tracks; config rotation alone is not a revocation tool.
 
 Catalog read-model variables:
 
-| Key | Default | When to override |
-| --- | --- | --- |
-| `CATALOG_SNAPSHOT_PATH` | `.data/catalog.json` | Not required to boot. Set to a durable Fly volume path, such as `/data/catalog.json`, for production-grade catalog evidence. |
-| `CATALOG_POLL_INTERVAL_MS` | `10000` | Change only when deliberately tuning chain polling. |
-| `CATALOG_RECONCILE_INTERVAL_MS` | `300000` | Change only when deliberately tuning full reconciliation. |
-| `CATALOG_STALE_AFTER_MS` | `60000` | Change only with an updated freshness expectation. |
-| `CATALOG_CONFIRMATIONS` | `2` | Change only with an explicit reorg/finality tradeoff. |
+| Key                             | Default              | When to override                                                                                                             |
+| ------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `CATALOG_SNAPSHOT_PATH`         | `.data/catalog.json` | Not required to boot. Set to a durable Fly volume path, such as `/data/catalog.json`, for production-grade catalog evidence. |
+| `CATALOG_POLL_INTERVAL_MS`      | `10000`              | Change only when deliberately tuning chain polling.                                                                          |
+| `CATALOG_RECONCILE_INTERVAL_MS` | `300000`             | Change only when deliberately tuning full reconciliation.                                                                    |
+| `CATALOG_STALE_AFTER_MS`        | `60000`              | Change only with an updated freshness expectation.                                                                           |
+| `CATALOG_CONFIRMATIONS`         | `2`                  | Change only with an explicit reorg/finality tradeoff.                                                                        |
 
 `CATALOG_SNAPSHOT_PATH` is optional because the API creates the default
 `.data/catalog.json` path automatically. On Fly, that default is not durable
@@ -175,25 +450,390 @@ For production-grade catalog evidence:
 - keep at least one machine warm while measuring catalog p75 performance, then
   record whether the trace was warm or cold.
 
+Artist upload and session-boundary variables:
+
+| Key                                 | Default      | Meaning                                                                    |
+| ----------------------------------- | ------------ | -------------------------------------------------------------------------- |
+| `UPLOAD_AUTH_TTL_SECONDS`           | `300`        | Lifetime of a one-use capability for one audio, cover, or metadata upload. |
+| `UPLOAD_QUOTA_WINDOW_SECONDS`       | `3600`       | Rolling window for completed upload bytes.                                 |
+| `UPLOAD_PRINCIPAL_BYTES_PER_WINDOW` | `209715200`  | Reserved plus completed bytes allowed per artist address.                  |
+| `UPLOAD_GLOBAL_BYTES_PER_WINDOW`    | `2147483648` | Reserved plus completed bytes allowed across the API.                      |
+| `UPLOAD_PRINCIPAL_CONCURRENCY`      | `2`          | Outstanding upload grants allowed for one artist address.                  |
+| `UPLOAD_GLOBAL_CONCURRENCY`         | `8`          | Outstanding upload grants allowed across the API process.                  |
+
+Production uploads require this sequence: signed EIP-191 or Product sr25519
+session, on-chain `ArtistDirectory.runtimeOf(requester)` verification, a
+short-lived capability bound to asset purpose and byte budget, then byte-level
+media validation before Pinata receives anything. Cover bytes additionally
+pass a bounded server-side decode before any variant is pinned; decode failure
+releases the upload lease and returns a plain invalid-media error. Free key
+delivery and room guest entry remain unauthenticated.
+
+Quota reservations, completed-byte counters, revoked session JTIs, and upload
+capabilities are process-local. `services/api/fly.toml` therefore enforces
+`max_machines_running = 1`; do not scale the API horizontally until those
+records use one shared transactional store. A restart clears quota counters and
+changes the process epoch, which invalidates every earlier session and upload
+capability. This is the deliberate durable logout policy: an old token cannot
+become valid again after restart, but all still-connected users must sign in
+again. If chain RPC is unavailable, artist verification and capability issuance
+fail closed. If Pinata fails or the client interrupts the request, the reserved
+quota and concurrency lease are released.
+
+When `DOTIFY_FACTORY_ADDRESS` or `DOTIFY_DIRECTORY_ADDRESS` changes, clear the
+old catalog snapshot or force a reindex before using the public API as release
+evidence. A clean redeploy to the September 2026 factory
+`0x835a626a9a6965b197d079ae56b1ec94033c2699` and directory
+`0x4e883827d61e573094c7b777bae323070ea9f954` starts with zero registered
+artists and zero releases. If `GET /api/catalog` still returns runtime
+`0x84D5062F2195758E42100845151c3f80BfAA5482` or blocks near `11269xxx`, the
+hosted API is still serving the previous environment.
+
+W05 changes the `MusicRoyaltiesPallet` ABI and appends claimable-recipient
+storage under the existing namespaced Diamond storage slot. New factory
+deployments install the claim selectors automatically. Existing artist runtimes
+need a royalties facet cut that replaces `musicRoyPayAccess` and adds
+`musicRoyClaimable(address)` plus `musicRoyClaim(address)` before native
+Classic payments are enabled on that runtime. There is no new environment
+variable for this behavior. Rollback before any W05 payment can reinstall the
+previous royalties facet; rollback after W05 payments may have created
+claimable balances must keep a claim-capable facet available until those
+balances are settled or explicitly migrated.
+
+TURN relay variables:
+
+| Key                                 | Default | When to set                                                                                                                                                                   |
+| ----------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TURN_URLS`                         | unset   | Set to comma-separated public relay URLs when deploying reliable room audio, for example `turn:turn.example.org:3478?transport=udp,turns:turn.example.org:443?transport=tcp`. |
+| `TURN_REST_SECRET`                  | unset   | Preferred production credential path. Store as a Fly secret only.                                                                                                             |
+| `TURN_CAPABILITY_SECRET`            | unset   | Required with TURN. Store as a Fly secret and set the same value as `SIGNAL_TURN_CAPABILITY_SECRET` on signaling. Keep it distinct from `TURN_REST_SECRET`.                      |
+| `TURN_USERNAME` / `TURN_CREDENTIAL` | unset   | Rotated DevNet/static fallback only when the relay cannot mint REST credentials. Store as Fly secrets.                                                                        |
+| `TURN_TTL_SECONDS`                  | `3600`  | Adjust only with relay policy. REST credentials embed this expiry in the username.                                                                                            |
+
+The API exposes `GET /api/turn/grant` for the frontend room code. The signaling
+service first issues a two-minute room-membership capability to the connected
+host or listener; the frontend sends it as a bearer token. The API verifies it
+with `TURN_CAPABILITY_SECRET` before returning any relay credential. Missing,
+expired, or forged proof fails closed. Without relay config the room client
+falls back to STUN plus any browser-visible `VITE_TURN_*` values.
+
+For production, prefer TURN REST credentials because the shared relay secret
+stays on Fly. `VITE_TURN_USERNAME` and `VITE_TURN_CREDENTIAL` are public bundle
+values and should be limited to rotated DevNet/static tests.
+The grant endpoint remains walletless so room guests can join from a link, but
+it is no longer public: only a socket currently joined as host or listener can
+obtain the short-lived proof. Keep API rate limits, relay quotas, and secret
+rotation as additional boundaries.
+
+### Backend Signature Schemes
+
+No Netlify or Fly dashboard variable enables Product signatures. The API
+accepts two explicit schemes on session sign-in and protected key requests:
+
+| Scheme               | Client                               | Required proof fields           | Backend binding                                                                                                              |
+| -------------------- | ------------------------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `eip191`             | Standalone EVM wallet path           | `signature`                     | `viem.verifyMessage` against the requester H160                                                                              |
+| `product-sr25519-v1` | Product-host app-scoped account path | `signature`, `productPublicKey` | sr25519 signature over the canonical Dotify message bytes, then Product public-key-to-H160 derivation matching the requester |
+
+Unknown schemes fail at the API schema boundary. Product requests must still
+pass the same nonce, chain, purpose, expiry, and `musicAccCanAccess` checks as
+standalone requests. The Product frontend submits this proof shape only after
+an explicit Product-host account connection.
+
+`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` also routes runtime write submissions,
+including Classic unlock payments, through the Product CDM contract adapter. The
+tracked Product profile does not enable that flag yet. Keep `viem` as the
+production default until Product-host transaction evidence proves account
+mapping, fees/native value handling, and user approval for real writes. Product
+CDM writes now fail closed unless the host signer public key maps to the same
+pallet-revive H160 address that Dotify connected for key/session requests, and
+Classic unlocks in a `product-cdm` build must poll `musicAccHasPaid` plus
+`musicAccCanAccess` for that H160 before showing success. If the transaction is
+included but verification fails, Dotify preserves the transaction hash in a
+**Payment included, access not verified** error. Royalty claim writes use the
+same adapter boundary through `musicRoyClaim(activeEvmAddress)`, but payment
+history still needs an event/indexer source before Product can show the full
+settlement ledger. Enable
+`VITE_DOTIFY_DEBUG_PANEL=true` only on that smoke build to export the safe
+browser-side evidence bundle with `amountPlanck`, payment read-back, Product
+sr25519 key/session outcomes, and the operator-marked host approval observation.
+Validate Product protected playback through host smoke tests after each Product
+publication before treating Product identity as production-ready for gated
+listening.
+
+### First-sound candidate evidence
+
+Every ordinary Vite build now embeds its exact git SHA in
+`VITE_DOTIFY_BUILD_SHA`, matching the Product build identity behavior. A smoke
+build with `VITE_DOTIFY_DEBUG_PANEL=true` exposes **First-sound evidence** under
+`You -> Production readiness`. Evidence builds fail when `git status` is dirty;
+commit the exact candidate first so the embedded SHA identifies the bytes being
+measured. Production builds derive this identity from the checked-out commit and
+reject a mismatched `VITE_DOTIFY_BUILD_SHA`; that override is reserved for the
+explicit Playwright readiness-panel dev server.
+
+The bundle also embeds `VITE_DOTIFY_BUILD_CONFIG_DIGEST`, a SHA-256 digest of
+the public `VITE_*` inputs used to build it. The digest excludes the build
+identity variables themselves and never exposes input values. Standalone and
+Product exports may have different digests because they are different build
+families, but exports within each family must agree before the report can call
+the candidate ready.
+
+1. Bind the exact build. Add the deployment CID for Product Desktop or Product
+   Web gateway samples.
+2. Record and bind one test profile using only the provided coarse device, OS,
+   browser, and connection categories. Product surfaces also require the
+   numeric host version. Do not enter device names, account names, hostnames, or
+   serial numbers; the UI and schema do not accept free-form profile fields.
+3. Choose the listening flow, explicit cold or warm cache condition, and the
+   scenario being exercised, then select **Start sample**. Use **Ordinary
+   playback** for release-latency measurements; use the named controlled
+   scenarios only while deliberately exercising their corresponding failure or
+   recovery path.
+4. Start the track. Dotify records the real selection/playback intent as the
+   timing origin, including access, key, gateway, decrypt, and media startup.
+   Press **I hear the music** at the first sound you actually hear. If playback
+   fails, use the same action after Dotify shows the error; an automatic
+   terminal failure is recorded without an audible confirmation.
+5. Repeat cold and warm attempts, then download the candidate-bound JSON.
+
+Schema v5 keeps first-sound duration, its `human-confirmed` or `automatic-error`
+measurement method, the sanitized test profile, the declared scenario with its
+fixed expected outcome, a bounded host terminal reason, and coarse DAV2 path
+facts only. It
+omits wallet addresses, listener identity, exact
+location, audio refs/CIDs, gateway URLs, media source URLs, keys, signatures,
+and per-listener history. Changing the SHA, public build-configuration digest,
+Product app version, deployment CID, device profile, or network type starts a
+new evidence set instead of mixing candidates or materially different test
+conditions.
+The report combines ordinary-web and Product exports when their git SHA
+matches. Product samples must still carry one consistent Product app version
+and deployed CID; those Product-only fields do not invalidate ordinary-web
+exports where they are intentionally absent. A final key or gateway failure is
+recorded even when no playable media source was created. Ordinary playback
+alone supplies the surface-success, p75, and fallback-rate gates. Denied
+protected access, broken-gateway recovery, slow-key recovery, interrupted
+navigation, and corrupted DAV2 each have a separate gate against their declared
+expected outcome, so an intentional controlled error cannot be mistaken for a
+normal-playback regression. The label alone is insufficient: those gates also
+require, respectively, an `access-denied` host reason, a successful failover to
+a later DAV2 gateway, at least
+1,000 ms before DAV2 key authorization, a `selection-interrupted` host reason,
+or a DAV2 authentication failure.
+
+Combine exports from physical surfaces and produce the release report with:
+
+```bash
+cd web
+npm run smoke:first-sound -- \
+  --evidence-json /path/to/chrome.json \
+  --evidence-json /path/to/safari.json \
+  --evidence-json /path/to/product-desktop.json \
+  --expected-commit <40-character-candidate-sha> \
+  --md-out /tmp/dotify-first-sound.md \
+  --json-out /tmp/dotify-first-sound.json \
+  --strict
+```
+
+The strict gate requires evidence for desktop Chrome, Firefox, Safari, iOS
+Safari, Android Chrome, Product Desktop, and Product Web gateway, plus evidence
+for every controlled scenario listed above. Every exact
+device, OS, browser, connection, and Product-host profile supplied for a required
+surface needs at least four successful samples in each cold/warm p75 flow cell;
+exports with different profiles never pool their sample floor or latency budget.
+Aggregate p75 remains visible but cannot compensate for a slow or undersampled
+profile. The report prints every profile beside its surface. A blocked autoplay
+attempt is recorded as a terminal error, and a later explicit Play starts a
+fresh measurement. Reaching `canplay` only releases the loading affordance; the
+attempt remains cancellable until `playing` or a terminal error. Asynchronous
+play results are correlated to the concrete playback-attempt object that
+initiated them. Each resolved source also receives a distinct host media-element
+generation, so a delayed native error from a retired element cannot reach its
+replacement, including when a URL is reused. Capture-stream reuse requires the
+same media element as well as the same URL and a live track; a replacement
+element is always recaptured and republished to room listeners. Repeat is a
+declarative property of every generated host element, so a source replacement
+cannot silently reset an enabled loop. Once every listener sender has moved to
+the replacement stream, Dotify removes the retired element's volume listener,
+disconnects its Web Audio nodes, stops its destination track, and closes its
+AudioContext. A muted or zero-volume `playing` event is recorded as an error. An
+unmuted `playing` event only proves that the media clock advanced; the operator
+confirmation supplies the evidence that sound reached the actual output route.
+The DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts
+are present; fewer attempts are reported as `not-run`, never rounded into a claim.
+Synthetic Chromium evidence validates the capture mechanism but does not count
+as physical Safari, mobile, or Product-host evidence.
+
+Closing a room tears down peers but retains ownership of the current real audio
+capture while that track continues in solo playback. If the listener then
+chooses another track, the replacement element retires the retained listener,
+graph, destination track, and AudioContext even though no room is active. If the
+host instead opens another room on the same element and source, Dotify restores
+the ready state from the retained live capture without waiting for another
+`loadedmetadata`, `play`, or `playing` event.
+
 ## Fly Signaling
 
 Open app `dotify-signal`.
 
 Non-secret runtime values are tracked in `web/fly.signal.toml`:
 
-| Key | Current value |
-| --- | --- |
-| `SIGNAL_PORT` | `8788` |
-| `SIGNAL_HOST` | `0.0.0.0` |
-| `SIGNAL_ROOM_TTL_MS` | `21600000` |
-| `SIGNAL_HOST_TIMEOUT_MS` | `120000` |
-| `SIGNAL_MAX_LISTENERS` | `24` |
+| Key                           | Current value                                                                                                                                                                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SIGNAL_PORT`                 | `8788`                                                                                                                                                                                                                       |
+| `SIGNAL_HOST`                 | `0.0.0.0`                                                                                                                                                                                                                    |
+| `SIGNAL_ROOM_TTL_MS`          | `21600000`                                                                                                                                                                                                                   |
+| `SIGNAL_HOST_TIMEOUT_MS`      | `120000`                                                                                                                                                                                                                     |
+| `SIGNAL_MAX_LISTENERS`        | `24`                                                                                                                                                                                                                         |
+| `SIGNAL_TURN_CAPABILITY_TTL_MS` | `120000`                                                                                                                                                                                                                   |
+| `SIGNAL_ALLOW_MISSING_ORIGIN` | `true`                                                                                                                                                                                                                       |
+| `SIGNAL_ORIGINS`              | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 
-Set hosted frontend origins in the app's Secrets area:
+The production origins are public configuration tracked in
+`web/fly.signal.toml`; they are not secrets. Temporary preview origins may be
+set through Fly configuration, but the tracked production allowlist must be
+restored after validation.
 
-| Secret | Value |
-| --- | --- |
-| `SIGNAL_ORIGINS` | Exact comma-separated frontend origins, for example `https://muzinga.netlify.app,https://<deploy-preview-origin>` |
+Set `SIGNAL_TURN_CAPABILITY_SECRET` as a Fly secret on `dotify-signal`, using
+the exact same 32+ character random value stored as `TURN_CAPABILITY_SECRET` on
+`dotify-api`. Rotate both services together. A mismatch disables TURN relay
+access while leaving room signaling and direct/STUN WebRTC available.
+
+`SIGNAL_ALLOW_MISSING_ORIGIN=true` exists for Polkadot Desktop/native hosts
+whose Socket.IO handshakes omit the `Origin` header. It does not allow the
+literal `Origin: null` value from sandboxed iframes or `file://` pages. Keep it
+scoped to signaling only; the backend API still requires explicit CORS origins
+because it serves authenticated upload and key-delivery routes.
+
+`/status` exposes each visible room's `listenerCount`, `maxListeners`, and
+`isFull` values. When changing `SIGNAL_MAX_LISTENERS`, capture this metadata in
+room smoke evidence so the frontend capacity labels and server-enforced
+`ROOM_FULL` boundary stay aligned.
+
+For a candidate build with `VITE_DOTIFY_DEBUG_PANEL=true`, the Product room
+smoke panel exports the host-side evidence accepted by the Product journey
+harness. It derives room creation, stream readiness, peer connection, listener
+count, and canonical room URL from current room state and bounded telemetry.
+The operator must still confirm the ordinary browser guest was walletless,
+heard audio, and displayed `In sync`; those facts cannot be inferred honestly
+from the host. The export rejects cross-candidate CIDs and contains no wallet
+address, SDP, ICE candidate, IP address, key, signature, token, or audio.
+
+Do not store `SIGNAL_ORIGINS` as a Fly secret. If `/health` reports an old
+`allowedOrigins` list after deploy, the secret is probably overriding
+`web/fly.signal.toml`. Remove it and redeploy or let Fly restart the machine:
+
+```bash
+cd web
+flyctl secrets list -c fly.signal.toml
+flyctl secrets unset SIGNAL_ORIGINS -c fly.signal.toml
+flyctl deploy -c fly.signal.toml
+```
+
+The `app.dev-dot.li`, `app.dot.li`, `.dot`, and `polkadot://...` Product host
+origins are required for both services when observed in the host logs or mobile
+diagnostics. If an active host origin is missing, the Host shell can still
+render the static app, but catalog requests lose their CORS response header and
+Socket.IO polling is rejected with `403`, producing an empty music view or
+preventing room creation.
+
+Polkadot mobile host room creation also has a runtime host-permission preflight,
+not only Fly CORS. Product executable `[0, 1, 6]` and later requests `WebRtc` before the
+domain-scoped `Remote` permission. This order matters because the current
+Product Mobile bridge can fail while encoding `Remote`, while signaling fetches
+still work and `WebRtc` may still be grantable. Explicit host denials stop room
+creation with a user-facing message. The known internal permission-preflight
+exception (`... is not a function ... undefined`) is treated as unsupported for
+that individual permission, and Dotify still checks the other permission before
+opening signaling. The Product build uses
+Engine.IO's fetch-based polling transport because the failing Product Mobile
+runtime reached `/health` through `fetch` while its Socket.IO XHR polling did
+not connect. Product host containers remain on Fetch polling for the whole
+room; they do not attempt a WebSocket upgrade. Standalone browsers may still
+upgrade to WebSocket. If mobile still shows `Room service unavailable` and Fly
+logs show no new `/health` or `/socket.io` request, debug the Product host
+remote-network layer before changing Fly origins again. If `/health` appears
+but `/socket.io` does not, confirm the deployed Product executable is version
+`[0, 1, 6]` or later before investigating Fly.
+Product executable `[0, 1, 9]` requests `Remote` for both
+`dotify-signal.fly.dev` and `dotify-api.fly.dev`, because room WebRTC startup
+uses signaling plus the API TURN grant route before creating peer offers.
+
+Product executable `[0, 1, 6]` and later also retries host audio capture when a listener
+arrives before Product Mobile has produced a local WebRTC audio track. This
+prevents the listener from staying on `Connecting...` merely because the host's
+first capture attempt happened before the mobile media element was ready. It
+also preserves trickled ICE candidates delivered before the SDP offer, retries
+one failed listener negotiation, and replaces an unbounded `Joining live audio`
+state with a permission, missing-offer, or TURN-specific diagnostic.
+Product executable `[0, 1, 8]` also sends a near-silent placeholder offer while
+the real host capture finishes, then replaces that sender track once the media
+element exposes live audio. This makes a listener retry observable at the
+WebRTC layer instead of timing out as "host sent no offer".
+Product executable `[0, 1, 9]` closes the remaining room-open race by carrying
+the resolved playable `audioSource` directly from catalog selection into
+session creation. A host that has just resolved a playable track can therefore
+prepare a placeholder offer even before React has propagated the new audio
+source through provider props.
+Product executable `[0, 1, 10]` normalizes API TURN grants to the smallest
+widely compatible `RTCIceServer` shape before handing them to WebKit, wraps the
+entire listener answer path in an explicit phase error, and emits metadata-only
+`webrtc:diagnostic` events. The diagnostic contains no SDP, ICE candidate, IP
+address, media identifier, content key, or user-agent string.
+
+Product executable `[0, 1, 11]` and later handle the current iOS Product
+sandbox boundary explicitly. The upstream Product container freezes and removes
+[`window.RTCPeerConnection` during container lockdown](https://github.com/Polkadot-Community-Foundation/polkadot-ios-community/blob/main/Packages/Products/product-container/src/index.ts#L79-L81);
+granting the `WebRtc` remote permission does not
+restore that JavaScript API. Dotify therefore blocks mobile in-container room
+hosting before creating a room and replaces futile listener retries with a
+**Continue in browser** action. The action uses the Product SDK `navigateTo`
+host bridge and only accepts the configured HTTPS `VITE_PUBLIC_APP_URL`. A
+listener keeps the current `#/rooms/<id>` route; a would-be host opens the
+canonical Dotify browser app and creates the room there.
+
+This boundary occurs before ICE gathering. When diagnostics show
+`listener:create-peer-failed`, `peerConnectionAvailable=false`, and
+`protocol=polkadot:`, no TURN allocation is expected in coturn logs. Do not
+change relay ports, credentials, or firewall rules for that failure. Coturn is
+relevant only after peer construction, when diagnostics show a later ICE or
+connection-timeout phase with `peerConnectionAvailable=true`.
+
+The tracked Product profile currently has no `VITE_TURN_URL`,
+`VITE_TURN_USERNAME`, or `VITE_TURN_CREDENTIAL`. Product builds should normally
+receive TURN through the API grant endpoint instead of embedding static
+credentials. Without `TURN_URLS` plus relay credentials on `dotify-api`, rooms
+use direct ICE with public STUN only. This works on permissive networks but
+does not guarantee a web or mobile host can reach a listener behind a different
+carrier, VPN, corporate firewall, or symmetric NAT. For that topology, provide
+a TURN relay, configure the API `TURN_*` variables, redeploy `dotify-api`, and
+then redeploy Netlify / republish Product only if browser-visible `VITE_TURN_*`
+fallback values changed.
+Product executable `[0, 1, 7]` is the first Product version that fetches the
+API TURN grant before opening WebRTC peers.
+
+An open room now survives a transient host signaling disconnect for up to
+`SIGNAL_HOST_TIMEOUT_MS` (currently 120 seconds). The server removes the room
+from public discovery while the host is offline, retains connected listeners,
+and accepts `room:resume` only with the random resume token returned privately
+at room creation. The browser keeps that token in memory only; Fly stores only
+its SHA-256 hash in the in-memory room record. A successful reconnect republishes
+the room and rebuilds host-to-listener offers. An explicit **Leave room** still
+closes immediately, and an unrecovered room closes at the existing host timeout.
+This behavior requires both the updated `dotify-signal` deployment and Product
+executable `[0, 1, 10]` or later.
+
+`dotify-signal` logs room lifecycle events plus coarse peer-signaling events:
+`listener:ready`, `peer:route` for `webrtc:offer` / `webrtc:answer`, and
+`peer:route-dropped` when a role, target, or room check rejects an SDP route.
+Executable `[0, 1, 10]` and later also report `webrtc:diagnostic` on answer creation,
+ICE gathering, or connection timeout failures. ICE candidates are intentionally
+not logged per message. If an offer is present with no answer, read the next
+`webrtc:diagnostic.phase`: `create-peer` points to the Product host WebRTC
+runtime/permission boundary; `set-remote-description` points to SDP/runtime
+compatibility; and a later connection timeout or ICE candidate error points to
+the TURN/network path.
 
 Keep `dotify-signal` on one active machine until a shared Socket.IO adapter is
 added. Rooms, chat, reactions, request queues, and solo-presence aggregates are
@@ -204,32 +844,54 @@ currently in memory.
 After changing Netlify or Fly dashboard values:
 
 1. Trigger a new Netlify deploy for frontend `VITE_*` changes.
-2. Restart or redeploy the affected Fly app after secret/runtime changes if the
+2. Check Fly secret overrides before debugging stale CORS. `API_ORIGINS` and
+   `SIGNAL_ORIGINS` should not appear in `flyctl secrets list`; they are
+   tracked non-secret config.
+3. Restart or redeploy the affected Fly app after secret/runtime changes if the
    platform did not already restart machines.
-3. Confirm the backend:
+4. Confirm the backend:
 
 ```bash
 curl -s https://dotify-api.fly.dev/health
 curl -s https://dotify-api.fly.dev/health/ready
 curl -s https://dotify-api.fly.dev/api/catalog
+curl -s https://dotify-api.fly.dev/api/turn/grant
 ```
 
-4. Confirm signaling:
+5. Confirm signaling:
 
 ```bash
 curl -s https://dotify-signal.fly.dev/health
 curl -s https://dotify-signal.fly.dev/status
 ```
 
-5. Run local smoke checks when the repo is available:
+6. Run local smoke checks when the repo is available:
 
 ```bash
 cd web
 npm run smoke:production-env
-npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://<frontend-origin>
+npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://dotify-test01.app.dev-dot.li
+npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://dotify-test01.app.dot.li
+npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://dotify-test01.dot
+npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin polkadot://dotify-test01.dot
+npm run smoke:pilot-release -- --md-out /tmp/dotify-pilot-release-readiness.md --json-out /tmp/dotify-pilot-release-readiness.json
+npm run build:product-devnet
 ```
 
-6. For explicit origin rejection evidence, include a denied origin:
+`smoke:pilot-release` is read-only. It reconciles W01-W12 evidence, Product
+static gates, the reversible W13 release plan, optional Product/room smoke
+exports, and optional aggregate pilot evidence. Missing live Product or
+participant evidence remains `blocked` or `not-run`; it is never counted as a
+passing pilot. If `--pilot-json` is supplied, it must use schema v2 and bind the
+decision to the candidate git SHA, Product appVersion, deployed CID, capture
+time, outcome metrics, privacy flags, rollback, and join-count invariants.
+
+7. For a Product release, complete the cross-origin room, mobile host
+   permission, and host-account
+   checks in
+   [`docs/operations/product-devnet-deployment.md`](product-devnet-deployment.md).
+
+8. For explicit origin rejection evidence, include a denied origin:
 
 ```bash
 cd web
@@ -239,7 +901,7 @@ npm run smoke:signal -- \
   --denied-origin https://not-dotify.example
 ```
 
-7. Attach evidence to the PR when the active ticket requires public validation.
+9. Attach evidence to the PR when the active ticket requires public validation.
    For ticket #86, include `GET /api/catalog` state, block lag, and warm/cold
    catalog timing evidence.
 
@@ -248,15 +910,15 @@ npm run smoke:signal -- \
 When implementation changes env or hosted settings, update all applicable
 places in the same PR:
 
-| If the change affects | Check/update |
-| --- | --- |
-| Any env var contract | `docs/reference/environment-variables.md`, relevant `.env.example`, this runbook |
-| Netlify build or browser env | `netlify.toml`, `web/README.md`, this runbook |
-| Backend API env, secrets, CORS, uploads, keys, catalog | `services/api/.env.example`, `services/api/fly.toml`, this runbook |
-| Signaling env, room limits, origin policy, scaling | `web/.env.example`, `web/fly.signal.toml`, `web/README.md`, this runbook |
+| If the change affects                                                             | Check/update                                                                          |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Any env var contract                                                              | `docs/reference/environment-variables.md`, relevant `.env.example`, this runbook      |
+| Netlify build or browser env                                                      | `netlify.toml`, `web/README.md`, this runbook                                         |
+| Backend API env, secrets, CORS, uploads, keys, catalog                            | `services/api/.env.example`, `services/api/fly.toml`, this runbook                    |
+| Signaling env, room limits, origin policy, scaling                                | `web/.env.example`, `web/fly.signal.toml`, `web/README.md`, this runbook              |
 | Public URLs, contract addresses, production priorities, or architecture narrative | `README.md`; update `docs/index.html` only when the public project page should change |
-| Security boundary | relevant threat model or explanation doc plus this runbook |
-| PR validation process | `.github/pull_request_template.md` if the checklist itself changes |
+| Security boundary                                                                 | relevant threat model or explanation doc plus this runbook                            |
+| PR validation process                                                             | `.github/pull_request_template.md` if the checklist itself changes                    |
 
 ## References
 
@@ -270,3 +932,54 @@ places in the same PR:
   <https://fly.io/docs/apps/secrets/>
 - Fly app configuration:
   <https://www.fly.io/docs/reference/configuration/>
+
+
+## Shared-presence room rollout
+
+`VITE_DOTIFY_ROOM_GALAXY=on` enables the existing optional 3D selector. It is
+absent/off by default in both ordinary and Product builds; 2D/list remains the
+complete discovery path. The room lineup is part of the normal room protocol:
+the host publishes a bounded metadata-only order through signaling and every
+participant receives the same ephemeral snapshot. It needs no frontend flag,
+key, permission, CORS origin, or storage mount. Changing the galaxy flag still
+requires rebuilding; it cannot be enabled by URL or local storage.
+
+For the reliable composer, release the signaling `room:chat` / `room:request`
+acknowledgement support before or together with the frontend. Old clients remain
+compatible. New clients retain drafts and warn if an old server cannot confirm
+acceptance within five seconds. Check the room before resending an unconfirmed
+message; there is no automatic retry or exactly-once guarantee. Request capacity
+and social rate limits remain server-enforced. Reactions are not buffered during
+transport loss.
+
+Rollback the galaxy experiment by rebuilding without its `on` value. The room
+lineup requires a coordinated frontend/signaling rollback because old signaling
+servers ignore its events while the current frontend keeps playback functional.
+Nearby and
+community memory remain documentation only: no new endpoint or location
+permission is configured by this pass. See
+[shared-presence pass](../design/dotify-shared-presence-pass.md).
+
+## Product artist-support validation profile
+
+`npm --prefix web run build:product-devnet:support` selects the existing explicit
+`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` profile for native Polkadot App support.
+It builds only; it does not deploy or alter the default tracked Product profile.
+The API/key authority, CORS and contract addresses remain unchanged. Product
+payments now request finalization before returning and have tab-local recovery;
+see [support recovery](../design/product-host-support-recovery-2026-09-15.md).
+
+Promote only after the existing W11 host approval/value-forwarding/access smoke
+has real device evidence. Check native transaction-reference explorer support.
+No real signing or funded transaction was performed as part of implementation
+checks. Roll back the frontend to the previous profile; no contract or backend
+migration is required. Preserve/check unresolved payment references before
+clearing host/browser storage.
+
+The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
+Ordinary builds keep gifts off. A gift sends a chosen amount directly to the
+release's artist; it does not unlock access or follow the release's royalty
+splits. Native gifts use chain-reported precision and verified recipient
+mapping. Keep this flag gated until a real host approval and receipt have been
+checked. No live funds are used by the automated test fixtures. See
+[direct artist gifts](../design/artist-gifts-2026-09-16.md).

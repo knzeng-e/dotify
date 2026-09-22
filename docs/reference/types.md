@@ -1,9 +1,9 @@
 # TypeScript Types Reference
 
-All shared types are defined in `src/types.ts` and re-exported from there. Import them directly:
+All shared web types are defined in `web/src/shared/types.ts`. Import them directly:
 
 ```typescript
-import type { CatalogTrack, AccessMode, RoyaltyPayment } from './types';
+import type { AccessMode, CatalogTrack, RoyaltyPayment } from '../shared/types';
 ```
 
 ---
@@ -63,7 +63,7 @@ The access policy for a registered track.
 | Value        | Meaning                                  |
 | ------------ | ---------------------------------------- |
 | `human-free` | Unlocked by Polkadot Proof of Personhood |
-| `classic`    | Unlocked by DOT payment                  |
+| `classic`    | Unlocked by runtime-native payment       |
 
 ---
 
@@ -168,6 +168,7 @@ Controls the visual state of the `TransactionModal`.
 
 ```typescript
 type TransactionFeedbackStepStatus = 'complete' | 'active' | 'submitted' | 'upcoming';
+type TransactionProofKind = 'evm-transaction' | 'substrate-extrinsic';
 ```
 
 Controls an optional transaction roadmap inside the `TransactionModal`.
@@ -200,7 +201,7 @@ type TrackInfo = {
   updatedAt: number; // Unix ms timestamp
   imageRef?: string; // URL or IPFS ref for cover image
   audioRef?: string; // URL, IPFS ref, or Dotify encrypted audio ref
-  priceDot?: string; // Decimal DOT amount (Classic mode only)
+  priceDot?: string; // Legacy display amount label (Classic mode only)
   bulletinRef: string; // Bulletin archive ref, or empty string
   metadataRef?: string; // IPFS metadata ref (ipfs://<CID>)
   description?: string;
@@ -225,7 +226,8 @@ type CatalogTrack = {
   artistAddress?: `0x${string}`;
   audioRef: string;
   imageRef: string;
-  priceDot: string;
+  priceDot: string; // Legacy display-only decimal amount
+  pricePlanck?: bigint; // Authoritative 18-decimal EVM contract amount when loaded from chain/API
   localUrl?: string; // Resolved playable URL (blob:, http:, etc.)
   duration?: number;
   hash: `0x${string}`;
@@ -243,9 +245,12 @@ type CatalogTrack = {
 };
 ```
 
-The full catalog entry for a track as used in the browse and player views. On-chain tracks have `source: 'artist'` and an `id` of the form `<runtimeAddress>:<contentHash>`.
-
----
+The full catalog entry for a track as used in the browse and player views.
+On-chain tracks have `source: 'artist'` and an `id` of the form
+`<runtimeAddress>:<contentHash>`. `priceDot` is a legacy display field;
+Classic unlock payments use `pricePlanck` when it is present so the submitted
+`msg.value` matches the runtime's stored price exactly, and the visible payment
+symbol comes from the configured chain's native currency.
 
 ### `PlayerState`
 
@@ -341,6 +346,7 @@ type TransactionFeedback = {
   title: string;
   message: string;
   txHash?: `0x${string}`; // Present after transaction submission
+  proofKind?: TransactionProofKind; // Routes the hash to Blockscout or Subscan
   steps?: {
     label: string;
     detail: string;
@@ -350,7 +356,7 @@ type TransactionFeedback = {
 };
 ```
 
-Drives the `TransactionModal`. Set to `{ tone: 'pending' }` before submitting a transaction, then updated to `'success'` or `'error'` after confirmation. `steps` is optional and is used for multi-approval flows such as staged artist runtime bootstrap. A step-level `txHash` should be attached only after that step is confirmed.
+Drives the `TransactionModal`. Set to `{ tone: 'pending' }` before submitting a transaction, then updated to `'success'` or `'error'` after confirmation. `steps` is optional and is used for multi-approval flows such as staged artist runtime bootstrap. A step-level `txHash` should be attached only after that step is confirmed. Product CDM returns a native Substrate extrinsic hash, so those flows set `proofKind: 'substrate-extrinsic'`; ordinary EVM transactions keep the Blockscout default.
 
 ---
 
@@ -362,7 +368,7 @@ type AccessGate = {
   title: string;
   message: string;
   hint: string;
-  actionType: 'personhood' | 'payment' | 'signin';
+  actionType: 'none' | 'personhood' | 'payment' | 'signin';
 };
 ```
 
@@ -371,8 +377,9 @@ protected audio should play. `actionType` controls which CTA is shown:
 
 | `actionType` | Shown when                         | CTA                                             |
 | ------------ | ---------------------------------- | ----------------------------------------------- |
-| `signin`     | No wallet connected                | "Use wallet to unlock"                          |
-| `payment`    | Wallet connected, Classic track    | "Pay X DOT to unlock"                           |
+| `none`       | Release inactive or unavailable    | No primary CTA                                  |
+| `signin`     | No wallet connected                | "Continue"                                      |
+| `payment`    | Wallet connected, active Classic track | "Support and open - X native token"         |
 | `personhood` | Wallet connected, insufficient PoP | No payment CTA — user must obtain PoP off-chain |
 
 ---
@@ -380,13 +387,21 @@ protected audio should play. `actionType` controls which CTA is shown:
 ### `RoyaltyPayment`
 
 ```typescript
+type RoyaltySettlementState = 'paid' | 'claimable' | 'claimed' | 'legacy';
+
 type RoyaltyPayment = {
-  id: string; // "<txHash>-<logIndex>"
+  id: string; // "<runtimeAddress>-<txHash>-<logIndex>"
+  runtimeAddress: `0x${string}`;
   trackHash: `0x${string}`;
   trackTitle: string;
   listener: `0x${string}`;
+  recipient: `0x${string}`;
   amountWei: bigint;
   amountDot: string; // Formatted for display
+  settlement: RoyaltySettlementState;
+  pendingTotalWei?: bigint; // Present on claimable settlement rows
+  claimedAtMs?: number | null;
+  claimTransactionHash?: `0x${string}`;
   paidAtMs: number | null; // null if block timestamp unavailable
   transactionHash: `0x${string}`;
   blockNumber: bigint;
@@ -394,8 +409,30 @@ type RoyaltyPayment = {
 };
 ```
 
-A single royalty payment event parsed from `MusicRoyAccessPaid` logs. Used in the
-Royalties tab of the artist studio.
+A single per-recipient royalty ledger row. `paid` means the runtime transferred
+that share in the listener payment transaction. `claimable` means the transfer
+failed and the amount is still pending in the runtime. `claimed` means a later
+`MusicRoyRoyaltyClaimed` event cleared that historical accrual. `legacy` keeps
+pre-W05 `MusicRoyAccessPaid` history where per-recipient settlement state is
+unknown. The artist studio sums only `paid` and `claimed` rows as received
+money.
+
+### `RoyaltyRuntimeSummary`
+
+```typescript
+type RoyaltyRuntimeSummary = {
+  runtimeAddress: `0x${string}`;
+  artistAddress?: `0x${string}`;
+  artistName: string;
+  trackCount: number;
+  trackTitles: string[];
+  claimableWei: bigint;
+};
+```
+
+Current claimable balance for the connected recipient in one known artist
+runtime. The artist studio builds this list from the connected wallet's own
+runtime plus catalogue tracks where that wallet appears in royalty splits.
 
 ---
 

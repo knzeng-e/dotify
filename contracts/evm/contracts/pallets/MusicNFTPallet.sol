@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only WITH Classpath-exception-2.0
 pragma solidity ^0.8.28;
 
 import { LibMusicNFT } from '../libraries/LibMusicNFT.sol';
@@ -7,9 +7,10 @@ import { LibMusicAccess } from '../libraries/LibMusicAccess.sol';
 
 /// @title MusicNFTPallet
 /// @notice Smart Pallet for music track NFT ownership management.
-///         Each token ID corresponds to a registered track and represents the
-///         artist's rights deed.  Transferring the NFT transfers control rights;
-///         the original `artist` field in the track record is immutable.
+///         Each token ID corresponds to a registered track and records
+///         transferable track ownership. The current token owner receives
+///         active-track playback access; transferring the NFT does not rewrite
+///         the original `artist` field, SmartRuntime owner, or royalty splits.
 ///
 ///         HumanFree tracks gate transfers: the recipient must meet the track's
 ///         required personhood level before the NFT can be sent to them.

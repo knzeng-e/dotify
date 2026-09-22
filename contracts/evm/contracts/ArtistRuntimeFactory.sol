@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only WITH Classpath-exception-2.0
 pragma solidity ^0.8.28;
 
 import { SmartRuntime } from './SmartRuntime.sol';
@@ -26,9 +26,9 @@ import { MusicAccessPallet } from './pallets/MusicAccessPallet.sol';
 ///         Initialisation
 ///         ──────────────
 ///         Every new SmartRuntime is bootstrapped by `DotifyRuntimeInitializer`
-///         via `delegatecall`, which sets the personhood registrar to the artist
-///         (owner) so they can grant listener access without extra admin steps
-///         and retain owner control over future registrar updates.
+///         via `delegatecall`, which initialises the legacy personhood registrar
+///         storage slot for layout continuity. Current HumanFree access reads
+///         Individuality precompile evidence in Dotify's app context.
 ///
 ///         Usage
 ///         ─────
@@ -245,16 +245,22 @@ contract ArtistRuntimeFactory {
   }
 
   function _musicRoyaltiesSelectors() private pure returns (bytes4[] memory selectors) {
-    selectors = new bytes4[](5);
+    selectors = new bytes4[](7);
     selectors[0] = MusicRoyaltiesPallet.musicRoyPayAccess.selector;
     selectors[1] = MusicRoyaltiesPallet.musicRoyRecordListen.selector;
     selectors[2] = MusicRoyaltiesPallet.musicRoySplitCount.selector;
     selectors[3] = MusicRoyaltiesPallet.musicRoySplitAt.selector;
     selectors[4] = MusicRoyaltiesPallet.musicRoyTotalBps.selector;
+    selectors[5] = MusicRoyaltiesPallet.musicRoyClaimable.selector;
+    selectors[6] = MusicRoyaltiesPallet.musicRoyClaim.selector;
   }
 
+  /// @dev The two registrar selectors are retained so already-deployed runtimes keep a
+  ///      stable ABI; the setter now reverts. `musicAccPersonhoodInfo` is new, so a
+  ///      runtime created before this change needs a diamond Add cut to gain it — its
+  ///      access decisions already follow the precompile without it.
   function _musicAccessSelectors() private pure returns (bytes4[] memory selectors) {
-    selectors = new bytes4[](7);
+    selectors = new bytes4[](8);
     selectors[0] = MusicAccessPallet.setPersonhoodRegistrar.selector;
     selectors[1] = MusicAccessPallet.musicAccSetPersonhoodLevel.selector;
     selectors[2] = MusicAccessPallet.musicAccCanAccess.selector;
@@ -262,5 +268,6 @@ contract ArtistRuntimeFactory {
     selectors[4] = MusicAccessPallet.musicAccPersonhoodLevel.selector;
     selectors[5] = MusicAccessPallet.musicAccHasPersonhood.selector;
     selectors[6] = MusicAccessPallet.musicAccGetRegistrar.selector;
+    selectors[7] = MusicAccessPallet.musicAccPersonhoodInfo.selector;
   }
 }

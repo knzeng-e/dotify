@@ -27,6 +27,7 @@ export async function pinFileToPinata(
   bytes: Uint8Array,
   filename: string,
   keyvalues: Record<string, string> = {},
+  signal?: AbortSignal,
 ): Promise<string> {
   const headers = authHeaders();
   const form = new FormData();
@@ -37,6 +38,7 @@ export async function pinFileToPinata(
     method: 'POST',
     headers,
     body: form,
+    signal,
   });
 
   if (!res.ok) {
@@ -51,16 +53,47 @@ export async function pinFileToPinata(
   return data.IpfsHash;
 }
 
+export type PinataFile = {
+  path: string;
+  bytes: Uint8Array;
+  mime?: string;
+};
+
+/** Pin an immutable directory and preserve each relative asset path. */
+export async function pinFilesToPinata(files: PinataFile[], name: string, keyvalues: Record<string, string> = {}, signal?: AbortSignal): Promise<string> {
+  if (files.length === 0) throw new PinataError('No files supplied for Pinata directory pin', 502);
+  const headers = authHeaders();
+  const form = new FormData();
+  for (const file of files) {
+    form.append('file', new Blob([file.bytes], file.mime ? { type: file.mime } : undefined), file.path);
+  }
+  form.append('pinataMetadata', JSON.stringify({ name, keyvalues }));
+
+  const res = await fetch(PIN_FILE_URL, {
+    method: 'POST',
+    headers,
+    body: form,
+    signal
+  });
+
+  if (!res.ok) throw new PinataError(`Pinata directory pin failed with HTTP ${res.status}`, 502);
+  const data = (await res.json()) as { IpfsHash: string };
+  if (!data.IpfsHash) throw new PinataError('Pinata returned no IpfsHash', 502);
+  return data.IpfsHash;
+}
+
 export async function pinJsonToPinata(
   json: unknown,
   name: string,
   keyvalues: Record<string, string> = {},
+  signal?: AbortSignal,
 ): Promise<string> {
   const headers = authHeaders();
   const res = await fetch(PIN_JSON_URL, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify({ pinataContent: json, pinataMetadata: { name, keyvalues } }),
+    signal,
   });
 
   if (!res.ok) {

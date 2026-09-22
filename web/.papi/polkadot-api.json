@@ -9,10 +9,10 @@
       "codeHash": "0x5d82548ee8362ca123514269ea6df6f1ad252e4f120516b810bcb2cb29957eb8"
     },
     "bulletin": {
-      "wsUrl": "wss://paseo-bulletin-rpc.polkadot.io",
+      "wsUrl": "wss://bulletin-paseo.tservices.es:8443",
       "metadata": ".papi/metadata/bulletin.scale",
-      "genesis": "0x744960c32e3a3df5440e1ecd4d34096f1ce2230d7016a5ada8a765d5a622b4ea",
-      "codeHash": "0x1a82e5143be3211ded412b0368b486ce83bd41a80ec95eb267f6c204adda8365"
+      "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+      "codeHash": "0xcfc45b6f601f6e2971053639331432857feea30c7668279df079b33eed7e01dc"
     }
   }
 }

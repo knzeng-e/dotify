@@ -64,19 +64,30 @@ level, it can access the track without paying.
 
 ### Classic
 
-> "Pay once, play forever."
+> "Support once, then Dotify opens the track when the runtime still confirms
+> access for your wallet."
 
-In Classic mode, a listener pays a fixed amount of DOT to unlock full playback.
-The payment goes directly and immediately to the artist's wallet - no
-intermediary, no payout schedule, no platform cut.
+In Classic mode, a listener pays a fixed amount of the configured chain's
+native token to unlock full playback. On the current Product DevNet/Paseo Asset
+Hub runtime rail, that token is PAS; a DOT-backed Polkadot Hub EVM chain would
+display DOT instead. The payment goes directly and immediately to the artist's
+wallet - no intermediary, no payout schedule, no platform cut.
 
-Once a listener has paid for a track, their wallet is recorded on-chain. They
-can return and play the track at any time without paying again, even if the
-track later flips away from Classic and back.
+Once a listener has paid for a track, their wallet is recorded on-chain as a
+Classic paid-access account. That record has no fixed expiry in the current
+runtime. It is not, however, a perpetual media availability guarantee:
+
+- inactive releases do not open, even for the original artist, NFT owner, or a
+  previously paid wallet;
+- if the artist changes the release away from Classic, the paid record remains
+  visible but playback follows the current policy;
+- if the artist later reactivates the release or changes it back to Classic,
+  Dotify can verify the existing paid record again instead of asking for a
+  second payment.
 
 **When to choose Classic:**
 
-- You want to monetize your releases directly in DOT.
+- You want to monetize your releases directly through the runtime-native token.
 - You prefer familiar pay-to-play economics.
 
 ---
@@ -88,7 +99,7 @@ track later flips away from Classic and back.
 3. An access gate is shown with the appropriate action:
    - **Signin gate** - listener has no wallet connected. They must connect first.
    - **Personhood gate** - wallet is connected but lacks the required PoP level.
-   - **Payment gate** - wallet is connected; DOT payment is required.
+   - **Payment gate** - wallet is connected; a runtime-native payment is required.
 
 The listener can choose a Free track, join a room hosted by someone with access,
 or satisfy the required gate.
@@ -100,11 +111,14 @@ or satisfy the required gate.
 ### On-chain access check
 
 Access is resolved by calling `musicAccCanAccess(contentHash, listenerAddress)`
-on the artist's SmartRuntime. This returns `true` if any of the following
-conditions holds:
+on the artist's SmartRuntime. The active flag is checked first. If the track is
+inactive, access is denied for everyone. For an active track, the call returns
+`true` if any of the following conditions holds:
 
 ```txt
-listenerAddress == artist (NFT owner always has access)
+listenerAddress == original artist
+OR
+listenerAddress == current track NFT owner
 OR
 accessMode == Free
 OR
@@ -117,26 +131,48 @@ Walletless guests probe with the zero address. That address is only granted when
 the current mode is Free. The frontend checks access at track selection time and
 caches the result in `catalogAccessByTrackId`.
 
+### Ownership and control words
+
+Dotify keeps several facts separate:
+
+- **Original artist**: the address stored on the track record at registration.
+  In the current runtime, this address changes access mode, deactivates, and
+  reactivates that release.
+- **Runtime owner**: the account returned by `owner()` on the SmartRuntime. This
+  owner controls pallet upgrades through `diamondCut`, but ownership transfer
+  does not rewrite `ArtistDirectory.runtimeOf(originalArtist)`.
+- **Track NFT owner**: the holder of the minted track NFT. The current NFT owner
+  has playback access while the release is active, but NFT transfer does not by
+  itself change the original artist field, runtime ownership, or stored royalty
+  beneficiaries.
+- **Royalty beneficiaries**: the recipients and basis-point shares stored when
+  the release is registered. Classic payments use those stored splits; a payment
+  receipt is evidence of settlement, not a guarantee that the media stays
+  available forever.
+
 ### Payment flow (Classic mode)
 
 ```txt
 listener calls musicRoyPayAccess(contentHash) with msg.value = stored track price
         |
         v
-contract verifies value >= price
+contract verifies the release exists, is active, is currently Classic, the wallet
+has not already paid, and value >= price
         |
         v
-distributes payment across royalty splits (basis points)
+records paid access and settles royalty shares, making failed recipient transfers claimable
         |
         v
-sets paidAccess[contentHash][listenerAddress] = true
+refunds any overpayment
         |
         v
-emits MusicRoyAccessPaid(contentHash, listener, amount) event
+emits payment and per-recipient settlement events
 ```
 
-The frontend watches for the confirmed transaction receipt, then calls
-`selectTrack()` again to reload with full access.
+The frontend watches for inclusion, then re-reads `musicAccHasPaid()` and
+`musicAccCanAccess()` before presenting the track as open. If the payment was
+included but playable access is not confirmed, Dotify keeps the protected audio
+closed and shows the transaction hash as evidence to inspect.
 
 ### Personhood flow (Human free mode)
 
@@ -151,7 +187,22 @@ improvement.
 ### Denied playback and key delivery
 
 The backend is the production key boundary. The browser asks the backend for a
-content key only after the relevant access path succeeds:
+content key only after the relevant access path succeeds, and for catalog-backed
+encrypted tracks it includes the canonical release identity:
+
+- `releaseId` (`runtimeAddress:contentHash`);
+- artist runtime address;
+- artist address;
+- `audioRef`;
+- content-key version.
+
+The key service resolves that identity against the fresh confirmed catalog
+snapshot, checks `ArtistDirectory.runtimeOf(artist)`, then re-reads the target
+runtime's current `musicRegGetTrack(contentHash)` before deriving a key. It
+does not trust frontend runtime allowlists or scan unrelated runtimes for modern
+requests.
+
+After canonical release resolution:
 
 - Free tracks use the unauthenticated free-key route, and the backend
   re-checks that the runtime currently grants public access.
@@ -159,6 +210,11 @@ content key only after the relevant access path succeeds:
   backend re-checks access for the requesting wallet before returning a key.
 - Room listeners never request keys. Only the host asks for a `room_host` key;
   listeners receive the WebRTC stream.
+
+Legacy hash-only requests remain available only when the fresh catalog snapshot
+contains exactly one encrypted release for the hash. If multiple runtimes claim
+the same legacy v1 hash, Dotify refuses to deliver the key because v1 derivation
+is content-hash based and cannot distinguish duplicate releases.
 
 Audio is encrypted (see [content-protection.md](./content-protection.md)), so
 the raw IPFS file cannot be played directly even if the URL is discovered.

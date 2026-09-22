@@ -34,6 +34,25 @@ If autoplay is blocked by the browser, a manual play prompt appears.
 
 ---
 
+## Listening while browsing
+
+Returning to Music, Rooms, or an artist page keeps the room audio running.
+The compact player follows the host’s current track, including changes made
+while you browse. Its “Room live” indicator and people count distinguish a room
+stream from individual playback; hosts see “Hosting live”. Tap the indicator,
+artwork, or title to return to the room.
+
+The green pulse appears only during connected playback. Host pause, local pause,
+missing audio, and reconnecting have separate labels; disconnected counts are
+hidden until signaling reconnects. Counts include you and the host, and reflect
+room connections, not verified identities or guaranteed audible playback.
+
+Listeners can pause their own listening or mute without controlling the host.
+Their progress bar follows the host and cannot seek; skip, shuffle, and repeat
+are reserved for local playback and hosting.
+
+---
+
 ## What listeners can and cannot do
 
 | Capability                         | Host | Listener          |
@@ -79,7 +98,7 @@ The signaling server (`server/signaling.mjs`) is a Socket.IO process that relays
 - Routing SDP offers, answers, and ICE candidates between the correct peers.
 - Broadcasting `rooms:updated` when the room list changes and `presence:solo:updated` when solo presence changes.
 - Expiring rooms after their TTL and closing rooms whose host stops heartbeating.
-- Exposing `GET /health` and `GET /status` for uptime, public room metadata, and anonymous solo-listening aggregates.
+- Exposing `GET /health` and `GET /status` for uptime, public room metadata, capacity flags, and anonymous solo-listening aggregates.
 
 See [socket-events.md](../reference/socket-events.md) for the full event schema.
 
@@ -114,18 +133,82 @@ The listener's progress bar is derived from `playerState`, not from the local `<
 
 ### NAT traversal
 
-ICE candidates are gathered using a public STUN server (`stun.l.google.com:19302`). This resolves most consumer NAT configurations. Symmetric NAT and some corporate firewalls will block peer-to-peer connections. Configure `VITE_TURN_URL` and optional TURN credentials for production room reliability.
+ICE candidates are gathered using a public STUN server
+(`stun.l.google.com:19302`). This resolves many consumer NAT configurations,
+but symmetric NAT, carrier NAT, VPNs, and some corporate firewalls can block
+peer-to-peer media even when signaling works. Configure a TURN relay for
+production room reliability. The preferred path is the backend
+`GET /api/turn/grant` endpoint (`TURN_URLS` plus `TURN_REST_SECRET` on the
+API). Before calling it, the browser asks signaling for a two-minute
+room-membership capability. Signaling issues proof only to the current host or
+a joined listener; the API verifies it with the shared capability secret before
+returning relay credentials. This keeps link entry walletless without turning
+the relay into a public credential service. Browser-visible `VITE_TURN_URL`
+credentials are only a DevNet/static fallback.
 
 ### One peer connection per listener
 
 The host creates a separate `RTCPeerConnection` for each listener. Connections are tracked in `hostPeersRef` (a `Map<listenerId, RTCPeerConnection>`). When a listener leaves, their peer connection is closed and removed. When a new listener joins an active room, the host immediately creates a new offer and sends the current audio stream.
+
+The public room list includes `maxListeners` and `isFull` so clients can show
+room capacity before a guest tries to join. The server still enforces the cap
+on `room:join`, and the frontend disables full room cards as a convenience, not
+as the security boundary.
+
+### Nearby Discovery Status
+
+Nearby room discovery is designed but not implemented. W18 defines the privacy
+contract in
+[dotify-nearby-discovery-privacy.md](../design/dotify-nearby-discovery-privacy.md):
+host and listener opt-in are separate, exact coordinates stay off the network,
+logs, chain, Statement Store, and durable stores, and sparse areas expand before
+results are shown. Current rooms remain discoverable through the existing room
+list, manual code entry, and shared links without requiring wallet or location
+permission.
+
+When a host's signaling transport drops, the host closes existing
+`RTCPeerConnection` objects before resuming the room. Existing listeners keep
+their room identity, rejoin with a fresh socket when their own transport
+recovers, and wait for the host to send a fresh offer. If the host cannot
+resume before the server timeout, the room closes instead of silently keeping a
+stale listing.
+
+### Quality telemetry
+
+The frontend exposes a browser-local QA snapshot at
+`window.__DOTIFY_ROOM_QUALITY__.snapshot()`. It records bounded room phases such
+as `room-joined`, `offer-sent`, `answer-sent`, `remote-audio-cued`,
+`peer-connected`, reconnect, retry, and timeout events.
+
+For connected peers it also summarizes browser WebRTC stats when available:
+relay/direct candidate type, round-trip time, jitter, packet counters, byte
+counters, and available outgoing bitrate. It deliberately does not store SDP,
+ICE candidate strings, IP addresses, audio source references, content keys, or
+wallet identifiers. The snapshot is page-local memory and clears on reload or
+`window.__DOTIFY_ROOM_QUALITY__.clear()`.
+
+The current iOS Product container is a deliberate exception to this browser
+architecture: its sandbox
+[removes `window.RTCPeerConnection` from Product scripts](https://github.com/Polkadot-Community-Foundation/polkadot-ios-community/blob/main/Packages/Products/product-container/src/index.ts#L79-L81).
+The Product `WebRtc` permission can still be recorded by the host, but
+it does not expose a JavaScript peer connection. Dotify cannot reach ICE or TURN
+inside that container, so executable `[0, 1, 11]` and later open the canonical
+HTTPS room in the system browser instead. Full in-app support requires a
+host-provided, permission-gated WebRTC bridge or restoring the browser API after
+permission.
 
 ### Limitations
 
 - Audio only — no video.
 - Listeners cannot control playback.
 - Symmetric NAT can block connection without a TURN server.
-- `captureStream()` is not available in all browsers or in the Bulletin-distributed build.
+- `captureStream()` is not available in all browsers or Product host containers.
+- Room capacity is enforced by the signaling server and currently defaults to
+  24 listeners per host. Larger sessions need SFU evaluation instead of simply
+  raising the peer-to-peer fan-out.
+- The current iOS Product sandbox does not expose `RTCPeerConnection` to Product
+  scripts. Product Mobile listeners must continue the room in the external
+  browser until the host adds a permission-gated media API.
 - Socket reconnect can silently rejoin the room, but the host still needs to
   create a fresh WebRTC offer for the new socket. If the host leaves, expires,
   or times out, the room is closed and listeners must join another room.

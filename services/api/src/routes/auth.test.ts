@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { createAuthRoutes, type AuthRouteDeps } from './auth.js';
+import { PRODUCT_SR25519_SIGNATURE_SCHEME, type SignInRequest } from '../services/signatures.js';
 
 const ADDRESS = '0x1111111111111111111111111111111111111111';
 
@@ -80,6 +81,34 @@ describe('POST /api/auth/session', () => {
     assert.equal(body.address, ADDRESS);
   });
 
+  it('passes Product sr25519 proof fields to sign-in verification', async () => {
+    let verifiedRequest: SignInRequest | null = null;
+    const server = await buildApp({
+      verifySignInRequest: async request => {
+        verifiedRequest = request;
+        return { valid: true };
+      }
+    });
+    const productPublicKey = `0x${'22'.repeat(32)}`;
+    const signature = `0x${'33'.repeat(64)}`;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/auth/session',
+      payload: sessionBody({
+        signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+        productPublicKey,
+        signature
+      })
+    });
+
+    assert.equal(response.statusCode, 200);
+    const productRequest = verifiedRequest as Extract<SignInRequest, { signatureScheme: typeof PRODUCT_SR25519_SIGNATURE_SCHEME }> | null;
+    assert.ok(productRequest);
+    assert.equal(productRequest.signatureScheme, PRODUCT_SR25519_SIGNATURE_SCHEME);
+    assert.equal(productRequest.productPublicKey, productPublicKey);
+    assert.equal(productRequest.signature, signature);
+  });
+
   it('rejects an invalid signature with 401 and the verification code', async () => {
     const server = await buildApp({
       verifySignInRequest: async () => ({ valid: false, code: 'SIGNATURE_INVALID', reason: 'bad signature' })
@@ -104,6 +133,30 @@ describe('POST /api/auth/session', () => {
     const server = await buildApp();
     const response = await server.inject({ method: 'POST', url: '/api/auth/session', payload: sessionBody({ address: 'not-an-address' }) });
     assert.equal(response.statusCode, 400);
+  });
+
+  it('rejects unknown sign-in signature schemes before verification or token issuance', async () => {
+    let verificationCalled = false;
+    let issuanceCalled = false;
+    const server = await buildApp({
+      verifySignInRequest: async () => {
+        verificationCalled = true;
+        return { valid: true };
+      },
+      issueSessionToken: () => {
+        issuanceCalled = true;
+        return { ok: true, token: 'payload.signature', expiresAt: new Date(Date.now() + 1000).toISOString() };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/auth/session',
+      payload: sessionBody({ signatureScheme: 'product-unknown-v1' })
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(verificationCalled, false);
+    assert.equal(issuanceCalled, false);
   });
 
   it('rejects a different-chain sign-in before verification or token issuance', async () => {

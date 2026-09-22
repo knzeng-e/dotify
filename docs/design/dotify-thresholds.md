@@ -603,7 +603,7 @@ POST /api/uploads/cover
 POST /api/uploads/metadata
 POST /api/tracks/:contentHash/free-key
 POST /api/tracks/:contentHash/key-request
-POST /api/turn/grants
+GET  /api/turn/grant
 ```
 
 Upload routes must recalculate the content hash, require a scoped publication

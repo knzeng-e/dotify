@@ -4,14 +4,15 @@
    colored light into the whole interface (see aura.css and shared/utils/aura.ts).
    Token NAMES are the stable contract: every sheet styles against these, so the
    theme flips here, not per-component. */
-
 :root {
   color-scheme: dark;
-
-  --font-interface: 'Instrument Sans', Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-editorial: 'Newsreader', Iowan Old Style, Baskerville, Georgia, serif;
-  --font-code: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-
+  /* Interface text keeps symbol-capable fallbacks before the platform sans.
+     This matters for artist names such as "Lord Ékomy Ndong ☥". */
+  --font-interface: 'Instrument Sans', 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Noto Sans Symbols', Inter, ui-sans-serif, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-editorial: 'Newsreader', 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Noto Sans Symbols', Iowan Old Style, Baskerville, Georgia,
+    serif;
+  --font-code: ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', Consolas, 'Liberation Mono', Menlo, monospace;
   --canvas: #050d1a;
   --canvas-deep: #03080f;
   --surface: #0c1a30;
@@ -19,16 +20,18 @@
   --surface-cool: #0e2136;
   --ink: #f2f8ff;
   --ink-soft: #b9c8dc;
-  --muted: #8397b0;
+  --muted: #a7b8cf;
   --line: rgb(148 178 215 / 0.16);
   --line-strong: rgb(148 178 215 / 0.34);
   --night: #0a203b;
   --night-raised: #102b4d;
   --night-soft: #173655;
-  --action: #00e5a0;
-  --action-hover: #33f0b8;
-  --action-soft: rgb(0 229 160 / 0.14);
+  --action: #62e2cf;
+  --action-hover: #8cebdc;
+  --action-soft: rgb(98 226 207 / 0.12);
   --on-action: #04101f;
+  --link: #8cebdc;
+  --link-hover: #c6fff5;
   --signal: #7d9bff;
   --signal-soft: rgb(93 125 250 / 0.16);
   --artist: #ff4fa3;
@@ -37,12 +40,13 @@
   --presence-soft: rgb(240 144 110 / 0.14);
   --success: #3fe0ab;
   --success-soft: rgb(0 229 160 / 0.12);
+  --live: var(--success);
+  --live-soft: var(--success-soft);
   --warning: #f0b429;
   --warning-soft: rgb(240 180 41 / 0.14);
   --danger: #ff7d72;
   --danger-soft: rgb(255 110 100 / 0.14);
   --focus: #6cb2ff;
-
   /* Living Light: rewritten per track by applyAura(); resting deep-blue light
      when nothing is playing (mirrors RESTING_AURA in shared/utils/aura.ts). */
   --aura-a: hsl(207 42% 44%);
@@ -50,13 +54,17 @@
   --aura-accent: hsl(207 46% 50%);
   --aura-hue: 207;
   --aura-strength: 0.7;
-
+  /* Eight-step type scale. Editorial is reserved for page, artist, release and
+     section titles; controls, status and proof stay in the interface face. */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-lg: 1.125rem;
   --text-xl: 1.25rem;
-
+  --text-title: 1.75rem;
+  --text-display-sm: clamp(2rem, 4vw, 3.5rem);
+  --text-display: clamp(3rem, 7vw, 6rem);
+  --tracking-display: -0.025em;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -69,26 +77,46 @@
   --space-16: 4rem;
   --space-20: 5rem;
   --space-24: 6rem;
-
   --radius-xs: 0.375rem;
   --radius-sm: 0.625rem;
   --radius-md: 0.875rem;
   --radius-lg: 1.25rem;
   --radius-xl: 1.75rem;
   --radius-full: 999px;
-
   --shadow-float: 0 24px 60px -30px rgb(0 0 0 / 0.72);
   --shadow-dialog: 0 32px 100px -30px rgb(0 0 0 / 0.82);
-
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --duration-fast: 150ms;
   --duration-state: 260ms;
-
   --container: 80rem;
   --content-pad: clamp(1.25rem, 3vw, 2.5rem);
   --header-height: 4.75rem;
   --dock-height: 5.8rem;
-
+  --mobile-nav-height: 0rem;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --touch-target: 2.75rem;
+  --icon-secondary: 1.125rem;
+  --icon-transport: 1.25rem;
+  --icon-primary: 1.5rem;
+  --layer-behind: -2;
+  --layer-underlay: -1;
+  --layer-base: 0;
+  --layer-raised: 1;
+  --layer-control: 2;
+  --layer-floating: 48;
+  --layer-player: 50;
+  --layer-composer: 54;
+  --layer-mobile-nav: 55;
+  --layer-navigation: 70;
+  --layer-sheet: 190;
+  --layer-dialog: 200;
+  --layer-toast: 1000;
+  --surface-sheet: color-mix(in srgb, var(--surface) 94%, var(--night-raised));
+  --surface-selected: color-mix(in srgb, var(--surface) 86%, var(--action));
+  --layout-gap: clamp(1rem, 2.8vw, 2rem);
   /* Compatibility aliases for the functional components that predate this
      visual system. They map to Night Console tokens rather than a legacy theme. */
   --color-primary: var(--action);

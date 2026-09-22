@@ -13,6 +13,7 @@ export const CHAT_TEXT_MAX_LENGTH = 280;
 // web/server/signaling.mjs (the server copy is authoritative).
 export const REQUEST_TEXT_MAX_LENGTH = 120;
 export const REQUEST_QUEUE_CLIENT_LIMIT = 20;
+export const ROOM_LINEUP_CLIENT_LIMIT = 12;
 
 // Client-side cap for the in-memory chat list; matches the server's
 // per-room history buffer so late joiners and long-lived participants

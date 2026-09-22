@@ -10,7 +10,17 @@ export type ArtistTab = 'overview' | 'new' | 'releases' | 'royalties' | 'advance
 export type ReleaseStep = 'assets' | 'metadata' | 'access' | 'review';
 export type TransactionFeedbackTone = 'pending' | 'success' | 'error';
 export type TransactionFeedbackStepStatus = 'complete' | 'active' | 'submitted' | 'upcoming';
+export type TransactionProofKind = 'evm-transaction' | 'substrate-extrinsic';
 export type UiNoticeTone = 'info' | 'success' | 'error';
+
+export type TransactionFeedbackFact = {
+  label: string;
+  value: string;
+  href?: string;
+  code?: boolean;
+  copyValue?: string;
+  copyLabel?: string;
+};
 
 export type RoyaltySplit = {
   label: string;
@@ -42,6 +52,8 @@ export type TrackInfo = {
 };
 
 export type PlayerState = {
+  /** Server-aged join snapshot: interrupted playback, not an intentional pause. */
+  stale?: boolean;
   playing: boolean;
   duration: number;
   updatedAt: number;
@@ -65,6 +77,7 @@ export type CatalogTrack = {
   audioRef: string;
   imageRef: string;
   priceDot: string;
+  pricePlanck?: bigint;
   localUrl?: string;
   duration?: number;
   hash: `0x${string}`;
@@ -103,7 +116,19 @@ export type OnchainTrackRecord = {
 
 export type RegistryCatalogTrack = CatalogTrack & {
   artistAddress: `0x${string}`;
+  pricePlanck: bigint;
   registeredAtBlock: number;
+};
+
+export type RoyaltySettlementState = 'paid' | 'claimable' | 'claimed' | 'legacy';
+
+export type RoyaltyRuntimeSummary = {
+  runtimeAddress: `0x${string}`;
+  artistAddress?: `0x${string}`;
+  artistName: string;
+  trackCount: number;
+  trackTitles: string[];
+  claimableWei: bigint | null;
 };
 
 export type RoomPlaybackMode = 'full' | 'preview';
@@ -115,6 +140,8 @@ export type OpenRoom = {
   createdAt: number;
   expiresAt?: number;
   listenerCount: number;
+  maxListeners?: number;
+  isFull?: boolean;
   track: TrackInfo | null;
   playerState: PlayerState | null;
   // Host-based room access doctrine: the HOST satisfies the track policy;
@@ -122,11 +149,25 @@ export type OpenRoom = {
   playbackMode?: RoomPlaybackMode;
   hostAccessRequired?: boolean;
   listenersNeedWalletAccess?: false;
+  /** Discovery transport only; it does not change the Socket.IO join path. */
+  discoverySource?: 'signal' | 'statement-store';
 };
 
 export type SoloListeningByTrackHash = Record<string, number>;
 
-export type CreateRoomResponse = { ok: true; roomId: string; hostName: string; expiresAt?: number } | { ok: false; error: string };
+export type CreateRoomResponse = { ok: true; roomId: string; hostName: string; hostResumeToken: string; expiresAt?: number } | { ok: false; error: string };
+
+export type ResumeRoomResponse =
+  | {
+      ok: true;
+      roomId: string;
+      hostName: string;
+      listenerCount: number;
+      listeners: RoomPresenceListener[];
+      lineup?: RoomLineupItem[];
+      expiresAt?: number;
+    }
+  | { ok: false; error: string; code?: string };
 
 // Social layer message shapes. Deliberately transport-agnostic: nothing in
 // here knows about sockets, so a Statement Store presence layer can adopt
@@ -158,6 +199,19 @@ export type RoomRequest = {
   ts: number;
 };
 
+// Public, ephemeral room playback plan. It intentionally carries presentation
+// metadata only: listeners receive the host's WebRTC stream, never an audio or
+// manifest reference. The server accepts updates from the authenticated host
+// socket only and drops the list when the room closes.
+export type RoomLineupItem = {
+  trackId: string;
+  title: string;
+  artist: string;
+  imageRef?: string;
+  hash: `0x${string}` | '';
+  accessMode?: AccessMode;
+};
+
 export type JoinRoomResponse =
   | {
       ok: true;
@@ -170,10 +224,13 @@ export type JoinRoomResponse =
       playbackMode?: RoomPlaybackMode;
       chatHistory?: RoomChatMessage[];
       requests?: RoomRequest[];
+      lineup?: RoomLineupItem[];
       listeners?: RoomPresenceListener[];
       expiresAt?: number;
     }
   | { ok: false; error: string; code?: string };
+
+export type TurnCapabilityResponse = { ok: true; capability: string; expiresAt: number } | { ok: false; error: string; code?: string };
 
 export type CapturableMediaElement = HTMLMediaElement & {
   captureStream?: () => MediaStream;
@@ -181,10 +238,16 @@ export type CapturableMediaElement = HTMLMediaElement & {
 };
 
 export type TransactionFeedback = {
+  recoveryAction?: { label: string; run: () => void };
   tone: TransactionFeedbackTone;
   title: string;
   message: string;
   txHash?: `0x${string}`;
+  /** Selects the explorer that can resolve the returned transaction hash. */
+  proofKind?: TransactionProofKind;
+  facts?: TransactionFeedbackFact[];
+  /** Optional implementation records kept behind an explicit disclosure. */
+  technicalFacts?: TransactionFeedbackFact[];
   steps?: {
     label: string;
     detail: string;
@@ -205,16 +268,22 @@ export type AccessGate = {
   title: string;
   message: string;
   hint: string;
-  actionType: 'personhood' | 'payment' | 'signin';
+  actionType: 'none' | 'personhood' | 'payment' | 'signin';
 };
 
 export type RoyaltyPayment = {
   id: string;
+  runtimeAddress: `0x${string}`;
   trackHash: `0x${string}`;
   trackTitle: string;
   listener: `0x${string}`;
+  recipient: `0x${string}`;
   amountWei: bigint;
   amountDot: string;
+  settlement: RoyaltySettlementState;
+  pendingTotalWei?: bigint;
+  claimedAtMs?: number | null;
+  claimTransactionHash?: `0x${string}`;
   paidAtMs: number | null;
   transactionHash: `0x${string}`;
   blockNumber: bigint;

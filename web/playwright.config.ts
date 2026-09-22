@@ -5,6 +5,7 @@ const SIGNAL_URL = `http://127.0.0.1:${SIGNAL_PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: ['**/product-identity.spec.ts'],
   timeout: 30_000,
   expect: {
     timeout: 6_000
@@ -44,7 +45,12 @@ export default defineConfig({
         VITE_E2E_CLASSIC_UNLOCK: 'true',
         VITE_E2E_ARTIST_PUBLISH: 'true',
         VITE_E2E_ROOM_JOIN: 'true',
-        VITE_SIGNAL_URL: SIGNAL_URL
+        VITE_SIGNAL_URL: SIGNAL_URL,
+        VITE_DOTIFY_ROOM_GALAXY: 'on',
+        VITE_DOTIFY_ARTIST_DONATIONS: 'on',
+        VITE_E2E_READINESS_PANEL: 'true',
+        VITE_DOTIFY_BUILD_SHA: '1234567890abcdef1234567890abcdef12345678',
+        VITE_DOTIFY_PRODUCT_APP_VERSION: '[0, 1, 28]'
       }
     }
   ],

@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
   artistSetupState,
+  buildReleasePublicationFacts,
+  buildReleasePublicationRoadmap,
+  buildReleaseRegistrationFailureMessage,
+  buildReleaseTechnicalFacts,
+  buildReleaseValueFlowRows,
   formatRoyaltyPercent,
   artistStudioLocked,
   canReviewRelease,
   nextReleaseStep,
   previousReleaseStep,
   RELEASE_STEPS,
+  releaseAccessConditionLabel,
+  releasePaymentAmountLabel,
+  releaseRoyaltySplitPreflightError,
   royaltyBpsToPercent,
   royaltyPercentToBps,
   royaltySplitRemaining,
@@ -74,5 +82,132 @@ describe('artistStudioLocked', () => {
     expect(artistStudioLocked(true, false)).toBe(true);
     expect(artistStudioLocked(true, true)).toBe(false);
     expect(artistStudioLocked(false, false)).toBe(false);
+  });
+});
+
+describe('release publication disclosure helpers', () => {
+  it('names the access condition and actual payment asset before publication', () => {
+    expect(releasePaymentAmountLabel('classic', '0.75', 'PAS')).toBe('0.75 PAS');
+    expect(releasePaymentAmountLabel('free', '0.75', 'PAS')).toBe('No listener payment');
+    expect(releaseAccessConditionLabel('classic', '0.75', 'PAS', 'DIM1')).toContain('0.75 PAS');
+    expect(releaseAccessConditionLabel('human-free', '0.75', 'PAS', 'DIM2')).toContain('extended human verification');
+  });
+
+  it('shows listening, payment, fee, and publication boundary once in the main review', () => {
+    const facts = buildReleasePublicationFacts({
+      accessMode: 'classic',
+      priceDot: '0.75',
+      nativePaymentSymbol: 'PAS',
+      personhoodLevel: 'DIM1',
+      artistRecipient: '0x1111111111111111111111111111111111111111',
+      runtimeAddress: '0x2222222222222222222222222222222222222222',
+      uploadToBulletinEnabled: true
+    });
+
+    expect(facts.map(fact => fact.label)).toEqual(['Listening access', 'Total support', 'Network fee', 'Published when']);
+    expect(facts).toContainEqual({ label: 'Total support', value: '0.75 PAS' });
+    expect(facts).toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Published when', value: expect.stringContaining('catalog') })]));
+    expect(facts).not.toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Artist space record' })]));
+  });
+
+  it('keeps addresses, storage, and archive state in technical details', () => {
+    const facts = buildReleaseTechnicalFacts({
+      artistRecipient: '0x1111111111111111111111111111111111111111',
+      runtimeAddress: '0x2222222222222222222222222222222222222222',
+      uploadToBulletinEnabled: true,
+      additionalSplits: [{ id: 'producer', label: 'Producer', recipient: '0x3333333333333333333333333333333333333333', bps: 2_000 }]
+    });
+
+    expect(facts).toContainEqual({ label: 'Artist account', value: '0x111111...111111', code: true });
+    expect(facts).toContainEqual({ label: 'Artist space record', value: '0x222222...222222', code: true });
+    expect(facts).toContainEqual({ label: 'Public archive', value: 'Bulletin archival enabled' });
+    expect(facts).toContainEqual({ label: 'Producer address', value: '0x333333...333333', code: true });
+  });
+
+  it('explains who receives support, including the artist remainder', () => {
+    const rows = buildReleaseValueFlowRows({
+      accessMode: 'classic',
+      artistRecipient: '0x1111111111111111111111111111111111111111',
+      primaryBps: 7250,
+      additionalSplits: [
+        {
+          id: 'producer',
+          label: 'Producer',
+          recipient: '0x2222222222222222222222222222222222222222',
+          bps: 2000
+        }
+      ]
+    });
+
+    expect(rows).toEqual([
+      { label: 'You receive', value: '80%' },
+      { label: 'Producer', value: '20% receives support' }
+    ]);
+  });
+
+  it('keeps free releases out of paid split language', () => {
+    expect(
+      buildReleaseValueFlowRows({
+        accessMode: 'free',
+        artistRecipient: '0x1111111111111111111111111111111111111111',
+        primaryBps: 7250,
+        additionalSplits: []
+      })
+    ).toEqual([{ label: 'Support', value: 'No listener payment is collected for this release.' }]);
+  });
+
+  it('does not synthesize a 100% artist remainder for empty paid splits', () => {
+    const rows = buildReleaseValueFlowRows({
+      accessMode: 'classic',
+      artistRecipient: '0x1111111111111111111111111111111111111111',
+      primaryBps: 0,
+      additionalSplits: []
+    });
+
+    expect(rows).toEqual([
+      {
+        label: 'Payment split',
+        value: 'Add at least 0.01% to the artist or another rights holder before publishing.'
+      }
+    ]);
+  });
+
+  it('preflights empty and over-limit paid royalty splits', () => {
+    expect(releaseRoyaltySplitPreflightError('free', 0, [])).toBeNull();
+    expect(releaseRoyaltySplitPreflightError('classic', 0, [])).toBe('Add at least 0.01% to the artist or another rights holder before publishing.');
+    expect(releaseRoyaltySplitPreflightError('human-free', 10_001, [])).toBe('Reduce the payment split to 100% or less before publishing.');
+    expect(releaseRoyaltySplitPreflightError('classic', 7_250, [{ bps: 2_000 }])).toBeNull();
+  });
+
+  it('builds a publication roadmap that does not treat tx submission as catalog visibility', () => {
+    const txHash = `0x${'ab'.repeat(32)}` as const;
+    const submitted = buildReleasePublicationRoadmap('registry', txHash);
+    const catalog = buildReleasePublicationRoadmap('catalog', txHash);
+    const complete = buildReleasePublicationRoadmap('complete', txHash);
+
+    expect(submitted?.map(step => step.status)).toEqual(['complete', 'complete', 'submitted', 'upcoming']);
+    expect(catalog?.map(step => step.status)).toEqual(['complete', 'complete', 'complete', 'active']);
+    expect(complete?.every(step => step.status === 'complete')).toBe(true);
+  });
+
+  it('distinguishes recoverable draft failures from submitted transactions awaiting catalog evidence', () => {
+    const draftFailure = buildReleaseRegistrationFailureMessage({ error: 'User rejected the request.' });
+    const catalogFailure = buildReleaseRegistrationFailureMessage({
+      error: 'The catalog read-back did not include this release yet.',
+      submittedTxHash: `0x${'ab'.repeat(32)}`,
+      registrationConfirmed: true
+    });
+    const submittedFailure = buildReleaseRegistrationFailureMessage({
+      error: 'Timed out while waiting for transaction confirmation.',
+      submittedTxHash: `0x${'cd'.repeat(32)}`
+    });
+
+    expect(draftFailure).toContain('No release was published');
+    expect(draftFailure).toContain('draft are still here');
+    expect(catalogFailure).toContain('publication approval was confirmed');
+    expect(catalogFailure).toContain('will not call the release published');
+    expect(catalogFailure).toContain('catalog');
+    expect(submittedFailure).toContain('confirmation did not finish');
+    expect(submittedFailure).toContain('check your account activity');
   });
 });

@@ -2,18 +2,18 @@ import { deployments } from './deployments';
 
 export const registryOwnerGuardAttestation = {
   chainId: 420420417,
-  factory: '0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72',
-  directory: '0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108',
-  auditedBlock: 11268829,
-  auditedBlockHash: '0xb48d6fd5ddb400a85cc4fa7700aed8d5b80d2f17c59dc0b4a69f326d9ee1cf25',
+  factory: '0x835a626a9a6965b197d079ae56b1ec94033c2699',
+  directory: '0x4e883827d61e573094c7b777bae323070ea9f954',
+  auditedBlock: 13103348,
+  auditedBlockHash: '0x83c877e77638f9c087af420ef2770526f9233ccc3c17dafbbb15e2984fe94dbd',
   factoryDirectoryPairingVerified: true,
   existingRuntimeCoverage: { protected: 0, total: 0 },
   existingTrackAudit: { ownerMatched: 0, total: 0 },
   pendingRuntimeDiscoveryComplete: true,
   pendingRuntimeCount: 0,
   futureFactoryUsesOwnerGuard: true,
-  correctedRegistryCodeHash: '0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788',
-  futureFactoryRegistryCodeHash: '0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788',
+  correctedRegistryCodeHash: '0x8ade82431086a7c3fa03c39dd602e7abee4e4b588b9246adeb36537cafff6b57',
+  futureFactoryRegistryCodeHash: '0x8ade82431086a7c3fa03c39dd602e7abee4e4b588b9246adeb36537cafff6b57',
   catalogCutoverReady: true
 } as const;
 
@@ -259,6 +259,49 @@ export function validateProductionEnvironment(env: EnvironmentLike): ProductionE
     errors.push('VITE_CONTENT_SECRET is bundled into the browser and must not be set for production builds. Use backend CONTENT_KEY_MASTER_SECRET.');
   }
 
+  const roomBeacons = readEnvironmentValue(env, 'VITE_DOTIFY_ROOM_BEACONS').toLowerCase() || 'off';
+  if (!['on', 'off'].includes(roomBeacons)) {
+    errors.push('VITE_DOTIFY_ROOM_BEACONS must be on or off.');
+  }
+  if (roomBeacons === 'on' && (readEnvironmentValue(env, 'VITE_DOTIFY_HOST_MODE').toLowerCase() || 'off') === 'off') {
+    // The statement store client runs only inside the Product host container, so
+    // enabling beacons without it would ship chain code that can never connect.
+    errors.push('VITE_DOTIFY_ROOM_BEACONS=on requires VITE_DOTIFY_HOST_MODE to be auto or required: room beacons publish only inside the Product host.');
+  }
+
+  const runtimeAdapter = readEnvironmentValue(env, 'VITE_DOTIFY_RUNTIME_ADAPTER').toLowerCase() || 'viem';
+  if (!['viem', 'product-cdm'].includes(runtimeAdapter)) {
+    errors.push('VITE_DOTIFY_RUNTIME_ADAPTER must be one of viem or product-cdm.');
+  }
+  if (runtimeAdapter === 'product-cdm') {
+    const productChain = readEnvironmentValue(env, 'VITE_DOTIFY_PRODUCT_CHAIN').toLowerCase() || 'devnet';
+    if (!['devnet'].includes(productChain)) {
+      errors.push('VITE_DOTIFY_PRODUCT_CHAIN must be devnet: Product DevNet targets Paseo Asset Hub 1000, the only chain holding Dotify runtimes.');
+    }
+    // The Product chain client only connects through a host container, so a
+    // production build selecting this adapter without the host would ship a
+    // frontend that cannot read the catalog at all.
+    if ((readEnvironmentValue(env, 'VITE_DOTIFY_HOST_MODE').toLowerCase() || 'off') === 'off') {
+      errors.push(
+        'VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm requires VITE_DOTIFY_HOST_MODE to be auto or required: Product contract calls route only through the Product host.'
+      );
+    }
+  }
+
+  const productHostMode = readEnvironmentValue(env, 'VITE_DOTIFY_HOST_MODE').toLowerCase() || 'off';
+  if (!['off', 'auto', 'required'].includes(productHostMode)) {
+    errors.push('VITE_DOTIFY_HOST_MODE must be one of off, auto, or required.');
+  }
+  if (productHostMode !== 'off') {
+    const productId = readEnvironmentValue(env, 'VITE_DOTIFY_PRODUCT_ID');
+    if (!/^[a-z0-9][a-z0-9-]*\.dot$/.test(productId)) {
+      errors.push('VITE_DOTIFY_PRODUCT_ID must be a lowercase .dot name when Product host integration is enabled.');
+    }
+    validateUrl(env, 'VITE_PUBLIC_APP_URL', { required: true, protocols: ['https:'], errors });
+  } else {
+    validateUrl(env, 'VITE_PUBLIC_APP_URL', { protocols: ['https:'], errors });
+  }
+
   validateUrl(env, 'VITE_SIGNAL_URL', { required: true, protocols: ['https:', 'wss:'], errors });
   validateUrl(env, 'VITE_DOTIFY_API_URL', { required: true, protocols: ['https:'], errors });
   validateUrl(env, 'VITE_PINATA_GATEWAY', { required: true, protocols: ['https:'], errors });
@@ -267,7 +310,7 @@ export function validateProductionEnvironment(env: EnvironmentLike): ProductionE
   validateUrl(env, 'VITE_WS_URL', { protocols: ['wss:'], errors });
   validateUrl(env, 'VITE_BULLETIN_WS_URL', { protocols: ['wss:'], errors });
   validateUrl(env, 'VITE_BLOCKSCOUT_BASE_URL', { protocols: ['https:'], errors });
-  validateUrl(env, 'VITE_TURN_URL', { protocols: ['turn:', 'turns:'], errors });
+  validateUrlList(env, 'VITE_TURN_URL', { protocols: ['turn:', 'turns:'], errors });
 
   return { mode, errors, warnings };
 }

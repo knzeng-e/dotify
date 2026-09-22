@@ -17,6 +17,7 @@ type ReleasesTabProps = {
   onUpdateReleaseAccessMode: (track: CatalogTrack, accessMode: AccessMode, priceDot: string, personhoodLevel: PersonhoodLevel) => void;
   onSetReleaseActive: (track: CatalogTrack, active: boolean) => void;
   releaseActionId: string | null;
+  nativePaymentSymbol: string;
   /** Into orbit (Constellation phase C): id of a release that just landed on
    * chain while the console was open; its card plays a one-shot arrival. */
   arrivedReleaseId?: string | null;
@@ -34,6 +35,7 @@ export function ReleasesTab({
   onUpdateReleaseAccessMode,
   onSetReleaseActive,
   releaseActionId,
+  nativePaymentSymbol,
   arrivedReleaseId = null
 }: ReleasesTabProps) {
   const selectedRelease = artistTracks.find(track => track.id === selectedReleaseId) ?? artistTracks[0] ?? null;
@@ -92,7 +94,7 @@ export function ReleasesTab({
                   key={track.id}
                   onClick={() => onSelectRelease(track.id)}
                 >
-                  <CoverImage src={track.imageRef} alt='' />
+                  <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
                   <span className='release-tab-copy'>
                     <strong>{track.title}</strong>
                     <small>
@@ -103,7 +105,7 @@ export function ReleasesTab({
                     {track.active === false
                       ? 'Inactive'
                       : track.accessMode === 'classic'
-                        ? `${track.priceDot} DOT`
+                        ? `${track.priceDot} ${nativePaymentSymbol}`
                         : track.accessMode === 'free'
                           ? 'Free'
                           : track.personhoodLevel}
@@ -112,7 +114,7 @@ export function ReleasesTab({
               );
             })
           ) : (
-            <div className='empty-state'>No releases registered for this artist wallet yet.</div>
+            <div className='empty-state'>No published releases for this artist account yet.</div>
           )}
         </div>
       </aside>
@@ -121,7 +123,7 @@ export function ReleasesTab({
         <article className='doc-panel release-focus-panel' id='release-detail-panel' role='tabpanel' aria-labelledby={`release-tab-${selectedDomId}`}>
           <div className='release-focus-hero'>
             <div className='release-focus-cover'>
-              <CoverImage src={selectedRelease.imageRef} alt='' />
+              <CoverImage src={selectedRelease.imageRef} alt='' fallbackLabel={selectedRelease.title} />
               <span className='sound-bars' aria-hidden='true'>
                 <i />
                 <i />
@@ -137,17 +139,17 @@ export function ReleasesTab({
                 <span className='access-chip'>{accessModeLabel(selectedRelease)}</span>
                 <span className='access-chip'>
                   {selectedRelease.accessMode === 'classic'
-                    ? `${selectedRelease.priceDot} DOT`
+                    ? `${selectedRelease.priceDot} ${nativePaymentSymbol}`
                     : selectedRelease.accessMode === 'free'
                       ? 'Free'
-                      : 'Free for verified humans'}
+                      : 'Free with human verification'}
                 </span>
                 <span className='access-chip' data-tone={selectedReleaseActive ? 'ready' : 'locked'}>
                   {selectedReleaseActive ? 'Active' : 'Inactive'}
                 </span>
                 <span className='access-chip access-chip-trust'>
                   <BadgeCheck size={13} />
-                  Artist controlled
+                  Original artist policy
                 </span>
                 <span className='access-chip access-chip-trust'>
                   <ShieldCheck size={13} />
@@ -157,7 +159,7 @@ export function ReleasesTab({
               <p className='release-description'>{selectedRelease.description}</p>
               <div className='release-actions release-primary-actions'>
                 <button className='primary-action compact-action' type='button' onClick={() => onOpenTrack(selectedRelease)} disabled={!selectedReleaseActive}>
-                  <Play size={15} />
+                  <Play size={15} fill='currentColor' />
                   Open track
                 </button>
                 {runtimeAddress && (
@@ -188,13 +190,13 @@ export function ReleasesTab({
                 onChange={event => setDraftAccessMode(event.target.value as AccessMode)}
                 disabled={!selectedReleaseActive || isBusy}
               >
-                <option value='human-free'>Free for verified humans</option>
+                <option value='human-free'>Free with human verification</option>
                 <option value='classic'>Direct support</option>
                 <option value='free'>Free</option>
               </select>
             </label>
             <label className='release-editor-field'>
-              <span>Price DOT</span>
+              <span>Price {nativePaymentSymbol}</span>
               <input
                 className='field'
                 type='number'
@@ -206,7 +208,7 @@ export function ReleasesTab({
               />
             </label>
             <label className='release-editor-field'>
-              <span>Humanity verified level required</span>
+              <span>Human verification level</span>
               <select
                 className='field'
                 value={draftPersonhoodLevel}
@@ -228,12 +230,12 @@ export function ReleasesTab({
               label='Access'
               value={
                 selectedRelease.accessMode === 'classic'
-                  ? `${selectedRelease.priceDot} DOT`
+                  ? `${selectedRelease.priceDot} ${nativePaymentSymbol}`
                   : selectedRelease.accessMode === 'free'
                     ? 'Free for everyone'
                     : selectedRelease.personhoodLevel === 'DIM2'
-                      ? 'Free for verified humans · extended'
-                      : 'Free for verified humans · basic'
+                      ? 'Free with extended human verification'
+                      : 'Free with basic human verification'
               }
             />
             <EndpointRow
@@ -243,9 +245,10 @@ export function ReleasesTab({
             <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />
             <EndpointRow label='Encrypted audio' value={selectedRelease.encrypted ? 'yes' : 'no'} />
             <EndpointRow label='Status' value={selectedReleaseActive ? 'active' : 'inactive'} />
+            <EndpointRow label='Track NFT' value='Current owner receives active-track access; policy control does not move with the NFT.' />
             <EndpointRow label='Content hash' value={<code className='release-ref-code'>{selectedRelease.hash}</code>} />
             <EndpointRow
-              label='Artist record'
+              label='Directory runtime'
               value={
                 runtimeAddress ? (
                   <a className='verify-link' href={getBlockscoutAddressUrl(runtimeAddress)} target='_blank' rel='noreferrer'>
@@ -257,7 +260,7 @@ export function ReleasesTab({
               }
             />
             <EndpointRow
-              label='Artist wallet'
+              label='Original artist'
               value={
                 selectedRelease.artistAddress ? (
                   <a className='verify-link' href={getBlockscoutAddressUrl(selectedRelease.artistAddress)} target='_blank' rel='noreferrer'>

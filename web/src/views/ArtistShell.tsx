@@ -30,5 +30,9 @@ export function ArtistShell() {
     if (storedName) setArtistName(storedName);
   }, [activeEvmAddress, setArtistName]);
 
-  return <ArtistPortalView>{connectedWallet && artistConsole.artistRuntimeAddress ? <ArtistConsole /> : <ArtistOnboarding />}</ArtistPortalView>;
+  return (
+    <ArtistPortalView>
+      {connectedWallet && (artistConsole.artistRuntimeAddress || artistConsole.hasKnownRoyaltyRuntime) ? <ArtistConsole /> : <ArtistOnboarding />}
+    </ArtistPortalView>
+  );
 }

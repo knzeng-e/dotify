@@ -27,6 +27,7 @@ export const E2E_ROOM_PROTECTED_HASH = '0xb0b00000000000000000000000000000000000
 export const E2E_ROOM_PUBLIC_ID = 'e2e-room-public';
 export const E2E_ROOM_PROTECTED_TITLE = 'E2E Protected Room Track';
 export const E2E_ROOM_PUBLIC_TITLE = 'E2E Public Room Track';
+export const E2E_ROOM_DELAYED_AUDIO_PATH = '/__dotify_e2e__/room-sequence.wav';
 
 // Two restrained aura covers so the host/listener cards render without remote assets.
 const PROTECTED_COVER =
@@ -37,9 +38,11 @@ const PUBLIC_COVER =
 // A deterministic 2s 8-bit/8kHz silent WAV, built once at module load (pure,
 // no Date/random). It gives the host a real, finite-duration local source so
 // playback progresses deterministically for the room specs.
-function buildSilentWavDataUrl(fillValue = 128): string {
+const syncFixture = isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eSync') === 'on';
+
+function buildSilentWavDataUrl(fillValue = 128, frequency = 440): string {
   const sampleRate = 8000;
-  const seconds = 2;
+  const seconds = syncFixture ? 60 : 2;
   const dataLen = sampleRate * seconds; // 8-bit mono
   const bytes = new Uint8Array(44 + dataLen);
   const view = new DataView(bytes.buffer);
@@ -60,6 +63,9 @@ function buildSilentWavDataUrl(fillValue = 128): string {
   writeAscii(36, 'data');
   view.setUint32(40, dataLen, true);
   bytes.fill(fillValue, 44); // unsigned 8-bit near-silence
+  if (syncFixture) {
+    for (let i = 0; i < dataLen; i++) bytes[44 + i] = 128 + Math.round(32 * Math.sin((2 * Math.PI * frequency * i) / sampleRate));
+  }
 
   let binary = '';
   for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
@@ -123,13 +129,36 @@ export const E2E_ROOM_PUBLIC_TRACK: CatalogTrack = {
 // Ordered [protected, public] so the unauthorized-host scenario skips forward
 // from the protected track (index 0) to the public track (index 1).
 export function getRoomJoinE2eTracks(): CatalogTrack[] {
-  return [E2E_ROOM_PROTECTED_TRACK, E2E_ROOM_PUBLIC_TRACK];
+  const params = isRoomJoinE2e && typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const responsiveImageRef = params?.get('e2eResponsiveCover') === 'on' ? 'ipfs://bafy-e2e-cover/cover/640.webp' : null;
+  const protectedTrack = {
+    ...E2E_ROOM_PROTECTED_TRACK,
+    ...(responsiveImageRef ? { imageRef: responsiveImageRef } : {}),
+    ...(params?.get('e2eDav2Intent') === 'on' ? { audioRef: 'dotify:enc:v2:ipfs://bafy-e2e-intent-audio' } : {})
+  };
+  const publicTrack = responsiveImageRef ? { ...E2E_ROOM_PUBLIC_TRACK, imageRef: responsiveImageRef } : E2E_ROOM_PUBLIC_TRACK;
+  const tracks = [protectedTrack, publicTrack];
+  if (params?.get('e2eCatalog') === 'wide') {
+    for (let index = 1; index <= 10; index++) tracks.push({ ...E2E_ROOM_PUBLIC_TRACK, id: `e2e-selection-${index}`, title: `Session selection ${index}` });
+  }
+  if (params?.get('e2eCatalog') === 'sequence') {
+    const delayMediaReadiness = params.get('e2eTrackDelay') === 'on';
+    tracks.push({
+      ...E2E_ROOM_PUBLIC_TRACK,
+      id: `${E2E_ROOM_PUBLIC_ID}-sequence`,
+      title: 'Second room track',
+      hash: '0xb0b0000000000000000000000000000000000000000000000000000000000003',
+      localUrl: delayMediaReadiness ? E2E_ROOM_DELAYED_AUDIO_PATH : buildSilentWavDataUrl(128, 660),
+      audioRef: 'dotify:local:e2e-sequence'
+    });
+  }
+  return tracks;
 }
 
 export function isRoomJoinE2eTrack(track: Pick<CatalogTrack, 'id'>) {
   if (!isRoomJoinE2e) return false;
   const id = track.id.toLowerCase();
-  return id === E2E_ROOM_PUBLIC_ID || id.startsWith(`${E2E_ROOM_RUNTIME.toLowerCase()}:`);
+  return id === E2E_ROOM_PUBLIC_ID || id === `${E2E_ROOM_PUBLIC_ID}-sequence` || id.startsWith(`${E2E_ROOM_RUNTIME.toLowerCase()}:`);
 }
 
 export function isRoomJoinE2eProtectedHash(contentHash: string) {
@@ -172,6 +201,7 @@ export type RoomJoinE2eState = {
   replaceTrackSwaps: number;
   captureTrackStops: number;
   webAudioCaptures: number;
+  webAudioCaptureCloses: number;
   webAudioMonitorGain: number;
   streamReadySignals: number;
   remotePlaybackCues: number;
@@ -193,6 +223,7 @@ export function getRoomJoinE2eState(): RoomJoinE2eState {
       replaceTrackSwaps: 0,
       captureTrackStops: 0,
       webAudioCaptures: 0,
+      webAudioCaptureCloses: 0,
       webAudioMonitorGain: 1,
       streamReadySignals: 0,
       remotePlaybackCues: 0
@@ -206,6 +237,7 @@ export function getRoomJoinE2eState(): RoomJoinE2eState {
     replaceTrackSwaps: 0,
     captureTrackStops: 0,
     webAudioCaptures: 0,
+    webAudioCaptureCloses: 0,
     webAudioMonitorGain: 1,
     streamReadySignals: 0,
     remotePlaybackCues: 0
@@ -214,6 +246,7 @@ export function getRoomJoinE2eState(): RoomJoinE2eState {
   window.__DOTIFY_E2E_ROOM_JOIN__.replaceTrackSwaps ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.captureTrackStops ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.webAudioCaptures ??= 0;
+  window.__DOTIFY_E2E_ROOM_JOIN__.webAudioCaptureCloses ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.webAudioMonitorGain ??= 1;
   window.__DOTIFY_E2E_ROOM_JOIN__.streamReadySignals ??= 0;
   window.__DOTIFY_E2E_ROOM_JOIN__.remotePlaybackCues ??= 0;
@@ -242,6 +275,11 @@ export function recordRoomJoinE2eWebAudioCapture() {
   getRoomJoinE2eState().webAudioCaptures += 1;
 }
 
+export function recordRoomJoinE2eWebAudioCaptureClose() {
+  if (typeof window === 'undefined') return;
+  getRoomJoinE2eState().webAudioCaptureCloses += 1;
+}
+
 export function recordRoomJoinE2eWebAudioMonitorGain(gain: number) {
   if (typeof window === 'undefined') return;
   getRoomJoinE2eState().webAudioMonitorGain = gain;
@@ -263,6 +301,28 @@ export function recordRoomJoinE2eRemotePlaybackCue() {
 // Chromium connect over host candidates with zero network dependency.
 export function roomJoinE2eIceServers(): RTCIceServer[] {
   return [];
+}
+
+export function roomJoinE2eOfferDelayMs(): number {
+  if (!isRoomJoinE2e || typeof window === 'undefined') return 0;
+  const requested = Number(new URLSearchParams(window.location.search).get('e2eOfferDelayMs'));
+  return Number.isFinite(requested) ? Math.min(2_000, Math.max(0, requested)) : 0;
+}
+
+// A delayed-offer scenario strips candidates from the SDP snapshot so the
+// listener must preserve trickled candidates that arrive before the offer.
+// This reproduces Product Mobile Fetch-polling order without mocking WebRTC.
+export function roomJoinE2eOfferSnapshot(description: RTCSessionDescriptionInit): RTCSessionDescriptionInit {
+  if (!roomJoinE2eOfferDelayMs() || !description.sdp) return description;
+  const sdp = description.sdp
+    .split(/\r?\n/)
+    .filter(line => !line.startsWith('a=candidate:') && line !== 'a=end-of-candidates')
+    .join('\r\n');
+  return { ...description, sdp };
+}
+
+export function roomJoinE2eAutoplayEnabled() {
+  return isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eAutoplay') === 'on';
 }
 
 export function shouldUseRoomJoinE2eSyntheticCapture() {

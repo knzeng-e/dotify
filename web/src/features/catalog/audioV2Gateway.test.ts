@@ -1,5 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearAudioV2GatewayCache, fetchAudioV2RangeThroughGateways, getCachedAudioV2Gateway } from './audioV2Gateway';
+import {
+  AUDIO_V2_HEDGE_DELAY_MS,
+  AUDIO_V2_RANGE_ATTEMPTS_PER_GATEWAY,
+  AUDIO_V2_RANGE_TIMEOUT_MS,
+  clearAudioV2GatewayCache,
+  evictAudioV2IntentRange,
+  fetchAudioV2RangeThroughGateways,
+  getCachedAudioV2Gateway,
+  prefetchAudioV2RangeThroughGateways,
+  retainAudioV2IntentRanges
+} from './audioV2Gateway';
 
 const CID = 'QmDav2Audio';
 const PRIMARY = `https://primary.example/ipfs/${CID}`;
@@ -20,6 +30,28 @@ describe('audioV2 gateway range fetching', () => {
     clearAudioV2GatewayCache();
   });
 
+  it('keeps the default range budget above cold Product gateway reads', () => {
+    expect(AUDIO_V2_RANGE_TIMEOUT_MS).toBeGreaterThanOrEqual(12_000);
+    expect(AUDIO_V2_HEDGE_DELAY_MS).toBeGreaterThanOrEqual(6_000);
+    expect(AUDIO_V2_HEDGE_DELAY_MS).toBeLessThan(AUDIO_V2_RANGE_TIMEOUT_MS);
+    expect(AUDIO_V2_RANGE_ATTEMPTS_PER_GATEWAY).toBeGreaterThanOrEqual(2);
+  });
+
+  it('retries a transient network failure on the same gateway before falling back', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(rangeResponse(9, 3));
+
+    const result = await fetchAudioV2RangeThroughGateways(CID, 0, 8, {
+      fetchImpl: fetchMock,
+      getGatewayUrlsForCid: () => [PRIMARY, FALLBACK],
+      hedge: false
+    });
+
+    expect(result.bytes).toEqual(new Uint8Array(9).fill(3));
+    expect(result.gatewayUrl).toBe(PRIMARY);
+    expect(result.recovered).toBe(false);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([PRIMARY, PRIMARY]);
+  });
+
   it('falls back to the next gateway and caches the winner per CID', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
@@ -35,6 +67,7 @@ describe('audioV2 gateway range fetching', () => {
 
     expect(first.bytes).toEqual(new Uint8Array(9).fill(9));
     expect(first.gatewayUrl).toBe(FALLBACK);
+    expect(first.recovered).toBe(true);
     expect(getCachedAudioV2Gateway(CID)).toBe(FALLBACK);
 
     const second = await fetchAudioV2RangeThroughGateways(CID, 9, 12, {
@@ -44,6 +77,7 @@ describe('audioV2 gateway range fetching', () => {
     });
 
     expect(second.bytes).toEqual(new Uint8Array(4).fill(10));
+    expect(second.recovered).toBe(false);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([PRIMARY, FALLBACK, FALLBACK]);
   });
 
@@ -70,6 +104,7 @@ describe('audioV2 gateway range fetching', () => {
     expect(result.bytes).toEqual(new Uint8Array(9).fill(7));
     expect(result.gatewayUrl).toBe(FALLBACK);
     expect(result.hedged).toBe(true);
+    expect(result.recovered).toBe(true);
     expect(primarySignal?.aborted).toBe(true);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([PRIMARY, FALLBACK]);
   });
@@ -163,5 +198,102 @@ describe('audioV2 gateway range fetching', () => {
     });
 
     expect(result.bytes).toHaveLength(40);
+  });
+
+  it('reuses a short-lived encrypted intent range without another network request', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(rangeResponse(9, 4, 'bytes 0-8/100'));
+
+    await prefetchAudioV2RangeThroughGateways(CID, 0, 8, {
+      fetchImpl: fetchMock,
+      getGatewayUrlsForCid: () => [PRIMARY],
+      phase: 'header',
+      hedge: false
+    });
+    const playbackRange = await fetchAudioV2RangeThroughGateways(CID, 0, 8, {
+      fetchImpl: fetchMock,
+      getGatewayUrlsForCid: () => [PRIMARY],
+      phase: 'header',
+      hedge: false
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(playbackRange.bytes).toEqual(new Uint8Array(9).fill(4));
+    expect(playbackRange.intentPrefetched).toBe(true);
+    expect(playbackRange.elapsedMs).toBe(0);
+  });
+
+  it('does not reuse an intent range after semantic validation evicts it', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(rangeResponse(9, 4, 'bytes 0-8/100'))
+      .mockResolvedValueOnce(rangeResponse(9, 7, 'bytes 0-8/100'));
+    const options = {
+      fetchImpl: fetchMock,
+      getGatewayUrlsForCid: () => [PRIMARY],
+      phase: 'header' as const,
+      hedge: false
+    };
+
+    await prefetchAudioV2RangeThroughGateways(CID, 0, 8, options);
+    evictAudioV2IntentRange(CID, 0, 8);
+    const playbackRange = await fetchAudioV2RangeThroughGateways(CID, 0, 8, options);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(playbackRange.bytes).toEqual(new Uint8Array(9).fill(7));
+    expect(playbackRange.intentPrefetched).toBe(false);
+  });
+
+  it('lets playback share an in-flight intent range', async () => {
+    let resolveResponse!: (response: Response) => void;
+    const fetchMock = vi.fn<typeof fetch>(() => new Promise<Response>(resolve => (resolveResponse = resolve)));
+    const options = {
+      fetchImpl: fetchMock,
+      getGatewayUrlsForCid: () => [PRIMARY],
+      phase: 'first-chunk' as const,
+      hedge: false
+    };
+
+    const prefetch = prefetchAudioV2RangeThroughGateways(CID, 10, 12, options);
+    const playback = fetchAudioV2RangeThroughGateways(CID, 10, 12, options);
+    resolveResponse(rangeResponse(3, 7, 'bytes 10-12/100'));
+
+    const [, playbackRange] = await Promise.all([prefetch, playback]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(playbackRange.intentPrefetched).toBe(true);
+    expect(playbackRange.bytes).toEqual(new Uint8Array(3).fill(7));
+  });
+
+  it('does not retain a speculative range larger than the memory budget', async () => {
+    const length = 3 * 1024 * 1024 + 1;
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(rangeResponse(length, 2)));
+    const options = {
+      fetchImpl: fetchMock,
+      getGatewayUrlsForCid: () => [PRIMARY],
+      phase: 'first-chunk' as const,
+      hedge: false
+    };
+
+    const release = retainAudioV2IntentRanges([CID]);
+    await prefetchAudioV2RangeThroughGateways(CID, 0, length - 1, options);
+    const playbackRange = await fetchAudioV2RangeThroughGateways(CID, 0, length - 1, options);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(playbackRange.intentPrefetched).toBe(false);
+    release();
+  });
+
+  it('keeps an active neighbor through a long track, then restores ordinary expiration', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(rangeResponse(9, 4, 'bytes 0-8/100')));
+    const options = { fetchImpl: fetchMock, getGatewayUrlsForCid: () => [PRIMARY], hedge: false };
+    const release = retainAudioV2IntentRanges([CID]);
+    await prefetchAudioV2RangeThroughGateways(CID, 0, 8, options);
+    await vi.advanceTimersByTimeAsync(300_000);
+    expect((await fetchAudioV2RangeThroughGateways(CID, 0, 8, options)).intentPrefetched).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    release();
+    await vi.advanceTimersByTimeAsync(90_001);
+    expect((await fetchAudioV2RangeThroughGateways(CID, 0, 8, options)).intentPrefetched).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

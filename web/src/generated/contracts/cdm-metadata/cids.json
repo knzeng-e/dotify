@@ -1,0 +1,12 @@
+{
+  "@dotify/artist-directory": {
+    "file": "dotify-artist-directory.json",
+    "cid": "bafk2bzacebcem3sk7msybseyhx3rmqybdqo2t2pdypvmnvyn2idaibe6xx4pq",
+    "bytes": 4468
+  },
+  "@dotify/artist-runtime-factory": {
+    "file": "dotify-artist-runtime-factory.json",
+    "cid": "bafk2bzaceabgw5kefjrqqazehtdfhz7qepzauovsy7zussxmulmvscihaozra",
+    "bytes": 7623
+  }
+}

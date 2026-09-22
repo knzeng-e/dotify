@@ -5,7 +5,7 @@ import eslintConfigPrettier from "eslint-config-prettier";
 
 export default tseslint.config(
 	{
-		ignores: ["dist/**", "dist-bulletin/**", "node_modules/**", ".papi/**", "tsconfig.tsbuildinfo", "src/generated/**"],
+		ignores: ["dist/**", "dist-bulletin/**", "dist-product/**", "node_modules/**", ".papi/**", "tsconfig.tsbuildinfo", "src/generated/**"],
 	},
 	js.configs.recommended,
 	...tseslint.configs.recommended,
@@ -35,6 +35,7 @@ export default tseslint.config(
 				require: "readonly",
 				setInterval: "readonly",
 				setTimeout: "readonly",
+				TextEncoder: "readonly",
 			},
 		},
 		rules: {

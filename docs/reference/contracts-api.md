@@ -2,6 +2,13 @@
 
 All contracts are deployed on **Paseo Asset Hub** (`chainId 420420417`). Source lives in `Dotify/contracts/evm/contracts/`.
 
+Classic unlock payments settle through the runtime's native EVM `msg.value`
+rail. The frontend fetches the connected EVM `chainId`, then derives the
+displayed native asset from an explicit Polkadot Hub metadata table because
+standard EVM JSON-RPC does not expose a native-currency symbol/decimals method.
+The current Product DevNet/Paseo runtime rail displays `PAS`; a DOT-backed
+Polkadot Hub EVM chain displays `DOT`.
+
 > **Pre-fix deployment warning (2026-07-12):** this reference describes the
 > current source contract. The configured Paseo factory and indexed runtimes
 > still use the registry facet deployed before `musicRegRegister` became
@@ -181,7 +188,7 @@ struct TrackData {
     string artistContractRef;
     uint256 royaltyBps;
     uint8 accessMode;         // 0 = human-free, 1 = classic
-    uint256 pricePlanck;       // Historical name; value is 18-decimal native token units.
+    uint256 pricePlanck;       // Historical name; value is 18-decimal EVM contract units.
     uint8 requiredPersonhood; // 0 = none, 1 = DIM1, 2 = DIM2
 }
 
@@ -268,12 +275,15 @@ function musicAccCanAccess(bytes32 contentHash, address listener)
 Returns `true` if the listener is allowed full playback. Logic:
 
 ```
-listener == owner(tokenId)           → true (artist always has access)
+track.active == false                          → false
+listener == original artist                    → true
+listener == owner(tokenId)                     → true
 accessMode == classic
-  AND paidAccess[contentHash][listener] == true  → true
+  AND paidAccess[contentHash][listener] == true → true
 accessMode == human-free
-  AND personhoodLevelOf[listener] >= requiredPersonhood  → true
-otherwise → false
+  AND Individuality level >= requiredPersonhood → true
+accessMode == free                             → true
+otherwise                                     → false
 ```
 
 ---
@@ -295,9 +305,9 @@ Returns whether the listener has paid for Classic-mode access. Does not evaluate
 function musicAccSetPersonhoodLevel(address listener, uint8 level) external
 ```
 
-Records a personhood level for a listener address.
-
-**Caller must be:** The designated personhood registrar (initially the artist; set by `DotifyRuntimeInitializer`).
+Deprecated ABI-stability entry point. Current runtimes read personhood from the
+Individuality precompile in Dotify's application context; this setter reverts
+instead of writing unused storage.
 
 | `level` | Meaning                |
 | ------- | ---------------------- |
@@ -325,14 +335,57 @@ Pay for access to a Classic-mode track.
 field name is historical; Dotify now stores the price as 18-decimal Asset Hub
 EVM native units.
 
+Frontend writes build an explicit native runtime payment intent before calling
+this function. CASH is not passed through this runtime method; Product-native
+CASH settlement requires a future receipt or bridge model.
+
 On success:
 
-1. Distributes `msg.value` across royalty splits (basis points).
-2. Sends remainder to the runtime owner.
-3. Sets `paidAccess[contentHash][msg.sender] = true`.
-4. Emits `MusicRoyAccessPaid`.
+1. Records `paidAccess[contentHash][msg.sender] = true`.
+2. Settles the stored track price across royalty splits (basis points).
+3. Sends each recipient share with bounded gas.
+4. Records any failed recipient transfer as claimable.
+5. Sends remainder to the original artist address stored on the track.
+6. Refunds any overpayment to the caller.
+7. Emits `MusicRoyAccessPaid` and per-recipient settlement events.
 
-**Emits:** `MusicRoyAccessPaid(bytes32 indexed contentHash, address indexed listener, uint256 amount)`
+**Emits:**
+
+- `MusicRoyAccessPaid(bytes32 indexed contentHash, address indexed listener, uint256 amount)`
+- `MusicRoyRoyaltyPaid(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount)`
+- `MusicRoyRoyaltyPayoutFailed(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount)`
+- `MusicRoyRoyaltyClaimable(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount, uint256 pendingTotal)`
+
+---
+
+### `musicRoyClaimable(address recipient)`
+
+```solidity
+function musicRoyClaimable(address recipient) external view returns (uint256)
+```
+
+Returns the native-token amount currently waiting in the runtime for
+`recipient`.
+
+---
+
+### `musicRoyClaim(address recipient)`
+
+```solidity
+function musicRoyClaim(address recipient) external returns (uint256 amount, bool settled)
+```
+
+Claims pending native-token royalties. The caller must be the same address as
+`recipient`; third-party claim helpers cannot drain another recipient's balance.
+
+The claim transfer uses the same bounded-gas native transfer helper as immediate
+settlement. If the recipient still cannot receive the transfer, the transaction
+does not revert; the balance is restored and remains claimable for a later retry.
+
+**Emits:**
+
+- `MusicRoyRoyaltyClaimed(address indexed recipient, uint256 amount)`
+- `MusicRoyRoyaltyClaimFailed(address indexed recipient, uint256 amount)`
 
 ---
 
@@ -353,6 +406,9 @@ Records a completed listen event for a Human free track (analytics only, no paym
 **File:** `contracts/pallets/MusicNFTPallet.sol`
 
 ERC-721-style NFT per track. Each registered track mints one NFT to the artist.
+The current NFT owner has playback access while the release is active. NFT
+transfer does not rewrite the original artist field, SmartRuntime ownership, or
+royalty beneficiaries.
 
 ### `ownerOf(uint256 tokenId)`
 
@@ -376,7 +432,8 @@ function balanceOf(address owner) external view returns (uint256)
 function transferFrom(address from, address to, uint256 tokenId) external
 ```
 
-Transfers track ownership (NFT). For Human free tracks, `to` must have the required personhood level.
+Transfers track ownership (NFT). For Human free tracks, `to` must have the
+required personhood level.
 
 ---
 
@@ -404,13 +461,23 @@ Introspection: `facets()`, `facetFunctionSelectors(address)`, `facetAddresses()`
 The Solidity field is still named `pricePlanck` for historical/Substrate
 context, but the active EVM path stores prices directly as 18-decimal native
 token units. The frontend uses viem's `parseEther()` and `formatEther()` helpers
-for DOT display and `msg.value`.
+for display and `msg.value`; the payment symbol comes from the configured EVM
+chain's native currency (`PAS` on chain `420420417`).
 
 | Format                         | Example                   |
 | ------------------------------ | ------------------------- |
-| DOT (display)                  | `0.5`                     |
-| Stored value / EVM `msg.value` | `500_000_000_000_000_000` |
+| Native display amount                    | `0.5`                     |
+| Stored value / EVM `msg.value`           | `500_000_000_000_000_000` |
+| Paseo `Revive.call.value` (10 decimals)   | `5_000_000_000`           |
 
 Frontend conversion: `src/utils/format.ts` → `dotToPlanck()` for input and
 `formatWeiAsDot()` for display. The `dotToPlanck()` function name is legacy; it
-returns 18-decimal native units via `parseEther()`.
+returns 18-decimal EVM contract units via `parseEther()`.
+
+The viem adapter sends the stored value directly as EVM `msg.value`. The Product
+CDM adapter submits a native `pallet-revive` extrinsic instead, so it reads the
+connected chain's `tokenDecimals` and divides only `Revive.call.value` by
+`10^(18 - tokenDecimals)`. The pallet expands that native Balance back to the
+same 18-decimal EVM value before contract execution. The adapter rejects values
+that cannot be represented exactly; stored `pricePlanck` ABI arguments are never
+rescaled.

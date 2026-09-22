@@ -1,0 +1,134 @@
+/* One catalog, first on every screen. Artwork is the visual focal point. */
+.listen-home-focused {
+  gap: 1.75rem;
+}
+.listen-home-focused > .now-intro {
+  grid-row: auto;
+  order: 0;
+  gap: 0.5rem 2rem;
+}
+.listen-home-focused .now-intro h1 {
+  max-width: none;
+  font-size: var(--text-display-sm);
+  margin-top: 0.3rem;
+  line-height: 1.1;
+}
+.listen-home-focused .now-intro-copy {
+  border: 0;
+  padding: 0;
+  margin-top: var(--space-2);
+}
+.listen-home-focused > .catalogue-section {
+  order: 1;
+  gap: 0.75rem;
+}
+.listen-home-focused > .live-section {
+  order: 2;
+}
+.listen-home-focused .section-heading h2 {
+  font-family: var(--font-interface);
+  font-size: var(--text-xl);
+  letter-spacing: var(--tracking-display);
+  line-height: 1.3;
+}
+.listen-home-focused .catalogue-intro {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+.listen-home-focused .live-empty {
+  padding: 1rem;
+  min-height: 0;
+}
+.catalogue-grid .artist-text-button {
+  min-height: var(--touch-target);
+}
+@media (max-width: 768px) {
+  .listen-home-focused {
+    gap: 1.25rem;
+  }
+  .listen-home-focused .now-intro h1 {
+    font-size: var(--text-title);
+  }
+  .listen-home-focused .catalogue-section .section-heading {
+    margin: 0;
+    padding-bottom: 0.5rem;
+  }
+  .listen-home-focused .catalog-browser {
+    gap: 0.4rem;
+  }
+  .listen-home-focused .catalog-browser-tools {
+    gap: 0.4rem;
+  }
+}
+
+.rooms-landing-focused {
+  gap: 1.5rem;
+}
+.rooms-landing-focused .rooms-intro {
+  gap: 1rem;
+}
+.rooms-landing-focused .rooms-intro h1 {
+  max-width: none;
+  font-size: var(--text-display-sm);
+  line-height: 1.1;
+}
+.room-arrival {
+  display: flex;
+  align-items: end;
+  gap: 1rem;
+  padding-block: 0.75rem;
+  border-block: 1px solid var(--line);
+}
+.room-arrival .room-action-form {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.room-arrival .room-action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.room-arrival .room-action-field {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+.room-arrival button {
+  min-height: var(--touch-target);
+  flex-shrink: 0;
+}
+.rooms-landing-focused .rooms-empty-state {
+  min-height: 0;
+  padding: 1rem;
+  gap: 0.75rem;
+}
+.rooms-landing-focused .rooms-empty-signal {
+  display: none;
+}
+@media (max-width: 768px) {
+  .rooms-landing-focused {
+    gap: 1rem;
+  }
+  .room-arrival {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .room-arrival > button {
+    align-self: flex-start;
+  }
+  .rooms-landing-focused .rooms-intro h1 {
+    font-size: var(--text-title);
+  }
+  .rooms-landing-focused .rooms-live-section .section-heading h2 {
+    font-family: var(--font-interface);
+    font-size: var(--text-xl);
+  }
+}
+
+.room-arrival .room-action-submit {
+  width: auto;
+  flex: 0 0 auto;
+  padding-inline: 1rem;
+}

@@ -1,4 +1,4 @@
-import { BadgeCheck, Disc3, ExternalLink, FileAudio, LockKeyhole, RefreshCw, Sparkles, Wallet } from 'lucide-react';
+import { Disc3, ExternalLink, FileAudio, LockKeyhole, RefreshCw, Sparkles, UserRoundPlus, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
 import { shorten } from '../../shared/utils/format';
@@ -9,7 +9,7 @@ import { useReleaseForm, useWalletContext, useUiFeedback, useCatalogContext, use
 export function ArtistOnboarding() {
   const { artistName, setArtistName } = useReleaseForm();
   const { connectedWallet, activeEvmAddress } = useWalletContext();
-  const { setShowWalletModal } = useUiFeedback();
+  const { openWalletModal } = useUiFeedback();
   const catalog = useCatalogContext();
   const { artistConsole } = useArtistStudio();
 
@@ -26,16 +26,27 @@ export function ArtistOnboarding() {
   const onRefreshArtistRuntime = () => {
     void artistConsole.refreshArtistRuntime(true);
   };
-  const onShowWalletModal = () => setShowWalletModal(true);
+  const onShowWalletModal = () => openWalletModal('artist');
 
   const [consented, setConsented] = useState(false);
   const needsWallet = !connectedWallet;
   const canRegister = Boolean(artistRegistrationAvailable && connectedWallet && artistName.trim() && consented && !isRegisteringArtist);
+  const registrationBlocker = artistPublicationQuarantined
+    ? artistPublicationQuarantineReason
+    : !artistRegistrationAvailable
+      ? artistRegistrationStatus
+      : needsWallet
+        ? 'Connect your account to continue.'
+        : !artistName.trim()
+          ? 'Enter the artist name listeners should see.'
+          : !consented
+            ? 'Confirm the shared-listening permission to continue.'
+            : null;
   const registrationStatus = artistPublicationQuarantined
     ? artistPublicationQuarantineReason
     : connectedWallet
       ? artistRegistrationStatus
-      : 'Connect your wallet to claim an artist profile.';
+      : 'Connect your account to create an artist space.';
 
   return (
     <div className='artist-onboarding'>
@@ -53,12 +64,11 @@ export function ArtistOnboarding() {
           </div>
           <h1 id='artist-claim-title'>Claim your artist space on Dotify.</h1>
           <p>
-            Connect the wallet that owns your catalog, publish music from your artist space, and keep the listener experience centered on shared rooms, clear
-            listening doors, and transparent payments.
+            Create a home for your releases, choose how people listen, and decide where support goes. Dotify keeps the technical record behind the experience.
           </p>
           <div className='artist-claim-actions'>
             <a className='primary-action' href='#claim-profile'>
-              <BadgeCheck size={16} />
+              <UserRoundPlus size={16} />
               Get started
             </a>
             <a className='secondary-link' href='/'>
@@ -70,7 +80,7 @@ export function ArtistOnboarding() {
         <div className='artist-claim-proof' aria-label='Artist tools summary'>
           <div>
             <strong>Own the release path</strong>
-            <span>One profile per wallet, with royalties tied to your artist space.</span>
+            <span>One artist space per connected account, with choices attached to each release.</span>
           </div>
           <div>
             <strong>Publish into listening rooms</strong>
@@ -78,7 +88,7 @@ export function ArtistOnboarding() {
           </div>
           <div>
             <strong>Keep context attached</strong>
-            <span>Release details, listening rules, and pricing travel with the track.</span>
+            <span>Release details, listening access, and support choices stay together.</span>
           </div>
         </div>
       </section>
@@ -89,45 +99,33 @@ export function ArtistOnboarding() {
             <Wallet size={28} />
           </div>
           <h2>Register as an artist</h2>
-          <p className='onboarding-subtitle'>Use your wallet to create an artist profile before publishing releases.</p>
-        </div>
-
-        <div className='philosophy-commitment'>
-          <p className='philosophy-statement'>
-            Dotify is not only a streaming platform. It is a cultural social hub, a place where music becomes the reason people gather in real time. When you
-            upload a track, it enters a shared space where listeners can tune in together.
-          </p>
-          <p className='philosophy-statement'>
-            You keep full control of your catalog, rights, and monetization. What you are offering is a presence. Your music as an instrument of direct human
-            connection.
-          </p>
-          <label className='consent-row'>
-            <input type='checkbox' className='consent-checkbox' checked={consented} onChange={e => setConsented(e.target.checked)} />
-            <span>I understand and consent to my music being used to create real-time shared listening experiences on Dotify.</span>
-          </label>
+          <p className='onboarding-subtitle'>Three short steps create your artist space before you publish.</p>
         </div>
 
         <div className='onboarding-steps'>
           <div className='step'>
             <div className='step-number'>1</div>
             <div className='step-content'>
-              <h3>Connect your wallet</h3>
-              <p>Your artist workspace will be tied to this address.</p>
+              <h3>Connect your account</h3>
+              <p>This account approves your releases and future changes.</p>
               {needsWallet ? (
                 <button className='primary-action compact-action' type='button' onClick={onShowWalletModal}>
                   <LockKeyhole size={16} />
-                  Use my wallet
+                  Use my account
                 </button>
               ) : (
                 <div className='account-info'>
-                  <div className='account-address'>
-                    <span className='label'>Active address:</span>
-                    <a className='verify-link' href={getBlockscoutAddressUrl(activeEvmAddress)} target='_blank' rel='noreferrer'>
-                      <code>{shorten(activeEvmAddress, 14)}</code>
-                      <ExternalLink size={12} />
-                    </a>
-                  </div>
-                  <span className='badge badge-success'>{connectedWallet.label}</span>
+                  <span className='badge badge-success'>{connectedWallet.label} connected</span>
+                  <details className='artist-technical-disclosure'>
+                    <summary>Account details</summary>
+                    <div className='account-address'>
+                      <span className='label'>Publishing address</span>
+                      <a className='verify-link' href={getBlockscoutAddressUrl(activeEvmAddress)} target='_blank' rel='noreferrer'>
+                        <code>{shorten(activeEvmAddress, 14)}</code>
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  </details>
                 </div>
               )}
             </div>
@@ -154,10 +152,15 @@ export function ArtistOnboarding() {
             <div className='step-number'>3</div>
             <div className='step-content'>
               <h3>Register your artist space</h3>
-              <p>Create the space that manages releases and royalties.</p>
+              <p>Dotify will use your releases in real-time shared listening rooms. You choose the listening access and support terms for every release.</p>
+              <label className='consent-row'>
+                <input type='checkbox' className='consent-checkbox' checked={consented} onChange={e => setConsented(e.target.checked)} />
+                <span>I understand and consent to shared listening on Dotify.</span>
+              </label>
               <div className='registration-status'>
                 <span className='status-text'>{registrationStatus}</span>
               </div>
+              {registrationBlocker && !isRegisteringArtist && <p className='registration-guidance'>{registrationBlocker}</p>}
               <button
                 className='primary-action compact-action'
                 type='button'
@@ -165,7 +168,7 @@ export function ArtistOnboarding() {
                 onClick={onRegisterArtist}
                 disabled={!canRegister}
               >
-                {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
+                {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <UserRoundPlus size={16} />}
                 {isRegisteringArtist ? 'Registering...' : 'Create artist profile'}
               </button>
               <button
@@ -185,7 +188,8 @@ export function ArtistOnboarding() {
           <div className='onboarding-note'>
             <FileAudio size={20} />
             <p>
-              You have <strong>{artistTracks.length}</strong> unreleased track(s) waiting. Once registered, you can publish them and start earning royalties.
+              Dotify found <strong>{artistTracks.length}</strong> release{artistTracks.length === 1 ? '' : 's'} associated with this artist account. Register or
+              refresh the status to manage them.
             </p>
           </div>
         )}

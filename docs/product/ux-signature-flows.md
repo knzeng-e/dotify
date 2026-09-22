@@ -12,18 +12,33 @@ Dotify must avoid wallet pop-up fatigue. Wallet prompts should appear only when 
 
 ## UX rule summary
 
-| Context | Wallet required? | Signature required? | Transaction required? |
-| --- | --- | --- | --- |
-| Browse catalog | No | No | No |
-| Play Free track | No | No | No |
-| Join room as listener | No | No | No |
-| Listen to host stream | No | No | No |
-| Classic individual playback | Yes | Maybe session signature + key request | Only if not already unlocked |
-| Human Free individual playback | Yes | Maybe session signature + personhood check | No, unless proving/linking personhood requires one |
-| Room host protected playback | Yes | Maybe session signature + key request | Only if access requires payment |
-| Classic unlock | Yes | Maybe session signature + payment tx | Yes |
-| Human Free unlock | Yes | Maybe session signature | No, unless proving/linking personhood requires one |
-| Artist publishing | Yes | Yes/transaction depending on step | Yes for runtime/register actions |
+| Context                        | Wallet required? | Signature required?                        | Transaction required?                              |
+| ------------------------------ | ---------------- | ------------------------------------------ | -------------------------------------------------- |
+| Browse catalog                 | No               | No                                         | No                                                 |
+| Play Free track                | No               | No                                         | No                                                 |
+| Join room as listener          | No               | No                                         | No                                                 |
+| Listen to host stream          | No               | No                                         | No                                                 |
+| Classic individual playback    | Yes              | Maybe session signature + key request      | Only if not already unlocked                       |
+| Human Free individual playback | Yes              | Maybe session signature + personhood check | No, unless proving/linking personhood requires one |
+| Room host protected playback   | Yes              | Maybe session signature + key request      | Only if access requires payment                    |
+| Classic unlock                 | Yes              | Maybe session signature + payment tx       | Yes                                                |
+| Human Free unlock              | Yes              | Maybe session signature                    | No, unless proving/linking personhood requires one |
+| Artist publishing              | Yes              | Yes/transaction depending on step          | Yes for runtime/register actions                   |
+
+## Backend signature schemes
+
+Signed session and protected key requests carry an explicit `signatureScheme`.
+If the field is omitted, the backend treats the request as `eip191` for
+backward compatibility.
+
+| Scheme               | Signer                     | Extra fields                    | Verification                                                                                                                          |
+| -------------------- | -------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `eip191`             | Standalone EVM wallet      | `signature`                     | Verify the canonical Dotify message with the requester H160 address.                                                                  |
+| `product-sr25519-v1` | App-scoped Product account | `signature`, `productPublicKey` | Verify sr25519 over the same canonical message bytes, derive H160 from the Product public key, and require it to match the requester. |
+
+Unknown schemes and Product public-key mismatches fail closed before nonce
+consumption. Every successful signature path still runs the runtime access
+check before the backend releases a content key.
 
 ## Individual playback flow
 
@@ -100,6 +115,7 @@ sequenceDiagram
   participant API as Dotify Backend
 
   L->>UI: Click unlock full track
+  UI->>UI: Build native runtime payment intent
   UI->>L: Confirm Classic payment transaction
   L->>RT: musicRoyPayAccess(contentHash) + value
   RT-->>UI: Transaction confirmed
@@ -109,6 +125,16 @@ sequenceDiagram
   API-->>UI: Temporary content key
   UI-->>L: Full playback
 ```
+
+Classic unlock intentionally uses a native runtime payment intent today. The
+visible asset symbol is derived from the connected EVM `chainId` and Dotify's
+explicit Polkadot Hub native-currency metadata table (`PAS` on the current
+Product DevNet/Paseo Asset Hub rail, `DOT` on a DOT-backed Polkadot Hub EVM
+chain), not hard-coded as DOT. This is not an on-chain metadata fetch: standard
+EVM JSON-RPC exposes `eth_chainId`, not native-token symbol metadata.
+Product CASH settlement is a separate future rail; it must not be treated as
+executable until Dotify has a Product-confirmed receipt or bridge model between
+People chain CASH and Asset Hub runtime entitlement.
 
 ## Human Free flow
 

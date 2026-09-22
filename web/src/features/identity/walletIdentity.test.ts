@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { DEFAULT_DISPLAY_NAME, getStoredDisplayName, isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from './walletIdentity';
+import { DEFAULT_DISPLAY_NAME, getStoredDisplayName, isChosenDisplayName, runtimeIdentityKey, sanitizeDisplayName, storeDisplayName } from './walletIdentity';
 
 const ADDRESS = '0x00000000000000000000000000000000000000aa';
 
@@ -52,6 +52,21 @@ describe('isChosenDisplayName', () => {
 
   it('is true for a real choice', () => {
     expect(isChosenDisplayName('Ada')).toBe(true);
+  });
+});
+
+describe('runtimeIdentityKey', () => {
+  it('ignores Product presentation labels for the same runtime identity', () => {
+    const identity = { method: 'product-host', evmAddress: ADDRESS };
+    expect(runtimeIdentityKey(identity)).toBe(runtimeIdentityKey({ ...identity, label: 'Artist', displayName: 'Shared profile' }));
+  });
+
+  it('changes for a different account, signer method, or extension chain', () => {
+    const identity = { method: 'extension', evmAddress: ADDRESS, chainId: 420420417 };
+    expect(runtimeIdentityKey({ ...identity, evmAddress: '0x00000000000000000000000000000000000000bb' })).not.toBe(runtimeIdentityKey(identity));
+    expect(runtimeIdentityKey({ ...identity, method: 'product-host' })).not.toBe(runtimeIdentityKey(identity));
+    expect(runtimeIdentityKey({ ...identity, chainId: 1 })).not.toBe(runtimeIdentityKey(identity));
+    expect(runtimeIdentityKey(null)).toBeNull();
   });
 });
 

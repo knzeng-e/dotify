@@ -191,11 +191,135 @@ describe('validateProductionEnvironment', () => {
     });
   });
 
+  it('requires a canonical public URL and .dot product id for Product-host builds', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_HOST_MODE: 'required',
+        VITE_DOTIFY_PRODUCT_ID: 'Dotify'
+      }).errors
+    ).toEqual([
+      'VITE_DOTIFY_PRODUCT_ID must be a lowercase .dot name when Product host integration is enabled.',
+      'VITE_PUBLIC_APP_URL is required when VITE_DOTIFY_DEPLOYMENT=production.'
+    ]);
+  });
+
+  it('accepts the Product DevNet public identity boundary', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_HOST_MODE: 'required',
+        VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
+        VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li'
+      })
+    ).toEqual({
+      mode: 'production',
+      errors: [],
+      warnings: []
+    });
+  });
+
+  it('rejects the Product CDM adapter without a Product host, which cannot reach the chain', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm'
+      }).errors
+    ).toEqual([
+      'VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm requires VITE_DOTIFY_HOST_MODE to be auto or required: Product contract calls route only through the Product host.'
+    ]);
+  });
+
+  it('rejects an unknown runtime adapter and Product chain preset', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_RUNTIME_ADAPTER: 'cdm'
+      }).errors
+    ).toEqual(['VITE_DOTIFY_RUNTIME_ADAPTER must be one of viem or product-cdm.']);
+
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm',
+        VITE_DOTIFY_HOST_MODE: 'required',
+        VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
+        VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li',
+        VITE_DOTIFY_PRODUCT_CHAIN: 'paseo'
+      }).errors
+    ).toEqual(['VITE_DOTIFY_PRODUCT_CHAIN must be devnet: Product DevNet targets Paseo Asset Hub 1000, the only chain holding Dotify runtimes.']);
+  });
+
+  it('accepts the Product CDM adapter alongside an enabled Product host', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm',
+        VITE_DOTIFY_PRODUCT_CHAIN: 'devnet',
+        VITE_DOTIFY_HOST_MODE: 'required',
+        VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
+        VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li'
+      })
+    ).toEqual({ mode: 'production', errors: [], warnings: [] });
+  });
+
+  it('rejects room beacons without a Product host, since they publish only inside it', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_ROOM_BEACONS: 'on'
+      }).errors
+    ).toEqual(['VITE_DOTIFY_ROOM_BEACONS=on requires VITE_DOTIFY_HOST_MODE to be auto or required: room beacons publish only inside the Product host.']);
+  });
+
+  it('rejects an unknown room beacon value', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_ROOM_BEACONS: 'yes'
+      }).errors
+    ).toEqual(['VITE_DOTIFY_ROOM_BEACONS must be on or off.']);
+  });
+
+  it('accepts room beacons alongside an enabled Product host', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_ROOM_BEACONS: 'on',
+        VITE_DOTIFY_HOST_MODE: 'required',
+        VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
+        VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li'
+      })
+    ).toEqual({ mode: 'production', errors: [], warnings: [] });
+  });
+
   it('accepts an explicit production environment that keeps secrets server-side', () => {
     expect(validateProductionEnvironment(validProductionEnv)).toEqual({
       mode: 'production',
       errors: [],
       warnings: []
     });
+  });
+
+  it('accepts comma-separated TURN relay URLs in production builds', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_TURN_URL: 'turn:turn.example.org:3478?transport=udp,turns:turn.example.org:443?transport=tcp'
+      })
+    ).toEqual({
+      mode: 'production',
+      errors: [],
+      warnings: []
+    });
+  });
+
+  it('rejects non-TURN URLs in the TURN relay list', () => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_TURN_URL: 'turn:turn.example.org:3478?transport=udp,https://not-turn.example'
+      }).errors
+    ).toEqual(['VITE_TURN_URL must use turn: or turns: in production.']);
   });
 });

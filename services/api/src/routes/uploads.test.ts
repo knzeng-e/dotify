@@ -2,101 +2,420 @@ import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
 import multipart from '@fastify/multipart';
-import { config } from '../config.js';
-import { uploadRoutes } from './uploads.js';
+import { blake2b } from '@noble/hashes/blake2';
+import { createUploadRoutes, type UploadRouteDeps } from './uploads.js';
+import { createUploadAuthorizationService } from '../services/uploadAuthorizations.js';
+import { RELEASE_BOUND_CONTENT_KEY_VERSION } from '../services/keyVault.js';
 
-// These tests run without Pinata configured, so a request that passes
-// validation reaches the pin step and returns 503 (PinataUnconfiguredError).
-// That lets us distinguish "rejected at validation" (4xx) from "accepted,
-// pinning unavailable" (503) without any network or secret.
+const ADDRESS = '0x1111111111111111111111111111111111111111' as const;
+const RUNTIME = '0x2222222222222222222222222222222222222222' as const;
+const CHAIN_ID = 420420417;
+const SESSION_TOKEN = 'valid-session-token';
+const BOUNDARY = '----dotifytest';
+function mpegFrame(): Buffer {
+  const frame = Buffer.alloc(417);
+  frame.set([0xff, 0xfb, 0x90, 0x64]);
+  return frame;
+}
+const audioBytes = Buffer.concat([mpegFrame(), mpegFrame()]);
+const audioHash = `0x${Buffer.from(blake2b(audioBytes, { dkLen: 32 })).toString('hex')}`;
+function id3Mpeg(tagBytes: number): Buffer {
+  const header = Buffer.from([
+    0x49,
+    0x44,
+    0x33,
+    0x04,
+    0x00,
+    0x00,
+    (tagBytes >>> 21) & 0x7f,
+    (tagBytes >>> 14) & 0x7f,
+    (tagBytes >>> 7) & 0x7f,
+    tagBytes & 0x7f
+  ]);
+  return Buffer.concat([header, Buffer.alloc(tagBytes, 0x20), mpegFrame(), mpegFrame()]);
+}
+const truncatedMpegBytes = mpegFrame();
+const truncatedMpegHash = `0x${Buffer.from(blake2b(truncatedMpegBytes, { dkLen: 32 })).toString('hex')}`;
+const pngBytes = Buffer.concat([
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  Buffer.from([0x00, 0x00, 0x00, 0x0d]),
+  Buffer.from('IHDR'),
+  Buffer.alloc(17),
+  Buffer.from([0x00, 0x00, 0x00, 0x00]),
+  Buffer.from('IEND'),
+  Buffer.alloc(4)
+]);
 
 let app: FastifyInstance | null = null;
-const originalContentKeyMasterSecret = config.CONTENT_KEY_MASTER_SECRET;
-const originalPinataJwt = config.PINATA_JWT;
 
-async function buildApp(): Promise<FastifyInstance> {
+type BuildOptions = {
+  routeDeps?: Partial<UploadRouteDeps>;
+  authorizationOptions?: Parameters<typeof createUploadAuthorizationService>[0];
+};
+
+async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
+  const authorizations = createUploadAuthorizationService({
+    epoch: 'upload-test-process',
+    masterSecret: () => '11'.repeat(32),
+    authorizationTtlMs: 60_000,
+    quotaWindowMs: 60_000,
+    principalByteLimit: 200 * 1024 * 1024,
+    globalByteLimit: 2 * 1024 * 1024 * 1024,
+    principalConcurrencyLimit: 2,
+    globalConcurrencyLimit: 8,
+    ...options.authorizationOptions
+  });
+  const deps: UploadRouteDeps = {
+    verifySessionToken: token =>
+      token === SESSION_TOKEN
+        ? { valid: true, address: ADDRESS, chainId: CHAIN_ID, jti: 'session-jti' }
+        : { valid: false, code: 'SESSION_INVALID', reason: 'bad session' },
+    checkArtistAuthority: async () => ({ allowed: true, runtime: RUNTIME }),
+    authorizations,
+    getActiveContentKeyVersion: () => RELEASE_BOUND_CONTENT_KEY_VERSION,
+    deriveContentKeyBytes: () => Buffer.alloc(32, 7),
+    encryptAudio: bytes => Buffer.from(bytes),
+    createCover: async (bytes, originalExtension) => ({
+      files: [
+        { path: 'cover/placeholder.webp', bytes: new Uint8Array([1]), mime: 'image/webp' },
+        { path: 'cover/640.webp', bytes, mime: 'image/webp' },
+        { path: `cover/original.${originalExtension}`, bytes, mime: `image/${originalExtension}` }
+      ],
+      primaryPath: 'cover/640.webp',
+      placeholderPath: 'cover/placeholder.webp',
+      width: 640,
+      height: 640
+    }),
+    pinFile: async () => 'file-cid',
+    pinFiles: async () => 'cover-directory-cid',
+    pinJson: async () => 'json-cid',
+    ...options.routeDeps
+  };
+
   app = Fastify();
   await app.register(multipart);
-  await app.register(uploadRoutes, { prefix: '/api/uploads' });
+  await app.register(createUploadRoutes(deps), { prefix: '/api/uploads' });
   return app;
 }
 
 afterEach(async () => {
   if (app) await app.close();
   app = null;
-  config.CONTENT_KEY_MASTER_SECRET = originalContentKeyMasterSecret;
-  config.PINATA_JWT = originalPinataJwt;
 });
 
-const BOUNDARY = '----dotifytest';
-
-function multipartHeaders() {
-  return { 'content-type': `multipart/form-data; boundary=${BOUNDARY}` };
+function multipartHeaders(authorization?: string) {
+  return {
+    'content-type': `multipart/form-data; boundary=${BOUNDARY}`,
+    ...(authorization ? { authorization: `Bearer ${authorization}` } : {})
+  };
 }
 
-// A file part. @fastify/multipart's streaming iterator hangs on any file part
-// the route does not consume, so a "no file" case must use a plain field.
-function multipartFile(fieldName: string, filename: string, contentType: string, content: string) {
-  return Buffer.from(
-    `--${BOUNDARY}\r\n` +
-      `Content-Disposition: form-data; name="${fieldName}"; filename="${filename}"\r\n` +
-      `Content-Type: ${contentType}\r\n\r\n` +
-      `${content}\r\n` +
-      `--${BOUNDARY}--\r\n`
-  );
-}
-
-function multipartField(fieldName: string, value: string) {
-  return Buffer.from(`--${BOUNDARY}\r\n` + `Content-Disposition: form-data; name="${fieldName}"\r\n\r\n` + `${value}\r\n` + `--${BOUNDARY}--\r\n`);
-}
-
-function multipartAudio(content: Buffer, contentHash: string) {
+function multipartFile(fieldName: string, filename: string, contentType: string, content: Buffer) {
   return Buffer.concat([
-    Buffer.from(`--${BOUNDARY}\r\n` + 'Content-Disposition: form-data; name="audio"; filename="track.mp3"\r\n' + 'Content-Type: audio/mpeg\r\n\r\n'),
+    Buffer.from(`--${BOUNDARY}\r\nContent-Disposition: form-data; name="${fieldName}"; filename="${filename}"\r\nContent-Type: ${contentType}\r\n\r\n`),
     content,
-    Buffer.from(`\r\n--${BOUNDARY}\r\n` + 'Content-Disposition: form-data; name="contentHash"\r\n\r\n' + `${contentHash}\r\n` + `--${BOUNDARY}--\r\n`)
+    Buffer.from(`\r\n--${BOUNDARY}--\r\n`)
   ]);
 }
 
-describe('POST /api/uploads/audio (content hash verification)', () => {
-  const audioBytes = Buffer.from('abc', 'utf8');
-  // Published BLAKE2b-256 test vector for "abc". Keeping the expected digest
-  // independent of the route implementation catches accidental BLAKE2b-512
-  // truncation or a switch to another 256-bit hash.
-  const audioHash = '0xbddd813c634239723171ef3fee98579b94964e3bb1cb3e427262c8c068d52319';
+function multipartAudio(content: Buffer, contentHash: string, contentType = 'audio/mpeg') {
+  return Buffer.concat([
+    Buffer.from(`--${BOUNDARY}\r\nContent-Disposition: form-data; name="audio"; filename="track.bin"\r\nContent-Type: ${contentType}\r\n\r\n`),
+    content,
+    Buffer.from(`\r\n--${BOUNDARY}\r\nContent-Disposition: form-data; name="contentHash"\r\n\r\n${contentHash}\r\n--${BOUNDARY}--\r\n`)
+  ]);
+}
 
-  it('accepts multipart audio when contentHash matches the exact received bytes', async () => {
-    config.CONTENT_KEY_MASTER_SECRET = '11'.repeat(32);
-    config.PINATA_JWT = undefined;
+async function authorize(server: FastifyInstance, purpose: 'audio' | 'cover' | 'metadata', bytes: number) {
+  return server.inject({
+    method: 'POST',
+    url: '/api/uploads/authorize',
+    headers: { authorization: `Bearer ${SESSION_TOKEN}` },
+    payload: { purpose, bytes }
+  });
+}
+
+describe('POST /api/uploads/authorize', () => {
+  it('rejects unauthenticated callers', async () => {
     const server = await buildApp();
+    const response = await server.inject({ method: 'POST', url: '/api/uploads/authorize', payload: { purpose: 'audio', bytes: 8 } });
+    assert.equal(response.statusCode, 401);
+    assert.equal(response.json().code, 'SESSION_REQUIRED');
+  });
 
-    const res = await server.inject({
+  it('issues a purpose- and byte-bound capability to a verified artist', async () => {
+    const server = await buildApp();
+    const response = await authorize(server, 'audio', audioBytes.length);
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().purpose, 'audio');
+    assert.equal(response.json().maxBytes, audioBytes.length);
+    assert.equal(typeof response.json().uploadAuthorization, 'string');
+  });
+
+  it('rejects a signed-in address without an artist runtime', async () => {
+    const server = await buildApp({
+      routeDeps: {
+        checkArtistAuthority: async () => ({
+          allowed: false,
+          code: 'ARTIST_RUNTIME_REQUIRED',
+          reason: 'Create an artist runtime before uploading release assets.'
+        })
+      }
+    });
+    const response = await authorize(server, 'cover', pngBytes.length);
+    assert.equal(response.statusCode, 403);
+    assert.equal(response.json().code, 'ARTIST_RUNTIME_REQUIRED');
+  });
+
+  it('rejects reservations that exhaust the principal byte quota', async () => {
+    const server = await buildApp({ authorizationOptions: { principalByteLimit: 10, globalByteLimit: 100 } });
+    assert.equal((await authorize(server, 'audio', 8)).statusCode, 200);
+    const exhausted = await authorize(server, 'cover', 3);
+    assert.equal(exhausted.statusCode, 429);
+    assert.equal(exhausted.json().code, 'UPLOAD_PRINCIPAL_QUOTA_EXCEEDED');
+  });
+});
+
+describe('authorized upload routes', () => {
+  it('accepts detected audio bytes even when the declared MIME is untrusted', async () => {
+    const server = await buildApp();
+    const grant = (await authorize(server, 'audio', audioBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
       method: 'POST',
       url: '/api/uploads/audio',
-      headers: multipartHeaders(),
+      headers: multipartHeaders(grant),
+      payload: multipartAudio(audioBytes, audioHash, 'application/octet-stream')
+    });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().ref, 'dotify:enc:v2:key-v2:ipfs://file-cid');
+    assert.equal(response.json().runtimeAddress, RUNTIME);
+    assert.equal(response.json().keyVersion, RELEASE_BOUND_CONTENT_KEY_VERSION);
+  });
+
+  it('derives backend audio keys from the artist runtime-bound key scope', async () => {
+    let derivationScope: unknown = null;
+    const server = await buildApp({
+      routeDeps: {
+        deriveContentKeyBytes: input => {
+          derivationScope = input;
+          return Buffer.alloc(32, 7);
+        }
+      }
+    });
+    const grant = (await authorize(server, 'audio', audioBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/audio',
+      headers: multipartHeaders(grant),
       payload: multipartAudio(audioBytes, audioHash)
     });
 
-    // Hash verification, key derivation, and encryption succeeded; the request
-    // reached the deliberately unconfigured Pinata boundary.
-    assert.equal(res.statusCode, 503);
-    assert.match(res.json().error, /upload service is not configured/i);
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(derivationScope, {
+      contentHash: audioHash,
+      keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION,
+      chainId: CHAIN_ID,
+      runtimeAddress: RUNTIME
+    });
   });
 
-  it('rejects multipart audio when contentHash does not match the received bytes', async () => {
-    config.CONTENT_KEY_MASTER_SECRET = '11'.repeat(32);
-    config.PINATA_JWT = undefined;
-    const server = await buildApp();
-
-    const res = await server.inject({
+  it('uses the active key version for new backend audio uploads', async () => {
+    let derivationScope: unknown = null;
+    const activeVersion = 'dotify-content-key-v3' as const;
+    const server = await buildApp({
+      routeDeps: {
+        getActiveContentKeyVersion: () => activeVersion,
+        deriveContentKeyBytes: input => {
+          derivationScope = input;
+          return Buffer.alloc(32, 7);
+        }
+      }
+    });
+    const grant = (await authorize(server, 'audio', audioBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
       method: 'POST',
       url: '/api/uploads/audio',
-      headers: multipartHeaders(),
-      payload: multipartAudio(audioBytes, `0x${'ab'.repeat(32)}`)
+      headers: multipartHeaders(grant),
+      payload: multipartAudio(audioBytes, audioHash)
     });
 
-    assert.equal(res.statusCode, 400);
-    assert.match(res.json().error, /contentHash does not match the uploaded audio file/i);
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().ref, 'dotify:enc:v2:key-v3:ipfs://file-cid');
+    assert.equal(response.json().keyVersion, activeVersion);
+    assert.deepEqual(derivationScope, {
+      contentHash: audioHash,
+      keyVersion: activeVersion,
+      chainId: CHAIN_ID,
+      runtimeAddress: RUNTIME
+    });
+  });
+
+  it('carries a validated MP3 ID3 offset into DAV2 first-chunk sizing', async () => {
+    const tagBytes = 300 * 1024;
+    const taggedAudio = id3Mpeg(tagBytes);
+    const taggedHash = `0x${Buffer.from(blake2b(taggedAudio, { dkLen: 32 })).toString('hex')}`;
+    let encryptionOptions: Parameters<UploadRouteDeps['encryptAudio']>[2] | undefined;
+    const server = await buildApp({
+      routeDeps: {
+        encryptAudio: (bytes, _key, options) => {
+          encryptionOptions = options;
+          return Buffer.from(bytes);
+        }
+      }
+    });
+    const grant = (await authorize(server, 'audio', taggedAudio.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/audio',
+      headers: multipartHeaders(grant),
+      payload: multipartAudio(taggedAudio, taggedHash)
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(encryptionOptions?.leadingMetadataBytes, 10 + tagBytes);
+  });
+
+  it('rejects spoofed audio MIME when the received bytes are an image', async () => {
+    const server = await buildApp();
+    const grant = (await authorize(server, 'audio', pngBytes.length)).json().uploadAuthorization;
+    const spoofedHash = `0x${Buffer.from(blake2b(pngBytes, { dkLen: 32 })).toString('hex')}`;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/audio',
+      headers: multipartHeaders(grant),
+      payload: multipartAudio(pngBytes, spoofedHash, 'audio/mpeg')
+    });
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().code, 'UPLOAD_MEDIA_INVALID');
+  });
+
+  it('rejects a lone MPEG frame header without a complete frame sequence', async () => {
+    const server = await buildApp();
+    const grant = (await authorize(server, 'audio', truncatedMpegBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/audio',
+      headers: multipartHeaders(grant),
+      payload: multipartAudio(truncatedMpegBytes, truncatedMpegHash, 'audio/mpeg')
+    });
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().code, 'UPLOAD_MEDIA_INVALID');
+  });
+
+  it('rejects a content hash that does not match the received audio bytes', async () => {
+    const server = await buildApp();
+    const grant = (await authorize(server, 'audio', audioBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/audio',
+      headers: multipartHeaders(grant),
+      payload: multipartAudio(audioBytes, `0x${'ab'.repeat(32)}`)
+    });
+    assert.equal(response.statusCode, 400);
+    assert.match(response.json().error, /contentHash does not match/i);
+  });
+
+  it('pins one responsive cover directory while preserving the archival original', async () => {
+    let pinnedPaths: string[] = [];
+    let pinMetadata: Record<string, string> | undefined;
+    const server = await buildApp({
+      routeDeps: {
+        pinFiles: async (files, _name, keyvalues) => {
+          pinnedPaths = files.map(file => file.path);
+          pinMetadata = keyvalues;
+          return 'responsive-cover-cid';
+        }
+      }
+    });
+    const grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/cover',
+      headers: multipartHeaders(grant),
+      payload: multipartFile('cover', 'album.png', 'image/png', pngBytes)
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().ref, 'ipfs://responsive-cover-cid/cover/640.webp');
+    assert.equal(response.json().responsive.placeholder, 'ipfs://responsive-cover-cid/cover/placeholder.webp');
+    assert.deepEqual(pinnedPaths, ['cover/placeholder.webp', 'cover/640.webp', 'cover/original.png']);
+    assert.equal(pinMetadata?.type, 'responsive-cover');
+    assert.equal(pinMetadata?.original, 'preserved');
+  });
+
+  it('fails clearly and releases quota when image decoding fails', async () => {
+    const server = await buildApp({
+      authorizationOptions: { principalByteLimit: pngBytes.length, globalByteLimit: pngBytes.length },
+      routeDeps: { createCover: async () => Promise.reject(new Error('decode failed')) }
+    });
+    const grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/cover',
+      headers: multipartHeaders(grant),
+      payload: multipartFile('cover', 'album.png', 'image/png', pngBytes)
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().code, 'UPLOAD_MEDIA_INVALID');
+    assert.equal((await authorize(server, 'cover', pngBytes.length)).statusCode, 200);
+  });
+
+  it('rejects replay after one successful upload', async () => {
+    const server = await buildApp();
+    const grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
+    const first = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/cover',
+      headers: multipartHeaders(grant),
+      payload: multipartFile('cover', 'cover.txt', 'text/plain', pngBytes)
+    });
+    assert.equal(first.statusCode, 200);
+    assert.equal(first.json().ref, 'ipfs://cover-directory-cid/cover/640.webp');
+    assert.deepEqual(first.json().responsive.widths, [64, 160, 320, 640]);
+
+    const replay = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/cover',
+      headers: multipartHeaders(grant),
+      payload: multipartFile('cover', 'cover.png', 'image/png', pngBytes)
+    });
+    assert.equal(replay.statusCode, 409);
+    assert.equal(replay.json().code, 'UPLOAD_AUTH_REPLAYED');
+  });
+
+  it('rejects an expired upload authorization', async () => {
+    let now = 1_000;
+    const server = await buildApp({ authorizationOptions: { now: () => now, authorizationTtlMs: 10 } });
+    const grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
+    now = 1_011;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/cover',
+      headers: multipartHeaders(grant),
+      payload: multipartFile('cover', 'cover.png', 'image/png', pngBytes)
+    });
+    assert.equal(response.statusCode, 401);
+    assert.equal(response.json().code, 'UPLOAD_AUTH_EXPIRED');
+  });
+
+  it('releases quota after an interrupted outbound upload', async () => {
+    const interrupted = new Error('client aborted');
+    interrupted.name = 'AbortError';
+    const server = await buildApp({
+      authorizationOptions: { principalByteLimit: pngBytes.length, globalByteLimit: pngBytes.length },
+      routeDeps: { pinFiles: async () => Promise.reject(interrupted) }
+    });
+    const grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/cover',
+      headers: multipartHeaders(grant),
+      payload: multipartFile('cover', 'cover.png', 'image/png', pngBytes)
+    });
+    assert.equal(response.statusCode, 499);
+    assert.equal(response.json().code, 'UPLOAD_CANCELLED');
+    assert.equal((await authorize(server, 'cover', pngBytes.length)).statusCode, 200);
   });
 });
 
@@ -118,38 +437,47 @@ const validManifest = {
   settlement: { target: 'evm', royaltyBps: 700, pricePlanck: '1' }
 };
 
-describe('POST /api/uploads/metadata (previewCID schema)', () => {
-  it('accepts a manifest carrying assets.previewCID', async () => {
+describe('POST /api/uploads/metadata', () => {
+  it('accepts a valid manifest with a metadata-scoped authorization', async () => {
     const server = await buildApp();
-    const res = await server.inject({ method: 'POST', url: '/api/uploads/metadata', payload: validManifest });
-    // Passed schema validation (would be 400 otherwise), reached the pin step.
-    assert.equal(res.statusCode, 503);
-  });
-
-  it('accepts a Free access-mode manifest', async () => {
-    const server = await buildApp();
-    const freeManifest = {
-      ...validManifest,
-      assets: { ...validManifest.assets, previewCID: undefined },
-      track: {
-        ...validManifest.track,
-        accessMode: 'free',
-        priceDot: '0',
-        requiredPersonhood: 'None'
-      },
-      settlement: { ...validManifest.settlement, pricePlanck: '0' }
-    };
-
-    const res = await server.inject({ method: 'POST', url: '/api/uploads/metadata', payload: freeManifest });
-    // Passed schema validation (would be 400 otherwise), reached the pin step.
-    assert.equal(res.statusCode, 503);
+    const bytes = Buffer.byteLength(JSON.stringify(validManifest));
+    const grant = (await authorize(server, 'metadata', bytes)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/metadata',
+      headers: { authorization: `Bearer ${grant}` },
+      payload: validManifest
+    });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().ref, 'ipfs://json-cid');
   });
 
   it('rejects a manifest with a non-string previewCID', async () => {
     const server = await buildApp();
     const bad = { ...validManifest, assets: { ...validManifest.assets, previewCID: 123 } };
-    const res = await server.inject({ method: 'POST', url: '/api/uploads/metadata', payload: bad });
-    assert.equal(res.statusCode, 400);
-    assert.match(res.json().error, /manifest/i);
+    const bytes = Buffer.byteLength(JSON.stringify(bad));
+    const grant = (await authorize(server, 'metadata', bytes)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/metadata',
+      headers: { authorization: `Bearer ${grant}` },
+      payload: bad
+    });
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().code, 'UPLOAD_MANIFEST_INVALID');
+  });
+
+  it('rejects a manifest whose request body exceeds its signed byte budget', async () => {
+    const server = await buildApp();
+    const bytes = Buffer.byteLength(JSON.stringify(validManifest));
+    const grant = (await authorize(server, 'metadata', bytes - 1)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/metadata',
+      headers: { authorization: `Bearer ${grant}` },
+      payload: validManifest
+    });
+    assert.equal(response.statusCode, 413);
+    assert.equal(response.json().code, 'UPLOAD_BUDGET_EXCEEDED');
   });
 });

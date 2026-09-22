@@ -1,5 +1,7 @@
 import { createWalletClient, http } from 'viem';
 import type { Chain } from 'viem';
+import type { RuntimeReadPort, RuntimeWritePort } from '../features/runtime/runtimePorts';
+import { SupportNotSubmittedError } from '../features/payments/supportPayment';
 import type { ConnectedWallet } from '../hooks/useWallet';
 import type { CatalogTrack } from '../shared/types';
 
@@ -47,6 +49,8 @@ export type ClassicUnlockE2eState = {
   fullKeyRequests: number;
   deniedFullKeyRequests: number;
   paid: boolean;
+  accessGranted: boolean;
+  paymentAttempts?: number;
 };
 
 declare global {
@@ -57,10 +61,21 @@ declare global {
 
 export function getClassicUnlockE2eState(): ClassicUnlockE2eState {
   if (typeof window === 'undefined') {
-    return { fullKeyRequests: 0, deniedFullKeyRequests: 0, paid: false };
+    return { fullKeyRequests: 0, deniedFullKeyRequests: 0, paid: false, accessGranted: false };
   }
-  window.__DOTIFY_E2E_CLASSIC_UNLOCK__ ??= { fullKeyRequests: 0, deniedFullKeyRequests: 0, paid: false };
+  window.__DOTIFY_E2E_CLASSIC_UNLOCK__ ??= { fullKeyRequests: 0, deniedFullKeyRequests: 0, paid: false, accessGranted: false };
   return window.__DOTIFY_E2E_CLASSIC_UNLOCK__;
+}
+
+export function shouldDenyClassicUnlockAfterPaymentReadback(): boolean {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('e2eClassic') === 'paid-without-access';
+}
+
+export function shouldAllowClassicUnlockAccountLoss(): boolean {
+  if (typeof window === 'undefined') return false;
+  const scenario = new URLSearchParams(window.location.search).get('e2eClassic');
+  return scenario === 'account-loss' || scenario === 'intent-account-loss';
 }
 
 export function recordClassicUnlockFullKeyRequest(authorized: boolean) {
@@ -81,5 +96,36 @@ export function createClassicUnlockE2eWallet(): ConnectedWallet {
         chain,
         transport: http(rpcUrl)
       })
+  };
+}
+
+// Only selected by the build-time E2E flag and the exact fixture track. These
+// ports exercise the production support coordinator, rather than faking its UI.
+export function classicSupportE2ePorts(reader: RuntimeReadPort, writer: RuntimeWritePort) {
+  return {
+    reader: { ...reader, hasPaid: async () => getClassicUnlockE2eState().paid, canAccess: async () => getClassicUnlockE2eState().accessGranted },
+    writer: {
+      ...writer,
+      payForAccess: async () => {
+        const state = getClassicUnlockE2eState();
+        state.paymentAttempts = (state.paymentAttempts ?? 0) + 1;
+        if (new URLSearchParams(location.search).get('e2eClassic') === 'reject-payment' && state.paymentAttempts === 1) {
+          throw Object.assign(new Error('User rejected the request'), { code: 4001 });
+        }
+        if (new URLSearchParams(location.search).get('e2eClassic') === 'funding-required') {
+          throw new SupportNotSubmittedError(
+            Object.assign(new Error('Dry-run failed: Revive.TransferFailed'), {
+              name: 'ContractDryRunFailedError'
+            })
+          );
+        }
+        state.paid = true;
+        return E2E_CLASSIC_TX_HASH;
+      },
+      waitForTransaction: async () => {
+        if (new URLSearchParams(location.search).get('e2eClassic') === 'confirmation-delayed') throw new Error('Confirmation timed out');
+        getClassicUnlockE2eState().accessGranted = !shouldDenyClassicUnlockAfterPaymentReadback();
+      }
+    }
   };
 }

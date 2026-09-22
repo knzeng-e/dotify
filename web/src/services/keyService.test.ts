@@ -5,6 +5,14 @@ const ADDRESS = '0x1111111111111111111111111111111111111111' as const;
 const CONTENT_HASH = `0x${'ab'.repeat(32)}` as const;
 const CONTENT_KEY = `0x${'cd'.repeat(32)}` as const;
 const RUNTIME = '0x2222222222222222222222222222222222222222' as const;
+const ARTIST = '0x4444444444444444444444444444444444444444' as const;
+const AUDIO_REF = 'dotify:enc:v2:key-v2:ipfs://release-cid';
+const KEY_VERSION = 'dotify-content-key-v2' as const;
+const RELEASE_ID = `${RUNTIME}:${CONTENT_HASH}`;
+const PRODUCT_PUBLIC_KEY = `0x${'22'.repeat(32)}` as const;
+const PRODUCT_SIGNATURE = `0x${'33'.repeat(64)}` as const;
+const BUILD_SHA = '1234567890abcdef1234567890abcdef12345678';
+const DEPLOYED_CID = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3ooqb5x4nqyd7bkhzbr6f5o4e';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -15,6 +23,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function installLocalStorage(entries: Array<[string, string]> = []) {
   const store = new Map(entries);
+  const sessionStore = new Map<string, string>();
   const localStorage = {
     get length() {
       return store.size;
@@ -29,9 +38,23 @@ function installLocalStorage(entries: Array<[string, string]> = []) {
       store.set(key, value);
     })
   } satisfies Storage;
+  const sessionStorage = {
+    get length() {
+      return sessionStore.size;
+    },
+    clear: vi.fn(() => sessionStore.clear()),
+    getItem: vi.fn((key: string) => sessionStore.get(key) ?? null),
+    key: vi.fn((index: number) => Array.from(sessionStore.keys())[index] ?? null),
+    removeItem: vi.fn((key: string) => {
+      sessionStore.delete(key);
+    }),
+    setItem: vi.fn((key: string, value: string) => {
+      sessionStore.set(key, value);
+    })
+  } satisfies Storage;
 
-  vi.stubGlobal('window', { localStorage });
-  return { store, localStorage };
+  vi.stubGlobal('window', { localStorage, sessionStorage });
+  return { store, sessionStore, localStorage, sessionStorage };
 }
 
 async function loadKeyService() {
@@ -40,8 +63,38 @@ async function loadKeyService() {
   return import('./keyService');
 }
 
+async function bindSmokeCandidate() {
+  const { bindProductCdmHostSmokeCandidate } = await import('../features/productHost/productCdmHostSmokeEvidence');
+  bindProductCdmHostSmokeCandidate({
+    buildSha: BUILD_SHA,
+    productAppVersion: '[0, 1, 20]',
+    deployedCid: DEPLOYED_CID,
+    productId: 'dotify-test01.dot',
+    publicAppUrl: null,
+    cdmRegistry: null,
+    productHostMode: 'required',
+    productHostStatus: 'available',
+    runtimeAdapterKind: 'product-cdm',
+    walletMethod: 'product-host',
+    listenerAddress: ADDRESS,
+    substrateAddress: null,
+    productPublicKey: PRODUCT_PUBLIC_KEY,
+    expectedChainId: 420420417,
+    apiConfigured: true
+  });
+}
+
 function walletClient(signMessage = vi.fn(async () => `0x${'11'.repeat(65)}`)): WalletClient {
   return { account: { address: ADDRESS }, signMessage } as unknown as WalletClient;
+}
+
+function productSigner(signMessage = vi.fn(async () => PRODUCT_SIGNATURE)) {
+  return {
+    signatureScheme: 'product-sr25519-v1' as const,
+    address: ADDRESS,
+    productPublicKey: PRODUCT_PUBLIC_KEY,
+    signMessage
+  };
 }
 
 function keyRequestResponse() {
@@ -51,6 +104,16 @@ function keyRequestResponse() {
     contentKey: CONTENT_KEY,
     runtime: RUNTIME
   });
+}
+
+function releaseIdentity() {
+  return {
+    releaseId: RELEASE_ID,
+    runtimeAddress: RUNTIME,
+    artistAddress: ARTIST,
+    audioRef: AUDIO_REF,
+    keyVersion: KEY_VERSION
+  };
 }
 
 afterEach(() => {
@@ -87,6 +150,30 @@ describe('keyService sessions', () => {
     );
   });
 
+  it('keeps a concurrently refreshed session when clearing a rejected stale token', async () => {
+    const sessionKey = `dotify:session:${ADDRESS}`;
+    const { store, localStorage } = installLocalStorage([
+      [
+        sessionKey,
+        JSON.stringify({
+          token: 'fresh-session-token',
+          expiresAt: new Date(Date.now() + 3_600_000).toISOString()
+        })
+      ]
+    ]);
+    const { clearStoredSession } = await loadKeyService();
+
+    clearStoredSession(ADDRESS, 'stale-session-token');
+
+    expect(store.has(sessionKey)).toBe(true);
+    expect(localStorage.removeItem).not.toHaveBeenCalled();
+
+    clearStoredSession(ADDRESS, 'fresh-session-token');
+
+    expect(store.has(sessionKey)).toBe(false);
+    expect(localStorage.removeItem).toHaveBeenCalledWith(sessionKey);
+  });
+
   it('falls back to the legacy signed request without SIGN_IN when the session route is missing', async () => {
     installLocalStorage();
     const signMessage = vi.fn(async ({ message }: { message: string }) => {
@@ -104,7 +191,6 @@ describe('keyService sessions', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     const { requestContentKey } = await loadKeyService();
-
     const response = await requestContentKey({
       contentHash: CONTENT_HASH,
       purpose: 'individual',
@@ -146,5 +232,164 @@ describe('keyService sessions', () => {
 
     expect(signMessage).toHaveBeenCalledTimes(1);
     expect(fetchMock).not.toHaveBeenCalledWith('https://api.test/api/auth/session', expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('opens a Product-signed session and then requests the key with the session token', async () => {
+    const { sessionStore } = installLocalStorage();
+    const signMessage = vi.fn(async (message: string) => {
+      expect(message).toContain('Action: SIGN_IN');
+      return PRODUCT_SIGNATURE;
+    });
+    const sessionExpiresAt = new Date(Date.now() + 3_600_000).toISOString();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === 'https://api.test/api/auth/session' && init?.method === 'GET') return jsonResponse({ available: true });
+      if (url === 'https://api.test/api/auth/nonce') {
+        return jsonResponse({ nonce: 'c'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+      }
+      if (url === 'https://api.test/api/auth/session' && init?.method === 'POST') {
+        expect(JSON.parse(String(init.body))).toMatchObject({
+          address: ADDRESS,
+          signature: PRODUCT_SIGNATURE,
+          signatureScheme: 'product-sr25519-v1',
+          productPublicKey: PRODUCT_PUBLIC_KEY
+        });
+        return jsonResponse({ sessionToken: 'product-session-token', expiresAt: sessionExpiresAt });
+      }
+      if (url === `https://api.test/api/tracks/${CONTENT_HASH}/key-request`) {
+        expect(JSON.parse(String(init?.body))).toEqual({ sessionToken: 'product-session-token', purpose: 'room_host' });
+        return keyRequestResponse();
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { requestContentKey } = await loadKeyService();
+    await bindSmokeCandidate();
+
+    const response = await requestContentKey({
+      contentHash: CONTENT_HASH,
+      purpose: 'room_host',
+      signer: productSigner(signMessage),
+      chainId: 420420417
+    });
+
+    expect(response.access).toBe('allowed');
+    expect(signMessage).toHaveBeenCalledTimes(1);
+
+    const storedEvidence = sessionStore.get('dotify:product-cdm-host-smoke-evidence:v2') ?? '';
+    expect(storedEvidence).toContain('session-created');
+    expect(storedEvidence).toContain('key-allowed');
+    expect(storedEvidence).toContain(PRODUCT_PUBLIC_KEY);
+    expect(storedEvidence).toContain(CONTENT_HASH);
+    expect(storedEvidence).not.toContain(PRODUCT_SIGNATURE);
+    expect(storedEvidence).not.toContain('product-session-token');
+    expect(storedEvidence).not.toContain(CONTENT_KEY);
+  });
+
+  it('sends canonical release identity with session key requests when available', async () => {
+    const sessionKey = `dotify:session:${ADDRESS}`;
+    installLocalStorage([
+      [
+        sessionKey,
+        JSON.stringify({
+          token: 'fresh-session-token',
+          expiresAt: new Date(Date.now() + 3_600_000).toISOString()
+        })
+      ]
+    ]);
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === `https://api.test/api/tracks/${CONTENT_HASH}/key-request`) {
+        expect(JSON.parse(String(init?.body))).toEqual({
+          sessionToken: 'fresh-session-token',
+          purpose: 'individual',
+          ...releaseIdentity()
+        });
+        return keyRequestResponse();
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { requestContentKey } = await loadKeyService();
+
+    const response = await requestContentKey({
+      contentHash: CONTENT_HASH,
+      purpose: 'individual',
+      signer: productSigner(),
+      chainId: 420420417,
+      release: releaseIdentity()
+    });
+
+    expect(response.access).toBe('allowed');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('coalesces simultaneous session requests for parallel asset uploads', async () => {
+    installLocalStorage();
+    const signMessage = vi.fn(async () => PRODUCT_SIGNATURE);
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === 'https://api.test/api/auth/session' && init?.method === 'GET') return jsonResponse({ available: true });
+      if (url === 'https://api.test/api/auth/nonce') {
+        return jsonResponse({ nonce: 'e'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+      }
+      if (url === 'https://api.test/api/auth/session' && init?.method === 'POST') {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        return jsonResponse({ sessionToken: 'shared-session-token', expiresAt: new Date(Date.now() + 3_600_000).toISOString() });
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { ensureDotifySessionForSigner } = await loadKeyService();
+    const signer = productSigner(signMessage);
+
+    await expect(Promise.all([ensureDotifySessionForSigner(signer, 420420417), ensureDotifySessionForSigner(signer, 420420417)])).resolves.toEqual([
+      'shared-session-token',
+      'shared-session-token'
+    ]);
+
+    expect(signMessage).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('submits Product signature fields on the per-request fallback path', async () => {
+    installLocalStorage();
+    const signMessage = vi.fn(async (message: string) => {
+      expect(message).toContain('Action: REQUEST_CONTENT_KEY');
+      expect(message).toContain(`Requester: ${ADDRESS}`);
+      expect(message).toContain(`Release ID: ${RELEASE_ID.toLowerCase()}`);
+      expect(message).toContain(`Runtime Address: ${RUNTIME.toLowerCase()}`);
+      expect(message).toContain(`Artist Address: ${ARTIST.toLowerCase()}`);
+      expect(message).toContain(`Audio Ref: ${AUDIO_REF}`);
+      expect(message).toContain(`Key Version: ${KEY_VERSION}`);
+      return PRODUCT_SIGNATURE;
+    });
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === 'https://api.test/api/auth/session' && init?.method === 'GET') return jsonResponse({ error: 'not found' }, 404);
+      if (url === 'https://api.test/api/auth/nonce') {
+        return jsonResponse({ nonce: 'd'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+      }
+      if (url === `https://api.test/api/tracks/${CONTENT_HASH}/key-request`) {
+        expect(JSON.parse(String(init?.body))).toMatchObject({
+          requester: ADDRESS,
+          signature: PRODUCT_SIGNATURE,
+          signatureScheme: 'product-sr25519-v1',
+          productPublicKey: PRODUCT_PUBLIC_KEY,
+          purpose: 'individual',
+          ...releaseIdentity()
+        });
+        return keyRequestResponse();
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { requestContentKey } = await loadKeyService();
+
+    await requestContentKey({
+      contentHash: CONTENT_HASH,
+      purpose: 'individual',
+      signer: productSigner(signMessage),
+      chainId: 420420417,
+      release: releaseIdentity()
+    });
+
+    expect(signMessage).toHaveBeenCalledTimes(1);
   });
 });

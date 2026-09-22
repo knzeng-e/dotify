@@ -8,7 +8,8 @@ Visible product areas:
 
 - `Music`: artist-grouped catalog browsing, track artwork, descriptions, access
   badges, policy-aware player, and room hosting.
-- `Rooms`: open room discovery and room-code entry.
+- `Rooms`: open room discovery through the default 2D sky/list path, the
+  optional Three.js galaxy, and room-code entry.
 - `/artists`: dedicated artist onboarding and studio flow for artist runtime
   creation, audio upload, cover upload, primary artist share plus additional
   rights-holder royalty splits, Human free / Classic mode selection, Pinata IPFS
@@ -35,8 +36,11 @@ Useful environment variables:
   wallet-signed content-key requests.
 - `VITE_DOTIFY_DEBUG_PANEL`: set to `true` to show the read-only Production
   readiness panel under the `You` tab.
+- `VITE_DOTIFY_HOST_MODE`, `VITE_DOTIFY_PRODUCT_ID`, and
+  `VITE_PUBLIC_APP_URL`: Product-host detection, app-scoped account identifier,
+  and canonical room-link origin.
 - `VITE_LOCAL_WS_URL` / `VITE_LOCAL_ETH_RPC_URL`: local development endpoints.
-- `VITE_BULLETIN_WS_URL`: Paseo Bulletin Chain RPC.
+- `VITE_BULLETIN_WS_URL`: Product DevNet Bulletin Chain RPC.
 - `VITE_PINATA_JWT`: restricted browser-exposed Pinata JWT for demo uploads
   when `VITE_DOTIFY_API_URL` is unset.
 - `VITE_PINATA_GATEWAY`: primary gateway used when rendering IPFS assets.
@@ -45,8 +49,9 @@ Useful environment variables:
 - `VITE_CONTENT_SECRET`: optional 32-byte hex secret used for best-effort
   browser-side encrypted audio. It is bundled into the app, so it is not a
   production DRM boundary.
-- `VITE_TURN_URL` / `VITE_TURN_USERNAME` / `VITE_TURN_CREDENTIAL`: optional TURN
-  relay credentials for reliable room WebRTC across restrictive NATs.
+- `VITE_TURN_URL` / `VITE_TURN_USERNAME` / `VITE_TURN_CREDENTIAL`: optional
+  browser-visible TURN fallback for reliable room WebRTC across restrictive
+  NATs. Prefer backend TURN grants through `VITE_DOTIFY_API_URL`.
 - `VITE_BLOCKSCOUT_BASE_URL`: optional Blockscout explorer base URL.
 
 See `.env.example` for local defaults and script-only variables.
@@ -55,13 +60,16 @@ See `.env.example` for local defaults and script-only variables.
 
 Uploaded audio is always hashed locally with blake2b-256. When
 `VITE_DOTIFY_API_URL` is configured, the browser sends the raw audio plus
-content hash to the backend, and the backend encrypts with its
-`CONTENT_KEY_MASTER_SECRET` before pinning to Pinata. In local demo mode, when
+content hash to the backend, and the backend encrypts with the active
+content-key version secret before pinning to Pinata. In local demo mode, when
 `VITE_DOTIFY_API_URL` is unset, the browser encrypts with `VITE_CONTENT_SECRET`
 and pins directly with `VITE_PINATA_JWT`.
 
-The on-chain `audioRef` stores a `dotify:enc:ipfs://CID` URI, so the raw IPFS
-object is not directly playable by an HTML audio element.
+New backend uploads store `dotify:enc:v2:key-vN:ipfs://CID` in the on-chain
+`audioRef`, where `key-vN` maps to a retained backend
+`dotify-content-key-vN` secret. The default active version remains v2; legacy
+encrypted refs remain supported. The raw IPFS object is not directly playable
+by an HTML audio element.
 
 Cover images and track manifests are also pinned through Pinata. Manifest reads
 and encrypted audio downloads use `fetchIpfsCid`, which tries the configured
@@ -71,12 +79,17 @@ breaking playback when a custom Pinata gateway returns `401` for public files.
 The production protection boundary is the backend API:
 
 - Pinata credentials stay server-side.
-- Content keys are derived from `CONTENT_KEY_MASTER_SECRET`.
+- Content keys are derived from retained backend version secrets. New backend
+  uploads bind the key scope to the key version, chain ID, runtime address, and
+  content hash.
 - Full-track key delivery requires a signed-in session (one wallet signature
   per ~24h) or a wallet-signed request, plus an on-chain access check on
-  every key request.
+  every key request. Standalone clients use `eip191`; Product-host clients can
+  use the API-side `product-sr25519-v1` scheme once the frontend sends the
+  host-signed proof shape.
 - Room guests never receive keys; only an authorized host may request a
-  `room_host` key.
+  `room_host` key. Catalog-backed requests include the canonical release
+  identity so the backend does not guess between runtimes with the same hash.
 
 The fallback browser-only protection model is best-effort:
 
@@ -155,10 +168,38 @@ npm run codegen
 npm run build
 npm run build:bulletin
 npm run deploy:bulletin
+npm run build:product-devnet
+npm run build:product-devnet:frozen
+npm run deploy:product-devnet
 ```
 
 `build:bulletin` produces a single-file build via `vite-plugin-singlefile` so it
-can be distributed from a flat IPFS CID / DotNS record.
+can be distributed from a flat IPFS CID / DotNS record. The DAV2 decrypt Worker
+is inlined as a Blob Worker for this target, and the build fails if `index.html`
+references an external Worker or script asset.
+
+`build:product-devnet` produces `dist-product` with the checked-in
+`.env.product-devnet` profile and refreshes the bootstrap catalogue when the
+configured API is available. `build:product-devnet:frozen` performs no catalogue
+request and builds the reviewed, committed snapshot. Signer-free CI and
+`deploy:product-devnet` both use that frozen build so publication cannot pick up
+unreviewed live catalogue drift. `deploy:product-devnet` uses
+`@polkadot-community-foundation/polkadot-app-deploy@0.16.2` through `npx`,
+uploads static chunks to Product DevNet Bulletin, and binds `dotify-test01.dot`
+through the post-September 2026 DotNS tooling. The owner mnemonic is accepted
+only from the local `MNEMONIC` environment and is never an argument or GitHub
+Actions secret; inject it with a silent prompt and unset it immediately after
+publication. Browse listing is a separate operator step because it has its own
+signer/personhood boundary. The Product account currently provides app-scoped
+identity for presence and rooms in the shipped UI. The API can verify
+`product-sr25519-v1` key/session requests, but native Product contract writes
+remain opt-in behind `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` until live host
+payment evidence is recorded.
+
+See
+[`docs/explanation/product-devnet-architecture.md`](../docs/explanation/product-devnet-architecture.md)
+and
+[`docs/operations/product-devnet-deployment.md`](../docs/operations/product-devnet-deployment.md).
 
 ### Production Deploy: Netlify + Fly
 
@@ -206,8 +247,9 @@ Health endpoints:
 
 - `/health`: process health, uptime, room count, in-room listener count, and
   active solo-listener count.
-- `/status`: public room metadata plus aggregate solo presence by track hash.
-  It deliberately omits socket identities, chat history, and request text.
+- `/status`: public room metadata, `maxListeners` / `isFull` capacity flags,
+  plus aggregate solo presence by track hash. It deliberately omits socket
+  identities, chat history, and request text.
 
 #### 2. Deploy the frontend on Netlify
 
@@ -229,9 +271,10 @@ Required production environment variables:
 
 Recommended for reliable rooms:
 
-- `VITE_TURN_URL`
-- `VITE_TURN_USERNAME`
-- `VITE_TURN_CREDENTIAL`
+- Backend API `TURN_URLS` plus `TURN_REST_SECRET`, exposed to the frontend as
+  short-lived `/api/turn/grant` credentials.
+- `VITE_TURN_URL`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL` only as a
+  browser-visible DevNet/static fallback.
 
 Do not set unrestricted Pinata credentials in Netlify. `VITE_PINATA_JWT` is
 browser-exposed and is for restricted local/demo uploads only. Do not treat
@@ -286,27 +329,40 @@ Then verify the user flow in two browser contexts or devices:
 3. Confirm the guest joins without wallet/signature prompts.
 4. Send one chat message and one reaction; both browsers should receive the
    server echo.
-5. Start playback; if audio negotiation fails across networks, configure TURN.
+5. Start playback; if audio negotiation fails across networks, configure TURN
+   on the API and confirm `GET /api/turn/grant` returns `iceServers`.
+6. In each browser console, inspect
+   `window.__DOTIFY_ROOM_QUALITY__.snapshot()`. The host should show
+   `offer-sent`; the guest should show `room-joined`, `remote-audio-cued`, and
+   either `peer-connected` stats or a clear retry/timeout phase. Relay/direct
+   evidence appears in `relayConnectionCount` and each connected peer's
+   candidate-type summary when the browser exposes stats.
 
 For operator smoke checks, temporarily set `VITE_DOTIFY_DEBUG_PANEL=true` and
 open `You -> Production readiness`. The panel checks backend readiness,
 signaling health, chain RPC, factory/directory contract code, wallet-chain
 mismatch, catalog status, and IPFS gateway reads without exposing secrets or
-starting write flows.
+starting write flows. A Product candidate can additionally export payment/key
+and room evidence bound to its build SHA, app version, and deployed CID. The
+room capture reads creation, stream, peer, listener, and canonical-link facts
+from the active host session; the operator confirms walletless guest arrival,
+audible audio, and sync on the guest device before export.
 
 ### Production Troubleshooting
 
-| Symptom                                                                      | Likely cause                                                                                                                        | Check                                                                                                                    | Fix                                                                                                                                               |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Frontend shows `Signal server unavailable`                                   | `VITE_SIGNAL_URL` points to the wrong host, the Fly app is down, or `SIGNAL_ORIGINS` blocks the frontend origin.                    | Browser console, Netlify env vars, `curl -s <signal-url>/health`, `flyctl status -c fly.signal.toml`.                    | Set `VITE_SIGNAL_URL` to the HTTPS Fly URL, redeploy Netlify, start/redeploy Fly, and add the Netlify origin to `SIGNAL_ORIGINS`.                 |
-| Room creation works locally but not in production                            | Netlify was built without the production signaling URL.                                                                             | Inspect the deployed JS env by trying to create a room; the UI error includes the signal URL.                            | Set `VITE_SIGNAL_URL` in Netlify and trigger a fresh frontend deploy.                                                                             |
-| Guests can join, but chat, reactions, or requests do not appear for everyone | The Fly signaling image is stale, or more than one active Fly machine is serving separate in-memory room maps.                      | `flyctl status -c fly.signal.toml`; compare image name and active machine count.                                         | Run `flyctl deploy -c fly.signal.toml`, then `flyctl scale count 1 -c fly.signal.toml --yes` until a shared Socket.IO adapter exists.             |
-| `/health` works but `/status` shows rooms split or missing                   | Multiple signaling instances are active without shared state.                                                                       | `flyctl status -c fly.signal.toml`.                                                                                      | Keep one active machine for the current in-memory signaling design.                                                                               |
-| Listener joins but audio never starts                                        | WebRTC cannot establish a media path across the host/listener networks. Signaling can be healthy while audio still fails.           | Chat/reactions work, but the listener stays in a connecting/no-audio state.                                              | Configure a TURN relay with `VITE_TURN_URL`, `VITE_TURN_USERNAME`, and `VITE_TURN_CREDENTIAL`, then redeploy Netlify.                             |
-| Mobile host sees `captureStream()` unsupported                               | Safari/iOS does not expose `HTMLMediaElement.captureStream()` for host audio capture.                                               | Host card shows the capture error before any guest can hear the room.                                                    | Use the Web Audio fallback path; if both media capture APIs are unavailable, host from desktop/Android Chrome and join as a listener on iOS.      |
-| Production upload or full-track playback fails                               | Backend API is missing or cannot release keys.                                                                                      | Check `VITE_DOTIFY_API_URL`, backend `/health`, and browser network requests to key/upload endpoints.                    | Deploy/fix the backend API and keep `PINATA_JWT` plus `CONTENT_KEY_MASTER_SECRET` server-side.                                                    |
-| Protected track takes too long to start                                      | The IPFS gateway cannot serve DAV2 Range requests quickly, MSE is unsupported for the media type, or the backend key route is slow. | Listen for `dotify:dav2-startup` and `dotify:host-audio-startup` in the browser and inspect key/upload network requests. | Compare selected gateway, hedged header/first-chunk timing, and first-audio timing; then decide whether a backend read-through gateway is needed. |
-| A room disappears while the host tab is open                                 | Host heartbeat stopped, the host disconnected, or the room TTL expired.                                                             | Fly logs and `/status`; defaults are 120 seconds heartbeat timeout and 6 hours TTL.                                      | Keep the host tab awake/reconnected, or adjust `SIGNAL_HOST_TIMEOUT_MS` / `SIGNAL_ROOM_TTL_MS` deliberately.                                      |
+| Symptom                                                                      | Likely cause                                                                                                                                            | Check                                                                                                                                                                                                                                                       | Fix                                                                                                                                                                                       |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend shows `Signal server unavailable`                                   | `VITE_SIGNAL_URL` points to the wrong host, the Fly app is down, or `SIGNAL_ORIGINS` blocks the frontend origin.                                        | Browser console, Netlify env vars, `curl -s <signal-url>/health`, `flyctl status -c fly.signal.toml`.                                                                                                                                                       | Set `VITE_SIGNAL_URL` to the HTTPS Fly URL, redeploy Netlify, start/redeploy Fly, and add the Netlify origin to `SIGNAL_ORIGINS`.                                                         |
+| Room creation works locally but not in production                            | Netlify was built without the production signaling URL.                                                                                                 | Inspect the deployed JS env by trying to create a room; the UI error includes the signal URL.                                                                                                                                                               | Set `VITE_SIGNAL_URL` in Netlify and trigger a fresh frontend deploy.                                                                                                                     |
+| Guests can join, but chat, reactions, or requests do not appear for everyone | The Fly signaling image is stale, or more than one active Fly machine is serving separate in-memory room maps.                                          | `flyctl status -c fly.signal.toml`; compare image name and active machine count.                                                                                                                                                                            | Run `flyctl deploy -c fly.signal.toml`, then `flyctl scale count 1 -c fly.signal.toml --yes` until a shared Socket.IO adapter exists.                                                     |
+| `/health` works but `/status` shows rooms split or missing                   | Multiple signaling instances are active without shared state.                                                                                           | `flyctl status -c fly.signal.toml`.                                                                                                                                                                                                                         | Keep one active machine for the current in-memory signaling design.                                                                                                                       |
+| Product Mobile reports `create-peer` / missing `RTCPeerConnection`           | The current iOS Product sandbox removes the browser WebRTC constructor even after granting the `WebRtc` host permission. ICE and TURN have not started. | Fly `webrtc:diagnostic` shows `peerConnectionAvailable=false`, `protocol=polkadot:`, and phase `listener:create-peer-failed`. Coturn receives no allocation.                                                                                                | Publish Product executable `[0, 1, 11]` or later and use **Continue in browser**. In-app audio requires a Product Mobile host change that exposes a permission-gated peer connection API. |
+| Listener joins but audio negotiation times out after peer creation           | WebRTC cannot establish a media path across the host/listener networks. Signaling can be healthy while audio still fails.                               | Check `window.__DOTIFY_ROOM_QUALITY__.snapshot()`, `https://dotify-api.fly.dev/api/turn/grant`, coturn allocation logs, and Fly `dotify-signal` diagnostics. `peerConnectionAvailable=true` separates this path from the Product Mobile sandbox limitation. | Configure API TURN grants and verify the relay ports/firewall. Redeploy the frontend/Product bundle only if browser-visible `VITE_TURN_*` changed.                                        |
+| A room appears but cannot be entered                                         | The room reached the current listener cap, or the host is reconnecting and temporarily hidden from `/status`.                                           | `/status` exposes `listenerCount`, `maxListeners`, and `isFull` for visible rooms. The join ack returns `ROOM_FULL` or `HOST_RECONNECTING` for authoritative failures.                                                                                      | Wait for a listener to leave, open another room, or keep the cap conservative until SFU evidence supports a larger fan-out.                                                               |
+| Mobile host sees `captureStream()` unsupported                               | Safari/iOS does not expose `HTMLMediaElement.captureStream()` for host audio capture.                                                                   | Host card shows the capture error before any guest can hear the room.                                                                                                                                                                                       | Use the Web Audio fallback path; if both media capture APIs are unavailable, host from desktop/Android Chrome and join as a listener on iOS.                                              |
+| Production upload or full-track playback fails                               | Backend API is missing or cannot release keys.                                                                                                          | Check `VITE_DOTIFY_API_URL`, backend `/health`, and browser network requests to key/upload endpoints.                                                                                                                                                       | Deploy/fix the backend API and keep `PINATA_JWT` plus the content-key secrets server-side.                                                                                                |
+| Protected track takes too long to start                                      | The IPFS gateway cannot serve DAV2 Range requests quickly, MSE is unsupported for the media type, or the backend key route is slow.                     | Inspect `window.__DOTIFY_AUDIO_STARTUP__.snapshot()` in the browser, or listen for `dotify:dav2-startup` and `dotify:host-audio-startup`, then inspect key/upload network requests.                                                                         | Compare selected gateway, hedged header/first-chunk timing, and first-audio timing; then decide whether a backend read-through gateway is needed.                                         |
+| A room disappears while the host tab is open                                 | Host heartbeat stopped, the host disconnected, or the room TTL expired.                                                                                 | Fly logs and `/status`; defaults are 120 seconds heartbeat timeout and 6 hours TTL.                                                                                                                                                                         | Keep the host tab awake/reconnected, or adjust `SIGNAL_HOST_TIMEOUT_MS` / `SIGNAL_ROOM_TTL_MS` deliberately.                                                                              |
 
 ## Tests
 
@@ -465,9 +521,15 @@ appropriate component composition rather than shell-level prop drilling.
 - Browser-side Pinata uploads are demo/local mode only. Production should set
   `VITE_DOTIFY_API_URL` and configure `PINATA_JWT` on the backend.
 - Playback protection is client-side best-effort only when the backend API is
-  not configured. Production key delivery uses wallet-signed backend requests.
-- Artist registration and release publication require a connected wallet. Local
-  EVM dev accounts are no longer exposed as public artist fallbacks.
+  not configured. Production key delivery uses wallet-signed backend requests
+  with explicit `eip191` or `product-sr25519-v1` signature schemes.
+- Key rotation is additive, not retroactive revocation. Existing protected
+  audio stays readable only while its exact key version secret is retained; a
+  client that already learned a derived key may keep using it outside Dotify's
+  grant window.
+- Artist registration and release publication require a connected EVM wallet in
+  the tracked build. Local EVM dev accounts are no longer exposed as public
+  artist fallbacks.
 - Proof of Personhood levels are contract storage controlled by the runtime
   registrar; live Individuality integration is not implemented yet.
 - The signaling server must be hosted separately for DotNS / Bulletin builds.
@@ -477,7 +539,9 @@ appropriate component composition rather than shell-level prop drilling.
 
 ## Improvement Backlog
 
-1. Harden injected EVM provider and passkey wallet support for production usage.
+1. Harden injected EVM provider support for production usage, and only re-add
+   passkeys as a backend-bound factor attached to an existing EVM or Product
+   account.
 2. Move Pinata uploads and content-key release behind a backend or artist-run key
    service.
 3. Replace bundled-content-secret protection with per-track key custody and
@@ -487,3 +551,18 @@ appropriate component composition rather than shell-level prop drilling.
    rooms, and chain access.
 6. Add release draft persistence and edit flows for the `/artists` portal.
 7. Add production monitoring for gateway fallback failures and signaling uptime.
+
+### Native artist-support validation build
+
+`npm run build:product-devnet:support` builds the existing Product CDM profile
+with recoverable Classic support payments. It does not deploy or enable CASH.
+See [the support recovery design](../docs/design/product-host-support-recovery-2026-09-15.md)
+for native-device acceptance and the tab-local payment reference boundary.
+
+The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
+Ordinary builds keep gifts off. A gift sends a chosen amount directly to the
+release's artist; it does not unlock access or follow the release's royalty
+splits. Native gifts use chain-reported precision and verified recipient
+mapping. Keep this flag gated until a real host approval and receipt have been
+checked. No live funds are used by the automated test fixtures. See
+[direct artist gifts](../docs/design/artist-gifts-2026-09-16.md).

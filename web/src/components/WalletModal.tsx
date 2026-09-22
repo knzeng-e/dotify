@@ -1,4 +1,4 @@
-import { ExternalLink, KeyRound, LockKeyhole, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
+import { Box, ExternalLink, KeyRound, LockKeyhole, LogOut, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
 import { Dialog } from './Dialog';
 import type { WalletState } from '../hooks/useWallet';
 import type { CatalogTrack } from '../shared/types';
@@ -6,28 +6,52 @@ import { getBlockscoutAddressUrl } from '../shared/utils/explorer';
 import { shortenAddress } from '../shared/utils/format';
 import { useWalletContext } from '../app/providers/WalletProvider';
 import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
+import type { WalletModalReason } from '../app/providers/UiFeedbackProvider';
+import { LEGACY_PASSKEY_LOCAL_DATA_MESSAGE } from '../features/wallet/passkeyPolicy';
 
 type WalletSupportedArtist = Pick<CatalogTrack, 'artist' | 'artistAddress'> & { trackCount: number };
 type WalletPaidTrack = Pick<CatalogTrack, 'id' | 'title' | 'artist' | 'artistAddress' | 'priceDot' | 'hash'>;
+
+export function walletModalCopy(reason: WalletModalReason) {
+  if (reason === 'support') {
+    return {
+      eyebrow: 'Support this artist',
+      title: 'Choose how to confirm',
+      description: 'Connect the account you want to use. You will review the amount and who receives it before anything is sent.'
+    };
+  }
+  if (reason === 'artist') {
+    return {
+      eyebrow: 'Artist tools',
+      title: 'Connect to continue',
+      description: 'Connect the account that will control your artist space and approve publishing.'
+    };
+  }
+  return {
+    eyebrow: 'Account',
+    title: 'Connect account',
+    description: 'Connect when you want to support an artist, open protected music, or publish.'
+  };
+}
 
 export function WalletStatusPill({ state, onClick, onDisconnect }: { state: WalletState; onClick: () => void; onDisconnect: () => void }) {
   if (state.status === 'connected') {
     return (
       <div className='status-pill wallet-pill' data-tone='green'>
         <button className='wallet-pill-open' type='button' onClick={onClick}>
-          <LockKeyhole size={14} />
+          <Wallet size={18} aria-hidden='true' />
           <span>{state.wallet.label}</span>
         </button>
         <button className='wallet-pill-disconnect' type='button' onClick={onDisconnect} aria-label='Disconnect wallet' title='Disconnect'>
-          <X size={14} />
+          <LogOut size={18} aria-hidden='true' />
         </button>
       </div>
     );
   }
   return (
     <button type='button' className='status-pill wallet-pill' data-tone='muted' onClick={onClick}>
-      <Power size={14} />
-      <span>{state.status === 'connecting' ? 'Connecting…' : state.status === 'needs-reconnect' ? 'Reconnect' : 'Connect'}</span>
+      <Wallet size={18} aria-hidden='true' />
+      <span>{state.status === 'connecting' ? 'Connecting…' : 'Connect'}</span>
     </button>
   );
 }
@@ -41,35 +65,39 @@ export function WalletModal({
   supportingCount = 0,
   unlockedCount = 0,
   supportedArtists = [],
+  nativePaymentSymbol,
   paidTracks = [],
   onOpenAccountDetails
 }: {
   supportingCount?: number;
   unlockedCount?: number;
   supportedArtists?: WalletSupportedArtist[];
+  nativePaymentSymbol: string;
   paidTracks?: WalletPaidTrack[];
   onOpenAccountDetails?: () => void;
 }) {
   const {
     walletState: state,
-    hasPrfSupport,
-    hasStoredPasskey,
+    hasLegacyPasskeyData,
     expectedChainId,
     isSwitchingNetwork,
-    connectPasskey,
     connectExtension,
+    connectProductHost,
+    productHostMode,
+    productHostStatus,
     switchNetwork,
-    forgetPasskey: onForgetPasskey,
+    forgetLegacyPasskeyData,
     disconnect: onDisconnect
   } = useWalletContext();
-  const { showWalletModal, setShowWalletModal } = useUiFeedback();
+  const { showWalletModal, setShowWalletModal, walletModalReason } = useUiFeedback();
 
   if (!showWalletModal) return null;
 
   const onClose = () => setShowWalletModal(false);
-  const onPasskey = () => void connectPasskey();
   const onExtension = () => void connectExtension();
+  const onProductHost = () => void connectProductHost();
   const onSwitchNetwork = () => void switchNetwork();
+  const connectCopy = walletModalCopy(walletModalReason);
 
   if (state.status === 'connected') {
     const { wallet } = state;
@@ -95,7 +123,7 @@ export function WalletModal({
           <div>
             <strong>{wallet.label}</strong>
             <small className='tnum'>
-              {wallet.evmAddress ? (
+              {wallet.method !== 'product-host' ? (
                 <a className='verify-link' href={getBlockscoutAddressUrl(wallet.evmAddress)} target='_blank' rel='noreferrer'>
                   {shortenAddress(identityAddress)}
                 </a>
@@ -108,7 +136,7 @@ export function WalletModal({
 
         <div className='wallet-network' data-warning={walletChainMismatch}>
           <span>Connection</span>
-          <strong>{walletChainMismatch ? 'Needs attention' : wallet.method === 'passkey' ? 'This device' : 'Wallet app'}</strong>
+          <strong>{walletChainMismatch ? 'Needs attention' : wallet.method === 'product-host' ? 'Product host' : 'Wallet app'}</strong>
           {walletChainMismatch && <small>Choose the right network to continue</small>}
           {walletChainMismatch && wallet.method === 'extension' && onSwitchNetwork && (
             <button className='wallet-network-action' type='button' onClick={onSwitchNetwork} disabled={isSwitchingNetwork}>
@@ -118,10 +146,29 @@ export function WalletModal({
           )}
         </div>
 
+        {wallet.method === 'product-host' && (
+          <>
+            <p className='info-box'>
+              Your Polkadot app account is active for rooms and protected playback. This version may ask you to use a browser wallet for support or publishing.
+            </p>
+            <div className='wallet-options'>
+              <button className='wallet-option' type='button' onClick={onExtension}>
+                <span className='wallet-option-icon'>
+                  <Wallet size={18} />
+                </span>
+                <span className='wallet-option-copy'>
+                  <strong>Use browser wallet</strong>
+                  <small>Continue support or publishing in an installed wallet.</small>
+                </span>
+              </button>
+            </div>
+          </>
+        )}
+
         <div className='wallet-stats'>
           <div>
             <strong className='tnum'>{unlockedCount}</strong>
-            <span>track{unlockedCount === 1 ? '' : 's'} opened</span>
+            <span>payment record{unlockedCount === 1 ? '' : 's'}</span>
           </div>
           <div>
             <strong className='tnum'>{supportingCount}</strong>
@@ -148,7 +195,7 @@ export function WalletModal({
                     <span>
                       <strong>{artist.artist}</strong>
                       <small>
-                        {artist.trackCount} opened track{artist.trackCount === 1 ? '' : 's'}
+                        {artist.trackCount} paid track{artist.trackCount === 1 ? '' : 's'}
                       </small>
                     </span>
                     {artist.artistAddress && (
@@ -174,7 +221,7 @@ export function WalletModal({
           <section className='wallet-activity-section'>
             <h3>
               <Music2 size={15} />
-              Tracks opened
+              Supported tracks
             </h3>
             {paidTracks.length > 0 ? (
               <div className='wallet-activity-list'>
@@ -183,7 +230,7 @@ export function WalletModal({
                     <span>
                       <strong>{track.title}</strong>
                       <small>
-                        {track.artist} / {track.priceDot} DOT
+                        {track.artist} / {track.priceDot} {nativePaymentSymbol} paid
                       </small>
                     </span>
                     <code>{shortenAddress(track.hash)}</code>
@@ -192,7 +239,7 @@ export function WalletModal({
                 {paidTracks.length > 5 && <p className='wallet-empty'>+{paidTracks.length - 5} more - view all in account details</p>}
               </div>
             ) : (
-              <p className='wallet-empty'>No opened tracks found in the indexed catalog.</p>
+              <p className='wallet-empty'>No verified payment records found in the indexed catalog.</p>
             )}
           </section>
         </div>
@@ -203,20 +250,21 @@ export function WalletModal({
           </span>
           <span className='wallet-option-copy'>
             <strong>You hold your keys</strong>
-            <small id='wallet-modal-desc'>Approvals stay on your device.</small>
+            <small id='wallet-modal-desc'>Approvals stay in your wallet app or Product host.</small>
           </span>
         </div>
 
-        {hasStoredPasskey && (
+        {hasLegacyPasskeyData && <p className='info-box'>{LEGACY_PASSKEY_LOCAL_DATA_MESSAGE}</p>}
+        {hasLegacyPasskeyData && (
           <button
             className='wallet-forget'
             type='button'
             onClick={() => {
-              onForgetPasskey();
+              forgetLegacyPasskeyData();
               onClose();
             }}
           >
-            Remove saved passkey
+            Forget local passkey data
           </button>
         )}
         {onDisconnect && (
@@ -247,54 +295,63 @@ export function WalletModal({
         </button>
       </div>
       <div className='modal-copy'>
-        <p className='modal-eyebrow'>Account</p>
-        <h2 id='wallet-modal-title'>Connect wallet</h2>
-        <p id='wallet-modal-desc'>Use a wallet for paid or protected releases.</p>
+        <p className='modal-eyebrow'>{connectCopy.eyebrow}</p>
+        <h2 id='wallet-modal-title'>{connectCopy.title}</h2>
+        <p id='wallet-modal-desc'>{connectCopy.description}</p>
       </div>
 
       {state.status === 'error' && <p className='error-box'>{state.message}</p>}
       {state.status === 'connecting' && (
-        <p className='info-box'>{state.via === 'passkey' ? 'Check your browser prompt to continue.' : 'Check your wallet to approve the connection.'}</p>
-      )}
-      {state.status === 'needs-reconnect' && state.via === 'passkey' && (
-        <p className='info-box'>Your saved passkey is ready. Use passkey to reconnect when you are ready.</p>
+        <p className='info-box'>
+          {state.via === 'product-host' ? 'Check the Polkadot Product host to continue.' : 'Check your wallet to approve the connection.'}
+        </p>
       )}
 
       <div className='wallet-options'>
-        {hasPrfSupport && (
-          <button className='wallet-option wallet-option-primary' type='button' onClick={onPasskey}>
+        {productHostMode !== 'off' && (
+          <button className='wallet-option wallet-option-primary' type='button' onClick={onProductHost} disabled={productHostStatus !== 'available'}>
             <span className='wallet-option-icon'>
-              <KeyRound size={18} />
+              <Box size={18} />
             </span>
             <span className='wallet-option-copy'>
-              <strong>
-                {state.status === 'needs-reconnect' && state.via === 'passkey' ? 'Reconnect passkey' : hasStoredPasskey ? 'Use passkey' : 'Create passkey'}
-              </strong>
-              <small>Use this device.</small>
+              <strong>Use Polkadot app</strong>
+              <small>
+                {productHostStatus === 'checking'
+                  ? 'Checking the Product host...'
+                  : productHostStatus === 'available'
+                    ? 'Use your account and shared name.'
+                    : 'Open Dotify inside the Product host.'}
+              </small>
             </span>
           </button>
         )}
 
-        <button className='wallet-option' type='button' onClick={onExtension}>
+        <button className={`wallet-option${productHostMode === 'off' ? ' wallet-option-primary' : ''}`} type='button' onClick={onExtension}>
           <span className='wallet-option-icon'>
             <Wallet size={18} />
           </span>
           <span className='wallet-option-copy'>
-            <strong>Use wallet app</strong>
-            <small>Use an existing wallet.</small>
+            <strong>Use browser wallet</strong>
+            <small>Use an installed wallet for support and publishing.</small>
           </span>
         </button>
 
-        {hasStoredPasskey && (
+        <details className='wallet-technical-details'>
+          <summary>Technical details</summary>
+          <p>The browser option uses an EVM-compatible account. Polkadot app support depends on the Product build and action.</p>
+        </details>
+
+        {hasLegacyPasskeyData && <p className='info-box'>{LEGACY_PASSKEY_LOCAL_DATA_MESSAGE}</p>}
+        {hasLegacyPasskeyData && (
           <button
             className='wallet-forget'
             type='button'
             onClick={() => {
-              onForgetPasskey();
+              forgetLegacyPasskeyData();
               onClose();
             }}
           >
-            Remove saved passkey
+            Forget local passkey data
           </button>
         )}
       </div>

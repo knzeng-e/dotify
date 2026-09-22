@@ -30,6 +30,26 @@ socket.emit('rooms:list', (rooms: OpenRoom[]) => { ... });
 OpenRoom[]
 ```
 
+Each `OpenRoom` is a public, source-redacted snapshot:
+
+```typescript
+{
+  roomId: string;
+  title?: string;
+  hostName: string;
+  createdAt: number;
+  expiresAt?: number;
+  listenerCount: number;
+  maxListeners?: number;
+  isFull?: boolean;
+  track: TrackInfo | null;        // no source-bearing refs
+  playerState: PlayerState | null;
+  playbackMode?: 'full' | 'preview';
+  hostAccessRequired?: boolean;
+  listenersNeedWalletAccess?: false;
+}
+```
+
 ---
 
 ### `rooms:updated`
@@ -95,6 +115,7 @@ socket.emit('room:join', {
   playbackMode?: 'full' | 'preview';
   chatHistory?: RoomChatMessage[];   // Up to the last 50 in-room messages
   requests?: RoomRequest[];          // Current collaborative request queue
+  lineup?: RoomLineupItem[];         // Host-curated playback order, max 12
   expiresAt?: number;
 }
 
@@ -102,7 +123,33 @@ socket.emit('room:join', {
 { ok: false; error: string; code?: string }
 ```
 
-On success, the host receives a `listener:joined` event for this listener.
+Known failure codes include `ROOM_NOT_FOUND`, `HOST_RECONNECTING`,
+`ROOM_FULL`, and `JOIN_THROTTLED`. On success, the host receives a
+`listener:joined` event for this listener.
+
+---
+
+### `room:turn-capability`
+
+**Direction:** Client → Server (with ack)
+
+Requests short-lived proof that the current socket is already the room host or
+a joined listener. The frontend sends this opaque capability to the backend
+`GET /api/turn/grant` endpoint; it is not a wallet token and does not grant
+content access.
+
+```typescript
+socket.emit('room:turn-capability', {}, (response) => { ... });
+
+// Ack — success
+{ ok: true; capability: string; expiresAt: number }
+
+// Ack — failure
+{ ok: false; error: string; code: 'ROOM_MEMBERSHIP_REQUIRED' | 'TURN_CAPABILITY_NOT_CONFIGURED' }
+```
+
+The capability is HMAC-signed, expires after two minutes by default, and is
+never returned by room discovery or public status endpoints.
 
 ---
 
@@ -148,6 +195,35 @@ socket.emit('room:track', track /* TrackInfo | null */);
 // Listener receives
 socket.on('room:track', (track: TrackInfo | null) => { ... });
 ```
+
+---
+
+### `room:lineup`
+
+**Direction:** Client (host) → Server → Room
+
+Replaces the room's ordered "Up next" list. The server accepts this event only
+from the current host socket, removes duplicate or malformed identities, caps
+the list at 12, strips source and manifest references, and broadcasts the
+sanitized snapshot to every participant. Late join and host-resume replies carry
+the same current snapshot. The list is in memory only and dies with the room.
+
+```typescript
+type RoomLineupItem = {
+  trackId: string;
+  title: string;
+  artist: string;
+  imageRef?: string;
+  hash: `0x${string}` | '';
+  accessMode?: 'free' | 'classic' | 'human-free';
+};
+
+socket.emit('room:lineup', lineup /* RoomLineupItem[] */);
+socket.on('room:lineup', (lineup: RoomLineupItem[]) => { ... });
+```
+
+The event communicates intent, not access. Opening an item still runs the
+host's normal access check. It never signs, pays, or releases a content key.
 
 ---
 
@@ -400,7 +476,26 @@ socket.emit('player:state', {
 socket.on('player:state', (state: PlayerState | null) => { ... });
 ```
 
-Listeners use `updatedAt` to compensate for network delay when displaying the progress indicator.
+The host is the only accepted publisher. Clients send transient samples only
+while connected. Forced transitions use reliable emission even when a connected
+transport is busy; periodic samples remain volatile. Forced transitions include
+fresh snapshots after room creation/resume and track publication. A changed track clears the previous clock with a `null` payload
+on the existing `player:state` event.
+
+Listeners interpolate from local monotonic receipt time, never by subtracting
+`updatedAt` from a different device's wall clock. A playing sample may advance
+for at most 2.5 seconds without an update; then output is silenced and the player
+shows "Syncing with host". A paused sample holds its position. The join ack
+projects the stored sample using its age on the server, also bounded to 2.5
+seconds. An optional server-derived `stale: true` marker on an aged playing
+join snapshot preserves the interruption state while `playing: false` keeps
+output silent, including on older clients. Real pauses are not marked stale;
+a fresh host sample clears the marker. Host-supplied markers are stripped.
+`updatedAt` is diagnostic, not an inter-device latency estimate.
+
+Only the host can seek or repeat. A guest pause silences that guest while the
+room clock keeps following the host. Remote media-element events cannot change
+the song position. See [playback synchronization](../explanation/room-playback-synchronization.md).
 
 ---
 

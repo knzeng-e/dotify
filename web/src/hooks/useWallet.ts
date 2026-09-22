@@ -1,50 +1,55 @@
-// Dotify wallet — primary EVM signing without seed phrases.
+// Dotify wallet — account authority for protected and paid actions.
 //
-// Tier 1 · Passkey (WebAuthn PRF)
-//   WebAuthn credential + PRF extension → 32-byte deterministic secret
-//   → KeyManager.fromRawKey → EVM private key + optional Substrate signer
-//   No extension, no seed phrase. Works via Face ID / Touch ID / Windows Hello.
-//   Browser support: Chrome 116+, Firefox 119+, Safari 17.4+
-//
-// Tier 2 · Extension (MetaMask / Talisman EVM / SubWallet EVM)
+// Tier 1 · Extension (MetaMask / Talisman EVM / SubWallet EVM)
 //   window.ethereum → EVM via EIP-1193
 //
-// Dotify treats the EVM address as the canonical product identity. Substrate is
-// only exposed by the passkey path for optional Bulletin archival writes.
+// Tier 2 · Product host account
+//   app-scoped Product identity → protected key/session proofs and Product CDM
+//   writes only when the build explicitly selects that adapter.
+//
+// Dotify treats the EVM address or Product-derived H160 address as the
+// canonical product identity. The older WebAuthn PRF-derived wallet route is
+// retired from public flows because it can create a different identity when
+// local credential metadata, origin, device sync, or PRF support changes.
 
-import { KeyManager } from '@polkadot-apps/keys';
-import { bytesToHex } from '@polkadot-apps/utils';
 import type { PolkadotSigner } from 'polkadot-api';
-import { privateKeyToAccount } from 'viem/accounts';
-import { useState, useCallback, useEffect } from 'react';
-import { createWalletClient, http, custom, type WalletClient, type Chain } from 'viem';
-import { createClassicUnlockE2eWallet, isClassicUnlockE2e } from '../e2e/classicUnlockMock';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { createWalletClient, custom, type WalletClient, type Chain } from 'viem';
+import { createClassicUnlockE2eWallet, isClassicUnlockE2e, shouldAllowClassicUnlockAccountLoss } from '../e2e/classicUnlockMock';
 import {
   createArtistPublishE2eWallet,
   isArtistPublishE2e,
   isArtistPublishE2eScenarioRequested,
   shouldAutoConnectArtistPublishE2eWallet
 } from '../e2e/artistPublishMock';
+import { connectProductHostIdentity, probeProductHost, resolveProductHostConfig, type ProductHostStatus } from '../features/productHost/productHost';
 import { isRoomJoinE2eContext } from '../e2e/roomJoinMock';
+import { getStoredDisplayName } from '../features/identity/walletIdentity';
+import { shortenAddress } from '../shared/utils/format';
 import { getProviderErrorCode, parseChainId, toEip155ChainId } from '../features/wallet/network';
+import {
+  clearLegacyPasskeyData,
+  clearStoredWalletMethod,
+  hasLegacyPasskeyCredential,
+  readRestorableWalletMethod,
+  rememberExtensionWallet
+} from '../features/wallet/passkeyPolicy';
+import { PRODUCT_SR25519_SIGNATURE_SCHEME, type KeyRequestSigner } from '../services/keyService';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-// Changing PRF_SALT rotates ALL derived keys — all connected accounts change.
-const PRF_SALT = new TextEncoder().encode('dotify-wallet-v1');
-const CRED_KEY = 'dotify:passkey:credId';
-const LAST_METHOD_KEY = 'dotify:wallet:lastMethod';
-const SS58_PREFIX = 42; // adapt prefix for target chain (42 = generic Substrate, 0 = Polkadot, 2 = Kusama, etc.)
 const CONNECT_TIMEOUT_MS = 42_000;
 
 // ── Public types ─────────────────────────────────────────────────────────────
 
-export type WalletMethod = 'passkey' | 'extension';
+export type WalletMethod = 'extension' | 'product-host';
 
 export type ConnectedWallet = {
   method: WalletMethod;
-  /** Short label shown in the UI (e.g. "Passkey" or "5GrwvA…utQY") */
+  /** Account label: host username when shared, otherwise a saved name or short address. */
   label: string;
+  /** Host-provided display name. Presentation only, not proof of identity. */
+  displayName?: string;
   /** Optional Substrate account used only for Bulletin Chain archival transactions */
   substrateAddress?: string;
   substrateSigner?: PolkadotSigner;
@@ -52,97 +57,19 @@ export type ConnectedWallet = {
   evmAddress: `0x${string}`;
   /** EIP-1193 chain id when the connected wallet reports one */
   chainId?: number;
+  /** Optional identity signer for backend key/session requests. Product-host accounts use this without gaining EVM tx authority. */
+  keyRequestSigner?: KeyRequestSigner;
   /** Build the right viem WalletClient for this connection type */
-  createEvmClient: (chain: Chain, rpcUrl: string) => WalletClient;
+  createEvmClient?: (chain: Chain, rpcUrl: string) => WalletClient;
 };
 
 export type WalletState =
   | { status: 'disconnected' }
-  | { status: 'needs-reconnect'; via: 'passkey' }
   | { status: 'connecting'; via: WalletMethod }
   | { status: 'connected'; wallet: ConnectedWallet }
   | { status: 'error'; message: string };
 
-// ── Internal: key derivation ─────────────────────────────────────────────────
-
-/** Build a ConnectedWallet from a KeyManager (passkey path). */
-function walletFromKeyManager(km: KeyManager, method: WalletMethod, label: string): ConnectedWallet {
-  const subAcc = km.deriveAccount('dotify:substrate:v1', SS58_PREFIX);
-  const evmKeyBytes = km.deriveSymmetricKey('dotify:evm:v1');
-  const evmPrivKey = `0x${bytesToHex(evmKeyBytes)}` as `0x${string}`;
-  const evmAcc = privateKeyToAccount(evmPrivKey);
-
-  return {
-    method,
-    label,
-    substrateAddress: subAcc.ss58Address,
-    substrateSigner: subAcc.signer,
-    evmAddress: evmAcc.address,
-    createEvmClient: (chain, rpcUrl) => createWalletClient({ account: evmAcc, chain, transport: http(rpcUrl) })
-  };
-}
-
-// ── Internal: WebAuthn PRF ────────────────────────────────────────────────────
-
-// PRF extension types are not in the standard TS lib — assert as needed.
-type PrfResult = { results?: { first?: ArrayBuffer } };
-type PrfExtInput = { eval: { first: Uint8Array } };
-
-async function prfGet(credId?: Uint8Array): Promise<Uint8Array> {
-  const extensions = { prf: { eval: { first: PRF_SALT } } as unknown as PrfExtInput };
-
-  if (credId) {
-    // Returning user: assertion
-    const assertion = (await navigator.credentials.get({
-      publicKey: {
-        challenge: crypto.getRandomValues(new Uint8Array(32)),
-        allowCredentials: [{ type: 'public-key', id: credId }],
-        userVerification: 'required',
-        extensions: extensions as unknown as AuthenticationExtensionsClientInputs
-      }
-    })) as PublicKeyCredential;
-
-    const prf = (assertion.getClientExtensionResults() as Record<string, PrfResult>).prf;
-    if (!prf?.results?.first) throw new Error('Authenticator does not support the PRF extension.');
-    return new Uint8Array(prf.results.first);
-  }
-
-  // New user: registration
-  const cred = (await navigator.credentials.create({
-    publicKey: {
-      challenge: crypto.getRandomValues(new Uint8Array(32)),
-      rp: { name: 'Dotify', id: window.location.hostname },
-      user: {
-        id: crypto.getRandomValues(new Uint8Array(16)),
-        name: 'dotify-user',
-        displayName: 'Dotify User'
-      },
-      pubKeyCredParams: [
-        { alg: -7, type: 'public-key' }, // ES256 (P-256)
-        { alg: -257, type: 'public-key' } // RS256
-      ],
-      authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
-      extensions: extensions as unknown as AuthenticationExtensionsClientInputs
-    }
-  })) as PublicKeyCredential;
-
-  const prf = (cred.getClientExtensionResults() as Record<string, PrfResult>).prf;
-  if (!prf?.results?.first) {
-    throw new Error('Your browser or authenticator does not support the PRF extension. ' + 'Try Chrome 116+, Firefox 119+, or a FIDO2 hardware key.');
-  }
-
-  // Persist credential ID so future logins can locate the right credential.
-  localStorage.setItem(CRED_KEY, btoa(String.fromCharCode(...new Uint8Array(cred.rawId))));
-  return new Uint8Array(prf.results.first);
-}
-
-async function passkeyConnect(): Promise<ConnectedWallet> {
-  const storedId = localStorage.getItem(CRED_KEY);
-  const credId = storedId ? Uint8Array.from(atob(storedId), c => c.charCodeAt(0)) : undefined;
-  const prfOutput = await prfGet(credId);
-  const km = KeyManager.fromRawKey(prfOutput);
-  return walletFromKeyManager(km, 'passkey', 'Passkey');
-}
+const productHostConfig = resolveProductHostConfig(import.meta.env);
 
 // ── Internal: browser extension ───────────────────────────────────────────────
 
@@ -268,27 +195,14 @@ export function useWallet() {
     if (isClassicUnlockE2e) return { status: 'connected', wallet: createClassicUnlockE2eWallet() };
     return { status: 'disconnected' };
   });
+  const [productHostStatus, setProductHostStatus] = useState<ProductHostStatus>(() => (productHostConfig.mode === 'off' ? 'off' : 'checking'));
+  const [hasLegacyPasskeyData, setHasLegacyPasskeyData] = useState(hasLegacyPasskeyCredential);
 
-  const connectPasskey = useCallback(async () => {
-    if (isArtistPublishE2e) {
-      setState({ status: 'connected', wallet: createArtistPublishE2eWallet() });
-      return;
-    }
-    if (isClassicUnlockE2e) {
-      setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
-      return;
-    }
-    setState({ status: 'connecting', via: 'passkey' });
-    try {
-      const wallet = await withTimeout(passkeyConnect(), 'Passkey timed out. Check the browser prompt, then try again.');
-      localStorage.setItem(LAST_METHOD_KEY, 'passkey');
-      setState({ status: 'connected', wallet });
-    } catch (e) {
-      setState({ status: 'error', message: e instanceof Error ? e.message : 'Passkey sign in failed.' });
-    }
-  }, []);
+  const connectionAttemptRef = useRef(0);
+  const connectedMethod = state.status === 'connected' ? state.wallet.method : null;
 
   const connectExtension = useCallback(async () => {
+    const attempt = ++connectionAttemptRef.current;
     if (isArtistPublishE2e) {
       setState({ status: 'connected', wallet: createArtistPublishE2eWallet() });
       return;
@@ -300,14 +214,70 @@ export function useWallet() {
     setState({ status: 'connecting', via: 'extension' });
     try {
       const wallet = await withTimeout(extensionConnect(), 'Wallet connection timed out. Open your wallet, approve Dotify, then try again.');
-      localStorage.setItem(LAST_METHOD_KEY, 'extension');
+      if (attempt !== connectionAttemptRef.current) return;
+      rememberExtensionWallet();
       setState({ status: 'connected', wallet });
     } catch (e) {
+      if (attempt !== connectionAttemptRef.current) return;
       setState({ status: 'error', message: e instanceof Error ? e.message : 'Wallet connection failed.' });
     }
   }, []);
 
+  const connectProductHost = useCallback(async () => {
+    const attempt = ++connectionAttemptRef.current;
+    setState({ status: 'connecting', via: 'product-host' });
+    try {
+      const identity = await withTimeout(
+        connectProductHostIdentity(productHostConfig),
+        'The Polkadot Product host did not answer in time. Reopen Dotify from the Product host and try again.'
+      );
+      if (attempt !== connectionAttemptRef.current) return;
+      setProductHostStatus('available');
+      clearStoredWalletMethod();
+      setState({
+        status: 'connected',
+        wallet: {
+          method: 'product-host',
+          label: getStoredDisplayName(identity.evmAddress) ?? shortenAddress(identity.evmAddress),
+          substrateAddress: identity.substrateAddress,
+          evmAddress: identity.evmAddress,
+          keyRequestSigner: {
+            signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+            address: identity.evmAddress,
+            productPublicKey: identity.productPublicKey,
+            signMessage: identity.signMessage
+          }
+        }
+      });
+      // A name permission prompt must not block the account or undo a newer
+      // connect/disconnect. No global cache: each account reads its own profile.
+      void withTimeout(identity.readDisplayName(), 'Name sharing timed out.')
+        .then(name => {
+          if (!name || attempt !== connectionAttemptRef.current) return;
+          setState(current =>
+            attempt === connectionAttemptRef.current &&
+            current.status === 'connected' &&
+            current.wallet.method === 'product-host' &&
+            current.wallet.evmAddress === identity.evmAddress
+              ? { status: 'connected', wallet: { ...current.wallet, label: name, displayName: name } }
+              : current
+          );
+        })
+        .catch(() => {
+          /* Optional identity sharing does not disconnect an authorized account. */
+        });
+    } catch (error) {
+      if (attempt !== connectionAttemptRef.current) return;
+      setProductHostStatus('unavailable');
+      setState({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'The Polkadot Product account could not be connected.'
+      });
+    }
+  }, []);
+
   const switchExtensionNetwork = useCallback(async (chain: Chain) => {
+    const attempt = ++connectionAttemptRef.current;
     if (isArtistPublishE2e) {
       const wallet = { ...createArtistPublishE2eWallet(), chainId: chain.id };
       setState({ status: 'connected', wallet });
@@ -319,50 +289,48 @@ export function useWallet() {
       return wallet;
     }
     const wallet = await withTimeout(switchExtensionChain(chain), 'Network switch timed out. Check your wallet, then try again.');
-    localStorage.setItem(LAST_METHOD_KEY, 'extension');
+    if (attempt !== connectionAttemptRef.current) return wallet;
+    rememberExtensionWallet();
     setState({ status: 'connected', wallet });
     return wallet;
   }, []);
 
   const disconnect = useCallback(() => {
+    ++connectionAttemptRef.current;
     if (isArtistPublishE2e) {
       setState({ status: 'disconnected' });
       return;
     }
     if (isClassicUnlockE2e) {
+      if (shouldAllowClassicUnlockAccountLoss()) {
+        setState({ status: 'disconnected' });
+        return;
+      }
       setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
       return;
     }
-    localStorage.removeItem(LAST_METHOD_KEY);
+    clearStoredWalletMethod();
     setState({ status: 'disconnected' });
   }, []);
 
   useEffect(() => {
     if (isClassicUnlockE2e || isArtistPublishE2e) return;
     let cancelled = false;
-    const lastMethod = localStorage.getItem(LAST_METHOD_KEY) as WalletMethod | null;
-    if (lastMethod !== 'extension' && lastMethod !== 'passkey') return;
+    const lastMethod = readRestorableWalletMethod();
+    if (lastMethod !== 'extension') return;
     const restoreMethod = lastMethod;
 
-    if (restoreMethod === 'passkey') {
-      if (localStorage.getItem(CRED_KEY)) {
-        setState({ status: 'needs-reconnect', via: 'passkey' });
-      } else {
-        localStorage.removeItem(LAST_METHOD_KEY);
-      }
-      return;
-    }
-
     async function restoreWallet() {
+      const attempt = ++connectionAttemptRef.current;
       setState({ status: 'connecting', via: restoreMethod });
       try {
         const wallet = await withTimeout(extensionConnect({ requestAccounts: false }), 'Wallet restore timed out.');
-        if (!cancelled) {
+        if (!cancelled && attempt === connectionAttemptRef.current) {
           setState({ status: 'connected', wallet });
         }
       } catch {
-        localStorage.removeItem(LAST_METHOD_KEY);
-        if (!cancelled) {
+        if (!cancelled && attempt === connectionAttemptRef.current) {
+          clearStoredWalletMethod();
           setState({ status: 'disconnected' });
         }
       }
@@ -375,21 +343,35 @@ export function useWallet() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    void probeProductHost(productHostConfig.mode).then(status => {
+      if (!cancelled) setProductHostStatus(status);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (isClassicUnlockE2e || isArtistPublishE2e) return;
+    if (connectedMethod !== 'extension') return;
     const ethereum = getEthereumProvider();
     if (!ethereum?.on || !ethereum.removeListener) return;
     const provider = ethereum;
 
+    let cancelled = false;
     function handleAccountsChanged(accounts: unknown) {
+      const attempt = ++connectionAttemptRef.current;
       const evmAddress = Array.isArray(accounts) ? (accounts[0] as `0x${string}` | undefined) : undefined;
       if (!evmAddress) {
-        localStorage.removeItem(LAST_METHOD_KEY);
+        clearStoredWalletMethod();
         setState({ status: 'disconnected' });
         return;
       }
 
       void walletFromExtensionAddress(provider, evmAddress).then(wallet => {
-        localStorage.setItem(LAST_METHOD_KEY, 'extension');
+        if (cancelled || attempt !== connectionAttemptRef.current) return;
+        rememberExtensionWallet();
         setState({ status: 'connected', wallet });
       });
     }
@@ -404,7 +386,8 @@ export function useWallet() {
     }
 
     function handleDisconnect() {
-      localStorage.removeItem(LAST_METHOD_KEY);
+      ++connectionAttemptRef.current;
+      clearStoredWalletMethod();
       setState({ status: 'disconnected' });
     }
 
@@ -413,29 +396,27 @@ export function useWallet() {
     provider.on?.('disconnect', handleDisconnect);
 
     return () => {
+      cancelled = true;
       provider.removeListener?.('accountsChanged', handleAccountsChanged);
       provider.removeListener?.('chainChanged', handleChainChanged);
       provider.removeListener?.('disconnect', handleDisconnect);
     };
+  }, [connectedMethod]);
+
+  const forgetLegacyPasskeyData = useCallback(() => {
+    clearLegacyPasskeyData();
+    setHasLegacyPasskeyData(false);
   }, []);
 
-  /** True when the browser supports WebAuthn with the PRF extension. */
-  const hasPrfSupport =
-    typeof window !== 'undefined' &&
-    window.isSecureContext &&
-    typeof navigator?.credentials?.get === 'function' &&
-    typeof window.PublicKeyCredential !== 'undefined';
-
-  /** True when the user has a stored passkey credential in this browser. */
-  const hasStoredPasskey = typeof window !== 'undefined' && !!localStorage.getItem(CRED_KEY);
-
-  const forgetPasskey = useCallback(() => {
-    localStorage.removeItem(CRED_KEY);
-    if (localStorage.getItem(LAST_METHOD_KEY) === 'passkey') {
-      localStorage.removeItem(LAST_METHOD_KEY);
-    }
-    setState(current => (current.status === 'needs-reconnect' && current.via === 'passkey' ? { status: 'disconnected' } : current));
-  }, []);
-
-  return { state, connectPasskey, connectExtension, switchExtensionNetwork, disconnect, hasPrfSupport, hasStoredPasskey, forgetPasskey };
+  return {
+    state,
+    connectExtension,
+    connectProductHost,
+    switchExtensionNetwork,
+    disconnect,
+    hasLegacyPasskeyData,
+    forgetLegacyPasskeyData,
+    productHostMode: productHostConfig.mode,
+    productHostStatus
+  };
 }

@@ -10,14 +10,7 @@
     "statusOptions": ["Todo", "In Progress", "In Review", "Done"],
     "recommendedFields": {
       "Priority": ["P0", "P1", "P2", "P3"],
-      "Track": [
-        "Production spine",
-        "Product SDK",
-        "Room reliability",
-        "Personhood",
-        "Cultural propagation",
-        "Design record"
-      ],
+      "Track": ["Production spine", "Product SDK", "Room reliability", "Personhood", "Cultural propagation", "Design record"],
       "Phase": ["Now", "Next", "Product feasibility", "Later", "Record"],
       "Type": ["Work", "Research", "Epic", "Record"],
       "Backlog doc": "text"
@@ -151,13 +144,23 @@
       "note": "Superseded by access model v2; keep as delivery history."
     },
     {
+      "id": "21",
+      "doc": "docs/backlog/21-room-collaborative-queue.md",
+      "issue": 210,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Room reliability",
+      "phase": "Now"
+    },
+    {
       "id": "24",
       "doc": "docs/backlog/24-access-streaming-v2.md",
       "issue": null,
-      "kind": "epic",
+      "kind": "record",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Next"
+      "phase": "Record",
+      "note": "Access-streaming v2 is the delivered design and implementation record. Remaining cover and DAV2 validation is tracked by #87 and #88."
     },
     {
       "id": "25",
@@ -226,17 +229,18 @@
       "kind": "epic",
       "priority": "P1",
       "track": "Product SDK",
-      "phase": "Product feasibility"
+      "phase": "Product feasibility",
+      "note": "W11 Product journey and W16 CASH feasibility are delivered slices. Keep the epic open for candidate-bound Product host evidence and capability compatibility, not to rebuild those slices."
     },
     {
       "id": "catalog-read-model",
       "doc": "docs/backlog/26-cached-catalog-read-model.md",
       "issue": 86,
-      "kind": "work",
+      "kind": "record",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "Implementation is on codex/86-catalog-read-model; keep In Progress until review and public warm/cold performance evidence are attached."
+      "phase": "Record",
+      "note": "Closed/record after the cached catalog read model landed. Residual DAV2 first-sound and gateway timing evidence belongs to #88."
     },
     {
       "id": "cover-gateway-pipeline",
@@ -245,7 +249,8 @@
       "kind": "work",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Next"
+      "phase": "Next",
+      "note": "Responsive variants are delivered by #198. Keep active for live upload, mobile transfer and paint, gateway timeout, cache-edge, and legacy-backfill evidence."
     },
     {
       "id": "dav2-startup",
@@ -254,7 +259,8 @@
       "kind": "work",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Next"
+      "phase": "Next",
+      "note": "DAV2 pipelining, worker decryption, warm intent, bounded first range, and evidence tooling are delivered. Keep active for candidate-bound physical browser, device, and gateway measurements."
     },
     {
       "id": "turn-sfu-resilience",
@@ -263,7 +269,8 @@
       "kind": "work",
       "priority": "P1",
       "track": "Room reliability",
-      "phase": "Next"
+      "phase": "Next",
+      "note": "Room resilience and telemetry are delivered; TURN grants are configured. Keep active for forced-relay, independent-network, mobile background, capacity, and SFU-decision evidence."
     },
     {
       "id": "value-before-wallet",
@@ -272,7 +279,208 @@
       "kind": "work",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Next"
+      "phase": "Next",
+      "note": "W06 and the September UX passes delivered the core guest-first and wallet-later path. Re-scope remaining work from pilot evidence rather than replaying the broad original issue."
+    },
+    {
+      "id": "agent-implementation-playbook",
+      "doc": "docs/backlog/implementation/README.md",
+      "issue": 130,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Product SDK",
+      "phase": "Record",
+      "note": "Delivered by PR #131. The playbook remains the sequence index; current execution state is reconciled in its status section and Project 5."
+    },
+    {
+      "id": "W01",
+      "doc": "docs/backlog/implementation/W01-dev-quality-gates.md",
+      "issue": 132,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Delivered by PR #133. The documented eight-check dev branch protection was applied on 2026-09-20 during #204 reconciliation."
+    },
+    {
+      "id": "W02",
+      "doc": "docs/backlog/implementation/W02-upload-session-boundaries.md",
+      "issue": 138,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Delivered by PR #139. Live journey acceptance is consolidated under W13 rather than keeping the implementation ticket open."
+    },
+    {
+      "id": "W03",
+      "doc": "docs/backlog/implementation/W03-canonical-release-access.md",
+      "issue": 141,
+      "kind": "record",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Delivered by PR #142. Candidate-bound live key evidence is consolidated under W13."
+    },
+    {
+      "id": "W04",
+      "doc": "docs/backlog/implementation/W04-access-promise.md",
+      "issue": 143,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Delivered by PR #144. Payment and access wording follow-ups landed through the W12, W23, and Product support passes."
+    },
+    {
+      "id": "W05",
+      "doc": "docs/backlog/implementation/W05-royalty-failure-isolation.md",
+      "issue": 145,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Delivered by PR #146 with runtime and upgrade evidence. Product settlement proof remains a W13 and #85 release concern."
+    },
+    {
+      "id": "W07",
+      "doc": "docs/backlog/implementation/W07-key-custody-recovery.md",
+      "issue": 149,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Delivered by PR #150 within its explicit synthetic-only recovery boundary. Production key rotation remains outside the ticket."
+    },
+    {
+      "id": "W10",
+      "doc": "docs/backlog/implementation/W10-adaptive-design.md",
+      "issue": 151,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Delivered by PR #152 and the later September responsive UX passes. Physical-device evidence is consolidated under W13."
+    },
+    {
+      "id": "W12",
+      "doc": "docs/backlog/implementation/W12-artist-support-experience.md",
+      "issue": 156,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Delivered by PR #157 with payment recovery and direct-gift follow-ups through #172-#183. Candidate-bound Product evidence is consolidated under W13."
+    },
+    {
+      "id": "W13",
+      "doc": "docs/backlog/implementation/W13-pilot-release.md",
+      "issue": 158,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Activated implementation sequence for the reversible pilot release package, Product/Web evidence gate, and consented first-community evaluation record."
+    },
+    {
+      "id": "W14",
+      "doc": "docs/backlog/implementation/W14-room-galaxy.md",
+      "issue": 160,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Delivered by PR #161 as an optional renderer behind the complete 2D/list fallback. Promotion to a default remains evidence-gated and is not W14 implementation scope."
+    },
+    {
+      "id": "W18",
+      "doc": "docs/backlog/implementation/W18-nearby-privacy-design.md",
+      "issue": 154,
+      "kind": "record",
+      "priority": "P2",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Delivered by PR #155 as a privacy contract and inert protocol scaffold. W19 remains blocked on an accepted W13 pilot."
+    },
+    {
+      "id": "W21",
+      "doc": "docs/backlog/implementation/W21-first-listening-screen.md",
+      "issue": 176,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Delivered by PR #184; the card-access presentation was intentionally refined by PR #195 while preserving the underlying access disclosure."
+    },
+    {
+      "id": "W22",
+      "doc": "docs/backlog/implementation/W22-room-hosting-clarity.md",
+      "issue": 177,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Delivered by PR #185 with later room continuity and Product handoff fixes through #196."
+    },
+    {
+      "id": "W23",
+      "doc": "docs/backlog/implementation/W23-player-support-clarity.md",
+      "issue": 178,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Delivered by PR #186 with later payment and Product funding clarification through #197."
+    },
+    {
+      "id": "W24",
+      "doc": "docs/backlog/implementation/W24-visual-system-contract.md",
+      "issue": 179,
+      "kind": "record",
+      "priority": "P2",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Delivered by PR #189 as the shared Night Console visual contract."
+    },
+    {
+      "id": "W25",
+      "doc": "docs/backlog/implementation/W25-artist-workspace-language.md",
+      "issue": 180,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Delivered by PR #188 with plain artist language and truthful publication state."
+    },
+    {
+      "id": "W26",
+      "doc": "docs/backlog/implementation/W26-french-localization.md",
+      "issue": 181,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Design record",
+      "phase": "Later",
+      "note": "UX audit 2026-09-17 follow-up: French and English interface; Later by owner decision."
+    },
+    {
+      "id": "W27",
+      "doc": "docs/backlog/implementation/W27-celerity-room-realtime.md",
+      "issue": 214,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Product SDK",
+      "phase": "Next",
+      "note": "Post-pilot Celerity/Statement Store realtime sprint. Preserve wallet-free room links, prove each event class in dual operation, and reduce Socket.IO authority only where equivalent guarantees are measured."
+    },
+    {
+      "id": "backlog-reconciliation",
+      "doc": "docs/backlog/README.md",
+      "issue": 204,
+      "kind": "record",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Reconciliation record carried by PR #205: delivered implementation records, active pilot gates, issue state, Project 5 metadata, and dev protection were synchronized on 2026-09-20."
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSessionLink, getInitialRoomCode, roomPresenceCount } from './roomState';
+import { buildSessionLink, getInitialRoomCode, roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount } from './roomState';
 
 describe('getInitialRoomCode', () => {
   it('reads and uppercases the preferred #/rooms/<id> form', () => {
@@ -29,6 +29,10 @@ describe('buildSessionLink', () => {
     expect(buildSessionLink('NEW1', 'https://dotify.example/#/rooms/OLD9')).toBe('https://dotify.example/#/rooms/NEW1');
   });
 
+  it('builds a public Product DevNet link instead of leaking a container URL', () => {
+    expect(buildSessionLink('LIVE42', 'https://dotify-test01.dev-dot.li')).toBe('https://dotify-test01.dev-dot.li/#/rooms/LIVE42');
+  });
+
   it('returns empty string without a room id or href', () => {
     expect(buildSessionLink('', 'https://dotify.example/')).toBe('');
     expect(buildSessionLink('AB12CD', '')).toBe('');
@@ -43,5 +47,28 @@ describe('roomPresenceCount', () => {
 
   it('is zero when not in a room', () => {
     expect(roomPresenceCount(5, false)).toBe(0);
+  });
+});
+
+describe('roomHostDisplayName', () => {
+  it('returns only a name the person actually chose', () => {
+    expect(roomHostDisplayName('  Gaby  ')).toBe('Gaby');
+    expect(roomHostDisplayName('Listener')).toBeNull();
+    expect(roomHostDisplayName('Host')).toBeNull();
+    expect(roomHostDisplayName('')).toBeNull();
+    expect(roomHostDisplayName(undefined)).toBeNull();
+  });
+});
+
+describe('roomListenerSyncLabel', () => {
+  it('shows sync only after remote audio is ready', () => {
+    expect(roomListenerSyncLabel(true, 'Host reconnecting')).toBe('In sync');
+  });
+
+  it('maps recovery and failure states to listener-safe copy', () => {
+    expect(roomListenerSyncLabel(false, 'Host reconnecting')).toBe('Host reconnecting');
+    expect(roomListenerSyncLabel(false, 'Retrying live audio')).toBe('Retrying audio');
+    expect(roomListenerSyncLabel(false, 'Audio connection failed')).toBe('Audio interrupted');
+    expect(roomListenerSyncLabel(false, 'Waiting stream')).toBe('Waiting for host');
   });
 });

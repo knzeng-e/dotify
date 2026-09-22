@@ -2290,7 +2290,8 @@ export type I8jhsbaiultviu = {
 export type Ia246gkb4f2soh = {
     "dispatch_error": Anonymize<Ielmcggkdu2qj>;
 };
-export type I95g6i7ilua7lq = Array<FixedSizeArray<2, number>>;
+export type I95g6i7ilua7lq = Array<Anonymize<I9jd27rnpm8ttv>>;
+export type I9jd27rnpm8ttv = FixedSizeArray<2, number>;
 export type Ieniouoqkq4icf = {
     "spec_version": number;
     "spec_name": string;
@@ -2412,13 +2413,14 @@ export type I6cs1itejju2vv = [bigint, number];
 export type Icgljjb6j82uhn = Array<number>;
 export type Ib77b0fp1a6mjr = Array<{
     "recipient": number;
-    "state": Enum<{
-        "Ok": undefined;
-        "Suspended": undefined;
-    }>;
+    "state": Anonymize<Ic2gg6ldfq068e>;
     "signals_exist": boolean;
     "first_index": number;
     "last_index": number;
+}>;
+export type Ic2gg6ldfq068e = AnonymousEnum<{
+    "Ok": undefined;
+    "Suspended": undefined;
 }>;
 export type I5g2vv0ckl2m8b = [number, number];
 export type Ifup3lg9ro8a0f = {
@@ -4527,28 +4529,30 @@ export type I512dtcl0pn07c = ResultPayload<Anonymize<I6cs1itejju2vv>, Enum<{
     "Value": undefined;
     "Dust": undefined;
 }>>;
-export type Ibn2t84v0qbqml = Array<{
+export type Ibkvrqg3rqhj06 = Array<{
     "phase": Phase;
-    "event": Anonymize<Itrj5j3atrcpn>;
+    "event": Anonymize<Ifud6fmhdgide1>;
     "topics": Anonymize<Ic5m5lp1oioo8r>;
 }>;
-export type Itrj5j3atrcpn = AnonymousEnum<{
-    "System": Anonymize<It0dac3277no5>;
+export type Ifud6fmhdgide1 = AnonymousEnum<{
+    "System": Anonymize<I72m3t5stdsdd9>;
     "ParachainSystem": Anonymize<Icbsekf57miplo>;
-    "Utility": Anonymize<Iaouq041baf2nh>;
+    "Utility": Anonymize<Ic7fip0a36rqsi>;
+    "MultiBlockMigrations": Anonymize<I94co7vj7h6bo>;
     "Balances": Anonymize<Ifhlvt8s3bh824>;
     "TransactionPayment": TransactionPaymentEvent;
     "SkipFeelessPayment": Anonymize<Iis17qun6haln>;
-    "TransactionStorage": Anonymize<I6a9k53vnitigf>;
+    "TransactionStorage": Anonymize<I3pm6g8sfakph3>;
+    "DataRenewal": Anonymize<Ie06nk6ek5i6q9>;
     "CollatorSelection": Anonymize<I4srakrmf0fspo>;
     "Session": Anonymize<I6ue0ck5fc3u44>;
     "XcmpQueue": Anonymize<Idsqc7mhp6nnle>;
     "PolkadotXcm": Anonymize<If95hivmqmkiku>;
     "CumulusXcm": Anonymize<I5uv57c3fffoi9>;
     "MessageQueue": Anonymize<I2kosejppk3jon>;
-    "Sudo": Anonymize<I4mr5fuq4vs8tb>;
+    "Sudo": Anonymize<I16u4tpq3l7g0m>;
 }>;
-export type It0dac3277no5 = AnonymousEnum<{
+export type I72m3t5stdsdd9 = AnonymousEnum<{
     /**
      * An extrinsic completed successfully.
      */
@@ -4556,11 +4560,11 @@ export type It0dac3277no5 = AnonymousEnum<{
     /**
      * An extrinsic failed.
      */
-    "ExtrinsicFailed": Anonymize<Icsa46bnbuohqc>;
+    "ExtrinsicFailed": Anonymize<Ic9nd01o41rpld>;
     /**
-     * `:code` was updated.
+     * `:code` was updated to the code with the given hash.
      */
-    "CodeUpdated": undefined;
+    "CodeUpdated": Anonymize<I1jm8m1rh9e20v>;
     /**
      * A new account was created.
      */
@@ -4580,13 +4584,13 @@ export type It0dac3277no5 = AnonymousEnum<{
     /**
      * An invalid authorized upgrade was rejected while trying to apply it.
      */
-    "RejectedInvalidAuthorizedUpgrade": Anonymize<I67n6mbhp91nlg>;
+    "RejectedInvalidAuthorizedUpgrade": Anonymize<I74iaf1m5gd367>;
 }>;
-export type Icsa46bnbuohqc = {
-    "dispatch_error": Anonymize<Id3cclc8rha27v>;
+export type Ic9nd01o41rpld = {
+    "dispatch_error": Anonymize<Iam4td08afnm42>;
     "dispatch_info": Anonymize<Ic9s8f85vjtncc>;
 };
-export type Id3cclc8rha27v = AnonymousEnum<{
+export type Iam4td08afnm42 = AnonymousEnum<{
     "Other": undefined;
     "CannotLookup": undefined;
     "BadOrigin": undefined;
@@ -4597,10 +4601,13 @@ export type Id3cclc8rha27v = AnonymousEnum<{
         "ParachainInfo": undefined;
         "WeightReclaim": undefined;
         "Utility": Anonymize<I8dt2g2hcrgh36>;
+        "MultiBlockMigrations": Anonymize<Iaaqq5jevtahm8>;
         "Balances": Anonymize<Idj13i7adlomht>;
         "TransactionPayment": undefined;
         "SkipFeelessPayment": undefined;
-        "TransactionStorage": Anonymize<I3t32lkif2hg4k>;
+        "TransactionStorage": Anonymize<Iddlurdin6pet3>;
+        "HopPromotion": undefined;
+        "DataRenewal": Anonymize<Ibmvkumv9budpp>;
         "Authorship": undefined;
         "CollatorSelection": Anonymize<I36bcffk2387dv>;
         "Session": Anonymize<I1e07dgbaqd1sq>;
@@ -4630,7 +4637,13 @@ export type I8dt2g2hcrgh36 = AnonymousEnum<{
      */
     "TooManyCalls": undefined;
 }>;
-export type I3t32lkif2hg4k = AnonymousEnum<{
+export type Iaaqq5jevtahm8 = AnonymousEnum<{
+    /**
+     * The operation cannot complete since some MBMs are ongoing.
+     */
+    "Ongoing": undefined;
+}>;
+export type Iddlurdin6pet3 = AnonymousEnum<{
     /**
      * Attempted to call `store`/`renew` outside of block execution.
      */
@@ -4687,17 +4700,74 @@ export type I3t32lkif2hg4k = AnonymousEnum<{
      * Content hash was not calculated.
      */
     "InvalidContentHash": undefined;
+    /**
+     * Authorizer account was not found.
+     */
+    "AuthorizerNotFound": undefined;
+    /**
+     * Authorizer is not eligible for permissionless removal — it still has budget on both
+     * axes AND (if `valid_until` is set) has not yet expired.
+     */
+    "AuthorizerBudgetNotExhausted": undefined;
+    /**
+     * `valid_until` supplied to `add_authorizer` is in the past (`<= now`, would
+     * expire immediately). Pass `None` for no expiration.
+     */
+    "InvalidValidUntil": undefined;
+    /**
+     * `authorize_account` / `authorize_preimage` called by a signer whose
+     * `AllowedAuthorizers` budget cannot cover the requested
+     * `transactions` / `bytes` (or `max_size`).
+     */
+    "InsufficientAuthorizerBudget": undefined;
 }>;
-export type I67n6mbhp91nlg = {
+export type Ibmvkumv9budpp = AnonymousEnum<{
+    /**
+     * Attempted to call `force_renew` outside of block execution.
+     */
+    "BadContext": undefined;
+    /**
+     * Renewed extrinsic is not found.
+     */
+    "RenewedNotFound": undefined;
+    /**
+     * Block already contains the maximum number of transactions.
+     */
+    "TooManyTransactions": undefined;
+    /**
+     * A renewal is already registered for this content hash.
+     */
+    "RenewalAlreadyEnabled": undefined;
+    /**
+     * Auto-renewal is not enabled for this content hash.
+     */
+    "AutoRenewalNotEnabled": undefined;
+    /**
+     * Caller is not the owner of the auto-renewal registration.
+     */
+    "NotAutoRenewalOwner": undefined;
+    /**
+     * `disable_auto_renew` rejected: the registration has been prepaid for its next
+     * cycle and cannot be disabled by the owner until the cycle fires and consumes
+     * the prepayment. Root can still disable for governance cleanup.
+     */
+    "CannotDisablePrepaidAutoRenewal": undefined;
+    /**
+     * Data size of the renewed entry is not in the allowed range. Appended last: the
+     * earlier indices are wire-visible.
+     */
+    "BadDataSize": undefined;
+}>;
+export type I74iaf1m5gd367 = {
     "code_hash": FixedSizeBinary<32>;
-    "error": Anonymize<Id3cclc8rha27v>;
+    "error": Anonymize<Iam4td08afnm42>;
 };
-export type Iaouq041baf2nh = AnonymousEnum<{
+export type Ic7fip0a36rqsi = AnonymousEnum<{
     /**
      * Batch of dispatches did not complete fully. Index of first failing dispatch given, as
      * well as the error.
      */
-    "BatchInterrupted": Anonymize<I368e0tjmrcvlt>;
+    "BatchInterrupted": Anonymize<Ia2l0jp3eo4een>;
     /**
      * Batch of dispatches completed fully with no error.
      */
@@ -4713,11 +4783,11 @@ export type Iaouq041baf2nh = AnonymousEnum<{
     /**
      * A single item within a Batch of dispatches has completed with error.
      */
-    "ItemFailed": Anonymize<I6akqkga7li13u>;
+    "ItemFailed": Anonymize<Ie8ljddc762t8h>;
     /**
      * A call was dispatched.
      */
-    "DispatchedAs": Anonymize<I133qpg6ru2jqi>;
+    "DispatchedAs": Anonymize<I3m1ba97d0pnd1>;
     /**
      * Main call was dispatched.
      */
@@ -4725,21 +4795,94 @@ export type Iaouq041baf2nh = AnonymousEnum<{
     /**
      * The fallback call was dispatched.
      */
-    "IfElseFallbackCalled": Anonymize<I3bp93psani87u>;
+    "IfElseFallbackCalled": Anonymize<Ifu08h95ov02o9>;
 }>;
-export type I368e0tjmrcvlt = {
+export type Ia2l0jp3eo4een = {
     "index": number;
-    "error": Anonymize<Id3cclc8rha27v>;
+    "error": Anonymize<Iam4td08afnm42>;
 };
-export type I6akqkga7li13u = {
-    "error": Anonymize<Id3cclc8rha27v>;
+export type Ie8ljddc762t8h = {
+    "error": Anonymize<Iam4td08afnm42>;
 };
-export type I133qpg6ru2jqi = {
-    "result": Anonymize<I46bjfmr3l2gfb>;
+export type I3m1ba97d0pnd1 = {
+    "result": Anonymize<I45s8o9g18m625>;
 };
-export type I46bjfmr3l2gfb = ResultPayload<undefined, Anonymize<Id3cclc8rha27v>>;
-export type I3bp93psani87u = {
-    "main_error": Anonymize<Id3cclc8rha27v>;
+export type I45s8o9g18m625 = ResultPayload<undefined, Anonymize<Iam4td08afnm42>>;
+export type Ifu08h95ov02o9 = {
+    "main_error": Anonymize<Iam4td08afnm42>;
+};
+export type I94co7vj7h6bo = AnonymousEnum<{
+    /**
+     * A Runtime upgrade started.
+     *
+     * Its end is indicated by `UpgradeCompleted` or `UpgradeFailed`.
+     */
+    "UpgradeStarted": Anonymize<If1co0pilmi7oq>;
+    /**
+     * The current runtime upgrade completed.
+     *
+     * This implies that all of its migrations completed successfully as well.
+     */
+    "UpgradeCompleted": undefined;
+    /**
+     * Runtime upgrade failed.
+     *
+     * This is very bad and will require governance intervention.
+     */
+    "UpgradeFailed": undefined;
+    /**
+     * A migration was skipped since it was already executed in the past.
+     */
+    "MigrationSkipped": Anonymize<I666bl2fqjkejo>;
+    /**
+     * A migration progressed.
+     */
+    "MigrationAdvanced": Anonymize<Iae74gjak1qibn>;
+    /**
+     * A Migration completed.
+     */
+    "MigrationCompleted": Anonymize<Iae74gjak1qibn>;
+    /**
+     * A Migration failed.
+     *
+     * This implies that the whole upgrade failed and governance intervention is required.
+     */
+    "MigrationFailed": Anonymize<Iae74gjak1qibn>;
+    /**
+     * The set of historical migrations has been cleared.
+     */
+    "HistoricCleared": Anonymize<I3escdojpj0551>;
+}>;
+export type If1co0pilmi7oq = {
+    /**
+     * The number of migrations that this upgrade contains.
+     *
+     * This can be used to design a progress indicator in combination with counting the
+     * `MigrationCompleted` and `MigrationSkipped` events.
+     */
+    "migrations": number;
+};
+export type I666bl2fqjkejo = {
+    /**
+     * The index of the skipped migration within the [`Config::Migrations`] list.
+     */
+    "index": number;
+};
+export type Iae74gjak1qibn = {
+    /**
+     * The index of the migration within the [`Config::Migrations`] list.
+     */
+    "index": number;
+    /**
+     * The number of blocks that this migration took so far.
+     */
+    "took": number;
+};
+export type I3escdojpj0551 = {
+    /**
+     * Should be passed to `clear_historic` in a successive call.
+     */
+    "next_cursor"?: Anonymize<Iabpgqcjikia83>;
 };
 export type Ifhlvt8s3bh824 = AnonymousEnum<{
     /**
@@ -4924,21 +5067,18 @@ export type Icd998p53cb80u = AnonymousEnum<{
     "Account": SS58String;
     "Preimage": FixedSizeBinary<32>;
 }>;
-export type I6a9k53vnitigf = AnonymousEnum<{
+export type I3pm6g8sfakph3 = AnonymousEnum<{
     /**
      * Stored data under specified index.
      */
     "Stored": Anonymize<I395h9meqpi2hf>;
     /**
-     * Renewed data under specified index.
-     */
-    "Renewed": Anonymize<I66jdpl6lile9j>;
-    /**
      * Storage proof was successfully checked.
      */
     "ProofChecked": undefined;
     /**
-     * An account `who` was authorized to store `bytes` bytes in `transactions` transactions.
+     * An account `who` was authorized to store `bytes` bytes in `transactions` boost-tier
+     * transactions.
      */
     "AccountAuthorized": Anonymize<I2i8iea6e4ne1j>;
     /**
@@ -4962,15 +5102,23 @@ export type I6a9k53vnitigf = AnonymousEnum<{
      * An expired preimage authorization was removed.
      */
     "ExpiredPreimageAuthorizationRemoved": Anonymize<I3rfugj0vt1ug5>;
+    /**
+     * An authorizer was added to the allowed list.
+     */
+    "AuthorizerAdded": Anonymize<I4cbvqmqadhrea>;
+    /**
+     * An authorizer was removed from the allowed list by the manager.
+     */
+    "AuthorizerRemoved": Anonymize<I4cbvqmqadhrea>;
+    /**
+     * An authorizer was removed from the allowed list due to budget exhaustion.
+     */
+    "ExhaustedAuthorizerRemoved": Anonymize<I4cbvqmqadhrea>;
 }>;
 export type I395h9meqpi2hf = {
     "index": number;
     "content_hash": FixedSizeBinary<32>;
     "cid"?: Anonymize<Iabpgqcjikia83>;
-};
-export type I66jdpl6lile9j = {
-    "index": number;
-    "content_hash": FixedSizeBinary<32>;
 };
 export type I2i8iea6e4ne1j = {
     "who": SS58String;
@@ -4984,11 +5132,76 @@ export type I4jotama61aldv = {
 export type I3rfugj0vt1ug5 = {
     "content_hash": FixedSizeBinary<32>;
 };
-export type I4mr5fuq4vs8tb = AnonymousEnum<{
+export type Ie06nk6ek5i6q9 = AnonymousEnum<{
+    /**
+     * Renewed data under specified index.
+     */
+    "Renewed": Anonymize<I66jdpl6lile9j>;
+    /**
+     * A renewal was enabled for `content_hash` by `who`.
+     */
+    "RenewalEnabled": Anonymize<Ifa84va5usjhbs>;
+    /**
+     * Auto-renewal disabled for `content_hash`. `who` is the registration's owner
+     * (not the caller when Root issued the disable).
+     */
+    "AutoRenewalDisabled": Anonymize<I7qnibt85843h4>;
+    /**
+     * A registered renewal fired, re-storing the data at `index`.
+     */
+    "DataRenewed": Anonymize<Iecest14o0pmc2>;
+    /**
+     * A registered renewal failed on `account`'s authorization; the registration is
+     * dropped and the data expires.
+     */
+    "RenewalFailed": Anonymize<I5i6clrj1m1v3f>;
+    /**
+     * `PermanentStorageUsed` changed (a `renew` bumped it, or the obsolete sweep
+     * decremented it). Off-chain capacity-planning consumers can drive their dashboards
+     * from these.
+     */
+    "PermanentStorageUsedUpdated": Anonymize<Ife9a8l1jn5dhf>;
+    /**
+     * `PermanentStorageUsed` just crossed the [`PERMANENT_STORAGE_NEAR_CAP_PERCENT`]
+     * threshold of `MaxPermanentStorageSize` on the rising edge. Emitted once per
+     * crossing — no re-emission while still above the threshold.
+     */
+    "PermanentStorageNearCap": Anonymize<I1srmrc4hmsm4>;
+}>;
+export type I66jdpl6lile9j = {
+    "index": number;
+    "content_hash": FixedSizeBinary<32>;
+};
+export type Ifa84va5usjhbs = {
+    "content_hash": FixedSizeBinary<32>;
+    "who": SS58String;
+    "recurring": boolean;
+};
+export type I7qnibt85843h4 = {
+    "content_hash": FixedSizeBinary<32>;
+    "who": SS58String;
+};
+export type Iecest14o0pmc2 = {
+    "index": number;
+    "content_hash": FixedSizeBinary<32>;
+    "account": SS58String;
+};
+export type I5i6clrj1m1v3f = {
+    "content_hash": FixedSizeBinary<32>;
+    "account": SS58String;
+};
+export type Ife9a8l1jn5dhf = {
+    "used": bigint;
+};
+export type I1srmrc4hmsm4 = {
+    "used": bigint;
+    "cap": bigint;
+};
+export type I16u4tpq3l7g0m = AnonymousEnum<{
     /**
      * A sudo call just took place.
      */
-    "Sudid": Anonymize<I4kigljjkan2n6>;
+    "Sudid": Anonymize<I776bdj5qm6ld3>;
     /**
      * The sudo key has been updated.
      */
@@ -5000,37 +5213,99 @@ export type I4mr5fuq4vs8tb = AnonymousEnum<{
     /**
      * A [sudo_as](Pallet::sudo_as) call just took place.
      */
-    "SudoAsDone": Anonymize<I4kigljjkan2n6>;
+    "SudoAsDone": Anonymize<I776bdj5qm6ld3>;
 }>;
-export type I4kigljjkan2n6 = {
+export type I776bdj5qm6ld3 = {
     /**
      * The result of the call made by the sudo user.
      */
-    "sudo_result": Anonymize<I46bjfmr3l2gfb>;
+    "sudo_result": Anonymize<I45s8o9g18m625>;
 };
+export type I8re9183nrhr3n = AnonymousEnum<{
+    "FullCore": {
+        "context": number;
+    };
+    "PotentialFullCore": {
+        "context": number;
+        "first_transaction_index"?: Anonymize<I4arjljr6dpflb>;
+        "target_weight": Anonymize<I4q39t5hn830vp>;
+    };
+    "FractionOfCore": {
+        "context": number;
+        "first_transaction_index"?: Anonymize<I4arjljr6dpflb>;
+    };
+}>;
+export type Inofn0qqbjtb9 = {
+    "relay_storage_root_or_hash": FixedSizeBinary<32>;
+    "core_selector": number;
+    "bundle_index": number;
+    "ump_msg_count": number;
+    "hrmp_outbound_count": number;
+    "hrmp_outbound_recipients": Anonymize<Icgljjb6j82uhn>;
+};
+export type Iepbsvlk3qceij = AnonymousEnum<{
+    "Active": {
+        "index": number;
+        "inner_cursor"?: Anonymize<Iabpgqcjikia83>;
+        "started_at": number;
+    };
+    "Stuck": undefined;
+}>;
 export type Iafsev9pf8ur2h = Array<{
     "id": Anonymize<Ia44l7h6l7vcfa>;
     "amount": bigint;
 }>;
-export type I52552vmt51a1m = {
+export type Ifmlh2ccap0uke = {
     "extent": {
         "transactions": number;
+        "transactions_allowance": number;
         "bytes": bigint;
+        "extra": bigint;
+        "bytes_allowance": bigint;
     };
     "expiration": number;
 };
-export type Ianratlvp36bb8 = Array<{
+export type Iecn3tfn6gr5ce = {
+    "quota"?: ({
+        "transactions": number;
+        "bytes": bigint;
+    }) | undefined;
+    "valid_until"?: Anonymize<I4arjljr6dpflb>;
+    "feeless": boolean;
+};
+export type Icm182d6u507gc = Array<Anonymize<Ie4uv6dnql4ikj>>;
+export type Ie4uv6dnql4ikj = {
     "chunk_root": FixedSizeBinary<32>;
     "content_hash": FixedSizeBinary<32>;
     "hashing": Anonymize<Ifmrgam3blcf8>;
     "cid_codec": bigint;
     "size": number;
+    "extrinsic_index": number;
     "block_chunks": number;
-}>;
+    "meta": Enum<{
+        "Store": undefined;
+        "Renew": undefined;
+    }>;
+};
 export type Ifmrgam3blcf8 = AnonymousEnum<{
     "Blake2b256": undefined;
     "Sha2_256": undefined;
     "Keccak256": undefined;
+}>;
+export type I9i4rhi4dg5bdo = {
+    "account": SS58String;
+    "recurring": boolean;
+    "paid": boolean;
+};
+export type I7mhb4q0v4cblf = Array<[FixedSizeBinary<32>, Anonymize<Ie4uv6dnql4ikj>, Anonymize<I9i4rhi4dg5bdo>]>;
+export type I5mpbmq1ooiq9i = Array<{
+    "recipient": number;
+    "state": Anonymize<Ic2gg6ldfq068e>;
+    "signals_exist": boolean;
+    "first_index": number;
+    "last_index": number;
+    "flags": number;
+    "queued_bytes": number;
 }>;
 export type Ibkm2gcn4pji30 = {
     "aliasers": Anonymize<I41j3fc5ema929>;
@@ -5040,7 +5315,12 @@ export type Ibtil0ss5munbk = {
     "max": Anonymize<If15el53dd76v9>;
     "max_header_size"?: Anonymize<I4arjljr6dpflb>;
 };
-export type I5oa8llr99j3e3 = AnonymousEnum<{
+export type I9s2ue1goudgqc = {
+    "tag_prefix": string;
+    "priority": bigint;
+    "longevity": bigint;
+};
+export type Icg973ohsugp3b = AnonymousEnum<{
     /**
      * Send a batch of dispatch calls.
      *
@@ -5061,7 +5341,7 @@ export type I5oa8llr99j3e3 = AnonymousEnum<{
      * and the error of the failed call. If all were successful, then the `BatchCompleted`
      * event is deposited.
      */
-    "batch": Anonymize<I4m23d919gtr5d>;
+    "batch": Anonymize<I9nqp66v0721n1>;
     /**
      * Send a call through an indexed pseudonym of the sender.
      *
@@ -5077,7 +5357,7 @@ export type I5oa8llr99j3e3 = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Signed_.
      */
-    "as_derivative": Anonymize<I7esubsve8jvbp>;
+    "as_derivative": Anonymize<Idk1ivh3nldv2l>;
     /**
      * Send a batch of dispatch calls and atomically execute them.
      * The whole transaction will rollback and fail if any of the calls failed.
@@ -5093,7 +5373,7 @@ export type I5oa8llr99j3e3 = AnonymousEnum<{
      * ## Complexity
      * - O(C) where C is the number of calls to be batched.
      */
-    "batch_all": Anonymize<I4m23d919gtr5d>;
+    "batch_all": Anonymize<I9nqp66v0721n1>;
     /**
      * Dispatches a function call with a provided origin.
      *
@@ -5102,7 +5382,7 @@ export type I5oa8llr99j3e3 = AnonymousEnum<{
      * ## Complexity
      * - O(1).
      */
-    "dispatch_as": Anonymize<I69p6pkv67dei3>;
+    "dispatch_as": Anonymize<Ib3877m4t1f6f4>;
     /**
      * Send a batch of dispatch calls.
      * Unlike `batch`, it allows errors and won't interrupt.
@@ -5118,7 +5398,7 @@ export type I5oa8llr99j3e3 = AnonymousEnum<{
      * ## Complexity
      * - O(C) where C is the number of calls to be batched.
      */
-    "force_batch": Anonymize<I4m23d919gtr5d>;
+    "force_batch": Anonymize<I9nqp66v0721n1>;
     /**
      * Dispatch a function call with a specified weight.
      *
@@ -5127,7 +5407,7 @@ export type I5oa8llr99j3e3 = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Root_.
      */
-    "with_weight": Anonymize<I13j8trtusi7dq>;
+    "with_weight": Anonymize<I3a0ttnbnho23s>;
     /**
      * Dispatch a fallback call in the event the main call fails to execute.
      * May be called from any origin except `None`.
@@ -5153,7 +5433,7 @@ export type I5oa8llr99j3e3 = AnonymousEnum<{
      * - Some use cases might involve submitting a `batch` type call in either main, fallback
      * or both.
      */
-    "if_else": Anonymize<I74eam70qc8398>;
+    "if_else": Anonymize<Ia06u24rop478l>;
     /**
      * Dispatches a function call with a provided origin.
      *
@@ -5161,28 +5441,79 @@ export type I5oa8llr99j3e3 = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Root_.
      */
-    "dispatch_as_fallible": Anonymize<I69p6pkv67dei3>;
+    "dispatch_as_fallible": Anonymize<Ib3877m4t1f6f4>;
 }>;
-export type I4m23d919gtr5d = {
+export type I9nqp66v0721n1 = {
     "calls": Array<TxCallData>;
 };
-export type I7esubsve8jvbp = {
+export type Idk1ivh3nldv2l = {
     "index": number;
     "call": TxCallData;
 };
-export type I69p6pkv67dei3 = {
+export type Ib3877m4t1f6f4 = {
     "as_origin": Anonymize<I9cqlcs1cfiqgk>;
     "call": TxCallData;
 };
-export type I13j8trtusi7dq = {
+export type I3a0ttnbnho23s = {
     "call": TxCallData;
     "weight": Anonymize<I4q39t5hn830vp>;
 };
-export type I74eam70qc8398 = {
+export type Ia06u24rop478l = {
     "main": TxCallData;
     "fallback": TxCallData;
 };
-export type I29pvdqcplt85e = AnonymousEnum<{
+export type I4oqb168b2d4er = AnonymousEnum<{
+    /**
+     * Allows root to set a cursor to forcefully start, stop or forward the migration process.
+     *
+     * Should normally not be needed and is only in place as emergency measure. Note that
+     * restarting the migration process in this manner will not call the
+     * [`MigrationStatusHandler::started`] hook or emit an `UpgradeStarted` event.
+     */
+    "force_set_cursor": Anonymize<Ibou4u1engb441>;
+    /**
+     * Allows root to set an active cursor to forcefully start/forward the migration process.
+     *
+     * This is an edge-case version of [`Self::force_set_cursor`] that allows to set the
+     * `started_at` value to the next block number. Otherwise this would not be possible, since
+     * `force_set_cursor` takes an absolute block number. Setting `started_at` to `None`
+     * indicates that the current block number plus one should be used.
+     */
+    "force_set_active_cursor": Anonymize<Id6nbvqoqdj4o2>;
+    /**
+     * Forces the onboarding of the migrations.
+     *
+     * This process happens automatically on a runtime upgrade. It is in place as an emergency
+     * measurement. The cursor needs to be `None` for this to succeed.
+     */
+    "force_onboard_mbms": undefined;
+    /**
+     * Clears the `Historic` set.
+     *
+     * `map_cursor` must be set to the last value that was returned by the
+     * `HistoricCleared` event. The first time `None` can be used. `limit` must be chosen in a
+     * way that will result in a sensible weight.
+     */
+    "clear_historic": Anonymize<I95iqep3b8snn9>;
+}>;
+export type Ibou4u1engb441 = {
+    "cursor"?: (Anonymize<Iepbsvlk3qceij>) | undefined;
+};
+export type Id6nbvqoqdj4o2 = {
+    "index": number;
+    "inner_cursor"?: Anonymize<Iabpgqcjikia83>;
+    "started_at"?: Anonymize<I4arjljr6dpflb>;
+};
+export type I95iqep3b8snn9 = {
+    "selector": Enum<{
+        "Specific": Anonymize<Itom7fk49o0c9>;
+        "Wildcard": {
+            "limit"?: Anonymize<I4arjljr6dpflb>;
+            "previous_cursor"?: Anonymize<Iabpgqcjikia83>;
+        };
+    }>;
+};
+export type I68hv2obuqj2ot = AnonymousEnum<{
     /**
      * Index and store data off chain. Minimum data size is 1 byte, maximum is
      * `MaxTransactionSize`. Data will be removed after `RetentionPeriod` blocks, unless
@@ -5210,42 +5541,21 @@ export type I29pvdqcplt85e = AnonymousEnum<{
      */
     "store_with_cid_config": Anonymize<Icegg8a2cqf1gu>;
     /**
-     * Renew previously stored data. Parameters are the block number that contains previous
-     * `store` or `renew` call and transaction index within that block. Transaction index is
-     * emitted in the `Stored` or `Renewed` event.
+     * Authorize an account to store up to `bytes` of arbitrary data in `transactions`
+     * boost-tier transactions. The authorization will expire after a configured number
+     * of blocks.
      *
-     * As with [`store`](Self::store), authorization is required to renew data using regular
-     * signed/unsigned transactions.
-     *
-     * Emits [`Renewed`](Event::Renewed) when successful.
-     *
-     * ## Complexity
-     *
-     * O(1).
-     */
-    "renew": Anonymize<I4vj3ndsquheo1>;
-    /**
-     * Check storage proof for block number `block_number() - RetentionPeriod`. If such a block
-     * does not exist, the proof is expected to be `None`.
-     *
-     * ## Complexity
-     *
-     * Linear w.r.t the number of indexed transactions in the proved block for random probing.
-     * There's a DB read for each transaction.
-     */
-    "check_proof": Anonymize<I7h5kud22qmfsg>;
-    /**
-     * Authorize an account to store up to a given amount of arbitrary data. The authorization
-     * will expire after a configured number of blocks.
-     *
-     * If the account is already authorized to store data, this will increase the amount of
-     * data the account is authorized to store (and the number of transactions the account may
-     * submit to supply the data), and push back the expiration block.
+     * If the account already has an unexpired authorization, this call **adds** `bytes`
+     * and `transactions` to the existing `bytes_allowance` and `transactions_allowance`
+     * caps (both saturating); the expiration block is **not** pushed back, and the
+     * consumed counters are preserved. Once the authorization has expired, the next call
+     * replaces it with a fresh entry (consumed counters reset to `0`, allowances set to
+     * the new values, expiry = `now + AuthorizationPeriod`).
      *
      * Parameters:
      *
      * - `who`: The account to be credited with an authorization to store data.
-     * - `transactions`: The number of transactions that `who` may submit to supply that data.
+     * - `transactions`: The number of boost-tier transactions that `who` may submit.
      * - `bytes`: The number of bytes that `who` may submit.
      *
      * The origin for this call must be the pallet's `Authorizer`. Emits
@@ -5257,8 +5567,10 @@ export type I29pvdqcplt85e = AnonymousEnum<{
      * expire after a configured number of blocks.
      *
      * If authorization already exists for a preimage of the given hash to be stored, the
-     * maximum size of the preimage will be increased to `max_size`, and the expiration block
-     * will be pushed back.
+     * maximum size of the preimage will be increased to `max_size`. The expiration block
+     * is **not** pushed back; use
+     * [`refresh_preimage_authorization`](Self::refresh_preimage_authorization) to extend
+     * expiry.
      *
      * Parameters:
      *
@@ -5297,6 +5609,11 @@ export type I29pvdqcplt85e = AnonymousEnum<{
     /**
      * Refresh the expiration of an existing authorization for an account.
      *
+     * Only the expiration block is updated — consumed counters (`bytes`,
+     * `transactions`) and the granted caps (`bytes_allowance`,
+     * `transactions_allowance`) are left untouched. To extend the caps, call
+     * `authorize_account` instead (additive on the unexpired path).
+     *
      * If the account does not have an authorization, the call will fail.
      *
      * Parameters:
@@ -5310,6 +5627,11 @@ export type I29pvdqcplt85e = AnonymousEnum<{
     /**
      * Refresh the expiration of an existing authorization for a preimage of a BLAKE2b hash.
      *
+     * Only the expiration block is updated — consumed counters (`bytes`,
+     * `transactions`) and the granted caps (`bytes_allowance`,
+     * `transactions_allowance`) are left untouched. To raise the cap, call
+     * `authorize_preimage` instead.
+     *
      * If the preimage does not have an authorization, the call will fail.
      *
      * Parameters:
@@ -5321,6 +5643,60 @@ export type I29pvdqcplt85e = AnonymousEnum<{
      * successful.
      */
     "refresh_preimage_authorization": Anonymize<I3rfugj0vt1ug5>;
+    /**
+     * Block-level mandatory inherent for the transaction-storage proof.
+     *
+     * `proof` is `Some` when the inherent data provider supplied one; otherwise the
+     * proof step is skipped (early or empty blocks). The companion drain of pending
+     * auto-renewals lives in `pallet-bulletin-data-renewal`'s own inherent.
+     */
+    "apply_block_inherents": Anonymize<Ifq8h9n7vmgpf0>;
+    /**
+     * Add an account to the set of allowed authorizers. Allowed authorizers can call
+     * [`authorize_account`](Self::authorize_account) and
+     * [`authorize_preimage`](Self::authorize_preimage) to grant storage access.
+     *
+     * If the account is already an allowed authorizer, its `budget` is **overwritten**
+     * with the new values.
+     *
+     * `budget` constraints:
+     *
+     * - `valid_until`: when `Some(t)`, must satisfy `t > now`. The entry stops authorizing
+     * once `now >= t` and becomes eligible for permissionless cleanup via
+     * [`remove_exhausted_authorizer`](Self::remove_exhausted_authorizer). Authorizations
+     * granted by this entry have their expiration clamped to `t`.
+     *
+     * The origin for this call must satisfy `AuthorizerRegistrarOrigin`. Emits
+     * [`AuthorizerAdded`](Event::AuthorizerAdded) when successful.
+     */
+    "add_authorizer": Anonymize<Ifa480ahjcunq>;
+    /**
+     * Remove an account from the set of allowed authorizers. The removed account will no
+     * longer be able to call [`authorize_account`](Self::authorize_account) or
+     * [`authorize_preimage`](Self::authorize_preimage).
+     *
+     * If the account is not currently an allowed authorizer, this is a no-op.
+     *
+     * Parameters:
+     *
+     * - `who`: The account to remove from the allowed authorizers.
+     *
+     * The origin for this call must satisfy `AuthorizerRegistrarOrigin`. Emits
+     * [`AuthorizerRemoved`](Event::AuthorizerRemoved) when successful.
+     */
+    "remove_authorizer": Anonymize<I4cbvqmqadhrea>;
+    /**
+     * Remove an authorizer that is exhausted (budget zero on either axis) or expired
+     * (`now >= valid_until` for an entry that set `valid_period`). Anyone can call this.
+     *
+     * Parameters:
+     *
+     * - `who`: The authorizer to remove.
+     *
+     * Emits [`ExhaustedAuthorizerRemoved`](Event::ExhaustedAuthorizerRemoved)
+     * when successful.
+     */
+    "remove_exhausted_authorizer": Anonymize<I4cbvqmqadhrea>;
 }>;
 export type Itrlf5b2o2l8q = {
     "data": Binary;
@@ -5332,21 +5708,100 @@ export type Icegg8a2cqf1gu = {
     };
     "data": Binary;
 };
-export type I4vj3ndsquheo1 = {
-    "block": number;
-    "index": number;
-};
-export type I7h5kud22qmfsg = {
-    "proof": {
+export type Ifq8h9n7vmgpf0 = {
+    "proof"?: ({
         "chunk": Binary;
         "proof": Anonymize<Itom7fk49o0c9>;
-    };
+    }) | undefined;
 };
-export type I1gudpbr3uell9 = AnonymousEnum<{
+export type Ifa480ahjcunq = {
+    "who": SS58String;
+    "budget": Anonymize<Iecn3tfn6gr5ce>;
+};
+export type Ievgomvcu5futk = AnonymousEnum<{
+    "promote": Anonymize<Ic4jjdr1cl5bit>;
+    /**
+     * V2 variant of [`Self::promote`]: identical body, but the authorize hook
+     * requires the user's signature to additionally cover the chain genesis
+     * hash and a hash of the recipients list (see [`signing_payload_v2`]).
+     */
+    "promote_v2": Anonymize<I9j03oeh6p8l87>;
+}>;
+export type Ic4jjdr1cl5bit = {
+    "signer": Anonymize<I8p068g003vpi6>;
+    "signature": Anonymize<I3fo6882e5tjh8>;
+    "submit_timestamp": bigint;
+    "data": Binary;
+};
+export type I8p068g003vpi6 = AnonymousEnum<{
+    "Ed25519": FixedSizeBinary<32>;
+    "Sr25519": FixedSizeBinary<32>;
+    "Ecdsa": FixedSizeBinary<33>;
+    "Eth": FixedSizeBinary<33>;
+}>;
+export type I3fo6882e5tjh8 = AnonymousEnum<{
+    "Ed25519": FixedSizeBinary<64>;
+    "Sr25519": FixedSizeBinary<64>;
+    "Ecdsa": FixedSizeBinary<65>;
+    "Eth": FixedSizeBinary<65>;
+}>;
+export type I9j03oeh6p8l87 = {
+    "signer": Anonymize<I8p068g003vpi6>;
+    "signature": Anonymize<I3fo6882e5tjh8>;
+    "submit_timestamp": bigint;
+    "recipients_hash": FixedSizeBinary<32>;
+    "data": Binary;
+};
+export type I3862no0724u4g = AnonymousEnum<{
+    /**
+     * Schedule a one-shot auto-renewal. Fires once at the
+     * `RetentionPeriod` boundary, then the registration is removed.
+     * Prepaid at registration; see [`force_renew`](Self::force_renew) for
+     * synchronous renewal or [`enable_auto_renew`](Self::enable_auto_renew)
+     * for recurring.
+     */
+    "renew": Anonymize<I7d71c6b0ekmt9>;
+    /**
+     * Renew previously stored data synchronously. Charges `info.size` against
+     * the caller's `bytes_permanent` and the chain-wide `PermanentStorageUsed`.
+     */
+    "force_renew": Anonymize<I7d71c6b0ekmt9>;
+    /**
+     * Register recurring auto-renewal for `content_hash`. First cycle is
+     * prepaid at registration (`paid = true`); subsequent cycles charge
+     * the owner's authorization in `do_process_pending_renewals` and
+     * drop the registration on quota exhaustion with
+     * [`Event::RenewalFailed`].
+     */
+    "enable_auto_renew": Anonymize<I3rfugj0vt1ug5>;
+    /**
+     * Disable auto-renewal. Signed callers must own the registration AND
+     * wait for the prepaid first cycle to have fired (else
+     * [`Error::CannotDisablePrepaidAutoRenewal`]). Root bypasses both
+     * checks.
+     */
+    "disable_auto_renew": Anonymize<I3rfugj0vt1ug5>;
+    /**
+     * Mandatory inherent: drain [`PendingRenewals`] for the current
+     * block. Refunds to the actually-drained count via `PostDispatchInfo`.
+     */
+    "process_pending_renewals": undefined;
+}>;
+export type I7d71c6b0ekmt9 = {
+    "entry": Anonymize<I3oi105i165rd5>;
+};
+export type I3oi105i165rd5 = AnonymousEnum<{
+    "Position": {
+        "block": number;
+        "index": number;
+    };
+    "ContentHash": FixedSizeBinary<32>;
+}>;
+export type I5rk8ete22duad = AnonymousEnum<{
     /**
      * Authenticates the sudo key and dispatches a function call with `Root` origin.
      */
-    "sudo": Anonymize<I2hedg0a6u185f>;
+    "sudo": Anonymize<Ic10m30chc0lcl>;
     /**
      * Authenticates the sudo key and dispatches a function call with `Root` origin.
      * This function does not check the weight of the call, and instead allows the
@@ -5354,7 +5809,7 @@ export type I1gudpbr3uell9 = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Signed_.
      */
-    "sudo_unchecked_weight": Anonymize<I13j8trtusi7dq>;
+    "sudo_unchecked_weight": Anonymize<I3a0ttnbnho23s>;
     /**
      * Authenticates the current sudo key and sets the given AccountId (`new`) as the new sudo
      * key.
@@ -5366,7 +5821,7 @@ export type I1gudpbr3uell9 = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Signed_.
      */
-    "sudo_as": Anonymize<I550f2tngqhbp1>;
+    "sudo_as": Anonymize<I8a5t0g4sf473u>;
     /**
      * Permanently removes the sudo key.
      *
@@ -5374,33 +5829,52 @@ export type I1gudpbr3uell9 = AnonymousEnum<{
      */
     "remove_key": undefined;
 }>;
-export type I2hedg0a6u185f = {
+export type Ic10m30chc0lcl = {
     "call": TxCallData;
 };
-export type I550f2tngqhbp1 = {
+export type I8a5t0g4sf473u = {
     "who": MultiAddress;
     "call": TxCallData;
 };
-export type Ieeb2u9t56qdcr = ResultPayload<Anonymize<I46bjfmr3l2gfb>, Anonymize<I5nrjkj9qumobs>>;
+export type I9vodnt2k1kha = AnonymousEnum<{
+    "Yes": undefined;
+    "No": undefined;
+    "Stuck": undefined;
+}>;
+export type I4ao1le27fcisl = ({
+    "current_migration": number;
+    "total_migrations": number;
+    "current_migration_steps": number;
+    "current_migration_max_steps"?: Anonymize<I4arjljr6dpflb>;
+}) | undefined;
+export type Ih4ursllob8fg = {
+    "ongoing": Anonymize<I9vodnt2k1kha>;
+    "progress"?: Anonymize<I4ao1le27fcisl>;
+    "prefixes": Anonymize<Itom7fk49o0c9>;
+};
+export type I4ch97923evid8 = ResultPayload<Anonymize<I45s8o9g18m625>, Anonymize<I5nrjkj9qumobs>>;
 export type I4ph3d1eepnmr1 = {
     "keys": Binary;
     "proof": Binary;
 };
-export type Icd41grt22tk3v = AnonymousEnum<{
+export type I88472ck6vehhv = AnonymousEnum<{
     "System": Anonymize<Iekve0i6djpd9f>;
     "ParachainSystem": Anonymize<I3u72uvpuo4qrt>;
     "Timestamp": Anonymize<I7d75gqfg6jh9c>;
     "ParachainInfo": undefined;
-    "Utility": Anonymize<I5oa8llr99j3e3>;
+    "Utility": Anonymize<Icg973ohsugp3b>;
+    "MultiBlockMigrations": Anonymize<I4oqb168b2d4er>;
     "Balances": Anonymize<I9svldsp29mh87>;
-    "TransactionStorage": Anonymize<I29pvdqcplt85e>;
+    "TransactionStorage": Anonymize<I68hv2obuqj2ot>;
+    "HopPromotion": Anonymize<Ievgomvcu5futk>;
+    "DataRenewal": Anonymize<I3862no0724u4g>;
     "CollatorSelection": Anonymize<I9dpq5287dur8b>;
     "Session": Anonymize<I77dda7hps0u37>;
     "XcmpQueue": Anonymize<Ib7tahn20bvsep>;
     "PolkadotXcm": Anonymize<I6k1inef986368>;
     "CumulusXcm": undefined;
     "MessageQueue": Anonymize<Ic2uoe7jdksosp>;
-    "Sudo": Anonymize<I1gudpbr3uell9>;
+    "Sudo": Anonymize<I5rk8ete22duad>;
 }>;
 export type Iftvbctbo05fu4 = ResultPayload<Array<XcmVersionedAssetId>, Anonymize<Iavct6f844hfju>>;
 export type Iavct6f844hfju = AnonymousEnum<{
@@ -5414,12 +5888,12 @@ export type Iavct6f844hfju = AnonymousEnum<{
 export type Ic0c3req3mlc1l = ResultPayload<Anonymize<I4q39t5hn830vp>, Anonymize<Iavct6f844hfju>>;
 export type I7ocn4njqde3v5 = ResultPayload<bigint, Anonymize<Iavct6f844hfju>>;
 export type Iek7ha36da9mf5 = ResultPayload<XcmVersionedAssets, Anonymize<Iavct6f844hfju>>;
-export type Ia0qb5p8rcp095 = ResultPayload<{
+export type Iavcjlern8lpkb = ResultPayload<{
     "execution_result": ResultPayload<Anonymize<Ia1u1r3n74r13c>, {
         "post_info": Anonymize<Ia1u1r3n74r13c>;
-        "error": Anonymize<Id3cclc8rha27v>;
+        "error": Anonymize<Iam4td08afnm42>;
     }>;
-    "emitted_events": Anonymize<I58aj202ockvkq>;
+    "emitted_events": Anonymize<Ififbdnnmp3rbr>;
     "local_xcm"?: (XcmVersionedXcm) | undefined;
     "forwarded_xcms": Anonymize<Ialhmrpub9sefe>;
 }, Anonymize<I55ku9c5gk50hb>>;
@@ -5427,15 +5901,15 @@ export type Ia1u1r3n74r13c = {
     "actual_weight"?: Anonymize<Iasb8k6ash5mjn>;
     "pays_fee": Anonymize<Iehg04bj71rkd>;
 };
-export type I58aj202ockvkq = Array<Anonymize<Itrj5j3atrcpn>>;
+export type Ififbdnnmp3rbr = Array<Anonymize<Ifud6fmhdgide1>>;
 export type Ialhmrpub9sefe = Array<[XcmVersionedLocation, Array<XcmVersionedXcm>]>;
 export type I55ku9c5gk50hb = AnonymousEnum<{
     "Unimplemented": undefined;
     "VersionedConversionFailed": undefined;
 }>;
-export type I7f06kkvfvbvn3 = ResultPayload<{
+export type I7q29odn6kt7nd = ResultPayload<{
     "execution_result": Anonymize<Ieqhmksji3pmv5>;
-    "emitted_events": Anonymize<I58aj202ockvkq>;
+    "emitted_events": Anonymize<Ififbdnnmp3rbr>;
     "forwarded_xcms": Anonymize<Ialhmrpub9sefe>;
 }, Anonymize<I55ku9c5gk50hb>>;
 export type Ieh6nis3hdbtgi = ResultPayload<SS58String, Enum<{
@@ -5457,4 +5931,19 @@ export type Iecgqth5sdfqqi = AnonymousEnum<{
     "LocationVersionConversionFailed": undefined;
 }>;
 export type I5gif8vomct5i8 = ResultPayload<boolean, Anonymize<Iecgqth5sdfqqi>>;
+export type If4oj302humfb5 = Array<{
+    "content_hash": FixedSizeBinary<32>;
+    "size": number;
+    "hashing": Anonymize<Ifmrgam3blcf8>;
+    "cid_codec": bigint;
+    "extrinsic_index": number;
+}>;
+export type If5dekqlo7be3f = ({
+    "expires_at": number;
+    "bytes_allowance": bigint;
+    "bytes_used": bigint;
+    "bytes_permanent_used": bigint;
+    "transactions_allowance": number;
+    "transactions_used": number;
+}) | undefined;
 export {};

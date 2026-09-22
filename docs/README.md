@@ -4,6 +4,13 @@ Documentation for the Dotify decentralized music streaming platform, structured 
 
 ---
 
+## Implementation playbook
+
+[Agent implementation sequences](./backlog/implementation/README.md) provide
+copy-paste prompts, short-lived branch names, dependencies, acceptance criteria,
+and evidence handoffs for the Product DevNet/web pilot and later immersive and
+privacy-preserving nearby discovery. Preparation is tracked in issue #130.
+
 ## Explanation
 
 Conceptual documents that help you understand why Dotify works the way it does.
@@ -13,8 +20,10 @@ Conceptual documents that help you understand why Dotify works the way it does.
 | [Architecture Overview](./explanation/architecture-overview.md) | All | How the six system layers (identity, IPFS, EVM, Bulletin, WebRTC, frontend) connect |
 | [Access Control Model](./explanation/access-control-model.md) | All | Human free vs Classic — what they mean for artists and listeners |
 | [Content Protection](./explanation/content-protection.md) | All | Audio encryption pipeline, what it protects, and what it does not |
-| [Royalty Settlement](./explanation/royalty-settlement.md) | All | How DOT payments flow from listener wallet to artist wallet |
+| [Royalty Settlement](./explanation/royalty-settlement.md) | All | How native runtime payments settle, become claimable on recipient failure, and stay separate from Product CASH |
 | [Listening Rooms](./explanation/listening-rooms.md) | All | WebRTC peer-to-peer streaming, signaling protocol, known limitations |
+| [Product DevNet Architecture](./explanation/product-devnet-architecture.md) | Maintainers | Dual-host boundaries, Product account capabilities, rooms, storage, and the proposed contract port |
+| [Product CASH Settlement Decision](./design/product-cash-settlement-decision.md) | Maintainers | Why CASH remains unavailable until Product supplies a verifiable CASH-to-runtime entitlement path |
 
 ---
 
@@ -40,6 +49,7 @@ Runbooks for hosted configuration and production validation.
 | Document | Summary |
 |---|---|
 | [Deployment Configuration](./operations/deployment-configuration.md) | Netlify and Fly dashboard settings, secrets, catalog persistence, validation, and the update checklist for future env/config changes |
+| [Product DevNet Deployment](./operations/product-devnet-deployment.md) | Build, publish, validate, and roll back the `dotify-test01.dot` Product DevNet app |
 
 ---
 

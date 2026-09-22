@@ -5,11 +5,12 @@
 This runbook repairs the legacy `musicRegRegister` authorization boundary
 without moving existing SmartRuntime proxies or their storage.
 
-> Active deployment status, 2026-07-26: new artist publication has moved to the
-> fresh factory `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72` and directory
-> `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`. Read-only audit at finalized
-> block `11268829` verified the corrected registry facet hash and found zero
-> finalized or pending runtimes. The legacy deployment below remains documented
+> Active deployment status, 2026-09-06: new artist publication has moved to the
+> fresh factory `0x835a626a9a6965b197d079ae56b1ec94033c2699` and directory
+> `0x4e883827d61e573094c7b777bae323070ea9f954`. Read-only audit at finalized
+> block `13103348` verified the corrected registry facet hash
+> `0x8ade82431086a7c3fa03c39dd602e7abee4e4b588b9246adeb36537cafff6b57` and
+> found zero finalized or pending runtimes. The legacy deployment below remains documented
 > for historical evidence and should not be reused for new publication.
 
 The legacy Paseo system is **quarantined for artist publication** until all

@@ -7,18 +7,21 @@
 // and how many trackless attempts to tolerate before surfacing a genuine
 // failure instead of retrying silently forever.
 
-// A capture is reusable when it was taken from the exact current source and its
-// track is still live. A capture taken while the media element was paused is
-// reused only while the element is still paused; once playback starts, recapture
-// so listeners are not left on a pre-playback live-but-silent stream.
+// A capture is reusable when it belongs to the current media element, was taken
+// from the exact current source, and its track is still live. Source URLs may be
+// reused across distinct element generations, so URL equality alone is unsafe.
+// A capture taken while the element was paused is reused only while the element
+// is still paused; once playback starts, recapture so listeners are not left on
+// a pre-playback live-but-silent stream.
 export function shouldReuseCapture(
   capturedSource: string | null,
   currentSource: string,
   hasLiveAudio: boolean,
   capturedWhilePaused = false,
-  currentPaused = false
+  currentPaused = false,
+  sameMediaElement = true
 ): boolean {
-  return capturedSource === currentSource && hasLiveAudio && (!capturedWhilePaused || currentPaused);
+  return sameMediaElement && capturedSource === currentSource && hasLiveAudio && (!capturedWhilePaused || currentPaused);
 }
 
 export type CaptureAttempt = { source: string | null; count: number };

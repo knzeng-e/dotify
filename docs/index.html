@@ -3,10 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta
-      name="description"
-      content="Dotify turns music into shared presence while artists retain control over access, rights, and value."
-    />
+    <meta name="description" content="Dotify turns music into shared presence while artists retain control over access, rights, and value." />
     <meta name="theme-color" content="#050d1a" />
     <title>Dotify — Music as shared presence</title>
     <style>
@@ -35,8 +32,8 @@
         --radius-feature: 1.75rem;
         --container: 77.5rem;
         --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-        --font-sans: "Instrument Sans", "Avenir Next", "Segoe UI Variable", "Segoe UI", Helvetica, Arial, sans-serif;
-        --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        --font-sans: 'Instrument Sans', 'Avenir Next', 'Segoe UI Variable', 'Segoe UI', Helvetica, Arial, sans-serif;
+        --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
       }
 
       *,
@@ -245,7 +242,7 @@
       }
 
       .hero::before {
-        content: "";
+        content: '';
         position: absolute;
         z-index: -1;
         inset: 0;
@@ -276,7 +273,7 @@
       }
 
       .hero-kicker::before {
-        content: "";
+        content: '';
         width: 1.75rem;
         height: 2px;
         flex: 0 0 auto;
@@ -300,7 +297,7 @@
       }
 
       .hero h1 span::after {
-        content: "";
+        content: '';
         position: absolute;
         z-index: -1;
         right: -0.03em;
@@ -349,7 +346,7 @@
       }
 
       .score-board::before {
-        content: "";
+        content: '';
         position: absolute;
         inset: 0;
         background: repeating-linear-gradient(
@@ -412,7 +409,7 @@
       }
 
       .score-lanes::before {
-        content: "";
+        content: '';
         position: absolute;
         top: 3.15rem;
         right: 12.5%;
@@ -528,7 +525,7 @@
       }
 
       .journey li::before {
-        content: "0" counter(journey);
+        content: '0' counter(journey);
         position: absolute;
         top: -1rem;
         left: 0;
@@ -619,7 +616,7 @@
       }
 
       .trust-section::before {
-        content: "";
+        content: '';
         position: absolute;
         inset: 0;
         background:
@@ -737,7 +734,7 @@
       }
 
       .horizon-list::before {
-        content: "";
+        content: '';
         position: absolute;
         top: 0.8rem;
         bottom: 0.8rem;
@@ -756,7 +753,7 @@
       }
 
       .horizon-list li::before {
-        content: "";
+        content: '';
         position: absolute;
         top: 0.45rem;
         left: 0;
@@ -776,6 +773,11 @@
       .horizon-list li:nth-child(3)::before {
         background: var(--surface);
         box-shadow: 0 0 0 1px var(--line-strong);
+      }
+
+      .horizon-list li:nth-child(4)::before {
+        background: var(--warning);
+        box-shadow: 0 0 0 1px var(--warning);
       }
 
       .horizon-label {
@@ -817,7 +819,7 @@
       }
 
       .manifesto-panel::after {
-        content: "";
+        content: '';
         position: absolute;
         right: -7rem;
         bottom: -7rem;
@@ -1308,15 +1310,14 @@
           <p class="hero-kicker">A signal commons for music</p>
           <h1 id="hero-title">Music becomes a place when people hear it <span>together.</span></h1>
           <p class="hero-intro">
-            Dotify turns a simple link into a shared listening moment, while artist-owned
-            runtimes keep access, rights, and value under the artist's control.
+            Dotify turns a simple link into a shared listening moment, while artist-owned runtimes keep access, rights, and value under the artist's control.
           </p>
           <div class="hero-actions" aria-label="Project resources">
             <a class="button button-dark" href="design/dotify-shared-score.md">
               Explore the experience
               <span class="arrow" aria-hidden="true">&#8594;</span>
             </a>
-            <a class="button button-secondary" href="Dotify_presentation.pptx">
+            <a class="button button-secondary" href="presentation/dotify-showcase-2026.pdf">
               Open the project deck
               <span class="arrow" aria-hidden="true">&#8599;</span>
             </a>
@@ -1359,8 +1360,7 @@
           </ol>
         </div>
         <figcaption>
-          This diagram explains Dotify's product relationship. It does not represent an active room,
-          participant count, or current network state.
+          This diagram explains Dotify's product relationship. It does not represent an active room, participant count, or current network state.
         </figcaption>
       </figure>
 
@@ -1372,8 +1372,9 @@
               <h2 class="section-title" id="listening-title">One link. One moment. No ceremony.</h2>
             </div>
             <p class="section-lead">
-              The room is not a feature beside the player. It is the place where listening becomes
-              relation and discovery happens through another person.
+              The room is not a feature beside the player. It is the place where listening becomes relation and discovery happens through another person. A
+              compact mobile player now stays with the conversation, with Chat, Requests and People within reach. Text drafts remain until the room confirms
+              acceptance.
             </p>
           </div>
 
@@ -1399,9 +1400,7 @@
           <div class="relationship-copy">
             <p class="section-kicker">Artist sovereignty</p>
             <h2 class="section-title" id="artists-title">The platform should never swallow the artist.</h2>
-            <p class="section-lead">
-              Shared listening matters only if the people who make the music remain in control of how it circulates.
-            </p>
+            <p class="section-lead">Shared listening matters only if the people who make the music remain in control of how it circulates.</p>
           </div>
 
           <dl class="relationship-list">
@@ -1410,9 +1409,8 @@
               <dd>
                 <h3>A runtime that belongs to the artist</h3>
                 <p>
-                  Dotify's active contract model gives each artist a personal SmartRuntime instead of
-                  placing every catalog decision inside one platform-owned contract. A cacheable backend
-                  read model makes discovery fast while those runtimes remain the source of truth.
+                  Dotify's active contract model gives each artist a personal SmartRuntime instead of placing every catalog decision inside one platform-owned
+                  contract. A cacheable backend read model makes discovery fast while those runtimes remain the source of truth.
                 </p>
               </dd>
             </div>
@@ -1421,8 +1419,8 @@
               <dd>
                 <h3>Doors the artist can define</h3>
                 <p>
-                  Free and paid Classic access are explicit product policies. Human-free access remains
-                  future work until real, privacy-respecting Proof of Personhood is integrated.
+                  Free and paid Classic access are explicit product policies. Classic support records wallet access without promising perpetual media
+                  availability. Human-free access remains future work until real, privacy-respecting Proof of Personhood is integrated.
                 </p>
               </dd>
             </div>
@@ -1431,8 +1429,11 @@
               <dd>
                 <h3>Rights and splits that can be audited</h3>
                 <p>
-                  Runtime rules keep royalties, collaborator shares, and access decisions inspectable
-                  without making chain mechanics the listener's first experience.
+                  Runtime rules keep royalties, collaborator shares, and access decisions inspectable without making chain mechanics the listener's first
+                  experience. Classic payments now move through an explicit native runtime intent, while Product CASH remains a separate settlement rail until
+                  the cross-chain receipt model is verified. Recipient transfers are gas-bounded: failed recipient shares stay claimable in the runtime instead
+                  of blocking the listener's access. The artist review step names the controller, support amount, split recipients, and catalog read-back before
+                  any publication signature. Payment receipts, NFT ownership, runtime ownership, and royalty beneficiaries remain distinct facts.
                 </p>
               </dd>
             </div>
@@ -1441,9 +1442,8 @@
               <dd>
                 <h3>Presence without source-file distribution</h3>
                 <p>
-                  Explore live rooms through a navigable sky, then enter one in a click. A room guest hears
-                  the host's temporary media stream while protected source references and content keys stay
-                  outside public room state.
+                  Explore live rooms through a navigable sky, then enter one in a click. A room guest hears the host's temporary media stream while protected
+                  source references and content keys stay outside public room state.
                 </p>
               </dd>
             </div>
@@ -1457,16 +1457,12 @@
             <p class="section-kicker">Invisible trust</p>
             <h2 class="section-title" id="trust-title">Infrastructure belongs in the guarantee.</h2>
             <p class="section-lead">
-              Wallet signatures, encrypted delivery, WebRTC boundaries, and on-chain policy do real work
-              behind the experience. They should make listening safer, not more bureaucratic.
+              Wallet signatures, encrypted delivery, WebRTC boundaries, and on-chain policy do real work behind the experience. They should make listening
+              safer, not more bureaucratic.
             </p>
             <div class="trust-links">
-              <a class="text-link" href="explanation/access-control-model.md">
-                Access model <span class="arrow" aria-hidden="true">&#8594;</span>
-              </a>
-              <a class="text-link" href="explanation/content-protection.md">
-                Content protection <span class="arrow" aria-hidden="true">&#8594;</span>
-              </a>
+              <a class="text-link" href="explanation/access-control-model.md"> Access model <span class="arrow" aria-hidden="true">&#8594;</span> </a>
+              <a class="text-link" href="explanation/content-protection.md"> Content protection <span class="arrow" aria-hidden="true">&#8594;</span> </a>
             </div>
           </div>
 
@@ -1475,22 +1471,19 @@
               <div class="trust-row">
                 <dt>Individual play</dt>
                 <dd>
-                  The backend verifies a signed request, resolves the artist runtime, and checks access
-                  before temporary key delivery.
+                  The backend verifies the signed request, resolves the canonical release, confirms the target runtime state, selects the retained content-key
+                  version named by the encrypted audio ref, and checks access before temporary key delivery.
                 </dd>
               </div>
               <div class="trust-row">
                 <dt>Protected room</dt>
-                <dd>
-                  Access is checked against the host. Room guests receive the ephemeral WebRTC stream,
-                  never the protected source file or content key.
-                </dd>
+                <dd>Access is checked against the host. Room guests receive the ephemeral WebRTC stream, never the protected source file or content key.</dd>
               </div>
               <div class="trust-row">
                 <dt>Publication</dt>
                 <dd>
-                  The active Paseo factory uses the owner-only registry facet; artist runtime creation
-                  and release publication are enabled on the audited deployment.
+                  The active Paseo factory uses the owner-only registry facet; artist runtime creation and release publication are enabled on the audited
+                  deployment.
                 </dd>
               </div>
             </dl>
@@ -1498,9 +1491,8 @@
             <aside class="production-note" aria-labelledby="production-gate-title">
               <strong id="production-gate-title">Production gate — publication reopened</strong>
               <p>
-                Read-only audit at finalized block 11268829 verified the active factory/directory pairing,
-                the corrected registry facet hash, and zero finalized or pending runtimes. The legacy
-                quarantined deployment remains documented for operators.
+                Read-only audit at finalized block 13103348 verified the active factory/directory pairing, the corrected registry facet hash, and zero finalized
+                or pending runtimes. The legacy quarantined deployment remains documented for operators.
                 <a class="text-link" href="operations/registry-facet-remediation.md">Read the operator runbook</a>.
               </p>
             </aside>
@@ -1520,28 +1512,116 @@
               <p class="horizon-label">Delivered in the repository</p>
               <h3>Core access, upload, room, and test paths</h3>
               <p>
-                Server-side uploads and key delivery, wallet-signed access requests, hosted signaling,
-                room links, a confirmed-event catalog read model, and deterministic critical-flow tests
-                form the current production spine.
+                Server-side uploads and key delivery, wallet-signed access requests, hosted signaling, capacity-aware room links, browser-local room quality
+                evidence, a confirmed-event catalog read model, versioned content-key custody with synthetic recovery rehearsal, and deterministic critical-flow
+                tests form the current production spine.
               </p>
             </li>
             <li>
               <p class="horizon-label">Current gate</p>
-              <h3>Operate the spine and validate first sound</h3>
+              <h3>Prove one candidate from support to shared sound</h3>
               <p>
-                Publication is reopened on the audited deployment. Hosted signaling and production
-                environment evidence, and public wallet/device validation are closed. Cached catalog
-                browsing is implemented and awaits public latency evidence. DAV2 now has a bounded gateway
-                and read-ahead startup pipeline; the active gates are real-browser and gateway validation
-                plus the backend read-through decision for reliable first sound.
+                The implementation sequence through the responsive interface, Product adapter, artist support, room resilience, and optional galaxy is merged.
+                W13 is now the single pilot gate: capture candidate-bound Product payment/access read-back, a Product-hosted room heard by a walletless guest,
+                physical first-sound evidence, forced-TURN behavior across independent networks, and a rollback/restore rehearsal. DAV2 and responsive-cover
+                changes will follow measured failures rather than speculative rewrites.
               </p>
             </li>
             <li>
-              <p class="horizon-label">Sequenced later</p>
-              <h3>Product SDK, personhood, and cultural transmission</h3>
+              <p class="horizon-label">Product DevNet and the public web</p>
+              <h3>One musical experience, across supported hosts</h3>
               <p>
-                Product SDK mode, Humanity/Individuality proofs, consented provenance, and ambassador
-                mechanics remain future work until the current APIs and privacy boundaries are proven.
+                Dotify now has a publishable <code>dotify-test01.dot</code> build, explicit app-scoped Product identity, public room links that preserve
+                wallet-free entry, typed runtime ports around the current viem implementation, API-side Product sr25519 verification with frontend Product proof
+                submission for protected key/session requests, and an opt-in CDM/PAPI path that can route runtime reads and write submissions through the
+                Product host signer. The Product CDM access path now reads the connected chain's native precision and converts only the native
+                <code>Revive.call</code> value, preserving the 18-decimal Solidity price while preventing accidental overpayment requests. The tracked
+                deployment still defaults to viem; Product writes now fail closed on Product public-key / pallet-revive H160 mismatch, poll post-payment access
+                read-back before success, preserve transaction receipts when verification fails, and expose runtime royalty claims through the shared writer
+                port. Product payment hashes now open as native Paseo Asset Hub extrinsics instead of dead EVM explorer links. Claimable balances remain
+                readable, while complete cross-device Product settlement history still needs native <code>Revive.ContractEmitted</code>
+                indexing. Interrupted support can be checked again without another payment; a tab-local reference survives reloads. Optional direct artist gifts
+                are implemented behind a build flag, separate from listening access and release royalty splits; native gifts still require device validation.
+                The explicit Product support build waits for native payment finalization, but still needs host-signed transaction evidence and a
+                Product-supported CASH settlement proof, and CDM-installed runtime packages before becoming default. A Product DevNet journey harness now pins
+                the static platform gates and accepts live CDM/room evidence exports, so missing Product-host proof stays visible instead of being inferred from
+                a web build. Passkey-only wallet routes are retired for the pilot: guests still enter with no wallet, standalone paid/publish actions use an EVM
+                wallet, and Product-host actions use the app-scoped Product account where supported. Product Mobile in-app live audio remains pending a
+                host-exposed WebRTC capability.
+              </p>
+              <p>
+                The September 2026 Product DevNet reset is now explicit in the codebase: new app publications use the refreshed Bulletin/DotNS tooling, Dotify's
+                Product CDM registry points at the current DevNet registry, and the Bulletin descriptor is pinned to the post-reset runtime. The merged
+                <code>[0, 1, 27]</code> Product CDM validation profile is now published on <code>dotify-test01.dot</code> and
+                <code>app.dotify-test01.dot</code>, bound to its reviewed merge SHA and verified Bulletin CID
+                <code>bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca</code>; the post-publish DevNet service smoke passes. This proves reproducible
+                delivery, not the listening journey: Product Desktop still needs candidate-bound payment/key and room evidence plus physical-device checks. The
+                default <code>viem</code> pilot release remains a separate, unpublished identity and must receive its own CID before W13 can collect aggregate
+                pilot evidence.
+              </p>
+              <p>
+                The tracked release candidate is now <code>[0, 1, 28]</code>. It requires proof of active room membership before the API issues TURN relay
+                credentials and preserves an independently operated IPFS path for full encrypted-audio recovery. It is prepared, not yet published: the
+                <code>[0, 1, 27]</code> CID above remains the latest deployed validation identity until the new candidate is published and revalidated.
+              </p>
+              <p>
+                Product DevNet is a first-class delivery target alongside ordinary mobile and desktop web. The next pilot must demonstrate discovery, listening,
+                artist support, and clear receipts on the supported hosts, with device limitations stated honestly. The W13 pilot gate now has an explicit
+                release-readiness package: dependency evidence, Product/CDM smoke inputs, rollback rehearsal, aggregate consented pilot metrics, and a go/no-go
+                record stay separate from any claim that a community has already shipped.
+              </p>
+            </li>
+            <li>
+              <p class="horizon-label">A living sky, then nearby discovery</p>
+              <h3>Find a room. Validate the Product host path.</h3>
+              <p>
+                Music discovery opens directly on one horizontal catalog, with title-and-artist search, a complete grid, and an in-memory return to your place.
+                Cards lead with artwork, title, artist, and one discreet access cue. A centered Play appears on hover or keyboard focus; touch browsing leaves
+                the covers clear. The player stays out of the way until a listener chooses music, and complete listening terms remain available when opening a
+                release, before any paid confirmation. A shared Polkadot account name can label the connection and prefill an editable room name. Room code
+                entry and hosting are within reach before discovery. Connection problems stay visible when action is needed; technical status and infrastructure
+                explanations stay out of the normal listening path. Artist pages lead with releases and real sessions, while personal support records keep
+                payment and listening access distinct. Returning to an active room preserves the current role and listening session. Inside a room, a compact
+                writing mode keeps the player and composer together while the visible viewport adapts to the keyboard. The full player and room retain the
+                timeline and playback modes on small screens, with listening status above the cover and controls close to the track; physical iPhone validation
+                remains part of release acceptance. Next and Previous prepare a bounded amount of encrypted audio while the current track plays, and remain
+                available during loading so a listener can change direction. Access checks still apply when opening a release; real-device transition timing
+                remains part of the pilot evidence. The room surface now keeps one interaction language across phones and desktop browsers: discover real open
+                rooms, inspect host, track, and presence context, then join from a touch-safe sheet or a desktop detail rail. The host can shape an ephemeral Up
+                next list that everyone in the room can see; track endings advance through it, while Previous follows what was actually heard. The lineup
+                carries only public display metadata and every selection still passes through the host's access policy without an automatic payment. Product
+                builds can also opt into short-lived Statement Store room announcements: Dotify merges them into the same discovery surface while Socket.IO
+                remains authoritative for capacity, playback, and joining. The flag stays off in the tracked profile until a live Product publish, discovery,
+                expiry, and link-join round trip is captured. A later W27 sprint treats Celerity and Statement Store as the same realtime protocol: it will
+                compare signed presence, reactions, requests, chat, and player state in measured dual operation before moving any authority away from Socket.IO.
+                Anonymous room-link entry remains an invariant, private messages require application encryption, and WebRTC remains the audio path. The same
+                room data boundary offers an optional 3D room galaxy behind a build-time opt-in for supported desktop browsers, while the honest 2D sky remains
+                the default and the accessible card list remains the complete path for mobile, reduced motion, graphics failure, and feature-off rollback.
+                Product-host compatibility remains awaiting real host smoke evidence before Dotify treats it as delivered. Later, hosts may choose to appear to
+                nearby listeners through approximate-area discovery only after W13 is accepted and W19 is activated under the delivered W18 privacy contract:
+                separate host/listener opt-in, exact coordinates kept off the network, logs, chain, Statement Store, and durable stores, sparse-area widening,
+                and no wallet-location binding. These are planned capabilities; reliable audio remains the pilot gate.
+              </p>
+            </li>
+            <li>
+              <p class="horizon-label">Selected experience work</p>
+              <h3>Make the first listen, rooms, support, and the artist studio feel self-evident.</h3>
+              <p>
+                The September interface sequence now gives the first listening screen, room entry, solo player, support prompt, and artist workspace one clearer
+                hierarchy. Its shared visual contract defines the type roles, color semantics, icons, live states, responsive boundaries, and accessibility
+                checks that keep those surfaces coherent as Dotify evolves. French localization remains later, after the pilot. This polish does not replace the
+                Product, physical-device, room, payment, and rollback evidence required by the W13 pilot gate.
+                <a class="text-link" href="design/visual-system-contract.md">Read the visual-system contract</a>
+                or <a class="text-link" href="design/ux-design-audit-2026-09-17.md">review the audit and W21–W26 ordering</a>.
+              </p>
+            </li>
+            <li>
+              <p class="horizon-label">Deferred cultural expansion</p>
+              <h3>Subscription, ambassadors, and awards wait behind trust</h3>
+              <p>
+                Staking-based subscription, ambassador rewards, community music awards, and richer social memory stay behind the production spine. They become
+                candidates only after first sound is reliable, real Humanity / Individuality is privacy-reviewed, and provenance, consent, payment, and
+                anti-abuse boundaries are documented.
               </p>
             </li>
           </ol>
@@ -1550,14 +1630,9 @@
 
       <section class="manifesto" aria-labelledby="manifesto-title">
         <div class="manifesto-panel shell">
-          <blockquote id="manifesto-title">
-            A shared link is the front door. <em>Artist sovereignty</em> is the foundation.
-          </blockquote>
+          <blockquote id="manifesto-title">A shared link is the front door. <em>Artist sovereignty</em> is the foundation.</blockquote>
           <div class="manifesto-side">
-            <p>
-              Dotify is not a Spotify clone. It is a cultural social hub where music can reopen a commons
-              between people without dispossessing the artist.
-            </p>
+            <p>Dotify is not a Spotify clone. It is a cultural social hub where music can reopen a commons between people without dispossessing the artist.</p>
             <a class="button button-dark" href="context/dotify-philosophical-north-star.md">
               Read the north star
               <span class="arrow" aria-hidden="true">&#8594;</span>
@@ -1602,19 +1677,28 @@
               </a>
             </li>
             <li>
-              <a class="resource-link" href="backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md">
+              <a class="resource-link" href="explanation/product-devnet-architecture.md">
                 <span>
-                  <strong>Product SDK roadmap</strong>
-                  <span>How Dotify aligns with Product SDK, Playground, Statement Store, and Humanity.</span>
+                  <strong>Product DevNet architecture</strong>
+                  <span>What the Product host adapts now, what remains on Fly, and how runtime ports prepare CDM/PAPI.</span>
                 </span>
                 <span class="arrow" aria-hidden="true">&#8594;</span>
               </a>
             </li>
             <li>
-              <a class="resource-link" href="Dotify_presentation.pptx">
+              <a class="resource-link" href="backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md">
+                <span>
+                  <strong>Product SDK roadmap</strong>
+                  <span>The delivered Product baseline and the remaining CDM, signature, presence, and Humanity work.</span>
+                </span>
+                <span class="arrow" aria-hidden="true">&#8594;</span>
+              </a>
+            </li>
+            <li>
+              <a class="resource-link" href="presentation/dotify-showcase-2026.pdf">
                 <span>
                   <strong>Project presentation</strong>
-                  <span>The downloadable Dotify presentation deck.</span>
+                  <span>The downloadable Dotify showcase deck as PDF.</span>
                 </span>
                 <span class="arrow" aria-hidden="true">&#8599;</span>
               </a>

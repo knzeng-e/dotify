@@ -20,6 +20,7 @@ const catalog = useCatalog({
   directoryAddress,
   setShowWalletModal,
   setTransactionFeedback,
+  activeView,
   navigateToView,
   getActiveWalletClient,
   setBulletinManifestRef,
@@ -61,12 +62,20 @@ const catalog = useCatalog({
 | `checkTrackAccess`           | `(track: CatalogTrack, address: 0x${string} \| null) => Promise<boolean>`                                | Calls `musicAccCanAccess` on the artist's SmartRuntime. Returns `true` if access is granted.                                                                  |
 | `handleAudioFile`            | `(event: ChangeEvent<HTMLInputElement>) => Promise<void>`                                                | Hash, encrypt, and begin uploading an audio file. Updates `audioSource`, `fileHash`, `audioCID`.                                                              |
 | `handleCoverFile`            | `(event: ChangeEvent<HTMLInputElement>) => void`                                                         | Begin uploading a cover image. Updates `coverSource`, `coverCID`.                                                                                             |
-| `payForTrackAccess`          | `(track: CatalogTrack) => Promise<void>`                                                                 | Submits `musicRoyPayAccess` with the track's price. On success, re-selects the track with full access.                                                        |
+| `payForTrackAccess`          | `(track: CatalogTrack, socketEmit?, setLocalStreamReady?, closeHostPeers?) => Promise<void>`             | Build and submit a Classic unlock payment, then restore full access on success.                                                                               |
 | `setSelectedTrackId`         | `(id: string) => void`                                                                                   | Direct setter, used when clearing the draft upload state.                                                                                                     |
 | `setTrackInfo`               | `(info: TrackInfo \| null) => void`                                                                      | Direct setter, used by `useSession` to update from room track events.                                                                                         |
 | `setPlayerState`             | `(state: PlayerState \| null) => void`                                                                   | Direct setter, used by `useSession` to sync remote player state.                                                                                              |
 | `setAccessGate`              | `(gate: AccessGate \| null) => void`                                                                     | Direct setter, used to dismiss the access gate.                                                                                                               |
 | `setCoverSource`             | `(url: string) => void`                                                                                  | Direct setter, used when selecting a catalog track to update the player cover.                                                                                |
+
+`payForTrackAccess` builds its native runtime payment intent from the
+authoritative on-chain `pricePlanck` when available; `priceDot` is display only.
+The displayed payment symbol is derived from the configured chain's native
+currency. If the user changes track or view while a transaction is pending,
+success still records access but does not force navigation back to the player.
+Room callers pass the same session callbacks as `selectTrack`, so an in-room
+Classic unlock can refresh the host stream and room metadata.
 
 #### Refs (pass-through to views)
 
@@ -203,9 +212,13 @@ const artist = useArtistConsole({
 | `isRefreshingArtistRuntime` | `boolean`             | `true` while `refreshArtistRuntime()` is running                  |
 | `bulletinManifestRef`       | `string`              | Bulletin archive ref for the last registered track                |
 | `rightsStatus`              | `string`              | Human-readable status of the current release operation            |
-| `royaltyPayments`           | `RoyaltyPayment[]`    | All payment events for the artist's tracks                        |
+| `royaltyPayments`           | `RoyaltyPayment[]`    | Per-recipient paid, claimable, claimed, and legacy royalty events  |
+| `claimableRoyaltyWei`       | `bigint`              | Native-token royalty amount currently claimable across known runtimes by the connected recipient |
+| `royaltyRuntimeSummaries`   | `RoyaltyRuntimeSummary[]` | Known runtimes where the connected wallet can inspect claimable recipient balances |
+| `hasKnownRoyaltyRuntime`    | `boolean`             | `true` when the wallet has an artist runtime or appears in known royalty splits |
 | `royaltyStatus`             | `string`              | Human-readable royalty ledger status                              |
 | `isRefreshingRoyalties`     | `boolean`             | `true` while royalties are being fetched                          |
+| `isClaimingRoyalties`       | `boolean`             | `true` while a royalty claim transaction is being confirmed        |
 | `expandedRoyaltyPaymentId`  | `string \| null`      | ID of the royalty entry currently expanded in the UI              |
 
 #### Functions
@@ -215,7 +228,8 @@ const artist = useArtistConsole({
 | `registerArtist`              | `() => Promise<void>`                                  | Bootstrap and finalize a SmartRuntime for the active address via `ArtistRuntimeFactory`.            |
 | `refreshArtistRuntime`        | `(showBusy?: boolean) => Promise<0x${string} \| null>` | Check `ArtistDirectory` for the active address. Updates `artistRuntimeAddress`.                    |
 | `registerRights`              | `() => Promise<void>`                                  | Full release publish flow: IPFS upload → optional Bulletin → `musicRegRegister()`.                 |
-| `refreshArtistRoyalties`      | `(showBusy?: boolean) => Promise<void>`                | Fetch all `MusicRoyAccessPaid` logs for the artist's runtime.                                      |
+| `refreshArtistRoyalties`      | `(showBusy?: boolean) => Promise<void>`                | Fetch settlement history and direct claimable balances across known runtimes for the active recipient. |
+| `claimRoyalties`              | `() => Promise<void>`                                  | Submit `musicRoyClaim(activeEvmAddress)` for every known runtime with pending funds, wait for confirmation, and re-read balances. |
 | `updateArtistName`            | `(name: string) => void`                               | Update artist name in state and persist to `localStorage`.                                         |
 | `getActiveWalletClient`       | `() => Promise<WalletClient>`                          | Returns the viem `WalletClient` for the connected artist wallet. Throws if no wallet is connected. |
 | `setUploadToBulletinEnabled`  | `(enabled: boolean) => void`                           | Toggle Bulletin archival for the next release.                                                     |

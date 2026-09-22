@@ -14,7 +14,7 @@
 // host heartbeat, per-room listener cap, structured lifecycle logs, and a
 // status endpoint exposing public room metadata.
 
-import { randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
@@ -26,7 +26,9 @@ import {
   normalizeRoomId,
   sanitizeChatText,
   sanitizePlayerState,
+  snapshotPlayerState,
   sanitizeReactionEmoji,
+  sanitizeLineupItem,
   sanitizeText,
   sanitizeTrack,
   sanitizeTrackHash
@@ -55,6 +57,9 @@ export const defaultConfig = {
   // playback -- the server never claims it auto-plays.
   requestQueueLimit: 20,
   requestRateLimit: { limit: 5, windowMs: 10_000 },
+  // Host-curated playback order. Metadata only; source and manifest refs are
+  // stripped by sanitizeLineupItem before the list reaches any listener.
+  lineupLimit: 12,
   // Join/reconnect throttle keyed by network address. Chat and reaction
   // limits stay per-socket so co-located listeners each keep their own budget
   // (Dotify's core scenario is people physically together on one network).
@@ -67,6 +72,13 @@ export const defaultConfig = {
   // guaranteed to set it. Off by default (raw socket address) so a bare demo
   // deployment cannot be spoofed via a forged header.
   trustProxy: false,
+  // Native hosts/webviews may omit Origin entirely on Socket.IO handshakes.
+  // This does not allow the literal "null" origin from sandboxed/file pages.
+  allowMissingOrigin: false,
+  // Shared only with the backend API. It signs a short-lived proof that the
+  // requesting socket currently belongs to a room; it never reaches clients.
+  turnCapabilitySecret: '',
+  turnCapabilityTtlMs: 2 * 60 * 1000,
   logger: line => console.log(line)
 };
 
@@ -86,12 +98,24 @@ export function readConfigFromEnv(env = process.env) {
     roomTtlMs: Number(env.SIGNAL_ROOM_TTL_MS ?? defaultConfig.roomTtlMs),
     hostHeartbeatTimeoutMs: Number(env.SIGNAL_HOST_TIMEOUT_MS ?? defaultConfig.hostHeartbeatTimeoutMs),
     maxListenersPerRoom: Number(env.SIGNAL_MAX_LISTENERS ?? defaultConfig.maxListenersPerRoom),
-    trustProxy: /^(1|true|yes)$/i.test(String(env.SIGNAL_TRUST_PROXY ?? '').trim())
+    trustProxy: /^(1|true|yes)$/i.test(String(env.SIGNAL_TRUST_PROXY ?? '').trim()),
+    allowMissingOrigin: /^(1|true|yes)$/i.test(String(env.SIGNAL_ALLOW_MISSING_ORIGIN ?? '').trim()),
+    turnCapabilitySecret: String(env.SIGNAL_TURN_CAPABILITY_SECRET ?? '').trim(),
+    turnCapabilityTtlMs: Math.min(5 * 60 * 1000, Math.max(30 * 1000, Number(env.SIGNAL_TURN_CAPABILITY_TTL_MS ?? defaultConfig.turnCapabilityTtlMs)))
   };
+}
+
+export function isSignalingOriginAllowed(origin, config) {
+  if (config.origins === '*') return true;
+  if (!origin) return Boolean(config.allowMissingOrigin);
+  return config.origins.includes(origin.replace(/\/$/, ''));
 }
 
 export function startSignalingServer(overrides = {}) {
   const config = { ...defaultConfig, ...overrides };
+  if (config.turnCapabilitySecret && config.turnCapabilitySecret.length < 32) {
+    throw new Error('SIGNAL_TURN_CAPABILITY_SECRET must contain at least 32 characters');
+  }
   const rooms = new Map();
   // One ephemeral solo-listening declaration per connected socket. No wallet,
   // address, IP, or durable profile is exposed; public clients receive only
@@ -110,9 +134,7 @@ export function startSignalingServer(overrides = {}) {
   }
 
   function isOriginAllowed(origin) {
-    if (config.origins === '*') return true;
-    if (!origin) return false;
-    return config.origins.includes(origin.replace(/\/$/, ''));
+    return isSignalingOriginAllowed(origin, config);
   }
 
   function corsHeaders(request) {
@@ -124,7 +146,7 @@ export function startSignalingServer(overrides = {}) {
 
     if (config.origins === '*') {
       headers['access-control-allow-origin'] = '*';
-    } else if (isOriginAllowed(origin)) {
+    } else if (origin && isOriginAllowed(origin)) {
       headers['access-control-allow-origin'] = origin;
     }
 
@@ -151,6 +173,8 @@ export function startSignalingServer(overrides = {}) {
         // Non-secret configuration echo (ticket 10): lets an operator confirm
         // which origin policy and room lifetimes a deployment is running.
         allowedOrigins: config.origins,
+        allowMissingOrigin: config.allowMissingOrigin,
+        turnCapabilityConfigured: Boolean(config.turnCapabilitySecret),
         roomTtlMs: config.roomTtlMs,
         hostHeartbeatTimeoutMs: config.hostHeartbeatTimeoutMs,
         maxListenersPerRoom: config.maxListenersPerRoom
@@ -169,7 +193,17 @@ export function startSignalingServer(overrides = {}) {
 
   const io = new Server(httpServer, {
     allowRequest: (request, callback) => {
-      callback(null, isOriginAllowed(request.headers.origin));
+      const origin = request.headers.origin;
+      const allowed = isOriginAllowed(origin);
+      if (!allowed) {
+        logEvent('origin:rejected', {
+          origin: origin ?? '<missing>',
+          referer: request.headers.referer ?? '',
+          userAgent: request.headers['user-agent'] ?? '',
+          url: request.url ?? ''
+        });
+      }
+      callback(null, allowed);
     },
     cors: { origin: config.origins === '*' ? '*' : config.origins, methods: ['GET', 'POST'] }
   });
@@ -188,12 +222,16 @@ export function startSignalingServer(overrides = {}) {
       listenersNeedWalletAccess: false,
       createdAt: room.createdAt,
       expiresAt: room.createdAt + config.roomTtlMs,
-      listenerCount: room.listeners.size
+      listenerCount: room.listeners.size,
+      maxListeners: config.maxListenersPerRoom,
+      isFull: room.listeners.size >= config.maxListenersPerRoom
     };
   }
 
   function publicRooms() {
-    return Array.from(rooms.entries()).map(([roomId, room]) => publicRoom(roomId, room));
+    return Array.from(rooms.entries())
+      .filter(([, room]) => Boolean(room.hostId))
+      .map(([roomId, room]) => publicRoom(roomId, room));
   }
 
   function emitRooms() {
@@ -243,6 +281,51 @@ export function startSignalingServer(overrides = {}) {
     room.lastHostSeenAt = Date.now();
   }
 
+  function createHostResumeCredential() {
+    const token = randomBytes(32).toString('base64url');
+    return {
+      token,
+      hash: createHash('sha256').update(token).digest()
+    };
+  }
+
+  function matchesHostResumeToken(room, token) {
+    if (typeof token !== 'string' || token.length < 32) return false;
+    const candidate = createHash('sha256').update(token).digest();
+    return candidate.length === room.hostResumeTokenHash.length && timingSafeEqual(candidate, room.hostResumeTokenHash);
+  }
+
+  function currentRoomMembership(socket) {
+    const roomId = socket.data.roomId;
+    const role = socket.data.role;
+    const room = typeof roomId === 'string' ? rooms.get(roomId) : null;
+    if (!room || (role !== 'host' && role !== 'listener')) return null;
+    if (role === 'host' && room.hostId !== socket.id) return null;
+    if (role === 'listener' && !room.listeners.has(socket.id)) return null;
+    return { roomId, role };
+  }
+
+  function issueTurnCapability(socket, now = Date.now()) {
+    if (!config.turnCapabilitySecret) return null;
+    const membership = currentRoomMembership(socket);
+    if (!membership) return null;
+    const iat = Math.floor(now / 1000);
+    const exp = Math.floor((now + config.turnCapabilityTtlMs) / 1000);
+    const payload = Buffer.from(
+      JSON.stringify({
+        v: 1,
+        aud: 'dotify-turn',
+        roomId: membership.roomId,
+        participantId: socket.id,
+        role: membership.role,
+        iat,
+        exp
+      })
+    ).toString('base64url');
+    const signature = createHmac('sha256', config.turnCapabilitySecret).update(payload).digest('base64url');
+    return { token: `${payload}.${signature}`, expiresAt: exp * 1000 };
+  }
+
   io.on('connection', socket => {
     socket.emit('rooms:updated', publicRooms());
     socket.emit('presence:solo:updated', publicSoloPresence());
@@ -261,12 +344,27 @@ export function startSignalingServer(overrides = {}) {
       emitSoloPresence();
     });
 
+    socket.on('room:turn-capability', (_payload = {}, reply) => {
+      if (!config.turnCapabilitySecret) {
+        reply?.({ ok: false, error: 'Room relay authorization is not configured.', code: 'TURN_CAPABILITY_NOT_CONFIGURED' });
+        return;
+      }
+      const capability = issueTurnCapability(socket);
+      if (!capability) {
+        reply?.({ ok: false, error: 'Join or open a room before requesting relay access.', code: 'ROOM_MEMBERSHIP_REQUIRED' });
+        return;
+      }
+      reply?.({ ok: true, capability: capability.token, expiresAt: capability.expiresAt });
+    });
+
     socket.on('room:create', (payload = {}, reply) => {
       leaveRoom(socket);
 
       const roomId = createRoomId(rooms);
+      const resumeCredential = createHostResumeCredential();
       const room = {
         hostId: socket.id,
+        hostResumeTokenHash: resumeCredential.hash,
         hostName: sanitizeText(payload.displayName, 'Host', 32),
         listeners: new Map(),
         track: sanitizeTrack(payload.track),
@@ -275,7 +373,9 @@ export function startSignalingServer(overrides = {}) {
         chat: [],
         // Collaborative request queue: same in-room-only doctrine as chat.
         requests: [],
+        lineup: [],
         playerState: null,
+        playerStateReceivedAt: 0,
         playbackMode: payload.playbackMode === 'preview' ? 'preview' : 'full',
         createdAt: Date.now(),
         lastHostSeenAt: Date.now()
@@ -286,8 +386,68 @@ export function startSignalingServer(overrides = {}) {
       socket.data.role = 'host';
       socket.join(roomId);
 
-      logEvent('room:created', { roomId, hostName: room.hostName, track: room.track?.title ?? null });
-      reply?.({ ok: true, roomId, hostName: room.hostName, expiresAt: room.createdAt + config.roomTtlMs });
+      logEvent('room:created', {
+        roomId,
+        hostName: room.hostName,
+        track: room.track?.title ?? null,
+        transport: socket.conn.transport.name
+      });
+      reply?.({
+        ok: true,
+        roomId,
+        hostName: room.hostName,
+        hostResumeToken: resumeCredential.token,
+        expiresAt: room.createdAt + config.roomTtlMs
+      });
+      emitRooms();
+    });
+
+    socket.on('room:resume', (payload = {}, reply) => {
+      const roomId = normalizeRoomId(payload.roomId);
+      const room = rooms.get(roomId);
+      if (!room) {
+        reply?.({ ok: false, error: 'Room not found. It may have ended or expired.', code: 'ROOM_NOT_FOUND' });
+        return;
+      }
+      if (!matchesHostResumeToken(room, payload.hostResumeToken)) {
+        reply?.({ ok: false, error: 'This host session cannot resume the room.', code: 'INVALID_HOST_RESUME_TOKEN' });
+        return;
+      }
+      if (room.hostId && room.hostId !== socket.id) {
+        reply?.({ ok: false, error: 'The room host is already connected.', code: 'HOST_ALREADY_CONNECTED' });
+        return;
+      }
+
+      if (socket.data.role !== 'host' || socket.data.roomId !== roomId) leaveRoom(socket);
+      room.hostId = socket.id;
+      socket.data.roomId = roomId;
+      socket.data.role = 'host';
+      socket.join(roomId);
+      touchHost(room);
+
+      logEvent('room:resumed', {
+        roomId,
+        hostName: room.hostName,
+        listenerCount: room.listeners.size,
+        transport: socket.conn.transport.name
+      });
+      reply?.({
+        ok: true,
+        roomId,
+        hostName: room.hostName,
+        listenerCount: room.listeners.size,
+        listeners: listenerRoster(room),
+        lineup: room.lineup,
+        expiresAt: room.createdAt + config.roomTtlMs
+      });
+      io.to(roomId).emit('room:host-connection', { status: 'online' });
+      for (const listener of room.listeners.values()) {
+        socket.emit('listener:ready', {
+          listenerId: listener.id,
+          displayName: listener.displayName,
+          listenerCount: room.listeners.size
+        });
+      }
       emitRooms();
     });
 
@@ -308,6 +468,10 @@ export function startSignalingServer(overrides = {}) {
       const room = rooms.get(roomId);
       if (!room) {
         reply?.({ ok: false, error: 'Room not found. It may have ended or expired.', code: 'ROOM_NOT_FOUND' });
+        return;
+      }
+      if (!room.hostId) {
+        reply?.({ ok: false, error: 'The room host is reconnecting. Try again in a moment.', code: 'HOST_RECONNECTING' });
         return;
       }
       if (room.listeners.size >= config.maxListenersPerRoom) {
@@ -334,10 +498,11 @@ export function startSignalingServer(overrides = {}) {
         hostName: room.hostName,
         listenerCount,
         track: room.track,
-        playerState: room.playerState,
+        playerState: snapshotPlayerState(room.playerState, room.playerStateReceivedAt),
         playbackMode: room.playbackMode,
         chatHistory: room.chat,
         requests: room.requests,
+        lineup: room.lineup,
         listeners: listenerRoster(room),
         expiresAt: room.createdAt + config.roomTtlMs
       });
@@ -357,9 +522,33 @@ export function startSignalingServer(overrides = {}) {
       if (!room) return;
 
       touchHost(room);
-      room.track = sanitizeTrack(track);
+      const nextTrack = sanitizeTrack(track);
+      if (room.track?.hash !== nextTrack?.hash || room.track?.title !== nextTrack?.title) {
+        room.playerState = null;
+        room.playerStateReceivedAt = 0;
+        socket.to(socket.data.roomId).emit('player:state', null);
+      }
+      room.track = nextTrack;
       socket.to(socket.data.roomId).emit('room:track', room.track);
       emitRooms();
+    });
+
+    socket.on('room:lineup', (payload = []) => {
+      const room = getHostedRoom(socket);
+      if (!room || !Array.isArray(payload)) return;
+
+      touchHost(room);
+      const seen = new Set();
+      room.lineup = payload
+        .slice(0, config.lineupLimit * 2)
+        .map(sanitizeLineupItem)
+        .filter(item => {
+          if (!item || seen.has(item.trackId)) return false;
+          seen.add(item.trackId);
+          return true;
+        })
+        .slice(0, config.lineupLimit);
+      io.to(socket.data.roomId).emit('room:lineup', room.lineup);
     });
 
     // Host-declared playback mode: 'full' when the host satisfies the track
@@ -418,6 +607,7 @@ export function startSignalingServer(overrides = {}) {
 
       touchHost(room);
       room.playerState = sanitizePlayerState(state);
+      room.playerStateReceivedAt = Date.now();
       socket.to(socket.data.roomId).emit('player:state', room.playerState);
       emitRooms();
     });
@@ -459,13 +649,25 @@ export function startSignalingServer(overrides = {}) {
       });
     });
 
-    socket.on('room:chat', (payload = {}) => {
+    socket.on('room:chat', (payload = {}, ack) => {
+      const reply = result => {
+        if (typeof ack === 'function') ack(result);
+      };
       const participant = getParticipant(socket);
-      if (!participant) return;
-      if (!chatLimiter.allow(socket.id)) return;
+      if (!participant) {
+        reply({ ok: false, message: 'Reconnect to the room before sending.' });
+        return;
+      }
+      if (!chatLimiter.allow(socket.id)) {
+        reply({ ok: false, message: 'A little too fast. Try again in a moment.' });
+        return;
+      }
 
       const text = sanitizeChatText(payload.text);
-      if (!text) return;
+      if (!text) {
+        reply({ ok: false, message: 'Write a message first.' });
+        return;
+      }
 
       if (participant.role === 'host') touchHost(participant.room);
       const message = {
@@ -481,22 +683,36 @@ export function startSignalingServer(overrides = {}) {
         participant.room.chat.shift();
       }
       io.to(participant.roomId).emit('room:chat', message);
+      reply({ ok: true });
     });
 
     // Collaborative request queue. Any participant proposes a track to hear
     // next; the host vetoes or clears. Every mutation broadcasts the full
     // list (room:requests) so the queue has a single server-authoritative
     // render path, exactly like chat -- no optimistic divergence.
-    socket.on('room:request', (payload = {}) => {
+    socket.on('room:request', (payload = {}, ack) => {
+      const reply = result => {
+        if (typeof ack === 'function') ack(result);
+      };
       const participant = getParticipant(socket);
-      if (!participant) return;
-      if (!requestLimiter.allow(socket.id)) return;
+      if (!participant) {
+        reply({ ok: false, message: 'Reconnect to the room before sending.' });
+        return;
+      }
+      if (!requestLimiter.allow(socket.id)) {
+        reply({ ok: false, message: 'A little too fast. Try again in a moment.' });
+        return;
+      }
 
       const text = sanitizeChatText(payload.text, REQUEST_TEXT_MAX_LENGTH);
-      if (!text) return;
-      // When the queue is full we drop silently (fail closed); the host
-      // vetoes or clears to make room. No error channel to probe.
-      if (participant.room.requests.length >= config.requestQueueLimit) return;
+      if (!text) {
+        reply({ ok: false, message: 'Name a track first.' });
+        return;
+      }
+      if (participant.room.requests.length >= config.requestQueueLimit) {
+        reply({ ok: false, message: 'Requests are full. Wait for the host to make room.' });
+        return;
+      }
 
       if (participant.role === 'host') touchHost(participant.room);
       participant.room.requests.push({
@@ -507,6 +723,7 @@ export function startSignalingServer(overrides = {}) {
         ts: Date.now()
       });
       io.to(participant.roomId).emit('room:requests', participant.room.requests);
+      reply({ ok: true });
     });
 
     // Host veto: remove one request by id. Host-only.
@@ -550,12 +767,60 @@ export function startSignalingServer(overrides = {}) {
       routePeerMessage(socket, payload.targetId, 'peer:connected', { from: socket.id }, 'listener', 'host');
     });
 
+    // Client-side WebRTC failures are otherwise invisible inside native
+    // Product webviews. Keep this deliberately metadata-only: no SDP, ICE
+    // candidates, IP addresses, media identifiers, or user agent strings.
+    socket.on('webrtc:diagnostic', (payload = {}) => {
+      const participant = getParticipant(socket);
+      if (!participant || !socket.rooms.has(participant.roomId)) return;
+
+      const states = new Set([
+        'new',
+        'connecting',
+        'connected',
+        'disconnected',
+        'failed',
+        'closed',
+        'checking',
+        'completed',
+        'gathering',
+        'stable',
+        'have-local-offer',
+        'have-remote-offer'
+      ]);
+      const safeState = value => (states.has(value) ? value : null);
+      const errorCode = Number(payload.errorCode);
+      logEvent('webrtc:diagnostic', {
+        roomId: participant.roomId,
+        sourceId: socket.id,
+        sourceRole: participant.role,
+        phase: sanitizeText(payload.phase, 'unknown', 80),
+        errorName: sanitizeText(payload.errorName, '', 80),
+        message: sanitizeText(payload.message, '', 240),
+        errorCode: Number.isSafeInteger(errorCode) ? errorCode : null,
+        peerConnectionAvailable: payload.peerConnectionAvailable === true,
+        turnRelayAvailable: payload.turnRelayAvailable === true,
+        protocol: sanitizeText(payload.protocol, '', 20),
+        embedded: payload.embedded === true,
+        connectionState: safeState(payload.connectionState),
+        iceConnectionState: safeState(payload.iceConnectionState),
+        iceGatheringState: safeState(payload.iceGatheringState),
+        signalingState: safeState(payload.signalingState)
+      });
+    });
+
     socket.on('listener:ready', () => {
       const roomId = socket.data.roomId;
       const room = rooms.get(roomId);
-      if (socket.data.role !== 'listener' || !room) return;
+      if (socket.data.role !== 'listener' || !room?.hostId) return;
 
       const listener = room.listeners.get(socket.id);
+      logEvent('listener:ready', {
+        roomId,
+        listenerId: socket.id,
+        hostId: room.hostId,
+        listenerCount: room.listeners.size
+      });
       io.to(room.hostId).emit('listener:ready', {
         listenerId: socket.id,
         displayName: listener?.displayName ?? 'Listener',
@@ -568,7 +833,7 @@ export function startSignalingServer(overrides = {}) {
     });
 
     socket.on('room:leave', () => leaveRoom(socket));
-    socket.on('disconnect', () => leaveRoom(socket));
+    socket.on('disconnect', reason => disconnectFromRoom(socket, reason));
   });
 
   // Sweep: enforce room TTL and host liveness so zombie rooms cannot pile up.
@@ -590,19 +855,60 @@ export function startSignalingServer(overrides = {}) {
   sweepTimer.unref?.();
 
   function routePeerMessage(sourceSocket, targetId, eventName, message, expectedSourceRole, expectedTargetRole) {
-    if (typeof targetId !== 'string' || !targetId) return;
+    const logPeerEvent = eventName !== 'webrtc:ice-candidate';
+    const logPeerDrop = reason => {
+      if (!logPeerEvent) return;
+      logEvent('peer:route-dropped', {
+        event: eventName,
+        reason,
+        sourceId: sourceSocket.id,
+        sourceRole: sourceSocket.data.role ?? null,
+        roomId: sourceSocket.data.roomId ?? null,
+        targetId: typeof targetId === 'string' ? targetId : null
+      });
+    };
+
+    if (typeof targetId !== 'string' || !targetId) {
+      logPeerDrop('missing-target');
+      return;
+    }
 
     const source = getParticipant(sourceSocket);
-    if (!source || !sourceSocket.rooms.has(source.roomId)) return;
-    if (expectedSourceRole && source.role !== expectedSourceRole) return;
+    if (!source || !sourceSocket.rooms.has(source.roomId)) {
+      logPeerDrop('invalid-source');
+      return;
+    }
+    if (expectedSourceRole && source.role !== expectedSourceRole) {
+      logPeerDrop('unexpected-source-role');
+      return;
+    }
 
     const targetSocket = io.sockets.sockets.get(targetId);
-    if (!targetSocket || !targetSocket.rooms.has(source.roomId)) return;
+    if (!targetSocket || !targetSocket.rooms.has(source.roomId)) {
+      logPeerDrop('target-not-in-room');
+      return;
+    }
 
     const target = getParticipant(targetSocket);
-    if (!target || target.roomId !== source.roomId || target.role === source.role) return;
-    if (expectedTargetRole && target.role !== expectedTargetRole) return;
+    if (!target || target.roomId !== source.roomId || target.role === source.role) {
+      logPeerDrop('invalid-target');
+      return;
+    }
+    if (expectedTargetRole && target.role !== expectedTargetRole) {
+      logPeerDrop('unexpected-target-role');
+      return;
+    }
 
+    if (logPeerEvent) {
+      logEvent('peer:route', {
+        event: eventName,
+        roomId: source.roomId,
+        sourceId: sourceSocket.id,
+        sourceRole: source.role,
+        targetId,
+        targetRole: target.role
+      });
+    }
     targetSocket.emit(eventName, message);
   }
 
@@ -655,7 +961,7 @@ export function startSignalingServer(overrides = {}) {
       room.listeners.delete(socket.id);
       const listenerCount = room.listeners.size;
       logEvent('room:left', { roomId, listenerId: socket.id, listenerCount });
-      io.to(room.hostId).emit('listener:left', { listenerId: socket.id, listenerCount });
+      if (room.hostId) io.to(room.hostId).emit('listener:left', { listenerId: socket.id, listenerCount });
       io.to(roomId).emit('room:listener-count', { listenerCount });
       emitListenerRoster(roomId, room);
       emitRooms();
@@ -663,6 +969,40 @@ export function startSignalingServer(overrides = {}) {
 
     clearSocketRoom(socket);
     socket.leave(roomId);
+  }
+
+  function disconnectFromRoom(socket, reason) {
+    clearSoloPresence(socket);
+    const roomId = socket.data.roomId;
+    const role = socket.data.role;
+    if (!roomId || !role) return;
+
+    const room = rooms.get(roomId);
+    if (!room) {
+      clearSocketRoom(socket);
+      return;
+    }
+
+    if (role === 'host' && room.hostId === socket.id) {
+      room.hostId = null;
+      touchHost(room);
+      clearSocketRoom(socket);
+      logEvent('room:host-disconnected', {
+        roomId,
+        listenerCount: room.listeners.size,
+        reason,
+        transport: socket.conn.transport.name,
+        resumeWindowMs: config.hostHeartbeatTimeoutMs
+      });
+      io.to(roomId).emit('room:host-connection', {
+        status: 'reconnecting',
+        resumeUntil: room.lastHostSeenAt + config.hostHeartbeatTimeoutMs
+      });
+      emitRooms();
+      return;
+    }
+
+    leaveRoom(socket);
   }
 
   function clearSocketRoom(socket) {
@@ -682,7 +1022,12 @@ export function startSignalingServer(overrides = {}) {
     listen() {
       return new Promise(resolve => {
         httpServer.listen(config.port, config.host, () => {
-          logEvent('server:listening', { host: config.host, port: httpServer.address().port, origins: config.origins });
+          logEvent('server:listening', {
+            host: config.host,
+            port: httpServer.address().port,
+            origins: config.origins,
+            allowMissingOrigin: config.allowMissingOrigin
+          });
           resolve(httpServer.address().port);
         });
       });

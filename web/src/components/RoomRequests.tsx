@@ -20,17 +20,24 @@ export function RoomRequests() {
   const session = useSessionContext();
   const { roomId, requestQueue, sendRoomRequest, removeRoomRequest, clearRoomRequests, mode } = session;
   const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
+  const connected = session.socketStatus === 'online';
   const selfId = session.socketRef.current?.id;
   const isHost = mode === 'host';
 
   if (!roomId) return null;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = draft.trim();
-    if (!text) return;
-    sendRoomRequest(text);
-    setDraft('');
+    if (!text || sending || !connected) return;
+    setSending(true);
+    setSendError('');
+    const result = await sendRoomRequest(text);
+    setSending(false);
+    if (result.ok) setDraft(current => (current.trim() === text ? '' : current));
+    else setSendError(result.message || 'Request not sent. Your draft is still here.');
   }
 
   return (
@@ -41,7 +48,7 @@ export function RoomRequests() {
         meta='the host picks'
         action={
           isHost && requestQueue.length > 0 ? (
-            <button className='room-req-clear' type='button' onClick={() => clearRoomRequests()}>
+            <button className='room-req-clear' type='button' disabled={!connected} onClick={() => clearRoomRequests()}>
               Clear
             </button>
           ) : undefined
@@ -66,6 +73,7 @@ export function RoomRequests() {
                 <button
                   className='room-req-veto'
                   type='button'
+                  disabled={!connected}
                   onClick={() => removeRoomRequest(request.id)}
                   aria-label={`Remove request from ${request.senderName}`}
                   title='Remove'
@@ -78,7 +86,12 @@ export function RoomRequests() {
         )}
       </div>
 
-      <form className='room-chat-form' onSubmit={handleSubmit}>
+      {(!connected || sendError) && (
+        <p className='room-chat-connection' role='status'>
+          {!connected ? 'Reconnecting. Your draft stays here.' : sendError}
+        </p>
+      )}
+      <form className='room-chat-form' onSubmit={event => void handleSubmit(event)} aria-busy={sending}>
         <input
           className='field'
           value={draft}
@@ -88,7 +101,7 @@ export function RoomRequests() {
           aria-label='Request a track'
           autoComplete='off'
         />
-        <button className='room-chat-send' type='submit' disabled={!draft.trim()} aria-label='Send request'>
+        <button className='room-chat-send' type='submit' disabled={!draft.trim() || sending || !connected} aria-label='Send request'>
           <Send size={16} />
         </button>
       </form>

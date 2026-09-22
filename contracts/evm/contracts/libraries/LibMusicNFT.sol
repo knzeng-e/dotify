@@ -1,9 +1,11 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only WITH Classpath-exception-2.0
 pragma solidity ^0.8.28;
 
 /// @title LibMusicNFT
 /// @notice Namespaced storage for music track NFT ownership.
-///         Each track token represents the original artist's rights deed.
+///         Each track token records transferable track ownership. It grants
+///         active-track playback access, but it does not rewrite the original
+///         artist field, runtime owner, or stored royalty beneficiaries.
 ///
 /// Storage slot: keccak256("smart.runtime.pallet.music-nft.storage")
 library LibMusicNFT {

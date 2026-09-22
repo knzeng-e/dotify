@@ -4,6 +4,8 @@
 // tested without a DOM. Callers in the browser rely on the window.location
 // defaults; tests pass explicit strings.
 
+import { isChosenDisplayName, sanitizeDisplayName } from '../identity/walletIdentity';
+
 /**
  * Read the room code from a share link hash.
  * Preferred form `#/rooms/<id>`, with legacy `#/?room=<id>` still honored.
@@ -35,4 +37,26 @@ export function buildSessionLink(roomId: string, href: string = typeof window ==
 /** People present in a room: listeners plus the host, or 0 when not in a room. */
 export function roomPresenceCount(listenerCount: number, inRoom: boolean): number {
   return inRoom ? listenerCount + 1 : 0;
+}
+
+/** A room role or untouched seed must never be presented as a person's name. */
+export function roomHostDisplayName(hostName: string | null | undefined): string | null {
+  const clean = sanitizeDisplayName(hostName);
+  return isChosenDisplayName(clean) && clean.toLowerCase() !== 'host' ? clean : null;
+}
+
+/** Listener-facing host/audio state, kept short enough for the compact player roster. */
+export function roomListenerSyncLabel(remoteReady: boolean, sessionStatus: string): string {
+  if (remoteReady) return 'In sync';
+
+  const normalized = sessionStatus.trim().toLowerCase();
+  if (normalized.includes('browser required')) return 'Browser required';
+  if (normalized.includes('host reconnecting')) return 'Host reconnecting';
+  if (normalized.includes('retrying')) return 'Retrying audio';
+  if (normalized.includes('reconnecting')) return 'Reconnecting';
+  if (normalized.includes('audio connection failed') || normalized.includes('webrtc error') || normalized.includes('audio blocked')) return 'Audio interrupted';
+  if (normalized.includes('negotiating') || normalized.includes('connecting audio')) return 'Connecting audio';
+  if (normalized.includes('waiting')) return 'Waiting for host';
+
+  return 'Waiting for host';
 }

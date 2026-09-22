@@ -7,6 +7,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import type { TransactionFeedback, UiNotice } from '../../shared/types';
 
+export type WalletModalReason = 'account' | 'support' | 'artist';
+
 type UiFeedbackValue = {
   transactionFeedback: TransactionFeedback | null;
   setTransactionFeedback: Dispatch<SetStateAction<TransactionFeedback | null>>;
@@ -15,6 +17,8 @@ type UiFeedbackValue = {
   dismissNotice: (id: string) => void;
   showWalletModal: boolean;
   setShowWalletModal: Dispatch<SetStateAction<boolean>>;
+  walletModalReason: WalletModalReason;
+  openWalletModal: (reason?: WalletModalReason) => void;
 };
 
 const UiFeedbackContext = createContext<UiFeedbackValue | null>(null);
@@ -23,6 +27,7 @@ export function UiFeedbackProvider({ children }: { children: ReactNode }) {
   const [transactionFeedback, setTransactionFeedback] = useState<TransactionFeedback | null>(null);
   const [notices, setNotices] = useState<UiNotice[]>([]);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [walletModalReason, setWalletModalReason] = useState<WalletModalReason>('account');
 
   // Escape closes a settled transaction modal; a pending one stays put so the
   // user cannot dismiss an in-flight signature/broadcast by accident.
@@ -44,9 +49,24 @@ export function UiFeedbackProvider({ children }: { children: ReactNode }) {
     setNotices(previous => previous.filter(notice => notice.id !== id));
   }, []);
 
+  const openWalletModal = useCallback((reason: WalletModalReason = 'account') => {
+    setWalletModalReason(reason);
+    setShowWalletModal(true);
+  }, []);
+
   const value = useMemo<UiFeedbackValue>(
-    () => ({ transactionFeedback, setTransactionFeedback, notices, pushNotice, dismissNotice, showWalletModal, setShowWalletModal }),
-    [transactionFeedback, notices, pushNotice, dismissNotice, showWalletModal]
+    () => ({
+      transactionFeedback,
+      setTransactionFeedback,
+      notices,
+      pushNotice,
+      dismissNotice,
+      showWalletModal,
+      setShowWalletModal,
+      walletModalReason,
+      openWalletModal
+    }),
+    [transactionFeedback, notices, pushNotice, dismissNotice, showWalletModal, walletModalReason, openWalletModal]
   );
 
   return <UiFeedbackContext.Provider value={value}>{children}</UiFeedbackContext.Provider>;

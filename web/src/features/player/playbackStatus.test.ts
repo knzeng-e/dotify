@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { playbackStatusLabel, transportProgressPercent, type AudioStatus } from './playbackStatus';
+import { listenerPlaybackStatusForHostState, playbackStatusLabel, transportProgressPercent, type AudioStatus } from './playbackStatus';
 
 describe('playbackStatusLabel', () => {
   it('returns mode-neutral labels for transient states', () => {
     expect(playbackStatusLabel('preparing', 'host')).toBe('Preparing audio');
+    expect(playbackStatusLabel('preparing', 'host', 'Receiving first audio bytes')).toBe('Receiving first audio bytes');
     expect(playbackStatusLabel('autoplay-blocked', 'listener')).toBe('Tap play to start');
     expect(playbackStatusLabel('joining', 'listener')).toBe('Joining live audio');
     expect(playbackStatusLabel('no-audio', 'host')).toBe('No audio available');
     expect(playbackStatusLabel('idle', 'host')).toBe('');
+    expect(playbackStatusLabel('idle', 'host', 'Checking access')).toBe('Checking access');
   });
 
   it('phrases playing and ready differently for host vs listener', () => {
@@ -15,6 +17,9 @@ describe('playbackStatusLabel', () => {
     expect(playbackStatusLabel('playing', 'listener')).toBe('In sync');
     expect(playbackStatusLabel('ready', 'host')).toBe('Hosting');
     expect(playbackStatusLabel('ready', 'listener')).toBe('Connected');
+    expect(playbackStatusLabel('host-paused', 'listener')).toBe('Host paused');
+    expect(playbackStatusLabel('listener-paused', 'listener')).toBe('Paused for you');
+    expect(playbackStatusLabel('syncing', 'listener')).toBe('Syncing with host');
   });
 
   it('falls back for an unknown status', () => {
@@ -36,5 +41,22 @@ describe('transportProgressPercent', () => {
   it('is 0 when duration is zero or invalid', () => {
     expect(transportProgressPercent(10, 0)).toBe(0);
     expect(transportProgressPercent(10, Number.NaN)).toBe(0);
+  });
+});
+
+describe('listenerPlaybackStatusForHostState', () => {
+  it('keeps autoplay-blocked visible across host playback ticks', () => {
+    expect(listenerPlaybackStatusForHostState('autoplay-blocked', true, true, false)).toBe('autoplay-blocked');
+  });
+
+  it('keeps no-audio visible until the listener retries the room audio', () => {
+    expect(listenerPlaybackStatusForHostState('no-audio', true, true, false)).toBe('no-audio');
+  });
+
+  it('maps normal listener state from remote stream readiness and host playback', () => {
+    expect(listenerPlaybackStatusForHostState('joining', false, true, false)).toBe('joining');
+    expect(listenerPlaybackStatusForHostState('joining', true, true, false)).toBe('playing');
+    expect(listenerPlaybackStatusForHostState('playing', true, true, true)).toBe('listener-paused');
+    expect(listenerPlaybackStatusForHostState('playing', true, false, false)).toBe('host-paused');
   });
 });

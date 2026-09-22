@@ -4,7 +4,7 @@
 uploads. The on-chain `audioRef` is:
 
 ```txt
-dotify:enc:v2:ipfs://<CID>
+dotify:enc:v2:key-vN:ipfs://<CID>
 ```
 
 The CID points to one IPFS object. That object contains a small `DAV2` header
@@ -61,9 +61,21 @@ ciphertext || gcmTag(16 bytes)
 ```
 
 The `contentHash` is the blake2b-256 hash of the raw audio before encryption.
-The content key is derived by the backend from `CONTENT_KEY_MASTER_SECRET` and
-the same `contentHash`; key delivery uses the same derivation after access is
-approved.
+For new backend uploads, the content key is derived from the active
+server-side version secret. The version in `audioRef` selects the retained
+secret and is included in the release-bound scope:
+
+```txt
+dotify-content-key-vN:<chainId>:<runtimeAddress>:<contentHash>
+```
+
+Key delivery uses the same scope only after the backend resolves the canonical
+catalog release and confirms the current target-runtime track. The default
+active version remains `dotify-content-key-v2`; operators can configure a new
+active version for future uploads while retaining old version secrets for old
+ciphertext. Older DAV2 refs that use `dotify:enc:v2:ipfs://<CID>` remain
+legacy v1 assets derived only from `contentHash`; duplicate legacy hashes are
+refused because the key scope cannot distinguish releases.
 
 ## Playback Contract
 
@@ -71,12 +83,12 @@ The web client resolves refs in this order:
 
 1. Request the content key from the backend. Free tracks use the unauthenticated
    free-key path; gated tracks use the signed session path.
-2. For v2 refs, try bounded Range requests against configured IPFS gateways.
-   Header and first-chunk reads are hedged to a second gateway when the first
-   one stalls, and the winning gateway is cached per CID for the browser
-   session.
+2. For v2 refs, try bounded Range requests against Pinata gateways known to
+   support browser CORS/range fetches. Header and first-chunk reads are hedged
+   when more than one eligible gateway is configured, and the winning gateway is
+   cached per CID for the browser session.
 3. If the browser supports `MediaSource.isTypeSupported(header.mediaMime)`,
-   import the content key once, prepare the current chunk plus two future chunks,
+   import the content key once, prepare the current chunk plus one future chunk,
    and append clear chunks to a `SourceBuffer` in strict index order.
 4. If Range or MSE is unavailable before streaming starts, or a recoverable
    gateway/MSE append error happens while streaming, fetch the full encrypted
@@ -84,8 +96,9 @@ The web client resolves refs in this order:
 5. If any chunk fails authentication, stop playback and surface a protected
    playback error.
 
-Legacy refs with `dotify:enc:ipfs://<CID>` remain supported through the v1
-full-file decrypt path.
+Legacy refs with `dotify:enc:v2:ipfs://<CID>` remain DAV2 assets using the v1
+content-hash key scope. Legacy refs with `dotify:enc:ipfs://<CID>` remain
+supported through the v1 full-file decrypt path.
 
 ## Range and MSE Boundary
 
@@ -97,8 +110,8 @@ header is accepted after the byte-count check because some gateways do not expos
 it through CORS. Header ranges may be shorter only when a small object ends before
 the requested upper bound.
 
-The read-ahead window is deliberately small: the current chunk and two future
-chunks may be prepared, while only one clear chunk is appended at a time. Track
+The read-ahead window is deliberately small: the current chunk and one future
+chunk may be prepared, while only one clear chunk is appended at a time. Track
 selection cancellation aborts the pipeline and its in-flight gateway requests.
 This lowers dead air without turning public gateways into an unbounded fan-out
 or giving room guests any source/key access.

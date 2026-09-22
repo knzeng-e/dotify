@@ -32,6 +32,13 @@ Build the production spine first:
 
 ## Source of truth
 
+For the September 2026 staged delivery plan, start with
+`docs/backlog/implementation/README.md` and the selected sequence. Product DevNet
+is a first-class acceptance target alongside ordinary web. Responsive design
+and a bounded galaxy prototype may progress alongside reliability work; the
+public pilot still requires verified listening, access, and value flows. Create
+each implementation branch from current tested `dev` when work starts.
+
 Read these files before implementing:
 
 - `docs/backlog/README.md`

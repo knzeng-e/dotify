@@ -10,3 +10,5 @@ export { CatalogProvider, useCatalogContext } from './CatalogProvider';
 export { SessionProvider, useSessionContext } from './SessionProvider';
 export { ArtistStudioProvider, useArtistStudio } from './ArtistStudioProvider';
 export { PlaybackProvider, usePlaybackContext } from './PlaybackProvider';
+export { AudioStartupTelemetryProvider } from './AudioStartupTelemetryProvider';
+export { RoomQualityTelemetryProvider } from './RoomQualityTelemetryProvider';

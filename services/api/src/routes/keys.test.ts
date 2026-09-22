@@ -2,11 +2,23 @@ import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { createKeyRoutes, type KeyRouteDeps } from './keys.js';
+import { PRODUCT_SR25519_SIGNATURE_SCHEME, type KeySignatureRequest } from '../services/signatures.js';
+import type { CanonicalRelease } from '../services/chainAccess.js';
+import { LEGACY_CONTENT_KEY_VERSION, type ContentKeyDerivationScope } from '../services/keyVault.js';
 
 const CONTENT_HASH = `0x${'ab'.repeat(32)}`;
 const REQUESTER = '0x1111111111111111111111111111111111111111';
 const RUNTIME = '0x2222222222222222222222222222222222222222' as const;
+const ARTIST = '0x4444444444444444444444444444444444444444' as const;
 const KEY = `0x${'cd'.repeat(32)}` as const;
+const RELEASE_ID = `${RUNTIME}:${CONTENT_HASH}`;
+const AUDIO_REF = 'dotify:enc:v2:ipfs://legacy-cid';
+const KEY_SCOPE: ContentKeyDerivationScope = {
+  contentHash: CONTENT_HASH,
+  keyVersion: LEGACY_CONTENT_KEY_VERSION,
+  chainId: 420420417,
+  runtimeAddress: RUNTIME
+};
 
 function baseBody(overrides: Record<string, unknown> = {}) {
   return {
@@ -25,8 +37,8 @@ const SESSION_ADDRESS = '0x3333333333333333333333333333333333333333' as const;
 const allowAll: KeyRouteDeps = {
   verifySignedRequest: async () => ({ valid: true }),
   verifySessionToken: () => ({ valid: true, address: SESSION_ADDRESS, chainId: 420420417, jti: 'jti-1' }),
-  checkTrackAccess: async () => ({ allowed: true, runtime: RUNTIME }),
-  checkPublicAccess: async () => ({ allowed: true, runtime: RUNTIME }),
+  checkTrackAccess: async () => ({ allowed: true, runtime: RUNTIME, release: releaseIdentity(), keyScope: KEY_SCOPE }),
+  checkPublicAccess: async () => ({ allowed: true, runtime: RUNTIME, release: releaseIdentity(), keyScope: KEY_SCOPE }),
   deriveContentKey: () => ({ ok: true, contentKey: KEY })
 };
 
@@ -38,6 +50,28 @@ async function buildApp(deps: Partial<KeyRouteDeps> = {}): Promise<FastifyInstan
   return app;
 }
 
+function releaseIdentity(): CanonicalRelease {
+  return {
+    releaseId: RELEASE_ID,
+    contentHash: CONTENT_HASH as `0x${string}`,
+    runtimeAddress: RUNTIME,
+    artistAddress: ARTIST,
+    audioRef: AUDIO_REF,
+    keyVersion: LEGACY_CONTENT_KEY_VERSION,
+    sourceBlock: 10
+  };
+}
+
+function releaseRequestFields() {
+  return {
+    releaseId: RELEASE_ID,
+    runtimeAddress: RUNTIME,
+    artistAddress: ARTIST,
+    audioRef: AUDIO_REF,
+    keyVersion: LEGACY_CONTENT_KEY_VERSION
+  };
+}
+
 afterEach(async () => {
   if (app) await app.close();
   app = null;
@@ -45,7 +79,13 @@ afterEach(async () => {
 
 describe('POST /api/tracks/:contentHash/key-request', () => {
   it('delivers the content key when signature and on-chain access pass', async () => {
-    const server = await buildApp();
+    let keyInput: unknown = null;
+    const server = await buildApp({
+      deriveContentKey: input => {
+        keyInput = input;
+        return { ok: true, contentKey: KEY };
+      }
+    });
     const response = await server.inject({
       method: 'POST',
       url: `/api/tracks/${CONTENT_HASH}/key-request`,
@@ -58,6 +98,56 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
     assert.equal(body.playbackMode, 'full');
     assert.equal(body.contentKey, KEY);
     assert.equal(body.runtime, RUNTIME);
+    assert.deepEqual(keyInput, KEY_SCOPE);
+  });
+
+  it('passes canonical release identity through verification and access checks', async () => {
+    let verifiedRequest: KeySignatureRequest | null = null;
+    let accessRequest: unknown = null;
+    const server = await buildApp({
+      verifySignedRequest: async request => {
+        verifiedRequest = request;
+        return { valid: true };
+      },
+      checkTrackAccess: async request => {
+        accessRequest = request;
+        return { allowed: true, runtime: RUNTIME, release: releaseIdentity(), keyScope: KEY_SCOPE };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: baseBody(releaseRequestFields())
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual((verifiedRequest as KeySignatureRequest | null)?.release, releaseRequestFields());
+    assert.deepEqual((accessRequest as { release?: unknown }).release, releaseRequestFields());
+  });
+
+  it('rejects partial canonical release identity before verification or access checks', async () => {
+    let verificationCalled = false;
+    let accessChecked = false;
+    const server = await buildApp({
+      verifySignedRequest: async () => {
+        verificationCalled = true;
+        return { valid: true };
+      },
+      checkTrackAccess: async () => {
+        accessChecked = true;
+        return { allowed: true, runtime: RUNTIME, release: releaseIdentity(), keyScope: KEY_SCOPE };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: baseBody({ releaseId: RELEASE_ID })
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().error, 'Invalid release identity');
+    assert.equal(verificationCalled, false);
+    assert.equal(accessChecked, false);
   });
 
   it('rejects room_listener purpose at the schema boundary', async () => {
@@ -83,6 +173,105 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
 
     assert.equal(response.statusCode, 401);
     assert.equal(response.json().code, 'SIGNATURE_INVALID');
+  });
+
+  it('passes Product sr25519 proof fields to signature verification', async () => {
+    let verifiedRequest: KeySignatureRequest | null = null;
+    const server = await buildApp({
+      verifySignedRequest: async request => {
+        verifiedRequest = request;
+        return { valid: true };
+      }
+    });
+    const productPublicKey = `0x${'22'.repeat(32)}`;
+    const signature = `0x${'33'.repeat(64)}`;
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: baseBody({
+        signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+        productPublicKey,
+        signature
+      })
+    });
+
+    assert.equal(response.statusCode, 200);
+    const productRequest = verifiedRequest as Extract<KeySignatureRequest, { signatureScheme: typeof PRODUCT_SR25519_SIGNATURE_SCHEME }> | null;
+    assert.ok(productRequest);
+    assert.equal(productRequest.signatureScheme, PRODUCT_SR25519_SIGNATURE_SCHEME);
+    assert.equal(productRequest.productPublicKey, productPublicKey);
+    assert.equal(productRequest.signature, signature);
+  });
+
+  it('rejects unknown signature schemes before verification or access checks', async () => {
+    let verificationCalled = false;
+    let accessChecked = false;
+    const server = await buildApp({
+      verifySignedRequest: async () => {
+        verificationCalled = true;
+        return { valid: true };
+      },
+      checkTrackAccess: async () => {
+        accessChecked = true;
+        return { allowed: true, runtime: RUNTIME, release: releaseIdentity(), keyScope: KEY_SCOPE };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: baseBody({ signatureScheme: 'product-unknown-v1' })
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(verificationCalled, false);
+    assert.equal(accessChecked, false);
+  });
+
+  it('forwards a MultiSignature-tagged Product signature to verification', async () => {
+    // 65-byte tagged signatures are a legitimate Substrate signRaw shape; the
+    // route must not reject them at the schema before the verifier can check
+    // the tag.
+    let verifiedRequest: KeySignatureRequest | null = null;
+    const server = await buildApp({
+      verifySignedRequest: async request => {
+        verifiedRequest = request;
+        return { valid: true };
+      }
+    });
+    const signature = `0x01${'33'.repeat(64)}`;
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: baseBody({
+        signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+        productPublicKey: `0x${'22'.repeat(32)}`,
+        signature
+      })
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal((verifiedRequest as KeySignatureRequest | null)?.signature, signature);
+  });
+
+  it('requires Product public key for Product sr25519 requests', async () => {
+    let verificationCalled = false;
+    const server = await buildApp({
+      verifySignedRequest: async () => {
+        verificationCalled = true;
+        return { valid: true };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: baseBody({
+        signatureScheme: PRODUCT_SR25519_SIGNATURE_SCHEME,
+        signature: `0x${'33'.repeat(64)}`
+      })
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(verificationCalled, false);
   });
 
   it('answers a denied individual listener with an unlock CTA, never a key or a preview mode', async () => {
@@ -167,7 +356,7 @@ describe('POST /api/tracks/:contentHash/key-request', () => {
       },
       checkTrackAccess: async () => {
         accessChecked = true;
-        return { allowed: true, runtime: RUNTIME };
+        return { allowed: true, runtime: RUNTIME, release: releaseIdentity(), keyScope: KEY_SCOPE };
       }
     });
     const response = await server.inject({
@@ -189,7 +378,7 @@ describe('POST /api/tracks/:contentHash/key-request (session token path)', () =>
     const server = await buildApp({
       checkTrackAccess: async request => {
         checkedRequester = request.requester;
-        return { allowed: true, runtime: RUNTIME };
+        return { allowed: true, runtime: RUNTIME, release: releaseIdentity(), keyScope: KEY_SCOPE };
       }
     });
     const response = await server.inject({
@@ -204,6 +393,24 @@ describe('POST /api/tracks/:contentHash/key-request (session token path)', () =>
     assert.equal(body.contentKey, KEY);
     // The on-chain check ran against the token's address, not client input.
     assert.equal(checkedRequester, SESSION_ADDRESS);
+  });
+
+  it('passes canonical release identity through session access checks', async () => {
+    let accessRequest: unknown = null;
+    const server = await buildApp({
+      checkTrackAccess: async request => {
+        accessRequest = request;
+        return { allowed: true, runtime: RUNTIME, release: releaseIdentity(), keyScope: KEY_SCOPE };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/key-request`,
+      payload: { sessionToken: 'a'.repeat(32), purpose: 'individual', ...releaseRequestFields() }
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual((accessRequest as { release?: unknown }).release, releaseRequestFields());
   });
 
   it('rejects an invalid or expired session with 401 and its code', async () => {
@@ -243,7 +450,7 @@ describe('POST /api/tracks/:contentHash/key-request (session token path)', () =>
       verifySessionToken: () => ({ valid: true, address: SESSION_ADDRESS, chainId: 420420418, jti: 'wrong-chain' }),
       checkTrackAccess: async () => {
         accessChecked = true;
-        return { allowed: true, runtime: RUNTIME };
+        return { allowed: true, runtime: RUNTIME, release: releaseIdentity(), keyScope: KEY_SCOPE };
       },
       deriveContentKey: () => {
         keyDerived = true;
@@ -277,6 +484,24 @@ describe('POST /api/tracks/:contentHash/free-key', () => {
     assert.equal(body.access, 'allowed');
     assert.equal(body.contentKey, KEY);
     assert.equal(body.runtime, RUNTIME);
+  });
+
+  it('passes canonical release identity through free-track access checks', async () => {
+    let accessRequest: unknown = null;
+    const server = await buildApp({
+      checkPublicAccess: async request => {
+        accessRequest = request;
+        return { allowed: true, runtime: RUNTIME, release: releaseIdentity(), keyScope: KEY_SCOPE };
+      }
+    });
+    const response = await server.inject({
+      method: 'POST',
+      url: `/api/tracks/${CONTENT_HASH}/free-key`,
+      payload: releaseRequestFields()
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual((accessRequest as { release?: unknown }).release, releaseRequestFields());
   });
 
   it('refuses a non-free track: denial, no key, and the signed route stays the only path', async () => {

@@ -23,16 +23,18 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react';
 import { CoverImage } from './CoverImage';
 import { auraForTrack, hashHue } from '../shared/utils/aura';
-import { roomPresenceCount } from '../features/rooms/roomState';
+import { roomConstellationPosition } from '../features/rooms/roomConstellationLayout';
+import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
 import type { OpenRoom, SessionAction } from '../shared/types';
 
 type SkyOfRoomsProps = {
   rooms: OpenRoom[];
+  selectedRoomId?: string;
   sessionAction: SessionAction;
+  onSelectRoom?: (roomId: string) => void;
   onJoinRoom: (roomId: string) => void;
 };
 
-const GOLDEN_ANGLE = 137.508;
 const MAX_VISIBLE_PETALS = 10;
 const JOIN_FLOOD_MS = 420;
 const MIN_ZOOM = 0.72;
@@ -46,30 +48,14 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
 }
 
-// Deterministic constellation layout: a golden-angle spiral by index, with a
-// small jitter hashed from the roomId so the sky never looks mechanical while
-// staying stable for a given set of rooms.
-function dotPosition(index: number, total: number, roomId: string) {
-  const jitter = hashHue(roomId);
-  const angle = ((index * GOLDEN_ANGLE + (jitter % 21) - 10) * Math.PI) / 180;
-  const spread = total <= 1 ? 0 : Math.sqrt(index / (total - 1));
-  const radius = spread * (34 + (jitter % 7)); // percent of container half-size
-  return {
-    // Default framing keeps the complete sphere + label visible. Zoom and pan
-    // may crop it by choice, with Reset always restoring this safe overview.
-    x: clamp(50 + Math.cos(angle) * radius, 16, 84),
-    y: clamp(50 + Math.sin(angle) * radius * 0.72, 20, 68)
-  };
-}
-
-export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps) {
+export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom, onJoinRoom }: SkyOfRoomsProps) {
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [camera, setCamera] = useState<SkyCamera>({ x: 0, y: 0, scale: 1 });
   const [dragging, setDragging] = useState(false);
   const [centeredRoomId, setCenteredRoomId] = useState<string | null>(null);
   const skyRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
-  const roomLayouts = rooms.map((room, index) => dotPosition(index, rooms.length, room.roomId));
+  const roomLayouts = rooms.map(room => roomConstellationPosition(room.roomId));
   const centeredRoomIndex = Math.max(
     0,
     rooms.findIndex(room => room.roomId === centeredRoomId)
@@ -84,8 +70,19 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
 
   if (rooms.length === 0) return null;
 
+  function activateRoom(roomId: string) {
+    if (onSelectRoom) {
+      setCenteredRoomId(roomId);
+      onSelectRoom(roomId);
+      return;
+    }
+
+    enterRoom(roomId);
+  }
+
   function enterRoom(roomId: string) {
     if (sessionAction !== 'idle' || joiningId) return;
+    if (rooms.find(room => room.roomId === roomId)?.isFull) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       onJoinRoom(roomId);
       return;
@@ -140,8 +137,8 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
     setCamera(current => {
       const scale = Math.max(current.scale, 1);
       return {
-        x: -((layout.x - 50) / 100) * rect.width * scale,
-        y: -((layout.y - 50) / 100) * rect.height * scale,
+        x: -((layout.xPercent - 50) / 100) * rect.width * scale,
+        y: -((layout.yPercent - 50) / 100) * rect.height * scale,
         scale
       };
     });
@@ -226,7 +223,7 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
       role='region'
       tabIndex={0}
       aria-label='Navigable galaxy of open rooms'
-      aria-describedby='sky-navigation-help'
+      aria-describedby={rooms.length > 1 ? 'sky-navigation-help' : undefined}
       data-dragging={dragging}
       data-testid='sky-of-rooms'
       onDoubleClick={resetCamera}
@@ -244,9 +241,11 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
       >
         {rooms.map((room, index) => {
           const presence = roomPresenceCount(room.listenerCount, true);
+          const hostDisplayName = roomHostDisplayName(room.hostName);
           const aura = auraForTrack(room.track);
           const ember = !room.track;
           const live = room.playerState?.playing === true;
+          const full = room.isFull === true;
           const size = ember ? 44 : Math.min(72 + presence * 7, 132);
           const petals = ember ? 0 : Math.min(presence, MAX_VISIBLE_PETALS);
           const orbitSeconds = 16 + (hashHue(room.roomId) % 9);
@@ -257,26 +256,34 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
               key={room.roomId}
               data-ember={ember}
               data-live={live}
+              data-full={full}
               data-joining={joiningId === room.roomId}
               data-centered={centeredRoomId === room.roomId}
+              data-selected={selectedRoomId === room.roomId}
               data-testid='sky-dot'
-              disabled={sessionAction !== 'idle'}
+              disabled={!onSelectRoom && (sessionAction !== 'idle' || full)}
               style={
                 {
-                  left: `${roomLayouts[index].x}%`,
-                  top: `${roomLayouts[index].y}%`,
+                  left: `${roomLayouts[index].xPercent}%`,
+                  top: `${roomLayouts[index].yPercent}%`,
                   '--dot-size': `${size}px`,
                   '--dot-a': aura.a,
                   '--dot-b': aura.b,
                   '--dot-accent': aura.accent
                 } as CSSProperties
               }
-              aria-label={`Enter room ${room.roomId}: ${room.track?.title ?? 'audio session'} with ${room.hostName}, ${presence} listening`}
-              onClick={() => enterRoom(room.roomId)}
+              aria-label={
+                onSelectRoom
+                  ? `Inspect room ${room.roomId}: ${room.track?.title ?? 'audio session'}${hostDisplayName ? ` with ${hostDisplayName}` : ''}, ${presence} listening`
+                  : full
+                    ? `Room ${room.roomId} is full: ${room.track?.title ?? 'audio session'}${hostDisplayName ? ` with ${hostDisplayName}` : ''}, ${presence} listening`
+                    : `Enter room ${room.roomId}: ${room.track?.title ?? 'audio session'}${hostDisplayName ? ` with ${hostDisplayName}` : ''}, ${presence} listening`
+              }
+              onClick={() => activateRoom(room.roomId)}
             >
               <span className='sky-halo' aria-hidden='true' />
               <span className='sky-core' aria-hidden='true'>
-                {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' loading='lazy' />}
+                {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' fallbackLabel={room.track.title} loading='lazy' />}
               </span>
               {petals > 0 && (
                 <span className='sky-orbit' aria-hidden='true' style={{ animationDuration: `${orbitSeconds}s` }}>
@@ -288,7 +295,9 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
               <span className='sky-label'>
                 <strong>{room.track?.title ?? 'Audio session'}</strong>
                 <span>
-                  {room.hostName} - {presence} listening
+                  {hostDisplayName ? `${hostDisplayName} · ` : ''}
+                  {presence} listening
+                  {full && <em> full</em>}
                   {room.playbackMode === 'preview' && <em> preview</em>}
                 </span>
               </span>
@@ -297,42 +306,52 @@ export function SkyOfRooms({ rooms, sessionAction, onJoinRoom }: SkyOfRoomsProps
         })}
       </div>
 
-      <div className='sky-navigation-note' id='sky-navigation-help'>
-        <Move size={14} aria-hidden='true' />
-        Drag to explore · scroll to zoom
-      </div>
+      {rooms.length > 1 && (
+        <>
+          <div className='sky-navigation-note' id='sky-navigation-help'>
+            <Move size={14} aria-hidden='true' />
+            Drag to explore · scroll to zoom
+          </div>
 
-      <div className='sky-controls' aria-label='Galaxy navigation controls'>
-        <div className='sky-control-group'>
-          <button type='button' onClick={() => centerRoom(centeredRoomIndex - 1)} disabled={rooms.length < 2} aria-label='Center previous room'>
-            <ChevronLeft size={16} />
-          </button>
-          <button type='button' onClick={() => centerRoom(centeredRoomIndex)} aria-label={`Center ${rooms[centeredRoomIndex]?.track?.title ?? 'current room'}`}>
-            <LocateFixed size={16} />
-          </button>
-          <button type='button' onClick={() => centerRoom(centeredRoomIndex + 1)} disabled={rooms.length < 2} aria-label='Center next room'>
-            <ChevronRight size={16} />
-          </button>
-        </div>
-        <div className='sky-control-group'>
-          <button type='button' onClick={() => zoomCamera(-ZOOM_STEP)} disabled={camera.scale <= MIN_ZOOM} aria-label='Zoom out'>
-            <Minus size={16} />
-          </button>
-          <output className='sky-zoom-level' aria-label='Galaxy zoom level'>
-            {Math.round(camera.scale * 100)}%
-          </output>
-          <button type='button' onClick={() => zoomCamera(ZOOM_STEP)} disabled={camera.scale >= MAX_ZOOM} aria-label='Zoom in'>
-            <Plus size={16} />
-          </button>
-          <button type='button' onClick={resetCamera} aria-label='Reset galaxy view'>
-            <RotateCcw size={15} />
-          </button>
-        </div>
-      </div>
+          <div className='sky-controls' aria-label='Galaxy navigation controls'>
+            <div className='sky-control-group'>
+              <button type='button' onClick={() => centerRoom(centeredRoomIndex - 1)} aria-label='Center previous room'>
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type='button'
+                onClick={() => centerRoom(centeredRoomIndex)}
+                aria-label={`Center ${rooms[centeredRoomIndex]?.track?.title ?? 'current room'}`}
+              >
+                <LocateFixed size={16} />
+              </button>
+              <button type='button' onClick={() => centerRoom(centeredRoomIndex + 1)} aria-label='Center next room'>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            <div className='sky-control-group'>
+              <button type='button' onClick={() => zoomCamera(-ZOOM_STEP)} disabled={camera.scale <= MIN_ZOOM} aria-label='Zoom out'>
+                <Minus size={16} />
+              </button>
+              <output className='sky-zoom-level' aria-label='Galaxy zoom level'>
+                {Math.round(camera.scale * 100)}%
+              </output>
+              <button type='button' onClick={() => zoomCamera(ZOOM_STEP)} disabled={camera.scale >= MAX_ZOOM} aria-label='Zoom in'>
+                <Plus size={16} />
+              </button>
+              <button type='button' onClick={resetCamera} aria-label='Reset galaxy view'>
+                <RotateCcw size={15} />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       <span className='sr-only' aria-live='polite'>
         {centeredRoomId
-          ? `Centered on ${rooms[centeredRoomIndex]?.track?.title ?? 'audio session'} hosted by ${rooms[centeredRoomIndex]?.hostName}`
+          ? `Centered on ${rooms[centeredRoomIndex]?.track?.title ?? 'audio session'}${
+              roomHostDisplayName(rooms[centeredRoomIndex]?.hostName) ? ` hosted by ${roomHostDisplayName(rooms[centeredRoomIndex]?.hostName)}` : ''
+            }`
           : 'Galaxy overview'}
       </span>
     </div>

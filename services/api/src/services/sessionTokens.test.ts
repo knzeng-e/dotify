@@ -6,7 +6,7 @@ import { describe, it } from 'node:test';
 process.env.CONTENT_KEY_MASTER_SECRET = 'ab'.repeat(32);
 
 const { config } = await import('../config.js');
-const { issueSessionToken, verifySessionToken, revokeSessionToken, SESSION_TTL_MS } = await import('./sessionTokens.js');
+const { createSessionTokenService, issueSessionToken, verifySessionToken, revokeSessionToken, SESSION_TTL_MS } = await import('./sessionTokens.js');
 
 const ADDRESS = '0x1111111111111111111111111111111111111111' as const;
 const CHAIN_ID = 420420417;
@@ -74,6 +74,25 @@ describe('sessionTokens', () => {
     assert.equal(verified.valid, false);
     if (verified.valid) return;
     assert.equal(verified.code, 'SESSION_REVOKED');
+  });
+
+  it('invalidates every old session after restart and accepts a fresh login', () => {
+    const masterSecret = () => 'cd'.repeat(32);
+    const beforeRestart = createSessionTokenService({ epoch: 'process-a', masterSecret, randomId: () => 'session-a' });
+    const issuedBeforeRestart = beforeRestart.issue(ADDRESS, CHAIN_ID, 1_000);
+    assert.equal(issuedBeforeRestart.ok, true);
+    if (!issuedBeforeRestart.ok) return;
+    assert.equal(beforeRestart.revoke(issuedBeforeRestart.token, 2_000), true);
+
+    const afterRestart = createSessionTokenService({ epoch: 'process-b', masterSecret, randomId: () => 'session-b' });
+    const oldVerification = afterRestart.verify(issuedBeforeRestart.token, 3_000);
+    assert.equal(oldVerification.valid, false);
+    assert.equal(!oldVerification.valid && oldVerification.code, 'SESSION_RESTARTED');
+
+    const issuedAfterRestart = afterRestart.issue(ADDRESS, CHAIN_ID, 3_000);
+    assert.equal(issuedAfterRestart.ok, true);
+    if (!issuedAfterRestart.ok) return;
+    assert.equal(afterRestart.verify(issuedAfterRestart.token, 3_001).valid, true);
   });
 
   it('refuses to issue a session for a different chain', () => {

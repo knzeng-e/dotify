@@ -13,15 +13,15 @@ Dotify is a decentralized music streaming platform. When you stream a track, upl
 
 Those systems are:
 
-| Layer                   | Technology                        | What it does                                                  |
-| ----------------------- | --------------------------------- | ------------------------------------------------------------- |
-| **Identity**            | EVM wallet (passkey or extension) | Proves who you are without a password or an account           |
-| **Storage**             | IPFS via Pinata                   | Holds audio files, cover images, and track metadata           |
-| **Backend API**         | Node.js + Fastify                 | Keeps Pinata credentials and content-key material server-side |
-| **On-chain registry**   | Paseo Asset Hub (EVM)             | Records track ownership, access rules, and payments           |
-| **Archival**            | Polkadot Bulletin Chain           | Permanent, tamper-proof backup of the rights manifest         |
-| **Real-time streaming** | WebRTC + Socket.IO                | Delivers live audio to listening rooms                        |
-| **Frontend**            | React SPA                         | The user interface that ties all of the above together        |
+| Layer                   | Technology                         | What it does                                                  |
+| ----------------------- | ---------------------------------- | ------------------------------------------------------------- |
+| **Identity**            | EVM wallet or Product host account | Proves account authority only when an action needs it         |
+| **Storage**             | IPFS via Pinata                    | Holds audio files, cover images, and track metadata           |
+| **Backend API**         | Node.js + Fastify                  | Keeps Pinata credentials and content-key material server-side |
+| **On-chain registry**   | Paseo Asset Hub (EVM)              | Records track ownership, access rules, and payments           |
+| **Archival**            | Polkadot Bulletin Chain            | Permanent, tamper-proof backup of the rights manifest         |
+| **Real-time streaming** | WebRTC + Socket.IO                 | Delivers live audio to listening rooms                        |
+| **Frontend**            | React SPA                          | The user interface that ties all of the above together        |
 
 These systems are intentionally separate. If any one of them goes down or is replaced, the others keep working. Your music is not locked into Dotify — it lives on open networks.
 
@@ -74,9 +74,9 @@ Track selected → access checked
         │
         ├── Has access?  ──► Content key requested, full audio decrypted and played
         │
-        └── No access?  ──► 42 % preview played, access gate shown
+        └── No access?  ──► Unlock/personhood gate shown, no protected audio
                 │
-                ├── Pay DOT     → musicRoyPayAccess() → access granted
+                ├── Pay native  → musicRoyPayAccess() → access granted
                 └── Prove PoP   → registrar confirms personhood → access granted
 ```
 
@@ -101,7 +101,12 @@ src/
 │   ├── useCatalog.ts          # Catalog state, IPFS resolution, access gating
 │   ├── useSession.ts          # WebRTC + Socket.IO room management
 │   ├── useArtistConsole.ts    # /artists registration, releases, royalties
-│   └── useWallet.ts           # Wallet tiers: passkey → EIP-6963 extension
+│   └── useWallet.ts           # Wallet tiers: EVM extension + Product host account
+├── features/runtime/
+│   ├── runtimePorts.ts        # RuntimeReadPort / RuntimeWritePort contracts
+│   ├── viemRuntimeAdapter.ts  # Current EVM implementation behind the ports
+│   └── productCdmRuntimeAdapter.ts
+│                               # Experimental Product CDM/PAPI adapter
 ├── views/                     # One file per screen / tab
 │   ├── ListenView.tsx
 │   ├── PlayerView.tsx
@@ -165,6 +170,12 @@ The stored CID is included in the on-chain track record as `metadataRef`, allowi
 
 The signaling server is a lightweight Socket.IO process (`server/signaling.mjs`) whose only job is to relay WebRTC handshake messages between peers. It never touches audio. Once WebRTC negotiation completes, audio flows peer-to-peer (host → listener) with no server involvement.
 
+The current Product Mobile iOS host is an explicit exception to that browser
+WebRTC model: the Product sandbox does not expose `RTCPeerConnection` to
+Product scripts. Dotify therefore continues mobile Product rooms in the
+external browser until the host provides a permission-gated WebRTC/media
+capability.
+
 ---
 
 ## What Dotify does not own
@@ -174,4 +185,7 @@ The signaling server is a lightweight Socket.IO process (`server/signaling.mjs`)
 - Your payments — they go directly to your EVM address via smart contract.
 - Your track records — they live on Paseo Asset Hub (and optionally Bulletin Chain).
 
-The frontend is itself distributed via IPFS/DotNS at `dotify.dot.li`.
+The standalone frontend is deployed through Netlify. The Product DevNet build
+is publishable through Bulletin/DotNS as `dotify-test01.dot` and resolves
+publicly at `https://dotify-test01.dev-dot.li`; the older `dotify.dot.li`
+artifact remains legacy deployment evidence.

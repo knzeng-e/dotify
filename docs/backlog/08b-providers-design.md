@@ -2,7 +2,7 @@
 
 Design annex for the `refactor/frontend-app-shell` step of
 `08-frontend-feature-module-refactor.md`. The tracker
-(`08-frontend-refactor-tracker.md`) flagged PR8b as "Large; scope carefully";
+(`frontend-refactor-tracker.md`) flagged PR8b as "Large; scope carefully";
 this document is that scoping. PR8b is delivered as five small stacked PRs
 (8b-1 through 8b-5), each independently green and mergeable.
 

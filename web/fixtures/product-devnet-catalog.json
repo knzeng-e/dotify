@@ -1,0 +1,395 @@
+{
+  "items": [
+    {
+      "id": "0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85:0x34c852decafab4884ccbf96ea4e4e8823a8b4b9a62d44f234f2d03b04159444b",
+      "hash": "0x34c852decafab4884ccbf96ea4e4e8823a8b4b9a62d44f234f2d03b04159444b",
+      "runtimeAddress": "0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85",
+      "artistAddress": "0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809",
+      "tokenId": "1",
+      "title": "MH Tribute",
+      "artist": "Black Panther",
+      "description": "Wakandian Song from GABON - By Lord Ékomy Ndong",
+      "imageRef": "ipfs://QmeYH4PfZVk5bj6AHW8UXrASY3E2wEqYHq6J6aU4YK5WTy",
+      "coverVariants": [
+        "ipfs://QmeYH4PfZVk5bj6AHW8UXrASY3E2wEqYHq6J6aU4YK5WTy"
+      ],
+      "audioRef": "dotify:enc:v2:key-v2:ipfs://QmdmT6qUXX45tgrbE8kkm3q7R1rbHiAjhst3vKnjkMLpf6",
+      "metadataRef": "ipfs://QmQGXBw9FyqjZLwkxuZK3tgK3TB2L7f8cDJogTMzaysWLs",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0x34c852decafab4884ccbf96ea4e4e8823a8b4b9a62d44f234f2d03b04159444b",
+      "accessMode": "classic",
+      "priceWei": "6000000000000000000",
+      "priceDot": "6",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809",
+          "bps": 10000
+        }
+      ],
+      "registeredAtBlock": 13382756,
+      "sourceBlock": 13382756
+    },
+    {
+      "id": "0x95DDe50424d6278ccb91D36B36230105eE71Eb1E:0xd5381fc64aa48c66181062ca55a22bd2cf68cd408cdbda557d8419dd1f00e14f",
+      "hash": "0xd5381fc64aa48c66181062ca55a22bd2cf68cd408cdbda557d8419dd1f00e14f",
+      "runtimeAddress": "0x95DDe50424d6278ccb91D36B36230105eE71Eb1E",
+      "artistAddress": "0xcE104CADBbF6E5DB3779F5E0921753Ff1e7d2de2",
+      "tokenId": "1",
+      "title": "Bwiti -  Mogongo part 1",
+      "artist": "Gabon Discovery",
+      "description": "Traditional music instrument used in spiritual ceremonies of  Bwiti, in Gabon. \n\nMogongo artist: Felix Muemba\n\nDuree: 3:52",
+      "imageRef": "ipfs://QmdxH6J193N7kF22fqhmnSRPvoG7c4rWJia2q8kcJxib3S",
+      "coverVariants": [
+        "ipfs://QmdxH6J193N7kF22fqhmnSRPvoG7c4rWJia2q8kcJxib3S"
+      ],
+      "audioRef": "dotify:enc:v2:key-v2:ipfs://QmV5pjHof9Wi9TLCWL7A2JL6oGUsYisG7DKHMfCGrAgUHX",
+      "metadataRef": "ipfs://QmUqAGL9FKxj11ysFsWmPHfmDXzyjKZSJmP9zK6S11H73R",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0xd5381fc64aa48c66181062ca55a22bd2cf68cd408cdbda557d8419dd1f00e14f",
+      "accessMode": "free",
+      "priceWei": "0",
+      "priceDot": "0",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0xcE104CADBbF6E5DB3779F5E0921753Ff1e7d2de2",
+          "bps": 10000
+        }
+      ],
+      "registeredAtBlock": 13221488,
+      "sourceBlock": 13221488
+    },
+    {
+      "id": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0xabc5993ee6ce0044618e883f0e775e9fcbf0e7ade3e9b4d5c284a48615bdd135",
+      "hash": "0xabc5993ee6ce0044618e883f0e775e9fcbf0e7ade3e9b4d5c284a48615bdd135",
+      "runtimeAddress": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338",
+      "artistAddress": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "tokenId": "8",
+      "title": "Odzambogha",
+      "artist": "Lord Ékomy Ndong ☥",
+      "description": "Titre: Odzambogha\n\nDurée: 04:13\n\nAuteurs: Lord Ekomy Ndong ☥\n\nAlbum: Toujours Autant Dans Son Coin\n\nGenre musical: HIp-Hop\n\nAnnée d'enregistrement: 2020\n\nCommentaires: Zorbam Produxions",
+      "imageRef": "ipfs://QmYttHXoEPnTVNXiqTxjJi6ZTKin8DXF4FnQjGE1yHMQQw",
+      "coverVariants": [
+        "ipfs://QmYttHXoEPnTVNXiqTxjJi6ZTKin8DXF4FnQjGE1yHMQQw"
+      ],
+      "audioRef": "dotify:enc:v2:ipfs://Qmd1QTFwL9FVWJJxFbcH4kVQprEM6rjr6gFH4dRjcAH1rZ",
+      "metadataRef": "ipfs://QmZcgnGJwZ9jSadNMuCuH32EGReZKJcMZoG3T99pDeg2xv",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0xabc5993ee6ce0044618e883f0e775e9fcbf0e7ade3e9b4d5c284a48615bdd135",
+      "accessMode": "human-free",
+      "priceWei": "0",
+      "priceDot": "0",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "bps": 10000
+        }
+      ],
+      "registeredAtBlock": 13133435,
+      "sourceBlock": 13133435
+    },
+    {
+      "id": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0x715636fd68fb3205d4b90336f1c3c4c520d02ff58b72f282b0ead14e190f4834",
+      "hash": "0x715636fd68fb3205d4b90336f1c3c4c520d02ff58b72f282b0ead14e190f4834",
+      "runtimeAddress": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338",
+      "artistAddress": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "tokenId": "7",
+      "title": "CALL",
+      "artist": "Lord Ékomy Ndong ☥",
+      "description": "Durée: 03:57\n\nAuteurs: maat le seigneur lion feat Lord Ékomy\n\nAlbum: Harpocrate\n\nGenre Musical: Hip-Hop\n\nCompositeur: Lord Ékomy Ndong\n\nAnnée d’enregistrement: 2014",
+      "imageRef": "ipfs://QmTJ92TaQMawrK1ZfopQkK3wBS6fQC56Za4c9ttoqLa5qL",
+      "coverVariants": [
+        "ipfs://QmTJ92TaQMawrK1ZfopQkK3wBS6fQC56Za4c9ttoqLa5qL"
+      ],
+      "audioRef": "dotify:enc:v2:ipfs://QmVJ4MJuy4v6cqKsJmLck3BTWLhqj4JDFFz666y4QxDtiB",
+      "metadataRef": "ipfs://QmRsRnjFfMtaF2jivHm3NV3cParJDarYsM5fs9iB7P8zRk",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0x715636fd68fb3205d4b90336f1c3c4c520d02ff58b72f282b0ead14e190f4834",
+      "accessMode": "classic",
+      "priceWei": "4200000000000000000",
+      "priceDot": "4.2",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "bps": 4200
+        },
+        {
+          "label": "Split 2",
+          "recipient": "0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809",
+          "bps": 5800
+        }
+      ],
+      "registeredAtBlock": 13126444,
+      "sourceBlock": 13126444
+    },
+    {
+      "id": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0xd67994e5bdc97013223173e166b4481bb6fd247597868171b0f4827b2027f3a8",
+      "hash": "0xd67994e5bdc97013223173e166b4481bb6fd247597868171b0f4827b2027f3a8",
+      "runtimeAddress": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338",
+      "artistAddress": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "tokenId": "6",
+      "title": "L' Akrikain",
+      "artist": "Lord Ékomy Ndong ☥",
+      "description": "Durée: 04:11\n\nCompositeur: Lord Ekomy Ndong\n\nAlbum: L'Afrikain\n\nGenre musical: Hip Hop/Rap\n\nAnnée: 2003\n\nCommentaire: MOVAIZHALEINE/zorbam Produxions/GABON\n\nGenre musical: Hip Hop/Rap Album: L'Afrikain MOVAIZHALEINE/zorbam Produxions/GABON",
+      "imageRef": "ipfs://QmUtsDYj8n3qST7jxjgamGF47jDEiigukpR7oAJnuncj1d",
+      "coverVariants": [
+        "ipfs://QmUtsDYj8n3qST7jxjgamGF47jDEiigukpR7oAJnuncj1d"
+      ],
+      "audioRef": "dotify:enc:v2:ipfs://QmccYav8AhCobC5dHRUUH3Fn4zdVNmr37PuCV7kxpa3oan",
+      "metadataRef": "ipfs://QmSXmbT5nzcDrE1Zi3tHo7bf8d8RcTG5eJeydVwKMy4to6",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0xd67994e5bdc97013223173e166b4481bb6fd247597868171b0f4827b2027f3a8",
+      "accessMode": "free",
+      "priceWei": "0",
+      "priceDot": "0",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "bps": 10000
+        }
+      ],
+      "registeredAtBlock": 13126384,
+      "sourceBlock": 13126384
+    },
+    {
+      "id": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0xda00c99152af2b9f057e92ae90a11741a0bd2ed29807806d25ccd833199f1eb3",
+      "hash": "0xda00c99152af2b9f057e92ae90a11741a0bd2ed29807806d25ccd833199f1eb3",
+      "runtimeAddress": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338",
+      "artistAddress": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "tokenId": "5",
+      "title": "Adang Fobe",
+      "artist": "Lord Ékomy Ndong ☥",
+      "description": "Durée: 04:43\nCompositeur: Lord Ekomy Ndong\nAlbum: L'Afrikain\nGenre musical: Hip Hop/Rap\n\nAnnée: 2003\n\nCommentaire: MOVAIZHALEINE/zorbam Produxions/GABON\n\nGenre musical: Hip Hop/Rap Album: L'Afrikain MOVAIZHALEINE/zorbam Produxions/GABON",
+      "imageRef": "ipfs://QmUtsDYj8n3qST7jxjgamGF47jDEiigukpR7oAJnuncj1d",
+      "coverVariants": [
+        "ipfs://QmUtsDYj8n3qST7jxjgamGF47jDEiigukpR7oAJnuncj1d"
+      ],
+      "audioRef": "dotify:enc:v2:ipfs://QmPHvVwfaj1u8ebAWd4B5oyUAep8NECZmyTP4RGtBEKfsN",
+      "metadataRef": "ipfs://QmTzqNEHQko3Hm46CdT4B4124gx891sm1P3yZc3do75CdR",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0xda00c99152af2b9f057e92ae90a11741a0bd2ed29807806d25ccd833199f1eb3",
+      "accessMode": "human-free",
+      "priceWei": "0",
+      "priceDot": "0",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "bps": 10000
+        }
+      ],
+      "registeredAtBlock": 13126345,
+      "sourceBlock": 13126345
+    },
+    {
+      "id": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0x1dc2c2eada02140c456ba49d9c9fa073ed37e1c84e0614372e50922b2a53b320",
+      "hash": "0x1dc2c2eada02140c456ba49d9c9fa073ed37e1c84e0614372e50922b2a53b320",
+      "runtimeAddress": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338",
+      "artistAddress": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "tokenId": "4",
+      "title": "Street scriptures",
+      "artist": "Lord Ékomy Ndong ☥",
+      "description": "Harp Hip Hop. \nWhen the Forest memory flows into the street \n\nDurée: 01:37\n\nAuteur: Lord Ekomy Ndong  ☥\n\nCompositeur: Lord Ekomy Ndong\n\nAlbum: La théorie des cordes\n\nGenre musical: Hip Hop/Rap\n\nAnnée: 2019\n\nCommentaire: MOVAIZHALEINE/zorbam Produxions/GABON",
+      "imageRef": "ipfs://QmcyXbKM3PRBVMDefSjUixbDBUYuzC9wjckvcq8VMjjrkL",
+      "coverVariants": [
+        "ipfs://QmcyXbKM3PRBVMDefSjUixbDBUYuzC9wjckvcq8VMjjrkL"
+      ],
+      "audioRef": "dotify:enc:v2:ipfs://QmdSH6JD81sv61rCtzQJhvj7sWGYtXZRDUzuEXJh4YgtXu",
+      "metadataRef": "ipfs://QmQw4GmNk95A32JdR5izc914JtLJzXurkEbzoDUpXYqRtQ",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0x1dc2c2eada02140c456ba49d9c9fa073ed37e1c84e0614372e50922b2a53b320",
+      "accessMode": "free",
+      "priceWei": "0",
+      "priceDot": "0",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "bps": 10000
+        }
+      ],
+      "registeredAtBlock": 13126238,
+      "sourceBlock": 13126238
+    },
+    {
+      "id": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0x085c288a67aaf02691dfd8fc1dc2ac13cf51e215a9a1a7e98314e54be27d693b",
+      "hash": "0x085c288a67aaf02691dfd8fc1dc2ac13cf51e215a9a1a7e98314e54be27d693b",
+      "runtimeAddress": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338",
+      "artistAddress": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "tokenId": "3",
+      "title": "Des pyramides",
+      "artist": "Lord Ékomy Ndong ☥",
+      "description": "Durée: 03:32\n\nAuteur: Lord Ekomy Ndong\n\nCompositeur: Lord Ekomy Ndong\n\nAlbum: Toujours autant dans son coin\n\nGenre musical: Hip Hop/Rap\n\nAnnée: 2020\n\nCommentaire: MOVAIZHALEINE/zorbam Produxions/GABON",
+      "imageRef": "ipfs://QmQFWjczVRRsvxeSX4Pzd2774PZ9n7iUuH85ZQhmz7cs11",
+      "coverVariants": [
+        "ipfs://QmQFWjczVRRsvxeSX4Pzd2774PZ9n7iUuH85ZQhmz7cs11"
+      ],
+      "audioRef": "dotify:enc:v2:ipfs://QmbREbR24HiGjcfkiwYjg3awQdhBDQxGrTCHbBStU3VcVh",
+      "metadataRef": "ipfs://QmTZuXbn4PqdNuUbjC6D79cjaEGRXdUhtp5w8QNWbndygG",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0x085c288a67aaf02691dfd8fc1dc2ac13cf51e215a9a1a7e98314e54be27d693b",
+      "accessMode": "free",
+      "priceWei": "0",
+      "priceDot": "0",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "bps": 10000
+        }
+      ],
+      "registeredAtBlock": 13123023,
+      "sourceBlock": 13123023
+    },
+    {
+      "id": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0x340333875dc4640ebbfc9fc5ec713a0c25ad6267f278ac07a1ff3579675201fa",
+      "hash": "0x340333875dc4640ebbfc9fc5ec713a0c25ad6267f278ac07a1ff3579675201fa",
+      "runtimeAddress": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338",
+      "artistAddress": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "tokenId": "2",
+      "title": "Discipline",
+      "artist": "Lord Ékomy Ndong ☥",
+      "description": "Durée: 05:17\n\nAuteur: Lord Ekomy Ndong feat Matt Seigneur Lion\n\nCompositeur: Lord Ekomy Ndong\n\nAlbum: Petit Mutant dans son coin\n\nGenre musical: Hip Hop/Rap\n\nAnnée: 2020\n\nCommentaire: MOVAIZHALEINE/zorbam Produxions/GABON\n",
+      "imageRef": "ipfs://QmR5Wob4FT475vdsRGEq5HKDx9aRjXZ8Djwq2ymnfRFcNj",
+      "coverVariants": [
+        "ipfs://QmR5Wob4FT475vdsRGEq5HKDx9aRjXZ8Djwq2ymnfRFcNj"
+      ],
+      "audioRef": "dotify:enc:v2:ipfs://QmP9vnfjFoMKAkqvT8siu11x7tHhxaPty1UU2m4z6UErAQ",
+      "metadataRef": "ipfs://QmNZE73TVFghkb3rba4fwxp4jDHYWirBV8B9NPR25ndesL",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0x340333875dc4640ebbfc9fc5ec713a0c25ad6267f278ac07a1ff3579675201fa",
+      "accessMode": "classic",
+      "priceWei": "4210000000000000000",
+      "priceDot": "4.21",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "bps": 7000
+        },
+        {
+          "label": "Split 2",
+          "recipient": "0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809",
+          "bps": 3000
+        }
+      ],
+      "registeredAtBlock": 13104621,
+      "sourceBlock": 13104621
+    },
+    {
+      "id": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0xac255d49e3181b3f077ca55ef8de8ddb4b852c0bf3ffcec6153cc8f9164afcd9",
+      "hash": "0xac255d49e3181b3f077ca55ef8de8ddb4b852c0bf3ffcec6153cc8f9164afcd9",
+      "runtimeAddress": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338",
+      "artistAddress": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "tokenId": "1",
+      "title": "Princesse d'Afrique",
+      "artist": "Lord Ékomy Ndong ☥",
+      "description": "Titre: Princesse d’Afrique\n\nDurée: 04:07\n\nAuteur: Lord Ekomy Ndong feat Ayilé Ekomy Ndong\n\nCompositeur: Lord Ekomy Ndong\n\nAlbum: Petit Mutant dans son coin\n\nGenre musical: Hip Hop/Rap\n\nAnnée: 2020\n\nCommentaire: MOVAIZHALEINE/zorbam Produxions/GABON",
+      "imageRef": "ipfs://QmR5Wob4FT475vdsRGEq5HKDx9aRjXZ8Djwq2ymnfRFcNj",
+      "coverVariants": [
+        "ipfs://QmR5Wob4FT475vdsRGEq5HKDx9aRjXZ8Djwq2ymnfRFcNj"
+      ],
+      "audioRef": "dotify:enc:v2:ipfs://QmW7dLpW8ssK3KjQShCLsSp7rGNZvEqAQRwL2xUTn4bCMP",
+      "metadataRef": "ipfs://Qmd3THoduY5BvQfyS69wgduuSGxPU9rgaLMLiCy3DGakrA",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0xac255d49e3181b3f077ca55ef8de8ddb4b852c0bf3ffcec6153cc8f9164afcd9",
+      "accessMode": "free",
+      "priceWei": "0",
+      "priceDot": "0",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "bps": 10000
+        }
+      ],
+      "registeredAtBlock": 13104573,
+      "sourceBlock": 13104573
+    }
+  ],
+  "artists": [
+    {
+      "artistAddress": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "runtimeAddress": "0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338",
+      "name": "Lord Ékomy Ndong ☥",
+      "releaseCount": 8,
+      "activeReleaseCount": 8,
+      "latestReleaseBlock": 13133435
+    },
+    {
+      "artistAddress": "0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809",
+      "runtimeAddress": "0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85",
+      "name": "Black Panther",
+      "releaseCount": 1,
+      "activeReleaseCount": 1,
+      "latestReleaseBlock": 13382756
+    },
+    {
+      "artistAddress": "0xcE104CADBbF6E5DB3779F5E0921753Ff1e7d2de2",
+      "runtimeAddress": "0x95DDe50424d6278ccb91D36B36230105eE71Eb1E",
+      "name": "Gabon Discovery",
+      "releaseCount": 1,
+      "activeReleaseCount": 1,
+      "latestReleaseBlock": 13221488
+    }
+  ],
+  "pagination": {
+    "limit": 100,
+    "nextCursor": null,
+    "total": 10
+  },
+  "meta": {
+    "state": "fresh",
+    "cacheAvailable": true,
+    "indexedAt": "2026-09-20T11:21:01.496Z",
+    "lastIndexedBlock": 13480633,
+    "chainHeadBlock": 13480635,
+    "blockLag": 2,
+    "staleAfterMs": 60000,
+    "lastErrorCode": null
+  }
+}

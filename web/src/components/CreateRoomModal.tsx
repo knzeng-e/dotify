@@ -4,9 +4,10 @@
 // shareable link is shown as pending until the server assigns a room code (no
 // fabricated URL); the room header then exposes the real Copy link.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CoverImage } from './CoverImage';
 import { Dialog } from './Dialog';
+import { roomHostDisplayName } from '../features/rooms/roomState';
 import type { CatalogTrack } from '../shared/types';
 
 function SvgBroadcast({ size }: { size: number }) {
@@ -57,10 +58,16 @@ type CreateRoomModalProps = {
   onSetDisplayName: (name: string) => void;
   onClose: () => void;
   onOpenRoom: (track: CatalogTrack) => void;
+  onTrackIntent: (track: CatalogTrack) => void;
 };
 
-export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDisplayName, onClose, onOpenRoom }: CreateRoomModalProps) {
+export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDisplayName, onClose, onOpenRoom, onTrackIntent }: CreateRoomModalProps) {
   const [picked, setPicked] = useState<CatalogTrack | undefined>(initialTrack ?? tracks[0]);
+  const hasChosenName = roomHostDisplayName(displayName) !== null;
+
+  useEffect(() => {
+    if (picked) onTrackIntent(picked);
+  }, [onTrackIntent, picked]);
 
   return (
     <Dialog className='create-room-modal' size='wide' labelledBy='create-room-title' onClose={onClose}>
@@ -77,7 +84,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
 
       {picked && (
         <div className='create-room-preview'>
-          <CoverImage src={picked.imageRef} alt='' />
+          <CoverImage src={picked.imageRef} alt='' fallbackLabel={picked.title} />
           <div>
             <strong>{picked.title}</strong>
             <span>{picked.artist}</span>
@@ -101,11 +108,16 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
                 key={track.id}
                 className={'create-room-pick' + (picked?.id === track.id ? ' is-on' : '')}
                 type='button'
-                onClick={() => setPicked(track)}
+                onPointerEnter={() => onTrackIntent(track)}
+                onFocus={() => onTrackIntent(track)}
+                onClick={() => {
+                  onTrackIntent(track);
+                  setPicked(track);
+                }}
                 aria-label={`Select ${track.title}`}
                 aria-pressed={picked?.id === track.id}
               >
-                <CoverImage src={track.imageRef} alt='' />
+                <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
               </button>
             ))}
           </div>
@@ -118,15 +130,16 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
       <input
         id='create-room-name'
         className='field'
-        value={displayName}
+        value={hasChosenName ? displayName : ''}
         onChange={event => onSetDisplayName(event.target.value)}
         placeholder='How should people see you?'
         maxLength={32}
+        autoComplete='nickname'
         autoFocus
       />
 
       <div className='create-room-actions'>
-        <button className='primary-action wide' type='button' disabled={!picked || !displayName.trim()} onClick={() => picked && onOpenRoom(picked)}>
+        <button className='primary-action wide' type='button' disabled={!picked || !hasChosenName} onClick={() => picked && onOpenRoom(picked)}>
           <SvgBroadcast size={16} />
           Open the room
         </button>

@@ -18,6 +18,7 @@ export function AccountWalletModal() {
       supportingCount={supportedArtists.length}
       unlockedCount={paidTracks.length}
       supportedArtists={supportedArtists}
+      nativePaymentSymbol={catalog.nativeRuntimePaymentAsset.symbol}
       paidTracks={paidTracks.map(track => ({
         id: track.id,
         title: track.title,

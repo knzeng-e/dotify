@@ -1,17 +1,29 @@
 // Integration tests for the Dotify signaling server (Ticket 04).
 // Run with: npm run test:signal
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import { afterEach, beforeEach, describe, it } from 'node:test';
+import { Fetch as EngineFetch } from 'engine.io-client';
 import { io as ioClient } from 'socket.io-client';
-import { startSignalingServer } from './signaling.mjs';
-import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash } from './signaling-utils.mjs';
+import { isSignalingOriginAllowed, readConfigFromEnv, startSignalingServer } from './signaling.mjs';
+import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash, sanitizePlayerState, snapshotPlayerState } from './signaling-utils.mjs';
 
 let server;
 let port;
 let clients;
+const turnCapabilitySecret = 'room-capability-secret-with-at-least-32-bytes';
 
 function connectClient() {
   const client = ioClient(`http://127.0.0.1:${port}`, { transports: ['websocket'] });
+  clients.push(client);
+  return client;
+}
+
+function connectFetchClient() {
+  const client = ioClient(`http://127.0.0.1:${port}`, {
+    transports: [EngineFetch],
+    upgrade: false
+  });
   clients.push(client);
   return client;
 }
@@ -34,6 +46,7 @@ beforeEach(async () => {
     port: 0,
     host: '127.0.0.1',
     maxListenersPerRoom: 2,
+    turnCapabilitySecret,
     sweepIntervalMs: 40,
     logger: () => {}
   });
@@ -47,11 +60,28 @@ afterEach(async () => {
 });
 
 describe('signaling server', () => {
+  it('reads native missing-origin allowance from env without widening origins', () => {
+    const config = readConfigFromEnv({
+      SIGNAL_ORIGINS: 'https://dotify.example',
+      SIGNAL_ALLOW_MISSING_ORIGIN: 'true'
+    });
+
+    assert.deepEqual(config.origins, ['https://dotify.example']);
+    assert.equal(config.allowMissingOrigin, true);
+    assert.equal(isSignalingOriginAllowed(undefined, config), true);
+    assert.equal(isSignalingOriginAllowed('', config), true);
+    assert.equal(isSignalingOriginAllowed('null', config), false);
+    assert.equal(isSignalingOriginAllowed('https://evil.example', config), false);
+    assert.equal(isSignalingOriginAllowed('https://dotify.example', config), true);
+  });
+
   it('creates a room and lets a listener join by code without any credential', async () => {
     const host = connectClient();
     const created = await createRoom(host, { hostAddress: '0x1111111111111111111111111111111111111111', track: { title: 'Night Drive', artist: 'Ada' } });
     assert.equal(created.ok, true);
     assert.match(created.roomId, /^[A-Z2-9]{6}$/);
+    assert.equal(typeof created.hostResumeToken, 'string');
+    assert.ok(created.hostResumeToken.length >= 32);
 
     const listener = connectClient();
     await once(listener, 'connect');
@@ -62,6 +92,43 @@ describe('signaling server', () => {
     assert.equal(joined.listenerCount, 1);
     assert.equal(joined.playbackMode, 'full');
     assert.equal(joined.track.title, 'Night Drive');
+    assert.equal(joined.hostResumeToken, undefined);
+  });
+
+  it('issues relay proof only to current room participants', async () => {
+    const outsider = connectClient();
+    await once(outsider, 'connect');
+    const rejected = await emitAck(outsider, 'room:turn-capability', {});
+    assert.equal(rejected.ok, false);
+    assert.equal(rejected.code, 'ROOM_MEMBERSHIP_REQUIRED');
+
+    const host = connectClient();
+    const created = await createRoom(host);
+    const granted = await emitAck(host, 'room:turn-capability', {});
+    assert.equal(granted.ok, true);
+    assert.ok(granted.expiresAt > Date.now());
+
+    const [encodedPayload, encodedSignature] = granted.capability.split('.');
+    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+    const expectedSignature = createHmac('sha256', turnCapabilitySecret).update(encodedPayload).digest('base64url');
+    assert.equal(encodedSignature, expectedSignature);
+    assert.equal(payload.aud, 'dotify-turn');
+    assert.equal(payload.roomId, created.roomId);
+    assert.equal(payload.participantId, host.id);
+    assert.equal(payload.role, 'host');
+    assert.ok(payload.exp - payload.iat <= 5 * 60);
+  });
+
+  it('keeps a Product-style Fetch polling host connected without a WebSocket upgrade', async () => {
+    const host = connectFetchClient();
+    const created = await createRoom(host, { track: { title: 'Mobile room', artist: 'Ada' } });
+
+    assert.equal(created.ok, true);
+    assert.equal(host.io.engine.transport.name, 'polling');
+    await new Promise(resolve => setTimeout(resolve, 150));
+    assert.equal(host.connected, true);
+    assert.equal(host.io.engine.transport.name, 'polling');
+    assert.equal(server.rooms.get(created.roomId).hostId, host.id);
   });
 
   it('exposes host-based access metadata without the self-declared host address', async () => {
@@ -82,6 +149,9 @@ describe('signaling server', () => {
     assert.equal(JSON.stringify(body).includes('0xAbCd00000000000000000000000000000000Ef12'), false);
     assert.equal(room.playbackMode, 'full');
     assert.ok(room.expiresAt > room.createdAt);
+    assert.equal(room.maxListeners, 2);
+    assert.equal(room.isFull, false);
+    assert.equal(JSON.stringify(body).includes(created.hostResumeToken), false);
   });
 
   it('keeps source and manifest refs out of public summaries, join replies, and track broadcasts', async () => {
@@ -149,6 +219,7 @@ describe('signaling server', () => {
     assert.equal(body.listeners, 0);
     assert.equal(body.soloListeners, 0);
     assert.equal(body.allowedOrigins, '*');
+    assert.equal(body.turnCapabilityConfigured, true);
     assert.equal(typeof body.roomTtlMs, 'number');
     assert.equal(typeof body.hostHeartbeatTimeoutMs, 'number');
     assert.equal(body.maxListenersPerRoom, 2);
@@ -202,12 +273,16 @@ describe('signaling server', () => {
     assert.equal(body.rooms.find(r => r.roomId === created.roomId).playbackMode, 'preview');
   });
 
-  it('omits access-control-allow-origin for disallowed status origins', async () => {
+  it('allows observed Product HTTPS origins and omits CORS headers for unrelated origins', async () => {
+    const productIframeOrigin = 'https://dotify-test01.app.dev-dot.li';
+    const productDotIframeOrigin = 'https://dotify-test01.app.dot.li';
+    const productMobileOrigin = 'https://dotify-test01.dot';
+    const productMobileNativeOrigin = 'polkadot://dotify-test01.dot';
     await server.close();
     server = startSignalingServer({
       port: 0,
       host: '127.0.0.1',
-      origins: ['https://dotify.example'],
+      origins: ['https://dotify.example', productIframeOrigin, productDotIframeOrigin, productMobileOrigin, productMobileNativeOrigin],
       logger: () => {}
     });
     port = await server.listen();
@@ -218,9 +293,51 @@ describe('signaling server', () => {
     assert.equal(denied.headers.get('access-control-allow-origin'), null);
 
     const allowed = await fetch(`http://127.0.0.1:${port}/status`, {
-      headers: { origin: 'https://dotify.example' }
+      headers: { origin: productIframeOrigin }
     });
-    assert.equal(allowed.headers.get('access-control-allow-origin'), 'https://dotify.example');
+    assert.equal(allowed.headers.get('access-control-allow-origin'), productIframeOrigin);
+
+    const mobileAllowed = await fetch(`http://127.0.0.1:${port}/status`, {
+      headers: { origin: productMobileOrigin }
+    });
+    assert.equal(mobileAllowed.headers.get('access-control-allow-origin'), productMobileOrigin);
+
+    const mobileNativeAllowed = await fetch(`http://127.0.0.1:${port}/status`, {
+      headers: { origin: productMobileNativeOrigin }
+    });
+    assert.equal(mobileNativeAllowed.headers.get('access-control-allow-origin'), productMobileNativeOrigin);
+
+    const dotIframeAllowed = await fetch(`http://127.0.0.1:${port}/status`, {
+      headers: { origin: productDotIframeOrigin }
+    });
+    assert.equal(dotIframeAllowed.headers.get('access-control-allow-origin'), productDotIframeOrigin);
+
+    const productHost = ioClient(`http://127.0.0.1:${port}`, {
+      transports: ['polling'],
+      extraHeaders: { origin: productDotIframeOrigin }
+    });
+    clients.push(productHost);
+    await once(productHost, 'connect');
+    assert.equal(productHost.connected, true);
+  });
+
+  it('does not emit an undefined CORS header when missing-Origin native mode is enabled', async () => {
+    await server.close();
+    server = startSignalingServer({
+      port: 0,
+      host: '127.0.0.1',
+      origins: ['https://dotify.example'],
+      allowMissingOrigin: true,
+      logger: () => {}
+    });
+    port = await server.listen();
+
+    const health = await fetch(`http://127.0.0.1:${port}/health`);
+    const body = await health.json();
+
+    assert.equal(health.status, 200);
+    assert.equal(health.headers.get('access-control-allow-origin'), null);
+    assert.equal(body.allowMissingOrigin, true);
   });
 
   it('broadcasts host playback-mode changes to listeners and room metadata', async () => {
@@ -277,6 +394,12 @@ describe('signaling server', () => {
     await once(second, 'connect');
     assert.equal((await emitAck(second, 'room:join', { roomId: created.roomId })).ok, true);
 
+    const status = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    const fullRoom = status.rooms.find(room => room.roomId === created.roomId);
+    assert.equal(fullRoom.listenerCount, 2);
+    assert.equal(fullRoom.maxListeners, 2);
+    assert.equal(fullRoom.isFull, true);
+
     const third = connectClient();
     await once(third, 'connect');
     const rejected = await emitAck(third, 'room:join', { roomId: created.roomId });
@@ -284,7 +407,72 @@ describe('signaling server', () => {
     assert.equal(rejected.code, 'ROOM_FULL');
   });
 
-  it('closes the room and notifies listeners when the host disconnects', async () => {
+  it('keeps a room private during a host transport interruption and resumes it with the host token', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId });
+
+    const reconnecting = once(listener, 'room:host-connection');
+    host.disconnect();
+    assert.equal((await reconnecting).status, 'reconnecting');
+    assert.equal(server.rooms.size, 1);
+    assert.equal(server.rooms.get(created.roomId).hostId, null);
+
+    const hiddenStatus = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    assert.equal(
+      hiddenStatus.rooms.some(room => room.roomId === created.roomId),
+      false
+    );
+
+    const lateListener = connectClient();
+    await once(lateListener, 'connect');
+    const lateJoin = await emitAck(lateListener, 'room:join', { roomId: created.roomId, displayName: 'Late' });
+    assert.equal(lateJoin.ok, false);
+    assert.equal(lateJoin.code, 'HOST_RECONNECTING');
+
+    const resumedHost = connectClient();
+    await once(resumedHost, 'connect');
+    const online = once(listener, 'room:host-connection');
+    const resumed = await emitAck(resumedHost, 'room:resume', {
+      roomId: created.roomId,
+      hostResumeToken: created.hostResumeToken
+    });
+
+    assert.equal(resumed.ok, true);
+    assert.equal(resumed.listenerCount, 1);
+    assert.equal(resumed.listeners.length, 1);
+    assert.equal((await online).status, 'online');
+    assert.equal(server.rooms.get(created.roomId).hostId, resumedHost.id);
+
+    const visibleStatus = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    assert.equal(
+      visibleStatus.rooms.some(room => room.roomId === created.roomId),
+      true
+    );
+    assert.equal(JSON.stringify(visibleStatus).includes(created.hostResumeToken), false);
+  });
+
+  it('rejects a forged host resume token without claiming the room', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    host.disconnect();
+
+    const attacker = connectClient();
+    await once(attacker, 'connect');
+    const rejected = await emitAck(attacker, 'room:resume', {
+      roomId: created.roomId,
+      hostResumeToken: 'x'.repeat(43)
+    });
+
+    assert.equal(rejected.ok, false);
+    assert.equal(rejected.code, 'INVALID_HOST_RESUME_TOKEN');
+    assert.equal(server.rooms.get(created.roomId).hostId, null);
+  });
+
+  it('closes the room immediately when the host explicitly leaves', async () => {
     const host = connectClient();
     const created = await createRoom(host);
 
@@ -293,7 +481,7 @@ describe('signaling server', () => {
     await emitAck(listener, 'room:join', { roomId: created.roomId });
 
     const closed = once(listener, 'room:closed');
-    host.disconnect();
+    host.emit('room:leave');
     const payload = await closed;
     assert.match(payload.reason, /Host left/i);
     assert.equal(server.rooms.size, 0);
@@ -455,6 +643,47 @@ function collect(socket, event, ms = 150) {
 }
 
 describe('peer signaling authorization', () => {
+  it('logs sanitized WebRTC diagnostics only for room participants', async () => {
+    await server.close();
+    const lines = [];
+    server = startSignalingServer({ port: 0, host: '127.0.0.1', logger: line => lines.push(JSON.parse(line)) });
+    port = await server.listen();
+
+    const host = connectClient();
+    const created = await createRoom(host);
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+
+    listener.emit('webrtc:diagnostic', {
+      phase: 'listener:create-peer-failed',
+      errorName: 'NotAllowedError',
+      message: `WebRTC blocked ${'x'.repeat(400)}`,
+      errorCode: 701,
+      peerConnectionAvailable: true,
+      turnRelayAvailable: true,
+      protocol: 'polkadot:',
+      embedded: true,
+      connectionState: 'failed',
+      candidate: 'must-not-be-logged'
+    });
+
+    const outsider = connectClient();
+    await once(outsider, 'connect');
+    outsider.emit('webrtc:diagnostic', { phase: 'outsider', message: 'must-not-be-logged' });
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    const diagnostics = lines.filter(line => line.event === 'webrtc:diagnostic');
+    assert.equal(diagnostics.length, 1);
+    assert.equal(diagnostics[0].roomId, created.roomId);
+    assert.equal(diagnostics[0].sourceRole, 'listener');
+    assert.equal(diagnostics[0].phase, 'listener:create-peer-failed');
+    assert.equal(diagnostics[0].errorName, 'NotAllowedError');
+    assert.equal(diagnostics[0].message.length, 240);
+    assert.equal(diagnostics[0].candidate, undefined);
+    assert.equal(JSON.stringify(diagnostics).includes('must-not-be-logged'), false);
+  });
+
   it('relays protocol-valid WebRTC messages only between a room host and listener', async () => {
     const host = connectClient();
     const created = await createRoom(host);
@@ -617,6 +846,25 @@ describe('peer signaling authorization', () => {
 });
 
 describe('room social layer', () => {
+  it('acknowledges accepted text and rejects rate-limited or full requests without claiming delivery', async () => {
+    await server.close();
+    server = startSignalingServer({ port: 0, host: '127.0.0.1', chatRateLimit: { limit: 1, windowMs: 5000 }, requestQueueLimit: 1, logger: () => {} });
+    port = await server.listen();
+    const host = connectClient();
+    const created = await createRoom(host);
+    assert.equal((await emitAck(host, 'room:chat', { text: 'Hello' })).ok, true);
+    const rejected = await emitAck(host, 'room:chat', { text: 'Too soon' });
+    assert.equal(rejected.ok, false);
+    assert.match(rejected.message, /moment/);
+    assert.equal(server.rooms.get(created.roomId).chat.length, 1);
+    assert.equal((await emitAck(host, 'room:request', { text: 'First track' })).ok, true);
+    assert.equal((await emitAck(host, 'room:request', { text: 'Another track' })).ok, false);
+    assert.equal(server.rooms.get(created.roomId).requests.length, 1);
+    const outsider = connectClient();
+    await once(outsider, 'connect');
+    assert.equal((await emitAck(outsider, 'room:chat', { text: 'Outside' })).ok, false);
+  });
+
   it('broadcasts curated reactions to the whole room with sender attribution', async () => {
     const host = connectClient();
     const created = await createRoom(host, { displayName: 'Ada' });
@@ -736,6 +984,50 @@ describe('room social layer', () => {
 
     assert.equal((await hostSees).length, 0);
     assert.equal(server.rooms.get(created.roomId).chat.length, 0);
+  });
+
+  it('lets only the host publish a bounded source-free playback lineup and replays it to late joiners', async () => {
+    const host = connectClient();
+    const created = await createRoom(host, { displayName: 'Ada' });
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Gabe' });
+
+    const rejected = collect(host, 'room:lineup');
+    listener.emit('room:lineup', [{ trackId: 'intrusion', title: 'Nope', artist: 'Guest' }]);
+    assert.equal((await rejected).length, 0);
+    assert.equal(server.rooms.get(created.roomId).lineup.length, 0);
+
+    const privateSource = 'dotify:enc:ipfs://private-lineup-source';
+    const privateManifest = 'ipfs://private-lineup-manifest';
+    const proposed = Array.from({ length: 14 }, (_, index) => ({
+      trackId: `track-${index}`,
+      title: `Song ${index}`,
+      artist: 'Ada',
+      hash: `0x${String(index).padStart(64, '0')}`,
+      accessMode: 'free',
+      audioRef: privateSource,
+      metadataRef: privateManifest
+    }));
+    proposed.splice(1, 0, proposed[0]);
+
+    const received = once(listener, 'room:lineup');
+    host.emit('room:lineup', proposed);
+    const lineup = await received;
+    assert.equal(lineup.length, 12);
+    assert.equal(new Set(lineup.map(item => item.trackId)).size, 12);
+    assert.equal(lineup[0].title, 'Song 0');
+    assert.equal(JSON.stringify(lineup).includes(privateSource), false);
+    assert.equal(JSON.stringify(lineup).includes(privateManifest), false);
+
+    const late = connectClient();
+    await once(late, 'connect');
+    const joined = await emitAck(late, 'room:join', { roomId: created.roomId, displayName: 'Late' });
+    assert.deepEqual(joined.lineup, lineup);
+
+    const response = await fetch(`http://127.0.0.1:${port}/status`);
+    const status = await response.json();
+    assert.equal(status.rooms.find(room => room.roomId === created.roomId).lineup, undefined);
   });
 
   it('broadcasts the request queue to the room with attribution and replays it to late joiners', async () => {
@@ -989,5 +1281,54 @@ describe('sanitizeTrackHash', () => {
   it('rejects arbitrary aggregate keys', () => {
     assert.equal(sanitizeTrackHash('Pyramides'), null);
     assert.equal(sanitizeTrackHash('0xabc'), null);
+  });
+});
+
+describe('shared playback clock', () => {
+  it('distinguishes stale playing snapshots from real pauses without extending the clock', () => {
+    const playing = { playing: true, currentTime: 30, duration: 60, updatedAt: -999999 };
+    assert.deepEqual(snapshotPlayerState(playing, 1000, 4000), {
+      ...playing,
+      playing: false,
+      currentTime: 32.5,
+      updatedAt: 4000,
+      stale: true
+    });
+    assert.equal(snapshotPlayerState({ ...playing, playing: false }, 1000, 60_000).stale, false);
+    assert.equal(snapshotPlayerState(playing, 1000, 1100).stale, false);
+    assert.equal(snapshotPlayerState(null, 1000, 4000), null);
+  });
+
+  it('does not accept a host-supplied stale marker as authoritative', () => {
+    const state = sanitizePlayerState({ playing: false, currentTime: 30, duration: 60, stale: true });
+    assert.equal(state.stale, undefined);
+    assert.equal(snapshotPlayerState(state, 1000, 60_000).stale, false);
+  });
+
+  it('late join uses server elapsed time, ignores guest seeks and clears clock for a new release', async () => {
+    const host = connectClient();
+    const created = await createRoom(host, { track: { hash: 'first', title: 'First' } });
+    const guest = connectClient();
+    await once(guest, 'connect');
+    await emitAck(guest, 'room:join', { roomId: created.roomId });
+    const stateArrives = once(guest, 'player:state');
+    host.emit('player:state', { playing: true, currentTime: 30, duration: 60, updatedAt: -999999999 });
+    await stateArrives;
+    await new Promise(resolve => setTimeout(resolve, 150));
+    const late = connectClient();
+    await once(late, 'connect');
+    const joined = await emitAck(late, 'room:join', { roomId: created.roomId });
+    assert.ok(joined.playerState.currentTime >= 30.1 && joined.playerState.currentTime < 31.5);
+    guest.emit('player:state', { playing: false, currentTime: 0, duration: 60 });
+    await emitAck(guest, 'room:rename', { displayName: 'Guest' });
+    const status = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    assert.equal(status.rooms[0].playerState.currentTime, 30);
+    assert.equal(status.rooms[0].playerState.playing, true);
+    const paused = once(guest, 'player:state');
+    host.emit('player:state', { playing: false, currentTime: 40, duration: 60 });
+    assert.equal((await paused).currentTime, 40);
+    const reset = once(guest, 'player:state');
+    host.emit('room:track', { hash: 'second', title: 'Second' });
+    assert.equal(await reset, null);
   });
 });

@@ -21,6 +21,7 @@ type StageRailProps = {
   tracks: CatalogTrack[];
   accessByTrackId: Record<string, boolean>;
   selectedTrackId: string;
+  nativePaymentSymbol: string;
   onOpenTrack: (track: CatalogTrack) => void;
 };
 
@@ -29,7 +30,7 @@ const ARC_DROP_PX = 26;
 const ARC_TILT_DEG = 5;
 const ARC_SCALE_LOSS = 0.07;
 
-export function StageRail({ tracks, accessByTrackId, selectedTrackId, onOpenTrack }: StageRailProps) {
+export function StageRail({ tracks, accessByTrackId, selectedTrackId, nativePaymentSymbol, onOpenTrack }: StageRailProps) {
   const railRef = useRef<HTMLDivElement>(null);
   const lampRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef(0);
@@ -121,13 +122,13 @@ export function StageRail({ tracks, accessByTrackId, selectedTrackId, onOpenTrac
               onClick={() => onOpenTrack(track)}
             >
               <span className='stage-cover'>
-                <CoverImage src={track.imageRef} alt='' loading='lazy' />
+                <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} loading='lazy' />
                 <span className='stage-glare' aria-hidden='true' />
               </span>
               <span className='stage-copy'>
                 <strong>{track.title}</strong>
                 <span>{track.artist}</span>
-                <small data-access={unlocked ? 'granted' : 'locked'}>{unlocked ? 'Opened for this wallet' : catalogAccessLabel(track)}</small>
+                <small data-access={unlocked ? 'granted' : 'locked'}>{unlocked ? 'Access available' : catalogAccessLabel(track, nativePaymentSymbol)}</small>
               </span>
             </button>
           );

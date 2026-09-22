@@ -12,6 +12,7 @@ import { fastifyLoggerOptions } from './logger.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { keyRoutes } from './routes/keys.js';
+import { turnRoutes } from './routes/turn.js';
 import { uploadRoutes } from './routes/uploads.js';
 import { createCatalogRoutes } from './routes/catalog.js';
 import { catalogReadModel as defaultCatalogReadModel } from './services/catalog/index.js';
@@ -39,6 +40,7 @@ export type BuildAppOptions = {
   // Tests disable logging; production always logs.
   logging?: boolean;
   catalog?: CatalogReadModel;
+  apiOrigins?: string[];
 };
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
@@ -48,9 +50,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   };
   const app = Fastify(serverOptions);
 
-  // CORS — restricted to the configured frontend origin.
+  // CORS — restricted to the configured standalone and Product-host origins.
   await app.register(cors, {
-    origin: config.API_ORIGIN,
+    origin: options.apiOrigins ?? config.API_ORIGINS,
     methods: ['GET', 'POST', 'OPTIONS'],
     exposedHeaders: ['x-request-id', 'etag', 'x-catalog-state', 'x-catalog-block-lag'],
   });
@@ -97,6 +99,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // Routes.
   await app.register(healthRoutes);
   await app.register(authRoutes, { prefix: '/api/auth' });
+  await app.register(turnRoutes, { prefix: '/api/turn' });
   await app.register(keyRoutes, { prefix: '/api/tracks' });
   await app.register(uploadRoutes, { prefix: '/api/uploads' });
   const catalog = options.catalog ?? defaultCatalogReadModel;

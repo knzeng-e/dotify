@@ -18,6 +18,15 @@ Dotify currently uses:
 
 ## Active product surfaces
 
+Execution update (September 2026): use
+`docs/backlog/implementation/README.md` for implementation order and acceptance.
+Product DevNet now has explicit pilot acceptance alongside standalone web;
+capability adaptation remains mandatory. Responsive discovery is followed by
+optional 3D rendering, measured musical activity, and later opt-in coarse-area
+discovery. These are planned increments, not claims about delivered capability.
+Earlier limitations below are historical snapshots: reconcile them with current
+code and live evidence before implementing, especially personhood and Product.
+
 ### Music / Listen
 
 Catalog browsing, track cards, artwork, description, access badges, player, room-hosting controls, and real open-room discovery.
@@ -57,8 +66,9 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
 - Product SDK / Playground / Humanity integration is a progressive enhancement
   track. The current verified Product SDK snapshot is prototype/reference/
   unaudited, Host APIs require a compatible container, contracts target
-  `pallet-revive` / PolkaVM CDM flows, and Statement Store is constrained to
-  small signed ephemeral data.
+  `pallet-revive` / PolkaVM CDM flows, Product sr25519 key/session signatures
+  are wired for Product frontend protected playback after explicit host-account
+  connection, and Statement Store is constrained to small signed ephemeral data.
 
 ## Production spine
 
@@ -87,7 +97,8 @@ Introduce a lean backend service for:
 
 - Pinata uploads;
 - content-key custody and delivery;
-- wallet signature verification;
+- wallet signature verification, including EIP-191 and Product sr25519
+  request schemes;
 - nonce/replay protection;
 - access checks against SmartRuntime;
 - room host key requests;
@@ -155,7 +166,7 @@ Maintain and test:
 - track registration;
 - deactivation;
 - Classic payment;
-- royalty distribution;
+- royalty settlement with claimable fallback for failed recipients;
 - personhood-gated access;
 - NFT transfer gating;
 - isolation between artist runtimes;
@@ -211,7 +222,9 @@ Contracts already have meaningful tests; frontend and e2e must catch up.
 - No dev fallback signer in public flows.
 - Access checks must fail closed.
 - Backend must not trust frontend-provided access results.
-- Wallet signatures must include nonce, chain ID, content hash, requester address, request purpose, and expiration.
+- Wallet signatures must include nonce, chain ID, content hash, requester
+  address, request purpose, and expiration; Product signatures must also bind
+  the Product account public key to the derived H160 requester.
 - Replay protection is mandatory for key requests.
 - Room listeners must never receive content keys or encrypted source files.
 - Logs must never expose secrets, keys, or raw uploaded contents.

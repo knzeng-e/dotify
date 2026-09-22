@@ -1,0 +1,1032 @@
+# Deploy Dotify To Product DevNet
+
+This runbook publishes the Product build to Bulletin/DotNS and connects it to
+the existing Fly API and signaling services. It does not deploy contracts or
+change production secrets.
+
+## September 2026 Product DevNet Platform Refresh
+
+The Product DevNet update published on 2026-09-08/2026-09-09 moved DotNS to a
+new contract set, moved CDM `ContractRegistry` to
+`0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f`, and required fresh chain
+descriptors after runtime upgrades. Dotify must therefore publish Product app
+bundles with `@polkadot-community-foundation/polkadot-app-deploy@0.16.2` or
+newer, publish CDM names against the new registry, and keep the checked-in
+Bulletin descriptor pinned to the current DevNet runtime. Older `pad`/DotNS
+tooling can report a successful publish while writing to retired contracts that
+new Product hosts no longer observe.
+
+## Frontend Publish Does Not Deploy Contracts
+
+Product DevNet is a preset over the Paseo system parachains - Asset Hub (1000),
+People (1004), Bulletin (1010) - at EVM chain `420420417`. Dotify's contracts
+live on that chain. Publishing the Product frontend is therefore separate from
+deploying or upgrading contracts, and the addresses in `deployments.json` must
+already point at the intended DevNet contracts.
+
+When a change modifies contract code or ABI, deploy or upgrade the affected
+contracts first, then regenerate the Product CDM manifest and metadata before
+publishing the frontend. W05 changes `MusicRoyaltiesPallet` by adding
+claimable-recipient settlement, so existing artist runtimes need a royalties
+facet cut or a clean factory/runtime redeploy before native Classic payments are
+treated as W05-ready. `npm run smoke:devnet` checks configured chain/bytecode
+availability; it does not prove every runtime has the new selectors installed.
+
+Prefer the in-place facet cut when the current artist runtime is owned by the
+artist wallet. It keeps the runtime address, protected-audio key binding,
+catalogue storage, paid-access state, and claimable balances intact:
+
+```bash
+cd contracts/evm
+npm run runtime:export:testnet -- --runtime <RUNTIME> --recipient <ARTIST_OR_SPLIT_RECIPIENT> --out /tmp/dotify-runtime-snapshot.json
+npm run runtime:deploy-royalties-facet:testnet
+npm run runtime:deploy-royalties-facet:testnet -- --execute --confirm-chain-id 420420417 --confirm-code-hash <LOCAL_CODE_HASH> --out /tmp/dotify-royalties-facet.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <RUNTIME> --facet <NEW_ROYALTIES_FACET> --out /tmp/dotify-royalties-upgrade-plan.json
+npm run runtime:royalties-upgrade:testnet -- --runtime <RUNTIME> --facet <NEW_ROYALTIES_FACET> --execute --confirm-plan <PLAN_DIGEST> --out /tmp/dotify-royalties-upgrade-final.json
+```
+
+The facet deploy and runtime upgrade commands are dry-run by default. A
+code-hash mismatch means the target facet is still an older on-chain deployment
+or an unrelated contract; deploy the current `MusicRoyaltiesPallet` facet first,
+then pass the manifest's `facet` address to the upgrade command with `--facet`.
+The deploy command never edits `deployments.json`, and the upgrade command
+refuses execution without a fresh plan digest plus an evidence file. Clean
+redeploy is a fallback:
+
+If a command writes an evidence file and then fails before the manifest reaches
+`signed-before-broadcast`, no transaction was signed or broadcast by that task.
+Inspect the file, then retry with a new `--out` path or remove the stale
+prepared manifest.
+
+```bash
+npm run runtime:migration-plan -- --snapshot <SNAPSHOT> --target-runtime <NEW_RUNTIME> --out <PLAN>
+```
+
+Use that command to render replay calldata, but do not treat it as a state
+migration. It does not move paid-access grants or claimable balances, and
+encrypted `dotify:enc:v2:` audio must be re-encrypted for the new runtime.
+
+Confirm before every publish:
+
+```bash
+cd web
+npm run smoke:devnet
+```
+
+It reads `web/.env.product-devnet` and `deployments.json` and checks, read-only,
+that the configured Asset Hub reports chain `420420417`, is producing blocks
+past the 2026-07 halt, still serves bytecode for the ArtistDirectory and
+ArtistRuntimeFactory, and that the Bulletin RPC and IPFS gateway respond. It
+sends no transaction and prints no credential.
+
+Do not point the build at **Asset Hub Next (1500)** or **People Next (1502)**.
+The Product documentation is explicit that those belong to a different network;
+Dotify has no contracts there, and the catalog would load empty.
+
+## Publishing CDM Metadata And Registering `@dotify/*`
+
+Separate from the frontend publish below, and only needed when the contracts or
+their ABIs change.
+
+Dotify's default CDM registry is the current Product DevNet `ContractRegistry`
+at `0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f`. Do not publish new
+`@dotify/*` versions to the retired registry
+`0x59b0245778917af55224e5f8fb55f7f8d452619f`; it remains readable but new
+post-snapshot versions registered there do not appear in the refreshed Product
+DevNet registry.
+
+The registry stores `(name -> address)` and `(name -> metadata_uri)`. Without
+the second, another product can resolve where Dotify's contracts are but not
+what they expose, so `cdm install` fails and the registration is nominal.
+
+**1. Generate the metadata blobs and their CIDs.**
+
+```bash
+cd web
+npm run generate:cdm-metadata
+```
+
+Writes `web/src/generated/contracts/cdm-metadata/` - one JSON blob per package
+plus `cids.json`. Output is deterministic: the same contracts produce the same
+bytes and therefore the same CIDs, so the published blob can always be checked
+against the repository. `published_at` is omitted for that reason; pass
+`--published-at <iso-date>` if a publication date is wanted, accepting that it
+changes the CID.
+
+**2. Upload the blobs to Bulletin.**
+
+This needs a live Bulletin storage authorization for the uploading account -
+the same finite, expiring quota the frontend publish uses. Upload each JSON file
+from that directory and confirm the returned CID matches `cids.json`. A mismatch
+means the bytes changed in transit and must not be registered.
+
+**3. Register the names.**
+
+```bash
+cd contracts/evm
+npm run cdm:publish:testnet                       # dry run, prints the plan
+npx hardhat cdm:publish --network polkadotTestnet --confirm
+```
+
+No key needs to be supplied. The task signs with the account hardhat already
+holds for this network, sourced from the encrypted `PRIVATE_KEY` var
+(`npx hardhat vars set PRIVATE_KEY`). Pass `--private-key` only to publish from
+a different account than the deployer.
+
+That account matters beyond paying fees: `publish_latest` records the caller as
+the **permanent owner** of every name it creates, so whoever signs owns
+`@dotify/*` from then on. The dry run prints the resolved publisher for exactly
+that reason - check it before confirming.
+
+The task reads `cids.json`, so the CID published on-chain is derived from the
+generated bytes rather than pasted by hand. It is read-only without `--confirm`.
+
+Registration is first-writer-owns and the registry exposes no release or
+transfer entry point, so **a claimed name is permanent**. Confirm the namespace
+before the first publish. The task refuses to register an address with no
+bytecode, or a name owned by another account.
+
+Verify afterwards from a consuming project:
+
+```bash
+cdm i -n devnet @dotify/artist-directory @dotify/artist-runtime-factory
+```
+
+Use `-n devnet`, never `-n paseo`: the `paseo` preset targets paseo-next
+(para 1500), which holds none of Dotify's contracts.
+
+## Prerequisites
+
+- Node.js 22 and npm 10+
+- a clean build from the intended commit
+- access to the `dotify-test01.dot` deployment account
+- Fly access for `dotify-api` and `dotify-signal`
+- the current `@polkadot-community-foundation/polkadot-app-deploy` DevNet prerequisites (`0.16.2` is the pinned Dotify deploy CLI)
+
+The CLI is reference/experimental tooling. Do not store a mnemonic in the
+repository, shell history, `.env` files, Netlify, or Fly.
+
+Before the first publish, the signing account also needs:
+
+- DevNet native tokens on Asset Hub;
+- an EVM account mapping (`dotns account map --env devnet`);
+- a live Bulletin storage authorization for the same SS58 account;
+- ownership of `dotify-test01.dot`, or eligibility to register it during deploy.
+
+`dotify.dot` currently requires full personhood on Product DevNet. Until the
+project has that proof level, use `dotify-test01.dot` and
+`https://dotify-test01.dev-dot.li` for operator deployments.
+
+Bulletin authorization is a finite quota and may expire. A deploy that starts
+failing at the upload stage after previously working should recheck that quota.
+See the official
+[build and publish guide](https://docs.polkadotcommunity.foundation/guides/build-and-publish/)
+for the current faucet, storage console, mapping, and DotNS registration steps.
+
+## 1. Verify The Fly Origin Boundary
+
+The tracked Fly configuration must contain:
+
+```txt
+API_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot
+SIGNAL_ORIGINS=https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot
+SIGNAL_ALLOW_MISSING_ORIGIN=true
+```
+
+These exact origins reach the Fly services: Netlify, the public DotNS gateway,
+Product Host HTTPS execution origins, Product mobile host webviews using the
+`.dot` pseudo-domain, and native hosts using the custom scheme. The public
+browser URL is `https://dotify-test01.dev-dot.li`, desktop host iframe requests
+can carry `Origin: https://dotify-test01.app.dev-dot.li`, Product host requests
+have also been observed with `Origin: https://dotify-test01.app.dot.li`, and
+Product mobile can carry `Origin: https://dotify-test01.dot` or
+`Origin: polkadot://dotify-test01.dot`. Both lists must
+carry every observed exact origin: without the host-specific origin, catalog
+requests are blocked and Socket.IO polling returns `403`, even though the static
+shell itself renders.
+
+`polkadot:` is a non-special scheme, so its origin is opaque and a browser may
+send `Origin: null` rather than the literal value. If a host request is still
+refused after this change, read the actual `Origin` header from the Fly log
+before widening either list. Never add a bare `null`: that admits every
+sandboxed iframe and `file://` page on the web to the authenticated upload and
+content-key routes. A regression test in `services/api/src/cors.test.ts` pins
+that refusal.
+
+Polkadot Desktop/native hosts may omit the `Origin` header entirely on the
+Socket.IO handshake. `SIGNAL_ALLOW_MISSING_ORIGIN=true` allows that missing
+header only for the signaling service. It still rejects the literal
+`Origin: null` value, and it must not be mirrored to backend API CORS.
+
+Deploy both services before publishing the frontend. `cd` into each service
+first - this is not cosmetic:
+
+```bash
+cd services/api
+flyctl deploy
+
+cd ../../web
+flyctl deploy -c fly.signal.toml
+```
+
+`-c` selects the config file only; it does not set the Docker build context,
+which is always the shell's working directory. Running
+`flyctl deploy -c services/api/fly.toml` from the repository root fails at
+`COPY src ./src`, because the Dockerfile is written against `services/api` as
+its context and there is no `src/` at the root. It also uploads a ~1.3 GB
+context, since Docker reads `.dockerignore` from the context root and only the
+service directories have one. Passing the directory positionally
+(`flyctl deploy services/api`) works too, because that sets the context.
+
+An earlier cached layer can hide the mistake: `COPY package*.json ./` and
+`npm ci` may report `CACHED` from a previous correct build, so the failure
+surfaces at the first genuinely uncached step rather than the first wrong one.
+
+Keep backend secrets unchanged. `API_ORIGINS` supersedes singular
+`API_ORIGIN`; the latter remains only as a compatibility fallback.
+
+## 2. Verify Track Asset Gateways
+
+The Product IPFS gateway stores the published app bundle, but current Dotify
+track assets are public IPFS CIDs pinned through the API/Pinata path. Keep the
+Pinata public gateway first in `web/.env.product-devnet` so freshly published
+audio and cover CIDs resolve before generic public IPFS gateways catch up:
+
+```txt
+VITE_PINATA_GATEWAY=https://gateway.pinata.cloud
+VITE_IPFS_READ_GATEWAYS=https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443
+```
+
+Do not make `https://devnet-ipfs.api.polkadotcommunity.foundation`, `ipfs.io`,
+or `dweb.link` the first track-asset read gateway unless it has been proven to
+resolve the current catalog's cover/audio CIDs quickly. A hanging first gateway
+can leave `<img>` requests pending without firing `error`, which makes covers
+appear blank or disappear while the app waits.
+
+Before publishing, spot-check one cover ref from the catalog. For a new
+responsive ref, include its complete path and repeat the check with
+`cover/160.webp`; legacy refs remain a bare CID:
+
+```bash
+curl -s -L -o /dev/null --max-time 12 \
+  -w '%{http_code} %{content_type} %{size_download} %{time_total}\n' \
+  https://gateway.pinata.cloud/ipfs/<cover-cid-or-cid/path>
+```
+
+## 3. Verify The Browser-Safe Build Profile
+
+Review `web/.env.product-devnet`. It must contain only public endpoints and
+identifiers. In particular:
+
+```txt
+VITE_DOTIFY_HOST_MODE=required
+VITE_DOTIFY_PRODUCT_ID=dotify-test01.dot
+VITE_PUBLIC_APP_URL=https://dotify-test01.dev-dot.li
+VITE_DOTIFY_API_URL=https://dotify-api.fly.dev
+VITE_SIGNAL_URL=https://dotify-signal.fly.dev
+VITE_PINATA_JWT=
+VITE_CONTENT_SECRET=
+```
+
+`VITE_PUBLIC_APP_URL` is the URL copied for room invitations. Do not replace it
+with an internal host URL or a raw CID gateway.
+
+The Product build embeds a non-secret bootstrap catalog snapshot for
+`dotify-test01.dot`. It is only an initial-read fallback for hosts where the
+catalog API request hangs or the browser storage cache is empty. The Fly catalog
+API remains the source of truth and refreshes the UI as soon as it responds.
+
+`npm run build:product-devnet` refreshes that bootstrap snapshot before Vite
+builds. The generator reads `VITE_DOTIFY_API_URL` from `.env.product-devnet`
+unless the shell-only `CATALOG_API_URL` override is set, calls
+`/api/catalog?limit=100&includeInactive=true`, validates the response, and
+rewrites `web/src/services/productDevnetCatalogBootstrap.ts`. If the API is
+temporarily unavailable, the default command keeps the existing snapshot so
+offline builds can still complete. Use the strict command for release evidence:
+
+```bash
+cd web
+npm run generate:product-catalog-bootstrap:strict
+git -C .. diff -- web/src/services/productDevnetCatalogBootstrap.ts
+```
+
+After reviewing and committing that generated file, use
+`npm run build:product-devnet:frozen` for the exact release candidate. This
+command performs no catalog request and builds only from the committed snapshot.
+Both signer-free CI and the local publish command use this frozen path, so the
+validated catalogue cannot change between review and publication.
+
+When the deployed contract addresses or indexed releases change, update the API
+configuration first, wait until `https://dotify-api.fly.dev/api/catalog` returns
+the new catalog, run the strict generator, commit the generated snapshot change,
+then publish the Product build.
+
+## 4. Build Locally
+
+```bash
+cd web
+npm ci
+npm run test:unit
+npm run smoke:devnet
+npm run smoke:product-journey -- --md-out /tmp/dotify-product-journey.md --json-out /tmp/dotify-product-journey.json
+npm run smoke:pilot-release -- --md-out /tmp/dotify-pilot-release-readiness.md --json-out /tmp/dotify-pilot-release-readiness.json
+npm run smoke:product-cash-settlement -- --md-out /tmp/dotify-product-cash-settlement.md --json-out /tmp/dotify-product-cash-settlement.json
+npm run build:product-devnet:frozen
+```
+
+Expected output is `web/dist-product`. The production guard must fail if a
+browser upload token or content secret is present.
+
+`smoke:product-journey` is read-only. Without exported live host evidence it
+must report all static Product DevNet gates as passed, then mark the Product
+CDM unlock as `blocked` and the room journey as `not-run`. Treat a static
+`fail` as a release blocker before publishing.
+
+`smoke:pilot-release` wraps the Product journey gates into the W13 release
+package. It additionally verifies W01-W12 local evidence, issue/backlog mapping,
+the reversible pilot plan, contract inventory, and optional aggregate pilot
+metrics. Optional pilot evidence must use schema v2 and bind the decision to
+the candidate git SHA, Product appVersion, default `viem` release CID, capture
+time, outcome metrics, privacy flags, rollback, and join-count invariants. Pass
+that independently recorded release CID with `--pilot-release-cid`; the command
+never substitutes the earlier `product-cdm` smoke or room CID. It does not sign,
+deploy, contact participants, or treat missing live evidence as a pass.
+
+`smoke:product-cash-settlement` is also read-only. The expected result for the
+current Product SDK snapshot is `cash-settlement-unavailable`: local fail-closed
+gates pass, and the live CASH path remains blocked on a Product-confirmed
+CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
+operator-supplied evidence file is unsafe and must block the release.
+
+The default build keeps the viem runtime adapter, which tree-shakes the Product
+contract graph away and publishes at roughly 4.4 MB. Building with
+`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` pulls in the Product SDK descriptors
+and roughly doubles that. Bulletin storage is a finite quota, so only opt in
+when the Product contract path is actually being exercised.
+
+## 5. Authenticate The Deploy Tool
+
+The repository pins the CLI version in the npm deploy command but does not add
+the experimental deploy tool to the application dependency tree.
+
+`npm run deploy:product-devnet` signs DotNS updates with the owner mnemonic from
+`MNEMONIC`. Do not rely on `pad login` for this path: `pad login` and
+`pad whoami` describe the mobile Product session only, not the local owner
+signer.
+
+```bash
+read -rs MNEMONIC
+export MNEMONIC
+```
+
+Paste the DotNS owner mnemonic, then press Enter. Prefer a password manager or
+another non-history shell injection in normal operation; do not commit it or
+store it in `.env`, GitHub Actions, Netlify, or Fly. The deploy command lets
+`polkadot-app-deploy` read `MNEMONIC` from the local child-process environment;
+it does not expand the phrase into the command arguments, where local process
+inspection could expose it. Run `unset MNEMONIC` immediately after the publish.
+If the owner account uses a derivation path, add that path to the deploy script
+or run the equivalent `pad` command with `--derivation-path`.
+
+The preflight output must show the H160 owner of `dotify-test01.dot`. If it
+shows a different H160, stop before publishing and check the mnemonic or
+derivation path.
+
+GitHub Actions never receives DotNS signing authority. The manual **Validate
+Product candidate** workflow accepts only an exact full commit SHA and a
+`validation` or `release` profile. It checks out and builds that immutable
+candidate with no mnemonic, signer, upload, or network write. The validation
+profile enables the Product CDM adapter, artist gifts, and the operator-only
+readiness panel; the release profile retains the tracked viem defaults.
+
+```bash
+gh workflow run deploy-frontend.yml \
+  --ref <candidate-branch> \
+  -f profile=validation \
+  -f expected-sha=<full-candidate-sha>
+```
+
+The workflow checks out the supplied SHA directly, requires a clean tree, runs
+the Product static gates, builds the chosen profile from the committed catalogue
+snapshot, refuses generated source drift, and records that it held no signing
+authority. Its evidence summary reads the executable `appVersion` directly from
+`polkadot-app-deploy.config.ts` and fails if that identity is absent or invalid,
+so a version bump cannot leave the validation record on an older hard-coded
+value. Publication is a distinct local operator step from the same checked-out
+SHA and uses that same frozen build command. Review the local deploy output for
+the finalized CID before using the build as W13 evidence.
+
+## 6. Publish
+
+```bash
+npm run deploy:product-devnet
+```
+
+The command:
+
+1. refuses to continue when `MNEMONIC` is empty;
+2. builds from the committed Product catalog snapshot without querying the
+   mutable Fly catalog API;
+3. rebuilds `dist-product`;
+4. validates `polkadot-app-deploy.config.ts`;
+5. creates content-addressed chunks with the JavaScript merkle implementation;
+6. uploads changed content to Product DevNet Bulletin;
+7. updates `dotify-test01.dot` directly with the `$MNEMONIC` owner signer;
+8. writes the Product manifest and executable records.
+
+After recording the finalized CID, remove the local process credential:
+
+```bash
+unset MNEMONIC
+```
+
+Bump the Product executable `appVersion` in
+`web/polkadot-app-deploy.config.ts` whenever the Product bundle changes runtime
+behavior, host SDK integration, permissions, metadata, or cache-sensitive
+assets. A successful `pad` publish writes a new CID, but the mobile host can
+also use executable metadata while refreshing an already-opened app.
+
+The tracked Product executable candidate is `[0, 1, 28]`. This version protects
+TURN credentials with short-lived room-membership proof and restores an
+independent IPFS source for bounded full-file audio recovery. Its version bump
+also gives Product hosts an explicit cache-refresh signal for the changed room
+and playback paths. It retains the `[0, 1, 27]` single-dialog Classic support
+handoff and the `[0, 1, 26]` candidate-bound first-sound evidence with
+independent budgets for every exact device/OS/browser/network/host profile,
+clean-worktree and checked-out-commit candidate enforcement, fresh warm-resume
+attempts, and terminal autoplay failures, the `[0, 1, 25]` candidate-bound
+Product room smoke capture, and the
+`[0, 1, 24]` move of DAV2 chunk decryption off the rendering thread through a
+bounded Web Worker.
+Product hosts that cannot start the worker within 1.5 seconds retain the same
+fail-closed Web Crypto path. It also keeps the `[0, 1, 23]` shared-link arrival
+behavior free of chain setup: Product CDM readers connect only when an
+authoritative runtime read is requested, and the known DevNet PAS label no
+longer opens a direct EVM RPC request during initial render. Direct Product CDM
+reads and writes still fail closed when the Host protocol is unavailable; there
+is no viem fallback for access decisions. It retains the `[0, 1, 22]` native
+extrinsic proof links and the `[0, 1, 21]` correction that converts 18-decimal
+Solidity payment values into the connected chain's native `Revive.call` Balance
+precision. It also binds Product payment and room evidence to the exact
+deployed CID so stale artifacts cannot satisfy pilot gates. It keeps blocked
+guest audio recovery visible in Product-hosted rooms, exposes W05 runtime claim
+writes through the shared runtime writer port, uses the refreshed September 2026
+Product SDK/tooling and re-pinned Bulletin descriptor, and removes
+passkey-only wallet routes from public account flows. It also hardens viem
+release registration against Product DevNet wallet hashes that remain pending
+or disappear before inclusion, understands W07 `dotify:enc:v2:key-vN`
+protected-audio refs, surfaces a retryable dropped-tx diagnostic instead of
+a generic receipt timeout, and adds the optional W14 room galaxy renderer behind
+the existing 2D/list room discovery fallback. Product host containers use Engine.IO Fetch polling
+without a WebSocket upgrade, so room signaling stays on the remote-network
+primitive proven to remain available in Product Mobile. Standalone browsers
+retain Fetch-first with an optional WebSocket upgrade. Do not remove the direct
+`engine.io-client` pin or restore XHR polling without a successful room-open
+stability test in both Product Mobile and the standalone
+browser.
+
+The W14 room galaxy lazy-loads `three` in the normal Vite build, so the
+standalone web bundle keeps the graphics code in a separate on-demand chunk.
+The Product build is multi-file and also preserves that chunking; the Bulletin
+single-file build inlines it by design. W14 keeps the 2D room sky as the
+default and exposes 3D as an opt-in desktop renderer until supported-device
+performance evidence justifies promoting it. If Bulletin quota or first-load
+size is the priority for a release, keep that default and do not promote 3D for
+that profile.
+
+Room continuity introduced in `[0, 1, 6]` also depends on the matching
+signaling server.
+Deploy `web/fly.signal.toml` before publishing the Product executable. A
+transient host transport loss keeps the room private but resumable for the
+configured `SIGNAL_HOST_TIMEOUT_MS`; the in-memory host token resumes the same
+room without another wallet or name prompt. No new Fly secret or environment
+variable is required.
+
+Product Mobile permission preflight is strict when the host explicitly rejects
+`Remote` or `WebRtc`. Executable `[0, 1, 6]` and later requests `WebRtc` first so the
+current mobile bridge's domain-encoding failure on `Remote` cannot prevent the
+media permission from being requested. It treats the known internal permission
+bridge exception (`... is not a function ... undefined`) as unsupported for the
+individual permission, checks the other permission, then proceeds to Fetch
+polling only when there was no explicit denial. Executable `[0, 1, 9]` requests
+remote access for both `dotify-signal.fly.dev` and `dotify-api.fly.dev`,
+because the Product host fetches API TURN grants before WebRTC peer creation.
+Fly CORS and Socket.IO remain the signaling network boundary.
+
+Executable `[0, 1, 6]` and later retries host-side audio capture when a listener arrives
+before Product Mobile has produced a local WebRTC audio track. The host should
+therefore create a fresh offer after the capture becomes available instead of
+leaving guests on `Connecting...`. The listener now retains ICE candidates that
+arrive before the offer over Product Fetch polling, retries negotiation once,
+and reports whether the host sent no offer, exposed no WebRTC route, or needs a
+TURN relay.
+Executable `[0, 1, 8]` also creates a near-silent placeholder WebRTC audio
+track when a playable source exists but browser capture is not ready yet. That
+lets listener retry requests force a visible WebRTC offer; the sender is
+replaced with the real host media track as soon as capture succeeds.
+Executable `[0, 1, 9]` also carries the resolved playable audio source from
+catalog selection into room creation, avoiding the race where the room opens
+before the session provider has received the new `audioSource` prop.
+Executable `[0, 1, 10]` strips optional TURN credential metadata that older
+WKWebViews can reject, catches every listener answer phase (including peer
+construction), and reports metadata-only `webrtc:diagnostic` events through
+signaling. These diagnostics intentionally exclude SDP, candidates, addresses,
+media identifiers, content keys, and user-agent strings.
+Executable `[0, 1, 11]` and later recognize the current iOS Product sandbox,
+which explicitly removes `window.RTCPeerConnection` from Product scripts. Dotify
+prevents opening an in-container host room that cannot stream and offers
+listeners a **Continue in browser** action through the SDK `navigateTo` bridge.
+The current room code is preserved in the external HTTPS URL. This is an
+interim product fallback, not an in-app WebRTC implementation; native in-app
+audio requires the Product Mobile host to expose a permission-gated peer
+connection capability.
+
+When Fly diagnostics report `listener:create-peer-failed` with
+`peerConnectionAvailable=false` and `protocol=polkadot:`, coturn will correctly
+show no allocation because ICE never started. Investigate TURN only for later
+ICE/connection failures where peer construction succeeded.
+
+The checked-in Product profile does not configure browser-visible TURN values.
+Direct STUN is useful for development but cannot reliably cross every mobile,
+carrier, VPN, or symmetric-NAT boundary. Before treating cross-network mobile
+rooms as production-ready, configure the API-side TURN grant path:
+`TURN_URLS` plus `TURN_REST_SECRET` on `dotify-api`, then redeploy the API and
+confirm `https://dotify-api.fly.dev/api/turn/grant` returns `iceServers`.
+Product will fetch those short-lived credentials through `VITE_DOTIFY_API_URL`.
+Executable `[0, 1, 7]` is the first Product version that attempts this API
+grant before opening WebRTC peers.
+Only use `VITE_TURN_URL`, `VITE_TURN_USERNAME`, and `VITE_TURN_CREDENTIAL` for
+rotated DevNet/static fallback credentials; they are public inside the Product
+bundle and require a Product republish when changed.
+
+Publisher listing is deliberately not part of the default deploy. It requires
+the current Product proof-of-personhood level and signer support. After the app
+URL is verified, follow the current official **List it in Browse** guide and
+record that result separately. A listing failure must not obscure a successful
+static deployment.
+
+Record the commit, CLI version, resulting CID, DotNS transaction references,
+and final public URL in the release evidence.
+
+## 7. Validate
+
+Check service CORS from the standalone and observed Product origins:
+
+```bash
+curl -s -D - -o /dev/null \
+  -H 'Origin: https://dotify-test01.dev-dot.li' \
+  https://dotify-api.fly.dev/health
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: https://dotify-test01.app.dev-dot.li' \
+  https://dotify-api.fly.dev/api/catalog?limit=1
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: https://dotify-test01.app.dot.li' \
+  https://dotify-api.fly.dev/health
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: https://dotify-test01.dot' \
+  https://dotify-api.fly.dev/health
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: polkadot://dotify-test01.dot' \
+  https://dotify-api.fly.dev/health
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: https://muzinga.netlify.app' \
+  https://dotify-api.fly.dev/health
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: https://dotify-test01.app.dev-dot.li' \
+  https://dotify-signal.fly.dev/health
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: https://dotify-test01.app.dot.li' \
+  https://dotify-signal.fly.dev/health
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: https://dotify-test01.dot' \
+  https://dotify-signal.fly.dev/health
+
+curl -s -D - -o /dev/null \
+  -H 'Origin: polkadot://dotify-test01.dot' \
+  https://dotify-signal.fly.dev/health
+```
+
+Each Product Host probe must include
+the matching `access-control-allow-origin` header. A `200` without that header
+is still a browser failure. Also confirm an unrelated origin receives no
+allow-origin header; never widen either service to `*`.
+
+If `/health` still reports an old allowlist after redeploying, check Fly secret
+overrides. `API_ORIGINS` and `SIGNAL_ORIGINS` are public config tracked in the
+respective `fly.toml` files, not secrets:
+
+```bash
+cd services/api
+flyctl secrets list
+flyctl secrets unset API_ORIGINS
+
+cd ../../web
+flyctl secrets list -c fly.signal.toml
+flyctl secrets unset SIGNAL_ORIGINS -c fly.signal.toml
+```
+
+Then verify in the Product host:
+
+1. `https://dotify-test01.dev-dot.li` opens and shows catalog tracks.
+2. Free playback starts without connecting an account.
+3. **Use Polkadot app** connects an app-scoped Product account only after the
+   button is selected.
+4. Opening or joining a room in the Polkadot mobile host prompts for and/or
+   receives the host `Remote` permission for `dotify-signal.fly.dev` and
+   `dotify-api.fly.dev`, plus the `WebRtc` permission when the host SDK can
+   run that preflight. If the mobile
+   host shows `Room service unavailable` while Fly receives no `/health` or
+   `/socket.io` request, treat a stale executable older than `[0, 1, 6]` or
+   host-side remote networking as the first suspects. A current Product host
+   build keeps Socket.IO on Fetch polling without a WebSocket upgrade and
+   continues past the known mobile SDK preflight exception.
+5. A protected track requests its key through the Product identity using
+   `product-sr25519-v1`. Record which happened:
+   - accepted, and playback starts: capture the request/response pair as the
+     Product signing evidence this build needs;
+   - denied with `PRODUCT_SIGNATURE_REJECTED`: the key and requester bound
+     correctly but the host signing envelope is not one this API accepts.
+     Capture the Fly log line and the raw host signature length before
+     changing anything;
+   - denied with any other code: treat as a normal fail-closed denial.
+
+   In every rejected case, playback must stop and offer an EVM wallet fallback.
+   No path may release a key without a verified signature.
+
+6. The tracked Product profile intentionally uses the `viem` writer, so that
+   published profile asks for an EVM-compatible wallet when it needs to write.
+   To test payment through the Product host instead, publish an explicit Product
+   CDM smoke build from the candidate commit:
+
+```bash
+VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm \
+VITE_DOTIFY_ARTIST_DONATIONS=on \
+VITE_DOTIFY_DEBUG_PANEL=true \
+npm run deploy:product-devnet
+```
+
+   Run this from a clean committed worktree. A debug/evidence build stops before
+   bundling when tracked or untracked changes are present, because a dirty
+   bundle cannot truthfully use the commit SHA as its candidate identity.
+
+   The variables propagate through the deploy script's Product rebuild. For a
+   local build without publishing, run from that same clean commit:
+   `VITE_DOTIFY_DEBUG_PANEL=true npm run build:product-devnet:support`.
+   The `product-cdm` adapter still calls the EVM-compatible artist runtime, but
+   it signs through the Product host's sr25519 account. It must not ask for a
+   separate browser EVM wallet. Fund the Product/SS58 account shown as **Fund
+   this account** with Product DevNet PAS; the derived H160 is the runtime
+   identity used for access read-back, not a second account to refill.
+
+   If the Product dry-run returns `Revive.TransferFailed`, first read the native
+   balance of the displayed SS58 account on Polkadot Hub TestNet. A zero or
+   insufficient balance means no transaction was submitted: fund that SS58
+   account, wait until the chain read reflects the deposit, and only then retry
+   **Support and open**. Do not send PAS separately to the derived H160. Dotify
+   should render **Add PAS to continue** with the funding account and suppress
+   the raw dry-run payload. An unknown post-submission failure is different and
+   must retain its payment reference rather than offering another payment.
+
+   Before collecting evidence, verify that the Product host is actually
+   rendering the expected candidate. If the candidate's `Production readiness`
+   panel is absent or labels match an older build, stop: the host cache is not
+   valid release evidence. In Product Desktop, close Dotify, clear only the
+   Dotify app cache from its app settings, reopen the DotNS app, accept the
+   required domain/WebRTC permissions, and verify the expected UI and
+   `appVersion` before continuing. Clearing the cache is a local destructive
+   operation and requires the operator's explicit confirmation; it does not
+   authorize a payment or a publish.
+
+   Before the payment attempt, open `You` -> `Production readiness` ->
+   `Product CDM host smoke`, paste the executable CID printed by that exact
+   deployment, and select **Use this deployment**. This starts a fresh
+   candidate-bound capture. The panel ignores legacy v1 storage, rejects
+   malformed CIDs with the standards-compliant IPFS parser, and clears events
+   whenever SHA, Product appVersion, or CID changes.
+
+   Use a funded Product account that has not already paid for the target
+   Classic track. Do not use this as the default `dotify-test01.dot` release
+   gate until it has passed once end to end. Verify:
+   - the connected Dotify Product account and the host-selected signer expose
+     the same public key;
+   - deriving `pallet-revive` H160 from that public key gives the same H160
+     address shown by Dotify and used in key/session requests;
+   - clicking **Support and open** triggers an explicit host transaction
+     approval, not a silent write;
+   - the submitted `musicRoyPayAccess(contentHash)` preserves the exact
+     18-decimal `pricePlanck` contract value while `Revive.call.value` uses the
+     equivalent chain-native Balance (`42_000_000_000` units for `4.2 PAS` on
+     a 10-decimal Paseo chain);
+   - after inclusion, `musicAccHasPaid(contentHash, listenerH160)` and
+     `musicAccCanAccess(contentHash, listenerH160)` both read `true`. Dotify
+     polls this read-back with a bound before showing **Work opened** in a
+     `product-cdm` build and emits a `dotify:product-cdm-payment-smoke`
+     browser event with `txHash`, `runtimeAddress`, `contentHash`,
+     `listenerAddress`, `amountPlanck`, `hasPaid`, `canAccess`, `attempts`,
+     and `ok`;
+   - the backend then releases the full key through the same Product identity.
+
+   After the unlock attempt, return to the candidate-bound `Product CDM host
+   smoke` panel, mark **Host approval prompt captured** if the host showed an
+   explicit transaction approval, then copy or download the smoke JSON. Its
+   `capturedAt` is the start of that bound evidence session, not the later
+   export time. The JSON is stored only in browser session storage and
+   deliberately excludes
+   content keys, signatures, nonces, and session tokens. It includes
+   browser-safe candidate identity (`gitSha`, Product app version, deployed CID,
+   public app URL, and CDM registry) so the local harness can reject missing,
+   stale, or cross-deployment exports from an old
+   Product DevNet reset or a different build. Attach it with the Product host
+   approval screenshot and Fly/API logs.
+
+   Feed the exported smoke JSON back into the local journey harness:
+
+```bash
+npm run smoke:product-journey -- \
+  --smoke-json /path/to/product-cdm-host-smoke.json \
+  --md-out /tmp/dotify-product-journey.md \
+  --json-out /tmp/dotify-product-journey.json
+```
+
+   If any mapping check fails, the expected behavior is a fail-closed
+   **Payment signer unavailable** error before submission. If native value,
+   host approval UX, or post-payment access evidence is missing, the
+   `product-cdm` build must report **Payment included, access not verified**
+   with the transaction hash instead of marking the track open.
+   Keep the shipped profile on `viem`.
+
+   Product CASH is a separate future rail, not a replacement for this native
+   runtime smoke. A Host `PaymentManager` status of `Completed` is not enough
+   to unlock a Dotify track because it does not by itself update or prove
+   `musicAccHasPaid` on the Asset Hub runtime. If Product ships an
+   authoritative CASH settlement or attestation path, capture it with the W16
+   evidence schema and run:
+
+```bash
+npm run smoke:product-cash-settlement -- \
+  --evidence /path/to/product-cash-evidence.json \
+  --md-out /tmp/dotify-product-cash-settlement.md \
+  --json-out /tmp/dotify-product-cash-settlement.json
+```
+
+   Until that command passes with an explicitly supported authority, the UI and
+   backend must continue to leave Product CASH unavailable.
+
+7. A Product-origin host creates a room and copies a
+   `https://dotify-test01.dev-dot.li/#/rooms/<code>` link.
+8. A wallet-free browser joins that link from outside the Product host.
+   The public room lookup must start before any Product WebRTC/Remote
+   permission prompt. Dotify requests those host permissions only when the
+   person chooses to enter or host a room; merely opening a share link must be
+   enough to show the live host, track, and presence. If the signaling service
+   cannot be reached, the threshold sheet shows a retryable connection state.
+   Do not record that transport failure as an expired room.
+9. The outside listener reaches `In sync` and hears the host stream; staying on
+   `Connecting...` means host capture or WebRTC negotiation is still failing,
+   not room creation.
+   In the debug build, open `You > Production readiness > Product room smoke`.
+   Bind the same deployment CID used by the payment/key smoke, start the hosted
+   room capture, and complete the guest-device observations. Dotify derives
+   room creation, stream readiness, peer connection, listener count, and the
+   canonical URL from live room state; it does not ask the operator to type
+   those facts. Download the JSON and rerun the journey harness with both live
+   evidence files:
+
+```bash
+npm run smoke:product-journey -- \
+  --smoke-json /path/to/product-cdm-host-smoke.json \
+  --room-json /path/to/product-room-evidence.json \
+  --md-out /tmp/dotify-product-journey.md \
+  --json-out /tmp/dotify-product-journey.json
+```
+
+   The room JSON schema is intentionally small:
+
+```json
+{
+  "schemaVersion": 2,
+  "capturedAt": "2026-09-18T12:00:00.000Z",
+  "candidate": {
+    "gitSha": "<40-character-git-sha>",
+    "productAppVersion": "[0, 1, 28]",
+    "deployedCid": "<same-product-executable-cid-as-payment-smoke>"
+  },
+  "hostSurface": "product-desktop",
+  "hostOrigin": "polkadot://dotify-test01.dot",
+  "hostVersion": "Product Desktop 0.1.0",
+  "guestOrigin": "https://muzinga.netlify.app",
+  "canonicalRoomUrl": "https://dotify-test01.dev-dot.li/#/rooms/ROOM42",
+  "hostSharedCanonicalUrl": true,
+  "guestAccountConnected": false,
+  "guestJoined": true,
+  "guestHeardAudio": true,
+  "guestInSync": true,
+  "hostRoomCreated": true,
+  "hostStreamReady": true,
+  "hostPeerConnected": true,
+  "hostListenerCount": 1
+}
+```
+
+   The harness rejects the room file when its timestamp, candidate identity,
+   actual host transport facts, explicit guest observations, or secret hygiene
+   fail validation, and when its CID differs from the Product payment smoke. Use
+   `hostSurface: "product-web-gateway"` only for a separate smoke captured
+   from the Product Web gateway. A Product Desktop room smoke must not be reused
+   as Product Web evidence.
+
+   This completes the validation deployment track. Before an authorized pilot,
+   republish the same SHA and Product appVersion with the tracked default
+   `viem` profile:
+
+```bash
+npm run deploy:product-devnet
+```
+
+   Record the new CID printed by this command. It is the pilot release CID and
+   is expected to differ from the earlier `product-cdm` CID because the bundles
+   differ. Run the aggregate readiness gate with both identities kept separate:
+
+```bash
+npm run smoke:pilot-release -- \
+  --product-smoke-json /path/to/product-cdm-host-smoke.json \
+  --room-json /path/to/product-cdm-room-evidence.json \
+  --pilot-release-cid <default-viem-pilot-release-cid> \
+  --pilot-json /path/to/aggregate-pilot-evidence.json
+```
+
+   The command rejects pilot evidence when `--pilot-release-cid` is absent,
+   malformed, or different from `pilot-json.candidate.deployedCid`. Product CDM
+   and room evidence can validate the experimental writer, but cannot approve
+   the release bundle used by participants.
+
+10. A Netlify-origin host and Product-origin guest also connect.
+11. Briefly interrupting the mobile network preserves and resumes the same room
+    within 120 seconds; it must disappear from public discovery while the host
+    is offline and return with the same code after reconnecting.
+12. Explicitly leaving ends the room immediately. Force-closing the host leaves
+    the room private until the 120-second resume window expires.
+
+Inspect the browser console and Fly logs for CORS, catalog, Socket.IO, and
+WebRTC failures.
+
+## Room Beacons (Dormant By Default)
+
+The Statement Store beacon capability ships but is **not enabled** by the
+standard publication. `web/.env.product-devnet` sets
+`VITE_DOTIFY_ROOM_BEACONS=off`, and `npm run deploy:product-devnet` rebuilds in
+that mode, so a normal publish announces no rooms.
+
+That is deliberate. The Product discovery reader is implemented, but the
+publish/subscribe round trip still has no live host evidence. Publishing room
+records to a public chain before that check would create exposure without a
+proven product benefit. Treat this section as the procedure for collecting the
+evidence, not as part of a routine release.
+
+### Prerequisites
+
+- `VITE_DOTIFY_HOST_MODE` must be `auto` or `required`. The statement store
+  client runs only inside the Product host container, and the production guard
+  refuses `VITE_DOTIFY_ROOM_BEACONS=on` without it.
+- No Individuality allowance is needed for the host account: host mode signs
+  through the product's allowance account on the RFC-10 sponsored path.
+- Expect about 24 KB of extra publication weight against the Bulletin quota.
+
+### Publish an announcing build
+
+```bash
+cd web
+npm run deploy:product-devnet:beacons
+```
+
+### Collect live evidence
+
+Inside the Product host, with the announcing build open:
+
+1. Create a room. Watch the browser console. A refused publish logs
+   `[dotify] room beacon not published (<reason>): <detail>`; nothing is logged
+   on success.
+2. Record which happened:
+   - **published** - capture the room code and the fact that no warning
+     appeared. This is the first evidence the publish path works end to end;
+   - **`rejected`** - the statement store refused the write. Most often the
+     account-wide quota, which the client cannot observe. Capture the detail
+     line before changing anything;
+   - **`transport`** - the client could not reach the store at all;
+   - **`quota-local`** - this instance's own beacons already fill the
+     1024-byte account budget.
+3. Confirm hosting is unaffected in every case: the room must still be
+   joinable from its share link by a wallet-free browser. A beacon failure that
+   degrades hosting is a defect, not a limitation.
+4. With a second Product client, open Dotify's room discovery screen. Confirm
+   the announced room appears there, that a duplicate Socket.IO record retains
+   its richer capacity/playback state, and that a beacon-only room does not hide
+   a warning when the live room connection is unavailable.
+5. Stop the host and confirm the room disappears within roughly the statement
+   TTL plus one sweep. Join the live room from its ordinary share link with a
+   wallet-free browser to prove the discovery path did not replace room entry.
+
+Record the outcome in the release evidence. Until step 2 shows a published
+beacon, treat the capability as unproven regardless of unit coverage.
+
+### Rollback
+
+Republish without the flag:
+
+```bash
+cd web
+npm run deploy:product-devnet
+```
+
+Beacons already published expire on their own within the statement TTL. There
+is no revocation step and none is needed - a beacon carries no key, no
+identity, and no durable claim.
+
+## Rollback
+
+The Product deployment is static. To roll back:
+
+1. switch to the last known-good commit;
+2. run `npm ci`;
+3. run the full build and smoke checks;
+4. republish with `npm run deploy:product-devnet`;
+5. confirm DotNS resolves to the restored content;
+6. record the replacement CID and incident reason.
+
+Do not roll back Fly origin allowlists while either public frontend remains
+active.
+
+## Known Limits
+
+- Product account signing is accepted by the API only through the explicit
+  `product-sr25519-v1` session/key-request scheme. The Product UI now submits
+  that proof shape after an explicit host-account connection, but each published
+  Product build still needs real Host smoke evidence before gated playback is
+  considered production-ready on Product DevNet. The debug panel can export
+  safe browser-side evidence for this flow, but it does not replace Product
+  host screenshots or backend logs.
+- The Host `signRaw` wire format is not pinned by the SDK: the response
+  signature is untagged, and a Substrate host may sign the payload verbatim or
+  inside a `<Bytes>` envelope. The API accepts both envelopes and both a bare
+  64-byte and a MultiSignature-tagged 65-byte sr25519 signature, so a correct
+  host signature verifies regardless of which shape it uses. The validation
+  step for `product-sr25519-v1` records which shape the live host actually
+  produced - that observation is the evidence, and until it is captured the
+  accepted set stays deliberately wide.
+- Contract writes use the shared runtime writer port, with viem still selected
+  for the tracked deployment. The Product CDM/PAPI runtime adapter now has its
+  generated manifest, contract types, live resolver, signer-account mapping
+  checks, Classic unlock write path, and W05 royalty claim write path. It still
+  needs real host-signed transaction evidence before Product CDM becomes the
+  default. Dotify validates that the selected Product host signer public key
+  maps to the same `pallet-revive` H160 account used by the connected Product
+  identity before a CDM write can be submitted, and Product CDM Classic unlocks
+  poll `musicAccHasPaid` and `musicAccCanAccess` for that H160 account before
+  surfacing success. If the payment was included but verification fails, the UI
+  preserves the transaction hash in the error state.
+- Product Web's current gateway can reject native Product CDM chain setup with
+  `Malformed protocol error payload: expected 3 bytes, received 6`. Version
+  `[0, 1, 28]` retains the `[0, 1, 23]` safeguard that prevents that
+  host/version mismatch from running merely because
+  a guest opened the catalog or a room link. Catalog API and public room
+  discovery remain available; an actual protected-track access read still
+  fails closed until Product Web and the pinned TruAPI/Product SDK protocol are
+  compatible. Product Desktop remains the supported Product CDM payment
+  surface for the pilot candidate.
+- Rooms still depend on one in-memory Fly signaling machine.
+- Product-host cloud storage does not hold Dotify audio or content keys.
+- Product personhood is not yet an access decision source.
+- A durable `CATALOG_SNAPSHOT_PATH` remains recommended for production-grade
+  catalog recovery but is not required for API startup.
+- Product contract mode (`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`) covers
+  catalog reads and runtime write submissions inside the Product host. The
+  tracked deployment still keeps the default `viem` adapter until
+  native value forwarding, host approval UX, and successful post-payment
+  read-back evidence are captured. Product payment history is still not exposed
+  by the current Product contract handle API, so the full royalty settlement
+  ledger needs an event/indexer source. Use `VITE_DOTIFY_DEBUG_PANEL=true` on
+  that smoke build to export the Product CDM host evidence JSON.
+
+### Recoverable native support profile
+
+Use `npm run build:product-devnet:support` for the explicit CDM native-support
+validation build. This is shorthand for the existing adapter opt-in above,
+not a default-adapter or deployment change. See the
+[support recovery design](../design/product-host-support-recovery-2026-09-15.md)
+for pending references, read-only retries and the required physical-host smoke.
+
+The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
+Ordinary builds keep gifts off. A gift sends a chosen amount directly to the
+release's artist; it does not unlock access or follow the release's royalty
+splits. Native gifts use chain-reported precision and verified recipient
+mapping. Keep this flag gated until a real host approval and receipt have been
+checked. No live funds are used by the automated test fixtures. See
+[direct artist gifts](../design/artist-gifts-2026-09-16.md).

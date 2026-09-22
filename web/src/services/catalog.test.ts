@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchCatalog, type CatalogApiResponse } from './catalog';
+import { fetchCatalog, readBundledCatalog, type CatalogApiResponse } from './catalog';
+import { PRODUCT_DEVNET_BOOTSTRAP_CATALOG, PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID } from './productDevnetCatalogBootstrap';
 
 function response(): CatalogApiResponse {
   return {
@@ -20,6 +21,7 @@ function response(): CatalogApiResponse {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -66,5 +68,39 @@ describe('fetchCatalog', () => {
     const result = await fetchCatalog({ apiUrl: 'https://api.dotify.example', storage: null });
     expect(result.meta.state).toBe('rpc-outage');
     expect(result.items).toEqual([]);
+  });
+
+  it('times out catalog API requests that never settle', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn((_url: string, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          reject(error);
+        });
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const request = expect(fetchCatalog({ apiUrl: 'https://api.dotify.example', storage: null, timeoutMs: 50 })).rejects.toMatchObject({
+      code: 'CATALOG_REQUEST_TIMEOUT'
+    });
+    await vi.advanceTimersByTimeAsync(50);
+
+    await request;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('readBundledCatalog', () => {
+  it('exposes the Product DevNet bootstrap catalog only for the matching product id', () => {
+    const bundled = readBundledCatalog({ apiUrl: 'https://api.dotify.example', productId: PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID });
+    expect(bundled).toBe(PRODUCT_DEVNET_BOOTSTRAP_CATALOG);
+    expect(bundled?.items).toHaveLength(PRODUCT_DEVNET_BOOTSTRAP_CATALOG.items.length);
+    expect(bundled?.pagination.total).toBe(PRODUCT_DEVNET_BOOTSTRAP_CATALOG.pagination.total);
+    expect(bundled?.meta.cacheAvailable).toBe(true);
+    expect(readBundledCatalog({ apiUrl: 'https://api.dotify.example', productId: 'other.dot' })).toBeNull();
+    expect(readBundledCatalog({ apiUrl: '', productId: PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID })).toBeNull();
   });
 });

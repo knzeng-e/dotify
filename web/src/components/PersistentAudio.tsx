@@ -1,16 +1,18 @@
 // ── Persistent audio elements ───────────────────────────────────────────────
-// Rendered once at the App root, always mounted. Owns the two <audio> nodes so
-// playback survives tab navigation:
-//   - localAudioRef:  host source (also captured into the WebRTC stream)
+// Rendered once at the App root. Owns the two <audio> nodes so playback survives
+// tab navigation. The host node is replaced only for a new resolved source
+// generation, preventing retired resource errors from reaching its successor:
+//   - localAudioRef: host source (also captured into the WebRTC stream)
 //   - remoteAudioRef: room-listener stream (srcObject set by useSession.ontrack)
 // All transport state lives in usePlayback; this component only forwards DOM
 // media events into that shared state and the host streaming callbacks.
 
-import { useEffect, type RefObject } from 'react';
+import type { RefObject } from 'react';
 import type { PlaybackControls } from '../hooks/usePlayback';
 
 type PersistentAudioProps = {
   audioSource: string | null;
+  audioSourceGeneration: number;
   localAudioRef: RefObject<HTMLAudioElement | null>;
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   playback: PlaybackControls;
@@ -18,25 +20,32 @@ type PersistentAudioProps = {
   onEmitPlayerState: (force: boolean) => void;
 };
 
-export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, playback, onPrepareLocalStream, onEmitPlayerState }: PersistentAudioProps) {
-  // Keep the mute flag applied to whichever element exists at any moment.
-  useEffect(() => {
-    if (localAudioRef.current) localAudioRef.current.muted = playback.muted;
-    if (remoteAudioRef.current) remoteAudioRef.current.muted = playback.muted;
-  }, [playback.muted, localAudioRef, remoteAudioRef]);
-
+export function PersistentAudio({
+  audioSource,
+  audioSourceGeneration,
+  localAudioRef,
+  remoteAudioRef,
+  playback,
+  onPrepareLocalStream,
+  onEmitPlayerState
+}: PersistentAudioProps) {
   return (
     <div className='persistent-audio' aria-hidden='true'>
       {/* Host source: drives local playback and the WebRTC capture. */}
       <audio
+        key={audioSourceGeneration}
         className='native-player-source'
         ref={localAudioRef as RefObject<HTMLAudioElement>}
         src={audioSource ?? undefined}
         crossOrigin='anonymous'
+        muted={playback.muted}
+        loop={playback.repeatEnabled}
         onLoadedMetadata={() => {
           playback.handleHostLoadedMetadata(localAudioRef.current!);
+          onEmitPlayerState(true);
           void onPrepareLocalStream();
         }}
+        onCanPlay={event => playback.handleHostCanPlay(event.currentTarget)}
         onPlay={() => {
           playback.syncFromAudio(localAudioRef.current);
           // Re-run capture now that audio is actually flowing: a captureStream()
@@ -49,6 +58,7 @@ export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, pl
         }}
         onPlaying={() => {
           playback.handleHostPlaying(localAudioRef.current!);
+          onEmitPlayerState(true);
           // Some browsers expose a track at `play` before media frames are
           // actually flowing. Re-check at `playing`; prepareLocalStream keeps
           // this cheap when the current capture is already valid.
@@ -58,6 +68,8 @@ export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, pl
           playback.syncFromAudio(localAudioRef.current);
           onEmitPlayerState(true);
         }}
+        onSeeking={() => onEmitPlayerState(true)}
+        onWaiting={() => onEmitPlayerState(true)}
         onSeeked={() => {
           playback.syncFromAudio(localAudioRef.current);
           onEmitPlayerState(true);
@@ -66,10 +78,12 @@ export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, pl
           playback.syncFromAudio(localAudioRef.current);
           onEmitPlayerState(false);
         }}
-        onEnded={event => playback.handleEnded(event.currentTarget)}
-        onError={() => {
-          playback.handleHostError();
-          if (audioSource) playback.markNoAudio();
+        onEnded={event => {
+          onEmitPlayerState(true);
+          playback.handleEnded(event.currentTarget);
+        }}
+        onError={event => {
+          if (playback.handleHostError(event.currentTarget) && audioSource) playback.markNoAudio();
         }}
       />
 
@@ -78,6 +92,7 @@ export function PersistentAudio({ audioSource, localAudioRef, remoteAudioRef, pl
         className='native-player-source'
         ref={remoteAudioRef as RefObject<HTMLAudioElement>}
         autoPlay
+        muted={playback.remoteMuted}
         playsInline
         onLoadedMetadata={event => playback.syncFromAudio(event.currentTarget)}
         onPlay={event => playback.syncFromAudio(event.currentTarget)}

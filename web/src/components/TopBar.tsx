@@ -22,12 +22,21 @@ type TopBarProps = {
 
 export function TopBar({ className, brandHref, brandAriaLabel, onBrandClick, navAriaLabel, children }: TopBarProps) {
   const { walletState, disconnect } = useWalletContext();
-  const { setShowWalletModal } = useUiFeedback();
+  const { openWalletModal } = useUiFeedback();
 
   return (
     <header className={className ? `topbar ${className}` : 'topbar'}>
       <div className='topbar-inner'>
-        <a className='brand' href={brandHref} aria-label={brandAriaLabel} onClick={onBrandClick}>
+        <a
+          className='brand'
+          href={brandHref}
+          aria-label={brandAriaLabel}
+          onClick={event => {
+            if (!onBrandClick) return;
+            event.preventDefault();
+            onBrandClick();
+          }}
+        >
           <svg className='brand-mark' viewBox='0 0 48 48' aria-hidden='true' focusable='false'>
             <g className='brand-mark-orbit'>
               <ellipse cx='24' cy='5' rx='6.2' ry='3.5' />
@@ -49,7 +58,7 @@ export function TopBar({ className, brandHref, brandAriaLabel, onBrandClick, nav
         </a>
         <nav className='nav-pills' aria-label={navAriaLabel}>
           {children}
-          <WalletStatusPill state={walletState} onClick={() => setShowWalletModal(true)} onDisconnect={disconnect} />
+          <WalletStatusPill state={walletState} onClick={() => openWalletModal('account')} onDisconnect={disconnect} />
         </nav>
       </div>
     </header>

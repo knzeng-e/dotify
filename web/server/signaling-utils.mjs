@@ -67,6 +67,22 @@ export function sanitizeTrack(track) {
   };
 }
 
+export function sanitizeLineupItem(item) {
+  if (!item || typeof item !== 'object') return null;
+  const trackId = sanitizeText(item.trackId, '', 180);
+  if (!trackId) return null;
+  const track = sanitizeTrack(item);
+  if (!track) return null;
+  return {
+    trackId,
+    title: track.title,
+    artist: track.artist,
+    imageRef: track.imageRef,
+    hash: track.hash,
+    accessMode: track.accessMode
+  };
+}
+
 // Curated room reaction language. Keep in sync with ROOM_REACTIONS in
 // web/src/shared/social.ts (the client copy). The bar is a designed set,
 // not an open emoji picker.
@@ -164,5 +180,22 @@ export function sanitizePlayerState(state) {
     currentTime: Number.isFinite(state.currentTime) ? Number(state.currentTime) : 0,
     duration: Number.isFinite(state.duration) ? Number(state.duration) : 0,
     updatedAt: Number.isFinite(state.updatedAt) ? Number(state.updatedAt) : Date.now()
+  };
+}
+
+// Fresh join snapshots use elapsed SERVER time, not the host/listener wall clock.
+// Match the client's short extrapolation window; silence is safer than an
+// indefinitely advancing clock after a host stops sending state.
+export function snapshotPlayerState(state, receivedAt, now = Date.now()) {
+  if (!state) return null;
+  const age = Math.max(0, now - receivedAt);
+  const duration = Math.max(0, state.duration);
+  const currentTime = Math.max(0, state.currentTime) + (state.playing ? Math.min(age, 2500) / 1000 : 0);
+  return {
+    ...state,
+    currentTime: duration > 0 ? Math.min(duration, currentTime) : currentTime,
+    playing: state.playing && age <= 2500,
+    stale: state.playing && age > 2500,
+    updatedAt: now
   };
 }

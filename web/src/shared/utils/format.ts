@@ -16,7 +16,7 @@ export function progressPercent(state: PlayerState | null) {
 }
 
 // The contract field is still named pricePlanck for historical/Substrate
-// context, but Asset Hub EVM msg.value uses 18-decimal native units.
+// context, but Asset Hub EVM msg.value uses 18-decimal contract units.
 export function dotToPlanck(dot: string) {
   return parseEther(dot.trim() || '0');
 }
@@ -112,17 +112,22 @@ export function accessModeLabel(track: CatalogTrack) {
 
 export function accessModeLabelFromState(mode: AccessMode) {
   if (mode === 'free') return 'Free for everyone';
-  return mode === 'human-free' ? 'Free for verified humans' : 'Full song';
+  return mode === 'human-free' ? 'Free for verified humans' : 'Direct support';
 }
 
-export function catalogAccessLabel(track: CatalogTrack) {
+export function catalogAccessLabel(track: CatalogTrack, nativePaymentSymbol = 'native token') {
+  if (track.active === false) return 'Inactive release';
   if (track.accessMode === 'free') return 'Free for everyone';
-  return track.accessMode === 'classic' ? `${track.priceDot} DOT` : 'Free for verified humans';
+  return track.accessMode === 'classic' ? `${track.priceDot} ${nativePaymentSymbol}` : 'Free for verified humans';
 }
 
-export function catalogAccessAriaLabel(track: CatalogTrack, hasAccess: boolean) {
-  const status = hasAccess ? 'Access already available' : 'Access required';
-  return `${status}: ${catalogAccessLabel(track)}`;
+export function normalizeDisplayText(value: string) {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+export function catalogAccessAriaLabel(track: CatalogTrack, hasAccess: boolean, nativePaymentSymbol = 'native token') {
+  const status = track.active === false ? 'Access unavailable' : hasAccess ? 'Access already available' : 'Access required';
+  return `${status}: ${catalogAccessLabel(track, nativePaymentSymbol)}`;
 }
 
 export function describeArtistRegistrationError(error: unknown) {

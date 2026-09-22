@@ -14,8 +14,8 @@ var toBinary = (base64) => {
 };
 
 // .papi/descriptors/src/stack_template.ts
-var descriptorValues = import("./descriptors-WIWSIN73.mjs").then((module) => module["Stack_template"]);
-var metadataTypes = import("./metadataTypes-N3ONLFCD.mjs").then(
+var descriptorValues = import("./descriptors-VDZJ5VNF.mjs").then((module) => module["Stack_template"]);
+var metadataTypes = import("./metadataTypes-YGW4UPUJ.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
 var asset = {};
@@ -28,16 +28,16 @@ var _allDescriptors = { descriptors: descriptorValues, metadataTypes, asset, ext
 var stack_template_default = _allDescriptors;
 
 // .papi/descriptors/src/bulletin.ts
-var descriptorValues2 = import("./descriptors-WIWSIN73.mjs").then((module) => module["Bulletin"]);
-var metadataTypes2 = import("./metadataTypes-N3ONLFCD.mjs").then(
+var descriptorValues2 = import("./descriptors-VDZJ5VNF.mjs").then((module) => module["Bulletin"]);
+var metadataTypes2 = import("./metadataTypes-YGW4UPUJ.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
 var asset2 = {};
 var extensions2 = {};
-var getMetadata2 = () => import("./bulletin_metadata-6D4OUQ3Y.mjs").then(
+var getMetadata2 = () => import("./bulletin_metadata-5EJPF4RF.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
-var genesis2 = "0x744960c32e3a3df5440e1ecd4d34096f1ce2230d7016a5ada8a765d5a622b4ea";
+var genesis2 = "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59";
 var _allDescriptors2 = { descriptors: descriptorValues2, metadataTypes: metadataTypes2, asset: asset2, extensions: extensions2, getMetadata: getMetadata2, genesis: genesis2 };
 var bulletin_default = _allDescriptors2;
 
@@ -96,7 +96,7 @@ var XcmVersionedAsset = _Enum;
 // .papi/descriptors/src/index.ts
 var metadatas = {
   ["0x5d82548ee8362ca123514269ea6df6f1ad252e4f120516b810bcb2cb29957eb8"]: stack_template_default,
-  ["0x1a82e5143be3211ded412b0368b486ce83bd41a80ec95eb267f6c204adda8365"]: bulletin_default
+  ["0xcfc45b6f601f6e2971053639331432857feea30c7668279df079b33eed7e01dc"]: bulletin_default
 };
 var getMetadata3 = async (codeHash) => {
   try {

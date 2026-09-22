@@ -46,9 +46,21 @@ let publicClientCache: ReturnType<typeof createPublicClient> | null = null;
 let chainCache: Chain | null = null;
 let rpcCache = '';
 
+const RPC_HTTP_TIMEOUT_MS = 20_000;
+const RPC_HTTP_RETRY_COUNT = 2;
+const RPC_HTTP_RETRY_DELAY_MS = 1_000;
+
+function rpcHttpTransport(ethRpcUrl: string) {
+  return http(ethRpcUrl, {
+    timeout: RPC_HTTP_TIMEOUT_MS,
+    retryCount: RPC_HTTP_RETRY_COUNT,
+    retryDelay: RPC_HTTP_RETRY_DELAY_MS
+  });
+}
+
 export function getPublicClient(ethRpcUrl: string) {
   if (!publicClientCache || rpcCache !== ethRpcUrl) {
-    publicClientCache = createPublicClient({ transport: http(ethRpcUrl) });
+    publicClientCache = createPublicClient({ transport: rpcHttpTransport(ethRpcUrl) });
     rpcCache = ethRpcUrl;
     chainCache = null;
   }
@@ -60,7 +72,7 @@ export async function getWalletClient(accountIndex: number, ethRpcUrl: string) {
   return createWalletClient({
     account: evmDevAccounts[accountIndex as 0 | 1].account,
     chain,
-    transport: http(ethRpcUrl)
+    transport: rpcHttpTransport(ethRpcUrl)
   });
 }
 
@@ -73,6 +85,24 @@ export async function resolveEvmChain(ethRpcUrl: string): Promise<Chain> {
   return resolveChain(ethRpcUrl);
 }
 
+// EVM JSON-RPC gives us `eth_chainId`, but not a standard native-token
+// metadata method. Dotify therefore derives the native payment label from the
+// connected EVM chain id. Decimals stay at 18 because the current runtime write
+// path settles through EVM `msg.value`.
+const polkadotHubNativeCurrencyByChainId: Record<number, Chain['nativeCurrency']> = {
+  420420417: { name: 'Paseo', symbol: 'PAS', decimals: 18 },
+  420420418: { name: 'Kusama', symbol: 'KSM', decimals: 18 },
+  420420419: { name: 'Polkadot', symbol: 'DOT', decimals: 18 }
+};
+
+export function nativeCurrencyForChain(chainId: number, ethRpcUrl: string): Chain['nativeCurrency'] {
+  const knownCurrency = polkadotHubNativeCurrencyByChainId[chainId];
+  if (knownCurrency) return knownCurrency;
+
+  const isLocalChain = ethRpcUrl.includes('localhost') || ethRpcUrl.includes('127.0.0.1');
+  return isLocalChain ? { name: 'Unit', symbol: 'UNIT', decimals: 18 } : { name: 'Native token', symbol: 'UNIT', decimals: 18 };
+}
+
 async function resolveChain(ethRpcUrl: string): Promise<Chain> {
   if (!chainCache) {
     const chainId = await getPublicClient(ethRpcUrl).getChainId();
@@ -80,7 +110,7 @@ async function resolveChain(ethRpcUrl: string): Promise<Chain> {
     chainCache = defineChain({
       id: chainId,
       name: isLocalChain ? 'Local Polkadot Devnet' : 'Polkadot Hub TestNet',
-      nativeCurrency: { name: 'Unit', symbol: 'UNIT', decimals: 18 },
+      nativeCurrency: nativeCurrencyForChain(chainId, ethRpcUrl),
       rpcUrls: { default: { http: [ethRpcUrl] } },
       ...(isLocalChain ? {} : { blockExplorers: { default: { name: 'Blockscout', url: blockscoutBaseUrl } } })
     });

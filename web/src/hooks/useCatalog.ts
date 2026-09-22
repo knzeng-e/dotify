@@ -1,35 +1,66 @@
-import { useRef, useState } from 'react';
-import { fetchAssetRef, fetchIpfsCid, getGatewayUrl } from '../services/pinata';
-import { ensureContract, getPublicClient, artistDirectoryAbi, musicRegistryAbi, musicAccessAbi, musicRoyaltiesAbi } from '../shared/config/contracts';
+import { resolveDonationArtist } from '../features/donations/donationModel';
+import { formatEther } from 'viem';
+import { createSupportPaymentFlow } from '../features/payments/supportPayment';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
+import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
 import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
-import { formatWeiAsDot } from '../shared/utils/format';
-import { isKeyServiceConfigured, requestContentKey, requestFreeContentKey, type KeyRequestPurpose } from '../services/keyService';
-import { auraForTrack } from '../shared/utils/aura';
-import { decryptTrackAudio, encryptedRefToCID, isEncryptedAudioRef, isEncryptedAudioV2Ref } from '../shared/utils/protectedAudio';
+import { formatWeiAsDot, normalizeDisplayText, shorten, shortenAddress } from '../shared/utils/format';
+import {
+  LEGACY_CONTENT_KEY_VERSION,
+  isKeyServiceConfigured,
+  requestContentKey,
+  requestFreeContentKey,
+  type ContentKeyReleaseIdentity,
+  type KeyRequestPurpose
+} from '../services/keyService';
+import { contentKeyVersionForAudioRef, decryptTrackAudio, encryptedRefToCID, isEncryptedAudioRef, isEncryptedAudioV2Ref } from '../shared/utils/protectedAudio';
 import {
   AudioV2HeaderIncompleteError,
   audioV2ChunkBodyOffset,
   canStreamAudioV2WithMse,
-  decryptAudioV2Chunk,
-  decryptAudioV2Container,
-  importAudioV2ContentKey,
   initialAudioV2HeaderRangeEnd,
+  parseAudioV2Container,
   parseAudioV2HeaderPrefix,
   type ParsedAudioV2
 } from '../shared/utils/audioV2';
 import { isPolicyManagedTrack } from '../features/access/accessPolicy';
+import { buildAccessGate, buildClassicAccessVerifiedFeedback, buildClassicSupportFacts } from '../features/access/accessPromise';
 import { catalogApiStatus, catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
+import { AudioV2DecryptAuthenticationError, createAudioV2ChunkDecryptor } from '../features/catalog/audioV2Decryptor';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
+import { cancelAudioV2TrackIntentPrefetch, prefetchAudioV2TrackIntent } from '../features/catalog/audioV2IntentPrefetch';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
+import {
+  DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
+  DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET,
+  classicTrackPaymentAmountPlanck,
+  createRuntimeNativeAccessPaymentIntent,
+  nativeRuntimePaymentAssetFromChain
+} from '../features/payments/paymentModel';
+import { type RuntimeAccessPaymentVerificationResult } from '../features/payments/paymentReadback';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
-import { fetchCatalog, isCatalogApiConfigured, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
+import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
+import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
+import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
+import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
+import { resolveProductHostConfig } from '../features/productHost/productHost';
+import { publishProductCdmPaymentSmokeMetric, type ProductCdmPaymentSmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
+import {
+  audioV2StartupPhaseLabel,
+  publishHostAudioStartupMetric,
+  type AudioV2StartupMetric,
+  type HostAudioTerminalReason
+} from '../features/catalog/audioStartupTelemetry';
+import { fetchCatalog, isCatalogApiConfigured, readBundledCatalog, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
+import { createCoverFallbackDataUri } from '../features/catalog/coverArtwork';
 import {
   E2E_CLASSIC_AUDIO_URL,
   E2E_CLASSIC_HASH,
   E2E_CLASSIC_TRACK,
-  E2E_CLASSIC_TX_HASH,
+  classicSupportE2ePorts,
   getClassicUnlockE2eState,
   isClassicUnlockE2e,
   recordClassicUnlockFullKeyRequest
@@ -49,28 +80,18 @@ import type {
   AccessGate,
   AccessMode,
   CatalogTrack,
-  OnchainTrackRecord,
   PersonhoodLevel,
   PlayerState,
   RegistryCatalogTrack,
   RoomPlaybackMode,
-  RoyaltySplit,
   TrackInfo,
-  TransactionFeedback
+  TransactionFeedback,
+  TransactionFeedbackFact,
+  View
 } from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
 
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
-
-type AudioV2StartupPhase =
-  | 'key-authorized'
-  | 'gateway-selected'
-  | 'header-ready'
-  | 'first-range-ready'
-  | 'first-chunk-decrypted'
-  | 'first-chunk-appended'
-  | 'fallback'
-  | 'error';
 
 type AudioV2StartupContext = {
   audioRef: string;
@@ -78,21 +99,22 @@ type AudioV2StartupContext = {
   startedAt: number;
   signal: AbortSignal;
   isCurrent: () => boolean;
+  onMetric?: (metric: AudioV2StartupMetric) => void;
 };
 
-type AudioV2StartupMetric = {
-  phase: AudioV2StartupPhase;
-  audioRef: string;
-  cid: string;
-  elapsedMs: number;
-  timestamp: number;
-  gatewayUrl?: string;
-  rangeStart?: number;
-  rangeEnd?: number;
-  chunkIndex?: number;
-  hedged?: boolean;
-  fromCache?: boolean;
-  detail?: string;
+export type TrackSelectionResult = {
+  playbackMode: RoomPlaybackMode;
+  audioSource: string | null;
+};
+
+type ActiveTrackSelection = {
+  id: number;
+  attemptId: string;
+  controller: AbortController;
+  source: string;
+  startedAt: number;
+  pending: boolean;
+  terminalReported: boolean;
 };
 
 function nowMs(): number {
@@ -134,33 +156,46 @@ function publishAudioV2StartupMetric(context: AudioV2StartupContext, metric: Omi
     ...metric
   };
   window.dispatchEvent(new CustomEvent('dotify:dav2-startup', { detail }));
+  context.onMetric?.(detail);
   if (import.meta.env.DEV) {
     console.info('[dotify.dav2.startup]', detail);
   }
 }
 
-function escapeSvgText(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function coverImage(label: string, seed = label) {
-  const aura = auraForTrack({ id: seed, title: label });
-  const safeLabel = escapeSvgText(label || 'Dotify');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640"><defs><radialGradient id="a" cx="26%" cy="18%" r="78%"><stop offset="0" stop-color="${aura.a}"/><stop offset=".58" stop-color="#071326"/><stop offset="1" stop-color="#050D1A"/></radialGradient><filter id="g"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter></defs><rect width="640" height="640" fill="url(#a)"/><circle cx="492" cy="122" r="220" fill="${aura.b}" opacity=".68"/><circle cx="154" cy="520" r="204" fill="${aura.accent}" opacity=".54"/><circle cx="322" cy="324" r="184" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2"/><path d="M232 241c0-25 20-45 45-45h98v62h-70v132c0 34-28 62-62 62s-62-28-62-62 28-62 62-62c13 0 25 4 35 11v-98h-46Z" fill="#fff" opacity=".9"/><text x="48" y="112" fill="#fff" font-family="Hanken Grotesk,system-ui,sans-serif" font-size="42" font-weight="800">${safeLabel}</text><rect width="640" height="640" filter="url(#g)" opacity=".08"/></svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+function buildProductCdmPaymentSmokeMetric(input: {
+  verification: RuntimeAccessPaymentVerificationResult;
+  txHash: `0x${string}`;
+  runtimeAddress: `0x${string}`;
+  contentHash: `0x${string}`;
+  listenerAddress: `0x${string}`;
+  amountPlanck: bigint;
+}): ProductCdmPaymentSmokeMetric {
+  return {
+    txHash: input.txHash,
+    runtimeAddress: input.runtimeAddress,
+    contentHash: input.contentHash,
+    listenerAddress: input.listenerAddress,
+    amountPlanck: input.amountPlanck.toString(),
+    hasPaid: input.verification.readback?.hasPaid ?? null,
+    canAccess: input.verification.readback?.canAccess ?? null,
+    attempts: input.verification.attempts,
+    ok: input.verification.ok,
+    error: input.verification.error,
+    timestamp: Date.now()
+  };
 }
 
 function resolveVisualAssetRef(assetRef: string, title: string) {
   if (!assetRef) {
-    return coverImage(title);
+    return createCoverFallbackDataUri(title);
   }
   if (assetRef.startsWith('ipfs://')) {
-    return getGatewayUrl(assetRef.slice('ipfs://'.length));
+    return assetRef;
   }
   if (assetRef.startsWith('http://') || assetRef.startsWith('https://') || assetRef.startsWith('data:') || assetRef.startsWith('blob:')) {
     return assetRef;
   }
-  return coverImage(title, `${title}:${assetRef}`);
+  return createCoverFallbackDataUri(title, `${title}:${assetRef}`);
 }
 
 function resolveAudioAssetRef(assetRef: string) {
@@ -186,13 +221,21 @@ function createTrackInfo(
   metadata: Partial<TrackInfo> = {}
 ): TrackInfo {
   return {
-    title: title.trim() || 'Untitled',
-    artist: artist.trim() || 'Unknown artist',
+    title: normalizeDisplayText(title) || 'Untitled',
+    artist: normalizeDisplayText(artist) || 'Unknown artist',
     hash,
     bulletinRef,
     duration,
     updatedAt: Date.now(),
     ...metadata
+  };
+}
+
+function normalizeCatalogTrackDisplay(track: CatalogTrack): CatalogTrack {
+  return {
+    ...track,
+    title: normalizeDisplayText(track.title) || 'Untitled',
+    artist: normalizeDisplayText(track.artist) || 'Unknown artist'
   };
 }
 
@@ -209,7 +252,7 @@ function createTrackInfoFromCatalog(track: CatalogTrack): TrackInfo {
 }
 
 function catalogApiReleaseToTrack(release: CatalogApiRelease): CatalogTrack {
-  return {
+  return normalizeCatalogTrackDisplay({
     id: release.id,
     hash: release.hash,
     title: release.title,
@@ -218,6 +261,7 @@ function catalogApiReleaseToTrack(release: CatalogApiRelease): CatalogTrack {
     audioRef: release.audioRef,
     imageRef: resolveVisualAssetRef(release.imageRef, release.title),
     priceDot: release.priceDot,
+    pricePlanck: BigInt(release.priceWei),
     localUrl: resolveAudioAssetRef(release.audioRef),
     description: release.description,
     bulletinRef: release.bulletinRef,
@@ -232,7 +276,27 @@ function catalogApiReleaseToTrack(release: CatalogApiRelease): CatalogTrack {
     zone: 'Registry',
     encrypted: release.encrypted,
     registeredAtBlock: release.registeredAtBlock
+  });
+}
+
+function releaseIdentityFromTrack(track: CatalogTrack): ContentKeyReleaseIdentity | undefined {
+  if (track.source !== 'artist' || !track.artistAddress || !isEncryptedAudioRef(track.audioRef)) return undefined;
+  const runtimeAddress = runtimeAddressFromTrackId(track);
+  const keyVersion = contentKeyVersionForAudioRef(track.audioRef);
+  if (!runtimeAddress || !keyVersion) return undefined;
+  return {
+    releaseId: `${runtimeAddress}:${track.hash}`,
+    runtimeAddress,
+    artistAddress: track.artistAddress,
+    audioRef: track.audioRef,
+    keyVersion
   };
+}
+
+export function contentKeyCacheKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): string {
+  const normalizedHash = contentHash.toLowerCase();
+  if (!release || release.keyVersion === LEGACY_CONTENT_KEY_VERSION) return normalizedHash;
+  return [release.keyVersion, release.runtimeAddress.toLowerCase(), release.releaseId.toLowerCase(), normalizedHash, release.audioRef].join(':');
 }
 
 export type UseCatalogDeps = {
@@ -240,8 +304,9 @@ export type UseCatalogDeps = {
   listenerEvmAddress: `0x${string}` | null;
   connectedWallet: ConnectedWallet | null;
   directoryAddress: `0x${string}` | undefined;
-  setShowWalletModal: (show: boolean) => void;
+  openSupportWalletModal: () => void;
   setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
+  activeView: View;
   navigateToView: (view: 'listen' | 'player' | 'rooms') => void;
   getActiveWalletClient: () => Promise<Awaited<ReturnType<typeof import('../shared/config/contracts').getWalletClient>>>;
   setBulletinManifestRef: (ref: string) => void;
@@ -259,9 +324,10 @@ export function useCatalog(deps: UseCatalogDeps) {
     listenerEvmAddress,
     connectedWallet,
     directoryAddress,
-    setShowWalletModal,
+    openSupportWalletModal,
     setTransactionFeedback,
     setTitle,
+    activeView,
     navigateToView,
     getActiveWalletClient,
     setBulletinManifestRef,
@@ -272,36 +338,77 @@ export function useCatalog(deps: UseCatalogDeps) {
     setDescription
   } = deps;
 
+  const [supportFlow] = useState(() => createSupportPaymentFlow(() => window.sessionStorage));
+  const supportBusyRef = useRef(false);
+  const supportAccount = `${connectedWallet?.method ?? ''}:${listenerEvmAddress?.toLowerCase() ?? ''}`;
+  const supportAccountRef = useRef(supportAccount);
+  useLayoutEffect(() => {
+    supportAccountRef.current = supportAccount;
+  }, [supportAccount]);
+  const runtimeAdapterConfig = useMemo(() => resolveRuntimeAdapterConfig(import.meta.env), []);
+  const productHostConfig = useMemo(() => resolveProductHostConfig(import.meta.env), []);
+  const productRuntimeAccount = useMemo(() => {
+    if (connectedWallet?.method !== 'product-host') return undefined;
+    const signer = connectedWallet.keyRequestSigner;
+    return {
+      productId: productHostConfig.productId,
+      evmAddress: connectedWallet.evmAddress,
+      publicKey: signer && 'productPublicKey' in signer ? signer.productPublicKey : undefined
+    };
+  }, [connectedWallet, productHostConfig.productId]);
+  const runtimeReader = useMemo(() => createRuntimeReader({ ethRpcUrl, config: runtimeAdapterConfig }), [ethRpcUrl, runtimeAdapterConfig]);
+  const runtimeWriter = useMemo(
+    () => createRuntimeWriter({ ethRpcUrl, getViemWalletClient: getActiveWalletClient, config: runtimeAdapterConfig, productAccount: productRuntimeAccount }),
+    [ethRpcUrl, getActiveWalletClient, productRuntimeAccount, runtimeAdapterConfig]
+  );
   const usesCatalogApi = isCatalogApiConfigured() && !isClassicUnlockE2e && !isArtistPublishE2e && !isRoomJoinE2e;
-  const [initialCatalog] = useState<CatalogTrack[]>(() => {
+  const [initialCatalogState] = useState<{ tracks: CatalogTrack[]; source: 'cache' | 'bundle' | null }>(() => {
     const cached = usesCatalogApi ? readCachedCatalog() : null;
-    return cached?.items.map(catalogApiReleaseToTrack) ?? [];
+    if (cached) return { tracks: cached.items.map(catalogApiReleaseToTrack), source: 'cache' };
+    const bundled = usesCatalogApi ? readBundledCatalog() : null;
+    if (bundled) return { tracks: bundled.items.map(catalogApiReleaseToTrack), source: 'bundle' };
+    return { tracks: [], source: null };
   });
+  const initialCatalog = initialCatalogState.tracks;
   const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>(() => initialCatalog.filter(track => track.active !== false));
   const [allCatalogTracks, setAllCatalogTracks] = useState<CatalogTrack[]>(initialCatalog);
   const [catalogStatus, setCatalogStatus] = useState(
-    initialCatalog.length > 0 ? 'Showing saved catalog data while new releases are checked' : 'Loading registry catalog'
+    initialCatalogState.source === 'bundle'
+      ? 'Showing bundled Product catalog while new releases are checked'
+      : initialCatalog.length > 0
+        ? 'Showing saved catalog data while new releases are checked'
+        : 'Loading registry catalog'
   );
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
   const [catalogPaidAccessByTrackId, setCatalogPaidAccessByTrackId] = useState<Record<string, boolean>>({});
+  const [nativeRuntimePaymentAsset, setNativeRuntimePaymentAsset] = useState(() =>
+    runtimeAdapterConfig.kind === 'product-cdm' ? DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET : DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+  );
   const [audioSource, setAudioSource] = useState<string | null>(null);
+  const [audioSourceGeneration, setAudioSourceGeneration] = useState(0);
+  const [audioStartupAttemptId, setAudioStartupAttemptId] = useState<string | null>(null);
+  const [trackSelectionPending, setTrackSelectionPending] = useState(false);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [accessGate, setAccessGate] = useState<AccessGate | null>(null);
+  const [audioStartupStatus, setAudioStartupStatus] = useState<string | null>(null);
   const [fileHash, setFileHashState] = useState<`0x${string}` | ''>('');
   const [audioCID, setAudioCID] = useState('');
   const [coverCID, setCoverCID] = useState('');
-  const [coverSource, setCoverSource] = useState(() => coverImage('Dotify', 'resting'));
+  const [coverSource, setCoverSource] = useState(() => createCoverFallbackDataUri('Dotify', 'resting'));
 
   const objectUrlsRef = useRef<Set<string>>(new Set());
   const resolvedAudioSourcesRef = useRef<Map<string, string>>(new Map());
   const audioSourceRef = useRef<string | null>(null);
+  const pendingTrackMediaSourceRef = useRef<string | null>(null);
   const audioV2FallbacksRef = useRef<Set<string>>(new Set());
-  const audioUploadRef = useRef<Promise<string> | null>(null);
+  const audioUploadRef = useRef<Promise<ProtectedAudioUpload> | null>(null);
   const coverUploadRef = useRef<Promise<string> | null>(null);
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
-  const activeTrackSelectionRef = useRef<{ id: number; controller: AbortController } | null>(null);
+  const selectedTrackIdRef = useRef(selectedTrackId);
+  const activeViewRef = useRef(activeView);
+  const activeTrackSelectionRef = useRef<ActiveTrackSelection | null>(null);
   const nextTrackSelectionIdRef = useRef(0);
   const e2eClassicAccessGrantedRef = useRef(false);
   // Session cache of backend-delivered content keys: one wallet signature per
@@ -311,6 +418,40 @@ export function useCatalog(deps: UseCatalogDeps) {
   // never request keys at all (they only receive the WebRTC stream).
   const keyRequestPurposeRef = useRef<KeyRequestPurpose>('individual');
 
+  useEffect(() => {
+    selectedTrackIdRef.current = selectedTrackId;
+  }, [selectedTrackId]);
+
+  useEffect(() => {
+    activeViewRef.current = activeView;
+  }, [activeView]);
+
+  useEffect(() => {
+    // Product CDM has one supported environment (DevNet/Paseo). Its asset is
+    // known at build time, and opening a room or catalog must not trigger an
+    // unrelated direct EVM RPC request just to rediscover the PAS label.
+    if (runtimeAdapterConfig.kind === 'product-cdm') {
+      setNativeRuntimePaymentAsset(DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function resolveNativeRuntimePaymentAsset() {
+      try {
+        const chain = await resolveEvmChain(ethRpcUrl);
+        if (!cancelled) setNativeRuntimePaymentAsset(nativeRuntimePaymentAssetFromChain(chain));
+      } catch {
+        if (!cancelled) setNativeRuntimePaymentAsset(DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET);
+      }
+    }
+
+    void resolveNativeRuntimePaymentAsset();
+    return () => {
+      cancelled = true;
+    };
+  }, [ethRpcUrl, runtimeAdapterConfig.kind]);
+
   function internalSetFileHash(hash: `0x${string}` | '') {
     setFileHashState(hash);
   }
@@ -318,6 +459,10 @@ export function useCatalog(deps: UseCatalogDeps) {
   function setResolvedAudioSource(source: string | null) {
     audioSourceRef.current = source;
     setAudioSource(source);
+    // A resolved source owns one media-element lifetime. Increment even when
+    // the URL is reused so an obsolete element cannot deliver a native media
+    // error into a later selection of the same source.
+    setAudioSourceGeneration(value => value + 1);
   }
 
   function retireAudioV2MseObjectUrl(audioRef: string, objectUrl: string) {
@@ -329,23 +474,66 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
   }
 
-  function beginTrackSelection() {
-    activeTrackSelectionRef.current?.controller.abort();
-    const selection = {
-      id: (nextTrackSelectionIdRef.current += 1),
-      controller: new AbortController()
+  function retireActiveTrackSelection(reportCancellation: boolean) {
+    const activeSelection = activeTrackSelectionRef.current;
+    if (activeSelection && reportCancellation && activeSelection.pending && !activeSelection.terminalReported && !activeSelection.controller.signal.aborted) {
+      activeSelection.terminalReported = true;
+      publishHostAudioStartupMetric({
+        phase: 'error',
+        attemptId: activeSelection.attemptId,
+        source: activeSelection.source,
+        elapsedMs: Number((nowMs() - activeSelection.startedAt).toFixed(1)),
+        timestamp: Date.now(),
+        terminalReason: 'selection-interrupted'
+      });
+    }
+    activeSelection?.controller.abort();
+    activeTrackSelectionRef.current = null;
+    pendingTrackMediaSourceRef.current = null;
+  }
+
+  function beginTrackSelection(source: string, startedAt: number) {
+    // A new choice ends the previous in-flight attempt. Publish its terminal
+    // event before the next playback intent so evidence correlation does not
+    // strand an interrupted attempt in "Timing active".
+    retireActiveTrackSelection(true);
+    setTrackSelectionPending(true);
+    const id = (nextTrackSelectionIdRef.current += 1);
+    const selection: ActiveTrackSelection = {
+      id,
+      attemptId: `selection:${id}`,
+      controller: new AbortController(),
+      source,
+      startedAt,
+      pending: true,
+      terminalReported: false
     };
     activeTrackSelectionRef.current = selection;
+    setAudioStartupAttemptId(selection.attemptId);
     return selection;
   }
 
-  function isTrackSelectionCurrent(selection: { id: number; controller: AbortController }): boolean {
+  function isTrackSelectionCurrent(selection: ActiveTrackSelection): boolean {
     return activeTrackSelectionRef.current?.id === selection.id && !selection.controller.signal.aborted;
   }
 
   function abortActiveTrackSelection() {
-    activeTrackSelectionRef.current?.controller.abort();
-    activeTrackSelectionRef.current = null;
+    retireActiveTrackSelection(true);
+    setTrackSelectionPending(false);
+  }
+
+  function settleTrackSelectionMedia(source: string | null, terminal = false, attemptId: string | null = null) {
+    if (!source) return;
+    // `canplay` makes transport usable, but it is not terminal evidence: the
+    // following play can still be rejected or the listener can replace the
+    // track before a frame is heard. Keep cancellation armed until playing or
+    // an explicit playback error closes the startup attempt.
+    if (terminal && audioSourceRef.current === source && activeTrackSelectionRef.current && activeTrackSelectionRef.current.attemptId === attemptId) {
+      activeTrackSelectionRef.current.pending = false;
+    }
+    if (pendingTrackMediaSourceRef.current !== source) return;
+    pendingTrackMediaSourceRef.current = null;
+    setTrackSelectionPending(false);
   }
 
   function getDeterministicE2eCatalogTracks() {
@@ -379,12 +567,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       // a buyer, or personhood-verified, so the read answers true only when
       // the track's current mode grants access to everyone (Free). This is
       // what lets a walletless visitor play Free tracks (access model v2).
-      return (await getPublicClient(ethRpcUrl).readContract({
-        address: runtimeAddress,
-        abi: musicAccessAbi,
-        functionName: 'musicAccCanAccess',
-        args: [track.hash, listenerAddress ?? zeroAddress]
-      })) as boolean;
+      return await runtimeReader.canAccess(runtimeAddress, track.hash, listenerAddress ?? zeroAddress);
     } catch {
       return false;
     }
@@ -392,7 +575,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function checkTrackPaidAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
     if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
-      return e2eClassicAccessGrantedRef.current;
+      return getClassicUnlockE2eState().paid;
     }
     if (isArtistPublishE2eTrack(track)) {
       return false;
@@ -405,12 +588,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const runtimeAddress = runtimeAddressFromTrackId(track);
     if (!runtimeAddress) return false;
     try {
-      return (await getPublicClient(ethRpcUrl).readContract({
-        address: runtimeAddress,
-        abi: musicAccessAbi,
-        functionName: 'musicAccHasPaid',
-        args: [track.hash, listenerAddress]
-      })) as boolean;
+      return await runtimeReader.hasPaid(runtimeAddress, track.hash, listenerAddress);
     } catch {
       return false;
     }
@@ -420,41 +598,58 @@ export function useCatalog(deps: UseCatalogDeps) {
   // door (pay / verify humanity / sign in), and free tracks and rooms are the
   // discovery surface.
   function buildAccessGateInfo(track: CatalogTrack): AccessGate {
-    if (!connectedWallet) {
-      if (track.accessMode === 'classic') {
-        return {
-          track,
-          title: 'Support and open this track',
-          message: `"${track.title}" opens for ${track.priceDot} DOT. Review the split before confirming.`,
-          hint: 'Nothing is sent until you confirm.',
-          actionType: 'signin'
-        };
+    return buildAccessGate({ track, connected: Boolean(connectedWallet), nativePaymentAsset: nativeRuntimePaymentAsset });
+  }
+
+  function buildSupportAccountFacts(): TransactionFeedbackFact[] {
+    if (!connectedWallet || !listenerEvmAddress) return [];
+
+    if (connectedWallet.method === 'product-host') {
+      const facts: TransactionFeedbackFact[] = [
+        {
+          label: 'Paying as',
+          value: connectedWallet.displayName ?? connectedWallet.label
+        }
+      ];
+
+      if (connectedWallet.substrateAddress) {
+        facts.push({
+          label: 'Fund this account',
+          value: shorten(connectedWallet.substrateAddress, 10),
+          code: true,
+          copyValue: connectedWallet.substrateAddress,
+          copyLabel: 'Copy account to fund'
+        });
       }
-      return {
-        track,
-        title: 'Verification needed',
-        message: `"${track.title}" is free for verified humans.`,
-        hint: 'Dotify only checks whether access should open.',
-        actionType: 'signin'
-      };
+
+      facts.push({
+        label: 'Runtime identity',
+        value: shortenAddress(listenerEvmAddress),
+        code: true,
+        copyValue: listenerEvmAddress,
+        copyLabel: 'Copy runtime identity'
+      });
+
+      return facts;
     }
 
-    if (track.accessMode === 'human-free') {
-      return {
-        track,
-        title: 'Verification needed',
-        message: `"${track.title}" is free for verified humans. Verify once to listen in full.`,
-        hint: 'No profile is created for this check.',
-        actionType: 'personhood'
-      };
-    }
-    return {
-      track,
-      title: 'Support and open this track',
-      message: `"${track.title}" opens after ${track.priceDot} DOT of support. Review the artist-defined split before confirming.`,
-      hint: 'The artist-owned runtime distributes the confirmed amount.',
-      actionType: 'payment'
-    };
+    return [
+      {
+        label: 'Paying wallet',
+        value: shortenAddress(listenerEvmAddress),
+        code: true,
+        copyValue: listenerEvmAddress,
+        copyLabel: 'Copy paying wallet'
+      }
+    ];
+  }
+
+  function buildSupportFacts(
+    track: CatalogTrack,
+    asset: typeof nativeRuntimePaymentAsset,
+    status: Parameters<typeof buildClassicSupportFacts>[2]
+  ): TransactionFeedbackFact[] {
+    return [...buildSupportAccountFacts(), ...buildClassicSupportFacts(track, asset, status)];
   }
 
   /**
@@ -463,7 +658,7 @@ export function useCatalog(deps: UseCatalogDeps) {
    * or the backend denies access; callers then fall back to the demo-mode
    * bundle-derived key (which only decrypts demo-published tracks).
    */
-  async function resolveServerContentKey(contentHash: `0x${string}`): Promise<Uint8Array | null> {
+  async function resolveServerContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
       const authorized = e2eClassicAccessGrantedRef.current;
       recordClassicUnlockFullKeyRequest(authorized);
@@ -478,19 +673,20 @@ export function useCatalog(deps: UseCatalogDeps) {
       return authorized ? new Uint8Array(32).fill(9) : null;
     }
 
-    const cacheKey = contentHash.toLowerCase();
+    const cacheKey = contentKeyCacheKey(contentHash, release);
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
-    if (!isKeyServiceConfigured() || !connectedWallet) return null;
+    if (!isKeyServiceConfigured() || !connectedWallet || (!connectedWallet.createEvmClient && !connectedWallet.keyRequestSigner)) return null;
 
     try {
-      const walletClient = await getActiveWalletClient();
-      const chainId = walletClient.chain?.id ?? (await getPublicClient(ethRpcUrl).getChainId());
+      const walletClient = connectedWallet.keyRequestSigner ? null : await getActiveWalletClient();
+      const chainId = walletClient?.chain?.id ?? (await getPublicClient(ethRpcUrl).getChainId());
       const response = await requestContentKey({
         contentHash,
         purpose: keyRequestPurposeRef.current,
-        walletClient,
-        chainId
+        ...(connectedWallet.keyRequestSigner ? { signer: connectedWallet.keyRequestSigner } : { walletClient: walletClient! }),
+        chainId,
+        release
       });
       if (response.access !== 'allowed') return null;
       const keyBytes = hexToBytes(response.contentKey);
@@ -508,14 +704,14 @@ export function useCatalog(deps: UseCatalogDeps) {
    * backend re-verifies the mode on-chain before releasing anything, so this
    * cannot open a paid or human-gated track.
    */
-  async function resolveFreeContentKey(contentHash: `0x${string}`): Promise<Uint8Array | null> {
-    const cacheKey = contentHash.toLowerCase();
+  async function resolveFreeContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
+    const cacheKey = contentKeyCacheKey(contentHash, release);
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
     if (!isKeyServiceConfigured()) return null;
 
     try {
-      const response = await requestFreeContentKey(contentHash);
+      const response = await requestFreeContentKey(contentHash, release);
       if (response.access !== 'allowed') return null;
       const keyBytes = hexToBytes(response.contentKey);
       contentKeysRef.current.set(cacheKey, keyBytes);
@@ -546,7 +742,9 @@ export function useCatalog(deps: UseCatalogDeps) {
         rangeStart: 0,
         rangeEnd,
         hedged: range.hedged,
-        fromCache: range.fromCache
+        gatewayRecovered: range.recovered,
+        fromCache: range.fromCache,
+        intentPrefetched: range.intentPrefetched
       });
       try {
         const parsed = parseAudioV2HeaderPrefix(range.bytes);
@@ -556,7 +754,9 @@ export function useCatalog(deps: UseCatalogDeps) {
           rangeStart: 0,
           rangeEnd,
           hedged: range.hedged,
-          fromCache: range.fromCache
+          gatewayRecovered: range.recovered,
+          fromCache: range.fromCache,
+          intentPrefetched: range.intentPrefetched
         });
         return parsed;
       } catch (error) {
@@ -640,77 +840,109 @@ export function useCatalog(deps: UseCatalogDeps) {
     parsed: ParsedAudioV2,
     key: Uint8Array
   ): Promise<void> {
-    const cryptoKeyPromise = importAudioV2ContentKey(key).catch(error => {
+    const decryptorPromise = createAudioV2ChunkDecryptor({ header: parsed.header, key, signal: context.signal }).catch(error => {
+      if (isAbortError(error)) throw error;
       throw new AudioV2ChunkAuthenticationError(error);
     });
 
-    await pumpAudioV2ReadAhead({
-      chunks: parsed.header.chunks,
-      signal: context.signal,
-      prepareChunk: async (chunk, signal) => {
-        throwIfAborted(signal);
-        const chunkStart = parsed.bodyOffset + audioV2ChunkBodyOffset(parsed.header, chunk.index);
-        const chunkEnd = chunkStart + chunk.encryptedLength - 1;
-        const range = await fetchAudioV2Range(context, chunkStart, chunkEnd, chunk.index === 0 ? 'first-chunk' : 'chunk', signal);
-        if (chunk.index === 0) {
-          publishAudioV2StartupMetric(context, {
-            phase: 'first-range-ready',
-            gatewayUrl: range.gatewayUrl,
-            rangeStart: chunkStart,
-            rangeEnd: chunkEnd,
-            chunkIndex: chunk.index,
-            hedged: range.hedged,
-            fromCache: range.fromCache
-          });
-        }
+    try {
+      await pumpAudioV2ReadAhead({
+        chunks: parsed.header.chunks,
+        signal: context.signal,
+        prepareChunk: async (chunk, signal) => {
+          throwIfAborted(signal);
+          const chunkStart = parsed.bodyOffset + audioV2ChunkBodyOffset(parsed.header, chunk.index);
+          const chunkEnd = chunkStart + chunk.encryptedLength - 1;
+          const range = await fetchAudioV2Range(context, chunkStart, chunkEnd, chunk.index === 0 ? 'first-chunk' : 'chunk', signal);
+          if (chunk.index === 0) {
+            publishAudioV2StartupMetric(context, {
+              phase: 'first-range-ready',
+              gatewayUrl: range.gatewayUrl,
+              rangeStart: chunkStart,
+              rangeEnd: chunkEnd,
+              chunkIndex: chunk.index,
+              hedged: range.hedged,
+              gatewayRecovered: range.recovered,
+              fromCache: range.fromCache,
+              intentPrefetched: range.intentPrefetched
+            });
+          }
 
-        const cryptoKey = await cryptoKeyPromise;
-        let clear: Uint8Array;
-        try {
-          clear = await decryptAudioV2Chunk(parsed.header, chunk.index, range.bytes, cryptoKey);
-        } catch (error) {
-          throw new AudioV2ChunkAuthenticationError(error);
+          const decryptor = await decryptorPromise;
+          let clear: Uint8Array;
+          try {
+            clear = await decryptor.decrypt(chunk.index, range.bytes, signal);
+          } catch (error) {
+            if (isAbortError(error)) throw error;
+            if (error instanceof AudioV2DecryptAuthenticationError) throw new AudioV2ChunkAuthenticationError(error);
+            throw error;
+          }
+          throwIfAborted(signal);
+          if (chunk.index === 0) {
+            publishAudioV2StartupMetric(context, {
+              phase: 'first-chunk-decrypted',
+              gatewayUrl: range.gatewayUrl,
+              rangeStart: chunkStart,
+              rangeEnd: chunkEnd,
+              chunkIndex: chunk.index,
+              hedged: range.hedged,
+              gatewayRecovered: range.recovered,
+              fromCache: range.fromCache,
+              intentPrefetched: range.intentPrefetched,
+              decryptor: decryptor.execution
+            });
+          }
+          return { clear, range, chunkStart, chunkEnd };
+        },
+        appendChunk: async (chunk, prepared, signal) => {
+          await appendSourceBuffer(sourceBuffer, prepared.clear, signal);
+          if (chunk.index === 0) {
+            publishAudioV2StartupMetric(context, {
+              phase: 'first-chunk-appended',
+              gatewayUrl: prepared.range.gatewayUrl,
+              rangeStart: prepared.chunkStart,
+              rangeEnd: prepared.chunkEnd,
+              chunkIndex: chunk.index,
+              hedged: prepared.range.hedged,
+              gatewayRecovered: prepared.range.recovered,
+              fromCache: prepared.range.fromCache,
+              intentPrefetched: prepared.range.intentPrefetched
+            });
+          }
         }
-        throwIfAborted(signal);
-        if (chunk.index === 0) {
-          publishAudioV2StartupMetric(context, {
-            phase: 'first-chunk-decrypted',
-            gatewayUrl: range.gatewayUrl,
-            rangeStart: chunkStart,
-            rangeEnd: chunkEnd,
-            chunkIndex: chunk.index,
-            hedged: range.hedged,
-            fromCache: range.fromCache
-          });
-        }
-        return { clear, range, chunkStart, chunkEnd };
-      },
-      appendChunk: async (chunk, prepared, signal) => {
-        await appendSourceBuffer(sourceBuffer, prepared.clear, signal);
-        if (chunk.index === 0) {
-          publishAudioV2StartupMetric(context, {
-            phase: 'first-chunk-appended',
-            gatewayUrl: prepared.range.gatewayUrl,
-            rangeStart: prepared.chunkStart,
-            rangeEnd: prepared.chunkEnd,
-            chunkIndex: chunk.index,
-            hedged: prepared.range.hedged,
-            fromCache: prepared.range.fromCache
-          });
-        }
-      }
-    });
+      });
+    } finally {
+      void decryptorPromise.then(decryptor => decryptor.close()).catch(() => undefined);
+    }
     if (mediaSource.readyState === 'open') mediaSource.endOfStream();
   }
 
   async function fetchAndDecryptAudioV2Blob(cid: string, key: Uint8Array, signal?: AbortSignal): Promise<string> {
     throwIfAborted(signal);
-    const response = await fetchIpfsCid(cid, { signal });
+    const response = await fetchAudioIpfsCid(cid, { signal });
     if (!response.ok) throw new Error(`Unable to fetch DAV2 audio (${response.status})`);
     throwIfAborted(signal);
-    const decrypted = await decryptAudioV2Container(new Uint8Array(await response.arrayBuffer()), key);
+    const container = new Uint8Array(await response.arrayBuffer());
     throwIfAborted(signal);
-    const blob = new Blob([decrypted.bytes], { type: decrypted.mediaMime });
+    const parsed = parseAudioV2Container(container);
+    const decryptor = await createAudioV2ChunkDecryptor({ header: parsed.header, key, signal });
+    const bytes = new Uint8Array(parsed.header.plaintextLength);
+    let encryptedOffset = parsed.bodyOffset;
+    let clearOffset = 0;
+    try {
+      for (const chunk of parsed.header.chunks) {
+        throwIfAborted(signal);
+        const encrypted = container.subarray(encryptedOffset, encryptedOffset + chunk.encryptedLength);
+        const clear = await decryptor.decrypt(chunk.index, encrypted, signal);
+        bytes.set(clear, clearOffset);
+        encryptedOffset += chunk.encryptedLength;
+        clearOffset += clear.length;
+      }
+    } finally {
+      decryptor.close();
+    }
+    throwIfAborted(signal);
+    const blob = new Blob([bytes], { type: parsed.header.mediaMime });
     return URL.createObjectURL(blob);
   }
 
@@ -735,6 +967,9 @@ export function useCatalog(deps: UseCatalogDeps) {
       resolvedAudioSourcesRef.current.set(audioRef, fallbackUrl);
 
       if (audioSourceRef.current === failedObjectUrl) {
+        if (pendingTrackMediaSourceRef.current === failedObjectUrl) {
+          pendingTrackMediaSourceRef.current = fallbackUrl;
+        }
         setResolvedAudioSource(fallbackUrl);
       }
 
@@ -773,6 +1008,7 @@ export function useCatalog(deps: UseCatalogDeps) {
             console.warn('DAV2 chunk authentication failed', authenticationError);
             publishAudioV2StartupMetric(context, {
               phase: 'error',
+              errorKind: 'authentication',
               detail: errorMessage(authenticationError)
             });
           }
@@ -812,19 +1048,20 @@ export function useCatalog(deps: UseCatalogDeps) {
     gatewayUrl: string,
     contentHash: `0x${string}`,
     accessMode: AccessMode,
+    release: ContentKeyReleaseIdentity | undefined,
     signal?: AbortSignal,
     isCurrent: () => boolean = () => true
   ): Promise<string> {
     throwIfAborted(signal);
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
-      const serverKey = await resolveServerContentKey(contentHash);
+      const serverKey = await resolveServerContentKey(contentHash, release);
       throwIfAborted(signal);
       if (!serverKey) throw new Error('E2E full key request denied before payment.');
       return E2E_CLASSIC_AUDIO_URL;
     }
 
     if (isRoomJoinE2eProtectedHash(contentHash)) {
-      const serverKey = await resolveServerContentKey(contentHash);
+      const serverKey = await resolveServerContentKey(contentHash, release);
       throwIfAborted(signal);
       if (!serverKey) throw new Error('E2E room host is not authorized for full playback.');
       return E2E_ROOM_PROTECTED_AUDIO_URL;
@@ -832,7 +1069,10 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     const cacheKey = audioRef;
     const cached = resolvedAudioSourcesRef.current.get(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      setAudioStartupStatus(isEncryptedAudioV2Ref(audioRef) ? 'Starting audio' : null);
+      return cached;
+    }
 
     if (isEncryptedAudioV2Ref(audioRef)) {
       const context: AudioV2StartupContext = {
@@ -840,13 +1080,17 @@ export function useCatalog(deps: UseCatalogDeps) {
         cid: encryptedRefToCID(audioRef),
         startedAt: nowMs(),
         signal: signal ?? new AbortController().signal,
-        isCurrent
+        isCurrent,
+        onMetric: metric => {
+          setAudioStartupStatus(audioV2StartupPhaseLabel(metric));
+        }
       };
-      const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash) : await resolveServerContentKey(contentHash);
+      const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
       throwIfAborted(context.signal);
       if (!serverKey) {
         publishAudioV2StartupMetric(context, {
           phase: 'error',
+          errorKind: 'key-unavailable',
           detail: 'DAV2 content key unavailable.'
         });
         throw new Error('DAV2 content key unavailable.');
@@ -858,10 +1102,10 @@ export function useCatalog(deps: UseCatalogDeps) {
       return objectUrl;
     }
 
-    const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash) : await resolveServerContentKey(contentHash);
+    const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
     throwIfAborted(signal);
     const response = isEncryptedAudioRef(audioRef)
-      ? await fetchIpfsCid(encryptedRefToCID(audioRef), { signal })
+      ? await fetchAudioIpfsCid(encryptedRefToCID(audioRef), { signal })
       : await fetchAssetRef(audioRef || gatewayUrl, { signal });
     if (!response.ok) throw new Error(`Unable to fetch audio (${response.status})`);
     throwIfAborted(signal);
@@ -884,285 +1128,434 @@ export function useCatalog(deps: UseCatalogDeps) {
     track: CatalogTrack,
     socketEmit?: (event: string, data: unknown) => void,
     setLocalStreamReady?: (ready: boolean) => void,
-    closeHostPeers?: () => void
-  ): Promise<RoomPlaybackMode> {
-    const selection = beginTrackSelection();
+    closeHostPeers?: () => void,
+    showAccessGateOnDenied = false
+  ): Promise<TrackSelectionResult> {
+    const selectionStartedAt = nowMs();
+    const selection = beginTrackSelection(track.id, selectionStartedAt);
+    // Fetch only public ciphertext in parallel with access verification. This
+    // promotes an in-flight neighbor before playback pauses/cancels its batch.
+    // All existing key and access checks still precede decryption and playback.
+    if (track.encrypted && isEncryptedAudioV2Ref(track.audioRef)) void prefetchAudioV2TrackIntent(track.audioRef).catch(() => undefined);
+    else cancelAudioV2TrackIntentPrefetch();
+    publishHostAudioStartupMetric({
+      phase: 'playback-intent',
+      attemptId: selection.attemptId,
+      source: track.id,
+      elapsedMs: 0,
+      timestamp: Date.now()
+    });
+    let selectionFailureReported = false;
+    const reportSelectionFailure = (terminalReason: HostAudioTerminalReason) => {
+      if (selectionFailureReported || !isTrackSelectionCurrent(selection)) return;
+      selectionFailureReported = true;
+      selection.terminalReported = true;
+      publishHostAudioStartupMetric({
+        phase: 'error',
+        attemptId: selection.attemptId,
+        source: track.id,
+        elapsedMs: Number((nowMs() - selectionStartedAt).toFixed(1)),
+        timestamp: Date.now(),
+        terminalReason
+      });
+    };
+    let waitsForMediaReadiness = false;
 
-    // Stop the outgoing track immediately. Resolving the new source (access
-    // check + decrypt/fetch) is async, so without this the old audio keeps
-    // playing for the whole gap while the cover and title already show the new
-    // track. The new source autoplays once it loads.
-    const outgoingAudio = localAudioRef.current;
-    if (outgoingAudio && !outgoingAudio.paused) {
-      outgoingAudio.pause();
-    }
+    try {
+      // Stop the outgoing track immediately. Resolving the new source (access
+      // check + decrypt/fetch) is async, so without this the old audio keeps
+      // playing for the whole gap while the cover and title already show the new
+      // track. The new source autoplays once it loads.
+      const outgoingAudio = localAudioRef.current;
+      if (outgoingAudio && !outgoingAudio.paused) {
+        outgoingAudio.pause();
+      }
 
-    setSelectedTrackId(track.id);
-    setTitle(track.title);
-    setArtistName(track.artist);
-    setDescription(track.description);
-    setCoverSource(track.imageRef);
-    setBulletinManifestRef(track.metadataRef);
-    internalSetFileHash(track.hash);
-    setAccessMode(track.accessMode);
-    setPriceDot(track.priceDot);
-    setPersonhoodLevel(track.personhoodLevel);
-    setTrackInfo(createTrackInfoFromCatalog(track));
-    setPlayerState(null);
-    setAccessGate(null);
-    // A socketEmit callback means this selection streams into a room: the
-    // signer is the host, and only the host needs to satisfy the policy.
-    keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
+      selectedTrackIdRef.current = track.id;
+      setSelectedTrackId(track.id);
+      setTitle(track.title);
+      setArtistName(track.artist);
+      setDescription(track.description);
+      setCoverSource(track.imageRef);
+      setBulletinManifestRef(track.metadataRef);
+      internalSetFileHash(track.hash);
+      setAccessMode(track.accessMode);
+      setPriceDot(track.priceDot);
+      setPersonhoodLevel(track.personhoodLevel);
+      setTrackInfo(createTrackInfoFromCatalog(track));
+      setPlayerState(null);
+      setAccessGate(null);
+      setAudioStartupStatus(track.encrypted ? 'Checking access' : null);
+      // A socketEmit callback means this selection streams into a room: the
+      // signer is the host, and only the host needs to satisfy the policy.
+      keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
 
-    // Access model v2: access is binary. An authorized listener plays the full
-    // track; an unauthorized one gets the access gate and no audio at all. The
-    // 42% preview is retired.
-    let audioUrl: string | null = null;
-    let hasAccess = true;
+      // Access model v2: access is binary. An authorized listener plays the full
+      // track; an unauthorized one gets the access gate and no audio at all. The
+      // 42% preview is retired.
+      let audioUrl: string | null = null;
+      let hasAccess = true;
 
-    if (isPolicyManagedTrack(track)) {
-      hasAccess = await checkTrackAccess(track, listenerEvmAddress);
-      if (!isTrackSelectionCurrent(selection)) return 'full';
-      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
-      if (!hasAccess) {
-        setAccessGate(buildAccessGateInfo(track));
+      if (isPolicyManagedTrack(track)) {
+        hasAccess = await checkTrackAccess(track, listenerEvmAddress);
+        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+        setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
+        if (!hasAccess) {
+          // A room host has just chosen this release from the lineup, so the
+          // access explanation is the direct result of that explicit action.
+          // Solo browsing stays calm until the listener presses the cover CTA.
+          if (showAccessGateOnDenied) setAccessGate(buildAccessGateInfo(track));
+          setAudioStartupStatus(null);
+        }
+      }
+
+      if (hasAccess && track.localUrl) {
+        audioUrl = track.encrypted
+          ? await fetchAndDecryptAudio(
+              track.audioRef,
+              track.localUrl,
+              track.hash,
+              track.accessMode,
+              releaseIdentityFromTrack(track),
+              selection.controller.signal,
+              () => isTrackSelectionCurrent(selection)
+            ).catch(() => null)
+          : track.localUrl;
+        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+
+        if (!audioUrl && track.encrypted) {
+          // Access is granted but the key or decryption failed. Say so plainly
+          // instead of leaving a silent dead player.
+          setTransactionFeedback({
+            tone: 'error',
+            title: 'Protected playback unavailable',
+            message: 'Your access checks out, but the content key could not be obtained or used. The key service may be unreachable; try again shortly.'
+          });
+          setAudioStartupStatus(null);
+        }
+      }
+
+      if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+      if (!audioUrl) reportSelectionFailure(hasAccess ? 'selection-failed' : 'access-denied');
+      const sourceAlreadyReady = Boolean(
+        audioUrl && audioSourceRef.current === audioUrl && localAudioRef.current && localAudioRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
+      );
+      pendingTrackMediaSourceRef.current = sourceAlreadyReady ? null : audioUrl;
+      waitsForMediaReadiness = Boolean(audioUrl && !sourceAlreadyReady);
+      setResolvedAudioSource(audioUrl);
+      if (!audioUrl || !isEncryptedAudioV2Ref(track.audioRef)) setAudioStartupStatus(null);
+
+      if (!audioUrl) {
+        if (setLocalStreamReady) setLocalStreamReady(false);
+        if (closeHostPeers) closeHostPeers();
+      }
+
+      if (socketEmit) {
+        socketEmit('room:track', createTrackInfoFromCatalog(track));
+        // Rooms always carry the full track: a host who cannot play a track
+        // streams nothing (kept on the wire for protocol compatibility).
+        socketEmit('room:playback-mode', { playbackMode: 'full' });
+      }
+      return { playbackMode: 'full', audioSource: audioUrl };
+    } catch (error) {
+      reportSelectionFailure('selection-failed');
+      throw error;
+    } finally {
+      if (isTrackSelectionCurrent(selection) && !waitsForMediaReadiness) {
+        selection.pending = false;
+        pendingTrackMediaSourceRef.current = null;
+        setTrackSelectionPending(false);
       }
     }
-
-    if (hasAccess && track.localUrl) {
-      audioUrl = track.encrypted
-        ? await fetchAndDecryptAudio(track.audioRef, track.localUrl, track.hash, track.accessMode, selection.controller.signal, () =>
-            isTrackSelectionCurrent(selection)
-          ).catch(() => null)
-        : track.localUrl;
-      if (!isTrackSelectionCurrent(selection)) return 'full';
-
-      if (!audioUrl && track.encrypted) {
-        // Access is granted but the key or decryption failed. Say so plainly
-        // instead of leaving a silent dead player.
-        setTransactionFeedback({
-          tone: 'error',
-          title: 'Protected playback unavailable',
-          message: 'Your access checks out, but the content key could not be obtained or used. The key service may be unreachable; try again shortly.'
-        });
-      }
-    }
-
-    if (!isTrackSelectionCurrent(selection)) return 'full';
-    setResolvedAudioSource(audioUrl);
-
-    if (!audioUrl) {
-      if (setLocalStreamReady) setLocalStreamReady(false);
-      if (closeHostPeers) closeHostPeers();
-    }
-
-    if (socketEmit) {
-      socketEmit('room:track', createTrackInfoFromCatalog(track));
-      // Rooms always carry the full track: a host who cannot play a track
-      // streams nothing (kept on the wire for protocol compatibility).
-      socketEmit('room:playback-mode', { playbackMode: 'full' });
-    }
-
-    return 'full';
   }
 
   async function openTrack(
     track: CatalogTrack,
     socketEmit?: (event: string, data: unknown) => void,
     setLocalStreamReady?: (ready: boolean) => void,
-    closeHostPeers?: () => void
+    closeHostPeers?: () => void,
+    showAccessGateOnDenied = false
   ) {
     navigateToView('player');
-    return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+    return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers, showAccessGateOnDenied);
   }
 
-  async function payForTrackAccess(track: CatalogTrack) {
+  const prefetchTrackAudio = useCallback((track: CatalogTrack): void => {
+    if (!track.encrypted || !isEncryptedAudioV2Ref(track.audioRef)) return;
+    void prefetchAudioV2TrackIntent(track.audioRef).catch(() => undefined);
+  }, []);
+
+  function explainRuntimeWriteWalletRequirement(): string | null {
+    if (!connectedWallet) return null;
+    if (runtimeAdapterConfig.kind === 'product-cdm') {
+      return connectedWallet.method === 'product-host' ? null : 'Connect with "Use Polkadot app" to confirm support in this app.';
+    }
+    return connectedWallet.createEvmClient
+      ? null
+      : 'This version cannot approve support in Polkadot App. Open Dotify in a browser and connect a compatible wallet.';
+  }
+
+  async function payForTrackAccess(
+    track: CatalogTrack,
+    socketEmit?: (event: string, data: unknown) => void,
+    setLocalStreamReady?: (ready: boolean) => void,
+    closeHostPeers?: () => void,
+    readOnly = false
+  ) {
+    if (supportBusyRef.current) return;
+    supportBusyRef.current = true;
+    try {
+      await performTrackSupport(track, socketEmit, setLocalStreamReady, closeHostPeers, readOnly);
+    } finally {
+      supportBusyRef.current = false;
+    }
+  }
+
+  async function performTrackSupport(
+    track: CatalogTrack,
+    socketEmit?: (event: string, data: unknown) => void,
+    setLocalStreamReady?: (ready: boolean) => void,
+    closeHostPeers?: () => void,
+    readOnly = false
+  ) {
+    const unlockStartedTrackId = track.id;
+    const unlockStartedView = activeViewRef.current;
+    const supportProofKind = runtimeAdapterConfig.kind === 'product-cdm' ? 'substrate-extrinsic' : 'evm-transaction';
+    const accountAtStart = supportAccountRef.current;
+    const currentAccount = () => supportAccountRef.current === accountAtStart;
+    const shouldRestoreUnlockedTrack = () =>
+      currentAccount() && selectedTrackIdRef.current === unlockStartedTrackId && activeViewRef.current === unlockStartedView;
+
     if (!connectedWallet) {
-      setAccessGate(buildAccessGateInfo(track));
-      setShowWalletModal(true);
+      // The access receipt is itself a modal. Dismiss it before handing off to
+      // account selection so Product hosts never render two dialogs at once.
+      setAccessGate(null);
+      openSupportWalletModal();
       return;
     }
 
-    if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
+    const walletRequirement = readOnly ? null : explainRuntimeWriteWalletRequirement();
+    if (walletRequirement || !listenerEvmAddress) {
       setAccessGate(null);
       setTransactionFeedback({
-        tone: 'pending',
-        title: 'Support being confirmed',
-        message: `Confirming ${track.priceDot} DOT of support to open "${track.title}".`
+        tone: 'error',
+        title: 'Payment signer unavailable',
+        message: walletRequirement || 'Reconnect your account before supporting this track.',
+        facts: buildSupportFacts(track, nativeRuntimePaymentAsset, 'failed')
       });
-      await new Promise(resolve => window.setTimeout(resolve, 20));
-      e2eClassicAccessGrantedRef.current = true;
-      getClassicUnlockE2eState().paid = true;
-      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setTransactionFeedback({
-        tone: 'success',
-        title: 'Work opened',
-        message: `Full listening for "${track.title}" is now available to this wallet.`,
-        txHash: E2E_CLASSIC_TX_HASH
-      });
-      await selectTrack(track, undefined, undefined, undefined);
       return;
     }
 
     const runtimeAddress = runtimeAddressFromTrackId(track);
-    if (!runtimeAddress) return;
+    if (!runtimeAddress) {
+      setAccessGate(null);
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Payment setup failed',
+        message: 'This track is missing its artist runtime address. Refresh the catalog and try again.'
+      });
+      return;
+    }
 
-    const { musicRoyaltiesAbi, getPublicClient: getClient } = await import('../shared/config/contracts');
-    const { dotToPlanck } = await import('../shared/utils/format');
-
-    const priceWei = dotToPlanck(track.priceDot);
-
+    // Every subsequent state is rendered by TransactionModal. Clear the
+    // receipt first, including when intent preparation fails synchronously.
     setAccessGate(null);
+    let paymentIntent;
+    try {
+      paymentIntent = await createRuntimeNativeAccessPaymentIntent({
+        runtimeAddress,
+        contentHash: track.hash,
+        amountPlanck: classicTrackPaymentAmountPlanck(track),
+        adapterKind: runtimeAdapterConfig.kind,
+        currentAsset: nativeRuntimePaymentAsset,
+        resolveChain: () => resolveEvmChain(ethRpcUrl)
+      });
+    } catch (intentError) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Payment setup failed',
+        message: intentError instanceof Error ? intentError.message : 'Unable to prepare this payment.'
+      });
+      return;
+    }
+
+    if (!currentAccount()) {
+      openSupportWalletModal();
+      return;
+    }
+    const ports =
+      isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id
+        ? classicSupportE2ePorts(runtimeReader, runtimeWriter)
+        : { reader: runtimeReader, writer: runtimeWriter };
+    const result = await supportFlow.run({
+      network: `${runtimeAdapterConfig.kind}:${ethRpcUrl}`,
+      intent: paymentIntent,
+      listenerAddress: listenerEvmAddress!,
+      ...ports,
+      verificationOptions: isClassicUnlockE2e ? { attempts: 1, delayMs: 0 } : undefined,
+      currentAccount,
+      readOnly,
+      onProgress(stage, txHash) {
+        if (!currentAccount()) return;
+        const titles = {
+          checking: 'Checking your listening access',
+          approval: connectedWallet.method === 'product-host' ? 'Confirm in Polkadot App' : 'Confirm in your wallet',
+          confirming: 'Confirming your support',
+          verifying: 'Opening your listening access'
+        };
+        setTransactionFeedback({
+          tone: 'pending',
+          title: titles[stage],
+          message:
+            stage === 'approval'
+              ? `Review ${formatEther(paymentIntent.amountPlanck)} ${paymentIntent.asset.symbol} for “${track.title}” in the confirmation request.`
+              : 'Keep this page open. Dotify checks your access before opening the full track.',
+          txHash,
+          proofKind: supportProofKind,
+          facts: stage === 'approval' ? buildSupportFacts(track, paymentIntent.asset, 'pending') : undefined
+        });
+      }
+    });
+    if (!currentAccount()) {
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Account changed',
+        message: 'Your payment reference is kept in this tab. Reconnect the original account and check access before paying again.',
+        txHash: result.txHash,
+        proofKind: supportProofKind
+      });
+      return;
+    }
+    if (result.verification && runtimeAdapterConfig.kind === 'product-cdm' && result.txHash) {
+      publishProductCdmPaymentSmokeMetric(
+        buildProductCdmPaymentSmokeMetric({
+          verification: result.verification,
+          txHash: result.txHash,
+          runtimeAddress: paymentIntent.runtimeAddress,
+          contentHash: paymentIntent.contentHash,
+          listenerAddress: listenerEvmAddress!,
+          amountPlanck: result.amountPlanck ?? paymentIntent.amountPlanck
+        })
+      );
+    }
+    const receiptTrack = result.amountPlanck === undefined ? track : { ...track, pricePlanck: result.amountPlanck };
+    const receiptAsset = { ...paymentIntent.asset, symbol: result.assetSymbol ?? paymentIntent.asset.symbol };
+    if (result.status === 'verified' || result.verification?.readback?.hasPaid || result.hasPaid) {
+      setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+    }
+    if (result.status === 'verified' || result.status === 'existing-access') {
+      if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) e2eClassicAccessGrantedRef.current = true;
+      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+      setTransactionFeedback(
+        result.status === 'verified'
+          ? {
+              ...buildClassicAccessVerifiedFeedback(receiptTrack, result.txHash, receiptAsset),
+              proofKind: supportProofKind,
+              facts: buildSupportFacts(receiptTrack, receiptAsset, 'confirmed')
+            }
+          : { tone: 'success', title: 'Listening access available', message: 'This account can already listen. No payment was sent.' }
+      );
+      if (shouldRestoreUnlockedTrack()) {
+        navigateToView('player');
+        try {
+          await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+        } catch {
+          setTransactionFeedback({
+            tone: 'error',
+            title: 'Support recorded, audio unavailable',
+            message: 'Your access is verified. Reopen the track to try loading the audio again; no new payment is needed.',
+            txHash: result.txHash,
+            proofKind: supportProofKind
+          });
+        }
+      }
+      return;
+    }
+    const recoverable = result.status === 'unverified' || result.status === 'uncertain';
     setTransactionFeedback({
-      tone: 'pending',
-      title: 'Support being confirmed',
-      message: `Confirming ${track.priceDot} DOT of support to open "${track.title}".`
+      tone: 'error',
+      title:
+        result.status === 'canceled'
+          ? 'Support canceled'
+          : result.failureKind === 'funding-required'
+            ? `Add ${receiptAsset.symbol} to continue`
+            : result.status === 'unverified'
+              ? 'Listening access not verified'
+              : result.status === 'uncertain'
+                ? 'Payment status needs checking'
+                : 'Support could not start',
+      message:
+        result.status === 'uncertain'
+          ? 'Confirmation was interrupted. Your payment may still complete. Check access here and your account activity in Polkadot App or your wallet before paying again.'
+          : result.message || 'Listening is not available yet.',
+      txHash: result.txHash,
+      proofKind: supportProofKind,
+      facts: buildSupportFacts(receiptTrack, receiptAsset, recoverable ? 'included-unverified' : result.status === 'canceled' ? 'canceled' : 'failed'),
+      recoveryAction: recoverable
+        ? {
+            label: 'Check access again',
+            run: () => {
+              if (!currentAccount()) {
+                setTransactionFeedback({
+                  tone: 'error',
+                  title: 'Account changed',
+                  message: 'Reconnect the account used for this support before checking its access.'
+                });
+                return;
+              }
+              void payForTrackAccess(track, socketEmit, setLocalStreamReady, closeHostPeers, true);
+            }
+          }
+        : undefined
+    });
+  }
+
+  async function fetchRuntimeCatalog(reader: RuntimeReadPort, artistAddress: `0x${string}`, runtimeAddress: `0x${string}`): Promise<RegistryCatalogTrack[]> {
+    const snapshots = await reader.listRuntimeTracks(runtimeAddress);
+    const tracks = snapshots.map((snapshot: RuntimeTrackSnapshot): RegistryCatalogTrack => {
+      const { hash, record: track } = snapshot;
+      const imageRef = resolveVisualAssetRef(track.imageRef, track.title);
+      const encrypted = isEncryptedAudioRef(track.audioRef);
+      const localUrl = resolveAudioAssetRef(track.audioRef);
+
+      return {
+        id: `${runtimeAddress}:${hash}`,
+        hash,
+        title: track.title,
+        artist: track.artistName,
+        artistAddress: track.artist || artistAddress,
+        audioRef: track.audioRef,
+        imageRef,
+        priceDot: formatWeiAsDot(track.pricePlanck),
+        pricePlanck: track.pricePlanck,
+        localUrl,
+        description: track.description,
+        bulletinRef: track.metadataRef.startsWith('paseo-bulletin:') ? track.metadataRef : '',
+        metadataRef: track.metadataRef,
+        royaltyBps: Number(track.royaltyBps),
+        txHash: undefined,
+        durationLabel: 'ready',
+        accessMode: decodeAccessMode(Number(track.accessMode)),
+        active: track.active,
+        source: 'artist' as const,
+        royaltySplits: snapshot.royaltySplits.map((split, splitIndex) => ({
+          label: splitIndex === 0 ? 'Primary recipient' : `Split ${splitIndex + 1}`,
+          ...split
+        })),
+        personhoodLevel: decodePersonhood(Number(track.requiredPersonhood)),
+        zone: 'Registry',
+        encrypted,
+        registeredAtBlock: Number(track.registeredAtBlock)
+      };
     });
 
-    try {
-      const walletClient = await getActiveWalletClient();
-      const txHash = await walletClient.writeContract({
-        address: runtimeAddress,
-        abi: musicRoyaltiesAbi,
-        functionName: 'musicRoyPayAccess',
-        args: [track.hash],
-        value: priceWei
-      });
-      setTransactionFeedback({ tone: 'pending', title: 'Awaiting confirmation', message: 'Payment submitted.', txHash });
-      await getClient(ethRpcUrl).waitForTransactionReceipt({ hash: txHash });
-
-      setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setTransactionFeedback({
-        tone: 'success',
-        title: 'Work opened',
-        message: `Full listening for "${track.title}" is now available to this wallet.`,
-        txHash
-      });
-      await selectTrack(track, undefined, undefined, undefined);
-    } catch (payError) {
-      const message = payError instanceof Error ? payError.message : 'Payment failed';
-      setTransactionFeedback({ tone: 'error', title: 'Payment failed', message });
-    }
-  }
-
-  async function fetchDirectoryEntries(client: ReturnType<typeof getPublicClient>, registryAddress: `0x${string}`, artistCount: bigint) {
-    const pageSize = 50n;
-    const entries: Array<{ artist: `0x${string}`; runtime: `0x${string}` }> = [];
-
-    for (let offset = 0n; offset < artistCount; offset += pageSize) {
-      const limit = artistCount - offset > pageSize ? pageSize : artistCount - offset;
-      const [artists, runtimes] = (await client.readContract({
-        address: registryAddress,
-        abi: artistDirectoryAbi,
-        functionName: 'artistsPage',
-        args: [offset, limit]
-      })) as [`0x${string}`[], `0x${string}`[]];
-
-      for (let index = 0; index < artists.length; index += 1) {
-        const artist = artists[index];
-        const runtime = runtimes[index];
-        if (!artist || !runtime || runtime === zeroAddress) continue;
-        entries.push({ artist, runtime });
-      }
-    }
-
-    return entries;
-  }
-
-  async function fetchRuntimeCatalog(
-    client: ReturnType<typeof getPublicClient>,
-    artistAddress: `0x${string}`,
-    runtimeAddress: `0x${string}`
-  ): Promise<RegistryCatalogTrack[]> {
-    const trackCount = (await client.readContract({
-      address: runtimeAddress,
-      abi: musicRegistryAbi,
-      functionName: 'musicRegTrackCount'
-    })) as bigint;
-
-    const tracks: Array<RegistryCatalogTrack | null> = await Promise.all(
-      Array.from({ length: Number(trackCount) }, async (_, index) => {
-        const hash = (await client.readContract({
-          address: runtimeAddress,
-          abi: musicRegistryAbi,
-          functionName: 'musicRegTrackHashAtIndex',
-          args: [BigInt(index)]
-        })) as `0x${string}`;
-
-        const [track] = (await client.readContract({
-          address: runtimeAddress,
-          abi: musicRegistryAbi,
-          functionName: 'musicRegGetTrack',
-          args: [hash]
-        })) as [OnchainTrackRecord, `0x${string}`];
-
-        const imageRef = resolveVisualAssetRef(track.imageRef, track.title);
-        const encrypted = isEncryptedAudioRef(track.audioRef);
-        const localUrl = resolveAudioAssetRef(track.audioRef);
-        const splitCount = (await client
-          .readContract({
-            address: runtimeAddress,
-            abi: musicRoyaltiesAbi,
-            functionName: 'musicRoySplitCount',
-            args: [hash]
-          })
-          .catch(() => 0n)) as bigint;
-        const royaltySplits = await Promise.all(
-          Array.from({ length: Number(splitCount) }, async (_, splitIndex): Promise<RoyaltySplit | null> => {
-            try {
-              const [recipient, bps] = (await client.readContract({
-                address: runtimeAddress,
-                abi: musicRoyaltiesAbi,
-                functionName: 'musicRoySplitAt',
-                args: [hash, BigInt(splitIndex)]
-              })) as [`0x${string}`, number];
-              return {
-                label: splitIndex === 0 ? 'Primary recipient' : `Split ${splitIndex + 1}`,
-                recipient,
-                bps: Number(bps)
-              };
-            } catch {
-              return null;
-            }
-          })
-        );
-
-        return {
-          id: `${runtimeAddress}:${hash}`,
-          hash,
-          title: track.title,
-          artist: track.artistName,
-          artistAddress: track.artist || artistAddress,
-          audioRef: track.audioRef,
-          imageRef,
-          priceDot: formatWeiAsDot(track.pricePlanck),
-          localUrl,
-          description: track.description,
-          bulletinRef: track.metadataRef.startsWith('paseo-bulletin:') ? track.metadataRef : '',
-          metadataRef: track.metadataRef,
-          royaltyBps: Number(track.royaltyBps),
-          txHash: undefined,
-          durationLabel: 'ready',
-          accessMode: decodeAccessMode(Number(track.accessMode)),
-          active: track.active,
-          source: 'artist' as const,
-          royaltySplits: royaltySplits.filter((split): split is RoyaltySplit => Boolean(split)),
-          personhoodLevel: decodePersonhood(Number(track.requiredPersonhood)),
-          zone: 'Registry',
-          encrypted,
-          registeredAtBlock: Number(track.registeredAtBlock)
-        };
-      })
-    );
-
-    return tracks.flatMap(track => (track ? [track] : []));
+    return tracks;
   }
 
   function commitCatalog(allTracks: CatalogTrack[], preferredTrackHash: `0x${string}` | undefined, status: string): CatalogTrack[] {
-    const nextCatalog = allTracks.filter(track => track.active !== false);
-    setAllCatalogTracks(allTracks);
+    const normalizedTracks = allTracks.map(normalizeCatalogTrackDisplay);
+    const nextCatalog = normalizedTracks.filter(track => track.active !== false);
+    setAllCatalogTracks(normalizedTracks);
     setCatalogTracks(nextCatalog);
     setSelectedTrackId(previous => {
       const preferredTrack = preferredTrackHash ? nextCatalog.find(track => track.hash.toLowerCase() === preferredTrackHash.toLowerCase()) : null;
@@ -1175,7 +1568,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
     if (isClassicUnlockE2e || isArtistPublishE2e || isRoomJoinE2e) {
-      const nextCatalog = getDeterministicE2eCatalogTracks();
+      const nextCatalog = getDeterministicE2eCatalogTracks().map(normalizeCatalogTrackDisplay);
       setAllCatalogTracks(nextCatalog);
       setCatalogTracks(nextCatalog);
       setSelectedTrackId(previous => {
@@ -1194,7 +1587,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         )
       );
       setCatalogPaidAccessByTrackId(
-        Object.fromEntries(nextCatalog.map(track => [track.id, track.id === E2E_CLASSIC_TRACK.id && e2eClassicAccessGrantedRef.current]))
+        Object.fromEntries(nextCatalog.map(track => [track.id, track.id === E2E_CLASSIC_TRACK.id && getClassicUnlockE2eState().paid]))
       );
       setCatalogStatus(
         nextCatalog.length > 0 ? `Loaded ${nextCatalog.length} deterministic e2e track${nextCatalog.length === 1 ? '' : 's'}` : 'No e2e tracks registered yet'
@@ -1211,7 +1604,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         return commitCatalog(allTracks, preferredTrackHash, catalogApiStatus(response.meta, allTracks.filter(track => track.active !== false).length));
       } catch (catalogError) {
         console.warn('Failed to load catalog API', catalogError);
-        setCatalogStatus(catalogLoadFailureStatus(catalogError));
+        setCatalogStatus(allCatalogTracks.length > 0 ? 'Showing saved catalog while the catalog API reconnects' : catalogLoadFailureStatus(catalogError));
         return catalogTracks;
       }
     }
@@ -1227,7 +1620,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setCatalogStatus('Loading registry catalog');
 
     try {
-      const directoryExists = await ensureContract(directoryAddress, ethRpcUrl);
+      const directoryExists = await runtimeReader.ensureContract(directoryAddress);
       if (!directoryExists) {
         setCatalogTracks([]);
         setAllCatalogTracks([]);
@@ -1236,12 +1629,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         return [];
       }
 
-      const client = getPublicClient(ethRpcUrl);
-      const artistCount = (await client.readContract({
-        address: directoryAddress,
-        abi: artistDirectoryAbi,
-        functionName: 'artistCount'
-      })) as bigint;
+      const artistCount = await runtimeReader.getArtistCount(directoryAddress);
 
       if (artistCount === 0n) {
         setCatalogTracks([]);
@@ -1251,11 +1639,11 @@ export function useCatalog(deps: UseCatalogDeps) {
         return [];
       }
 
-      const entries = await fetchDirectoryEntries(client, directoryAddress, artistCount);
+      const entries = await runtimeReader.listArtistRuntimes(directoryAddress, artistCount);
       const runtimeCatalogs = await Promise.all(
         entries.map(async entry => {
           try {
-            return await fetchRuntimeCatalog(client, entry.artist, entry.runtime);
+            return await fetchRuntimeCatalog(runtimeReader, entry.artist, entry.runtime);
           } catch (runtimeError) {
             console.warn(`Failed to load runtime catalog for ${entry.runtime}`, runtimeError);
             return [];
@@ -1299,6 +1687,10 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   return {
+    resolveArtistForDonation: (track: CatalogTrack) =>
+      isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id
+        ? Promise.resolve({ name: track.artist, recipient: E2E_CLASSIC_TRACK.artistAddress!, releaseTitle: track.title })
+        : resolveDonationArtist(track, runtimeReader),
     // State
     catalogTracks,
     allCatalogTracks,
@@ -1309,9 +1701,15 @@ export function useCatalog(deps: UseCatalogDeps) {
     setCatalogAccessByTrackId,
     catalogPaidAccessByTrackId,
     setCatalogPaidAccessByTrackId,
+    nativeRuntimePaymentAsset,
     usesCatalogApi,
     audioSource,
+    audioSourceGeneration,
+    audioStartupAttemptId,
+    trackSelectionPending,
+    settleTrackSelectionMedia,
     setAudioSource: setResolvedAudioSource,
+    audioStartupStatus,
     trackInfo,
     setTrackInfo,
     coverSource,
@@ -1335,13 +1733,13 @@ export function useCatalog(deps: UseCatalogDeps) {
     // Functions
     selectTrack,
     openTrack,
+    prefetchTrackAudio,
     checkTrackAccess,
     checkTrackPaidAccess,
     buildAccessGateInfo,
     payForTrackAccess,
     fetchAndDecryptAudio,
     refreshCatalogFromRegistry,
-    fetchDirectoryEntries,
     fetchRuntimeCatalog,
     clearObjectUrls
   };

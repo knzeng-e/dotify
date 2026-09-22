@@ -85,16 +85,17 @@ A listener can:
 A host is a listener running the local player in host mode. The host streams the
 captured audio element to room listeners through WebRTC.
 
-### 3.4 Registrar / Operator
+### 3.4 Individuality Source / Operator
 
-The runtime personhood registrar writes personhood levels used by Human free
-access checks. In the current prototype this is not integrated with live
-Individuality data.
+Human free access reads the chain-exposed Individuality precompile in Dotify's
+application context. If that precompile is unavailable, Human free fails closed.
+The legacy registrar setter remains only for ABI compatibility and no longer
+grants personhood.
 
 ## 4. System Architecture
 
 ```text
-Browser (React + Vite)
+Browser or Product host (React + Vite)
   ├── Player and catalog UI
   ├── WebRTC host-to-listener audio stream
   ├── Socket.IO signaling server for SDP/ICE and room discovery
@@ -105,20 +106,27 @@ Browser (React + Vite)
   └── Paseo Asset Hub EVM contracts for artist runtimes and access policy
 ```
 
-The frontend is a static React/Vite app. It can be served locally by Vite or
-built as a single-file Bulletin/IPFS-friendly artifact.
+The frontend is a static React/Vite app. It can be served locally by Vite,
+deployed to Netlify, built as a single-file Bulletin/IPFS-friendly artifact,
+or published as the multi-file `dotify-test01.dot` Product DevNet app.
 
 Production-sensitive upload and content-key operations live behind
 `services/api/`. Browser-side Pinata upload and `VITE_CONTENT_SECRET` key
 derivation remain local/demo paths only.
 
-Product SDK / Playground / Humanity integration is a progressive enhancement
-track, not a hard dependency for first sound. The current verified SDK snapshot
-(`@parity/product-sdk` 0.17.0 at
-`2f359bba28ca72855207a0a519d4118b37b4438c`) must be treated as
-prototype/reference/unaudited until Dotify proves Host capability detection,
-Product account signing, resource allocation, contract portability, and
-Statement Store constraints against the current app.
+Product SDK integration is an adaptive enhancement, not a hard dependency for
+first sound. The Product build pins `@parity/product-sdk` 0.23.0, detects the
+host, and requests an app-scoped account only after explicit user action. That
+account is currently an identity/presence and protected key/session capability
+through the explicit `product-sr25519-v1` signature scheme when the Product
+account public key derives to the requester H160 address. Classic payments and
+artist publication still use the EVM wallet path in the tracked build until
+CDM/PAPI writes have host-signed transaction smoke evidence. The older
+passkey-derived EVM wallet route is retired from public Dotify flows.
+The runtime hooks now depend on typed read/write ports; the current viem
+adapter remains active, and the Product CDM/PAPI adapter remains experimental
+until Dotify has CDM-installed runtime packages and host-signed transaction
+evidence.
 
 ## 5. Repository Layout
 
@@ -151,15 +159,15 @@ Dotify uses an EVM smart-runtime system on Paseo Asset Hub.
 
 Current testnet deployment:
 
-- factory: `0xbd1a11cfce8b5ef7a37e507bc5109895f8f42a72`
-- directory: `0xcf1534c6e2b0e43b9436c1e86a076466dc0f2108`
+- factory: `0x835a626a9a6965b197d079ae56b1ec94033c2699`
+- directory: `0x4e883827d61e573094c7b777bae323070ea9f954`
 - chain: Paseo Asset Hub, chainId `420420417`
 
 Security status: these configured addresses point to a fresh factory/directory
 whose registry facet matches the source-level owner-only `musicRegRegister`
-implementation. Read-only audit at finalized block `11268829` verified the
+implementation. Read-only audit at finalized block `13103348` verified the
 factory/directory pairing, the corrected registry code hash
-`0xa509d4ccc5206974069bb858faba07e42b1f7b9b3fd217adc7bb40a8f714d788`, zero
+`0x8ade82431086a7c3fa03c39dd602e7abee4e4b588b9246adeb36537cafff6b57`, zero
 finalized runtimes, and zero pending runtimes. New artist runtime creation and
 release registration are therefore enabled for this deployment. The legacy
 quarantined deployment and its remediation procedure remain documented in
@@ -174,7 +182,8 @@ The runtime includes:
 - `OwnershipPallet`: runtime ownership.
 - `MusicRegistryPallet`: track registration, reads, and deactivation.
 - `MusicNFTPallet`: per-track NFT ownership and transfer state.
-- `MusicRoyaltiesPallet`: Classic access payment and royalty distribution.
+- `MusicRoyaltiesPallet`: Classic access payment, bounded royalty settlement,
+  and claimable failed recipient shares.
 - `MusicAccessPallet`: access checks and personhood-level state.
 
 ### 6.3 Track Record
@@ -208,10 +217,14 @@ A registered track stores:
 `Classic`:
 
 - requires payment through `musicRoyPayAccess(contentHash)`;
-- records paid access for the listener;
-- distributes payment according to royalty splits.
+- records paid access for the listener with no fixed expiry in the current
+  runtime;
+- settles payment according to royalty splits, while failed recipient transfers
+  remain claimable instead of blocking access.
 
-Artists and track NFT owners are expected to have access to their own tracks.
+Artists and track NFT owners are expected to have access to their own active
+tracks. Inactive tracks deny playback for everyone, including the original
+artist, NFT owner, and previously paid listeners.
 
 ### 6.5 Contract Tests
 
@@ -220,7 +233,7 @@ The active runtime tests cover:
 - runtime factory deployment;
 - artist runtime creation;
 - track registration and deactivation;
-- paid access and royalty distribution;
+- paid access, royalty settlement, and claimable recipient fallback;
 - personhood-gated access;
 - NFT transfer gating;
 - isolation between artist runtimes.
@@ -238,9 +251,9 @@ For a production uploaded track when `VITE_DOTIFY_API_URL` is configured:
 2. The browser computes a blake2b-256 content hash.
 3. The browser sends the raw audio file and content hash to the backend upload
    endpoint.
-4. The backend derives the per-track content key from
-   `CONTENT_KEY_MASTER_SECRET`, encrypts the full audio with AES-256-GCM, and
-   pins the encrypted bytes to Pinata.
+4. The backend derives the per-track content key from the active backend
+   content-key version, encrypts the full audio with AES-256-GCM, and pins the
+   encrypted bytes to Pinata.
 5. The cover image is uploaded through the backend.
 6. A canonical Dotify metadata manifest is validated and uploaded through the
    backend.
@@ -268,10 +281,12 @@ Encrypted audio uses:
 ```text
 dotify:enc:ipfs://<CID>
 dotify:enc:v2:ipfs://<CID>
+dotify:enc:v2:key-vN:ipfs://<CID>
 ```
 
 The first form is the legacy whole-file encrypted object. New production
-uploads use the DAV2 chunked container in the second form. Plain
+uploads use the DAV2 chunked container with an explicit `key-vN` token. The
+middle form is legacy DAV2 using the v1 `contentHash` key scope. Plain
 `ipfs://<CID>` audio references may still be handled by the frontend, but
 registered Dotify uploads should use encrypted refs.
 
@@ -280,15 +295,26 @@ registered Dotify uploads should use encrypted refs.
 Production audio protection uses the backend as the key boundary:
 
 - full audio is encrypted with AES-256-GCM server-side;
-- per-track keys are derived from backend-only `CONTENT_KEY_MASTER_SECRET`;
+- per-track keys are derived from backend-only versioned key material;
+- `CONTENT_KEY_MASTER_SECRET` remains the compatibility source for v1/v2, while
+  `CONTENT_KEY_MASTER_SECRETS` and `CONTENT_KEY_ACTIVE_VERSION` support
+  additive rotation for future uploads;
 - a wallet signature opens a short-lived session, with a legacy signed
   per-request fallback for older backends;
+- signature schemes are explicit: standalone clients use `eip191`, and Product
+  clients may use `product-sr25519-v1` only when the Product account public key
+  derives to the requester H160 address;
 - the frontend requests keys through `POST /api/tracks/:contentHash/key-request`;
 - the backend verifies the session or signature, resolves the artist runtime,
   and calls `musicAccCanAccess` before releasing a key;
 - Free-key requests need no wallet, but the backend still verifies the current
   zero-address access decision on-chain;
 - denials return no content key and no degraded audio.
+
+The grant is temporary; the derived AES key is deterministic for the release and
+version. Removing or rotating a secret cannot retract a key already learned by a
+client. Compromise recovery may require re-encrypting affected audio and
+updating releases to point at new refs.
 
 Demo/local audio protection is still best-effort and browser-side:
 
@@ -313,7 +339,8 @@ The frontend reads manifests and encrypted audio through gateway fallback logic:
 
 - primary gateway: `VITE_PINATA_GATEWAY`;
 - optional configured fallbacks: `VITE_IPFS_READ_GATEWAYS`;
-- built-in public fallbacks include Paseo IPFS, `ipfs.io`, and `dweb.link`.
+- built-in public fallbacks include Pinata's public gateway, `ipfs.io`,
+  `dweb.link`, and Paseo IPFS.
 
 This protects the app from custom gateway authorization failures such as `401`
 responses on otherwise public files.
@@ -367,8 +394,11 @@ For Classic tracks:
 1. The listener clicks the payment action.
 2. The app calls `musicRoyPayAccess(contentHash)` with the track price.
 3. The app waits for transaction confirmation.
-4. The app reselects the track.
-5. `musicAccCanAccess` should return true and full playback loads.
+4. The app re-reads `musicAccHasPaid(contentHash, listener)` and
+   `musicAccCanAccess(contentHash, listener)`.
+5. Full playback loads only when the runtime confirms playable access. If the
+   payment was included but access is not confirmed, Dotify keeps protected
+   audio closed and shows the transaction hash for inspection.
 
 ## 9. Listening Room Specification
 
@@ -417,8 +447,11 @@ Important browser-exposed variables:
 
 | Variable                  | Purpose                                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------------------ |
-| `VITE_DOTIFY_DEPLOYMENT`  | build-time deployment safety mode; set `production` for public production builds            |
-| `VITE_DOTIFY_DEBUG_PANEL` | optional flag that shows the read-only Production readiness panel under `You`                |
+| `VITE_DOTIFY_DEPLOYMENT`  | build-time deployment safety mode; set `production` for public production builds           |
+| `VITE_DOTIFY_HOST_MODE`   | Product host mode (`off`, `auto`, or `required`)                                           |
+| `VITE_DOTIFY_PRODUCT_ID`  | `.dot` name used for app-scoped Product account derivation                                 |
+| `VITE_PUBLIC_APP_URL`     | canonical public room-link origin for Product/container builds                             |
+| `VITE_DOTIFY_DEBUG_PANEL` | optional flag that shows the read-only Production readiness panel under `You`              |
 | `VITE_SIGNAL_URL`         | Socket.IO signaling server URL                                                             |
 | `VITE_LOCAL_WS_URL`       | local Substrate websocket URL                                                              |
 | `VITE_LOCAL_ETH_RPC_URL`  | local EVM RPC URL                                                                          |
@@ -428,57 +461,62 @@ Important browser-exposed variables:
 | `VITE_IPFS_READ_GATEWAYS` | comma-separated IPFS read fallbacks                                                        |
 | `VITE_DOTIFY_API_URL`     | backend API URL for production uploads and wallet-signed key requests                      |
 | `VITE_CONTENT_SECRET`     | optional demo/local 32-byte hex content-key derivation secret; never a production boundary |
+| `VITE_TURN_URL`           | optional browser-visible TURN fallback; API grants are preferred for production rooms      |
 
 Server/script variables:
 
-| Variable                    | Purpose                                            |
-| --------------------------- | -------------------------------------------------- |
-| `SIGNAL_PORT`               | local signaling server port                        |
-| `SIGNAL_ORIGINS`            | allowed frontend origins for signaling             |
-| `API_PORT`                  | backend API port                                   |
-| `API_ORIGIN`                | frontend origin allowed by backend CORS            |
-| `PASEO_ASSET_HUB_RPC`       | backend RPC endpoint for access checks             |
-| `DOTIFY_DIRECTORY_ADDRESS`  | backend ArtistDirectory address for runtime lookup |
-| `DOTIFY_CHAIN_ID`           | chain ID expected in signed key requests           |
-| `PINATA_JWT`                | backend-only Pinata credential                     |
-| `CONTENT_KEY_MASTER_SECRET` | backend-only content-key derivation secret         |
-| `BULLETIN_ACCOUNT`          | dev account used by Bulletin deploy script         |
+| Variable                    | Purpose                                              |
+| --------------------------- | ---------------------------------------------------- |
+| `SIGNAL_PORT`               | local signaling server port                          |
+| `SIGNAL_ORIGINS`            | allowed frontend origins for signaling               |
+| `API_PORT`                  | backend API port                                     |
+| `API_ORIGIN`                | backwards-compatible singular frontend CORS origin   |
+| `API_ORIGINS`               | comma-separated exact frontend CORS origins          |
+| `PASEO_ASSET_HUB_RPC`       | backend RPC endpoint for access checks               |
+| `DOTIFY_DIRECTORY_ADDRESS`  | backend ArtistDirectory address for runtime lookup   |
+| `DOTIFY_CHAIN_ID`           | chain ID expected in signed key requests             |
+| `PINATA_JWT`                | backend-only Pinata credential                       |
+| `CONTENT_KEY_MASTER_SECRET` | backend-only compatibility content-key secret        |
+| `CONTENT_KEY_MASTER_SECRETS` | backend-only retained key-version map               |
+| `CONTENT_KEY_ACTIVE_VERSION` | backend-only active version for new encrypted audio |
+| `TURN_URLS`                 | public TURN relay URLs returned by `/api/turn/grant` |
+| `TURN_REST_SECRET`          | backend-only TURN REST HMAC secret                   |
+| `BULLETIN_ACCOUNT`          | dev account used by Bulletin deploy script           |
 
-## 11. Wallet And Passkey Design
+## 11. Wallet And Account Design
 
-Dotify supports two wallet paths in the frontend design:
+Dotify supports two public account authorities:
 
-- passkey-backed local key derivation through WebAuthn PRF;
-- browser wallet extension signing through Polkadot/EVM wallet providers.
+- browser wallet extension signing through EVM wallet providers;
+- Product-host app-scoped identity for presence, rooms, protected key/session
+  proofs, and opt-in Product CDM writes when that adapter is selected.
 
-### 11.1 Passkey Credential ID
+Room guests and Free playback do not require either account path. Wallet prompts
+appear only when the user starts a paid, protected, or artist action that needs
+account authority.
 
-When a passkey is created, the browser returns a WebAuthn credential whose
-`rawId` is stored by the app as a base64 string. This value is the WebAuthn
-credential ID.
+### 11.1 Retired Passkey-Only Wallet Route
 
-The credential ID is an opaque lookup identifier. It tells the browser and
-authenticator which passkey credential should be used during a future
-authentication request.
+The earlier passkey-backed local key derivation path used WebAuthn PRF output to
+derive a local EVM key. That route is no longer available in public Dotify
+flows. Generic WebAuthn support is not enough to prove PRF output is available,
+and the derived account can change when local credential metadata, RP/origin,
+device sync, authenticator support, or salt changes.
 
-The credential ID is not:
+Old browsers may still contain the legacy `dotify:passkey:credId` lookup value.
+Dotify may show a cleanup notice for that local value, but it does not treat it
+as a recoverable wallet and does not create a replacement passkey account.
+Forgetting that value removes only Dotify's browser-local lookup data; it does
+not delete the passkey from the operating system, password manager, or hardware
+authenticator.
 
-- an EVM private key;
-- a Substrate private key;
-- the WebAuthn PRF output;
-- the passkey private key;
-- a signing secret;
-- enough information to sign transactions.
+### 11.2 Future Passkey Direction
 
-Because of that, storing the credential ID in `localStorage` is acceptable for a
-prototype. Storing it in a dedicated backend database can also be safe and is
-normal in a full WebAuthn design.
-
-### 11.2 Data That May Be Stored Server-Side
-
-A backend-backed passkey design may store:
+Passkeys can return only as an authentication or recovery factor attached to an
+existing EVM wallet or Product host account. A backend-backed design may store:
 
 - application user ID;
+- parent EVM or Product account identifier;
 - WebAuthn credential ID;
 - WebAuthn public key;
 - sign counter and backup eligibility metadata;
@@ -493,50 +531,9 @@ The backend must not store:
 - raw `KeyManager` seed material;
 - derived symmetric content keys.
 
-### 11.3 LocalStorage Loss Behavior
-
-If browser cache or site storage is cleared, the app loses the stored credential
-ID. This does not necessarily delete the passkey itself, because the passkey
-usually lives in the OS password manager, browser passkey store, or hardware
-security key.
-
-However, if the app only supports login by replaying the locally stored
-credential ID, clearing `localStorage` can make the app unable to locate the
-existing passkey. The user may then create a new passkey, which produces a new
-PRF output and therefore a different derived EVM/Substrate wallet.
-
-The current design requests a resident/discoverable credential, so a future
-improvement should add a discoverable passkey login flow that does not depend on
-`localStorage` having the credential ID.
-
-### 11.4 Key Loss Risks
-
-The derived wallet can be lost or changed if:
-
-- the actual passkey is deleted from the OS password manager, browser passkey
-  store, or hardware security key;
-- the WebAuthn credential is not synced to the user's other devices and the
-  original device is lost;
-- the WebAuthn PRF extension is unavailable on the browser/authenticator used
-  for recovery;
-- `PRF_SALT` changes after users have created wallets;
-- the app treats a missing local credential ID as a new-user flow and creates a
-  replacement passkey.
-
-The `PRF_SALT` must be treated as permanent once real users exist. Rotating it
-rotates all derived accounts.
-
-### 11.5 Recommended Production Direction
-
-For production, Dotify should implement a standard WebAuthn backend flow:
-
-- register and verify WebAuthn credentials server-side;
-- store credential IDs and public keys in the backend;
-- support discoverable credential login;
-- keep PRF outputs strictly client-side;
-- show explicit recovery warnings before users rely on passkey-derived wallets;
-- provide an account migration or backup story before real funds or valuable
-  rights are managed by passkey-derived accounts.
+That future flow must explicitly bind the passkey to the existing account and
+must not imply that a passkey-derived EVM key migrates across standalone web,
+`.dot` gateways, and Product host origins.
 
 ## 12. Build And Deployment
 
@@ -613,8 +610,8 @@ npm test
 - Treat browser-side encryption as demo protection.
 - Move production pinning and key delivery behind authenticated services.
 - Keep runtime contract access checks as the source of truth for policy.
-- Keep WebAuthn PRF outputs and derived private keys client-side only.
-- Treat `PRF_SALT` as permanent once passkey-derived wallets are in use.
+- Keep passkeys out of public wallet routes until they are explicitly bound to
+  an existing EVM or Product account.
 
 ### 13.2 Availability
 
@@ -628,7 +625,8 @@ npm test
 
 - Development requires Node 22 and npm 10+.
 - WebRTC host mode requires browser support for audio element `captureStream`.
-- Passkey wallet mode requires a secure origin and WebAuthn PRF support.
+- Public wallet mode requires an EVM wallet provider or a compatible Product
+  host account.
 
 ## 14. Current Limitations
 
@@ -636,8 +634,9 @@ npm test
   local/demo mode and must not be used as public production boundaries.
 - DAV2 Range/MSE playback still needs a documented real-browser, media-container,
   and gateway validation matrix before P3 is release-ready.
-- Passkey credential discovery currently depends on locally stored credential
-  metadata.
+- Passkey-only accounts are retired from public routes; legacy browser-local
+  passkey lookup data can be forgotten but is not treated as a recoverable
+  wallet.
 - Proof of Personhood is not connected to live Individuality data.
 - Frontend e2e coverage exists for Classic unlock, artist publish, and room
   join/host-access behavior.
@@ -661,17 +660,18 @@ Priority improvements:
    Bulletin builds.
 4. Finish security hardening for publish intents, auth chain binding, durable
    revocation, realtime reconnect, and short-lived TURN credentials.
-5. Run Product SDK feasibility spikes for Host capability detection, Product
-   account signing, resource allocation, Playground/Bulletin/DotNS deployment,
-   Statement Store presence, and PolkaVM/CDM contract portability.
+5. Validate the delivered Product host/account and Bulletin/DotNS deployment
+   baseline, then wire frontend Product-signed key/session requests, real
+   CDM-installed runtime packages through the experimental Product CDM/PAPI
+   adapter, and run a bounded Statement Store presence spike.
 6. Move the large catalog, session, artist, and player workflows behind domain
    ports and application use cases.
 7. Validate the cacheable catalog API's warm/cold p75 budgets under public seed
    traffic, then move its single-writer snapshot to shared storage before
    horizontal scaling.
-8. Harden production wallet support and passkey recovery across public flows.
-9. Add backend-backed WebAuthn registration, credential storage, and
-   discoverable passkey recovery.
+8. Harden production wallet support across public flows.
+9. Add backend-backed passkey attachment only after it can bind to an existing
+   EVM wallet or Product account without creating a replacement identity.
 10. Integrate live Humanity / Individuality data only after the research ticket
     proves source, proof shape, privacy, and address binding.
 11. Archive or remove the legacy monolithic registry path.

@@ -27,7 +27,7 @@ async function flushPromises(): Promise<void> {
 }
 
 describe('DAV2 read-ahead pipeline', () => {
-  it('prepares the current chunk plus two future chunks and appends in order', async () => {
+  it('prepares the current chunk plus one future chunk and appends in order', async () => {
     const preparations = chunks(4).map(() => deferred<string>());
     const firstAppend = deferred<void>();
     const firstAppendStarted = deferred<void>();
@@ -53,24 +53,24 @@ describe('DAV2 read-ahead pipeline', () => {
     });
 
     await flushPromises();
-    expect(prepareOrder).toEqual([0, 1, 2]);
+    expect(prepareOrder).toEqual([0, 1]);
 
-    preparations[2].resolve('clear-2');
     preparations[1].resolve('clear-1');
     preparations[0].resolve('clear-0');
     await firstAppendStarted.promise;
 
     expect(appendOrder).toEqual([0]);
-    expect(prepareOrder).toEqual([0, 1, 2]);
+    expect(prepareOrder).toEqual([0, 1]);
 
     firstAppend.resolve();
+    preparations[2].resolve('clear-2');
     await fourthPreparationStarted.promise;
     expect(prepareOrder).toEqual([0, 1, 2, 3]);
 
     preparations[3].resolve('clear-3');
     await pipeline;
     expect(appendOrder).toEqual([0, 1, 2, 3]);
-    expect(DEFAULT_AUDIO_V2_READ_AHEAD_CHUNKS).toBe(2);
+    expect(DEFAULT_AUDIO_V2_READ_AHEAD_CHUNKS).toBe(1);
   });
 
   it('aborts pending preparation and stops appending when the parent is cancelled', async () => {
@@ -91,7 +91,7 @@ describe('DAV2 read-ahead pipeline', () => {
     });
 
     await flushPromises();
-    expect(started).toEqual([0, 1, 2]);
+    expect(started).toEqual([0, 1]);
     controller.abort();
 
     await expect(pipeline).rejects.toMatchObject({ name: 'AbortError' });
@@ -116,7 +116,7 @@ describe('DAV2 read-ahead pipeline', () => {
 
     await expect(pipeline).rejects.toBe(authenticationError);
     expect(appendChunk).not.toHaveBeenCalled();
-    expect(observedSignals).toHaveLength(3);
+    expect(observedSignals).toHaveLength(2);
     expect(observedSignals.every(signal => signal.aborted)).toBe(true);
   });
 
