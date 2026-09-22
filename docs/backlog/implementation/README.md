@@ -2,7 +2,7 @@
 
 Twenty-seven agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf` and extended with W27 on 2026-09-22; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
-## Current execution state — 2026-09-21
+## Current execution state — 2026-09-22
 
 The sequences are recipes; they are not a second workflow board. GitHub Project
 5 owns live status, and each evidence file records the delivered boundary.
@@ -23,7 +23,7 @@ instruction to restore the cue.
 
 ## The branch workflow
 
-Keep all prompts together on `dev`. Create one short-lived implementation branch when its work starts, from the latest tested `origin/dev`. Review and merge its PR into `dev`, then create the next branch. This keeps subsequent agents on integrated code and makes the prompt travel with every branch. Pre-creating twenty-six branches would freeze twenty-six increasingly stale starting points.
+Keep all prompts together on `dev`. Create one short-lived implementation branch when its work starts, from the latest tested `origin/dev`. Review and merge its PR into `dev`, then create the next branch. This keeps subsequent agents on integrated code and makes the prompt travel with every branch. Pre-creating twenty-seven branches would freeze twenty-seven increasingly stale starting points.
 
 The documentation branch `docs/agent-implementation-playbook` introduced this
 playbook in merged PR #131. New work starts from the latest tested `dev`, never
