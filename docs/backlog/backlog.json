@@ -463,6 +463,16 @@
       "note": "UX audit 2026-09-17 follow-up: French and English interface; Later by owner decision."
     },
     {
+      "id": "W27",
+      "doc": "docs/backlog/implementation/W27-celerity-room-realtime.md",
+      "issue": 214,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Product SDK",
+      "phase": "Next",
+      "note": "Post-pilot Celerity/Statement Store realtime sprint. Preserve wallet-free room links, prove each event class in dual operation, and reduce Socket.IO authority only where equivalent guarantees are measured."
+    },
+    {
       "id": "backlog-reconciliation",
       "doc": "docs/backlog/README.md",
       "issue": 204,

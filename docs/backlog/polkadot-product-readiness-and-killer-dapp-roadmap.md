@@ -175,6 +175,13 @@ Goal: prove the Product host path with small spikes before committing the app.
   profile remains dormant (`VITE_DOTIFY_ROOM_BEACONS=off`) until a live host
   round trip is captured. Joining stays on Socket.IO/WebRTC because moving it
   would require every guest to hold an identity.
+- Planned as W27 / #214 after the pilot: treat Celerity and Statement Store as
+  the same realtime protocol, place the existing room layer behind a typed
+  transport port, and run Celerity in observation or dual-publish mode before
+  moving any social or session authority. Presence and reactions are the first
+  candidates; chat requires encryption and delivery semantics, player state
+  requires host-signed convergence, and join/capacity stays on Socket.IO until
+  an anonymous path with equivalent guarantees is proven.
 
 ### Phase 4 - Product integration
 
