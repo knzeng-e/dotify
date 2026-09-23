@@ -31,6 +31,7 @@ import { useRoomBeaconDiscovery } from './useRoomBeaconDiscovery';
 import { mergeDiscoveredRooms } from '../features/rooms/roomBeaconDiscovery';
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
+import { registerHostAudioOutput, syncHostAudioOutput } from '../features/player/hostAudioOutput';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH, ROOM_LINEUP_CLIENT_LIMIT } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
 import { getTurnIceServers, hasTurnIceServer } from '../services/turn';
@@ -76,6 +77,7 @@ type WebAudioElementCapture = {
   context: AudioContext;
   source: MediaElementAudioSourceNode;
   destination: MediaStreamAudioDestinationNode;
+  playbackGain: GainNode;
   monitorGain: GainNode;
   stream: MediaStream;
   onVolumeChange: () => void;
@@ -99,7 +101,9 @@ type WebRtcDiagnosticDetails = {
 const webAudioElementCaptures = new WeakMap<HTMLMediaElement, WebAudioElementCapture>();
 
 function syncWebAudioMonitorGain(audio: HTMLMediaElement, capture: WebAudioElementCapture) {
-  const gain = audio.muted ? 0 : audio.volume;
+  const playing = !audio.paused && !audio.ended && !audio.seeking && audio.readyState >= 3;
+  capture.playbackGain.gain.value = playing ? 1 : 0;
+  const gain = !playing || audio.muted ? 0 : audio.volume;
   capture.monitorGain.gain.value = Number.isFinite(gain) ? gain : 1;
   if (isRoomJoinE2e) recordRoomJoinE2eWebAudioMonitorGain(capture.monitorGain.gain.value);
 }
@@ -109,7 +113,7 @@ function retireWebAudioElementCapture(audio: HTMLMediaElement) {
   if (!capture) return false;
   webAudioElementCaptures.delete(audio);
   audio.removeEventListener('volumechange', capture.onVolumeChange);
-  for (const node of [capture.source, capture.monitorGain, capture.destination]) {
+  for (const node of [capture.source, capture.playbackGain, capture.monitorGain, capture.destination]) {
     try {
       node.disconnect();
     } catch {
@@ -874,9 +878,9 @@ export function useSession(deps: UseSessionDeps) {
     // E2E: stream a synthetic near-silent track instead of capturing the local
     // element, so the host always has a transmittable audio track in CI.
     if (isRoomJoinE2e && shouldUseRoomJoinE2eSyntheticCapture()) return createRoomJoinE2eCaptureStream();
-    // One Web Audio destination survives changes to the element's source.
-    // Native capture can retire its sender track between metadata and playing,
-    // leaving an established receiver silent on Next. Prefer the stable graph.
+    // One Web Audio destination survives pause/seek on this element. Next
+    // creates a new generation and replaces the sender's track. Native capture
+    // can retire tracks between metadata and playing; prefer the stable graph.
     const contextCtor = window.AudioContext ?? (window as AudioContextWindow).webkitAudioContext;
     if (!contextCtor) {
       const capturable = audio as CapturableMediaElement;
@@ -895,16 +899,20 @@ export function useSession(deps: UseSessionDeps) {
     const context = new contextCtor();
     const source = context.createMediaElementSource(audio);
     const destination = context.createMediaStreamDestination();
+    const playbackGain = context.createGain();
     const monitorGain = context.createGain();
-    source.connect(destination);
+    playbackGain.gain.value = 0;
+    source.connect(playbackGain);
+    playbackGain.connect(destination);
     // Once a media element is routed through Web Audio, monitor it locally too.
     // The WebRTC leg is connected before this gain, so host mute only affects
     // the host's local output and never silences room listeners.
-    source.connect(monitorGain).connect(context.destination);
+    playbackGain.connect(monitorGain).connect(context.destination);
     const fallbackCapture: WebAudioElementCapture = {
       context,
       source,
       destination,
+      playbackGain,
       monitorGain,
       stream: destination.stream,
       onVolumeChange: () => undefined
@@ -913,6 +921,15 @@ export function useSession(deps: UseSessionDeps) {
     syncWebAudioMonitorGain(audio, fallbackCapture);
     audio.addEventListener('volumechange', fallbackCapture.onVolumeChange);
     webAudioElementCaptures.set(audio, fallbackCapture);
+    registerHostAudioOutput(audio, {
+      context,
+      sync: () => syncWebAudioMonitorGain(audio, fallbackCapture),
+      silence: () => {
+        playbackGain.gain.value = 0;
+        monitorGain.gain.value = 0;
+      },
+      release: () => retireWebAudioElementCapture(audio)
+    });
     void context.resume().catch(() => undefined);
     if (isRoomJoinE2e) recordRoomJoinE2eWebAudioCapture();
     // Do NOT throw when there is no audio track yet: capture can legitimately
@@ -1081,9 +1098,9 @@ export function useSession(deps: UseSessionDeps) {
       if (previousPlaceholderStream && previousPlaceholderStream !== stream) {
         closePlaceholderAudioStream();
       }
-      // A recapture on the same element can share browser-owned tracks, so it
-      // stays alive. A retired element generation is independent and is closed
-      // only after every listener sender has moved to the replacement stream.
+      // A recapture on the same element can share browser-owned tracks. Old
+      // generations may already be retired by PersistentAudio; this cleanup
+      // also covers captures that outlive a mode transition.
     } catch (streamError) {
       setError(streamError instanceof Error ? streamError.message : 'Audio capture unavailable in this browser');
       setSessionStatus('Capture unavailable');
@@ -1143,6 +1160,7 @@ export function useSession(deps: UseSessionDeps) {
   function emitPlayerState(force = false) {
     const audio = localAudioRef.current;
     if (!audio || modeRef.current !== 'host') return;
+    syncHostAudioOutput(audio);
     const playing = !audio.paused && !audio.ended && !audio.seeking && audio.readyState >= 3;
     // Disable captured output during pause/seek/stall without ending tracks.
     localStreamRef.current?.getAudioTracks().forEach(track => {

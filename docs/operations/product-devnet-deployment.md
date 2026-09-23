@@ -446,7 +446,13 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The tracked Product executable candidate is `[0, 1, 28]`. This version protects
+The tracked Product executable candidate is `[0, 1, 29]`. This version gates
+local host output on pause, preserves paused Next/Previous, retires obsolete
+audio sources, and restores desktop room colors on mobile. Publish the new
+frontend and reopen the mobile app; this fix needs no CDM/contract redeploy.
+The physical-device sequence is in
+[deployment configuration](deployment-configuration.md#playback-synchronization-verification).
+It retains `[0, 1, 28]`, which protects
 TURN credentials with short-lived room-membership proof and restores an
 independent IPFS source for bounded full-file audio recovery. Its version bump
 also gives Product hosts an explicit cache-refresh signal for the changed room

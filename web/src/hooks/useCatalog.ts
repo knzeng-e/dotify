@@ -1,4 +1,5 @@
 import { resolveDonationArtist } from '../features/donations/donationModel';
+import { retireHostAudio } from '../features/player/hostAudioOutput';
 import { formatEther } from 'viem';
 import { createSupportPaymentFlow } from '../features/payments/supportPayment';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -457,6 +458,11 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   function setResolvedAudioSource(source: string | null) {
+    // Capture can materialize a URL before its first canplay; readiness must
+    // then follow the replacement rather than wait forever for the old URL.
+    if (audioSourceRef.current && pendingTrackMediaSourceRef.current === audioSourceRef.current) {
+      pendingTrackMediaSourceRef.current = source;
+    }
     audioSourceRef.current = source;
     setAudioSource(source);
     // A resolved source owns one media-element lifetime. Increment even when
@@ -1165,11 +1171,11 @@ export function useCatalog(deps: UseCatalogDeps) {
       // Stop the outgoing track immediately. Resolving the new source (access
       // check + decrypt/fetch) is async, so without this the old audio keeps
       // playing for the whole gap while the cover and title already show the new
-      // track. The new source autoplays once it loads.
+      // track. The playback controller owns whether the new source starts.
       const outgoingAudio = localAudioRef.current;
-      if (outgoingAudio && !outgoingAudio.paused) {
-        outgoingAudio.pause();
-      }
+      // Invalidate the old DOM source synchronously too: a capture fetch may
+      // still resolve while the next selection is checking access.
+      if (outgoingAudio) retireHostAudio(outgoingAudio);
 
       selectedTrackIdRef.current = track.id;
       setSelectedTrackId(track.id);
