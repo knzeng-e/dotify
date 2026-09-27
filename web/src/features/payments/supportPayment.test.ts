@@ -286,6 +286,35 @@ describe('support payment recovery', () => {
     expect(f.writer.payForAccess).toHaveBeenCalledTimes(1);
   });
 
+  it('releases the shared reservation lock while a wallet approval remains pending', async () => {
+    const f = fixture();
+    let queue: Promise<unknown> = Promise.resolve();
+    const lock = <T>(_key: string, run: () => Promise<T>) => {
+      const next = queue.then(run);
+      queue = next.catch(() => undefined);
+      return next;
+    };
+    let resolvePayment: (hash: typeof txHash) => void = () => undefined;
+    f.writer.payForAccess.mockReturnValue(
+      new Promise(resolve => {
+        resolvePayment = resolve;
+      })
+    );
+    const first = createSupportPaymentFlow(() => f.storage, lock).run(f.input);
+    let firstSettled = false;
+    void first.finally(() => {
+      firstSettled = true;
+    });
+    await vi.waitFor(() => expect(f.writer.payForAccess).toHaveBeenCalledTimes(1));
+
+    await expect(createSupportPaymentFlow(() => f.storage, lock).run(f.input)).resolves.toMatchObject({ status: 'uncertain' });
+
+    expect(firstSettled).toBe(false);
+    expect(f.writer.payForAccess).toHaveBeenCalledTimes(1);
+    resolvePayment(txHash);
+    await expect(first).resolves.toMatchObject({ status: 'verified', txHash });
+  });
+
   it('keeps locking failures recoverable without calling the writer', async () => {
     const f = fixture();
     const flow = createSupportPaymentFlow(

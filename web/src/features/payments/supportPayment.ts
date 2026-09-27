@@ -59,6 +59,15 @@ type SupportInput = {
   verificationOptions?: { attempts?: number; delayMs?: number };
 };
 
+class PaymentLockUnavailableError extends Error {
+  readonly cause: unknown;
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : 'Payment tracking is unavailable.');
+    this.cause = cause;
+    this.name = 'PaymentLockUnavailableError';
+  }
+}
+
 // A journal is never proof of access: fresh contract
 // reads gate playback. Never store a signing key, username or media key here.
 export function createSupportPaymentFlow(
@@ -92,19 +101,37 @@ export function createSupportPaymentFlow(
     memory.set(key, attempt);
     storage().setItem(key, JSON.stringify(attempt));
   }
+  async function withJournalLock<T>(key: string, operation: () => T | Promise<T>): Promise<T> {
+    let entered = false;
+    try {
+      return await lock(key, async () => {
+        entered = true;
+        return operation();
+      });
+    } catch (error) {
+      if (!entered) throw new PaymentLockUnavailableError(error);
+      throw error;
+    }
+  }
   async function execute(input: SupportInput, key: string): Promise<SupportResult> {
     let attempt: Attempt | undefined;
     let submitted = false;
     let sending = false;
     let accountState: PaymentAccountState | undefined;
     let finalized = false;
-    let readingJournal = false;
+    let journalReadFailed = false;
+    const readJournal = (journalKey: string) => {
+      try {
+        return read(journalKey);
+      } catch (error) {
+        journalReadFailed = true;
+        throw error;
+      }
+    };
     try {
       assertNativeAccessPayment(input.intent);
       input.onProgress('checking');
-      readingJournal = true;
-      attempt = read(key);
-      readingJournal = false;
+      attempt = await withJournalLock(key, () => readJournal(key));
       const before = await readRuntimeAccessPayment(input);
       if (before.canAccess) {
         return { status: before.hasPaid && attempt ? 'verified' : 'existing-access', hasPaid: before.hasPaid, txHash: attempt?.txHash };
@@ -130,25 +157,36 @@ export function createSupportPaymentFlow(
             message: `Your available balance is ${formatEther(accountState.availableBalance)} ${input.intent.asset.symbol}. This payment needs at least ${formatEther(knownTotal)} ${input.intent.asset.symbol}${accountState.estimatedFee === undefined ? ', plus the network fee' : ' including the estimated network fee'}. Add funds to the paying account. No payment was sent.`
           };
         }
-        // Reserve the attempt before asking for a signature. If storage is
-        // unavailable, stop here: a reload must not offer a duplicate payment.
-        remember(key, { version: 1, amountPlanck: input.intent.amountPlanck.toString(), symbol: input.intent.asset.symbol });
-        sending = true;
-        input.onProgress('approval', undefined, accountState);
-        const txHash = await input.writer.payForAccess(input.intent, (status, hash) => {
-          if (status === 'broadcasting' || status === 'in-block' || status === 'finalized') submitted = true;
-          if (status === 'finalized') finalized = true;
-          if (hash) {
-            submitted = true;
-            attempt = { version: 1, txHash: hash, amountPlanck: input.intent.amountPlanck.toString(), symbol: input.intent.asset.symbol };
-            remember(key, attempt);
-          }
-          if (status !== 'error')
-            input.onProgress(status === 'signing' ? 'approval' : status === 'finalized' ? 'finalized' : 'processing', hash ?? attempt?.txHash, accountState);
+        let reservedHere = false;
+        const reserved = await withJournalLock(key, () => {
+          const saved = readJournal(key);
+          if (saved) return { attempt: saved, created: false };
+          const next: Attempt = { version: 1, amountPlanck: input.intent.amountPlanck.toString(), symbol: input.intent.asset.symbol };
+          // Reserve the attempt before asking for a signature. If storage is
+          // unavailable, stop here: a reload must not offer a duplicate payment.
+          remember(key, next);
+          return { attempt: next, created: true };
         });
-        submitted = true;
-        attempt = { version: 1, txHash, amountPlanck: input.intent.amountPlanck.toString(), symbol: input.intent.asset.symbol };
-        remember(key, attempt);
+        attempt = reserved.attempt;
+        reservedHere = reserved.created;
+        if (reservedHere) {
+          sending = true;
+          input.onProgress('approval', undefined, accountState);
+          const txHash = await input.writer.payForAccess(input.intent, (status, hash) => {
+            if (status === 'broadcasting' || status === 'in-block' || status === 'finalized') submitted = true;
+            if (status === 'finalized') finalized = true;
+            if (hash) {
+              submitted = true;
+              attempt = { version: 1, txHash: hash, amountPlanck: input.intent.amountPlanck.toString(), symbol: input.intent.asset.symbol };
+              remember(key, attempt);
+            }
+            if (status !== 'error')
+              input.onProgress(status === 'signing' ? 'approval' : status === 'finalized' ? 'finalized' : 'processing', hash ?? attempt?.txHash, accountState);
+          });
+          submitted = true;
+          attempt = { version: 1, txHash, amountPlanck: input.intent.amountPlanck.toString(), symbol: input.intent.asset.symbol };
+          remember(key, attempt);
+        }
       }
       if (attempt?.txHash && !input.readOnly) {
         input.onProgress(finalized ? 'finalized' : 'confirming', attempt.txHash, accountState);
@@ -180,7 +218,11 @@ export function createSupportPaymentFlow(
         }
       }
       return {
-        status: canceled ? 'canceled' : readingJournal || (!safeToRetry && (sending || attempt)) ? 'uncertain' : 'failed',
+        status: canceled
+          ? 'canceled'
+          : error instanceof PaymentLockUnavailableError || journalReadFailed || (!safeToRetry && (sending || attempt))
+            ? 'uncertain'
+            : 'failed',
         failureKind: fundingRequired ? 'funding-required' : undefined,
         txHash: attempt?.txHash ?? memory.get(key)?.txHash,
         accountState,
@@ -189,7 +231,7 @@ export function createSupportPaymentFlow(
           ? 'No payment was sent. You can try again when you are ready.'
           : fundingRequired
             ? `This payment account could not cover the support and network fee. Add ${input.intent.asset.symbol} to the paying account, then try again. No payment was sent.`
-            : readingJournal
+            : journalReadFailed
               ? 'The saved payment reference could not be read. Check your account activity before paying again. No new payment was sent.'
               : !safeToRetry && (sending || attempt)
                 ? 'Payment confirmation was interrupted. Check access and account activity before paying again.'
@@ -202,7 +244,7 @@ export function createSupportPaymentFlow(
       const key = keyFor(input);
       const inFlight = running.get(key);
       if (inFlight) return inFlight;
-      const operation = lock(key, () => execute(input, key))
+      const operation = execute(input, key)
         .catch(
           (error): SupportResult => ({
             status: 'uncertain',
