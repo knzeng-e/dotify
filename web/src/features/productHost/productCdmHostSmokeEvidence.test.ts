@@ -121,6 +121,7 @@ describe('product CDM host smoke evidence', () => {
       ['host-approval', 'ok'],
       ['native-value', 'ok'],
       ['payment-readback', 'ok'],
+      ['access-readback', 'ok'],
       ['backend-key', 'ok'],
       ['same-identity', 'ok']
     ]);
@@ -133,6 +134,71 @@ describe('product CDM host smoke evidence', () => {
 
     expect(missing.checks.find(check => check.id === 'candidate-identity')?.tone).toBe('unknown');
     expect(invalid.checks.find(check => check.id === 'candidate-identity')?.tone).toBe('error');
+  });
+
+  it('exports existing paid access without claiming a new payment or approval', () => {
+    const events: ProductCdmHostSmokeEvent[] = [
+      {
+        kind: 'access-readback',
+        runtimeAddress: RUNTIME,
+        contentHash: CONTENT_HASH,
+        listenerAddress: ADDRESS,
+        chainId: 420420417,
+        hasPaid: true,
+        canAccess: true,
+        timestamp: 2_000
+      },
+      completeEvents()[3]
+    ];
+    const { storage } = memoryStorage();
+    bindProductCdmHostSmokeCandidate(smokeContext(), storage);
+    for (const event of events) recordProductCdmHostSmokeEvent(event, storage);
+    const evidence = buildProductCdmHostSmokeEvidence(smokeContext(), readProductCdmHostSmokeEvents(storage));
+    expect(evidence.summary.tone).toBe('warning');
+    for (const id of ['access-readback', 'backend-key', 'same-identity']) {
+      expect(evidence.checks.find(check => check.id === id)?.tone).toBe('ok');
+    }
+    for (const id of ['host-approval', 'native-value', 'payment-readback']) {
+      expect(evidence.checks.find(check => check.id === id)?.tone).toBe('unknown');
+    }
+    expect(serializeProductCdmHostSmokeEvidence(evidence)).not.toContain('txHash');
+  });
+
+  it.each([
+    { runtime: ADDRESS },
+    { contentHash: TX_HASH },
+    { address: RUNTIME },
+    { productPublicKey: TX_HASH },
+    { chainId: 1 },
+    { timestamp: 1_000 },
+    { access: 'denied' as const },
+    { playbackMode: undefined }
+  ])('does not accept an unrelated or earlier key release: %j', patch => {
+    const events = completeEvents();
+    events[3] = { ...events[3], ...patch } as ProductCdmHostSmokeEvent;
+    const evidence = buildProductCdmHostSmokeEvidence(smokeContext(), events);
+    expect(evidence.checks.find(check => check.id === 'backend-key')?.tone).not.toBe('ok');
+    expect(evidence.summary.tone).not.toBe('ok');
+  });
+
+  it.each([
+    [false, true],
+    [true, false],
+    [null, null]
+  ] as const)('does not turn an unpaid, denied or failed read into paid access (%s, %s)', (hasPaid, canAccess) => {
+    const evidence = buildProductCdmHostSmokeEvidence(smokeContext(), [
+      {
+        kind: 'access-readback',
+        runtimeAddress: RUNTIME,
+        contentHash: CONTENT_HASH,
+        listenerAddress: ADDRESS,
+        chainId: 420420417,
+        hasPaid,
+        canAccess,
+        timestamp: 2_000
+      }
+    ]);
+    expect(evidence.checks.find(check => check.id === 'access-readback')?.tone).toBe('warning');
   });
 
   it('normalizes Product key events by allowlist so secrets are not persisted', () => {

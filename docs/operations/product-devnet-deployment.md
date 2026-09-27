@@ -718,9 +718,26 @@ npm run deploy:product-devnet
    malformed CIDs with the standards-compliant IPFS parser, and clears events
    whenever SHA, Product appVersion, or CID changes.
 
-   Use a funded Product account that has not already paid for the target
-   Classic track. Do not use this as the default `dotify-test01.dot` release
-   gate until it has passed once end to end. Verify:
+   First reuse an existing paid Classic entitlement: open that track with the
+   connected Product account after binding the deployment. This captures a
+   read-only `access-readback` event (`hasPaid`, `canAccess`, chain, listener,
+   runtime and content hash), followed by the normal backend key request.
+   The browser and CLI require that the key follows the read and matches its
+   account, network, runtime and track. An RPC failure records unknown access;
+   changing account, track or capture while reading discards the stale result.
+   The collector makes no extra reads without a bound capture for this build.
+
+   This proves current entitlement/key delivery only. It does not fabricate a
+   transaction hash, paid amount or host approval. The host-approval,
+   native-value and payment-readback gates remain blocked in the CLI when
+   only this read-only evidence is available. Do not pay again merely to make
+   those gates green. Reset the capture when finished; keep the diagnostic
+   export private because it links an account to a release, and never merge
+   it into aggregate participant evidence.
+
+   A separately authorized new-payment test still needs a funded Product
+   account without access to the target Classic track. Do not use this as the
+   default `dotify-test01.dot` release gate until it has passed end to end. Verify:
    - the connected Dotify Product account and the host-selected signer expose
      the same public key;
    - deriving `pallet-revive` H160 from that public key gives the same H160

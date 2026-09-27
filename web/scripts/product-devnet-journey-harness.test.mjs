@@ -175,6 +175,60 @@ function completeRoomEvidence(overrides = {}) {
   };
 }
 
+test('existing entitlement and matching key are useful evidence but cannot certify a new Product write', () => {
+  const evidence = completeSmokeEvidence();
+  evidence.events = [
+    {
+      kind: 'access-readback',
+      runtimeAddress: RUNTIME,
+      contentHash: CONTENT_HASH,
+      listenerAddress: ADDRESS,
+      chainId: EXPECTED_PRODUCT_DEVNET.chainId,
+      hasPaid: true,
+      canAccess: true,
+      timestamp: 1_000
+    },
+    evidence.events[2]
+  ];
+  const gates = evaluateProductCdmSmokeEvidence(evidence);
+  for (const id of ['smoke:access-readback', 'smoke:backend-key', 'smoke:same-identity']) {
+    assert.equal(gates.find(gate => gate.id === id)?.status, 'pass', id);
+  }
+  for (const id of ['smoke:host-approval', 'smoke:native-value', 'smoke:payment-readback']) {
+    assert.equal(gates.find(gate => gate.id === id)?.status, 'blocked', id);
+  }
+});
+
+test('a different network or unpaid access does not satisfy the entitlement gate', () => {
+  for (const patch of [{ chainId: 1 }, { hasPaid: false }, { canAccess: false }, { hasPaid: null }, { listenerAddress: RUNTIME }]) {
+    const evidence = completeSmokeEvidence();
+    evidence.events.unshift({
+      kind: 'access-readback',
+      runtimeAddress: RUNTIME,
+      contentHash: CONTENT_HASH,
+      listenerAddress: ADDRESS,
+      chainId: EXPECTED_PRODUCT_DEVNET.chainId,
+      hasPaid: true,
+      canAccess: true,
+      timestamp: 1_000,
+      ...patch
+    });
+    evidence.events = evidence.events.filter(event => event.kind !== 'payment');
+    assert.equal(evaluateProductCdmSmokeEvidence(evidence).find(gate => gate.id === 'smoke:access-readback')?.status, 'fail');
+  }
+});
+
+test('an old key or later denial cannot certify the selected entitlement', () => {
+  for (const patch of [{ timestamp: 500 }, { runtime: ADDRESS }, { contentHash: TX_HASH }, { chainId: 1 }]) {
+    const evidence = completeSmokeEvidence();
+    Object.assign(evidence.events[2], patch);
+    assert.equal(evaluateProductCdmSmokeEvidence(evidence).find(gate => gate.id === 'smoke:backend-key')?.status, 'fail');
+  }
+  const evidence = completeSmokeEvidence();
+  evidence.events.push({ ...evidence.events[2], phase: 'key-denied', timestamp: 3_000 });
+  assert.equal(evaluateProductCdmSmokeEvidence(evidence).find(gate => gate.id === 'smoke:backend-key')?.status, 'fail');
+});
+
 test('parseEnvFile ignores comments and preserves empty values', () => {
   assert.deepEqual(
     parseEnvFile(`
