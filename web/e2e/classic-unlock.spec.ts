@@ -211,7 +211,9 @@ test.describe('mobile Classic support receipt states', () => {
     await expect(receipt).toContainText(`Add ${E2E_NATIVE_PAYMENT_SYMBOL} to continue`);
     await expect(receipt).toContainText('could not cover the support and network fee');
     await expect(receipt).toContainText('No payment was sent');
-    await expect(receipt).not.toContainText(/TransferFailed|Revive|dry-run|musicRoyPayAccess/i);
+    await expect(receipt.locator('.modal-copy')).not.toContainText(/TransferFailed|Revive|dry-run|musicRoyPayAccess/i);
+    await receipt.getByText('Technical details', { exact: true }).click();
+    await expect(receipt.getByLabel('Technical transaction details')).toContainText('TransferFailed');
     await expect(receipt.getByRole('button', { name: 'Check access again' })).toHaveCount(0);
     await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
     expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
@@ -242,6 +244,57 @@ for (const width of [390, 1440]) {
     expect((await readClassicUnlockState(page))?.deniedFullKeyRequests).toBe(0);
   });
 }
+
+for (const width of [390, 1440]) {
+  test(`pending support can be dismissed and reopened at ${width}px without canceling or resending`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/?e2eClassic=pending-dismiss');
+    await page.getByTestId('track-card-open').click();
+    await openClassicSupport(page);
+    await page.getByTestId('classic-unlock-button').click();
+    const receipt = page.getByTestId('unlock-transaction-status');
+    await expect(receipt).toContainText('Confirming your support');
+    await expect(receipt).toContainText('Closing this window does not cancel the payment');
+    await expect(receipt.getByLabel('Transaction facts', { exact: true })).toContainText('0.51 PAS (estimated)');
+    await expect(receipt.getByLabel('Transaction facts', { exact: true })).toContainText('2 PAS');
+    await expect(receipt.getByLabel('Transaction facts', { exact: true })).not.toContainText(/Settlement|Runtime/);
+    await page.screenshot({ path: testInfo.outputPath(`payment-pending-${width}.png`), animations: 'disabled' });
+    await receipt.getByRole('button', { name: 'Close transaction feedback' }).click();
+    await expect(receipt).toHaveCount(0);
+    await page.getByRole('button', { name: /View payment status/ }).click();
+    await expect(receipt).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(receipt).toHaveCount(0);
+    await page.evaluate(() => window.dispatchEvent(new Event('dotify:e2e:confirm-payment')));
+    await expect(page.getByRole('button', { name: 'View payment status: Access verified' })).toBeVisible();
+    await expect(receipt).toHaveCount(0);
+    await page.getByRole('button', { name: /View payment status/ }).click();
+    await expect(receipt).toContainText('Access verified');
+    expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
+    await page.screenshot({ path: testInfo.outputPath(`payment-confirmed-${width}.png`), animations: 'disabled' });
+  });
+}
+
+test('an uncertain payment survives closing the tab and is never automatically paid again', async ({ page, context }) => {
+  await page.goto('/?e2eClassic=confirmation-delayed');
+  await page.getByTestId('track-card-open').click();
+  await openClassicSupport(page);
+  await page.getByTestId('classic-unlock-button').click();
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Payment status needs checking');
+  const next = await context.newPage();
+  await next.route('https://eth-rpc-testnet.polkadot.io/**', async route => {
+    const request = route.request().postDataJSON();
+    if (request?.method !== 'eth_chainId') return route.continue();
+    await route.fulfill({ json: { jsonrpc: '2.0', id: request.id, result: `0x${(420420417).toString(16)}` } });
+  });
+  await page.close();
+  await next.goto('/?e2eClassic=confirmation-delayed');
+  await next.getByTestId('track-card-open').click();
+  await openClassicSupport(next);
+  await next.getByTestId('classic-unlock-button').click();
+  await expect(next.getByTestId('unlock-transaction-status')).toContainText('Payment status needs checking');
+  expect((await readClassicUnlockState(next))?.paymentAttempts ?? 0).toBe(0);
+});
 
 test('a rejected support signature allows an explicit fresh attempt', async ({ page }) => {
   await page.goto('/?e2eClassic=reject-payment');

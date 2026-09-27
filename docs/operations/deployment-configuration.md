@@ -977,8 +977,16 @@ permission is configured by this pass. See
 `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` profile for native Polkadot App support.
 It builds only; it does not deploy or alter the default tracked Product profile.
 The API/key authority, CORS and contract addresses remain unchanged. Product
-payments now request finalization before returning and have tab-local recovery;
-see [support recovery](../design/product-host-support-recovery-2026-09-15.md).
+payments request finalization before returning. Classic support recovery now
+uses a durable browser journal scoped by network/adapter endpoint, payer,
+runtime and content hash, migrating the matching old tab-local reference.
+See [current payment recovery boundaries](../../web/README.md#native-artist-support-validation-build)
+and [the original support recovery design](../design/product-host-support-recovery-2026-09-15.md).
+Before promotion, verify balance/fee availability and SDK lifecycle on a real
+Product host, close/reopen pending feedback, and reopen an uncertain payment
+after closing the tab. None of those recovery checks should request a second
+payment. Test on the intended deployment origin: host storage isolation or a
+changed origin/RPC endpoint can prevent earlier references being found.
 
 Promote only after the existing W11 host approval/value-forwarding/access smoke
 has real device evidence. Check native transaction-reference explorer support.

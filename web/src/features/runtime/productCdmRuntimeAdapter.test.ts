@@ -212,6 +212,33 @@ describe('createProductCdmRuntimeReader', () => {
 });
 
 describe('createProductCdmRuntimeWriter', () => {
+  it('reports SDK lifecycle separately from access and converts the spendable balance to contract units', async () => {
+    const onStatus = vi.fn();
+    const musicRoyPayAccess = {
+      tx: vi.fn(async (...args: unknown[]) => {
+        const options = args[1] as { onStatus: (status: string) => void };
+        for (const status of ['signing', 'broadcasting', 'in-block', 'finalized']) options.onStatus(status);
+        return { ok: true as const, value: { ok: true, txHash } };
+      })
+    };
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      readAvailableBalance: async () => 12_000_000_000n,
+      contracts: { getDirectoryContract: () => ({}), getFactoryContract: () => ({}), getRuntimeContract: () => ({ musicRoyPayAccess }) }
+    });
+    const intent = createNativeRuntimeAccessPaymentIntent({
+      runtimeAddress: runtime,
+      contentHash: hash,
+      amountPlanck: 1_000_000_000_000_000_000n,
+      asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+    });
+    await expect(writer.inspectPayment!(intent)).resolves.toEqual({ availableBalance: 1_200_000_000_000_000_000n });
+    await expect(writer.payForAccess(intent, onStatus)).resolves.toBe(txHash);
+    expect(onStatus.mock.calls.map(call => call[0])).toEqual(['signing', 'broadcasting', 'in-block', 'finalized']);
+    expect(() => writer.payForAccess({ ...intent, rail: 'product-cash' } as never)).toThrow(/CASH settlement is not executable/);
+    expect(musicRoyPayAccess.tx).toHaveBeenCalledTimes(1);
+  });
+
   it('routes runtime writes through Product CDM contract tx methods', async () => {
     const createRuntime = txMethod();
     const installRuntimeStep = txMethod();

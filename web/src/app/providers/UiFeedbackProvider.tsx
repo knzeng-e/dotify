@@ -4,7 +4,7 @@
 // setShowWalletModal down through hooks and views. Fail closed: the accessor
 // throws outside the provider rather than returning a silent no-op.
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import type { TransactionFeedback, UiNotice } from '../../shared/types';
 
 export type WalletModalReason = 'account' | 'support' | 'artist';
@@ -28,17 +28,6 @@ export function UiFeedbackProvider({ children }: { children: ReactNode }) {
   const [notices, setNotices] = useState<UiNotice[]>([]);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [walletModalReason, setWalletModalReason] = useState<WalletModalReason>('account');
-
-  // Escape closes a settled transaction modal; a pending one stays put so the
-  // user cannot dismiss an in-flight signature/broadcast by accident.
-  useEffect(() => {
-    if (!transactionFeedback || transactionFeedback.tone === 'pending') return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setTransactionFeedback(null);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [transactionFeedback]);
 
   const pushNotice = useCallback((notice: Omit<UiNotice, 'id'>) => {
     const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;

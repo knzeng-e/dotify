@@ -1,4 +1,5 @@
 import { zeroAddress, type Address, type Hash } from 'viem';
+import { assertNativeAccessPayment } from '../payments/paymentModel';
 import {
   MAX_ROYALTY_SPLITS,
   MAX_RUNTIME_TRACKS,
@@ -78,6 +79,7 @@ export type ProductCdmRuntimeAdapterDeps = {
 export type ProductCdmRuntimeWriterDeps = ProductCdmRuntimeAdapterDeps & {
   /** Native Balance precision used by Revive.call.value on the connected chain. */
   nativeTokenDecimals: number;
+  readAvailableBalance?: () => Promise<bigint>;
 };
 
 const EVM_VALUE_DECIMALS = 18;
@@ -284,6 +286,15 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
 
 export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps): RuntimeWritePort {
   return {
+    async inspectPayment(intent) {
+      assertNativeAccessPayment(intent);
+      if (!deps.readAvailableBalance) return {};
+      try {
+        return { availableBalance: (await deps.readAvailableBalance()) * 10n ** BigInt(18 - deps.nativeTokenDecimals) };
+      } catch (error) {
+        return { detail: `Balance unavailable: ${formatUnknown(error)}` };
+      }
+    },
     createRuntime(factoryAddress) {
       return txContract(deps.contracts.getFactoryContract(factoryAddress), 'createRuntime');
     },
@@ -317,11 +328,12 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
     // chain Balance. Convert only this extrinsic field: the pallet expands it
     // back to 18 EVM decimals before `musicRoyPayAccess` sees `msg.value`.
     // Contract ABI arguments such as `pricePlanck` remain unchanged.
-    payForAccess(intent) {
+    payForAccess(intent, onStatus) {
+      assertNativeAccessPayment(intent);
       const nativeValue = evmValueToNativeUnits(intent.amountPlanck, deps.nativeTokenDecimals);
       return txContract(deps.contracts.getRuntimeContract(intent.runtimeAddress), 'musicRoyPayAccess', [
         intent.contentHash,
-        { value: nativeValue, waitFor: 'finalized' }
+        { value: nativeValue, waitFor: 'finalized', ...(onStatus ? { onStatus } : {}) }
       ]);
     },
 
