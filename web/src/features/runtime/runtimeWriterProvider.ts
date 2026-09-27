@@ -6,6 +6,7 @@
 // available only in builds that explicitly opt in to the Product contract graph.
 
 import { SupportNotSubmittedError } from '../payments/supportPayment';
+import { assertNativeAccessPayment } from '../payments/paymentModel';
 import type { getWalletClient } from '../../shared/config/contracts';
 import { createProductCdmRuntimeWriter, productCdmPaymentWasNotSubmitted } from './productCdmRuntimeAdapter';
 import { resolveRuntimeAdapterConfig, type RuntimeAdapterConfig } from './runtimeAdapterConfig';
@@ -141,12 +142,17 @@ async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccou
   const { createProductCdmContracts } = await import('./productCdmContracts');
   const signerManager = await createProductSignerManager(productAccount);
   try {
-    const { resolver, nativeTokenDecimals, verifyDeployment } = await createProductCdmContracts({
+    const { resolver, nativeTokenDecimals, readAvailableBalance, verifyDeployment } = await createProductCdmContracts({
       environment: config.productEnvironment,
       signerManager
     });
     await verifyDeployment();
-    return createProductCdmRuntimeWriter({ contracts: resolver, nativeTokenDecimals });
+    const address = signerManager.getState().selectedAccount?.address;
+    return createProductCdmRuntimeWriter({
+      contracts: resolver,
+      nativeTokenDecimals,
+      ...(address && readAvailableBalance ? { readAvailableBalance: () => readAvailableBalance(address) } : {})
+    });
   } catch (error) {
     signerManager.destroy();
     throw error;
@@ -175,10 +181,16 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
   }
 
   return {
+    inspectPayment: async intent => {
+      assertNativeAccessPayment(intent);
+      const port = await portForWrite();
+      return port.inspectPayment ? port.inspectPayment(intent) : {};
+    },
     createRuntime: factoryAddress => portForWrite().then(port => port.createRuntime(factoryAddress)),
     installRuntimeStep: factoryAddress => portForWrite().then(port => port.installRuntimeStep(factoryAddress)),
     registerTrack: (runtimeAddress, registration: RuntimeTrackRegistration) => portForWrite().then(port => port.registerTrack(runtimeAddress, registration)),
-    payForAccess: async intent => {
+    payForAccess: async (intent, onStatus) => {
+      assertNativeAccessPayment(intent);
       let port: RuntimeWritePort;
       try {
         port = await portForWrite();
@@ -186,7 +198,7 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
         throw new SupportNotSubmittedError(error);
       }
       try {
-        return await port.payForAccess(intent);
+        return await (onStatus ? port.payForAccess(intent, onStatus) : port.payForAccess(intent));
       } catch (error) {
         // Product contract sizing uses a dry-run before signing/submission. A
         // documented pre-submit failure is safe to clear from the local payment

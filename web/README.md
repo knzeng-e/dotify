@@ -557,7 +557,34 @@ appropriate component composition rather than shell-level prop drilling.
 `npm run build:product-devnet:support` builds the existing Product CDM profile
 with recoverable Classic support payments. It does not deploy or enable CASH.
 See [the support recovery design](../docs/design/product-host-support-recovery-2026-09-15.md)
-for native-device acceptance and the tab-local payment reference boundary.
+for native-device acceptance and the original recovery design.
+
+Classic support now reserves a payment reference in `localStorage` before asking
+for a signature. The key includes the network/adapter endpoint, payer, artist
+runtime and content hash. Existing `sessionStorage` references migrate when that
+exact scope is opened. Only the amount, asset symbol and transaction hash are
+stored; the journal contains no signing or content keys and never grants access.
+An uncertain attempt stays recoverable without another payment, including after
+closing the tab. Storage failures block new payments. Web Locks serialize the
+same payment across tabs where supported; without Web Locks, avoid simultaneous
+payments from multiple tabs. Storage is origin-specific, so clearing browser
+data or changing the deployment origin/RPC endpoint can lose this protection.
+
+Before signing, the native flow shows the payer, track, known amount, available
+balance when readable, and explicitly estimated or unavailable fees. Product
+spendable balance excludes frozen funds and the account's existential deposit;
+contract storage charges and exact network fees still need host confirmation.
+The installed Product contract API forwards signing/broadcast/inclusion/finality
+status but exposes its hash only in the completed result, not in `onStatus`.
+Finality alone never opens audio: fresh Dotify access checks remain required.
+Closing the payment dialog does not cancel the transaction; its status can be
+reopened. Reloading requires reopening the release to check access. Full error,
+account mapping, recipient split and settlement records are under Technical details.
+
+CASH remains non-executable, including at runtime writer boundaries. Future
+integration requires an authenticated Dotify order/payment binding, the correct
+entitlement beneficiary, replay protection, and a reconciliation/refund strategy.
+Changing contract VM does not provide those guarantees.
 
 The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
 Ordinary builds keep gifts off. A gift sends a chosen amount directly to the

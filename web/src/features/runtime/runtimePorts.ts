@@ -1,5 +1,5 @@
 import type { Address, Hash } from 'viem';
-import type { ExecutableTrackAccessPaymentIntent } from '../payments/paymentModel';
+import type { ExecutableTrackAccessPaymentIntent, PaymentAccountState } from '../payments/paymentModel';
 import type { OnchainTrackRecord, RoyaltySplit } from '../../shared/types';
 
 export type RuntimeDirectoryEntry = {
@@ -89,11 +89,15 @@ export interface RuntimeReadPort {
   getRoyaltyClaimable(runtimeAddress: Address, recipientAddress: Address): Promise<bigint>;
 }
 
+export type PaymentLifecycle = 'signing' | 'broadcasting' | 'in-block' | 'finalized' | 'error';
+export type PaymentObserver = (status: PaymentLifecycle, txHash?: Hash) => void;
+
 export interface RuntimeWritePort {
   createRuntime(factoryAddress: Address): Promise<Hash>;
   installRuntimeStep(factoryAddress: Address): Promise<Hash>;
   registerTrack(runtimeAddress: Address, registration: RuntimeTrackRegistration): Promise<Hash>;
-  payForAccess(intent: ExecutableTrackAccessPaymentIntent): Promise<Hash>;
+  inspectPayment?(intent: ExecutableTrackAccessPaymentIntent): Promise<PaymentAccountState>;
+  payForAccess(intent: ExecutableTrackAccessPaymentIntent, onStatus?: PaymentObserver): Promise<Hash>;
   claimRoyalty(runtimeAddress: Address, recipientAddress: Address): Promise<Hash>;
   setAccessMode(runtimeAddress: Address, update: RuntimeAccessPolicyUpdate): Promise<Hash>;
   setReleaseActive(runtimeAddress: Address, contentHash: Hash, active: boolean): Promise<Hash>;

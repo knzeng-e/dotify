@@ -2,6 +2,8 @@ import { resolveDonationArtist } from '../features/donations/donationModel';
 import { retireHostAudio } from '../features/player/hostAudioOutput';
 import { formatEther } from 'viem';
 import { createSupportPaymentFlow } from '../features/payments/supportPayment';
+import { browserPaymentLock, persistentPaymentJournal } from '../features/payments/paymentJournal';
+import type { PaymentAccountState } from '../features/payments/paymentModel';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
 import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
@@ -339,7 +341,13 @@ export function useCatalog(deps: UseCatalogDeps) {
     setDescription
   } = deps;
 
-  const [supportFlow] = useState(() => createSupportPaymentFlow(() => window.sessionStorage));
+  const [supportFlow] = useState(() => {
+    const journal = persistentPaymentJournal(
+      () => window.localStorage,
+      () => window.sessionStorage
+    );
+    return createSupportPaymentFlow(() => journal, browserPaymentLock);
+  });
   const supportBusyRef = useRef(false);
   const supportAccount = `${connectedWallet?.method ?? ''}:${listenerEvmAddress?.toLowerCase() ?? ''}`;
   const supportAccountRef = useRef(supportAccount);
@@ -653,9 +661,48 @@ export function useCatalog(deps: UseCatalogDeps) {
   function buildSupportFacts(
     track: CatalogTrack,
     asset: typeof nativeRuntimePaymentAsset,
+    status: Parameters<typeof buildClassicSupportFacts>[2],
+    accountState?: PaymentAccountState
+  ): TransactionFeedbackFact[] {
+    const amount = classicTrackPaymentAmountPlanck(track);
+    return [
+      { label: 'Track', value: track.title },
+      { label: 'Artist', value: track.artist },
+      ...buildSupportAccountFacts().filter(fact => fact.label === 'Paying as' || fact.label === 'Paying wallet'),
+      ...buildClassicSupportFacts(track, asset, status).filter(fact => fact.label === 'Amount'),
+      ...(status === 'pending'
+        ? [
+            {
+              label: 'Known total',
+              value: `${formatEther(amount + (accountState?.estimatedFee ?? 0n))} ${asset.symbol}${accountState?.estimatedFee === undefined ? ' + network fee' : ' (estimated)'}`
+            },
+            {
+              label: 'Network fee',
+              value:
+                accountState?.estimatedFee === undefined
+                  ? 'Not available yet. Review the fee before signing.'
+                  : `${formatEther(accountState.estimatedFee)} ${asset.symbol} (estimated)`
+            },
+            {
+              label: 'Available balance',
+              value: accountState?.availableBalance === undefined ? 'Unavailable' : `${formatEther(accountState.availableBalance)} ${asset.symbol}`
+            }
+          ]
+        : []),
+      ...buildClassicSupportFacts(track, asset, status).filter(fact => fact.label === 'Access')
+    ];
+  }
+
+  function buildSupportTechnicalFacts(
+    track: CatalogTrack,
+    asset: typeof nativeRuntimePaymentAsset,
     status: Parameters<typeof buildClassicSupportFacts>[2]
   ): TransactionFeedbackFact[] {
-    return [...buildSupportAccountFacts(), ...buildClassicSupportFacts(track, asset, status)];
+    return [
+      ...buildSupportAccountFacts().filter(fact => fact.label !== 'Paying as' && fact.label !== 'Paying wallet'),
+      ...buildClassicSupportFacts(track, asset, status).filter(fact => fact.label === 'Recipients' || fact.label === 'Settlement'),
+      { label: 'Runtime', value: runtimeAddressFromTrackId(track) ?? 'Unavailable', code: true }
+    ];
   }
 
   /**
@@ -1324,6 +1371,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     closeHostPeers?: () => void,
     readOnly = false
   ) {
+    const operationId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    const showPaymentFeedback = (feedback: TransactionFeedback) => setTransactionFeedback({ ...feedback, operationId });
     const unlockStartedTrackId = track.id;
     const unlockStartedView = activeViewRef.current;
     const supportProofKind = runtimeAdapterConfig.kind === 'product-cdm' ? 'substrate-extrinsic' : 'evm-transaction';
@@ -1343,7 +1392,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const walletRequirement = readOnly ? null : explainRuntimeWriteWalletRequirement();
     if (walletRequirement || !listenerEvmAddress) {
       setAccessGate(null);
-      setTransactionFeedback({
+      showPaymentFeedback({
         tone: 'error',
         title: 'Payment signer unavailable',
         message: walletRequirement || 'Reconnect your account before supporting this track.',
@@ -1355,7 +1404,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const runtimeAddress = runtimeAddressFromTrackId(track);
     if (!runtimeAddress) {
       setAccessGate(null);
-      setTransactionFeedback({
+      showPaymentFeedback({
         tone: 'error',
         title: 'Payment setup failed',
         message: 'This track is missing its artist runtime address. Refresh the catalog and try again.'
@@ -1377,7 +1426,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         resolveChain: () => resolveEvmChain(ethRpcUrl)
       });
     } catch (intentError) {
-      setTransactionFeedback({
+      showPaymentFeedback({
         tone: 'error',
         title: 'Payment setup failed',
         message: intentError instanceof Error ? intentError.message : 'Unable to prepare this payment.'
@@ -1401,32 +1450,38 @@ export function useCatalog(deps: UseCatalogDeps) {
       verificationOptions: isClassicUnlockE2e ? { attempts: 1, delayMs: 0 } : undefined,
       currentAccount,
       readOnly,
-      onProgress(stage, txHash) {
+      onProgress(stage, txHash, accountState) {
         if (!currentAccount()) return;
         const titles = {
           checking: 'Checking your listening access',
           approval: connectedWallet.method === 'product-host' ? 'Confirm in Polkadot App' : 'Confirm in your wallet',
           confirming: 'Confirming your support',
+          processing: 'Payment processing',
+          finalized: 'Payment finalized; checking access',
           verifying: 'Opening your listening access'
         };
-        setTransactionFeedback({
+        showPaymentFeedback({
           tone: 'pending',
           title: titles[stage],
           message:
             stage === 'approval'
               ? `Review ${formatEther(paymentIntent.amountPlanck)} ${paymentIntent.asset.symbol} for “${track.title}” in the confirmation request.`
-              : 'Keep this page open. Dotify checks your access before opening the full track.',
+              : 'Dotify checks your listening access separately from payment confirmation.',
           txHash,
           proofKind: supportProofKind,
-          facts: stage === 'approval' ? buildSupportFacts(track, paymentIntent.asset, 'pending') : undefined
+          facts: buildSupportFacts(track, paymentIntent.asset, 'pending', accountState),
+          technicalFacts: [
+            ...buildSupportTechnicalFacts(track, paymentIntent.asset, 'pending'),
+            ...(accountState?.detail ? [{ label: 'Account check', value: accountState.detail }] : [])
+          ]
         });
       }
     });
     if (!currentAccount()) {
-      setTransactionFeedback({
+      showPaymentFeedback({
         tone: 'error',
         title: 'Account changed',
-        message: 'Your payment reference is kept in this tab. Reconnect the original account and check access before paying again.',
+        message: 'Your payment reference is saved in this browser. Reconnect the original account and check access before paying again.',
         txHash: result.txHash,
         proofKind: supportProofKind
       });
@@ -1452,12 +1507,13 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (result.status === 'verified' || result.status === 'existing-access') {
       if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) e2eClassicAccessGrantedRef.current = true;
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setTransactionFeedback(
+      showPaymentFeedback(
         result.status === 'verified'
           ? {
               ...buildClassicAccessVerifiedFeedback(receiptTrack, result.txHash, receiptAsset),
               proofKind: supportProofKind,
-              facts: buildSupportFacts(receiptTrack, receiptAsset, 'confirmed')
+              facts: buildSupportFacts(receiptTrack, receiptAsset, 'confirmed'),
+              technicalFacts: buildSupportTechnicalFacts(receiptTrack, receiptAsset, 'confirmed')
             }
           : { tone: 'success', title: 'Listening access available', message: 'This account can already listen. No payment was sent.' }
       );
@@ -1466,7 +1522,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         try {
           await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
         } catch {
-          setTransactionFeedback({
+          showPaymentFeedback({
             tone: 'error',
             title: 'Support recorded, audio unavailable',
             message: 'Your access is verified. Reopen the track to try loading the audio again; no new payment is needed.',
@@ -1478,7 +1534,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       return;
     }
     const recoverable = result.status === 'unverified' || result.status === 'uncertain';
-    setTransactionFeedback({
+    showPaymentFeedback({
       tone: 'error',
       title:
         result.status === 'canceled'
@@ -1497,6 +1553,10 @@ export function useCatalog(deps: UseCatalogDeps) {
       txHash: result.txHash,
       proofKind: supportProofKind,
       facts: buildSupportFacts(receiptTrack, receiptAsset, recoverable ? 'included-unverified' : result.status === 'canceled' ? 'canceled' : 'failed'),
+      technicalFacts: [
+        ...buildSupportTechnicalFacts(receiptTrack, receiptAsset, recoverable ? 'included-unverified' : result.status === 'canceled' ? 'canceled' : 'failed'),
+        ...(result.errorDetail ? [{ label: 'Payment error', value: result.errorDetail }] : [])
+      ],
       recoveryAction: recoverable
         ? {
             label: 'Check access again',

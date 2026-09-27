@@ -237,6 +237,36 @@
   padding-top: 0.85rem;
 }
 
+.payment-status-resume {
+  position: fixed;
+  z-index: 80;
+  top: 5rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: min(24rem, calc(100% - 2rem));
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  overflow-wrap: anywhere;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 15%);
+}
+
+.payment-status-resume svg {
+  flex-shrink: 0;
+}
+
+.payment-feedback .modal-copy h2 {
+  max-width: none;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
 .transaction-technical summary {
   width: fit-content;
   cursor: pointer;
