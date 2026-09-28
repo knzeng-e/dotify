@@ -911,7 +911,7 @@ function roomEvidenceSurface(roomEvidence, roomGates) {
   return roomEvidence?.hostSurface ?? null;
 }
 
-export function buildSurfaceMatrix({ commit, appVersion, productSmokeGates, roomEvidence, roomGates }) {
+export function buildSurfaceMatrix({ commit, appVersion, productSmokeEvidence, productSmokeGates, roomEvidence, roomGates }) {
   const version = appVersion ? `[${appVersion.join(', ')}]` : 'unknown';
   const productPaymentComplete = gatesPassed(productSmokeGates, [
     'smoke-schema',
@@ -929,6 +929,9 @@ export function buildSurfaceMatrix({ commit, appVersion, productSmokeGates, room
     'smoke:same-identity'
   ]);
   const roomSurface = roomEvidenceSurface(roomEvidence, roomGates);
+  const paymentSurface = productPaymentComplete ? productSmokeEvidence?.hostSurface : null;
+  const productDesktopPaymentComplete = paymentSurface === 'product-desktop';
+  const productWebPaymentComplete = paymentSurface === 'product-web-gateway';
   const productDesktopRoomComplete = roomSurface === 'product-desktop';
   const productWebRoomComplete = roomSurface === 'product-web-gateway';
 
@@ -951,20 +954,21 @@ export function buildSurfaceMatrix({ commit, appVersion, productSmokeGates, room
       surface: 'Product Desktop',
       buildSha: commit,
       appVersion: version,
-      status: productPaymentComplete && productDesktopRoomComplete ? 'pass' : 'blocked',
+      status: productDesktopPaymentComplete && productDesktopRoomComplete ? 'pass' : 'blocked',
       evidence:
-        productPaymentComplete && productDesktopRoomComplete
+        productDesktopPaymentComplete && productDesktopRoomComplete
           ? 'Product CDM payment/key smoke and Product Desktop room guest evidence supplied.'
-          : productPaymentComplete
-            ? 'Needs room evidence explicitly captured on Product Desktop.'
-            : 'Needs live Product Desktop payment/key and room evidence.'
+          : 'Needs payment/key and room evidence explicitly attributed to Product Desktop.'
     },
     {
       surface: 'Product Web gateway',
       buildSha: commit,
       appVersion: version,
-      status: productWebRoomComplete ? 'pass' : 'not-run',
-      evidence: productWebRoomComplete ? 'Canonical Product Web gateway room evidence supplied.' : 'Needs Product Web gateway room/open playback smoke.'
+      status: productWebPaymentComplete && productWebRoomComplete ? 'pass' : productWebPaymentComplete || productWebRoomComplete ? 'blocked' : 'not-run',
+      evidence:
+        productWebPaymentComplete && productWebRoomComplete
+          ? 'Product Web gateway payment/key and canonical room evidence supplied.'
+          : 'Needs payment/key and room evidence explicitly attributed to Product Web gateway.'
     },
     {
       surface: 'Product iOS',
@@ -1008,6 +1012,7 @@ export function buildProductDevnetJourneyReport(input) {
   const surfaceMatrix = buildSurfaceMatrix({
     commit: input.commit ?? 'unknown',
     appVersion,
+    productSmokeEvidence: input.productSmokeEvidence,
     productSmokeGates,
     roomEvidence: input.roomEvidence,
     roomGates
@@ -1048,13 +1053,15 @@ export function renderProductDevnetJourneyMarkdown(report) {
     '',
     '## Surface Matrix',
     '',
+    'The summary above covers journey gates, not per-surface certification. A Product surface passes here only when both payment/key and room evidence explicitly name that same `hostSurface`.',
+    '',
     '| Surface | Build SHA | App version | Status | Evidence |',
     '| --- | --- | --- | --- | --- |',
     ...report.surfaceMatrix.map(row => `| ${row.surface} | \`${row.buildSha}\` | ${row.appVersion} | ${row.status} | ${escapePipes(row.evidence)} |`),
     '',
     '## Live Evidence Inputs',
     '',
-    '- Product CDM payment/key smoke: pass `--smoke-json <downloaded-product-cdm-host-smoke.json>` after running the explicit `product-cdm` build from the same commit inside a funded Product host.',
+    '- Product CDM payment/key smoke: pass `--smoke-json <downloaded-product-cdm-host-smoke.json>` after running the explicit `product-cdm` build from the same commit inside a funded Product host. Current exports omit `hostSurface`, so payment gates can pass but the per-surface matrix cannot attribute that payment.',
     '- Product room smoke: pass `--room-json <room-evidence.json>` exported by the debug readiness panel with the same `candidate.gitSha`, `candidate.productAppVersion`, and `candidate.deployedCid`; the harness also requires current host room/stream/peer telemetry plus explicit walletless, audible, and in-sync guest observations.',
     '- Missing live inputs are reported as blocked/not-run, never as passed.'
   ].join('\n');
