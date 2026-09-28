@@ -113,8 +113,11 @@ documented last-known-good target either. A 0.1.25 CDM/debug rebuild is
 prepared, but has not been proven byte-identical to the historical CID.
 `pad` 0.16.7 does not expose a documented CID-only repoint command, and the
 historical CAR is not locally available; treat a publication of rebuilt bytes
-as a new candidate unless its CID is proven identical. The 0.1.29 release CAR
-was reconstructed offline from its preserved deployed directory and manifest.
+as a new candidate unless its CID is proven identical. The rebuilt 0.1.25
+CDM/debug CAR has an offline-verified, **unpublished** storage CID
+`bafybeicew7wtqc6s6kq37nnv3yzsfg2tq4dalaxbamrvs443z4ikhunrsa`.
+The 0.1.29 release CAR was reconstructed offline from its preserved deployed
+directory and manifest.
 Its ordered chunks reproduce the published **storage CID**; `--input-car`
 rebuilds those same chunks without rewriting the manifest. This is a
 restoration preparation, not a live rollback result. Select the exact target and
@@ -134,8 +137,9 @@ compatibility.
    `npm run smoke:product-journey`. Build with the selected Product profile,
    then verify the embedded SHA and appVersion. A static journey with missing
    live JSON remains blocked, not passed.
-3. With explicit owner approval and a locally entered DotNS mnemonic, publish
-   the selected old bytes using `pad` 0.16.7 and record the resulting CID.
+3. With explicit owner approval for the exact candidate CID and a locally
+   entered DotNS mnemonic, publish the selected old CAR using `pad` 0.16.7
+   `--input-car`. Verify the finalized CID against the offline preflight.
 4. Confirm Product loads that CID, the current catalog still resolves, and an
    already-entitled protected track releases its key without another payment.
    Then restore the preserved 0.1.29 release with `pad --input-car` and its
