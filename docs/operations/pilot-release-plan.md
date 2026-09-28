@@ -208,9 +208,9 @@ decision to the exact candidate build being evaluated:
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 28]",
+    "productAppVersion": "[0, 1, 29]",
     "deployedCid": "<default-viem-pilot-release-cid>",
-    "capturedAt": "2026-09-13T12:00:00.000Z"
+    "capturedAt": "2026-09-28T12:00:00.000Z"
   },
   "participants": { "artists": 3, "hosts": 5, "listeners": 20 },
   "tasks": {
@@ -246,6 +246,13 @@ decision to the exact candidate build being evaluated:
 Do not collect continuous location, exact coordinates, wallet-linked listening
 history, contact details, raw interview answers, content keys, private keys,
 session tokens, signatures, or per-person traces.
+
+For visual proof, retain the original screenshot privately with its observed
+surface, capture time, and candidate identity. Record whether it is an
+operator capture or participant-provided. Redact account identifiers before
+sharing; do not publish signing prompts, secrets, or unconsented participant
+details. A visible player or `In sync` label does not by itself prove audible
+sound, successful recovery, or the aggregate join target.
 
 Run the aggregate gate with the independently recorded release CID:
 
