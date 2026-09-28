@@ -278,6 +278,10 @@ sound, successful recovery, or the aggregate join target.
 
 Run the aggregate gate with the independently recorded release CID:
 
+Run this command from a clean checkout at the **deployed candidate SHA**.
+The harness deliberately binds evidence to `git HEAD`; a later documentation
+commit will fail the SHA gates even when the Product JSON is genuine.
+
 ```bash
 npm run smoke:pilot-release -- \
   --product-smoke-json /path/to/product-cdm-host-smoke.json \
