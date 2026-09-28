@@ -56,6 +56,36 @@ function validPilotEvidence(overrides = {}) {
   };
 }
 
+function validRollbackEvidence(overrides = {}) {
+  return {
+    schemaVersion: 1,
+    candidateSha: CANDIDATE_SHA,
+    releaseCid: DEPLOYED_CID,
+    rollbackSha: 'abcdefabcdefabcdefabcdefabcdefabcdefabcd',
+    rollbackCid: OTHER_DEPLOYED_CID,
+    profile: 'product-cdm',
+    dotns: {
+      rootRollbackTx: `0x${'a'.repeat(64)}`,
+      appRollbackTx: `0x${'b'.repeat(64)}`,
+      rootRestoreTx: `0x${'c'.repeat(64)}`,
+      appRestoreTx: `0x${'d'.repeat(64)}`,
+      oldReadback: true,
+      releaseReadback: true
+    },
+    checks: {
+      oldCatalogTracks: 12,
+      releaseCatalogTracks: 12,
+      oldKeyAccess: true,
+      releaseKeyAccess: true,
+      oldPlaybackObserved: true,
+      releasePlaybackObserved: true,
+      newPayments: 0
+    },
+    manifestTextUnchanged: true,
+    ...overrides
+  };
+}
+
 test('missing pilot evidence keeps live gates visible without failing local readiness', () => {
   const gates = evaluatePilotEvidence(null);
   assert.equal(
@@ -90,6 +120,28 @@ test('aggregate pilot evidence passes only with sample, task, privacy, rollback,
   assert.equal(gates.find(gate => gate.id === 'pilot-join-target')?.status, 'pass');
   assert.equal(gates.find(gate => gate.id === 'rollback-rehearsal')?.status, 'pass');
   assert.equal(gates.find(gate => gate.id === 'go-no-go-record')?.status, 'pass');
+});
+
+test('standalone rollback evidence passes without inventing a participant pilot', () => {
+  const gates = evaluatePilotEvidence(null, { ...REPORT_CONTEXT, rollbackEvidence: validRollbackEvidence() });
+  assert.equal(gates.find(gate => gate.id === 'rollback-rehearsal')?.status, 'pass');
+  assert.equal(gates.find(gate => gate.id === 'pilot-sample')?.status, 'not-run');
+  assert.equal(gates.find(gate => gate.id === 'pilot-join-target')?.status, 'not-run');
+});
+
+test('standalone rollback evidence fails closed on candidate, transaction, access, and payment drift', () => {
+  const cases = [
+    validRollbackEvidence({ candidateSha: 'abcdefabcdefabcdefabcdefabcdefabcdefabcd' }),
+    validRollbackEvidence({ releaseCid: OTHER_DEPLOYED_CID }),
+    validRollbackEvidence({ dotns: { ...validRollbackEvidence().dotns, appRestoreTx: `0x${'a'.repeat(64)}` } }),
+    validRollbackEvidence({ checks: { ...validRollbackEvidence().checks, releaseKeyAccess: false } }),
+    validRollbackEvidence({ checks: { ...validRollbackEvidence().checks, newPayments: 1 } }),
+    validRollbackEvidence({ mnemonic: 'must-not-be-accepted' })
+  ];
+  for (const rollbackEvidence of cases) {
+    const gates = evaluatePilotEvidence(null, { ...REPORT_CONTEXT, rollbackEvidence });
+    assert.equal(gates.find(gate => gate.id === 'rollback-rehearsal')?.status, 'fail');
+  }
 });
 
 test('pilot evidence rejects sensitive field variants and raw identifiers', () => {
@@ -164,6 +216,7 @@ test('pilot evidence requires a separately supplied release-profile CID', () => 
 });
 
 test('pilot release CID has its own CLI argument', () => {
-  const args = parseArgs(['--pilot-release-cid', `ipfs://${DEPLOYED_CID}`]);
+  const args = parseArgs(['--pilot-release-cid', `ipfs://${DEPLOYED_CID}`, '--rollback-json', '/tmp/rollback.json']);
   assert.equal(args.pilotReleaseCid, `ipfs://${DEPLOYED_CID}`);
+  assert.equal(args.rollbackJson, '/tmp/rollback.json');
 });

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "candidateSha": "b18f24acdc53c055bd9f10cdcbefd3985fa84927",
+  "releaseCid": "bafybeihe4oty4sdifkbajty76kgj5gasvoqqpv5bnssmg65mcdhduqwpkm",
+  "rollbackSha": "2dc05aaa4972483347ee1bfbe2656a4de2f6f3d0",
+  "rollbackCid": "bafybeicew7wtqc6s6kq37nnv3yzsfg2tq4dalaxbamrvs443z4ikhunrsa",
+  "profile": "product-cdm",
+  "dotns": {
+    "rootRollbackTx": "0x3851b664dc654d99803df528efb6684f18493af501bda75ce31f60b4b82a0ca5",
+    "appRollbackTx": "0xeb4127875bacb26369e2c62e177f928a3cdf5e54278816add79eb8f9b20fed92",
+    "rootRestoreTx": "0x3aee4ad34b93603ef47b26ad94e9016b4d654884bf2acff070aac236bbb744ba",
+    "appRestoreTx": "0x41bcdf6cdce66fffa60a55e2b33e9e836869a53b71bb7adfac91daa3cf430d27",
+    "oldReadback": true,
+    "releaseReadback": true
+  },
+  "checks": {
+    "oldCatalogTracks": 12,
+    "releaseCatalogTracks": 12,
+    "oldKeyAccess": true,
+    "releaseKeyAccess": true,
+    "oldPlaybackObserved": true,
+    "releasePlaybackObserved": true,
+    "newPayments": 0
+  },
+  "manifestTextUnchanged": true
+}

@@ -22,9 +22,10 @@ npm run smoke:pilot-release -- \
 ```
 
 Add `--product-smoke-json` and `--room-json` for the explicit `product-cdm`
-validation deployment. Add `--pilot-release-cid <cid>` and `--pilot-json` only
-after the same SHA and Product appVersion have been published again with the
-default `viem` release profile and the pilot was run on that release CID.
+validation deployment. Supply `--pilot-release-cid <cid>` for the separately
+published default-`viem` release, and `--rollback-json` for the independent
+rollback rehearsal. Add `--pilot-json` only after the consented participant
+pilot has run on the matching release CID.
 Missing live artifacts must stay visible as `blocked` or `not-run`.
 
 The original consolidation is recorded in
@@ -104,29 +105,27 @@ artifacts. Do not repeat the paid transaction to populate another evidence file.
 
 Rollback is static and reversible:
 
-The rollback rehearsal remains **unrun**. The CDM validation CID is a
-different build profile and must not silently serve as the default-`viem`
-rollback target. Earlier W13 evidence names the 0.1.25 CDM/debug CID as a
-historical room-proven target; rebuilding 0.1.25 with default `viem` yields
-different, as-yet-unobserved bytes. A 0.1.26 reconstruction is not the
-documented last-known-good target either. A 0.1.25 CDM/debug rebuild is
-prepared, but has not been proven byte-identical to the historical CID.
-`pad` 0.16.7 does not expose a documented CID-only repoint command, and the
-historical CAR is not locally available; treat a publication of rebuilt bytes
-as a new candidate unless its CID is proven identical. The rebuilt 0.1.25
-CDM/debug CAR has an offline-verified, **unpublished** storage CID
-`bafybeicew7wtqc6s6kq37nnv3yzsfg2tq4dalaxbamrvs443z4ikhunrsa`.
-The 0.1.29 release CAR was reconstructed offline from its preserved deployed
-directory and manifest.
-Its ordered chunks reproduce the published **storage CID**; `--input-car`
-rebuilds those same chunks without rewriting the manifest. This is a
-restoration preparation, not a live rollback result. Select the exact target and
-build profile explicitly before switching. Prefer an isolated DotNS alias or
-safe environment for the rehearsal. If only `dotify-test01.dot` is available,
-obtain explicit owner approval for the temporary switch and restoration, and
-warn that active sessions may reload. Never store or paste the DotNS phrase
-into the repo or chat. A successful publish alone does not prove catalog/key
-compatibility.
+An owner-approved temporary rollback/restore was rehearsed on 2026-09-29.
+The rebuilt 0.1.25 CDM/debug CAR was published at
+`bafybeicew7wtqc6s6kq37nnv3yzsfg2tq4dalaxbamrvs443z4ikhunrsa`;
+Product Desktop loaded its 12-track catalog and reopened an already-paid
+protected track with audible playback, without another payment. The exact
+prior 0.1.29 default-`viem` release CID
+`bafybeihe4oty4sdifkbajty76kgj5gasvoqqpv5bnssmg65mcdhduqwpkm`
+was then restored on both DotNS names, and the same catalog/key/playback
+check passed after a cache clear. The old rebuilt CID is **not** proven
+byte-identical to the historical 0.1.25 room-proven CID. A 0.1.26 or
+default-`viem` reconstruction is not a substitute for that target.
+
+The rehearsal used `--no-manifest` to avoid `pad --input-car` independently
+uploading the executable path from a config with different bytes. It changed
+both contenthashes but left manifest text records unchanged. This is adequate
+evidence for the observed single-account content/access recovery, **not** a
+complete long-lived rollback procedure with consistent Product metadata.
+Product Desktop also mixed JavaScript from adjacent CIDs until its cache was
+cleared with owner consent on each switch. Prefer an isolated alias for future
+rehearsals; on a public test name, warn that active sessions may reload. Never
+store or paste the DotNS phrase into the repo or chat.
 
 1. Identify the selected old commit, build flags, Product appVersion, and
    observed CID. Preserve the exact current release CAR and config before
@@ -138,13 +137,18 @@ compatibility.
    then verify the embedded SHA and appVersion. A static journey with missing
    live JSON remains blocked, not passed.
 3. With explicit owner approval for the exact candidate CID and a locally
-   entered DotNS mnemonic, publish the selected old CAR using `pad` 0.16.7
-   `--input-car`. Verify the finalized CID against the offline preflight.
+   entered DotNS mnemonic, verify the signer owns both names, then publish
+   the selected old CAR using `pad` 0.16.7 `--input-car --no-manifest`.
+   Verify the finalized CID against the offline preflight and link the
+   executable subname to that exact CID with owner/current-CID guards. Do not
+   let config-driven manifest publishing upload a different `dist-product`.
 4. Confirm Product loads that CID, the current catalog still resolves, and an
    already-entitled protected track releases its key without another payment.
-   Then restore the preserved 0.1.29 release with `pad --input-car` and its
-   original config, verify the expected storage CID and both DotNS aliases,
-   and repeat the catalog/key check on the public URL.
+   Then restore both names to the preserved exact 0.1.29 release CID (or
+   re-upload its preserved CAR if necessary), verify both finalized on-chain
+   contenthashes, clear a stale Product host cache with owner consent if
+   needed, and repeat the catalog/key check. For a lasting rollback, update
+   and verify root/executable manifest text records and appVersion too.
 5. Keep Fly API and signaling origin allowlists unchanged while public Product
    or Netlify clients may still call them.
 6. Record both finalized DotNS transactions/CIDs, commit identities, observed
@@ -287,12 +291,15 @@ npm run smoke:pilot-release -- \
   --product-smoke-json /path/to/product-cdm-host-smoke.json \
   --room-json /path/to/product-cdm-room-evidence.json \
   --pilot-release-cid <default-viem-pilot-release-cid> \
+  --rollback-json /path/to/candidate-bound-rollback-evidence.json \
   --pilot-json /path/to/aggregate-pilot-evidence.json
 ```
 
 The Product smoke and room artifacts retain the `product-cdm` deployment CID.
-The pilot artifact and `--pilot-release-cid` retain the separately deployed
-default `viem` CID. Both tracks must use the same git SHA and Product appVersion.
+The rollback artifact is independent of the future pilot cohort and binds the
+old/new DotNS transactions and catalog/key checks to that release CID. The
+pilot artifact and `--pilot-release-cid` retain the separately deployed
+default `viem` CID. All tracks must use the same candidate git SHA.
 
 ## Go/No-Go Record
 
