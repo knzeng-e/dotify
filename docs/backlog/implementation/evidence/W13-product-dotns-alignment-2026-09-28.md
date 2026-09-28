@@ -5,7 +5,8 @@
 - Sequence and scope: W13 Product Desktop candidate resolution prerequisite.
 - Date: 2026-09-28.
 - Starting dev SHA: `c22e08e7dc4ad88fcea537e1c70ee5ce9b3abcce`.
-- Implementation SHA actually tested: pending review commit.
+- Implementation SHA actually tested:
+  `afbedaffa35ac5bb9d53a60a1b173aa8abeb0fea`.
 - Branch / PR / issue: `fix/product-dotns-deployer-alignment`; PR pending;
   issue #158 remains open.
 - Related dependency evidence: `W13.md` and the candidate 0.1.27 preflight.
@@ -44,6 +45,10 @@ transaction, publication, permission grant, or participant data was used.
 | `npm run verify:product-deploy-environment` | Dotify branch, npm package 0.16.7 | Passed with the expected DevNet registry, resolver, Publisher, IPFS, and web gateway | Terminal output |
 | `npm run test:product-deploy-environment` | Dotify branch, Node 22.13.1 | 3 tests passed, including explicit rejection of the 0.16.2 generation | Terminal output |
 | `node --test scripts/product-devnet-journey-harness.test.mjs` | Dotify branch, Node 22.13.1 | 21 tests passed; static journey fails when the environment preflight is omitted | Terminal output |
+| Product debug build from clean commit | `afbedaf`, Product CDM adapter, artist donations and debug panel enabled | Passed; generated main bundle `index-BR5IHrcs.js` | `web/dist-product/` ignored build output |
+| Local rendered-candidate probe | Same build served on localhost, Chromium | `Production readiness` and `Product CDM host smoke` both rendered; no page error | Playwright read-only probe |
+| `npm run test:unit` | `afbedaf`, Node 22.13.1 | 79 files and 647 tests passed | Terminal output |
+| `npm run smoke:product-journey` | `afbedaf`, no live evidence files | 29 pass, 0 fail, 1 blocked, 1 not run; Product Desktop remains blocked only on live smoke | `/tmp/dotify-product-journey-dotns-afbedaf.{md,json}` |
 
 ## Compatibility and operations
 
