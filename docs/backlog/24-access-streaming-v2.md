@@ -210,7 +210,7 @@ W08 first-sound slice:
 
 Product SDK adaptation note (updated 2026-09-12):
 
-- Product SDK 0.27.0 and deploy tooling 0.16.2 remain
+- Product SDK 0.27.0 and deploy tooling 0.16.7 remain
   prototype/reference/unaudited in Dotify's pinned baseline after the Product
   DevNet DotNS/CDM/descriptors refresh.
 - Root PAPI 3.0.0 is not adopted yet because the current Product SDK graph

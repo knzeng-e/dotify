@@ -156,8 +156,10 @@ Product identity can be treated as broadly proven across devices.
 
 The Product SDK evidence snapshot used for this replanning now pins
 `@parity/product-sdk` 0.27.0 and
-`@polkadot-community-foundation/polkadot-app-deploy` 0.16.2 after the September
-2026 Product DevNet DotNS/CDM/descriptors refresh. The Product SDK set remains
+`@polkadot-community-foundation/polkadot-app-deploy` 0.16.7 after the September
+2026 Product DevNet DotNS/CDM/descriptors refresh. Dotify checks the deploy
+package's host-facing DotNS profile because the transient 0.16.2 DevNet preset
+was not observed by Product Desktop. The Product SDK set remains
 prototype / reference / unaudited code. Root `polkadot-api` 3.0.0 exists but is
 not yet adopted because the current Product SDK packages use PAPI 2.2.x and
 `@polkadot-apps` packages use PAPI 1.23.x, so a single PAPI 3 root breaks

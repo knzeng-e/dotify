@@ -84,7 +84,7 @@ Product/CDM anchors:
 | Product SDK | `@parity/product-sdk@0.27.0` |
 | Product host SDK | `@parity/product-sdk-host@0.19.1` |
 | Statement Store SDK | `@parity/product-sdk-statement-store@0.6.9` |
-| Product deploy CLI | `@polkadot-community-foundation/polkadot-app-deploy@0.16.2` |
+| Product deploy CLI | `@polkadot-community-foundation/polkadot-app-deploy@0.16.7` plus the host-profile preflight |
 
 Product has two deliberately separate deployment identities during this gate.
 Capture the `product-cdm` CID for payment/key and room validation only. After
