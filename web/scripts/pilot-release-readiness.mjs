@@ -17,6 +17,7 @@ import { normalizeIpfsCid } from './lib/ipfs-cid.mjs';
 import { buildProductDevnetJourneyReport, gitCommit, readProductDevnetSnapshot, summarizeGates } from './product-devnet-journey-harness.mjs';
 
 export const PILOT_RELEASE_SCHEMA_VERSION = 2;
+export const ROLLBACK_EVIDENCE_SCHEMA_VERSION = 1;
 
 const DEPENDENCIES = ['W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07', 'W08', 'W09', 'W10', 'W11', 'W12'];
 
@@ -452,6 +453,82 @@ function validateOutcomeMetrics(metrics) {
   };
 }
 
+function rollbackGate(pilotEvidence, context) {
+  const evidence = context.rollbackEvidence;
+  if (!evidence) {
+    return pilotEvidence?.rollback?.rehearsed === true && pilotEvidence.rollback.catalogKeyCompatibility === 'passed'
+      ? pass('rollback-rehearsal', 'Rollback rehearsal', 'Safe rollback rehearsal passed and catalog/key compatibility was confirmed.', 'pilot JSON')
+      : blocked(
+          'rollback-rehearsal',
+          'Rollback rehearsal',
+          'Expected a candidate-bound rollback JSON or rollback.rehearsed=true and catalogKeyCompatibility="passed" in pilot JSON.',
+          'rollback or pilot JSON'
+        );
+  }
+  if (!isPlainObject(evidence)) return fail('rollback-rehearsal', 'Rollback rehearsal', 'Rollback JSON must be an object.', 'rollback JSON');
+
+  const problems = [];
+  const allowedKeys = (value, keys, label) => {
+    if (!isPlainObject(value)) {
+      problems.push(`${label} must be an object`);
+      return false;
+    }
+    for (const key of Object.keys(value)) {
+      if (!keys.includes(key)) problems.push(`${label}.${key} is not an allowed field`);
+    }
+    return true;
+  };
+  allowedKeys(
+    evidence,
+    ['schemaVersion', 'candidateSha', 'releaseCid', 'rollbackSha', 'rollbackCid', 'profile', 'dotns', 'checks', 'manifestTextUnchanged'],
+    'rollback'
+  );
+  if (evidence.schemaVersion !== ROLLBACK_EVIDENCE_SCHEMA_VERSION) problems.push('schemaVersion must be 1');
+  if (!isFullGitSha(evidence.candidateSha) || evidence.candidateSha !== context.commit) problems.push('candidateSha must match the release candidate');
+  if (!isFullGitSha(evidence.rollbackSha) || evidence.rollbackSha === evidence.candidateSha) problems.push('rollbackSha must identify a distinct full commit');
+  const releaseCid = normalizeIpfsCid(evidence.releaseCid);
+  const rollbackCid = normalizeIpfsCid(evidence.rollbackCid);
+  if (!releaseCid || releaseCid !== normalizeIpfsCid(context.pilotReleaseCid)) problems.push('releaseCid must match --pilot-release-cid');
+  if (!rollbackCid || rollbackCid === releaseCid) problems.push('rollbackCid must be a distinct valid CID');
+  if (evidence.profile !== 'product-cdm') problems.push('profile must identify the tested product-cdm build');
+
+  if (allowedKeys(evidence.dotns, ['rootRollbackTx', 'appRollbackTx', 'rootRestoreTx', 'appRestoreTx', 'oldReadback', 'releaseReadback'], 'dotns')) {
+    const txs = ['rootRollbackTx', 'appRollbackTx', 'rootRestoreTx', 'appRestoreTx'].map(key => evidence.dotns[key]);
+    if (txs.some(tx => typeof tx !== 'string' || !/^0x[0-9a-f]{64}$/i.test(tx)) || new Set(txs).size !== 4) {
+      problems.push('dotns must contain four distinct finalized transaction hashes');
+    }
+    if (evidence.dotns.oldReadback !== true || evidence.dotns.releaseReadback !== true) problems.push('both DotNS CID read-backs must pass');
+  }
+  if (
+    allowedKeys(
+      evidence.checks,
+      ['oldCatalogTracks', 'releaseCatalogTracks', 'oldKeyAccess', 'releaseKeyAccess', 'oldPlaybackObserved', 'releasePlaybackObserved', 'newPayments'],
+      'checks'
+    )
+  ) {
+    if (
+      !Number.isInteger(evidence.checks.oldCatalogTracks) ||
+      evidence.checks.oldCatalogTracks <= 0 ||
+      evidence.checks.releaseCatalogTracks !== evidence.checks.oldCatalogTracks
+    )
+      problems.push('old and restored catalogs must have the same positive track count');
+    for (const key of ['oldKeyAccess', 'releaseKeyAccess', 'oldPlaybackObserved', 'releasePlaybackObserved']) {
+      if (evidence.checks[key] !== true) problems.push(`checks.${key} must be true`);
+    }
+    if (evidence.checks.newPayments !== 0) problems.push('checks.newPayments must be zero');
+  }
+  if (typeof evidence.manifestTextUnchanged !== 'boolean') problems.push('manifestTextUnchanged must explicitly record whether manifest text was changed');
+
+  return problems.length === 0
+    ? pass(
+        'rollback-rehearsal',
+        'Rollback rehearsal',
+        `Candidate-bound contenthash rollback and exact release restore passed catalog/key/playback checks without new payment; manifest text ${evidence.manifestTextUnchanged ? 'was unchanged' : 'was updated'}.`,
+        'rollback JSON'
+      )
+    : fail('rollback-rehearsal', 'Rollback rehearsal', problems.join('; '), 'rollback JSON');
+}
+
 export function evaluatePilotEvidence(pilotEvidence, context = {}) {
   const gates = [];
 
@@ -482,9 +559,7 @@ export function evaluatePilotEvidence(pilotEvidence, context = {}) {
         'pilot JSON'
       )
     );
-    gates.push(
-      blocked('rollback-rehearsal', 'Rollback rehearsal', 'Rollback needs a safe-environment rehearsal against the candidate release package.', 'pilot JSON')
-    );
+    gates.push(rollbackGate(null, context));
     gates.push(notRun('pilot-candidate-identity', 'Pilot candidate identity', 'No pilot candidate identity was supplied.', 'pilot JSON'));
     gates.push(notRun('go-no-go-record', 'Go/no-go record', 'No pilot decision or three prioritized fixes supplied.', 'pilot JSON'));
     return gates;
@@ -615,12 +690,7 @@ export function evaluatePilotEvidence(pilotEvidence, context = {}) {
     );
   }
 
-  const rollback = pilotEvidence.rollback ?? {};
-  if (rollback.rehearsed === true && rollback.catalogKeyCompatibility === 'passed') {
-    gates.push(pass('rollback-rehearsal', 'Rollback rehearsal', 'Safe rollback rehearsal passed and catalog/key compatibility was confirmed.', 'pilot JSON'));
-  } else {
-    gates.push(blocked('rollback-rehearsal', 'Rollback rehearsal', 'Expected rollback.rehearsed=true and catalogKeyCompatibility="passed".', 'pilot JSON'));
-  }
+  gates.push(rollbackGate(pilotEvidence, context));
 
   const decision = pilotEvidence.goNoGo?.decision;
   const fixes = pilotEvidence.goNoGo?.prioritizedFixes;
@@ -686,6 +756,7 @@ export function buildPilotReleaseReport(input) {
     commit: input.commit,
     productAppVersion: inventory.appVersion,
     pilotReleaseCid: input.pilotReleaseCid,
+    rollbackEvidence: input.rollbackEvidence,
     requirePilotReleaseCid: true,
     generatedAt
   });
@@ -776,6 +847,7 @@ export function renderPilotReleaseMarkdown(report) {
     '- Product CDM payment/key smoke: pass `--product-smoke-json <product-cdm-host-smoke.json>` after running the explicit Product CDM smoke build in a funded Product host.',
     '- Product room smoke: pass `--room-json <room-evidence.json>` after a Product host shares a canonical room link and a browser guest hears audio without connecting an account.',
     '- Pilot release deployment: pass `--pilot-release-cid <cid>` using the CID printed by the default viem deployment. Product CDM smoke and room CIDs are validation-build evidence and never satisfy this release binding.',
+    '- Rollback rehearsal: pass `--rollback-json <rollback-evidence.json>` after the old/new DotNS read-backs and catalog/key checks. This does not imply a participant pilot.',
     '- Pilot aggregate: pass `--pilot-json <aggregate-pilot-evidence.json>` after owner-authorized participant sessions. Use pilot schema v2 with `candidate`, `participants`, `tasks`, `outcomeMetrics`, `joinAttempts`, `privacy`, `rollback`, and `goNoGo`; store aggregate counts and timings only.'
   ].join('\n');
 }
@@ -785,6 +857,7 @@ export function parseArgs(argv) {
     repoRoot: resolve(dirname(fileURLToPath(import.meta.url)), '../..'),
     productSmokeJson: null,
     roomJson: null,
+    rollbackJson: null,
     pilotJson: null,
     pilotReleaseCid: null,
     jsonOut: null,
@@ -807,6 +880,9 @@ export function parseArgs(argv) {
     } else if (value === '--pilot-json' && next) {
       args.pilotJson = resolve(next);
       index += 1;
+    } else if (value === '--rollback-json' && next) {
+      args.rollbackJson = resolve(next);
+      index += 1;
     } else if (value === '--pilot-release-cid' && next) {
       args.pilotReleaseCid = next;
       index += 1;
@@ -827,11 +903,14 @@ export function parseArgs(argv) {
 }
 
 function help() {
-  return `Usage: npm run smoke:pilot-release -- [--product-smoke-json <file>] [--room-json <file>] [--pilot-release-cid <cid>] [--pilot-json <file>] [--json-out <file>] [--md-out <file>]
+  return `Usage: npm run smoke:pilot-release -- [--product-smoke-json <file>] [--room-json <file>] [--pilot-release-cid <cid>] [--rollback-json <file>] [--pilot-json <file>] [--json-out <file>] [--md-out <file>]
 
 Reconciles W13 pilot-release readiness from checked-in evidence, Product DevNet
-configuration, optional live Product/room smoke exports, and optional aggregate
-pilot evidence. Pilot JSON must use schemaVersion ${PILOT_RELEASE_SCHEMA_VERSION} and bind
+configuration, optional live Product/room/rollback smoke exports, and optional aggregate
+pilot evidence. Rollback JSON is independent of the participant pilot and must
+use schemaVersion ${ROLLBACK_EVIDENCE_SCHEMA_VERSION} with candidate/release CID binding,
+four finalized DotNS transactions, read-backs, and old/new catalog/key checks.
+Pilot JSON must use schemaVersion ${PILOT_RELEASE_SCHEMA_VERSION} and bind
 the decision to the candidate git SHA, Product appVersion, deployed CID, capture
 time, aggregate metrics, and join-count invariants. When pilot JSON is supplied,
 --pilot-release-cid must be the CID printed by the separately deployed default
@@ -856,6 +935,7 @@ async function main(argv = process.argv.slice(2)) {
     repoRoot: args.repoRoot,
     productSmokeEvidence: readOptionalJson(args.productSmokeJson),
     roomEvidence: readOptionalJson(args.roomJson),
+    rollbackEvidence: readOptionalJson(args.rollbackJson),
     pilotEvidence: readOptionalJson(args.pilotJson),
     pilotReleaseCid: args.pilotReleaseCid,
     commit: gitCommit(args.repoRoot)

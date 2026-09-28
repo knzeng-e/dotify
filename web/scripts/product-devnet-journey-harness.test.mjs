@@ -83,6 +83,7 @@ function staticSnapshot(patch = {}) {
 function completeSmokeEvidence() {
   return {
     schemaVersion: 2,
+    hostSurface: 'product-desktop',
     capturedAt: '2026-09-13T10:00:00.000Z',
     candidate: { gitSha: CANDIDATE_SHA, productAppVersion: APP_VERSION, deployedCid: DEPLOYED_CID },
     summary: { tone: 'ok', label: 'Evidence complete', problemCount: 0 },
@@ -500,6 +501,48 @@ test('Product Desktop room evidence does not satisfy the separate Product Web ga
 
   assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Desktop')?.status, 'pass');
   assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Web gateway')?.status, 'not-run');
+});
+
+test('Product Web payment and Product Desktop room cannot jointly certify either surface', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: { ...completeSmokeEvidence(), hostSurface: 'product-web-gateway' },
+    roomEvidence: completeRoomEvidence(),
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.summary.status, 'pass');
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Desktop')?.status, 'blocked');
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Web gateway')?.status, 'blocked');
+});
+
+test('missing payment surface attribution cannot certify a Product surface', () => {
+  const evidence = completeSmokeEvidence();
+  delete evidence.hostSurface;
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: evidence,
+    roomEvidence: completeRoomEvidence(),
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Desktop')?.status, 'blocked');
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Web gateway')?.status, 'not-run');
+});
+
+test('matching Product Web payment and room evidence certifies only Product Web', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: { ...completeSmokeEvidence(), hostSurface: 'product-web-gateway' },
+    roomEvidence: completeRoomEvidence({ hostSurface: 'product-web-gateway', hostOrigin: EXPECTED_PRODUCT_DEVNET.publicAppUrl }),
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Desktop')?.status, 'blocked');
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Web gateway')?.status, 'pass');
 });
 
 test('room evidence must name the Product host surface before it can pass', () => {
