@@ -536,6 +536,14 @@ it is no longer public: only a socket currently joined as host or listener can
 obtain the short-lived proof. Keep API rate limits, relay quotas, and secret
 rotation as additional boundaries.
 
+On the 2026-09-28 DevNet W13 rollout, `TURN_CAPABILITY_SECRET` on `dotify-api`
+and `SIGNAL_TURN_CAPABILITY_SECRET` on `dotify-signal` were installed as matching
+Fly secrets without recording their values. The deployed API returns 401 for
+an anonymous grant, 403 for a forged capability, and 200 for a current room
+member's signal-issued capability. This checks authorization and grant wiring;
+it does not prove that a physical WebRTC session used relay packets under
+adverse NAT. See the [0.1.29 W13 live evidence](../backlog/implementation/evidence/W13-candidate-0-1-29-live-2026-09-28.md).
+
 ### Backend Signature Schemes
 
 No Netlify or Fly dashboard variable enables Product signatures. The API
