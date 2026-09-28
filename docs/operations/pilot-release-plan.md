@@ -109,12 +109,17 @@ different build profile and must not silently serve as the default-`viem`
 rollback target. Earlier W13 evidence names the 0.1.25 CDM/debug CID as a
 historical room-proven target; rebuilding 0.1.25 with default `viem` yields
 different, as-yet-unobserved bytes. A 0.1.26 reconstruction is not the
-documented last-known-good target either. Select the exact target and build
-profile explicitly before switching. Prefer an isolated DotNS alias or safe
-environment for the rehearsal. If only `dotify-test01.dot` is available, obtain
-explicit owner approval for the temporary switch and restoration, and warn that active
-sessions may reload. Never store or paste the DotNS phrase into the repo or
-chat. A successful publish alone does not prove catalog/key compatibility.
+documented last-known-good target either. A 0.1.25 CDM/debug rebuild is
+prepared, but has not been proven byte-identical to the historical CID.
+`pad` 0.16.7 does not expose a CID-only repoint command, and the historical
+CAR is not locally available; treat a publication of rebuilt bytes as a new
+candidate unless its CID is proven identical. Select the exact target and
+build profile explicitly before switching. Prefer an isolated DotNS alias or
+safe environment for the rehearsal. If only `dotify-test01.dot` is available,
+obtain explicit owner approval for the temporary switch and restoration, and
+warn that active sessions may reload. Never store or paste the DotNS phrase
+into the repo or chat. A successful publish alone does not prove catalog/key
+compatibility.
 
 1. Identify the last known-good `dev` or Product release commit and its DotNS
    contenthash/CID.
