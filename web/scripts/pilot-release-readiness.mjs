@@ -458,7 +458,12 @@ function rollbackGate(pilotEvidence, context) {
   if (!evidence) {
     return pilotEvidence?.rollback?.rehearsed === true && pilotEvidence.rollback.catalogKeyCompatibility === 'passed'
       ? pass('rollback-rehearsal', 'Rollback rehearsal', 'Safe rollback rehearsal passed and catalog/key compatibility was confirmed.', 'pilot JSON')
-      : blocked('rollback-rehearsal', 'Rollback rehearsal', 'Expected a candidate-bound rollback JSON or rollback.rehearsed=true and catalogKeyCompatibility="passed" in pilot JSON.', 'rollback or pilot JSON');
+      : blocked(
+          'rollback-rehearsal',
+          'Rollback rehearsal',
+          'Expected a candidate-bound rollback JSON or rollback.rehearsed=true and catalogKeyCompatibility="passed" in pilot JSON.',
+          'rollback or pilot JSON'
+        );
   }
   if (!isPlainObject(evidence)) return fail('rollback-rehearsal', 'Rollback rehearsal', 'Rollback JSON must be an object.', 'rollback JSON');
 
@@ -473,7 +478,11 @@ function rollbackGate(pilotEvidence, context) {
     }
     return true;
   };
-  allowedKeys(evidence, ['schemaVersion', 'candidateSha', 'releaseCid', 'rollbackSha', 'rollbackCid', 'profile', 'dotns', 'checks', 'manifestTextUnchanged'], 'rollback');
+  allowedKeys(
+    evidence,
+    ['schemaVersion', 'candidateSha', 'releaseCid', 'rollbackSha', 'rollbackCid', 'profile', 'dotns', 'checks', 'manifestTextUnchanged'],
+    'rollback'
+  );
   if (evidence.schemaVersion !== ROLLBACK_EVIDENCE_SCHEMA_VERSION) problems.push('schemaVersion must be 1');
   if (!isFullGitSha(evidence.candidateSha) || evidence.candidateSha !== context.commit) problems.push('candidateSha must match the release candidate');
   if (!isFullGitSha(evidence.rollbackSha) || evidence.rollbackSha === evidence.candidateSha) problems.push('rollbackSha must identify a distinct full commit');
@@ -490,9 +499,19 @@ function rollbackGate(pilotEvidence, context) {
     }
     if (evidence.dotns.oldReadback !== true || evidence.dotns.releaseReadback !== true) problems.push('both DotNS CID read-backs must pass');
   }
-  if (allowedKeys(evidence.checks, ['oldCatalogTracks', 'releaseCatalogTracks', 'oldKeyAccess', 'releaseKeyAccess', 'oldPlaybackObserved', 'releasePlaybackObserved', 'newPayments'], 'checks')) {
-    if (!Number.isInteger(evidence.checks.oldCatalogTracks) || evidence.checks.oldCatalogTracks <= 0 ||
-        evidence.checks.releaseCatalogTracks !== evidence.checks.oldCatalogTracks) problems.push('old and restored catalogs must have the same positive track count');
+  if (
+    allowedKeys(
+      evidence.checks,
+      ['oldCatalogTracks', 'releaseCatalogTracks', 'oldKeyAccess', 'releaseKeyAccess', 'oldPlaybackObserved', 'releasePlaybackObserved', 'newPayments'],
+      'checks'
+    )
+  ) {
+    if (
+      !Number.isInteger(evidence.checks.oldCatalogTracks) ||
+      evidence.checks.oldCatalogTracks <= 0 ||
+      evidence.checks.releaseCatalogTracks !== evidence.checks.oldCatalogTracks
+    )
+      problems.push('old and restored catalogs must have the same positive track count');
     for (const key of ['oldKeyAccess', 'releaseKeyAccess', 'oldPlaybackObserved', 'releasePlaybackObserved']) {
       if (evidence.checks[key] !== true) problems.push(`checks.${key} must be true`);
     }
@@ -501,7 +520,12 @@ function rollbackGate(pilotEvidence, context) {
   if (typeof evidence.manifestTextUnchanged !== 'boolean') problems.push('manifestTextUnchanged must explicitly record whether manifest text was changed');
 
   return problems.length === 0
-    ? pass('rollback-rehearsal', 'Rollback rehearsal', `Candidate-bound contenthash rollback and exact release restore passed catalog/key/playback checks without new payment; manifest text ${evidence.manifestTextUnchanged ? 'was unchanged' : 'was updated'}.`, 'rollback JSON')
+    ? pass(
+        'rollback-rehearsal',
+        'Rollback rehearsal',
+        `Candidate-bound contenthash rollback and exact release restore passed catalog/key/playback checks without new payment; manifest text ${evidence.manifestTextUnchanged ? 'was unchanged' : 'was updated'}.`,
+        'rollback JSON'
+      )
     : fail('rollback-rehearsal', 'Rollback rehearsal', problems.join('; '), 'rollback JSON');
 }
 
