@@ -45,12 +45,13 @@ import {
 } from '../features/payments/paymentModel';
 import { type RuntimeAccessPaymentVerificationResult } from '../features/payments/paymentReadback';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
-import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
+import { PRODUCT_DEVNET_EVM_CHAIN_ID, resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
 import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
 import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
 import { resolveProductHostConfig } from '../features/productHost/productHost';
 import { publishProductCdmPaymentSmokeMetric, type ProductCdmPaymentSmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
+import { captureProductAccessReadback } from '../features/productHost/productAccessReadback';
 import {
   audioV2StartupPhaseLabel,
   publishHostAudioStartupMetric,
@@ -1252,6 +1253,28 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (isPolicyManagedTrack(track)) {
         hasAccess = await checkTrackAccess(track, listenerEvmAddress);
         if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+        const smokeRuntime = runtimeAddressFromTrackId(track);
+        if (
+          runtimeAdapterConfig.kind === 'product-cdm' &&
+          connectedWallet?.method === 'product-host' &&
+          track.accessMode === 'classic' &&
+          listenerEvmAddress &&
+          smokeRuntime
+        ) {
+          const accountAtRead = supportAccountRef.current;
+          await captureProductAccessReadback({
+            reader: runtimeReader,
+            buildSha: import.meta.env.VITE_DOTIFY_BUILD_SHA,
+            productAppVersion: import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION,
+            chainId: PRODUCT_DEVNET_EVM_CHAIN_ID,
+            runtimeAddress: smokeRuntime,
+            contentHash: track.hash,
+            listenerAddress: listenerEvmAddress,
+            isCurrent: () => isTrackSelectionCurrent(selection) && supportAccountRef.current === accountAtRead
+          });
+          if (!isTrackSelectionCurrent(selection) || supportAccountRef.current !== accountAtRead)
+            return { playbackMode: 'full', audioSource: audioSourceRef.current };
+        }
         setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
         if (!hasAccess) {
           // A room host has just chosen this release from the lineup, so the

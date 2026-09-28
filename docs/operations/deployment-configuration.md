@@ -568,6 +568,14 @@ settlement ledger. Enable
 `VITE_DOTIFY_DEBUG_PANEL=true` only on that smoke build to export the safe
 browser-side evidence bundle with `amountPlanck`, payment read-back, Product
 sr25519 key/session outcomes, and the operator-marked host approval observation.
+For W13, first bind the deployed candidate and open an already-paid Classic
+track. A separate `access-readback` event captures current paid/playable access
+without submitting another transaction. Backend-key evidence must follow a
+read for the same account, network, runtime and content hash. Existing access
+does not satisfy host approval, native transfer or transaction read-back gates.
+No new configuration is needed. Capture remains bounded session storage;
+reset it after use and keep account-linked diagnostic exports separate from
+aggregate pilot evidence. See the Product deployment runbook for the sequence.
 Validate Product protected playback through host smoke tests after each Product
 publication before treating Product identity as production-ready for gated
 listening.

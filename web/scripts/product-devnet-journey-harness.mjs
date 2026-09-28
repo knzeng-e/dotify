@@ -439,7 +439,9 @@ function latestPaymentEvent(events) {
   return events.filter(event => event?.kind === 'payment').at(-1) ?? null;
 }
 
-function latestAllowedKeyEvent(events, payment, context) {
+function latestAllowedKeyEvent(events, access, context) {
+  const latestKey = events.filter(event => event?.kind === 'key').at(-1);
+  if (!access || latestKey?.phase === 'key-denied' || latestKey?.phase === 'key-error') return null;
   return (
     events.find(
       event =>
@@ -451,7 +453,12 @@ function latestAllowedKeyEvent(events, payment, context) {
         event.playbackMode === 'full' &&
         sameValue(event.address, context?.listenerAddress) &&
         sameValue(event.productPublicKey, context?.productPublicKey) &&
-        (!payment || (sameValue(event.contentHash, payment.contentHash) && sameValue(event.runtime, payment.runtimeAddress)))
+        Number.isFinite(event.timestamp) &&
+        Number.isFinite(access.timestamp) &&
+        event.timestamp >= access.timestamp &&
+        sameValue(event.contentHash, access.contentHash) &&
+        sameValue(event.runtime, access.runtimeAddress) &&
+        sameValue(event.address, access.listenerAddress)
     ) ?? null
   );
 }
@@ -462,10 +469,10 @@ function hasExplicitHostApproval(events) {
 
 function allSmokeIdentitiesMatch(events, context) {
   if (!context?.listenerAddress || !context?.productPublicKey) return false;
-  const identityEvents = events.filter(event => event?.kind === 'payment' || event?.kind === 'key');
+  const identityEvents = events.filter(event => event?.kind === 'payment' || event?.kind === 'access-readback' || event?.kind === 'key');
   if (identityEvents.length === 0) return false;
   return identityEvents.every(event => {
-    if (event.kind === 'payment') return sameValue(event.listenerAddress, context.listenerAddress);
+    if (event.kind === 'payment' || event.kind === 'access-readback') return sameValue(event.listenerAddress, context.listenerAddress);
     return sameValue(event.address, context.listenerAddress) && sameValue(event.productPublicKey, context.productPublicKey);
   });
 }
@@ -492,7 +499,9 @@ export function evaluateProductCdmSmokeEvidence(evidence, options = {}) {
   const candidate = evidence.candidate ?? {};
   const events = smokeEvents(evidence);
   const payment = latestPaymentEvent(events);
-  const allowedKey = latestAllowedKeyEvent(events, payment, context);
+  const accessReadback = events.filter(event => event?.kind === 'access-readback').at(-1);
+  const access = events.filter(event => event?.kind === 'payment' || event?.kind === 'access-readback').at(-1);
+  const allowedKey = latestAllowedKeyEvent(events, access, context);
 
   if (evidence.schemaVersion !== 2) {
     fail(gates, 'smoke-schema', 'Smoke evidence schema', `Expected schemaVersion 2, found ${evidence.schemaVersion ?? 'missing'}.`, 'Product host JSON');
@@ -598,13 +607,25 @@ export function evaluateProductCdmSmokeEvidence(evidence, options = {}) {
   if (hasExplicitHostApproval(events)) {
     pass(gates, 'smoke:host-approval', 'Host approval', 'Operator recorded an explicit Product host approval prompt.', 'Product host JSON');
   } else {
-    fail(gates, 'smoke:host-approval', 'Host approval', 'Expected an operator-observation event with host-approval-explicit=true.', 'Product host JSON');
+    (accessReadback && !payment ? blocked : fail)(
+      gates,
+      'smoke:host-approval',
+      'Host approval',
+      'No explicit transaction approval captured. A read-only access check does not exercise signing.',
+      'Product host JSON'
+    );
   }
 
   if (payment && isPositivePlanck(payment.amountPlanck)) {
     pass(gates, 'smoke:native-value', 'Native value', `amountPlanck=${payment.amountPlanck}.`, 'Product host JSON');
   } else {
-    fail(gates, 'smoke:native-value', 'Native value', 'Expected a payment event with a non-zero native amountPlanck.', 'Product host JSON');
+    (accessReadback && !payment ? blocked : fail)(
+      gates,
+      'smoke:native-value',
+      'Native value',
+      'Expected a payment event with a non-zero native amountPlanck.',
+      'Product host JSON'
+    );
   }
 
   if (
@@ -621,11 +642,37 @@ export function evaluateProductCdmSmokeEvidence(evidence, options = {}) {
   ) {
     pass(gates, 'smoke:payment-readback', 'Payment read-back', `Access read-back passed after ${payment.attempts} attempts.`, 'Product host JSON');
   } else {
-    fail(
+    (accessReadback && !payment ? blocked : fail)(
       gates,
       'smoke:payment-readback',
       'Payment read-back',
       'Expected a same-identity payment event with valid tx/runtime/content hashes, ok=true, hasPaid=true, canAccess=true, and attempts>0.',
+      'Product host JSON'
+    );
+  }
+
+  if (
+    access &&
+    access.hasPaid === true &&
+    access.canAccess === true &&
+    isHexAddress(access.runtimeAddress) &&
+    isHexHash(access.contentHash) &&
+    sameValue(access.listenerAddress, context.listenerAddress) &&
+    (access.kind === 'access-readback' ? access.chainId === EXPECTED_PRODUCT_DEVNET.chainId : access.ok === true)
+  ) {
+    pass(
+      gates,
+      'smoke:access-readback',
+      'Existing paid access',
+      'The runtime confirms paid access. This alone proves neither a new transfer nor host approval.',
+      'Product host JSON'
+    );
+  } else {
+    fail(
+      gates,
+      'smoke:access-readback',
+      'Existing paid access',
+      'Expected paid and playable access for the connected account, network, runtime and track.',
       'Product host JSON'
     );
   }
@@ -834,6 +881,7 @@ export function buildSurfaceMatrix({ commit, appVersion, productSmokeGates, room
     'smoke:host-approval',
     'smoke:native-value',
     'smoke:payment-readback',
+    'smoke:access-readback',
     'smoke:backend-key',
     'smoke:same-identity'
   ]);

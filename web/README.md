@@ -348,6 +348,18 @@ room capture reads creation, stream, peer, listener, and canonical-link facts
 from the active host session; the operator confirms walletless guest arrival,
 audible audio, and sync on the guest device before export.
 
+For W13, bind the Product deployment first, then open a Classic track that the
+connected Product account already paid for. The operator capture reads
+`hasPaid` and `canAccess` and exports an `access-readback` event before the key
+request. It never submits a payment, and makes no extra reads outside a bound
+capture for the current build. Only a subsequent key release for the same
+account, network, runtime and track satisfies the backend-key check.
+An existing entitlement does not prove a new transaction: approval, native
+value and transaction read-back gates remain blocked when only read-only
+evidence is supplied. Keep the operator export private because it includes
+account/release identifiers; do not include it in aggregate pilot data. Reset
+the capture after the check to stop collecting diagnostic events.
+
 ### Production Troubleshooting
 
 | Symptom                                                                      | Likely cause                                                                                                                                            | Check                                                                                                                                                                                                                                                       | Fix                                                                                                                                                                                       |
