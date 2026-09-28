@@ -9,9 +9,9 @@ small consented community is counted as served.
 
 - Release branch: create from the tested `dev` candidate selected for the pilot.
 - Issue: #158.
-- Current consolidation base: `dev` at
+- Original consolidation base: `dev` at
   `f4d2d49721a85169c5f9c37d36ac2ef315396d57`.
-- Candidate SHA: use `git rev-parse HEAD` after the release branch is pushed.
+- Current published candidate SHA: `b18f24acdc53c055bd9f10cdcbefd3985fa84927`.
 - Readiness command:
 
 ```bash
@@ -27,25 +27,33 @@ after the same SHA and Product appVersion have been published again with the
 default `viem` release profile and the pilot was run on that release CID.
 Missing live artifacts must stay visible as `blocked` or `not-run`.
 
-The current consolidation is recorded in
+The original consolidation is recorded in
 [`W13-consolidation-2026-09-17.md`](../backlog/implementation/evidence/W13-consolidation-2026-09-17.md).
 It verifies the merged code through PR #173, but it is not a deployed candidate
 identity. If `dev` or the Product appVersion changes, recapture every live
 input. If the validation CID changes, recapture Product CDM and room evidence;
 if the default `viem` release CID changes, recapture pilot evidence. Never bind
-the pilot decision to the Product CDM validation CID.
+the pilot decision to the Product CDM validation CID. The
+[0.1.29 live evidence](../backlog/implementation/evidence/W13-candidate-0-1-29-live-2026-09-28.md)
+records the validation CID
+`bafybeihawlfqhqgipiwg2dj5iamchz22e3d6z6t7t5snc4iv3333bdavom` and
+the distinct default-`viem` release CID
+`bafybeihe4oty4sdifkbajty76kgj5gasvoqqpv5bnssmg65mcdhduqwpkm`.
 
 ## Environment And Config Diff
 
-The tracked W13 package does not change hosted secrets, origins, contract
-addresses, Fly scaling, Product permissions, or DotNS ownership. The intended
-release diff is the application bundle and this release/evidence package.
+The original tracked W13 package did not change hosted secrets, origins,
+contract addresses, Fly scaling, Product permissions, or DotNS ownership.
+During live 0.1.29 validation, the missing shared TURN capability secret was
+installed on the API and signal services, and those services were redeployed;
+their origin allowlists and contract addresses were not changed. The release
+profile differs from the CDM validation bundle, not from those service values.
 
 | Surface | Current tracked value | W13 action |
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 29]` | Prepared candidate with local host pause/source retirement and mobile room color parity, retaining the `[0, 1, 28]` TURN/IPFS fixes. This change does not publish it. `[0, 1, 27]` remains the recorded Product CDM validation profile at CID `bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca`; publication, payment/key, room, physical-device, rollback, and default-`viem` release evidence must be recaptured for `[0, 1, 29]`. |
+| Product appVersion | `[0, 1, 29]` | CDM validation, payment/key smoke, and Product Desktop room smoke captured on the validation CID above. The separate default-`viem` release CID above is published. Physical-device matrix, rollback, and aggregate pilot remain open. |
 | Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -87,15 +95,22 @@ Product/CDM anchors:
 | Product deploy CLI | `@polkadot-community-foundation/polkadot-app-deploy@0.16.7` plus the host-profile preflight |
 
 Product has two deliberately separate deployment identities during this gate.
-Capture the `product-cdm` CID for payment/key and room validation only. After
-that validation, run the unmodified `npm run deploy:product-devnet` command and
-capture its default `viem` CID as the pilot release identity. Supply that second
-CID through `--pilot-release-cid`; the readiness script never infers it from the
-validation artifacts.
+The CDM validation CID above is payment/key and room evidence only. The default
+`viem` CID above is the published pilot release identity; supply it through
+`--pilot-release-cid`. The readiness script never infers it from the validation
+artifacts. Do not repeat the paid transaction to populate another evidence file.
 
 ## Rollback
 
 Rollback is static and reversible:
+
+The rollback rehearsal remains **unrun**. The CDM validation CID is a
+different build profile and must not silently serve as the default-`viem`
+rollback target. Prefer an isolated DotNS alias or safe environment for the
+rehearsal. If only `dotify-test01.dot` is available, obtain explicit owner
+approval for the temporary switch and restoration, and warn that active
+sessions may reload. Never store or paste the DotNS phrase into the repo or
+chat. A successful publish alone does not prove catalog/key compatibility.
 
 1. Identify the last known-good `dev` or Product release commit and its DotNS
    contenthash/CID.

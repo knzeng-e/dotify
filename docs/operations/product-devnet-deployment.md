@@ -1036,15 +1036,17 @@ active.
   poll `musicAccHasPaid` and `musicAccCanAccess` for that H160 account before
   surfacing success. If the payment was included but verification fails, the UI
   preserves the transaction hash in the error state.
-- Product Web's current gateway can reject native Product CDM chain setup with
-  `Malformed protocol error payload: expected 3 bytes, received 6`. Version
-  `[0, 1, 28]` retains the `[0, 1, 23]` safeguard that prevents that
-  host/version mismatch from running merely because
-  a guest opened the catalog or a room link. Catalog API and public room
-  discovery remain available; an actual protected-track access read still
-  fails closed until Product Web and the pinned TruAPI/Product SDK protocol are
-  compatible. Product Desktop remains the supported Product CDM payment
-  surface for the pilot candidate.
+- Earlier Product Web gateway/protocol combinations rejected native Product
+  CDM chain setup with `Malformed protocol error payload: expected 3 bytes,
+  received 6`. The guest safeguard still avoids starting that chain merely
+  because someone opened the catalog or a room link; protected access fails
+  closed when host and SDK are incompatible. On the 0.1.29 validation CID,
+  Product Web did complete a native payment, access read-back, and full key
+  release. This does not certify every Product Web host version. A separate
+  Product Desktop payment request was canceled because the approval prompt
+  did not arrive in Polkadot Mobile; Desktop-signed payment remains unproven
+  for that candidate. See the
+  [W13 live evidence](../backlog/implementation/evidence/W13-candidate-0-1-29-live-2026-09-28.md).
 - Rooms still depend on one in-memory Fly signaling machine.
 - Product-host cloud storage does not hold Dotify audio or content keys.
 - Product personhood is not yet an access decision source.
