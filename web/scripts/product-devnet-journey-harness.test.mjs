@@ -54,7 +54,8 @@ function staticSnapshot(patch = {}) {
       scripts: {
         'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
         'build:product-devnet:frozen': 'tsc -b && vite build',
-        'deploy:product-devnet': `npm run build:product-devnet:frozen && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
+        'verify:product-deploy-environment': `npm exec --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} -- node scripts/product-deploy-environment-check.mjs`,
+        'deploy:product-devnet': `npm run verify:product-deploy-environment && npm run build:product-devnet:frozen && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
       }
     },
     webPackageLock: lockfile(),
@@ -289,6 +290,25 @@ test('static gates reject a mnemonic expanded into Product deploy arguments', ()
   const boundary = report.staticGates.find(gate => gate.id === 'deploy-secret-boundary');
   assert.equal(boundary?.status, 'fail');
   assert.match(boundary?.detail ?? '', /must not be expanded/);
+});
+
+test('static gates reject Product deploys that skip DotNS environment alignment', () => {
+  const snapshot = staticSnapshot();
+  snapshot.webPackageJson.scripts['deploy:product-devnet'] =
+    `npm run build:product-devnet:frozen && npx --yes --package ` +
+    `@polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`;
+
+  const report = buildProductDevnetJourneyReport({
+    snapshot,
+    productSmokeEvidence: null,
+    roomEvidence: null,
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  const preflight = report.staticGates.find(gate => gate.id === 'deploy-environment-preflight');
+  assert.equal(preflight?.status, 'fail');
+  assert.match(preflight?.detail ?? '', /preflight/);
 });
 
 test('static gates reject Product deploys that refresh the live catalog', () => {

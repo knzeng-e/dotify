@@ -6,15 +6,18 @@ change production secrets.
 
 ## September 2026 Product DevNet Platform Refresh
 
-The Product DevNet update published on 2026-09-08/2026-09-09 moved DotNS to a
-new contract set, moved CDM `ContractRegistry` to
+The Product DevNet update published on 2026-09-08/2026-09-09 moved DotNS and
+CDM `ContractRegistry` to
 `0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f`, and required fresh chain
-descriptors after runtime upgrades. Dotify must therefore publish Product app
-bundles with `@polkadot-community-foundation/polkadot-app-deploy@0.16.2` or
-newer, publish CDM names against the new registry, and keep the checked-in
-Bulletin descriptor pinned to the current DevNet runtime. Older `pad`/DotNS
-tooling can report a successful publish while writing to retired contracts that
-new Product hosts no longer observe.
+descriptors after runtime upgrades. A later tooling transition made
+`polkadot-app-deploy@0.16.2` unsafe for Dotify publication: its `devnet` preset
+writes to a registry/resolver generation that Product Desktop does not observe.
+Dotify pins `0.16.7`, whose DevNet profile uses registry
+`0xb052E5EfC5ADEff1f21d48DEfb5169Cb394A1a73`, content resolver
+`0x7e75491ecfb04900EB05ee63CABA2B33900aABB5`, and Publisher
+`0xaab42efbe8ea4d4228c3a11e973f94c17b9a0f2c`. The deploy command verifies
+that profile before building. A successful upload against any other generation
+is not evidence that a Product host can resolve the candidate.
 
 ## Frontend Publish Does Not Deploy Contracts
 
@@ -161,7 +164,7 @@ Use `-n devnet`, never `-n paseo`: the `paseo` preset targets paseo-next
 - a clean build from the intended commit
 - access to the `dotify-test01.dot` deployment account
 - Fly access for `dotify-api` and `dotify-signal`
-- the current `@polkadot-community-foundation/polkadot-app-deploy` DevNet prerequisites (`0.16.2` is the pinned Dotify deploy CLI)
+- the current `@polkadot-community-foundation/polkadot-app-deploy` DevNet prerequisites (`0.16.7` is the pinned Dotify deploy CLI)
 
 The CLI is reference/experimental tooling. Do not store a mnemonic in the
 repository, shell history, `.env` files, Netlify, or Fly.
@@ -369,6 +372,17 @@ when the Product contract path is actually being exercised.
 The repository pins the CLI version in the npm deploy command but does not add
 the experimental deploy tool to the application dependency tree.
 
+Before loading any signer, verify the package's embedded DevNet profile:
+
+```bash
+npm run verify:product-deploy-environment
+```
+
+The command is read-only. It must report CLI `0.16.7` and the registry,
+content-resolver, and Publisher addresses named at the top of this runbook. It
+fails closed when npm serves another version, the `devnet` preset is absent, or
+any Product-facing DotNS address has drifted.
+
 `npm run deploy:product-devnet` signs DotNS updates with the owner mnemonic from
 `MNEMONIC`. Do not rely on `pad login` for this path: `pad login` and
 `pad whoami` describe the mobile Product session only, not the local owner
@@ -425,14 +439,15 @@ npm run deploy:product-devnet
 The command:
 
 1. refuses to continue when `MNEMONIC` is empty;
-2. builds from the committed Product catalog snapshot without querying the
+2. verifies the pinned deploy CLI's Product-facing DotNS profile;
+3. builds from the committed Product catalog snapshot without querying the
    mutable Fly catalog API;
-3. rebuilds `dist-product`;
-4. validates `polkadot-app-deploy.config.ts`;
-5. creates content-addressed chunks with the JavaScript merkle implementation;
-6. uploads changed content to Product DevNet Bulletin;
-7. updates `dotify-test01.dot` directly with the `$MNEMONIC` owner signer;
-8. writes the Product manifest and executable records.
+4. rebuilds `dist-product`;
+5. validates `polkadot-app-deploy.config.ts`;
+6. creates content-addressed chunks with the JavaScript merkle implementation;
+7. uploads changed content to Product DevNet Bulletin;
+8. updates `dotify-test01.dot` directly with the `$MNEMONIC` owner signer;
+9. writes the Product manifest and executable records.
 
 After recording the finalized CID, remove the local process credential:
 
@@ -701,12 +716,18 @@ npm run deploy:product-devnet
    the raw dry-run payload. An unknown post-submission failure is different and
    must retain its payment reference rather than offering another payment.
 
-   Before collecting evidence, verify that the Product host is actually
-   rendering the expected candidate. If the candidate's `Production readiness`
-   panel is absent or labels match an older build, stop: the host cache is not
-   valid release evidence. In Product Desktop, close Dotify, clear only the
-   Dotify app cache from its app settings, reopen the DotNS app, accept the
-   required domain/WebRTC permissions, and verify the expected UI and
+   Before collecting evidence, run
+   `npm run verify:product-deploy-environment`, then verify that the Product
+   host is actually rendering the expected candidate. If the candidate's
+   `Production readiness` panel is absent or labels match an older build, stop.
+   Compare the finalized CID and loaded bundle with the deployment output before
+   blaming local cache. A host that resolves another CID or bundle is a DotNS
+   environment mismatch and must not be repaired by repeated cache deletion.
+
+   Only after the deploy profile, resolved CID, and candidate identity agree may
+   stale local storage be considered. In Product Desktop, close Dotify, clear
+   only the Dotify app cache from its app settings, reopen the DotNS app, accept
+   the required domain/WebRTC permissions, and verify the expected UI and
    `appVersion` before continuing. Clearing the cache is a local destructive
    operation and requires the operator's explicit confirmation; it does not
    authorize a payment or a publish.

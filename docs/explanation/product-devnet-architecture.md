@@ -539,7 +539,7 @@ The current baseline is:
 | `@parity/product-sdk-statement-store`                | `0.6.9`                            |
 | `@parity/product-sdk-descriptors`                    | `0.11.0`                           |
 | `polkadot-api`                                       | `1.23.3`                           |
-| `@polkadot-community-foundation/polkadot-app-deploy` | `0.16.2` in the deploy command     |
+| `@polkadot-community-foundation/polkadot-app-deploy` | `0.16.7` plus host-profile preflight |
 | Product network                                      | `devnet`                           |
 | Product domain                                       | `dotify-test01.dot`                |
 | Public gateway                                       | `https://dotify-test01.dev-dot.li` |

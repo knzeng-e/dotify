@@ -13,6 +13,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { normalizeIpfsCid } from './lib/ipfs-cid.mjs';
+import { PRODUCT_DEPLOY_PROFILE } from './product-deploy-environment-check.mjs';
 
 export const PRODUCT_JOURNEY_SCHEMA_VERSION = 1;
 export const EXPECTED_PRODUCT_DEVNET = {
@@ -27,7 +28,7 @@ export const EXPECTED_PRODUCT_DEVNET = {
   productSdkHost: '0.19.1',
   productSdkDescriptors: '0.11.0',
   productSdkStatementStore: '0.6.9',
-  productDeployCli: '0.16.2'
+  productDeployCli: PRODUCT_DEPLOY_PROFILE.cliVersion
 };
 
 const REQUIRED_PRODUCT_ORIGINS = [
@@ -207,11 +208,33 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
   checkPackage(gates, snapshot.webPackageLock, '@parity/product-sdk-statement-store', EXPECTED_PRODUCT_DEVNET.productSdkStatementStore);
 
   const deployScript = snapshot.webPackageJson?.scripts?.['deploy:product-devnet'] ?? '';
+  const deployEnvironmentCheck = snapshot.webPackageJson?.scripts?.['verify:product-deploy-environment'] ?? '';
   const frozenBuildScript = snapshot.webPackageJson?.scripts?.['build:product-devnet:frozen'] ?? '';
   if (deployScript.includes(`@polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli}`)) {
     pass(gates, 'deploy-cli', 'Product deploy CLI', `Pinned to ${EXPECTED_PRODUCT_DEVNET.productDeployCli}.`, 'web/package.json');
   } else {
     fail(gates, 'deploy-cli', 'Product deploy CLI', `Expected deploy script to pin ${EXPECTED_PRODUCT_DEVNET.productDeployCli}.`, 'web/package.json');
+  }
+
+  if (
+    deployScript.includes('npm run verify:product-deploy-environment') &&
+    deployEnvironmentCheck.includes(`@polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli}`)
+  ) {
+    pass(
+      gates,
+      'deploy-environment-preflight',
+      'Product deploy environment',
+      'The pinned CLI profile is checked against the Product host DotNS registry, resolver, and Publisher before build.',
+      'web/package.json'
+    );
+  } else {
+    fail(
+      gates,
+      'deploy-environment-preflight',
+      'Product deploy environment',
+      'Run the pinned Product deploy environment preflight before building or publishing.',
+      'web/package.json'
+    );
   }
 
   if (/--mnemonic(?:=|\s)/.test(deployScript)) {
