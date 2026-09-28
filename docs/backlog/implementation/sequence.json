@@ -331,6 +331,22 @@
       ],
       "issue": 214,
       "phase": "Next Product sprint"
+    },
+    {
+      "id": "W28",
+      "title": "Make mobile listening feel premium and room-aware",
+      "file": "W28-mobile-premium-experience.md",
+      "branch": "feat/mobile-premium-experience",
+      "dependencies": [
+        "W10",
+        "W21",
+        "W22",
+        "W23",
+        "W24",
+        "W25"
+      ],
+      "issue": null,
+      "phase": "Pilot polish"
     }
   ]
 }

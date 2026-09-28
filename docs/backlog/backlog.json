@@ -473,6 +473,16 @@
       "note": "Post-pilot Celerity/Statement Store realtime sprint. Preserve wallet-free room links, prove each event class in dual operation, and reduce Socket.IO authority only where equivalent guarantees are measured."
     },
     {
+      "id": "W28",
+      "doc": "docs/backlog/implementation/W28-mobile-premium-experience.md",
+      "issue": null,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Next",
+      "note": "Mobile premium experience slice from the 2026-09-29 audit: room-aware mini-player, native track rails, immersive mobile player, and room mobile ergonomics. Create or attach a GitHub issue before PR metadata is finalized."
+    },
+    {
       "id": "backlog-reconciliation",
       "doc": "docs/backlog/README.md",
       "issue": 204,
