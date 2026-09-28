@@ -111,9 +111,13 @@ historical room-proven target; rebuilding 0.1.25 with default `viem` yields
 different, as-yet-unobserved bytes. A 0.1.26 reconstruction is not the
 documented last-known-good target either. A 0.1.25 CDM/debug rebuild is
 prepared, but has not been proven byte-identical to the historical CID.
-`pad` 0.16.7 does not expose a CID-only repoint command, and the historical
-CAR is not locally available; treat a publication of rebuilt bytes as a new
-candidate unless its CID is proven identical. Select the exact target and
+`pad` 0.16.7 does not expose a documented CID-only repoint command, and the
+historical CAR is not locally available; treat a publication of rebuilt bytes
+as a new candidate unless its CID is proven identical. The 0.1.29 release CAR
+was reconstructed offline from its preserved deployed directory and manifest.
+Its ordered chunks reproduce the published **storage CID**; `--input-car`
+rebuilds those same chunks without rewriting the manifest. This is a
+restoration preparation, not a live rollback result. Select the exact target and
 build profile explicitly before switching. Prefer an isolated DotNS alias or
 safe environment for the rehearsal. If only `dotify-test01.dot` is available,
 obtain explicit owner approval for the temporary switch and restoration, and
@@ -121,17 +125,26 @@ warn that active sessions may reload. Never store or paste the DotNS phrase
 into the repo or chat. A successful publish alone does not prove catalog/key
 compatibility.
 
-1. Identify the last known-good `dev` or Product release commit and its DotNS
-   contenthash/CID.
-2. Build from that commit with `npm ci`, `npm run smoke:production-env`,
-   `npm run smoke:devnet`, `npm run smoke:product-journey`, and
-   `npm run build:product-devnet`.
-3. Republish `dotify-test01.dot` with the authorized DotNS owner mnemonic.
-4. Confirm the public Product URL resolves to the restored CID.
+1. Identify the selected old commit, build flags, Product appVersion, and
+   observed CID. Preserve the exact current release CAR and config before
+   switching; verify the CAR's storage CID equals the currently published CID.
+   Do not rebuild the release from a documentation branch for restoration.
+2. In a clean checkout at the selected old SHA, run `npm ci`,
+   `npm run smoke:production-env`, `npm run smoke:devnet`, and
+   `npm run smoke:product-journey`. Build with the selected Product profile,
+   then verify the embedded SHA and appVersion. A static journey with missing
+   live JSON remains blocked, not passed.
+3. With explicit owner approval and a locally entered DotNS mnemonic, publish
+   the selected old bytes using `pad` 0.16.7 and record the resulting CID.
+4. Confirm Product loads that CID, the current catalog still resolves, and an
+   already-entitled protected track releases its key without another payment.
+   Then restore the preserved 0.1.29 release with `pad --input-car` and its
+   original config, verify the expected storage CID and both DotNS aliases,
+   and repeat the catalog/key check on the public URL.
 5. Keep Fly API and signaling origin allowlists unchanged while public Product
    or Netlify clients may still call them.
-6. Record the rollback CID, commit, reason, and any catalog/key compatibility
-   notes in the W13 evidence.
+6. Record both finalized DotNS transactions/CIDs, commit identities, observed
+   catalog/key results, session interruption, and any failure in W13 evidence.
 
 Catalog and key compatibility is additive: older `dotify:enc:v2:key-vN` refs
 remain readable only while their matching backend key-version secret is retained.
@@ -164,8 +177,8 @@ listening history as pilot evidence.
 | --- | --- |
 | Standalone desktop browser | Candidate for pilot after local and hosted smoke |
 | Standalone mobile browser | Candidate for pilot after real-device Free/playback/room smoke |
-| Product Desktop | Blocked until Product host CDM unlock and room evidence are captured |
-| Product Web gateway | Not run until a separate web-gateway host smoke is captured |
+| Product Desktop | CDM validation CID: existing paid access, full key release, audible protected playback, and hosted room to walletless Firefox guest observed. Desktop mobile-signing attempt was canceled; default-`viem` release first-sound confirmation remains open. |
+| Product Web gateway | CDM validation CID: new 4.2 PAS native payment, entitlement read-back, full key release, and audible protected playback observed. Owner reloaded the default-`viem` release and reopened existing paid access; release audio and a separate Web-hosted room capture remain open. |
 | Product iOS | Only external-browser continuation can be claimed until in-app WebRTC is proven |
 
 Unsupported surfaces must stay visible in the readiness report rather than being
