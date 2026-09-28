@@ -1489,10 +1489,11 @@
             </dl>
 
             <aside class="production-note" aria-labelledby="production-gate-title">
-              <strong id="production-gate-title">Production gate — publication reopened</strong>
+              <strong id="production-gate-title">Production gate — DotNS republish required</strong>
               <p>
                 Read-only audit at finalized block 13103348 verified the active factory/directory pairing, the corrected registry facet hash, and zero finalized
-                or pending runtimes. The legacy quarantined deployment remains documented for operators.
+                or pending runtimes. The legacy quarantined deployment remains documented for operators. The current W13 blocker is now Product DotNS alignment:
+                the next release candidate must be republished with the verified Product deploy profile before live pilot evidence is captured.
                 <a class="text-link" href="operations/registry-facet-remediation.md">Read the operator runbook</a>.
               </p>
             </aside>
@@ -1522,9 +1523,11 @@
               <h3>Prove one candidate from support to shared sound</h3>
               <p>
                 The implementation sequence through the responsive interface, Product adapter, artist support, room resilience, and optional galaxy is merged.
-                W13 is now the single pilot gate: capture candidate-bound Product payment/access read-back, a Product-hosted room heard by a walletless guest,
-                physical first-sound evidence, forced-TURN behavior across independent networks, and a rollback/restore rehearsal. DAV2 and responsive-cover
-                changes will follow measured failures rather than speculative rewrites.
+                W13 is now the single pilot gate, but the Product DotNS identity must be corrected first: the <code>[0, 1, 29]</code> debug upload used the
+                transient <code>pad</code> 0.16.2 DotNS generation and is not Product-host evidence. Republish through the verified 0.16.7 profile, then capture
+                candidate-bound Product payment/access read-back, a Product-hosted room heard by a walletless guest, physical first-sound evidence, forced-TURN
+                behavior across independent networks, and a rollback/restore rehearsal. DAV2 and responsive-cover changes will follow measured failures rather
+                than speculative rewrites.
               </p>
             </li>
             <li>
@@ -1552,17 +1555,19 @@
               <p>
                 The September 2026 Product DevNet reset is now explicit in the codebase: new app publications use the refreshed Bulletin/DotNS tooling, Dotify's
                 Product CDM registry points at the current DevNet registry, and the Bulletin descriptor is pinned to the post-reset runtime. The merged
-                <code>[0, 1, 27]</code> Product CDM validation profile is now published on <code>dotify-test01.dot</code> and
+                <code>[0, 1, 27]</code> Product CDM validation profile remains the last host-observed candidate on <code>dotify-test01.dot</code> and
                 <code>app.dotify-test01.dot</code>, bound to its reviewed merge SHA and verified Bulletin CID
-                <code>bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca</code>; the post-publish DevNet service smoke passes. This proves reproducible
-                delivery, not the listening journey: Product Desktop still needs candidate-bound payment/key and room evidence plus physical-device checks. The
-                default <code>viem</code> pilot release remains a separate, unpublished identity and must receive its own CID before W13 can collect aggregate
-                pilot evidence.
+                <code>bafybeihzx3ck2i2zd5uvsq646uchxd563s27scvic5a2slanqsk6wifgca</code>. A later <code>[0, 1, 29]</code> upload exposed the transient
+                <code>pad</code> 0.16.2 DotNS generation mismatch: Product Desktop still resolved the older bundle, so that upload is not valid Product-host
+                evidence. Dotify now pins and preflights <code>pad</code> 0.16.7 against the host-facing DotNS registry, resolver, Publisher, IPFS endpoint, and
+                gateway before publication. This proves the deployment rail can fail closed, not the listening journey: Product Desktop still needs a replacement
+                <code>[0, 1, 29]</code> publish plus candidate-bound payment/key and room evidence and physical-device checks. The default <code>viem</code> pilot
+                release remains a separate, unpublished identity and must receive its own CID before W13 can collect aggregate pilot evidence.
               </p>
               <p>
-                The tracked release candidate is now <code>[0, 1, 28]</code>. It requires proof of active room membership before the API issues TURN relay
-                credentials and preserves an independently operated IPFS path for full encrypted-audio recovery. It is prepared, not yet published: the
-                <code>[0, 1, 27]</code> CID above remains the latest deployed validation identity until the new candidate is published and revalidated.
+                The tracked release candidate is now <code>[0, 1, 29]</code>. It retains the <code>[0, 1, 28]</code> TURN/IPFS fixes and adds the mobile host
+                playback correction, but it must be republished with <code>pad</code> 0.16.7 before operators capture payment/access, room, physical-device,
+                rollback, release-profile, and aggregate pilot evidence.
               </p>
               <p>
                 Product DevNet is a first-class delivery target alongside ordinary mobile and desktop web. The next pilot must demonstrate discovery, listening,

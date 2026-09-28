@@ -311,6 +311,26 @@ test('static gates reject Product deploys that skip DotNS environment alignment'
   assert.match(preflight?.detail ?? '', /preflight/);
 });
 
+test('static gates reject Product deploys that run DotNS environment alignment after publication', () => {
+  const snapshot = staticSnapshot();
+  snapshot.webPackageJson.scripts['deploy:product-devnet'] =
+    `npm run build:product-devnet:frozen && npx --yes --package ` +
+    `@polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad && ` +
+    'npm run verify:product-deploy-environment';
+
+  const report = buildProductDevnetJourneyReport({
+    snapshot,
+    productSmokeEvidence: null,
+    roomEvidence: null,
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  const preflight = report.staticGates.find(gate => gate.id === 'deploy-environment-preflight');
+  assert.equal(preflight?.status, 'fail');
+  assert.match(preflight?.detail ?? '', /preflight before building or publishing/);
+});
+
 test('static gates reject Product deploys that refresh the live catalog', () => {
   const report = buildProductDevnetJourneyReport({
     snapshot: staticSnapshot({
