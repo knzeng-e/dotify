@@ -1,6 +1,7 @@
 import { PlayerTransport } from '../components/PlayerTransport';
 import { HostLineup } from '../components/HostLineup';
-import { Copy, Check, ExternalLink, Headphones, KeyRound, Library, QrCode, Radio, Share2, X } from 'lucide-react';
+import { PlayerQueueDialog } from '../components/PlayerQueueDialog';
+import { ChevronDown, Copy, Check, ExternalLink, Headphones, KeyRound, Library, QrCode, Radio, Share2, X } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
 import { CoverImage } from '../components/CoverImage';
@@ -85,7 +86,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const releaseDescription = trackDetails.description;
   const [reactions, setReactions] = useState<Array<{ id: string; emoji: string; x: number; senderName: string; self: boolean }>>([]);
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
-  const [roomPanel, setRoomPanel] = useState<'chat' | 'requests' | 'people'>('chat');
+  const [queueOpen, setQueueOpen] = useState(false);
+  const [roomPanel, setRoomPanel] = useState<'chat' | 'queue' | 'people'>('chat');
   useEffect(() => setRoomPanel('chat'), [roomId]);
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 769px)');
@@ -226,6 +228,14 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       data-room-panel={roomPanel}
       aria-label={roomId ? 'Shared listening room' : 'Player'}
     >
+      {!roomId && (
+        <header className='solo-player-header'>
+          <button type='button' className='icon-action' onClick={onNavigateToListen} aria-label='Back to Music' title='Back to Music'>
+            <ChevronDown size={24} />
+          </button>
+          <span>Now playing</span>
+        </header>
+      )}
       {roomId && (
         <div className='room-header'>
           <span className='room-live-chip' data-online={session.socketStatus === 'online'}>
@@ -233,7 +243,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             {session.socketStatus === 'online' ? (mode === 'host' ? 'Hosting' : 'Together') : 'Reconnecting'}
           </span>
           <span className='room-header-meta'>
-            {presenceCount} here · {mode === 'host' ? 'you host' : visibleHostName ? `with ${visibleHostName}` : 'listening together'}
+            {session.socketStatus === 'online' ? `${presenceCount} here · ` : ''}
+            {mode === 'host' ? 'you host' : visibleHostName ? `with ${visibleHostName}` : 'listening together'}
           </span>
           {/* Room playback mode metadata hook (always 'full' since access model
               v2 retired the preview; kept for wire compatibility); the visible cue lives
@@ -312,7 +323,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         )}
       {roomId && (
         <div className='room-panel-switch' role='tablist' aria-label='Room views'>
-          {(['chat', 'requests', 'people'] as const).map(panel => (
+          {(['chat', 'queue', 'people'] as const).map(panel => (
             <button
               key={panel}
               type='button'
@@ -343,11 +354,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 tabs[next].focus();
               }}
             >
-              {panel === 'chat'
-                ? 'Chat'
-                : panel === 'requests'
-                  ? `Requests${session.requestQueue.length ? ` · ${session.requestQueue.length}` : ''}`
-                  : `People · ${presenceCount}`}
+              {panel === 'chat' ? 'Chat' : panel === 'queue' ? 'Queue' : session.socketStatus === 'online' ? `People · ${presenceCount}` : 'People'}
             </button>
           ))}
         </div>
@@ -489,7 +496,13 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             />
           )}
         </div>
-        <PlayerTransport playback={playback} duration={transportDuration} listener={isRoomGuest} />
+        <PlayerTransport
+          playback={playback}
+          duration={transportDuration}
+          listener={isRoomGuest}
+          onOpenQueue={!roomId ? () => setQueueOpen(true) : undefined}
+          onOpenArtist={!roomId && streamArtist ? () => onOpenArtist(streamArtist) : undefined}
+        />
         {roomId && (
           <div className='access-badges' data-needs-access={needsTrackAccess}>
             <span className='access-chip' data-tone={needsTrackAccess ? 'locked' : 'ready'} data-testid={needsTrackAccess ? 'locked-player-state' : undefined}>
@@ -538,7 +551,11 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
 
       <div className='player-lower-grid'>
         <div className='doc-panel session-panel' id='room-panel-people' aria-label='People and room controls'>
-          <PanelTitle icon={Radio} title={roomId ? 'In the room' : 'Listening room'} meta={roomId ? `${presenceCount} here` : 'offline'} />
+          <PanelTitle
+            icon={Radio}
+            title={roomId ? 'In the room' : 'Listening room'}
+            meta={roomId ? (session.socketStatus === 'online' ? `${presenceCount} here` : 'Reconnecting') : 'offline'}
+          />
 
           {/* State 1: not in any room */}
           {!roomId && (
@@ -576,7 +593,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 </section>
               )}
 
-              <HostLineup key={roomId} />
               <div className='listener-list'>
                 <div className='list-row'>
                   <div className='room-person-main'>
@@ -649,7 +665,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           {/* State 3: listening in a room */}
           {roomId && mode === 'listener' && (
             <>
-              <HostLineup key={roomId} />
               <div className='list-row'>
                 <div className='room-person-main'>
                   <Avatar name={visibleHostName ?? ''} size={34} host />
@@ -747,12 +762,13 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               <RoomChat key={roomId} active={roomPanel === 'chat'} />
             </div>
             <div
-              id='room-panel-requests'
-              className='room-conversation-pane'
+              id='room-panel-queue'
+              className='room-conversation-pane room-queue-pane'
               role='tabpanel'
-              aria-labelledby='room-tab-requests'
-              hidden={roomPanel !== 'requests'}
+              aria-labelledby='room-tab-queue'
+              hidden={roomPanel !== 'queue'}
             >
+              <HostLineup key={roomId} />
               <RoomRequests key={roomId} />
             </div>
           </div>
@@ -789,6 +805,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       </div>
 
       {qrProjectorDialog}
+      {queueOpen && !roomId && <PlayerQueueDialog onClose={() => setQueueOpen(false)} />}
     </section>
   );
 }

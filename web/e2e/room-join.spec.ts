@@ -90,16 +90,14 @@ test('host lineup is shared, advances on track end, and Previous follows real hi
     const host = await hostContext.newPage();
     const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { captureMode: 'web-audio', catalogSequence: true });
 
-    const hostPeople = host.getByRole('tab', { name: /People/ });
-    if (await hostPeople.isVisible()) await hostPeople.click();
+    await host.getByRole('tab', { name: 'Queue', exact: true }).click();
     await host.locator('.host-lineup summary').click();
     await host.getByLabel('Add from the catalog').selectOption('e2e-room-public-sequence');
     await host.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
     await expect(host.locator('.host-lineup')).toContainText('Second room track');
 
     const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
-    const listenerPeople = listener.getByRole('tab', { name: /People/ });
-    if (await listenerPeople.isVisible()) await listenerPeople.click();
+    await listener.getByRole('tab', { name: 'Queue', exact: true }).click();
     await expect(listener.locator('.host-lineup summary')).toContainText('Second room track');
     await Promise.all([
       host.screenshot({ path: testInfo.outputPath('host-lineup-desktop.png'), fullPage: true }),
@@ -124,8 +122,7 @@ test('rapid host Next commands consume distinct lineup entries', async ({ browse
     const host = await hostContext.newPage();
     await openHostRoom(host, 'public', PUBLIC_TITLE, { catalogSequence: true });
 
-    const hostPeople = host.getByRole('tab', { name: /People/ });
-    if (await hostPeople.isVisible()) await hostPeople.click();
+    await host.getByRole('tab', { name: 'Queue', exact: true }).click();
     await host.locator('.host-lineup summary').click();
     const picker = host.getByLabel('Add from the catalog');
     const add = host.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true });

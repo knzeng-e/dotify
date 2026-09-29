@@ -23,12 +23,12 @@ for (const width of [390, 1440]) {
       await page.evaluate(() => Reflect.set(window, '__artworkAudio', document.querySelector('audio')));
       await page.getByRole('button', { name: 'Pause', exact: true }).click();
       await expect(audio).toHaveJSProperty('paused', true);
-      await page.getByRole('button', { name: 'Music', exact: true }).click();
+      await page.getByRole('button', { name: width <= 768 ? 'Back to Music' : 'Music', exact: true }).click();
       await expect(action).toBeFocused();
       await action.click();
       await expect(audio).toHaveJSProperty('paused', false);
       expect(await page.evaluate(() => Reflect.get(window, '__artworkAudio') === document.querySelector('audio'))).toBe(true);
-      await page.getByRole('button', { name: 'Music', exact: true }).click();
+      await page.getByRole('button', { name: width <= 768 ? 'Back to Music' : 'Music', exact: true }).click();
       // A locked release becomes the selected player state without interrupting
       // discovery. Its support terms remain available through an explicit CTA.
       const locked = page.getByRole('button', { name: /^View listening options for E2E Protected Room Track by Dotify Room Host,/ });

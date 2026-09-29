@@ -44,10 +44,18 @@
 }
 @media (max-width: 768px) {
   .listen-home-focused {
-    gap: 1.25rem;
+    gap: 1rem;
+  }
+  .listen-home-focused .now-intro .eyebrow {
+    display: none;
+  }
+  .listen-home-focused .now-intro-copy {
+    margin-top: 0.35rem;
+    font-size: var(--text-sm);
   }
   .listen-home-focused .now-intro h1 {
     font-size: var(--text-title);
+    letter-spacing: 0;
   }
   .listen-home-focused .catalogue-section .section-heading {
     margin: 0;

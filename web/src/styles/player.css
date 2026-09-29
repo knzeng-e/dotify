@@ -898,7 +898,7 @@ input[type='range']::-moz-range-thumb {
   left: 0;
   z-index: var(--layer-player);
   border-top: 1px solid var(--line-strong);
-  background: rgb(7 16 32 / 0.82);
+  background: rgb(7 16 32 / 0.97);
   backdrop-filter: blur(20px) saturate(1.08);
 }
 
@@ -940,14 +940,16 @@ input[type='range']::-moz-range-thumb {
 .player-dock-meta {
   display: grid;
   min-width: 0;
-}
-
-.player-dock-meta button {
-  min-width: 0;
+  min-height: var(--touch-target);
+  align-content: center;
   background: transparent;
-  overflow: hidden;
   padding: 0;
   text-align: left;
+  border: 0;
+}
+.player-dock-meta > span {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -964,7 +966,7 @@ input[type='range']::-moz-range-thumb {
   align-items: center;
   gap: 0.4rem;
   color: var(--ink-soft);
-  font-size: 0.6875rem;
+  font-size: var(--text-xs);
   font-weight: 650;
 }
 

@@ -258,7 +258,7 @@ export function ListenerShell() {
         onPrepareLocalStream={prepareLocalStream}
         onEmitPlayerState={session.emitPlayerState}
       />
-      <div className='app-shell' ref={roomShellRef} data-room-focus={roomFocused}>
+      <div className='app-shell' ref={roomShellRef} data-room-focus={roomFocused} data-player-focus={activeView === 'player' && !roomId && !publicArtistName}>
         <AuraBackground />
         <a className='skip-link' href='#main-content'>
           Skip to content
@@ -437,6 +437,7 @@ export function ListenerShell() {
             playback={playback}
             mode={session.mode}
             roomId={session.roomId}
+            hostName={session.hostName}
             listenerCount={session.listenerCount}
             socketStatus={session.socketStatus}
             locked={Boolean(
@@ -444,7 +445,6 @@ export function ListenerShell() {
             )}
             audioStartupStatus={catalog.audioStartupStatus}
             onOpenPlayer={() => navigateToView('player')}
-            onOpenArtist={handleOpenArtistProfile}
             onStartRoom={() => setCreateRoomOpen(true)}
           />
         )}

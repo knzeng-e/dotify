@@ -1,11 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
 async function navigate(page: Page, name: 'Music' | 'Rooms', width: number) {
+  const back = page.getByRole('button', { name: 'Back to Music', exact: true });
+  if (await back.isVisible()) await back.click();
   const nav = width <= 768 ? page.locator('.bottom-nav') : page.locator('.topbar');
   await nav.getByRole('button', { name, exact: true }).click();
 }
 
-for (const width of [320, 390, 1440]) {
+for (const width of [320, 390, 430, 1440]) {
   test(`room dock follows the host instead of the last solo selection at ${width}px`, async ({ browser }, testInfo) => {
     const hostContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const guestContext = await browser.newContext({ viewport: { width, height: 844 } });
@@ -43,6 +45,9 @@ for (const width of [320, 390, 1440]) {
       await expect(dock.locator('.player-dock-art img')).toHaveAttribute('src', roomCover!);
       const context = dock.getByRole('button', { name: 'Return to room · Room live · 2 people including you', exact: true });
       await expect(context).toBeVisible();
+      await expect(dock.locator('.player-dock-artist')).toHaveText('With Live host');
+      const returnTarget = (await context.boundingBox())!;
+      expect(returnTarget.height).toBeGreaterThanOrEqual(44);
       for (const name of ['Next track', 'Previous track', 'Shuffle', 'Repeat this track']) {
         await expect(dock.getByRole('button', { name, exact: true })).toHaveCount(0);
       }

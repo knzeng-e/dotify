@@ -158,6 +158,7 @@ test('opening a room with another track re-arms playback after a solo pause', as
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(audio).toHaveJSProperty('paused', true);
 
+  await page.getByRole('button', { name: 'Back to Music', exact: true }).click();
   await page.getByRole('button', { name: 'Rooms', exact: true }).click();
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select Second room track', exact: true }).click();

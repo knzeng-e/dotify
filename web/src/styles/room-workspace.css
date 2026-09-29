@@ -49,6 +49,23 @@
   min-height: 0;
   height: 100%;
 }
+.room-queue-pane:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.room-queue-pane > .host-lineup {
+  flex: 0 1 auto;
+  max-height: 50%;
+  min-height: var(--touch-target);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: 0 0.65rem;
+}
+.player-room-mode .room-queue-pane > .room-requests-panel {
+  flex: 1;
+  height: auto;
+}
 .player-room-mode .room-chat-panel {
   display: flex;
   flex-direction: column;
@@ -234,6 +251,8 @@
   .app-shell[data-room-focus='true'] .content {
     height: 100%;
     padding: 0.25rem var(--content-pad) 0.5rem;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
   }
   .app-shell[data-room-focus='true'] .bottom-nav {
     position: static;
@@ -252,7 +271,7 @@
   }
   .player-room-mode .room-header {
     flex-shrink: 0;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     min-height: 2.75rem;
     padding: 0;
     gap: 0.5rem;
@@ -274,6 +293,8 @@
     background: transparent;
     padding: 0;
     min-height: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
   }
   .player-room-mode .room-code-pill > span {
     display: none;
@@ -385,7 +406,9 @@
   .player-room-mode .player-lower-grid {
     order: 3;
     flex: 1;
-    min-height: 0;
+    /* When enlarged text fills the viewport, let the room scroll rather than
+       collapsing the conversation and composer beneath fixed navigation. */
+    min-height: 11rem;
     display: block;
     margin: 0;
   }
@@ -414,6 +437,12 @@
   }
   .player-room-mode .room-chat-panel .panel-title {
     display: none;
+  }
+  .player-room-mode .room-requests-panel .panel-title {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding-block: 0.25rem;
   }
   .player-room-mode .room-chat-reactions {
     padding-top: 0.35rem;
@@ -645,6 +674,8 @@
   .app-shell[data-room-focus='true'][data-composing='true'] .topbar,
   .app-shell[data-room-focus='true'][data-composing='true'] .bottom-nav,
   .app-shell[data-composing='true'] .room-chat-reactions,
+  .app-shell[data-composing='true'] .room-queue-pane > .host-lineup,
+  .app-shell[data-composing='true'] .room-requests-panel .panel-title,
   .app-shell[data-composing='true'] .room-code-pill,
   .app-shell[data-composing='true'] .player-room-mode .access-badges {
     display: none;
@@ -671,5 +702,8 @@
   }
   .app-shell[data-composing='true'] .player-room-mode .room-chat-list {
     overscroll-behavior-y: contain;
+  }
+  .app-shell[data-composing='true'] .player-lower-grid {
+    min-height: 0;
   }
 }

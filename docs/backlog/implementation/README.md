@@ -78,6 +78,12 @@ boundary and measured dual operation before moving social or session events;
 it preserves Socket.IO for anonymous guests and for every guarantee Celerity
 has not yet proven.
 
+**W28** is the owner-requested mobile premium experience slice from the
+2026-09-29 design audit. It reconciles the already-merged W21-W25 polish with
+new mobile evidence: room-aware mini-player state, native track rails, full
+player clarity, and room ergonomics. It must not replay delivered premium UX
+work or displace W13 release evidence gates.
+
 ## Sequences and branches
 
 | Prompt                                  | Outcome                                                     | Branch created when work starts  | Dependencies                                               |
@@ -109,6 +115,7 @@ has not yet proven.
 | [W25](W25-artist-workspace-language.md) | Make the artist workspace plain and truthful                | `fix/artist-workspace-language`  | W04, W12                                                   |
 | [W26](W26-french-localization.md)       | Offer Dotify in French (Later)                              | `feat/french-localization`       | W13, W24                                                   |
 | [W27](W27-celerity-room-realtime.md)    | Prove Product-native room realtime with Celerity            | `feat/celerity-room-realtime`    | W09, W11, W13, merged room-beacon discovery                |
+| [W28](W28-mobile-premium-experience.md) | Make mobile listening feel premium and room-aware           | `feat/mobile-premium-experience` | W10, W21, W22, W23, W24, W25                               |
 
 `sequence.json` records these dependencies for inspection. It intentionally contains no workflow status. For pilot outcome gates, use W13 rather than treating every proposed enhancement as mandatory. Research sequences can finish with an evidenced unsupported result; this never means the corresponding feature shipped.
 

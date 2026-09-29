@@ -23,7 +23,7 @@ for (const width of [390, 1440]) {
     expect(left).toBeGreaterThan(100);
     await target.click();
     await expect(page.locator('.player-stage')).toBeVisible();
-    await page.getByRole('button', { name: 'Music', exact: true }).click();
+    await page.getByRole('button', { name: width <= 768 ? 'Back to Music' : 'Music', exact: true }).click();
     await expect(search).toHaveValue('selection');
     await expect(target).toBeFocused();
     expect(Math.abs((await catalog.evaluate(element => element.scrollLeft)) - left)).toBeLessThan(3);

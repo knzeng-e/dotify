@@ -50,7 +50,7 @@ for (const [width, height] of [
     await expectConversationFits(page);
     const draft = page.getByRole('textbox', { name: 'Message the room' });
     await draft.fill('Keep this thought');
-    await page.getByRole('tab', { name: /Requests/ }).click();
+    await page.getByRole('tab', { name: /Queue/ }).click();
     await page.getByRole('textbox', { name: 'Request a track' }).fill('Something soulful');
     await page.getByRole('tab', { name: /People/ }).click();
     await expect(page.getByRole('button', { name: 'Close room', exact: true })).toBeVisible();
@@ -61,14 +61,14 @@ for (const [width, height] of [
     await expect(page.getByRole('log')).toContainText('Keep this thought');
     await expect(draft).toHaveValue('');
     await page.screenshot({ path: testInfo.outputPath('room-conversation.png') });
-    await page.getByRole('tab', { name: /Requests/ }).click();
+    await page.getByRole('tab', { name: /Queue/ }).click();
     await expect(page.getByRole('textbox', { name: 'Request a track' })).toHaveValue('Something soulful');
     await page.getByRole('button', { name: 'Send request' }).click();
     await expect(page.getByLabel('Track requests', { exact: true })).toContainText('Something soulful');
     await expect(page.getByRole('textbox', { name: 'Request a track' })).toHaveValue('');
     await page.getByRole('tab', { name: 'Chat', exact: true }).click();
     await page.getByRole('tab', { name: 'Chat', exact: true }).press('ArrowRight');
-    await expect(page.getByRole('tab', { name: /Requests/ })).toBeFocused();
+    await expect(page.getByRole('tab', { name: /Queue/ })).toBeFocused();
   });
 }
 
@@ -104,6 +104,8 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
     await guest.getByRole('textbox', { name: 'Message the room' }).fill('A thought during reconnect');
     await guestContext.setOffline(true);
     await expect(guest.getByRole('button', { name: 'Send message' })).toBeDisabled({ timeout: 15000 });
+    await expect(guest.locator('.room-header-meta')).not.toContainText(/\d+ here/);
+    await expect(guest.getByRole('tab', { name: 'People', exact: true })).toBeVisible();
     await expect(guest.getByRole('textbox', { name: 'Message the room' })).toHaveValue('A thought during reconnect');
     await guestContext.setOffline(false);
   } finally {
@@ -114,7 +116,7 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
 
 test('up next opens a protected selection through the existing access gate', async ({ page }) => {
   await hostRoom(page);
-  await page.getByRole('tab', { name: /People/ }).click();
+  await page.getByRole('tab', { name: 'Queue', exact: true }).click();
   await page.locator('.host-lineup summary').click();
   await page.getByLabel('Add from the catalog').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
   await page.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
@@ -210,7 +212,7 @@ for (const scenario of ['zoomed-chat', 'zoomed-chat-tab', 'resized-requests']) {
   test(`composer remains above the keyboard with ${scenario}`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await hostRoom(page);
-    if (scenario === 'resized-requests') await page.getByRole('tab', { name: /Requests/ }).click();
+    if (scenario === 'resized-requests') await page.getByRole('tab', { name: /Queue/ }).click();
     const input = page.getByRole('textbox', { name: scenario.startsWith('zoomed-chat') ? 'Message the room' : 'Request a track', includeHidden: true });
     await input.fill('My words remain visible');
     await expect(page.locator('.bottom-nav')).toBeVisible();
@@ -232,7 +234,7 @@ for (const scenario of ['zoomed-chat', 'zoomed-chat-tab', 'resized-requests']) {
     await expect(page.locator('.player-stage').getByRole('slider')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Repeat this track', exact: true })).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath(`${scenario}.png`) });
-    if (scenario === 'zoomed-chat-tab') await page.getByRole('tab', { name: /Requests/ }).click();
+    if (scenario === 'zoomed-chat-tab') await page.getByRole('tab', { name: /Queue/ }).click();
     else await page.getByRole('button', { name: 'Finish typing' }).click();
     // WebKit may keep the keyboard geometry after focus has already left.
     await expect(input).not.toBeFocused();
@@ -268,7 +270,7 @@ test('switching panels while typing keeps the tapped tab in place until release'
   });
   await expect(page.locator('.app-shell')).toHaveAttribute('data-composing', 'true');
   await expect(page.locator('.bottom-nav')).toBeHidden();
-  const requests = page.getByRole('tab', { name: /Requests/ });
+  const requests = page.getByRole('tab', { name: /Queue/ });
   const bounds = await requests.boundingBox();
   expect(bounds).not.toBeNull();
   await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
@@ -385,7 +387,7 @@ test('keyboard transition retains an opaque canvas, player geometry and drafts a
   const stage = page.locator('.player-stage');
   const before = await stage.boundingBox();
   await page.evaluate(() => Reflect.set(window, '__transitionAudio', document.querySelector('audio')));
-  for (const tab of ['Chat', 'Requests']) {
+  for (const tab of ['Chat', 'Queue']) {
     await page.getByRole('tab', { name: new RegExp(`^${tab}`) }).click();
     const input = page.getByRole('textbox', { name: tab === 'Chat' ? 'Message the room' : 'Request a track' });
     await input.fill(`Draft in ${tab}`);

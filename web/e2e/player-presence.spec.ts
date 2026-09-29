@@ -1,9 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 
-async function expectControlsFit(page: Page) {
+async function expectControlsFit(page: Page, options: { compactRoom?: boolean } = {}) {
   const controls = page.getByRole('group', { name: 'Playback controls', exact: true });
   await expect(controls.getByRole('slider')).toBeVisible();
-  for (const name of ['Shuffle', 'Previous track', 'Next track', 'Repeat this track', 'Mute']) {
+  const expectedButtons = options.compactRoom ? ['Previous track', 'Next track', 'Mute'] : ['Shuffle', 'Previous track', 'Next track', 'Repeat this track', 'Mute'];
+  for (const name of expectedButtons) {
     const button = controls.getByRole('button', { name, exact: true });
     await expect(button).toBeVisible();
     const box = await button.boundingBox();
@@ -11,15 +12,24 @@ async function expectControlsFit(page: Page) {
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   }
+  if (options.compactRoom) {
+    await expect(controls.getByRole('button', { name: 'Shuffle', exact: true })).toHaveCount(0);
+    await expect(controls.getByRole('button', { name: 'Repeat this track', exact: true })).toHaveCount(0);
+  }
   const boxes = await controls.locator('button').evaluateAll(buttons =>
     buttons
       .map(button => {
         const box = button.getBoundingClientRect();
-        return { left: box.left, right: box.right };
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom };
       })
       .sort((a, b) => a.left - b.left)
   );
-  for (let index = 1; index < boxes.length; index++) expect(boxes[index].left).toBeGreaterThanOrEqual(boxes[index - 1].right - 1);
+  for (let index = 0; index < boxes.length; index++) {
+    for (const other of boxes.slice(index + 1)) {
+      const box = boxes[index];
+      expect(box.right <= other.left + 1 || other.right <= box.left + 1 || box.bottom <= other.top + 1 || other.bottom <= box.top + 1).toBe(true);
+    }
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 }
 
@@ -66,7 +76,7 @@ for (const [width, height] of [
     await page.getByLabel('Your name in the room').fill('Player host');
     await page.getByRole('button', { name: 'Open the room', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
-    await expectControlsFit(page);
+    await expectControlsFit(page, { compactRoom: width <= 360 });
     await expect(stage.getByRole('slider', { name: 'Seek', exact: true })).toBeEnabled();
     if (width >= 1100 && height >= 800) {
       const artworkColumn = await stage.locator('.player-cover-column').boundingBox();

@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Library, Search, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, GalleryHorizontal, LayoutGrid, Library, Search, X } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from 'react';
 import { TrackArtworkButton } from './TrackArtworkButton';
 import { DotBirth } from './DotBirth';
@@ -128,13 +128,15 @@ export function CatalogBrowser({
             className='catalog-view-toggle'
             type='button'
             aria-pressed={showAll}
+            aria-label={showAll ? 'Show as a row' : 'Show all tracks'}
+            title={showAll ? 'Show as a row' : 'Show all tracks'}
             onClick={() => {
               journey.current.showAll = !showAll;
               journey.current.target = null;
               setShowAll(!showAll);
             }}
           >
-            {showAll ? 'Show as a row' : 'Show all tracks'}
+            {showAll ? <GalleryHorizontal size={18} /> : <LayoutGrid size={18} />}
           </button>
           {!showAll && (
             <div className='catalog-row-controls' aria-label='Browse tracks'>
