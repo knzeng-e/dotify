@@ -269,6 +269,21 @@ The corrected WebKit matrix also passed (five journeys, 1.2 min).
 keep these counts separate from the full-suite results. The final remote CI
 outcome is recorded in the PR.
 
+### Remote CI identity fixture correction
+
+The first PR run passed all 183 core flows on Linux (6.8 min), then failed the
+separate Product identity fixture's five tests before their identity assertions:
+setup expected the old discovery heading. With real registration chronology,
+the heading is now New from artists. Setup now waits for the Music catalog
+region and a visible track; account isolation, delayed disclosure, editable
+aliases and extension/Product separation assertions are unchanged.
+
+`npx playwright test --config playwright.product-identity.config.ts --project=chromium --workers=2`
+then passed all five locally (11.5 s). The same command with `--project=webkit`
+passed all five (13.3 s). This is a simulated SDK host fixture,
+not a live Product host test. The initial CI failure remains visible at
+[run 36551866090](https://github.com/knzeng-e/dotify/actions/runs/36551866090).
+
 ## Original audit traceability
 
 | Original recommendation                                 | Implementation and verification boundary                                                                                                                                                                                                                                                         |
