@@ -91,10 +91,13 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const [reactions, setReactions] = useState<Array<{ id: string; emoji: string; x: number; senderName: string; self: boolean }>>([]);
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsTrack, setDetailsTrack] = useState<CatalogTrack | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const [roomPanel, setRoomPanel] = useState<'chat' | 'queue' | 'people'>('chat');
-  useEffect(() => setRoomPanel('chat'), [roomId]);
+  useEffect(() => {
+    setRoomPanel('chat');
+    setShareOpen(false);
+  }, [roomId]);
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 769px)');
     const resetPeople = () => {
@@ -516,7 +519,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           listener={isRoomGuest}
           onOpenQueue={!roomId ? () => setQueueOpen(true) : undefined}
           onOpenArtist={!roomId && streamArtist ? () => onOpenArtist(streamArtist) : undefined}
-          onOpenDetails={!roomId && selectedTrack ? () => setDetailsOpen(true) : undefined}
+          onOpenDetails={!roomId && selectedTrack ? () => setDetailsTrack(selectedTrack) : undefined}
           supportAction={
             !roomId && selectedTrack && artistDonationsEnabled ? <ArtistDonationButton key={selectedTrack.id} track={selectedTrack} iconOnly /> : undefined
           }
@@ -823,8 +826,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       </div>
 
       {qrProjectorDialog}
-      {detailsOpen && !roomId && selectedTrack && (
-        <ReleaseDetailsDialog track={selectedTrack} nativePaymentSymbol={nativePaymentAsset.symbol} onClose={() => setDetailsOpen(false)} />
+      {detailsTrack && !roomId && (
+        <ReleaseDetailsDialog track={detailsTrack} nativePaymentSymbol={nativePaymentAsset.symbol} onClose={() => setDetailsTrack(null)} />
       )}
       {shareOpen && roomId && sessionLink && (
         <RoomShareDialog

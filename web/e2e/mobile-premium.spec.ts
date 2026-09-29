@@ -278,6 +278,20 @@ test('release details disclose access without opening audio or requesting a paym
   await expect(trigger).toBeFocused();
 });
 
+test('release details remain bound to the track that opened them', async ({ page }) => {
+  await page.goto('/?e2eRoom=public&e2eSync=on&e2eCatalog=sequence&e2eAutoplay=on');
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
+  await page.getByRole('button', { name: 'About this release', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'About this release', exact: true });
+  await expect(dialog.getByRole('heading', { name: 'E2E Public Room Track', exact: true })).toBeVisible();
+
+  await page.evaluate(() => document.querySelector<HTMLButtonElement>('button[aria-label="Next track"]')?.click());
+
+  await expect(page.locator('.track-copy h2')).toHaveText('Second room track');
+  await expect(dialog.getByRole('heading', { name: 'E2E Public Room Track', exact: true })).toBeVisible();
+  await expect(dialog).not.toContainText('Second room track');
+});
+
 test('browser Back dismisses contextual sheets without leaving or stopping the player', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(fixture);
@@ -319,6 +333,31 @@ test('replacing room sharing with the projected QR adds only one Back step', asy
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(code).toHaveText(original!);
   await expect(page.locator('.transport-play')).toHaveAttribute('aria-label', 'Pause');
+});
+
+test('room sharing stays closed when a room is replaced', async ({ page }) => {
+  await page.goto(fixture);
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
+  await page.getByRole('button', { name: 'Open room', exact: true }).click();
+  await page.getByLabel('Your name in the room').fill('Share state host');
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  const roomCode = page.getByTestId('room-code');
+  await expect(roomCode).toHaveText(/[A-Z0-9]{4,}/);
+  const firstRoom = await roomCode.textContent();
+  await page.getByRole('button', { name: 'Share room', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Listen together' })).toBeVisible();
+
+  await page.evaluate(() =>
+    Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
+      .find(button => button.textContent?.trim() === 'Close room')
+      ?.click()
+  );
+  await expect(page.getByRole('dialog', { name: 'Listen together' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Open room', exact: true }).click();
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  await expect(roomCode).toHaveText(/[A-Z0-9]{4,}/);
+  await expect(roomCode).not.toHaveText(firstRoom!);
+  await expect(page.getByRole('dialog', { name: 'Listen together' })).toHaveCount(0);
 });
 
 test('recent listening requires playback, remains session-local and can be cleared', async ({ page }) => {
