@@ -3,12 +3,16 @@ import type { MutableRefObject } from 'react';
 
 import { CoverImage } from '../components/CoverImage';
 import { CatalogBrowser, type CatalogJourney } from '../components/CatalogBrowser';
+import { RecentListening } from '../components/RecentListening';
+import { hasReleaseChronology, recentListeningTracks } from '../features/catalog/discoveryShelves';
 import { AvatarStack, roomPresenceNames } from '../components/Presence';
 import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
 import type { CatalogTrack, OpenRoom } from '../shared/types';
 
 type ListenViewProps = {
   catalogTracks: CatalogTrack[];
+  recentTrackIds: string[];
+  onClearRecent: () => void;
   catalogStatus: string;
   openRooms: OpenRoom[];
   journey: MutableRefObject<CatalogJourney>;
@@ -26,6 +30,8 @@ type ListenViewProps = {
 
 export function ListenView({
   catalogTracks,
+  recentTrackIds,
+  onClearRecent,
   catalogStatus,
   openRooms,
   journey,
@@ -46,16 +52,14 @@ export function ListenView({
     <section className='listen-home listen-home-focused' aria-labelledby='now-title'>
       <header className='now-intro'>
         <div>
-          <p className='eyebrow'>A place to listen together</p>
-          <h1 id='now-title'>Music brings us together.</h1>
-          <p className='now-intro-copy'>Enter a live room, or start one from a track.</p>
+          <h1 id='now-title'>Listen together.</h1>
         </div>
       </header>
 
       <section className='catalogue-section' aria-labelledby='tracks-title'>
         <div className='section-heading'>
           <div>
-            <h2 id='tracks-title'>Start with the music</h2>
+            <h2 id='tracks-title'>{hasReleaseChronology(catalogTracks) ? 'New from artists' : 'Start with the music'}</h2>
           </div>
           <span>{catalogTracks.length} available</span>
         </div>
@@ -75,12 +79,20 @@ export function ListenView({
         />
       </section>
 
+      <RecentListening
+        tracks={recentListeningTracks(catalogTracks, recentTrackIds)}
+        access={catalogAccessByTrackId}
+        roomGuest={roomGuest}
+        onPlay={onPlayTrack}
+        onOpen={onOpenTrack}
+        onClear={onClearRecent}
+      />
       <section className='live-section' aria-labelledby='live-section-title'>
         <div className='section-heading presence-section-heading'>
           <div>
-            <h2 id='live-section-title'>Open rooms</h2>
+            <h2 id='live-section-title'>{openRooms.length ? 'Live now' : 'Listen together'}</h2>
           </div>
-          <div className='presence-command' aria-label={`${openRooms.length} open rooms, ${totalListening} people listening`}>
+          <div className='presence-command' role='group' aria-label={`${openRooms.length} open rooms, ${totalListening} people listening`}>
             {openRooms.length > 0 && (
               <dl className='presence-facts'>
                 <div>

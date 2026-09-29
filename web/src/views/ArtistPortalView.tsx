@@ -4,6 +4,7 @@
 // render here directly rather than being threaded down from App.
 
 import type { ReactNode } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
 import { AccountWalletModal } from '../components/AccountWalletModal';
 import { TransactionModal } from '../components/TransactionModal';
@@ -16,8 +17,9 @@ export function ArtistPortalView({ children }: { children: ReactNode }) {
           Skip to studio
         </a>
         <TopBar className='artist-portal-topbar' brandHref='/' brandAriaLabel='Dotify home' navAriaLabel='Artist portal actions'>
-          <a className='artist-entry-link' href='/'>
-            Listener app
+          <a className='artist-entry-link' href='/' aria-label='Listener app' title='Listener app'>
+            <ArrowLeft size={18} />
+            <span className='artist-entry-label'>Listener app</span>
           </a>
         </TopBar>
 

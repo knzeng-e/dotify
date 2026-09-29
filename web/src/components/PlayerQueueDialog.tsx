@@ -14,7 +14,7 @@ export function PlayerQueueDialog({ onClose }: { onClose: () => void }) {
   const tracks = catalog.catalogTracks.filter(track => track.id !== current?.id && track.id !== next?.id);
   const choices = next ? [next, ...tracks] : tracks;
   return (
-    <Dialog labelledBy='player-queue-title' className='player-queue-dialog' onClose={onClose}>
+    <Dialog historyDismiss labelledBy='player-queue-title' className='player-queue-dialog' onClose={onClose}>
       <div className='modal-header'>
         <h2 id='player-queue-title'>Queue</h2>
         <button className='modal-close' type='button' onClick={onClose} aria-label='Close queue'>

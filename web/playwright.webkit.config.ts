@@ -6,6 +6,9 @@ export default defineConfig({
   ...shared,
   testMatch: [
     '**/mobile-premium.spec.ts',
+    '**/artist-gift.spec.ts',
+    '**/artist-publish.spec.ts',
+    '**/mobile-accessibility.spec.ts',
     '**/catalog-browser.spec.ts',
     '**/catalog-journey.spec.ts',
     '**/room-arrival.spec.ts',
@@ -15,6 +18,6 @@ export default defineConfig({
     '**/design-surfaces.spec.ts',
     '**/clear-interface.spec.ts'
   ],
-  grep: /W28 listening surfaces|clear interface|room presence stays quiet|catalog row|catalog journey|room arrival|composer remains above|tapped tab|focus waits|keyboard restores|keyboard rotation|keyboard transition|player essentials|design review surfaces|visual contract evidence/,
+  grep: /W28 listening surfaces|clear interface|room presence stays quiet|catalog row|catalog journey|room arrival|composer remains above|tapped tab|focus waits|keyboard restores|keyboard rotation|keyboard transition|player essentials|design review surfaces|visual contract evidence|browser Back|replacing room|release details disclose|recent listening|active cover|gift|artist task navigation|accessible |rendered text contrast/,
   projects: [{ name: 'webkit', use: { ...devices['Desktop Safari'] } }]
 });

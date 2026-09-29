@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSessionLink, getInitialRoomCode, roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount } from './roomState';
+import { buildSessionLink, getInitialRoomCode, roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount, roomPresencePreview } from './roomState';
 
 describe('getInitialRoomCode', () => {
   it('reads and uppercases the preferred #/rooms/<id> form', () => {
@@ -47,6 +47,26 @@ describe('roomPresenceCount', () => {
 
   it('is zero when not in a room', () => {
     expect(roomPresenceCount(5, false)).toBe(0);
+  });
+});
+
+describe('roomPresencePreview', () => {
+  it('uses only current roster names, with the signaled count instead of invented identities', () => {
+    expect(
+      roomPresencePreview(
+        'Gaby',
+        [
+          { id: '1', displayName: 'Lou', status: 'connected' },
+          { id: '2', displayName: 'Past guest', status: 'disconnected' }
+        ],
+        4
+      )
+    ).toEqual({ names: ['Gaby', 'Lou'], total: 5 });
+  });
+
+  it('does not retain stale guests when the signaled count falls', () => {
+    expect(roomPresencePreview('Host', [{ id: '1', displayName: 'Lou', status: 'connected' }], 0)).toEqual({ names: [''], total: 1 });
+    expect(roomPresencePreview('', [], Number.NaN)).toEqual({ names: [''], total: 1 });
   });
 });
 

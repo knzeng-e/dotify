@@ -6,8 +6,8 @@
   --icon-transport: 20px;
   --icon-primary: 24px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--touch-target);
-  grid-template-rows: auto auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
   align-items: center;
   gap: 0.35rem 0;
   min-width: 0;
@@ -52,7 +52,7 @@
   grid-column: 1;
   grid-row: 2;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(var(--touch-target), 1fr));
   align-items: center;
   justify-items: center;
   min-width: 0;
@@ -61,8 +61,13 @@
   grid-template-columns: minmax(0, 1fr);
 }
 .transport-actions {
-  grid-column: 2;
-  grid-row: 2;
+  grid-column: 1;
+  grid-row: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 0.25rem;
 }
 .transport-cluster button,
 .transport-actions button {
@@ -171,6 +176,10 @@
   text-wrap: pretty;
 }
 .player-room-mode .player-stage {
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   grid-template-areas: 'artwork metadata' 'transport transport';
   grid-template-columns: minmax(5rem, 0.6fr) minmax(0, 1fr);
   align-content: center;
@@ -181,8 +190,12 @@
   padding: 0;
   align-self: center;
 }
+.player-room-mode .player-cover-column {
+  background: transparent;
+}
 .player-room-mode .player-stage > .player-transport {
   margin: 0;
+  container-type: inline-size;
 }
 .player-room-mode .transport-play {
   width: min(3.25rem, 52px);
@@ -356,20 +369,30 @@
     height: var(--touch-target);
   }
   .player-room-mode .player-transport {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto;
     gap: 0;
   }
-}
-@media (max-width: 360px) {
-  .player-room-mode .transport-cluster {
-    grid-template-columns: repeat(3, minmax(var(--touch-target), 1fr));
-  }
-  .player-room-mode .transport-secondary {
-    display: none;
+  .player-room-mode .transport-actions {
+    grid-column: 2;
+    grid-row: 2;
+    gap: 0;
   }
 }
 @media (min-width: 769px) and (max-height: 799px) {
   .player-room-mode {
     grid-template-columns: minmax(17.5rem, 0.85fr) minmax(0, 1.15fr);
+  }
+}
+
+/* Large text can narrow the transport even on a wide viewport. */
+@container (max-width: 263px) {
+  .player-room-mode .transport-cluster {
+    grid-column: 1 / -1;
+  }
+  .player-room-mode .transport-actions {
+    grid-column: 1 / -1;
+    grid-row: 3;
   }
 }
 

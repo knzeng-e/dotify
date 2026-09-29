@@ -57,7 +57,9 @@ test('host seek is reflected by late guests and pause holds the host position an
     await expect(guest.getByRole('button', { name: 'Previous track', exact: true })).toHaveCount(0);
     await expect(guest.getByRole('button', { name: 'Next track', exact: true })).toHaveCount(0);
     await expect(guest.getByRole('button', { name: 'Repeat this track', exact: true })).toHaveCount(0);
+    await guest.getByRole('button', { name: 'Listening options', exact: true }).click();
     await expect(guest.getByRole('button', { name: 'Mute', exact: true })).toBeEnabled();
+    await guest.getByRole('button', { name: 'Close listening options', exact: true }).click();
     await expect.poll(() => progress(guest)).toBeCloseTo(50, 0);
     await guest.waitForTimeout(1200); // several remote timeupdate events must not overwrite the room clock
     expect(await progress(guest)).toBeCloseTo(50, 0);
@@ -73,7 +75,7 @@ test('host seek is reflected by late guests and pause holds the host position an
     const paused = await progress(host);
     await guest.waitForTimeout(1400);
     expect(await progress(guest)).toBeCloseTo(paused, 0);
-    await expect(guest.locator('.player-stage .transport-play')).toHaveAttribute('aria-label', 'Play');
+    await expect(guest.locator('.player-stage .transport-play')).toHaveAttribute('aria-label', 'Resume room audio');
     await expect(guest.locator('audio').nth(1)).toHaveJSProperty('paused', false);
     await guest.screenshot({ path: testInfo.outputPath('guest-paused-mobile.png'), fullPage: true });
     await host.screenshot({ path: testInfo.outputPath('host-paused-desktop.png'), fullPage: true });
@@ -140,7 +142,7 @@ test('real Web Audio stays silent through repeated host pauses and local pause s
         () => Reflect.get(window, '__roomSyncStream') === document.querySelectorAll<HTMLAudioElement>('audio.native-player-source')[1].srcObject
       )
     ).toBe(true);
-    await guest.getByRole('button', { name: 'Music', exact: true }).click();
+    await guest.getByRole('button', { name: 'Back to Music', exact: true }).click();
     await expect(guest.locator('.player-dock input[type=range]')).toBeDisabled();
     const dockProgress = Number(await guest.locator('.player-dock input[type=range]').inputValue());
     expect(Math.abs(dockProgress - (await progress(host)))).toBeLessThan(1.5);

@@ -15,7 +15,7 @@ import { donationE2ePort } from '../e2e/donationMock';
 import type { CatalogTrack } from '../shared/types';
 
 type Quote = { artist: DonationArtist; port: DonationPort; account: string; sender: `0x${string}` };
-export function ArtistDonationButton({ track }: { track: CatalogTrack }) {
+export function ArtistDonationButton({ track, iconOnly = false }: { track: CatalogTrack; iconOnly?: boolean }) {
   const catalog = useCatalogContext();
   const wallet = useWalletContext();
   const { openWalletModal } = useUiFeedback();
@@ -30,6 +30,7 @@ export function ArtistDonationButton({ track }: { track: CatalogTrack }) {
   const generation = useRef(0);
   const portRef = useRef<DonationPort | null>(null);
   const sendingRef = useRef(false);
+  const hiddenPendingGift = useRef(false);
   const account = `${wallet.connectedWallet?.method}:${wallet.listenerEvmAddress?.toLowerCase()}`;
   const accountRef = useRef(account);
   useLayoutEffect(() => {
@@ -44,7 +45,12 @@ export function ArtistDonationButton({ track }: { track: CatalogTrack }) {
   );
 
   function close() {
-    if (sendingRef.current) return;
+    if (sendingRef.current) {
+      hiddenPendingGift.current = true;
+      setOpen(false);
+      return;
+    }
+    hiddenPendingGift.current = false;
     generation.current++;
     portRef.current?.destroy();
     portRef.current = null;
@@ -52,6 +58,11 @@ export function ArtistDonationButton({ track }: { track: CatalogTrack }) {
     setQuote(null);
   }
   async function start() {
+    if (sendingRef.current || hiddenPendingGift.current) {
+      hiddenPendingGift.current = false;
+      setOpen(true);
+      return;
+    }
     if (!wallet.connectedWallet || !wallet.listenerEvmAddress) {
       openWalletModal('support');
       return;
@@ -126,8 +137,10 @@ export function ArtistDonationButton({ track }: { track: CatalogTrack }) {
   return (
     <>
       <button
-        className='secondary-action'
+        className={iconOnly ? 'transport-secondary' : 'secondary-action'}
         type='button'
+        aria-label='Give to the artist'
+        title='Give to the artist'
         onClick={event => {
           // Safari does not focus a button on pointer activation. Give the
           // dialog an explicit return target before it moves focus inside.
@@ -135,17 +148,15 @@ export function ArtistDonationButton({ track }: { track: CatalogTrack }) {
           void start();
         }}
       >
-        <Heart size={18} /> Give to the artist
+        <Heart size={18} /> {!iconOnly && 'Give to the artist'}
       </button>
       {open && (
-        <Dialog className='artist-gift-dialog' size='compact' labelledBy='artist-gift-title' onClose={close} dismissible={!sending}>
+        <Dialog historyDismiss className='artist-gift-dialog' size='compact' labelledBy='artist-gift-title' onClose={close}>
           <div className='modal-header'>
             <h2 id='artist-gift-title'>{result?.status === 'confirmed' ? 'Gift confirmed' : `Give to ${quote?.artist.name || track.artist}`}</h2>
-            {!sending && (
-              <button className='modal-close' aria-label='Close gift' type='button' onClick={close}>
-                <X size={18} />
-              </button>
-            )}
+            <button className='modal-close' aria-label='Close gift' type='button' onClick={close}>
+              <X size={18} />
+            </button>
           </div>
           {!quote && !error && <p role='status'>Checking the artist’s receiving account…</p>}
           {quote && !result && (
@@ -158,6 +169,21 @@ export function ArtistDonationButton({ track }: { track: CatalogTrack }) {
                     review();
                   }}
                 >
+                  <div className='gift-amount-options' role='group' aria-label='Suggested gift amounts'>
+                    {(quote.port.asset.decimals > 0 ? ['0.1', '0.5', '1'] : ['1', '2', '5']).map(value => (
+                      <button
+                        key={value}
+                        type='button'
+                        aria-pressed={amount === value}
+                        onClick={() => {
+                          setAmount(value);
+                          setError('');
+                        }}
+                      >
+                        {value} {symbol}
+                      </button>
+                    ))}
+                  </div>
                   <label htmlFor='artist-gift-amount'>Gift amount ({symbol})</label>
                   <input
                     className='field'
@@ -169,6 +195,12 @@ export function ArtistDonationButton({ track }: { track: CatalogTrack }) {
                     onChange={event => setAmount(event.target.value)}
                     aria-describedby={error ? 'artist-gift-error' : undefined}
                   />
+                  <p>To {quote.artist.name}</p>
+                  <details className='gift-destination'>
+                    <summary>Where your support goes</summary>
+                    <p>The full gift goes to this artist’s registered receiving account. Network fees are separate.</p>
+                    <code>{quote.artist.recipient}</code>
+                  </details>
                   <button className='primary-action' type='submit'>
                     Review gift
                   </button>
@@ -197,7 +229,9 @@ export function ArtistDonationButton({ track }: { track: CatalogTrack }) {
                     <code>{quote.artist.recipient}</code>
                   </details>
                   {sending ? (
-                    <p role='status'>Confirm the gift in your wallet or Polkadot App. Waiting for the network…</p>
+                    <p role='status'>
+                      Confirm the gift in your wallet or Polkadot App. Waiting for the network… You can close this window; closing does not cancel the gift.
+                    </p>
                   ) : (
                     <div className='modal-actions'>
                       <button className='secondary-action' type='button' onClick={() => setReviewAmount(null)}>

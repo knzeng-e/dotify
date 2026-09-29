@@ -106,7 +106,7 @@ export function RoomChat({ active = true }: { active?: boolean }) {
           New messages ↓
         </button>
       )}
-      <div className='room-chat-reactions' aria-label='Send a reaction to the room'>
+      <div className='room-chat-reactions' role='group' aria-label='Send a reaction to the room'>
         {ROOM_REACTIONS.map((emoji, index) => (
           <button
             className='room-react-btn'

@@ -152,33 +152,36 @@ export function OverviewTab({
       <aside className='doc-panel sovereign-card'>
         <h3>Your music, your choices</h3>
         <p className='sovereign-lede'>The connected artist account is the only one that can approve changes to these releases.</p>
-        <div className='sov-item'>
-          <span className='sov-ic'>
-            <KeyRound size={16} />
-          </span>
-          <div>
-            <strong>You approve changes</strong>
-            <span>You choose when a release is active and how listeners can open it.</span>
+        <details className='studio-technical'>
+          <summary>Access and support choices</summary>
+          <div className='sov-item'>
+            <span className='sov-ic'>
+              <KeyRound size={16} />
+            </span>
+            <div>
+              <strong>You approve changes</strong>
+              <span>You choose when a release is active and how listeners can open it.</span>
+            </div>
           </div>
-        </div>
-        <div className='sov-item'>
-          <span className='sov-ic'>
-            <LockKeyhole size={16} />
-          </span>
-          <div>
-            <strong>You choose listening access</strong>
-            <span>Free for everyone, free with human verification, or opened through direct support in {nativePaymentSymbol}.</span>
+          <div className='sov-item'>
+            <span className='sov-ic'>
+              <LockKeyhole size={16} />
+            </span>
+            <div>
+              <strong>You choose listening access</strong>
+              <span>Free for everyone, free with human verification, or opened through direct support in {nativePaymentSymbol}.</span>
+            </div>
           </div>
-        </div>
-        <div className='sov-item'>
-          <span className='sov-ic'>
-            <Heart size={16} />
-          </span>
-          <div>
-            <strong>You choose where support goes</strong>
-            <span>Your release names each recipient and share. Any network fee is shown before approval.</span>
+          <div className='sov-item'>
+            <span className='sov-ic'>
+              <Heart size={16} />
+            </span>
+            <div>
+              <strong>You choose where support goes</strong>
+              <span>Your release names each recipient and share. Any network fee is shown before approval.</span>
+            </div>
           </div>
-        </div>
+        </details>
 
         <div className='sovereign-settings'>
           <label>

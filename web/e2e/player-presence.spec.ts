@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
-async function expectControlsFit(page: Page, options: { compactRoom?: boolean } = {}) {
+async function expectControlsFit(page: Page) {
   const controls = page.getByRole('group', { name: 'Playback controls', exact: true });
   await expect(controls.getByRole('slider')).toBeVisible();
-  const expectedButtons = options.compactRoom ? ['Previous track', 'Next track', 'Mute'] : ['Shuffle', 'Previous track', 'Next track', 'Repeat this track', 'Mute'];
+  const expectedButtons = ['Shuffle', 'Previous track', 'Next track', 'Repeat this track', 'Listening options'];
   for (const name of expectedButtons) {
     const button = controls.getByRole('button', { name, exact: true });
     await expect(button).toBeVisible();
@@ -11,10 +11,6 @@ async function expectControlsFit(page: Page, options: { compactRoom?: boolean } 
     expect(box!.width).toBeGreaterThanOrEqual(44);
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
-  }
-  if (options.compactRoom) {
-    await expect(controls.getByRole('button', { name: 'Shuffle', exact: true })).toHaveCount(0);
-    await expect(controls.getByRole('button', { name: 'Repeat this track', exact: true })).toHaveCount(0);
   }
   const boxes = await controls.locator('button').evaluateAll(buttons =>
     buttons
@@ -76,7 +72,15 @@ for (const [width, height] of [
     await page.getByLabel('Your name in the room').fill('Player host');
     await page.getByRole('button', { name: 'Open the room', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
-    await expectControlsFit(page, { compactRoom: width <= 360 });
+    await expectControlsFit(page);
+    await page.getByRole('button', { name: 'Listening options', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Listening options' }).getByRole('button', { name: 'Mute', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Close listening options' }).click();
+    await page.getByRole('button', { name: 'Share room', exact: true }).click();
+    await expect(page.getByTestId('shared-room-code')).toHaveText((await page.getByTestId('room-code').textContent()) || '');
+    await expect(page.getByRole('dialog', { name: 'Listen together' }).getByRole('button', { name: 'Copy link', exact: true })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('room-sharing.png') });
+    await page.getByRole('button', { name: 'Close room sharing' }).click();
     await expect(stage.getByRole('slider', { name: 'Seek', exact: true })).toBeEnabled();
     if (width >= 1100 && height >= 800) {
       const artworkColumn = await stage.locator('.player-cover-column').boundingBox();

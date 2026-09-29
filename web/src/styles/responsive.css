@@ -135,8 +135,8 @@
   :root {
     --content-pad: 1rem;
     --header-height: 4.25rem;
-    --dock-height: 4.55rem;
-    --mobile-nav-height: 4.55rem;
+    --dock-height: 4rem;
+    --mobile-nav-height: 3.5rem;
   }
 
   body::before {
@@ -200,7 +200,7 @@
   .bottom-nav-item {
     position: relative;
     display: flex;
-    min-height: 3.8rem;
+    min-height: 2.75rem;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -238,8 +238,8 @@
   }
 
   .player-dock-art {
-    width: 3.4rem;
-    height: 3.4rem;
+    width: 2.75rem;
+    height: 2.75rem;
   }
 
   .player-dock-center {

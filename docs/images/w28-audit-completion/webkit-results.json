@@ -1,0 +1,354 @@
+{
+  "implementationSha": "39784e6407bede3f5d69e0ed8e0f7ca65916b203",
+  "source": "Playwright JSON reporter; synthetic local WebKit fixtures, not a physical iPhone",
+  "stats": {
+    "startTime": "2026-09-29T09:46:35.564Z",
+    "duration": 110467.303,
+    "expected": 20,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "checks": [
+    {
+      "file": "artist-gift.spec.ts",
+      "title": "a pending gift can close and reopen without cancellation or a second transfer",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2968
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist task navigation remains reachable at 320px and enlarged text",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3785
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist task navigation remains reachable at 390px and enlarged text",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3781
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist task navigation remains reachable at 430px and enlarged text",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3382
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist task navigation remains reachable at 1440px and enlarged text",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 5741
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-journey.spec.ts",
+      "title": "catalog journey preserves search, row, grid and focus at 390px with reduce",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1775
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-journey.spec.ts",
+      "title": "catalog journey preserves search, row, grid and focus at 390px with no-preference",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1688
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-journey.spec.ts",
+      "title": "catalog journey preserves search, row, grid and focus at 1440px with reduce",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2624
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-journey.spec.ts",
+      "title": "catalog journey preserves search, row, grid and focus at 1440px with no-preference",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1960
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "rendered text contrast survives cover hues in player at 390px",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2344
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "rendered text contrast survives cover hues in room at 390px",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2398
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "rendered text contrast survives cover hues in player at 1440px",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3401
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "rendered text contrast survives cover hues in room at 1440px",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3703
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "W28 listening surfaces at 320px",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 8092
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "W28 listening surfaces at 390px",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 9210
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "W28 listening surfaces at 430px",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 9938
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "W28 listening surfaces at 768px",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 14091
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "W28 listening surfaces at 1440px",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 22668
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "browser Back dismisses contextual sheets without leaving or stopping the player",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "replacing room sharing with the projected QR adds only one Back step",
+      "tests": [
+        {
+          "project": "webkit",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1754
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

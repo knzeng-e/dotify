@@ -3,14 +3,15 @@
 // draggable seek bar, and mute all act in place and never navigate. Only the
 // artwork/title and the explicit "Player" affordance open the full player view.
 
-import { LockKeyhole, Maximize2, Pause, Play, Radio, Repeat1, Shuffle, SkipBack, SkipForward, Users, Volume2, VolumeX } from 'lucide-react';
+import { LockKeyhole, Maximize2, Pause, Play, Radio, Repeat1, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { CoverImage } from './CoverImage';
+import { AvatarStack } from './Presence';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { type PlaybackControls } from '../hooks/usePlayback';
 import { playbackTrack, roomPlaybackPresentation } from '../features/player/playbackPresentation';
-import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
-import type { CatalogTrack, Mode, SocketStatus, TrackInfo } from '../shared/types';
+import { roomHostDisplayName, roomPresenceCount, roomPresencePreview } from '../features/rooms/roomState';
+import type { CatalogTrack, ListenerRecord, Mode, SocketStatus, TrackInfo } from '../shared/types';
 
 type PlayerDockProps = {
   track: CatalogTrack | undefined;
@@ -21,6 +22,7 @@ type PlayerDockProps = {
   hostName: string;
   locked: boolean;
   listenerCount: number;
+  listeners: ListenerRecord[];
   socketStatus: SocketStatus;
   audioStartupStatus?: string | null;
   onOpenPlayer: () => void;
@@ -42,6 +44,7 @@ export function PlayerDock({
   hostName,
   locked,
   listenerCount,
+  listeners,
   socketStatus,
   audioStartupStatus,
   onOpenPlayer,
@@ -63,6 +66,7 @@ export function PlayerDock({
   const roomContext = roomPlaybackPresentation(mode, status, socketStatus);
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const visibleHostName = roomHostDisplayName(hostName);
+  const presence = roomPresencePreview(hostName, listeners, listenerCount);
 
   return (
     <div className='player-dock' data-source={roomId ? mode : 'solo'}>
@@ -88,8 +92,8 @@ export function PlayerDock({
                 <span className='player-dock-room-label'>{roomContext.label}</span>
                 {socketStatus === 'online' && (
                   <span className='player-dock-presence'>
-                    <Users size={12} aria-hidden='true' />
-                    {presenceCount}
+                    <AvatarStack {...presence} max={2} size={20} />
+                    <span className='player-dock-count'>{presenceCount} here</span>
                   </span>
                 )}
               </span>
@@ -126,7 +130,7 @@ export function PlayerDock({
               onClick={() => void playback.togglePlay()}
               disabled={!playback.canUseTransport}
               data-busy={isBusy}
-              aria-label={transport.playing ? 'Pause' : 'Play'}
+              aria-label={mode === 'listener' && roomId ? (transport.playing ? 'Pause for me' : 'Resume room audio') : transport.playing ? 'Pause' : 'Play'}
             >
               {isBusy ? (
                 <span className='player-dock-dots' aria-hidden='true'>

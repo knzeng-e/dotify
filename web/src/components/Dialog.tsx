@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { openSheetHistory } from '../app/sheetHistory';
 
 type DialogProps = {
   backdropClassName?: string;
@@ -8,6 +9,7 @@ type DialogProps = {
   dataAttributes?: Record<string, string | number | boolean | undefined>;
   describedBy?: string;
   dismissible?: boolean;
+  historyDismiss?: boolean;
   labelledBy: string;
   initialFocus?: 'dialog' | 'first';
   onClose?: () => void;
@@ -31,6 +33,7 @@ export function Dialog({
   dataAttributes,
   describedBy,
   dismissible = true,
+  historyDismiss = false,
   labelledBy,
   initialFocus = 'first',
   onClose,
@@ -50,14 +53,20 @@ export function Dialog({
   }, [onClose]);
 
   useEffect(() => {
+    if (historyDismiss && dismissible) return openSheetHistory(() => onCloseRef.current?.());
+  }, [historyDismiss, dismissible]);
+
+  useEffect(() => {
     const previousActive = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     const appRoot = document.getElementById('root');
     const previousAriaHidden = appRoot?.getAttribute('aria-hidden') ?? null;
+    const previouslyInert = appRoot?.hasAttribute('inert');
     document.body.style.overflow = 'hidden';
     // Dotify currently opens one dialog at a time. If nested dialogs are later
     // allowed, replace this restore logic with a stack-aware aria-hidden manager.
     appRoot?.setAttribute('aria-hidden', 'true');
+    appRoot?.setAttribute('inert', '');
 
     const frame = window.requestAnimationFrame(() => {
       const dialog = dialogRef.current;
@@ -102,6 +111,7 @@ export function Dialog({
       window.cancelAnimationFrame(frame);
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = previousOverflow;
+      if (!previouslyInert) appRoot?.removeAttribute('inert');
       if (previousAriaHidden === null) {
         appRoot?.removeAttribute('aria-hidden');
       } else {

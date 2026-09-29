@@ -1,0 +1,3131 @@
+{
+  "implementationSha": "39784e6407bede3f5d69e0ed8e0f7ca65916b203",
+  "source": "Playwright JSON reporter; synthetic local browser fixtures",
+  "stats": {
+    "startTime": "2026-09-29T09:38:59.168Z",
+    "duration": 436128.845,
+    "expected": 183,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "contrast": {
+    "visibleTextSamples": 541,
+    "minimumNormal": 5.440602015872511,
+    "minimumLarge": 10.403002546980877,
+    "belowThreshold": 0
+  },
+  "checks": [
+    {
+      "file": "adaptive-rooms.spec.ts",
+      "title": "room discovery exposes an inspection panel beside the desktop list",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 4489
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "adaptive-rooms.spec.ts",
+      "title": "room discovery falls back to the 2D sky when WebGL is unavailable",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2107
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "adaptive-rooms.spec.ts",
+      "title": "room discovery keeps the card grid usable with reduced motion",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1631
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "adaptive-rooms.spec.ts",
+      "title": "room discovery uses a touch-safe inspection sheet above mobile playback controls",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1449
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-gift.spec.ts",
+      "title": "player opens a contextual gift with editable suggestions and an explicit destination",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1234
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-gift.spec.ts",
+      "title": "gift at 390px confirms the amount and artist without buying access",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1087
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-gift.spec.ts",
+      "title": "gift at 1440px confirms the amount and artist without buying access",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1995
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-gift.spec.ts",
+      "title": "an interrupted gift is checked without a second transfer",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1260
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-gift.spec.ts",
+      "title": "a pending gift can close and reopen without cancellation or a second transfer",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1910
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-gift.spec.ts",
+      "title": "invalid amounts and rejected signatures do not show a success receipt",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1897
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist can create a runtime, publish a release, and see it in the listener catalog",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 4282
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist onboarding handles a missing wallet without enabling profile creation",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 693
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist profile creation rejects a mismatched wallet network",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1484
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "upload failure surfaces an error and halts registration",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2746
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist publish surfaces transaction failure after successful uploads",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2422
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist publish blocks empty paid royalty splits before metadata and registry work",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2140
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist publish keeps submitted but unconfirmed transactions at the registry stage",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2644
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist publish remains recoverable while catalog read-back is delayed",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2702
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist publish does not accept a same-hash track from another runtime as visible",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2510
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "new artist mobile overview presents one next step and four keyboard-accessible tasks",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2532
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist task navigation remains reachable at 320px and enlarged text",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2008
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist task navigation remains reachable at 390px and enlarged text",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 4128
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist task navigation remains reachable at 430px and enlarged text",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3007
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "artist-publish.spec.ts",
+      "title": "artist task navigation remains reachable at 1440px and enlarged text",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 4414
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "audio startup telemetry is retained for QA in the browser",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 971
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "resuming an already loaded track records a fresh warm startup attempt",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1822
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "autoplay rejection terminates a new-source startup attempt",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1009
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "a late play rejection cannot fail the replacement startup",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1426
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "a native error from a retired media element cannot fail its replacement",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1466
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "repeat remains applied when a new host media generation replaces the track",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1584
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "replacing a pending track terminates its startup attempt before the next intent",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1368
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "canplay keeps cancellation armed until the track reaches a terminal event",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1693
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "Previous stays available during a slow Next and the final direction wins",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1899
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "muted playback cannot satisfy a first-sound measurement",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1696
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "the readiness panel captures a candidate-bound first-sound sample without media identifiers",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2762
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "DAV2 chunk decryption runs in a real browser worker",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 876
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "track intent warms encrypted DAV2 bytes without requesting a content key",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 841
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "transport prepares an encrypted neighbor only after playback (saveData=false)",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3396
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "audio-startup.spec.ts",
+      "title": "transport prepares an encrypted neighbor only after playback (saveData=true)",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3282
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-browser.spec.ts",
+      "title": "catalog row, search and all-tracks view work at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-browser.spec.ts",
+      "title": "catalog row, search and all-tracks view work at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1963
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-browser.spec.ts",
+      "title": "new covers expose responsive browser hints while legacy cards remain compatible",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 703
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-browser.spec.ts",
+      "title": "catalog row search matches uppercase and lowercase titles and artists consistently",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 922
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-journey.spec.ts",
+      "title": "catalog journey preserves search, row, grid and focus at 390px with reduce",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1349
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-journey.spec.ts",
+      "title": "catalog journey preserves search, row, grid and focus at 390px with no-preference",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1218
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-journey.spec.ts",
+      "title": "catalog journey preserves search, row, grid and focus at 1440px with reduce",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2641
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "catalog-journey.spec.ts",
+      "title": "catalog journey preserves search, row, grid and focus at 1440px with no-preference",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2674
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "Classic track stays locked before payment and unlocks full playback after payment",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1910
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "account loss during support hands off to one visible account dialog",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1457
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "account loss while the payment intent resolves keeps recovery visible",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1568
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "Classic payment record remains visible when runtime read-back denies playable access",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2272
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "support recovery at 390px checks access without a second payment",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1638
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "support recovery at 1440px checks access without a second payment",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1898
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "pending support can be dismissed and reopened at 390px without canceling or resending",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1480
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "pending support can be dismissed and reopened at 1440px without canceling or resending",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2056
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "an uncertain payment survives closing the tab and is never automatically paid again",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3002
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "a rejected support signature allows an explicit fresh attempt",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2401
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "mobile receipt shows confirmed support facts",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1291
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "mobile receipt keeps included-but-unverified support closed",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1085
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "classic-unlock.spec.ts",
+      "title": "mobile Product funding failure stays plain and confirms that nothing was sent",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1581
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "clear-interface.spec.ts",
+      "title": "room presence stays quiet when online and remains honest offline",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2477
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "clear-interface.spec.ts",
+      "title": "clear interface supports doubled text on a narrow screen",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1023
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "clear-interface.spec.ts",
+      "title": "clear interface restores individual playback after leaving a room",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3765
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "clear-interface.spec.ts",
+      "title": "clear interface lets guests inspect releases without changing their listening source",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3433
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "clear-interface.spec.ts",
+      "title": "artwork is a real action and can resume the same source",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1289
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "clear-interface.spec.ts",
+      "title": "shows Play only on the active cover and keeps cards focused on the music",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 879
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "clear-interface.spec.ts",
+      "title": "artist and personal screens lead with useful content",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1143
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "clear-interface.spec.ts",
+      "title": "artwork is a real action and can resume the same source",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2304
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "clear-interface.spec.ts",
+      "title": "shows Play only on the active cover and keeps cards focused on the music",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2218
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "clear-interface.spec.ts",
+      "title": "artist and personal screens lead with useful content",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1723
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "design-surfaces.spec.ts",
+      "title": "design review surfaces remain navigable at 360px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1364
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "design-surfaces.spec.ts",
+      "title": "core navigation reflows at 200% text at 360px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 856
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "design-surfaces.spec.ts",
+      "title": "design review surfaces remain navigable at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1330
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "design-surfaces.spec.ts",
+      "title": "core navigation reflows at 200% text at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 876
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "design-surfaces.spec.ts",
+      "title": "design review surfaces remain navigable at 768px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1828
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "design-surfaces.spec.ts",
+      "title": "core navigation reflows at 200% text at 768px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1118
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "design-surfaces.spec.ts",
+      "title": "design review surfaces remain navigable at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2679
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "design-surfaces.spec.ts",
+      "title": "core navigation reflows at 200% text at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1641
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible music at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1334
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible player at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1461
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible release at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1362
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible queue at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1547
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible options at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1303
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible rooms at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1221
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible chat at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1750
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible people at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2197
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible requests at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1606
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible share at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1677
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible gift at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1250
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible Overview at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1314
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible Releases at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1252
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible Earnings at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1423
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible Rights at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1283
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible music at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1965
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible player at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2084
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible release at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2255
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible queue at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2202
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible options at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1880
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible rooms at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1721
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible chat at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2512
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible people at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2464
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible requests at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2423
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible share at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2176
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible gift at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2124
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible Overview at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2009
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible Releases at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1670
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible Earnings at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1747
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "accessible Rights at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1585
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "rendered text contrast survives cover hues in player at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1674
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "rendered text contrast survives cover hues in room at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2236
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "rendered text contrast survives cover hues in player at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 4098
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-accessibility.spec.ts",
+      "title": "rendered text contrast survives cover hues in room at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 4226
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-host-playback.spec.ts",
+      "title": "mobile host silences residual audio, switches while paused and resumes the selected track",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2765
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-host-playback.spec.ts",
+      "title": "a delayed capture fetch cannot replace the newer paused selection",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1933
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-host-playback.spec.ts",
+      "title": "opening a room with another track re-arms playback after a solo pause",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1497
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-host-playback.spec.ts",
+      "title": "room colors stay consistent between desktop and mobile in either system theme",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2507
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "W28 listening surfaces at 320px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 4627
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "W28 listening surfaces at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 5486
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "W28 listening surfaces at 430px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 4865
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "W28 listening surfaces at 768px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 6057
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "W28 listening surfaces at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 7981
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "a touch swipe browses music without opening a release",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 832
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "solo queue uses the existing access check and never pays on selection",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1269
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "release details disclose access without opening audio or requesting a payment",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1119
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "browser Back dismisses contextual sheets without leaving or stopping the player",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1098
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "replacing room sharing with the projected QR adds only one Back step",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1707
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "recent listening requires playback, remains session-local and can be cleared",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1333
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-premium.spec.ts",
+      "title": "active cover provides the tint without changing interface text colors",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 881
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mobile-shell.spec.ts",
+      "title": "mobile listener shell keeps music, transport, and navigation inside the viewport",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 745
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "player-presence.spec.ts",
+      "title": "player essentials remain available solo and in a room at 320×568",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1616
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "player-presence.spec.ts",
+      "title": "player essentials remain available solo and in a room at 390×844",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1716
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "player-presence.spec.ts",
+      "title": "player essentials remain available solo and in a room at 844×390",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1717
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "player-presence.spec.ts",
+      "title": "player essentials remain available solo and in a room at 820×1180",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2497
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "player-presence.spec.ts",
+      "title": "player essentials remain available solo and in a room at 1435×833",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2862
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "player-presence.spec.ts",
+      "title": "player essentials remain available solo and in a room at 1440×1000",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2950
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-arrival.spec.ts",
+      "title": "room arrival puts joining and hosting within reach at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1010
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-arrival.spec.ts",
+      "title": "room arrival puts joining and hosting within reach at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1343
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-continuity.spec.ts",
+      "title": "room audio survives next and home navigation with standard capture",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 8848
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-continuity.spec.ts",
+      "title": "room audio survives next and home navigation with without-native-api capture",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 8972
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-dock.spec.ts",
+      "title": "room dock follows the host instead of the last solo selection at 320px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 4964
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-dock.spec.ts",
+      "title": "room dock follows the host instead of the last solo selection at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 5059
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-dock.spec.ts",
+      "title": "room dock follows the host instead of the last solo selection at 430px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 5665
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-dock.spec.ts",
+      "title": "room dock follows the host instead of the last solo selection at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 6385
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "host lineup is shared, advances on track end, and Previous follows real history",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2856
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "rapid host Next commands consume distinct lineup entries",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2248
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "public room: listener joins via link, hears full playback, no wallet, no content key",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 5683
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "embedded Product Web guest sees a live room before media permission",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2942
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "public room: listener can manually start audio when embedded autoplay is blocked",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 4460
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "public room: mobile-style host without captureStream uses Web Audio capture",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3456
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "Product Mobile without RTCPeerConnection sends room audio to the external browser",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1322
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "public room: listener keeps trickled ICE candidates that arrive before the host offer",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3261
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "protected room with authorized host: host gets the key, listener streams full without one",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3253
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "protected room with unauthorized host: no stream, no keys, host moves to a public track",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3148
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "host explicitly closes: the room is removed and the listener sees a clear closed state",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 3231
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-join.spec.ts",
+      "title": "missing room link stays unavailable and cannot be entered",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 827
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-sync.spec.ts",
+      "title": "host seek is reflected by late guests and pause holds the host position and silences the receiver",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 7631
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-sync.spec.ts",
+      "title": "real Web Audio stays silent through repeated host pauses and local pause survives host changes",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 6017
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "room conversation fits 320×568 without losing playback or drafts",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1642
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "room conversation fits 390×844 without losing playback or drafts",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1721
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "room conversation fits 768×1024 without losing playback or drafts",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1960
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "room conversation fits 844×390 without losing playback or drafts",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1734
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "room conversation fits 1024×768 without losing playback or drafts",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2321
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "mobile guest chats with a host while the same remote audio stays mounted",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2721
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "up next opens a protected selection through the existing access gate",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2075
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "a host sees one room code and an invite-first state while alone",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1691
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "a room requires a chosen host name instead of presenting a role as identity",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 827
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "compact keyboard viewport leaves space to compose and restores after resize",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1422
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "desktop keeps playback, people and chat visible and returns from artist support",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2543
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "room controls fit a small desktop and the QR remains discoverable",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2202
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "composer remains above the keyboard with zoomed-chat",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1451
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "composer remains above the keyboard with zoomed-chat-tab",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1413
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "composer remains above the keyboard with resized-requests",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1642
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "switching panels while typing keeps the tapped tab in place until release",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1862
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "focus waits for keyboard geometry without moving the player or tabs",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1894
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "keyboard restores the original browser inset after dismissal",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1287
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "keyboard rotation preserves browser chrome and relearns the resting viewport",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1242
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "keyboard transition retains an opaque canvas, player geometry and drafts across transient empty frames",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 2095
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "keyboard transition recovers from invalid initial height 0 after focus",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1344
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "room-workspace.spec.ts",
+      "title": "keyboard transition recovers from invalid initial height NaN after focus",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 1511
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "visual-system.spec.ts",
+      "title": "visual contract evidence at 360px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 6428
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "visual-system.spec.ts",
+      "title": "visual contract evidence at 390px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 5006
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "visual-system.spec.ts",
+      "title": "visual contract evidence at 768px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 5671
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "visual-system.spec.ts",
+      "title": "visual contract evidence at 1440px",
+      "tests": [
+        {
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "durationMs": 6568
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

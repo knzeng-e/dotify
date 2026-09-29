@@ -8,7 +8,8 @@ async function connect(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/e2e/fixtures/product-host.html?e2eRoom=public');
-  await expect(page.getByRole('heading', { name: 'Start with the music', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Music catalog', exact: true })).toBeVisible();
+  await expect(page.getByTestId('track-card').first()).toBeVisible();
 });
 
 test('host username labels the account and seeds a room without publishing it on connection', async ({ page }, testInfo) => {

@@ -180,7 +180,9 @@ export function ListenerShell() {
 
   function handleOpenArtistProfile(name: string) {
     setPublicArtistName(name);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // A cross-view animation can outlive the artist view and override the
+    // catalog's restored position when the listener immediately returns.
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
   // Opens the room after the user has confirmed their display name in the modal.
@@ -304,6 +306,8 @@ export function ListenerShell() {
               <>
                 {activeView === 'listen' && (
                   <ListenView
+                    recentTrackIds={playback.recentTrackIds}
+                    onClearRecent={playback.clearRecentPlays}
                     catalogTracks={catalog.catalogTracks}
                     catalogStatus={catalog.catalogStatus}
                     openRooms={session.openRooms}
@@ -439,6 +443,7 @@ export function ListenerShell() {
             roomId={session.roomId}
             hostName={session.hostName}
             listenerCount={session.listenerCount}
+            listeners={session.listeners}
             socketStatus={session.socketStatus}
             locked={Boolean(
               !isRoomGuest && selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true

@@ -1739,15 +1739,12 @@ export function useCatalog(deps: UseCatalogDeps) {
           }
         })
       );
-      const allTracks = runtimeCatalogs
-        .flat()
-        .sort((left, right) => {
-          if (left.registeredAtBlock !== right.registeredAtBlock) {
-            return right.registeredAtBlock - left.registeredAtBlock;
-          }
-          return left.title.localeCompare(right.title);
-        })
-        .map(({ registeredAtBlock: _registeredAtBlock, ...track }): CatalogTrack => track);
+      const allTracks = runtimeCatalogs.flat().sort((left, right) => {
+        if (left.registeredAtBlock !== right.registeredAtBlock) {
+          return right.registeredAtBlock - left.registeredAtBlock;
+        }
+        return left.title.localeCompare(right.title);
+      });
       const nextCatalog = allTracks.filter(track => track.active !== false);
 
       return commitCatalog(

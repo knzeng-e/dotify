@@ -1,5 +1,6 @@
-import { Heart, ListMusic, Pause, Play, Repeat1, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import { Heart, Info, ListMusic, MoreHorizontal, Pause, Play, Repeat1, Shuffle, SkipBack, SkipForward, Volume2, VolumeX, X } from 'lucide-react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import { Dialog } from './Dialog';
 import type { PlaybackControls } from '../hooks/usePlayback';
 import { transportProgressPercent } from '../features/player/playbackStatus';
 import { formatTime } from '../shared/utils/format';
@@ -11,15 +12,20 @@ export function PlayerTransport({
   duration,
   listener,
   onOpenQueue,
-  onOpenArtist
+  onOpenArtist,
+  onOpenDetails,
+  supportAction
 }: {
   playback: PlaybackControls;
   duration: number;
   listener: boolean;
   onOpenQueue?: () => void;
   onOpenArtist?: () => void;
+  onOpenDetails?: () => void;
+  supportAction?: ReactNode;
 }) {
   const { transport } = playback;
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const immersive = Boolean(onOpenQueue);
   const shuffle = (
     <button
@@ -72,7 +78,6 @@ export function PlayerTransport({
       <div className='transport-cluster' role='group' aria-label={listener ? 'Your listening' : 'Track navigation'} data-listener={listener || undefined}>
         {!listener && (
           <>
-            {!immersive && shuffle}
             <button
               className='transport-skip'
               type='button'
@@ -93,7 +98,7 @@ export function PlayerTransport({
           type='button'
           onClick={() => void playback.togglePlay()}
           disabled={!playback.canUseTransport}
-          aria-label={transport.playing ? 'Pause' : 'Play'}
+          aria-label={listener ? (transport.playing ? 'Pause for me' : 'Resume room audio') : transport.playing ? 'Pause' : 'Play'}
           title={listener ? (transport.playing ? 'Pause for me' : 'Resume room audio') : transport.playing ? 'Pause' : 'Play'}
         >
           {transport.playing ? <Pause size={24} /> : <Play size={24} fill='currentColor' />}
@@ -113,34 +118,46 @@ export function PlayerTransport({
             >
               <SkipForward size={20} />
             </button>
-            {!immersive && repeat}
           </>
         )}
       </div>
-      <div className='transport-actions' role='group' aria-label={immersive ? 'Listening options' : 'Volume'}>
-        {immersive && !listener && shuffle}
-        {immersive && !listener && repeat}
+      <div className='transport-actions' role='group' aria-label='Secondary playback controls'>
+        {onOpenDetails && (
+          <button type='button' onClick={onOpenDetails} aria-label='About this release' title='About this release'>
+            <Info size={18} />
+          </button>
+        )}
+        {!listener && shuffle}
+        {!listener && repeat}
         {onOpenQueue && (
           <button type='button' onClick={onOpenQueue} aria-label='Queue' title='Queue'>
             <ListMusic size={18} />
           </button>
         )}
-        {onOpenArtist && (
-          <button type='button' onClick={onOpenArtist} aria-label='Artist and support' title='Artist and support'>
-            <Heart size={18} />
-          </button>
-        )}
-        <button
-          type='button'
-          onClick={playback.toggleMute}
-          aria-pressed={playback.muted}
-          data-active={playback.muted}
-          aria-label={playback.muted ? 'Unmute' : 'Mute'}
-          title={playback.muted ? 'Unmute' : 'Mute'}
-        >
-          {playback.muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        {supportAction ||
+          (onOpenArtist && (
+            <button type='button' onClick={onOpenArtist} aria-label='Artist and support' title='Artist and support'>
+              <Heart size={18} />
+            </button>
+          ))}
+        <button type='button' onClick={() => setOptionsOpen(true)} aria-label='Listening options' title='Listening options' data-active={playback.muted}>
+          <MoreHorizontal size={18} />
         </button>
       </div>
+      {optionsOpen && (
+        <Dialog historyDismiss labelledBy='playback-options-title' size='compact' onClose={() => setOptionsOpen(false)}>
+          <div className='modal-header'>
+            <h2 id='playback-options-title'>Listening options</h2>
+            <button className='modal-close' type='button' onClick={() => setOptionsOpen(false)} aria-label='Close listening options'>
+              <X size={18} />
+            </button>
+          </div>
+          <button className='secondary-action' type='button' onClick={playback.toggleMute} aria-pressed={playback.muted}>
+            {playback.muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            {playback.muted ? 'Unmute' : 'Mute'}
+          </button>
+        </Dialog>
+      )}
     </div>
   );
 }
