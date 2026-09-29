@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-for (const width of [390, 1440]) {
-  test(`catalog journey preserves search, row, grid and focus at ${width}px`, async ({ page }, testInfo) => {
+for (const { width, reducedMotion } of [390, 1440].flatMap(width => (['reduce', 'no-preference'] as const).map(reducedMotion => ({ width, reducedMotion })))) {
+  test(`catalog journey preserves search, row, grid and focus at ${width}px with ${reducedMotion}`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.emulateMedia({ reducedMotion });
     await page.goto('/?e2eRoom=public&e2eCatalog=wide');
     await expect(page.getByTestId('track-card')).toHaveCount(13);
     const catalog = page.getByRole('region', { name: 'Music catalog' });

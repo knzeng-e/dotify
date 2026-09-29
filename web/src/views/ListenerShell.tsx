@@ -180,7 +180,9 @@ export function ListenerShell() {
 
   function handleOpenArtistProfile(name: string) {
     setPublicArtistName(name);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // A cross-view animation can outlive the artist view and override the
+    // catalog's restored position when the listener immediately returns.
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
   // Opens the room after the user has confirmed their display name in the modal.
