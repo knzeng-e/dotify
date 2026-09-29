@@ -149,3 +149,46 @@ tabs or sheets.
   preserved.
 - Screenshots are captured at 320, 390, 430, 768 and 1440 CSS px, plus keyboard
   focus, 200% text and reduced motion checks.
+
+## Owner-authorized completion of the original screenshot audit
+
+The six original review screenshots contain a wider scope than the initial W28
+brief. The owner subsequently authorized this entire scope plus the proposed
+refinements, on `feat/mobile-premium-audit-complete`. This is a completion of
+the same design audit, not permission to activate another backlog sequence.
+
+In addition to the initial W28 player/room/rail changes, the completion must
+cover:
+
+- Compact direct/live dock with actual avatars and session counts, plus a
+  contextual room header. Share owns the raw room code and QR; the user's
+  personal pause must not suggest control over the host's playback.
+- Truthful discovery shelves: live rooms from signaling, new releases only
+  where chronology exists, and clearable recent listening from actual media
+  playback rather than selection or invented popularity.
+- Read-only release information from cards, artist releases and the player:
+  listening terms, known price, published beneficiaries and provenance, with
+  technical records collapsed and no claim that metadata proves copyright.
+- Artwork-derived, bounded ambient tint with a stable fallback, unchanged text
+  contrast and reduced-motion behavior. It must not become an audio startup
+  dependency.
+- Native horizontal browsing, one visible transport hierarchy, secondary mute
+  and contextual queue/support/information sheets. Closing a sheet must restore
+  focus; browser Back should close contextual sheets before leaving the player.
+- Active rooms before secondary code/link entry, optional galaxy exploration,
+  Chat/Queue/People, requests within Queue and a reachable keyboard composer.
+  Joining still requires no wallet; a missing chosen name must not be fabricated.
+- Artist Overview/Releases/Earnings/Rights tasks, an explicit publishing command,
+  smaller interface headings and progressively disclosed technical explanations.
+- Contextual artist gifts with editable suggestions, explicit recipient,
+  confirmation and receipt. Gifts remain separate from paid listening access
+  and release splits. Closing a pending gift must not cancel or resubmit it.
+- Fewer nested panels, stable touch targets, desktop parity, 200% text, focus,
+  motion and contrast checks. Automated accessibility checks complement, not
+  replace, manual and real-device verification.
+
+Implementation and acceptance evidence belong in
+`docs/backlog/implementation/evidence/W28.md`. Build success must not be
+presented as Product host or physical-device audio validation. No new payment
+policy, production secret, hidden signer, fabricated presence or guest key
+delivery is permitted.
