@@ -74,23 +74,34 @@ for (const [width, height] of sizes) {
       await host.getByLabel('Your name in the room').fill('W28 host');
       await host.getByRole('button', { name: 'Open the room', exact: true }).click();
       await expect(host.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
-      const roomId = (await host.getByTestId('room-code').innerText()).trim();
+      const roomId = (await host.getByTestId('room-code').textContent())!.trim();
+      expect(roomId).toMatch(/^[A-Z0-9]{4,}$/);
       await capture(host, info, 'host');
       const hostLargeText = await host.addStyleTag({ content: 'html { font-size: 200% !important; }' });
-      const hostButtons = await host.locator('.transport-cluster button, .transport-actions button').evaluateAll(buttons =>
-        buttons.map(button => {
-          const box = button.getBoundingClientRect();
-          return { x: box.x, right: box.right, y: box.y, bottom: box.bottom };
-        })
-      );
-      for (let i = 0; i < hostButtons.length; i++) {
-        const box = hostButtons[i];
-        expect(box.x).toBeGreaterThanOrEqual(0);
-        expect(box.right).toBeLessThanOrEqual(width);
-        for (const other of hostButtons.slice(i + 1)) {
-          expect(box.right <= other.x + 1 || other.right <= box.x + 1 || box.bottom <= other.y + 1 || other.bottom <= box.y + 1).toBe(true);
-        }
-      }
+      await expect
+        .poll(
+          async () => {
+            const boxes = await host.locator('.transport-cluster button, .transport-actions button').evaluateAll(buttons =>
+              buttons.map(button => {
+                const box = button.getBoundingClientRect();
+                return { x: box.x, right: box.right, y: box.y, bottom: box.bottom };
+              })
+            );
+            return (
+              boxes.length > 0 &&
+              boxes.every(
+                (box, index) =>
+                  box.x >= 0 &&
+                  box.right <= width &&
+                  boxes
+                    .slice(index + 1)
+                    .every(other => box.right <= other.x + 1 || other.right <= box.x + 1 || box.bottom <= other.y + 1 || other.bottom <= box.y + 1)
+              )
+            );
+          },
+          { message: 'Enlarged room transport settles inside the viewport without overlap' }
+        )
+        .toBe(true);
       await capture(host, info, 'host-200-text');
       await hostLargeText.evaluate(element => element.remove());
       await guest.goto(`${fixture}#/rooms/${roomId}`);

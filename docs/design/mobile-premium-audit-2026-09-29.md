@@ -1,6 +1,6 @@
 # Dotify mobile premium audit
 
-Date: 2026-09-29  
+Date: 2026-09-29
 Source: owner request after the W21-W25 premium UX pass, with current screenshots
 and merged evidence reviewed from `dev`.
 
