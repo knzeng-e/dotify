@@ -1029,3 +1029,75 @@
   padding-block: 0.6rem;
   color: var(--ink-soft);
 }
+
+.release-details-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.release-details-identity img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.release-details-identity > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.release-details-dialog h3 {
+  font-family: var(--font-interface);
+  font-size: var(--text-base);
+}
+.release-details-dialog p {
+  color: var(--ink-soft);
+}
+.release-payment-splits {
+  padding: 0;
+  list-style: none;
+}
+.release-payment-splits li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.5rem;
+}
+.release-provenance summary {
+  min-height: 44px;
+  padding-block: 0.75rem;
+  cursor: pointer;
+}
+.release-provenance code {
+  overflow-wrap: anywhere;
+}
+.gift-amount-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 1rem;
+}
+.gift-amount-options button {
+  flex: 1;
+  min-height: 44px;
+  padding: 0.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--ink);
+  background: transparent;
+}
+.gift-amount-options button[aria-pressed='true'] {
+  color: var(--action);
+  border-color: var(--action);
+  background: var(--action-soft);
+}
+.gift-destination {
+  margin-block: 1rem;
+}
+.gift-destination summary {
+  min-height: 44px;
+  padding-block: 0.5rem;
+  cursor: pointer;
+}
+.gift-destination code {
+  overflow-wrap: anywhere;
+}

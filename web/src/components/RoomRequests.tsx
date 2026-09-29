@@ -55,7 +55,7 @@ export function RoomRequests() {
         }
       />
 
-      <div className='room-chat-list' aria-live='polite' aria-label='Track requests'>
+      <div className='room-chat-list' role='group' aria-live='polite' aria-label='Track requests'>
         {requestQueue.length === 0 ? (
           <p className='room-chat-empty'>No requests yet. Anyone here can suggest what to play next; the host decides what actually plays.</p>
         ) : (

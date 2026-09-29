@@ -1,7 +1,8 @@
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
+import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
 import { artistDonationsEnabled } from '../features/donations/donationModel';
-import { ArrowLeft, ArrowRight, Play, Radio } from 'lucide-react';
-import { useMemo, type CSSProperties } from 'react';
+import { ArrowLeft, ArrowRight, Info, Play, Radio } from 'lucide-react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { CoverImage } from '../components/CoverImage';
 import { TrackArtworkButton } from '../components/TrackArtworkButton';
 import { catalogAccessAriaLabel, normalizeDisplayText } from '../shared/utils/format';
@@ -57,6 +58,7 @@ export function ArtistProfileView({
   onOpenArtistRoom,
   onJoinRoom
 }: ArtistProfileViewProps) {
+  const [detailsTrack, setDetailsTrack] = useState<CatalogTrack | null>(null);
   const displayArtistName = normalizeDisplayText(artistName);
   const artistTracks = useMemo(() => catalogTracks.filter(track => track.artist === artistName), [artistName, catalogTracks]);
   const liveRooms = useMemo(() => openRooms.filter(room => room.track?.artist === artistName), [artistName, openRooms]);
@@ -136,12 +138,9 @@ export function ArtistProfileView({
                       >
                         {title}
                       </button>
-                      {track.description && (
-                        <details className='release-description'>
-                          <summary>About this release</summary>
-                          <p>{track.description}</p>
-                        </details>
-                      )}
+                      <button className='text-action' type='button' onClick={() => setDetailsTrack(track)}>
+                        <Info size={16} /> About this release
+                      </button>
                     </div>
                   </article>
                 );
@@ -179,6 +178,7 @@ export function ArtistProfileView({
           </section>
         )}
       </div>
+      {detailsTrack && <ReleaseDetailsDialog track={detailsTrack} nativePaymentSymbol={nativePaymentSymbol} onClose={() => setDetailsTrack(null)} />}
     </section>
   );
 }

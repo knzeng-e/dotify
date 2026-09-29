@@ -136,3 +136,20 @@
     transition: none;
   }
 }
+
+.catalogue-card-copy {
+  position: relative;
+  padding-right: 44px;
+}
+.catalogue-details-trigger {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  color: var(--ink-soft);
+}

@@ -363,7 +363,9 @@ test('muted playback cannot satisfy a first-sound measurement', async ({ page })
 
   await page.getByRole('button', { name: /^Play Second room track by Dotify Room Host,/ }).click();
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Listening options', exact: true }).click();
   await page.getByRole('button', { name: 'Mute', exact: true }).click();
+  await page.getByRole('button', { name: 'Close listening options', exact: true }).click();
 
   await page.evaluate(() => window.__DOTIFY_AUDIO_STARTUP__?.clear());
   await page.getByRole('button', { name: 'Play', exact: true }).click();

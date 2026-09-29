@@ -8,6 +8,26 @@ async function openGift(page: Page, query = '') {
 async function giftState(page: Page) {
   return page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__') as { sends: number; confirmed: boolean });
 }
+
+test('player opens a contextual gift with editable suggestions and an explicit destination', async ({ page }, info) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto('/');
+  await page.getByTestId('track-card-open').first().click();
+  await page.getByRole('button', { name: 'Give to the artist', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(page.locator('.artist-profile-view')).toHaveCount(0);
+  await dialog.getByRole('button', { name: '0.5 PAS', exact: true }).click();
+  await expect(page.getByLabel('Gift amount (PAS)')).toHaveValue('0.5');
+  await dialog.getByText('Where your support goes', { exact: true }).click();
+  await expect(dialog).toContainText('registered receiving account');
+  await page.screenshot({ path: info.outputPath('contextual-gift-320.png'), animations: 'disabled' });
+  await page.getByLabel('Gift amount (PAS)').fill('0.3');
+  await page.getByRole('button', { name: 'Review gift', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Confirm gift · 0.3 PAS', exact: true })).toBeVisible();
+  expect((await giftState(page)).sends).toBe(0);
+  await page.getByRole('button', { name: 'Close gift' }).click();
+  await expect(page.getByRole('button', { name: 'Give to the artist', exact: true })).toBeFocused();
+});
 for (const width of [390, 1440]) {
   test(`gift at ${width}px confirms the amount and artist without buying access`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 844 });
@@ -48,6 +68,26 @@ test('an interrupted gift is checked without a second transfer', async ({ page }
   await expect(page.getByRole('heading', { name: 'Gift confirmed' })).toBeVisible();
   expect((await giftState(page)).sends).toBe(1);
 });
+test('a pending gift can close and reopen without cancellation or a second transfer', async ({ page }) => {
+  await openGift(page, '?e2eGift=pending');
+  await page.getByLabel('Gift amount (PAS)').fill('0.1');
+  await page.getByRole('button', { name: 'Review gift', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('closing does not cancel the gift');
+  await page.getByRole('button', { name: 'Close gift' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Give to the artist', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Waiting for the network');
+  expect((await giftState(page)).sends).toBe(1);
+  await page.goBack();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__').complete());
+  await expect.poll(async () => (await giftState(page)).confirmed).toBe(true);
+  await page.getByRole('button', { name: 'Give to the artist', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Gift confirmed' })).toBeVisible();
+  expect((await giftState(page)).sends).toBe(1);
+});
+
 test('invalid amounts and rejected signatures do not show a success receipt', async ({ page }) => {
   await openGift(page, '?e2eGift=reject');
   await page.getByLabel('Gift amount (PAS)').fill('0');

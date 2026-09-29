@@ -92,30 +92,6 @@ export function RoomsView({
         </div>
       </header>
 
-      <section className='room-arrival' aria-label='Join or host a room'>
-        <form className='session-form room-action-form' onSubmit={onJoinSession}>
-          <label htmlFor='room-code-input'>Room code or link</label>
-          <div className='room-action-row'>
-            <input
-              id='room-code-input'
-              className='field code-field room-action-field'
-              value={joinCode}
-              onChange={event => onSetJoinCode(event.target.value)}
-              placeholder='ABC123 or a room link'
-              maxLength={140}
-              autoComplete='off'
-            />
-            <button className='primary-action room-action-submit' type='submit' disabled={sessionAction !== 'idle'}>
-              <Headphones size={17} />
-              {isJoining ? 'Joining…' : 'Join'}
-            </button>
-          </div>
-        </form>
-        <button className='secondary-action' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
-          <Radio size={18} /> Open a room
-        </button>
-      </section>
-
       <section className='rooms-live-section' aria-labelledby='rooms-live-title'>
         <div className='section-heading'>
           <div>
@@ -258,7 +234,7 @@ export function RoomsView({
                   ? 'Refresh when the room signal is back.'
                   : roomListStatus.tone === 'loading'
                     ? 'Looking for people to listen with.'
-                    : 'Open a room above, choose music, and share the link.'}
+                    : 'Choose music, open a room, and share the link.'}
               </p>
             </div>
             {roomSignalUnavailable && (
@@ -274,6 +250,29 @@ export function RoomsView({
             )}
           </div>
         )}
+      </section>
+      <section className='room-arrival' aria-label='Join or host a room'>
+        <form className='session-form room-action-form' onSubmit={onJoinSession}>
+          <label htmlFor='room-code-input'>Room code or link</label>
+          <div className='room-action-row'>
+            <input
+              id='room-code-input'
+              className='field code-field room-action-field'
+              value={joinCode}
+              onChange={event => onSetJoinCode(event.target.value)}
+              placeholder='ABC123 or a room link'
+              maxLength={140}
+              autoComplete='off'
+            />
+            <button className='primary-action room-action-submit' type='submit' disabled={sessionAction !== 'idle'}>
+              <Headphones size={17} />
+              {isJoining ? 'Joining…' : 'Join'}
+            </button>
+          </div>
+        </form>
+        <button className='secondary-action' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
+          <Radio size={18} /> Open a room
+        </button>
       </section>
     </section>
   );

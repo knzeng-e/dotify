@@ -10,6 +10,8 @@ import { formatRoyaltyPercent } from '../../features/artist-studio/releaseForm';
 import type { AccessMode, CatalogTrack, PersonhoodLevel } from '../../shared/types';
 
 type ReleasesTabProps = {
+  mode?: 'releases' | 'rights';
+  onManageRights?: () => void;
   artistTracks: CatalogTrack[];
   selectedReleaseId: string | null;
   onSelectRelease: (releaseId: string) => void;
@@ -28,6 +30,8 @@ function releaseDomId(trackId: string) {
 }
 
 export function ReleasesTab({
+  mode = 'releases',
+  onManageRights,
   artistTracks,
   selectedReleaseId,
   onSelectRelease,
@@ -72,10 +76,15 @@ export function ReleasesTab({
   }
 
   return (
-    <section className='content-grid releases-grid release-console-grid'>
+    <section className='content-grid releases-grid release-console-grid' data-task={mode}>
       <aside className='doc-panel releases-panel release-list-panel'>
         <PanelTitle icon={Library} title='My releases' meta={`${artistTracks.length} releases`} />
-        <div className='release-tabs' role='tablist' aria-label='Published releases'>
+        <div
+          className='release-tabs'
+          role={artistTracks.length ? 'tablist' : undefined}
+          aria-label={artistTracks.length ? 'Published releases' : undefined}
+          aria-orientation={artistTracks.length ? 'vertical' : undefined}
+        >
           {artistTracks.length > 0 ? (
             artistTracks.map(track => {
               const selected = selectedRelease?.id === track.id;
@@ -86,6 +95,7 @@ export function ReleasesTab({
                   className='release-tab'
                   type='button'
                   role='tab'
+                  tabIndex={selected ? 0 : -1}
                   id={tabId}
                   aria-selected={selected}
                   aria-controls='release-detail-panel'
@@ -93,6 +103,20 @@ export function ReleasesTab({
                   data-arrived={track.id === arrivedReleaseId}
                   key={track.id}
                   onClick={() => onSelectRelease(track.id)}
+                  onKeyDown={event => {
+                    if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+                    event.preventDefault();
+                    const index = artistTracks.findIndex(item => item.id === track.id);
+                    const next =
+                      event.key === 'Home'
+                        ? 0
+                        : event.key === 'End'
+                          ? artistTracks.length - 1
+                          : (index + (event.key === 'ArrowDown' ? 1 : -1) + artistTracks.length) % artistTracks.length;
+                    const destination = artistTracks[next];
+                    onSelectRelease(destination.id);
+                    document.getElementById(`release-tab-${releaseDomId(destination.id)}`)?.focus();
+                  }}
                 >
                   <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
                   <span className='release-tab-copy'>
@@ -158,7 +182,12 @@ export function ReleasesTab({
               </div>
               <p className='release-description'>{selectedRelease.description}</p>
               <div className='release-actions release-primary-actions'>
-                <button className='primary-action compact-action' type='button' onClick={() => onOpenTrack(selectedRelease)} disabled={!selectedReleaseActive}>
+                <button
+                  className='secondary-action compact-action'
+                  type='button'
+                  onClick={() => onOpenTrack(selectedRelease)}
+                  disabled={!selectedReleaseActive}
+                >
                   <Play size={15} fill='currentColor' />
                   Open track
                 </button>
@@ -168,133 +197,147 @@ export function ReleasesTab({
                     Artist record
                   </a>
                 )}
-                <button
-                  className='secondary-action compact-action'
-                  type='button'
-                  disabled={isBusy}
-                  onClick={() => onSetReleaseActive(selectedRelease, !selectedReleaseActive)}
-                >
-                  {selectedReleaseActive ? <PowerOff size={15} /> : <Power size={15} />}
-                  {isActiveBusy ? 'Updating' : selectedReleaseActive ? 'Deactivate' : 'Reactivate'}
-                </button>
+                {mode === 'rights' && (
+                  <button
+                    className='secondary-action compact-action'
+                    type='button'
+                    disabled={isBusy}
+                    onClick={() => onSetReleaseActive(selectedRelease, !selectedReleaseActive)}
+                  >
+                    {selectedReleaseActive ? <PowerOff size={15} /> : <Power size={15} />}
+                    {isActiveBusy ? 'Updating' : selectedReleaseActive ? 'Deactivate' : 'Reactivate'}
+                  </button>
+                )}
+                {mode === 'releases' && onManageRights && (
+                  <button className='secondary-action compact-action' type='button' onClick={onManageRights}>
+                    <ShieldCheck size={15} /> Manage rights
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
-          <form className='release-access-editor' onSubmit={handleAccessSubmit}>
-            <label className='release-editor-field'>
-              <span>Access mode</span>
-              <select
-                className='field'
-                value={draftAccessMode}
-                onChange={event => setDraftAccessMode(event.target.value as AccessMode)}
-                disabled={!selectedReleaseActive || isBusy}
-              >
-                <option value='human-free'>Free with human verification</option>
-                <option value='classic'>Direct support</option>
-                <option value='free'>Free</option>
-              </select>
-            </label>
-            <label className='release-editor-field'>
-              <span>Price {nativePaymentSymbol}</span>
-              <input
-                className='field'
-                type='number'
-                min='0'
-                step='0.0001'
-                value={draftPriceDot}
-                onChange={event => setDraftPriceDot(event.target.value)}
-                disabled={draftAccessMode !== 'classic' || !selectedReleaseActive || isBusy}
+          {mode === 'rights' && (
+            <form className='release-access-editor' onSubmit={handleAccessSubmit}>
+              <label className='release-editor-field'>
+                <span>Access mode</span>
+                <select
+                  className='field'
+                  value={draftAccessMode}
+                  onChange={event => setDraftAccessMode(event.target.value as AccessMode)}
+                  disabled={!selectedReleaseActive || isBusy}
+                >
+                  <option value='human-free'>Free with human verification</option>
+                  <option value='classic'>Direct support</option>
+                  <option value='free'>Free</option>
+                </select>
+              </label>
+              <label className='release-editor-field'>
+                <span>Price {nativePaymentSymbol}</span>
+                <input
+                  className='field'
+                  type='number'
+                  min='0'
+                  step='0.0001'
+                  value={draftPriceDot}
+                  onChange={event => setDraftPriceDot(event.target.value)}
+                  disabled={draftAccessMode !== 'classic' || !selectedReleaseActive || isBusy}
+                />
+              </label>
+              <label className='release-editor-field'>
+                <span>Human verification level</span>
+                <select
+                  className='field'
+                  value={draftPersonhoodLevel}
+                  onChange={event => setDraftPersonhoodLevel(event.target.value as PersonhoodLevel)}
+                  disabled={draftAccessMode !== 'human-free' || !selectedReleaseActive || isBusy}
+                >
+                  <option value='DIM1'>Basic verification</option>
+                  <option value='DIM2'>Extended verification</option>
+                </select>
+              </label>
+              <button className='primary-action compact-action' type='submit' disabled={!canSavePolicy}>
+                <Save size={15} />
+                {isAccessBusy ? 'Saving' : 'Save access'}
+              </button>
+            </form>
+          )}
+
+          <details className='studio-technical'>
+            <summary>Release records</summary>
+            <div className='release-detail-grid'>
+              <EndpointRow
+                label='Access'
+                value={
+                  selectedRelease.accessMode === 'classic'
+                    ? `${selectedRelease.priceDot} ${nativePaymentSymbol}`
+                    : selectedRelease.accessMode === 'free'
+                      ? 'Free for everyone'
+                      : selectedRelease.personhoodLevel === 'DIM2'
+                        ? 'Free with extended human verification'
+                        : 'Free with basic human verification'
+                }
               />
-            </label>
-            <label className='release-editor-field'>
-              <span>Human verification level</span>
-              <select
-                className='field'
-                value={draftPersonhoodLevel}
-                onChange={event => setDraftPersonhoodLevel(event.target.value as PersonhoodLevel)}
-                disabled={draftAccessMode !== 'human-free' || !selectedReleaseActive || isBusy}
-              >
-                <option value='DIM1'>Basic verification</option>
-                <option value='DIM2'>Extended verification</option>
-              </select>
-            </label>
-            <button className='primary-action compact-action' type='submit' disabled={!canSavePolicy}>
-              <Save size={15} />
-              {isAccessBusy ? 'Saving' : 'Save access'}
-            </button>
-          </form>
+              <EndpointRow
+                label='Payment split'
+                value={selectedRelease.accessMode === 'free' ? 'Not used for free access' : formatRoyaltyPercent(selectedRelease.royaltyBps)}
+              />
+              <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />
+              <EndpointRow label='Encrypted audio' value={selectedRelease.encrypted ? 'yes' : 'no'} />
+              <EndpointRow label='Status' value={selectedReleaseActive ? 'active' : 'inactive'} />
+              <EndpointRow label='Track NFT' value='Current owner receives active-track access; policy control does not move with the NFT.' />
+              <EndpointRow label='Content hash' value={<code className='release-ref-code'>{selectedRelease.hash}</code>} />
+              <EndpointRow
+                label='Directory runtime'
+                value={
+                  runtimeAddress ? (
+                    <a className='verify-link' href={getBlockscoutAddressUrl(runtimeAddress)} target='_blank' rel='noreferrer'>
+                      {shorten(runtimeAddress, 12)}
+                    </a>
+                  ) : (
+                    'not indexed'
+                  )
+                }
+              />
+              <EndpointRow
+                label='Original artist'
+                value={
+                  selectedRelease.artistAddress ? (
+                    <a className='verify-link' href={getBlockscoutAddressUrl(selectedRelease.artistAddress)} target='_blank' rel='noreferrer'>
+                      {shorten(selectedRelease.artistAddress, 12)}
+                    </a>
+                  ) : (
+                    'not indexed'
+                  )
+                }
+              />
+              <EndpointRow label='Release record' value={<code className='release-ref-code'>{selectedRelease.metadataRef || 'not published'}</code>} />
+              <EndpointRow label='Audio ref' value={<code className='release-ref-code'>{selectedRelease.audioRef || 'not published'}</code>} />
+            </div>
+          </details>
 
-          <div className='release-detail-grid'>
-            <EndpointRow
-              label='Access'
-              value={
-                selectedRelease.accessMode === 'classic'
-                  ? `${selectedRelease.priceDot} ${nativePaymentSymbol}`
-                  : selectedRelease.accessMode === 'free'
-                    ? 'Free for everyone'
-                    : selectedRelease.personhoodLevel === 'DIM2'
-                      ? 'Free with extended human verification'
-                      : 'Free with basic human verification'
-              }
-            />
-            <EndpointRow
-              label='Payment split'
-              value={selectedRelease.accessMode === 'free' ? 'Not used for free access' : formatRoyaltyPercent(selectedRelease.royaltyBps)}
-            />
-            <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />
-            <EndpointRow label='Encrypted audio' value={selectedRelease.encrypted ? 'yes' : 'no'} />
-            <EndpointRow label='Status' value={selectedReleaseActive ? 'active' : 'inactive'} />
-            <EndpointRow label='Track NFT' value='Current owner receives active-track access; policy control does not move with the NFT.' />
-            <EndpointRow label='Content hash' value={<code className='release-ref-code'>{selectedRelease.hash}</code>} />
-            <EndpointRow
-              label='Directory runtime'
-              value={
-                runtimeAddress ? (
-                  <a className='verify-link' href={getBlockscoutAddressUrl(runtimeAddress)} target='_blank' rel='noreferrer'>
-                    {shorten(runtimeAddress, 12)}
-                  </a>
-                ) : (
-                  'not indexed'
-                )
-              }
-            />
-            <EndpointRow
-              label='Original artist'
-              value={
-                selectedRelease.artistAddress ? (
-                  <a className='verify-link' href={getBlockscoutAddressUrl(selectedRelease.artistAddress)} target='_blank' rel='noreferrer'>
-                    {shorten(selectedRelease.artistAddress, 12)}
-                  </a>
-                ) : (
-                  'not indexed'
-                )
-              }
-            />
-            <EndpointRow label='Release record' value={<code className='release-ref-code'>{selectedRelease.metadataRef || 'not published'}</code>} />
-            <EndpointRow label='Audio ref' value={<code className='release-ref-code'>{selectedRelease.audioRef || 'not published'}</code>} />
-          </div>
-
-          <div className='release-splits'>
-            <strong>Payment splits</strong>
-            <p className='release-split-note'>
-              Existing releases keep their current payment split. Updating it requires a runtime method that is not exposed by the current contracts.
-            </p>
-            {selectedRelease.royaltySplits.length > 0 ? (
-              selectedRelease.royaltySplits.map(split => (
-                <div className='release-split-row' key={`${selectedRelease.id}-${split.recipient}-${split.bps}`}>
-                  <span>
-                    {split.label} / {formatRoyaltyPercent(split.bps)}
-                  </span>
-                  <a className='verify-link' href={getBlockscoutAddressUrl(split.recipient)} target='_blank' rel='noreferrer'>
-                    {shorten(split.recipient, 12)}
-                  </a>
-                </div>
-              ))
-            ) : (
-              <span>No payment splits indexed yet.</span>
-            )}
-          </div>
+          {mode === 'rights' && (
+            <div className='release-splits'>
+              <strong>Payment splits</strong>
+              <p className='release-split-note'>
+                Existing releases keep their current payment split. Updating it requires a runtime method that is not exposed by the current contracts.
+              </p>
+              {selectedRelease.royaltySplits.length > 0 ? (
+                selectedRelease.royaltySplits.map(split => (
+                  <div className='release-split-row' key={`${selectedRelease.id}-${split.recipient}-${split.bps}`}>
+                    <span>
+                      {split.label} / {formatRoyaltyPercent(split.bps)}
+                    </span>
+                    <a className='verify-link' href={getBlockscoutAddressUrl(split.recipient)} target='_blank' rel='noreferrer'>
+                      {shorten(split.recipient, 12)}
+                    </a>
+                  </div>
+                ))
+              ) : (
+                <span>No payment splits indexed yet.</span>
+              )}
+            </div>
+          )}
         </article>
       )}
     </section>

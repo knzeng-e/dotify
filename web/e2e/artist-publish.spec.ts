@@ -64,12 +64,13 @@ async function createArtistProfile(page: Page, scenario = 'happy') {
   await page.getByTestId('create-artist-profile').click();
   await expect(page.getByRole('dialog')).toContainText('Artist registered');
   await page.getByRole('button', { name: 'Close', exact: true }).click();
-  await expect(page.getByRole('tab', { name: /New Release/i })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Releases', exact: true })).toBeVisible();
 }
 
 async function completeReleaseDraft(page: Page, options: { royaltySharePercent?: string } = {}) {
   const royaltySharePercent = options.royaltySharePercent ?? E2E_ARTIST_SHARE_PERCENT;
-  await page.getByRole('tab', { name: /New Release/i }).click();
+  await page.getByRole('tab', { name: 'Releases', exact: true }).click();
+  await page.getByRole('button', { name: 'New release', exact: true }).click();
   await page.getByTestId('artist-audio-input').setInputFiles(audioFixture);
   await expect(page.getByText('Audio ready', { exact: true })).toBeVisible();
   await page.getByTestId('artist-cover-input').setInputFiles(coverFixture);
@@ -102,7 +103,7 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   }
 }
 
-test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }) => {
+test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }, info) => {
   await createArtistProfile(page);
   await completeReleaseDraft(page);
 
@@ -120,6 +121,17 @@ test('artist can create a runtime, publish a release, and see it in the listener
   expect(publishState?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 1 });
   expect(publishState?.devAccountFallbackUsed).toBe(false);
 
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('tab', { name: 'Releases', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Save access', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Manage rights', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Rights', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('button', { name: 'Save access', exact: true })).toBeDisabled();
+  await page.getByRole('combobox', { name: 'Access mode', exact: true }).selectOption('free');
+  await expect(page.getByRole('button', { name: 'Save access', exact: true })).toBeEnabled();
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+  await page.screenshot({ path: info.outputPath('studio-rights.png'), animations: 'disabled', fullPage: true });
+
   await page.goto('/');
   const publishedCard = page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' });
   await expect(publishedCard).toContainText('E2E Artist');
@@ -129,7 +141,8 @@ test('artist can create a runtime, publish a release, and see it in the listener
   const release = page.locator('.artist-release-card').filter({ hasText: 'E2E Published Signal' });
   await release.getByText('About this release', { exact: true }).click();
   await expect(release).not.toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
-  await expect(release).toContainText('A deterministic artist publish e2e release.');
+  await expect(page.getByRole('dialog', { name: 'About this release' })).toContainText('A deterministic artist publish e2e release.');
+  await page.getByRole('button', { name: 'Close release details' }).click();
   await expect(release.getByRole('button', { name: /Open E2E Published Signal by E2E Artist/ })).toHaveAccessibleName(
     new RegExp(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`)
   );
@@ -265,12 +278,61 @@ test('artist publish does not accept a same-hash track from another runtime as v
   expect(state?.tracks.some(track => track.id.toLowerCase().startsWith(`${E2E_ARTIST_RUNTIME}:`))).toBe(false);
 });
 
-test('new artist mobile overview presents one clear next step and scrollable tabs', async ({ page }) => {
+test('new artist mobile overview presents one next step and four keyboard-accessible tasks', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await createArtistProfile(page);
 
   await expect(page.locator('.studio-next-label')).toHaveText('Your next step');
   await expect(page.getByRole('button', { name: 'Start your first release' })).toHaveCount(1);
-  await expect(page.getByText('Swipe for more →')).toBeVisible();
+  const tasks = page.getByRole('tablist', { name: 'Artist workspace' });
+  await expect(tasks.getByRole('tab')).toHaveText(['Overview', 'Releases', 'Earnings', 'Rights']);
+  await tasks.getByRole('tab', { name: 'Overview', exact: true }).press('End');
+  await expect(tasks.getByRole('tab', { name: 'Rights', exact: true })).toBeFocused();
+  await expect(page.getByText('Technical records', { exact: true })).toBeVisible();
+  await expect(page.locator('.studio-technical')).not.toHaveAttribute('open', '');
+  await tasks.getByRole('tab', { name: 'Rights', exact: true }).press('Home');
+  await expect(tasks.getByRole('tab', { name: 'Overview', exact: true })).toBeFocused();
   await expect(page.locator('.studio-metric')).toHaveCount(0);
 });
+
+for (const width of [320, 390, 430, 1440]) {
+  test(`artist task navigation remains reachable at ${width}px and enlarged text`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await createArtistProfile(page);
+    const tasks = page.getByRole('tablist', { name: 'Artist workspace' });
+    for (const name of ['Overview', 'Releases', 'Earnings', 'Rights']) {
+      const tab = tasks.getByRole('tab', { name, exact: true });
+      await tab.click();
+      await expect(tab).toHaveAttribute('aria-selected', 'true');
+      expect((await tab.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      if (name === 'Overview' || name === 'Earnings') {
+        const summary = page.getByText(name === 'Overview' ? 'Access and support choices' : 'How unsettled support is recovered', { exact: true });
+        const disclosure = summary.locator('..');
+        await expect(disclosure).not.toHaveAttribute('open', '');
+        await summary.click();
+        await expect(disclosure).toHaveAttribute('open', '');
+        await summary.click();
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: info.outputPath(`${width}-studio-${name}.png`), animations: 'disabled', fullPage: true });
+    }
+    await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+    for (const name of ['Overview', 'Releases', 'Earnings', 'Rights']) {
+      const tab = tasks.getByRole('tab', { name, exact: true });
+      await tab.click();
+      await expect(tab).toHaveAttribute('aria-selected', 'true');
+      await page.screenshot({ path: info.outputPath(`${width}-studio-200-${name}.png`), animations: 'disabled', fullPage: true });
+      const overflow = await page.evaluate(() => ({
+        width: document.documentElement.scrollWidth,
+        elements: Array.from(document.querySelectorAll('body *'))
+          .flatMap(element => {
+            const r = element.getBoundingClientRect();
+            return r.width && r.right > innerWidth + 1 ? [{ tag: element.tagName, class: element.className, right: r.right }] : [];
+          })
+          .slice(-12)
+      }));
+      expect(overflow.width, JSON.stringify(overflow.elements)).toBeLessThanOrEqual(width);
+    }
+    await page.screenshot({ path: info.outputPath(`${width}-studio-200.png`), animations: 'disabled', fullPage: true });
+  });
+}

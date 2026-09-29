@@ -12,6 +12,7 @@
 // remoteAudioRef.current.srcObject - both refs are stable here.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { rememberRecentPlay } from '../features/catalog/discoveryShelves';
 import { isRoomJoinE2eContext, roomJoinE2eAutoplayEnabled } from '../e2e/roomJoinMock';
 import { publishHostAudioStartupMetric, type HostAudioTerminalReason } from '../features/catalog/audioStartupTelemetry';
 import type { CatalogTrack, Mode, PlayerState, RoomLineupItem } from '../shared/types';
@@ -98,6 +99,8 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const [muted, setMutedState] = useState(false);
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [shuffleEnabled, setShuffleEnabled] = useState(false);
+  const [recentTrackIds, setRecentTrackIds] = useState<string[]>([]);
+  const clearRecentPlays = useCallback(() => setRecentTrackIds([]), []);
   const [remotePausedByUser, setRemotePausedByUser] = useState(false);
 
   const roomClock = useRoomClock(playerState, mode === 'listener' && remoteReady);
@@ -608,6 +611,9 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const handleHostPlaying = useCallback(
     (audio: HTMLAudioElement) => {
       const startup = startupForAudio(audio);
+      // Discovery history means actual media playback, not selection/readiness.
+      // It stays in memory and never changes previous/next transport history.
+      if (startup && !startup.errorReported && !audio.paused) setRecentTrackIds(history => rememberRecentPlay(history, selectedTrackIdRef.current));
       if (startup) onHostMediaSettled(startup.source, true, startup.attemptId);
       syncFromAudio(audio);
       if (!startup || startup.mediaPlayingReported || startup.errorReported) return;
@@ -655,6 +661,8 @@ export function usePlayback(deps: UsePlaybackDeps) {
     muted,
     repeatEnabled,
     shuffleEnabled,
+    recentTrackIds,
+    clearRecentPlays,
     lineup,
     nextTrackId: queuedTracks[0]?.id ?? neighbors.nextId,
     // capability flags

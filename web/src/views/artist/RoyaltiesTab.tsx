@@ -1,4 +1,4 @@
-import { ChevronDown, CircleCheckBig, Disc3, RefreshCw, Wallet } from 'lucide-react';
+import { ChevronDown, Disc3, RefreshCw, Wallet } from 'lucide-react';
 import { PanelTitle } from '../../shared/ui/PanelTitle';
 import { EndpointRow } from '../../shared/ui/EndpointRow';
 import { Metric } from '../../shared/ui/Metric';
@@ -108,7 +108,7 @@ export function RoyaltiesTab({
         </div>
 
         {royaltyRuntimeSummaries.length > 0 && (
-          <div className='royalty-runtime-list' aria-label='Royalty runtime balances'>
+          <div className='royalty-runtime-list' role='group' aria-label='Royalty runtime balances'>
             {royaltyRuntimeSummaries.map(summary => (
               <div className='royalty-runtime-row' key={summary.runtimeAddress}>
                 <div>
@@ -239,8 +239,8 @@ export function RoyaltiesTab({
         </div>
       </div>
 
-      <div className='doc-panel royalties-context-panel'>
-        <PanelTitle icon={CircleCheckBig} title='Settlement fallback' meta='artist control' />
+      <details className='studio-technical royalties-context-panel'>
+        <summary>How unsettled support is recovered</summary>
         <div className='principle-list'>
           <div>
             <strong>Recipient isolation</strong>
@@ -255,7 +255,7 @@ export function RoyaltiesTab({
             <span>Settled and claimable amounts are separate receipts, each linked back to Blockscout.</span>
           </div>
         </div>
-      </div>
+      </details>
     </section>
   );
 }

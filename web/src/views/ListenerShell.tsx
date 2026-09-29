@@ -304,6 +304,8 @@ export function ListenerShell() {
               <>
                 {activeView === 'listen' && (
                   <ListenView
+                    recentTrackIds={playback.recentTrackIds}
+                    onClearRecent={playback.clearRecentPlays}
                     catalogTracks={catalog.catalogTracks}
                     catalogStatus={catalog.catalogStatus}
                     openRooms={session.openRooms}
@@ -439,6 +441,7 @@ export function ListenerShell() {
             roomId={session.roomId}
             hostName={session.hostName}
             listenerCount={session.listenerCount}
+            listeners={session.listeners}
             socketStatus={session.socketStatus}
             locked={Boolean(
               !isRoomGuest && selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true

@@ -25,6 +25,7 @@ import { NewReleaseTab } from './NewReleaseTab';
 import { ReleasesTab } from './ReleasesTab';
 import { RoyaltiesTab } from './RoyaltiesTab';
 import { AdvancedTab } from './AdvancedTab';
+import { Plus } from 'lucide-react';
 
 function nextRoyaltySplitId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -33,12 +34,11 @@ function nextRoyaltySplitId() {
   return `split-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-const artistTabs: Array<{ id: ArtistTab; label: string; description: string }> = [
-  { id: 'overview', label: 'Home', description: 'Your next step' },
-  { id: 'new', label: 'New release', description: 'Prepare and publish' },
-  { id: 'releases', label: 'Music', description: 'Published releases' },
-  { id: 'royalties', label: 'Support', description: 'Payments and balances' },
-  { id: 'advanced', label: 'Advanced', description: 'Technical records' }
+const artistTabs: Array<{ id: ArtistTab; label: string }> = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'releases', label: 'Releases' },
+  { id: 'royalties', label: 'Earnings' },
+  { id: 'rights', label: 'Rights' }
 ];
 
 // The console reads the release draft, wallet, catalog, artist studio, and
@@ -85,6 +85,7 @@ export function ArtistConsole() {
 
   // Bind the names the render body + subtabs read.
   const onSetArtistTab = setArtistTab;
+  const currentSection = artistTab === 'new' ? 'releases' : artistTab === 'advanced' ? 'rights' : artistTab;
   const artistRuntimeAddress = artistConsole.artistRuntimeAddress;
   const artistRegistrationStatus = artistConsole.artistRegistrationStatus;
   const isRegisteringArtist = artistConsole.isRegisteringArtist;
@@ -314,6 +315,13 @@ export function ArtistConsole() {
         </div>
       )}
 
+      {artistTab === 'releases' && (
+        <div className='studio-task-action'>
+          <button className='primary-action' type='button' onClick={() => onSetArtistTab('new')} disabled={artistStudioLocked}>
+            <Plus size={18} /> New release
+          </button>
+        </div>
+      )}
       <div className='console-tabs-shell'>
         <div className='console-tabs' role='tablist' aria-label='Artist workspace'>
           {artistTabs.map(tab => (
@@ -321,141 +329,163 @@ export function ArtistConsole() {
               key={tab.id}
               type='button'
               role='tab'
-              aria-selected={artistTab === tab.id}
-              data-active={artistTab === tab.id}
+              id={`artist-tab-${tab.id}`}
+              aria-controls='artist-task-panel'
+              aria-selected={currentSection === tab.id}
+              tabIndex={currentSection === tab.id ? 0 : -1}
+              data-active={currentSection === tab.id}
               onClick={() => onSetArtistTab(tab.id)}
+              onKeyDown={event => {
+                const index = artistTabs.findIndex(item => item.id === tab.id);
+                const next =
+                  event.key === 'ArrowRight'
+                    ? (index + 1) % artistTabs.length
+                    : event.key === 'ArrowLeft'
+                      ? (index + artistTabs.length - 1) % artistTabs.length
+                      : event.key === 'Home'
+                        ? 0
+                        : event.key === 'End'
+                          ? artistTabs.length - 1
+                          : -1;
+                if (next < 0) return;
+                event.preventDefault();
+                onSetArtistTab(artistTabs[next].id);
+                document.getElementById(`artist-tab-${artistTabs[next].id}`)?.focus();
+              }}
             >
               <strong>{tab.label}</strong>
-              <span>{tab.description}</span>
             </button>
           ))}
         </div>
-        <span className='console-tabs-hint' aria-hidden='true'>
-          Swipe for more →
-        </span>
       </div>
+      <div id='artist-task-panel' role='tabpanel' aria-labelledby={`artist-tab-${currentSection}`}>
+        {artistTab === 'overview' && (
+          <OverviewTab
+            artistName={artistName}
+            activeEvmAddress={activeEvmAddress}
+            artistRuntimeAddress={artistRuntimeAddress}
+            artistRegistrationStatus={artistRegistrationStatus}
+            isRegisteringArtist={isRegisteringArtist}
+            isRefreshingArtistRuntime={isRefreshingArtistRuntime}
+            artistRegistrationAvailable={artistRegistrationAvailable}
+            artistTracks={artistTracks}
+            nativePaymentSymbol={nativePaymentSymbol}
+            connectedWallet={connectedWallet}
+            royaltyPayments={royaltyPayments}
+            totalRoyaltyWei={totalRoyaltyWei}
+            uniqueRoyaltyListeners={uniqueRoyaltyListeners}
+            onUpdateArtistName={onUpdateArtistName}
+            onRegisterArtist={onRegisterArtist}
+            onRefreshArtistRuntime={onRefreshArtistRuntime}
+            onSetArtistTab={onSetArtistTab}
+            onShowWalletModal={onShowWalletModal}
+            onOpenRelease={openReleaseDetails}
+          />
+        )}
 
-      {artistTab === 'overview' && (
-        <OverviewTab
-          artistName={artistName}
-          activeEvmAddress={activeEvmAddress}
-          artistRuntimeAddress={artistRuntimeAddress}
-          artistRegistrationStatus={artistRegistrationStatus}
-          isRegisteringArtist={isRegisteringArtist}
-          isRefreshingArtistRuntime={isRefreshingArtistRuntime}
-          artistRegistrationAvailable={artistRegistrationAvailable}
-          artistTracks={artistTracks}
-          nativePaymentSymbol={nativePaymentSymbol}
-          connectedWallet={connectedWallet}
-          royaltyPayments={royaltyPayments}
-          totalRoyaltyWei={totalRoyaltyWei}
-          uniqueRoyaltyListeners={uniqueRoyaltyListeners}
-          onUpdateArtistName={onUpdateArtistName}
-          onRegisterArtist={onRegisterArtist}
-          onRefreshArtistRuntime={onRefreshArtistRuntime}
-          onSetArtistTab={onSetArtistTab}
-          onShowWalletModal={onShowWalletModal}
-          onOpenRelease={openReleaseDetails}
-        />
-      )}
+        {artistTab === 'new' && (
+          <NewReleaseTab
+            releaseStep={releaseStep}
+            artistStudioLocked={artistStudioLocked}
+            publicationQuarantined={artistPublicationQuarantined}
+            assetAction={assetAction}
+            audioSource={audioSource}
+            fileHash={fileHash}
+            coverSource={coverSource}
+            coverCID={coverCID}
+            title={title}
+            description={description}
+            accessMode={accessMode}
+            personhoodLevel={personhoodLevel}
+            priceDot={priceDot}
+            nativePaymentSymbol={nativePaymentSymbol}
+            royaltyBps={royaltyBps}
+            additionalRoyaltySplits={additionalRoyaltySplits}
+            uploadToBulletinEnabled={uploadToBulletinEnabled}
+            rightsStatus={rightsStatus}
+            isRegistering={isRegistering}
+            canReviewRelease={canReviewRelease}
+            artistName={artistName}
+            connectedWallet={connectedWallet}
+            activeEvmAddress={activeEvmAddress}
+            artistRuntimeAddress={artistRuntimeAddress}
+            activeSubstrateAddress={activeSubstrateAddress}
+            bulletinAccountIndex={bulletinAccountIndex}
+            onSetReleaseStep={onSetReleaseStep}
+            onGoToPreviousStep={onGoToPreviousStep}
+            onGoToNextStep={onGoToNextStep}
+            onHandleAudioFile={onHandleAudioFile}
+            onHandleCoverFile={onHandleCoverFile}
+            onSetTitle={onSetTitle}
+            onSetDescription={onSetDescription}
+            onSetAccessMode={onSetAccessMode}
+            onSetPersonhoodLevel={onSetPersonhoodLevel}
+            onSetPriceDot={onSetPriceDot}
+            onSetRoyaltyBps={onSetRoyaltyBps}
+            onAddRoyaltySplit={onAddRoyaltySplit}
+            onUpdateRoyaltySplit={onUpdateRoyaltySplit}
+            onRemoveRoyaltySplit={onRemoveRoyaltySplit}
+            onSetUploadToBulletinEnabled={onSetUploadToBulletinEnabled}
+            onSetBulletinAccountIndex={onSetBulletinAccountIndex}
+            onRegisterRights={onRegisterRights}
+          />
+        )}
 
-      {artistTab === 'new' && (
-        <NewReleaseTab
-          releaseStep={releaseStep}
-          artistStudioLocked={artistStudioLocked}
-          publicationQuarantined={artistPublicationQuarantined}
-          assetAction={assetAction}
-          audioSource={audioSource}
-          fileHash={fileHash}
-          coverSource={coverSource}
-          coverCID={coverCID}
-          title={title}
-          description={description}
-          accessMode={accessMode}
-          personhoodLevel={personhoodLevel}
-          priceDot={priceDot}
-          nativePaymentSymbol={nativePaymentSymbol}
-          royaltyBps={royaltyBps}
-          additionalRoyaltySplits={additionalRoyaltySplits}
-          uploadToBulletinEnabled={uploadToBulletinEnabled}
-          rightsStatus={rightsStatus}
-          isRegistering={isRegistering}
-          canReviewRelease={canReviewRelease}
-          artistName={artistName}
-          connectedWallet={connectedWallet}
-          activeEvmAddress={activeEvmAddress}
-          artistRuntimeAddress={artistRuntimeAddress}
-          activeSubstrateAddress={activeSubstrateAddress}
-          bulletinAccountIndex={bulletinAccountIndex}
-          onSetReleaseStep={onSetReleaseStep}
-          onGoToPreviousStep={onGoToPreviousStep}
-          onGoToNextStep={onGoToNextStep}
-          onHandleAudioFile={onHandleAudioFile}
-          onHandleCoverFile={onHandleCoverFile}
-          onSetTitle={onSetTitle}
-          onSetDescription={onSetDescription}
-          onSetAccessMode={onSetAccessMode}
-          onSetPersonhoodLevel={onSetPersonhoodLevel}
-          onSetPriceDot={onSetPriceDot}
-          onSetRoyaltyBps={onSetRoyaltyBps}
-          onAddRoyaltySplit={onAddRoyaltySplit}
-          onUpdateRoyaltySplit={onUpdateRoyaltySplit}
-          onRemoveRoyaltySplit={onRemoveRoyaltySplit}
-          onSetUploadToBulletinEnabled={onSetUploadToBulletinEnabled}
-          onSetBulletinAccountIndex={onSetBulletinAccountIndex}
-          onRegisterRights={onRegisterRights}
-        />
-      )}
+        {(artistTab === 'releases' || artistTab === 'rights') && (
+          <ReleasesTab
+            mode={artistTab === 'rights' ? 'rights' : 'releases'}
+            onManageRights={() => onSetArtistTab('rights')}
+            artistTracks={artistTracks}
+            selectedReleaseId={selectedReleaseId}
+            onSelectRelease={setSelectedReleaseId}
+            onOpenTrack={onOpenTrack}
+            onUpdateReleaseAccessMode={onUpdateReleaseAccessMode}
+            onSetReleaseActive={onSetReleaseActive}
+            releaseActionId={artistConsole.releaseActionId}
+            arrivedReleaseId={arrivedReleaseId}
+            nativePaymentSymbol={nativePaymentSymbol}
+          />
+        )}
 
-      {artistTab === 'releases' && (
-        <ReleasesTab
-          artistTracks={artistTracks}
-          selectedReleaseId={selectedReleaseId}
-          onSelectRelease={setSelectedReleaseId}
-          onOpenTrack={onOpenTrack}
-          onUpdateReleaseAccessMode={onUpdateReleaseAccessMode}
-          onSetReleaseActive={onSetReleaseActive}
-          releaseActionId={artistConsole.releaseActionId}
-          arrivedReleaseId={arrivedReleaseId}
-          nativePaymentSymbol={nativePaymentSymbol}
-        />
-      )}
+        {artistTab === 'royalties' && (
+          <RoyaltiesTab
+            royaltyPayments={royaltyPayments}
+            royaltyStatus={royaltyStatus}
+            isRefreshingRoyalties={isRefreshingRoyalties}
+            claimableRoyaltyWei={artistConsole.claimableRoyaltyWei}
+            royaltyRuntimeSummaries={artistConsole.royaltyRuntimeSummaries}
+            isClaimingRoyalties={artistConsole.isClaimingRoyalties}
+            artistRuntimeAddress={artistRuntimeAddress}
+            expandedRoyaltyPaymentId={expandedRoyaltyPaymentId}
+            totalRoyaltyWei={totalRoyaltyWei}
+            uniqueRoyaltyListeners={uniqueRoyaltyListeners}
+            paidRoyaltyTracks={paidRoyaltyTracks}
+            nativePaymentSymbol={nativePaymentSymbol}
+            onSetExpandedRoyaltyPaymentId={onSetExpandedRoyaltyPaymentId}
+            onRefreshRoyalties={onRefreshRoyalties}
+            onClaimRoyalties={artistConsole.claimRoyalties}
+          />
+        )}
 
-      {artistTab === 'royalties' && (
-        <RoyaltiesTab
-          royaltyPayments={royaltyPayments}
-          royaltyStatus={royaltyStatus}
-          isRefreshingRoyalties={isRefreshingRoyalties}
-          claimableRoyaltyWei={artistConsole.claimableRoyaltyWei}
-          royaltyRuntimeSummaries={artistConsole.royaltyRuntimeSummaries}
-          isClaimingRoyalties={artistConsole.isClaimingRoyalties}
-          artistRuntimeAddress={artistRuntimeAddress}
-          expandedRoyaltyPaymentId={expandedRoyaltyPaymentId}
-          totalRoyaltyWei={totalRoyaltyWei}
-          uniqueRoyaltyListeners={uniqueRoyaltyListeners}
-          paidRoyaltyTracks={paidRoyaltyTracks}
-          nativePaymentSymbol={nativePaymentSymbol}
-          onSetExpandedRoyaltyPaymentId={onSetExpandedRoyaltyPaymentId}
-          onRefreshRoyalties={onRefreshRoyalties}
-          onClaimRoyalties={artistConsole.claimRoyalties}
-        />
-      )}
-
-      {artistTab === 'advanced' && (
-        <AdvancedTab
-          factoryAddress={factoryAddress}
-          directoryAddress={directoryAddress}
-          activeEvmAddress={activeEvmAddress}
-          artistRuntimeAddress={artistRuntimeAddress}
-          fileHash={fileHash}
-          audioCID={audioCID}
-          coverCID={coverCID}
-          bulletinManifestRef={bulletinManifestRef}
-          trackInfo={trackInfo}
-          uploadToBulletinEnabled={uploadToBulletinEnabled}
-          activeSubstrateAddress={activeSubstrateAddress}
-        />
-      )}
+        {(artistTab === 'advanced' || artistTab === 'rights') && (
+          <details className='studio-technical' open={artistTab === 'advanced' || undefined}>
+            <summary>Technical records</summary>
+            <AdvancedTab
+              factoryAddress={factoryAddress}
+              directoryAddress={directoryAddress}
+              activeEvmAddress={activeEvmAddress}
+              artistRuntimeAddress={artistRuntimeAddress}
+              fileHash={fileHash}
+              audioCID={audioCID}
+              coverCID={coverCID}
+              bulletinManifestRef={bulletinManifestRef}
+              trackInfo={trackInfo}
+              uploadToBulletinEnabled={uploadToBulletinEnabled}
+              activeSubstrateAddress={activeSubstrateAddress}
+            />
+          </details>
+        )}
+      </div>
     </section>
   );
 }

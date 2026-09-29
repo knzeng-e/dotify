@@ -168,7 +168,8 @@ for (const [width, height] of sizes) {
       const composerBounds = (await composer.boundingBox())!;
       const bottomNav = await guest.locator('.bottom-nav').boundingBox();
       expect(composerBounds.y).toBeGreaterThanOrEqual(0);
-      expect(composerBounds.y + composerBounds.height).toBeLessThanOrEqual(bottomNav?.height ? bottomNav.y : height);
+      // Scrolling into view rounds to device pixels; DOM rectangles retain fractions.
+      expect(composerBounds.y + composerBounds.height).toBeLessThanOrEqual((bottomNav?.height ? bottomNav.y : height) + 1);
       await expect.poll(() => guest.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await capture(guest, info, 'room-200-text');
       await enlarged.evaluate(element => element.remove());
@@ -237,4 +238,99 @@ test('solo queue uses the existing access check and never pays on selection', as
   await expect(page.getByTestId('locked-player-state')).toBeVisible();
   await expect(page.getByTestId('access-warning')).toHaveCount(0);
   expect(await page.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
+});
+
+test('release details disclose access without opening audio or requesting a payment', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto(fixture);
+  const trigger = page.getByRole('button', { name: 'About E2E Protected Room Track', exact: true });
+  await trigger.focus();
+  await trigger.press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'About this release', exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('plus network fees');
+  await expect(dialog).toContainText('does not transfer copyright');
+  await expect(dialog.locator('details')).not.toHaveAttribute('open', '');
+  await page.screenshot({ path: testInfo.outputPath('release-details.png'), animations: 'disabled' });
+  await dialog.locator('summary').click();
+  await expect(dialog).toContainText('Content hash');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(page.locator('.player-stage')).toHaveCount(0);
+  await expect(page.getByTestId('access-warning')).toHaveCount(0);
+  expect(await page.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
+test('browser Back dismisses contextual sheets without leaving or stopping the player', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(fixture);
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
+  for (const name of ['About this release', 'Queue', 'Listening options']) {
+    const trigger = page.getByRole('button', { name, exact: true });
+    await trigger.focus();
+    await trigger.press('Enter');
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.goBack();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(page.locator('.transport-play')).toHaveAttribute('aria-label', 'Pause');
+    await expect(page.locator('.track-copy h2')).toHaveText('E2E Public Room Track');
+  }
+  await page.getByRole('button', { name: 'Queue', exact: true }).click();
+  await page.getByRole('button', { name: 'Close queue', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => history.state.dotifySheet)).toBeUndefined();
+  await page.goBack();
+  await expect(page.getByRole('region', { name: 'Music catalog' })).toBeVisible();
+});
+
+test('replacing room sharing with the projected QR adds only one Back step', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(fixture);
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
+  await page.getByRole('button', { name: 'Open room', exact: true }).click();
+  await page.getByLabel('Your name in the room').fill('Sheet test host');
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  const code = page.getByTestId('room-code');
+  await expect(code).toHaveText(/[A-Z0-9]{4,}/);
+  const original = await code.textContent();
+  await page.getByRole('button', { name: 'Share room', exact: true }).click();
+  const length = await page.evaluate(() => history.length);
+  await page.getByRole('button', { name: 'Show QR', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Scan to join' })).toBeVisible();
+  expect(await page.evaluate(() => history.length)).toBe(length);
+  await page.goBack();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(code).toHaveText(original!);
+  await expect(page.locator('.transport-play')).toHaveAttribute('aria-label', 'Pause');
+});
+
+test('recent listening requires playback, remains session-local and can be cleared', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?e2eRoom=public&e2eSync=on&e2eCatalog=sequence');
+  await expect(page.getByRole('region', { name: 'Recent listening', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /^Open E2E Public Room Track by/ }).click();
+  await expect(page.locator('.transport-play')).toHaveAttribute('aria-label', 'Play');
+  await nav(page, 'Music');
+  await expect(page.getByRole('region', { name: 'Recent listening', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
+  await expect(page.locator('.transport-play')).toHaveAttribute('aria-label', 'Pause');
+  await nav(page, 'Music');
+  const recent = page.getByRole('region', { name: 'Recent listening', exact: true });
+  await expect(recent.getByRole('button', { name: /^Replay E2E Public Room Track/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Clear recent listening' }).click();
+  await expect(recent).toHaveCount(0);
+  await page.reload();
+  await expect(recent).toHaveCount(0);
+});
+
+test('active cover provides the tint without changing interface text colors', async ({ page }) => {
+  await page.goto(fixture);
+  const ink = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ink'));
+  await page.getByRole('button', { name: /^Open E2E Public Room Track by/ }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-aura-source', 'cover');
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ink'))).toBe(ink);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('.aura-bg')).toHaveCSS('animation-name', 'none');
 });

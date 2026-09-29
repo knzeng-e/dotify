@@ -73,7 +73,7 @@ for (const width of [320, 390, 430, 1440]) {
       await expect(guest.locator('#room-panel-chat .room-chat-panel')).toContainText('2 here');
       await navigate(host, 'Music', 1440);
       await expect(host.locator('.player-dock-room')).toContainText('Hosting live');
-      await expect(host.locator('.player-dock-presence')).toHaveText('2');
+      await expect(host.locator('.player-dock-count')).toHaveText('2 here');
       await expect(host.locator('.player-dock').getByRole('button', { name: 'Next track', exact: true })).toBeEnabled();
       await host.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
       await expect(guest.locator('.track-copy h2')).toHaveText('E2E Public Room Track');
@@ -81,7 +81,7 @@ for (const width of [320, 390, 430, 1440]) {
       await guest.getByRole('button', { name: 'Leave', exact: true }).click();
       await expect(guest.locator('.track-copy h2')).toHaveText('Second room track');
       await navigate(host, 'Music', 1440);
-      await expect(host.locator('.player-dock-presence')).toHaveText('1');
+      await expect(host.locator('.player-dock-count')).toHaveText('1 here');
       await navigate(guest, 'Music', width);
       await expect(guest.locator('.player-dock-room')).toHaveCount(0);
       await expect(dock.locator('.player-dock-title')).toHaveText('Second room track');

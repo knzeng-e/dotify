@@ -1690,3 +1690,119 @@ button.you-panel:hover {
 .artist-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
+.artist-console .studio-head {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+.artist-console .studio-avatar {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+.artist-console .studio-id h1 {
+  font-family: var(--font-interface);
+  font-size: var(--text-title);
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+.artist-console .console-tabs-shell {
+  margin: 0;
+  padding: 0;
+}
+.artist-console .console-tabs-shell::after {
+  display: none;
+}
+.artist-console .console-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(max-content, 1fr));
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 0;
+  border-top: 0;
+  border-bottom: 1px solid var(--line);
+}
+.artist-console .console-tabs button {
+  min-height: 44px;
+  padding: 0.5rem 0.375rem;
+  border-left: 0;
+  text-align: center;
+}
+.studio-task-action {
+  display: flex;
+  justify-content: flex-end;
+}
+.studio-technical {
+  margin-block: 1rem;
+}
+.studio-technical > summary {
+  min-height: 44px;
+  padding-block: 0.75rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.release-console-grid[data-task='rights'] .release-focus-cover {
+  max-width: 5rem;
+}
+.release-console-grid[data-task='rights'] .release-focus-hero {
+  grid-template-columns: 5rem minmax(0, 1fr);
+}
+
+.artist-console .doc-panel,
+.artist-console .studio-next-step {
+  padding-inline: 0;
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.artist-console .release-focus-copy h2,
+.artist-console .studio-next-step h2,
+.artist-console .studio-section-title,
+.artist-console .sovereign-card h3 {
+  font-family: var(--font-interface);
+  font-size: var(--text-xl);
+  line-height: 1.25;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.artist-console .studio-releases-panel .empty-state,
+.artist-console .studio-support-panel .empty-state {
+  min-height: 0;
+  padding: 0.75rem 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.artist-console .royalty-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 0.75rem;
+}
+.artist-console .royalty-summary-grid .metric {
+  min-height: 0;
+  padding: 0.75rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.artist-console .metric strong,
+.artist-console .royalty-runtime-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 768px) {
+  .artist-portal-topbar .artist-entry-link {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    padding: 0;
+  }
+  .artist-portal-topbar .artist-entry-label {
+    display: none;
+  }
+}
