@@ -11,11 +11,26 @@ const sizes = [
 
 async function capture(page: Page, info: TestInfo, name: string) {
   await page.evaluate(() => document.fonts.ready);
+  // A sheet makes the underlying main inert, but its layout must still exist.
+  await expect(page.locator('main')).toBeVisible();
+  const fixedRoom = await page
+    .locator('.app-shell')
+    .evaluate(shell => shell.getAttribute('data-room-focus') === 'true' && getComputedStyle(shell).position === 'fixed');
+  if (fixedRoom) {
+    await expect
+      .poll(() => page.locator('.app-shell').evaluate(shell => Math.abs(shell.getBoundingClientRect().height - (window.visualViewport?.height ?? innerHeight))))
+      .toBeLessThanOrEqual(1);
+    if (name === 'host' || name === 'guest') await expect(page.locator('.player-stage')).toBeInViewport({ ratio: 0.9 });
+  }
   await page.screenshot({
     path: process.env.W28_CAPTURE_DIR ? `${process.env.W28_CAPTURE_DIR}/${page.viewportSize()!.width}-${name}.jpg` : info.outputPath(`${name}.jpg`),
-    fullPage: true,
+    // Full-page capture can resize Chromium's viewport around a fixed shell,
+    // triggering the real keyboard/viewport observer during the screenshot.
+    fullPage: !fixedRoom,
+    animations: 'disabled',
     quality: 80
   });
+  if (fixedRoom) await expect(page.locator('main')).toBeVisible();
 }
 
 async function nav(page: Page, name: 'Music' | 'Rooms') {
