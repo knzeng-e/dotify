@@ -184,6 +184,10 @@
 .player-room-mode .player-stage > .player-transport {
   margin: 0;
 }
+.player-room-mode .transport-play {
+  width: min(3.25rem, 52px);
+  height: min(3.25rem, 52px);
+}
 .player-room-mode .access-badges[data-needs-access='false'] {
   display: none;
 }
@@ -353,6 +357,14 @@
   }
   .player-room-mode .player-transport {
     gap: 0;
+  }
+}
+@media (max-width: 360px) {
+  .player-room-mode .transport-cluster {
+    grid-template-columns: repeat(3, minmax(var(--touch-target), 1fr));
+  }
+  .player-room-mode .transport-secondary {
+    display: none;
   }
 }
 @media (min-width: 769px) and (max-height: 799px) {

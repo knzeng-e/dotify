@@ -25,6 +25,52 @@ async function nav(page: Page, name: 'Music' | 'Rooms') {
   await navigation.getByRole('button', { name, exact: true }).click();
 }
 
+async function roomTransportStatus(page: Page) {
+  return page.locator('.player-stage > .player-transport').evaluate(transport => {
+    const viewportWidth = window.innerWidth;
+    const buttons = Array.from(transport.querySelectorAll<HTMLButtonElement>('.transport-cluster button, .transport-actions button'))
+      .map(button => {
+        const box = button.getBoundingClientRect();
+        return {
+          label: button.getAttribute('aria-label'),
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          bottom: box.bottom,
+          width: box.width,
+          height: box.height
+        };
+      })
+      .filter(box => box.width > 0 && box.height > 0);
+    const clipped = buttons.some(box => box.left < -1 || box.right > viewportWidth + 1);
+    const overlaps = buttons.flatMap((box, index) =>
+      buttons.slice(index + 1).flatMap(other => {
+        const xOverlap = Math.min(box.right, other.right) - Math.max(box.left, other.left);
+        const yOverlap = Math.min(box.bottom, other.bottom) - Math.max(box.top, other.top);
+        return xOverlap > 2 && yOverlap > 2 ? [{ a: box.label, b: other.label, xOverlap, yOverlap }] : [];
+      })
+    );
+    return {
+      ok: buttons.length > 0 && !clipped && overlaps.length === 0 && document.documentElement.scrollWidth <= viewportWidth + 1,
+      buttons: buttons.map(box => ({
+        label: box.label,
+        left: Math.round(box.left * 10) / 10,
+        right: Math.round(box.right * 10) / 10,
+        top: Math.round(box.top * 10) / 10,
+        bottom: Math.round(box.bottom * 10) / 10
+      })),
+      clipped,
+      overlaps: overlaps.map(overlap => ({
+        ...overlap,
+        xOverlap: Math.round(overlap.xOverlap * 10) / 10,
+        yOverlap: Math.round(overlap.yOverlap * 10) / 10
+      })),
+      scrollWidth: document.documentElement.scrollWidth,
+      viewportWidth
+    };
+  });
+}
+
 for (const [width, height] of sizes) {
   test(`W28 listening surfaces at ${width}px`, async ({ browser }, info) => {
     const hostContext = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', hasTouch: width <= 768 });
@@ -78,30 +124,17 @@ for (const [width, height] of sizes) {
       expect(roomId).toMatch(/^[A-Z0-9]{4,}$/);
       await capture(host, info, 'host');
       const hostLargeText = await host.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+      await host.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+      await host.waitForTimeout(150);
       await expect
         .poll(
           async () => {
-            const boxes = await host.locator('.transport-cluster button, .transport-actions button').evaluateAll(buttons =>
-              buttons.map(button => {
-                const box = button.getBoundingClientRect();
-                return { x: box.x, right: box.right, y: box.y, bottom: box.bottom };
-              })
-            );
-            return (
-              boxes.length > 0 &&
-              boxes.every(
-                (box, index) =>
-                  box.x >= 0 &&
-                  box.right <= width &&
-                  boxes
-                    .slice(index + 1)
-                    .every(other => box.right <= other.x + 1 || other.right <= box.x + 1 || box.bottom <= other.y + 1 || other.bottom <= box.y + 1)
-              )
-            );
+            const status = await roomTransportStatus(host);
+            return status.ok ? 'ok' : JSON.stringify(status);
           },
           { message: 'Enlarged room transport settles inside the viewport without overlap' }
         )
-        .toBe(true);
+        .toBe('ok');
       await capture(host, info, 'host-200-text');
       await hostLargeText.evaluate(element => element.remove());
       await guest.goto(`${fixture}#/rooms/${roomId}`);

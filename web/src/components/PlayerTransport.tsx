@@ -23,6 +23,7 @@ export function PlayerTransport({
   const immersive = Boolean(onOpenQueue);
   const shuffle = (
     <button
+      className='transport-secondary'
       type='button'
       onClick={playback.toggleShuffle}
       disabled={!playback.canShuffle}
@@ -36,6 +37,7 @@ export function PlayerTransport({
   );
   const repeat = (
     <button
+      className='transport-secondary'
       type='button'
       onClick={playback.toggleRepeat}
       disabled={!playback.canRepeat || !playback.canUseTransport}
