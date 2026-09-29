@@ -656,6 +656,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     repeatEnabled,
     shuffleEnabled,
     lineup,
+    nextTrackId: queuedTracks[0]?.id ?? neighbors.nextId,
     // capability flags
     canUseTransport,
     canSeek,

@@ -91,6 +91,7 @@ for (const viewport of viewports) {
     await expect(page.getByRole('group', { name: 'Playback controls', exact: true })).toBeVisible();
     await capture(page, testInfo, 'player');
 
+    if (viewport.width <= 768) await page.getByRole('button', { name: 'Back to Music', exact: true }).click();
     await page.getByRole('button', { name: 'You', exact: true }).click();
     await capture(page, testInfo, 'you');
     await page.getByRole('button', { name: 'Rooms', exact: true }).click();

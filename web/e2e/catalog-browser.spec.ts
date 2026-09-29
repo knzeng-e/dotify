@@ -9,13 +9,19 @@ for (const width of [390, 1440]) {
     await expect(page.getByTestId('track-card')).toHaveCount(13);
     await catalog.scrollIntoViewIfNeeded();
     expect(await catalog.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
-    await page.getByRole('button', { name: 'Next tracks', exact: true }).click();
+    if (width <= 768) {
+      await expect(page.getByRole('button', { name: 'Next tracks', exact: true })).toBeHidden();
+      await catalog.focus();
+      await catalog.press('ArrowRight');
+    } else await page.getByRole('button', { name: 'Next tracks', exact: true }).click();
     await expect.poll(() => catalog.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
     await catalog.focus();
     await catalog.press('Home');
-    await expect(page.getByRole('button', { name: 'Previous tracks', exact: true })).toBeDisabled();
+    await expect.poll(() => catalog.evaluate(element => element.scrollLeft)).toBeLessThanOrEqual(2);
+    if (width > 768) await expect(page.getByRole('button', { name: 'Previous tracks', exact: true })).toBeDisabled();
     await catalog.press('End');
-    await expect(page.getByRole('button', { name: 'Next tracks', exact: true })).toBeDisabled();
+    await expect.poll(() => catalog.evaluate(element => element.scrollWidth - element.clientWidth - element.scrollLeft)).toBeLessThanOrEqual(2);
+    if (width > 768) await expect(page.getByRole('button', { name: 'Next tracks', exact: true })).toBeDisabled();
     await page.getByRole('button', { name: 'Show all tracks', exact: true }).click();
     await expect(catalog).toHaveAttribute('data-layout', 'grid');
     await expect(page.getByTestId('track-card')).toHaveCount(13);

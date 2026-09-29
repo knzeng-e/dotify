@@ -15,11 +15,16 @@ async function expectControlsFit(page: Page) {
     buttons
       .map(button => {
         const box = button.getBoundingClientRect();
-        return { left: box.left, right: box.right };
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom };
       })
       .sort((a, b) => a.left - b.left)
   );
-  for (let index = 1; index < boxes.length; index++) expect(boxes[index].left).toBeGreaterThanOrEqual(boxes[index - 1].right - 1);
+  for (let index = 0; index < boxes.length; index++) {
+    for (const other of boxes.slice(index + 1)) {
+      const box = boxes[index];
+      expect(box.right <= other.left + 1 || other.right <= box.left + 1 || box.bottom <= other.top + 1 || other.bottom <= box.top + 1).toBe(true);
+    }
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 }
 

@@ -9,7 +9,7 @@ import { CoverImage } from './CoverImage';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { type PlaybackControls } from '../hooks/usePlayback';
 import { playbackTrack, roomPlaybackPresentation } from '../features/player/playbackPresentation';
-import { roomPresenceCount } from '../features/rooms/roomState';
+import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
 import type { CatalogTrack, Mode, SocketStatus, TrackInfo } from '../shared/types';
 
 type PlayerDockProps = {
@@ -18,12 +18,12 @@ type PlayerDockProps = {
   playback: PlaybackControls;
   mode: Mode;
   roomId: string;
+  hostName: string;
   locked: boolean;
   listenerCount: number;
   socketStatus: SocketStatus;
   audioStartupStatus?: string | null;
   onOpenPlayer: () => void;
-  onOpenArtist: (artistName: string) => void;
   onStartRoom: () => void;
 };
 
@@ -39,12 +39,12 @@ export function PlayerDock({
   playback,
   mode,
   roomId,
+  hostName,
   locked,
   listenerCount,
   socketStatus,
   audioStartupStatus,
   onOpenPlayer,
-  onOpenArtist,
   onStartRoom
 }: PlayerDockProps) {
   const currentTrack = playbackTrack(mode, trackInfo, track);
@@ -62,6 +62,7 @@ export function PlayerDock({
 
   const roomContext = roomPlaybackPresentation(mode, status, socketStatus);
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
+  const visibleHostName = roomHostDisplayName(hostName);
 
   return (
     <div className='player-dock' data-source={roomId ? mode : 'solo'}>
@@ -70,15 +71,19 @@ export function PlayerDock({
           <button className='player-dock-art' type='button' onClick={onOpenPlayer} aria-label={`Open ${title} in the player`}>
             <CoverImage src={cover} alt='' fallbackLabel={title} loading='eager' sizes='64px' />
           </button>
-          <div className='player-dock-meta'>
+          <button
+            className='player-dock-meta'
+            type='button'
+            onClick={onOpenPlayer}
+            aria-label={
+              roomId
+                ? `Return to room · ${roomContext.label}${socketStatus === 'online' ? ` · ${presenceCount} people including you` : ''}`
+                : `Open ${title} in the player`
+            }
+            title={roomId ? 'Return to room' : `Open ${title}`}
+          >
             {roomId && (
-              <button
-                className='player-dock-room'
-                type='button'
-                onClick={onOpenPlayer}
-                aria-label={`Return to room · ${roomContext.label}${socketStatus === 'online' ? ` · ${presenceCount} people including you` : ''}`}
-                title='Return to room'
-              >
+              <span className='player-dock-room'>
                 <span className='live-dot' data-online={roomContext.live} aria-hidden='true' />
                 <span className='player-dock-room-label'>{roomContext.label}</span>
                 {socketStatus === 'online' && (
@@ -87,17 +92,15 @@ export function PlayerDock({
                     {presenceCount}
                   </span>
                 )}
-              </button>
+              </span>
             )}
-            <button className='player-dock-title' type='button' onClick={onOpenPlayer} title={`Open ${title}`}>
-              {title}
-            </button>
-            {artist && (
-              <button className='player-dock-artist' type='button' onClick={() => onOpenArtist(artist)}>
-                {artist}
-              </button>
+            <span className='player-dock-title'>{title}</span>
+            {roomId ? (
+              <span className='player-dock-artist'>{mode === 'host' ? 'Your room' : visibleHostName ? `With ${visibleHostName}` : 'Listening together'}</span>
+            ) : (
+              artist && <span className='player-dock-artist'>{artist}</span>
             )}
-          </div>
+          </button>
         </div>
 
         <div className='player-dock-center'>

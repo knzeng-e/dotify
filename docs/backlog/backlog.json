@@ -475,12 +475,12 @@
     {
       "id": "W28",
       "doc": "docs/backlog/implementation/W28-mobile-premium-experience.md",
-      "issue": null,
+      "issue": 223,
       "kind": "work",
       "priority": "P1",
       "track": "Design record",
       "phase": "Next",
-      "note": "Mobile premium experience slice from the 2026-09-29 audit: room-aware mini-player, native track rails, immersive mobile player, and room mobile ergonomics. Create or attach a GitHub issue before PR metadata is finalized."
+      "note": "Mobile premium experience slice from the 2026-09-29 audit: room-aware mini-player, native track rails, immersive mobile player, and room mobile ergonomics. Evidence: docs/backlog/implementation/evidence/W28.md. Project 5 owns workflow status."
     },
     {
       "id": "backlog-reconciliation",

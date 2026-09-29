@@ -134,7 +134,7 @@ open.
 | P1       | #85          | Product feasibility | Maintain the Product capability/compatibility epic around evidence that the current Host actually exposes.                                                     |
 | P1       | #90          | Next                | Re-scope only the wallet-later gaps observed in pilot evidence; do not replay the delivered UX work.                                                           |
 | P1       | #214 / W27   | Next Product sprint | Prove Celerity room events behind a typed dual-transport boundary, preserve anonymous link entry, and decide each Socket.IO responsibility from live evidence. |
-| P1       | W28          | Next                | Implement the 2026-09-29 mobile premium slice: room-aware mini-player, native track rails, full player clarity, and room mobile ergonomics.                    |
+| P1       | #223 / W28   | Next                | Review the mobile premium slice: room-aware mini-player, native track rails, full player clarity, and room mobile ergonomics. Evidence: `implementation/evidence/W28.md`. |
 | P2       | #12          | Product feasibility | Prove a private personhood source and address binding before implementing Human free.                                                                          |
 | P3       | #13          | Later               | Design consented cultural propagation after the first pilot.                                                                                                   |
 | P2       | #181 / W26   | Later               | Add French after W13 and the visual contract are accepted.                                                                                                     |

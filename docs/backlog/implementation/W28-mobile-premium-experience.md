@@ -15,7 +15,7 @@ reviewable PR; do not stop at a plan.
 - Dependencies: W10, W21, W22, W23, W24, W25, and the merged room dock/live
   context fixes.
 - Release stage: Pilot polish after the first release branch.
-- Existing issue: create or attach a scoped GitHub issue before opening the PR.
+- Existing issue: #223.
 - Product purpose: mobile should make Dotify feel like shared musical presence,
   not a crypto dashboard or a generic streaming clone.
 

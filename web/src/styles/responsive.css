@@ -1172,10 +1172,6 @@
     height: 3rem;
   }
 
-  .player-dock-artist {
-    display: none;
-  }
-
   .artist-release-card {
     grid-template-columns: 4.5rem minmax(0, 1fr);
   }
