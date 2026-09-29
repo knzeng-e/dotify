@@ -558,14 +558,15 @@
 
 .access-gate-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
 }
 
 .access-gate-header > span {
   display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
   background: var(--warning-soft);
@@ -574,8 +575,11 @@
 
 .access-gate-header strong {
   font-family: var(--font-editorial);
-  font-size: var(--text-title);
+  font-size: var(--text-xl);
   font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .access-gate-copy {

@@ -144,6 +144,13 @@ for (const [width, height] of sizes) {
       const dialog = guest.getByTestId('access-warning');
       await expect.poll(() => dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
       await capture(guest, info, 'support-200-text');
+      const dismiss = dialog.getByRole('button', { name: 'Not now', exact: true });
+      await dismiss.scrollIntoViewIfNeeded();
+      const dismissBounds = (await dismiss.boundingBox())!;
+      expect(dismissBounds.y).toBeGreaterThanOrEqual(0);
+      expect(dismissBounds.y + dismissBounds.height).toBeLessThanOrEqual(height);
+      await dismiss.click();
+      await expect(dialog).toHaveCount(0);
     } finally {
       await guestContext.close();
       await hostContext.close();
