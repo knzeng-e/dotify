@@ -13,21 +13,26 @@ type Deps = {
   createClient?: typeof createPrivateCelerityClient;
   report?: (metric: CelerityMetric) => void;
   budget?: ReturnType<typeof createCelerityBudget>;
+  publishTimeoutMs?: number;
 };
+
+const PRIVATE_TTL_MS = 10_000;
+const MAX_PENDING_EVENTS = 16;
 
 /** Mirrors only the sender's server-accepted events. No UI state or media authority. */
 export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'observe' | 'dual', deps: Deps = {}) {
   const report = deps.report ?? recordCelerityMetric;
   const reserve = deps.budget ?? celerityBudget;
+  const publishTimeoutMs = deps.publishTimeoutMs ?? 8_000;
   const socketId = port.id;
   let stopped = false;
-  let sending = false;
+  let publishing = false;
   let receiving = 0;
   let privateChannel: PrivateRoomChannel | undefined;
   let client: CelerityClient<PrivateEnvelope> | null = null;
-  let deadline: ReturnType<typeof setTimeout> | undefined;
   let latest: RealtimeRoster | undefined;
   let initial: ObservationStatement[] = [];
+  const pendingEvents: { event: PrivateRoomEvent; queuedAt: number }[] = [];
   let releaseClock: (() => void) | undefined;
   let requestIds = new Set<string>();
   const startedAt = Date.now();
@@ -44,7 +49,7 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
   function stop(reason: CelerityMetric['event'] = 'stopped') {
     if (stopped) return;
     stopped = true;
-    clearTimeout(deadline);
+    clearTimeout(startupDeadline);
     releaseClock?.();
     port.off('room:realtime-roster', roster);
     port.off('room:reaction', reaction);
@@ -57,6 +62,7 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
       port.emit('room:realtime-unregister', { scope: privateChannel.scope, self: privateChannel.self });
     client?.stop();
     initial = [];
+    pendingEvents.length = 0;
     requestIds.clear();
     metric(reason);
   }
@@ -90,7 +96,7 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
             stage: opened.status,
             stream: `${value[1]}/${value[2]}/${value[3]}`,
             seq: value[4],
-            ttlMs: 10_000,
+            ttlMs: PRIVATE_TTL_MS,
             outOfOrder: opened.status === 'accepted' && opened.outOfOrder
           });
       }
@@ -99,11 +105,9 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
     }
   }
 
-  async function publish(event: PrivateRoomEvent) {
-    if (stopped || mode !== 'dual' || !client || !privateChannel || sending) return;
-    sending = true;
+  async function publishEvent(event: PrivateRoomEvent) {
+    if (stopped || mode !== 'dual' || !client || !privateChannel) return;
     const started = performance.now();
-    deadline = setTimeout(() => stop('timeout'), 8000);
     try {
       for (const peer of privateChannel.peers()) {
         const envelope = await privateChannel.seal(peer.id, event);
@@ -112,26 +116,74 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
           metric('budget', { kind: event.kind });
           continue;
         }
-        const bytes = client.encode(envelope).length;
+        const encoded = client.encode(envelope);
+        const bytes = encoded.length;
         if (
-          !reserve.reserve(client.channel(envelope[2], envelope[3]), bytes, envelope[5] + 11_000, Date.now(), client.maxAccountBytes, client.maxStatementBytes)
+          !reserve.reserve(
+            client.channel(envelope[2], envelope[3]),
+            bytes,
+            envelope[5] + PRIVATE_TTL_MS + 1000,
+            Date.now(),
+            client.maxAccountBytes,
+            client.maxStatementBytes
+          )
         ) {
           metric('budget', { kind: event.kind });
           continue;
         }
-        const capture = { kind: event.kind, stream: `${envelope[1]}/${envelope[2]}/${envelope[3]}`, seq: envelope[4], ttlMs: 10_000 };
-        celerityCapture.frame(client.encode(envelope), { ...capture, stage: 'attempt' });
-        const ok = await client.publish(envelope);
+        const capture = { kind: event.kind, stream: `${envelope[1]}/${envelope[2]}/${envelope[3]}`, seq: envelope[4], ttlMs: PRIVATE_TTL_MS };
+        celerityCapture.frame(encoded, { ...capture, stage: 'attempt' });
+        const operation = client.publish(envelope).then(
+          ok => ({ status: 'settled' as const, ok }),
+          () => ({ status: 'rejected' as const })
+        );
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const outcome = await Promise.race([
+          operation,
+          new Promise<{ status: 'timeout' }>(resolve => {
+            timer = setTimeout(() => resolve({ status: 'timeout' }), publishTimeoutMs);
+          })
+        ]);
+        clearTimeout(timer);
         if (stopped) return;
+        if (outcome.status === 'timeout') {
+          // The Host may still settle this request. Keep the attempt unknown and
+          // never replay it, while leaving the receive subscription available.
+          metric('timeout', { kind: event.kind, bytes, durationMs: Math.round(performance.now() - started) });
+          return;
+        }
+        const ok = outcome.status === 'settled' && outcome.ok;
         metric(ok ? 'submitted' : 'rejected', { kind: event.kind, bytes, durationMs: Math.round(performance.now() - started) });
-        celerityCapture.frame(client.encode(envelope), { ...capture, stage: ok ? 'submitted' : 'rejected' });
+        celerityCapture.frame(encoded, { ...capture, stage: ok ? 'submitted' : 'rejected' });
       }
     } catch {
       if (!stopped) metric('rejected', { kind: event.kind });
-    } finally {
-      clearTimeout(deadline);
-      sending = false;
     }
+  }
+  async function drain() {
+    if (publishing || stopped || mode !== 'dual' || !client || !privateChannel) return;
+    publishing = true;
+    try {
+      while (!stopped && client && privateChannel && pendingEvents.length > 0) {
+        const next = pendingEvents.shift()!;
+        if (Date.now() - next.queuedAt >= PRIVATE_TTL_MS) {
+          metric('expired', { kind: next.event.kind });
+          continue;
+        }
+        await publishEvent(next.event);
+      }
+    } finally {
+      publishing = false;
+    }
+  }
+  function publish(event: PrivateRoomEvent) {
+    if (stopped || mode !== 'dual' || !client || !privateChannel) return;
+    if (pendingEvents.length >= MAX_PENDING_EVENTS) {
+      metric('capacity', { kind: event.kind });
+      return;
+    }
+    pendingEvents.push({ event, queuedAt: Date.now() });
+    void drain();
   }
   function reaction(event: RoomReactionEvent) {
     if (event?.senderId === socketId) void publish({ kind: 'reaction', text: event.emoji });
@@ -151,7 +203,7 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
   port.on('disconnect', disconnected);
   port.on('room:closed', closed);
   metric('starting');
-  deadline = setTimeout(() => stop('timeout'), 8000);
+  const startupDeadline = setTimeout(() => stop('timeout'), 8000);
   void (async () => {
     const inside = deps.insideProduct ?? (async () => (await import('@parity/product-sdk-host')).isInsideContainer());
     if (!(await inside())) {
@@ -199,7 +251,7 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
             stop('unsupported');
             return;
           }
-          clearTimeout(deadline);
+          clearTimeout(startupDeadline);
           releaseClock = celerityCapture.setProbe(() => measureRoomClock(port));
           port.on('room:reaction', reaction);
           port.on('room:chat', chat);

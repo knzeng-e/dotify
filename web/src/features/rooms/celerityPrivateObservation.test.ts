@@ -70,12 +70,13 @@ function network() {
       }
     };
   });
-  function start(member: ReturnType<typeof port>, mode: 'observe' | 'dual', insideProduct = true, factory = createClient) {
+  function start(member: ReturnType<typeof port>, mode: 'observe' | 'dual', insideProduct = true, factory = createClient, publishTimeoutMs?: number) {
     const metrics: CelerityMetric[] = [];
     const stop = startPrivateCelerityObservation(member.api, mode, {
       insideProduct: async () => insideProduct,
       createClient: factory,
       budget: createCelerityBudget(0),
+      publishTimeoutMs,
       report: value => metrics.push(value)
     });
     stops.push(stop);
@@ -160,5 +161,46 @@ describe('private Product observation lifecycle', () => {
     resolve({ encode: encodeData, channel: (a, b) => `${a}/${b}`, maxAccountBytes: 1024, maxStatementBytes: 512, publish: async () => true, stop });
     await vi.waitFor(() => expect(stop).toHaveBeenCalledOnce());
     expect(observed.metrics.some(m => m.event === 'ready')).toBe(false);
+  });
+
+  it('keeps receiving and submits later queued events after an unknown Host timeout', async () => {
+    const capture = vi.spyOn(celerityCapture, 'frame');
+    const n = network();
+    const a = n.port('1'.repeat(16));
+    const b = n.port('2'.repeat(16));
+    let resolveFirst!: (ok: boolean) => void;
+    const publish = vi
+      .fn<(value: PrivateEnvelope) => Promise<boolean>>()
+      .mockImplementationOnce(
+        () =>
+          new Promise(done => {
+            resolveFirst = done;
+          })
+      )
+      .mockResolvedValue(true);
+    const factory = vi.fn(async (scope: string, receive: (statement: ObservationStatement) => void) => {
+      const connected = await n.createClient(scope, receive);
+      return { ...connected, publish };
+    });
+    const observed = n.start(a, 'dual', true, factory, 5);
+    await vi.waitFor(() => expect(observed.metrics.some(m => m.event === 'ready')).toBe(true));
+    const receiver = n.start(b, 'observe');
+    await vi.waitFor(() => expect(receiver.metrics.some(m => m.event === 'ready')).toBe(true));
+
+    a.incoming('room:chat', { senderId: a.api.id, text: 'unknown once' });
+    await vi.waitFor(() => expect(publish).toHaveBeenCalledOnce());
+    a.incoming('room:reaction', { senderId: a.api.id, emoji: '\u{2728}' });
+    await vi.waitFor(() => expect(observed.metrics.some(m => m.event === 'timeout' && m.kind === 'chat')).toBe(true));
+    expect(a.emit).not.toHaveBeenCalled();
+    expect(n.readers.size).toBe(2);
+
+    await vi.waitFor(() => expect(observed.metrics.some(m => m.event === 'submitted' && m.kind === 'reaction')).toBe(true));
+    resolveFirst(true);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(publish).toHaveBeenCalledTimes(2);
+    expect(observed.metrics.some(m => m.event === 'submitted' && m.kind === 'chat')).toBe(false);
+    expect(capture.mock.calls.filter(([, input]) => input.kind === 'chat').map(([, input]) => input.stage)).toEqual(['attempt']);
+    expect(capture.mock.calls.filter(([, input]) => input.kind === 'reaction').map(([, input]) => input.stage)).toEqual(['attempt', 'submitted']);
   });
 });

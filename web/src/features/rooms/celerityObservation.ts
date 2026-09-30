@@ -37,7 +37,6 @@ export function startCelerityObservation(options: ObservationOptions, deps: Obse
   let client: CelerityClient | null = null;
   let seq = 0;
   let refresh: ReturnType<typeof setTimeout> | undefined;
-  let deadline: ReturnType<typeof setTimeout> | undefined;
   // Only startup replay may be queued; bound it before a client is available for channel checks.
   let initial: ObservationStatement[] = [];
   const metric = (event: CelerityMetric['event'], extra: Omit<CelerityMetric, 'event' | 'at'> = {}) => report({ at: now(), event, ...extra });
@@ -45,7 +44,7 @@ export function startCelerityObservation(options: ObservationOptions, deps: Obse
     if (stopped) return;
     stopped = true;
     clearTimeout(refresh);
-    clearTimeout(deadline);
+    clearTimeout(startupDeadline);
     initial = [];
     client?.stop();
     metric(reason);
@@ -91,21 +90,35 @@ export function startCelerityObservation(options: ObservationOptions, deps: Obse
       if (!reserve.reserve(client.channel(event.room, producer), bytes, event.expires + 1000, created, client.maxAccountBytes, client.maxStatementBytes)) {
         metric('budget');
       } else {
-        deadline = setTimeout(() => stop('timeout'), TIMEOUT_MS);
         const started = performance.now();
         const capture = { kind: 'presence' as const, stream: `${event.room}/${event.producer}`, seq: event.seq, ttlMs: CELERITY_TTL_MS };
-        celerityCapture.frame(client.encode(event), { ...capture, stage: 'attempt' });
-        const ok = await client.publish(event);
+        const encoded = client.encode(event);
+        celerityCapture.frame(encoded, { ...capture, stage: 'attempt' });
+        const operation = client.publish(event).then(
+          ok => ({ status: 'settled' as const, ok }),
+          () => ({ status: 'rejected' as const })
+        );
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const outcome = await Promise.race([
+          operation,
+          new Promise<{ status: 'timeout' }>(resolve => {
+            timer = setTimeout(() => resolve({ status: 'timeout' }), TIMEOUT_MS);
+          })
+        ]);
+        clearTimeout(timer);
         if (stopped) return;
-        clearTimeout(deadline);
-        metric(ok ? 'submitted' : 'rejected', { bytes, durationMs: Math.round(performance.now() - started) });
-        celerityCapture.frame(client.encode(event), { ...capture, stage: ok ? 'submitted' : 'rejected' });
+        if (outcome.status === 'timeout') {
+          // A late Host response is ambiguous. Never replay or relabel it, but
+          // keep observation alive so the next periodic snapshot can proceed.
+          metric('timeout', { bytes, durationMs: Math.round(performance.now() - started) });
+        } else {
+          const ok = outcome.status === 'settled' && outcome.ok;
+          metric(ok ? 'submitted' : 'rejected', { bytes, durationMs: Math.round(performance.now() - started) });
+          celerityCapture.frame(encoded, { ...capture, stage: ok ? 'submitted' : 'rejected' });
+        }
       }
     } catch {
-      if (!stopped) {
-        clearTimeout(deadline);
-        metric('rejected');
-      }
+      if (!stopped) metric('rejected');
     }
     if (!stopped)
       refresh = setTimeout(() => {
@@ -113,14 +126,14 @@ export function startCelerityObservation(options: ObservationOptions, deps: Obse
       }, INTERVAL_MS);
   }
   metric('starting');
-  deadline = setTimeout(() => stop('timeout'), TIMEOUT_MS);
+  const startupDeadline = setTimeout(() => stop('timeout'), TIMEOUT_MS);
   void (deps.createClient ?? createCelerityClient)(options.room, receive, () => stop('interrupted'))
     .then(connected => {
       if (stopped) {
         connected?.stop();
         return;
       }
-      clearTimeout(deadline);
+      clearTimeout(startupDeadline);
       client = connected;
       if (!client) {
         stop('unsupported');

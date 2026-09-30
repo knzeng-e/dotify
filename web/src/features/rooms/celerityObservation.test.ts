@@ -197,7 +197,7 @@ describe('Celerity observation lifecycle', () => {
     stop();
   });
 
-  it('bounds a hanging submit without overlapping retries or later success claims', async () => {
+  it('keeps observing after a hanging submit without retrying or claiming its late result', async () => {
     const h = harness();
     let resolve!: (ok: boolean) => void;
     vi.mocked(h.client.publish).mockImplementation(
@@ -207,13 +207,17 @@ describe('Celerity observation lifecycle', () => {
         })
     );
     startCelerityObservation(h.options, h.deps);
-    await vi.advanceTimersByTimeAsync(60000);
+    await vi.advanceTimersByTimeAsync(8000);
     expect(h.client.publish).toHaveBeenCalledOnce();
-    expect(h.client.stop).toHaveBeenCalledOnce();
+    expect(h.client.stop).not.toHaveBeenCalled();
     expect(h.report).toHaveBeenCalledWith(expect.objectContaining({ event: 'timeout' }));
     resolve(true);
     await vi.advanceTimersByTimeAsync(0);
     expect(h.report).not.toHaveBeenCalledWith(expect.objectContaining({ event: 'submitted' }));
+    vi.mocked(h.client.publish).mockResolvedValue(true);
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(h.client.publish).toHaveBeenCalledTimes(2);
+    expect(h.report).toHaveBeenCalledWith(expect.objectContaining({ event: 'submitted' }));
   });
 
   it('reports interruptions and ignores subsequent callbacks', async () => {
