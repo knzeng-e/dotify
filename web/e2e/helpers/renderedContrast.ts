@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { PNG } from 'pngjs';
 
 function luminance(rgb: number[]) {
@@ -12,8 +12,8 @@ function luminance(rgb: number[]) {
 // Axe cannot resolve gradient backgrounds. Sample the rendered background
 // beneath visible text with glyph fill temporarily removed, not the gradients.
 // This supplements axe; it does not measure images, placeholders or offscreen text.
-export async function renderedTextContrast(page: Page) {
-  const samples = await page.evaluate(() => {
+async function visibleTextSamples(page: Page) {
+  return page.evaluate(() => {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 1;
     const context = canvas.getContext('2d')!;
@@ -58,6 +58,10 @@ export async function renderedTextContrast(page: Page) {
     }
     return samples;
   });
+}
+
+async function sampleStableFrame(page: Page, unstable: (reason: string) => void) {
+  const samples = await visibleTextSamples(page);
   const hiddenGlyphs = await page.addStyleTag({
     content: '* { -webkit-text-fill-color: transparent !important; text-shadow: none !important; text-decoration-color: transparent !important; }'
   });
@@ -66,6 +70,14 @@ export async function renderedTextContrast(page: Page) {
     pixels = PNG.sync.read(await page.screenshot({ scale: 'css', animations: 'disabled' }));
   } finally {
     await hiddenGlyphs.evaluate(element => element.remove());
+  }
+  // Live room discovery can move controls between the DOM read and screenshot.
+  // Resample geometry changes, never retry simply because contrast is too low.
+  const after = await visibleTextSamples(page);
+  if (JSON.stringify(samples) !== JSON.stringify(after)) {
+    const index = samples.findIndex((sample, i) => JSON.stringify(sample) !== JSON.stringify(after[i]));
+    unstable(JSON.stringify({ before: samples[index], after: after[index], counts: [samples.length, after.length] }));
+    return null;
   }
   return samples.map(sample => {
     let ratio = Infinity;
@@ -81,4 +93,30 @@ export async function renderedTextContrast(page: Page) {
     }
     return { text: sample.text, ratio, minimum: sample.minimum };
   });
+}
+
+export async function renderedTextContrast(page: Page) {
+  const still = await page.addStyleTag({ content: '*, *::before, *::after { animation: none !important; transition: none !important; }' });
+  try {
+    let change = '';
+    const measured: { result: Awaited<ReturnType<typeof sampleStableFrame>> } = { result: null };
+    try {
+      await expect
+        .poll(
+          async () => {
+            measured.result = await sampleStableFrame(page, reason => {
+              change = reason;
+            });
+            return measured.result !== null;
+          },
+          { timeout: 6000, message: 'Contrast screenshot and text geometry must agree' }
+        )
+        .toBe(true);
+    } catch (cause) {
+      throw new Error(`Text geometry did not stabilize during contrast capture: ${change}`, { cause });
+    }
+    return measured.result!;
+  } finally {
+    await still.evaluate(element => element.remove());
+  }
 }
