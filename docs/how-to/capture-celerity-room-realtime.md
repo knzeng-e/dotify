@@ -10,15 +10,18 @@ messages automatically, pay, or approve a migration. Read the
   recorded 40-character build SHA and actual deployed CID, on both clients.
 - Updated signaling service with `room:realtime-register` and
   `room:realtime-clock`. No new production secret or server flag is required.
-- Exactly two consenting Product participants, an operator console for each
-  (remote inspection where supported), recorded Host/OS/device versions and a
+- Exactly two consenting Product participants, the diagnostic capture panel
+  (`VITE_DOTIFY_DEBUG_PANEL=true`) or an operator console on each client,
+  recorded Host/OS/device versions and a
   non-sensitive test room. Use short test text, not personal conversations.
 - Both private observers report `ready` in
   `window.__DOTIFY_ROOM_REALTIME__.snapshot().observations`. Ordinary standalone
   browsers intentionally report unsupported and cannot substitute for Product.
 
-If a Host does not expose an operator console, record that limitation. A browser
-simulation or an invented Host version is not a real-device capture.
+If a Host exposes neither the capture panel nor an operator console, record that
+limitation. A browser simulation or an invented Host version is not a real-device
+capture. The console-only 0.1.30 deployed candidate predates the capture panel;
+shipping the panel requires a separately authorized candidate on both clients.
 
 ## Resolve permissions before measuring
 
@@ -47,6 +50,34 @@ proof of a Host/SDK version mismatch; retain the error and test a distinct
 publication with permissions already resolved before diagnosing compatibility.
 
 ## Start both recorders
+
+### Without a mobile console
+
+1. Join the test room normally, then open **You > Production readiness >
+   Celerity capture**. Navigating to You does not end the room or a recording.
+2. Enter the same paired run ID and deployed executable CID on both devices.
+   Choose A on Desktop and B on Mobile; enter actual device/OS, Host version and
+   network. These are operator declarations, not automatically attested facts.
+   Do not enter account names, secrets, room codes or location.
+3. Select **Start capture** on both clients. Missing room admission, clock
+   failures or an invalid CID remain explicit errors. The panel sends no
+   Celerity publication itself and never grants Host permissions.
+4. Return to the room for the events below. Select **Test phase** before each
+   recovery scenario; use **Calibrate clock** after recovery and at least every
+   90 seconds. The last uncertainty and sample age remain visible in the panel.
+5. After the final TTL window, select **Stop capture**, then **Copy capture**.
+   The stopped JSON is also displayed as selectable text if clipboard access
+   fails. Transfer that JSON to the operator's local A or B file as below.
+   **Copy diagnostics** is a different, bounded snapshot of observer states;
+   it is useful for errors but is not a capture file accepted by the reporter.
+
+Metadata is locked until the stopped capture is explicitly cleared. The clear
+action requires confirmation. Nothing is automatically uploaded or persisted;
+reloading loses the recorder. Stop within five minutes; the panel reports dropped
+records and the recorder's duration limit, never a delivery pass. Older clients
+without the panel use the console flow below.
+
+### With an operator console
 
 Join the same room normally. No wallet gate is added for guests. In each
 client's application console, replace the declared values; use the same run ID

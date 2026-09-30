@@ -49,6 +49,8 @@ export default defineConfig({
         VITE_DOTIFY_ROOM_GALAXY: 'on',
         VITE_DOTIFY_ARTIST_DONATIONS: 'on',
         VITE_E2E_READINESS_PANEL: 'true',
+        // Exercise the opt-in observer with ordinary-web fallback. Production stays off.
+        VITE_DOTIFY_ROOM_REALTIME: 'dual',
         VITE_DOTIFY_BUILD_SHA: '1234567890abcdef1234567890abcdef12345678',
         VITE_DOTIFY_PRODUCT_APP_VERSION: '[0, 1, 28]'
       }

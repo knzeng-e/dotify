@@ -295,6 +295,14 @@ rejects incomplete exports or mismatched run/CID/SHA. A build or passing report
 does not replace real Product/device acceptance. Do not enable the default or
 remove Socket.IO based on a simulated run.
 
+With `VITE_DOTIFY_DEBUG_PANEL=true`, the same recorder is available under
+You > Production readiness > Celerity capture, including on mobile without
+DevTools. The panel starts no capture or publication on mount. It exports only
+on an explicit copy action, with selectable JSON when clipboard access fails;
+no automatic upload or persistence is added. Both peers must use the newly
+authorized candidate: the previously deployed 0.1.30 CID does not include this
+operator panel. A new local build is not a deployment or live acceptance result.
+
 `VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
 publication announces no rooms on the Statement Store. The capability ships
 dormant on purpose: the reader is implemented, but the Product host
