@@ -28,3 +28,17 @@ test('stable low contrast is still reported without retrying it away', async ({ 
   expect(samples).toHaveLength(1);
   expect(samples[0].ratio).toBeLessThan(samples[0].minimum);
 });
+
+test('a ticking fixed-width clock does not invalidate stable contrast geometry', async ({ page }) => {
+  await page.setContent('<style>body { background:#fff; color:#000; font:20px monospace; }</style><span>0000</span>');
+  await page.evaluate(() => {
+    let tick = 0;
+    setInterval(() => {
+      document.querySelector('span')!.textContent = String(++tick % 10_000).padStart(4, '0');
+    }, 16);
+  });
+  const samples = await renderedTextContrast(page);
+  expect(samples).toHaveLength(1);
+  expect(samples[0].text).toMatch(/^\d{4}$/);
+  expect(samples[0].ratio).toBeGreaterThan(20);
+});

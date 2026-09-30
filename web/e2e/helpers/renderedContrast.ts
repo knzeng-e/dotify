@@ -74,8 +74,10 @@ async function sampleStableFrame(page: Page, unstable: (reason: string) => void)
   // Live room discovery can move controls between the DOM read and screenshot.
   // Resample geometry changes, never retry simply because contrast is too low.
   const after = await visibleTextSamples(page);
-  if (JSON.stringify(samples) !== JSON.stringify(after)) {
-    const index = samples.findIndex((sample, i) => JSON.stringify(sample) !== JSON.stringify(after[i]));
+  // A ticking clock can change glyphs without changing contrast or geometry.
+  const measurement = (sample: (typeof samples)[number] | undefined) => JSON.stringify(sample && { ...sample, text: '' });
+  if (samples.length !== after.length || samples.some((sample, i) => measurement(sample) !== measurement(after[i]))) {
+    const index = samples.findIndex((sample, i) => measurement(sample) !== measurement(after[i]));
     unstable(JSON.stringify({ before: samples[index], after: after[index], counts: [samples.length, after.length] }));
     return null;
   }
