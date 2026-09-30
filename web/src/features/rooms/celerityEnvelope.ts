@@ -61,16 +61,22 @@ export function createPresenceReceiver(maxProducers = 128) {
 }
 
 /** Local reservation only; other tabs and sponsored-account consumers are invisible. */
-export function createCelerityBudget() {
+export function createCelerityBudget(reservedBytes = 512) {
   const live = new Map<string, { bytes: number; expires: number }>();
   return {
     reserve(channel: string, bytes: number, expires: number, now: number, accountLimit: number, statementLimit: number): boolean {
+      if (!Number.isSafeInteger(bytes) || bytes < 1 || bytes > statementLimit || expires <= now) return false;
       for (const [key, entry] of live) if (entry.expires <= now) live.delete(key);
-      // Always leave one whole statement for the existing beacon publisher.
-      const used = [...live].reduce((total, [key, entry]) => total + (key === channel ? 0 : entry.bytes), statementLimit);
-      if (bytes > statementLimit || used + bytes > accountLimit) return false;
-      live.set(channel, { bytes, expires });
+      // A smaller/shorter replacement can fail; the previous statement may still exist.
+      const previous = live.get(channel);
+      const retainedBytes = Math.max(bytes, previous?.bytes ?? 0);
+      const used = [...live].reduce((total, [key, entry]) => total + (key === channel ? 0 : entry.bytes), reservedBytes);
+      if (used + retainedBytes > accountLimit) return false;
+      live.set(channel, { bytes: retainedBytes, expires: Math.max(expires, previous?.expires ?? 0) });
       return true;
     }
   };
 }
+
+// Shared by public and private observers; reserve a beacon only in builds that publish it.
+export const celerityBudget = createCelerityBudget(import.meta.env.VITE_DOTIFY_ROOM_BEACONS === 'on' ? 512 : 0);

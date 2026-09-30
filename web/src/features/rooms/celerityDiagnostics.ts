@@ -1,5 +1,7 @@
 export type CelerityMetric = {
   at: number;
+  channel?: 'private';
+  kind?: 'reaction' | 'chat' | 'request';
   event:
     | 'starting'
     | 'ready'

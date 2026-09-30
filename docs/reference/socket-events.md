@@ -4,6 +4,25 @@ The signaling server relays WebRTC handshake messages and room state between cli
 
 Clients consume these events through the typed `RoomRealtimePort`. The opt-in
 W27 Celerity observer does not replace any event below or grant room authority.
+
+### Optional Private Realtime Membership
+
+`room:realtime-register` accepts `{ publicKey }` (base64url raw P-256 ECDH public
+point) only from an admitted room member. Its acknowledgement is either
+`{ ok: false, error }` or `{ ok: true, self, roster: { scope, revision, peers } }`.
+Each peer is `{ id, publicKey, role }`; IDs/scopes are random and ephemeral,
+roles come from server membership, and private keys never reach the server.
+Registration is limited to once per second per socket and 128 peers per room.
+An existing membership cannot replace its key or duplicate another member's key.
+
+`room:realtime-roster` sends the latest full roster only to registered members.
+Leave, disconnect, unregister and host reconnect revoke old IDs. Consumers must
+reject older revisions and discard in-flight crypto across membership changes.
+`room:realtime-unregister` takes `{ scope, self }` and can remove only that
+socket's current registration; stale cleanup cannot remove a newer membership.
+None of these events is required for ordinary joining, exposed on `/status`,
+persisted, or connected to protected audio key delivery. Server TLS and honest
+admission bind the peer keys; Product sponsored signatures do not.
 See the [per-event transport guarantee matrix](../explanation/room-realtime-transports.md).
 
 **Server address:** configured via `VITE_SIGNAL_URL` (default: `http://localhost:8788`).

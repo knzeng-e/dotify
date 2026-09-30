@@ -179,12 +179,16 @@ for (const [width, height] of sizes) {
       }
       const enlarged = await guest.addStyleTag({ content: 'html { font-size: 200% !important; }' });
       const composer = guest.getByLabel('Message the room', { exact: true });
-      await composer.scrollIntoViewIfNeeded();
-      const composerBounds = (await composer.boundingBox())!;
-      const bottomNav = await guest.locator('.bottom-nav').boundingBox();
-      expect(composerBounds.y).toBeGreaterThanOrEqual(0);
-      // Scrolling into view rounds to device pixels; DOM rectangles retain fractions.
-      expect(composerBounds.y + composerBounds.height).toBeLessThanOrEqual((bottomNav?.height ? bottomNav.y : height) + 1);
+      // Font enlargement and visual-viewport restoration each trigger layout.
+      // Check the same geometry after it settles, not a transitional rectangle.
+      await expect
+        .poll(async () => {
+          await composer.scrollIntoViewIfNeeded();
+          const bounds = (await composer.boundingBox())!;
+          const bottomNav = await guest.locator('.bottom-nav').boundingBox();
+          return bounds.y >= 0 && bounds.y + bounds.height <= (bottomNav?.height ? bottomNav.y : height) + 1;
+        })
+        .toBe(true);
       await expect.poll(() => guest.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await capture(guest, info, 'room-200-text');
       await enlarged.evaluate(element => element.remove());

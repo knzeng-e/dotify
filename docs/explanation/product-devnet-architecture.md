@@ -187,8 +187,10 @@ events and an isolated Product-only Celerity observer. The default remains off.
 An opt-in validation build can subscribe to aggregate presence, or dual-publish
 host counts without changing playback, admission or guest identity rules.
 The sponsored Statement Store signature does not authenticate Dotify host
-authority. No chat, requests, player state or SDP/ICE moves to Celerity in this
-first slice. See [the responsibility matrix](room-realtime-transports.md) for
+authority. A second opt-in namespace now mirrors accepted reactions, short
+chat and requests through membership-bound ephemeral ECDH/HKDF/AES-GCM channels.
+These measurements never replace Socket.IO delivery or queue acknowledgements.
+Player state and SDP/ICE remain excluded. See [the responsibility matrix](room-realtime-transports.md) for
 the encoding limits, offline signaling experiment and remaining live gates.
 
 ## Storage Boundaries

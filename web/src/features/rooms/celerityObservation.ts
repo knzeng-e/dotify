@@ -1,4 +1,4 @@
-import { CELERITY_TTL_MS, createCelerityBudget, createPresenceReceiver, parsePresenceEnvelope, presenceEnvelope } from './celerityEnvelope';
+import { CELERITY_TTL_MS, celerityBudget, createCelerityBudget, createPresenceReceiver, parsePresenceEnvelope, presenceEnvelope } from './celerityEnvelope';
 import { createCelerityClient, type CelerityClient, type ObservationStatement } from './celeritySdk';
 import { recordCelerityMetric, type CelerityMetric } from './celerityDiagnostics';
 
@@ -7,7 +7,6 @@ export function celerityMode(value: unknown): CelerityMode {
   return value === 'observe' || value === 'dual' ? value : 'off';
 }
 
-const budget = createCelerityBudget();
 const INTERVAL_MS = 10_000;
 const TIMEOUT_MS = 8_000;
 
@@ -30,7 +29,7 @@ export function startCelerityObservation(options: ObservationOptions, deps: Obse
   if (options.mode === 'off' || !/^[A-Z0-9]{4,12}$/.test(options.room)) return () => undefined;
   const now = deps.now ?? Date.now;
   const report = deps.report ?? recordCelerityMetric;
-  const reserve = deps.budget ?? budget;
+  const reserve = deps.budget ?? celerityBudget;
   const producer = (deps.producer ?? (() => crypto.randomUUID().replace(/-/g, '')))();
   const accept = createPresenceReceiver();
   let stopped = false;

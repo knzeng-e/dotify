@@ -253,18 +253,24 @@ so PAPI 3 is tracked as a blocked compatibility migration rather than a
 deployable dependency bump.
 
 W27 adds `VITE_DOTIFY_ROOM_REALTIME`, default off. It requires a Product host
-mode and only observes aggregate room presence; Socket.IO remains authoritative.
-`dual` additionally publishes from hosts. It must not be enabled as a default
+mode and observes aggregate room presence plus encrypted social mirrors;
+Socket.IO remains authoritative. `dual` publishes presence from hosts and
+server-accepted reactions, short chat and requests from Product participants.
+It must not be enabled as a default
 until two-client Product evidence is reviewed. Build an offline validation
 artifact with `VITE_DOTIFY_ROOM_REALTIME=dual npm run build:product-devnet:frozen`;
 this command does not publish it. Rollback is a build with the flag off. Stop
 or reload active observation sessions; published presence expires after 30
-seconds and observer data is held in memory only. No backend setting, secret,
-database or contract changes are required. A timeout does not cancel a Host
+seconds (private social mirrors: 10 seconds) and observer data is held in memory
+only. The private path needs the updated signaling server for membership-bound
+ephemeral public-key registration and revocation. No new server flag, production
+secret, database or contract is required. Old clients ignore the new messages;
+new clients on old servers time out only the private observer. A timeout does not cancel a Host
 request already in flight; do not treat timeout as proof of no publication.
 
-The observer reserves room for one beacon and bounds its own unexpired writes
-within one JS instance. It cannot preflight all users of a sponsored account,
+Public/private observers share local unexpired-write reservations and reserve
+one full beacon only when the build enables beacons. Private pairwise fanout
+may exhaust the budget; never enable automatic retries to compensate. It cannot preflight all users of a sponsored account,
 other tabs or other applications; network rejection is an observed outcome.
 See [W27 transport decisions](../explanation/room-realtime-transports.md) for
 privacy, observation limits and the Product capture protocol.

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StatementTransport, Statement } from '@parity/product-sdk-statement-store';
-import { createCelerityClient } from './celeritySdk';
+import { createCelerityClient, createPrivateCelerityClient } from './celeritySdk';
+import type { PrivateEnvelope } from './celerityPrivateChannel';
 import { presenceEnvelope } from './celerityEnvelope';
 
 const mock = vi.hoisted(() => ({ host: true, transport: null as unknown as StatementTransport }));
@@ -16,6 +17,33 @@ afterEach(() => {
 });
 
 describe('pinned SDK adapter', () => {
+  it('encodes private envelopes with a separate namespace, directed channel and ten-second expiry', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_800_000_000_000);
+    const submitted: Statement[] = [];
+    let incoming!: (statements: Statement[]) => void;
+    mock.transport = {
+      subscribe: (_filter, callback) => {
+        incoming = callback;
+        return { unsubscribe: vi.fn() };
+      },
+      signAndSubmit: async statement => {
+        submitted.push(statement);
+      },
+      destroy: vi.fn()
+    };
+    const scope = 'a'.repeat(32);
+    const receive = vi.fn();
+    const client = (await createPrivateCelerityClient(scope, receive, vi.fn()))!;
+    const value: PrivateEnvelope = [2, scope, '1'.repeat(16), '2'.repeat(16), 1, Date.now(), 'nonce', 'opaque'];
+    expect(await client.publish(value)).toBe(true);
+    expect(submitted[0].data).toEqual(client.encode(value));
+    expect(submitted[0].channel).toBe(client.channel(value[2], value[3]));
+    expect(Number(submitted[0].expiry! >> 32n) * 1000).toBe(Date.now() + 10_000);
+    incoming(submitted);
+    expect(receive).toHaveBeenCalledWith({ data: value, expiry: submitted[0].expiry, channel: submitted[0].channel });
+    client.stop();
+  });
   it('never initializes Statement Store outside Product', async () => {
     mock.host = false;
     expect(await createCelerityClient('ABC123', vi.fn(), vi.fn())).toBeNull();

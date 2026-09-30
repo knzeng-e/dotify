@@ -151,18 +151,23 @@ Optional `off` (default), `observe`, or `dual`, with exact lowercase values.
 Production builds require `VITE_DOTIFY_HOST_MODE=auto` or `required` when
 enabled. The tracked Product profile stays off.
 
-`observe` subscribes to aggregate-presence statements only while joined to a
-room in a Product container. `dual` additionally lets the host publish its
-observed listener count every 10 seconds, with a 30-second TTL. Guests never
-publish, and ordinary browsers never acquire a signer. All actual room events,
+`observe` subscribes to aggregate presence and membership-bound encrypted social
+statements while joined to a room in Product. `dual` additionally lets the host
+publish listener counts every 10 seconds (30-second TTL), and Product members
+mirror their server-accepted reactions, short chat and new requests encrypted
+to registered peers (10-second TTL). Ordinary browser guests never initialize
+Product or acquire a signer. All actual room events,
 roles, counts, queue and playback still come from Socket.IO. The mode grants
 no Celerity authority and does not enable the separate discovery-beacon flag.
 
 Dual mode makes the room code and aggregate count globally readable. Random
 producer IDs contain no user identity, but the sponsored allowance signature
 and room code remain correlatable. Do not activate a public candidate without
-reviewing these disclosure and quota boundaries. No chat, SDP/ICE, track
-metadata, wallet, source or key is published by this observer.
+reviewing these disclosure and quota boundaries. Social plaintext never enters
+public gossip; ciphertext retains traffic/timing and sponsored-account correlation.
+No SDP/ICE, track metadata, wallet, source or media key is published. The private
+path requires the W27 signaling server's ephemeral membership registration;
+older servers leave only public presence observation available.
 
 Operator-only, in-memory diagnostics are available in enabled builds through
 `window.__DOTIFY_ROOM_REALTIME__.snapshot()` and `.clear()`. They keep the last

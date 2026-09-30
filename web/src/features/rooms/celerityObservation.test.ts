@@ -68,6 +68,14 @@ describe('Celerity presence boundary', () => {
     expect(budget.reserve('room-a', 310, now + 40000, now, MAX_USER_TOTAL, MAX_STATEMENT_SIZE)).toBe(true);
     expect(budget.reserve('room-b', 300, now + 70000, now + 40000, MAX_USER_TOTAL, MAX_STATEMENT_SIZE)).toBe(true);
   });
+
+  it('does not reclaim a larger live statement when a smaller replacement may fail', () => {
+    const budget = createCelerityBudget();
+    expect(budget.reserve('private-pair', 500, now + 30000, now, MAX_USER_TOTAL, MAX_STATEMENT_SIZE)).toBe(true);
+    expect(budget.reserve('private-pair', 100, now + 10000, now, MAX_USER_TOTAL, MAX_STATEMENT_SIZE)).toBe(true);
+    expect(budget.reserve('presence', 200, now + 30000, now + 11000, MAX_USER_TOTAL, MAX_STATEMENT_SIZE)).toBe(false);
+    expect(budget.reserve('presence', 200, now + 60000, now + 31000, MAX_USER_TOTAL, MAX_STATEMENT_SIZE)).toBe(true);
+  });
 });
 
 function harness(mode: 'off' | 'observe' | 'dual' = 'dual', isHosting = true) {

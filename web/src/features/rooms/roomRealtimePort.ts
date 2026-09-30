@@ -13,10 +13,12 @@ import type {
   RoomReactionEvent,
   RoomRequest
 } from '../../shared/types';
+import type { RealtimeRegistration, RealtimeRoster } from './celerityPrivateTypes';
 
 type ListenerJoined = { listenerId: string; displayName: string; listenerCount: number };
 
 export type RoomIncomingEvents = {
+  'room:realtime-roster': [roster: RealtimeRoster];
   connect: [];
   disconnect: [reason: string];
   connect_error: [error: Error];
@@ -46,6 +48,7 @@ export type RoomIncomingEvents = {
 };
 
 export type RoomOutgoingEvents = {
+  'room:realtime-unregister': [membership: { scope: string; self: string }];
   'rooms:list': [reply: (rooms: OpenRoom[]) => void];
   'presence:solo': [presence: { trackHash: string | null }];
   'room:leave': [];
@@ -67,6 +70,7 @@ export type RoomOutgoingEvents = {
 };
 
 export type RoomRequests = {
+  'room:realtime-register': { input: { publicKey: string }; output: RealtimeRegistration };
   'room:create': { input: { displayName: string; track: TrackInfo | null; playbackMode: RoomPlaybackMode }; output: CreateRoomResponse };
   'room:join': { input: { roomId: string; displayName: string }; output: JoinRoomResponse };
   'room:resume': { input: { roomId: string; hostResumeToken: string }; output: ResumeRoomResponse };

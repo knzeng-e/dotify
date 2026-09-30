@@ -1838,6 +1838,7 @@ export function useSession(deps: UseSessionDeps) {
 
   useRoomRealtimeObservation({
     roomId,
+    port: socketRef.current,
     isHosting: mode === 'host' && Boolean(hostResumeTokenRef.current),
     online: socketStatus === 'online' && sessionAction === 'idle',
     listenerCount

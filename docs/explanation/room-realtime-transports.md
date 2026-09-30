@@ -1,7 +1,7 @@
 # Room realtime transport decisions
 
-W27 first slice, activated by the owner on 2026-09-30 before the remaining
-W13 pilot evidence. This is permission to implement an opt-in experiment,
+W27, activated and subsequently expanded to the full sequence by the owner on
+2026-09-30 before the remaining W13 pilot evidence. This permits implementation,
 not an accepted pilot or permission to change deployed transport authority.
 
 ## Guarantee matrix
@@ -16,10 +16,10 @@ This classification precedes Celerity routing. The inventory comes from
 | `room:create`, `room:join`, `room:resume`, `room:leave`, `room:closed`, `room:host-connection`, `host:heartbeat` | Atomic admission, capacity, authenticated resume token, timeout and denial reasons | Retain Socket.IO |
 | `room:turn-capability` | Private, membership-bound expiring capability | Retain Socket.IO |
 | `room:listeners`, `room:listener-count`, `listener:joined`, `listener:left`, `listener:ready`, `room:rename`, `host:renamed`, `listener:renamed` | Server membership authority, current roster, peer lifecycle and bounded names | Retain Socket.IO; host aggregate count only mirrored into optional Celerity observation |
-| `room:reaction` | Valid membership, bounded rate, unique ID, short lifetime | Retain Socket.IO until presence measurements justify a separate event migration |
+| `room:reaction` | Valid membership, bounded rate, unique ID, short lifetime | Hybrid candidate: encrypted Product dual observation of server-accepted reactions; Socket.IO remains authoritative until live comparison |
 | Typing | No current Socket.IO event | Not introduced |
-| `room:chat` | Membership, acknowledgement, bounded retry/history, confidentiality if publicly gossiped | Retain Socket.IO; no chat enters Celerity |
-| `room:request`, `room:requests`, `room:request:remove`, `room:request:clear` | Attributed proposals, ack, host-only removal, full snapshot recovery | Retain Socket.IO |
+| `room:chat` | Membership, acknowledgement, bounded retry/history, confidentiality if publicly gossiped | Hybrid observation for short encrypted Product messages; retain Socket.IO delivery/history, no Celerity receipt claim |
+| `room:request`, `room:requests`, `room:request:remove`, `room:request:clear` | Attributed proposals, ack, host-only removal, full snapshot recovery | Hybrid observation of new encrypted accepted proposals; retain Socket.IO acknowledgement, host decisions and full queue reconciliation |
 | `room:track`, `room:lineup`, `room:playback-mode`, `player:state`, `room:stream-ready` | Host authority, source stripping, snapshot convergence, periodic resync, silence stale playback | Retain Socket.IO |
 | `webrtc:offer`, `webrtc:answer`, `webrtc:ice-candidate`, `peer:connected` | Private directed delivery, membership, retries, peer lifetime, glare handling | Retain Socket.IO; offline size experiment only |
 | `webrtc:diagnostic` | Bounded operational disclosure | Retain Socket.IO |
@@ -28,8 +28,10 @@ This classification precedes Celerity routing. The inventory comes from
 The `RoomRealtimePort` types the existing event and acknowledgement boundary.
 The Socket.IO adapter preserves reliable vs volatile delivery, timeout and
 connection semantics. `useSession` retains media peers and room state. The
-Celerity observer has no reference to this port or its state setters, so a
-statement cannot admit a guest, obtain a key or change playback.
+public-presence observer has no reference to this port. The private observer
+uses it only for authenticated membership and observing accepted social events;
+neither observer has room state setters or access/media services. Statements
+cannot admit a guest, obtain a content key or change playback.
 
 ## Protocol and trust
 
@@ -40,11 +42,12 @@ SDK encoder rather than counting JavaScript characters.
 
 The Product Host sponsored account signs statements. That is not a binding
 between a publisher and Dotify's authenticated room host. Producer IDs are
-random per observation session, not wallet or socket IDs; observations are
+random per observation session, not wallet or socket IDs; public observations are
 untrusted measurements and never authoritative room counts. Public observers
-can still correlate a room code and the allowance signer. No listener publishes.
+can still correlate a room code and the allowance signer. Only hosts publish
+aggregate presence; opted-in Product participants can publish encrypted social mirrors.
 
-Only a strict versioned aggregate-presence payload is accepted. Unknown fields
+The public presence namespace accepts only a strict versioned aggregate payload. Unknown fields
 or kinds (including chat, SDP, ICE, track state, sources and keys) are refused.
 Room, message ID, producer sequence, creation/expiry, payload version and SDK
 expiry are checked before bounded deduplication. Higher sequences supersede
@@ -58,12 +61,56 @@ Publisher self-echoes have a separate diagnostic event and are not counted as
 remote observations. These samples are untrusted even when a channel matches;
 there is no authenticated room-host binding in this first slice.
 
-## Private events and Host chat
+## Private social observation
 
-No private events are selected for publication. A future migration must first
-establish authenticated, per-room key agreement and application encryption,
-membership changes/rekeying, bounded message retries and private retention.
-The SDK `decryptionKey` option is a filter hint, not encryption.
+The opt-in private namespace now mirrors the sender's server-accepted reactions,
+chat and new track proposals. It is an experiment on real application events,
+not an alternate UI delivery path. Ordinary browser guests never initialize
+Product, register a key or publish. No signing/account prompt is added to joining.
+
+1. An admitted Product participant generates a non-extractable ephemeral Web
+   Crypto P-256 ECDH private key. Only its public key is registered over the
+   existing authenticated-by-admission Socket.IO connection (TLS in production).
+2. The room service validates curve points, assigns a random producer ID and
+   role from actual membership, and sends the versioned private roster only to
+   registered members. Keys are immutable within that membership. Leave,
+   disconnect and host resume revoke old IDs; closing the room removes the state.
+3. Each pair derives a directional AES-256-GCM key through ECDH and HKDF-SHA256,
+   bound to a random room scope and both producer IDs. All header fields are
+   authenticated, with a fresh random 96-bit nonce and a 10-second payload TTL.
+   This authenticates the counterpart to the recipient, not to third-party
+   verifiers; it is not a host snapshot signature or wallet identity.
+4. Public envelopes contain version, opaque scope, sender/recipient pseudonyms,
+   producer sequence/message identity, creation time and ciphertext. They never
+   contain a room code, display name, socket ID, plaintext social text or media key.
+   Expiry is checked against both creation+TTL and the SDK expiry. Application
+   payload version is bound to envelope version 2.
+5. A 64-message sliding replay window accepts bounded reordering once. Crypto
+   results spanning a membership revision or stop are discarded. No permanent
+   archive, key storage, app-level automatic retries or pending message queue exists.
+
+The room service remains trusted to bind peers honestly; a compromised service
+could substitute keys. This is confidentiality against public gossip observers,
+not an independent end-to-end claim against Dotify's admission service. Socket.IO
+still carries the original plaintext room events, as before. Remaining members
+cannot decrypt a different pair's ciphertext, but a recipient can retain a message
+or key it already received; revocation does not retract old disclosures. There is
+no double-ratchet or per-message forward-secrecy claim.
+
+Messages over 160 UTF-8 bytes, or exceeding actual SDK encoding limits, are not
+mirrored; they are never truncated. Each recipient consumes a separate statement,
+so fanout is O(n) and the 1024-byte allowance is a meaningful limit. Public and
+private publishers share local reservations, including a 512-byte beacon reserve
+only when that build enables beacons. Failed or uncertain writes retain their
+reservation until expiry. Busy sends, quota pressure and unavailable Product
+drop only the observation; the room's original delivery stays on Socket.IO.
+Same-channel replacement can lose observations. A publish result is not a
+delivery acknowledgement; chat/requests cannot move to Celerity authority yet.
+
+Private snapshots/signaling remain excluded. No protected source or key, full
+lineup, host control, SDP or ICE is accepted by this private schema.
+
+## Host chat
 
 Host 0.19.1 `ChatManager` supports `registerRoom`, `registerBot`, `sendMessage`,
 `subscribeChatList` and `subscribeAction`. These operate the Host chat surface,
@@ -109,8 +156,12 @@ After a separately authorized candidate deployment:
    controlled 60-second runs, network interruption, reconnect and expiry. Clear
    snapshots between runs. Record attempts/submissions/observations and duration
    distributions with clock calibration; do not equate sequence gaps with loss.
-4. Compare visible lineup/playback and guest sound throughout. Reactions, chat,
-   requests and player mutations remain on Socket.IO and must work when the
+4. Send a reaction, short chat and new request from each Product participant;
+   compare private `submitted`/`accepted` counters, then test an over-budget
+   message and extra peers. Private observation needs the updated signaling
+   server; an older server times out without affecting the canonical room.
+   Compare visible lineup/playback and guest sound throughout. All original
+   social events and player mutations remain on Socket.IO and must work when the
    observer reports unavailable, rejected, interrupted or timed out.
 5. Separately measure raw loss/duplicates/reorder at a controlled Host transport:
    SDK callbacks suppress duplicates and cannot alone certify those rates.

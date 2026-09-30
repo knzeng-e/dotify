@@ -603,7 +603,7 @@ describe('signaling server', () => {
     assert.equal(server.rooms.size, 0);
   });
 
-  it('closes rooms whose host stops heartbeating', async () => {
+  it('closes rooms whose host stops heartbeating', async context => {
     await server.close();
     server = startSignalingServer({ port: 0, host: '127.0.0.1', hostHeartbeatTimeoutMs: 60, sweepIntervalMs: 20, logger: () => {} });
     port = await server.listen();
@@ -613,6 +613,7 @@ describe('signaling server', () => {
 
     // Heartbeats keep the room alive past the timeout window.
     const keepAlive = setInterval(() => host.emit('host:heartbeat'), 25);
+    context.after(() => clearInterval(keepAlive));
     await new Promise(resolve => setTimeout(resolve, 150));
     assert.equal(server.rooms.size, 1, 'heartbeating host keeps the room open');
 
