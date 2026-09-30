@@ -344,12 +344,11 @@ export function useSession(deps: UseSessionDeps) {
   async function requestTurnCapability(): Promise<string | null> {
     const socket = socketRef.current;
     if (!dotifyApiUrl || !socket?.connected || !roomIdRef.current) return null;
-    try {
-      const response = await socket.request('room:turn-capability', {}, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS });
-      return response.ok ? response.capability : null;
-    } catch {
-      return null;
-    }
+    return new Promise(resolve => {
+      socket.request('room:turn-capability', {}, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }, (error, response) => {
+        resolve(!error && response?.ok ? response.capability : null);
+      });
+    });
   }
 
   async function resolveRoomIceServers(): Promise<RTCIceServer[]> {
@@ -832,7 +831,10 @@ export function useSession(deps: UseSessionDeps) {
       if (settled) return;
       settled = true;
       cleanup();
-      void activeSocket.request(event, payload, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }).then(onAck, onFailure);
+      activeSocket.request(event, payload, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }, (error, response) => {
+        if (error || response === undefined) onFailure();
+        else onAck(response);
+      });
     }
 
     timeoutId = window.setTimeout(fail, SIGNAL_ACK_TIMEOUT_MS);
@@ -1697,41 +1699,40 @@ export function useSession(deps: UseSessionDeps) {
       detail: 'socket-reconnect'
     });
 
-    void socket.request('room:join', { roomId: targetRoomId, displayName }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }).then(
-      response => {
-        if (!response.ok) {
-          clearRoomState('Room closed', response.error);
-          return;
-        }
-
-        roomIdRef.current = response.roomId;
-        hostIdRef.current = response.hostId;
-        publishRoomQuality('room-rejoined', 'listener', {
-          roomId: response.roomId,
-          elapsedMs: elapsedSince(listenerJoinStartedAtRef.current),
-          listenerCount: response.listenerCount
-        });
-        setHostName(response.hostName);
-        setTrackInfo(response.track);
-        setPlayerState(response.playerState);
-        if (response.listeners) {
-          applyListenerRoster(response.listeners);
-        } else {
-          setListenerCount(response.listenerCount);
-        }
-        setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
-        setChatMessages(response.chatHistory ?? []);
-        setRequestQueue(response.requests ?? []);
-        setRoomLineup(response.lineup ?? []);
-        setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
-        listenerConnectionStartedAtRef.current = monotonicNow();
-        startListenerConnectionTimeout();
-      },
-      () => {
+    socket.request('room:join', { roomId: targetRoomId, displayName }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }, (error, response) => {
+      if (error || !response) {
         setSessionStatus('Reconnecting');
         setError('The room connection is still recovering.');
+        return;
       }
-    );
+      if (!response.ok) {
+        clearRoomState('Room closed', response.error);
+        return;
+      }
+
+      roomIdRef.current = response.roomId;
+      hostIdRef.current = response.hostId;
+      publishRoomQuality('room-rejoined', 'listener', {
+        roomId: response.roomId,
+        elapsedMs: elapsedSince(listenerJoinStartedAtRef.current),
+        listenerCount: response.listenerCount
+      });
+      setHostName(response.hostName);
+      setTrackInfo(response.track);
+      setPlayerState(response.playerState);
+      if (response.listeners) {
+        applyListenerRoster(response.listeners);
+      } else {
+        setListenerCount(response.listenerCount);
+      }
+      setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
+      setChatMessages(response.chatHistory ?? []);
+      setRequestQueue(response.requests ?? []);
+      setRoomLineup(response.lineup ?? []);
+      setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
+      listenerConnectionStartedAtRef.current = monotonicNow();
+      startListenerConnectionTimeout();
+    });
   }
 
   // A mobile host can briefly lose its signaling transport while the webview
@@ -1743,32 +1744,31 @@ export function useSession(deps: UseSessionDeps) {
     const hostResumeToken = hostResumeTokenRef.current;
     if (!socket?.connected || !targetRoomId || !hostResumeToken) return;
 
-    void socket.request('room:resume', { roomId: targetRoomId, hostResumeToken }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }).then(
-      response => {
-        if (!response.ok) {
-          clearRoomState('Room closed', response.error);
-          return;
-        }
-
-        roomIdRef.current = response.roomId;
-        setRoomId(response.roomId);
-        emitPlayerState(true);
-        setHostName(response.hostName);
-        applyListenerRoster(response.listeners);
-        setRoomLineup(response.lineup ?? []);
-        setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
-        setError(null);
-        publishRoomQuality('host-online', 'host', {
-          roomId: response.roomId,
-          listenerCount: response.listenerCount
-        });
-        requestOpenRooms();
-      },
-      () => {
+    socket.request('room:resume', { roomId: targetRoomId, hostResumeToken }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }, (error, response) => {
+      if (error || !response) {
         setSessionStatus('Reconnecting room');
         setError('The room connection is still recovering.');
+        return;
       }
-    );
+      if (!response.ok) {
+        clearRoomState('Room closed', response.error);
+        return;
+      }
+
+      roomIdRef.current = response.roomId;
+      setRoomId(response.roomId);
+      emitPlayerState(true);
+      setHostName(response.hostName);
+      applyListenerRoster(response.listeners);
+      setRoomLineup(response.lineup ?? []);
+      setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
+      setError(null);
+      publishRoomQuality('host-online', 'host', {
+        roomId: response.roomId,
+        listenerCount: response.listenerCount
+      });
+      requestOpenRooms();
+    });
   }
 
   function joinSession(event: FormEvent<HTMLFormElement>) {
@@ -1788,17 +1788,14 @@ export function useSession(deps: UseSessionDeps) {
     if (!roomIdRef.current) return;
 
     const socket = connectSocket();
-    void socket.request('room:rename', { displayName: clean }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }).then(
-      response => {
-        if (!response.ok) {
-          setError(response?.error ?? 'Unable to update room name.');
-          return;
-        }
-        setDisplayName(response.displayName ?? clean);
-        setError(null);
-      },
-      () => setError('Unable to update room name.')
-    );
+    socket.request('room:rename', { displayName: clean }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }, (error, response) => {
+      if (error || !response?.ok) {
+        setError(response?.error ?? 'Unable to update room name.');
+        return;
+      }
+      setDisplayName(response.displayName ?? clean);
+      setError(null);
+    });
   }
 
   function requestRoomAudio() {
@@ -1906,10 +1903,15 @@ export function useSession(deps: UseSessionDeps) {
     // Never buffer text for an automatic reconnect or render optimistically.
     // Older signaling servers can echo without acknowledging: retain the
     // draft on timeout and ask the sender to check before resending.
-    return socket.request(event, { text: trimmed }, { timeoutMs: 5000, volatile: true }).then(
-      result => ({ ok: result.ok === true, message: result.message }),
-      () => ({ ok: false, message: 'Couldn’t confirm delivery. Check the room before resending.' })
-    );
+    return new Promise(resolve => {
+      socket.request(event, { text: trimmed }, { timeoutMs: 5000, volatile: true }, (error, result) => {
+        resolve(
+          error || !result
+            ? { ok: false, message: 'Couldn’t confirm delivery. Check the room before resending.' }
+            : { ok: result.ok === true, message: result.message }
+        );
+      });
+    });
   }
 
   function sendChatMessage(text: string) {

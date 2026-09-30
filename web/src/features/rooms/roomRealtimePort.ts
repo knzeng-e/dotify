@@ -91,8 +91,9 @@ export interface RoomRealtimePort {
   request<K extends keyof RoomRequests>(
     event: K,
     input: RoomRequests[K]['input'],
-    options: { timeoutMs: number; volatile?: boolean }
-  ): Promise<RoomRequests[K]['output']>;
+    options: { timeoutMs: number; volatile?: boolean },
+    reply: (error: Error | null, response: RoomRequests[K]['output'] | undefined) => void
+  ): void;
 }
 
 export type RoomTrackEmitter = <K extends 'room:track' | 'room:playback-mode'>(event: K, ...args: RoomOutgoingEvents[K]) => void;

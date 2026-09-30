@@ -88,18 +88,18 @@ export function adaptSocketRealtime(socket: Socket): RoomRealtimePort {
     emitVolatile: (event, ...args) => {
       socket.volatile.emit(event, ...args);
     },
-    request: (event, input, options) =>
-      new Promise((resolve, reject) => {
-        const sender = socket.timeout(options.timeoutMs);
-        (options.volatile ? sender.volatile : sender).emit(
-          event,
-          input,
-          (error: Error | null, response: RoomRequests[typeof event]['output'] | null | undefined) => {
-            if (error || response == null) reject(error ?? new Error('Room acknowledgement missing'));
-            else resolve(response);
-          }
-        );
-      })
+    request: (event, input, options, reply) => {
+      const sender = socket.timeout(options.timeoutMs);
+      (options.volatile ? sender.volatile : sender).emit(
+        event,
+        input,
+        (error: Error | null, response: RoomRequests[typeof event]['output'] | null | undefined) => {
+          // Apply ack snapshots in packet order, before a subsequent live event.
+          if (error || response == null) reply(error ?? new Error('Room acknowledgement missing'), undefined);
+          else reply(null, response);
+        }
+      );
+    }
   };
 }
 

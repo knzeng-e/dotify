@@ -11,27 +11,51 @@ function setup(writable = true) {
 }
 
 describe('Socket.IO realtime port', () => {
-  it('preserves ack success and does not reinterpret application denials', async () => {
+  it('preserves ack success and does not reinterpret application denials', () => {
     const { socket, port } = setup();
-    const result = port.request('room:join', { roomId: 'ABC123', displayName: 'Guest' }, { timeoutMs: 100 });
+    const reply = vi.fn();
+    port.request('room:join', { roomId: 'ABC123', displayName: 'Guest' }, { timeoutMs: 100 }, reply);
     Reflect.get(socket, 'acks')[0](null, { ok: false, error: 'Room full' });
-    expect(await result).toEqual({ ok: false, error: 'Room full' });
+    expect(reply).toHaveBeenCalledWith(null, { ok: false, error: 'Room full' });
     expect(port.transportName).toBe('polling');
   });
 
   it('times out dropped volatile text without buffering an automatic resend', async () => {
     const { socket, packet, port } = setup(false);
-    const result = port.request('room:chat', { text: 'Hello' }, { timeoutMs: 5, volatile: true });
-    await expect(result).rejects.toThrow();
+    const reply = vi.fn();
+    const completed = new Promise<void>(resolve => {
+      port.request('room:chat', { text: 'Hello' }, { timeoutMs: 5, volatile: true }, (error, response) => {
+        reply(error, response);
+        resolve();
+      });
+    });
+    await completed;
+    expect(reply).toHaveBeenCalledWith(expect.any(Error), undefined);
     expect(packet).not.toHaveBeenCalled();
     expect(socket.sendBuffer).toHaveLength(0);
   });
 
-  it('treats an empty acknowledgement as unconfirmed delivery', async () => {
+  it('treats an empty acknowledgement as unconfirmed delivery', () => {
     const { socket, port } = setup();
-    const result = port.request('room:chat', { text: 'Hello' }, { timeoutMs: 100 });
+    const reply = vi.fn();
+    port.request('room:chat', { text: 'Hello' }, { timeoutMs: 100 }, reply);
     Reflect.get(socket, 'acks')[0](null, null);
-    await expect(result).rejects.toThrow('Room acknowledgement missing');
+    expect(reply).toHaveBeenCalledWith(expect.objectContaining({ message: 'Room acknowledgement missing' }), undefined);
+  });
+
+  it('applies the join snapshot before the next live lineup event in the same turn', () => {
+    const { socket, port } = setup();
+    let lineup = 'initial';
+    port.request('room:join', { roomId: 'ABC123', displayName: 'Guest' }, { timeoutMs: 100 }, () => {
+      lineup = 'join snapshot';
+    });
+    port.on('room:lineup', () => {
+      lineup = 'new live state';
+    });
+    Reflect.get(socket, 'acks')[0](null, { ok: true });
+    expect(lineup).toBe('join snapshot');
+    socket.listeners('room:lineup').forEach(handler => handler([]));
+    expect(lineup).toBe('new live state');
   });
 
   it('unsubscribes and keeps latest full snapshots on the authoritative path', () => {
