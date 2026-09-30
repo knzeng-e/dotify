@@ -78,6 +78,11 @@ boundary and measured dual operation before moving social or session events;
 it preserves Socket.IO for anonymous guests and for every guarantee Celerity
 has not yet proven.
 
+On 2026-09-30 the owner explicitly activated W27's first implementation slice
+before the remaining W13 pilot gates. The port/envelope/observation work is
+recorded in [W27 evidence](evidence/W27.md); this does not accept the pilot or
+authorize default Celerity activation. Project 5 owns current workflow status.
+
 **W28** is the owner-requested mobile premium experience slice from the
 2026-09-29 design audit. It reconciles the already-merged W21-W25 polish with
 new mobile evidence: room-aware mini-player state, native track rails, full

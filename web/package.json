@@ -12,6 +12,7 @@
 		"signal": "SIGNAL_PORT=8788 node server/signaling.mjs",
 		"test:signal": "node --test server/signaling.test.mjs server/signaling-smoke.test.mjs",
 		"test:unit": "vitest run",
+		"test:celerity-feasibility": "node --test scripts/celerity-feasibility.test.mjs",
 		"test:e2e": "playwright test",
 		"dev:listen": "concurrently -n signal,web -c magenta,cyan \"npm:signal\" \"npm:dev\"",
 		"build": "tsc -b && vite build",

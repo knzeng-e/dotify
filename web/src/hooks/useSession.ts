@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Socket } from 'socket.io-client';
+import type { RoomRealtimePort, RoomRequests, RoomTrackEmitter } from '../features/rooms/roomRealtimePort';
 import {
   createRoomJoinE2eCaptureStream,
   isRoomJoinE2e,
@@ -23,7 +23,8 @@ import {
   type RoomQualityPhase,
   type RoomQualityRole
 } from '../features/rooms/roomQualityTelemetry';
-import { createSignalClient, describeSignalConnectError, publishPlayerState } from '../features/rooms/signalClient';
+import { createRoomRealtime, describeSignalConnectError, publishPlayerState } from '../features/rooms/signalClient';
+import { useRoomRealtimeObservation } from './useRoomRealtimeObservation';
 import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
 import { ensureProductHostRoomPermissions, isProductHostWebRtcUnavailable, openProductHostExternalUrl } from '../features/productHost/productHost';
 import { useRoomBeacon } from './useRoomBeacon';
@@ -44,7 +45,6 @@ import type {
   OpenRoom,
   PeerStatus,
   PlayerState,
-  ResumeRoomResponse,
   RoomPresenceListener,
   RoomChatMessage,
   RoomPlaybackMode,
@@ -54,8 +54,7 @@ import type {
   SessionAction,
   SoloListeningByTrackHash,
   SocketStatus,
-  TrackInfo,
-  TurnCapabilityResponse
+  TrackInfo
 } from '../shared/types';
 import type { FormEvent } from 'react';
 
@@ -234,7 +233,7 @@ export function useSession(deps: UseSessionDeps) {
   const hostResumeTokenRef = useRef('');
   const modeRef = useRef<Mode>(mode);
   const listenersRef = useRef<ListenerRecord[]>([]);
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<RoomRealtimePort | null>(null);
   const soloTrackHashRef = useRef<string | null>(null);
   const listenerPeerRef = useRef<RTCPeerConnection | null>(null);
   const hostPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -282,7 +281,7 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function socketTransportName() {
-    return (socketRef.current?.io.engine.transport as { name?: string } | undefined)?.name;
+    return socketRef.current?.transportName;
   }
 
   function publishRoomQuality(phase: RoomQualityPhase, role: RoomQualityRole, details: Partial<Omit<RoomQualityMetric, 'phase' | 'role' | 'timestamp'>> = {}) {
@@ -345,15 +344,12 @@ export function useSession(deps: UseSessionDeps) {
   async function requestTurnCapability(): Promise<string | null> {
     const socket = socketRef.current;
     if (!dotifyApiUrl || !socket?.connected || !roomIdRef.current) return null;
-    return new Promise(resolve => {
-      socket.timeout(SIGNAL_ACK_TIMEOUT_MS).emit('room:turn-capability', {}, (error: Error | null, response: TurnCapabilityResponse | undefined) => {
-        if (error || !response?.ok) {
-          resolve(null);
-          return;
-        }
-        resolve(response.capability);
-      });
-    });
+    try {
+      const response = await socket.request('room:turn-capability', {}, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS });
+      return response.ok ? response.capability : null;
+    } catch {
+      return null;
+    }
   }
 
   async function resolveRoomIceServers(): Promise<RTCIceServer[]> {
@@ -559,7 +555,7 @@ export function useSession(deps: UseSessionDeps) {
   function getSocket() {
     if (socketRef.current) return socketRef.current;
 
-    const socket = createSignalClient(signalUrl);
+    const socket = createRoomRealtime(signalUrl);
     let diagnosisStarted = false;
 
     socket.on('connect', () => {
@@ -807,7 +803,12 @@ export function useSession(deps: UseSessionDeps) {
     return connectSocket();
   }
 
-  async function emitAckWhenConnected<Response>(event: string, payload: unknown, onAck: (response: Response) => void, onFailure: () => void) {
+  async function emitAckWhenConnected<K extends keyof RoomRequests>(
+    event: K,
+    payload: RoomRequests[K]['input'],
+    onAck: (response: RoomRequests[K]['output']) => void,
+    onFailure: () => void
+  ) {
     const socket = await connectRoomSocket();
     if (!socket) return;
     const activeSocket = socket;
@@ -831,13 +832,7 @@ export function useSession(deps: UseSessionDeps) {
       if (settled) return;
       settled = true;
       cleanup();
-      activeSocket.timeout(SIGNAL_ACK_TIMEOUT_MS).emit(event, payload, (error: Error | null, response: Response | undefined) => {
-        if (error || response === undefined) {
-          onFailure();
-          return;
-        }
-        onAck(response);
-      });
+      void activeSocket.request(event, payload, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }).then(onAck, onFailure);
     }
 
     timeoutId = window.setTimeout(fail, SIGNAL_ACK_TIMEOUT_MS);
@@ -1570,7 +1565,7 @@ export function useSession(deps: UseSessionDeps) {
       listenerCount: 0
     });
 
-    emitAckWhenConnected<CreateRoomResponse>(
+    emitAckWhenConnected(
       'room:create',
       { displayName: chosenDisplayName, track: currentTrackInfo, playbackMode },
       (response: CreateRoomResponse) => {
@@ -1641,7 +1636,7 @@ export function useSession(deps: UseSessionDeps) {
       roomId: normalizedRoomId
     });
 
-    emitAckWhenConnected<JoinRoomResponse>(
+    emitAckWhenConnected(
       'room:join',
       { roomId: normalizedRoomId, displayName: joinDisplayName },
       (response: JoinRoomResponse) => {
@@ -1702,35 +1697,41 @@ export function useSession(deps: UseSessionDeps) {
       detail: 'socket-reconnect'
     });
 
-    socket.emit('room:join', { roomId: targetRoomId, displayName }, (response: JoinRoomResponse) => {
-      if (!response.ok) {
-        clearRoomState('Room closed', response.error);
-        return;
-      }
+    void socket.request('room:join', { roomId: targetRoomId, displayName }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }).then(
+      response => {
+        if (!response.ok) {
+          clearRoomState('Room closed', response.error);
+          return;
+        }
 
-      roomIdRef.current = response.roomId;
-      hostIdRef.current = response.hostId;
-      publishRoomQuality('room-rejoined', 'listener', {
-        roomId: response.roomId,
-        elapsedMs: elapsedSince(listenerJoinStartedAtRef.current),
-        listenerCount: response.listenerCount
-      });
-      setHostName(response.hostName);
-      setTrackInfo(response.track);
-      setPlayerState(response.playerState);
-      if (response.listeners) {
-        applyListenerRoster(response.listeners);
-      } else {
-        setListenerCount(response.listenerCount);
+        roomIdRef.current = response.roomId;
+        hostIdRef.current = response.hostId;
+        publishRoomQuality('room-rejoined', 'listener', {
+          roomId: response.roomId,
+          elapsedMs: elapsedSince(listenerJoinStartedAtRef.current),
+          listenerCount: response.listenerCount
+        });
+        setHostName(response.hostName);
+        setTrackInfo(response.track);
+        setPlayerState(response.playerState);
+        if (response.listeners) {
+          applyListenerRoster(response.listeners);
+        } else {
+          setListenerCount(response.listenerCount);
+        }
+        setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
+        setChatMessages(response.chatHistory ?? []);
+        setRequestQueue(response.requests ?? []);
+        setRoomLineup(response.lineup ?? []);
+        setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
+        listenerConnectionStartedAtRef.current = monotonicNow();
+        startListenerConnectionTimeout();
+      },
+      () => {
+        setSessionStatus('Reconnecting');
+        setError('The room connection is still recovering.');
       }
-      setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
-      setChatMessages(response.chatHistory ?? []);
-      setRequestQueue(response.requests ?? []);
-      setRoomLineup(response.lineup ?? []);
-      setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
-      listenerConnectionStartedAtRef.current = monotonicNow();
-      startListenerConnectionTimeout();
-    });
+    );
   }
 
   // A mobile host can briefly lose its signaling transport while the webview
@@ -1742,14 +1743,8 @@ export function useSession(deps: UseSessionDeps) {
     const hostResumeToken = hostResumeTokenRef.current;
     if (!socket?.connected || !targetRoomId || !hostResumeToken) return;
 
-    socket
-      .timeout(SIGNAL_ACK_TIMEOUT_MS)
-      .emit('room:resume', { roomId: targetRoomId, hostResumeToken }, (ackError: Error | null, response: ResumeRoomResponse | undefined) => {
-        if (ackError || !response) {
-          setSessionStatus('Reconnecting room');
-          setError('The room connection is still recovering.');
-          return;
-        }
+    void socket.request('room:resume', { roomId: targetRoomId, hostResumeToken }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }).then(
+      response => {
         if (!response.ok) {
           clearRoomState('Room closed', response.error);
           return;
@@ -1768,7 +1763,12 @@ export function useSession(deps: UseSessionDeps) {
           listenerCount: response.listenerCount
         });
         requestOpenRooms();
-      });
+      },
+      () => {
+        setSessionStatus('Reconnecting room');
+        setError('The room connection is still recovering.');
+      }
+    );
   }
 
   function joinSession(event: FormEvent<HTMLFormElement>) {
@@ -1788,16 +1788,17 @@ export function useSession(deps: UseSessionDeps) {
     if (!roomIdRef.current) return;
 
     const socket = connectSocket();
-    socket
-      .timeout(SIGNAL_ACK_TIMEOUT_MS)
-      .emit('room:rename', { displayName: clean }, (error: Error | null, response: { ok: boolean; displayName?: string; error?: string } | undefined) => {
-        if (error || !response?.ok) {
+    void socket.request('room:rename', { displayName: clean }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }).then(
+      response => {
+        if (!response.ok) {
           setError(response?.error ?? 'Unable to update room name.');
           return;
         }
         setDisplayName(response.displayName ?? clean);
         setError(null);
-      });
+      },
+      () => setError('Unable to update room name.')
+    );
   }
 
   function requestRoomAudio() {
@@ -1838,6 +1839,13 @@ export function useSession(deps: UseSessionDeps) {
     listenerCount
   });
 
+  useRoomRealtimeObservation({
+    roomId,
+    isHosting: mode === 'host' && Boolean(hostResumeTokenRef.current),
+    online: socketStatus === 'online' && sessionAction === 'idle',
+    listenerCount
+  });
+
   async function copySessionLink() {
     const link = buildSessionLink(roomId, publicAppUrl || window.location.href);
     if (!link) return;
@@ -1870,9 +1878,9 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
-  function socketEmit(event: string, data: unknown) {
-    socketRef.current?.emit(event, data);
-  }
+  const socketEmit: RoomTrackEmitter = (event, ...args) => {
+    socketRef.current?.emit(event, ...args);
+  };
 
   function setSoloListeningTrack(trackHash: string | null) {
     const normalized = typeof trackHash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(trackHash) ? trackHash.toLowerCase() : null;
@@ -1895,18 +1903,13 @@ export function useSession(deps: UseSessionDeps) {
     if (!roomIdRef.current || !socket?.connected) return Promise.resolve({ ok: false, message: 'Reconnecting. Your draft stays here.' });
     const trimmed = text.trim().slice(0, maxLength);
     if (!trimmed) return Promise.resolve({ ok: false, message: 'Write something first.' });
-    return new Promise(resolve => {
-      // Never buffer text for an automatic reconnect or render optimistically.
-      // Older signaling servers can echo without acknowledging: retain the
-      // draft on timeout and ask the sender to check before resending.
-      socket.timeout(5000).volatile.emit(event, { text: trimmed }, (error: Error | null, result?: { ok?: boolean; message?: string }) => {
-        resolve(
-          error || !result
-            ? { ok: false, message: 'Couldn’t confirm delivery. Check the room before resending.' }
-            : { ok: result.ok === true, message: result.message }
-        );
-      });
-    });
+    // Never buffer text for an automatic reconnect or render optimistically.
+    // Older signaling servers can echo without acknowledging: retain the
+    // draft on timeout and ask the sender to check before resending.
+    return socket.request(event, { text: trimmed }, { timeoutMs: 5000, volatile: true }).then(
+      result => ({ ok: result.ok === true, message: result.message }),
+      () => ({ ok: false, message: 'Couldn’t confirm delivery. Check the room before resending.' })
+    );
   }
 
   function sendChatMessage(text: string) {
@@ -1915,7 +1918,7 @@ export function useSession(deps: UseSessionDeps) {
 
   function sendRoomReaction(emoji: string) {
     if (!roomIdRef.current || !socketRef.current?.connected) return;
-    socketRef.current.volatile.emit('room:reaction', { emoji });
+    socketRef.current.emitVolatile('room:reaction', { emoji });
   }
 
   function sendRoomRequest(text: string) {

@@ -96,6 +96,9 @@ jobs:
       - name: First-sound evidence tests
         run: npm run test:first-sound-readiness
 
+      - name: Celerity offline feasibility tests
+        run: npm run test:celerity-feasibility
+
       - name: Build
         run: npm run build
 
@@ -226,6 +229,11 @@ jobs:
         env:
           VITE_DOTIFY_RUNTIME_ADAPTER: product-cdm
           VITE_DOTIFY_ARTIST_DONATIONS: 'on'
+        run: npx vite build --config vite.product.config.ts --mode product-devnet
+
+      - name: Build opt-in Celerity observation profile
+        env:
+          VITE_DOTIFY_ROOM_REALTIME: dual
         run: npx vite build --config vite.product.config.ts --mode product-devnet
 
       - name: Fail on generated Product catalog drift

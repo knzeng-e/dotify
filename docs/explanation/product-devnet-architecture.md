@@ -180,6 +180,17 @@ app. W19 must therefore treat Product-native nearby as unsupported until an
 official host API is verified. The safe Product paths are manual area,
 venue QR, or external-browser continuation.
 
+## Room realtime observation
+
+W27 adds a typed `RoomRealtimePort` for the existing authoritative Socket.IO
+events and an isolated Product-only Celerity observer. The default remains off.
+An opt-in validation build can subscribe to aggregate presence, or dual-publish
+host counts without changing playback, admission or guest identity rules.
+The sponsored Statement Store signature does not authenticate Dotify host
+authority. No chat, requests, player state or SDP/ICE moves to Celerity in this
+first slice. See [the responsibility matrix](room-realtime-transports.md) for
+the encoding limits, offline signaling experiment and remaining live gates.
+
 ## Storage Boundaries
 
 Product static hosting replaces the web server for the Product build. It does

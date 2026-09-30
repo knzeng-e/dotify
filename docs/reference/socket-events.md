@@ -2,6 +2,10 @@
 
 The signaling server relays WebRTC handshake messages and room state between clients. It never handles audio.
 
+Clients consume these events through the typed `RoomRealtimePort`. The opt-in
+W27 Celerity observer does not replace any event below or grant room authority.
+See the [per-event transport guarantee matrix](../explanation/room-realtime-transports.md).
+
 **Server address:** configured via `VITE_SIGNAL_URL` (default: `http://localhost:8788`).
 
 ---

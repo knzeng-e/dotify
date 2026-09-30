@@ -188,6 +188,7 @@ Required Product values:
 | `VITE_DOTIFY_API_URL`           | `https://dotify-api.fly.dev`                                                                                                     |
 | `VITE_SIGNAL_URL`               | `https://dotify-signal.fly.dev`                                                                                                  |
 | `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                                                            |
+| `VITE_DOTIFY_ROOM_REALTIME`     | `off`; `observe` or `dual` only for an authorized Product measurement candidate                                                     |
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
@@ -250,6 +251,23 @@ depend on PAPI `1.23.x`. A direct root PAPI 3 trial failed type compatibility
 for the `PolkadotSigner` export and `ChainDefinition` / `TypedApi` boundaries,
 so PAPI 3 is tracked as a blocked compatibility migration rather than a
 deployable dependency bump.
+
+W27 adds `VITE_DOTIFY_ROOM_REALTIME`, default off. It requires a Product host
+mode and only observes aggregate room presence; Socket.IO remains authoritative.
+`dual` additionally publishes from hosts. It must not be enabled as a default
+until two-client Product evidence is reviewed. Build an offline validation
+artifact with `VITE_DOTIFY_ROOM_REALTIME=dual npm run build:product-devnet:frozen`;
+this command does not publish it. Rollback is a build with the flag off. Stop
+or reload active observation sessions; published presence expires after 30
+seconds and observer data is held in memory only. No backend setting, secret,
+database or contract changes are required. A timeout does not cancel a Host
+request already in flight; do not treat timeout as proof of no publication.
+
+The observer reserves room for one beacon and bounds its own unexpired writes
+within one JS instance. It cannot preflight all users of a sponsored account,
+other tabs or other applications; network rejection is an observed outcome.
+See [W27 transport decisions](../explanation/room-realtime-transports.md) for
+privacy, observation limits and the Product capture protocol.
 
 `VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
 publication announces no rooms on the Statement Store. The capability ships
