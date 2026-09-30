@@ -21,7 +21,8 @@ messages automatically, pay, or approve a migration. Read the
 If a Host exposes neither the capture panel nor an operator console, record that
 limitation. A browser simulation or an invented Host version is not a real-device
 capture. The console-only 0.1.30 deployed candidate predates the capture panel;
-shipping the panel requires a separately authorized candidate on both clients.
+the separately authorized 0.1.31 candidate adds it. Both clients must resolve
+the same 0.1.31 CID before a paired run is accepted.
 
 ## Resolve permissions before measuring
 

@@ -461,13 +461,16 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The tracked Product executable candidate is `[0, 1, 30]`, the separately
-authorized W27 measurement candidate. For this deployment only, build and
-publish with `VITE_DOTIFY_ROOM_REALTIME=dual`; retain the default viem runtime,
-disabled beacons and existing payment policy. Record the finalized CID and
-same-candidate Product observations using
+The tracked Product executable candidate is `[0, 1, 31]`, the separately
+authorized W27 measurement candidate with the mobile operator capture panel.
+For this deployment only, build and publish with
+`VITE_DOTIFY_ROOM_REALTIME=dual` and `VITE_DOTIFY_DEBUG_PANEL=true`; retain the
+default viem runtime, disabled beacons and existing payment policy. Record the
+finalized CID and same-candidate Product observations using
 [the paired capture procedure](../how-to/capture-celerity-room-realtime.md).
 The tracked realtime flag remains off and no live acceptance is implied.
+Version `[0, 1, 30]` is the earlier console-only W27 candidate and does not
+contain the operator panel.
 
 Version `[0, 1, 29]` gates
 local host output on pause, preserves paused Next/Previous, retires obsolete

@@ -192,18 +192,20 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 30]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 31]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 30]` identifies the W27 validation candidate with optional
-Celerity observation and paired capture. The owner authorized publication on
-2026-09-30. Enable `VITE_DOTIFY_ROOM_REALTIME=dual` only for that measurement
-deployment; the tracked default remains off. This version is not evidence of
-real Product delivery or approval of a transport migration.
+Version `[0, 1, 31]` identifies the separately authorized W27 measurement
+candidate with the mobile operator capture panel. Enable
+`VITE_DOTIFY_ROOM_REALTIME=dual` and `VITE_DOTIFY_DEBUG_PANEL=true` only for
+that measurement deployment; the tracked defaults remain off. This version is
+not evidence of real Product delivery or approval of a transport migration.
+Version `[0, 1, 30]` is the earlier console-only W27 candidate. It supports the
+observers and paired capture API but predates the mobile operator panel.
 Version `[0, 1, 29]` fixes host pause/source ownership and restores the desktop
 room palette on mobile. It retains `[0, 1, 28]` room-authorized TURN credential delivery and an
 independent IPFS fallback for full encrypted-audio recovery. The version bump
@@ -299,9 +301,9 @@ With `VITE_DOTIFY_DEBUG_PANEL=true`, the same recorder is available under
 You > Production readiness > Celerity capture, including on mobile without
 DevTools. The panel starts no capture or publication on mount. It exports only
 on an explicit copy action, with selectable JSON when clipboard access fails;
-no automatic upload or persistence is added. Both peers must use the newly
-authorized candidate: the previously deployed 0.1.30 CID does not include this
-operator panel. A new local build is not a deployment or live acceptance result.
+no automatic upload or persistence is added. Both peers must use the 0.1.31
+candidate: the earlier 0.1.30 CID does not include this operator panel. A new
+local build is not a deployment or live acceptance result.
 
 `VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
 publication announces no rooms on the Statement Store. The capability ships
