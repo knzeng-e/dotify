@@ -310,7 +310,7 @@ export function ArtistConsole() {
             <span>{connectedWallet?.label ?? 'Artist account'}</span>
           </div>
         </div>
-        {(artistTracks.length > 0 || artistTab !== 'overview') && artistTab !== 'new' && (
+        {artistRuntimeAddress && (artistTracks.length > 0 || artistTab !== 'overview') && artistTab !== 'new' && (
           <button className='primary-action studio-publish' type='button' onClick={() => onSetArtistTab('new')} disabled={artistStudioLocked}>
             <Plus size={18} />
             New release
@@ -365,13 +365,16 @@ export function ArtistConsole() {
         {artistTab === 'overview' && (
           <OverviewTab
             artistName={artistName}
+            artistRuntimeAddress={artistRuntimeAddress}
             artistRegistrationStatus={artistRegistrationStatus}
+            isRegisteringArtist={artistConsole.isRegisteringArtist}
             isRefreshingArtistRuntime={isRefreshingArtistRuntime}
             artistRegistrationAvailable={artistRegistrationAvailable}
             royaltyPayments={royaltyPayments}
             earnings={earningsSummary}
             releases={releaseEarnings}
             onUpdateArtistName={onUpdateArtistName}
+            onRegisterArtist={artistConsole.registerArtist}
             onRefreshArtistRuntime={onRefreshArtistRuntime}
             onSetArtistTab={onSetArtistTab}
             onOpenRelease={openReleaseDetails}

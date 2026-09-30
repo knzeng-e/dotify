@@ -1,5 +1,24 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
+export type RefreshGate = { current: Promise<void> | null };
+
+export async function runSerializedRefresh(gate: RefreshGate, refresh: () => Promise<void>, rerunAfterActive = false): Promise<void> {
+  const active = gate.current;
+  if (active) {
+    await active;
+    if (rerunAfterActive) await runSerializedRefresh(gate, refresh, true);
+    return;
+  }
+
+  const pending = Promise.resolve().then(refresh);
+  gate.current = pending;
+  try {
+    await pending;
+  } finally {
+    if (gate.current === pending) gate.current = null;
+  }
+}
+
 export function useVisibleRefresh(refresh: () => Promise<void>, scope: string | null, intervalMs = 15_000) {
   const refreshRef = useRef(refresh);
   useLayoutEffect(() => {

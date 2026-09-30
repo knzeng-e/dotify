@@ -9,7 +9,7 @@ const paidTopic = toEventSelector(
   parseAbiItem('event MusicRoyRoyaltyPaid(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount)')
 );
 
-async function openStudio(page: Page) {
+async function openStudio(page: Page, options: { collaboratorOnly?: boolean } = {}) {
   const control = { failed: false, payments: 1, queries: 0 };
   await page.route('**/*', async route => {
     if (route.request().resourceType() === 'image' && route.request().url().includes('QmYtt')) {
@@ -51,13 +51,13 @@ async function openStudio(page: Page) {
     return route.fulfill({ json: { jsonrpc: '2.0', id: body.id, result } });
   });
   await page.addInitScript(
-    ({ account, runtime, hash }) => {
+    ({ account, runtime, hash, collaborator, collaboratorOnly }) => {
       const titles = ['Street scriptures', 'Mon cerveau', 'Odzambogha'];
       const tracks = titles.map((title, index) => ({
         id: `${runtime}:${index === 0 ? hash : `0x${String(index).repeat(64)}`}`,
         hash: index === 0 ? hash : `0x${String(index).repeat(64)}`,
         source: 'artist',
-        artistAddress: account,
+        artistAddress: collaboratorOnly ? collaborator : account,
         artist: 'Lord Ekomy Ndong',
         title,
         zone: 'Gabon',
@@ -76,10 +76,10 @@ async function openStudio(page: Page) {
         encrypted: true,
         registeredAtBlock: 2
       }));
-      localStorage.setItem('dotify:e2e:artist-publish', JSON.stringify({ runtimeCreated: true, tracks }));
+      localStorage.setItem('dotify:e2e:artist-publish', JSON.stringify({ runtimeCreated: !collaboratorOnly, tracks }));
       localStorage.setItem(`dotify:artist-name:${account}`, 'Lord Ekomy Ndong');
     },
-    { account, runtime, hash }
+    { account, runtime, hash, collaborator, collaboratorOnly: options.collaboratorOnly ?? false }
   );
   await page.goto('/artists?e2eArtist=happy');
   await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toBeVisible();
@@ -111,6 +111,23 @@ test('unavailable history is never displayed as zero earned', async ({ page }) =
   await expect(summary).toContainText('History unavailable');
   await expect(summary.locator('.earnings-totals > div').first()).toContainText('Unavailable');
   await expect(summary.locator('.earnings-totals > div').first()).not.toContainText('0 PAS');
+});
+
+test('a collaborator without a runtime can create an artist profile without losing earnings', async ({ page }, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openStudio(page, { collaboratorOnly: true });
+  await expect(page.getByRole('region', { name: 'Release earnings' })).toContainText('1.764 PAS');
+  await expect(page.getByRole('heading', { name: 'Create your artist space' })).toBeVisible();
+  const createProfile = page.getByRole('button', { name: 'Create artist profile' });
+  await expect(createProfile).toBeDisabled();
+  await page.screenshot({ path: info.outputPath('collaborator-profile-390.png'), fullPage: true, animations: 'disabled' });
+  await page.getByLabel('I understand and consent to shared listening on Dotify.').check();
+  await expect(createProfile).toBeEnabled();
+  await createProfile.click();
+  await expect(page.getByRole('dialog')).toContainText('Artist registered');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Start your first release' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Release earnings' })).toContainText('1.764 PAS');
 });
 
 for (const width of [320, 390, 430, 1440]) {

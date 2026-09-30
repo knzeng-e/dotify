@@ -1,4 +1,5 @@
-import { ArrowRight, Disc3, RefreshCw, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, Disc3, RefreshCw, Upload, UserRoundPlus } from 'lucide-react';
 import { formatPaymentDate } from '../../shared/utils/format';
 import type { CatalogTrack, RoyaltyPayment } from '../../shared/types';
 import type { ReleaseEarnings } from '../../features/artist-studio/earnings';
@@ -7,13 +8,16 @@ import { ReleaseEarningsList } from './ReleaseEarningsList';
 
 type OverviewTabProps = {
   artistName: string;
+  artistRuntimeAddress: `0x${string}` | null;
   artistRegistrationStatus: string;
+  isRegisteringArtist: boolean;
   isRefreshingArtistRuntime: boolean;
   artistRegistrationAvailable: boolean;
   royaltyPayments: RoyaltyPayment[];
   earnings: EarningsSummaryProps;
   releases: ReleaseEarnings[];
   onUpdateArtistName: (name: string) => void;
+  onRegisterArtist: () => void;
   onRefreshArtistRuntime: () => void;
   onSetArtistTab: (tab: 'overview' | 'new' | 'releases' | 'royalties' | 'advanced') => void;
   onOpenRelease: (track: CatalogTrack) => void;
@@ -21,21 +25,57 @@ type OverviewTabProps = {
 
 export function OverviewTab({
   artistName,
+  artistRuntimeAddress,
   artistRegistrationStatus,
+  isRegisteringArtist,
   isRefreshingArtistRuntime,
   artistRegistrationAvailable,
   royaltyPayments,
   earnings,
   releases,
   onUpdateArtistName,
+  onRegisterArtist,
   onRefreshArtistRuntime,
   onSetArtistTab,
   onOpenRelease
 }: OverviewTabProps) {
-  const isNewArtist = releases.length === 0 && royaltyPayments.length === 0 && earnings.claimableWei === 0n;
+  const [registrationConsented, setRegistrationConsented] = useState(false);
+  const needsArtistProfile = !artistRuntimeAddress;
+  const isNewArtist = !needsArtistProfile && releases.length === 0;
+  const hasEarningsActivity = royaltyPayments.length > 0 || earnings.generatedWei > 0n || earnings.claimableWei > 0n;
+  const canRegisterProfile = artistRegistrationAvailable && artistName.trim().length > 0 && registrationConsented && !isRegisteringArtist;
   return (
     <div className='studio-overview'>
-      {isNewArtist ? (
+      {needsArtistProfile && (
+        <section className='studio-profile-setup' aria-labelledby='studio-profile-setup-title'>
+          <div>
+            <span className='studio-next-label'>Your own releases</span>
+            <h2 id='studio-profile-setup-title'>Create your artist space</h2>
+            <p>This account can receive collaborator support already. Create your own space when you are ready to publish music under this account.</p>
+          </div>
+          <div className='studio-profile-setup-form'>
+            <label>
+              <span>Artist name</span>
+              <input className='field' value={artistName} onChange={event => onUpdateArtistName(event.target.value)} placeholder='Your artist name' />
+            </label>
+            <label className='consent-row'>
+              <input
+                type='checkbox'
+                className='consent-checkbox'
+                checked={registrationConsented}
+                onChange={event => setRegistrationConsented(event.target.checked)}
+              />
+              <span>I understand and consent to shared listening on Dotify.</span>
+            </label>
+            <button className='primary-action compact-action' type='button' onClick={onRegisterArtist} disabled={!canRegisterProfile}>
+              {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <UserRoundPlus size={16} />}
+              {isRegisteringArtist ? 'Creating...' : 'Create artist profile'}
+            </button>
+            {!artistRegistrationAvailable && <p className='registration-guidance'>{artistRegistrationStatus}</p>}
+          </div>
+        </section>
+      )}
+      {isNewArtist && (
         <section className='studio-next-step' data-first-release='true'>
           <div>
             <span className='studio-next-label'>Your next step</span>
@@ -47,19 +87,20 @@ export function OverviewTab({
             Start your first release
           </button>
         </section>
-      ) : (
-        <EarningsSummary {...earnings} />
       )}
+      {(!isNewArtist || hasEarningsActivity) && <EarningsSummary {...earnings} />}
 
       <div className='studio-overview-columns'>
         <section className='studio-works'>
           <div className='studio-section-head'>
             <h2>Your releases</h2>
-            <button className='text-action' onClick={() => onSetArtistTab('releases')}>
-              View all <ArrowRight size={16} />
-            </button>
+            {releases.length > 0 && (
+              <button className='text-action' onClick={() => onSetArtistTab('releases')}>
+                View all <ArrowRight size={16} />
+              </button>
+            )}
           </div>
-          {isNewArtist ? (
+          {releases.length === 0 ? (
             <p className='studio-empty'>Your published music will appear here.</p>
           ) : (
             <ReleaseEarningsList rows={releases.slice(0, 5)} known={earnings.updatedAt !== null} symbol={earnings.symbol} onOpen={onOpenRelease} />
