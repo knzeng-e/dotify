@@ -13,7 +13,10 @@
   failed `celerityCapture.test.ts:53`: asynchronous frame order yielded
   `[1, null, null]` instead of `[null, 1, null]`. This unrelated test passes
   locally. Do not describe the base as CI-green or silently weaken its test.
-- Tested implementation SHA and PR are recorded in the follow-up handoff commit.
+- Tested implementation: `39601d0b4356d0c83bad60fb394124d8a49a7fcb`.
+- Draft PR: [#228](https://github.com/knzeng-e/dotify/pull/228), targeting `dev`.
+  The final browser rerun passed all 26 scenarios in 53 seconds; changed-source
+  lint passed without errors or warnings. This handoff commit is documentation-only.
 
 ## Diagnosis
 

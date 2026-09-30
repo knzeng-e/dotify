@@ -41,8 +41,7 @@ entry you can see:
 - The track that was unlocked.
 - The listener's wallet address.
 - The recipient wallet.
-- Whether that recipient share is `Paid`, `Claimable`, `Claimed`, or a
-  pre-upgrade `Legacy access` record.
+- Whether that recipient share is `Paid`, `Claimable`, or `Claimed`.
 - The amount in the configured runtime-native token.
 - The date and time of the transaction.
 - A link to the transaction receipt on Blockscout.
@@ -80,8 +79,9 @@ The settled total counts only immediately paid rows and claimable rows that were
 later cleared by `MusicRoyRoyaltyClaimed`. Current claimable balances are shown
 separately per runtime, and the claim action calls `musicRoyClaim(recipient)` on
 each known runtime with a pending balance. Dotify does not display pending
-claimable funds as already received. Pre-W05 access-payment records are kept as
-legacy history because they do not contain per-recipient settlement evidence.
+claimable funds as already received. Pre-W05 access-payment records are kept in
+the revenue read model as legacy history, not in the recipient receipt ledger,
+because they do not contain per-recipient settlement evidence.
 
 ### Before publishing a release
 
