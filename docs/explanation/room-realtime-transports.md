@@ -1,8 +1,11 @@
 # Room realtime transport decisions
 
-W27, activated and subsequently expanded to the full sequence by the owner on
-2026-09-30 before the remaining W13 pilot evidence. This permits implementation,
-not an accepted pilot or permission to change deployed transport authority.
+W27 was activated and subsequently expanded to the full sequence by the owner
+on 2026-09-30 before the remaining W13 pilot evidence. The exact 0.1.32
+candidate was then exercised on Product Desktop Dev and Polkadot Mobile across
+baseline, background, network-change, reconnect and expiry scenarios. The live
+comparison supports the decisions below; it does not accept the W13 pilot or
+authorize a change to deployed transport authority.
 
 ## Guarantee matrix
 
@@ -16,10 +19,10 @@ This classification precedes Celerity routing. The inventory comes from
 | `room:create`, `room:join`, `room:resume`, `room:leave`, `room:closed`, `room:host-connection`, `host:heartbeat` | Atomic admission, capacity, authenticated resume token, timeout and denial reasons | Retain Socket.IO |
 | `room:turn-capability` | Private, membership-bound expiring capability | Retain Socket.IO |
 | `room:listeners`, `room:listener-count`, `listener:joined`, `listener:left`, `listener:ready`, `room:rename`, `host:renamed`, `listener:renamed` | Server membership authority, current roster, peer lifecycle and bounded names | Retain Socket.IO; host aggregate count only mirrored into optional Celerity observation |
-| `room:reaction` | Valid membership, bounded rate, unique ID, short lifetime | Hybrid candidate: encrypted Product dual observation of server-accepted reactions; Socket.IO remains authoritative until live comparison |
+| `room:reaction` | Valid membership, bounded rate, unique ID, short lifetime | Retain Socket.IO authority; optional encrypted Product observation remains useful, but the physical baseline was asymmetric and does not prove an equivalent visible-delivery contract |
 | Typing | No current Socket.IO event | Not introduced |
-| `room:chat` | Membership, acknowledgement, bounded retry/history, confidentiality if publicly gossiped | Hybrid observation for short encrypted Product messages; retain Socket.IO delivery/history, no Celerity receipt claim |
-| `room:request`, `room:requests`, `room:request:remove`, `room:request:clear` | Attributed proposals, ack, host-only removal, full snapshot recovery | Hybrid observation of new encrypted accepted proposals; retain Socket.IO acknowledgement, host decisions and full queue reconciliation |
+| `room:chat` | Membership, acknowledgement, bounded retry/history, confidentiality if publicly gossiped | Retain Socket.IO delivery/history; optional encrypted Product observation only. Physical suspension expired the mirror while canonical chat recovered correctly |
+| `room:request`, `room:requests`, `room:request:remove`, `room:request:clear` | Attributed proposals, ack, host-only removal, full snapshot recovery | Retain Socket.IO acknowledgement, host decisions and full queue reconciliation; optional observation of new accepted proposals only |
 | `room:track`, `room:lineup`, `room:playback-mode`, `player:state`, `room:stream-ready` | Host authority, source stripping, snapshot convergence, periodic resync, silence stale playback | Retain Socket.IO |
 | `webrtc:offer`, `webrtc:answer`, `webrtc:ice-candidate`, `peer:connected` | Private directed delivery, membership, retries, peer lifetime, glare handling | Retain Socket.IO; offline size experiment only |
 | `webrtc:diagnostic` | Bounded operational disclosure | Retain Socket.IO |
@@ -151,7 +154,37 @@ data, not necessarily resident storage. These figures exclude signatures,
 topics, key exchange, concurrent rooms and other allowance-account consumers.
 Compression of these synthetic examples is not a real-device measurement.
 Decision: retain Socket.IO for rendezvous. Mobile behavior, glare and actual
-network retry reliability are untested.
+network retry reliability remain untested; the physical W27 room runs exercised
+the existing Socket.IO/WebRTC path, not SDP over Celerity.
+
+## Physical comparison result
+
+The exact 0.1.32 Product candidate used Statement Store SDK 0.6.9 in `dual`
+mode on Desktop Dev 0.1.3/macOS 14.6.1 and Polkadot Mobile 0.9.2/iOS 26.7.
+Four paired runs completed with zero dropped records: baseline, background,
+Wi-Fi-to-cellular network change and leave/rejoin recovery. A fifth expiry run
+has a clean B capture but an over-limit A capture and is qualitative only.
+Raw artifact hashes and row-level measurements are recorded in
+[W27 evidence](../backlog/implementation/evidence/W27.md).
+
+The baseline exchanged encrypted reaction, chat and request mirrors. Foreground
+chat estimates ranged from 360.5 to 1263.5 ms in that small sample. Reconnect
+chat was accepted in both directions at 738 and 377 ms; reconnect presence had
+12 clock-eligible samples with p50 696 ms and p95/max 1022 ms. After a physical
+Wi-Fi-to-cellular change, both chats were accepted and B-to-A was estimated at
+991 ms. These are application observations with roughly 96-106 ms maximum
+clock uncertainty, not protocol-wide latency distributions.
+
+Backgrounding beyond the private ten-second TTL produced an expired encrypted
+chat observation while the canonical message appeared on return and audio
+remained audible and in sync. Reconnect produced one duplicate presence receipt.
+No physical accepted frame was reordered. Deterministic tests cover reordering,
+replay and expiry; unobserved statements remain distinct from network loss.
+
+This evidence is sufficient to reject authority migration in this PR. Public
+presence and private social statements remain opt-in diagnostics. Socket.IO
+continues to own visible social delivery, admission, roles, player/queue state
+and rendezvous. WebRTC/TURN continues to own audio. Tracked defaults remain off.
 
 ## Capture and rollback
 
@@ -203,7 +236,7 @@ fits short-lived discovery and bounded social signals, not every data flow.
 | Surface / current owner | Decision and reason | Reconsider only when |
 | --- | --- | --- |
 | Public room discovery (`roomBeaconPublisher`, `roomBeaconDiscovery`) | Existing opt-in hybrid; expiring hints, with Socket.IO join/status validation | Two-client publish/discover/expiry evidence passes; no claim of joinability from a beacon alone |
-| Room presence and short social events (new observers) | Hybrid observation, no authority migration | Paired real Product evidence meets each event's delivery/privacy needs |
+| Room presence and short social events (new observers) | Hybrid observation, no authority migration; physical expiry, duplicate and partial-window evidence is useful diagnostically but not equivalent to canonical delivery | A later authority proposal has a larger representative sample, explicit delivery telemetry and equal guest/background behavior |
 | Solo listening aggregates (`presence:solo`, Music/galaxy counts) | Retain Socket.IO; disconnect-bound aggregation limits stale claims and avoids publishing wallet-linked listening history | Privacy, abuse resistance and aggregate authenticity are proven separately |
 | Player, queue, admission, TURN capability (`useSession`, room service) | Retain Socket.IO; atomic membership, host controls and reconciliation are essential | An authenticated host snapshot protocol and equal guest/reconnect behavior exist |
 | Catalog, release metadata and artwork (`useCatalog`, IPFS/bootstrap) | Retain durable API/content-addressed storage; expiring gossip is neither an index nor durable availability | At most an invalidation hint, never catalog authority, with measurable need |
