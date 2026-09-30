@@ -12,10 +12,10 @@ import { CoverImage } from '../components/CoverImage';
 import { Avatar, AvatarStack } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomChat } from '../components/RoomChat';
+import { RoomReactions } from '../components/RoomReactions';
 import { RoomRequests } from '../components/RoomRequests';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
-import { hashHue, initialsFor } from '../shared/utils/aura';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
 import { isChosenDisplayName } from '../features/identity/walletIdentity';
 import { roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount, roomPresencePreview } from '../features/rooms/roomState';
@@ -24,7 +24,7 @@ import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // The player page reads its track/session/playback state from context. The only
 // props are the two room-modal triggers, whose open state lives in ListenerShell.
@@ -88,15 +88,16 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const nativePaymentAsset = catalog.nativeRuntimePaymentAsset;
   const effectivePaymentAmount = nativeRuntimeAmountLabel(effectivePriceDot, nativePaymentAsset);
   const releaseDescription = trackDetails.description;
-  const [reactions, setReactions] = useState<Array<{ id: string; emoji: string; x: number; senderName: string; self: boolean }>>([]);
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [detailsTrack, setDetailsTrack] = useState<CatalogTrack | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const [roomPanel, setRoomPanel] = useState<'chat' | 'queue' | 'people'>('chat');
+  const [chatUnread, setChatUnread] = useState(false);
   useEffect(() => {
     setRoomPanel('chat');
     setShareOpen(false);
+    setChatUnread(false);
   }, [roomId]);
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 769px)');
@@ -155,37 +156,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   );
   const showAudioRetry = Boolean(mode === 'listener' && roomId && !productHostWebRtcUnavailable && (!remoteReady || status === 'no-audio'));
   const soloRoomRecoveryIsJoin = mode === 'listener' || /room closed|expired|host left/i.test(`${sessionStatus} ${error ?? ''}`);
-
-  // Broadcast reactions: petals rise from real room:reaction events relayed by
-  // the signaling server (sender included -- the echo is the single render
-  // path). Each petal carries the sender's initials and name-hashed hue, in
-  // line with the Constellation honesty rule.
-  const seenReactionIdsRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    const selfId = session.socketRef.current?.id;
-    const fresh = session.reactionFeed.filter(reaction => !seenReactionIdsRef.current.has(reaction.id));
-    if (fresh.length === 0) return;
-
-    const petals = fresh.map(reaction => {
-      seenReactionIdsRef.current.add(reaction.id);
-      return {
-        id: reaction.id,
-        emoji: reaction.emoji,
-        x: 20 + Math.random() * 60,
-        senderName: reaction.senderName,
-        self: reaction.senderId === selfId
-      };
-    });
-    if (seenReactionIdsRef.current.size > 200) {
-      seenReactionIdsRef.current = new Set(session.reactionFeed.map(reaction => reaction.id));
-    }
-
-    setReactions(current => [...current, ...petals]);
-    const petalIds = new Set(petals.map(petal => petal.id));
-    window.setTimeout(() => setReactions(current => current.filter(petal => !petalIds.has(petal.id))), 2600);
-    // The feed is the only real input; socketRef is a stable ref.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.reactionFeed]);
 
   // Unlock ritual (Constellation phase C): when THIS track's real access flips
   // from needed to granted, a ring of light travels the cover once. Keyed off
@@ -367,6 +337,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               }}
             >
               {panel === 'chat' ? 'Chat' : panel === 'queue' ? 'Queue' : session.socketStatus === 'online' ? `People · ${presenceCount}` : 'People'}
+              {panel === 'chat' && chatUnread && <span className='room-chat-unread' role='img' aria-label='New messages' />}
               {panel === 'queue' && session.requestQueue.length > 0 && (
                 <span className='room-request-count' aria-label={`${session.requestQueue.length} requests`}>
                   {session.requestQueue.length}
@@ -423,19 +394,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 <i />
                 <i />
               </span>
-              <span className='room-reactions' aria-hidden='true'>
-                {reactions.map(reaction => (
-                  <span
-                    className='room-reaction'
-                    key={reaction.id}
-                    data-self={reaction.self || undefined}
-                    style={{ left: `${reaction.x}%`, '--petal-hue': hashHue(reaction.senderName) } as CSSProperties}
-                  >
-                    <span className='room-reaction-emoji'>{reaction.emoji}</span>
-                    <span className='room-reaction-sender'>{initialsFor(reaction.senderName)}</span>
-                  </span>
-                ))}
-              </span>
               {ritualKey !== 0 && <span className='unlock-ritual' key={ritualKey} aria-hidden='true' />}
             </div>
           </div>
@@ -485,9 +443,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 {roomListenerSyncLabel(remoteReady, sessionStatus)}
               </p>
             )}
-
-            {/* The reaction bar lives in the RoomChat aside now: broadcast
-                reactions and chat share one social cluster. */}
           </div>
 
           {accessGate && !isRoomGuest && (
@@ -524,6 +479,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             !roomId && selectedTrack && artistDonationsEnabled ? <ArtistDonationButton key={selectedTrack.id} track={selectedTrack} iconOnly /> : undefined
           }
         />
+        {roomId && <RoomReactions key={roomId} selfId={ownSocketId} />}
         {roomId && (
           <div className='access-badges' data-needs-access={needsTrackAccess}>
             <span className='access-chip' data-tone={needsTrackAccess ? 'locked' : 'ready'} data-testid={needsTrackAccess ? 'locked-player-state' : undefined}>
@@ -780,7 +736,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         {roomId && (
           <div className='room-social-column'>
             <div id='room-panel-chat' className='room-conversation-pane' role='tabpanel' aria-labelledby='room-tab-chat' hidden={roomPanel !== 'chat'}>
-              <RoomChat key={roomId} active={roomPanel === 'chat'} />
+              <RoomChat key={roomId} active={roomPanel === 'chat'} onUnreadChange={setChatUnread} />
             </div>
             <div
               id='room-panel-queue'

@@ -91,9 +91,9 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
     await expect(host.getByRole('log')).toContainText('Here with you');
     const ownMessage = guest.locator(".room-chat-row[data-self='true']").filter({ hasText: 'Here with you' });
     await expect(ownMessage).toBeVisible();
-    const ownMessageBounds = await ownMessage.locator('.room-chat-body').boundingBox();
-    const chatBounds = await guest.getByRole('log').boundingBox();
-    expect(ownMessageBounds!.x + ownMessageBounds!.width / 2).toBeGreaterThan(chatBounds!.x + chatBounds!.width / 2);
+    await expect(ownMessage.locator('.room-chat-you')).toHaveText('You');
+    await expect(ownMessage.locator('.room-chat-role')).toHaveCount(0);
+    expect(await ownMessage.evaluate(element => getComputedStyle(element).flexDirection)).toBe('row');
     await guest.getByRole('tab', { name: /People/ }).click();
     await expect(guest.locator('.listener-list')).toContainText('Mina');
     await guest.getByRole('tab', { name: 'Chat', exact: true }).click();
@@ -190,6 +190,9 @@ test('desktop keeps playback, people and chat visible and returns from artist su
   await expect(page.getByRole('log')).toContainText('A place to listen together');
   await expect(page.getByLabel('People and room controls')).toBeVisible();
   await expectConversationFits(page);
+  const stage = (await page.locator('.player-stage').boundingBox())!;
+  const reactions = (await page.locator('.room-reaction-dock').boundingBox())!;
+  expect(reactions.width).toBeGreaterThanOrEqual(stage.width - 40);
   await page.screenshot({ path: testInfo.outputPath('room-conversation.png') });
   await page.getByRole('button', { name: 'Artist & support', exact: true }).click();
   await expect(page.locator('.player-dock')).toBeVisible();
@@ -386,6 +389,7 @@ test('keyboard transition retains an opaque canvas, player geometry and drafts a
   const shell = page.locator('.app-shell');
   const stage = page.locator('.player-stage');
   const before = await stage.boundingBox();
+  const transportBefore = (await page.locator('.player-transport').boundingBox())!;
   await page.evaluate(() => Reflect.set(window, '__transitionAudio', document.querySelector('audio')));
   for (const tab of ['Chat', 'Queue']) {
     await page.getByRole('tab', { name: new RegExp(`^${tab}`) }).click();
@@ -402,7 +406,14 @@ test('keyboard transition retains an opaque canvas, player geometry and drafts a
         expect((await shell.boundingBox())!.height).toBe(previous!.height);
       } else {
         await expect(shell).toHaveAttribute('data-composing', 'true');
-        expect((await stage.boundingBox())!.height).toBeCloseTo(before!.height, 0);
+        // Only the secondary reaction strip collapses for the keyboard. The
+        // artwork and primary transport retain their dimensions and position.
+        await expect(page.locator('.room-reaction-dock')).toBeHidden();
+        const keyboardStage = (await stage.boundingBox())!;
+        expect(keyboardStage.height).toBeLessThan(before!.height);
+        const transportAfter = (await page.locator('.player-transport').boundingBox())!;
+        expect(transportAfter.y - keyboardStage.y).toBeCloseTo(transportBefore.y - before!.y, 0);
+        expect(transportAfter.height).toBeCloseTo(transportBefore.height, 0);
         const inputBounds = (await input.boundingBox())!;
         expect(inputBounds.y + inputBounds.height).toBeLessThanOrEqual(height);
       }
@@ -453,3 +464,134 @@ for (const initialHeight of [0, Number.NaN]) {
     await expect(input).toHaveValue('The first valid frame can arrive after focus');
   });
 }
+
+test('live reactions reach both participants, stay available in Queue, and do not replay on return', async ({ browser }, testInfo) => {
+  const hostContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const host = await hostContext.newPage();
+    const code = await hostRoom(host);
+    const guest = await guestContext.newPage();
+    guest.setDefaultTimeout(5000);
+    await guest.goto(`/#/rooms/${code}`);
+    await guest.getByLabel('Your name in the room').fill('Mina');
+    await guest.getByRole('button', { name: 'Enter and listen' }).click();
+    await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20000 });
+    await host.getByRole('textbox', { name: 'Message the room' }).fill('That bassline. Stay for the next track.');
+    await host.getByRole('button', { name: 'Send message' }).click();
+    await expect(guest.locator('.room-chat-role')).toHaveText('Host');
+    await guest.getByRole('textbox', { name: 'Message the room' }).fill('Right here with you.');
+    await guest.getByRole('button', { name: 'Send message' }).click();
+    await expect(host.getByRole('log')).toContainText('Right here with you.');
+    await guest.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await guest.getByRole('button', { name: 'React heart', exact: true }).click();
+    await expect(host.locator('.room-reaction-activity')).toContainText('Mina');
+    await expect(guest.locator('.room-reaction-activity')).toContainText('You');
+    await expect(host.locator('.room-reaction-trail > span')).toHaveCount(1);
+    await host.screenshot({ path: testInfo.outputPath('desktop-live-chat.png') });
+    await guest.getByRole('tab', { name: 'Chat', exact: true }).click();
+    await guest.screenshot({ path: testInfo.outputPath('mobile-live-chat.png') });
+    await expect(guest.locator('.room-reaction-trail > span')).toHaveCount(0);
+    await guest.getByRole('button', { name: 'More reactions' }).click();
+    const palette = guest.getByRole('group', { name: 'All reactions', exact: true });
+    await expect(palette.getByRole('button', { name: 'React heart', exact: true })).toBeFocused();
+    await palette.getByRole('checkbox', { name: 'Animate reactions' }).uncheck();
+    await palette.getByRole('button', { name: 'React sparkle' }).click();
+    await expect(guest.getByRole('button', { name: 'More reactions' })).toBeFocused();
+    await expect(guest.locator('.room-reaction-activity')).toContainText('reacted sparkle');
+    await expect(guest.locator('.room-reaction-trail')).toBeHidden();
+    await guest.getByRole('button', { name: 'More reactions' }).click();
+    await palette.press('Escape');
+    await expect(guest.getByRole('button', { name: 'More reactions' })).toBeFocused();
+    await guest.locator('.bottom-nav').getByRole('button', { name: 'Music', exact: true }).click();
+    await guest.getByRole('button', { name: /^Return to room/ }).click();
+    await expect(guest.locator('.room-reaction-trail > span')).toHaveCount(0);
+    await guestContext.setOffline(true);
+    await expect(guest.getByRole('button', { name: 'React heart', exact: true })).toBeDisabled({ timeout: 15000 });
+  } finally {
+    await guestContext.close().catch(() => {});
+    await hostContext.close().catch(() => {});
+  }
+});
+
+test('live chat lets readers pause history and catch up after visiting another tab', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const guestContext = await browser.newContext({ viewport: { width: 320, height: 568 } });
+  try {
+    const host = await hostContext.newPage();
+    const code = await hostRoom(host);
+    const guest = await guestContext.newPage();
+    await guest.goto(`/#/rooms/${code}`);
+    await guest.getByLabel('Your name in the room').fill('Mina');
+    await guest.getByRole('button', { name: 'Enter and listen' }).click();
+    await expect(guest.getByRole('log')).toBeVisible();
+    for (let index = 0; index < 7; index++) {
+      await host
+        .getByRole('textbox', { name: 'Message the room' })
+        .fill(`Track ${index}: there is so much to hear in this arrangement. Listen to the percussion.`);
+      await host.getByRole('button', { name: 'Send message' }).click();
+      await expect(guest.getByRole('log')).toContainText(`Track ${index}:`);
+      await host.waitForTimeout(1050); // Respect the real server's 5 messages / 5s limit.
+    }
+    const log = guest.getByRole('log');
+    await log.evaluate(element => {
+      element.scrollTop = 0;
+      element.dispatchEvent(new Event('scroll'));
+    });
+    await host.getByRole('textbox', { name: 'Message the room' }).fill('A new thought while you read');
+    await host.getByRole('button', { name: 'Send message' }).click();
+    await expect(guest.getByRole('button', { name: 'New messages', exact: true })).toBeVisible();
+    expect(await log.evaluate(element => element.scrollTop)).toBeLessThan(2);
+    await guest.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await expect(guest.locator('#room-tab-chat')).toContainText('Chat');
+    await expect(guest.locator('.room-chat-unread')).toBeVisible();
+    await guest.locator('#room-tab-chat').click();
+    await guest.getByRole('button', { name: 'New messages', exact: true }).click();
+    await expect(guest.locator('.room-chat-unread')).toHaveCount(0);
+    expect(await log.evaluate(element => element.scrollHeight - element.scrollTop - element.clientHeight)).toBeLessThan(2);
+  } finally {
+    await guestContext.close();
+    await hostContext.close();
+  }
+});
+
+test('chat preserves IME composition and rejected drafts without automatic resend', async ({ page }) => {
+  await hostRoom(page);
+  const input = page.getByRole('textbox', { name: 'Message the room' });
+  await input.fill('Composing a thought');
+  await input.dispatchEvent('keydown', { key: 'Enter', code: 'Enter', isComposing: true, bubbles: true, cancelable: true });
+  await expect(page.getByRole('log')).not.toContainText('Composing a thought');
+  await expect(input).toHaveValue('Composing a thought');
+  for (let index = 0; index < 5; index++) {
+    await input.fill(`Accepted ${index}`);
+    await page.getByRole('button', { name: 'Send message' }).click();
+    await expect(input).toHaveValue('');
+  }
+  await input.fill('Keep this draft');
+  await page.getByRole('button', { name: 'Send message' }).click();
+  await expect(page.locator('.room-chat-connection')).toBeVisible();
+  await expect(input).toHaveValue('Keep this draft');
+  await page.waitForTimeout(5200);
+  await expect(page.getByRole('log')).not.toContainText('Keep this draft');
+  await expect(input).toHaveValue('Keep this draft');
+});
+
+test('reaction feedback remains readable without motion and picker fits a 320px screen', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await hostRoom(page);
+  await page.getByRole('button', { name: 'React fire', exact: true }).click();
+  await expect(page.locator('.room-reaction-activity')).toContainText('You');
+  await expect(page.locator('.room-reaction-trail')).toBeHidden();
+  await page.getByRole('button', { name: 'More reactions' }).click();
+  const picker = page.getByRole('group', { name: 'All reactions', exact: true });
+  const bounds = (await picker.boundingBox())!;
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+  for (const button of await picker.getByRole('button').all()) {
+    const rect = (await button.boundingBox())!;
+    expect(rect.width).toBeGreaterThanOrEqual(44);
+    expect(rect.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.screenshot({ path: testInfo.outputPath('mobile-reaction-picker.png') });
+});

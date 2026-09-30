@@ -121,25 +121,12 @@
   padding: 1rem 0;
   max-width: 34ch;
 }
-.player-room-mode .room-chat-reactions {
-  flex-shrink: 0;
-  justify-content: space-between;
-}
-.player-room-mode .room-react-btn {
-  width: var(--touch-target);
-  min-height: var(--touch-target);
-  border: 0;
-  background: transparent;
-}
 .player-room-mode .room-chat-form {
   flex-shrink: 0;
 }
 .player-room-mode .room-chat-send {
   background: var(--action);
   color: var(--on-action);
-}
-.player-room-mode .room-chat-body {
-  max-width: 88%;
 }
 .player-room-mode .room-chat-text {
   color: var(--ink);
@@ -489,10 +476,6 @@
     margin: 0;
     padding-block: 0.25rem;
   }
-  .player-room-mode .room-chat-reactions {
-    padding-top: 0.35rem;
-    margin-top: 0.35rem;
-  }
   .player-room-mode .room-chat-form {
     margin-top: 0.35rem;
   }
@@ -718,7 +701,6 @@
   }
   .app-shell[data-room-focus='true'][data-composing='true'] .topbar,
   .app-shell[data-room-focus='true'][data-composing='true'] .bottom-nav,
-  .app-shell[data-composing='true'] .room-chat-reactions,
   .app-shell[data-composing='true'] .room-queue-pane > .host-lineup,
   .app-shell[data-composing='true'] .room-requests-panel .panel-title,
   .app-shell[data-composing='true'] .room-code-pill,
