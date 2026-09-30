@@ -193,6 +193,10 @@ async function joinAsListener(context: BrowserContext, roomId: string, options: 
 }
 
 async function expectRoomGuestAccessBoundary(page: Page) {
+  // Compact rooms hide the header; verify wallet state, not its visibility
+  // during the brief pre-join render before the room layout takes over.
+  await expect(page.locator('.wallet-pill')).toHaveAttribute('data-tone', 'muted');
+  await expect(page.locator('.wallet-pill')).toHaveText('Connect');
   await expect(page.getByTestId('locked-player-state')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /support.*open|check access/i })).toHaveCount(0);
   await expect(page.locator('.player-context-panel')).not.toContainText(/\bDOT\b|wallet/i);
@@ -247,8 +251,6 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
 
     const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Listener', displayName: 'Nomad', delaySignalMessagesMs: 500 });
 
-    // Guest joins with no wallet: the connect affordance is still present.
-    await expect(listener.getByRole('button', { name: 'Connect' })).toBeVisible();
     // Real WebRTC stream reaches the listener.
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect
@@ -435,7 +437,6 @@ test('protected room with authorized host: host gets the key, listener streams f
     expect(hostState?.deniedKeyRequests ?? 0).toBe(0);
 
     const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Ada' });
-    await expect(listener.getByRole('button', { name: 'Connect' })).toBeVisible();
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect(listener.getByTestId('room-playback-mode')).toHaveAttribute('data-mode', 'full');
     await expectRoomGuestAccessBoundary(listener);
