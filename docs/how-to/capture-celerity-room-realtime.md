@@ -20,6 +20,32 @@ messages automatically, pay, or approve a migration. Read the
 If a Host does not expose an operator console, record that limitation. A browser
 simulation or an invented Host version is not a real-device capture.
 
+## Resolve permissions before measuring
+
+Use a disposable test room to resolve Product's Statement Submit permission
+before starting the paired run. A permission dialog can outlast the observer's
+eight-second deadline. `Allow Once` may prompt again for the next publication;
+ask the owner explicitly before selecting a persistent permission, and record
+who granted it. This permission concerns Celerity publications, not payments.
+Never bypass the prompt or widen unrelated domain permissions.
+
+After a timeout, export the diagnostic capture before changing sessions. A
+timeout is an uncertain write, not proof that no statement was published.
+Do not replay that message automatically. Use a distinct event after normal
+room reconnection and verify both observers are ready. Do not simply increase
+the write deadline: the private payload expires after ten seconds.
+
+A full host-page reload is not a transparent reconnect. The host resume token
+is intentionally memory-only; reloading loses it and can end the room. Warn
+participants and obtain approval before interrupting an occupied test room.
+For a socket-recovery measurement keep the webview alive. If a full reload is
+necessary, create a new test room and start a new run on both clients.
+
+Separate `submitted` and local `self-echo` from receipt on the other device.
+An SDK response-decoding error after a delayed permission is not by itself
+proof of a Host/SDK version mismatch; retain the error and test a distinct
+publication with permissions already resolved before diagnosing compatibility.
+
 ## Start both recorders
 
 Join the same room normally. No wallet gate is added for guests. In each

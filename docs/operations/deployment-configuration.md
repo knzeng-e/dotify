@@ -273,6 +273,13 @@ secret, database or contract is required. Old clients ignore the new messages;
 new clients on old servers time out only the private observer. A timeout does not cancel a Host
 request already in flight; do not treat timeout as proof of no publication.
 
+For real Product captures, resolve Statement Submit permissions in a disposable
+room first. Permission latency can exceed the eight-second observer deadline;
+persistent access requires the owner's explicit consent and must not include
+unrelated permissions. Follow the capture procedure rather than retrying an
+uncertain publication. A full host-page reload loses its memory-only resume
+token and may end the room; it is not equivalent to socket reconnection.
+
 Public/private observers share local unexpired-write reservations and reserve
 one full beacon only when the build enables beacons. Private pairwise fanout
 may exhaust the budget; never enable automatic retries to compensate. It cannot preflight all users of a sponsored account,
