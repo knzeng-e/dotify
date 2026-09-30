@@ -13,10 +13,12 @@
   failed `celerityCapture.test.ts:53`: asynchronous frame order yielded
   `[1, null, null]` instead of `[null, 1, null]`. This unrelated test passes
   locally. Do not describe the base as CI-green or silently weaken its test.
-- Tested implementation: `39601d0b4356d0c83bad60fb394124d8a49a7fcb`.
-- Draft PR: [#228](https://github.com/knzeng-e/dotify/pull/228), targeting `dev`.
-  The final browser rerun passed all 26 scenarios in 53 seconds; changed-source
-  lint passed without errors or warnings. This handoff commit is documentation-only.
+- Initial tested implementation: `39601d0b4356d0c83bad60fb394124d8a49a7fcb`.
+- Review follow-up tested implementation: `d03e574f91c0d0e78144c8d5ead1fff602b0359a`.
+- PR: [#228](https://github.com/knzeng-e/dotify/pull/228), targeting `dev`.
+  The initial browser rerun passed all 26 scenarios in 53 seconds. The review
+  follow-up passed the 21 earnings and publishing scenarios in 46 seconds;
+  changed-source lint passed without errors or warnings.
 
 ## Diagnosis
 
@@ -50,14 +52,22 @@ wallet balance, or a guarantee about future totals. No transaction was sent.
 - Compact artist header with artwork, one publish action, readable unframed
   earnings, searchable works, per-work totals and contextual receipt details.
   Release records, addresses and recovery internals remain folded by default.
+- A collaborator who receives a split but does not own an artist runtime can
+  now create one from Overview with the same explicit consent gate as initial
+  onboarding. Their verified collaboration earnings remain visible throughout,
+  and publishing stays unavailable until registration succeeds.
+- A claim made during an active earnings poll waits for that read and then
+  forces a fresh post-claim read. The previous pre-claim balance cannot remain
+  displayed merely because a periodic refresh was already running.
 - Package version prepared as `[0, 1, 33]`; activation defaults are unchanged.
 
 ## Verification
 
 | Command from `web/` | Result and coverage |
 | --- | --- |
-| `npm run test:unit` | 734 tests / 91 files passed, including SDK decoding, donation safety, split/claim aggregation, access and publication guards |
+| `npm run test:unit` | 736 tests / 92 files passed, including SDK decoding, donation safety, split/claim aggregation, serialized post-claim refresh, access and publication guards |
 | `npx playwright test e2e/artist-earnings.spec.ts e2e/artist-publish.spec.ts e2e/artist-gift.spec.ts --workers=2` | 26 passed: refresh, stale/unavailable readings, publishing and recovery, no duplicate gift submission, 320/390/430/1440 px, enlarged text |
+| `npx playwright test e2e/artist-earnings.spec.ts e2e/artist-publish.spec.ts --workers=2` | Review follow-up: 21 passed, including collaborator-only registration with retained earnings and the existing responsive/publishing cases |
 | `npx tsc -b` | Passed |
 | `npm run build` | Passed |
 | `npm run fmt:check` | Passed |
@@ -94,7 +104,7 @@ prove gross income, not who received it. The latest-chain read can change after
 a reorg. Existing writer, claims, wallet/key checks and access policies remain.
 
 No physical-device or real Product signing check was performed for this patch.
-Next: review and CI, then a separately authorized candidate. In Product Web and
+Next: CI, then a separately authorized candidate. In Product Web and
 Desktop, compare Overview/Earnings against existing receipts, open the gift
 recipient preview without signing, and test refresh failure/recovery. No new
 payment is necessary to validate the earnings correction. See the updated
