@@ -70,6 +70,7 @@ export type RoomOutgoingEvents = {
 };
 
 export type RoomRequests = {
+  'room:realtime-clock': { input: Record<string, never>; output: { ok: true; time: number; server: string } | { ok: false } };
   'room:realtime-register': { input: { publicKey: string }; output: RealtimeRegistration };
   'room:create': { input: { displayName: string; track: TrackInfo | null; playbackMode: RoomPlaybackMode }; output: CreateRoomResponse };
   'room:join': { input: { roomId: string; displayName: string }; output: JoinRoomResponse };

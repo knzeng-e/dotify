@@ -77,12 +77,21 @@ describe('pinned SDK adapter', () => {
     expect(submitted[0].channel).toBe(client.channel('ABC123', event.producer));
     incoming(submitted);
     incoming(submitted);
-    expect(receive).toHaveBeenCalledOnce(); // SDK already removes duplicates.
+    expect(receive).toHaveBeenCalledTimes(2); // Dotify authenticates before dedup; measurements retain duplicates.
     expect(receive).toHaveBeenCalledWith({ data: event, expiry: submitted[0].expiry, channel: submitted[0].channel });
+    incoming([{ ...submitted[0], topics: ['0xdead', submitted[0].topics![1]] }]);
+    incoming([{ ...submitted[0], topics: [submitted[0].topics![0], '0xbeef'] }]);
+    incoming([{ ...submitted[0], data: new Uint8Array(513) }]);
+    incoming([{ ...submitted[0], data: new Uint8Array([255]) }]);
+    expect(receive).toHaveBeenCalledTimes(2);
+    incoming([{ ...submitted[0], expiry: submitted[0].expiry! - 1n }]);
+    expect(receive).toHaveBeenCalledTimes(3); // Even a lower expiry reaches application authentication.
     error(new Error('network interrupted'));
     expect(interrupted).toHaveBeenCalledOnce();
     client.stop();
     expect(unsubscribe).toHaveBeenCalledOnce();
     expect(mock.transport.destroy).toHaveBeenCalledOnce();
+    incoming(submitted);
+    expect(receive).toHaveBeenCalledTimes(3);
   });
 });

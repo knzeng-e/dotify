@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { encodeData, MAX_STATEMENT_SIZE } from '@parity/product-sdk-statement-store';
 import { createPrivateRoomIdentity, type PrivateEnvelope } from './celerityPrivateChannel';
 import type { RealtimeRoster } from './celerityPrivateTypes';
@@ -22,6 +22,31 @@ async function room() {
 }
 
 describe('membership-bound private room channel', () => {
+  it('does not accept or publish crypto work resumed after its TTL', async () => {
+    const { alice, bob } = await room();
+    const sealed = await alice.seal(bob.self, { kind: 'chat', text: 'Before suspension' }, now);
+    const clock = vi.spyOn(Date, 'now');
+    try {
+      clock.mockReturnValueOnce(now).mockReturnValue(now + 11_000);
+      expect(await bob.inspect(sealed, expiry, now)).toEqual({ status: 'expired', kind: 'chat' });
+      clock.mockReturnValueOnce(now).mockReturnValue(now + 11_000);
+      expect(await alice.seal(bob.self, { kind: 'chat', text: 'Slow encryption' }, now)).toBeNull();
+    } finally {
+      clock.mockRestore();
+    }
+  });
+  it('reports authenticated duplicates, reordering and expiry without delivering them twice', async () => {
+    const { alice, bob } = await room();
+    const first = await alice.seal(bob.self, { kind: 'chat', text: 'First' }, now);
+    const second = await alice.seal(bob.self, { kind: 'chat', text: 'Second' }, now);
+    expect(await bob.inspect(second, expiry, now)).toMatchObject({ status: 'accepted', outOfOrder: false });
+    expect(await bob.inspect(first, expiry, now)).toMatchObject({ status: 'accepted', outOfOrder: true });
+    expect(await bob.inspect(first, expiry, now)).toEqual({ status: 'duplicate', kind: 'chat' });
+    expect(await bob.inspect(first, expiry, now + 10_000)).toEqual({ status: 'expired', kind: 'chat' });
+    const tampered = [...first!] as PrivateEnvelope;
+    tampered[5] -= 10_000;
+    expect(await bob.inspect(tampered, expiry, now + 10_000)).toEqual({ status: 'invalid' });
+  });
   it('exchanges confidential chat using actual SDK encoding, without public room or wallet identity', async () => {
     const { alice, bob, eve } = await room();
     const event = { kind: 'chat' as const, text: 'Private listening moment' };

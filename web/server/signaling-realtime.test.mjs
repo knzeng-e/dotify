@@ -38,6 +38,20 @@ async function pair() {
   return { host, guest, created };
 }
 
+it('calibrates only admitted room clients with a bounded, process-scoped clock', async () => {
+  const outsider = await client();
+  assert.deepEqual(await ack(outsider, 'room:realtime-clock', {}), { ok: false });
+  const { host, guest } = await pair();
+  const before = Date.now();
+  const first = await ack(host, 'room:realtime-clock', {});
+  assert.equal(first.ok, true);
+  assert.ok(first.time >= before && first.time <= Date.now());
+  assert.match(first.server, /^[a-f0-9]{32}$/);
+  assert.equal((await ack(guest, 'room:realtime-clock', {})).server, first.server);
+  for (let i = 0; i < 9; i++) assert.equal((await ack(host, 'room:realtime-clock', {})).ok, true);
+  assert.deepEqual(await ack(host, 'room:realtime-clock', {}), { ok: false });
+});
+
 it('binds ephemeral keys to real membership and server roles, never self-declared identities', async () => {
   const outsider = await client();
   assert.equal((await ack(outsider, 'room:realtime-register', { publicKey: key() })).ok, false);

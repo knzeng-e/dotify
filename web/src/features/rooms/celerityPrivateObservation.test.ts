@@ -7,11 +7,13 @@ import type { RealtimePeer, RealtimeRegistration } from './celerityPrivateTypes'
 import type { ObservationStatement } from './celeritySdk';
 import type { PrivateEnvelope } from './celerityPrivateChannel';
 import type { CelerityMetric } from './celerityDiagnostics';
+import { celerityCapture } from './celerityCapture';
 
 const stops: (() => void)[] = [];
 afterEach(() => {
   stops.splice(0).forEach(stop => stop());
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 function network() {
@@ -84,6 +86,7 @@ function network() {
 
 describe('private Product observation lifecycle', () => {
   it('exchanges encrypted canonical chat and reactions between two clients without changing UI authority', async () => {
+    const capture = vi.spyOn(celerityCapture, 'frame');
     const n = network();
     const a = n.port('1'.repeat(16));
     const b = n.port('2'.repeat(16));
@@ -101,6 +104,13 @@ describe('private Product observation lifecycle', () => {
     a.incoming('room:requests', [request]);
     expect(n.wire).toHaveLength(3);
     expect(JSON.stringify(n.wire)).not.toContain('a private room message');
+    for (const kind of ['chat', 'reaction', 'request']) {
+      const records = capture.mock.calls.filter(([, input]) => input.kind === kind);
+      expect(records.map(([, input]) => input.stage).sort()).toEqual(['accepted', 'attempt', 'submitted']);
+      expect(records.every(([bytes]) => bytes.every((byte, i) => byte === records[0][0][i]))).toBe(true);
+      expect(records.every(([, input]) => input.stream === records[0][1].stream && input.seq === records[0][1].seq)).toBe(true);
+      expect(JSON.stringify(records)).not.toContain('a private room message');
+    }
     expect(a.emit).not.toHaveBeenCalled();
     expect(b.emit).not.toHaveBeenCalled();
     b.incoming('room:chat', { senderId: b.api.id, text: 'receive only' });

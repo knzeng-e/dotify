@@ -25,6 +25,14 @@ persisted, or connected to protected audio key delivery. Server TLS and honest
 admission bind the peer keys; Product sponsored signatures do not.
 See the [per-event transport guarantee matrix](../explanation/room-realtime-transports.md).
 
+`room:realtime-clock` accepts an empty object from an admitted member only. It
+acknowledges `{ ok: true, time, server }` with server Unix milliseconds and a
+random process-scoped clock ID, or `{ ok: false }` for an outsider/rate limit.
+Limit: ten reads per ten seconds per socket. This optional operator measurement
+does not register a Product identity or change room state. The client uses three
+round trips and reports clock uncertainty rather than treating timestamps as
+one-way network latency. Server restarts invalidate cross-epoch comparisons.
+
 **Server address:** configured via `VITE_SIGNAL_URL` (default: `http://localhost:8788`).
 
 ---

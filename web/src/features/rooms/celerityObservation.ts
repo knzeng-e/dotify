@@ -1,6 +1,7 @@
 import { CELERITY_TTL_MS, celerityBudget, createCelerityBudget, createPresenceReceiver, parsePresenceEnvelope, presenceEnvelope } from './celerityEnvelope';
 import { createCelerityClient, type CelerityClient, type ObservationStatement } from './celeritySdk';
 import { recordCelerityMetric, type CelerityMetric } from './celerityDiagnostics';
+import { celerityCapture } from './celerityCapture';
 
 export type CelerityMode = 'off' | 'observe' | 'dual';
 export function celerityMode(value: unknown): CelerityMode {
@@ -65,6 +66,14 @@ export function startCelerityObservation(options: ObservationOptions, deps: Obse
       return;
     }
     const observation = accept(event, now());
+    if (observation.status !== 'capacity')
+      celerityCapture.frame(client.encode(event), {
+        kind: 'presence',
+        stage: observation.status,
+        stream: `${event.room}/${event.producer}`,
+        seq: event.seq,
+        ttlMs: CELERITY_TTL_MS
+      });
     if (observation.status === 'accepted') metric('accepted', { gap: observation.gap, ageMs: observation.ageMs });
     else metric(observation.status);
   }
@@ -84,10 +93,13 @@ export function startCelerityObservation(options: ObservationOptions, deps: Obse
       } else {
         deadline = setTimeout(() => stop('timeout'), TIMEOUT_MS);
         const started = performance.now();
+        const capture = { kind: 'presence' as const, stream: `${event.room}/${event.producer}`, seq: event.seq, ttlMs: CELERITY_TTL_MS };
+        celerityCapture.frame(client.encode(event), { ...capture, stage: 'attempt' });
         const ok = await client.publish(event);
         if (stopped) return;
         clearTimeout(deadline);
         metric(ok ? 'submitted' : 'rejected', { bytes, durationMs: Math.round(performance.now() - started) });
+        celerityCapture.frame(client.encode(event), { ...capture, stage: ok ? 'submitted' : 'rejected' });
       }
     } catch {
       if (!stopped) {

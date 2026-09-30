@@ -1,3 +1,5 @@
+import { celerityCapture } from './celerityCapture';
+
 export type CelerityMetric = {
   at: number;
   channel?: 'private';
@@ -18,6 +20,7 @@ export type CelerityMetric = {
     | 'self-echo'
     | 'duplicate'
     | 'reordered'
+    | 'expired'
     | 'capacity';
   bytes?: number;
   durationMs?: number;
@@ -39,13 +42,18 @@ export function celeritySnapshot() {
     buildSha: import.meta.env.VITE_DOTIFY_BUILD_SHA || null,
     productAppVersion: import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION || null,
     mode: import.meta.env.VITE_DOTIFY_ROOM_REALTIME || 'off',
-    observations: events.map(event => ({ ...event }))
+    observations: events.map(event => ({ ...event })),
+    capture: celerityCapture.snapshot()
   };
 }
 
 declare global {
   interface Window {
-    __DOTIFY_ROOM_REALTIME__?: { snapshot: typeof celeritySnapshot; clear: () => void };
+    __DOTIFY_ROOM_REALTIME__?: {
+      snapshot: typeof celeritySnapshot;
+      clear: () => void;
+      capture: Pick<typeof celerityCapture, 'start' | 'stop' | 'calibrate' | 'phase' | 'snapshot' | 'clear'>;
+    };
   }
 }
 
@@ -55,6 +63,15 @@ export function installCelerityDiagnostics() {
       snapshot: celeritySnapshot,
       clear: () => {
         events.length = 0;
+        celerityCapture.clear();
+      },
+      capture: {
+        start: celerityCapture.start,
+        stop: celerityCapture.stop,
+        calibrate: celerityCapture.calibrate,
+        phase: celerityCapture.phase,
+        snapshot: celerityCapture.snapshot,
+        clear: celerityCapture.clear
       }
     };
 }

@@ -52,27 +52,50 @@ async function connectCelerity<T>(
   if (!(await isInsideContainer())) return null;
   const sdk = await import('@parity/product-sdk-statement-store');
   const transport = await sdk.createTransport();
+  const topics = [config.app, config.topic].map(name => sdk.topicToHex(sdk.createTopic(name)));
+  let stopped = false;
   const client = new sdk.StatementStoreClient({
     appName: config.app,
     defaultTtlSeconds: config.ttl,
     transport: {
-      subscribe: (filter, callback, onError) =>
-        transport.subscribe(filter, callback, error => {
-          interrupted();
-          onError(error);
-        }),
+      // SDK channel/expiry dedup precedes authentication and hides reordering.
+      // Keep its transport, codec and publisher; validate/replay-check in Dotify.
+      subscribe: (_filter, _callback, onError) =>
+        transport.subscribe(
+          { matchAll: topics },
+          statements => {
+            for (const statement of statements) {
+              if (
+                stopped ||
+                statement.topics?.[0] !== topics[0] ||
+                statement.topics?.[1] !== topics[1] ||
+                !statement.data ||
+                statement.data.length > sdk.MAX_STATEMENT_SIZE
+              )
+                continue;
+              try {
+                receive({ data: sdk.decodeData(statement.data), expiry: statement.expiry, channel: statement.channel });
+              } catch {
+                /* Malformed statements cannot interrupt the subscription. */
+              }
+            }
+          },
+          error => {
+            if (stopped) return;
+            interrupted();
+            onError(error);
+          }
+        ),
       signAndSubmit: (statement, credentials) => transport.signAndSubmit(statement, credentials),
       destroy: () => transport.destroy()
     }
   });
   const channelName = config.channel;
   const topic2 = config.topic;
-  // Register before connect: Host subscription may synchronously replay stored statements.
-  const subscription = client.subscribe(statement => receive({ data: statement.data, expiry: statement.expiry, channel: statement.channelHex }), { topic2 });
   try {
     await client.connect({ mode: 'host' });
   } catch (error) {
-    subscription.unsubscribe();
+    stopped = true;
     client.destroy();
     throw error;
   }
@@ -83,7 +106,7 @@ async function connectCelerity<T>(
     channel: (roomId, producer) => sdk.topicToHex(sdk.createChannel(channelName(roomId, producer))),
     publish: async event => (await client.publish(event, { channel: channelName(...config.target(event)), topic2, ttlSeconds: config.ttl })).ok,
     stop: () => {
-      subscription.unsubscribe();
+      stopped = true;
       client.destroy();
     }
   };

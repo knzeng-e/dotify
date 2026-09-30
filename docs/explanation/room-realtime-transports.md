@@ -54,9 +54,14 @@ expiry are checked before bounded deduplication. Higher sequences supersede
 older ones; a gap is a missing observation, not proven packet loss. Wall-clock
 age is not one-way latency without a measured clock offset.
 
-The SDK itself deduplicates before callbacks and hides some raw duplicates and
-reordering. App counters therefore report only observations delivered to the
-adapter, never a network-wide loss/duplicate rate.
+SDK 0.6.9's high-level receiver deduplicates by channel/expiry before application
+authentication. It can suppress same-expiry messages, reordering, and valid
+packets following an unauthenticated high-expiry packet. The room adapter keeps
+the SDK publisher, Host transport and codec, but receives from that transport
+directly with both exact app/scope topics checked. Dotify authenticates and then
+deduplicates. Host/network filtering upstream remains outside these counters;
+they are not a network-wide loss/duplicate rate. Discovery beacons retain their
+existing SDK latest-value semantics; they are not a message log.
 Publisher self-echoes have a separate diagnostic event and are not counted as
 remote observations. These samples are untrusted even when a channel matches;
 there is no authenticated room-host binding in this first slice.
@@ -144,7 +149,15 @@ network retry reliability are untested.
 
 ## Capture and rollback
 
-After a separately authorized candidate deployment:
+Follow [the paired Product capture procedure](../how-to/capture-celerity-room-realtime.md)
+after a separately authorized candidate deployment. Its bounded opt-in recorder
+correlates run-salted packet fingerprints, calibrates clocks via an admitted
+Socket.IO connection and exports no plaintext or raw producer IDs. The offline
+report distinguishes attempts, submissions, authenticated receipts, duplicates,
+expiry, ordering and incomplete observation windows. It never certifies a
+network-loss rate or marks W27 accepted automatically.
+
+Acceptance review:
 
 1. Record exact build SHA, appVersion/CID, SDK and Host versions, device/OS,
    network and foreground/background state for two Product clients. W13 pilot
@@ -152,10 +165,9 @@ After a separately authorized candidate deployment:
 2. Use `observe` for receive-only inspection; use `dual` for a host presence
    publisher. Both clients join the same canonical room through Socket.IO.
    A standalone guest must also join and hear the stream without an account.
-3. Export `window.__DOTIFY_ROOM_REALTIME__.snapshot()` from each client after
-   controlled 60-second runs, network interruption, reconnect and expiry. Clear
-   snapshots between runs. Record attempts/submissions/observations and duration
-   distributions with clock calibration; do not equate sequence gaps with loss.
+3. Export stopped paired captures after controlled baseline, interruption,
+   reconnect, background and expiry runs. Preserve separate diagnostic snapshots
+   for degraded-state counters. Do not equate sequence gaps with loss.
 4. Send a reaction, short chat and new request from each Product participant;
    compare private `submitted`/`accepted` counters, then test an over-budget
    message and extra peers. Private observation needs the updated signaling
@@ -163,8 +175,8 @@ After a separately authorized candidate deployment:
    Compare visible lineup/playback and guest sound throughout. All original
    social events and player mutations remain on Socket.IO and must work when the
    observer reports unavailable, rejected, interrupted or timed out.
-5. Separately measure raw loss/duplicates/reorder at a controlled Host transport:
-   SDK callbacks suppress duplicates and cannot alone certify those rates.
+5. Record Host-side submission/subscription evidence where available. Application
+   observations cannot certify gossip-wide loss, deduplication or reorder.
 6. Disable/rebuild with `VITE_DOTIFY_ROOM_REALTIME=off` on any permission,
    reliability, disclosure or quota concern. No server/contract rollback is
    needed. Reload or leave active rooms to stop their existing observers;
@@ -175,6 +187,30 @@ not overlap retries of an uncertain publish. Re-enter the room or reconnect
 to start a new observation session. Counters are bounded to 200 in-memory
 events without payloads, room codes, producer IDs or account addresses. They
 are operator diagnostics, not proof of delivery or an aggregate pilot cohort.
+
+## Wider Dotify responsibility inventory
+
+The owner's expanded scope includes deciding what should **not** move. Celerity
+fits short-lived discovery and bounded social signals, not every data flow.
+
+| Surface / current owner | Decision and reason | Reconsider only when |
+| --- | --- | --- |
+| Public room discovery (`roomBeaconPublisher`, `roomBeaconDiscovery`) | Existing opt-in hybrid; expiring hints, with Socket.IO join/status validation | Two-client publish/discover/expiry evidence passes; no claim of joinability from a beacon alone |
+| Room presence and short social events (new observers) | Hybrid observation, no authority migration | Paired real Product evidence meets each event's delivery/privacy needs |
+| Solo listening aggregates (`presence:solo`, Music/galaxy counts) | Retain Socket.IO; disconnect-bound aggregation limits stale claims and avoids publishing wallet-linked listening history | Privacy, abuse resistance and aggregate authenticity are proven separately |
+| Player, queue, admission, TURN capability (`useSession`, room service) | Retain Socket.IO; atomic membership, host controls and reconciliation are essential | An authenticated host snapshot protocol and equal guest/reconnect behavior exist |
+| Catalog, release metadata and artwork (`useCatalog`, IPFS/bootstrap) | Retain durable API/content-addressed storage; expiring gossip is neither an index nor durable availability | At most an invalidation hint, never catalog authority, with measurable need |
+| Artist publication/uploads (`useArtistConsole`, prepared uploads) | Retain authenticated server upload, IPFS and contract registration; no large/private payload gossip | No W27 migration planned |
+| Protected content-key delivery, sign-in and entitlement | Retain signed API requests and fail-closed runtime read-back; public statements grant no access | No W27 migration planned |
+| Payment/support journals, receipts, claims and runtime adapters | Retain existing native/Product transaction and persistent recovery flow; best-effort gossip cannot prove finality or recipient receipt | No W27 migration; CASH and PVM policies unchanged |
+| Invitations, reminders and artist activity | Host ChatManager evaluated, not activated; consent, scheduling and action provenance remain unproven | Separate reviewed permission/retention UX and real Host evidence; Support only opens existing review flow |
+| W13/readiness evidence and diagnostics | Local bounded capture plus explicit export; no automatic public gossip or durable listening archive | An explicitly approved operational data policy, not a transport flag |
+
+Rollback triggers include an unexpected Product prompt, public plaintext or
+identity disclosure, interference with guest audio, observation quota exhausting
+other Product features, or a false delivery/authority claim. Disable the flag,
+stop/reload observers and retain Socket.IO; no contract, entitlement or media-key
+migration is involved. Do not delete the canonical path in this PR.
 
 ## References
 

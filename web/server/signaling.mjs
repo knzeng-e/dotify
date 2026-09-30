@@ -119,6 +119,7 @@ export function startSignalingServer(overrides = {}) {
   }
   const rooms = new Map();
   const realtimeMembers = createRoomRealtimeMembers();
+  const clockIdentity = randomBytes(16).toString('hex');
   // One ephemeral solo-listening declaration per connected socket. No wallet,
   // address, IP, or durable profile is exposed; public clients receive only
   // aggregate counts keyed by the catalog track hash.
@@ -340,6 +341,21 @@ export function startSignalingServer(overrides = {}) {
   io.on('connection', socket => {
     socket.emit('rooms:updated', publicRooms());
     socket.emit('presence:solo:updated', publicSoloPresence());
+
+    socket.on('room:realtime-clock', (_payload, reply) => {
+      if (typeof reply !== 'function') return;
+      if (!currentRoomMembership(socket)) {
+        reply({ ok: false });
+        return;
+      }
+      const now = Date.now();
+      if (!socket.data.clockWindow || now - socket.data.clockWindow.start >= 10_000) socket.data.clockWindow = { start: now, count: 0 };
+      if (++socket.data.clockWindow.count > 10) {
+        reply({ ok: false });
+        return;
+      }
+      reply({ ok: true, time: now, server: clockIdentity });
+    });
 
     socket.on('room:realtime-register', (payload, reply) => {
       if (typeof reply !== 'function') return;

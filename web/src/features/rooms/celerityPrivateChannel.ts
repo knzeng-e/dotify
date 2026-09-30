@@ -10,6 +10,11 @@ const scopePattern = /^[a-f0-9]{32}$/;
 export type PrivateRoomEvent = { kind: 'reaction'; text: string } | { kind: 'chat' | 'request'; text: string };
 // Room code, wallet, socket ID and display name never enter the public envelope.
 export type PrivateEnvelope = [2, string, string, string, number, number, string, string];
+type OpenedEvent = { event: PrivateRoomEvent; sender: RealtimePeer; seq: number; ageMs: number; outOfOrder: boolean };
+type PrivateReceipt =
+  | ({ status: 'accepted' } & OpenedEvent)
+  | { status: 'duplicate' | 'reordered' | 'expired'; kind: PrivateRoomEvent['kind'] }
+  | { status: 'invalid' };
 
 function encode(bytes: ArrayBuffer | Uint8Array): string {
   return btoa(String.fromCharCode(...new Uint8Array(bytes)))
@@ -115,6 +120,8 @@ export async function createPrivateRoomIdentity() {
           return true;
         },
         async seal(recipient: string, event: PrivateRoomEvent, now = Date.now()): Promise<PrivateEnvelope | null> {
+          const started = Date.now();
+          const monotonic = performance.now();
           const peer = peerById(recipient);
           if (closed || !peer || recipient === self || !validEvent(event) || !Number.isSafeInteger(now) || now < 0) return null;
           const revision = roster.revision;
@@ -128,48 +135,55 @@ export async function createPrivateRoomIdentity() {
             key,
             utf8.encode(JSON.stringify(event))
           );
-          if (closed || roster.revision !== revision) return null;
+          if (closed || roster.revision !== revision || Math.max(Date.now() - started, performance.now() - monotonic) >= TTL) return null;
           const envelope: PrivateEnvelope = [...header, encode(nonce), encode(ciphertext)];
           return utf8.encode(JSON.stringify(envelope)).length <= MAX_BYTES ? envelope : null;
         },
-        async open(
-          value: unknown,
-          sdkExpiry: bigint | undefined,
-          now = Date.now()
-        ): Promise<{ event: PrivateRoomEvent; sender: RealtimePeer; seq: number; ageMs: number } | null> {
-          if (closed || !Array.isArray(value) || value.length !== 8 || utf8.encode(JSON.stringify(value)).length > MAX_BYTES) return null;
+        async inspect(value: unknown, sdkExpiry: bigint | undefined, now = Date.now()): Promise<PrivateReceipt> {
+          const started = Date.now();
+          const monotonic = performance.now();
+          const invalid = { status: 'invalid' as const };
+          if (closed || !Array.isArray(value) || value.length !== 8 || utf8.encode(JSON.stringify(value)).length > MAX_BYTES) return invalid;
           const [version, scope, sender, recipient, seq, created, nonce, ciphertext] = value;
           const peer = peerById(sender);
-          if (version !== 2 || scope !== roster.scope || recipient !== self || sender === self || !peer) return null;
-          if (!Number.isSafeInteger(seq) || seq < 1 || !Number.isSafeInteger(created) || created < 0 || created > now + 5000 || created + TTL <= now)
-            return null;
-          if (typeof sdkExpiry !== 'bigint' || typeof nonce !== 'string' || typeof ciphertext !== 'string') return null;
+          if (version !== 2 || scope !== roster.scope || recipient !== self || sender === self || !peer) return invalid;
+          if (!Number.isSafeInteger(seq) || seq < 1 || !Number.isSafeInteger(created) || created < 0 || created > now + 5000) return invalid;
+          if (typeof sdkExpiry !== 'bigint' || typeof nonce !== 'string' || typeof ciphertext !== 'string') return invalid;
           const expiry = Number(sdkExpiry >> 32n) * 1000;
-          if (expiry <= now || Math.abs(expiry - (created + TTL)) > 1000) return null;
+          if (Math.abs(expiry - (created + TTL)) > 1000) return invalid;
           const revision = roster.revision;
           try {
             const iv = decode(nonce);
-            if (iv.length !== 12) return null;
+            if (iv.length !== 12) return invalid;
             const key = await keyFor(peer, sender, self);
             const clear = await crypto.subtle.decrypt(
               { name: 'AES-GCM', iv, additionalData: utf8.encode(JSON.stringify(value.slice(0, 6))) },
               key,
               decode(ciphertext)
             );
-            if (closed || roster.revision !== revision) return null;
+            if (closed || roster.revision !== revision) return invalid;
             const event: unknown = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(clear));
-            if (!validEvent(event)) return null;
+            if (!validEvent(event)) return invalid;
+            // A backgrounded Host can resume an async decrypt after the TTL.
+            const completed = now + Math.max(0, Date.now() - started, performance.now() - monotonic);
+            if (expiry <= completed || created + TTL <= completed) return { status: 'expired', kind: event.kind };
             // Commit only after authentication, with no await between replay check and write.
             const window = received.get(sender) ?? { highest: 0, seen: new Set<number>() };
-            if (window.seen.has(seq) || seq <= window.highest - 64) return null;
+            if (window.seen.has(seq)) return { status: 'duplicate', kind: event.kind };
+            if (seq <= window.highest - 64) return { status: 'reordered', kind: event.kind };
+            const outOfOrder = seq < window.highest;
             window.highest = Math.max(window.highest, seq);
             window.seen.add(seq);
             for (const old of window.seen) if (old <= window.highest - 64) window.seen.delete(old);
             received.set(sender, window);
-            return { event, sender: peer, seq, ageMs: now - created };
+            return { status: 'accepted', event, sender: peer, seq, ageMs: completed - created, outOfOrder };
           } catch {
-            return null;
+            return invalid;
           }
+        },
+        async open(value: unknown, sdkExpiry: bigint | undefined, now = Date.now()): Promise<OpenedEvent | null> {
+          const receipt = await this.inspect(value, sdkExpiry, now);
+          return receipt.status === 'accepted' ? receipt : null;
         },
         close() {
           closed = true;

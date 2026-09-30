@@ -5,6 +5,8 @@ import { createPrivateRoomIdentity, type PrivateRoomChannel, type PrivateRoomEve
 import { createPrivateCelerityClient, type CelerityClient, type ObservationStatement } from './celeritySdk';
 import { celerityBudget, createCelerityBudget } from './celerityEnvelope';
 import { recordCelerityMetric, type CelerityMetric } from './celerityDiagnostics';
+import { celerityCapture } from './celerityCapture';
+import { measureRoomClock } from './celerityClock';
 
 type Deps = {
   insideProduct?: () => Promise<boolean>;
@@ -26,6 +28,7 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
   let deadline: ReturnType<typeof setTimeout> | undefined;
   let latest: RealtimeRoster | undefined;
   let initial: ObservationStatement[] = [];
+  let releaseClock: (() => void) | undefined;
   let requestIds = new Set<string>();
   const startedAt = Date.now();
   const metric = (event: CelerityMetric['event'], fields: Partial<CelerityMetric> = {}) => report({ at: Date.now(), channel: 'private', event, ...fields });
@@ -42,6 +45,7 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
     if (stopped) return;
     stopped = true;
     clearTimeout(deadline);
+    releaseClock?.();
     port.off('room:realtime-roster', roster);
     port.off('room:reaction', reaction);
     port.off('room:chat', chat);
@@ -77,8 +81,19 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
     }
     receiving++;
     try {
-      const opened = await privateChannel?.open(value, statement.expiry);
-      if (!stopped) metric(opened ? 'accepted' : 'invalid', opened ? { kind: opened.event.kind, ageMs: opened.ageMs } : {});
+      const opened = await privateChannel?.inspect(value, statement.expiry);
+      if (!stopped && opened) {
+        metric(opened.status, opened.status === 'accepted' ? { kind: opened.event.kind, ageMs: opened.ageMs } : {});
+        if (opened.status !== 'invalid')
+          celerityCapture.frame(client.encode(value), {
+            kind: opened.status === 'accepted' ? opened.event.kind : opened.kind,
+            stage: opened.status,
+            stream: `${value[1]}/${value[2]}/${value[3]}`,
+            seq: value[4],
+            ttlMs: 10_000,
+            outOfOrder: opened.status === 'accepted' && opened.outOfOrder
+          });
+      }
     } finally {
       receiving--;
     }
@@ -104,9 +119,12 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
           metric('budget', { kind: event.kind });
           continue;
         }
+        const capture = { kind: event.kind, stream: `${envelope[1]}/${envelope[2]}/${envelope[3]}`, seq: envelope[4], ttlMs: 10_000 };
+        celerityCapture.frame(client.encode(envelope), { ...capture, stage: 'attempt' });
         const ok = await client.publish(envelope);
         if (stopped) return;
         metric(ok ? 'submitted' : 'rejected', { kind: event.kind, bytes, durationMs: Math.round(performance.now() - started) });
+        celerityCapture.frame(client.encode(envelope), { ...capture, stage: ok ? 'submitted' : 'rejected' });
       }
     } catch {
       if (!stopped) metric('rejected', { kind: event.kind });
@@ -182,6 +200,7 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
             return;
           }
           clearTimeout(deadline);
+          releaseClock = celerityCapture.setProbe(() => measureRoomClock(port));
           port.on('room:reaction', reaction);
           port.on('room:chat', chat);
           port.on('room:requests', requests);

@@ -275,6 +275,14 @@ other tabs or other applications; network rejection is an observed outcome.
 See [W27 transport decisions](../explanation/room-realtime-transports.md) for
 privacy, observation limits and the Product capture protocol.
 
+The opt-in [paired capture procedure](../how-to/capture-celerity-room-realtime.md)
+requires the new admitted-only `room:realtime-clock` event on signaling. It
+calibrates with a random process clock ID, stores bounded in-memory fingerprints
+and needs no secret or storage mount. Export is manual; the offline reporter
+rejects incomplete exports or mismatched run/CID/SHA. A build or passing report
+does not replace real Product/device acceptance. Do not enable the default or
+remove Socket.IO based on a simulated run.
+
 `VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
 publication announces no rooms on the Statement Store. The capability ships
 dormant on purpose: the reader is implemented, but the Product host
