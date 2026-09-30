@@ -4,8 +4,9 @@ Date: 2026-09-30. User-requested UX follow-up, not a new transport sequence.
 Branch: `feat/immersive-room-chat`. Base: `7451e8118a70229253142bfa9045835b88b3a497`
 (W27 PR #226 merged into dev; its required CI checks succeeded).
 Refs #214 and #223; neither issue is closed by this follow-up.
-Tested implementation: `a9de67e` (the subsequent evidence commit changes docs
-only). Node 22.13.1; repository npm dependencies already installed, unchanged.
+Tested implementation: `a9de67e`; reviewed grid correction: `795883b`.
+Evidence commits change docs only. Node 22.13.1; repository npm dependencies
+already installed, unchanged.
 
 ## Delivered behavior
 
@@ -67,6 +68,23 @@ primary transport's dimensions and position relative to the stage, rather
 than the stage's total height including secondary reactions. The header still
 compacts as before. The old right-aligned-bubble assertion was replaced with
 explicit own-message identity and shared-stream layout checks.
+
+### Review follow-up, 2026-09-30
+
+The [PR review comment](https://github.com/knzeng-e/dotify/pull/227#discussion_r4147912006)
+identified an overlap when a protected track exposes room access badges. The
+reaction dock occupies grid row 3, and the badges previously used that row too.
+The badges now use implicit row 4; when access is already available they remain
+hidden, so the ordinary room layout does not acquire an empty status row.
+
+At `795883b`, `e2e/room-workspace.spec.ts` passed 27/27, including locked-room
+checks at 390 and 1440px after dismissing the access gate. The checks require a
+visible reaction control, status below the dock, and status within the viewport.
+`e2e/mobile-premium.spec.ts` passed 14/14 across 320, 390, 430, 768 and
+1440px, including 200% text and keyboard cases. Web build, scoped lint,
+Prettier and diff checks passed. Lint reports only the same three pre-existing
+hook dependency warnings. Both locked-room screenshots were inspected locally;
+they are synthetic browser evidence, not physical Product capture.
 
 ## Evidence limitations and next validation
 
