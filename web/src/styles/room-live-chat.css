@@ -156,6 +156,10 @@
 .player-view-grid.player-room-mode .player-stage {
   grid-template-areas: 'artwork metadata' 'transport transport' 'reactions reactions';
 }
+.player-view-grid.player-room-mode .player-stage > .access-badges {
+  grid-column: 1 / -1;
+  grid-row: 4;
+}
 @media (min-width: 1100px) and (min-height: 800px) {
   .player-view-grid.player-room-mode .player-stage {
     grid-template-areas: 'artwork metadata' 'artwork transport' 'reactions reactions';

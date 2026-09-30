@@ -114,18 +114,34 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
   }
 });
 
-test('up next opens a protected selection through the existing access gate', async ({ page }) => {
-  await hostRoom(page);
-  await page.getByRole('tab', { name: 'Queue', exact: true }).click();
-  await page.locator('.host-lineup summary').click();
-  await page.getByLabel('Add from the catalog').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
-  await page.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.locator('.host-lineup')).toContainText('Next');
-  await page.getByRole('button', { name: 'Play next' }).click();
-  await expect(page.getByTestId('locked-player-state')).toBeVisible();
-  await expect(page.locator('.host-lineup summary')).toContainText('Nothing queued');
-  await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
-});
+for (const [width, height] of [
+  [390, 844],
+  [1440, 1000]
+]) {
+  test(`protected room status stays clear of reactions at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height });
+    await hostRoom(page);
+    await page.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await page.locator('.host-lineup summary').click();
+    await page.getByLabel('Add from the catalog').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
+    await page.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(page.locator('.host-lineup')).toContainText('Next');
+    await page.getByRole('button', { name: 'Play next' }).click();
+    await expect(page.getByTestId('access-warning')).toBeVisible();
+    await page.getByRole('button', { name: 'Not now' }).click();
+    const status = page.getByTestId('locked-player-state');
+    const reactions = page.locator('.room-reaction-dock');
+    await expect(status).toBeVisible();
+    await expect(reactions.getByRole('button', { name: 'React heart' })).toBeVisible();
+    const statusBounds = (await status.boundingBox())!;
+    const reactionBounds = (await reactions.boundingBox())!;
+    expect(statusBounds.y).toBeGreaterThanOrEqual(reactionBounds.y + reactionBounds.height - 1);
+    expect(statusBounds.y + statusBounds.height).toBeLessThanOrEqual(height);
+    await expect(page.locator('.host-lineup summary')).toContainText('Nothing queued');
+    await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
+    await page.screenshot({ path: testInfo.outputPath(`protected-room-${width}.png`) });
+  });
+}
 
 test('a host sees one room code and an invite-first state while alone', async ({ page }) => {
   await page.addInitScript(() => {
