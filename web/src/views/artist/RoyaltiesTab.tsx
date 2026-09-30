@@ -1,47 +1,43 @@
-import { ChevronDown, Disc3, RefreshCw, Wallet } from 'lucide-react';
-import { PanelTitle } from '../../shared/ui/PanelTitle';
+import { ChevronDown, Disc3, Wallet } from 'lucide-react';
 import { EndpointRow } from '../../shared/ui/EndpointRow';
-import { Metric } from '../../shared/ui/Metric';
 import { getBlockscoutAddressUrl, getBlockscoutBlockUrl, getBlockscoutTxUrl } from '../../shared/utils/explorer';
 import { formatPaymentDate, formatWeiAsDot, shorten } from '../../shared/utils/format';
-import type { RoyaltyPayment, RoyaltyRuntimeSummary } from '../../shared/types';
+import type { CatalogTrack, RoyaltyPayment, RoyaltyRuntimeSummary } from '../../shared/types';
+import type { ReleaseEarnings } from '../../features/artist-studio/earnings';
+import { EarningsSummary, type EarningsSummaryProps } from './EarningsSummary';
+import { ReleaseEarningsList } from './ReleaseEarningsList';
 
 type RoyaltiesTabProps = {
   royaltyPayments: RoyaltyPayment[];
   royaltyStatus: string;
-  isRefreshingRoyalties: boolean;
   claimableRoyaltyWei: bigint;
   royaltyRuntimeSummaries: RoyaltyRuntimeSummary[];
   isClaimingRoyalties: boolean;
   artistRuntimeAddress: `0x${string}` | null;
   expandedRoyaltyPaymentId: string | null;
-  totalRoyaltyWei: bigint;
-  uniqueRoyaltyListeners: number;
-  paidRoyaltyTracks: number;
+  earnings: EarningsSummaryProps;
+  releases: ReleaseEarnings[];
+  onOpenRelease: (track: CatalogTrack) => void;
   nativePaymentSymbol: string;
   onSetExpandedRoyaltyPaymentId: (id: string | null) => void;
-  onRefreshRoyalties: () => void;
   onClaimRoyalties: () => void;
 };
 
 export function RoyaltiesTab({
   royaltyPayments,
   royaltyStatus,
-  isRefreshingRoyalties,
   claimableRoyaltyWei,
   royaltyRuntimeSummaries,
   isClaimingRoyalties,
   artistRuntimeAddress,
   expandedRoyaltyPaymentId,
-  totalRoyaltyWei,
-  uniqueRoyaltyListeners,
-  paidRoyaltyTracks,
+  earnings,
+  releases,
+  onOpenRelease,
   nativePaymentSymbol,
   onSetExpandedRoyaltyPaymentId,
-  onRefreshRoyalties,
   onClaimRoyalties
 }: RoyaltiesTabProps) {
-  const claimableDot = formatWeiAsDot(claimableRoyaltyWei);
   const unavailableBalanceCount = royaltyRuntimeSummaries.filter(summary => summary.claimableWei === null).length;
   const hasRoyaltyRuntime = Boolean(artistRuntimeAddress || royaltyRuntimeSummaries.length > 0);
 
@@ -70,26 +66,20 @@ export function RoyaltiesTab({
   }
 
   return (
-    <section className='content-grid royalties-grid'>
-      <div className='doc-panel royalties-panel'>
-        <PanelTitle icon={Wallet} title='Support and balances' meta={hasRoyaltyRuntime ? 'ready to review' : 'artist space needed'} />
-        <div className='royalty-summary-grid'>
-          <Metric label='settled' value={`${formatWeiAsDot(totalRoyaltyWei)} ${nativePaymentSymbol}`} />
-          <Metric
-            label='claimable'
-            value={
-              unavailableBalanceCount > 0
-                ? claimableRoyaltyWei > 0n
-                  ? `${claimableDot} ${nativePaymentSymbol} + unavailable`
-                  : 'Unavailable'
-                : `${claimableDot} ${nativePaymentSymbol}`
-            }
-          />
-          <Metric label='listeners' value={uniqueRoyaltyListeners.toString()} />
-          <Metric label='tracks settled' value={paidRoyaltyTracks.toString()} />
-        </div>
+    <section className='studio-earnings-page'>
+      <EarningsSummary {...earnings} />
+      {releases.length > 0 && (
+        <section>
+          <div className='studio-section-head'>
+            <h2>By release</h2>
+            <span>{releases.length} releases</span>
+          </div>
+          <ReleaseEarningsList rows={releases} known={earnings.updatedAt !== null} symbol={nativePaymentSymbol} onOpen={onOpenRelease} />
+        </section>
+      )}
+      <section className='royalties-panel'>
         <div className='royalty-toolbar'>
-          <p className='rights-status'>{royaltyStatus}</p>
+          <h2>Payment history</h2>
           <div className='royalty-toolbar-actions'>
             <button
               className='secondary-action compact-action'
@@ -100,15 +90,13 @@ export function RoyaltiesTab({
               {isClaimingRoyalties ? <Disc3 size={16} className='spin' /> : <Wallet size={16} />}
               {isClaimingRoyalties ? 'Claiming...' : unavailableBalanceCount > 0 ? 'Check and claim' : 'Claim pending'}
             </button>
-            <button className='secondary-action compact-action' type='button' onClick={onRefreshRoyalties} disabled={isRefreshingRoyalties}>
-              {isRefreshingRoyalties ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
-              {isRefreshingRoyalties ? 'Refreshing...' : 'Refresh ledger'}
-            </button>
           </div>
         </div>
 
         {royaltyRuntimeSummaries.length > 0 && (
-          <div className='royalty-runtime-list' role='group' aria-label='Royalty runtime balances'>
+          <details className='studio-technical royalty-runtime-list'>
+            <summary>Balance sources and verification</summary>
+            <p>{royaltyStatus}</p>
             {royaltyRuntimeSummaries.map(summary => (
               <div className='royalty-runtime-row' key={summary.runtimeAddress}>
                 <div>
@@ -122,7 +110,7 @@ export function RoyaltiesTab({
                 </a>
               </div>
             ))}
-          </div>
+          </details>
         )}
 
         <div className='royalty-ledger-list'>
@@ -234,10 +222,18 @@ export function RoyaltiesTab({
               );
             })
           ) : (
-            <div className='empty-state'>{hasRoyaltyRuntime ? 'No paid support recorded yet.' : 'Create an artist profile before tracking payments.'}</div>
+            <div className='studio-empty'>
+              {!hasRoyaltyRuntime
+                ? 'Create an artist profile before tracking payments.'
+                : earnings.updatedAt
+                  ? 'No payments to this account recorded yet.'
+                  : earnings.historyState === 'unavailable'
+                    ? 'Payment history is unavailable. Refresh to try again.'
+                    : 'Checking payment history...'}
+            </div>
           )}
         </div>
-      </div>
+      </section>
 
       <details className='studio-technical royalties-context-panel'>
         <summary>How unsettled support is recovered</summary>

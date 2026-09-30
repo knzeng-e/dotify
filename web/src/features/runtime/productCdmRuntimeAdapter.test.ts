@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { resolveDonationArtist } from '../donations/donationModel';
 import { DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET, createNativeRuntimeAccessPaymentIntent } from '../payments/paymentModel';
 import {
   ProductCdmRuntimeError,
@@ -10,7 +11,7 @@ import {
   productCdmPaymentWasNotSubmitted,
   type ProductCdmContractHandle
 } from './productCdmRuntimeAdapter';
-import type { OnchainTrackRecord } from '../../shared/types';
+import type { CatalogTrack, OnchainTrackRecord } from '../../shared/types';
 
 const directory = '0x1000000000000000000000000000000000000000' as const;
 const factory = '0x2000000000000000000000000000000000000000' as const;
@@ -132,6 +133,18 @@ describe('createProductCdmRuntimeReader', () => {
     expect(artistsPage.query).toHaveBeenCalledTimes(2);
   });
 
+  it('reads named Product directory responses', async () => {
+    const reader = createProductCdmRuntimeReader({
+      contracts: {
+        getDirectoryContract: () => ({ artistsPage: queryMethod({ artists: [artist], runtimes: [runtime] }) }),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({})
+      }
+    });
+
+    await expect(reader.listArtistRuntimes(directory, 1n)).resolves.toEqual([{ artist, runtime }]);
+  });
+
   it('returns runtime track snapshots with royalty splits and skips unreadable splits', async () => {
     const record = baseTrackRecord();
     const musicRoySplitAt = {
@@ -164,6 +177,30 @@ describe('createProductCdmRuntimeReader', () => {
         royaltySplits: [{ recipient: splitRecipient, bps: 2500 }]
       }
     ]);
+  });
+
+  it('verifies a gift recipient from named Product runtime responses', async () => {
+    const record = baseTrackRecord();
+    const reader = createProductCdmRuntimeReader({
+      contracts: {
+        getDirectoryContract: () => ({}),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({
+          musicRegTrackCount: queryMethod(1n),
+          musicRegTrackHashAtIndex: queryMethod(hash),
+          musicRegGetTrack: queryMethod({ track: record, tokenOwner: artist }),
+          musicRoySplitCount: queryMethod(1n),
+          musicRoySplitAt: queryMethod({ recipient: splitRecipient, bps: 2500 })
+        })
+      }
+    });
+
+    await expect(reader.listRuntimeTracks(runtime)).resolves.toEqual([{ hash, record, royaltySplits: [{ recipient: splitRecipient, bps: 2500 }] }]);
+    await expect(resolveDonationArtist({ id: `${runtime}:${hash}`, hash } as CatalogTrack, reader)).resolves.toEqual({
+      name: record.artistName,
+      recipient: artist,
+      releaseTitle: record.title
+    });
   });
 
   it('normalizes zero-address runtime lookups and rejects failed queries', async () => {

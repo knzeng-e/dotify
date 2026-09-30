@@ -1,0 +1,540 @@
+/* A quiet workspace: artwork, earnings and publishing actions lead. */
+.artist-portal-shell {
+  --surface: #142123;
+  --surface-soft: #1a2a2c;
+  --muted: #afc0c2;
+  --line: rgb(182 207 206 / 17%);
+  background: #0b1417;
+  min-height: 100dvh;
+}
+.artist-portal-main {
+  max-width: 1200px;
+  padding-top: 2rem;
+  padding-bottom: 4rem;
+}
+.artist-console {
+  gap: 1.5rem;
+}
+.artist-console .studio-head {
+  flex-direction: row;
+  border: 0;
+  padding: 0;
+  gap: 1.2rem;
+}
+.studio-portrait {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+}
+.studio-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.artist-console .studio-id {
+  flex: 1;
+}
+.artist-console .studio-id h1 {
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 0.2rem 0;
+}
+.studio-kicker {
+  color: #ff94c5;
+  font-size: 0.8rem;
+}
+.artist-console .console-tabs {
+  display: flex;
+  gap: 1.25rem;
+}
+.artist-console .console-tabs button {
+  min-width: 90px;
+  padding: 0.8rem 0.25rem;
+  background: transparent;
+}
+.artist-console .console-tabs strong {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.artist-console .console-tabs button[data-active='true']::after {
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+.studio-overview,
+.studio-earnings-page {
+  display: grid;
+  gap: 2.5rem;
+  min-width: 0;
+}
+.studio-overview-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(230px, 1fr);
+  gap: 2.5rem;
+}
+.studio-profile-setup {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(18rem, 0.9fr);
+  gap: 2rem;
+  padding-block: 1.5rem;
+  border-block: 1px solid var(--line);
+}
+.studio-profile-setup h2 {
+  margin: 0.35rem 0 0.6rem;
+  font-family: var(--font-interface);
+  font-size: 1.35rem;
+  letter-spacing: 0;
+}
+.studio-profile-setup p {
+  max-width: 58ch;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.studio-profile-setup-form {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+.studio-profile-setup-form > label:not(.consent-row) {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.studio-profile-setup-form .primary-action {
+  justify-self: start;
+}
+.studio-overview-columns > *,
+.studio-earnings-page > * {
+  min-width: 0;
+}
+.studio-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.studio-section-head h2,
+.royalty-toolbar h2 {
+  font-family: var(--font-interface);
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.studio-section-head > span,
+.earnings-freshness,
+.earnings-definition {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.earnings-freshness {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.earnings-freshness .icon-button {
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+}
+.earnings-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 1.25rem 0;
+  border-block: 1px solid var(--line);
+  gap: 1.5rem;
+}
+.earnings-totals > div {
+  min-width: 0;
+}
+.earnings-totals dt,
+.release-earnings-totals dt {
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.earnings-totals dd {
+  margin: 0.4rem 0 0;
+  font-size: 1.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+.earnings-totals > div:first-child dd {
+  color: var(--action);
+}
+.earnings-definition {
+  margin-top: 0.4rem;
+  max-width: 72ch;
+}
+.earnings-definition summary {
+  cursor: pointer;
+  padding: 0.65rem 0;
+  min-height: 44px;
+}
+.earnings-definition p {
+  padding-bottom: 0.65rem;
+  line-height: 1.6;
+}
+.earnings-release-columns,
+.earnings-release-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(5.5rem, auto) minmax(5.5rem, auto) 18px;
+  align-items: center;
+  gap: 1rem;
+}
+.earnings-release-columns {
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 0.5rem 0;
+}
+.earnings-release-row {
+  width: 100%;
+  text-align: left;
+  padding: 0.9rem 0;
+  min-height: 80px;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+}
+.earnings-release-row:hover,
+.studio-payment-preview:hover {
+  background: var(--action-soft);
+}
+.earnings-release-title {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+}
+.earnings-release-title img {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.earnings-release-title > span {
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.earnings-release-title strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.earnings-release-title small,
+.studio-payment-preview small {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.earnings-release-amount {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.earnings-release-amount small {
+  display: none;
+}
+.earnings-release-columns > span:not(:first-child) {
+  text-align: right;
+}
+.text-action {
+  min-height: 44px;
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  background: transparent;
+  color: var(--action);
+  font-size: 0.85rem;
+}
+.studio-payment-preview {
+  display: flex;
+  width: 100%;
+  text-align: left;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--ink);
+  padding: 1rem 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+}
+.studio-payment-preview > span {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.studio-payment-preview > span:last-child {
+  text-align: right;
+  flex-shrink: 0;
+}
+.studio-payment-preview strong {
+  font-size: 0.85rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.studio-empty {
+  color: var(--muted);
+  padding: 1.5rem 0;
+  line-height: 1.6;
+}
+.studio-profile-settings {
+  border-top: 1px solid var(--line);
+  padding-top: 0.5rem;
+}
+.studio-profile-settings label {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 32rem;
+  margin-top: 1rem;
+}
+.studio-profile-settings p {
+  max-width: 70ch;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.artist-console .studio-next-step {
+  align-items: center;
+  padding: 1.5rem 0;
+  background: transparent;
+}
+.artist-console .studio-next-label {
+  letter-spacing: 0;
+  color: #ff94c5;
+}
+.artist-console .release-console-grid {
+  grid-template-columns: minmax(15rem, 0.7fr) minmax(0, 1.3fr);
+  gap: 2rem;
+}
+.artist-console .release-list-panel,
+.artist-console .release-focus-panel {
+  padding-block: 0;
+  align-content: start;
+}
+.studio-release-search {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin: 0.75rem 0;
+  color: var(--muted);
+}
+.studio-release-search input {
+  min-width: 0;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+}
+.artist-console .release-tab {
+  padding: 0.65rem 0.5rem;
+  border-radius: 4px;
+}
+.artist-console .release-tab-copy strong {
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+.artist-console .release-tab-copy small {
+  color: var(--muted);
+}
+.artist-console .release-focus-hero {
+  grid-template-columns: minmax(100px, 0.65fr) minmax(0, 1.35fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.artist-console .release-focus-copy h2 {
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+.artist-console .release-description {
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.artist-console .release-primary-actions button {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  flex-wrap: wrap;
+}
+.artist-console .access-badges {
+  margin-top: 0.75rem;
+}
+.artist-console .access-chip {
+  border: 0;
+  background: transparent;
+  padding-inline: 0;
+  min-height: 0;
+  font-size: 0.8rem;
+}
+.release-earnings-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  padding-block: 1.25rem;
+  border-block: 1px solid var(--line);
+}
+.release-earnings-totals dd {
+  margin: 0.35rem 0 0;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.artist-console .royalty-entry {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+.artist-console .royalty-row {
+  padding: 1rem 0;
+  width: 100%;
+  text-align: left;
+}
+.artist-console .royalty-row-side strong {
+  color: var(--action);
+}
+.artist-console .royalty-details {
+  padding: 0.8rem 1rem;
+  background: var(--surface);
+  border-radius: 6px;
+}
+.artist-console .royalty-runtime-list {
+  border: 0;
+}
+@media (max-width: 1000px) {
+  .studio-profile-setup,
+  .studio-overview-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+}
+@media (max-width: 700px) {
+  .artist-portal-main {
+    padding-top: 1.25rem;
+  }
+  .artist-console .studio-head {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .studio-portrait {
+    width: 52px;
+    height: 52px;
+    flex-basis: 52px;
+  }
+  .artist-console .studio-id h1 {
+    font-size: 1.4rem;
+  }
+  .studio-publish {
+    margin-left: auto;
+  }
+  .artist-console .console-tabs {
+    gap: 0.5rem;
+    justify-content: space-between;
+  }
+  .artist-console .console-tabs button {
+    min-width: 0;
+    flex: 1 0 auto;
+  }
+  .artist-console .console-tabs strong {
+    font-size: 0.85rem;
+  }
+  .earnings-totals {
+    gap: 1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .earnings-totals > div:first-child {
+    grid-column: 1 / -1;
+  }
+  .earnings-totals dd {
+    font-size: 1.3rem;
+  }
+  .earnings-totals > div:first-child dd {
+    font-size: 2rem;
+  }
+  .earnings-release-columns {
+    display: none;
+  }
+  .earnings-release-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 18px;
+    gap: 0.75rem;
+    padding-block: 1rem;
+  }
+  .earnings-release-title {
+    grid-column: 1 / 3;
+  }
+  .earnings-release-row > svg {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .earnings-release-amount {
+    grid-row: 2;
+    text-align: left;
+    display: grid;
+    gap: 0.2rem;
+  }
+  .earnings-release-amount small {
+    display: block;
+    color: var(--muted);
+    font-size: 0.7rem;
+  }
+  .artist-console .release-console-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .artist-console .release-tabs {
+    max-height: 270px;
+    overflow-y: auto;
+  }
+  .artist-console .release-focus-hero {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .artist-console .release-focus-cover {
+    width: 88px;
+    flex: 0 0 88px;
+  }
+  .artist-console .release-focus-copy {
+    flex: 1 1 10rem;
+    min-width: 0;
+  }
+  .artist-console .release-tab {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 0.25rem 0.75rem;
+  }
+  .artist-console .release-tab img {
+    width: 48px;
+    height: 48px;
+    grid-row: 1 / 3;
+  }
+  .artist-console .release-tab-access {
+    grid-column: 2;
+    text-align: left;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .artist-console .release-tab-copy small {
+    overflow-wrap: anywhere;
+  }
+  .artist-console .release-focus-copy h2 {
+    font-size: 1.3rem;
+  }
+  .release-earnings-totals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .artist-console .studio-next-step {
+    flex-direction: column;
+    align-items: start;
+  }
+}
