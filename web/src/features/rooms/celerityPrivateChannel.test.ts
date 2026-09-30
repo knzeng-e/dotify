@@ -40,7 +40,9 @@ describe('membership-bound private room channel', () => {
     const envelope = (await alice.seal(bob.self, { kind: 'request', text: 'Another song' }, now))!;
     for (const index of [1, 2, 3, 4, 5, 6, 7]) {
       const changed = [...envelope];
-      changed[index] = typeof changed[index] === 'number' ? Number(changed[index]) + 1 : String(changed[index]).replace(/^./, 'x');
+      const original = changed[index];
+      changed[index] = typeof original === 'number' ? original + 1 : `${String(original)[0] === 'x' ? 'y' : 'x'}${String(original).slice(1)}`;
+      expect(changed).not.toEqual(envelope);
       expect(await bob.open(changed, expiry, now)).toBeNull();
     }
     expect((await bob.open(envelope, expiry, now))?.seq).toBe(1);
