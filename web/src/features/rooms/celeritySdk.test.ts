@@ -42,6 +42,12 @@ describe('pinned SDK adapter', () => {
     expect(Number(submitted[0].expiry! >> 32n) * 1000).toBe(Date.now() + 10_000);
     incoming(submitted);
     expect(receive).toHaveBeenCalledWith({ data: value, expiry: submitted[0].expiry, channel: submitted[0].channel });
+    vi.setSystemTime(value[5] + 2500);
+    expect(await client.publish(value)).toBe(true);
+    expect(Math.abs(Number(submitted[1].expiry! >> 32n) * 1000 - (value[5] + 10_000))).toBeLessThanOrEqual(1000);
+    vi.setSystemTime(value[5] + 10_000);
+    expect(await client.publish(value)).toBe(false);
+    expect(submitted).toHaveLength(2);
     client.stop();
   });
   it('never initializes Statement Store outside Product', async () => {

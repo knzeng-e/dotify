@@ -21,6 +21,7 @@ export async function createCelerityClient(
       app: 'dotify-room-realtime-v1',
       topic: `room/${room}`,
       ttl: CELERITY_TTL_MS / 1000,
+      expires: event => event.expires,
       channel: (roomId, producer) => `presence/${roomId}/${producer}`,
       target: event => [room, event.producer]
     },
@@ -35,6 +36,7 @@ export async function createPrivateCelerityClient(scope: string, receive: (state
       app: 'dotify-room-private-v2',
       topic: `scope/${scope}`,
       ttl: 10,
+      expires: event => event[5] + 10_000,
       channel: (sender, recipient) => `private/${scope}/${sender}/${recipient}`,
       target: event => [event[2], event[3]]
     },
@@ -44,7 +46,14 @@ export async function createPrivateCelerityClient(scope: string, receive: (state
 }
 
 async function connectCelerity<T>(
-  config: { app: string; topic: string; ttl: number; channel: (a: string, b: string) => string; target: (event: T) => [string, string] },
+  config: {
+    app: string;
+    topic: string;
+    ttl: number;
+    expires: (event: T) => number;
+    channel: (a: string, b: string) => string;
+    target: (event: T) => [string, string];
+  },
   receive: (statement: ObservationStatement) => void,
   interrupted: () => void
 ): Promise<CelerityClient<T> | null> {
@@ -104,7 +113,13 @@ async function connectCelerity<T>(
     maxStatementBytes: sdk.MAX_STATEMENT_SIZE,
     maxAccountBytes: sdk.MAX_USER_TOTAL,
     channel: (roomId, producer) => sdk.topicToHex(sdk.createChannel(channelName(roomId, producer))),
-    publish: async event => (await client.publish(event, { channel: channelName(...config.target(event)), topic2, ttlSeconds: config.ttl })).ok,
+    publish: async event => {
+      const remaining = config.expires(event) - Date.now();
+      if (stopped || !Number.isFinite(remaining) || remaining <= 0 || remaining > config.ttl * 1000 + 5000) return false;
+      // SDK expiry is second-granular. Preserve the authenticated payload TTL
+      // after async encryption rather than starting another full TTL now.
+      return (await client.publish(event, { channel: channelName(...config.target(event)), topic2, ttlSeconds: Math.ceil(remaining / 1000) })).ok;
+    },
     stop: () => {
       stopped = true;
       client.destroy();

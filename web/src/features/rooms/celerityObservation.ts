@@ -88,7 +88,7 @@ export function startCelerityObservation(options: ObservationOptions, deps: Obse
         return;
       }
       const bytes = client.encode(event).length;
-      if (!reserve.reserve(client.channel(event.room, producer), bytes, event.expires, created, client.maxAccountBytes, client.maxStatementBytes)) {
+      if (!reserve.reserve(client.channel(event.room, producer), bytes, event.expires + 1000, created, client.maxAccountBytes, client.maxStatementBytes)) {
         metric('budget');
       } else {
         deadline = setTimeout(() => stop('timeout'), TIMEOUT_MS);

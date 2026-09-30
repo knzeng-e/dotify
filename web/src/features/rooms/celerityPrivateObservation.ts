@@ -114,7 +114,7 @@ export function startPrivateCelerityObservation(port: RoomRealtimePort, mode: 'o
         }
         const bytes = client.encode(envelope).length;
         if (
-          !reserve.reserve(client.channel(envelope[2], envelope[3]), bytes, envelope[5] + 10_000, Date.now(), client.maxAccountBytes, client.maxStatementBytes)
+          !reserve.reserve(client.channel(envelope[2], envelope[3]), bytes, envelope[5] + 11_000, Date.now(), client.maxAccountBytes, client.maxStatementBytes)
         ) {
           metric('budget', { kind: event.kind });
           continue;

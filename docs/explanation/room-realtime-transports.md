@@ -109,6 +109,9 @@ private publishers share local reservations, including a 512-byte beacon reserve
 only when that build enables beacons. Failed or uncertain writes retain their
 reservation until expiry. Busy sends, quota pressure and unavailable Product
 drop only the observation; the room's original delivery stays on Socket.IO.
+Reservations include one second for SDK expiry rounding. The adapter submits
+only the payload's remaining TTL, never another full TTL after slow encryption;
+crypto resumed after expiration is discarded before publish or acceptance.
 Same-channel replacement can lose observations. A publish result is not a
 delivery acknowledgement; chat/requests cannot move to Celerity authority yet.
 
