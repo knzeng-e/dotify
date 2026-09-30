@@ -272,11 +272,14 @@ seconds (private social mirrors: 10 seconds) and observer data is held in memory
 only. The private path needs the updated signaling server for membership-bound
 ephemeral public-key registration and revocation. No new server flag, production
 secret, database or contract is required. Old clients ignore the new messages;
-new clients on old servers time out only the private observer. A timeout does not cancel a Host
-request already in flight; do not treat timeout as proof of no publication.
+new clients on old servers time out only the private observer. A publish timeout
+does not cancel a Host request already in flight; do not treat it as proof of no
+publication or retry it. Corrected candidates keep the receive observer active
+and process later distinct events from a bounded ten-second FIFO. Startup and
+subscription failures still stop that observer.
 
 For real Product captures, resolve Statement Submit permissions in a disposable
-room first. Permission latency can exceed the eight-second observer deadline;
+room first. Permission latency can exceed the eight-second publish deadline;
 persistent access requires the owner's explicit consent and must not include
 unrelated permissions. Follow the capture procedure rather than retrying an
 uncertain publication. A full host-page reload loses its memory-only resume

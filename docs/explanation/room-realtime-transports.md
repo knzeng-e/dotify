@@ -91,8 +91,10 @@ Product, register a key or publish. No signing/account prompt is added to joinin
    Expiry is checked against both creation+TTL and the SDK expiry. Application
    payload version is bound to envelope version 2.
 5. A 64-message sliding replay window accepts bounded reordering once. Crypto
-   results spanning a membership revision or stop are discarded. No permanent
-   archive, key storage, app-level automatic retries or pending message queue exists.
+   results spanning a membership revision or stop are discarded. There is no
+   permanent archive, key storage or app-level automatic retry. A 16-event,
+   ten-second in-memory FIFO preserves local order while one Host publish is
+   pending; overflow or expiry drops only the Celerity mirror.
 
 The room service remains trusted to bind peers honestly; a compromised service
 could substitute keys. This is confidentiality against public gossip observers,
@@ -107,8 +109,9 @@ mirrored; they are never truncated. Each recipient consumes a separate statement
 so fanout is O(n) and the 1024-byte allowance is a meaningful limit. Public and
 private publishers share local reservations, including a 512-byte beacon reserve
 only when that build enables beacons. Failed or uncertain writes retain their
-reservation until expiry. Busy sends, quota pressure and unavailable Product
-drop only the observation; the room's original delivery stays on Socket.IO.
+reservation until expiry. Queue overflow, quota pressure and unavailable
+Product drop only the observation; the room's original delivery stays on
+Socket.IO.
 Reservations include one second for SDK expiry rounding. The adapter submits
 only the payload's remaining TTL, never another full TTL after slow encryption;
 crypto resumed after expiration is discarded before publish or acceptance.
@@ -185,11 +188,12 @@ Acceptance review:
    needed. Reload or leave active rooms to stop their existing observers;
    in-flight Host submissions may still land and expire after their TTL.
 
-The observer stops on subscribe interruption or an 8-second timeout. It does
-not overlap retries of an uncertain publish. Re-enter the room or reconnect
-to start a new observation session. Counters are bounded to 200 in-memory
-events without payloads, room codes, producer IDs or account addresses. They
-are operator diagnostics, not proof of delivery or an aggregate pilot cohort.
+The observer stops on startup failure or subscribe interruption. An eight-second
+publish timeout is retained as an uncertain attempt, never replayed or relabeled;
+the receive subscription remains active and a distinct queued event may proceed.
+Counters are bounded to 200 in-memory events without payloads, room codes,
+producer IDs or account addresses. They are operator diagnostics, not proof of
+delivery or an aggregate pilot cohort.
 
 ## Wider Dotify responsibility inventory
 

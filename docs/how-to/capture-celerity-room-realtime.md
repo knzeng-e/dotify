@@ -35,9 +35,11 @@ Never bypass the prompt or widen unrelated domain permissions.
 
 After a timeout, export the diagnostic capture before changing sessions. A
 timeout is an uncertain write, not proof that no statement was published.
-Do not replay that message automatically. Use a distinct event after normal
-room reconnection and verify both observers are ready. Do not simply increase
-the write deadline: the private payload expires after ten seconds.
+Do not replay that message automatically. Current corrected candidates keep
+the receive observer active and allow a distinct queued event to proceed; verify
+the observer is still ready before continuing. The deployed 0.1.31 candidate
+predates that correction and requires a new room/session after a timeout. Do not
+simply increase the write deadline: the private payload expires after ten seconds.
 
 A full host-page reload is not a transparent reconnect. The host resume token
 is intentionally memory-only; reloading loses it and can end the room. Warn
