@@ -1,25 +1,15 @@
-// Room chat aside (the "presence/chatter aside" named by ticket 15).
-//
-// Everything shown here is real: messages come back from the signaling
-// server (which sanitizes, rate-limits, and buffers the last 50 per room),
-// names are the display names people joined with, and the reaction row
-// broadcasts to everyone in the room. Nothing renders optimistically -- the
-// server echo is the single render path, so what you see is what the room saw.
-
-import { MessageCircle, Send } from 'lucide-react';
+import { ArrowDown, LoaderCircle, MessageCircle, Send } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSessionContext } from '../app/providers';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import { PanelTitle } from '../shared/ui/PanelTitle';
-import { CHAT_TEXT_MAX_LENGTH, ROOM_REACTIONS } from '../shared/social';
+import { CHAT_TEXT_MAX_LENGTH } from '../shared/social';
 import { formatClockTime } from '../shared/utils/format';
 import { Avatar } from './Presence';
 
-const REACTION_LABELS = ['heart', 'fire', 'leaf', 'sparkle', 'raise', 'tear'];
-
-export function RoomChat({ active = true }: { active?: boolean }) {
+export function RoomChat({ active = true, onUnreadChange }: { active?: boolean; onUnreadChange?: (unread: boolean) => void }) {
   const session = useSessionContext();
-  const { roomId, chatMessages, sendChatMessage, sendRoomReaction } = session;
+  const { roomId, chatMessages, sendChatMessage } = session;
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
@@ -29,6 +19,9 @@ export function RoomChat({ active = true }: { active?: boolean }) {
   const connected = session.socketStatus === 'online';
   const listRef = useRef<HTMLDivElement | null>(null);
   const selfId = session.socketRef.current?.id;
+  const hostId = session.mode === 'host' ? selfId : session.hostIdRef.current;
+
+  useEffect(() => onUnreadChange?.(unread), [unread, onUnreadChange]);
 
   // Follow the conversation unless the reader has scrolled up into history.
   useEffect(() => {
@@ -42,6 +35,18 @@ export function RoomChat({ active = true }: { active?: boolean }) {
       setUnread(false);
     } else if (changed) setUnread(true);
   }, [chatMessages, active]);
+
+  // Keyboard/viewport changes should keep a live reader at the newest message,
+  // without pulling somebody who is reading older messages back to the bottom.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const observer = new ResizeObserver(() => {
+      if (active && followingRef.current) list.scrollTop = list.scrollHeight;
+    });
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [active]);
 
   if (!roomId) return null;
 
@@ -62,63 +67,59 @@ export function RoomChat({ active = true }: { active?: boolean }) {
     <div className='doc-panel room-chat-panel'>
       <PanelTitle icon={MessageCircle} title='Room chat' meta={connected ? `${roomPresenceCount(session.listenerCount, true)} here` : 'Reconnecting'} />
 
-      <div
-        className='room-chat-list'
-        ref={listRef}
-        onScroll={event => {
-          const list = event.currentTarget;
-          followingRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 90;
-          if (followingRef.current) setUnread(false);
-        }}
-        role='log'
-        aria-live='polite'
-        aria-relevant='additions'
-        aria-label='Room chat messages'
-      >
-        {chatMessages.length === 0 ? (
-          <p className='room-chat-empty'>Say hello. Everyone in the room reads this, and it disappears when the room closes.</p>
-        ) : (
-          chatMessages.map(message => (
-            <div className='room-chat-row' key={message.id} data-self={message.senderId === selfId || undefined}>
-              <Avatar name={message.senderName} size={26} you={message.senderId === selfId} />
-              <div className='room-chat-body'>
-                <span className='room-chat-meta'>
-                  <span className='room-chat-name'>{message.senderName}</span>
-                  <span className='room-chat-time'>{formatClockTime(message.ts)}</span>
-                </span>
-                <span className='room-chat-text'>{message.text}</span>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {unread && (
-        <button
-          type='button'
-          className='room-chat-latest'
-          onClick={() => {
-            followingRef.current = true;
-            setUnread(false);
-            if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+      <div className='room-chat-stream'>
+        <div
+          className='room-chat-list'
+          ref={listRef}
+          onScroll={event => {
+            if (!active) return;
+            const list = event.currentTarget;
+            followingRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 90;
+            if (followingRef.current) setUnread(false);
           }}
+          role='log'
+          aria-live={active ? 'polite' : 'off'}
+          aria-relevant='additions'
+          aria-label='Room chat messages'
         >
-          New messages ↓
-        </button>
-      )}
-      <div className='room-chat-reactions' role='group' aria-label='Send a reaction to the room'>
-        {ROOM_REACTIONS.map((emoji, index) => (
+          <div className='room-chat-messages'>
+            {chatMessages.length === 0 ? (
+              <div className='room-chat-empty'>
+                <MessageCircle size={24} aria-hidden='true' />
+                <p>Same track. Your people.</p>
+                <span>Say hello to the room.</span>
+              </div>
+            ) : (
+              chatMessages.map(message => (
+                <div className='room-chat-row' key={message.id} data-self={message.senderId === selfId || undefined}>
+                  <Avatar name={message.senderName} size={24} you={message.senderId === selfId} />
+                  <div className='room-chat-body'>
+                    <span className='room-chat-name'>{message.senderName}</span>
+                    {message.senderId === hostId && <span className='room-chat-role'>Host</span>}
+                    {message.senderId === selfId && <span className='room-chat-you'>You</span>} <span className='room-chat-text'>{message.text}</span>
+                  </div>
+                  <time className='room-chat-time' dateTime={new Date(message.ts).toISOString()}>
+                    {formatClockTime(message.ts)}
+                  </time>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {unread && (
           <button
-            className='room-react-btn'
             type='button'
-            key={REACTION_LABELS[index]}
-            disabled={!connected}
-            onClick={() => sendRoomReaction(emoji)}
-            aria-label={`React ${REACTION_LABELS[index]}`}
+            className='room-chat-latest'
+            onClick={() => {
+              followingRef.current = true;
+              setUnread(false);
+              if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+            }}
           >
-            {emoji}
+            <ArrowDown size={14} aria-hidden='true' /> New messages
           </button>
-        ))}
+        )}
       </div>
 
       {(!connected || sendError) && (
@@ -135,11 +136,19 @@ export function RoomChat({ active = true }: { active?: boolean }) {
           maxLength={CHAT_TEXT_MAX_LENGTH}
           aria-label='Message the room'
           autoComplete='off'
+          onKeyDown={event => {
+            if (event.key === 'Enter' && (event.nativeEvent.isComposing || event.keyCode === 229)) event.preventDefault();
+          }}
         />
         <button className='room-chat-send' type='submit' disabled={!draft.trim() || sending || !connected} aria-label='Send message'>
-          <Send size={16} />
+          {sending ? <LoaderCircle size={18} /> : <Send size={18} />}
         </button>
       </form>
+      {draft.length >= CHAT_TEXT_MAX_LENGTH - 30 && (
+        <span className='room-chat-limit' role='status'>
+          {draft.length}/{CHAT_TEXT_MAX_LENGTH}
+        </span>
+      )}
     </div>
   );
 }
