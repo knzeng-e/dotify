@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { getAddress, isAddress } from 'viem';
-import { getWalletClient, resolveEvmChain } from '../shared/config/contracts';
+import { getPublicClient, getWalletClient, resolveEvmChain } from '../shared/config/contracts';
+import { createViemRuntimeReader } from '../features/runtime/viemRuntimeAdapter';
+import type { EarningsHistoryState } from '../features/artist-studio/earnings';
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
 import {
   protectedAudioUploadToCID,
@@ -277,6 +279,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const [isRefreshingArtistRuntime, setIsRefreshingArtistRuntime] = useState(false);
   const [rightsStatus, setRightsStatus] = useState('No audio file selected');
   const [royaltyPayments, setRoyaltyPayments] = useState<RoyaltyPayment[]>([]);
+  const [allRoyaltyPayments, setAllRoyaltyPayments] = useState<RoyaltyPayment[]>([]);
+  const [royaltyHistoryState, setRoyaltyHistoryState] = useState<EarningsHistoryState>('idle');
+  const [royaltyUpdatedAt, setRoyaltyUpdatedAt] = useState<number | null>(null);
   const [claimableRoyaltyWei, setClaimableRoyaltyWei] = useState(0n);
   const [royaltyRuntimeSummaries, setRoyaltyRuntimeSummaries] = useState<RoyaltyRuntimeSummary[]>([]);
   const [royaltyStatus, setRoyaltyStatus] = useState('No artist profile selected');
@@ -286,6 +291,32 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const [bulletinManifestRef, setBulletinManifestRef] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [releaseActionId, setReleaseActionId] = useState<string | null>(null);
+
+  // Earnings use public EVM events, including in Product builds. This reader
+  // cannot sign, grant access, or replace the configured contract writer.
+  const royaltyHistoryReader = useMemo(() => createViemRuntimeReader({ ethRpcUrl }), [ethRpcUrl]);
+  const royaltyScope = JSON.stringify([
+    activeEvmAddress.toLowerCase(),
+    currentChainId,
+    ethRpcUrl,
+    artistRuntimeAddress,
+    Boolean(connectedWallet),
+    listKnownRoyaltyRuntimeCandidates(artistTracks, activeEvmAddress, artistRuntimeAddress).map(candidate => candidate.runtimeAddress.toLowerCase())
+  ]);
+  const royaltyAttemptRef = useRef<object | null>(null);
+  useLayoutEffect(() => {
+    royaltyAttemptRef.current = null;
+    setRoyaltyPayments([]);
+    setAllRoyaltyPayments([]);
+    setClaimableRoyaltyWei(0n);
+    setRoyaltyRuntimeSummaries([]);
+    setRoyaltyHistoryState('idle');
+    setRoyaltyUpdatedAt(null);
+    setIsRefreshingRoyalties(false);
+    return () => {
+      royaltyAttemptRef.current = null;
+    };
+  }, [royaltyScope]);
 
   const artistPublicationSafety = resolveConfiguredArtistPublicationSafety({
     explicitE2e: import.meta.env.DEV && isArtistPublishE2eScenarioRequested(),
@@ -623,23 +654,30 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   }
 
   async function refreshArtistRoyalties(showBusy = false) {
-    if (showBusy) {
-      setIsRefreshingRoyalties(true);
-    }
-
-    setRoyaltyStatus('Reading royalty runtime payments');
+    if (!connectedWallet || royaltyAttemptRef.current) return;
+    const attempt = {};
+    royaltyAttemptRef.current = attempt;
+    const isCurrent = () => royaltyAttemptRef.current === attempt;
+    setIsRefreshingRoyalties(true);
+    if (!royaltyUpdatedAt) setRoyaltyHistoryState('loading');
+    if (showBusy || !royaltyUpdatedAt) setRoyaltyStatus('Checking release earnings...');
 
     try {
       const candidates = getKnownRoyaltyRuntimeCandidates();
       if (candidates.length === 0) {
         setRoyaltyPayments([]);
+        setAllRoyaltyPayments([]);
         setClaimableRoyaltyWei(0n);
         setRoyaltyRuntimeSummaries([]);
-        setRoyaltyStatus('No artist or split royalty runtime found for this wallet');
+        setRoyaltyHistoryState('ready');
+        setRoyaltyUpdatedAt(Date.now());
+        setRoyaltyStatus('No release earnings recorded for this account.');
         return;
       }
 
-      const trackByHash = new Map(artistTracks.map(track => [track.hash.toLowerCase(), track]));
+      const historyChainId = await getPublicClient(ethRpcUrl).getChainId();
+      if (!currentChainId || historyChainId !== currentChainId) throw new Error('The earnings source could not be matched to your network.');
+
       const trackByRuntimeHash = new Map(
         artistTracks.flatMap(track => {
           const runtimeAddress = runtimeAddressFromTrackId(track);
@@ -647,13 +685,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         })
       );
       const [summaries, runtimeResults] = await Promise.all([
-        readRoyaltyRuntimeSummaries(),
+        readRoyaltyRuntimeBalances(candidates, address => royaltyHistoryReader.getRoyaltyClaimable(address, activeEvmAddress)),
         Promise.all(
           candidates.map(async candidate => {
             try {
               return {
                 candidate,
-                logs: await runtimeReader.listRoyaltyPaymentLogs(candidate.runtimeAddress, activeEvmAddress),
+                logs: await royaltyHistoryReader.listRoyaltyPaymentLogs(candidate.runtimeAddress),
                 error: null
               };
             } catch (error) {
@@ -662,14 +700,14 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           })
         )
       ]);
+      if (!isCurrent()) return;
       const claimableWei = summaries.reduce((total, summary) => total + (summary.claimableWei ?? 0n), 0n);
       setClaimableRoyaltyWei(claimableWei);
       setRoyaltyRuntimeSummaries(summaries);
       const logs = runtimeResults.flatMap(result => result.logs);
       const payments = logs
         .map(log => {
-          const track =
-            trackByRuntimeHash.get(`${log.runtimeAddress.toLowerCase()}:${log.trackHash.toLowerCase()}`) ?? trackByHash.get(log.trackHash.toLowerCase());
+          const track = trackByRuntimeHash.get(`${log.runtimeAddress.toLowerCase()}:${log.trackHash.toLowerCase()}`);
 
           return {
             id: `${log.runtimeAddress}-${log.transactionHash}-${log.logIndex}`,
@@ -697,8 +735,15 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           return right.logIndex - left.logIndex;
         });
 
-      setRoyaltyPayments(payments);
       const failedHistoryRuntimeCount = runtimeResults.filter(result => result.error).length;
+      if (failedHistoryRuntimeCount === 0) {
+        setAllRoyaltyPayments(payments);
+        setRoyaltyPayments(payments.filter(payment => payment.recipient.toLowerCase() === activeEvmAddress.toLowerCase()));
+        setRoyaltyHistoryState('ready');
+        setRoyaltyUpdatedAt(Date.now());
+      } else {
+        setRoyaltyHistoryState(royaltyUpdatedAt ? 'stale' : 'unavailable');
+      }
       const unavailableBalanceCount = summaries.filter(summary => summary.claimableWei === null).length;
       if (unavailableBalanceCount > 0) {
         setRoyaltyStatus(
@@ -706,21 +751,19 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         );
       } else if (failedHistoryRuntimeCount > 0) {
         setRoyaltyStatus(
-          runtimeAdapterConfig.kind === 'product-cdm'
-            ? 'Claimable balances are up to date. Detailed Product payment history still needs native event indexing.'
-            : `Royalty balances loaded; ${failedHistoryRuntimeCount} runtime ledger${failedHistoryRuntimeCount === 1 ? '' : 's'} need event indexing`
+          royaltyUpdatedAt ? 'Earnings could not be refreshed. Showing the last complete reading.' : 'Payment history is unavailable. Refresh to try again.'
         );
       } else {
-        setRoyaltyStatus(payments.length > 0 || claimableWei > 0n ? 'Royalty settlement indexed from known runtimes' : 'No access payments received yet');
+        setRoyaltyStatus(payments.length > 0 || claimableWei > 0n ? 'Release payments checked against on-chain records.' : 'No access payments recorded yet.');
       }
     } catch (royaltyError) {
+      if (!isCurrent()) return;
       const message = royaltyError instanceof Error ? royaltyError.message : 'Unable to load royalty payments';
-      setRoyaltyPayments([]);
-      setClaimableRoyaltyWei(0n);
-      setRoyaltyRuntimeSummaries([]);
-      setRoyaltyStatus(message);
+      setRoyaltyHistoryState(royaltyUpdatedAt ? 'stale' : 'unavailable');
+      setRoyaltyStatus(`Earnings could not be refreshed. ${message}`);
     } finally {
-      if (showBusy) {
+      if (isCurrent()) {
+        royaltyAttemptRef.current = null;
         setIsRefreshingRoyalties(false);
       }
     }
@@ -1461,6 +1504,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     rightsStatus,
     setRightsStatus,
     royaltyPayments,
+    allRoyaltyPayments,
+    royaltyHistoryState,
+    royaltyScope,
+    royaltyUpdatedAt,
     claimableRoyaltyWei,
     royaltyRuntimeSummaries,
     hasKnownRoyaltyRuntime,

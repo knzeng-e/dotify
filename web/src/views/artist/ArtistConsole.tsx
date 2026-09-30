@@ -11,21 +11,16 @@ import {
   previousReleaseStep
 } from '../../features/artist-studio/releaseForm';
 import { isTrackManagedByArtist } from '../../features/catalog/trackModel';
-import {
-  useReleaseForm,
-  useWalletContext,
-  useUiFeedback,
-  useCatalogContext,
-  useSessionContext,
-  useArtistStudio,
-  usePlaybackContext
-} from '../../app/providers';
+import { useReleaseForm, useWalletContext, useCatalogContext, useSessionContext, useArtistStudio, usePlaybackContext } from '../../app/providers';
 import { OverviewTab } from './OverviewTab';
 import { NewReleaseTab } from './NewReleaseTab';
 import { ReleasesTab } from './ReleasesTab';
 import { RoyaltiesTab } from './RoyaltiesTab';
 import { AdvancedTab } from './AdvancedTab';
 import { Plus } from 'lucide-react';
+import { CoverImage } from '../../components/CoverImage';
+import { summarizeReleaseEarnings } from '../../features/artist-studio/earnings';
+import type { EarningsSummaryProps } from './EarningsSummary';
 
 function nextRoyaltySplitId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -74,10 +69,9 @@ export function ArtistConsole() {
   } = useReleaseForm();
   const { connectedWallet, activeEvmAddress, activeSubstrateAddress, expectedChainId, getActiveWalletClient, bulletinAccountIndex, setBulletinAccountIndex } =
     useWalletContext();
-  const { openWalletModal } = useUiFeedback();
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const { artistConsole, totalRoyaltyWei, uniqueRoyaltyListeners, paidRoyaltyTracks } = useArtistStudio();
+  const { artistConsole, totalRoyaltyWei } = useArtistStudio();
   const { openTrack } = usePlaybackContext();
 
   const factoryAddress = deployments.factory;
@@ -88,7 +82,6 @@ export function ArtistConsole() {
   const currentSection = artistTab === 'new' ? 'releases' : artistTab === 'advanced' ? 'rights' : artistTab;
   const artistRuntimeAddress = artistConsole.artistRuntimeAddress;
   const artistRegistrationStatus = artistConsole.artistRegistrationStatus;
-  const isRegisteringArtist = artistConsole.isRegisteringArtist;
   const isRefreshingArtistRuntime = artistConsole.isRefreshingArtistRuntime;
   const rightsStatus = artistConsole.rightsStatus;
   const isRegistering = artistConsole.isRegistering;
@@ -106,6 +99,20 @@ export function ArtistConsole() {
   const nativePaymentSymbol = catalog.nativeRuntimePaymentAsset.symbol;
 
   const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
+  const releaseEarnings = summarizeReleaseEarnings(artistTracks, artistConsole.allRoyaltyPayments, activeEvmAddress);
+  const earningsSummary: EarningsSummaryProps = {
+    generatedWei: releaseEarnings.reduce((total, row) => total + row.generatedWei, 0n),
+    receivedWei: totalRoyaltyWei,
+    claimableWei: artistConsole.claimableRoyaltyWei,
+    claimableKnown: artistConsole.royaltyRuntimeSummaries.length > 0 && artistConsole.royaltyRuntimeSummaries.every(row => row.claimableWei !== null),
+    historyState: artistConsole.royaltyHistoryState,
+    updatedAt: artistConsole.royaltyUpdatedAt,
+    refreshing: isRefreshingRoyalties,
+    symbol: nativePaymentSymbol,
+    onRefresh: () => {
+      void artistConsole.refreshArtistRoyalties(true);
+    }
+  };
   const artistRegistrationAvailable = artistConsole.artistRegistrationAvailable;
   const artistPublicationQuarantined = artistConsole.artistPublicationQuarantined;
   const hasArtistRuntime = Boolean(artistConsole.artistRuntimeAddress);
@@ -139,18 +146,13 @@ export function ArtistConsole() {
   const onSetUploadToBulletinEnabled = setUploadToBulletinEnabled;
   const onSetBulletinAccountIndex = setBulletinAccountIndex;
   const onUpdateArtistName = (name: string) => artistConsole.updateArtistName(name, setArtistName);
-  const onRegisterArtist = artistConsole.registerArtist;
   const onRefreshArtistRuntime = () => {
     void artistConsole.refreshArtistRuntime(true);
   };
-  const onShowWalletModal = () => openWalletModal('artist');
   const onRegisterRights = artistConsole.registerRights;
   const onUpdateReleaseAccessMode = artistConsole.updateReleaseAccessMode;
   const onSetReleaseActive = artistConsole.setReleaseActive;
   const onSetExpandedRoyaltyPaymentId = artistConsole.setExpandedRoyaltyPaymentId;
-  const onRefreshRoyalties = () => {
-    void artistConsole.refreshArtistRoyalties(true);
-  };
 
   async function getUploadIdentity(): Promise<BackendUploadIdentity | undefined> {
     if (!isBackendConfigured()) return undefined;
@@ -295,7 +297,9 @@ export function ArtistConsole() {
   return (
     <section className='artist-console'>
       <header className='studio-head'>
-        <span className='studio-avatar' aria-hidden='true' />
+        <div className='studio-portrait' aria-hidden='true'>
+          <CoverImage src={artistTracks[0]?.imageRef ?? ''} alt='' fallbackLabel={artistName || 'Artist'} />
+        </div>
         <div className='studio-id'>
           <p className='studio-kicker'>Artist space</p>
           <h1>{artistName.trim() || 'Your music'}</h1>
@@ -306,6 +310,12 @@ export function ArtistConsole() {
             <span>{connectedWallet?.label ?? 'Artist account'}</span>
           </div>
         </div>
+        {(artistTracks.length > 0 || artistTab !== 'overview') && artistTab !== 'new' && (
+          <button className='primary-action studio-publish' type='button' onClick={() => onSetArtistTab('new')} disabled={artistStudioLocked}>
+            <Plus size={18} />
+            New release
+          </button>
+        )}
       </header>
 
       {artistPublicationQuarantined && (
@@ -315,13 +325,6 @@ export function ArtistConsole() {
         </div>
       )}
 
-      {artistTab === 'releases' && (
-        <div className='studio-task-action'>
-          <button className='primary-action' type='button' onClick={() => onSetArtistTab('new')} disabled={artistStudioLocked}>
-            <Plus size={18} /> New release
-          </button>
-        </div>
-      )}
       <div className='console-tabs-shell'>
         <div className='console-tabs' role='tablist' aria-label='Artist workspace'>
           {artistTabs.map(tab => (
@@ -362,23 +365,15 @@ export function ArtistConsole() {
         {artistTab === 'overview' && (
           <OverviewTab
             artistName={artistName}
-            activeEvmAddress={activeEvmAddress}
-            artistRuntimeAddress={artistRuntimeAddress}
             artistRegistrationStatus={artistRegistrationStatus}
-            isRegisteringArtist={isRegisteringArtist}
             isRefreshingArtistRuntime={isRefreshingArtistRuntime}
             artistRegistrationAvailable={artistRegistrationAvailable}
-            artistTracks={artistTracks}
-            nativePaymentSymbol={nativePaymentSymbol}
-            connectedWallet={connectedWallet}
             royaltyPayments={royaltyPayments}
-            totalRoyaltyWei={totalRoyaltyWei}
-            uniqueRoyaltyListeners={uniqueRoyaltyListeners}
+            earnings={earningsSummary}
+            releases={releaseEarnings}
             onUpdateArtistName={onUpdateArtistName}
-            onRegisterArtist={onRegisterArtist}
             onRefreshArtistRuntime={onRefreshArtistRuntime}
             onSetArtistTab={onSetArtistTab}
-            onShowWalletModal={onShowWalletModal}
             onOpenRelease={openReleaseDetails}
           />
         )}
@@ -444,6 +439,9 @@ export function ArtistConsole() {
             releaseActionId={artistConsole.releaseActionId}
             arrivedReleaseId={arrivedReleaseId}
             nativePaymentSymbol={nativePaymentSymbol}
+            earnings={releaseEarnings}
+            earningsKnown={artistConsole.royaltyUpdatedAt !== null}
+            earningsStale={artistConsole.royaltyHistoryState === 'stale'}
           />
         )}
 
@@ -451,18 +449,16 @@ export function ArtistConsole() {
           <RoyaltiesTab
             royaltyPayments={royaltyPayments}
             royaltyStatus={royaltyStatus}
-            isRefreshingRoyalties={isRefreshingRoyalties}
             claimableRoyaltyWei={artistConsole.claimableRoyaltyWei}
             royaltyRuntimeSummaries={artistConsole.royaltyRuntimeSummaries}
             isClaimingRoyalties={artistConsole.isClaimingRoyalties}
             artistRuntimeAddress={artistRuntimeAddress}
             expandedRoyaltyPaymentId={expandedRoyaltyPaymentId}
-            totalRoyaltyWei={totalRoyaltyWei}
-            uniqueRoyaltyListeners={uniqueRoyaltyListeners}
-            paidRoyaltyTracks={paidRoyaltyTracks}
+            earnings={earningsSummary}
+            releases={releaseEarnings}
+            onOpenRelease={openReleaseDetails}
             nativePaymentSymbol={nativePaymentSymbol}
             onSetExpandedRoyaltyPaymentId={onSetExpandedRoyaltyPaymentId}
-            onRefreshRoyalties={onRefreshRoyalties}
             onClaimRoyalties={artistConsole.claimRoyalties}
           />
         )}

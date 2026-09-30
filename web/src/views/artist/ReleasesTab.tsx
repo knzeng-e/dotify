@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { BadgeCheck, ExternalLink, Library, Play, Power, PowerOff, Save, ShieldCheck } from 'lucide-react';
+import { Library, Play, Power, PowerOff, Save, Search, ShieldCheck } from 'lucide-react';
 import { CoverImage } from '../../components/CoverImage';
 import { EndpointRow } from '../../shared/ui/EndpointRow';
 import { PanelTitle } from '../../shared/ui/PanelTitle';
 import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
-import { accessModeLabel, shorten } from '../../shared/utils/format';
+import { formatWeiAsDot, shorten } from '../../shared/utils/format';
+import type { ReleaseEarnings } from '../../features/artist-studio/earnings';
 import { runtimeAddressFromTrackId } from '../../features/catalog/trackModel';
 import { formatRoyaltyPercent } from '../../features/artist-studio/releaseForm';
 import type { AccessMode, CatalogTrack, PersonhoodLevel } from '../../shared/types';
@@ -20,6 +21,9 @@ type ReleasesTabProps = {
   onSetReleaseActive: (track: CatalogTrack, active: boolean) => void;
   releaseActionId: string | null;
   nativePaymentSymbol: string;
+  earnings: ReleaseEarnings[];
+  earningsKnown: boolean;
+  earningsStale: boolean;
   /** Into orbit (Constellation phase C): id of a release that just landed on
    * chain while the console was open; its card plays a one-shot arrival. */
   arrivedReleaseId?: string | null;
@@ -40,9 +44,15 @@ export function ReleasesTab({
   onSetReleaseActive,
   releaseActionId,
   nativePaymentSymbol,
+  earnings,
+  earningsKnown,
+  earningsStale,
   arrivedReleaseId = null
 }: ReleasesTabProps) {
-  const selectedRelease = artistTracks.find(track => track.id === selectedReleaseId) ?? artistTracks[0] ?? null;
+  const [search, setSearch] = useState('');
+  const visibleTracks = artistTracks.filter(track => track.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
+  const selectedRelease = visibleTracks.find(track => track.id === selectedReleaseId) ?? visibleTracks[0] ?? null;
+  const selectedEarnings = earnings.find(row => row.track.id === selectedRelease?.id);
   const runtimeAddress = selectedRelease ? runtimeAddressFromTrackId(selectedRelease) : null;
   const selectedDomId = selectedRelease ? releaseDomId(selectedRelease.id) : 'empty';
   const [draftAccessMode, setDraftAccessMode] = useState<AccessMode>(selectedRelease?.accessMode ?? 'human-free');
@@ -79,14 +89,18 @@ export function ReleasesTab({
     <section className='content-grid releases-grid release-console-grid' data-task={mode}>
       <aside className='doc-panel releases-panel release-list-panel'>
         <PanelTitle icon={Library} title='My releases' meta={`${artistTracks.length} releases`} />
+        <label className='studio-release-search'>
+          <Search size={17} aria-hidden='true' />
+          <input type='search' value={search} onChange={event => setSearch(event.target.value)} placeholder='Search releases' aria-label='Search releases' />
+        </label>
         <div
           className='release-tabs'
           role={artistTracks.length ? 'tablist' : undefined}
           aria-label={artistTracks.length ? 'Published releases' : undefined}
           aria-orientation={artistTracks.length ? 'vertical' : undefined}
         >
-          {artistTracks.length > 0 ? (
-            artistTracks.map(track => {
+          {visibleTracks.length > 0 ? (
+            visibleTracks.map(track => {
               const selected = selectedRelease?.id === track.id;
               const tabId = `release-tab-${releaseDomId(track.id)}`;
 
@@ -106,14 +120,14 @@ export function ReleasesTab({
                   onKeyDown={event => {
                     if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
                     event.preventDefault();
-                    const index = artistTracks.findIndex(item => item.id === track.id);
+                    const index = visibleTracks.findIndex(item => item.id === track.id);
                     const next =
                       event.key === 'Home'
                         ? 0
                         : event.key === 'End'
-                          ? artistTracks.length - 1
-                          : (index + (event.key === 'ArrowDown' ? 1 : -1) + artistTracks.length) % artistTracks.length;
-                    const destination = artistTracks[next];
+                          ? visibleTracks.length - 1
+                          : (index + (event.key === 'ArrowDown' ? 1 : -1) + visibleTracks.length) % visibleTracks.length;
+                    const destination = visibleTracks[next];
                     onSelectRelease(destination.id);
                     document.getElementById(`release-tab-${releaseDomId(destination.id)}`)?.focus();
                   }}
@@ -121,9 +135,7 @@ export function ReleasesTab({
                   <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
                   <span className='release-tab-copy'>
                     <strong>{track.title}</strong>
-                    <small>
-                      {accessModeLabel(track)} / {track.durationLabel}
-                    </small>
+                    <small>{track.active === false ? 'Inactive' : 'Published'}</small>
                   </span>
                   <span className='release-tab-access'>
                     {track.active === false
@@ -132,13 +144,13 @@ export function ReleasesTab({
                         ? `${track.priceDot} ${nativePaymentSymbol}`
                         : track.accessMode === 'free'
                           ? 'Free'
-                          : track.personhoodLevel}
+                          : 'Verified humans'}
                   </span>
                 </button>
               );
             })
           ) : (
-            <div className='empty-state'>No published releases for this artist account yet.</div>
+            <div className='studio-empty'>{search ? 'No releases match this search.' : 'No published releases for this artist account yet.'}</div>
           )}
         </div>
       </aside>
@@ -148,19 +160,12 @@ export function ReleasesTab({
           <div className='release-focus-hero'>
             <div className='release-focus-cover'>
               <CoverImage src={selectedRelease.imageRef} alt='' fallbackLabel={selectedRelease.title} />
-              <span className='sound-bars' aria-hidden='true'>
-                <i />
-                <i />
-                <i />
-                <i />
-              </span>
             </div>
             <div className='release-focus-copy'>
-              <span className='release-kicker'>Registered release</span>
+              <span className='release-kicker'>{selectedReleaseActive ? 'Published release' : 'Inactive release'}</span>
               <h2>{selectedRelease.title}</h2>
               <p className='release-artist-line'>{selectedRelease.artist}</p>
               <div className='access-badges'>
-                <span className='access-chip'>{accessModeLabel(selectedRelease)}</span>
                 <span className='access-chip'>
                   {selectedRelease.accessMode === 'classic'
                     ? `${selectedRelease.priceDot} ${nativePaymentSymbol}`
@@ -170,14 +175,6 @@ export function ReleasesTab({
                 </span>
                 <span className='access-chip' data-tone={selectedReleaseActive ? 'ready' : 'locked'}>
                   {selectedReleaseActive ? 'Active' : 'Inactive'}
-                </span>
-                <span className='access-chip access-chip-trust'>
-                  <BadgeCheck size={13} />
-                  Original artist policy
-                </span>
-                <span className='access-chip access-chip-trust'>
-                  <ShieldCheck size={13} />
-                  {selectedRelease.encrypted ? 'Encrypted audio' : 'Plain audio'}
                 </span>
               </div>
               <p className='release-description'>{selectedRelease.description}</p>
@@ -191,12 +188,6 @@ export function ReleasesTab({
                   <Play size={15} fill='currentColor' />
                   Open track
                 </button>
-                {runtimeAddress && (
-                  <a className='secondary-action compact-action' href={getBlockscoutAddressUrl(runtimeAddress)} target='_blank' rel='noreferrer'>
-                    <ExternalLink size={15} />
-                    Artist record
-                  </a>
-                )}
                 {mode === 'rights' && (
                   <button
                     className='secondary-action compact-action'
@@ -216,6 +207,30 @@ export function ReleasesTab({
               </div>
             </div>
           </div>
+
+          {mode === 'releases' && (
+            <div>
+              {earningsStale && (
+                <p className='earnings-freshness' role='status'>
+                  Update delayed. Showing the last complete reading.
+                </p>
+              )}
+              <dl className='release-earnings-totals'>
+                <div>
+                  <dt>Generated</dt>
+                  <dd>{earningsKnown && selectedEarnings ? `${formatWeiAsDot(selectedEarnings.generatedWei)} ${nativePaymentSymbol}` : 'Unavailable'}</dd>
+                </div>
+                <div>
+                  <dt>Received by you</dt>
+                  <dd>{earningsKnown && selectedEarnings ? `${formatWeiAsDot(selectedEarnings.receivedWei)} ${nativePaymentSymbol}` : 'Unavailable'}</dd>
+                </div>
+                <div>
+                  <dt>Payments</dt>
+                  <dd>{earningsKnown && selectedEarnings ? selectedEarnings.payments : 'Unavailable'}</dd>
+                </div>
+              </dl>
+            </div>
+          )}
 
           {mode === 'rights' && (
             <form className='release-access-editor' onSubmit={handleAccessSubmit}>

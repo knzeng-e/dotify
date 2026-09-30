@@ -208,7 +208,8 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
 
       for (let offset = 0n; offset < artistCount; offset += pageSize) {
         const limit = artistCount - offset > pageSize ? pageSize : artistCount - offset;
-        const [artists, runtimes] = await queryContract<[Address[], Address[]]>(directory, 'artistsPage', [offset, limit]);
+        const page = await queryContract<{ artists: Address[]; runtimes: Address[] } | [Address[], Address[]]>(directory, 'artistsPage', [offset, limit]);
+        const [artists, runtimes] = Array.isArray(page) ? page : [page.artists, page.runtimes];
 
         for (let index = 0; index < artists.length; index += 1) {
           const artist = artists[index];
@@ -229,15 +230,24 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
       return Promise.all(
         Array.from({ length: trackTotal }, async (_, index): Promise<RuntimeTrackSnapshot> => {
           const hash = await queryContract<Hash>(runtime, 'musicRegTrackHashAtIndex', [BigInt(index)]);
-          const trackResult = await queryContract<OnchainTrackRecord | [OnchainTrackRecord, Address]>(runtime, 'musicRegGetTrack', [hash]);
-          const record = Array.isArray(trackResult) ? trackResult[0] : trackResult;
+          const trackResult = await queryContract<OnchainTrackRecord | { track: OnchainTrackRecord; tokenOwner: Address } | [OnchainTrackRecord, Address]>(
+            runtime,
+            'musicRegGetTrack',
+            [hash]
+          );
+          const record = Array.isArray(trackResult) ? trackResult[0] : 'track' in trackResult ? trackResult.track : trackResult;
           const splitCount = await queryContract<bigint | number | string>(runtime, 'musicRoySplitCount', [hash]).catch(() => 0n);
           const splitTotal = assertBoundedCount(toBigInt(splitCount), MAX_ROYALTY_SPLITS, `Track ${hash} royalty splits`);
           const royaltySplits = (
             await Promise.all(
               Array.from({ length: splitTotal }, async (_, splitIndex) => {
                 try {
-                  const [recipient, bps] = await queryContract<[Address, bigint | number | string]>(runtime, 'musicRoySplitAt', [hash, BigInt(splitIndex)]);
+                  const split = await queryContract<{ recipient: Address; bps: bigint | number | string } | [Address, bigint | number | string]>(
+                    runtime,
+                    'musicRoySplitAt',
+                    [hash, BigInt(splitIndex)]
+                  );
+                  const [recipient, bps] = Array.isArray(split) ? split : [split.recipient, split.bps];
                   return { recipient, bps: toNumber(bps) };
                 } catch {
                   return null;

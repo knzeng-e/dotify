@@ -192,13 +192,17 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 32]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 33]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
+Version `[0, 1, 33]` prepares the artist earnings/workspace and Product CDM
+named-result decoding correction. This is a package version, not evidence of
+deployment or a real donation. No existing Celerity or donation activation
+default changes with this correction.
 Version `[0, 1, 32]` identifies the separately authorized W27 correction
 candidate that retains observers after an uncertain publish and bounds later
 private mirrors in a ten-second FIFO. Enable
@@ -630,9 +634,24 @@ Classic unlocks in a `product-cdm` build must poll `musicAccHasPaid` plus
 `musicAccCanAccess` for that H160 before showing success. If the transaction is
 included but verification fails, Dotify preserves the transaction hash in a
 **Payment included, access not verified** error. Royalty claim writes use the
-same adapter boundary through `musicRoyClaim(activeEvmAddress)`, but payment
-history still needs an event/indexer source before Product can show the full
-settlement ledger. Enable
+same adapter boundary through `musicRoyClaim(activeEvmAddress)`. Artist earnings
+now use public EVM event history from `VITE_ETH_RPC_URL`, explicitly read-only
+even in a Product CDM build. Its chain ID must match the configured network.
+The endpoint must permit `eth_chainId`, `eth_getLogs`, `eth_getBlockByNumber`
+and `eth_call`, and be allowed by Product Web-domain permissions. No secret or
+new flag is needed. Visible-page polling runs every 15 seconds after completion;
+failed/incomplete history retains the last complete reading or displays
+Unavailable, never a fabricated zero. Recipient balances can be independently
+unavailable. This scans known runtimes, not all historical collaborations or
+direct gifts. Large histories may require a bounded indexer; there is no new
+server, persistent index or finality guarantee in this patch. See
+[royalty settlement](../explanation/royalty-settlement.md).
+
+Before releasing, inspect Overview and Earnings in Product with an already-paid
+artist account, compare per-work/gross/recipient amounts with existing receipts,
+and verify unavailable/stale feedback without submitting a payment. Test the
+gift recipient preview separately, stopping before signing. Rollback is the
+previous reviewed bundle; no contract or data migration is involved. Enable
 `VITE_DOTIFY_DEBUG_PANEL=true` only on that smoke build to export the safe
 browser-side evidence bundle with `amountPlanck`, payment read-back, Product
 sr25519 key/session outcomes, and the operator-marked host approval observation.

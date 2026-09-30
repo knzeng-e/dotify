@@ -5,24 +5,18 @@
 // listener account view (runtime resolution, initial name sync) live in App.
 
 import { useEffect } from 'react';
+import { useVisibleRefresh } from '../hooks/useVisibleRefresh';
 import { getStoredArtistName } from '../hooks/useArtistConsole';
-import { useReleaseForm, useWalletContext, useArtistStudio, useCatalogContext } from '../app/providers';
+import { useReleaseForm, useWalletContext, useArtistStudio } from '../app/providers';
 import { ArtistPortalView } from './ArtistPortalView';
 import { ArtistConsole } from './artist/ArtistConsole';
 import { ArtistOnboarding } from './artist/ArtistOnboarding';
 
 export function ArtistShell() {
-  const { artistName, setArtistName, artistTab } = useReleaseForm();
-  const { connectedWallet, activeEvmAddress, ethRpcUrl } = useWalletContext();
+  const { setArtistName } = useReleaseForm();
+  const { connectedWallet, activeEvmAddress } = useWalletContext();
   const { artistConsole } = useArtistStudio();
-  const catalog = useCatalogContext();
-
-  // Refresh royalties when the royalties tab is active (this shell only mounts in
-  // the artist portal, so the previous isArtistPortal guard is implicit).
-  useEffect(() => {
-    if (artistTab !== 'royalties') return;
-    void artistConsole.refreshArtistRoyalties();
-  }, [artistTab, artistConsole.artistRuntimeAddress, ethRpcUrl, catalog.allCatalogTracks.length, activeEvmAddress, artistName]);
+  useVisibleRefresh(() => artistConsole.refreshArtistRoyalties(), connectedWallet ? artistConsole.royaltyScope : null);
 
   // Re-sync the stored artist name on entering the portal / switching accounts.
   useEffect(() => {
