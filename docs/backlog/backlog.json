@@ -470,7 +470,7 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Next",
-      "note": "Post-pilot Celerity/Statement Store realtime sprint. Preserve wallet-free room links, prove each event class in dual operation, and reduce Socket.IO authority only where equivalent guarantees are measured."
+      "note": "Owner activated the first port/envelope/observation slice on 2026-09-30 before remaining W13 pilot gates; see implementation/evidence/W27.md. Preserve wallet-free links; default activation and any reduction of Socket.IO authority still require measured live equivalence."
     },
     {
       "id": "W28",

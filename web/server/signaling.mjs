@@ -18,6 +18,7 @@ import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
+import { createRoomRealtimeMembers } from './room-realtime-members.mjs';
 import {
   REQUEST_TEXT_MAX_LENGTH,
   clientKey,
@@ -117,6 +118,8 @@ export function startSignalingServer(overrides = {}) {
     throw new Error('SIGNAL_TURN_CAPABILITY_SECRET must contain at least 32 characters');
   }
   const rooms = new Map();
+  const realtimeMembers = createRoomRealtimeMembers();
+  const clockIdentity = randomBytes(16).toString('hex');
   // One ephemeral solo-listening declaration per connected socket. No wallet,
   // address, IP, or durable profile is exposed; public clients receive only
   // aggregate counts keyed by the catalog track hash.
@@ -277,6 +280,15 @@ export function startSignalingServer(overrides = {}) {
     emitRooms();
   }
 
+  function emitRealtimeRoster(room, roster) {
+    for (const id of realtimeMembers.recipients(room)) io.to(id).emit('room:realtime-roster', roster);
+  }
+
+  function removeRealtimeMember(socket, room) {
+    const roster = realtimeMembers.remove(room, socket.id);
+    if (roster) emitRealtimeRoster(room, roster);
+  }
+
   function touchHost(room) {
     room.lastHostSeenAt = Date.now();
   }
@@ -329,6 +341,52 @@ export function startSignalingServer(overrides = {}) {
   io.on('connection', socket => {
     socket.emit('rooms:updated', publicRooms());
     socket.emit('presence:solo:updated', publicSoloPresence());
+
+    socket.on('room:realtime-clock', (_payload, reply) => {
+      if (typeof reply !== 'function') return;
+      if (!currentRoomMembership(socket)) {
+        reply({ ok: false });
+        return;
+      }
+      const now = Date.now();
+      if (!socket.data.clockWindow || now - socket.data.clockWindow.start >= 10_000) socket.data.clockWindow = { start: now, count: 0 };
+      if (++socket.data.clockWindow.count > 10) {
+        reply({ ok: false });
+        return;
+      }
+      reply({ ok: true, time: now, server: clockIdentity });
+    });
+
+    socket.on('room:realtime-register', (payload, reply) => {
+      if (typeof reply !== 'function') return;
+      const participant = getParticipant(socket);
+      if (!participant || !socket.rooms.has(participant.roomId)) {
+        reply({ ok: false, error: 'Join the room before enabling private realtime.' });
+        return;
+      }
+      // Bound curve validation and roster fanout independently of room chat.
+      const now = Date.now();
+      if (now - (socket.data.lastRealtimeRegistration ?? 0) < 1000) {
+        reply({ ok: false, error: 'Please wait before trying private realtime again.' });
+        return;
+      }
+      socket.data.lastRealtimeRegistration = now;
+      const result = realtimeMembers.register(participant.room, socket.id, participant.role, payload);
+      if (!result) {
+        reply({ ok: false, error: 'The realtime session key is invalid or already registered.' });
+        return;
+      }
+      const { self, ...roster } = result;
+      reply({ ok: true, self, roster });
+      emitRealtimeRoster(participant.room, roster);
+    });
+
+    socket.on('room:realtime-unregister', payload => {
+      const participant = getParticipant(socket);
+      if (!participant || typeof payload?.scope !== 'string' || typeof payload?.self !== 'string') return;
+      const roster = realtimeMembers.remove(participant.room, socket.id, payload);
+      if (roster) emitRealtimeRoster(participant.room, roster);
+    });
 
     socket.on('presence:solo', (payload = {}) => {
       const trackHash = sanitizeTrackHash(payload.trackHash);
@@ -950,6 +1008,8 @@ export function startSignalingServer(overrides = {}) {
       return;
     }
 
+    removeRealtimeMember(socket, room);
+
     if (role === 'host' && room.hostId === socket.id) {
       socket.leave(roomId);
       clearSocketRoom(socket);
@@ -985,6 +1045,7 @@ export function startSignalingServer(overrides = {}) {
 
     if (role === 'host' && room.hostId === socket.id) {
       room.hostId = null;
+      removeRealtimeMember(socket, room);
       touchHost(room);
       clearSocketRoom(socket);
       logEvent('room:host-disconnected', {

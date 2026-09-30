@@ -145,6 +145,37 @@ for a `.dot` deployment.
 
 ---
 
+### `VITE_DOTIFY_ROOM_REALTIME`
+
+Optional `off` (default), `observe`, or `dual`, with exact lowercase values.
+Production builds require `VITE_DOTIFY_HOST_MODE=auto` or `required` when
+enabled. The tracked Product profile stays off.
+
+`observe` subscribes to aggregate presence and membership-bound encrypted social
+statements while joined to a room in Product. `dual` additionally lets the host
+publish listener counts every 10 seconds (30-second TTL), and Product members
+mirror their server-accepted reactions, short chat and new requests encrypted
+to registered peers (10-second TTL). Ordinary browser guests never initialize
+Product or acquire a signer. All actual room events,
+roles, counts, queue and playback still come from Socket.IO. The mode grants
+no Celerity authority and does not enable the separate discovery-beacon flag.
+
+Dual mode makes the room code and aggregate count globally readable. Random
+producer IDs contain no user identity, but the sponsored allowance signature
+and room code remain correlatable. Do not activate a public candidate without
+reviewing these disclosure and quota boundaries. Social plaintext never enters
+public gossip; ciphertext retains traffic/timing and sponsored-account correlation.
+No SDP/ICE, track metadata, wallet, source or media key is published. The private
+path requires the W27 signaling server's ephemeral membership registration;
+older servers leave only public presence observation available.
+
+Operator-only, in-memory diagnostics are available in enabled builds through
+`window.__DOTIFY_ROOM_REALTIME__.snapshot()` and `.clear()`. They keep the last
+200 events, build identity, status, bytes, submit duration and observation age/
+sequence gaps, without payloads or identities. Submit duration is not delivery
+latency; age requires clock calibration; SDK deduplication hides some network
+duplicates. See [transport decisions](../explanation/room-realtime-transports.md).
+
 ### `VITE_DOTIFY_ROOM_BEACONS`
 
 | Property     | Value         |

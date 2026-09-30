@@ -26,6 +26,7 @@ const FETCH_TIMEOUT_MS = 5_000;
 const SIGNAL_URL = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const BACKEND_API_URL = import.meta.env.VITE_DOTIFY_API_URL as string | undefined;
 const FirstSoundEvidencePanel = lazy(() => import('./FirstSoundEvidencePanel').then(module => ({ default: module.FirstSoundEvidencePanel })));
+const CelerityCapturePanel = lazy(() => import('./CelerityCapturePanel').then(module => ({ default: module.CelerityCapturePanel })));
 
 export type ProductionReadinessPanelProps = {
   catalogTracks: CatalogTrack[];
@@ -127,6 +128,9 @@ export function ProductionReadinessPanel({
       )}
       {productCdmHostSmoke && <ProductCdmHostSmokeEvidencePanel context={productCdmHostSmoke} />}
       {productRoomSmoke && <ProductRoomSmokeEvidencePanel context={productRoomSmoke} />}
+      <Suspense fallback={null}>
+        <CelerityCapturePanel />
+      </Suspense>
     </section>
   );
 }

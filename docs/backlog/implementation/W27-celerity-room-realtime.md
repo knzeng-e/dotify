@@ -4,6 +4,17 @@ Copy this entire file into an agent working in the Dotify repository, or use the
 
 ## Agent assignment
 
+Owner activation, 2026-09-30: implement the first port/envelope/observation
+slice now, before the remaining W13 cohort/device gates. This explicit
+instruction supersedes the implementation-start timing below, not the live
+acceptance or default-activation requirements. Track delivered boundaries in
+`evidence/W27.md`; issue #214 stays open until live acceptance is met.
+
+Owner continuation, 2026-09-30: implement W27 in full and adapt every relevant
+Dotify responsibility to Celerity. The scope is no longer limited to the first
+slice. Preserve the per-event guarantees and complete live acceptance honestly;
+this does not authorize deployment, funds, participant contact or default activation.
+
 Implement **W27** only after W13 has an accepted pilot candidate and the owner activates issue #214 for a later sprint. Read `AGENTS.md`, `docs/backlog/implementation/common.md`, and the files below before changing code. Follow the common execution contract, including the evidence/handoff record.
 
 - Branch: `feat/celerity-room-realtime` created from the latest tested `origin/dev` when work starts.

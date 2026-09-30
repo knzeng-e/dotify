@@ -472,6 +472,78 @@ describe('signaling server', () => {
     assert.equal(server.rooms.get(created.roomId).hostId, null);
   });
 
+  it('recovers current player and lineup snapshots after missed updates and both participant reconnects', { timeout: 5000 }, async () => {
+    const host = connectClient();
+    const created = await createRoom(host, { track: { hash: 'first', title: 'First' } });
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId });
+
+    const initialLineup = [{ trackId: 'second', title: 'Second', artist: 'Ada' }];
+    const initialQueue = once(listener, 'room:lineup');
+    host.emit('room:lineup', initialLineup);
+    await initialQueue;
+    const initialPlayer = once(listener, 'player:state');
+    host.emit('player:state', { playing: false, currentTime: 10, duration: 120 });
+    await initialPlayer;
+
+    // The disconnected listener misses every intermediate broadcast, not just a delta.
+    const departed = once(host, 'listener:left');
+    listener.disconnect();
+    await departed;
+    host.emit('room:lineup', [{ trackId: 'third', title: 'Third', artist: 'Ada' }]);
+    host.emit('player:state', { playing: false, currentTime: 20, duration: 120 });
+    host.emit('room:track', { hash: 'second', title: 'Second' });
+    host.emit('room:lineup', [{ trackId: 'fourth', title: 'Fourth', artist: 'Ada' }]);
+    host.emit('player:state', { playing: false, currentTime: 35, duration: 180 });
+    await emitAck(host, 'room:rename', { displayName: 'Host' });
+
+    listener.connect();
+    await once(listener, 'connect');
+    const rejoined = await emitAck(listener, 'room:join', { roomId: created.roomId });
+    assert.equal(rejoined.ok, true);
+    assert.equal(rejoined.track.hash, 'second');
+    assert.deepEqual(
+      rejoined.lineup.map(item => item.trackId),
+      ['fourth']
+    );
+    assert.equal(rejoined.playerState.currentTime, 35);
+    assert.equal(rejoined.playerState.duration, 180);
+    assert.equal(rejoined.playerState.playing, false);
+    assert.equal(rejoined.playerState.stale, false);
+    assert.equal(rejoined.hostResumeToken, undefined);
+
+    const reconnecting = once(listener, 'room:host-connection');
+    host.disconnect();
+    assert.equal((await reconnecting).status, 'reconnecting');
+    host.connect();
+    await once(host, 'connect');
+    const online = once(listener, 'room:host-connection');
+    const resumed = await emitAck(host, 'room:resume', {
+      roomId: created.roomId,
+      hostResumeToken: created.hostResumeToken
+    });
+    assert.equal(resumed.ok, true);
+    assert.deepEqual(resumed.lineup, rejoined.lineup);
+    assert.equal((await online).status, 'online');
+
+    // useSession republishes the host clock on resume; no Celerity receipt is required.
+    const recoveredPlayer = once(listener, 'player:state');
+    host.emit('player:state', { playing: false, currentTime: 50, duration: 180 });
+    assert.equal((await recoveredPlayer).currentTime, 50);
+    const recoveredQueue = once(listener, 'room:lineup');
+    host.emit('room:lineup', []);
+    assert.deepEqual(await recoveredQueue, []);
+
+    const late = connectClient();
+    await once(late, 'connect');
+    const snapshot = await emitAck(late, 'room:join', { roomId: created.roomId });
+    assert.equal(snapshot.ok, true);
+    assert.equal(snapshot.hostId, host.id);
+    assert.equal(snapshot.playerState.currentTime, 50);
+    assert.deepEqual(snapshot.lineup, []);
+  });
+
   it('closes the room immediately when the host explicitly leaves', async () => {
     const host = connectClient();
     const created = await createRoom(host);
@@ -603,7 +675,7 @@ describe('signaling server', () => {
     assert.equal(server.rooms.size, 0);
   });
 
-  it('closes rooms whose host stops heartbeating', async () => {
+  it('closes rooms whose host stops heartbeating', async context => {
     await server.close();
     server = startSignalingServer({ port: 0, host: '127.0.0.1', hostHeartbeatTimeoutMs: 60, sweepIntervalMs: 20, logger: () => {} });
     port = await server.listen();
@@ -613,6 +685,7 @@ describe('signaling server', () => {
 
     // Heartbeats keep the room alive past the timeout window.
     const keepAlive = setInterval(() => host.emit('host:heartbeat'), 25);
+    context.after(() => clearInterval(keepAlive));
     await new Promise(resolve => setTimeout(resolve, 150));
     assert.equal(server.rooms.size, 1, 'heartbeating host keeps the room open');
 

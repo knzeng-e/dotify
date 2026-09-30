@@ -2,6 +2,37 @@
 
 The signaling server relays WebRTC handshake messages and room state between clients. It never handles audio.
 
+Clients consume these events through the typed `RoomRealtimePort`. The opt-in
+W27 Celerity observer does not replace any event below or grant room authority.
+
+### Optional Private Realtime Membership
+
+`room:realtime-register` accepts `{ publicKey }` (base64url raw P-256 ECDH public
+point) only from an admitted room member. Its acknowledgement is either
+`{ ok: false, error }` or `{ ok: true, self, roster: { scope, revision, peers } }`.
+Each peer is `{ id, publicKey, role }`; IDs/scopes are random and ephemeral,
+roles come from server membership, and private keys never reach the server.
+Registration is limited to once per second per socket and 128 peers per room.
+An existing membership cannot replace its key or duplicate another member's key.
+
+`room:realtime-roster` sends the latest full roster only to registered members.
+Leave, disconnect, unregister and host reconnect revoke old IDs. Consumers must
+reject older revisions and discard in-flight crypto across membership changes.
+`room:realtime-unregister` takes `{ scope, self }` and can remove only that
+socket's current registration; stale cleanup cannot remove a newer membership.
+None of these events is required for ordinary joining, exposed on `/status`,
+persisted, or connected to protected audio key delivery. Server TLS and honest
+admission bind the peer keys; Product sponsored signatures do not.
+See the [per-event transport guarantee matrix](../explanation/room-realtime-transports.md).
+
+`room:realtime-clock` accepts an empty object from an admitted member only. It
+acknowledges `{ ok: true, time, server }` with server Unix milliseconds and a
+random process-scoped clock ID, or `{ ok: false }` for an outsider/rate limit.
+Limit: ten reads per ten seconds per socket. This optional operator measurement
+does not register a Product identity or change room state. The client uses three
+round trips and reports clock uncertainty rather than treating timestamps as
+one-way network latency. Server restarts invalidate cross-epoch comparisons.
+
 **Server address:** configured via `VITE_SIGNAL_URL` (default: `http://localhost:8788`).
 
 ---

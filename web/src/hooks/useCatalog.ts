@@ -1,4 +1,5 @@
 import { resolveDonationArtist } from '../features/donations/donationModel';
+import type { RoomTrackEmitter } from '../features/rooms/roomRealtimePort';
 import { retireHostAudio } from '../features/player/hostAudioOutput';
 import { formatEther } from 'viem';
 import { createSupportPaymentFlow } from '../features/payments/supportPayment';
@@ -1180,7 +1181,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function selectTrack(
     track: CatalogTrack,
-    socketEmit?: (event: string, data: unknown) => void,
+    socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     showAccessGateOnDenied = false
@@ -1347,7 +1348,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function openTrack(
     track: CatalogTrack,
-    socketEmit?: (event: string, data: unknown) => void,
+    socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     showAccessGateOnDenied = false
@@ -1373,7 +1374,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function payForTrackAccess(
     track: CatalogTrack,
-    socketEmit?: (event: string, data: unknown) => void,
+    socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     readOnly = false
@@ -1389,7 +1390,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function performTrackSupport(
     track: CatalogTrack,
-    socketEmit?: (event: string, data: unknown) => void,
+    socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     readOnly = false

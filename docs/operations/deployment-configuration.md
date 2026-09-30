@@ -188,16 +188,26 @@ Required Product values:
 | `VITE_DOTIFY_API_URL`           | `https://dotify-api.fly.dev`                                                                                                     |
 | `VITE_SIGNAL_URL`               | `https://dotify-signal.fly.dev`                                                                                                  |
 | `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                                                            |
+| `VITE_DOTIFY_ROOM_REALTIME`     | `off`; `observe` or `dual` only for an authorized Product measurement candidate                                                     |
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 29]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 32]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
+Version `[0, 1, 32]` identifies the separately authorized W27 correction
+candidate that retains observers after an uncertain publish and bounds later
+private mirrors in a ten-second FIFO. Enable
+`VITE_DOTIFY_ROOM_REALTIME=dual` and `VITE_DOTIFY_DEBUG_PANEL=true` only for
+that measurement deployment; the tracked defaults remain off. This version is
+not evidence of real Product delivery or approval of a transport migration.
+Version `[0, 1, 31]` is the earlier mobile-panel candidate whose publish timeout
+stopped the observer. Version `[0, 1, 30]` is the console-only W27 candidate; it
+supports the observers and paired capture API but predates the mobile panel.
 Version `[0, 1, 29]` fixes host pause/source ownership and restores the desktop
 room palette on mobile. It retains `[0, 1, 28]` room-authorized TURN credential delivery and an
 independent IPFS fallback for full encrypted-audio recovery. The version bump
@@ -250,6 +260,56 @@ depend on PAPI `1.23.x`. A direct root PAPI 3 trial failed type compatibility
 for the `PolkadotSigner` export and `ChainDefinition` / `TypedApi` boundaries,
 so PAPI 3 is tracked as a blocked compatibility migration rather than a
 deployable dependency bump.
+
+W27 adds `VITE_DOTIFY_ROOM_REALTIME`, default off. It requires a Product host
+mode and observes aggregate room presence plus encrypted social mirrors;
+Socket.IO remains authoritative. `dual` publishes presence from hosts and
+server-accepted reactions, short chat and requests from Product participants.
+It must not be enabled as a default
+until two-client Product evidence is reviewed. Build an offline validation
+artifact with `VITE_DOTIFY_ROOM_REALTIME=dual npm run build:product-devnet:frozen`;
+this command does not publish it. Rollback is a build with the flag off. Stop
+or reload active observation sessions; published presence expires after 30
+seconds (private social mirrors: 10 seconds) and observer data is held in memory
+only. The private path needs the updated signaling server for membership-bound
+ephemeral public-key registration and revocation. No new server flag, production
+secret, database or contract is required. Old clients ignore the new messages;
+new clients on old servers time out only the private observer. A publish timeout
+does not cancel a Host request already in flight; do not treat it as proof of no
+publication or retry it. Corrected candidates keep the receive observer active
+and process later distinct events from a bounded ten-second FIFO. Startup and
+subscription failures still stop that observer.
+
+For real Product captures, resolve Statement Submit permissions in a disposable
+room first. Permission latency can exceed the eight-second publish deadline;
+persistent access requires the owner's explicit consent and must not include
+unrelated permissions. Follow the capture procedure rather than retrying an
+uncertain publication. A full host-page reload loses its memory-only resume
+token and may end the room; it is not equivalent to socket reconnection.
+
+Public/private observers share local unexpired-write reservations and reserve
+one full beacon only when the build enables beacons. Private pairwise fanout
+may exhaust the budget; never enable automatic retries to compensate. It cannot preflight all users of a sponsored account,
+other tabs or other applications; network rejection is an observed outcome.
+See [W27 transport decisions](../explanation/room-realtime-transports.md) for
+privacy, observation limits and the Product capture protocol.
+
+The opt-in [paired capture procedure](../how-to/capture-celerity-room-realtime.md)
+requires the new admitted-only `room:realtime-clock` event on signaling. It
+calibrates with a random process clock ID, stores bounded in-memory fingerprints
+and needs no secret or storage mount. Export is manual; the offline reporter
+rejects incomplete exports or mismatched run/CID/SHA. A build or passing report
+does not replace real Product/device acceptance. Do not enable the default or
+remove Socket.IO based on a simulated run.
+
+With `VITE_DOTIFY_DEBUG_PANEL=true`, the same recorder is available under
+You > Production readiness > Celerity capture, including on mobile without
+DevTools. The panel starts no capture or publication on mount. It exports only
+on an explicit copy action, with selectable JSON when clipboard access fails;
+no automatic upload or persistence is added. Both peers must use the 0.1.32
+correction candidate for new acceptance runs. The earlier 0.1.31 candidate has
+the panel but stops observation after a publish timeout; 0.1.30 lacks the panel.
+A new local build is not a deployment or live acceptance result.
 
 `VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
 publication announces no rooms on the Statement Store. The capability ships
