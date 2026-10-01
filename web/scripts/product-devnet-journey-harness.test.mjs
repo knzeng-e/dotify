@@ -54,8 +54,8 @@ function staticSnapshot(patch = {}) {
       scripts: {
         'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
         'build:product-devnet:frozen': 'tsc -b && vite build',
-        'verify:product-deploy-environment': `npm exec --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} -- node scripts/product-deploy-environment-check.mjs`,
-        'deploy:product-devnet': `npm run verify:product-deploy-environment && npm run build:product-devnet:frozen && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
+        'verify:product-deploy-environment': `npm exec --yes --package @parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} -- node scripts/product-deploy-environment-check.mjs`,
+        'deploy:product-devnet': `npm run verify:product-deploy-environment && npm run build:product-devnet:frozen && npx --yes --package @parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
       }
     },
     webPackageLock: lockfile(),
@@ -278,7 +278,7 @@ test('static gates reject a mnemonic expanded into Product deploy arguments', ()
         scripts: {
           'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
           'build:product-devnet:frozen': 'tsc -b && vite build',
-          'deploy:product-devnet': `npm run build:product-devnet:frozen && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad --mnemonic "$MNEMONIC"`
+          'deploy:product-devnet': `npm run build:product-devnet:frozen && npx --yes --package @parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad --mnemonic "$MNEMONIC"`
         }
       }
     }),
@@ -297,7 +297,7 @@ test('static gates reject Product deploys that skip DotNS environment alignment'
   const snapshot = staticSnapshot();
   snapshot.webPackageJson.scripts['deploy:product-devnet'] =
     `npm run build:product-devnet:frozen && npx --yes --package ` +
-    `@polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`;
+    `@parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`;
 
   const report = buildProductDevnetJourneyReport({
     snapshot,
@@ -316,7 +316,7 @@ test('static gates reject Product deploys that run DotNS environment alignment a
   const snapshot = staticSnapshot();
   snapshot.webPackageJson.scripts['deploy:product-devnet'] =
     `npm run build:product-devnet:frozen && npx --yes --package ` +
-    `@polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad && ` +
+    `@parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad && ` +
     'npm run verify:product-deploy-environment';
 
   const report = buildProductDevnetJourneyReport({
@@ -339,7 +339,7 @@ test('static gates reject Product deploys that refresh the live catalog', () => 
         scripts: {
           'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
           'build:product-devnet:frozen': 'tsc -b && vite build',
-          'deploy:product-devnet': `npm run build:product-devnet && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
+          'deploy:product-devnet': `npm run build:product-devnet && npx --yes --package @parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
         }
       }
     }),

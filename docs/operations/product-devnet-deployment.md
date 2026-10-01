@@ -12,10 +12,9 @@ CDM `ContractRegistry` to
 descriptors after runtime upgrades. A later tooling transition made
 `polkadot-app-deploy@0.16.2` unsafe for Dotify publication: its `devnet` preset
 writes to a registry/resolver generation that Product Desktop does not observe.
-Dotify pins `0.16.7`, whose DevNet profile uses registry
-`0xb052E5EfC5ADEff1f21d48DEfb5169Cb394A1a73`, content resolver
-`0x7e75491ecfb04900EB05ee63CABA2B33900aABB5`, and Publisher
-`0xaab42efbe8ea4d4228c3a11e973f94c17b9a0f2c`. The deploy command verifies
+Dotify now pins `@parity/polkadot-app-deploy@0.20.0`, whose DevNet profile uses
+registry `0x527b08a640b527a3dae0C4BE04D7344E430B6E50` and content resolver
+`0x326bdE29315199c814B1c58b431D84D16EA5cE41`. The deploy command verifies
 that profile before building. A successful upload against any other generation
 is not evidence that a Product host can resolve the candidate.
 
@@ -164,7 +163,7 @@ Use `-n devnet`, never `-n paseo`: the `paseo` preset targets paseo-next
 - a clean build from the intended commit
 - access to the `dotify-test01.dot` deployment account
 - Fly access for `dotify-api` and `dotify-signal`
-- the current `@polkadot-community-foundation/polkadot-app-deploy` DevNet prerequisites (`0.16.7` is the pinned Dotify deploy CLI)
+- the current `@parity/polkadot-app-deploy` DevNet prerequisites (`0.20.0` is the pinned Dotify deploy CLI)
 
 The CLI is reference/experimental tooling. Do not store a mnemonic in the
 repository, shell history, `.env` files, Netlify, or Fly.
@@ -378,10 +377,10 @@ Before loading any signer, verify the package's embedded DevNet profile:
 npm run verify:product-deploy-environment
 ```
 
-The command is read-only. It must report CLI `0.16.7` and the registry,
-content-resolver, and Publisher addresses named at the top of this runbook. It
-fails closed when npm serves another version, the `devnet` preset is absent, or
-any Product-facing DotNS address has drifted.
+The command is read-only. It must report CLI `0.20.0` and the registry and
+content-resolver addresses named at the top of this runbook. It fails closed
+when npm serves another version, the `devnet` preset is absent, or any
+Product-facing DotNS address has drifted.
 
 `npm run deploy:product-devnet` signs DotNS updates with the owner mnemonic from
 `MNEMONIC`. Do not rely on `pad login` for this path: `pad login` and

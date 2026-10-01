@@ -40,7 +40,7 @@ test('rejects the transient 0.16.2 DotNS generation', () => {
   const result = evaluateProductDeployEnvironment(fixture);
 
   assert.equal(
-    result.errors.some(error => error.includes('Expected CLI 0.16.7')),
+    result.errors.some(error => error.includes('Expected CLI 0.20.0')),
     true
   );
   assert.equal(
@@ -49,10 +49,6 @@ test('rejects the transient 0.16.2 DotNS generation', () => {
   );
   assert.equal(
     result.errors.some(error => error.includes('DOTNS_CONTENT_RESOLVER')),
-    true
-  );
-  assert.equal(
-    result.errors.some(error => error.includes('PUBLISHER')),
     true
   );
 });

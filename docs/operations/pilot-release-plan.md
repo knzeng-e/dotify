@@ -93,7 +93,7 @@ Product/CDM anchors:
 | Product SDK | `@parity/product-sdk@0.27.0` |
 | Product host SDK | `@parity/product-sdk-host@0.19.1` |
 | Statement Store SDK | `@parity/product-sdk-statement-store@0.6.9` |
-| Product deploy CLI | `@polkadot-community-foundation/polkadot-app-deploy@0.16.7` plus the host-profile preflight |
+| Product deploy CLI | `@parity/polkadot-app-deploy@0.20.0` plus the host-profile preflight |
 
 Product has two deliberately separate deployment identities during this gate.
 The CDM validation CID above is payment/key and room evidence only. The default
@@ -138,7 +138,7 @@ store or paste the DotNS phrase into the repo or chat.
    live JSON remains blocked, not passed.
 3. With explicit owner approval for the exact candidate CID and a locally
    entered DotNS mnemonic, verify the signer owns both names, then publish
-   the selected old CAR using `pad` 0.16.7 `--input-car --no-manifest`.
+   the selected old CAR using `pad` 0.20.0 `--input-car --no-manifest`.
    Verify the finalized CID against the offline preflight and link the
    executable subname to that exact CID with owner/current-CID guards. Do not
    let config-driven manifest publishing upload a different `dist-product`.

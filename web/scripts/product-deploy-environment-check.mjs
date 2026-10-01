@@ -6,15 +6,14 @@ import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export const PRODUCT_DEPLOY_PROFILE = {
-  packageName: '@polkadot-community-foundation/polkadot-app-deploy',
-  cliVersion: '0.16.7',
+  packageName: '@parity/polkadot-app-deploy',
+  cliVersion: '0.20.0',
   environmentId: 'devnet',
   ipfs: 'https://devnet-ipfs.api.polkadotcommunity.foundation',
   webGateway: 'dev-dot.li',
   contracts: {
-    DOTNS_REGISTRY: '0xb052E5EfC5ADEff1f21d48DEfb5169Cb394A1a73',
-    DOTNS_CONTENT_RESOLVER: '0x7e75491ecfb04900EB05ee63CABA2B33900aABB5',
-    PUBLISHER: '0xaab42efbe8ea4d4228c3a11e973f94c17b9a0f2c'
+    DOTNS_REGISTRY: '0x527b08a640b527a3dae0C4BE04D7344E430B6E50',
+    DOTNS_CONTENT_RESOLVER: '0x326bdE29315199c814B1c58b431D84D16EA5cE41'
   }
 };
 
@@ -80,8 +79,7 @@ function run() {
   console.log(
     `Product deploy environment aligned: CLI ${PRODUCT_DEPLOY_PROFILE.cliVersion}, ` +
       `${PRODUCT_DEPLOY_PROFILE.environmentId}, registry ${PRODUCT_DEPLOY_PROFILE.contracts.DOTNS_REGISTRY}, ` +
-      `content resolver ${PRODUCT_DEPLOY_PROFILE.contracts.DOTNS_CONTENT_RESOLVER}, ` +
-      `publisher ${PRODUCT_DEPLOY_PROFILE.contracts.PUBLISHER}.`
+      `content resolver ${PRODUCT_DEPLOY_PROFILE.contracts.DOTNS_CONTENT_RESOLVER}.`
   );
 }
 
