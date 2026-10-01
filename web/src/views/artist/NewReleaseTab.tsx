@@ -115,7 +115,7 @@ export function NewReleaseTab({
   const isFreeAccess = accessMode === 'free';
   const isListenerPassAccess = accessMode === 'human-free';
   const isDirectSupportAccess = accessMode === 'classic';
-  const royaltyFieldsDisabled = artistStudioLocked || isFreeAccess;
+  const royaltyFieldsDisabled = artistStudioLocked;
   const royaltySplitError = releaseRoyaltySplitPreflightError(accessMode, royaltyBps, additionalRoyaltySplits);
   const releaseCanPublish = canReviewRelease && !royaltySplitError;
   const releaseValueFlowRows = buildReleaseValueFlowRows({
@@ -293,7 +293,7 @@ export function NewReleaseTab({
                   <strong>Where support goes</strong>
                   <span>
                     {isFreeAccess
-                      ? 'This release collects no listener payment.'
+                      ? 'Listening is free. Voluntary tips follow this distribution.'
                       : 'You receive the unassigned share. Add collaborators only when support should be shared.'}
                   </span>
                 </div>
@@ -304,13 +304,7 @@ export function NewReleaseTab({
               </div>
               <div className='royalty-primary-row'>
                 <span>You receive</span>
-                <strong>
-                  {isFreeAccess
-                    ? 'No payment collected'
-                    : additionalRoyaltySplits.length === 0
-                      ? '100%'
-                      : formatRoyaltyPercent(royaltyBps + Math.max(0, remainingRoyaltyBps))}
-                </strong>
+                <strong>{additionalRoyaltySplits.length === 0 ? '100%' : formatRoyaltyPercent(royaltyBps + Math.max(0, remainingRoyaltyBps))}</strong>
               </div>
               {additionalRoyaltySplits.length > 0 && (
                 <div className='royalty-split-list'>
@@ -365,13 +359,11 @@ export function NewReleaseTab({
               <div className='royalty-split-total' data-over-limit={remainingRoyaltyBps < 0}>
                 <span>Support allocation</span>
                 <strong>
-                  {isFreeAccess
-                    ? 'No payment collected'
-                    : remainingRoyaltyBps < 0
-                      ? `${formatRoyaltyPercent(totalRoyaltyBps)} · over 100%`
-                      : additionalRoyaltySplits.length === 0
-                        ? 'You receive 100%'
-                        : `${formatRoyaltyPercent(totalRoyaltyBps)} assigned · ${formatRoyaltyPercent(remainingRoyaltyBps)} returns to you`}
+                  {remainingRoyaltyBps < 0
+                    ? `${formatRoyaltyPercent(totalRoyaltyBps)} · over 100%`
+                    : additionalRoyaltySplits.length === 0
+                      ? 'You receive 100%'
+                      : `${formatRoyaltyPercent(totalRoyaltyBps)} assigned · ${formatRoyaltyPercent(remainingRoyaltyBps)} returns to you`}
                 </strong>
               </div>
             </div>

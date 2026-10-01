@@ -181,6 +181,21 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
   }
 
   return {
+    contributionCall: async (runtime, method, args, value) => {
+      let port: RuntimeWritePort;
+      try {
+        port = await portForWrite();
+      } catch (error) {
+        throw new SupportNotSubmittedError(error);
+      }
+      if (!port.contributionCall) throw new SupportNotSubmittedError(new Error('This wallet cannot submit contributions.'));
+      try {
+        return await port.contributionCall(runtime, method, args, value);
+      } catch (error) {
+        if (config.kind === 'product-cdm' && productCdmPaymentWasNotSubmitted(error)) throw new SupportNotSubmittedError(error);
+        throw error;
+      }
+    },
     inspectPayment: async intent => {
       assertNativeAccessPayment(intent);
       const port = await portForWrite();

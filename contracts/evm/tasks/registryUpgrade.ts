@@ -858,13 +858,17 @@ async function signRawTransaction(
   wallet: SignableWallet,
   request: { to?: Address; data: Hex; value: bigint; nonce: number }
 ): Promise<SignedRawTransaction> {
+  const configuredPrivateKey = vars.has('PRIVATE_KEY') ? vars.get('PRIVATE_KEY') : undefined;
+  if (configuredPrivateKey && !/^(?:0x)?[0-9a-fA-F]{64}$/.test(configuredPrivateKey)) {
+    throw new Error('Configured PRIVATE_KEY must be a 32-byte hex value.');
+  }
   const signer =
     typeof wallet.account.signTransaction === 'function'
       ? wallet.account
       : hre.network.name === 'hardhat'
         ? privateKeyToAccount(HARDHAT_FIRST_ACCOUNT_PRIVATE_KEY)
-        : vars.has('PRIVATE_KEY')
-          ? privateKeyToAccount(vars.get('PRIVATE_KEY') as Hex)
+        : configuredPrivateKey
+          ? privateKeyToAccount((configuredPrivateKey.startsWith('0x') ? configuredPrivateKey : `0x${configuredPrivateKey}`) as Hex)
           : undefined;
   if (!signer) {
     throw new Error('Configured wallet is not a local signer. Use a local PRIVATE_KEY so transaction bytes and hash can be persisted before broadcast.');

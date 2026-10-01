@@ -4,7 +4,7 @@ import { PlayerQueueDialog } from '../components/PlayerQueueDialog';
 import { RoomShareDialog } from '../components/RoomShareDialog';
 import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
-import { artistDonationsEnabled } from '../features/donations/donationModel';
+import { HostContributions } from '../components/HostContributions';
 import { ChevronDown, Copy, Check, ExternalLink, Headphones, KeyRound, Library, QrCode, Radio, Share2, X } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
@@ -61,6 +61,9 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     productHostWebRtcUnavailable,
     error
   } = session;
+  const contributionTrack = roomId
+    ? catalog.catalogTracks.find(track => track.hash === trackInfo?.hash && track.id.toLowerCase().startsWith(`${trackInfo?.runtimeAddress?.toLowerCase()}:`))
+    : selectedTrack;
   const currentTrack = playbackTrack(mode, trackInfo, selectedTrack);
   const streamTitle = currentTrack?.title || (mode === 'listener' ? 'Waiting for the host’s track' : title);
   const streamArtist = currentTrack?.artist || (mode === 'listener' ? '' : artistName);
@@ -475,9 +478,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           onOpenQueue={!roomId ? () => setQueueOpen(true) : undefined}
           onOpenArtist={!roomId && streamArtist ? () => onOpenArtist(streamArtist) : undefined}
           onOpenDetails={!roomId && selectedTrack ? () => setDetailsTrack(selectedTrack) : undefined}
-          supportAction={
-            !roomId && selectedTrack && artistDonationsEnabled ? <ArtistDonationButton key={selectedTrack.id} track={selectedTrack} iconOnly /> : undefined
-          }
+          supportAction={contributionTrack ? <ArtistDonationButton key={contributionTrack.id} track={contributionTrack} kind='tip' iconOnly /> : undefined}
         />
         {roomId && <RoomReactions key={roomId} selfId={ownSocketId} />}
         {roomId && (
@@ -533,6 +534,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             title={roomId ? 'In the room' : 'Listening room'}
             meta={roomId ? (session.socketStatus === 'online' ? `${presenceCount} here` : 'Reconnecting') : 'offline'}
           />
+          {roomId && mode === 'host' && <HostContributions key={roomId} />}
 
           {/* State 1: not in any room */}
           {!roomId && (

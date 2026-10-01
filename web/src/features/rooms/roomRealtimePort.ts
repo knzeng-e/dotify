@@ -16,6 +16,9 @@ import type {
 import type { RealtimeRegistration, RealtimeRoster } from './celerityPrivateTypes';
 
 type ListenerJoined = { listenerId: string; displayName: string; listenerCount: number };
+export type RoomContributionReply =
+  | { ok: false; error: string }
+  | { ok: true; host: `0x${string}`; room: `0x${string}`; expiresAt: string; proof: `0x${string}` };
 
 export type RoomIncomingEvents = {
   'room:realtime-roster': [roster: RealtimeRoster];
@@ -70,6 +73,9 @@ export type RoomOutgoingEvents = {
 };
 
 export type RoomRequests = {
+  'room:tip-bind': { input: { token: string }; output: { ok: boolean; error?: string } };
+  'room:tip-quote': { input: { runtime: string; contentHash: string; sender: string; intentId: string; amount: string }; output: RoomContributionReply };
+  'room:tip-notify': { input: { runtime: string; hash: string }; output: { ok: boolean; error?: string } };
   'room:realtime-clock': { input: Record<string, never>; output: { ok: true; time: number; server: string } | { ok: false } };
   'room:realtime-register': { input: { publicKey: string }; output: RealtimeRegistration };
   'room:create': { input: { displayName: string; track: TrackInfo | null; playbackMode: RoomPlaybackMode }; output: CreateRoomResponse };

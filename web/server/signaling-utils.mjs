@@ -51,6 +51,7 @@ export function sanitizeTrack(track) {
     title: sanitizeText(track.title, 'Untitled', 120),
     artist: sanitizeText(track.artist, 'Unknown artist', 80),
     hash: sanitizeText(track.hash, '', 80),
+    ...(/^0x[\da-f]{40}$/i.test(track.runtimeAddress ?? '') ? { runtimeAddress: track.runtimeAddress.toLowerCase() } : {}),
     // TrackInfo crosses the public room and anonymous join boundaries. Source
     // and manifest references are not needed for WebRTC playback: a manifest
     // can reveal the encrypted audio CID even when audioRef itself is absent.

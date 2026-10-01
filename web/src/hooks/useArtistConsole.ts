@@ -135,8 +135,9 @@ function normalizeRoyaltyBps(value: number, label: string): number {
 }
 
 function resolveRoyaltySplits(primaryRecipient: `0x${string}`, primaryBps: number, additionalSplits: ReleaseRoyaltySplitDraft[]) {
-  const recipients: `0x${string}`[] = [primaryRecipient];
-  const shares: number[] = [normalizeRoyaltyBps(primaryBps, 'Artist')];
+  const artistBps = normalizeRoyaltyBps(primaryBps, 'Artist');
+  const recipients: `0x${string}`[] = artistBps > 0 ? [primaryRecipient] : [];
+  const shares: number[] = artistBps > 0 ? [artistBps] : [];
 
   for (const split of additionalSplits) {
     const label = split.label.trim() || 'Rights holder';
@@ -167,15 +168,12 @@ function resolveRoyaltySplits(primaryRecipient: `0x${string}`, primaryBps: numbe
   return { recipients, shares, totalBps };
 }
 
-function resolveReleaseRoyaltySplits(
+export function resolveReleaseRoyaltySplits(
   primaryRecipient: `0x${string}`,
-  accessMode: AccessMode,
+  _accessMode: AccessMode,
   primaryBps: number,
   additionalSplits: ReleaseRoyaltySplitDraft[]
 ) {
-  if (accessMode === 'free') {
-    return { recipients: [primaryRecipient], shares: [10_000], totalBps: 10_000 };
-  }
   return resolveRoyaltySplits(primaryRecipient, primaryBps, additionalSplits);
 }
 

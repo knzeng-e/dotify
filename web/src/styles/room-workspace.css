@@ -183,6 +183,26 @@
   justify-content: center;
   padding-inline: 0.7rem;
 }
+.player-room-mode .room-invite-actions .secondary-action {
+  border-color: color-mix(in srgb, var(--ink) 34%, transparent);
+  background: color-mix(in srgb, var(--canvas) 82%, var(--surface));
+  color: var(--ink);
+}
+.player-room-mode .room-invite-actions .primary-action {
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--on-action);
+}
+.player-room-mode .room-invite-actions .secondary-action:hover:not(:disabled) {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--canvas);
+}
+.player-room-mode .room-invite-actions .primary-action:hover:not(:disabled) {
+  border-color: var(--action-hover);
+  background: var(--action-hover);
+  color: var(--on-action);
+}
 
 @media (min-width: 769px) and (min-height: 800px) {
   .app-shell[data-room-focus='true'] .content {
@@ -233,7 +253,14 @@
     grid-column: 1;
     grid-row: 5;
     overflow-y: auto;
-    padding: 1rem;
+    padding: 0.6rem 1rem 0.85rem;
+  }
+  .player-room-mode .room-invite-card {
+    gap: 0.55rem;
+    padding: 0.45rem 0;
+  }
+  .player-room-mode .room-invite-copy {
+    gap: 0.15rem;
   }
   .player-room-mode .room-conversation-pane {
     grid-column: 2;

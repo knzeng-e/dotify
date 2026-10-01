@@ -4,10 +4,10 @@ import { getBlockscoutAddressUrl, getBlockscoutBlockUrl, getBlockscoutTxUrl } fr
 import { formatPaymentDate, formatWeiAsDot, shorten } from '../../shared/utils/format';
 import type { CatalogTrack, RoyaltyPayment, RoyaltyRuntimeSummary } from '../../shared/types';
 import type { ReleaseEarnings } from '../../features/artist-studio/earnings';
-import { EarningsSummary, type EarningsSummaryProps } from './EarningsSummary';
+import type { EarningsSummaryProps } from './EarningsSummary';
 import { ReleaseEarningsList } from './ReleaseEarningsList';
 
-type RoyaltiesTabProps = {
+export type RoyaltiesTabProps = {
   royaltyPayments: RoyaltyPayment[];
   royaltyStatus: string;
   claimableRoyaltyWei: bigint;
@@ -67,7 +67,6 @@ export function RoyaltiesTab({
 
   return (
     <section className='studio-earnings-page'>
-      <EarningsSummary {...earnings} />
       {releases.length > 0 && (
         <section>
           <div className='studio-section-head'>

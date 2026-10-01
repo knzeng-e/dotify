@@ -1,4 +1,35 @@
 import type { CatalogTrack, RoyaltyPayment } from '../../shared/types';
+import { zeroHash } from 'viem';
+import type { ContributionReceipt } from '../donations/contributions';
+
+export function summarizeContributionEarnings(rows: ContributionReceipt[], runtime: string | null | undefined, account: string) {
+  const result = { giftsGeneratedWei: 0n, tipsGeneratedWei: 0n, giftsReceivedWei: 0n, tipsReceivedWei: 0n, claimableWei: 0n };
+  const seen = new Set<string>();
+  for (const row of rows) {
+    const key = `${row.runtime}:${row.id}`.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const gift = row.contentHash === zeroHash;
+    if (row.runtime.toLowerCase() === runtime?.toLowerCase()) result[gift ? 'giftsGeneratedWei' : 'tipsGeneratedWei'] += row.amount;
+    for (const share of row.shares) {
+      if (share.recipient.toLowerCase() !== account.toLowerCase()) continue;
+      if (share.paid || share.claimed) result[gift ? 'giftsReceivedWei' : 'tipsReceivedWei'] += share.amount;
+      else result.claimableWei += share.amount;
+    }
+  }
+  return result;
+}
+
+export function combineEarningsSources(
+  access: { generatedWei: bigint | null; receivedWei: bigint | null; claimableWei: bigint | null },
+  contributions: ReturnType<typeof summarizeContributionEarnings> | null
+) {
+  return {
+    generatedWei: access.generatedWei !== null && contributions ? access.generatedWei + contributions.giftsGeneratedWei + contributions.tipsGeneratedWei : null,
+    receivedWei: access.receivedWei !== null && contributions ? access.receivedWei + contributions.giftsReceivedWei + contributions.tipsReceivedWei : null,
+    claimableWei: access.claimableWei !== null && contributions ? access.claimableWei + contributions.claimableWei : null
+  };
+}
 
 export type ReleaseEarnings = {
   track: CatalogTrack;

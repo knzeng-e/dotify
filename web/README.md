@@ -601,10 +601,10 @@ integration requires an authenticated Dotify order/payment binding, the correct
 entitlement beneficiary, replay protection, and a reconciliation/refund strategy.
 Changing contract VM does not provide those guarantees.
 
-The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
-Ordinary builds keep gifts off. A gift sends a chosen amount directly to the
-release's artist; it does not unlock access or follow the release's royalty
-splits. Native gifts use chain-reported precision and verified recipient
-mapping. Keep this flag gated until a real host approval and receipt have been
-checked. No live funds are used by the automated test fixtures. See
-[direct artist gifts](../docs/design/artist-gifts-2026-09-16.md).
+Gifts and tips are native UI; `VITE_DOTIFY_ARTIST_DONATIONS` is retired.
+Gifts use the artist's profile allocation; work tips preserve collaborator
+splits, with optional host sharing from the artist portion. Both require an
+upgraded contribution runtime and keep listening access unchanged. Product
+signing still requires the CDM writer profile. Live host validation and
+owner-approved upgrades are separate release gates. See
+[native contributions](../docs/design/native-contributions.md).

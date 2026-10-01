@@ -1090,10 +1090,67 @@ checks. Roll back the frontend to the previous profile; no contract or backend
 migration is required. Preserve/check unresolved payment references before
 clearing host/browser storage.
 
-The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
-Ordinary builds keep gifts off. A gift sends a chosen amount directly to the
-release's artist; it does not unlock access or follow the release's royalty
-splits. Native gifts use chain-reported precision and verified recipient
-mapping. Keep this flag gated until a real host approval and receipt have been
-checked. No live funds are used by the automated test fixtures. See
-[direct artist gifts](../design/artist-gifts-2026-09-16.md).
+Gifts and tips are native UI; `VITE_DOTIFY_ARTIST_DONATIONS` is retired.
+Gifts use the artist's profile allocation; work tips preserve collaborator
+splits after an optional host percentage is deducted from the whole room tip. Both require an
+upgraded contribution runtime and keep listening access unchanged. Product
+signing still requires the CDM writer profile. Live host validation and
+owner-approved upgrades are separate release gates. See
+[native contributions](../design/native-contributions.md).
+
+### Native contributions activation (2026-10-01)
+
+This section describes a release procedure, not an executed deployment. Keep
+the same chain/runtime addresses: encrypted keys and previous purchases are
+bound to them. Do not replace artist runtimes to obtain the new functions.
+
+1. Review and test `MusicContributionsPallet`/`MusicRoyaltiesPallet`, regenerate
+   frontend ABIs and the merged CDM ABI with `npm run generate:abis` in
+   `contracts/evm` and `npm run generate:cdm` in `web`.
+2. Use the existing `runtime:deploy-royalties-facet` dry run and explicit
+   code-hash confirmation for a separately authorized facet deployment. For
+   each runtime, use `runtime:royalties-upgrade` dry run, review its Add/Replace
+   selectors and snapshot, then obtain the owner's confirmation before execute.
+   Existing factory contracts are immutable: their old bootstrap will not
+   install new selectors. Upgrade newly created runtimes too, or separately
+   review deployment of an updated factory against the existing directory.
+3. Deploy the API exposing `/api/auth/identity`, then signaling and the frontend.
+   Product writes need `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`; no donation
+   feature flag is needed. The viem build continues to use browser-wallet writes.
+4. Configure the signaling-only settings below. Verify the chain and directory
+   against the deployment manifest; never put the attestor key in a Vite value.
+5. In Artist > Rights, approve the attestor's public address under Campaign and
+   room verification, and choose the profile/work allocations, schedule and
+   optional host share. A work can inherit the profile's room authority.
+6. A connected host with a valid Dotify sign-in session is bound automatically.
+   Otherwise use Receive room tips to perform the normal sign-in. A listener
+   never needs that session merely to hear the room. Open/reselect the work so
+   its runtime identity is present in the current room metadata.
+7. With separately authorized test funds, inspect and confirm one gift, one
+   direct tip and one room tip on the intended Product device. Verify exact
+   recipient amounts, canonical dated receipts, host allocation, a single chat
+   notification, earnings refresh and pending/reload recovery without repayment.
+   Repeat outside the scheduled interval and after a policy change.
+
+| Server-only setting | Purpose |
+| --- | --- |
+| `SIGNAL_CONTRIBUTION_ATTESTOR_KEY` | Dedicated unfunded EVM signing key for room context proofs; use the host secret store. No fallback key exists. |
+| `SIGNAL_CONTRIBUTION_RPC_URL` | Public EVM RPC for the deployed artist runtimes. |
+| `SIGNAL_CONTRIBUTION_CHAIN_ID` | Exact EVM chain ID, checked against the RPC. |
+| `SIGNAL_CONTRIBUTION_DIRECTORY` | ArtistDirectory address from the manifest. |
+| `SIGNAL_CONTRIBUTION_API_URL` | Trusted API base including `/api`, e.g. `https://dotify-api.fly.dev/api`; validates host bearer sessions. |
+
+No new storage mount is required. Contribution ledgers are on-chain; browser
+storage holds recovery references and rooms hold only ephemeral context/chat.
+Keep bearer authorization headers out of proxy logs. Server-to-server identity
+verification does not require widening browser CORS. The artist-approved
+attestor is a centralized trust boundary for room attribution; rotation also
+requires updating artist policies. Already issued proofs live at most ten
+minutes and are bound to one payer/intent/amount.
+
+On rollback, retain contribution claim selectors and storage so rejected
+recipients can still recover their funds. Stop new room proofs if needed and
+revert the frontend while preserving local recovery records. Do not blindly
+replace the upgraded facet with an old one that omits contribution claims.
+The former claimable-royalty balance and contribution claim balances are
+separate; legacy receipts and old direct wallet gifts cannot be reclassified.

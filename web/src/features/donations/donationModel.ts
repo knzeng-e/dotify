@@ -12,7 +12,6 @@ export type DonationPort = {
   confirm: (receipt: DonationReceipt, recipient: Address) => Promise<void>;
   destroy: () => void;
 };
-export const artistDonationsEnabled = import.meta.env.VITE_DOTIFY_ARTIST_DONATIONS === 'on';
 
 export function parseDonationAmount(value: string, decimals: number): bigint {
   const normalized = value.trim().replace(',', '.');

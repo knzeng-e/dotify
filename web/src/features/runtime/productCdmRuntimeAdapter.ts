@@ -296,6 +296,12 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
 
 export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps): RuntimeWritePort {
   return {
+    contributionCall(runtime, method, args, value = 0n) {
+      return txContract(deps.contracts.getRuntimeContract(runtime), method, [
+        ...args,
+        { value: evmValueToNativeUnits(value, deps.nativeTokenDecimals), waitFor: 'finalized' }
+      ]);
+    },
     async inspectPayment(intent) {
       assertNativeAccessPayment(intent);
       if (!deps.readAvailableBalance) return {};

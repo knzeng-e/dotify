@@ -1,4 +1,5 @@
-import { createPublicClient, http, parseAbiItem, zeroAddress, type Address, type Hash } from 'viem';
+import { createPublicClient, encodeFunctionData, http, parseAbiItem, zeroAddress, type Abi, type Address, type Hash } from 'viem';
+import { SupportNotSubmittedError } from '../payments/supportPayment';
 import { assertNativeAccessPayment } from '../payments/paymentModel';
 import {
   artistDirectoryAbi,
@@ -616,6 +617,17 @@ export function createViemRuntimeWriter(deps: ViemRuntimeWriterDeps): RuntimeWri
   const { walletClient } = deps;
 
   return {
+    async contributionCall(runtime, method, args, value = 0n) {
+      let data: Hash;
+      try {
+        await assertWalletChainMatchesRpc(client(), walletClient);
+        data = encodeFunctionData({ abi: musicRoyaltiesAbi as Abi, functionName: method, args });
+        await client().estimateGas({ account: walletAccountAddress(walletClient), to: runtime, data, value });
+      } catch (error) {
+        throw new SupportNotSubmittedError(error);
+      }
+      return walletClient.sendTransaction({ to: runtime, data, value });
+    },
     async inspectPayment(intent) {
       assertNativeAccessPayment(intent);
       const account = walletAccountAddress(walletClient);

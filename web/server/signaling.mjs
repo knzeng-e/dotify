@@ -19,6 +19,7 @@ import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
 import { createRoomRealtimeMembers } from './room-realtime-members.mjs';
+import { createRoomContributions } from './room-contributions.mjs';
 import {
   REQUEST_TEXT_MAX_LENGTH,
   clientKey,
@@ -87,6 +88,13 @@ export function readConfigFromEnv(env = process.env) {
   const origins = (env.SIGNAL_ORIGINS ?? env.SIGNAL_ORIGIN ?? '*').trim();
   return {
     ...defaultConfig,
+    contributions: {
+      key: env.SIGNAL_CONTRIBUTION_ATTESTOR_KEY,
+      rpc: env.SIGNAL_CONTRIBUTION_RPC_URL,
+      directory: env.SIGNAL_CONTRIBUTION_DIRECTORY,
+      chainId: Number(env.SIGNAL_CONTRIBUTION_CHAIN_ID),
+      api: env.SIGNAL_CONTRIBUTION_API_URL
+    },
     port: Number(env.SIGNAL_PORT ?? defaultConfig.port),
     host: env.SIGNAL_HOST ?? defaultConfig.host,
     origins:
@@ -118,6 +126,7 @@ export function startSignalingServer(overrides = {}) {
     throw new Error('SIGNAL_TURN_CAPABILITY_SECRET must contain at least 32 characters');
   }
   const rooms = new Map();
+  const contributions = createRoomContributions(config.contributions ?? {});
   const realtimeMembers = createRoomRealtimeMembers();
   const clockIdentity = randomBytes(16).toString('hex');
   // One ephemeral solo-listening declaration per connected socket. No wallet,
@@ -339,6 +348,43 @@ export function startSignalingServer(overrides = {}) {
   }
 
   io.on('connection', socket => {
+    for (const event of ['room:tip-bind', 'room:tip-quote', 'room:tip-notify']) {
+      socket.on(event, async (payload = {}, ack) => {
+        const reply = typeof ack === 'function' ? ack : () => {};
+        const participant = getParticipant(socket);
+        if (!participant || !requestLimiter.allow(socket.id)) return reply({ ok: false, error: 'Reconnect or wait before trying again.' });
+        try {
+          if (event === 'room:tip-bind') {
+            if (participant.role !== 'host') throw new Error('Only the room host can set the receiving account.');
+            const revision = (participant.room.tipBindRevision ?? 0) + 1;
+            participant.room.tipBindRevision = revision;
+            delete participant.room.tipHost;
+            if (payload.token === '') {
+              return reply({ ok: true });
+            }
+            await contributions.bind(
+              participant.room,
+              payload.token,
+              () => getParticipant(socket)?.room === participant.room && participant.room.hostId === socket.id && participant.room.tipBindRevision === revision
+            );
+          } else if (event === 'room:tip-quote') {
+            const result = await contributions.quote(participant.room, payload);
+            if (getParticipant(socket)?.room !== participant.room) throw new Error('The room changed.');
+            return reply(result);
+          } else {
+            const message = await contributions.notification(participant.room, payload);
+            if (message && getParticipant(socket)?.room === participant.room) {
+              participant.room.chat.push(message);
+              if (participant.room.chat.length > config.chatHistoryLimit) participant.room.chat.shift();
+              io.to(participant.roomId).emit('room:chat', message);
+            }
+          }
+          reply({ ok: true });
+        } catch (error) {
+          reply({ ok: false, error: error.message || 'Room contributions are unavailable.' });
+        }
+      });
+    }
     socket.emit('rooms:updated', publicRooms());
     socket.emit('presence:solo:updated', publicSoloPresence());
 
@@ -1045,6 +1091,8 @@ export function startSignalingServer(overrides = {}) {
 
     if (role === 'host' && room.hostId === socket.id) {
       room.hostId = null;
+      delete room.tipHost;
+      room.tipBindRevision = (room.tipBindRevision ?? 0) + 1;
       removeRealtimeMember(socket, room);
       touchHost(room);
       clearSocketRoom(socket);

@@ -63,7 +63,8 @@ async function visibleTextSamples(page: Page) {
 async function sampleStableFrame(page: Page, unstable: (reason: string) => void) {
   const samples = await visibleTextSamples(page);
   const hiddenGlyphs = await page.addStyleTag({
-    content: '* { -webkit-text-fill-color: transparent !important; text-shadow: none !important; text-decoration-color: transparent !important; }'
+    content:
+      '* { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; text-decoration-color: transparent !important; }'
   });
   let pixels: PNG;
   try {

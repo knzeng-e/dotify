@@ -19,6 +19,7 @@ import {
   isSessionAuthConfigured as defaultIsSessionAuthConfigured,
   issueSessionToken as defaultIssueSessionToken,
   revokeSessionToken as defaultRevokeSessionToken,
+  verifySessionToken,
   type IssuedSession
 } from '../services/sessionTokens.js';
 
@@ -54,6 +55,7 @@ const logoutRequestSchema = z.object({
 });
 
 export type AuthRouteDeps = {
+  verifySessionToken?: typeof verifySessionToken;
   verifySignInRequest: (request: SignInRequest) => Promise<SignatureVerification>;
   isSessionAuthConfigured: () => boolean;
   issueSessionToken: (address: `0x${string}`, chainId: number) => IssuedSession;
@@ -79,6 +81,13 @@ function validationError(reply: FastifyReply, error: string, issues: z.ZodIssue[
 
 export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
   return async function authRoutes(app: FastifyInstance): Promise<void> {
+    app.get('/identity', async (request, reply) => {
+      reply.header('Cache-Control', 'no-store');
+      const token = request.headers.authorization?.replace(/^Bearer /, '') ?? '';
+      const result = (deps.verifySessionToken ?? verifySessionToken)(token);
+      if (!result.valid) return reply.status(401).send({ error: result.reason });
+      return { address: result.address, chainId: result.chainId };
+    });
     app.post('/nonce', async (request: FastifyRequest, reply: FastifyReply) => {
       const parsed = nonceRequestSchema.safeParse(request.body);
       if (!parsed.success) {

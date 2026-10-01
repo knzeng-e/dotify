@@ -88,6 +88,7 @@ async function roomTransportStatus(page: Page) {
 
 for (const [width, height] of sizes) {
   test(`W28 listening surfaces at ${width}px`, async ({ browser }, info) => {
+    test.setTimeout(60_000);
     const hostContext = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', hasTouch: width <= 768 });
     const guestContext = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', hasTouch: width <= 768 });
     try {

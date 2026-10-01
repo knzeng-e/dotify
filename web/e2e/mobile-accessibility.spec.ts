@@ -38,8 +38,10 @@ for (const width of [390, 1440]) {
       } else if (surface === 'gift') {
         await page.goto('/');
         await page.locator('.catalogue-card .artist-text-button').first().click();
-        await page.getByRole('button', { name: 'Give to the artist', exact: true }).click();
-        await expect(page.getByLabel('Gift amount (PAS)')).toBeVisible();
+        const gift = page.getByRole('button', { name: 'Give to the artist', exact: true });
+        await expect(gift).toBeVisible();
+        await gift.click();
+        await expect(page.locator('.artist-gift-dialog').getByLabel('Gift amount (PAS)')).toBeVisible();
       } else {
         await page.goto(fixture);
         await expect(page.getByTestId('track-card')).toHaveCount(13);

@@ -8,6 +8,154 @@ export const musicRoyaltiesAbi = [
       {
         "indexed": true,
         "internalType": "bytes32",
+        "name": "id",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "ContributionClaimed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "scope",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "campaign",
+        "type": "bytes32"
+      }
+    ],
+    "name": "ContributionPolicy",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "id",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "contentHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "host",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "room",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "campaign",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "policy",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "timestamp",
+        "type": "uint64"
+      }
+    ],
+    "name": "ContributionReceived",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "id",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "role",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "paid",
+        "type": "bool"
+      }
+    ],
+    "name": "ContributionShare",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
         "name": "contentHash",
         "type": "bytes32"
       },
@@ -213,6 +361,307 @@ export const musicRoyaltiesAbi = [
     ],
     "name": "MusicRoyRoyaltyPayoutFailed",
     "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "id",
+        "type": "bytes32"
+      }
+    ],
+    "name": "musicGiftClaim",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "contentHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "intentId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "host",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "room",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint64",
+            "name": "expiresAt",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct MusicContributionsPallet.Context",
+        "name": "context",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "expectedQuote",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "roomProof",
+        "type": "bytes"
+      }
+    ],
+    "name": "musicGiftContribute",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "id",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      }
+    ],
+    "name": "musicGiftPending",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "scope",
+        "type": "bytes32"
+      }
+    ],
+    "name": "musicGiftPolicy",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint64",
+            "name": "version",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "startsAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "endsAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint16",
+            "name": "hostBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address",
+            "name": "roomAttestor",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "campaign",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "string",
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "internalType": "address[]",
+            "name": "recipients",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint16[]",
+            "name": "shares",
+            "type": "uint16[]"
+          }
+        ],
+        "internalType": "struct LibMusicContributions.Policy",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "contentHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "intentId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "host",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "room",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint64",
+            "name": "expiresAt",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct MusicContributionsPallet.Context",
+        "name": "context",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "musicGiftQuote",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "digest",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "campaign",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "attestor",
+            "type": "address"
+          },
+          {
+            "internalType": "address[]",
+            "name": "recipients",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "amounts",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint8[]",
+            "name": "roles",
+            "type": "uint8[]"
+          }
+        ],
+        "internalType": "struct MusicContributionsPallet.Quote",
+        "name": "q",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "scope",
+        "type": "bytes32"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint64",
+            "name": "version",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "startsAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "endsAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint16",
+            "name": "hostBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address",
+            "name": "roomAttestor",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "campaign",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "string",
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "internalType": "address[]",
+            "name": "recipients",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint16[]",
+            "name": "shares",
+            "type": "uint16[]"
+          }
+        ],
+        "internalType": "struct LibMusicContributions.Policy",
+        "name": "next",
+        "type": "tuple"
+      }
+    ],
+    "name": "musicGiftSetPolicy",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
     "inputs": [

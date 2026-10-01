@@ -103,6 +103,25 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   }
 }
 
+test('artist saves a scheduled gift destination and reloads it from Rights', async ({ page }) => {
+  await createArtistProfile(page);
+  await page.getByRole('tab', { name: 'Rights', exact: true }).click();
+  const policy = page.locator('.contribution-policy');
+  await policy.getByLabel('Purpose', { exact: true }).fill('Community music school');
+  await policy.getByLabel('Starts (local time)', { exact: true }).fill('2026-10-01T08:00');
+  await policy.getByLabel('Ends (optional)', { exact: true }).fill('2027-10-01T08:00');
+  await policy.getByRole('button', { name: 'Add recipient', exact: true }).click();
+  await policy.getByLabel('Receiving account', { exact: true }).fill('0x0000000000000000000000000000000000001234');
+  await policy.getByLabel('Share (%)', { exact: true }).fill('75');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy.getByRole('status')).toContainText('settings saved');
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights', exact: true }).click();
+  await expect(policy.getByLabel('Purpose', { exact: true })).toHaveValue('Community music school');
+  await expect(policy.getByLabel('Share (%)', { exact: true })).toHaveValue('75');
+  await expect(policy).toContainText('25% of your remaining portion stays with you');
+});
+
 test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }, info) => {
   await createArtistProfile(page);
   await completeReleaseDraft(page);
@@ -289,7 +308,7 @@ test('new artist mobile overview presents one next step and four keyboard-access
   await tasks.getByRole('tab', { name: 'Overview', exact: true }).press('End');
   await expect(tasks.getByRole('tab', { name: 'Rights', exact: true })).toBeFocused();
   await expect(page.getByText('Technical records', { exact: true })).toBeVisible();
-  await expect(page.locator('.studio-technical')).not.toHaveAttribute('open', '');
+  await expect(page.locator('.studio-technical').filter({ has: page.getByText('Technical records', { exact: true }) })).not.toHaveAttribute('open', '');
   await tasks.getByRole('tab', { name: 'Rights', exact: true }).press('Home');
   await expect(tasks.getByRole('tab', { name: 'Overview', exact: true })).toBeFocused();
   await expect(page.locator('.studio-metric')).toHaveCount(0);

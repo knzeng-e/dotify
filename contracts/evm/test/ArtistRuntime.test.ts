@@ -874,9 +874,16 @@ describe('Forkless upgrade — artist replaces their music pallets', () => {
     const existingSelectors = ['musicRoyPayAccess', 'musicRoyRecordListen', 'musicRoySplitCount', 'musicRoySplitAt', 'musicRoyTotalBps'].map(name =>
       toFunctionSelector((replacementArtifact.abi as Abi).find(item => item.type === 'function' && item.name === name) as AbiFunction)
     );
-    const claimSelectors = ['musicRoyClaimable', 'musicRoyClaim'].map(name =>
-      toFunctionSelector((replacementArtifact.abi as Abi).find(item => item.type === 'function' && item.name === name) as AbiFunction)
-    );
+    const claimSelectors = [
+      'musicRoyClaimable',
+      'musicRoyClaim',
+      'musicGiftPolicy',
+      'musicGiftSetPolicy',
+      'musicGiftQuote',
+      'musicGiftContribute',
+      'musicGiftPending',
+      'musicGiftClaim'
+    ].map(name => toFunctionSelector((replacementArtifact.abi as Abi).find(item => item.type === 'function' && item.name === name) as AbiFunction));
 
     await registry.write.musicRegRegister([sampleRegistration({ pricePlanck: price }), [ctx.royaltyRecip.account.address], [8_000]]);
     const listenerRoyalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', runtimeAddr, { client: { wallet: ctx.listener } });
