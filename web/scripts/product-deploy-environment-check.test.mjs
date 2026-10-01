@@ -65,11 +65,15 @@ test('fails closed when the Product DevNet profile is absent', () => {
 
 test('rejects a deploy API whose manifest helper is absent from deploy.js', () => {
   const functions = {
-    derivePoolAccounts() {}, preflightProductConfig() {}, loadEnvironments() {},
-    resolveEndpoints() {}, reconcileManifestDomain() {}, deploy() {}, publishManifest() {}
+    derivePoolAccounts() {},
+    preflightProductConfig() {},
+    loadEnvironments() {},
+    resolveEndpoints() {},
+    reconcileManifestDomain() {},
+    deploy() {},
+    publishManifest() {}
   };
-  assert.deepEqual(
-    evaluateProductDeployApi({ index: functions, deployModule: { printDeploymentCompleteBanner() {} } }),
-    ['Deploy CLI 0.20.0 is missing deployModule.shouldPublishManifest.']
-  );
+  assert.deepEqual(evaluateProductDeployApi({ index: functions, deployModule: { printDeploymentCompleteBanner() {} } }), [
+    'Deploy CLI 0.20.0 is missing deployModule.shouldPublishManifest.'
+  ]);
 });

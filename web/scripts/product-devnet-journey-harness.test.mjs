@@ -296,8 +296,7 @@ test('static gates reject a mnemonic expanded into Product deploy arguments', ()
 test('static gates reject Product deploys that skip DotNS environment alignment', () => {
   const snapshot = staticSnapshot();
   snapshot.webPackageJson.scripts['deploy:product-devnet'] =
-    `npm run build:product-devnet:frozen && npx --yes --package ` +
-    `@parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`;
+    `npm run build:product-devnet:frozen && npx --yes --package ` + `@parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`;
 
   const report = buildProductDevnetJourneyReport({
     snapshot,

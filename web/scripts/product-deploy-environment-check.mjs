@@ -60,8 +60,7 @@ export function evaluateProductDeployApi({ index, deployModule }) {
     deployModule: ['shouldPublishManifest', 'printDeploymentCompleteBanner']
   };
   return Object.entries(expectedExports).flatMap(([moduleName, names]) =>
-    names.filter(name => typeof { index, deployModule }[moduleName]?.[name] !== 'function')
-      .map(name => `Deploy CLI 0.20.0 is missing ${moduleName}.${name}.`)
+    names.filter(name => typeof { index, deployModule }[moduleName]?.[name] !== 'function').map(name => `Deploy CLI 0.20.0 is missing ${moduleName}.${name}.`)
   );
 }
 
