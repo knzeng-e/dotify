@@ -10,8 +10,9 @@ Scope: [native gifts and work tips](../../native-gifts-tips.md).
   paid releases, independent of listening entitlement.
 - Exact on-chain quotes, sender intent replay protection, dated contribution
   and recipient receipts, isolated recoverable balances for rejected transfers.
-- Original collaborators preserved; optional host allocation comes only from
-  the artist portion. Scheduled destinations apply to the artist remainder.
+- Optional host allocation is deducted from the full room tip before the
+  remainder follows the registered work split. Scheduled destinations apply
+  only to the artist's resulting share.
 - Artist Rights editing for allocations, purpose, dates, room authority and
   campaign reference; Earnings and You history, claims and JSON export.
 - Server-attested connected host/room/work attribution and finalized,
@@ -129,3 +130,21 @@ follow-up does not change contracts, settlement policy or wallet signing.
 Screenshots: `studio-Earnings-<width>.png` and
 `studio-contributions-<width>.png` in the corresponding artist-earnings folders
 under ignored `web/test-results/`.
+
+## PR #230 review follow-up (2026-10-01)
+
+- The room host percentage now applies to the full tip. The remainder follows
+  every registered rights-holder share; artist destinations can redirect only
+  the artist's result. A 10 PAS tip with host 20% and work 70/30 pays host 2,
+  artist portion 5.6, collaborator 2.4. No runtime was upgraded in this pass.
+- Room notices deduplicate by the canonical receipt transaction hash, including
+  mixed-case submissions. A zero-share artist is omitted from free-release
+  registration when another rights holder has a positive share.
+- The host account action moved to People controls to preserve the compact room
+  player and keyboard composer geometry. Gift amount naming and Earnings
+  definition-list markup satisfy accessibility checks.
+- Local checks: all 72 Hardhat tests, 4 room contribution tests, 20
+  release-form/split tests, 8 targeted Chromium accessibility/room cases and
+  all 27 room-workspace scenarios passed. Build, formatting and scoped lint
+  passed. The first sandboxed Playwright attempt could not bind its local
+  server; the permitted rerun passed.

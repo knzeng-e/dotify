@@ -126,12 +126,12 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
             {scope !== zeroHash && (
               <label className='toggle-row'>
                 <input type='checkbox' checked={policy.hostBps > 0} onChange={event => setPolicy({ ...policy, hostBps: event.target.checked ? 1000 : 0 })} />
-                Share your artist portion with room hosts
+                Share room tips with hosts
               </label>
             )}
             {scope !== zeroHash && policy.hostBps > 0 && (
               <label className='contribution-host-share'>
-                Host share of your artist portion (%)
+                Host share of the whole room tip (%)
                 <input
                   className='field'
                   type='number'
@@ -141,7 +141,7 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
                   value={policy.hostBps / 100}
                   onChange={event => setPolicy({ ...policy, hostBps: Math.round(Number(event.target.value) * 100) })}
                 />
-                <small>Collaborator shares stay unchanged. Destinations below apply to your remaining portion.</small>
+                <small>The rest follows the work's rights split. Destinations below apply only to your resulting share.</small>
               </label>
             )}
             <div className='contribution-policy-dates'>

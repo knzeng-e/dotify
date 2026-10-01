@@ -68,6 +68,7 @@ test('chat announces only a finalized canonical contribution in this room, once'
   ]);
   const receipt = {
     status: 'success',
+    transactionHash: hash,
     blockNumber: 10n,
     blockHash: hash,
     logs: [
@@ -95,4 +96,5 @@ test('chat announces only a finalized canonical contribution in this room, once'
   assert.equal(message.ts, 1700000000000);
   assert.match(message.text, /Work/);
   assert.equal(await service.notification(room, { runtime: address, hash }), null);
+  assert.equal(await service.notification(room, { runtime: address, hash: hash.toUpperCase().replace('0X', '0x') }), null);
 });

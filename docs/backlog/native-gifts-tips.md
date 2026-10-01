@@ -12,7 +12,8 @@ Make gifts a native artist-profile action and tips a native work/player action.
 Voluntary contributions do not buy listening access. Free works retain their
 registered beneficiaries. The artist can direct personal gifts and their own
 tip portion to multiple recipients during a scheduled interval. Optional host
-sharing comes only from the artist portion, before its remaining allocation.
+sharing is deducted from the whole room tip before its remainder follows the
+work's registered rights split.
 
 ## Acceptance
 

@@ -54,6 +54,7 @@ for (const [width, height] of [
     await page.getByRole('textbox', { name: 'Request a track' }).fill('Something soulful');
     await page.getByRole('tab', { name: /People/ }).click();
     await expect(page.getByRole('button', { name: 'Close room', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Receive room tips', exact: true })).toBeVisible();
     await page.getByRole('tab', { name: 'Chat', exact: true }).click();
     await expect(draft).toHaveValue('Keep this thought');
     await expectConversationFits(page);

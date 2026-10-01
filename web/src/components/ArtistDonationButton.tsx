@@ -222,7 +222,8 @@ function ContributionButton({ track, kind = 'gift', iconOnly = false }: Contribu
                 ))}
               </div>
               <label>
-                Amount ({symbol})<input className='field' inputMode='decimal' value={amount} onChange={event => setAmount(event.target.value)} required />
+                {kind === 'gift' ? 'Gift' : 'Tip'} amount ({symbol})
+                <input className='field' inputMode='decimal' value={amount} onChange={event => setAmount(event.target.value)} required />
               </label>
               <button className='primary-action' disabled={busy}>
                 {busy ? 'Checking distribution…' : 'Review contribution'}

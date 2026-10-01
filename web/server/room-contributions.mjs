@@ -98,7 +98,7 @@ export function createRoomContributions(config, dependencies = {}) {
       );
       if (!event) throw new Error('This payment does not belong to this room.');
       const track = await knownTrack(runtime, event.args.contentHash);
-      const id = `${config.chainId}:${runtime.toLowerCase()}:${hash}:${event.logIndex}`;
+      const id = `${config.chainId}:${runtime.toLowerCase()}:${receipt.transactionHash.toLowerCase()}:${event.logIndex}`;
       room.tipNotified ??= new Set();
       if (room.tipNotified.has(id)) return null;
       if (room.tipNotified.size >= 1000) throw new Error('Room contribution notification limit reached.');

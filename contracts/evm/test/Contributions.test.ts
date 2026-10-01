@@ -93,8 +93,8 @@ describe('Native gifts and tips', () => {
     expect(q.amounts[0]).to.equal(1000n);
     expect(q.campaign).to.equal(hash);
   });
-  it('takes the host share only from the artist, then directs the remainder to the cause', async () => {
-    const { gifts, context, host, cause, attestor, donor, runtime, client } = await loadFixture(fixture);
+  it('takes the host share from the tip before splitting the remainder among rights holders', async () => {
+    const { gifts, context, host, cause, collaborator, attestor, donor, runtime, client } = await loadFixture(fixture);
     await gifts.write.musicGiftSetPolicy([
       hash,
       { ...policy, hostBps: 2000, roomAttestor: attestor.account.address, recipients: [cause.account.address], shares: [10000] }
@@ -102,7 +102,9 @@ describe('Native gifts and tips', () => {
     const ctx = { ...context, host: host.account.address, room: keccak256(toBytes('room')) };
     const amount = parseEther('10');
     const q = await gifts.read.musicGiftQuote([ctx, amount]);
-    expect(q.amounts).to.deep.equal([parseEther('3'), parseEther('1.4'), parseEther('5.6'), 0n]);
+    expect(q.roles).to.deep.equal([2, 1, 0, 0]);
+    expect(q.amounts).to.deep.equal([parseEther('2'), parseEther('2.4'), parseEther('5.6'), 0n]);
+    expect(q.amounts.reduce((total, share) => total + share, 0n)).to.equal(amount);
     const type = {
       type: 'tuple',
       components: [
@@ -122,7 +124,10 @@ describe('Native gifts and tips', () => {
     const proof = await attestor.signMessage({ message: { raw: digest } });
     await rejects(gifts.write.musicGiftContribute([ctx, q.digest, '0x'], { account: donor.account, value: amount }), 'proof length');
     await rejects(gifts.write.musicGiftContribute([ctx, q.digest, proof], { account: host.account, value: amount }), 'invalid room proof');
+    const before = await Promise.all([host, collaborator, cause].map(({ account }) => client.getBalance({ address: account.address })));
     await gifts.write.musicGiftContribute([ctx, q.digest, proof], { account: donor.account, value: amount });
+    const after = await Promise.all([host, collaborator, cause].map(({ account }) => client.getBalance({ address: account.address })));
+    expect(after.map((balance, i) => balance - before[i])).to.deep.equal([parseEther('2'), parseEther('2.4'), parseEther('5.6')]);
   });
   it('expires scheduled allocations and timestamps receipts using block time', async () => {
     const { gifts, context, donor, cause, client, artist } = await loadFixture(fixture);

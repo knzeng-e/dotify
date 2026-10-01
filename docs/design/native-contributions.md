@@ -13,10 +13,10 @@ start/end times. Times entered in the console are local; contract comparisons
 and receipts use Unix seconds. End is exclusive. Outside the interval, the
 artist receives their portion without host sharing or campaign attribution.
 
-For a 10-token tip with artist 70%, collaborator 30%, and host sharing 20% of
-the artist portion: collaborator receives 3, host 1.4, and the remaining 5.6
-follows the artist's chosen destinations. Unassigned value and rounding dust
-return to the artist. A host can tip; no reputation or matching subsidy is
+For a 10-token room tip with a 20% host share, the host receives 2 first. The
+remaining 8 follows the work's 70/30 rights split: 5.6 to the artist portion
+and 2.4 to the collaborator. Artist-chosen destinations divide only the 5.6.
+Unassigned value and rounding dust return to the artist. A host can tip; no reputation or matching subsidy is
 earned by doing so. At most 16 additional destinations can be configured.
 
 ## Runtime authority and settlement

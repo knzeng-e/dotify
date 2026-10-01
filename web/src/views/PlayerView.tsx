@@ -481,7 +481,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           supportAction={contributionTrack ? <ArtistDonationButton key={contributionTrack.id} track={contributionTrack} kind='tip' iconOnly /> : undefined}
         />
         {roomId && <RoomReactions key={roomId} selfId={ownSocketId} />}
-        {roomId && <HostContributions key={roomId} />}
         {roomId && (
           <div className='access-badges' data-needs-access={needsTrackAccess}>
             <span className='access-chip' data-tone={needsTrackAccess ? 'locked' : 'ready'} data-testid={needsTrackAccess ? 'locked-player-state' : undefined}>
@@ -535,6 +534,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             title={roomId ? 'In the room' : 'Listening room'}
             meta={roomId ? (session.socketStatus === 'online' ? `${presenceCount} here` : 'Reconnecting') : 'offline'}
           />
+          {roomId && mode === 'host' && <HostContributions key={roomId} />}
 
           {/* State 1: not in any room */}
           {!roomId && (

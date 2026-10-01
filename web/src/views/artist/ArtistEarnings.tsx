@@ -86,17 +86,17 @@ export function ArtistEarnings(props: RoyaltiesTabProps) {
           <div>
             <dt>Total generated</dt>
             <dd>{amount(totals.generatedWei)}</dd>
-            <small>Releases, gifts and tips</small>
+            <dd className='earnings-total-note'>Releases, gifts and tips</dd>
           </div>
           <div>
             <dt>Received by you</dt>
             <dd>{amount(totals.receivedWei)}</dd>
-            <small>Your settled share</small>
+            <dd className='earnings-total-note'>Your settled share</dd>
           </div>
           <div>
             <dt>Available to claim</dt>
             <dd>{access.claimableKnown ? amount(totals.claimableWei) : 'Unavailable'}</dd>
-            <small>Not yet received</small>
+            <dd className='earnings-total-note'>Not yet received</dd>
           </div>
         </dl>
         <table className='earnings-sources'>

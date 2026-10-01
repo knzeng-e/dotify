@@ -78,7 +78,7 @@ contract MusicContributionsPallet {
     C.Policy storage p = C.store().policies[context.contentHash];
     bool active = block.timestamp >= p.startsAt && (p.endsAt == 0 || block.timestamp < p.endsAt);
     address artist = LibDiamond.contractOwner();
-    uint256 artistAmount = amount;
+    uint256 distributable = amount;
     LibMusicRoyalties.RoyaltySplit[] storage splits = LibMusicRoyalties.store().splits[context.contentHash];
     q.recipients = new address[](splits.length + p.recipients.length + 2);
     q.amounts = new uint256[](q.recipients.length);
@@ -88,24 +88,27 @@ contract MusicContributionsPallet {
       LibMusicRegistry.requireExists(LibMusicRegistry.store(), context.contentHash);
       LibMusicRegistry.requireActive(LibMusicRegistry.store(), context.contentHash);
       artist = LibMusicRegistry.store().tracks[context.contentHash].artist;
+    }
+    q.attestor = p.roomAttestor != address(0) ? p.roomAttestor : C.store().policies[bytes32(0)].roomAttestor;
+    if (context.room != bytes32(0)) {
+      require(context.contentHash != bytes32(0) && context.host != address(0) && q.attestor != address(0), 'Contribution: room unavailable');
+      uint256 hostAmount = active ? (amount * p.hostBps) / 10000 : 0;
+      distributable -= hostAmount;
+      q.recipients[n] = context.host;
+      q.amounts[n] = hostAmount;
+      q.roles[n++] = 2;
+    } else require(context.host == address(0), 'Contribution: host without room');
+    uint256 artistAmount = distributable;
+    if (context.contentHash != bytes32(0)) {
       for (uint256 i; i < splits.length; i++) {
         if (splits[i].recipient == artist) continue;
-        uint256 share = (amount * splits[i].bps) / 10000;
+        uint256 share = (distributable * splits[i].bps) / 10000;
         artistAmount -= share;
         q.recipients[n] = splits[i].recipient;
         q.amounts[n] = share;
         q.roles[n++] = 1;
       }
     }
-    q.attestor = p.roomAttestor != address(0) ? p.roomAttestor : C.store().policies[bytes32(0)].roomAttestor;
-    if (context.room != bytes32(0)) {
-      require(context.contentHash != bytes32(0) && context.host != address(0) && q.attestor != address(0), 'Contribution: room unavailable');
-      uint256 hostAmount = active ? (artistAmount * p.hostBps) / 10000 : 0;
-      artistAmount -= hostAmount;
-      q.recipients[n] = context.host;
-      q.amounts[n] = hostAmount;
-      q.roles[n++] = 2;
-    } else require(context.host == address(0), 'Contribution: host without room');
     uint256 distributed;
     if (active) {
       q.campaign = p.campaign;

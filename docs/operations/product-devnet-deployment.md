@@ -1083,7 +1083,7 @@ for pending references, read-only retries and the required physical-host smoke.
 
 Gifts and tips are native UI; `VITE_DOTIFY_ARTIST_DONATIONS` is retired.
 Gifts use the artist's profile allocation; work tips preserve collaborator
-splits, with optional host sharing from the artist portion. Both require an
+splits after an optional host percentage is deducted from the whole room tip. Both require an
 upgraded contribution runtime and keep listening access unchanged. Product
 signing still requires the CDM writer profile. Live host validation and
 owner-approved upgrades are separate release gates. See
