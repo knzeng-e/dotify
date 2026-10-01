@@ -148,3 +148,38 @@ under ignored `web/test-results/`.
   all 27 room-workspace scenarios passed. Build, formatting and scoped lint
   passed. The first sandboxed Playwright attempt could not bind its local
   server; the permitted rerun passed.
+
+## DevNet runtime upgrade (2026-10-01)
+
+At the artist's explicit request, only SmartRuntime
+`0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338` was upgraded on chain
+`420420417`. The configured local signer matched the runtime owner. No
+frontend, factory, other artist runtime or CDM package was published.
+
+- Pre-upgrade finalized catalogue snapshot: block `13930212`, 9 tracks,
+  state hash `0x2a2bdc98386292c73d891a994280466bb58d624466eb1b7f09e2da018b7964b7`.
+- New `MusicRoyaltiesPallet` facet:
+  `0x5a437fDfC4758D7438Ad7F9fE5b1c8FA00857B32`, deployed and bytecode
+  verified at finalized block `13930283`. Source/deployed code hash:
+  `0x3b8401f7fcaa9a7a3d933b35aaef5e1574dc20f020b277c8d767d78bb753d10d`.
+  [Deployment transaction](https://blockscout-testnet.polkadot.io/tx/0x7037e06cfd1a6f16f187cb2f6f0b0a838ebb68144d861066c002ebc16c015c44).
+- The owner-confirmed plan simulated successfully, then replaced 13
+  royalties/contribution selectors on this runtime. The upgrade was verified
+  finalized at block `13930319`; all 13 routes point to the new facet and the
+  catalogue snapshot was unchanged.
+  [Upgrade transaction](https://blockscout-testnet.polkadot.io/tx/0xe7138518f4b21775f05897faea7174121bd5a2186c749c01cdffb20834827059).
+- Independent post-upgrade export at finalized block `13930328`: 9 tracks and
+  the same state hash as before. The tool's final status is
+  `verified-finalized` with `catalogueStatePreserved: true`.
+- The first facet-deploy attempt stopped at `prepared-before-broadcast`,
+  with no signed transaction hash, because Hardhat accepted an unprefixed
+  32-byte hex key but the raw-signing path did not. The script now validates
+  and normalizes either supported hex form. The retry used a fresh evidence
+  path and a single successful deployment nonce. All 72 contract tests passed
+  after the fix.
+
+The local evidence files are under `/tmp/dotify-b60e-*-20261001.json`; they
+contain public chain/catalogue data only. This proves the selector change and
+state preservation, not a funded end-to-end gift/tip or Product-device flow.
+The PR's separate web Playwright failures are not cleared by this runtime
+upgrade. Frontend/CDM publication and user-facing acceptance remain separate.
