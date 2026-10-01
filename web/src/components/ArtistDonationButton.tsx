@@ -42,7 +42,7 @@ function ContributionButton({ track, kind = 'gift', iconOnly = false }: Contribu
     };
   }, [wallet.listenerEvmAddress]);
   const label = kind === 'tip' ? 'Support this track' : 'Give to the artist';
-  const symbol = wallet.expectedChainId ? nativeCurrencyForChain(wallet.expectedChainId, wallet.ethRpcUrl).symbol : '';
+  const symbol = (wallet.expectedChainId ? nativeCurrencyForChain(wallet.expectedChainId, wallet.ethRpcUrl).symbol : '') || 'PAS';
   async function review() {
     if (busy) return;
     if (!wallet.listenerEvmAddress || !wallet.expectedChainId) {

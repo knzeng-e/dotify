@@ -1,12 +1,21 @@
 import { expect, test, type Page } from '@playwright/test';
+function amountField(page: Page, kind: 'gift' | 'tip' = 'gift') {
+  return page.getByLabel(`${kind === 'gift' ? 'Gift' : 'Tip'} amount (PAS)`, { exact: true });
+}
 async function openGift(page: Page, query = '') {
   await page.goto(`/${query}`);
   await page.locator('.catalogue-card .artist-text-button').first().click();
-  await page.getByRole('button', { name: 'Give to the artist', exact: true }).click();
-  await expect(page.getByLabel('Amount (PAS)', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dotify Test Artist', exact: true })).toBeVisible();
+  const gift = page.getByRole('main').getByRole('button', { name: 'Give to the artist', exact: true });
+  await expect(gift).toBeVisible();
+  await expect(async () => {
+    await gift.click();
+    await expect(page.getByRole('dialog', { name: 'Give to Dotify Test Artist' })).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await expect(amountField(page, 'gift')).toBeVisible();
 }
-async function review(page: Page, amount = '0.25') {
-  await page.getByLabel('Amount (PAS)', { exact: true }).fill(amount);
+async function review(page: Page, amount = '0.25', kind: 'gift' | 'tip' = 'gift') {
+  await amountField(page, kind).fill(amount);
   await page.getByRole('button', { name: 'Review contribution', exact: true }).click();
 }
 async function giftState(page: Page) {
@@ -38,7 +47,7 @@ test('the player offers a work-specific tip', async ({ page }) => {
   await page.getByTestId('track-card-open').first().click();
   await page.getByRole('button', { name: 'Support this track', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Listening access stays unchanged');
-  await review(page, '0.5');
+  await review(page, '0.5', 'tip');
   await expect(page.getByRole('button', { name: 'Confirm tip · 0.5 PAS', exact: true })).toBeVisible();
 });
 test('a confirmed gift is visible in You with a dated exportable receipt', async ({ page }, info) => {
