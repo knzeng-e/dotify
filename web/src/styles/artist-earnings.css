@@ -68,6 +68,115 @@
   gap: 2.5rem;
   min-width: 0;
 }
+.artist-earnings-view {
+  display: grid;
+  gap: 2rem;
+  min-width: 0;
+}
+.earnings-overview .earnings-totals {
+  grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr));
+  align-items: baseline;
+  margin: 1.2rem 0;
+}
+.earnings-overview .earnings-totals > div:first-child dd {
+  font-size: 2.25rem;
+}
+.earnings-subtitle,
+.earnings-overview .earnings-totals small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.earnings-subtitle {
+  margin-top: 0.35rem;
+}
+.earnings-overview .earnings-totals small {
+  display: block;
+  margin-top: 0.35rem;
+}
+.earnings-sources {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.earnings-sources caption {
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding-bottom: 0.75rem;
+}
+.earnings-sources th,
+.earnings-sources td {
+  padding: 0.8rem 0.65rem;
+  text-align: right;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+.earnings-sources thead th {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.75rem;
+}
+.earnings-sources th:first-child {
+  text-align: left;
+  width: 40%;
+}
+.earnings-sources tbody th {
+  font-weight: 500;
+  border-inline-start: 2px solid var(--action);
+}
+.earnings-sources [data-source='gifts'] th {
+  border-inline-start-color: #ff94c5;
+}
+.earnings-sources [data-source='tips'] th {
+  border-inline-start-color: #d1c17a;
+}
+.earnings-detail {
+  min-width: 0;
+}
+.earnings-detail-tabs {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+.earnings-detail-tabs button {
+  min-height: 48px;
+  padding: 0.65rem 0;
+  background: transparent;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  font-size: 0.9rem;
+}
+.earnings-detail-tabs button[aria-selected='true'] {
+  color: var(--ink);
+  border-color: var(--action);
+}
+.earnings-detail .contribution-history {
+  border: 0;
+  padding: 0;
+}
+.earnings-detail .royalties-panel {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+@media (max-width: 700px) {
+  .earnings-overview .earnings-totals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .earnings-sources th,
+  .earnings-sources td {
+    padding-inline: 0.4rem;
+    font-size: 0.8rem;
+  }
+  .earnings-sources thead th {
+    font-size: 0.7rem;
+  }
+}
 .studio-overview-columns {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(230px, 1fr);
@@ -536,5 +645,17 @@
   .artist-console .studio-next-step {
     flex-direction: column;
     align-items: start;
+  }
+}
+@media (max-width: 480px) {
+  .artist-console .studio-head {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    align-items: center;
+  }
+  .artist-console .studio-publish {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-left: 0;
   }
 }

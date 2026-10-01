@@ -93,6 +93,12 @@ export type PaymentLifecycle = 'signing' | 'broadcasting' | 'in-block' | 'finali
 export type PaymentObserver = (status: PaymentLifecycle, txHash?: Hash) => void;
 
 export interface RuntimeWritePort {
+  contributionCall?(
+    runtime: Address,
+    method: 'musicGiftContribute' | 'musicGiftSetPolicy' | 'musicGiftClaim',
+    args: readonly unknown[],
+    value?: bigint
+  ): Promise<Hash>;
   createRuntime(factoryAddress: Address): Promise<Hash>;
   installRuntimeStep(factoryAddress: Address): Promise<Hash>;
   registerTrack(runtimeAddress: Address, registration: RuntimeTrackRegistration): Promise<Hash>;

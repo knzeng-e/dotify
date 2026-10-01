@@ -79,11 +79,10 @@ export function royaltySplitRemaining(primaryBps: number, additionalSplits: Pick
 }
 
 export function releaseRoyaltySplitPreflightError(
-  accessMode: AccessMode,
+  _accessMode: AccessMode,
   primaryBps: number,
   additionalSplits: Pick<ReleaseRoyaltySplitDraft, 'bps'>[]
 ): string | null {
-  if (accessMode === 'free') return null;
   const totalBps = royaltySplitTotal(primaryBps, additionalSplits);
   if (totalBps <= 0) return 'Add at least 0.01% to the artist or another rights holder before publishing.';
   if (totalBps > ROYALTY_BPS_DENOMINATOR) return 'Reduce the payment split to 100% or less before publishing.';
@@ -123,15 +122,6 @@ export function buildReleaseValueFlowRows(input: {
   primaryBps: number;
   additionalSplits: ReleaseRoyaltySplitDraft[];
 }): ReleaseValueFlowRow[] {
-  if (input.accessMode === 'free') {
-    return [
-      {
-        label: 'Support',
-        value: 'No listener payment is collected for this release.'
-      }
-    ];
-  }
-
   const totalBps = royaltySplitTotal(input.primaryBps, input.additionalSplits);
   if (totalBps <= 0) {
     return [

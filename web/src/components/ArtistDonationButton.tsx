@@ -1,301 +1,336 @@
 import { Heart, X } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { formatUnits } from 'viem';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { formatEther, parseEther, parseAbi, zeroHash, type Address, type Hash } from 'viem';
+import { musicRegistryAbi } from '../generated/contracts/musicRegistry';
+import { contributionE2e } from '../e2e/contributionMock';
 import { Dialog } from './Dialog';
-import { useCatalogContext } from '../app/providers/CatalogProvider';
-import { useWalletContext } from '../app/providers/WalletProvider';
-import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
-import { createDonationFlow, type DonationResult } from '../features/donations/donationFlow';
-import { parseDonationAmount, type DonationArtist, type DonationPort } from '../features/donations/donationModel';
-import { createViemDonationPort } from '../features/donations/viemDonation';
-import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
-import { resolveProductHostConfig } from '../features/productHost/productHost';
-import { E2E_CLASSIC_TRACK, isClassicUnlockE2e } from '../e2e/classicUnlockMock';
-import { donationE2ePort } from '../e2e/donationMock';
+import { useWalletContext, useSessionContext, useUiFeedback } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
+import { contributionReader, newContributionContext } from '../features/donations/contributions';
+import { runContribution, type ContributionIntent, type ContributionOutcome } from '../features/donations/contributionFlow';
+import { useContributionWriter } from '../features/donations/useContributionWriter';
+import { nativeCurrencyForChain } from '../shared/config/contracts';
+import { getBlockscoutTxUrl } from '../shared/utils/explorer';
+import { SupportNotSubmittedError } from '../features/payments/supportPayment';
 
-type Quote = { artist: DonationArtist; port: DonationPort; account: string; sender: `0x${string}` };
-export function ArtistDonationButton({ track, iconOnly = false }: { track: CatalogTrack; iconOnly?: boolean }) {
-  const catalog = useCatalogContext();
+type ContributionButtonProps = { track: CatalogTrack; kind?: 'gift' | 'tip'; iconOnly?: boolean };
+export function ArtistDonationButton(props: ContributionButtonProps) {
   const wallet = useWalletContext();
-  const { openWalletModal } = useUiFeedback();
-  const [flow] = useState(() => createDonationFlow(() => sessionStorage));
-  const [open, setOpen] = useState(false);
-  const [quote, setQuote] = useState<Quote | null>(null);
-  const [amount, setAmount] = useState('');
-  const [reviewAmount, setReviewAmount] = useState<bigint | null>(null);
-  const [result, setResult] = useState<DonationResult | null>(null);
-  const [error, setError] = useState('');
-  const [sending, setSending] = useState(false);
-  const generation = useRef(0);
-  const portRef = useRef<DonationPort | null>(null);
-  const sendingRef = useRef(false);
-  const hiddenPendingGift = useRef(false);
-  const account = `${wallet.connectedWallet?.method}:${wallet.listenerEvmAddress?.toLowerCase()}`;
-  const accountRef = useRef(account);
-  useLayoutEffect(() => {
-    accountRef.current = account;
-  }, [account]);
-  useEffect(
-    () => () => {
-      generation.current++;
-      if (!sendingRef.current) portRef.current?.destroy();
-    },
-    []
-  );
+  const session = useSessionContext();
+  const scope = `${wallet.expectedChainId}:${wallet.ethRpcUrl}:${wallet.listenerEvmAddress}:${props.track.id}:${props.kind}:${session.roomId}`;
+  return <ContributionButton key={scope} {...props} />;
+}
 
-  function close() {
-    if (sendingRef.current) {
-      hiddenPendingGift.current = true;
-      setOpen(false);
-      return;
-    }
-    hiddenPendingGift.current = false;
-    generation.current++;
-    portRef.current?.destroy();
-    portRef.current = null;
-    setOpen(false);
-    setQuote(null);
-  }
-  async function start() {
-    if (sendingRef.current || hiddenPendingGift.current) {
-      hiddenPendingGift.current = false;
-      setOpen(true);
-      return;
-    }
-    if (!wallet.connectedWallet || !wallet.listenerEvmAddress) {
+function ContributionButton({ track, kind = 'gift', iconOnly = false }: ContributionButtonProps) {
+  const wallet = useWalletContext();
+  const session = useSessionContext();
+  const { openWalletModal } = useUiFeedback();
+  const writer = useContributionWriter();
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [intent, setIntent] = useState<ContributionIntent>();
+  const [outcome, setOutcome] = useState<ContributionOutcome>();
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [purpose, setPurpose] = useState('');
+  const [available, setAvailable] = useState<bigint>();
+  const account = useRef(wallet.listenerEvmAddress);
+  useLayoutEffect(() => {
+    account.current = wallet.listenerEvmAddress;
+    return () => {
+      account.current = null;
+    };
+  }, [wallet.listenerEvmAddress]);
+  const label = kind === 'tip' ? 'Support this track' : 'Give to the artist';
+  const symbol = wallet.expectedChainId ? nativeCurrencyForChain(wallet.expectedChainId, wallet.ethRpcUrl).symbol : '';
+  async function review() {
+    if (busy) return;
+    if (!wallet.listenerEvmAddress || !wallet.expectedChainId) {
       openWalletModal('support');
       return;
     }
-    const current = ++generation.current;
-    setOpen(true);
-    setQuote(null);
-    setAmount('');
-    setReviewAmount(null);
-    setResult(null);
+    setBusy(true);
     setError('');
-    let port: DonationPort | undefined;
     try {
-      const artist = await catalog.resolveArtistForDonation(track);
-      if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) port = donationE2ePort();
-      else if (wallet.connectedWallet.method === 'product-host') {
-        if (resolveRuntimeAdapterConfig(import.meta.env).kind !== 'product-cdm')
-          throw new Error('This version cannot approve gifts in Polkadot App. Use the native-support version or connect a browser wallet.');
-        const signer = wallet.connectedWallet.keyRequestSigner;
-        const { createProductDonationPort } = await import('../features/donations/productDonation');
-        port = await createProductDonationPort({
-          productId: resolveProductHostConfig(import.meta.env).productId,
-          evmAddress: wallet.listenerEvmAddress,
-          publicKey: signer && 'productPublicKey' in signer ? signer.productPublicKey : undefined
+      if (!/^\d+(\.\d{1,18})?$/.test(amount.replace(',', '.'))) throw new Error('Enter a positive amount with at most 18 decimals.');
+      const value = parseEther(amount.replace(',', '.'));
+      if (value <= 0n) throw new Error('Choose an amount greater than zero.');
+      const runtime = track.id.split(':')[0] as Address;
+      const reader = contributionReader(wallet.ethRpcUrl);
+      if ((await reader.client.getChainId()) !== wallet.expectedChainId) throw new Error('The network changed. Reconnect before contributing.');
+      if (!contributionE2e) {
+        const [record] = await reader.client.readContract({
+          address: runtime,
+          abi: musicRegistryAbi,
+          functionName: 'musicRegGetTrack',
+          args: [track.hash as Hash]
         });
-      } else port = await createViemDonationPort(wallet.ethRpcUrl, wallet.listenerEvmAddress, wallet.getActiveWalletClient);
-      if (generation.current !== current || accountRef.current !== account) {
-        port.destroy();
-        if (generation.current === current) setError('Your account changed. Close this window and prepare the gift again.');
-        return;
+        if (!record.active || (track.artistAddress && record.artist.toLowerCase() !== track.artistAddress.toLowerCase()))
+          throw new Error('The receiving artist changed. Refresh the release.');
+        if (kind === 'gift') {
+          const owner = await reader.client.readContract({
+            address: runtime,
+            abi: parseAbi(['function owner() view returns (address)']),
+            functionName: 'owner'
+          });
+          if (owner.toLowerCase() !== record.artist.toLowerCase())
+            throw new Error('This profile no longer controls the receiving runtime. Refresh the artist profile.');
+        }
+        for (const storage of [localStorage, sessionStorage]) {
+          for (let i = 0; i < storage.length; i++) {
+            const key = storage.key(i);
+            if (key?.startsWith('dotify.gift.v1:') && key.toLowerCase().includes(`:${wallet.listenerEvmAddress.toLowerCase()}:`))
+              throw new Error('An earlier direct gift is unresolved. Check it in your wallet before starting a new contribution.');
+          }
+        }
+        const balance = await reader.client.getBalance({ address: wallet.listenerEvmAddress }).catch(() => undefined);
+        setAvailable(balance);
+        if (balance !== undefined && balance < value)
+          throw new Error(`Insufficient funds: ${formatEther(balance)} ${symbol} available; ${formatEther(value)} ${symbol} requested, plus network fees.`);
       }
-      portRef.current = port;
-      setQuote({ artist, port, account, sender: wallet.listenerEvmAddress });
+      const context = newContributionContext(kind === 'tip' ? (track.hash as Hash) : zeroHash);
+      let proof: Hash = '0x';
+      if (kind === 'tip' && session.roomId) {
+        const socket = session.socketRef.current;
+        if (!socket?.connected) throw new Error('Reconnect to the room before preparing a room tip.');
+        const reply = await new Promise<import('../features/rooms/roomRealtimePort').RoomContributionReply>((resolve, reject) => {
+          socket.request(
+            'room:tip-quote',
+            { runtime, contentHash: context.contentHash, sender: wallet.listenerEvmAddress!, intentId: context.intentId, amount: value.toString() },
+            { timeoutMs: 15000 },
+            (err, result) => (err ? reject(err) : result ? resolve(result) : reject(new Error('The room did not respond.')))
+          );
+        });
+        if (!reply.ok) throw new Error(reply.error);
+        context.host = reply.host;
+        context.room = reply.room;
+        context.expiresAt = BigInt(reply.expiresAt);
+        proof = reply.proof;
+      }
+      let quote;
+      try {
+        quote = await reader.quote(runtime, context, value);
+      } catch (failure) {
+        throw new Error(
+          `Contributions could not be prepared. This artist may need to update their runtime. ${failure instanceof Error ? failure.message.split('\n')[0] : ''}`
+        );
+      }
+      if (account.current !== wallet.listenerEvmAddress) throw new Error('Your account changed. Prepare the contribution again.');
+      const policy = await reader.policy(runtime, context.contentHash);
+      if ((await reader.quote(runtime, context, value)).digest !== quote.digest) throw new Error('The contribution settings changed. Review them again.');
+      const now = BigInt(Math.floor(Date.now() / 1000));
+      setPurpose(now >= policy.startsAt && (!policy.endsAt || now < policy.endsAt) ? policy.description : '');
+      setIntent({ network: wallet.expectedChainId, sender: wallet.listenerEvmAddress, runtime, amount: value, context, quote, proof });
     } catch (failure) {
-      port?.destroy();
-      if (generation.current === current) setError(failure instanceof Error ? failure.message : 'The gift could not be prepared.');
-    }
-  }
-  function review() {
-    if (!quote) return;
-    try {
-      setReviewAmount(parseDonationAmount(amount, quote.port.asset.decimals));
-      setError('');
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Check the amount.');
-    }
-  }
-  async function give() {
-    if (!quote || reviewAmount === null || sendingRef.current) return;
-    const current = generation.current;
-    sendingRef.current = true;
-    setSending(true);
-    setError('');
-    try {
-      const outcome = await flow.run({
-        port: quote.port,
-        sender: quote.sender,
-        recipient: quote.artist.recipient,
-        amount: reviewAmount,
-        currentAccount: () => accountRef.current === quote.account
-      });
-      if (generation.current === current) setResult(outcome);
-    } catch {
-      if (generation.current === current) setError('The gift status could not be checked. Check your account activity before trying again.');
+      setError(failure instanceof Error ? failure.message : 'Could not prepare this contribution.');
     } finally {
-      sendingRef.current = false;
-      if (generation.current === current) setSending(false);
-      else quote.port.destroy();
+      setBusy(false);
     }
   }
-  const symbol = quote?.port.asset.symbol ?? '';
+  async function send() {
+    if (!intent || busy) return;
+    setBusy(true);
+    setError('');
+    const reader = contributionReader(wallet.ethRpcUrl);
+    try {
+      const result = await runContribution({
+        intent,
+        storage: localStorage,
+        currentAccount: () => account.current?.toLowerCase() === intent.sender.toLowerCase(),
+        send: async () => {
+          try {
+            if ((await reader.client.getChainId()) !== intent.network) throw new Error('The network changed.');
+            const latest = await reader.quote(intent.runtime, intent.context, intent.amount);
+            if (latest.digest !== intent.quote.digest) throw new Error('The distribution changed. Review it again before sending.');
+            if (account.current?.toLowerCase() !== intent.sender.toLowerCase())
+              throw new Error('The account or listening context changed. Prepare this contribution again.');
+            if (!writer.contributionCall) throw new Error('This wallet cannot submit contributions.');
+          } catch (failure) {
+            throw new SupportNotSubmittedError(failure);
+          }
+          return writer.contributionCall!(intent.runtime, 'musicGiftContribute', [intent.context, intent.quote.digest, intent.proof], intent.amount);
+        },
+        confirm: async (hash, id) => {
+          try {
+            return await reader.receipt(intent.runtime, hash, id);
+          } catch (error) {
+            // Product can return a native extrinsic hash. The finalized event's
+            // intent identity also recovers its EVM receipt without another write.
+            const receipt = (await reader.history(intent.runtime)).find(row => row.id === id);
+            if (receipt) return receipt;
+            throw error;
+          }
+        },
+        recover: async id => (await reader.history(intent.runtime)).find(row => row.id === id)
+      });
+      setOutcome(result);
+      if (result.receipt && result.receipt.room !== zeroHash)
+        session.socketRef.current?.request(
+          'room:tip-notify',
+          { runtime: intent.runtime, hash: result.receipt.transactionHash },
+          { timeoutMs: 15000 },
+          () => {}
+        );
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Could not check the contribution.');
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <>
       <button
         className={iconOnly ? 'transport-secondary' : 'secondary-action'}
-        type='button'
-        aria-label='Give to the artist'
-        title='Give to the artist'
+        aria-label={label}
+        title={label}
         onClick={event => {
-          // Safari does not focus a button on pointer activation. Give the
-          // dialog an explicit return target before it moves focus inside.
-          event.currentTarget.focus({ preventScroll: true });
-          void start();
+          event.currentTarget.focus();
+          setOpen(true);
         }}
       >
-        <Heart size={18} /> {!iconOnly && 'Give to the artist'}
+        <Heart size={18} />
+        {!iconOnly && label}
       </button>
       {open && (
-        <Dialog historyDismiss className='artist-gift-dialog' size='compact' labelledBy='artist-gift-title' onClose={close}>
+        <Dialog historyDismiss className='artist-gift-dialog' size='compact' labelledBy='contribution-title' onClose={() => setOpen(false)}>
           <div className='modal-header'>
-            <h2 id='artist-gift-title'>{result?.status === 'confirmed' ? 'Gift confirmed' : `Give to ${quote?.artist.name || track.artist}`}</h2>
-            <button className='modal-close' aria-label='Close gift' type='button' onClick={close}>
+            <div>
+              <p className='eyebrow'>{kind === 'tip' ? track.artist : 'A personal gift'}</p>
+              <h2 id='contribution-title'>{kind === 'tip' ? track.title : `Give to ${track.artist}`}</h2>
+            </div>
+            <button className='modal-close' aria-label='Close contribution' onClick={() => setOpen(false)}>
               <X size={18} />
             </button>
           </div>
-          {!quote && !error && <p role='status'>Checking the artist’s receiving account…</p>}
-          {quote && !result && (
-            <>
-              <p>A direct gift to the artist. It does not unlock paid tracks or follow a release’s royalty split.</p>
-              {reviewAmount === null ? (
-                <form
-                  onSubmit={event => {
-                    event.preventDefault();
-                    review();
-                  }}
-                >
-                  <div className='gift-amount-options' role='group' aria-label='Suggested gift amounts'>
-                    {(quote.port.asset.decimals > 0 ? ['0.1', '0.5', '1'] : ['1', '2', '5']).map(value => (
-                      <button
-                        key={value}
-                        type='button'
-                        aria-pressed={amount === value}
-                        onClick={() => {
-                          setAmount(value);
-                          setError('');
-                        }}
-                      >
-                        {value} {symbol}
-                      </button>
-                    ))}
-                  </div>
-                  <label htmlFor='artist-gift-amount'>Gift amount ({symbol})</label>
-                  <input
-                    className='field'
-                    id='artist-gift-amount'
-                    inputMode='decimal'
-                    autoComplete='off'
-                    placeholder='Choose an amount'
-                    value={amount}
-                    onChange={event => setAmount(event.target.value)}
-                    aria-describedby={error ? 'artist-gift-error' : undefined}
-                  />
-                  <p>To {quote.artist.name}</p>
-                  <details className='gift-destination'>
-                    <summary>Where your support goes</summary>
-                    <p>The full gift goes to this artist’s registered receiving account. Network fees are separate.</p>
-                    <code>{quote.artist.recipient}</code>
-                  </details>
-                  <button className='primary-action' type='submit'>
-                    Review gift
-                  </button>
-                </form>
-              ) : (
-                <>
-                  <dl className='transaction-facts'>
-                    <div>
-                      <dt>Your gift</dt>
-                      <dd>
-                        {formatUnits(reviewAmount, quote.port.asset.decimals)} {symbol}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Recipient</dt>
-                      <dd>{quote.artist.name}</dd>
-                    </div>
-                    <div>
-                      <dt>Network fees</dt>
-                      <dd>Additional fees may apply. Review the confirmation in your wallet or Polkadot App.</dd>
-                    </div>
-                  </dl>
-                  <details>
-                    <summary>Receiving account</summary>
-                    <p>Artist registered for “{quote.artist.releaseTitle}”</p>
-                    <code>{quote.artist.recipient}</code>
-                  </details>
-                  {sending ? (
-                    <p role='status'>
-                      Confirm the gift in your wallet or Polkadot App. Waiting for the network… You can close this window; closing does not cancel the gift.
-                    </p>
-                  ) : (
-                    <div className='modal-actions'>
-                      <button className='secondary-action' type='button' onClick={() => setReviewAmount(null)}>
-                        Change amount
-                      </button>
-                      <button
-                        className='primary-action'
-                        type='button'
-                        onClick={() => {
-                          void give();
-                        }}
-                      >
-                        Confirm gift · {formatUnits(reviewAmount, quote.port.asset.decimals)} {symbol}
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
-          {result && quote && (
-            <div role='status'>
-              <p>{result.message}</p>
+          {!intent && !outcome && (
+            <form
+              onSubmit={event => {
+                event.preventDefault();
+                void review();
+              }}
+            >
               <p>
-                {formatUnits(result.amount, quote.port.asset.decimals)} {symbol} · {quote.artist.name}
+                {kind === 'tip'
+                  ? 'Support this work and its contributors. Listening access stays unchanged.'
+                  : 'Support the artist or the beneficiaries they have chosen.'}
               </p>
-              {result.hash && (
+              <div className='gift-amount-options' role='group' aria-label='Suggested amounts'>
+                {['0.1', '0.5', '1'].map(value => (
+                  <button type='button' key={value} aria-pressed={amount === value} onClick={() => setAmount(value)}>
+                    {value} {symbol}
+                  </button>
+                ))}
+              </div>
+              <label>
+                Amount ({symbol})<input className='field' inputMode='decimal' value={amount} onChange={event => setAmount(event.target.value)} required />
+              </label>
+              <button className='primary-action' disabled={busy}>
+                {busy ? 'Checking distribution…' : 'Review contribution'}
+              </button>
+            </form>
+          )}
+          {intent && !outcome && (
+            <>
+              <dl className='transaction-facts'>
+                <div>
+                  <dt>Total</dt>
+                  <dd>
+                    {formatEther(intent.amount)} {symbol}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Paying account</dt>
+                  <dd>
+                    <code>{intent.sender}</code>
+                  </dd>
+                </div>
+              </dl>
+              <h3>Where your contribution goes</h3>
+              {purpose && <p>{purpose}</p>}
+              {available !== undefined && (
+                <p>
+                  Available balance: {formatEther(available)} {symbol}
+                </p>
+              )}
+              <ul className='contribution-destinations'>
+                {intent.quote.recipients.map(
+                  (recipient, i) =>
+                    intent.quote.amounts[i] > 0n && (
+                      <li key={`${recipient}:${i}`}>
+                        <span>
+                          {['Artist / chosen beneficiary', 'Collaborator', 'Room host'][intent.quote.roles[i]]}
+                          <small>{recipient}</small>
+                        </span>
+                        <strong>
+                          {formatEther(intent.quote.amounts[i])} {symbol}
+                        </strong>
+                      </li>
+                    )
+                )}
+              </ul>
+              <p>Network fees are additional and shown by your wallet.</p>
+              {intent.quote.campaign !== zeroHash && (
                 <details>
-                  <summary>Gift reference</summary>
-                  <code>{result.hash}</code>
+                  <summary>Campaign reference</summary>
+                  <code>{intent.quote.campaign}</code>
                 </details>
               )}
-              {result.status === 'uncertain' && <p>Check your account activity before making another gift.</p>}
-              {result.status === 'uncertain' && result.hash && quote.port.canCheckReceipt !== false && (
-                <button
-                  className='secondary-action'
-                  type='button'
-                  disabled={sending}
-                  onClick={() => {
-                    void give();
-                  }}
-                >
-                  Check gift status
+              <div className='modal-actions'>
+                <button className='secondary-action' disabled={busy} onClick={() => setIntent(undefined)}>
+                  Change amount
                 </button>
+                <button className='primary-action' disabled={busy} onClick={() => void send()}>
+                  {busy ? 'Awaiting confirmation…' : `Confirm ${kind} · ${formatEther(intent.amount)} ${symbol}`}
+                </button>
+              </div>
+            </>
+          )}
+          {busy && <p role='status'>You can close this window. Closing does not cancel a transaction.</p>}
+          {outcome && (
+            <div role='status'>
+              <p>{outcome.message}</p>
+              {outcome.receipt && (
+                <>
+                  <time dateTime={new Date(outcome.receipt.timestamp).toISOString()}>{new Date(outcome.receipt.timestamp).toLocaleString()}</time>
+                  <ul className='contribution-destinations'>
+                    {outcome.receipt.shares.map((share, i) => (
+                      <li key={i}>
+                        <span>
+                          <small>{share.recipient}</small>
+                          {share.paid || share.claimed ? 'Received' : 'Available to claim'}
+                        </span>
+                        <strong>
+                          {formatEther(share.amount)} {symbol}
+                        </strong>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
-              {(result.status === 'canceled' || result.status === 'failed') && (
+              {outcome.hash && (
+                <a href={getBlockscoutTxUrl(outcome.hash)} target='_blank' rel='noreferrer'>
+                  View transaction
+                </a>
+              )}
+              {outcome.status === 'uncertain' ? (
+                <button className='secondary-action' disabled={busy} onClick={() => void send()}>
+                  Check status · no new payment
+                </button>
+              ) : (
                 <button
                   className='secondary-action'
-                  type='button'
                   onClick={() => {
-                    setResult(null);
-                    setReviewAmount(null);
+                    setOutcome(undefined);
+                    setIntent(undefined);
+                    setAmount('');
                   }}
                 >
-                  Review again
+                  Prepare another contribution
                 </button>
               )}
             </div>
           )}
-          {error && (
-            <p id='artist-gift-error' role='alert'>
-              {error}
-            </p>
-          )}
+          {error && <p role='alert'>{error}</p>}
         </Dialog>
       )}
     </>

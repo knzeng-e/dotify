@@ -15,9 +15,10 @@ import { useReleaseForm, useWalletContext, useCatalogContext, useSessionContext,
 import { OverviewTab } from './OverviewTab';
 import { NewReleaseTab } from './NewReleaseTab';
 import { ReleasesTab } from './ReleasesTab';
-import { RoyaltiesTab } from './RoyaltiesTab';
+import { ArtistEarnings } from './ArtistEarnings';
 import { AdvancedTab } from './AdvancedTab';
 import { Plus } from 'lucide-react';
+import { ContributionPolicyEditor } from './ContributionPolicyEditor';
 import { CoverImage } from '../../components/CoverImage';
 import { summarizeReleaseEarnings } from '../../features/artist-studio/earnings';
 import type { EarningsSummaryProps } from './EarningsSummary';
@@ -448,8 +449,11 @@ export function ArtistConsole() {
           />
         )}
 
+        {artistTab === 'rights' && artistRuntimeAddress && (
+          <ContributionPolicyEditor key={artistRuntimeAddress} runtime={artistRuntimeAddress} tracks={artistTracks} />
+        )}
         {artistTab === 'royalties' && (
-          <RoyaltiesTab
+          <ArtistEarnings
             royaltyPayments={royaltyPayments}
             royaltyStatus={royaltyStatus}
             claimableRoyaltyWei={artistConsole.claimableRoyaltyWei}

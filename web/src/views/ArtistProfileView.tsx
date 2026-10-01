@@ -1,6 +1,5 @@
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
 import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
-import { artistDonationsEnabled } from '../features/donations/donationModel';
 import { ArrowLeft, ArrowRight, Info, Play, Radio } from 'lucide-react';
 import { useMemo, useState, type CSSProperties } from 'react';
 import { CoverImage } from '../components/CoverImage';
@@ -105,7 +104,7 @@ export function ArtistProfileView({
               <button className='secondary-action' type='button' onClick={() => onOpenArtistRoom(leadTrack)}>
                 <Radio size={18} /> Open a room
               </button>
-              {artistDonationsEnabled && <ArtistDonationButton track={leadTrack} />}
+              <ArtistDonationButton track={leadTrack} />
             </div>
           )}
         </div>

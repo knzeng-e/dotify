@@ -702,7 +702,6 @@ Then verify in the Product host:
 
 ```bash
 VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm \
-VITE_DOTIFY_ARTIST_DONATIONS=on \
 VITE_DOTIFY_DEBUG_PANEL=true \
 npm run deploy:product-devnet
 ```
@@ -1082,10 +1081,10 @@ not a default-adapter or deployment change. See the
 [support recovery design](../design/product-host-support-recovery-2026-09-15.md)
 for pending references, read-only retries and the required physical-host smoke.
 
-The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
-Ordinary builds keep gifts off. A gift sends a chosen amount directly to the
-release's artist; it does not unlock access or follow the release's royalty
-splits. Native gifts use chain-reported precision and verified recipient
-mapping. Keep this flag gated until a real host approval and receipt have been
-checked. No live funds are used by the automated test fixtures. See
-[direct artist gifts](../design/artist-gifts-2026-09-16.md).
+Gifts and tips are native UI; `VITE_DOTIFY_ARTIST_DONATIONS` is retired.
+Gifts use the artist's profile allocation; work tips preserve collaborator
+splits, with optional host sharing from the artist portion. Both require an
+upgraded contribution runtime and keep listening access unchanged. Product
+signing still requires the CDM writer profile. Live host validation and
+owner-approved upgrades are separate release gates. See
+[native contributions](../design/native-contributions.md).

@@ -12,6 +12,7 @@ import { requiresExplicitProductRoomEntry } from '../../features/productHost/pro
 import { useWalletContext } from './WalletProvider';
 import { useNavigation } from './NavigationProvider';
 import { useCatalogContext } from './CatalogProvider';
+import { existingDotifySession } from '../../services/keyService';
 
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const publicAppUrl = import.meta.env.VITE_PUBLIC_APP_URL?.trim() || null;
@@ -39,6 +40,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     navigateToView,
     setAudioSource: catalog.setAudioSource
   });
+  const hostSocket = session.socketRef.current;
+  const hostAccount = connectedWallet?.evmAddress;
+  useEffect(() => {
+    if (session.mode !== 'host' || !session.roomId || !hostSocket?.connected) return;
+    const token = hostAccount ? existingDotifySession(hostAccount) : null;
+    hostSocket.request('room:tip-bind', { token: token ?? '' }, { timeoutMs: 15000 }, () => {});
+  }, [session.mode, session.roomId, session.socketStatus, hostSocket, hostAccount]);
 
   // One-link join: a guest landing on a #/rooms/<id> share link joins
   // immediately only when a wallet-scoped or guest name is already remembered.

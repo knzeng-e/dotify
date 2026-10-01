@@ -55,6 +55,17 @@ describe('GET /api/auth/session', () => {
   });
 });
 
+describe('GET /api/auth/identity', () => {
+  it('returns only the identity proven by a live bearer session', async () => {
+    const server = await buildApp({verifySessionToken:token=> token === 'valid' ? {valid:true,address:ADDRESS,chainId:420420417,jti:'id'} : {valid:false,reason:'Invalid session',code:'SESSION_INVALID'}});
+    const rejected=await server.inject({method:'GET',url:'/api/auth/identity'});
+    assert.equal(rejected.statusCode,401);
+    const accepted=await server.inject({method:'GET',url:'/api/auth/identity',headers:{authorization:'Bearer valid'}});
+    assert.deepEqual(accepted.json(),{address:ADDRESS,chainId:420420417});
+    assert.equal(accepted.headers['cache-control'],'no-store');
+  });
+});
+
 describe('POST /api/auth/nonce', () => {
   it('rejects a challenge request for a different chain', async () => {
     const server = await buildApp();

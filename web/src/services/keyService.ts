@@ -276,6 +276,11 @@ export function clearStoredSession(address: string, expectedToken?: string): voi
   }
 }
 
+/** Reuse a signed-in identity without opening another wallet prompt. */
+export function existingDotifySession(address: string): string | null {
+  return getStoredSession(address)?.token ?? null;
+}
+
 async function isDotifySessionAvailable(): Promise<boolean> {
   if (!API_URL) return false;
   if (sessionCapability === 'available') return true;

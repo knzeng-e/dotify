@@ -91,7 +91,12 @@ export function RoomChat({ active = true, onUnreadChange }: { active?: boolean; 
               </div>
             ) : (
               chatMessages.map(message => (
-                <div className='room-chat-row' key={message.id} data-self={message.senderId === selfId || undefined}>
+                <div
+                  className='room-chat-row'
+                  key={message.id}
+                  data-contribution={message.senderId === 'dotify-confirmed-tip' || undefined}
+                  data-self={message.senderId === selfId || undefined}
+                >
                   <Avatar name={message.senderName} size={24} you={message.senderId === selfId} />
                   <div className='room-chat-body'>
                     <span className='room-chat-name'>{message.senderName}</span>

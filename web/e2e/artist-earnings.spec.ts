@@ -113,6 +113,90 @@ test('unavailable history is never displayed as zero earned', async ({ page }) =
   await expect(summary.locator('.earnings-totals > div').first()).not.toContainText('0 PAS');
 });
 
+async function addContributionSources(page: Page) {
+  await page.getByRole('tab', { name: 'Earnings', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'All earnings' })).toContainText('4.2 PAS');
+  await page.evaluate(
+    ({ account, runtime, hash, collaborator }) => {
+      const state = Reflect.get(window, '__DOTIFY_E2E_DONATION__');
+      const zero = `0x${'0'.repeat(64)}`;
+      const base = { runtime, sender: collaborator, host: collaborator, room: zero, campaign: zero, timestamp: Date.now(), transactionHash: hash };
+      state.receipts = [
+        {
+          ...base,
+          id: hash,
+          contentHash: zero,
+          amount: 1000000000000000000n,
+          shares: [
+            { recipient: account, amount: 400000000000000000n, paid: true, claimed: false, role: 0 },
+            { recipient: collaborator, amount: 600000000000000000n, paid: true, claimed: false, role: 0 }
+          ]
+        },
+        {
+          ...base,
+          id: zero,
+          contentHash: hash,
+          amount: 2000000000000000000n,
+          shares: [
+            { recipient: account, amount: 500000000000000000n, paid: false, claimed: false, role: 0 },
+            { recipient: collaborator, amount: 1500000000000000000n, paid: true, claimed: false, role: 1 }
+          ]
+        }
+      ];
+    },
+    { account, runtime, hash, collaborator }
+  );
+  await page.getByRole('button', { name: 'Refresh all earnings' }).click();
+  await expect(page.getByRole('region', { name: 'All earnings' }).locator('.earnings-totals')).toContainText('7.2 PAS');
+}
+
+test('earnings leads with all sources, distinguishes shares and keeps its summary across detail tabs', async ({ page }) => {
+  await openStudio(page);
+  await addContributionSources(page);
+  const summary = page.getByRole('region', { name: 'All earnings' });
+  const metrics = summary.locator('.earnings-totals > div');
+  await expect(metrics.nth(0)).toContainText('7.2 PAS');
+  await expect(metrics.nth(1)).toContainText('2.164 PAS');
+  await expect(metrics.nth(2)).toContainText('0.5 PAS');
+  await expect(page.getByRole('tabpanel', { name: 'Listening payments', exact: true })).toBeVisible();
+  await expect(page.locator('.contribution-history')).toHaveCount(0);
+  const listening = page.getByRole('tab', { name: 'Listening payments', exact: true });
+  await listening.focus();
+  await listening.press('ArrowRight');
+  await expect(page.getByRole('tab', { name: 'Gifts & tips', exact: true })).toBeFocused();
+  await expect(page.locator('.contribution-history')).toBeVisible();
+  await expect(summary).toContainText('7.2 PAS');
+  expect((await summary.boundingBox())!.y).toBeLessThan((await page.locator('.earnings-detail').boundingBox())!.y);
+  await page.evaluate(() => {
+    Reflect.get(window, '__DOTIFY_E2E_DONATION__').receipts[1].shares[0].claimed = true;
+  });
+  await page.getByRole('button', { name: 'Refresh all earnings' }).click();
+  await expect(metrics.nth(1)).toContainText('2.664 PAS');
+  await expect(metrics.nth(2)).toContainText('0 PAS');
+  await expect(metrics.nth(0)).toContainText('7.2 PAS');
+  await page.evaluate(() => {
+    Reflect.get(window, '__DOTIFY_E2E_DONATION__').historyError = 'Receipt source unavailable';
+  });
+  await page.getByRole('button', { name: 'Refresh all earnings' }).click();
+  await expect(summary.getByRole('status')).toContainText('Update delayed');
+  await expect(metrics.nth(0)).toContainText('7.2 PAS');
+});
+
+test('an unavailable contribution source does not become a misleading global zero', async ({ page }) => {
+  await openStudio(page);
+  await addContributionSources(page);
+  await page.evaluate(() => {
+    Reflect.get(window, '__DOTIFY_E2E_DONATION__').historyError = 'Receipt source unavailable';
+  });
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByRole('tab', { name: 'Earnings', exact: true }).click();
+  const summary = page.getByRole('region', { name: 'All earnings' });
+  await expect(summary.getByRole('status')).toContainText('Some sources unavailable');
+  await expect(summary.locator('.earnings-totals > div').first()).toContainText('Unavailable');
+  await expect(summary.locator('[data-source="listening"]')).toContainText('4.2 PAS');
+  await expect(summary.locator('[data-source="gifts"]')).not.toContainText('0 PAS');
+});
+
 test('a collaborator without a runtime can create an artist profile without losing earnings', async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openStudio(page, { collaboratorOnly: true });
@@ -135,11 +219,18 @@ for (const width of [320, 390, 430, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await openStudio(page);
     await expect(page.getByRole('region', { name: 'Release earnings' })).toContainText('4.2 PAS');
+    if (width <= 430) expect((await page.locator('.studio-id h1').boundingBox())!.width).toBeGreaterThan(180);
     for (const tab of ['Overview', 'Releases', 'Earnings', 'Rights']) {
       await page.getByRole('tab', { name: tab, exact: true }).click();
+      if (tab === 'Earnings') await addContributionSources(page);
       await expect(page.locator('.studio-portrait img')).toHaveAttribute('data-cover-loaded', 'true');
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: info.outputPath(`studio-${tab}-${width}.png`), fullPage: true, animations: 'disabled' });
+      if (tab === 'Earnings') {
+        await page.getByRole('tab', { name: 'Gifts & tips', exact: true }).click();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await page.screenshot({ path: info.outputPath(`studio-contributions-${width}.png`), fullPage: true, animations: 'disabled' });
+      }
     }
     await page.getByRole('tab', { name: 'Releases', exact: true }).click();
     await page.getByRole('searchbox', { name: 'Search releases' }).fill('cerveau');

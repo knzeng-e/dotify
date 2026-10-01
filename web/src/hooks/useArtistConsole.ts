@@ -169,13 +169,10 @@ function resolveRoyaltySplits(primaryRecipient: `0x${string}`, primaryBps: numbe
 
 function resolveReleaseRoyaltySplits(
   primaryRecipient: `0x${string}`,
-  accessMode: AccessMode,
+  _accessMode: AccessMode,
   primaryBps: number,
   additionalSplits: ReleaseRoyaltySplitDraft[]
 ) {
-  if (accessMode === 'free') {
-    return { recipients: [primaryRecipient], shares: [10_000], totalBps: 10_000 };
-  }
   return resolveRoyaltySplits(primaryRecipient, primaryBps, additionalSplits);
 }
 

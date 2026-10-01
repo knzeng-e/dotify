@@ -36,6 +36,7 @@ export type ReleaseRoyaltySplitDraft = {
 };
 
 export type TrackInfo = {
+  runtimeAddress?: `0x${string}`;
   title: string;
   artist: string;
   duration: number;

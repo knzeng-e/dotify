@@ -47,6 +47,12 @@ declare module "@parity/product-sdk-contracts" {
                 musicRegSetAccessMode: { args: [contentHash: SizedHex<32>, accessMode: number, pricePlanck: bigint, requiredPersonhood: number]; response: undefined };
                 musicRegTrackCount: { args: []; response: bigint };
                 musicRegTrackHashAtIndex: { args: [index: bigint]; response: SizedHex<32> };
+                musicGiftClaim: { args: [id: SizedHex<32>]; response: undefined };
+                musicGiftContribute: { args: [context: { contentHash: SizedHex<32>; intentId: SizedHex<32>; host: HexString; room: SizedHex<32>; expiresAt: bigint }, expectedQuote: SizedHex<32>, roomProof: HexString]; response: undefined };
+                musicGiftPending: { args: [id: SizedHex<32>, recipient: HexString]; response: bigint };
+                musicGiftPolicy: { args: [scope: SizedHex<32>]; response: { version: bigint; startsAt: bigint; endsAt: bigint; hostBps: number; roomAttestor: HexString; campaign: SizedHex<32>; description: string; recipients: HexString[]; shares: number[] } };
+                musicGiftQuote: { args: [context: { contentHash: SizedHex<32>; intentId: SizedHex<32>; host: HexString; room: SizedHex<32>; expiresAt: bigint }, amount: bigint]; response: { digest: SizedHex<32>; campaign: SizedHex<32>; attestor: HexString; recipients: HexString[]; amounts: bigint[]; roles: number[] } };
+                musicGiftSetPolicy: { args: [scope: SizedHex<32>, next: { version: bigint; startsAt: bigint; endsAt: bigint; hostBps: number; roomAttestor: HexString; campaign: SizedHex<32>; description: string; recipients: HexString[]; shares: number[] }]; response: undefined };
                 musicRoyClaim: { args: [recipient: HexString]; response: { amount: bigint; settled: boolean } };
                 musicRoyClaimable: { args: [recipient: HexString]; response: bigint };
                 musicRoyPayAccess: { args: [contentHash: SizedHex<32>]; response: undefined };

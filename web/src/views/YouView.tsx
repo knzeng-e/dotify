@@ -5,6 +5,7 @@ import type { WalletState } from '../hooks/useWallet';
 import { getBlockscoutAddressUrl } from '../shared/utils/explorer';
 import { formatWeiAsDot, shortenAddress } from '../shared/utils/format';
 
+import { ContributionHistory } from './artist/ContributionHistory';
 type AccountSupportedArtist = { artist: string; artistAddress?: `0x${string}`; trackCount: number };
 type AccountUnlockedTrack = { id: string; title: string; artist: string };
 
@@ -227,6 +228,7 @@ export function YouView({
           {productionReadiness && <ProductionReadinessPanel {...productionReadiness} />}
         </aside>
       </div>
+      <ContributionHistory personal />
     </section>
   );
 }
