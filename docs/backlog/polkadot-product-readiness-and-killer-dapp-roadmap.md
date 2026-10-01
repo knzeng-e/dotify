@@ -3,10 +3,10 @@
 Status: active execution note; the Product DevNet baseline is delivered on
 `dev` and remains tracked through Product compatibility issue #85.
 
-Last Product deploy package check: 2026-09-28. Dotify currently pins
+Last Product deploy package check: 2026-10-02. Dotify currently pins
 `@parity/product-sdk` 0.27.0, host 0.19.1, statement-store 0.6.9,
 descriptors 0.11.0, and
-`@polkadot-community-foundation/polkadot-app-deploy` 0.16.7. This aligns the
+`@parity/polkadot-app-deploy` 0.20.0. This aligns the
 Product app bundle and descriptors with the September 2026 Product DevNet
 DotNS/CDM registry refresh. npm also publishes `polkadot-api` 3.0.0, but
 Dotify keeps root PAPI on 1.23.3 because the current Product SDK packages use

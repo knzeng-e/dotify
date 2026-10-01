@@ -70,7 +70,7 @@ Product SDK snapshot used for this plan:
 - `@parity/product-sdk` 0.27.0, host 0.19.1, statement-store 0.6.9, and
   descriptors 0.11.0 (pinned baseline after the September 2026 Product DevNet
   DotNS/CDM/descriptors refresh);
-- `@polkadot-community-foundation/polkadot-app-deploy` 0.16.7 with a verified Product-host DotNS profile;
+- `@parity/polkadot-app-deploy` 0.20.0 with verified Product-host DotNS profile and deploy API;
 - deferred PAPI drift: root `polkadot-api` 3.0.0 is published, but the current
   Product SDK graph uses PAPI 2.2.x and `@polkadot-apps` uses PAPI 1.23.x, so
   Dotify keeps root PAPI 1.23.3 until upstream packages converge;
