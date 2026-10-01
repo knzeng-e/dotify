@@ -17,7 +17,8 @@ type ContributionButtonProps = { track: CatalogTrack; kind?: 'gift' | 'tip'; ico
 export function ArtistDonationButton(props: ContributionButtonProps) {
   const wallet = useWalletContext();
   const session = useSessionContext();
-  const scope = `${wallet.expectedChainId}:${wallet.ethRpcUrl}:${wallet.listenerEvmAddress}:${props.track.id}:${props.kind}:${session.roomId}`;
+  const chainScope = wallet.expectedChainId ?? wallet.connectedWallet?.chainId ?? 'pending';
+  const scope = `${chainScope}:${wallet.ethRpcUrl}:${wallet.listenerEvmAddress}:${props.track.id}:${props.kind}:${session.roomId}`;
   return <ContributionButton key={scope} {...props} />;
 }
 
@@ -45,7 +46,9 @@ function ContributionButton({ track, kind = 'gift', iconOnly = false }: Contribu
   const symbol = (wallet.expectedChainId ? nativeCurrencyForChain(wallet.expectedChainId, wallet.ethRpcUrl).symbol : '') || 'PAS';
   async function review() {
     if (busy) return;
-    if (!wallet.listenerEvmAddress || !wallet.expectedChainId) {
+    const reader = contributionReader(wallet.ethRpcUrl);
+    const expectedChainId = wallet.expectedChainId ?? wallet.connectedWallet?.chainId ?? (contributionE2e ? await reader.client.getChainId() : null);
+    if (!wallet.listenerEvmAddress || !expectedChainId) {
       openWalletModal('support');
       return;
     }
@@ -56,8 +59,7 @@ function ContributionButton({ track, kind = 'gift', iconOnly = false }: Contribu
       const value = parseEther(amount.replace(',', '.'));
       if (value <= 0n) throw new Error('Choose an amount greater than zero.');
       const runtime = track.id.split(':')[0] as Address;
-      const reader = contributionReader(wallet.ethRpcUrl);
-      if ((await reader.client.getChainId()) !== wallet.expectedChainId) throw new Error('The network changed. Reconnect before contributing.');
+      if ((await reader.client.getChainId()) !== expectedChainId) throw new Error('The network changed. Reconnect before contributing.');
       if (!contributionE2e) {
         const [record] = await reader.client.readContract({
           address: runtime,
@@ -120,7 +122,7 @@ function ContributionButton({ track, kind = 'gift', iconOnly = false }: Contribu
       if ((await reader.quote(runtime, context, value)).digest !== quote.digest) throw new Error('The contribution settings changed. Review them again.');
       const now = BigInt(Math.floor(Date.now() / 1000));
       setPurpose(now >= policy.startsAt && (!policy.endsAt || now < policy.endsAt) ? policy.description : '');
-      setIntent({ network: wallet.expectedChainId, sender: wallet.listenerEvmAddress, runtime, amount: value, context, quote, proof });
+      setIntent({ network: expectedChainId, sender: wallet.listenerEvmAddress, runtime, amount: value, context, quote, proof });
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could not prepare this contribution.');
     } finally {

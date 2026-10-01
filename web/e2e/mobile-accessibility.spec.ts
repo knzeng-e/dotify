@@ -41,7 +41,7 @@ for (const width of [390, 1440]) {
         const gift = page.getByRole('button', { name: 'Give to the artist', exact: true });
         await expect(gift).toBeVisible();
         await gift.click();
-        await expect(page.getByLabel('Gift amount (PAS)')).toBeVisible();
+        await expect(page.locator('.artist-gift-dialog').getByLabel('Gift amount (PAS)')).toBeVisible();
       } else {
         await page.goto(fixture);
         await expect(page.getByTestId('track-card')).toHaveCount(13);
