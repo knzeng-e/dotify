@@ -383,9 +383,19 @@ when npm serves another version, the `devnet` preset is absent, or any
 Product-facing DotNS address has drifted.
 
 `npm run deploy:product-devnet` signs DotNS updates with the owner mnemonic from
-`MNEMONIC`. Do not rely on `pad login` for this path: `pad login` and
-`pad whoami` describe the mobile Product session only, not the local owner
-signer.
+`MNEMONIC`, while Bulletin bytes are stored through an authorized deploy pool
+account. This separation is intentional for
+`@parity/polkadot-app-deploy@0.20.0`: the raw `pad` CLI treats a supplied
+mnemonic as the Bulletin storage signer too, so an otherwise valid DotNS owner
+can fail with `authorization expired` if that owner account is not also
+authorized for TransactionStorage. Dotify's wrapper keeps the owner mnemonic
+local for DotNS and injects the testnet storage pool signer for Bulletin
+uploads. Override the pool only with `BULLETIN_POOL_MNEMONIC` or
+`BULLETIN_POOL_ACCOUNT_INDEX` after checking it with `pad-bootstrap --env
+devnet`.
+
+Do not rely on `pad login` for this path: `pad login` and `pad whoami` describe
+the mobile Product session only, not the local owner signer.
 
 ```bash
 read -rs MNEMONIC
