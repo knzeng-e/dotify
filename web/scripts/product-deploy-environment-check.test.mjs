@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { PRODUCT_DEPLOY_PROFILE, evaluateProductDeployEnvironment } from './product-deploy-environment-check.mjs';
+import { PRODUCT_DEPLOY_PROFILE, evaluateProductDeployApi, evaluateProductDeployEnvironment } from './product-deploy-environment-check.mjs';
 
 function validPackage() {
   return {
@@ -40,7 +40,7 @@ test('rejects the transient 0.16.2 DotNS generation', () => {
   const result = evaluateProductDeployEnvironment(fixture);
 
   assert.equal(
-    result.errors.some(error => error.includes('Expected CLI 0.16.7')),
+    result.errors.some(error => error.includes('Expected CLI 0.20.0')),
     true
   );
   assert.equal(
@@ -49,10 +49,6 @@ test('rejects the transient 0.16.2 DotNS generation', () => {
   );
   assert.equal(
     result.errors.some(error => error.includes('DOTNS_CONTENT_RESOLVER')),
-    true
-  );
-  assert.equal(
-    result.errors.some(error => error.includes('PUBLISHER')),
     true
   );
 });
@@ -65,4 +61,19 @@ test('fails closed when the Product DevNet profile is absent', () => {
 
   assert.equal(result.environment, null);
   assert.deepEqual(result.errors, ['Environment devnet is missing from the deploy CLI.']);
+});
+
+test('rejects a deploy API whose manifest helper is absent from deploy.js', () => {
+  const functions = {
+    derivePoolAccounts() {},
+    preflightProductConfig() {},
+    loadEnvironments() {},
+    resolveEndpoints() {},
+    reconcileManifestDomain() {},
+    deploy() {},
+    publishManifest() {}
+  };
+  assert.deepEqual(evaluateProductDeployApi({ index: functions, deployModule: { printDeploymentCompleteBanner() {} } }), [
+    'Deploy CLI 0.20.0 is missing deployModule.shouldPublishManifest.'
+  ]);
 });

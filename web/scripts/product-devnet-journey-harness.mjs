@@ -192,7 +192,7 @@ function hasDeployEnvironmentPreflightBeforePublication(deployScript, deployEnvi
   const preflightIndex = commandPosition(deployScript, 'npm run verify:product-deploy-environment');
   if (preflightIndex === null) return false;
 
-  const expectedCliPackage = `@polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli}`;
+  const expectedCliPackage = `${PRODUCT_DEPLOY_PROFILE.packageName}@${EXPECTED_PRODUCT_DEVNET.productDeployCli}`;
   if (!deployEnvironmentCheck.includes(expectedCliPackage)) return false;
 
   const firstSensitiveStep = [
@@ -233,10 +233,11 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
   const deployScript = snapshot.webPackageJson?.scripts?.['deploy:product-devnet'] ?? '';
   const deployEnvironmentCheck = snapshot.webPackageJson?.scripts?.['verify:product-deploy-environment'] ?? '';
   const frozenBuildScript = snapshot.webPackageJson?.scripts?.['build:product-devnet:frozen'] ?? '';
-  if (deployScript.includes(`@polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli}`)) {
-    pass(gates, 'deploy-cli', 'Product deploy CLI', `Pinned to ${EXPECTED_PRODUCT_DEVNET.productDeployCli}.`, 'web/package.json');
+  const expectedDeployCliPackage = `${PRODUCT_DEPLOY_PROFILE.packageName}@${EXPECTED_PRODUCT_DEVNET.productDeployCli}`;
+  if (deployScript.includes(expectedDeployCliPackage)) {
+    pass(gates, 'deploy-cli', 'Product deploy CLI', `Pinned to ${expectedDeployCliPackage}.`, 'web/package.json');
   } else {
-    fail(gates, 'deploy-cli', 'Product deploy CLI', `Expected deploy script to pin ${EXPECTED_PRODUCT_DEVNET.productDeployCli}.`, 'web/package.json');
+    fail(gates, 'deploy-cli', 'Product deploy CLI', `Expected deploy script to pin ${expectedDeployCliPackage}.`, 'web/package.json');
   }
 
   if (hasDeployEnvironmentPreflightBeforePublication(deployScript, deployEnvironmentCheck)) {
@@ -244,7 +245,7 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
       gates,
       'deploy-environment-preflight',
       'Product deploy environment',
-      'The pinned CLI profile is checked against the Product host DotNS registry, resolver, and Publisher before build.',
+      'The pinned CLI profile is checked against the Product host DotNS registry and content resolver before build.',
       'web/package.json'
     );
   } else {

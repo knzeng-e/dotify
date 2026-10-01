@@ -252,7 +252,7 @@ Current Product host SDK dependencies:
 | `@parity/product-sdk-statement-store`                | `0.6.9`       | `0.6.9`                   |
 | `@parity/product-sdk-descriptors`                    | `0.11.0`      | `0.11.0`                  |
 | `polkadot-api`                                       | `1.23.3`      | `3.0.0`                   |
-| `@polkadot-community-foundation/polkadot-app-deploy` | `0.16.7`      | `0.16.7`                  |
+| `@parity/polkadot-app-deploy`                        | `0.20.0`      | `0.20.0`                  |
 | `engine.io-client`                                   | `6.6.6`       | `6.6.6`                   |
 
 Keep the Product SDK packages pinned exactly during Product DevNet hardening.

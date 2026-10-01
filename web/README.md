@@ -184,10 +184,10 @@ configured API is available. `build:product-devnet:frozen` performs no catalogue
 request and builds the reviewed, committed snapshot. Signer-free CI and
 `deploy:product-devnet` both use that frozen build so publication cannot pick up
 unreviewed live catalogue drift. `deploy:product-devnet` uses
-`@polkadot-community-foundation/polkadot-app-deploy@0.16.7` through `npx`,
-verifies that its DevNet registry, content resolver, and Publisher match the
-Product host profile, uploads static chunks to Product DevNet Bulletin, and
-binds `dotify-test01.dot` through the current DotNS tooling. Run
+`@parity/polkadot-app-deploy@0.20.0` through `npm exec`, verifies its DevNet
+registry, content resolver, and deploy API, uploads static chunks to Product
+DevNet Bulletin with an authorized storage pool signer, and binds
+`dotify-test01.dot` with the owner mnemonic through DotNS. Run
 `npm run verify:product-deploy-environment` for the same read-only check without
 building or publishing. The owner mnemonic is accepted
 only from the local `MNEMONIC` environment and is never an argument or GitHub

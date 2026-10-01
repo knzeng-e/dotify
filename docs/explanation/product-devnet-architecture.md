@@ -544,19 +544,19 @@ one infrastructure adapter at a time.
 
 The current baseline is:
 
-| Component                                            | Pinned/target value                |
-| ---------------------------------------------------- | ---------------------------------- |
-| Node                                                 | 22                                 |
-| `@parity/product-sdk`                                | `0.27.0`                           |
-| `@parity/product-sdk-host`                           | `0.19.1`                           |
-| `@parity/product-sdk-statement-store`                | `0.6.9`                            |
-| `@parity/product-sdk-descriptors`                    | `0.11.0`                           |
-| `polkadot-api`                                       | `1.23.3`                           |
-| `@polkadot-community-foundation/polkadot-app-deploy` | `0.16.7` plus host-profile preflight |
-| Product network                                      | `devnet`                           |
-| Product domain                                       | `dotify-test01.dot`                |
-| Public gateway                                       | `https://dotify-test01.dev-dot.li` |
-| Asset Hub EVM chain ID                               | `420420417`                        |
+| Component                             | Pinned/target value                          |
+| ------------------------------------- | -------------------------------------------- |
+| Node                                  | 22                                           |
+| `@parity/product-sdk`                 | `0.27.0`                                     |
+| `@parity/product-sdk-host`            | `0.19.1`                                     |
+| `@parity/product-sdk-statement-store` | `0.6.9`                                      |
+| `@parity/product-sdk-descriptors`     | `0.11.0`                                     |
+| `polkadot-api`                        | `1.23.3`                                     |
+| `@parity/polkadot-app-deploy`         | `0.20.0` plus host-profile and API preflight |
+| Product network                       | `devnet`                                     |
+| Product domain                        | `dotify-test01.dot`                          |
+| Public gateway                        | `https://dotify-test01.dev-dot.li`           |
+| Asset Hub EVM chain ID                | `420420417`                                  |
 
 Checked against npm on 2026-09-12 after the Product DevNet registry/runtime
 refresh: the Product SDK package set above is current. npm also publishes
