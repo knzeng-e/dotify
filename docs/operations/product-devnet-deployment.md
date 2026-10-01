@@ -394,6 +394,13 @@ uploads. Override the pool only with `BULLETIN_POOL_MNEMONIC` or
 `BULLETIN_POOL_ACCOUNT_INDEX` after checking it with `pad-bootstrap --env
 devnet`.
 
+The printed `Bulletin storage signer` address is pool account `//deploy/0`
+derived from the deploy tool's public DevNet phrase by default. It is
+expected to differ from the DotNS owner address derived from `MNEMONIC`.
+The DotNS preflight identifies the owner before any upload; compare that owner
+with the intended account. The Bulletin chain's `Renew` tab extends stored
+data retention, not account authorization.
+
 Do not rely on `pad login` for this path: `pad login` and `pad whoami` describe
 the mobile Product session only, not the local owner signer.
 

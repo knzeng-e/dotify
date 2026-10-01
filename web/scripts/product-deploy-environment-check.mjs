@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -54,20 +54,39 @@ export function evaluateProductDeployEnvironment({ packageJson, environments }) 
   return { errors, environment };
 }
 
+export function evaluateProductDeployApi({ index, deployModule }) {
+  const expectedExports = {
+    index: ['derivePoolAccounts', 'preflightProductConfig', 'loadEnvironments', 'resolveEndpoints', 'reconcileManifestDomain', 'deploy', 'publishManifest'],
+    deployModule: ['shouldPublishManifest', 'printDeploymentCompleteBanner']
+  };
+  return Object.entries(expectedExports).flatMap(([moduleName, names]) =>
+    names.filter(name => typeof { index, deployModule }[moduleName]?.[name] !== 'function')
+      .map(name => `Deploy CLI 0.20.0 is missing ${moduleName}.${name}.`)
+  );
+}
+
 function findPadPackageRoot() {
   const locator = process.platform === 'win32' ? 'where' : 'which';
   const output = execFileSync(locator, ['pad'], { encoding: 'utf8' }).trim();
   const executable = output.split(/\r?\n/)[0];
   if (!executable) throw new Error('pad is not available on PATH. Run this check through npm exec --package.');
 
-  return resolve(dirname(executable), '..', PRODUCT_DEPLOY_PROFILE.packageName);
+  return resolve(dirname(realpathSync(executable)), '..');
 }
 
-function run() {
+async function run() {
   const packageRoot = findPadPackageRoot();
   const packageJson = JSON.parse(readFileSync(resolve(packageRoot, 'package.json'), 'utf8'));
   const environments = JSON.parse(readFileSync(resolve(packageRoot, 'assets/environments.json'), 'utf8'));
   const result = evaluateProductDeployEnvironment({ packageJson, environments });
+
+  if (result.errors.length === 0) {
+    const [index, deployModule] = await Promise.all([
+      import(pathToFileURL(resolve(packageRoot, 'dist/index.js')).href),
+      import(pathToFileURL(resolve(packageRoot, 'dist/deploy.js')).href)
+    ]);
+    result.errors.push(...evaluateProductDeployApi({ index, deployModule }));
+  }
 
   if (result.errors.length > 0) {
     console.error('Product deploy environment preflight failed:');
@@ -84,4 +103,9 @@ function run() {
 }
 
 const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
-if (isDirectRun) run();
+if (isDirectRun) {
+  run().catch(error => {
+    console.error(`Product deploy environment preflight failed: ${error?.message ?? error}`);
+    process.exitCode = 1;
+  });
+}

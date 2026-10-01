@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
+import { realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -17,7 +18,7 @@ function padPackageRoot() {
   const output = execFileSync(locator, ['pad'], { encoding: 'utf8' }).trim();
   const executable = output.split(/\r?\n/)[0];
   if (!executable) throw new Error('pad is not available on PATH. Run through npm exec --package.');
-  return resolve(executable, '..', '..', DEPLOY_PACKAGE);
+  return resolve(realpathSync(executable), '..', '..');
 }
 
 async function importDeployPackage() {
@@ -58,8 +59,8 @@ async function run() {
 
   const poolIndex = parsePoolIndex(process.env.BULLETIN_POOL_ACCOUNT_INDEX);
   const storageAccount = selectStorageAccount(poolIndex, index.derivePoolAccounts);
-  console.log(`Using Bulletin storage pool account ${poolIndex}: ${storageAccount.address}`);
-  console.log('DotNS owner mnemonic remains local and signs DotNS only; Bulletin bytes use the authorized pool signer.');
+  console.log(`Bulletin storage signer (DevNet pool account ${poolIndex}, not your DotNS owner): ${storageAccount.address}`);
+  console.log('The MNEMONIC account signs DotNS updates; this separate pool account uploads Bulletin bytes.');
 
   const [loadedConfig, environments] = await Promise.all([
     index.preflightProductConfig({ path: CONFIG_PATH }),
@@ -67,14 +68,14 @@ async function run() {
   ]);
   const resolved = index.resolveEndpoints(environments.doc, ENVIRONMENT);
   const envTld = resolved.tld ?? 'dot';
+  if (!loadedConfig) throw new Error(`Product config is required at ${CONFIG_PATH}.`);
   index.reconcileManifestDomain(loadedConfig.config.domain, DOMAIN, envTld, loadedConfig.sourcePath);
-  const manifestWillPublish = index.shouldPublishManifest({ configFound: !!loadedConfig, noManifest: false });
+  const manifestWillPublish = deployModule.shouldPublishManifest({ configFound: true, noManifest: false });
 
   const result = await index.deploy(BUILD_DIR, DOMAIN, {
     mnemonic,
     env: ENVIRONMENT,
     jsMerkle: true,
-    configFound: true,
     manifestPending: manifestWillPublish,
     transferToSignedInUser: false,
     storageSigner: storageAccount.signer,
