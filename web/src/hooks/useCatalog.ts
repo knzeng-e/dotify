@@ -246,6 +246,7 @@ function normalizeCatalogTrackDisplay(track: CatalogTrack): CatalogTrack {
 
 function createTrackInfoFromCatalog(track: CatalogTrack): TrackInfo {
   return createTrackInfo(track.title, track.artist, track.hash, track.bulletinRef, track.duration ?? 0, {
+    runtimeAddress: runtimeAddressFromTrackId(track) ?? undefined,
     imageRef: track.imageRef,
     audioRef: track.audioRef,
     metadataRef: track.metadataRef,
@@ -1365,11 +1366,11 @@ export function useCatalog(deps: UseCatalogDeps) {
   function explainRuntimeWriteWalletRequirement(): string | null {
     if (!connectedWallet) return null;
     if (runtimeAdapterConfig.kind === 'product-cdm') {
-      return connectedWallet.method === 'product-host' ? null : 'Connect with "Use Polkadot app" to confirm support in this app.';
+      return connectedWallet.method === 'product-host' ? null : 'Connect with "Use Polkadot app" to confirm payment in this app.';
     }
     return connectedWallet.createEvmClient
       ? null
-      : 'This version cannot approve support in Polkadot App. Open Dotify in a browser and connect a compatible wallet.';
+      : 'This version cannot approve payment in Polkadot App. Open Dotify in a browser and connect a compatible wallet.';
   }
 
   async function payForTrackAccess(
@@ -1419,7 +1420,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       showPaymentFeedback({
         tone: 'error',
         title: 'Payment signer unavailable',
-        message: walletRequirement || 'Reconnect your account before supporting this track.',
+        message: walletRequirement || 'Reconnect your account before paying for listening access.',
         facts: buildSupportFacts(track, nativeRuntimePaymentAsset, 'failed')
       });
       return;
@@ -1479,7 +1480,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         const titles = {
           checking: 'Checking your listening access',
           approval: connectedWallet.method === 'product-host' ? 'Confirm in Polkadot App' : 'Confirm in your wallet',
-          confirming: 'Confirming your support',
+          confirming: 'Confirming your access payment',
           processing: 'Payment processing',
           finalized: 'Payment finalized; checking access',
           verifying: 'Opening your listening access'
@@ -1548,7 +1549,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         } catch {
           showPaymentFeedback({
             tone: 'error',
-            title: 'Support recorded, audio unavailable',
+            title: 'Payment recorded, audio unavailable',
             message: 'Your access is verified. Reopen the track to try loading the audio again; no new payment is needed.',
             txHash: result.txHash,
             proofKind: supportProofKind
@@ -1562,14 +1563,14 @@ export function useCatalog(deps: UseCatalogDeps) {
       tone: 'error',
       title:
         result.status === 'canceled'
-          ? 'Support canceled'
+          ? 'Access payment canceled'
           : result.failureKind === 'funding-required'
             ? `Add ${receiptAsset.symbol} to continue`
             : result.status === 'unverified'
               ? 'Listening access not verified'
               : result.status === 'uncertain'
                 ? 'Payment status needs checking'
-                : 'Support could not start',
+                : 'Access payment could not start',
       message:
         result.status === 'uncertain'
           ? 'Confirmation was interrupted. Your payment may still complete. Check access here and your account activity in Polkadot App or your wallet before paying again.'
@@ -1589,7 +1590,7 @@ export function useCatalog(deps: UseCatalogDeps) {
                 setTransactionFeedback({
                   tone: 'error',
                   title: 'Account changed',
-                  message: 'Reconnect the account used for this support before checking its access.'
+                  message: 'Reconnect the account used for this payment before checking its access.'
                 });
                 return;
               }

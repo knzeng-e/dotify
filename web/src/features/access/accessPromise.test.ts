@@ -62,7 +62,7 @@ describe('access promise copy', () => {
 
     expect(gate.actionType).toBe('payment');
     expect(gate.message).toContain('0.5 PAS');
-    expect(gate.message).toContain('checks your listening access');
+    expect(gate.message).toContain('payment and access verification');
     expect(gate.hint).toBe('Nothing is sent until you confirm.');
     expect(`${gate.message} ${gate.hint}`).not.toMatch(/runtime|registry|chain|EVM/i);
   });
@@ -79,7 +79,7 @@ describe('access promise copy', () => {
       },
       {
         label: 'Availability',
-        value: 'The support record has no fixed expiry, but the artist may later withdraw the release'
+        value: 'The access record has no fixed expiry, but the artist may later withdraw the release'
       }
     ]);
     expect(receipt.recipients).toEqual([
@@ -117,11 +117,11 @@ describe('access promise copy', () => {
     );
     expect(buildClassicSupportFacts(track(), nativePaymentAsset, 'failed')).toContainEqual({
       label: 'Settlement',
-      value: 'No completed support is recorded by Dotify from this attempt.'
+      value: 'No completed access payment is recorded by Dotify from this attempt.'
     });
     expect(buildClassicSupportFacts(track(), nativePaymentAsset, 'canceled')).toContainEqual({
       label: 'Settlement',
-      value: 'No support transaction was completed from this attempt.'
+      value: 'No access payment was completed from this attempt.'
     });
   });
 

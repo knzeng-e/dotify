@@ -243,7 +243,7 @@ export function ReleasesTab({
                   disabled={!selectedReleaseActive || isBusy}
                 >
                   <option value='human-free'>Free with human verification</option>
-                  <option value='classic'>Direct support</option>
+                  <option value='classic'>Paid listening access</option>
                   <option value='free'>Free</option>
                 </select>
               </label>

@@ -221,7 +221,7 @@ export function PlayerDock({
               <span className='player-dock-chip'>Listening closed</span>
               <button className='player-dock-cta' type='button' onClick={onOpenPlayer}>
                 <LockKeyhole size={15} />
-                Open
+                Get access
               </button>
             </>
           ) : mode === 'listener' ? (

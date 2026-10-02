@@ -9,7 +9,7 @@ const surfaces = [
   'player',
   'release',
   'queue',
-  'options',
+  'tip',
   'rooms',
   'chat',
   'people',
@@ -38,7 +38,7 @@ for (const width of [390, 1440]) {
       } else if (surface === 'gift') {
         await page.goto('/');
         await page.locator('.catalogue-card .artist-text-button').first().click();
-        const gift = page.getByRole('button', { name: 'Give to the artist', exact: true });
+        const gift = page.getByRole('button', { name: 'Send a gift', exact: true });
         await expect(gift).toBeVisible();
         await gift.click();
         await expect(page.locator('.artist-gift-dialog').getByLabel('Gift amount (PAS)')).toBeVisible();
@@ -52,9 +52,9 @@ for (const width of [390, 1440]) {
             .click();
         } else if (surface !== 'music') {
           await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
-          if (['release', 'queue', 'options'].includes(surface)) {
+          if (['release', 'queue', 'tip'].includes(surface)) {
             await page
-              .getByRole('button', { name: { release: 'About this release', queue: 'Queue', options: 'Listening options' }[surface], exact: true })
+              .getByRole('button', { name: { release: 'About this release', queue: 'Queue', tip: 'Tip this track' }[surface], exact: true })
               .click();
             await expect(page.getByRole('dialog')).toBeVisible();
           } else if (['chat', 'people', 'requests', 'share'].includes(surface)) {

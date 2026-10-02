@@ -34,7 +34,7 @@ for (const width of [390, 1440]) {
       const locked = page.getByRole('button', { name: /^View listening options for E2E Protected Room Track by Dotify Room Host,/ });
       await locked.click();
       await expect(page.getByTestId('access-warning')).toHaveCount(0);
-      await expect(page.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Unlock listening', exact: true })).toBeVisible();
     });
 
     test('shows Play only on the active cover and keeps cards focused on the music', async ({ page }, testInfo) => {
@@ -73,7 +73,7 @@ for (const width of [390, 1440]) {
       await expect(protectedCard).not.toContainText('0.5 PAS');
       await protectedCard.getByTestId('track-artwork-action').click();
       await expect(page.getByTestId('access-warning')).toHaveCount(0);
-      await expect(page.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Unlock listening', exact: true })).toBeVisible();
     });
 
     test('artist and personal screens lead with useful content', async ({ page }, testInfo) => {
@@ -245,7 +245,7 @@ test('clear interface lets guests inspect releases without changing their listen
     await expect(dialog).toHaveCount(0);
     await expect(guest.getByTestId('room-code')).toHaveCount(0);
     await expect(guest.getByTestId('access-warning')).toHaveCount(0);
-    await expect(guest.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
+    await expect(guest.getByRole('button', { name: 'Unlock listening', exact: true })).toBeVisible();
     await expect(guest.locator('audio.native-player-source').first()).toHaveJSProperty('paused', true);
     await expect(page.getByTestId('room-code')).toHaveText(code);
   } finally {

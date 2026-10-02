@@ -106,7 +106,7 @@ describe('support payment recovery', () => {
     expect(result).toMatchObject({
       status: 'failed',
       failureKind: 'funding-required',
-      message: 'This payment account could not cover the support and network fee. Add UNIT to the paying account, then try again. No payment was sent.'
+      message: 'This payment account could not cover the access price and network fee. Add UNIT to the paying account, then try again. No payment was sent.'
     });
     expect(result.message).not.toContain('TransferFailed');
     expect(result.errorDetail).toContain('TransferFailed');

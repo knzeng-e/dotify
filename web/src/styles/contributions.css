@@ -1,3 +1,93 @@
+.track-attribution {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.track-attribution .player-artist-link {
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.contribution-action.secondary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--artist) 30%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  letter-spacing: 0;
+  box-shadow: none;
+}
+.contribution-action svg,
+.contribution-purpose svg {
+  flex-shrink: 0;
+  color: var(--artist);
+}
+.contribution-action.secondary-action:hover {
+  background: var(--artist-soft);
+  border-color: var(--artist);
+}
+.contribution-action-short {
+  display: none;
+}
+.contribution-purpose {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.player-room-mode .track-attribution .player-artist-link {
+  flex: 1;
+  width: auto;
+  align-self: center;
+}
+@media (max-width: 768px), (max-height: 799px) {
+  .player-room-mode .track-copy {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 8px;
+  }
+  .player-room-mode .track-copy h2 {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .player-room-mode .track-attribution {
+    display: contents;
+  }
+  .player-room-mode .track-attribution .player-artist-link {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 24px;
+  }
+  .player-room-mode .track-attribution .contribution-action {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+  }
+  .player-room-mode .contribution-action[data-kind='tip'] .contribution-action-label {
+    display: none;
+  }
+  .player-room-mode .contribution-action-short {
+    display: inline;
+  }
+}
+@media (max-width: 430px) {
+  .contribution-action[data-kind='tip'] .contribution-action-label {
+    display: none;
+  }
+  .contribution-action-short {
+    display: inline;
+  }
+}
 .contribution-policy,
 .contribution-history {
   padding: 24px 0;

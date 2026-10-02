@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart } from 'lucide-react';
+import { Coins } from 'lucide-react';
 import { useWalletContext, useSessionContext, useUiFeedback } from '../app/providers';
 import { ensureDotifySession, ensureDotifySessionForSigner } from '../services/keyService';
 
@@ -43,7 +43,7 @@ export function HostContributions() {
   return (
     <div className='host-contributions'>
       <button className='secondary-action compact-action' disabled={busy || bound === scope} onClick={() => void connect()}>
-        <Heart size={16} />
+        <Coins size={16} aria-hidden='true' />
         {bound === scope ? 'Room tips connected' : busy ? 'Connecting…' : 'Receive room tips'}
       </button>
       {status && <p role='status'>{status}</p>}

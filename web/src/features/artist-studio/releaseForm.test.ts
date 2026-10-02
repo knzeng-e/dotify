@@ -104,8 +104,8 @@ describe('release publication disclosure helpers', () => {
       uploadToBulletinEnabled: true
     });
 
-    expect(facts.map(fact => fact.label)).toEqual(['Listening access', 'Total support', 'Network fee', 'Published when']);
-    expect(facts).toContainEqual({ label: 'Total support', value: '0.75 PAS' });
+    expect(facts.map(fact => fact.label)).toEqual(['Listening access', 'Access price', 'Network fee', 'Published when']);
+    expect(facts).toContainEqual({ label: 'Access price', value: '0.75 PAS' });
     expect(facts).toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Published when', value: expect.stringContaining('catalog') })]));
     expect(facts).not.toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Artist space record' })]));
   });
@@ -124,7 +124,7 @@ describe('release publication disclosure helpers', () => {
     expect(facts).toContainEqual({ label: 'Producer address', value: '0x333333...333333', code: true });
   });
 
-  it('explains who receives support, including the artist remainder', () => {
+  it('explains who of revenue, including the artist remainder', () => {
     const rows = buildReleaseValueFlowRows({
       accessMode: 'classic',
       artistRecipient: '0x1111111111111111111111111111111111111111',
@@ -141,7 +141,7 @@ describe('release publication disclosure helpers', () => {
 
     expect(rows).toEqual([
       { label: 'You receive', value: '80%' },
-      { label: 'Producer', value: '20% receives support' }
+      { label: 'Producer', value: '20% of revenue' }
     ]);
   });
 

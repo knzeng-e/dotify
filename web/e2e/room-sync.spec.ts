@@ -57,9 +57,7 @@ test('host seek is reflected by late guests and pause holds the host position an
     await expect(guest.getByRole('button', { name: 'Previous track', exact: true })).toHaveCount(0);
     await expect(guest.getByRole('button', { name: 'Next track', exact: true })).toHaveCount(0);
     await expect(guest.getByRole('button', { name: 'Repeat this track', exact: true })).toHaveCount(0);
-    await guest.getByRole('button', { name: 'Listening options', exact: true }).click();
     await expect(guest.getByRole('button', { name: 'Mute', exact: true })).toBeEnabled();
-    await guest.getByRole('button', { name: 'Close listening options', exact: true }).click();
     await expect.poll(() => progress(guest)).toBeCloseTo(50, 0);
     await guest.waitForTimeout(1200); // several remote timeupdate events must not overwrite the room clock
     expect(await progress(guest)).toBeCloseTo(50, 0);

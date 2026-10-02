@@ -50,11 +50,11 @@ export function buildClassicAccessReceipt(track: CatalogTrack, nativePaymentAsse
       },
       {
         label: 'Availability',
-        value: 'The support record has no fixed expiry, but the artist may later withdraw the release'
+        value: 'The access record has no fixed expiry, but the artist may later withdraw the release'
       }
     ],
     recipients,
-    settlementNote: 'Your support follows this split when confirmation completes.'
+    settlementNote: 'Your access payment follows this split when confirmation completes.'
   };
 }
 
@@ -73,13 +73,13 @@ export function buildClassicSupportFacts(
         : 'Full listening opens only after the access check passes.';
   const settlementValue =
     status === 'confirmed'
-      ? 'Support was accepted; each share is settled now or available for its recipient to claim.'
+      ? 'Payment was accepted; each share is settled now or available for its recipient to claim.'
       : status === 'included-unverified'
         ? 'Payment may be recorded, but Dotify has not confirmed playable access.'
         : status === 'canceled'
-          ? 'No support transaction was completed from this attempt.'
+          ? 'No access payment was completed from this attempt.'
           : status === 'failed'
-            ? 'No completed support is recorded by Dotify from this attempt.'
+            ? 'No completed access payment is recorded by Dotify from this attempt.'
             : 'Pending until the transaction is included and verified.';
 
   return [
@@ -99,7 +99,7 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
     return {
       track,
       title: 'Release unavailable',
-      message: `"${track.title}" is currently unavailable. Previous support does not guarantee that a release remains online forever.`,
+      message: `"${track.title}" is currently unavailable. A previous access payment does not guarantee that a release remains online forever.`,
       hint: 'No payment will be sent. If the artist brings it back, Dotify can check your access again.',
       actionType: 'none'
     };
@@ -109,8 +109,8 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
     if (track.accessMode === 'classic') {
       return {
         track,
-        title: 'Support and open this track',
-        message: `"${track.title}" opens after ${supportAmount} of support. Review who receives it, then choose how to confirm.`,
+        title: 'Unlock listening',
+        message: `Listening access to "${track.title}" costs ${supportAmount}. Review the recipients, then connect your paying account.`,
         hint: 'Nothing is sent until you confirm.',
         actionType: 'signin'
       };
@@ -136,8 +136,8 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
 
   return {
     track,
-    title: 'Support and open this track',
-    message: `"${track.title}" opens after ${supportAmount} of support. Dotify checks your listening access again after confirmation.`,
+    title: 'Unlock listening',
+    message: `Listening access to "${track.title}" costs ${supportAmount}. Full playback opens after payment and access verification.`,
     hint: 'Nothing is sent until you confirm.',
     actionType: 'payment'
   };

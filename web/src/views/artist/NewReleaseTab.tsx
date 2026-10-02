@@ -244,7 +244,7 @@ export function NewReleaseTab({
                 >
                   <option value='free'>Everyone · free</option>
                   <option value='human-free'>Verified humans · free</option>
-                  <option value='classic'>Direct support · priced</option>
+                  <option value='classic'>Paid listening access</option>
                 </select>
               </label>
               <label>
@@ -260,7 +260,7 @@ export function NewReleaseTab({
                 </select>
               </label>
               <label>
-                <span>Listener support in {nativePaymentSymbol}</span>
+                <span>Access price in {nativePaymentSymbol}</span>
                 <input
                   className='field'
                   type='number'
@@ -290,11 +290,11 @@ export function NewReleaseTab({
             <div className='royalty-split-editor' data-disabled={royaltyFieldsDisabled}>
               <div className='royalty-split-head'>
                 <div>
-                  <strong>Where support goes</strong>
+                  <strong>How revenue is shared</strong>
                   <span>
                     {isFreeAccess
                       ? 'Listening is free. Voluntary tips follow this distribution.'
-                      : 'You receive the unassigned share. Add collaborators only when support should be shared.'}
+                      : 'You receive the unassigned share. Add the rights holders who share this work’s revenue.'}
                   </span>
                 </div>
                 <button className='secondary-action compact-action' type='button' onClick={onAddRoyaltySplit} disabled={royaltyFieldsDisabled}>
@@ -357,7 +357,7 @@ export function NewReleaseTab({
                 </div>
               )}
               <div className='royalty-split-total' data-over-limit={remainingRoyaltyBps < 0}>
-                <span>Support allocation</span>
+                <span>Revenue split</span>
                 <strong>
                   {remainingRoyaltyBps < 0
                     ? `${formatRoyaltyPercent(totalRoyaltyBps)} · over 100%`
@@ -407,7 +407,7 @@ export function NewReleaseTab({
                 ? 'Everyone can listen without an account or payment.'
                 : accessMode === 'human-free'
                   ? 'Listening is free after the configured human-verification service confirms the selected level.'
-                  : 'Listeners see the amount and recipients before they confirm support.'}
+                  : 'Listeners see the access price and recipients before they confirm payment.'}
             </div>
           </div>
         )}
@@ -429,7 +429,7 @@ export function NewReleaseTab({
                 ))}
               </dl>
               <div className='release-value-summary' data-testid='release-value-flow'>
-                <h4>Where support goes</h4>
+                <h4>How revenue is shared</h4>
                 <dl>
                   {releaseValueFlowRows.map(row => (
                     <div key={`${row.label}-${row.value}`}>

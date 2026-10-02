@@ -15,7 +15,7 @@ type WalletPaidTrack = Pick<CatalogTrack, 'id' | 'title' | 'artist' | 'artistAdd
 export function walletModalCopy(reason: WalletModalReason) {
   if (reason === 'support') {
     return {
-      eyebrow: 'Support this artist',
+      eyebrow: 'Your paying account',
       title: 'Choose how to confirm',
       description: 'Connect the account you want to use. You will review the amount and who receives it before anything is sent.'
     };
@@ -168,11 +168,11 @@ export function WalletModal({
         <div className='wallet-stats'>
           <div>
             <strong className='tnum'>{unlockedCount}</strong>
-            <span>payment record{unlockedCount === 1 ? '' : 's'}</span>
+            <span>access payment{unlockedCount === 1 ? '' : 's'}</span>
           </div>
           <div>
             <strong className='tnum'>{supportingCount}</strong>
-            <span>artist{supportingCount === 1 ? '' : 's'} backed</span>
+            <span>artist{supportingCount === 1 ? '' : 's'} in your collection</span>
           </div>
         </div>
 
@@ -186,7 +186,7 @@ export function WalletModal({
           <section className='wallet-activity-section'>
             <h3>
               <Users size={15} />
-              Artists backed
+              Artists in your collection
             </h3>
             {supportedArtists.length > 0 ? (
               <div className='wallet-activity-list'>
@@ -214,14 +214,14 @@ export function WalletModal({
                 {supportedArtists.length > 5 && <p className='wallet-empty'>+{supportedArtists.length - 5} more - view all in account details</p>}
               </div>
             ) : (
-              <p className='wallet-empty'>No backed artists found for this wallet yet.</p>
+              <p className='wallet-empty'>No artists found through listening access payments yet.</p>
             )}
           </section>
 
           <section className='wallet-activity-section'>
             <h3>
               <Music2 size={15} />
-              Supported tracks
+              Access payments
             </h3>
             {paidTracks.length > 0 ? (
               <div className='wallet-activity-list'>

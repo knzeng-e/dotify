@@ -198,14 +198,14 @@ for (const [width, height] of sizes) {
       await capture(guest, info, 'live-dock');
       await guest.goto('/');
       await guest.getByTestId('track-card-open').click();
-      await guest.getByRole('button', { name: 'Support and open', exact: true }).click();
+      await guest.getByRole('button', { name: 'Unlock listening', exact: true }).click();
       await expect(guest.getByTestId('access-warning')).toBeVisible();
       await capture(guest, info, 'support');
       await guest.getByRole('button', { name: 'Not now', exact: true }).click();
       await guest.addStyleTag({ content: 'html { font-size: 200% !important; }' });
       await expect.poll(() => guest.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await capture(guest, info, 'player-200-text');
-      await guest.getByRole('button', { name: 'Support and open', exact: true }).click();
+      await guest.getByRole('button', { name: 'Unlock listening', exact: true }).click();
       const dialog = guest.getByTestId('access-warning');
       await expect.poll(() => dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
       await capture(guest, info, 'support-200-text');
@@ -301,7 +301,7 @@ test('browser Back dismisses contextual sheets without leaving or stopping the p
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(fixture);
   await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
-  for (const name of ['About this release', 'Queue', 'Listening options']) {
+  for (const name of ['About this release', 'Queue', 'Tip this track']) {
     const trigger = page.getByRole('button', { name, exact: true });
     await trigger.focus();
     await trigger.press('Enter');

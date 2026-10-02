@@ -145,7 +145,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         : effectiveAccessMode === 'free'
           ? 'Free for everyone'
           : 'Free for verified humans';
-  const unlockCtaLabel = effectiveAccessMode === 'classic' ? 'Support and open' : 'Check access';
+  const unlockCtaLabel = effectiveAccessMode === 'classic' ? 'Unlock listening' : 'Check access';
   const canHostSelectedTrack = Boolean(selectedTrack && !selectedTrackInactive && !needsTrackAccess && catalog.audioSource);
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));
   const activeListeners = listeners.filter(listener => listener.status !== 'disconnected');
@@ -405,19 +405,14 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         <div className='player-main-column'>
           <div className='track-copy'>
             <h2>{streamTitle}</h2>
-            {streamArtist && (
-              <>
-                <button className='player-artist-link' type='button' onClick={() => onOpenArtist(streamArtist)}>
+            <div className='track-attribution'>
+              {streamArtist && (
+                <button className='player-artist-link' type='button' onClick={() => onOpenArtist(streamArtist)} title={`View ${streamArtist}`}>
                   {streamArtist}
-                  {roomId && <span className='room-artist-hint'> · artist &amp; support</span>}
                 </button>
-                {roomId && (
-                  <button className='room-artist-support' type='button' onClick={() => onOpenArtist(streamArtist)}>
-                    Artist &amp; support
-                  </button>
-                )}
-              </>
-            )}
+              )}
+              {contributionTrack && <ArtistDonationButton key={contributionTrack.id} track={contributionTrack} kind='tip' />}
+            </div>
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : visibleHostName ? `With ${visibleHostName}` : 'Listening together'}</span>
 
             {!roomId && (
@@ -476,9 +471,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           duration={transportDuration}
           listener={isRoomGuest}
           onOpenQueue={!roomId ? () => setQueueOpen(true) : undefined}
-          onOpenArtist={!roomId && streamArtist ? () => onOpenArtist(streamArtist) : undefined}
           onOpenDetails={!roomId && selectedTrack ? () => setDetailsTrack(selectedTrack) : undefined}
-          supportAction={contributionTrack ? <ArtistDonationButton key={contributionTrack.id} track={contributionTrack} kind='tip' iconOnly /> : undefined}
         />
         {roomId && <RoomReactions key={roomId} selfId={ownSocketId} />}
         {roomId && (

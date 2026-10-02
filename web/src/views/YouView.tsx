@@ -60,7 +60,7 @@ export function YouView({
           <section className='you-panel you-invitation' aria-label='Your collection'>
             <Music2 size={28} aria-hidden='true' />
             <h3>Your collection</h3>
-            <p>Connect to find your supported tracks.</p>
+            <p>Connect to find your listening access payments.</p>
             <button className='primary-action' type='button' onClick={onShowWalletModal}>
               Connect a wallet
             </button>
@@ -72,18 +72,18 @@ export function YouView({
                 <Music2 size={18} />
               </span>
               <div>
-                <h3 id='account-dashboard-title'>Your support</h3>
+                <h3 id='account-dashboard-title'>Your listening access</h3>
                 <p>Listening access is checked when you open a track.</p>
               </div>
               {(unlockedTrackCount > 0 || supportedArtistCount > 0) && (
                 <div className='account-summary' aria-label='Music summary'>
                   <span>
                     <strong className='tnum'>{unlockedTrackCount}</strong>
-                    supported tracks
+                    access payments
                   </span>
                   <span>
                     <strong className='tnum'>{supportedArtistCount}</strong>
-                    artists supported
+                    artists in your collection
                   </span>
                 </div>
               )}
@@ -93,7 +93,7 @@ export function YouView({
               <section className='account-detail-section' id='account-unlocked-tracks' tabIndex={-1} aria-labelledby='account-unlocked-title'>
                 <div className='account-detail-title'>
                   <Music2 size={16} />
-                  <h4 id='account-unlocked-title'>Supported tracks</h4>
+                  <h4 id='account-unlocked-title'>Access payments</h4>
                 </div>
                 {unlockedTracks.length > 0 ? (
                   <div className='account-detail-list'>
@@ -108,14 +108,14 @@ export function YouView({
                     ))}
                   </div>
                 ) : (
-                  <p className='account-empty'>Tracks you support will appear here after payment is verified.</p>
+                  <p>Tracks appear here after their access payment is verified. Gifts and tips have their own history below.</p>
                 )}
               </section>
 
               <section className='account-detail-section' id='account-artists-backed' tabIndex={-1} aria-labelledby='account-artists-title'>
                 <div className='account-detail-title'>
                   <Users size={16} />
-                  <h4 id='account-artists-title'>Artists supported</h4>
+                  <h4 id='account-artists-title'>Artists in your collection</h4>
                 </div>
                 {supportedArtists.length > 0 ? (
                   <div className='account-detail-list'>
@@ -142,7 +142,7 @@ export function YouView({
                     ))}
                   </div>
                 ) : (
-                  <p className='account-empty'>Artists you choose to support will appear here.</p>
+                  <p className='account-empty'>Artists appear here when you pay for listening access to their music.</p>
                 )}
               </section>
             </div>

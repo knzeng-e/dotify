@@ -141,7 +141,7 @@ export function createSupportPaymentFlow(
           status: 'unverified',
           hasPaid: true,
           txHash: attempt?.txHash,
-          message: 'Your support is recorded. Listening is currently unavailable for this release. No new payment was sent.'
+          message: 'Your access payment is recorded. Listening is currently unavailable for this release. No new payment was sent.'
         };
       }
       if (!input.currentAccount()) throw new Error('Your connected account changed. Reopen this track with the account you want to use.');
@@ -230,7 +230,7 @@ export function createSupportPaymentFlow(
         message: canceled
           ? 'No payment was sent. You can try again when you are ready.'
           : fundingRequired
-            ? `This payment account could not cover the support and network fee. Add ${input.intent.asset.symbol} to the paying account, then try again. No payment was sent.`
+            ? `This payment account could not cover the access price and network fee. Add ${input.intent.asset.symbol} to the paying account, then try again. No payment was sent.`
             : journalReadFailed
               ? 'The saved payment reference could not be read. Check your account activity before paying again. No new payment was sent.'
               : !safeToRetry && (sending || attempt)

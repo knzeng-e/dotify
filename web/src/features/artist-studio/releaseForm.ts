@@ -25,7 +25,7 @@ const PUBLICATION_ROADMAP_STEPS = [
   {
     id: 'manifest',
     label: 'Release details',
-    detail: 'The title, listening access, and support split are saved with the release.'
+    detail: 'The title, listening access, and revenue split are saved with the release.'
   },
   {
     id: 'registry',
@@ -145,7 +145,7 @@ export function buildReleaseValueFlowRows(input: {
     if (!hasDraft) continue;
     rows.push({
       label: split.label.trim() || 'Rights holder',
-      value: split.bps > 0 ? `${formatRoyaltyPercent(split.bps)} receives support` : 'Add a share before publishing'
+      value: split.bps > 0 ? `${formatRoyaltyPercent(split.bps)} of revenue` : 'Add a share before publishing'
     });
   }
   if (totalBps > ROYALTY_BPS_DENOMINATOR) {
@@ -180,7 +180,7 @@ export function buildReleasePublicationFacts(input: {
       value: releaseAccessConditionLabel(input.accessMode, input.priceDot, input.nativePaymentSymbol, input.personhoodLevel)
     },
     {
-      label: 'Total support',
+      label: 'Access price',
       value: releasePaymentAmountLabel(input.accessMode, input.priceDot, input.nativePaymentSymbol)
     },
     {

@@ -9,11 +9,11 @@ async function openGift(page: Page, query = '') {
   await page.goto(`/${query}`);
   await page.locator('.catalogue-card .artist-text-button').first().click();
   await expect(page.getByRole('heading', { name: 'Dotify Test Artist', exact: true })).toBeVisible();
-  const gift = page.getByRole('main').getByRole('button', { name: 'Give to the artist', exact: true });
+  const gift = page.getByRole('main').getByRole('button', { name: 'Send a gift', exact: true });
   await expect(gift).toBeVisible();
   await expect(async () => {
     await gift.click();
-    await expect(page.getByRole('dialog', { name: 'Give to Dotify Test Artist' })).toBeVisible({ timeout: 1000 });
+    await expect(page.getByRole('dialog', { name: 'Gift to Dotify Test Artist' })).toBeVisible({ timeout: 1000 });
   }).toPass();
   await expect(amountField(page, 'gift')).toBeVisible();
 }
@@ -42,17 +42,38 @@ for (const width of [320, 390, 430, 1440]) {
     expect(access.paid).toBe(false);
     expect(access.accessGranted).toBe(false);
     await page.getByRole('button', { name: 'Close contribution' }).click();
-    await expect(page.getByRole('button', { name: 'Give to the artist', exact: true })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Send a gift', exact: true })).toBeFocused();
   });
 }
-test('the player offers a work-specific tip', async ({ page }) => {
-  await page.goto('/');
-  await page.getByTestId('track-card-open').first().click();
-  await page.getByRole('button', { name: 'Support this track', exact: true }).click();
-  await expect(contributionDialog(page)).toContainText('Listening access stays unchanged');
-  await review(page, '0.5', 'tip');
-  await expect(contributionDialog(page).getByRole('button', { name: 'Confirm tip · 0.5 PAS', exact: true })).toBeVisible();
-});
+for (const width of [320, 390, 430, 1440]) {
+  test(`track tips stay separate from playback and paid access at ${width}px`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    await page.getByTestId('track-card-open').first().click();
+    const transport = page.getByRole('group', { name: 'Playback controls', exact: true });
+    await expect(transport.getByRole('button', { name: 'Mute', exact: true })).toBeVisible();
+    await expect(transport.getByRole('button', { name: 'Tip this track', exact: true })).toHaveCount(0);
+    const tip = page.getByRole('button', { name: 'Tip this track', exact: true });
+    await expect(tip).toBeVisible();
+    const box = (await tip.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    await page.screenshot({ path: info.outputPath(`track-actions-${width}.png`), animations: 'disabled' });
+    await tip.click();
+    await expect(contributionDialog(page)).toContainText('Listening access stays unchanged');
+    await review(page, '0.5', 'tip');
+    await contributionDialog(page).getByRole('button', { name: 'Confirm tip · 0.5 PAS', exact: true }).click();
+    await expect(contributionDialog(page)).toContainText('Contribution confirmed');
+    const access = await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_CLASSIC_UNLOCK__') as { paid: boolean; accessGranted: boolean });
+    expect(access.paid).toBe(false);
+    expect(access.accessGranted).toBe(false);
+    await page.getByRole('button', { name: 'Close contribution' }).click();
+    await expect(tip).toBeFocused();
+    await page.getByRole('button', { name: 'Unlock listening', exact: true }).click();
+    await expect(page.getByTestId('classic-unlock-button')).toHaveAccessibleName('Pay 0.5 PAS to unlock Deterministic Classic Unlock');
+  });
+}
 test('a confirmed gift is visible in You with a dated exportable receipt', async ({ page }, info) => {
   await openGift(page);
   await review(page, '0.5');
@@ -70,13 +91,51 @@ test('a confirmed gift is visible in You with a dated exportable receipt', async
   expect((await download).suggestedFilename()).toBe('dotify-contributions.json');
   await page.screenshot({ path: info.outputPath('personal-contribution-history.png'), fullPage: true, animations: 'disabled' });
 });
+
+for (const width of [320, 390, 1440]) {
+  test(`room tip belongs to the live track at ${width}px`, async ({ page, browser }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/?e2eRoom=protected-authorized&e2eSync=on');
+    await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+    await page.getByRole('button', { name: 'Select E2E Protected Room Track', exact: true }).click();
+    await page.getByLabel('Your name in the room').fill('Tip room host');
+    await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+    await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
+    const room = (await page.getByTestId('room-code').innerText()).trim();
+    const guestContext = await browser.newContext({ viewport: { width, height: 844 } });
+    try {
+      const guest = await guestContext.newPage();
+      await guest.goto(`/?e2eRoom=public&e2eSync=on#/rooms/${room}`);
+      await guest.getByLabel('Your name in the room').fill('Tip room guest');
+      await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+      await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync');
+      for (const [role, participant] of [
+        ['host', page],
+        ['guest', guest]
+      ] as const) {
+        const tip = participant.getByRole('button', { name: 'Tip this track', exact: true });
+        await expect(tip).toBeVisible();
+        expect(await participant.locator('.player-transport').getByRole('button', { name: 'Tip this track' }).count()).toBe(0);
+        expect(await participant.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await participant.screenshot({ path: info.outputPath(`room-tip-${role}-${width}.png`), animations: 'disabled' });
+        await tip.click();
+        await expect(contributionDialog(participant)).toContainText('E2E Protected Room Track');
+        await expect(contributionDialog(participant)).toContainText('Listening access stays unchanged');
+        await participant.getByRole('button', { name: 'Close contribution' }).click();
+      }
+      expect(await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
+    } finally {
+      await guestContext.close();
+    }
+  });
+}
 test('a pending contribution can close and reopen without another transfer', async ({ page }) => {
   await openGift(page, '?e2eGift=pending');
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
   await expect(contributionDialog(page).getByRole('status')).toContainText('Closing does not cancel');
   await page.getByRole('button', { name: 'Close contribution' }).click();
-  await page.getByRole('button', { name: 'Give to the artist', exact: true }).click();
+  await page.getByRole('button', { name: 'Send a gift', exact: true }).click();
   await expect(contributionDialog(page).getByRole('status')).toContainText('Closing does not cancel');
   expect((await giftState(page)).sends).toBe(1);
   await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__').complete());
