@@ -1,4 +1,4 @@
-import { Box, ExternalLink, KeyRound, LockKeyhole, LogOut, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
+import { Box, ExternalLink, KeyRound, LockKeyhole, LogOut, Music2, RefreshCw, Users, Wallet, X } from 'lucide-react';
 import { Dialog } from './Dialog';
 import type { WalletState } from '../hooks/useWallet';
 import type { CatalogTrack } from '../shared/types';
@@ -276,7 +276,7 @@ export function WalletModal({
               onClose();
             }}
           >
-            <Power size={16} />
+            <LogOut size={16} />
             Disconnect
           </button>
         )}

@@ -1,4 +1,4 @@
-import { ArrowUpRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { CoverImage } from '../../components/CoverImage';
 import type { ReleaseEarnings } from '../../features/artist-studio/earnings';
 import { formatWeiAsDot } from '../../shared/utils/format';
@@ -43,7 +43,7 @@ export function ReleaseEarningsList({
             <small>Your receipts</small>
             {known ? `${formatWeiAsDot(row.receivedWei)} ${symbol}` : 'Unavailable'}
           </span>
-          <ArrowUpRight size={17} aria-hidden='true' />
+          <ChevronRight size={17} aria-hidden='true' />
         </button>
       ))}
     </div>
