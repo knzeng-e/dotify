@@ -602,9 +602,67 @@ entitlement beneficiary, replay protection, and a reconciliation/refund strategy
 Changing contract VM does not provide those guarantees.
 
 Gifts and tips are native UI; `VITE_DOTIFY_ARTIST_DONATIONS` is retired.
-Gifts use the artist's profile allocation; work tips preserve collaborator
-splits, with optional host sharing from the artist portion. Both require an
+Gifts use the artist's profile allocation; work tips deduct any enabled host
+share first, then distribute the remainder across the work's rights holders. Both require an
 upgraded contribution runtime and keep listening access unchanged. Product
 signing still requires the CDM writer profile. Live host validation and
 owner-approved upgrades are separate release gates. See
 [native contributions](../docs/design/native-contributions.md).
+
+### Listening and contribution actions
+
+The player separates audio controls from voluntary contributions and access
+payments. Icons supplement visible labels whenever an action can send money.
+
+| Action                    | Icon and label                                           | Placement                                            |
+| ------------------------- | -------------------------------------------------------- | ---------------------------------------------------- |
+| Paid listening access     | Key, `Unlock listening`; quote: `Pay <amount> to unlock` | Locked track and access dialog                       |
+| Work-specific tip         | Coins, `Tip this track` (`Tip` on compact screens)       | Beside the track's artist, outside playback controls |
+| Artist gift               | Hand holding a heart, `Send a gift`                      | Artist profile                                       |
+| Host contribution account | Coins, `Receive room tips`                               | Room People panel                                    |
+| Local sound               | Speaker, `Mute` / `Unmute`                               | Playback controls, one tap                           |
+| Playback modes and queue  | Shuffle, repeat-one, music list                          | Secondary audio controls                             |
+| Release information       | Information circle, `About this release`                 | Contextual details sheet                             |
+| Shared presence           | Radio, people, share, QR                                 | Room entry, presence and invitation                  |
+
+A standalone heart is not a money action. Heart reactions remain ephemeral room
+reactions; there is no new favorites feature. Existing play/pause, navigation,
+copy, download, refresh, close and external-link symbols retain their familiar
+meaning. The artist's name opens their profile. The obsolete artist/support
+shortcut and mute-only options sheet have been removed.
+
+The gift/tip sheet names the contribution purpose and states that listening
+access stays unchanged. Recipient quotes, wallet approval, finality checks and
+recovery remain the same. Room guests can continue listening without an account.
+Catalog playback carries the runtime address into room metadata so both host and
+guest can resolve the live work by its runtime and content hash before tipping.
+
+Review the action mapping in `PlayerView`, `PlayerTransport`,
+`ArtistDonationButton` and `AccessGateOverlay`. Browser coverage lives in
+`artist-gift.spec.ts`, `classic-unlock.spec.ts`, `player-presence.spec.ts`,
+`room-workspace.spec.ts` and `mobile-accessibility.spec.ts`.
+
+### Iconography review (2026-10-02)
+
+The review covers the listener shell, catalog, full/docked player, artist profile,
+room discovery and workspace, account/access/contribution dialogs, artist studio,
+and readiness tools. It is an action-semantics review, not a new visual system.
+Existing Lucide icons, visible labels and accessible button names remain the
+baseline; color alone never identifies a financial action.
+
+| Surface                          | Finding and decision                                                                                                                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Catalog, recent listening, queue | Show Play only when existing access allows playback; an arrow opens listening options. Room guest covers inspect the release, never promise independent playback.                     |
+| Recent listening                 | Trash means clear session history; X remains dismiss/close.                                                                                                                           |
+| Wallet                           | Log out consistently means disconnect; power remains the studio's release activation control.                                                                                         |
+| Studio earnings                  | A chevron opens internal release details; external-link icons remain on explorer links.                                                                                               |
+| Host queue                       | Skip-forward means play the next item; `Clear queue` names the affected collection. Reorder/remove controls have hover labels.                                                        |
+| Room discovery                   | Map represents the spatial 2D view, not a list. Center, zoom, motion and reset controls have hover labels as well as accessible names. Mobile keeps the existing card/sheet fallback. |
+| Navigation, sharing and chat     | Retain headphones/radio/person, share/QR/copy, send and reactions: these already match their actions. A chat heart expresses appreciation, not payment.                               |
+| Publishing, rights and readiness | Retain upload/save/shield, download/copy/refresh and status icons with labels; technical tools stay outside the listening controls.                                                   |
+
+No donation policy, access decision, wallet permission, room count or transaction
+is changed by this audit. Financial actions continue to require a quote and user
+approval. Browser fixtures check touch layouts, keyboard access, protected-track
+selection, wallet-free room guests and a painted interactive 3D canvas. These are
+not substitutes for a physical Product/iPhone acceptance run.

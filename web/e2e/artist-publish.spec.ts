@@ -166,7 +166,7 @@ test('artist can create a runtime, publish a release, and see it in the listener
     new RegExp(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`)
   );
   await release.getByRole('button', { name: /Open E2E Published Signal by E2E Artist/ }).click();
-  await page.getByRole('button', { name: 'Support and open', exact: true }).click();
+  await page.getByRole('button', { name: 'Unlock listening', exact: true }).click();
   await expect(page.getByTestId('access-warning')).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
 });
 

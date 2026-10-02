@@ -23,7 +23,7 @@ describe('describeArtistRegistrationError', () => {
 
 describe('catalog access labels', () => {
   it('uses direct-support language for Classic mode', () => {
-    expect(accessModeLabelFromState('classic')).toBe('Direct support');
+    expect(accessModeLabelFromState('classic')).toBe('Paid listening access');
     expect(catalogAccessLabel(classicTrack, 'PAS')).toBe('0.5 PAS');
   });
 

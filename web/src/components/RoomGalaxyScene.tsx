@@ -706,13 +706,13 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
       {rooms.length > 1 && (
         <div className='room-galaxy-controls' aria-label='3D galaxy navigation controls'>
           <div className='sky-control-group'>
-            <button type='button' onClick={() => focusRoomAt(selectedRoomIndex - 1)} aria-label='Center previous room'>
+            <button type='button' onClick={() => focusRoomAt(selectedRoomIndex - 1)} aria-label='Center previous room' title='Center previous room'>
               <ChevronLeft size={16} />
             </button>
-            <button type='button' onClick={() => focusRoomAt(selectedRoomIndex)} aria-label='Center selected room'>
+            <button type='button' onClick={() => focusRoomAt(selectedRoomIndex)} aria-label='Center selected room' title='Center selected room'>
               <LocateFixed size={16} />
             </button>
-            <button type='button' onClick={() => focusRoomAt(selectedRoomIndex + 1)} aria-label='Center next room'>
+            <button type='button' onClick={() => focusRoomAt(selectedRoomIndex + 1)} aria-label='Center next room' title='Center next room'>
               <ChevronRight size={16} />
             </button>
           </div>
@@ -722,6 +722,7 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
               onClick={() => updateControls(setControls, { distance: controls.distance + ZOOM_STEP })}
               disabled={controls.distance >= MAX_DISTANCE}
               aria-label='Zoom out'
+              title='Zoom out'
             >
               <Minus size={16} />
             </button>
@@ -730,6 +731,7 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
               onClick={() => updateControls(setControls, { distance: controls.distance - ZOOM_STEP })}
               disabled={controls.distance <= MIN_DISTANCE}
               aria-label='Zoom in'
+              title='Zoom in'
             >
               <Plus size={16} />
             </button>
@@ -737,10 +739,11 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
               type='button'
               onClick={() => updateControls(setControls, { paused: !controls.paused })}
               aria-label={controls.paused ? 'Resume room galaxy motion' : 'Pause room galaxy motion'}
+              title={controls.paused ? 'Resume room galaxy motion' : 'Pause room galaxy motion'}
             >
               {controls.paused ? <Play size={15} fill='currentColor' /> : <Pause size={15} />}
             </button>
-            <button type='button' onClick={resetCamera} aria-label='Reset galaxy view'>
+            <button type='button' onClick={resetCamera} aria-label='Reset galaxy view' title='Reset galaxy view'>
               <RotateCcw size={15} />
             </button>
           </div>

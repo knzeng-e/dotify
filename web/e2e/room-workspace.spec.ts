@@ -211,7 +211,7 @@ test('desktop keeps playback, people and chat visible and returns from artist su
   const reactions = (await page.locator('.room-reaction-dock').boundingBox())!;
   expect(reactions.width).toBeGreaterThanOrEqual(stage.width - 40);
   await page.screenshot({ path: testInfo.outputPath('room-conversation.png') });
-  await page.getByRole('button', { name: 'Artist & support', exact: true }).click();
+  await page.locator('.player-artist-link').click();
   await expect(page.locator('.player-dock')).toBeVisible();
   await page.getByRole('button', { name: 'Room live', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Message the room' })).toBeVisible();

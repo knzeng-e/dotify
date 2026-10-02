@@ -1,6 +1,7 @@
-import { Play, X } from 'lucide-react';
+import { ArrowRight, Play, X } from 'lucide-react';
 import { useCatalogContext, usePlaybackContext } from '../app/providers';
 import { catalogAccessAriaLabel } from '../shared/utils/format';
+import { trackHasAccess } from '../features/access/accessPolicy';
 import { CoverImage } from './CoverImage';
 import { Dialog } from './Dialog';
 
@@ -47,7 +48,7 @@ export function PlayerQueueDialog({ onClose }: { onClose: () => void }) {
                 <strong>{track.title}</strong>
                 <span>{track.artist}</span>
               </span>
-              <Play size={18} aria-hidden='true' />
+              {trackHasAccess(track, catalog.catalogAccessByTrackId) ? <Play size={18} aria-hidden='true' /> : <ArrowRight size={18} aria-hidden='true' />}
             </button>
           </li>
         ))}

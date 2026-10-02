@@ -364,12 +364,10 @@ test('public room: mobile-style host without captureStream uses Web Audio captur
     await expect(listener.getByTestId('session-error')).toHaveCount(0);
     await expect.poll(async () => (await readRoomJoinState(host))?.webAudioMonitorGain ?? 0).toBe(1);
 
-    await host.getByRole('button', { name: 'Listening options', exact: true }).click();
     await host.getByRole('button', { name: 'Mute', exact: true }).click();
     await expect.poll(async () => (await readRoomJoinState(host))?.webAudioMonitorGain ?? 1).toBe(0);
 
     await host.getByRole('button', { name: 'Unmute', exact: true }).click();
-    await host.getByRole('button', { name: 'Close listening options', exact: true }).click();
     await expect.poll(async () => (await readRoomJoinState(host))?.webAudioMonitorGain ?? 0).toBe(1);
 
     const listenerState = await readRoomJoinState(listener);

@@ -315,31 +315,32 @@ export function SkyOfRooms({ rooms, selectedRoomId, sessionAction, onSelectRoom,
 
           <div className='sky-controls' aria-label='Galaxy navigation controls'>
             <div className='sky-control-group'>
-              <button type='button' onClick={() => centerRoom(centeredRoomIndex - 1)} aria-label='Center previous room'>
+              <button type='button' onClick={() => centerRoom(centeredRoomIndex - 1)} aria-label='Center previous room' title='Center previous room'>
                 <ChevronLeft size={16} />
               </button>
               <button
                 type='button'
                 onClick={() => centerRoom(centeredRoomIndex)}
                 aria-label={`Center ${rooms[centeredRoomIndex]?.track?.title ?? 'current room'}`}
+                title='Center selected room'
               >
                 <LocateFixed size={16} />
               </button>
-              <button type='button' onClick={() => centerRoom(centeredRoomIndex + 1)} aria-label='Center next room'>
+              <button type='button' onClick={() => centerRoom(centeredRoomIndex + 1)} aria-label='Center next room' title='Center next room'>
                 <ChevronRight size={16} />
               </button>
             </div>
             <div className='sky-control-group'>
-              <button type='button' onClick={() => zoomCamera(-ZOOM_STEP)} disabled={camera.scale <= MIN_ZOOM} aria-label='Zoom out'>
+              <button type='button' onClick={() => zoomCamera(-ZOOM_STEP)} disabled={camera.scale <= MIN_ZOOM} aria-label='Zoom out' title='Zoom out'>
                 <Minus size={16} />
               </button>
               <output className='sky-zoom-level' aria-label='Galaxy zoom level'>
                 {Math.round(camera.scale * 100)}%
               </output>
-              <button type='button' onClick={() => zoomCamera(ZOOM_STEP)} disabled={camera.scale >= MAX_ZOOM} aria-label='Zoom in'>
+              <button type='button' onClick={() => zoomCamera(ZOOM_STEP)} disabled={camera.scale >= MAX_ZOOM} aria-label='Zoom in' title='Zoom in'>
                 <Plus size={16} />
               </button>
-              <button type='button' onClick={resetCamera} aria-label='Reset galaxy view'>
+              <button type='button' onClick={resetCamera} aria-label='Reset galaxy view' title='Reset galaxy view'>
                 <RotateCcw size={15} />
               </button>
             </div>

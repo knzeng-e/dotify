@@ -198,14 +198,14 @@ for (const [width, height] of sizes) {
       await capture(guest, info, 'live-dock');
       await guest.goto('/');
       await guest.getByTestId('track-card-open').click();
-      await guest.getByRole('button', { name: 'Support and open', exact: true }).click();
+      await guest.getByRole('button', { name: 'Unlock listening', exact: true }).click();
       await expect(guest.getByTestId('access-warning')).toBeVisible();
       await capture(guest, info, 'support');
       await guest.getByRole('button', { name: 'Not now', exact: true }).click();
       await guest.addStyleTag({ content: 'html { font-size: 200% !important; }' });
       await expect.poll(() => guest.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await capture(guest, info, 'player-200-text');
-      await guest.getByRole('button', { name: 'Support and open', exact: true }).click();
+      await guest.getByRole('button', { name: 'Unlock listening', exact: true }).click();
       const dialog = guest.getByTestId('access-warning');
       await expect.poll(() => dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
       await capture(guest, info, 'support-200-text');
@@ -250,10 +250,10 @@ test('solo queue uses the existing access check and never pays on selection', as
   await page.goto(fixture);
   await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
   await page.getByRole('button', { name: 'Queue', exact: true }).click();
-  await page
-    .getByRole('dialog', { name: 'Queue', exact: true })
-    .getByRole('button', { name: /^Open E2E Protected Room Track,/ })
-    .click();
+  const lockedChoice = page.getByRole('dialog', { name: 'Queue', exact: true }).getByRole('button', { name: /^Open E2E Protected Room Track,/ });
+  await expect(lockedChoice.locator('.lucide-arrow-right')).toHaveCount(1);
+  await expect(lockedChoice.locator('.lucide-play')).toHaveCount(0);
+  await lockedChoice.click();
   await expect(page.getByRole('dialog', { name: 'Queue', exact: true })).toHaveCount(0);
   await expect(page.getByTestId('locked-player-state')).toBeVisible();
   await expect(page.getByTestId('access-warning')).toHaveCount(0);
@@ -301,7 +301,7 @@ test('browser Back dismisses contextual sheets without leaving or stopping the p
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(fixture);
   await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
-  for (const name of ['About this release', 'Queue', 'Listening options']) {
+  for (const name of ['About this release', 'Queue', 'Tip this track']) {
     const trigger = page.getByRole('button', { name, exact: true });
     await trigger.focus();
     await trigger.press('Enter');
@@ -378,6 +378,8 @@ test('recent listening requires playback, remains session-local and can be clear
   await nav(page, 'Music');
   const recent = page.getByRole('region', { name: 'Recent listening', exact: true });
   await expect(recent.getByRole('button', { name: /^Replay E2E Public Room Track/ })).toBeVisible();
+  await expect(recent.getByRole('button', { name: /^Replay E2E Public Room Track/ }).locator('.lucide-play')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Clear recent listening' }).locator('.lucide-trash-2')).toHaveCount(1);
   await page.getByRole('button', { name: 'Clear recent listening' }).click();
   await expect(recent).toHaveCount(0);
   await page.reload();

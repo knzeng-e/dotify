@@ -112,7 +112,7 @@ export function accessModeLabel(track: CatalogTrack) {
 
 export function accessModeLabelFromState(mode: AccessMode) {
   if (mode === 'free') return 'Free for everyone';
-  return mode === 'human-free' ? 'Free for verified humans' : 'Direct support';
+  return mode === 'human-free' ? 'Free for verified humans' : 'Paid listening access';
 }
 
 export function catalogAccessLabel(track: CatalogTrack, nativePaymentSymbol = 'native token') {

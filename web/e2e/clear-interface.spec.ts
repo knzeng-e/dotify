@@ -30,24 +30,30 @@ for (const width of [390, 1440]) {
       expect(await page.evaluate(() => Reflect.get(window, '__artworkAudio') === document.querySelector('audio'))).toBe(true);
       await page.getByRole('button', { name: width <= 768 ? 'Back to Music' : 'Music', exact: true }).click();
       // A locked release becomes the selected player state without interrupting
-      // discovery. Its support terms remain available through an explicit CTA.
+      // discovery. Its access terms remain available through an explicit CTA.
       const locked = page.getByRole('button', { name: /^View listening options for E2E Protected Room Track by Dotify Room Host,/ });
       await locked.click();
       await expect(page.getByTestId('access-warning')).toHaveCount(0);
-      await expect(page.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Unlock listening', exact: true })).toBeVisible();
     });
 
-    test('shows Play only on the active cover and keeps cards focused on the music', async ({ page }, testInfo) => {
+    test('cover affordances distinguish playback from opening access options', async ({ page }, testInfo) => {
       await page.goto('/?e2eRoom=public&e2eCatalog=wide');
       const actions = page.getByTestId('track-artwork-action');
       const row = page.getByRole('region', { name: 'Music catalog', exact: true });
       await expect(actions.first()).toBeVisible();
-      await expect(row.locator('.lucide-arrow-right')).toHaveCount(0);
+      await expect(row.locator('.catalogue-card-open .lucide-arrow-right')).toHaveCount(0);
       await expect(row.locator('.catalogue-access-line')).toHaveCount(0);
       await expect(row.locator('.catalogue-access-cue')).toHaveCount(0);
       await expect(row.getByText('0.5 PAS', { exact: true })).toHaveCount(0);
       await expect(row.getByText('Verified humans', { exact: true })).toHaveCount(0);
-      await expect(actions.locator('.lucide-play')).toHaveCount(await actions.count());
+      const playable = row.getByRole('button', { name: /^Play / });
+      const inspectable = row.getByRole('button', { name: /^View listening options for / });
+      expect(await playable.count()).toBeGreaterThan(0);
+      expect(await inspectable.count()).toBeGreaterThan(0);
+      await expect(playable.locator('.lucide-play')).toHaveCount(await playable.count());
+      await expect(inspectable.locator('.lucide-arrow-right')).toHaveCount(await inspectable.count());
+      await expect(inspectable.locator('.lucide-play')).toHaveCount(0);
       await expect
         .poll(() => actions.locator('.track-artwork-action').evaluateAll(elements => elements.every(el => getComputedStyle(el).opacity === '0')))
         .toBe(true);
@@ -73,7 +79,7 @@ for (const width of [390, 1440]) {
       await expect(protectedCard).not.toContainText('0.5 PAS');
       await protectedCard.getByTestId('track-artwork-action').click();
       await expect(page.getByTestId('access-warning')).toHaveCount(0);
-      await expect(page.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Unlock listening', exact: true })).toBeVisible();
     });
 
     test('artist and personal screens lead with useful content', async ({ page }, testInfo) => {
@@ -217,6 +223,8 @@ test('clear interface lets guests inspect releases without changing their listen
     const selectedTitle = await guest.locator('.catalogue-card[data-selected="true"] .catalogue-card-open').innerText();
     const keyRequests = await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests);
     const protectedAction = guest.getByRole('button', { name: /^View listening options for E2E Protected Room Track by Dotify Room Host,/ });
+    await expect(protectedAction.locator('.lucide-arrow-right')).toHaveCount(1);
+    await expect(guest.getByTestId('track-artwork-action').locator('.lucide-play')).toHaveCount(0);
     // Keyboard focus returns to the trigger; Safari pointer clicks do not focus buttons.
     await protectedAction.focus();
     await protectedAction.press('Enter');
@@ -245,7 +253,7 @@ test('clear interface lets guests inspect releases without changing their listen
     await expect(dialog).toHaveCount(0);
     await expect(guest.getByTestId('room-code')).toHaveCount(0);
     await expect(guest.getByTestId('access-warning')).toHaveCount(0);
-    await expect(guest.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
+    await expect(guest.getByRole('button', { name: 'Unlock listening', exact: true })).toBeVisible();
     await expect(guest.locator('audio.native-player-source').first()).toHaveJSProperty('paused', true);
     await expect(page.getByTestId('room-code')).toHaveText(code);
   } finally {

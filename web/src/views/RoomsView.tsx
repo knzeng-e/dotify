@@ -1,5 +1,5 @@
 import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
-import { ArrowRight, Box, Headphones, List, Radio, RefreshCw, Users, X } from 'lucide-react';
+import { ArrowRight, Box, Headphones, Map as MapIcon, Radio, RefreshCw, Users, X } from 'lucide-react';
 import type { FormEvent, Ref } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -115,7 +115,7 @@ export function RoomsView({
                   aria-pressed={discoveryRenderer === 'sky-2d'}
                   onClick={() => setDiscoveryRenderer('sky-2d')}
                 >
-                  <List size={15} />
+                  <MapIcon size={15} />
                   2D
                 </button>
               </div>

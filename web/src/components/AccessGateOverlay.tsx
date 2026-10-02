@@ -1,4 +1,4 @@
-import { LockKeyhole } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { Dialog } from './Dialog';
 import type { AccessGate } from '../shared/types';
 import { buildClassicAccessReceipt } from '../features/access/accessPromise';
@@ -34,7 +34,7 @@ export function AccessGateOverlay({
     >
       <div className='access-gate-header'>
         <span>
-          <LockKeyhole size={17} />
+          <KeyRound size={17} aria-hidden='true' />
         </span>
         <strong id='access-gate-title'>{gate.title}</strong>
       </div>
@@ -45,9 +45,9 @@ export function AccessGateOverlay({
         <p className='access-gate-hint'>{gate.hint}</p>
       </div>
       {classicReceipt && (
-        <section className='access-gate-receipt' aria-label={`Support summary for ${gate.track.title}`}>
-          <div className='access-gate-price' aria-label={`Support amount ${classicReceipt.supportAmount}`}>
-            <span>Total support</span>
+        <section className='access-gate-receipt' aria-label={`Access payment for ${gate.track.title}`}>
+          <div className='access-gate-price' aria-label={`Access price ${classicReceipt.supportAmount}`}>
+            <span>Listening access</span>
             <strong>{classicReceipt.supportAmount}</strong>
           </div>
           <dl>
@@ -83,9 +83,10 @@ export function AccessGateOverlay({
             type='button'
             data-testid='classic-unlock-button'
             onClick={onPay}
-            aria-label={`Support the artist and open ${gate.track.title} for ${classicReceipt.supportAmount}`}
+            aria-label={`Pay ${classicReceipt.supportAmount} to unlock ${gate.track.title}`}
           >
-            Support and open - {classicReceipt.supportAmount}
+            <KeyRound size={16} aria-hidden='true' />
+            Pay {classicReceipt.supportAmount} to unlock
           </button>
         )}
         {gate.actionType === 'signin' && onSignIn && (

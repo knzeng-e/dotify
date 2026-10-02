@@ -64,7 +64,7 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
           ) : (
             <p>Payment recipients are not indexed here. Review the confirmed quote before paying.</p>
           )}
-          <p>Review the payment quote before signing. A direct artist gift is separate from this access payment.</p>
+          <p>Review the access price before signing. Gifts and tips are voluntary contributions and do not unlock listening.</p>
         </div>
       )}
       <details className='release-provenance'>

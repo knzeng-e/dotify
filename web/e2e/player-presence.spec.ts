@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 async function expectControlsFit(page: Page) {
   const controls = page.getByRole('group', { name: 'Playback controls', exact: true });
   await expect(controls.getByRole('slider')).toBeVisible();
-  const expectedButtons = ['Shuffle', 'Previous track', 'Next track', 'Repeat this track', 'Listening options'];
+  const expectedButtons = ['Shuffle', 'Previous track', 'Next track', 'Repeat this track', 'Mute'];
   for (const name of expectedButtons) {
     const button = controls.getByRole('button', { name, exact: true });
     await expect(button).toBeVisible();
@@ -73,9 +73,10 @@ for (const [width, height] of [
     await page.getByRole('button', { name: 'Open the room', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
     await expectControlsFit(page);
-    await page.getByRole('button', { name: 'Listening options', exact: true }).click();
-    await expect(page.getByRole('dialog', { name: 'Listening options' }).getByRole('button', { name: 'Mute', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Close listening options' }).click();
+    await stage.getByRole('button', { name: 'Mute', exact: true }).click();
+    await expect(stage.getByRole('button', { name: 'Unmute', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await stage.getByRole('button', { name: 'Unmute', exact: true }).click();
+    await expect(stage.getByRole('button', { name: 'Mute', exact: true })).toHaveAttribute('aria-pressed', 'false');
     await page.getByRole('button', { name: 'Share room', exact: true }).click();
     await expect(page.getByTestId('shared-room-code')).toHaveText((await page.getByTestId('room-code').textContent()) || '');
     await expect(page.getByRole('dialog', { name: 'Listen together' }).getByRole('button', { name: 'Copy link', exact: true })).toBeVisible();

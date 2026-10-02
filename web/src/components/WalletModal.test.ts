@@ -5,7 +5,7 @@ describe('wallet modal intent copy', () => {
   it('explains a support connection at the moment it is requested', () => {
     const copy = walletModalCopy('support');
 
-    expect(copy.eyebrow).toBe('Support this artist');
+    expect(copy.eyebrow).toBe('Your paying account');
     expect(copy.title).toBe('Choose how to confirm');
     expect(copy.description).toContain('amount');
     expect(copy.description).toContain('before anything is sent');

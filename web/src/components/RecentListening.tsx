@@ -1,4 +1,4 @@
-import { Play, X } from 'lucide-react';
+import { ArrowRight, Play, Trash2 } from 'lucide-react';
 import { CoverImage } from './CoverImage';
 import { trackHasAccess } from '../features/access/accessPolicy';
 import type { CatalogTrack } from '../shared/types';
@@ -24,7 +24,7 @@ export function RecentListening({
       <div className='section-heading'>
         <h2 id='recent-listening-title'>Recently played</h2>
         <button className='icon-action' type='button' onClick={onClear} aria-label='Clear recent listening' title='Clear recent listening'>
-          <X size={18} />
+          <Trash2 size={18} />
         </button>
       </div>
       <div className='recent-listening-rail' role='region' aria-label='Recent listening' tabIndex={0}>
@@ -41,7 +41,7 @@ export function RecentListening({
           >
             <span className='recent-listening-art'>
               <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
-              <Play size={24} fill='currentColor' />
+              {!roomGuest && trackHasAccess(track, access) ? <Play size={24} fill='currentColor' /> : <ArrowRight size={24} />}
             </span>
             <strong>{track.title}</strong>
             <span>{track.artist}</span>

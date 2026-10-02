@@ -80,7 +80,7 @@ async function disableWebGl(page: Page) {
   });
 }
 
-test('room discovery exposes an inspection panel beside the desktop list', async ({ page }) => {
+test('room discovery exposes an inspection panel beside the desktop list', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const roomId = await openPublicRoom(page);
   const roomCard = await openRoomsTab(page, roomId);
@@ -89,6 +89,7 @@ test('room discovery exposes an inspection panel beside the desktop list', async
   await page.getByRole('button', { name: '3D', exact: true }).click();
   await expectGalaxyReady(page);
   await expectGalaxyCanvasPainted(page);
+  await page.getByTestId('room-galaxy-scene').screenshot({ path: testInfo.outputPath('room-galaxy-desktop.png') });
   await expect(page.getByRole('button', { name: `Join room ${roomId}` })).toBeVisible();
   await page.getByTestId('room-galaxy-scene').focus();
   await page.keyboard.press('ArrowRight');
@@ -150,7 +151,7 @@ test('room discovery keeps the card grid usable with reduced motion', async ({ p
   await expect(page.getByTestId('room-detail-panel').getByRole('button', { name: 'Join room' })).toBeVisible();
 });
 
-test('room discovery uses a touch-safe inspection sheet above mobile playback controls', async ({ page }) => {
+test('room discovery uses a touch-safe inspection sheet above mobile playback controls', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const roomId = await openPublicRoom(page);
   const roomCard = await openRoomsTab(page, roomId);
@@ -182,6 +183,7 @@ test('room discovery uses a touch-safe inspection sheet above mobile playback co
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
   expect(layout.joinHeight).toBeGreaterThanOrEqual(44);
   expect(layout.sheetBottom).toBeLessThanOrEqual(layout.dockTop + 1);
+  await page.screenshot({ path: testInfo.outputPath('room-discovery-mobile.png') });
 
   await page.keyboard.press('Enter');
   await expect(sheet).toBeHidden();

@@ -1,4 +1,4 @@
-import { Heart, X } from 'lucide-react';
+import { Coins, HandHeart, X } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { formatEther, parseEther, parseAbi, zeroHash, type Address, type Hash } from 'viem';
 import { musicRegistryAbi } from '../generated/contracts/musicRegistry';
@@ -13,7 +13,7 @@ import { nativeCurrencyForChain } from '../shared/config/contracts';
 import { getBlockscoutTxUrl } from '../shared/utils/explorer';
 import { SupportNotSubmittedError } from '../features/payments/supportPayment';
 
-type ContributionButtonProps = { track: CatalogTrack; kind?: 'gift' | 'tip'; iconOnly?: boolean };
+type ContributionButtonProps = { track: CatalogTrack; kind?: 'gift' | 'tip' };
 export function ArtistDonationButton(props: ContributionButtonProps) {
   const wallet = useWalletContext();
   const session = useSessionContext();
@@ -22,7 +22,7 @@ export function ArtistDonationButton(props: ContributionButtonProps) {
   return <ContributionButton key={scope} {...props} />;
 }
 
-function ContributionButton({ track, kind = 'gift', iconOnly = false }: ContributionButtonProps) {
+function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
   const wallet = useWalletContext();
   const session = useSessionContext();
   const { openWalletModal } = useUiFeedback();
@@ -42,7 +42,8 @@ function ContributionButton({ track, kind = 'gift', iconOnly = false }: Contribu
       account.current = null;
     };
   }, [wallet.listenerEvmAddress]);
-  const label = kind === 'tip' ? 'Support this track' : 'Give to the artist';
+  const label = kind === 'tip' ? 'Tip this track' : 'Send a gift';
+  const ContributionIcon = kind === 'tip' ? Coins : HandHeart;
   const symbol = (wallet.expectedChainId ? nativeCurrencyForChain(wallet.expectedChainId, wallet.ethRpcUrl).symbol : '') || 'PAS';
   async function review() {
     if (busy) return;
@@ -182,7 +183,9 @@ function ContributionButton({ track, kind = 'gift', iconOnly = false }: Contribu
   return (
     <>
       <button
-        className={iconOnly ? 'transport-secondary' : 'secondary-action'}
+        className='secondary-action contribution-action'
+        data-kind={kind}
+        type='button'
         aria-label={label}
         title={label}
         onClick={event => {
@@ -190,15 +193,23 @@ function ContributionButton({ track, kind = 'gift', iconOnly = false }: Contribu
           setOpen(true);
         }}
       >
-        <Heart size={18} />
-        {!iconOnly && label}
+        <ContributionIcon size={18} aria-hidden='true' />
+        <span className='contribution-action-label'>{label}</span>
+        {kind === 'tip' && (
+          <span className='contribution-action-short' aria-hidden='true'>
+            Tip
+          </span>
+        )}
       </button>
       {open && (
         <Dialog historyDismiss className='artist-gift-dialog' size='compact' labelledBy='contribution-title' onClose={() => setOpen(false)}>
           <div className='modal-header'>
             <div>
-              <p className='eyebrow'>{kind === 'tip' ? track.artist : 'A personal gift'}</p>
-              <h2 id='contribution-title'>{kind === 'tip' ? track.title : `Give to ${track.artist}`}</h2>
+              <p className='eyebrow contribution-purpose'>
+                <ContributionIcon size={18} aria-hidden='true' />
+                {kind === 'tip' ? 'Tip this track' : 'A personal gift'}
+              </p>
+              <h2 id='contribution-title'>{kind === 'tip' ? track.title : `Gift to ${track.artist}`}</h2>
             </div>
             <button className='modal-close' aria-label='Close contribution' onClick={() => setOpen(false)}>
               <X size={18} />
@@ -213,8 +224,8 @@ function ContributionButton({ track, kind = 'gift', iconOnly = false }: Contribu
             >
               <p>
                 {kind === 'tip'
-                  ? 'Support this work and its contributors. Listening access stays unchanged.'
-                  : 'Support the artist or the beneficiaries they have chosen.'}
+                  ? 'A voluntary tip for this track and its contributors. Listening access stays unchanged.'
+                  : 'A voluntary gift to the artist or their chosen beneficiaries. It does not unlock listening access.'}
               </p>
               <div className='gift-amount-options' role='group' aria-label='Suggested amounts'>
                 {['0.1', '0.5', '1'].map(value => (

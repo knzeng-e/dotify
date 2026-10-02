@@ -1,4 +1,4 @@
-import { Play } from 'lucide-react';
+import { ArrowRight, Play } from 'lucide-react';
 import { CoverImage } from './CoverImage';
 import type { CatalogTrack } from '../shared/types';
 
@@ -33,7 +33,7 @@ export function TrackArtworkButton({
     >
       <CoverImage className='catalogue-cover' src={track.imageRef} alt='' fallbackLabel={track.title} loading='lazy' sizes='(max-width: 520px) 42vw, 190px' />
       <span className='track-artwork-action' aria-hidden='true'>
-        <Play size={24} fill='currentColor' />
+        {canPlay ? <Play size={24} fill='currentColor' /> : <ArrowRight size={24} />}
       </span>
     </button>
   );
