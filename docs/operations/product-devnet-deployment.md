@@ -477,14 +477,19 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The tracked Product executable candidate is `[0, 1, 32]`, the separately
-authorized W27 correction candidate that keeps Celerity observers alive after
-an uncertain publish and queues later mirrors within their private TTL.
-For this deployment only, build and publish with
-`VITE_DOTIFY_ROOM_REALTIME=dual` and `VITE_DOTIFY_DEBUG_PANEL=true`; retain the
-default viem runtime, disabled beacons and existing payment policy. Record the
-finalized CID and same-candidate Product observations using
-[the paired capture procedure](../how-to/capture-celerity-room-realtime.md).
+The tracked Product executable candidate is `[0, 1, 34]`. It invalidates host
+caches for the verified room-tip affordance while retaining `[0, 1, 33]`
+artist earnings and native-contribution behavior. Verify the embedded SHA and
+this appVersion after reopening Product; a new CID carrying the previous
+appVersion is not sufficient evidence that a cache-sensitive UI change loaded.
+
+Version `[0, 1, 32]` is the separately authorized W27 correction candidate
+that keeps Celerity observers alive after an uncertain publish and queues later
+mirrors within their private TTL. That validation build used
+`VITE_DOTIFY_ROOM_REALTIME=dual` and `VITE_DOTIFY_DEBUG_PANEL=true` with the
+default viem runtime, disabled beacons and existing payment policy. Its paired
+capture procedure remains documented in
+[the Celerity room realtime guide](../how-to/capture-celerity-room-realtime.md).
 The tracked realtime flag remains off and no live acceptance is implied.
 Version `[0, 1, 31]` is the earlier operator-panel candidate whose publish
 timeout stopped the observer. Version `[0, 1, 30]` is the console-only W27
