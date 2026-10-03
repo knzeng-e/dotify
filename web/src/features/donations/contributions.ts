@@ -1,8 +1,8 @@
 import {
   decodeEventLog,
   encodeAbiParameters,
+  getAbiItem,
   keccak256,
-  parseAbiItem,
   zeroAddress,
   zeroHash,
   type Address,
@@ -48,10 +48,8 @@ export type ContributionReceipt = {
   transactionHash: Hash;
   shares: Array<{ recipient: Address; amount: bigint; role: number; paid: boolean; claimed: boolean }>;
 };
-const contributionReceivedEvent = parseAbiItem(
-  'event ContributionReceived(bytes32 indexed id, bytes32 indexed contentHash, address indexed sender, uint256 amount, address host, bytes32 room, bytes32 campaign, bytes32 policy, uint64 timestamp)'
-);
-const contributionShareEvent = parseAbiItem('event ContributionShare(bytes32 indexed id, address indexed recipient, uint256 amount, uint8 role, bool paid)');
+const contributionReceivedEvent = getAbiItem({ abi: musicRoyaltiesAbi, name: 'ContributionReceived' });
+const contributionShareEvent = getAbiItem({ abi: musicRoyaltiesAbi, name: 'ContributionShare' });
 
 export async function waitForFinalizedContribution(
   read: () => Promise<ContributionReceipt | undefined>,
