@@ -109,6 +109,13 @@ describe('resolvePlaybackContributionTrack', () => {
     });
   });
 
+  it('keeps a uniquely selected hash when the playback snapshot has no runtime', () => {
+    expect(resolvePlaybackContributionTrack([track()], `${runtime}:${hash}`, roomTrack({ runtimeAddress: undefined }), false)).toMatchObject({
+      state: 'ready',
+      track: { id: `${runtime}:${hash}` }
+    });
+  });
+
   it('does not let a refreshed fallback selection replace the playing work', () => {
     const fallbackRuntime = '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85';
     const fallbackHash = `0x${'92'.repeat(32)}` as const;
@@ -135,5 +142,13 @@ describe('resolvePlaybackContributionTrack', () => {
       state: 'unavailable',
       reason: 'ambiguous-release'
     });
+    expect(
+      resolvePlaybackContributionTrack(
+        [track(), track({ id: `${otherRuntime}:${hash}` })],
+        `${runtime}:${hash}`,
+        roomTrack({ runtimeAddress: undefined }),
+        true
+      )
+    ).toEqual({ state: 'unavailable', reason: 'ambiguous-release' });
   });
 });

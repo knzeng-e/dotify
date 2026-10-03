@@ -52,13 +52,14 @@ export function resolvePlaybackContributionTrack(
 ): PlaybackContributionTrackResolution {
   const selectedTrack = tracks.find(track => track.id === selectedTrackId);
   if (selectedTrack && !currentTrack) return { state: 'ready', track: selectedTrack };
-  if (
-    selectedTrack &&
-    currentTrack?.runtimeAddress &&
-    sameIdentity(selectedTrack.hash, currentTrack.hash) &&
-    sameIdentity(runtimeAddressFromTrackId(selectedTrack) ?? undefined, currentTrack.runtimeAddress)
-  ) {
-    return { state: 'ready', track: selectedTrack };
+  if (selectedTrack && currentTrack && sameIdentity(selectedTrack.hash, currentTrack.hash)) {
+    if (currentTrack.runtimeAddress && sameIdentity(runtimeAddressFromTrackId(selectedTrack) ?? undefined, currentTrack.runtimeAddress)) {
+      return { state: 'ready', track: selectedTrack };
+    }
+    if (!currentTrack.runtimeAddress) {
+      const hashMatches = tracks.filter(track => track.active !== false && sameIdentity(track.hash, currentTrack.hash));
+      if (hashMatches.length === 1) return { state: 'ready', track: selectedTrack };
+    }
   }
 
   const resolution = resolveRoomContributionTrack(tracks, currentTrack, catalogIsAuthoritative);
