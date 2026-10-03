@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchCatalog, readBundledCatalog, type CatalogApiResponse } from './catalog';
+import { fetchCatalog, isAuthoritativeCatalogResponse, readBundledCatalog, type CatalogApiResponse } from './catalog';
 import { PRODUCT_DEVNET_BOOTSTRAP_CATALOG, PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID } from './productDevnetCatalogBootstrap';
 
 function response(): CatalogApiResponse {
@@ -90,6 +90,33 @@ describe('fetchCatalog', () => {
 
     await request;
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('isAuthoritativeCatalogResponse', () => {
+  it('accepts only fresh or empty complete catalog pages', () => {
+    expect(isAuthoritativeCatalogResponse(response())).toBe(true);
+
+    const fresh = response();
+    fresh.meta.state = 'fresh';
+    fresh.items = [{ id: 'release' } as CatalogApiResponse['items'][number]];
+    fresh.pagination.total = 1;
+    expect(isAuthoritativeCatalogResponse(fresh)).toBe(true);
+  });
+
+  it('rejects stale, outage, and incomplete catalog pages', () => {
+    const stale = response();
+    stale.meta.state = 'stale-cache';
+    expect(isAuthoritativeCatalogResponse(stale)).toBe(false);
+
+    const incomplete = response();
+    incomplete.meta.state = 'fresh';
+    incomplete.pagination = { limit: 100, nextCursor: 'next', total: 101 };
+    expect(isAuthoritativeCatalogResponse(incomplete)).toBe(false);
+
+    const outage = response();
+    outage.meta.state = 'indexer-outage';
+    expect(isAuthoritativeCatalogResponse(outage)).toBe(false);
   });
 });
 

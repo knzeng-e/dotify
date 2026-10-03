@@ -5,7 +5,7 @@ import { RoomShareDialog } from '../components/RoomShareDialog';
 import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
 import { HostContributions } from '../components/HostContributions';
-import { ChevronDown, Copy, Check, ExternalLink, Headphones, KeyRound, Library, QrCode, Radio, Share2, X } from 'lucide-react';
+import { ChevronDown, Coins, Copy, Check, ExternalLink, Headphones, KeyRound, Library, QrCode, Radio, Share2, X } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
 import { CoverImage } from '../components/CoverImage';
@@ -22,9 +22,11 @@ import { roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount, roomPres
 import { playbackTrack, playbackTrackDetails } from '../features/player/playbackPresentation';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
+import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
+import { resolveRoomContributionTrack } from '../features/donations/roomContributionTrack';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 // The player page reads its track/session/playback state from context. The only
 // props are the two room-modal triggers, whose open state lives in ListenerShell.
@@ -45,6 +47,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
   const coverSource = catalog.coverSource;
   const accessGate = catalog.accessGate;
+  const setCatalogTrackInfo = catalog.setTrackInfo;
   const {
     mode,
     hostName,
@@ -59,11 +62,27 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     localStreamReady,
     roomPlaybackMode,
     productHostWebRtcUnavailable,
+    socketEmit,
+    socketStatus,
     error
   } = session;
-  const contributionTrack = roomId
-    ? catalog.catalogTracks.find(track => track.hash === trackInfo?.hash && track.id.toLowerCase().startsWith(`${trackInfo?.runtimeAddress?.toLowerCase()}:`))
-    : selectedTrack;
+  const roomContribution = useMemo(
+    () => resolveRoomContributionTrack(catalog.catalogTracks, trackInfo, catalog.catalogIsAuthoritative),
+    [catalog.catalogIsAuthoritative, catalog.catalogTracks, trackInfo]
+  );
+  const contributionTrack = roomId ? (roomContribution.state === 'ready' ? roomContribution.track : null) : selectedTrack;
+  const roomTipStatus =
+    roomContribution.state === 'recoverable'
+      ? mode === 'host'
+        ? 'Verifying this track for room tips...'
+        : 'The host needs to refresh this track before a tip can be routed safely.'
+      : roomContribution.state === 'unavailable' && roomContribution.reason === 'ambiguous-release'
+        ? 'This track matches more than one release. Tips stay unavailable until the host refreshes it.'
+        : roomContribution.state === 'unavailable' && roomContribution.reason === 'catalog-unverified'
+          ? 'Checking the complete catalog before this track can receive tips.'
+          : roomContribution.state === 'unavailable' && roomContribution.reason === 'runtime-mismatch'
+            ? 'This room does not match the verified release. Tips stay unavailable.'
+            : 'This live track has no verified contribution route.';
   const currentTrack = playbackTrack(mode, trackInfo, selectedTrack);
   const streamTitle = currentTrack?.title || (mode === 'listener' ? 'Waiting for the host’s track' : title);
   const streamArtist = currentTrack?.artist || (mode === 'listener' ? '' : artistName);
@@ -102,6 +121,15 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     setShareOpen(false);
     setChatUnread(false);
   }, [roomId]);
+  useEffect(() => {
+    if (!roomId || mode !== 'host' || socketStatus !== 'online' || roomContribution.state !== 'recoverable' || !trackInfo) return;
+    const runtimeAddress = runtimeAddressFromTrackId(roomContribution.track);
+    if (!runtimeAddress) return;
+
+    const repairedTrack = { ...trackInfo, runtimeAddress };
+    setCatalogTrackInfo(repairedTrack);
+    socketEmit('room:track', repairedTrack);
+  }, [mode, roomContribution, roomId, setCatalogTrackInfo, socketEmit, socketStatus, trackInfo]);
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 769px)');
     const resetPeople = () => {
@@ -412,7 +440,29 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 </button>
               )}
               {contributionTrack && <ArtistDonationButton key={contributionTrack.id} track={contributionTrack} kind='tip' />}
+              {roomId && trackInfo && roomContribution.state !== 'ready' && (
+                <button
+                  className='secondary-action contribution-action contribution-action-unavailable'
+                  data-kind='tip'
+                  type='button'
+                  disabled
+                  aria-label='Tip this track unavailable'
+                  aria-describedby='room-tip-status'
+                  title={roomTipStatus}
+                >
+                  <Coins size={18} aria-hidden='true' />
+                  <span className='contribution-action-label'>Tip this track</span>
+                  <span className='contribution-action-short' aria-hidden='true'>
+                    Tip
+                  </span>
+                </button>
+              )}
             </div>
+            {roomId && trackInfo && roomContribution.state !== 'ready' && (
+              <p className='room-tip-status' id='room-tip-status' role='status'>
+                {roomTipStatus}
+              </p>
+            )}
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : visibleHostName ? `With ${visibleHostName}` : 'Listening together'}</span>
 
             {!roomId && (

@@ -67,6 +67,11 @@ export type CatalogApiResponse = {
   meta: CatalogApiMetadata;
 };
 
+export function isAuthoritativeCatalogResponse(response: CatalogApiResponse): boolean {
+  const completePage = response.pagination.nextCursor === null && response.items.length >= response.pagination.total;
+  return completePage && (response.meta.state === 'fresh' || response.meta.state === 'empty');
+}
+
 type CachedCatalog = {
   version: typeof CACHE_VERSION;
   apiUrl: string;

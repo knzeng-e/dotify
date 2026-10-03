@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { io } from 'socket.io-client';
 function contributionDialog(page: Page) {
   return page.locator('.artist-gift-dialog');
 }
@@ -129,6 +130,55 @@ for (const width of [320, 390, 1440]) {
     }
   });
 }
+
+test('a legacy room keeps the tip location visible while attribution is unavailable', async ({ page }, info) => {
+  const host = io('http://127.0.0.1:8789', { transports: ['websocket'], forceNew: true });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      host.once('connect', resolve);
+      host.once('connect_error', reject);
+    });
+    const created = await new Promise<{ ok: boolean; roomId?: string; error?: string }>(resolve => {
+      host.emit(
+        'room:create',
+        {
+          displayName: 'Legacy host',
+          playbackMode: 'full',
+          track: {
+            title: 'Legacy room track',
+            artist: 'Dotify Test Artist',
+            duration: 60,
+            updatedAt: Date.now(),
+            bulletinRef: '',
+            hash: `0x${'a1'.repeat(32)}`,
+            accessMode: 'free',
+            priceDot: '0',
+            personhoodLevel: 'DIM1'
+          }
+        },
+        resolve
+      );
+    });
+    expect(created.ok).toBe(true);
+    expect(created.roomId).toBeTruthy();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/?e2eRoom=public&e2eSync=on#/rooms/${created.roomId}`);
+    await page.getByLabel('Your name in the room').fill('Legacy room guest');
+    await page.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+
+    const unavailable = page.getByRole('button', { name: 'Tip this track unavailable', exact: true });
+    await expect(unavailable).toBeVisible();
+    await expect(unavailable).toBeDisabled();
+    await expect(page.locator('#room-tip-status')).toContainText('no verified contribution route');
+    expect(await page.locator('.player-transport').getByRole('button', { name: /Tip this track/ }).count()).toBe(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: info.outputPath('legacy-room-tip-unavailable-390.png'), animations: 'disabled' });
+  } finally {
+    host.disconnect();
+  }
+});
+
 test('a pending contribution can close and reopen without another transfer', async ({ page }) => {
   await openGift(page, '?e2eGift=pending');
   await review(page, '0.1');

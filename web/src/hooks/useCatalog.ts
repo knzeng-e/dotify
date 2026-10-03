@@ -59,7 +59,14 @@ import {
   type AudioV2StartupMetric,
   type HostAudioTerminalReason
 } from '../features/catalog/audioStartupTelemetry';
-import { fetchCatalog, isCatalogApiConfigured, readBundledCatalog, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
+import {
+  fetchCatalog,
+  isAuthoritativeCatalogResponse,
+  isCatalogApiConfigured,
+  readBundledCatalog,
+  readCachedCatalog,
+  type CatalogApiRelease
+} from '../services/catalog';
 import { createCoverFallbackDataUri } from '../features/catalog/coverArtwork';
 import {
   E2E_CLASSIC_AUDIO_URL,
@@ -391,6 +398,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         ? 'Showing saved catalog data while new releases are checked'
         : 'Loading registry catalog'
   );
+  const [catalogIsAuthoritative, setCatalogIsAuthoritative] = useState(false);
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
   const [catalogPaidAccessByTrackId, setCatalogPaidAccessByTrackId] = useState<Record<string, boolean>>({});
@@ -1643,7 +1651,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     return tracks;
   }
 
-  function commitCatalog(allTracks: CatalogTrack[], preferredTrackHash: `0x${string}` | undefined, status: string): CatalogTrack[] {
+  function commitCatalog(allTracks: CatalogTrack[], preferredTrackHash: `0x${string}` | undefined, status: string, authoritative = false): CatalogTrack[] {
     const normalizedTracks = allTracks.map(normalizeCatalogTrackDisplay);
     const nextCatalog = normalizedTracks.filter(track => track.active !== false);
     setAllCatalogTracks(normalizedTracks);
@@ -1654,10 +1662,12 @@ export function useCatalog(deps: UseCatalogDeps) {
       return nextCatalog.some(track => track.id === previous) ? previous : (nextCatalog[0]?.id ?? '');
     });
     setCatalogStatus(status);
+    setCatalogIsAuthoritative(authoritative);
     return nextCatalog;
   }
 
   async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
+    setCatalogIsAuthoritative(false);
     if (isClassicUnlockE2e || isArtistPublishE2e || isRoomJoinE2e) {
       const nextCatalog = getDeterministicE2eCatalogTracks().map(normalizeCatalogTrackDisplay);
       setAllCatalogTracks(nextCatalog);
@@ -1683,6 +1693,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       setCatalogStatus(
         nextCatalog.length > 0 ? `Loaded ${nextCatalog.length} deterministic e2e track${nextCatalog.length === 1 ? '' : 's'}` : 'No e2e tracks registered yet'
       );
+      setCatalogIsAuthoritative(true);
       return nextCatalog;
     }
 
@@ -1691,8 +1702,14 @@ export function useCatalog(deps: UseCatalogDeps) {
       try {
         const response = await fetchCatalog({ includeInactive: true, limit: 100 });
         const apiTracks = response.items.map(catalogApiReleaseToTrack);
-        const allTracks = response.meta.cacheAvailable || allCatalogTracks.length === 0 ? apiTracks : allCatalogTracks;
-        return commitCatalog(allTracks, preferredTrackHash, catalogApiStatus(response.meta, allTracks.filter(track => track.active !== false).length));
+        const usesApiResponse = response.meta.cacheAvailable || allCatalogTracks.length === 0;
+        const allTracks = usesApiResponse ? apiTracks : allCatalogTracks;
+        return commitCatalog(
+          allTracks,
+          preferredTrackHash,
+          catalogApiStatus(response.meta, allTracks.filter(track => track.active !== false).length),
+          usesApiResponse && isAuthoritativeCatalogResponse(response)
+        );
       } catch (catalogError) {
         console.warn('Failed to load catalog API', catalogError);
         setCatalogStatus(allCatalogTracks.length > 0 ? 'Showing saved catalog while the catalog API reconnects' : catalogLoadFailureStatus(catalogError));
@@ -1717,6 +1734,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         setAllCatalogTracks([]);
         setSelectedTrackId('');
         setCatalogStatus('Registry directory unavailable');
+        setCatalogIsAuthoritative(false);
         return [];
       }
 
@@ -1727,6 +1745,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         setAllCatalogTracks([]);
         setSelectedTrackId('');
         setCatalogStatus('No tracks registered on this directory yet');
+        setCatalogIsAuthoritative(true);
         return [];
       }
 
@@ -1734,19 +1753,21 @@ export function useCatalog(deps: UseCatalogDeps) {
       const runtimeCatalogs = await Promise.all(
         entries.map(async entry => {
           try {
-            return await fetchRuntimeCatalog(runtimeReader, entry.artist, entry.runtime);
+            return { tracks: await fetchRuntimeCatalog(runtimeReader, entry.artist, entry.runtime), complete: true };
           } catch (runtimeError) {
             console.warn(`Failed to load runtime catalog for ${entry.runtime}`, runtimeError);
-            return [];
+            return { tracks: [], complete: false };
           }
         })
       );
-      const allTracks = runtimeCatalogs.flat().sort((left, right) => {
-        if (left.registeredAtBlock !== right.registeredAtBlock) {
-          return right.registeredAtBlock - left.registeredAtBlock;
-        }
-        return left.title.localeCompare(right.title);
-      });
+      const allTracks = runtimeCatalogs
+        .flatMap(result => result.tracks)
+        .sort((left, right) => {
+          if (left.registeredAtBlock !== right.registeredAtBlock) {
+            return right.registeredAtBlock - left.registeredAtBlock;
+          }
+          return left.title.localeCompare(right.title);
+        });
       const nextCatalog = allTracks.filter(track => track.active !== false);
 
       return commitCatalog(
@@ -1754,7 +1775,8 @@ export function useCatalog(deps: UseCatalogDeps) {
         preferredTrackHash,
         nextCatalog.length > 0
           ? `Loaded ${nextCatalog.length} registered track${nextCatalog.length > 1 ? 's' : ''}`
-          : 'No tracks registered on this directory yet'
+          : 'No tracks registered on this directory yet',
+        BigInt(entries.length) === artistCount && runtimeCatalogs.every(result => result.complete)
       );
     } catch (catalogError) {
       console.warn('Failed to load registry catalog', catalogError);
@@ -1762,6 +1784,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       setAllCatalogTracks([]);
       setSelectedTrackId('');
       setCatalogStatus(catalogLoadFailureStatus(catalogError));
+      setCatalogIsAuthoritative(false);
       return [];
     }
   }
@@ -1783,6 +1806,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     catalogTracks,
     allCatalogTracks,
     catalogStatus,
+    catalogIsAuthoritative,
     selectedTrackId,
     setSelectedTrackId,
     catalogAccessByTrackId,
