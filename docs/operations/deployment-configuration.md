@@ -192,17 +192,19 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 33]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 34]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 33]` prepares the artist earnings/workspace and Product CDM
-named-result decoding correction. This is a package version, not evidence of
-deployment or a real donation. No existing Celerity or donation activation
-default changes with this correction.
+Version `[0, 1, 34]` invalidates Product host caches for the verified room-tip
+affordance introduced after `[0, 1, 33]`. Version `[0, 1, 33]` prepares the
+artist earnings/workspace, native contributions, and Product CDM named-result
+decoding correction. This is a package version, not evidence of deployment or
+a real contribution. No existing Celerity or contribution activation default
+changes with this correction.
 Version `[0, 1, 32]` identifies the separately authorized W27 correction
 candidate that retains observers after an uncertain publish and bounds later
 private mirrors in a ten-second FIFO. Enable
