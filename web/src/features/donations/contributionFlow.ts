@@ -13,7 +13,13 @@ export type ContributionIntent = {
   proof: Hash;
 };
 type Saved = { id: Hash; amount: string; hash?: Hash };
-export type ContributionOutcome = { status: 'confirmed' | 'uncertain' | 'failed'; message: string; hash?: Hash; receipt?: ContributionReceipt };
+export type ContributionOutcome = {
+  status: 'confirmed' | 'uncertain' | 'failed';
+  message: string;
+  technicalMessage?: string;
+  hash?: Hash;
+  receipt?: ContributionReceipt;
+};
 const operations = new Map<string, Promise<ContributionOutcome>>();
 
 export function contributionStorageKey(intent: ContributionIntent) {
@@ -65,10 +71,16 @@ export async function runContribution(input: {
           /* Preserve an uncertain reservation if storage is no longer writable. */
         }
       }
+      const status = saved && !safe ? 'uncertain' : 'failed';
+      const technicalMessage = error instanceof Error ? error.message : 'The contribution could not be checked.';
       return {
-        status: saved && !safe ? 'uncertain' : 'failed',
+        status,
         hash: saved?.hash,
-        message: error instanceof Error ? error.message : 'The contribution could not be checked.'
+        message:
+          status === 'uncertain'
+            ? 'Confirmation is taking longer than expected. This contribution may already be finalized. Check its status before trying again.'
+            : technicalMessage,
+        technicalMessage: status === 'uncertain' ? technicalMessage : undefined
       };
     }
   };
