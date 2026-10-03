@@ -2,8 +2,8 @@
 
 import { execFileSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DEPLOY_PACKAGE = '@parity/polkadot-app-deploy';
 const DEPLOY_VERSION = '0.20.0';
@@ -12,6 +12,7 @@ const DOMAIN = 'dotify-test01.dot';
 const ENVIRONMENT = 'devnet';
 const CONFIG_PATH = './polkadot-app-deploy.config.ts';
 const DEFAULT_POOL_SIZE = 10;
+const HOST_ENVIRONMENT_PATH = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'product-devnet-host.environments.json');
 
 function padPackageRoot() {
   const locator = process.platform === 'win32' ? 'where' : 'which';
@@ -62,9 +63,14 @@ async function run() {
   console.log(`Bulletin storage signer (DevNet pool account ${poolIndex}, not your DotNS owner): ${storageAccount.address}`);
   console.log('The MNEMONIC account signs DotNS updates; this separate pool account uploads Bulletin bytes.');
 
+  // The CLI's bundled DevNet profile can advance before Product Desktop's
+  // Remote Config. Force every deploy and manifest sub-call through the exact
+  // host-facing DotNS generation verified by the repository preflight.
+  process.env.PAD_ENV_FILE = HOST_ENVIRONMENT_PATH;
+
   const [loadedConfig, environments] = await Promise.all([
     index.preflightProductConfig({ path: CONFIG_PATH }),
-    index.loadEnvironments({ userFilePath: process.env.PAD_ENV_FILE })
+    index.loadEnvironments({ userFilePath: HOST_ENVIRONMENT_PATH })
   ]);
   const resolved = index.resolveEndpoints(environments.doc, ENVIRONMENT);
   const envTld = resolved.tld ?? 'dot';

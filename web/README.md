@@ -185,8 +185,12 @@ request and builds the reviewed, committed snapshot. Signer-free CI and
 `deploy:product-devnet` both use that frozen build so publication cannot pick up
 unreviewed live catalogue drift. `deploy:product-devnet` uses
 `@parity/polkadot-app-deploy@0.20.0` through `npm exec`, verifies its DevNet
-registry, content resolver, and deploy API, uploads static chunks to Product
-DevNet Bulletin with an authorized storage pool signer, and binds
+deploy API and the committed `product-devnet-host.environments.json` override,
+then verifies the registry and resolver Product Desktop currently receives from
+Remote Config. This explicit override prevents a newer CLI DotNS generation
+from accepting a publish that the installed Product host cannot resolve. The
+command uploads static chunks to Product DevNet Bulletin with an authorized
+storage pool signer, and binds
 `dotify-test01.dot` with the owner mnemonic through DotNS. Run
 `npm run verify:product-deploy-environment` for the same read-only check without
 building or publishing. The owner mnemonic is accepted

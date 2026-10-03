@@ -3,17 +3,21 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, realpathSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 
 export const PRODUCT_DEPLOY_PROFILE = {
   packageName: '@parity/polkadot-app-deploy',
   cliVersion: '0.20.0',
   environmentId: 'devnet',
+  environmentFile: resolve(SCRIPT_DIR, '..', 'product-devnet-host.environments.json'),
   ipfs: 'https://devnet-ipfs.api.polkadotcommunity.foundation',
   webGateway: 'dev-dot.li',
   contracts: {
-    DOTNS_REGISTRY: '0x527b08a640b527a3dae0C4BE04D7344E430B6E50',
-    DOTNS_CONTENT_RESOLVER: '0x326bdE29315199c814B1c58b431D84D16EA5cE41'
+    DOTNS_REGISTRY: '0xb052E5EfC5ADEff1f21d48DEfb5169Cb394A1a73',
+    DOTNS_RESOLVER: '0x7e75491ecfb04900EB05ee63CABA2B33900aABB5',
+    DOTNS_CONTENT_RESOLVER: '0x7e75491ecfb04900EB05ee63CABA2B33900aABB5'
   }
 };
 
@@ -76,16 +80,13 @@ function findPadPackageRoot() {
 async function run() {
   const packageRoot = findPadPackageRoot();
   const packageJson = JSON.parse(readFileSync(resolve(packageRoot, 'package.json'), 'utf8'));
-  const environments = JSON.parse(readFileSync(resolve(packageRoot, 'assets/environments.json'), 'utf8'));
-  const result = evaluateProductDeployEnvironment({ packageJson, environments });
-
-  if (result.errors.length === 0) {
-    const [index, deployModule] = await Promise.all([
-      import(pathToFileURL(resolve(packageRoot, 'dist/index.js')).href),
-      import(pathToFileURL(resolve(packageRoot, 'dist/deploy.js')).href)
-    ]);
-    result.errors.push(...evaluateProductDeployApi({ index, deployModule }));
-  }
+  const [index, deployModule] = await Promise.all([
+    import(pathToFileURL(resolve(packageRoot, 'dist/index.js')).href),
+    import(pathToFileURL(resolve(packageRoot, 'dist/deploy.js')).href)
+  ]);
+  const loaded = await index.loadEnvironments({ userFilePath: PRODUCT_DEPLOY_PROFILE.environmentFile });
+  const result = evaluateProductDeployEnvironment({ packageJson, environments: loaded.doc });
+  result.errors.push(...evaluateProductDeployApi({ index, deployModule }));
 
   if (result.errors.length > 0) {
     console.error('Product deploy environment preflight failed:');
@@ -97,7 +98,8 @@ async function run() {
   console.log(
     `Product deploy environment aligned: CLI ${PRODUCT_DEPLOY_PROFILE.cliVersion}, ` +
       `${PRODUCT_DEPLOY_PROFILE.environmentId}, registry ${PRODUCT_DEPLOY_PROFILE.contracts.DOTNS_REGISTRY}, ` +
-      `content resolver ${PRODUCT_DEPLOY_PROFILE.contracts.DOTNS_CONTENT_RESOLVER}.`
+      `content resolver ${PRODUCT_DEPLOY_PROFILE.contracts.DOTNS_CONTENT_RESOLVER}, ` +
+      `host override ${PRODUCT_DEPLOY_PROFILE.environmentFile}.`
   );
 }
 
