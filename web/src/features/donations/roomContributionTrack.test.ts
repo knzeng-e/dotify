@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogTrack, TrackInfo } from '../../shared/types';
-import { resolveRoomContributionTrack } from './roomContributionTrack';
+import { resolvePlaybackContributionTrack, resolveRoomContributionTrack } from './roomContributionTrack';
 
 const runtime = '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338';
 const hash = `0x${'71'.repeat(32)}` as const;
@@ -78,6 +78,42 @@ describe('resolveRoomContributionTrack', () => {
     expect(resolveRoomContributionTrack([track()], roomTrack({ runtimeAddress: '0x0000000000000000000000000000000000000001' }))).toEqual({
       state: 'unavailable',
       reason: 'runtime-mismatch'
+    });
+  });
+});
+
+describe('resolvePlaybackContributionTrack', () => {
+  it('keeps the exact selected release as the contribution target', () => {
+    expect(resolvePlaybackContributionTrack([track()], `${runtime}:${hash}`, null)).toMatchObject({
+      state: 'ready',
+      track: { id: `${runtime}:${hash}` }
+    });
+  });
+
+  it('recovers a Product playback snapshot when its selected id is stale', () => {
+    expect(resolvePlaybackContributionTrack([track()], 'stale-product-selection', roomTrack(), false)).toMatchObject({
+      state: 'ready',
+      track: { id: `${runtime}:${hash}` }
+    });
+  });
+
+  it('uses a unique authoritative hash when legacy playback metadata has no runtime', () => {
+    expect(resolvePlaybackContributionTrack([track()], '', roomTrack({ runtimeAddress: undefined }), true)).toMatchObject({
+      state: 'ready',
+      track: { id: `${runtime}:${hash}` }
+    });
+  });
+
+  it('does not guess from provisional or ambiguous playback metadata', () => {
+    expect(resolvePlaybackContributionTrack([track()], '', roomTrack({ runtimeAddress: undefined }), false)).toEqual({
+      state: 'unavailable',
+      reason: 'catalog-unverified'
+    });
+
+    const otherRuntime = '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85';
+    expect(resolvePlaybackContributionTrack([track(), track({ id: `${otherRuntime}:${hash}` })], '', roomTrack({ runtimeAddress: undefined }), true)).toEqual({
+      state: 'unavailable',
+      reason: 'ambiguous-release'
     });
   });
 });

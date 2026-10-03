@@ -23,7 +23,7 @@ import { playbackTrack, playbackTrackDetails } from '../features/player/playback
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
-import { resolveRoomContributionTrack } from '../features/donations/roomContributionTrack';
+import { resolvePlaybackContributionTrack, resolveRoomContributionTrack } from '../features/donations/roomContributionTrack';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -70,19 +70,24 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     () => resolveRoomContributionTrack(catalog.catalogTracks, trackInfo, catalog.catalogIsAuthoritative),
     [catalog.catalogIsAuthoritative, catalog.catalogTracks, trackInfo]
   );
-  const contributionTrack = roomId ? (roomContribution.state === 'ready' ? roomContribution.track : null) : selectedTrack;
-  const roomTipStatus =
-    roomContribution.state === 'recoverable'
+  const playbackContribution = useMemo(
+    () => resolvePlaybackContributionTrack(catalog.catalogTracks, catalog.selectedTrackId, trackInfo, catalog.catalogIsAuthoritative),
+    [catalog.catalogIsAuthoritative, catalog.catalogTracks, catalog.selectedTrackId, trackInfo]
+  );
+  const contribution = roomId ? roomContribution : playbackContribution;
+  const contributionTrack = contribution.state === 'ready' ? contribution.track : null;
+  const tipStatus =
+    contribution.state === 'recoverable'
       ? mode === 'host'
         ? 'Verifying this track for room tips...'
         : 'The host needs to refresh this track before a tip can be routed safely.'
-      : roomContribution.state === 'unavailable' && roomContribution.reason === 'ambiguous-release'
-        ? 'This track matches more than one release. Tips stay unavailable until the host refreshes it.'
-        : roomContribution.state === 'unavailable' && roomContribution.reason === 'catalog-unverified'
+      : contribution.state === 'unavailable' && contribution.reason === 'ambiguous-release'
+        ? `This track matches more than one release. Tips stay unavailable until ${roomId ? 'the host refreshes it' : 'the catalog is refreshed'}.`
+        : contribution.state === 'unavailable' && contribution.reason === 'catalog-unverified'
           ? 'Checking the complete catalog before this track can receive tips.'
-          : roomContribution.state === 'unavailable' && roomContribution.reason === 'runtime-mismatch'
-            ? 'This room does not match the verified release. Tips stay unavailable.'
-            : 'This live track has no verified contribution route.';
+          : contribution.state === 'unavailable' && contribution.reason === 'runtime-mismatch'
+            ? 'This playback does not match the verified release. Tips stay unavailable.'
+            : 'This track has no verified contribution route.';
   const currentTrack = playbackTrack(mode, trackInfo, selectedTrack);
   const streamTitle = currentTrack?.title || (mode === 'listener' ? 'Waiting for the host’s track' : title);
   const streamArtist = currentTrack?.artist || (mode === 'listener' ? '' : artistName);
@@ -440,15 +445,15 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 </button>
               )}
               {contributionTrack && <ArtistDonationButton key={contributionTrack.id} track={contributionTrack} kind='tip' />}
-              {roomId && trackInfo && roomContribution.state !== 'ready' && (
+              {trackInfo && contribution.state !== 'ready' && (
                 <button
                   className='secondary-action contribution-action contribution-action-unavailable'
                   data-kind='tip'
                   type='button'
                   disabled
                   aria-label='Tip this track unavailable'
-                  aria-describedby='room-tip-status'
-                  title={roomTipStatus}
+                  aria-describedby='tip-status'
+                  title={tipStatus}
                 >
                   <Coins size={18} aria-hidden='true' />
                   <span className='contribution-action-label'>Tip this track</span>
@@ -458,9 +463,9 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 </button>
               )}
             </div>
-            {roomId && trackInfo && roomContribution.state !== 'ready' && (
-              <p className='room-tip-status' id='room-tip-status' role='status'>
-                {roomTipStatus}
+            {trackInfo && contribution.state !== 'ready' && (
+              <p className='room-tip-status' id='tip-status' role='status'>
+                {tipStatus}
               </p>
             )}
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : visibleHostName ? `With ${visibleHostName}` : 'Listening together'}</span>

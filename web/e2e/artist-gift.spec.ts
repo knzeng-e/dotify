@@ -170,8 +170,13 @@ test('a legacy room keeps the tip location visible while attribution is unavaila
     const unavailable = page.getByRole('button', { name: 'Tip this track unavailable', exact: true });
     await expect(unavailable).toBeVisible();
     await expect(unavailable).toBeDisabled();
-    await expect(page.locator('#room-tip-status')).toContainText('no verified contribution route');
-    expect(await page.locator('.player-transport').getByRole('button', { name: /Tip this track/ }).count()).toBe(0);
+    await expect(page.locator('#tip-status')).toContainText('no verified contribution route');
+    expect(
+      await page
+        .locator('.player-transport')
+        .getByRole('button', { name: /Tip this track/ })
+        .count()
+    ).toBe(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: info.outputPath('legacy-room-tip-unavailable-390.png'), animations: 'disabled' });
   } finally {

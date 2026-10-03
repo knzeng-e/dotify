@@ -9,6 +9,8 @@ export type RoomContributionTrackResolution =
       reason: 'missing-track' | 'catalog-unverified' | 'missing-catalog-release' | 'ambiguous-release' | 'runtime-mismatch';
     };
 
+export type PlaybackContributionTrackResolution = Exclude<RoomContributionTrackResolution, { state: 'recoverable' }>;
+
 function sameIdentity(left: string | undefined, right: string | undefined): boolean {
   return Boolean(left && right && left.toLowerCase() === right.toLowerCase());
 }
@@ -35,4 +37,23 @@ export function resolveRoomContributionTrack(
   if (!catalogIsAuthoritative) return { state: 'unavailable', reason: 'catalog-unverified' };
   if (matches.length === 0) return { state: 'unavailable', reason: 'missing-catalog-release' };
   return matches.length === 1 ? { state: 'recoverable', track: matches[0] } : { state: 'unavailable', reason: 'ambiguous-release' };
+}
+
+/**
+ * Resolve a contribution target for local playback. Product hosts can retain a
+ * valid TrackInfo snapshot while a catalog refresh replaces the selected id,
+ * so exact id lookup is preferred but is not the only safe identity path.
+ */
+export function resolvePlaybackContributionTrack(
+  tracks: CatalogTrack[],
+  selectedTrackId: string,
+  currentTrack: TrackInfo | null,
+  catalogIsAuthoritative = false
+): PlaybackContributionTrackResolution {
+  const selectedTrack = tracks.find(track => track.id === selectedTrackId);
+  if (selectedTrack) return { state: 'ready', track: selectedTrack };
+
+  const resolution = resolveRoomContributionTrack(tracks, currentTrack, catalogIsAuthoritative);
+  if (resolution.state === 'recoverable') return { state: 'ready', track: resolution.track };
+  return resolution;
 }
