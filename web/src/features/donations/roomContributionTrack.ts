@@ -51,7 +51,15 @@ export function resolvePlaybackContributionTrack(
   catalogIsAuthoritative = false
 ): PlaybackContributionTrackResolution {
   const selectedTrack = tracks.find(track => track.id === selectedTrackId);
-  if (selectedTrack) return { state: 'ready', track: selectedTrack };
+  if (selectedTrack && !currentTrack) return { state: 'ready', track: selectedTrack };
+  if (
+    selectedTrack &&
+    currentTrack?.runtimeAddress &&
+    sameIdentity(selectedTrack.hash, currentTrack.hash) &&
+    sameIdentity(runtimeAddressFromTrackId(selectedTrack) ?? undefined, currentTrack.runtimeAddress)
+  ) {
+    return { state: 'ready', track: selectedTrack };
+  }
 
   const resolution = resolveRoomContributionTrack(tracks, currentTrack, catalogIsAuthoritative);
   if (resolution.state === 'recoverable') return { state: 'ready', track: resolution.track };

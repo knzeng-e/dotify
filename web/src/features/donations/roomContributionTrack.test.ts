@@ -88,6 +88,11 @@ describe('resolvePlaybackContributionTrack', () => {
       state: 'ready',
       track: { id: `${runtime}:${hash}` }
     });
+
+    expect(resolvePlaybackContributionTrack([track()], `${runtime}:${hash}`, roomTrack())).toMatchObject({
+      state: 'ready',
+      track: { id: `${runtime}:${hash}` }
+    });
   });
 
   it('recovers a Product playback snapshot when its selected id is stale', () => {
@@ -101,6 +106,21 @@ describe('resolvePlaybackContributionTrack', () => {
     expect(resolvePlaybackContributionTrack([track()], '', roomTrack({ runtimeAddress: undefined }), true)).toMatchObject({
       state: 'ready',
       track: { id: `${runtime}:${hash}` }
+    });
+  });
+
+  it('does not let a refreshed fallback selection replace the playing work', () => {
+    const fallbackRuntime = '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85';
+    const fallbackHash = `0x${'92'.repeat(32)}` as const;
+    const fallback = track({ id: `${fallbackRuntime}:${fallbackHash}`, hash: fallbackHash, title: 'Catalog fallback' });
+
+    expect(resolvePlaybackContributionTrack([fallback, track()], fallback.id, roomTrack(), true)).toMatchObject({
+      state: 'ready',
+      track: { id: `${runtime}:${hash}`, title: 'CALL' }
+    });
+    expect(resolvePlaybackContributionTrack([fallback], fallback.id, roomTrack(), true)).toEqual({
+      state: 'unavailable',
+      reason: 'runtime-mismatch'
     });
   });
 
