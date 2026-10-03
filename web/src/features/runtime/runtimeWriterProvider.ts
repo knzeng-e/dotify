@@ -181,6 +181,7 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
   }
 
   return {
+    contributionConfirmationMode: config.kind === 'product-cdm' ? 'finalized-event' : 'evm-receipt',
     contributionCall: async (runtime, method, args, value) => {
       let port: RuntimeWritePort;
       try {

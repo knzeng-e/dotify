@@ -45,7 +45,12 @@ export const contributionTestReader = {
           resolve();
         };
       });
-    if (scenario === 'delayed' && !s.confirmed) throw new Error('Confirmation was interrupted. Check the status before sending again.');
+    if ((scenario === 'delayed' || scenario === 'timeout') && !s.confirmed)
+      throw new Error(
+        scenario === 'timeout'
+          ? `Timed out while waiting for transaction "${E2E_CLASSIC_TX_HASH}" to be confirmed. Version: viem@2.55.19`
+          : 'Confirmation was interrupted. Check the status before sending again.'
+      );
     s.confirmed = true;
     if (!s.receipt) throw new Error('No contribution');
     return s.receipt;
@@ -55,6 +60,9 @@ export const contributionTestReader = {
     if (s.historyError) throw new Error(s.historyError);
     if (s.receipts) return s.receipts.filter(row => row.runtime.toLowerCase() === runtime.toLowerCase());
     return s.confirmed && s.receipt?.runtime.toLowerCase() === runtime.toLowerCase() ? [s.receipt] : [];
+  },
+  async finalizedReceipt(runtime: Address, expectedId: Hash): Promise<ContributionReceipt | undefined> {
+    return (await contributionTestReader.history(runtime)).find(row => row.id === expectedId);
   }
 };
 export async function contributionTestWrite(runtime: Address, method: string, args: readonly unknown[]) {

@@ -296,6 +296,7 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
 
 export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps): RuntimeWritePort {
   return {
+    contributionConfirmationMode: 'finalized-event',
     contributionCall(runtime, method, args, value = 0n) {
       return txContract(deps.contracts.getRuntimeContract(runtime), method, [
         ...args,
