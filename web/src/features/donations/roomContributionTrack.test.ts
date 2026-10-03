@@ -62,18 +62,15 @@ describe('resolveRoomContributionTrack', () => {
 
   it('fails closed when a hash maps to more than one runtime', () => {
     const otherRuntime = '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85';
-    const result = resolveRoomContributionTrack(
-      [track(), track({ id: `${otherRuntime}:${hash}` })],
-      roomTrack({ runtimeAddress: undefined })
-    );
+    const result = resolveRoomContributionTrack([track(), track({ id: `${otherRuntime}:${hash}` })], roomTrack({ runtimeAddress: undefined }));
 
     expect(result).toEqual({ state: 'unavailable', reason: 'ambiguous-release' });
   });
 
   it('does not substitute a catalog runtime for a conflicting room runtime', () => {
-    expect(
-      resolveRoomContributionTrack([track()], roomTrack({ runtimeAddress: '0x0000000000000000000000000000000000000001' }))
-    ).toEqual({ state: 'unavailable', reason: 'runtime-mismatch' });
+    expect(resolveRoomContributionTrack([track()], roomTrack({ runtimeAddress: '0x0000000000000000000000000000000000000001' }))).toEqual({
+      state: 'unavailable',
+      reason: 'runtime-mismatch'
+    });
   });
 });
-

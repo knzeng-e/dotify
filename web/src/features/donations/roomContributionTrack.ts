@@ -15,10 +15,7 @@ function sameIdentity(left: string | undefined, right: string | undefined): bool
  * repair legacy room metadata, but only the host may publish that canonical
  * runtime back to the room before a contribution becomes executable.
  */
-export function resolveRoomContributionTrack(
-  tracks: CatalogTrack[],
-  roomTrack: TrackInfo | null
-): RoomContributionTrackResolution {
+export function resolveRoomContributionTrack(tracks: CatalogTrack[], roomTrack: TrackInfo | null): RoomContributionTrackResolution {
   if (!roomTrack?.hash) return { state: 'unavailable', reason: 'missing-track' };
 
   const matches = tracks.filter(track => track.active !== false && sameIdentity(track.hash, roomTrack.hash));
@@ -31,4 +28,3 @@ export function resolveRoomContributionTrack(
 
   return matches.length === 1 ? { state: 'recoverable', track: matches[0] } : { state: 'unavailable', reason: 'ambiguous-release' };
 }
-
