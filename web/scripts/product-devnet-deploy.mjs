@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { withProductHostVerification } from './product-host-config-check.mjs';
 
 const DEPLOY_PACKAGE = '@parity/polkadot-app-deploy';
 const DEPLOY_VERSION = '0.20.0';
@@ -78,31 +79,36 @@ async function run() {
   index.reconcileManifestDomain(loadedConfig.config.domain, DOMAIN, envTld, loadedConfig.sourcePath);
   const manifestWillPublish = deployModule.shouldPublishManifest({ configFound: true, noManifest: false });
 
-  const result = await index.deploy(BUILD_DIR, DOMAIN, {
-    mnemonic,
-    env: ENVIRONMENT,
-    jsMerkle: true,
-    manifestPending: manifestWillPublish,
-    transferToSignedInUser: false,
-    storageSigner: storageAccount.signer,
-    storageSignerAddress: storageAccount.address
-  });
-
-  console.log(`CID: ${result.cid}`);
-  console.log(`Domain: ${result.fullDomain}`);
-
-  if (manifestWillPublish) {
-    await index.publishManifest({
-      loaded: loadedConfig,
-      domain: DOMAIN,
-      buildDirCid: { absPath: resolve(BUILD_DIR), cid: result.cid },
-      env: ENVIRONMENT,
+  const environment = environments.doc.environments.find(entry => entry.id === ENVIRONMENT);
+  const result = await withProductHostVerification(environment, async () => {
+    const result = await index.deploy(BUILD_DIR, DOMAIN, {
       mnemonic,
+      env: ENVIRONMENT,
+      jsMerkle: true,
+      manifestPending: manifestWillPublish,
+      transferToSignedInUser: false,
       storageSigner: storageAccount.signer,
       storageSignerAddress: storageAccount.address
     });
-    deployModule.printDeploymentCompleteBanner(result.fullDomain, result.browserUrl);
-  }
+
+    console.log(`CID: ${result.cid}`);
+    console.log(`Domain: ${result.fullDomain}`);
+
+    if (manifestWillPublish) {
+      await index.publishManifest({
+        loaded: loadedConfig,
+        domain: DOMAIN,
+        buildDirCid: { absPath: resolve(BUILD_DIR), cid: result.cid },
+        env: ENVIRONMENT,
+        mnemonic,
+        storageSigner: storageAccount.signer,
+        storageSignerAddress: storageAccount.address
+      });
+    }
+    return result;
+  });
+  deployModule.printDeploymentCompleteBanner(result.fullDomain, result.browserUrl);
+  console.log('Host configuration verified. Reload Product and check the loaded build SHA/version; this command cannot verify an installed host cache.');
 }
 
 run().catch(error => {

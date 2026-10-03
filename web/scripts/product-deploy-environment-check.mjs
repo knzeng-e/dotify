@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, realpathSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { verifyProductHostConfig } from './product-host-config-check.mjs';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -95,6 +96,8 @@ async function run() {
     return;
   }
 
+  const host = await verifyProductHostConfig(result.environment);
+  console.log(`Live Product Remote Config checked at ${host.checkedAt} (channel ${host.channel}).`);
   console.log(
     `Product deploy environment aligned: CLI ${PRODUCT_DEPLOY_PROFILE.cliVersion}, ` +
       `${PRODUCT_DEPLOY_PROFILE.environmentId}, registry ${PRODUCT_DEPLOY_PROFILE.contracts.DOTNS_REGISTRY}, ` +

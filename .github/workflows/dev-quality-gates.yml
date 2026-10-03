@@ -102,6 +102,9 @@ jobs:
       - name: Celerity paired capture tests
         run: npm run test:celerity-capture
 
+      - name: Product deployment guard tests (offline)
+        run: npm run test:product-deploy-environment
+
       - name: Build
         run: npm run build
 

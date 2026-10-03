@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { io } from 'socket.io-client';
+import { renderedTextContrast } from './helpers/renderedContrast';
 function contributionDialog(page: Page) {
   return page.locator('.artist-gift-dialog');
 }
@@ -57,10 +58,29 @@ for (const width of [320, 390, 430, 1440]) {
     await expect(transport.getByRole('button', { name: 'Tip this track', exact: true })).toHaveCount(0);
     const tip = page.getByRole('button', { name: 'Tip this track', exact: true });
     await expect(tip).toBeVisible();
+    await expect(tip).not.toHaveAttribute('title');
+    await expect(tip).toHaveAttribute('aria-haspopup', 'dialog');
     const box = (await tip.boundingBox())!;
     expect(box.height).toBeGreaterThanOrEqual(44);
     expect(box.x + box.width).toBeLessThanOrEqual(width);
     await page.screenshot({ path: info.outputPath(`track-actions-${width}.png`), animations: 'disabled' });
+    const restingColor = await tip.evaluate(element => getComputedStyle(element).color);
+    await tip.hover();
+    await expect(tip).toHaveCSS('color', restingColor);
+    expect(await tip.boundingBox()).toEqual(box);
+    if (width === 1440) {
+      const contrast = (await renderedTextContrast(page)).filter(sample => sample.text === 'Tip this track');
+      expect(contrast).toHaveLength(1);
+      expect(contrast[0].ratio).toBeGreaterThanOrEqual(4.5);
+      await page.screenshot({ path: info.outputPath('tip-hover-desktop.png'), animations: 'disabled' });
+    }
+    await page.mouse.move(0, 0);
+    await page.keyboard.press('Tab');
+    await tip.focus();
+    await expect(tip).toBeFocused();
+    await expect(tip).toHaveCSS('outline-style', 'solid');
+    await expect(tip).toHaveCSS('outline-width', '2px');
+    await page.screenshot({ path: info.outputPath(`tip-focus-${width}.png`), animations: 'disabled' });
     await tip.click();
     await expect(contributionDialog(page)).toContainText('Listening access stays unchanged');
     await review(page, '0.5', 'tip');

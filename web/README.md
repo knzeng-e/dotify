@@ -187,13 +187,23 @@ unreviewed live catalogue drift. `deploy:product-devnet` uses
 `@parity/polkadot-app-deploy@0.20.0` through `npm exec`, verifies its DevNet
 deploy API and the committed `product-devnet-host.environments.json` override,
 then verifies the registry and resolver Product Desktop currently receives from
-Remote Config. This explicit override prevents a newer CLI DotNS generation
-from accepting a publish that the installed Product host cannot resolve. The
+Remote Config. Drift, a missing client key or an unavailable live configuration
+blocks publication instead of accepting a different DotNS generation. The
 command uploads static chunks to Product DevNet Bulletin with an authorized
 storage pool signer, and binds
 `dotify-test01.dot` with the owner mnemonic through DotNS. Run
 `npm run verify:product-deploy-environment` for the same read-only check without
-building or publishing. The owner mnemonic is accepted
+building or publishing. Set the operator-only `PRODUCT_HOST_FIREBASE_API_KEY`,
+or configure `{"apiKey":"<Product Firebase client API key>"}` in the ignored
+`.product-host-check.local.json` file (mode 600). This is the host's public
+Firebase client identifier, never a wallet seed or admin credential; it is not
+a `VITE_` variable. CI reads the same value from an Actions secret. See the
+[deployment configuration guide](../docs/operations/deployment-configuration.md)
+for monitoring setup and the default-branch requirement for daily checks.
+Publication checks the host configuration again before and after writing;
+this does not certify the bundle loaded by an already-open host. Compare its
+Production readiness SHA/version with the published candidate as well.
+The owner mnemonic is accepted
 only from the local `MNEMONIC` environment and is never an argument or GitHub
 Actions secret; inject it with a silent prompt and unset it immediately after
 publication. Browse listing is a separate operator step because it has its own
