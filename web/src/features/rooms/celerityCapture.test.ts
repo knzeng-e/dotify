@@ -50,7 +50,7 @@ describe('opt-in bounded Celerity capture', () => {
     capture.frame(packet, { ...input, seq: 3 });
     const second = (await capture.stop())!;
     expect(second.frames[0].frame).toBe(first.frames[0].frame);
-    expect(second.frames.map(frame => frame.clock)).toEqual([null, 1, null]);
+    expect(Object.fromEntries(second.frames.map(frame => [frame.seq, frame.clock]))).toEqual({ 1: null, 2: 1, 3: null });
     expect(second.clocks).toHaveLength(2);
   });
 
