@@ -26,7 +26,7 @@ import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { resolveRoomContributionTrack } from '../features/donations/roomContributionTrack';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 // The player page reads its track/session/playback state from context. The only
 // props are the two room-modal triggers, whose open state lives in ListenerShell.
@@ -47,6 +47,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
   const coverSource = catalog.coverSource;
   const accessGate = catalog.accessGate;
+  const setCatalogTrackInfo = catalog.setTrackInfo;
   const {
     mode,
     hostName,
@@ -61,9 +62,14 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     localStreamReady,
     roomPlaybackMode,
     productHostWebRtcUnavailable,
+    socketEmit,
+    socketStatus,
     error
   } = session;
-  const roomContribution = resolveRoomContributionTrack(catalog.catalogTracks, trackInfo);
+  const roomContribution = useMemo(
+    () => resolveRoomContributionTrack(catalog.catalogTracks, trackInfo, catalog.catalogIsAuthoritative),
+    [catalog.catalogIsAuthoritative, catalog.catalogTracks, trackInfo]
+  );
   const contributionTrack = roomId ? (roomContribution.state === 'ready' ? roomContribution.track : null) : selectedTrack;
   const currentTrack = playbackTrack(mode, trackInfo, selectedTrack);
   const streamTitle = currentTrack?.title || (mode === 'listener' ? 'Waiting for the host’s track' : title);
@@ -104,14 +110,14 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     setChatUnread(false);
   }, [roomId]);
   useEffect(() => {
-    if (!roomId || mode !== 'host' || session.socketStatus !== 'online' || roomContribution.state !== 'recoverable' || !trackInfo) return;
+    if (!roomId || mode !== 'host' || socketStatus !== 'online' || roomContribution.state !== 'recoverable' || !trackInfo) return;
     const runtimeAddress = runtimeAddressFromTrackId(roomContribution.track);
     if (!runtimeAddress) return;
 
     const repairedTrack = { ...trackInfo, runtimeAddress };
-    catalog.setTrackInfo(repairedTrack);
-    session.socketEmit('room:track', repairedTrack);
-  }, [catalog, mode, roomContribution, roomId, session, trackInfo]);
+    setCatalogTrackInfo(repairedTrack);
+    socketEmit('room:track', repairedTrack);
+  }, [mode, roomContribution, roomId, setCatalogTrackInfo, socketEmit, socketStatus, trackInfo]);
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 769px)');
     const resetPeople = () => {
@@ -447,9 +453,11 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                     : 'The host needs to refresh this track before a tip can be routed safely.'
                   : roomContribution.reason === 'ambiguous-release'
                     ? 'This track matches more than one release. Tips stay unavailable until the host refreshes it.'
-                    : roomContribution.reason === 'runtime-mismatch'
-                      ? 'This room does not match the verified release. Tips stay unavailable.'
-                      : 'This live track has no verified contribution route.'}
+                    : roomContribution.reason === 'catalog-unverified'
+                      ? 'Checking the complete catalog before this track can receive tips.'
+                      : roomContribution.reason === 'runtime-mismatch'
+                        ? 'This room does not match the verified release. Tips stay unavailable.'
+                        : 'This live track has no verified contribution route.'}
               </p>
             )}
             <span className='track-room-label'>{mode === 'host' ? 'Now playing' : visibleHostName ? `With ${visibleHostName}` : 'Listening together'}</span>

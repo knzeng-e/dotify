@@ -54,15 +54,22 @@ describe('resolveRoomContributionTrack', () => {
   });
 
   it('offers host recovery when a legacy room hash has one catalog match', () => {
-    expect(resolveRoomContributionTrack([track()], roomTrack({ runtimeAddress: undefined }))).toMatchObject({
+    expect(resolveRoomContributionTrack([track()], roomTrack({ runtimeAddress: undefined }), true)).toMatchObject({
       state: 'recoverable',
       track: { id: `${runtime}:${hash}` }
     });
   });
 
+  it('does not repair attribution from a provisional catalog', () => {
+    expect(resolveRoomContributionTrack([track()], roomTrack({ runtimeAddress: undefined }), false)).toEqual({
+      state: 'unavailable',
+      reason: 'catalog-unverified'
+    });
+  });
+
   it('fails closed when a hash maps to more than one runtime', () => {
     const otherRuntime = '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85';
-    const result = resolveRoomContributionTrack([track(), track({ id: `${otherRuntime}:${hash}` })], roomTrack({ runtimeAddress: undefined }));
+    const result = resolveRoomContributionTrack([track(), track({ id: `${otherRuntime}:${hash}` })], roomTrack({ runtimeAddress: undefined }), true);
 
     expect(result).toEqual({ state: 'unavailable', reason: 'ambiguous-release' });
   });
