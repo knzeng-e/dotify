@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { PRODUCT_DEPLOY_PROFILE, evaluateProductDeployApi, evaluateProductDeployEnvironment } from './product-deploy-environment-check.mjs';
@@ -27,6 +28,38 @@ test('accepts the Product deploy profile used by the current host generation', (
 
   assert.deepEqual(result.errors, []);
   assert.equal(result.environment?.id, 'devnet');
+});
+
+test('ships a host override with the Product-facing DotNS generation', () => {
+  const override = JSON.parse(readFileSync(PRODUCT_DEPLOY_PROFILE.environmentFile, 'utf8'));
+  const environment = override.environments?.find(entry => entry.id === PRODUCT_DEPLOY_PROFILE.environmentId);
+
+  assert.deepEqual(environment?.contracts, PRODUCT_DEPLOY_PROFILE.contracts);
+  assert.deepEqual(override.chains, []);
+});
+
+test('rejects the CLI 0.20.0 bundled DotNS generation when the host override is missing', () => {
+  const fixture = validPackage();
+  fixture.environments.environments[0].contracts = {
+    DOTNS_REGISTRY: '0x527b08a640b527a3dae0C4BE04D7344E430B6E50',
+    DOTNS_RESOLVER: '0xC28796526Bf3E9295f09655a1001F30f77AfCF0D',
+    DOTNS_CONTENT_RESOLVER: '0x326bdE29315199c814B1c58b431D84D16EA5cE41'
+  };
+
+  const result = evaluateProductDeployEnvironment(fixture);
+
+  assert.equal(
+    result.errors.some(error => error.includes('DOTNS_REGISTRY')),
+    true
+  );
+  assert.equal(
+    result.errors.some(error => error.includes('DOTNS_RESOLVER')),
+    true
+  );
+  assert.equal(
+    result.errors.some(error => error.includes('DOTNS_CONTENT_RESOLVER')),
+    true
+  );
 });
 
 test('rejects the transient 0.16.2 DotNS generation', () => {

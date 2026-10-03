@@ -1,0 +1,51 @@
+name: Product Host Configuration
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 6 * * *'
+  push:
+    branches: [dev]
+    paths:
+      - '.github/workflows/product-host-drift.yml'
+      - 'web/product-devnet-host.environments.json'
+      - 'web/scripts/product*config-check*'
+      - 'web/scripts/product-deploy-environment-check*'
+      - 'web/package.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-host-drift-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Live Product host / DotNS alignment
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Schedules execute from the default branch, but monitor the pilot on dev.
+          ref: ${{ github.event_name == 'schedule' && 'dev' || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test fail-closed checks offline
+        run: npm run test:product-deploy-environment
+      - name: Read live Product configuration (no signer or deployment)
+        env:
+          PRODUCT_HOST_FIREBASE_API_KEY: ${{ secrets.PRODUCT_HOST_FIREBASE_API_KEY }}
+        run: npm run verify:product-deploy-environment
+      - name: Explain failure boundary
+        if: failure()
+        run: |
+          printf '%s\n' '## Product host alignment could not be verified' \
+            'Inspect the check logs: configuration drift and network/key failures both block publication.' \
+            'Do not auto-update the pinned contracts or republish. Follow docs/operations/deployment-configuration.md.' \
+            >> "$GITHUB_STEP_SUMMARY"

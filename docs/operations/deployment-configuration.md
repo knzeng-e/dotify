@@ -403,6 +403,48 @@ locally signed publication.
 
 Build and publication:
 
+Before publication, `npm run verify:product-deploy-environment` checks the
+pinned CLI API and `web/product-devnet-host.environments.json`, then fetches
+Product Desktop's public Firebase Remote Config with the `environment=paseo`
+signal. This is the Product channel corresponding to the CLI's `devnet` profile.
+It compares the registry, resolver/content resolver and IPFS gateway. Missing
+configuration, malformed replies, HTTP failures and timeouts all fail closed;
+the operator must not bypass the check or automatically adopt changed addresses.
+
+Configure `PRODUCT_HOST_FIREBASE_API_KEY` in the operator shell, or put
+`{"apiKey":"<Product Firebase client API key>"}` in the ignored local file
+`web/.product-host-check.local.json` (mode 600). Use the Firebase **client** key
+from the Product distribution matching the pinned project/app/channel in
+`web/scripts/product-host-config-check.mjs`, never a wallet seed, service-account
+key or Product session token. This setting has no `VITE_` prefix and is not
+included in the Dotify frontend. The checker creates a fresh anonymous client ID
+in memory; it reads only public Remote Config and persists no Firebase identity.
+
+The deploy wrapper checks again immediately before publication and after the
+CLI publishes the content and manifest. A failed post-check means publication
+may already have completed: inspect the printed CID and transaction receipts,
+do not retry writes blindly. CLI read-back and matching Remote Config do **not**
+prove that an installed Product host has refreshed its local cache. Record the
+candidate SHA/version/CID, reload the host, and compare its Production readiness
+build identity before accepting a release. Never use cache deletion as a
+substitute for checking the registry/resolver first.
+
+`.github/workflows/product-host-drift.yml` performs the same signer-free check
+on relevant `dev` pushes, manual dispatch and daily at 06:23 UTC. Set repository
+Actions secret `PRODUCT_HOST_FIREBASE_API_KEY` to the same client key. There is
+no mnemonic, deployment or automatic configuration update in this workflow.
+The scheduled workflow must exist on GitHub's default branch (`main`) to run;
+merging it into `dev` alone enables the push check, **not** the daily schedule.
+Action failures are the alert; configure GitHub Actions notifications for the
+maintainer. A green check proves a fresh observation at that time, not perpetual
+host compatibility or that Web/Mobile/Desktop all have the same active config.
+
+When drift is detected, compare Product's current distribution and channel,
+review registry/resolver ownership and domain state, then update the pinned
+profile/override together in a tested PR. Repeat the live check and a real host
+SHA/version observation. A changed client project or channel also requires
+review of the source profile; never silently fall back to a different channel.
+
 ```bash
 cd web
 read -rs MNEMONIC

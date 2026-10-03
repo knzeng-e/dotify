@@ -22,20 +22,32 @@
   padding: 8px 12px;
   border: 1px solid color-mix(in srgb, var(--artist) 30%, transparent);
   border-radius: 8px;
-  background: transparent;
+  background: var(--surface);
   color: var(--ink);
   font-size: var(--text-sm);
   letter-spacing: 0;
   box-shadow: none;
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease);
 }
 .contribution-action svg,
 .contribution-purpose svg {
   flex-shrink: 0;
   color: var(--artist);
 }
-.contribution-action.secondary-action:hover {
-  background: var(--artist-soft);
+.contribution-action.secondary-action:hover:not(:disabled),
+.contribution-action.secondary-action:active:not(:disabled) {
+  background: color-mix(in srgb, var(--artist) 14%, var(--surface));
   border-color: var(--artist);
+  color: var(--ink);
+}
+.contribution-action.secondary-action:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.contribution-action.secondary-action:active:not(:disabled) {
+  background: color-mix(in srgb, var(--artist) 22%, var(--surface));
 }
 .contribution-action-unavailable.secondary-action:disabled {
   opacity: 1;

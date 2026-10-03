@@ -2,8 +2,9 @@
 
 import { execFileSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { withProductHostVerification } from './product-host-config-check.mjs';
 
 const DEPLOY_PACKAGE = '@parity/polkadot-app-deploy';
 const DEPLOY_VERSION = '0.20.0';
@@ -12,6 +13,7 @@ const DOMAIN = 'dotify-test01.dot';
 const ENVIRONMENT = 'devnet';
 const CONFIG_PATH = './polkadot-app-deploy.config.ts';
 const DEFAULT_POOL_SIZE = 10;
+const HOST_ENVIRONMENT_PATH = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'product-devnet-host.environments.json');
 
 function padPackageRoot() {
   const locator = process.platform === 'win32' ? 'where' : 'which';
@@ -62,9 +64,14 @@ async function run() {
   console.log(`Bulletin storage signer (DevNet pool account ${poolIndex}, not your DotNS owner): ${storageAccount.address}`);
   console.log('The MNEMONIC account signs DotNS updates; this separate pool account uploads Bulletin bytes.');
 
+  // The CLI's bundled DevNet profile can advance before Product Desktop's
+  // Remote Config. Force every deploy and manifest sub-call through the exact
+  // host-facing DotNS generation verified by the repository preflight.
+  process.env.PAD_ENV_FILE = HOST_ENVIRONMENT_PATH;
+
   const [loadedConfig, environments] = await Promise.all([
     index.preflightProductConfig({ path: CONFIG_PATH }),
-    index.loadEnvironments({ userFilePath: process.env.PAD_ENV_FILE })
+    index.loadEnvironments({ userFilePath: HOST_ENVIRONMENT_PATH })
   ]);
   const resolved = index.resolveEndpoints(environments.doc, ENVIRONMENT);
   const envTld = resolved.tld ?? 'dot';
@@ -72,31 +79,36 @@ async function run() {
   index.reconcileManifestDomain(loadedConfig.config.domain, DOMAIN, envTld, loadedConfig.sourcePath);
   const manifestWillPublish = deployModule.shouldPublishManifest({ configFound: true, noManifest: false });
 
-  const result = await index.deploy(BUILD_DIR, DOMAIN, {
-    mnemonic,
-    env: ENVIRONMENT,
-    jsMerkle: true,
-    manifestPending: manifestWillPublish,
-    transferToSignedInUser: false,
-    storageSigner: storageAccount.signer,
-    storageSignerAddress: storageAccount.address
-  });
-
-  console.log(`CID: ${result.cid}`);
-  console.log(`Domain: ${result.fullDomain}`);
-
-  if (manifestWillPublish) {
-    await index.publishManifest({
-      loaded: loadedConfig,
-      domain: DOMAIN,
-      buildDirCid: { absPath: resolve(BUILD_DIR), cid: result.cid },
-      env: ENVIRONMENT,
+  const environment = environments.doc.environments.find(entry => entry.id === ENVIRONMENT);
+  const result = await withProductHostVerification(environment, async () => {
+    const result = await index.deploy(BUILD_DIR, DOMAIN, {
       mnemonic,
+      env: ENVIRONMENT,
+      jsMerkle: true,
+      manifestPending: manifestWillPublish,
+      transferToSignedInUser: false,
       storageSigner: storageAccount.signer,
       storageSignerAddress: storageAccount.address
     });
-    deployModule.printDeploymentCompleteBanner(result.fullDomain, result.browserUrl);
-  }
+
+    console.log(`CID: ${result.cid}`);
+    console.log(`Domain: ${result.fullDomain}`);
+
+    if (manifestWillPublish) {
+      await index.publishManifest({
+        loaded: loadedConfig,
+        domain: DOMAIN,
+        buildDirCid: { absPath: resolve(BUILD_DIR), cid: result.cid },
+        env: ENVIRONMENT,
+        mnemonic,
+        storageSigner: storageAccount.signer,
+        storageSignerAddress: storageAccount.address
+      });
+    }
+    return result;
+  });
+  deployModule.printDeploymentCompleteBanner(result.fullDomain, result.browserUrl);
+  console.log('Host configuration verified. Reload Product and check the loaded build SHA/version; this command cannot verify an installed host cache.');
 }
 
 run().catch(error => {

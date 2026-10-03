@@ -187,7 +187,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
         data-kind={kind}
         type='button'
         aria-label={label}
-        title={label}
+        aria-haspopup='dialog'
         onClick={event => {
           event.currentTarget.focus();
           setOpen(true);
