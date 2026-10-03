@@ -91,8 +91,15 @@ export interface RuntimeReadPort {
 
 export type PaymentLifecycle = 'signing' | 'broadcasting' | 'in-block' | 'finalized' | 'error';
 export type PaymentObserver = (status: PaymentLifecycle, txHash?: Hash) => void;
+export type ContributionConfirmationMode = 'evm-receipt' | 'finalized-event';
 
 export interface RuntimeWritePort {
+  /**
+   * Product CDM returns a native extrinsic hash after finalization. It must be
+   * confirmed from the indexed contract event, not passed to an EVM receipt
+   * lookup. Viem returns an EVM transaction hash and can use the receipt path.
+   */
+  contributionConfirmationMode: ContributionConfirmationMode;
   contributionCall?(
     runtime: Address,
     method: 'musicGiftContribute' | 'musicGiftSetPolicy' | 'musicGiftClaim',

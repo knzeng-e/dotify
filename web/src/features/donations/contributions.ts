@@ -1,7 +1,18 @@
-import { decodeEventLog, encodeAbiParameters, keccak256, zeroAddress, zeroHash, type Address, type Hash, type ContractFunctionReturnType } from 'viem';
+import {
+  decodeEventLog,
+  encodeAbiParameters,
+  keccak256,
+  parseAbiItem,
+  zeroAddress,
+  zeroHash,
+  type Address,
+  type Hash,
+  type ContractFunctionReturnType
+} from 'viem';
 import { musicRoyaltiesAbi } from '../../generated/contracts/musicRoyalties';
 import { getPublicClient } from '../../shared/config/contracts';
 import { contributionE2e, contributionTestReader } from '../../e2e/contributionMock';
+import type { ContributionConfirmationMode } from '../runtime/runtimePorts';
 
 export type ContributionPolicy = ContractFunctionReturnType<typeof musicRoyaltiesAbi, 'view', 'musicGiftPolicy'>;
 export type ContributionQuote = ContractFunctionReturnType<typeof musicRoyaltiesAbi, 'view', 'musicGiftQuote'>;
@@ -37,6 +48,52 @@ export type ContributionReceipt = {
   transactionHash: Hash;
   shares: Array<{ recipient: Address; amount: bigint; role: number; paid: boolean; claimed: boolean }>;
 };
+const contributionReceivedEvent = parseAbiItem(
+  'event ContributionReceived(bytes32 indexed id, bytes32 indexed contentHash, address indexed sender, uint256 amount, address host, bytes32 room, bytes32 campaign, bytes32 policy, uint64 timestamp)'
+);
+const contributionShareEvent = parseAbiItem('event ContributionShare(bytes32 indexed id, address indexed recipient, uint256 amount, uint8 role, bool paid)');
+
+export async function waitForFinalizedContribution(
+  read: () => Promise<ContributionReceipt | undefined>,
+  options: { attempts?: number; intervalMs?: number; wait?: (milliseconds: number) => Promise<void> } = {}
+): Promise<ContributionReceipt> {
+  const attempts = options.attempts ?? 10;
+  const intervalMs = options.intervalMs ?? 2_000;
+  const wait = options.wait ?? (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const receipt = await read();
+    if (receipt) return receipt;
+    if (attempt + 1 < attempts) await wait(intervalMs);
+  }
+
+  throw new Error('The finalized contribution is not visible from the read network yet. Check its status again; no new payment is needed.');
+}
+
+export async function confirmSubmittedContribution(input: {
+  mode: ContributionConfirmationMode;
+  runtime: Address;
+  hash: Hash;
+  id: Hash;
+  reader: {
+    receipt(runtime: Address, hash: Hash, expectedId: Hash): Promise<ContributionReceipt>;
+    finalizedReceipt(runtime: Address, expectedId: Hash): Promise<ContributionReceipt | undefined>;
+  };
+  polling?: Parameters<typeof waitForFinalizedContribution>[1];
+}): Promise<ContributionReceipt> {
+  if (input.mode === 'finalized-event') {
+    return waitForFinalizedContribution(() => input.reader.finalizedReceipt(input.runtime, input.id), input.polling);
+  }
+
+  try {
+    return await input.reader.receipt(input.runtime, input.hash, input.id);
+  } catch (error) {
+    const receipt = await input.reader.finalizedReceipt(input.runtime, input.id);
+    if (receipt) return receipt;
+    throw error;
+  }
+}
+
 export function contributionReader(rpc: string) {
   const client = getPublicClient(rpc);
   if (contributionE2e) return { ...contributionTestReader, client: { ...client, ...contributionTestReader.client } };
@@ -57,6 +114,26 @@ export function contributionReader(rpc: string) {
       const result = rows.find(row => row.id === expectedId);
       if (!result) throw new Error('The receipt does not match this contribution.');
       return result;
+    },
+    async finalizedReceipt(runtime: Address, expectedId: Hash): Promise<ContributionReceipt | undefined> {
+      const final = await client.getBlock({ blockTag: 'finalized' });
+      const received = await client.getLogs({
+        address: runtime,
+        event: contributionReceivedEvent,
+        args: { id: expectedId },
+        fromBlock: 0n,
+        toBlock: final.number
+      });
+      const source = received[received.length - 1];
+      if (!source) return undefined;
+      const shares = await client.getLogs({
+        address: runtime,
+        event: contributionShareEvent,
+        args: { id: expectedId },
+        fromBlock: source.blockNumber,
+        toBlock: source.blockNumber
+      });
+      return decodeContributions(runtime, [...received, ...shares]).find(row => row.id === expectedId);
     },
     async history(runtime: Address): Promise<ContributionReceipt[]> {
       const block = await client.getBlock({ blockTag: 'finalized' });

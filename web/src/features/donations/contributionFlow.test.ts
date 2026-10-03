@@ -52,7 +52,12 @@ describe('persistent contributions', () => {
   it('recovers after reload without resubmitting, even if the requested amount changed', async () => {
     const input = fixture();
     input.confirm.mockRejectedValueOnce(new Error('timeout'));
-    expect((await runContribution(input)).status).toBe('uncertain');
+    const interrupted = await runContribution(input);
+    expect(interrupted).toMatchObject({
+      status: 'uncertain',
+      message: expect.stringContaining('taking longer than expected'),
+      technicalMessage: 'timeout'
+    });
     expect(input.storage.getItem(contributionStorageKey(input.intent))).toContain(input.receipt.transactionHash);
     expect((await runContribution({ ...input, intent: { ...input.intent, amount: 99n } })).receipt?.amount).toBe(10n);
     expect(input.send).toHaveBeenCalledTimes(1);

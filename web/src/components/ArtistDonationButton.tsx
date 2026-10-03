@@ -1,4 +1,4 @@
-import { Coins, HandHeart, X } from 'lucide-react';
+import { CircleCheckBig, Coins, ExternalLink, HandHeart, X } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { formatEther, parseEther, parseAbi, zeroHash, type Address, type Hash } from 'viem';
 import { musicRegistryAbi } from '../generated/contracts/musicRegistry';
@@ -6,7 +6,7 @@ import { contributionE2e } from '../e2e/contributionMock';
 import { Dialog } from './Dialog';
 import { useWalletContext, useSessionContext, useUiFeedback } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
-import { contributionReader, newContributionContext } from '../features/donations/contributions';
+import { confirmSubmittedContribution, contributionReader, newContributionContext } from '../features/donations/contributions';
 import { runContribution, type ContributionIntent, type ContributionOutcome } from '../features/donations/contributionFlow';
 import { useContributionWriter } from '../features/donations/useContributionWriter';
 import { nativeCurrencyForChain } from '../shared/config/contracts';
@@ -25,7 +25,7 @@ export function ArtistDonationButton(props: ContributionButtonProps) {
 function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
   const wallet = useWalletContext();
   const session = useSessionContext();
-  const { openWalletModal } = useUiFeedback();
+  const { openWalletModal, pushNotice } = useUiFeedback();
   const writer = useContributionWriter();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState('');
@@ -43,7 +43,11 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
     };
   }, [wallet.listenerEvmAddress]);
   const label = kind === 'tip' ? 'Tip this track' : 'Send a gift';
+  const confirmed = outcome?.status === 'confirmed' && Boolean(outcome.receipt);
+  const actionLabel = confirmed ? (kind === 'tip' ? 'Tip sent. View receipt' : 'Gift sent. View receipt') : label;
+  const visibleActionLabel = confirmed ? (kind === 'tip' ? 'Tip sent' : 'Gift sent') : label;
   const ContributionIcon = kind === 'tip' ? Coins : HandHeart;
+  const ActionIcon = confirmed ? CircleCheckBig : ContributionIcon;
   const symbol = (wallet.expectedChainId ? nativeCurrencyForChain(wallet.expectedChainId, wallet.ethRpcUrl).symbol : '') || 'PAS';
   async function review() {
     if (busy) return;
@@ -153,20 +157,27 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
           }
           return writer.contributionCall!(intent.runtime, 'musicGiftContribute', [intent.context, intent.quote.digest, intent.proof], intent.amount);
         },
-        confirm: async (hash, id) => {
-          try {
-            return await reader.receipt(intent.runtime, hash, id);
-          } catch (error) {
-            // Product can return a native extrinsic hash. The finalized event's
-            // intent identity also recovers its EVM receipt without another write.
-            const receipt = (await reader.history(intent.runtime)).find(row => row.id === id);
-            if (receipt) return receipt;
-            throw error;
-          }
-        },
+        confirm: (hash, id) =>
+          confirmSubmittedContribution({
+            mode: writer.contributionConfirmationMode,
+            runtime: intent.runtime,
+            hash,
+            id,
+            reader
+          }),
         recover: async id => (await reader.history(intent.runtime)).find(row => row.id === id)
       });
       setOutcome(result);
+      if (result.status === 'confirmed' && result.receipt) {
+        pushNotice({
+          tone: 'success',
+          title: kind === 'tip' ? 'Tip sent' : 'Gift sent',
+          message:
+            kind === 'tip'
+              ? `${formatEther(result.receipt.amount)} ${symbol} for “${track.title}”. The finalized receipt is ready.`
+              : `${formatEther(result.receipt.amount)} ${symbol} for ${track.artist}. The finalized receipt is ready.`
+        });
+      }
       if (result.receipt && result.receipt.room !== zeroHash)
         session.socketRef.current?.request(
           'room:tip-notify',
@@ -185,19 +196,20 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
       <button
         className='secondary-action contribution-action'
         data-kind={kind}
+        data-confirmed={confirmed || undefined}
         type='button'
-        aria-label={label}
+        aria-label={actionLabel}
         aria-haspopup='dialog'
         onClick={event => {
           event.currentTarget.focus();
           setOpen(true);
         }}
       >
-        <ContributionIcon size={18} aria-hidden='true' />
-        <span className='contribution-action-label'>{label}</span>
+        <ActionIcon size={18} aria-hidden='true' />
+        <span className='contribution-action-label'>{visibleActionLabel}</span>
         {kind === 'tip' && (
           <span className='contribution-action-short' aria-hidden='true'>
-            Tip
+            {confirmed ? 'Sent' : 'Tip'}
           </span>
         )}
       </button>
@@ -301,8 +313,22 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
           )}
           {busy && <p role='status'>You can close this window. Closing does not cancel a transaction.</p>}
           {outcome && (
-            <div role='status'>
-              <p>{outcome.message}</p>
+            <div className='contribution-result' data-status={outcome.status} role='status' aria-live='polite'>
+              {outcome.status === 'confirmed' && outcome.receipt ? (
+                <div className='contribution-result-head'>
+                  <span className='contribution-result-mark' aria-hidden='true'>
+                    <CircleCheckBig size={24} />
+                  </span>
+                  <div>
+                    <h3>{kind === 'tip' ? 'Tip sent' : 'Gift sent'}</h3>
+                    <p>
+                      {formatEther(outcome.receipt.amount)} {symbol} {kind === 'tip' ? `for “${track.title}”` : `for ${track.artist}`}. Finalized and recorded.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p>{outcome.message}</p>
+              )}
               {outcome.receipt && (
                 <>
                   <time dateTime={new Date(outcome.receipt.timestamp).toISOString()}>{new Date(outcome.receipt.timestamp).toLocaleString()}</time>
@@ -321,27 +347,37 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                   </ul>
                 </>
               )}
-              {outcome.hash && (
-                <a href={getBlockscoutTxUrl(outcome.hash)} target='_blank' rel='noreferrer'>
-                  View transaction
-                </a>
+              {outcome.technicalMessage && outcome.technicalMessage !== outcome.message && (
+                <details className='transaction-technical contribution-technical'>
+                  <summary>Technical details</summary>
+                  <code>{outcome.technicalMessage}</code>
+                </details>
               )}
-              {outcome.status === 'uncertain' ? (
-                <button className='secondary-action' disabled={busy} onClick={() => void send()}>
-                  Check status · no new payment
-                </button>
-              ) : (
-                <button
-                  className='secondary-action'
-                  onClick={() => {
-                    setOutcome(undefined);
-                    setIntent(undefined);
-                    setAmount('');
-                  }}
-                >
-                  Prepare another contribution
-                </button>
-              )}
+              {outcome.status === 'uncertain' && <p className='contribution-recovery-note'>Checking status verifies this payment. It never sends another.</p>}
+              <div className='contribution-result-actions'>
+                {outcome.hash && (writer.contributionConfirmationMode === 'evm-receipt' || outcome.receipt) && (
+                  <a className='secondary-action contribution-transaction-link' href={getBlockscoutTxUrl(outcome.hash)} target='_blank' rel='noreferrer'>
+                    <ExternalLink size={16} aria-hidden='true' />
+                    View transaction
+                  </a>
+                )}
+                {outcome.status === 'uncertain' ? (
+                  <button className='primary-action' disabled={busy} onClick={() => void send()}>
+                    {busy ? 'Checking payment…' : 'Check payment status'}
+                  </button>
+                ) : (
+                  <button
+                    className='secondary-action'
+                    onClick={() => {
+                      setOutcome(undefined);
+                      setIntent(undefined);
+                      setAmount('');
+                    }}
+                  >
+                    Send another {kind}
+                  </button>
+                )}
+              </div>
             </div>
           )}
           {error && <p role='alert'>{error}</p>}

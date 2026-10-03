@@ -617,6 +617,7 @@ export function createViemRuntimeWriter(deps: ViemRuntimeWriterDeps): RuntimeWri
   const { walletClient } = deps;
 
   return {
+    contributionConfirmationMode: 'evm-receipt',
     async contributionCall(runtime, method, args, value = 0n) {
       let data: Hash;
       try {

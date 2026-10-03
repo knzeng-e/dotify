@@ -37,14 +37,15 @@ for (const width of [320, 390, 430, 1440]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: info.outputPath(`gift-review-${width}.png`), animations: 'disabled' });
     await page.getByRole('button', { name: 'Confirm gift · 0.25 PAS', exact: true }).click();
-    await expect(dialog).toContainText('Contribution confirmed');
+    await expect(dialog.getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
     await expect(dialog.locator('time')).toBeVisible();
     expect((await giftState(page)).sends).toBe(1);
     const access = await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_CLASSIC_UNLOCK__') as { paid: boolean; accessGranted: boolean });
     expect(access.paid).toBe(false);
     expect(access.accessGranted).toBe(false);
     await page.getByRole('button', { name: 'Close contribution' }).click();
-    await expect(page.getByRole('button', { name: 'Send a gift', exact: true })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Gift sent. View receipt', exact: true })).toBeFocused();
+    await expect(page.locator('.toast-card[data-tone="success"]')).toContainText('Gift sent');
   });
 }
 for (const width of [320, 390, 430, 1440]) {
@@ -85,12 +86,20 @@ for (const width of [320, 390, 430, 1440]) {
     await expect(contributionDialog(page)).toContainText('Listening access stays unchanged');
     await review(page, '0.5', 'tip');
     await contributionDialog(page).getByRole('button', { name: 'Confirm tip · 0.5 PAS', exact: true }).click();
-    await expect(contributionDialog(page)).toContainText('Contribution confirmed');
+    const dialog = contributionDialog(page);
+    await expect(dialog.getByRole('heading', { name: 'Tip sent', exact: true })).toBeVisible();
+    await expect(dialog).toContainText('0.5 PAS for “Deterministic Classic Unlock”. Finalized and recorded.');
     const access = await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_CLASSIC_UNLOCK__') as { paid: boolean; accessGranted: boolean });
     expect(access.paid).toBe(false);
     expect(access.accessGranted).toBe(false);
     await page.getByRole('button', { name: 'Close contribution' }).click();
-    await expect(tip).toBeFocused();
+    const sentTip = page.getByRole('button', { name: 'Tip sent. View receipt', exact: true });
+    await expect(sentTip).toBeFocused();
+    await expect(sentTip).toHaveAttribute('data-confirmed', 'true');
+    const notice = page.locator('.toast-card[data-tone="success"]');
+    await expect(notice).toContainText('Tip sent');
+    await expect(notice).toContainText('0.5 PAS for “Deterministic Classic Unlock”');
+    await page.screenshot({ path: info.outputPath(`tip-confirmed-${width}.png`), animations: 'disabled' });
     await page.getByRole('button', { name: 'Unlock listening', exact: true }).click();
     await expect(page.getByTestId('classic-unlock-button')).toHaveAccessibleName('Pay 0.5 PAS to unlock Deterministic Classic Unlock');
   });
@@ -99,7 +108,7 @@ test('a confirmed gift is visible in You with a dated exportable receipt', async
   await openGift(page);
   await review(page, '0.5');
   await page.getByRole('button', { name: 'Confirm gift · 0.5 PAS', exact: true }).click();
-  await expect(contributionDialog(page)).toContainText('Contribution confirmed');
+  await expect(contributionDialog(page).getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Close contribution' }).click();
   await page.getByRole('button', { name: 'You', exact: true }).click();
   const history = page.locator('.contribution-history');
@@ -214,18 +223,18 @@ test('a pending contribution can close and reopen without another transfer', asy
   await expect(contributionDialog(page).getByRole('status')).toContainText('Closing does not cancel');
   expect((await giftState(page)).sends).toBe(1);
   await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__').complete());
-  await expect(contributionDialog(page)).toContainText('Contribution confirmed');
+  await expect(contributionDialog(page).getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
 });
 test('an interrupted contribution is recovered without a second payment', async ({ page }) => {
   await openGift(page, '?e2eGift=delayed');
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
-  await expect(contributionDialog(page)).toContainText('Confirmation was interrupted');
+  await expect(contributionDialog(page)).toContainText('Confirmation is taking longer than expected');
   await page.evaluate(() => {
     Reflect.get(window, '__DOTIFY_E2E_DONATION__').confirmed = true;
   });
-  await page.getByRole('button', { name: 'Check status · no new payment' }).click();
-  await expect(contributionDialog(page)).toContainText('Contribution confirmed');
+  await page.getByRole('button', { name: 'Check payment status' }).click();
+  await expect(contributionDialog(page).getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
   expect((await giftState(page)).sends).toBe(1);
 });
 test('zero amounts and rejected signatures never show a successful receipt', async ({ page }) => {
@@ -235,5 +244,27 @@ test('zero amounts and rejected signatures never show a successful receipt', asy
   await review(page, '1');
   await page.getByRole('button', { name: 'Confirm gift · 1 PAS', exact: true }).click();
   await expect(contributionDialog(page)).toContainText('No contribution was sent');
-  await expect(contributionDialog(page)).not.toContainText('Contribution confirmed');
+  await expect(contributionDialog(page)).not.toContainText('Gift sent');
+});
+
+test('a mobile confirmation timeout stays actionable without exposing raw wallet errors', async ({ page }, info) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await openGift(page, '?e2eGift=timeout');
+  await review(page, '0.1');
+  await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
+  const dialog = contributionDialog(page);
+  await expect(dialog).toContainText('Confirmation is taking longer than expected');
+  await expect(dialog).toContainText('Checking status verifies this payment. It never sends another.');
+  await expect(dialog.getByRole('button', { name: 'Check payment status' })).toBeVisible();
+  await expect(dialog.getByRole('link', { name: 'View transaction' })).toBeVisible();
+  const technicalError = dialog.locator('.contribution-technical code');
+  await expect(technicalError).not.toBeVisible();
+  await dialog.getByText('Technical details', { exact: true }).click();
+  await expect(technicalError).toBeVisible();
+  await expect(technicalError).toContainText('viem@2.55.19');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const actions = dialog.locator('.contribution-result-actions');
+  expect((await actions.boundingBox())!.width).toBeLessThanOrEqual((await dialog.boundingBox())!.width);
+  await page.screenshot({ path: info.outputPath('tip-timeout-mobile-320.png'), animations: 'disabled' });
+  expect((await giftState(page)).sends).toBe(1);
 });

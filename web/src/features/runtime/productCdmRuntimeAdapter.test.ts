@@ -282,6 +282,7 @@ describe('createProductCdmRuntimeWriter', () => {
     const musicRegRegister = txMethod();
     const musicRoyPayAccess = txMethod();
     const musicRoyClaim = txMethod();
+    const musicGiftContribute = txMethod();
     const musicRegSetAccessMode = txMethod();
     const musicRegDeactivate = txMethod();
     const writer = createProductCdmRuntimeWriter({
@@ -293,6 +294,7 @@ describe('createProductCdmRuntimeWriter', () => {
           musicRegRegister,
           musicRoyPayAccess,
           musicRoyClaim,
+          musicGiftContribute,
           musicRegSetAccessMode,
           musicRegDeactivate
         })
@@ -329,6 +331,7 @@ describe('createProductCdmRuntimeWriter', () => {
       )
     ).resolves.toBe(txHash);
     await expect(writer.claimRoyalty(runtime, splitRecipient)).resolves.toBe(txHash);
+    await expect(writer.contributionCall!(runtime, 'musicGiftContribute', [hash], 4_200_000_000_000_000_000n)).resolves.toBe(txHash);
     await expect(
       writer.setAccessMode(runtime, {
         contentHash: hash,
@@ -342,6 +345,8 @@ describe('createProductCdmRuntimeWriter', () => {
 
     expect(musicRoyPayAccess.tx).toHaveBeenCalledWith(hash, { value: 30_000_000_000n, waitFor: 'finalized' });
     expect(musicRoyClaim.tx).toHaveBeenCalledWith(splitRecipient);
+    expect(musicGiftContribute.tx).toHaveBeenCalledWith(hash, { value: 42_000_000_000n, waitFor: 'finalized' });
+    expect(writer.contributionConfirmationMode).toBe('finalized-event');
     expect(musicRegSetAccessMode.tx).toHaveBeenCalledWith(hash, 2, 0n, 1);
     expect(musicRegDeactivate.tx).toHaveBeenCalledWith(hash);
   });

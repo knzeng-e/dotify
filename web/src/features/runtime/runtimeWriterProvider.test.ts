@@ -186,6 +186,7 @@ describe('createRuntimeWriter', () => {
     expect(productWriter.createRuntime).toHaveBeenCalledWith(factory);
     expect(productWriter.payForAccess).toHaveBeenCalledWith(intent);
     expect(productWriter.claimRoyalty).toHaveBeenCalledWith(runtime, productH160Address);
+    expect(writer.contributionConfirmationMode).toBe('finalized-event');
     expect(createViemRuntimeWriter).not.toHaveBeenCalled();
     expect(getViemWalletClient).not.toHaveBeenCalled();
   });
