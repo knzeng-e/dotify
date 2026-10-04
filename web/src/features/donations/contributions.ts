@@ -1,8 +1,11 @@
 import {
   decodeEventLog,
   encodeAbiParameters,
+  encodeEventTopics,
+  formatLog,
   getAbiItem,
   keccak256,
+  toHex,
   zeroAddress,
   zeroHash,
   type Address,
@@ -50,6 +53,12 @@ export type ContributionReceipt = {
 };
 const contributionReceivedEvent = getAbiItem({ abi: musicRoyaltiesAbi, name: 'ContributionReceived' });
 const contributionShareEvent = getAbiItem({ abi: musicRoyaltiesAbi, name: 'ContributionShare' });
+
+function contributionIdTopics(eventName: 'ContributionReceived' | 'ContributionShare', id: Hash): [Hash, Hash] {
+  const [eventTopic, idTopic] = encodeEventTopics({ abi: musicRoyaltiesAbi, eventName, args: { id } });
+  if (typeof eventTopic !== 'string' || typeof idTopic !== 'string') throw new Error('Could not filter contribution logs by intent.');
+  return [eventTopic, idTopic];
+}
 
 export async function waitForFinalizedContribution(
   read: () => Promise<ContributionReceipt | undefined>,
@@ -115,22 +124,31 @@ export function contributionReader(rpc: string) {
     },
     async finalizedReceipt(runtime: Address, expectedId: Hash): Promise<ContributionReceipt | undefined> {
       const final = await client.getBlock({ blockTag: 'finalized' });
-      const received = await client.getLogs({
-        address: runtime,
-        event: contributionReceivedEvent,
-        args: { id: expectedId },
-        fromBlock: 0n,
-        toBlock: final.number
-      });
+      // Product DevNet rejects null topic placeholders emitted by getLogs({ args: { id } }).
+      const received = (
+        await client.request({
+          method: 'eth_getLogs',
+          params: [
+            { address: runtime, topics: contributionIdTopics(contributionReceivedEvent.name, expectedId), fromBlock: '0x0', toBlock: toHex(final.number) }
+          ]
+        })
+      ).map(log => formatLog(log));
       const source = received[received.length - 1];
       if (!source) return undefined;
-      const shares = await client.getLogs({
-        address: runtime,
-        event: contributionShareEvent,
-        args: { id: expectedId },
-        fromBlock: source.blockNumber,
-        toBlock: source.blockNumber
-      });
+      if (source.blockNumber === null) throw new Error('The finalized contribution log has no block number.');
+      const shares = (
+        await client.request({
+          method: 'eth_getLogs',
+          params: [
+            {
+              address: runtime,
+              topics: contributionIdTopics(contributionShareEvent.name, expectedId),
+              fromBlock: toHex(source.blockNumber),
+              toBlock: toHex(source.blockNumber)
+            }
+          ]
+        })
+      ).map(log => formatLog(log));
       return decodeContributions(runtime, [...received, ...shares]).find(row => row.id === expectedId);
     },
     async history(runtime: Address): Promise<ContributionReceipt[]> {
