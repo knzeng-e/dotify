@@ -230,12 +230,18 @@ test('a reload resumes the saved contribution without a new signature', async ({
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
   await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
+  const saved = await page.evaluate(() => {
+    const key = Object.keys(localStorage).find(item => item.startsWith('dotify.contribution.v1:'));
+    return key ? { key, value: localStorage.getItem(key) } : null;
+  });
+  expect(saved?.value).toBeTruthy();
   await page.reload();
   await page.locator('.catalogue-card .artist-text-button').first().click();
   await page.getByRole('main').getByRole('button', { name: 'Send a gift', exact: true }).click();
   await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
   await expect(amountField(page)).toHaveCount(0);
-  expect((await giftState(page)).sends).toBe(0);
+  expect(await page.evaluate(key => localStorage.getItem(key), saved!.key)).toBe(saved!.value);
+  expect(await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__')?.sends ?? 0)).toBe(0);
 });
 test('an interrupted contribution is recovered without a second payment', async ({ page }) => {
   await openGift(page, '?e2eGift=delayed');
