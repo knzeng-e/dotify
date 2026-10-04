@@ -125,17 +125,30 @@ export function contributionReader(rpc: string) {
     async finalizedReceipt(runtime: Address, expectedId: Hash): Promise<ContributionReceipt | undefined> {
       const final = await client.getBlock({ blockTag: 'finalized' });
       // Product DevNet rejects null topic placeholders emitted by getLogs({ args: { id } }).
-      const received = (await client.request({
-        method: 'eth_getLogs',
-        params: [{ address: runtime, topics: contributionIdTopics(contributionReceivedEvent.name, expectedId), fromBlock: '0x0', toBlock: toHex(final.number) }]
-      })).map(log => formatLog(log));
+      const received = (
+        await client.request({
+          method: 'eth_getLogs',
+          params: [
+            { address: runtime, topics: contributionIdTopics(contributionReceivedEvent.name, expectedId), fromBlock: '0x0', toBlock: toHex(final.number) }
+          ]
+        })
+      ).map(log => formatLog(log));
       const source = received[received.length - 1];
       if (!source) return undefined;
       if (source.blockNumber === null) throw new Error('The finalized contribution log has no block number.');
-      const shares = (await client.request({
-        method: 'eth_getLogs',
-        params: [{ address: runtime, topics: contributionIdTopics(contributionShareEvent.name, expectedId), fromBlock: toHex(source.blockNumber), toBlock: toHex(source.blockNumber) }]
-      })).map(log => formatLog(log));
+      const shares = (
+        await client.request({
+          method: 'eth_getLogs',
+          params: [
+            {
+              address: runtime,
+              topics: contributionIdTopics(contributionShareEvent.name, expectedId),
+              fromBlock: toHex(source.blockNumber),
+              toBlock: toHex(source.blockNumber)
+            }
+          ]
+        })
+      ).map(log => formatLog(log));
       return decodeContributions(runtime, [...received, ...shares]).find(row => row.id === expectedId);
     },
     async history(runtime: Address): Promise<ContributionReceipt[]> {
