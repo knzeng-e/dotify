@@ -623,6 +623,16 @@ signing still requires the CDM writer profile. Live host validation and
 owner-approved upgrades are separate release gates. See
 [native contributions](../docs/design/native-contributions.md).
 
+After a gift or tip is submitted, its sheet keeps checking for a finalized
+contribution without sending a second transaction. The check continues while
+the page is open, even if the sheet is closed; after a reload, reopening the
+gift/tip action resumes the saved intent for the connected payer. A finalized
+receipt is required for success; after submission, a finalized reverted EVM
+receipt is required to report a network failure. If Product supplies no usable transaction
+receipt or the read network remains unavailable, Dotify cannot prove either
+outcome and keeps the intent pending; do not clear browser storage or repeat the
+payment. The sheet shows a transaction link when an EVM hash is available.
+
 ### Listening and contribution actions
 
 The player separates audio controls from voluntary contributions and access
