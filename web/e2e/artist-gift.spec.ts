@@ -230,6 +230,17 @@ test('a reload resumes the saved contribution without a new signature', async ({
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
   await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const key = Object.keys(localStorage).find(item => item.startsWith('dotify.contribution.v1:'));
+          const raw = key ? localStorage.getItem(key) : null;
+          return raw ? (JSON.parse(raw) as { hash?: string }).hash : undefined;
+        }),
+      { timeout: 15000 }
+    )
+    .toMatch(/^0x[\da-f]{64}$/i);
   const saved = await page.evaluate(() => {
     const key = Object.keys(localStorage).find(item => item.startsWith('dotify.contribution.v1:'));
     return key ? { key, value: localStorage.getItem(key) } : null;
