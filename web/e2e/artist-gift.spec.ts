@@ -24,7 +24,7 @@ async function review(page: Page, amount = '0.25', kind: 'gift' | 'tip' = 'gift'
   await contributionDialog(page).getByRole('button', { name: 'Review contribution', exact: true }).click();
 }
 async function giftState(page: Page) {
-  return page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__') as { sends: number; confirmed: boolean });
+  return page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__') as { sends: number; confirmed: boolean; finalizedReads?: number });
 }
 for (const width of [320, 390, 430, 1440]) {
   test(`gift review and dated receipt at ${width}px preserve listening access`, async ({ page }, info) => {
@@ -283,6 +283,9 @@ test('a mobile confirmation timeout keeps checking without exposing raw wallet e
   const dialog = contributionDialog(page);
   await expect(dialog.getByRole('status')).toContainText('Checking network finality');
   await expect(dialog.getByRole('status')).toContainText('without sending another payment');
+  const state = await giftState(page);
+  expect(state.sends).toBe(1);
+  expect(state.finalizedReads).toBe(1);
   await expect(dialog.getByRole('button', { name: /Confirm gift|Confirming/ })).toHaveCount(0);
   await expect(dialog.getByRole('link', { name: 'View transaction' })).toBeVisible();
   await expect(dialog).not.toContainText('viem@2.55.19');
@@ -290,5 +293,4 @@ test('a mobile confirmation timeout keeps checking without exposing raw wallet e
   const pending = dialog.locator('.contribution-pending');
   expect((await pending.boundingBox())!.width).toBeLessThanOrEqual((await dialog.boundingBox())!.width);
   await page.screenshot({ path: info.outputPath('tip-pending-mobile-320.png'), animations: 'disabled' });
-  expect((await giftState(page)).sends).toBe(1);
 });

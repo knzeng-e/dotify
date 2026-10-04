@@ -15,6 +15,7 @@ import {
   type ContributionOutcome,
   type ContributionScope
 } from '../features/donations/contributionFlow';
+import { contributionReconciliationDelay, waitForContributionReconciliation } from '../features/donations/contributionReconciliation';
 import { useContributionWriter } from '../features/donations/useContributionWriter';
 import { nativeCurrencyForChain } from '../shared/config/contracts';
 import { getBlockscoutTxUrl } from '../shared/utils/explorer';
@@ -47,11 +48,13 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
   const [available, setAvailable] = useState<bigint>();
   const account = useRef(wallet.listenerEvmAddress);
   const monitoring = useRef(false);
+  const monitorAbort = useRef<AbortController>();
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      monitorAbort.current?.abort();
     };
   }, []);
   useLayoutEffect(() => {
@@ -164,6 +167,8 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
   }
   async function monitor(prepared?: ContributionIntent) {
     if (monitoring.current || !contributionScope) return;
+    const abort = new AbortController();
+    monitorAbort.current = abort;
     monitoring.current = true;
     setPending(true);
     setCheckingFinality(false);
@@ -173,11 +178,19 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
     try {
       const reader = contributionReader(wallet.ethRpcUrl);
       let first = true;
-      while (mounted.current) {
+      let retry = 0;
+      while (mounted.current && !abort.signal.aborted) {
         const scope = prepared ?? contributionScope;
         const check = {
           confirm: (hash: Hash, id: Hash) =>
-            confirmSubmittedContribution({ mode: writer.contributionConfirmationMode, runtime: scope.runtime, hash, id, reader }),
+            confirmSubmittedContribution({
+              mode: writer.contributionConfirmationMode,
+              runtime: scope.runtime,
+              hash,
+              id,
+              reader,
+              polling: writer.contributionConfirmationMode === 'finalized-event' ? { attempts: 1 } : undefined
+            }),
           recover: (id: Hash) => reader.finalizedReceipt(scope.runtime, id),
           currentAccount: () => account.current?.toLowerCase() === scope.sender.toLowerCase()
         };
@@ -211,8 +224,19 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
         if (!mounted.current) return;
         setPendingHash(result.hash);
         if (result.status === 'uncertain') {
+          const delay = contributionReconciliationDelay(retry);
+          if (delay === undefined) {
+            setOutcome({
+              ...result,
+              message:
+                'Automatic checks are paused to protect shared network capacity. Check this saved contribution again when you are ready; no new payment will be sent.'
+            });
+            setPending(false);
+            break;
+          }
+          retry += 1;
           setCheckingFinality(true);
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          if (!(await waitForContributionReconciliation(delay, abort.signal))) return;
           continue;
         }
         setOutcome(result);
@@ -241,6 +265,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
         setPending(false);
       }
     } finally {
+      if (monitorAbort.current === abort) monitorAbort.current = undefined;
       monitoring.current = false;
     }
   }
@@ -441,17 +466,29 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                     View transaction
                   </a>
                 )}
-                <button
-                  className='secondary-action'
-                  onClick={() => {
-                    setOutcome(undefined);
-                    setIntent(undefined);
-                    setAmount('');
-                    setPendingHash(undefined);
-                  }}
-                >
-                  Send another {kind}
-                </button>
+                {outcome.status === 'uncertain' ? (
+                  <button
+                    className='primary-action'
+                    onClick={() => {
+                      setOutcome(undefined);
+                      void monitor();
+                    }}
+                  >
+                    Check status again
+                  </button>
+                ) : (
+                  <button
+                    className='secondary-action'
+                    onClick={() => {
+                      setOutcome(undefined);
+                      setIntent(undefined);
+                      setAmount('');
+                      setPendingHash(undefined);
+                    }}
+                  >
+                    Send another {kind}
+                  </button>
+                )}
               </div>
             </div>
           )}
