@@ -289,6 +289,36 @@
   display: grid;
   gap: 18px;
 }
+.contribution-pending {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--action) 38%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--action) 9%, var(--surface));
+}
+.contribution-pending > svg {
+  margin-top: 2px;
+  color: var(--action);
+}
+.contribution-pending strong {
+  color: var(--ink);
+}
+.contribution-pending p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.contribution-pending a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  color: var(--action);
+}
 .contribution-result-head {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -315,12 +345,6 @@
 .contribution-result-head p {
   margin: 5px 0 0;
   color: var(--muted);
-  line-height: 1.5;
-}
-.contribution-recovery-note {
-  margin: 0;
-  color: var(--muted);
-  font-size: var(--text-sm);
   line-height: 1.5;
 }
 .contribution-technical {

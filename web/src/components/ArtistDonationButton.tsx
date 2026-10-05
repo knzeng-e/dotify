@@ -1,5 +1,5 @@
-import { CircleCheckBig, Coins, ExternalLink, HandHeart, X } from 'lucide-react';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { CircleCheckBig, Coins, ExternalLink, HandHeart, LoaderCircle, X } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { formatEther, parseEther, parseAbi, zeroHash, type Address, type Hash } from 'viem';
 import { musicRegistryAbi } from '../generated/contracts/musicRegistry';
 import { contributionE2e } from '../e2e/contributionMock';
@@ -7,7 +7,15 @@ import { Dialog } from './Dialog';
 import { useWalletContext, useSessionContext, useUiFeedback } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
 import { confirmSubmittedContribution, contributionReader, newContributionContext } from '../features/donations/contributions';
-import { runContribution, type ContributionIntent, type ContributionOutcome } from '../features/donations/contributionFlow';
+import {
+  readSavedContribution,
+  recoverSavedContribution,
+  runContribution,
+  type ContributionIntent,
+  type ContributionOutcome,
+  type ContributionScope
+} from '../features/donations/contributionFlow';
+import { contributionReconciliationDelay, waitForContributionReconciliation } from '../features/donations/contributionReconciliation';
 import { useContributionWriter } from '../features/donations/useContributionWriter';
 import { nativeCurrencyForChain } from '../shared/config/contracts';
 import { getBlockscoutTxUrl } from '../shared/utils/explorer';
@@ -33,9 +41,22 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
   const [outcome, setOutcome] = useState<ContributionOutcome>();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [checkingFinality, setCheckingFinality] = useState(false);
+  const [pendingHash, setPendingHash] = useState<Hash>();
   const [purpose, setPurpose] = useState('');
   const [available, setAvailable] = useState<bigint>();
   const account = useRef(wallet.listenerEvmAddress);
+  const monitoring = useRef(false);
+  const monitorAbort = useRef<AbortController>();
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      monitorAbort.current?.abort();
+    };
+  }, []);
   useLayoutEffect(() => {
     account.current = wallet.listenerEvmAddress;
     return () => {
@@ -49,6 +70,16 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
   const ContributionIcon = kind === 'tip' ? Coins : HandHeart;
   const ActionIcon = confirmed ? CircleCheckBig : ContributionIcon;
   const symbol = (wallet.expectedChainId ? nativeCurrencyForChain(wallet.expectedChainId, wallet.ethRpcUrl).symbol : '') || 'PAS';
+  const network = wallet.expectedChainId ?? wallet.connectedWallet?.chainId;
+  const contributionScope: ContributionScope | undefined =
+    wallet.listenerEvmAddress && network
+      ? {
+          network,
+          sender: wallet.listenerEvmAddress,
+          runtime: track.id.split(':')[0] as Address,
+          context: { contentHash: kind === 'tip' ? (track.hash as Hash) : zeroHash }
+        }
+      : undefined;
   async function review() {
     if (busy) return;
     const reader = contributionReader(wallet.ethRpcUrl);
@@ -134,41 +165,83 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
       setBusy(false);
     }
   }
-  async function send() {
-    if (!intent || busy) return;
-    setBusy(true);
+  async function monitor(prepared?: ContributionIntent) {
+    if (monitoring.current || !contributionScope) return;
+    const abort = new AbortController();
+    monitorAbort.current = abort;
+    monitoring.current = true;
+    setPending(true);
+    setCheckingFinality(false);
+    if (prepared) setPendingHash(undefined);
+    setOutcome(undefined);
     setError('');
-    const reader = contributionReader(wallet.ethRpcUrl);
     try {
-      const result = await runContribution({
-        intent,
-        storage: localStorage,
-        currentAccount: () => account.current?.toLowerCase() === intent.sender.toLowerCase(),
-        send: async () => {
-          try {
-            if ((await reader.client.getChainId()) !== intent.network) throw new Error('The network changed.');
-            const latest = await reader.quote(intent.runtime, intent.context, intent.amount);
-            if (latest.digest !== intent.quote.digest) throw new Error('The distribution changed. Review it again before sending.');
-            if (account.current?.toLowerCase() !== intent.sender.toLowerCase())
-              throw new Error('The account or listening context changed. Prepare this contribution again.');
-            if (!writer.contributionCall) throw new Error('This wallet cannot submit contributions.');
-          } catch (failure) {
-            throw new SupportNotSubmittedError(failure);
+      const reader = contributionReader(wallet.ethRpcUrl);
+      let first = true;
+      let retry = 0;
+      while (mounted.current && !abort.signal.aborted) {
+        const scope = prepared ?? contributionScope;
+        const check = {
+          confirm: (hash: Hash, id: Hash) =>
+            confirmSubmittedContribution({
+              mode: writer.contributionConfirmationMode,
+              runtime: scope.runtime,
+              hash,
+              id,
+              reader,
+              polling: writer.contributionConfirmationMode === 'finalized-event' ? { attempts: 1 } : undefined
+            }),
+          recover: (id: Hash) => reader.finalizedReceipt(scope.runtime, id),
+          currentAccount: () => account.current?.toLowerCase() === scope.sender.toLowerCase()
+        };
+        const result =
+          prepared && first
+            ? await runContribution({
+                intent: prepared,
+                storage: localStorage,
+                ...check,
+                send: async () => {
+                  try {
+                    if ((await reader.client.getChainId()) !== prepared.network) throw new Error('The network changed.');
+                    const latest = await reader.quote(prepared.runtime, prepared.context, prepared.amount);
+                    if (latest.digest !== prepared.quote.digest) throw new Error('The distribution changed. Review it again before sending.');
+                    if (account.current?.toLowerCase() !== prepared.sender.toLowerCase())
+                      throw new Error('The account or listening context changed. Prepare this contribution again.');
+                    if (!writer.contributionCall) throw new Error('This wallet cannot submit contributions.');
+                  } catch (failure) {
+                    throw new SupportNotSubmittedError(failure);
+                  }
+                  return writer.contributionCall!(
+                    prepared.runtime,
+                    'musicGiftContribute',
+                    [prepared.context, prepared.quote.digest, prepared.proof],
+                    prepared.amount
+                  );
+                }
+              })
+            : await recoverSavedContribution({ scope, storage: localStorage, ...check });
+        first = false;
+        if (!mounted.current) return;
+        setPendingHash(result.hash);
+        if (result.status === 'uncertain') {
+          const delay = contributionReconciliationDelay(retry);
+          if (delay === undefined) {
+            setOutcome({
+              ...result,
+              message:
+                'Automatic checks are paused to protect shared network capacity. Check this saved contribution again when you are ready; no new payment will be sent.'
+            });
+            setPending(false);
+            break;
           }
-          return writer.contributionCall!(intent.runtime, 'musicGiftContribute', [intent.context, intent.quote.digest, intent.proof], intent.amount);
-        },
-        confirm: (hash, id) =>
-          confirmSubmittedContribution({
-            mode: writer.contributionConfirmationMode,
-            runtime: intent.runtime,
-            hash,
-            id,
-            reader
-          }),
-        recover: async id => (await reader.history(intent.runtime)).find(row => row.id === id)
-      });
-      setOutcome(result);
-      if (result.status === 'confirmed' && result.receipt) {
+          retry += 1;
+          setCheckingFinality(true);
+          if (!(await waitForContributionReconciliation(delay, abort.signal))) return;
+          continue;
+        }
+        setOutcome(result);
+        setPending(false);
+        if (result.status !== 'confirmed' || !result.receipt) break;
         pushNotice({
           tone: 'success',
           title: kind === 'tip' ? 'Tip sent' : 'Gift sent',
@@ -177,18 +250,23 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
               ? `${formatEther(result.receipt.amount)} ${symbol} for “${track.title}”. The finalized receipt is ready.`
               : `${formatEther(result.receipt.amount)} ${symbol} for ${track.artist}. The finalized receipt is ready.`
         });
+        if (result.receipt.room !== zeroHash)
+          session.socketRef.current?.request(
+            'room:tip-notify',
+            { runtime: scope.runtime, hash: result.receipt.transactionHash },
+            { timeoutMs: 15000 },
+            () => {}
+          );
+        break;
       }
-      if (result.receipt && result.receipt.room !== zeroHash)
-        session.socketRef.current?.request(
-          'room:tip-notify',
-          { runtime: intent.runtime, hash: result.receipt.transactionHash },
-          { timeoutMs: 15000 },
-          () => {}
-        );
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Could not check the contribution.');
+      if (mounted.current) {
+        setError(failure instanceof Error ? failure.message : 'Could not check the contribution.');
+        setPending(false);
+      }
     } finally {
-      setBusy(false);
+      if (monitorAbort.current === abort) monitorAbort.current = undefined;
+      monitoring.current = false;
     }
   }
   return (
@@ -203,6 +281,17 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
         onClick={event => {
           event.currentTarget.focus();
           setOpen(true);
+          if (!contributionScope) return;
+          try {
+            const saved = readSavedContribution(contributionScope, localStorage);
+            if (saved) {
+              setIntent(undefined);
+              setPendingHash(saved.hash);
+              void monitor();
+            }
+          } catch (failure) {
+            setError(failure instanceof Error ? failure.message : 'Could not read the saved contribution.');
+          }
         }}
       >
         <ActionIcon size={18} aria-hidden='true' />
@@ -227,7 +316,25 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
               <X size={18} />
             </button>
           </div>
-          {!intent && !outcome && (
+          {pending && (
+            <div className='contribution-pending' role='status' aria-live='polite'>
+              <LoaderCircle className='spin' size={23} aria-hidden='true' />
+              <div>
+                <strong>{checkingFinality ? 'Checking network finality' : 'Waiting for confirmation'}</strong>
+                <p>
+                  {checkingFinality
+                    ? 'The network can take several minutes. We will keep checking this contribution without sending another payment.'
+                    : 'Approve in your wallet if asked. You can close this window while Dotify checks the result.'}
+                </p>
+                {pendingHash && writer.contributionConfirmationMode === 'evm-receipt' && (
+                  <a href={getBlockscoutTxUrl(pendingHash)} target='_blank' rel='noreferrer'>
+                    View transaction <ExternalLink size={14} aria-hidden='true' />
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+          {!intent && !outcome && !pending && (
             <form
               onSubmit={event => {
                 event.preventDefault();
@@ -255,7 +362,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
               </button>
             </form>
           )}
-          {intent && !outcome && (
+          {intent && !outcome && !pending && (
             <>
               <dl className='transaction-facts'>
                 <div>
@@ -305,13 +412,12 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                 <button className='secondary-action' disabled={busy} onClick={() => setIntent(undefined)}>
                   Change amount
                 </button>
-                <button className='primary-action' disabled={busy} onClick={() => void send()}>
-                  {busy ? 'Awaiting confirmation…' : `Confirm ${kind} · ${formatEther(intent.amount)} ${symbol}`}
+                <button className='primary-action' disabled={busy} onClick={() => void monitor(intent)}>
+                  Confirm {kind} · {formatEther(intent.amount)} {symbol}
                 </button>
               </div>
             </>
           )}
-          {busy && <p role='status'>You can close this window. Closing does not cancel a transaction.</p>}
           {outcome && (
             <div className='contribution-result' data-status={outcome.status} role='status' aria-live='polite'>
               {outcome.status === 'confirmed' && outcome.receipt ? (
@@ -353,7 +459,6 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                   <code>{outcome.technicalMessage}</code>
                 </details>
               )}
-              {outcome.status === 'uncertain' && <p className='contribution-recovery-note'>Checking status verifies this payment. It never sends another.</p>}
               <div className='contribution-result-actions'>
                 {outcome.hash && (writer.contributionConfirmationMode === 'evm-receipt' || outcome.receipt) && (
                   <a className='secondary-action contribution-transaction-link' href={getBlockscoutTxUrl(outcome.hash)} target='_blank' rel='noreferrer'>
@@ -362,8 +467,14 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                   </a>
                 )}
                 {outcome.status === 'uncertain' ? (
-                  <button className='primary-action' disabled={busy} onClick={() => void send()}>
-                    {busy ? 'Checking payment…' : 'Check payment status'}
+                  <button
+                    className='primary-action'
+                    onClick={() => {
+                      setOutcome(undefined);
+                      void monitor();
+                    }}
+                  >
+                    Check status again
                   </button>
                 ) : (
                   <button
@@ -372,6 +483,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                       setOutcome(undefined);
                       setIntent(undefined);
                       setAmount('');
+                      setPendingHash(undefined);
                     }}
                   >
                     Send another {kind}

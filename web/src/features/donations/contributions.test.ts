@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { encodeAbiParameters, encodeEventTopics as encodeTopics, zeroAddress, zeroHash, type Address, type Hash } from 'viem';
 import { musicRoyaltiesAbi } from '../../generated/contracts/musicRoyalties';
-import { confirmSubmittedContribution, decodeContributions, type ContributionReceipt } from './contributions';
+import { ContributionRevertedError, confirmSubmittedContribution, decodeContributions, type ContributionReceipt } from './contributions';
 
 const productRuntime = '0x1000000000000000000000000000000000000000' as Address;
 const productHash = `0x${'11'.repeat(32)}` as Hash;
@@ -56,6 +56,13 @@ describe('contribution confirmation', () => {
     );
     expect(reader.receipt).toHaveBeenCalledWith(productRuntime, productHash, productId);
     expect(reader.finalizedReceipt).toHaveBeenCalledWith(productRuntime, productId);
+  });
+  it('does not reinterpret a proved reverted receipt as a delayed contribution', async () => {
+    const reader = { receipt: vi.fn().mockRejectedValue(new ContributionRevertedError()), finalizedReceipt: vi.fn() };
+    await expect(
+      confirmSubmittedContribution({ mode: 'evm-receipt', runtime: productRuntime, hash: productHash, id: productId, reader })
+    ).rejects.toBeInstanceOf(ContributionRevertedError);
+    expect(reader.finalizedReceipt).not.toHaveBeenCalled();
   });
 });
 

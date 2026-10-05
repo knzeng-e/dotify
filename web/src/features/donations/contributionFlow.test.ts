@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { zeroAddress, zeroHash, type Hash } from 'viem';
-import { runContribution, contributionStorageKey, type ContributionIntent } from './contributionFlow';
-import { contributionId, type ContributionReceipt } from './contributions';
+import { runContribution, recoverSavedContribution, contributionStorageKey, type ContributionIntent } from './contributionFlow';
+import { ContributionRevertedError, contributionId, type ContributionReceipt } from './contributions';
 import { SupportNotSubmittedError } from '../payments/supportPayment';
 
 function fixture() {
@@ -55,7 +55,7 @@ describe('persistent contributions', () => {
     const interrupted = await runContribution(input);
     expect(interrupted).toMatchObject({
       status: 'uncertain',
-      message: expect.stringContaining('taking longer than expected'),
+      message: expect.stringContaining('still being checked'),
       technicalMessage: 'timeout'
     });
     expect(input.storage.getItem(contributionStorageKey(input.intent))).toContain(input.receipt.transactionHash);
@@ -72,11 +72,50 @@ describe('persistent contributions', () => {
     input.recover.mockResolvedValueOnce(input.receipt);
     expect((await runContribution(input)).status).toBe('confirmed');
   });
+  it('recovers a saved contribution after reload using only its account and work scope', async () => {
+    const input = fixture();
+    input.send.mockRejectedValueOnce(new Error('host disconnected after submission'));
+    expect((await runContribution(input)).status).toBe('uncertain');
+    const scope = {
+      network: input.intent.network,
+      sender: input.intent.sender,
+      runtime: input.intent.runtime,
+      context: { contentHash: input.intent.context.contentHash }
+    };
+    expect(
+      (await recoverSavedContribution({ scope, storage: input.storage, confirm: input.confirm, recover: input.recover, currentAccount: input.currentAccount }))
+        .status
+    ).toBe('uncertain');
+    input.recover.mockResolvedValueOnce(input.receipt);
+    expect(
+      (await recoverSavedContribution({ scope, storage: input.storage, confirm: input.confirm, recover: input.recover, currentAccount: input.currentAccount }))
+        .status
+    ).toBe('confirmed');
+    expect(input.send).toHaveBeenCalledTimes(1);
+    expect(input.storage.getItem(contributionStorageKey(input.intent))).toBeNull();
+  });
+  it('reports a proved finality failure and releases the saved reservation', async () => {
+    const input = fixture();
+    input.confirm.mockRejectedValueOnce(new ContributionRevertedError());
+    expect(await runContribution(input)).toMatchObject({ status: 'failed', message: expect.stringContaining('finalized') });
+    expect(input.storage.getItem(contributionStorageKey(input.intent))).toBeNull();
+  });
   it('clears a proven pre-submit failure but not an ambiguous failure', async () => {
     const input = fixture();
     input.send.mockRejectedValueOnce(new SupportNotSubmittedError(new Error('insufficient funds')));
     expect((await runContribution(input)).status).toBe('failed');
     expect(input.storage.getItem(contributionStorageKey(input.intent))).toBeNull();
+  });
+  it('does not submit when the pending reservation cannot be persisted', async () => {
+    const input = fixture();
+    const storage = {
+      ...input.storage,
+      setItem: () => {
+        throw new Error('storage unavailable');
+      }
+    };
+    expect((await runContribution({ ...input, storage })).status).toBe('failed');
+    expect(input.send).not.toHaveBeenCalled();
   });
   it('refuses an account change and a mismatched receipt', async () => {
     const input = fixture();
