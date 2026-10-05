@@ -18,6 +18,9 @@ while `main` is the GitHub default branch, closing keywords do not close these
 issues automatically; the merge handoff must close the issue and set its
 Project item to Done explicitly.
 
+The PR writing workflow is tracked in [`pr-review-quality.md`](pr-review-quality.md)
+(#240); it changes review documentation only, not product behavior.
+
 ## Product north star
 
 Dotify is not a Spotify clone. Dotify is a decentralized cultural social hub where music becomes a live social connector, artists retain sovereignty over catalog/access/royalties, and listeners can discover music through shared real-time presence.
