@@ -24,7 +24,7 @@ async function review(page: Page, amount = '0.25', kind: 'gift' | 'tip' = 'gift'
   await contributionDialog(page).getByRole('button', { name: 'Review contribution', exact: true }).click();
 }
 async function giftState(page: Page) {
-  return page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__') as { sends: number; confirmed: boolean });
+  return page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__') as { sends: number; confirmed: boolean; finalizedReads?: number });
 }
 for (const width of [320, 390, 430, 1440]) {
   test(`gift review and dated receipt at ${width}px preserve listening access`, async ({ page }, info) => {
@@ -217,24 +217,52 @@ test('a pending contribution can close and reopen without another transfer', asy
   await openGift(page, '?e2eGift=pending');
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
-  await expect(contributionDialog(page).getByRole('status')).toContainText('Closing does not cancel');
+  await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
   await page.getByRole('button', { name: 'Close contribution' }).click();
   await page.getByRole('button', { name: 'Send a gift', exact: true }).click();
-  await expect(contributionDialog(page).getByRole('status')).toContainText('Closing does not cancel');
+  await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
   expect((await giftState(page)).sends).toBe(1);
   await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__').complete());
   await expect(contributionDialog(page).getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
+});
+test('a reload resumes the saved contribution without a new signature', async ({ page }) => {
+  await openGift(page, '?e2eGift=pending');
+  await review(page, '0.1');
+  await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
+  await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const key = Object.keys(localStorage).find(item => item.startsWith('dotify.contribution.v1:'));
+          const raw = key ? localStorage.getItem(key) : null;
+          return raw ? (JSON.parse(raw) as { hash?: string }).hash : undefined;
+        }),
+      { timeout: 15000 }
+    )
+    .toMatch(/^0x[\da-f]{64}$/i);
+  const saved = await page.evaluate(() => {
+    const key = Object.keys(localStorage).find(item => item.startsWith('dotify.contribution.v1:'));
+    return key ? { key, value: localStorage.getItem(key) } : null;
+  });
+  expect(saved?.value).toBeTruthy();
+  await page.reload();
+  await page.locator('.catalogue-card .artist-text-button').first().click();
+  await page.getByRole('main').getByRole('button', { name: 'Send a gift', exact: true }).click();
+  await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
+  await expect(amountField(page)).toHaveCount(0);
+  expect(await page.evaluate(key => localStorage.getItem(key), saved!.key)).toBe(saved!.value);
+  expect(await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__')?.sends ?? 0)).toBe(0);
 });
 test('an interrupted contribution is recovered without a second payment', async ({ page }) => {
   await openGift(page, '?e2eGift=delayed');
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
-  await expect(contributionDialog(page)).toContainText('Confirmation is taking longer than expected');
+  await expect(contributionDialog(page).getByRole('status')).toContainText('Checking network finality');
   await page.evaluate(() => {
     Reflect.get(window, '__DOTIFY_E2E_DONATION__').confirmed = true;
   });
-  await page.getByRole('button', { name: 'Check payment status' }).click();
-  await expect(contributionDialog(page).getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
+  await expect(contributionDialog(page).getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible({ timeout: 15000 });
   expect((await giftState(page)).sends).toBe(1);
 });
 test('zero amounts and rejected signatures never show a successful receipt', async ({ page }) => {
@@ -247,24 +275,22 @@ test('zero amounts and rejected signatures never show a successful receipt', asy
   await expect(contributionDialog(page)).not.toContainText('Gift sent');
 });
 
-test('a mobile confirmation timeout stays actionable without exposing raw wallet errors', async ({ page }, info) => {
+test('a mobile confirmation timeout keeps checking without exposing raw wallet errors', async ({ page }, info) => {
   await page.setViewportSize({ width: 320, height: 844 });
   await openGift(page, '?e2eGift=timeout');
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
   const dialog = contributionDialog(page);
-  await expect(dialog).toContainText('Confirmation is taking longer than expected');
-  await expect(dialog).toContainText('Checking status verifies this payment. It never sends another.');
-  await expect(dialog.getByRole('button', { name: 'Check payment status' })).toBeVisible();
+  await expect(dialog.getByRole('status')).toContainText('Checking network finality');
+  await expect(dialog.getByRole('status')).toContainText('without sending another payment');
+  const state = await giftState(page);
+  expect(state.sends).toBe(1);
+  expect(state.finalizedReads).toBe(1);
+  await expect(dialog.getByRole('button', { name: /Confirm gift|Confirming/ })).toHaveCount(0);
   await expect(dialog.getByRole('link', { name: 'View transaction' })).toBeVisible();
-  const technicalError = dialog.locator('.contribution-technical code');
-  await expect(technicalError).not.toBeVisible();
-  await dialog.getByText('Technical details', { exact: true }).click();
-  await expect(technicalError).toBeVisible();
-  await expect(technicalError).toContainText('viem@2.55.19');
+  await expect(dialog).not.toContainText('viem@2.55.19');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  const actions = dialog.locator('.contribution-result-actions');
-  expect((await actions.boundingBox())!.width).toBeLessThanOrEqual((await dialog.boundingBox())!.width);
-  await page.screenshot({ path: info.outputPath('tip-timeout-mobile-320.png'), animations: 'disabled' });
-  expect((await giftState(page)).sends).toBe(1);
+  const pending = dialog.locator('.contribution-pending');
+  expect((await pending.boundingBox())!.width).toBeLessThanOrEqual((await dialog.boundingBox())!.width);
+  await page.screenshot({ path: info.outputPath('tip-pending-mobile-320.png'), animations: 'disabled' });
 });

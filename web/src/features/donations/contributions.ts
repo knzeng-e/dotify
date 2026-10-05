@@ -51,6 +51,12 @@ export type ContributionReceipt = {
   transactionHash: Hash;
   shares: Array<{ recipient: Address; amount: bigint; role: number; paid: boolean; claimed: boolean }>;
 };
+export class ContributionRevertedError extends Error {
+  constructor() {
+    super('The network finalized this contribution as failed. No contribution was recorded.');
+    this.name = 'ContributionRevertedError';
+  }
+}
 const contributionReceivedEvent = getAbiItem({ abi: musicRoyaltiesAbi, name: 'ContributionReceived' });
 const contributionShareEvent = getAbiItem({ abi: musicRoyaltiesAbi, name: 'ContributionShare' });
 
@@ -95,6 +101,7 @@ export async function confirmSubmittedContribution(input: {
   try {
     return await input.reader.receipt(input.runtime, input.hash, input.id);
   } catch (error) {
+    if (error instanceof ContributionRevertedError) throw error;
     const receipt = await input.reader.finalizedReceipt(input.runtime, input.id);
     if (receipt) return receipt;
     throw error;
@@ -112,11 +119,11 @@ export function contributionReader(rpc: string) {
       client.readContract({ address: runtime, abi: musicRoyaltiesAbi, functionName: 'musicGiftQuote', args: [context, amount] }),
     async receipt(runtime: Address, hash: Hash, expectedId: Hash): Promise<ContributionReceipt> {
       const receipt = await client.waitForTransactionReceipt({ hash, timeout: 90000 });
-      if (receipt.status !== 'success') throw new Error('The contribution was rejected by the network.');
       const final = await client.getBlock({ blockTag: 'finalized' });
       if (final.number < receipt.blockNumber) throw new Error('The contribution is included and still awaiting finality. Check its status again.');
       const block = await client.getBlock({ blockNumber: receipt.blockNumber });
       if (block.hash !== receipt.blockHash) throw new Error('The receipt changed. Check its status again.');
+      if (receipt.status !== 'success') throw new ContributionRevertedError();
       const rows = decodeContributions(runtime, receipt.logs);
       const result = rows.find(row => row.id === expectedId);
       if (!result) throw new Error('The receipt does not match this contribution.');

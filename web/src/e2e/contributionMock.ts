@@ -7,6 +7,7 @@ export const contributionE2e = import.meta.env.DEV && import.meta.env.VITE_E2E_C
 type State = {
   sends: number;
   confirmed: boolean;
+  finalizedReads?: number;
   receipt?: ContributionReceipt;
   receipts?: ContributionReceipt[];
   historyError?: string;
@@ -62,6 +63,8 @@ export const contributionTestReader = {
     return s.confirmed && s.receipt?.runtime.toLowerCase() === runtime.toLowerCase() ? [s.receipt] : [];
   },
   async finalizedReceipt(runtime: Address, expectedId: Hash): Promise<ContributionReceipt | undefined> {
+    const s = current();
+    s.finalizedReads = (s.finalizedReads ?? 0) + 1;
     return (await contributionTestReader.history(runtime)).find(row => row.id === expectedId);
   }
 };
