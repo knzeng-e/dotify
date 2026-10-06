@@ -618,6 +618,10 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 
 ### Shared native contribution ledger (Product 0.1.40)
 
+PR #243 review follow-up: batching and the 600-request history limit require
+redeploying both the API and frontend after review. The published 0.1.40 evidence
+below predates these fixes and used the 60-request limit.
+
 Published on 2026-10-07 (Paris): Product source `0aef57670c71a60d46f67f7d5f62d008561afcb8`,
 API source `48e3bda9af3ba26ec65b2f794ee96dd169956857`, executable CID
 `bafybeia4lm3ybgkqod3majkgu52xvbpnmlrtpnogjjutkxtxhfqbroyjzu`. The finalized manifest and gateway bundle
@@ -638,9 +642,13 @@ It rejects incomplete recipient totals, wrong networks and conflicting blocks.
 Repeated verification is idempotent. Atomic replacement publishes the new
 snapshot only after saving succeeds; corrupt or unwritable storage returns an
 explicit error rather than an empty history. Limits: 10,000 receipts / 64 MiB,
-no silent eviction, 100 receipts/page, 100 runtimes/query, and 60 history
-queries/minute/IP. Pages bind to a monotonically advancing snapshot revision.
-The browser uses a 25-second total paging budget. Outstanding contribution
+no silent eviction, 100 receipts/page, 100 runtimes/query, and 600 history
+queries/minute/IP. This permits four full 100-page scheduled refreshes and two
+full manual refreshes within one minute from an IP while preserving an abuse
+bound. Catalog runtime lists are deduplicated and split into batches of at most
+100; every page and batch binds to the same snapshot revision. The browser uses
+one 25-second total budget for the whole refresh, and rejects partial results
+if a later batch fails or the revision changes. Outstanding contribution
 claims are reconciled against finalized contract state.
 
 `POST /api/contributions/history` accepts `{ runtimes, offset?, revision? }`

@@ -37,3 +37,10 @@ This is a verified-receipt collection, not an exhaustive native chain indexer. E
 The current user's mobile finalization is confirmed; physical-device confirmation of the newly published dashboard remains pending. Browser tests and a public history read do not substitute for that check. Native room-chat receipt broadcasts, exhaustive historical coverage and the wider funded/device acceptance scope remain under #229. No contract or payment distribution policy changed.
 
 Operational limits and rollback instructions: [deployment configuration](../../../operations/deployment-configuration.md#shared-native-contribution-ledger-product-0140).
+
+## PR #243 review follow-up
+
+- Catalogs beyond 100 runtime addresses are read as deduplicated batches. Offset resets for each batch, but snapshot revision and the 25-second deadline cover the entire refresh. A failure or revision drift in a later batch rejects the reading rather than publishing partial income.
+- The history route permits 600 requests/minute/IP: four complete 100-page scheduled refreshes plus two manual refreshes. A regression using the real Fastify rate-limit plugin and a 10,000-receipt ledger proves all six reads complete and request 601 receives HTTP 429.
+- Targeted frontend history/dashboard tests: 8 passed. API type checking and frontend type checking/scoped lint passed. The full API suite passed all 166 tests; both fresh-device browser scenarios passed at 390 and 1440 px.
+- These source fixes are not included in the published 0.1.40 executable/API described above; a subsequent rollout must deploy both components.

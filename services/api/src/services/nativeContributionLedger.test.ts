@@ -4,6 +4,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Fastify from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import { encodeAbiParameters, encodeEventTopics, zeroAddress, zeroHash } from 'viem';
 import { contributionsAbi } from '../generated/contributions.js';
 import { NativeContributionLedger } from './nativeContributionLedger.js';
@@ -105,6 +106,46 @@ it('public history route accepts only bounded runtime queries, never submitted l
         { runtimes: [runtime], offset: -1 }
       ])
         assert.equal((await app.inject({ method: 'POST', url: '/api/contributions/history', payload })).statusCode, 400);
+    } finally {
+      await app.close();
+    }
+  }));
+
+it('allows a maximum-size history at the refresh cadence while retaining an IP rate bound', async () =>
+  fixture(async (ledger, path) => {
+    await writeFile(
+      path,
+      JSON.stringify({
+        version: 1,
+        genesisHash: PASEO_ASSET_HUB_GENESIS,
+        updatedAt: new Date(1000).toISOString(),
+        receipts: Array.from({ length: 10_000 }, (_, i) => receipt(i + 1))
+      })
+    );
+    const app = Fastify();
+    // Use the production plugin and default: route overrides must actually apply.
+    await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
+    await app.register(createContributionHistoryRoutes(ledger, true));
+    try {
+      // Four 15-second scheduled refreshes plus two manual refreshes, all from
+      // one IP within the same minute. Every read must reach its final page.
+      for (let refresh = 0; refresh < 6; refresh++) {
+        let offset = 0;
+        let revision: string | undefined;
+        let count = 0;
+        do {
+          const response = await app.inject({ method: 'POST', url: '/api/contributions/history', payload: { runtimes: [runtime], offset, revision } });
+          assert.equal(response.statusCode, 200, `refresh ${refresh}, offset ${offset}`);
+          const page = response.json();
+          revision ??= page.updatedAt;
+          assert.equal(page.updatedAt, revision);
+          count += page.receipts.length;
+          offset = page.nextOffset;
+        } while (offset !== null);
+        assert.equal(count, 10_000);
+      }
+      const exhausted = await app.inject({ method: 'POST', url: '/api/contributions/history', payload: { runtimes: [runtime] } });
+      assert.equal(exhausted.statusCode, 429);
     } finally {
       await app.close();
     }

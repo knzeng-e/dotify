@@ -13,7 +13,9 @@ const query = z
   .strict();
 export function createContributionHistoryRoutes(ledger: NativeContributionLedger, enabled: boolean) {
   return async (app: FastifyInstance) => {
-    app.post('/api/contributions/history', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (request, reply) => {
+    // A full 10,000-receipt history takes 100 pages. Allow four scheduled
+    // refreshes/minute plus two full manual refreshes; retain an IP abuse bound.
+    app.post('/api/contributions/history', { config: { rateLimit: { max: 600, timeWindow: '1 minute' } } }, async (request, reply) => {
       reply.header('Cache-Control', 'no-store');
       const input = query.safeParse(request.body);
       if (!input.success) return reply.code(400).send({ code: 'INVALID_HISTORY_QUERY', error: 'Choose valid artist accounts.', requestId: request.id });
