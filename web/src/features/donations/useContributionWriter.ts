@@ -25,6 +25,14 @@ export function useContributionWriter() {
             }
           : undefined
     });
-    return contributionE2e ? { ...writer, contributionCall: contributionTestWrite, waitForTransaction: async () => {} } : writer;
+    return contributionE2e
+      ? {
+          ...writer,
+          contributionConfirmationMode:
+            new URLSearchParams(location.search).get('e2eGift') === 'native-recovery' ? ('finalized-event' as const) : writer.contributionConfirmationMode,
+          contributionCall: contributionTestWrite,
+          waitForTransaction: async () => {}
+        }
+      : writer;
   }, [wallet]);
 }

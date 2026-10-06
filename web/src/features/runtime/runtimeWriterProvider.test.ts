@@ -95,6 +95,29 @@ function accessIntent(amountPlanck: bigint) {
 }
 
 describe('createRuntimeWriter', () => {
+  it('checks native receipts through a read-only Product connection without creating a signer', async () => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    const { SignerManager, signerManager } = mockProductSigner();
+    const readFinalizedContributionLogs = vi.fn(async () => []);
+    const verifyDeployment = vi.fn(async () => undefined);
+    vi.doMock('./productCdmContracts', () => ({
+      createProductCdmContracts: vi.fn(async () => ({ readFinalizedContributionLogs, verifyDeployment, destroy: vi.fn() }))
+    }));
+    vi.resetModules();
+    const createRuntimeWriter = await loadProvider();
+    const getViemWalletClient = vi.fn();
+    const writer = createRuntimeWriter({
+      ethRpcUrl: 'https://rpc.example',
+      getViemWalletClient,
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
+    });
+    await expect(writer.readFinalizedContributionLogs!(txHash, { number: 123 })).resolves.toEqual([]);
+    expect(readFinalizedContributionLogs).toHaveBeenCalledWith(txHash, { number: 123 });
+    expect(verifyDeployment).toHaveBeenCalledTimes(1);
+    expect(SignerManager).not.toHaveBeenCalled();
+    expect(signerManager.connect).not.toHaveBeenCalled();
+    expect(getViemWalletClient).not.toHaveBeenCalled();
+  });
   it('uses the viem writer by default and resolves the active wallet per write', async () => {
     const createRuntimeWriter = await loadProvider();
     const walletClient = { writeContract: vi.fn() };

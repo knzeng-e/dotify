@@ -170,6 +170,7 @@ async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccou
 export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
   const config = deps.config ?? resolveRuntimeAdapterConfig(import.meta.env);
   let productPortPromise: Promise<RuntimeWritePort> | null = null;
+  let nativeReaderPromise: Promise<Awaited<ReturnType<typeof import('./productCdmContracts').createProductCdmContracts>>> | null = null;
 
   function portForWrite(): Promise<RuntimeWritePort> {
     if (config.kind === 'viem') return createViemWriter(deps);
@@ -182,7 +183,26 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
 
   return {
     contributionConfirmationMode: config.kind === 'product-cdm' ? 'finalized-event' : 'evm-receipt',
-    contributionCall: async (runtime, method, args, value) => {
+    readFinalizedContributionLogs: async (hash, block) => {
+      if (!PRODUCT_CDM_ENABLED || config.kind !== 'product-cdm') throw new Error('Native contribution receipts require the Product CDM profile.');
+      nativeReaderPromise ??= import('./productCdmContracts')
+        .then(async ({ createProductCdmContracts }) => {
+          const contracts = await createProductCdmContracts({ environment: config.productEnvironment });
+          try {
+            await contracts.verifyDeployment();
+            return contracts;
+          } catch (error) {
+            contracts.destroy();
+            throw error;
+          }
+        })
+        .catch(error => {
+          nativeReaderPromise = null;
+          throw error;
+        });
+      return (await nativeReaderPromise).readFinalizedContributionLogs(hash, block);
+    },
+    contributionCall: async (runtime, method, args, value, onFinalized) => {
       let port: RuntimeWritePort;
       try {
         port = await portForWrite();
@@ -191,7 +211,7 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
       }
       if (!port.contributionCall) throw new SupportNotSubmittedError(new Error('This wallet cannot submit contributions.'));
       try {
-        return await port.contributionCall(runtime, method, args, value);
+        return await port.contributionCall(runtime, method, args, value, onFinalized);
       } catch (error) {
         if (config.kind === 'product-cdm' && productCdmPaymentWasNotSubmitted(error)) throw new SupportNotSubmittedError(error);
         throw error;

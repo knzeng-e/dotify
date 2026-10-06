@@ -642,7 +642,20 @@ wallet transaction reference is labelled `Checking payment status`; a finalized
 Product extrinsic still awaiting its contract event is labelled `Checking
 contribution receipt`. Neither label proves that a payment failed.
 
-The Product package for this reconciliation flow is `[0, 1, 37]`. Merging
+Product gifts/tips now verify native `Revive.ContractEmitted` events from the
+transaction's canonical finalized block, including the exact extrinsic hash,
+dispatch result, runtime, contribution ID, payer, work and amount. The Ethereum
+log index does not expose native `Revive.call` payments. New payments preserve
+the SDK's block/hash/index reference for recovery. Older pending payments with a
+native transaction hash need their receipt block once: open Technical details,
+follow `View transaction`, and enter the explorer's block number using `Check
+receipt block`. That number is an untrusted location hint; the native chain must
+verify the transaction and receipt before clearing the journal. Checking never
+submits a payment or requests a signer. Native receipts link to Subscan; the
+complete cross-device ledger still needs native-event indexing.
+
+The Product package for native receipt confirmation is `[0, 1, 38]`; `[0, 1, 37]`
+introduced pending diagnostics. Merging
 into `dev` does not publish or refresh an installed host app. After an authorized
 Product CDM deployment, verify both the loaded version and build SHA in You →
 Production readiness on each tested device. Version `[0, 1, 36]` at build

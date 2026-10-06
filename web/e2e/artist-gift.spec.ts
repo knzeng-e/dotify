@@ -315,3 +315,18 @@ test('a mobile host timeout preserves its diagnostic across reload without anoth
   expect((await giftState(page)).sends).toBe(0);
   expect(await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__')?.confirmed)).toBe(false);
 });
+
+test('an older Product payment recovers from its native receipt block without resubmitting', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openGift(page, '?e2eGift=native-recovery');
+  await review(page, '0.1');
+  await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
+  const dialog = contributionDialog(page);
+  await expect(dialog.getByRole('status')).toContainText('Checking contribution receipt');
+  await expect(dialog.getByRole('link', { name: 'View transaction' })).toHaveAttribute('href', /assethub-paseo\.subscan\.io\/extrinsic\//);
+  await dialog.getByText('Technical details', { exact: true }).click();
+  await dialog.getByLabel('Receipt block number').fill('123');
+  await dialog.getByRole('button', { name: 'Check receipt block' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
+  expect((await giftState(page)).sends).toBe(1);
+});

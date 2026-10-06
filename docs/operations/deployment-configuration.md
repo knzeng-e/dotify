@@ -192,13 +192,45 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 37]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 38]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
+Version `[0, 1, 38]` corrects Product gift/tip confirmation at the native
+receipt boundary. Native `Revive.call` events are absent from the EVM log index,
+so retrying `eth_getLogs` cannot confirm these payments. The Product writer now
+persists the finalized SDK block number/hash/extrinsic index with the existing
+pending journal. A separate read-only Product chain connection verifies the
+canonical block below the finalized head, exact Blake2-256 extrinsic hash,
+phase-specific dispatch outcome and `Revive.ContractEmitted` records. The gift/tip
+flow then checks runtime, work, intent ID, payer and amount. No signer is created
+for receipt checks, and no direct-RPC fallback is added to the user flow. Native
+proofs use Subscan links. Each native RPC read has a 20-second budget.
+
+Older journal entries with a native hash but no block reference can enter the
+block number from `View transaction` under Technical details → `Receipt block
+number` → `Check receipt block`. This is a locator, never trusted payment proof:
+wrong blocks, wrong extrinsics, changed block hashes, missing dispatch outcomes
+and mismatched receipts keep the intent pending. Proven finalized native dispatch
+failures can release it. Entries lacking a native hash remain unresolved; do not
+resubmit based on an absent Ethereum event. New payments capture their block
+reference automatically. Full cross-device native earnings/history indexing is
+still separate work. This version is a prepared correction candidate until its
+publication is recorded; new funded mobile submission still needs live evidence.
+
+During diagnosis on 2026-10-06, an owner-supplied pending tip was independently
+verified directly from historical Asset Hub native storage, with matching
+contribution and paid-share events. The corrected reader was then run on that
+same historical block and recovered the matching receipt. Explorer data was
+used only to locate the block; the native chain verified its hash, extrinsic and
+dispatch. User-specific references, amounts and raw proofs remain in ignored
+local diagnostic artifacts. This receipt check does not establish full native
+ledger indexing or receipt-verified room-chat broadcasts; the signaling verifier
+still needs a native-event receipt path for those broadcasts.
+
 Version `[0, 1, 37]` packages the bounded pending-contribution reconciliation
 merged in PR #239, which did not increment the executable version. During the
 subsequent timeout investigation, an installed Product Desktop session reported
