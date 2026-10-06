@@ -25,6 +25,7 @@ primary_region = "ams"
   PASEO_ASSET_HUB_RPC = "https://eth-rpc-testnet.polkadot.io/"
   # Archive reads for finalized native receipts; never used for signing.
   PASEO_ASSET_HUB_NATIVE_RPC = "https://asset-hub-paseo-rpc.n.dwellir.com"
+  NATIVE_CONTRIBUTION_SNAPSHOT_PATH = "/data/contributions/receipts.json"
   DOTIFY_FACTORY_ADDRESS = "0x835a626a9a6965b197d079ae56b1ec94033c2699"
   DOTIFY_DIRECTORY_ADDRESS = "0x4e883827d61e573094c7b777bae323070ea9f954"
   DOTIFY_CHAIN_ID = "420420417"
@@ -51,3 +52,8 @@ primary_region = "ams"
   cpu_kind = "shared"
   cpus = 1
   memory = "512mb"
+
+# One API writer owns the shared verified-contribution ledger.
+[[mounts]]
+  source = "contribution_data"
+  destination = "/data/contributions"

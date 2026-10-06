@@ -56,8 +56,14 @@ export const contributionTestReader = {
     if (!s.receipt) throw new Error('No contribution');
     return s.receipt;
   },
+  async pending(runtime: Address, id: Hash, recipient: Address) {
+    const row = (await this.history(runtime)).find(row => row.id === id);
+    const share = row?.shares.find(share => share.recipient.toLowerCase() === recipient.toLowerCase());
+    return share && !share.paid && !share.claimed ? share.amount : 0n;
+  },
   async history(runtime: Address): Promise<ContributionReceipt[]> {
     const s = current();
+    if (new URLSearchParams(location.search).get('e2eGift') === 'history-error') throw new Error('Receipt source unavailable');
     if (s.historyError) throw new Error(s.historyError);
     if (s.receipts) return s.receipts.filter(row => row.runtime.toLowerCase() === runtime.toLowerCase());
     return s.confirmed && s.receipt?.runtime.toLowerCase() === runtime.toLowerCase() ? [s.receipt] : [];

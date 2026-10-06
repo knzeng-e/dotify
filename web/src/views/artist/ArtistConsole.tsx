@@ -21,6 +21,8 @@ import { Plus } from 'lucide-react';
 import { ContributionPolicyEditor } from './ContributionPolicyEditor';
 import { CoverImage } from '../../components/CoverImage';
 import { summarizeReleaseEarnings } from '../../features/artist-studio/earnings';
+import { useContributionHistory } from '../../features/donations/useContributionHistory';
+import { addReleaseTips, artistActivity } from '../../features/artist-studio/dashboard';
 import type { EarningsSummaryProps } from './EarningsSummary';
 
 function nextRoyaltySplitId() {
@@ -100,9 +102,10 @@ export function ArtistConsole() {
   const nativePaymentSymbol = catalog.nativeRuntimePaymentAsset.symbol;
 
   const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
-  const releaseEarnings = summarizeReleaseEarnings(artistTracks, artistConsole.allRoyaltyPayments, activeEvmAddress);
+  const history = useContributionHistory(artistRuntimeAddress);
+  const listeningReleaseEarnings = summarizeReleaseEarnings(artistTracks, artistConsole.allRoyaltyPayments, activeEvmAddress);
   const earningsSummary: EarningsSummaryProps = {
-    generatedWei: releaseEarnings.reduce((total, row) => total + row.generatedWei, 0n),
+    generatedWei: listeningReleaseEarnings.reduce((total, row) => total + row.generatedWei, 0n),
     receivedWei: totalRoyaltyWei,
     claimableWei: artistConsole.claimableRoyaltyWei,
     claimableKnown: artistConsole.royaltyRuntimeSummaries.length > 0 && artistConsole.royaltyRuntimeSummaries.every(row => row.claimableWei !== null),
@@ -114,6 +117,8 @@ export function ArtistConsole() {
       void artistConsole.refreshArtistRoyalties(true);
     }
   };
+  const releaseEarnings = addReleaseTips(listeningReleaseEarnings, history.rows, activeEvmAddress);
+  const activity = artistActivity(royaltyPayments, history.rows, catalog.allCatalogTracks, activeEvmAddress, artistRuntimeAddress);
   const artistRegistrationAvailable = artistConsole.artistRegistrationAvailable;
   const artistPublicationQuarantined = artistConsole.artistPublicationQuarantined;
   const hasArtistRuntime = Boolean(artistConsole.artistRuntimeAddress);
@@ -371,7 +376,8 @@ export function ArtistConsole() {
             isRegisteringArtist={artistConsole.isRegisteringArtist}
             isRefreshingArtistRuntime={isRefreshingArtistRuntime}
             artistRegistrationAvailable={artistRegistrationAvailable}
-            royaltyPayments={royaltyPayments}
+            history={history}
+            activity={activity}
             earnings={earningsSummary}
             releases={releaseEarnings}
             onUpdateArtistName={onUpdateArtistName}
@@ -444,7 +450,7 @@ export function ArtistConsole() {
             arrivedReleaseId={arrivedReleaseId}
             nativePaymentSymbol={nativePaymentSymbol}
             earnings={releaseEarnings}
-            earningsKnown={artistConsole.royaltyUpdatedAt !== null}
+            earningsKnown={artistConsole.royaltyUpdatedAt !== null && history.known}
             earningsStale={artistConsole.royaltyHistoryState === 'stale'}
           />
         )}
@@ -454,6 +460,7 @@ export function ArtistConsole() {
         )}
         {artistTab === 'royalties' && (
           <ArtistEarnings
+            history={history}
             royaltyPayments={royaltyPayments}
             royaltyStatus={royaltyStatus}
             claimableRoyaltyWei={artistConsole.claimableRoyaltyWei}
@@ -462,7 +469,7 @@ export function ArtistConsole() {
             artistRuntimeAddress={artistRuntimeAddress}
             expandedRoyaltyPaymentId={expandedRoyaltyPaymentId}
             earnings={earningsSummary}
-            releases={releaseEarnings}
+            releases={listeningReleaseEarnings}
             onOpenRelease={openReleaseDetails}
             nativePaymentSymbol={nativePaymentSymbol}
             onSetExpandedRoyaltyPaymentId={onSetExpandedRoyaltyPaymentId}

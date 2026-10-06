@@ -23,7 +23,16 @@ export async function readNativeContributionReceiptApi(input: {
   } catch {
     throw new Error('The native receipt service could not be reached. Check this saved contribution again.');
   }
-  const body = (await response.json()) as {
+  const body = await response.json();
+  if (!response.ok)
+    throw new Error(
+      `${typeof body?.error === 'string' ? body.error : 'The native receipt could not be verified.'}${body?.requestId ? ` Reference: ${body.requestId}` : ''}`
+    );
+  return validateNativeContributionReceipt(body, input.hash, input.block);
+}
+
+export function validateNativeContributionReceipt(value: unknown, hash: Hash, block: NativeContributionBlock): NativeContributionLog[] {
+  const body = value as {
     error?: string;
     requestId?: string;
     genesisHash?: string;
@@ -32,17 +41,14 @@ export async function readNativeContributionReceiptApi(input: {
     status?: string;
     logs?: NativeContributionLog[];
   };
-  if (!response.ok)
-    throw new Error(
-      `${typeof body.error === 'string' ? body.error : 'The native receipt could not be verified.'}${body.requestId ? ` Reference: ${body.requestId}` : ''}`
-    );
   if (
+    !body ||
     body.genesisHash !== GENESIS ||
-    body.hash?.toLowerCase() !== input.hash.toLowerCase() ||
-    body.block?.number !== input.block.number ||
+    body.hash?.toLowerCase() !== hash.toLowerCase() ||
+    body.block?.number !== block.number ||
     !isHex(body.block?.hash, 32) ||
-    (input.block.hash && body.block.hash.toLowerCase() !== input.block.hash.toLowerCase()) ||
-    (input.block.index !== undefined && body.block.index !== input.block.index)
+    (block.hash && body.block.hash.toLowerCase() !== block.hash.toLowerCase()) ||
+    (block.index !== undefined && body.block.index !== block.index)
   )
     throw new Error('The native receipt service returned a different network or transaction. Keep this contribution pending.');
   if (body.status === 'failed') throw new FinalizedNativeContributionFailedError();
@@ -56,7 +62,7 @@ export async function readNativeContributionReceiptApi(input: {
         /^0x(?:[\da-f]{2})*$/i.test(log.data) &&
         Array.isArray(log.topics) &&
         log.topics.every(topic => isHex(topic, 32)) &&
-        log.transactionHash?.toLowerCase() === input.hash.toLowerCase() &&
+        log.transactionHash?.toLowerCase() === hash.toLowerCase() &&
         Number.isSafeInteger(log.logIndex) &&
         log.logIndex >= 0
     )

@@ -192,7 +192,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 39]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 40]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -615,6 +615,42 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | `DOTIFY_FACTORY_ADDRESS`   | `0x835a626a9a6965b197d079ae56b1ec94033c2699`                                                                                                                                                                                 |
 | `DOTIFY_DIRECTORY_ADDRESS` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
 | `DOTIFY_CHAIN_ID`          | `420420417`                                                                                                                                                                                                                  |
+
+### Shared native contribution ledger (Product 0.1.40)
+
+`NATIVE_CONTRIBUTION_SNAPSHOT_PATH` is `/data/contributions/receipts.json` in
+Fly and defaults to `.data/native-contributions.json` locally. The `contribution_data`
+volume mounts at `/data/contributions`. Keep exactly one API machine/writer;
+independent volume replicas would diverge. Use `--ha=false` on deploy and do not
+add a spare API machine until there is a shared transactional store. Other
+catalog/key storage and CORS settings are unchanged.
+
+The verified receipt route saves successful contribution events before replying.
+It rejects incomplete recipient totals, wrong networks and conflicting blocks.
+Repeated verification is idempotent. Atomic replacement publishes the new
+snapshot only after saving succeeds; corrupt or unwritable storage returns an
+explicit error rather than an empty history. Limits: 10,000 receipts / 64 MiB,
+no silent eviction, 100 receipts/page, 100 runtimes/query, and 60 history
+queries/minute/IP. Pages bind to a monotonically advancing snapshot revision.
+The browser uses a 25-second total paging budget. Outstanding contribution
+claims are reconciled against finalized contract state.
+
+`POST /api/contributions/history` accepts `{ runtimes, offset?, revision? }`
+and returns verified native receipts with `coverage: verified-receipts`. It is
+public, like the underlying events, and never accepts submitted logs. It is not
+an exhaustive native chain indexer. Earlier receipts can be recovered by calling
+the existing native-receipt endpoint with their transaction hash/block, which
+re-verifies before saving; do not edit the ledger to add a payment.
+
+Before publishing this frontend, provision its volume in the API machine's
+region, configure the mount, and deploy the API first. Preserve any existing
+unrelated volumes. Follow [Fly's volume attachment procedure](https://docs.fly.io/launch/volume-storage).
+Verify a known receipt through the public endpoint, read it through history from
+a separate client, restart the API process, and confirm the same record remains.
+Enable automatic volume snapshots and retain an independent export of the ledger
+before migration or rollback. A rollback must retain the volume; never replace
+a saved history with an empty file. This bounded read model has no replication
+or zero-downtime failover claim.
 
 Native receipts use a separate read-only archive boundary. The endpoint accepts
 only a 32-byte transaction hash and a block reference, never a caller-selected

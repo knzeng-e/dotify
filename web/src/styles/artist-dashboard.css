@@ -1,0 +1,475 @@
+/* Artist dashboard: a deep-blue workspace with receipts at its center. */
+.artist-portal-shell {
+  --surface: #102337;
+  --surface-soft: #152c40;
+  --line: rgb(183 211 232 / 14%);
+  --muted: #afc0d2;
+  background: #081421;
+}
+.artist-portal-main {
+  max-width: 1280px;
+}
+.artist-console {
+  gap: 1.65rem;
+}
+.artist-console .studio-head {
+  padding-block: 0.4rem 0.25rem;
+}
+.artist-console .studio-kicker {
+  color: #73dccc;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+}
+.artist-console .studio-id h1 {
+  font-size: clamp(1.4rem, 2.7vw, 2rem);
+  letter-spacing: -0.035em;
+}
+.artist-console .studio-publish {
+  box-shadow: none;
+  border-radius: 9px;
+}
+.artist-console .console-tabs-shell {
+  border-bottom: 1px solid var(--line);
+}
+.artist-console .console-tabs {
+  border: 0;
+  gap: 2rem;
+}
+.artist-console .console-tabs button {
+  min-height: 48px;
+}
+.dashboard-eyebrow {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 0.45rem;
+}
+.dashboard-finances {
+  min-width: 0;
+}
+.dashboard-finances .studio-section-head {
+  border: 0;
+  padding: 0;
+  align-items: center;
+}
+.dashboard-finances h2,
+.dashboard-activity-column h2,
+.studio-works h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.dashboard-finances .dashboard-metrics {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.3rem 0 1.7rem;
+  align-items: stretch;
+  padding: 0;
+  border: 0;
+}
+.dashboard-metrics > div {
+  min-width: 0;
+  padding: 1.55rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #102033;
+}
+.dashboard-metrics > div:first-child {
+  background: linear-gradient(130deg, #173d47, #112a39);
+  border-color: rgb(97 220 201 / 30%);
+}
+.dashboard-metrics dt {
+  font-size: 0.8rem;
+  color: #d0dde7;
+}
+.dashboard-finances .dashboard-metrics dd {
+  font-size: clamp(1.4rem, 2.6vw, 2.1rem);
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  margin: 1.2rem 0 0;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-finances .dashboard-metrics > div:first-child dd {
+  color: #81e9d6;
+  font-size: clamp(1.7rem, 3.5vw, 2.8rem);
+}
+.dashboard-finances .dashboard-metrics .earnings-total-note,
+.dashboard-finances .dashboard-metrics > div:first-child .earnings-total-note {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.6;
+  letter-spacing: 0;
+  margin-top: 0.65rem;
+}
+.dashboard-source-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.dashboard-source-heading h3 {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.dashboard-source-heading .text-action {
+  font-size: 0.78rem;
+}
+.dashboard-sources {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block: 1px solid var(--line);
+  margin-top: 0.3rem;
+  padding-block: 1.05rem;
+}
+.dashboard-source {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+  padding-inline: 1.1rem;
+  font-size: 0.85rem;
+  border-right: 1px solid var(--line);
+}
+.dashboard-source:first-child {
+  padding-left: 0;
+}
+.dashboard-source:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+.dashboard-source strong {
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.dashboard-source small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  grid-column: 2 / -1;
+}
+.source-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #73dfcf;
+}
+[data-source='gifts'] .source-dot {
+  background: #ff92bd;
+}
+[data-source='tips'] .source-dot {
+  background: #b5b9ff;
+}
+.dashboard-finances .earnings-definition {
+  margin-top: 0.45rem;
+  font-size: 0.76rem;
+}
+.dashboard-finances .earnings-definition summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+}
+.studio-overview {
+  gap: 1.75rem;
+}
+.studio-overview-columns {
+  grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr);
+  gap: 2.4rem;
+  align-items: start;
+}
+.studio-works {
+  min-width: 0;
+}
+.studio-works .studio-section-head {
+  align-items: center;
+  padding-bottom: 0.7rem;
+}
+.studio-works .earnings-release-row {
+  padding-block: 1.1rem;
+}
+.studio-works .earnings-release-title img {
+  width: 54px;
+  height: 54px;
+  flex-basis: 54px;
+  border-radius: 7px;
+}
+.studio-works .earnings-release-amount {
+  font-size: 0.8rem;
+}
+.dashboard-catalog-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.dashboard-catalog-foot .text-action {
+  font-size: 0.78rem;
+}
+.dashboard-activity-column {
+  display: grid;
+  gap: 1.8rem;
+  min-width: 0;
+}
+.dashboard-rhythm {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.2rem 1.3rem 0.5rem;
+  background: #0d1e2e;
+}
+.dashboard-rhythm .studio-section-head {
+  align-items: start;
+  gap: 0.75rem;
+  border: 0;
+}
+.dashboard-rhythm h2 {
+  font-size: 1rem;
+}
+.dashboard-rhythm-total {
+  color: #8be5d5;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  padding-top: 1.35rem;
+  white-space: nowrap;
+}
+.dashboard-chart {
+  height: 94px;
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+  margin-top: 1.25rem;
+  border-bottom: 1px solid var(--line);
+  background: repeating-linear-gradient(to top, transparent 0, transparent 30px, rgb(160 199 220 / 7%) 30px, rgb(160 199 220 / 7%) 31px);
+}
+.dashboard-chart-column {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: end;
+}
+.dashboard-chart-column > span {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  background: #294458;
+  border-radius: 3px 3px 0 0;
+}
+.dashboard-chart-column > span[data-value='true'] {
+  background: #70d8c7;
+}
+.dashboard-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.65rem;
+  padding-top: 0.5rem;
+}
+.dashboard-chart-empty {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.6rem;
+}
+.dashboard-rhythm .earnings-definition {
+  font-size: 0.7rem;
+  margin-top: 0.45rem;
+}
+.dashboard-rhythm summary {
+  cursor: pointer;
+  min-height: 44px;
+  align-content: center;
+}
+.dashboard-daily-values {
+  list-style: none;
+  padding: 0;
+}
+.dashboard-daily-values li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+}
+.dashboard-recent .studio-section-head {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.4rem;
+}
+.dashboard-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+  min-width: 0;
+}
+.dashboard-activity-row:hover .dashboard-activity-copy strong {
+  color: var(--action);
+}
+.dashboard-activity-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #87dfd1;
+  background: rgb(115 223 207 / 10%);
+  flex-shrink: 0;
+}
+.dashboard-activity-icon[data-kind='tip'] {
+  color: #ffc0d8;
+  background: rgb(240 115 167 / 12%);
+}
+.dashboard-activity-icon[data-kind='gift'] {
+  color: #c7c9ff;
+  background: rgb(179 183 255 / 12%);
+}
+.dashboard-activity-copy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  flex: 1;
+}
+.dashboard-activity-kind {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+.dashboard-activity-copy strong {
+  font-size: 0.85rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.dashboard-activity-copy small,
+.dashboard-activity-value small {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+.dashboard-activity-value {
+  display: grid;
+  gap: 0.45rem;
+  text-align: right;
+  flex: 0 1 30%;
+  min-width: 0;
+}
+.dashboard-activity-value strong {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1000px) {
+  .studio-overview-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+  .dashboard-activity-column {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+}
+@media (max-width: 700px) {
+  .artist-portal-main {
+    padding-top: 1.2rem;
+  }
+  .artist-console .console-tabs {
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+  .dashboard-finances .studio-section-head {
+    align-items: start;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .dashboard-finances .earnings-freshness {
+    font-size: 0.7rem;
+  }
+  .dashboard-finances .dashboard-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+    margin-top: 1rem;
+  }
+  .dashboard-metrics > div {
+    padding: 1.05rem;
+    border-radius: 11px;
+  }
+  .dashboard-metrics > div:first-child {
+    grid-column: 1 / -1;
+  }
+  .dashboard-finances .dashboard-metrics dd {
+    font-size: 1.35rem;
+    margin-top: 0.8rem;
+  }
+  .dashboard-finances .dashboard-metrics > div:first-child dd {
+    font-size: 2.5rem;
+    margin-top: 0.8rem;
+  }
+  .dashboard-metrics dt {
+    font-size: 0.75rem;
+  }
+  .dashboard-sources {
+    grid-template-columns: minmax(0, 1fr);
+    padding-block: 0;
+  }
+  .dashboard-source {
+    grid-template-columns: 8px minmax(0, 1fr) auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 0.85rem 0;
+  }
+  .dashboard-source:last-child {
+    border-bottom: 0;
+  }
+  .dashboard-source small {
+    grid-column: 2;
+  }
+  .dashboard-source strong {
+    grid-column: 3;
+    grid-row: 1 / 3;
+  }
+  .dashboard-source-heading h3 {
+    font-size: 0.78rem;
+  }
+  .dashboard-source-heading .text-action {
+    font-size: 0.72rem;
+  }
+  .dashboard-activity-column {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dashboard-rhythm {
+    padding-inline: 1rem;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dashboard-chart-column > span {
+    transition: height 0.3s ease;
+  }
+}
+
+@media (max-width: 700px) {
+  .studio-overview-columns {
+    display: flex;
+    flex-direction: column;
+  }
+  .studio-overview-columns > .studio-works {
+    order: 2;
+    width: 100%;
+  }
+  .dashboard-activity-column {
+    display: contents;
+  }
+  .dashboard-recent {
+    order: 1;
+    width: 100%;
+  }
+  .dashboard-rhythm {
+    order: 3;
+    width: 100%;
+    min-width: 0;
+  }
+  .dashboard-rhythm .studio-section-head {
+    flex-wrap: wrap;
+  }
+}

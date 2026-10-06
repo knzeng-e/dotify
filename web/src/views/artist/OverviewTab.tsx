@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { ArrowRight, Disc3, RefreshCw, Upload, UserRoundPlus } from 'lucide-react';
-import { formatPaymentDate } from '../../shared/utils/format';
-import type { CatalogTrack, RoyaltyPayment } from '../../shared/types';
+import type { CatalogTrack } from '../../shared/types';
 import type { ReleaseEarnings } from '../../features/artist-studio/earnings';
-import { EarningsSummary, type EarningsSummaryProps } from './EarningsSummary';
+import type { EarningsSummaryProps } from './EarningsSummary';
+import type { ContributionHistoryState } from '../../features/donations/useContributionHistory';
+import type { ArtistActivity } from '../../features/artist-studio/dashboard';
+import { ArtistEarningsSummary } from './ArtistEarningsSummary';
+import { DashboardActivity } from './DashboardActivity';
 import { ReleaseEarningsList } from './ReleaseEarningsList';
 
 type OverviewTabProps = {
@@ -13,13 +16,14 @@ type OverviewTabProps = {
   isRegisteringArtist: boolean;
   isRefreshingArtistRuntime: boolean;
   artistRegistrationAvailable: boolean;
-  royaltyPayments: RoyaltyPayment[];
+  history: ContributionHistoryState;
+  activity: ArtistActivity[];
   earnings: EarningsSummaryProps;
   releases: ReleaseEarnings[];
   onUpdateArtistName: (name: string) => void;
   onRegisterArtist: () => void;
   onRefreshArtistRuntime: () => void;
-  onSetArtistTab: (tab: 'overview' | 'new' | 'releases' | 'royalties' | 'advanced') => void;
+  onSetArtistTab: (tab: 'overview' | 'new' | 'releases' | 'royalties' | 'advanced' | 'rights') => void;
   onOpenRelease: (track: CatalogTrack) => void;
 };
 
@@ -30,7 +34,8 @@ export function OverviewTab({
   isRegisteringArtist,
   isRefreshingArtistRuntime,
   artistRegistrationAvailable,
-  royaltyPayments,
+  history,
+  activity,
   earnings,
   releases,
   onUpdateArtistName,
@@ -42,7 +47,7 @@ export function OverviewTab({
   const [registrationConsented, setRegistrationConsented] = useState(false);
   const needsArtistProfile = !artistRuntimeAddress;
   const isNewArtist = !needsArtistProfile && releases.length === 0;
-  const hasEarningsActivity = royaltyPayments.length > 0 || earnings.generatedWei > 0n || earnings.claimableWei > 0n;
+  const hasEarningsActivity = activity.length > 0 || earnings.generatedWei > 0n || earnings.claimableWei > 0n;
   const canRegisterProfile = artistRegistrationAvailable && artistName.trim().length > 0 && registrationConsented && !isRegisteringArtist;
   return (
     <div className='studio-overview'>
@@ -88,12 +93,17 @@ export function OverviewTab({
           </button>
         </section>
       )}
-      {(!isNewArtist || hasEarningsActivity) && <EarningsSummary {...earnings} />}
+      {(!isNewArtist || hasEarningsActivity) && (
+        <ArtistEarningsSummary earnings={earnings} history={history} runtime={artistRuntimeAddress} onDetails={() => onSetArtistTab('royalties')} />
+      )}
 
       <div className='studio-overview-columns'>
         <section className='studio-works'>
           <div className='studio-section-head'>
-            <h2>Your releases</h2>
+            <div>
+              <p className='dashboard-eyebrow'>Your catalog</p>
+              <h2>Music you own</h2>
+            </div>
             {releases.length > 0 && (
               <button className='text-action' onClick={() => onSetArtistTab('releases')}>
                 View all <ArrowRight size={16} />
@@ -103,37 +113,30 @@ export function OverviewTab({
           {releases.length === 0 ? (
             <p className='studio-empty'>Your published music will appear here.</p>
           ) : (
-            <ReleaseEarningsList rows={releases.slice(0, 5)} known={earnings.updatedAt !== null} symbol={earnings.symbol} onOpen={onOpenRelease} />
+            <ReleaseEarningsList
+              rows={releases.slice(0, 5)}
+              known={earnings.updatedAt !== null && history.known}
+              symbol={earnings.symbol}
+              onOpen={onOpenRelease}
+            />
+          )}
+          {releases.length > 0 && (
+            <div className='dashboard-catalog-foot'>
+              <span>
+                {releases.filter(row => row.track.active !== false).length} live · {releases.filter(row => row.track.active === false).length} paused
+              </span>
+              <button className='text-action' onClick={() => onSetArtistTab('rights')}>
+                Manage listening terms <ArrowRight size={15} />
+              </button>
+            </div>
           )}
         </section>
-        <section className='studio-recent'>
-          <div className='studio-section-head'>
-            <h2>Recent payments</h2>
-          </div>
-          {royaltyPayments.slice(0, 4).map(payment => (
-            <button className='studio-payment-preview' key={payment.id} onClick={() => onSetArtistTab('royalties')}>
-              <span>
-                <strong>{payment.trackTitle}</strong>
-                <small>{formatPaymentDate(payment.paidAtMs)}</small>
-              </span>
-              <span>
-                <strong>
-                  {payment.amountDot} {earnings.symbol}
-                </strong>
-                <small>{payment.settlement === 'claimable' ? 'To claim' : 'Received'}</small>
-              </span>
-            </button>
-          ))}
-          {!royaltyPayments.length && (
-            <p className='studio-empty'>
-              {earnings.updatedAt
-                ? 'Your next payment will appear here.'
-                : earnings.historyState === 'unavailable'
-                  ? 'Payment history is unavailable.'
-                  : 'Checking payment history...'}
-            </p>
-          )}
-        </section>
+        <DashboardActivity
+          activity={activity}
+          symbol={earnings.symbol}
+          known={earnings.updatedAt !== null && history.known}
+          onDetails={() => onSetArtistTab('royalties')}
+        />
       </div>
 
       <details className='studio-technical studio-profile-settings'>

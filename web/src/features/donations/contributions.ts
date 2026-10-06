@@ -168,6 +168,9 @@ export function contributionReader(rpc: string) {
       ).map(log => formatLog(log));
       return decodeContributions(runtime, [...received, ...shares]).find(row => row.id === expectedId);
     },
+    async pending(runtime: Address, id: Hash, recipient: Address) {
+      return client.readContract({ address: runtime, abi: musicRoyaltiesAbi, functionName: 'musicGiftPending', args: [id, recipient], blockTag: 'finalized' });
+    },
     async history(runtime: Address): Promise<ContributionReceipt[]> {
       const block = await client.getBlock({ blockTag: 'finalized' });
       const logs = await client.getLogs({

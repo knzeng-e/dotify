@@ -6,7 +6,7 @@ import type { ContributionReceipt } from '../../features/donations/contributions
 import { useContributionWriter } from '../../features/donations/useContributionWriter';
 import { useContributionHistory, type ContributionHistoryState } from '../../features/donations/useContributionHistory';
 import { nativeCurrencyForChain } from '../../shared/config/contracts';
-import { getBlockscoutTxUrl } from '../../shared/utils/explorer';
+import { getTransactionProofUrl } from '../../shared/utils/explorer';
 
 export function ContributionHistory({ runtime, personal = false }: { runtime?: Address | null; personal?: boolean }) {
   const history = useContributionHistory(runtime);
@@ -141,6 +141,9 @@ export function ContributionLedger({
         </details>
       )}
       {updatedAt !== null && <p className='contribution-freshness'>Finalized contributions · checked {new Date(updatedAt).toLocaleTimeString()}</p>}
+      {history.coverage === 'verified-receipts' && (
+        <p className='contribution-freshness'>Includes verified Product receipts saved by Dotify. Earlier unsynced payments may be missing.</p>
+      )}
       {error && <p role='status'>{error}</p>}
       {claimError && <p role='alert'>{claimError}</p>}
       {!rows.length && (
@@ -191,7 +194,7 @@ export function ContributionLedger({
                   Room host <code>{row.host}</code>
                 </p>
               )}
-              <a href={getBlockscoutTxUrl(row.transactionHash)} target='_blank' rel='noreferrer'>
+              <a href={getTransactionProofUrl(row.transactionHash, row.proofKind)} target='_blank' rel='noreferrer'>
                 View dated receipt
               </a>
               {pending && (

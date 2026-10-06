@@ -15,7 +15,10 @@ function loadLocalEnv(): void {
     if (equalsAt === -1) continue;
 
     const key = trimmed.slice(0, equalsAt).trim();
-    const value = trimmed.slice(equalsAt + 1).trim().replace(/^['"]|['"]$/g, '');
+    const value = trimmed
+      .slice(equalsAt + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, '');
     if (!key || process.env[key] !== undefined) continue;
     process.env[key] = value;
   }
@@ -23,22 +26,19 @@ function loadLocalEnv(): void {
 
 loadLocalEnv();
 
-const optionalNonEmptyString = z.preprocess(
-  value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
-  z.string().optional(),
-);
+const optionalNonEmptyString = z.preprocess(value => (typeof value === 'string' && value.trim() === '' ? undefined : value), z.string().optional());
 
 const optionalContentKeyVersion = z.preprocess(
   value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
   z
     .string()
     .regex(/^dotify-content-key-v[1-9][0-9]*$/, 'CONTENT_KEY_ACTIVE_VERSION must look like dotify-content-key-vN')
-    .optional(),
+    .optional()
 );
 
 const optionalCapabilitySecret = z.preprocess(
   value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
-  z.string().min(32, 'TURN_CAPABILITY_SECRET must contain at least 32 characters').optional(),
+  z.string().min(32, 'TURN_CAPABILITY_SECRET must contain at least 32 characters').optional()
 );
 
 const optionalOriginList = z.preprocess(
@@ -49,7 +49,7 @@ const optionalOriginList = z.preprocess(
           .map(origin => origin.trim())
           .filter(Boolean)
       : value,
-  z.array(z.string().url()).min(1).optional(),
+  z.array(z.string().url()).min(1).optional()
 );
 
 const optionalTurnUrlList = z.preprocess(
@@ -63,11 +63,11 @@ const optionalTurnUrlList = z.preprocess(
   z
     .array(
       z.string().refine(url => /^turns?:[^\s,]+$/i.test(url), {
-        message: 'TURN URLs must start with turn: or turns:',
-      }),
+        message: 'TURN URLs must start with turn: or turns:'
+      })
     )
     .min(1)
-    .optional(),
+    .optional()
 );
 
 const envSchema = z.object({
@@ -75,10 +75,15 @@ const envSchema = z.object({
   API_ORIGIN: z.string().url().default('http://localhost:5273'),
   API_ORIGINS: optionalOriginList,
   PASEO_ASSET_HUB_RPC: z.string().url().optional(),
-  PASEO_ASSET_HUB_NATIVE_RPC: z.string().url().refine(value => new URL(value).protocol === "https:", "Native receipt RPC must use HTTPS").optional(),
+  PASEO_ASSET_HUB_NATIVE_RPC: z
+    .string()
+    .url()
+    .refine(value => new URL(value).protocol === 'https:', 'Native receipt RPC must use HTTPS')
+    .optional(),
   DOTIFY_FACTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_DIRECTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_CHAIN_ID: z.coerce.number().int().default(420420417),
+  NATIVE_CONTRIBUTION_SNAPSHOT_PATH: z.string().default('.data/native-contributions.json'),
   CATALOG_SNAPSHOT_PATH: z.string().default('.data/catalog.json'),
   CATALOG_POLL_INTERVAL_MS: z.coerce.number().int().min(1_000).default(10_000),
   CATALOG_RECONCILE_INTERVAL_MS: z.coerce.number().int().min(10_000).default(300_000),
@@ -93,7 +98,7 @@ const envSchema = z.object({
     z
       .string()
       .regex(/^(0x)?[0-9a-fA-F]{64,}$/, 'CONTENT_KEY_MASTER_SECRET must be hex encoding at least 32 bytes')
-      .optional(),
+      .optional()
   ),
   // Optional JSON object mapping explicit content-key versions to 32+ byte hex
   // secrets. CONTENT_KEY_MASTER_SECRET remains the legacy v1/v2 compatibility
@@ -135,7 +140,12 @@ const envSchema = z.object({
   TURN_REST_SECRET: optionalNonEmptyString,
   TURN_USERNAME: optionalNonEmptyString,
   TURN_CREDENTIAL: optionalNonEmptyString,
-  TURN_TTL_SECONDS: z.coerce.number().int().min(60).max(24 * 60 * 60).default(3600),
+  TURN_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(24 * 60 * 60)
+    .default(3600),
   // Shared only with the signaling service. It signs short-lived proof that a
   // browser is already participating in a room before the API reveals relay
   // credentials. This is distinct from TURN_REST_SECRET.
@@ -143,7 +153,7 @@ const envSchema = z.object({
   // Deploy-time commit SHA surfaced by /version (set by CI/Docker builds; the
   // service falls back to `git rev-parse HEAD` in dev checkouts).
   GIT_COMMIT_SHA: optionalNonEmptyString,
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development')
 });
 
 function parseEnv() {
@@ -155,7 +165,7 @@ function parseEnv() {
   }
   return {
     ...result.data,
-    API_ORIGINS: result.data.API_ORIGINS ?? [result.data.API_ORIGIN],
+    API_ORIGINS: result.data.API_ORIGINS ?? [result.data.API_ORIGIN]
   };
 }
 
