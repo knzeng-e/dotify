@@ -3,6 +3,8 @@ import { zeroAddress, zeroHash, type Hash } from 'viem';
 import { runContribution, recoverSavedContribution, saveNativeContributionBlock, contributionStorageKey, type ContributionIntent } from './contributionFlow';
 import { ContributionRevertedError, contributionId, type ContributionReceipt } from './contributions';
 import { SupportNotSubmittedError } from '../payments/supportPayment';
+import { createProductCdmRuntimeWriter } from '../runtime/productCdmRuntimeAdapter';
+import type { NativeContributionBlock } from '../runtime/runtimePorts';
 
 function fixture() {
   const data = new Map<string, string>();
@@ -58,6 +60,45 @@ describe('persistent contributions', () => {
     expect((await recoverSavedContribution({ ...input, scope: input.intent })).status).toBe('confirmed');
     expect(input.confirm).toHaveBeenLastCalledWith(input.receipt.transactionHash, input.receipt.id, nativeBlock);
     expect(send).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    ['missing', undefined],
+    ['invalid number', { number: -1, hash: zeroHash, index: 0 }],
+    ['invalid index', { number: 123, hash: zeroHash, index: -1 }],
+    ['invalid hash', { number: 123, hash: 'invalid', index: 0 }]
+  ])('keeps the Product hash with %s block metadata and recovers without another send', async (_label, block) => {
+    const input = fixture();
+    const tx = vi.fn(async () => ({ ok: true as const, value: { ok: true, txHash: input.receipt.transactionHash, block } }));
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      contracts: { getDirectoryContract: () => ({}), getFactoryContract: () => ({}), getRuntimeContract: () => ({ musicGiftContribute: { tx } }) }
+    });
+    const send = vi.fn(async () => {
+      let nativeBlock: NativeContributionBlock | undefined;
+      const hash = await writer.contributionCall!(input.intent.runtime, 'musicGiftContribute', [], undefined, block => {
+        nativeBlock = block;
+      });
+      return { hash, nativeBlock };
+    });
+    const confirm = vi.fn(async (_hash: Hash, _id: Hash, nativeBlock?: NativeContributionBlock) => {
+      if (!nativeBlock) throw new Error('This Product transaction needs its receipt block.');
+      return input.receipt;
+    });
+    expect(await runContribution({ ...input, send, confirm })).toMatchObject({ status: 'uncertain', hash: input.receipt.transactionHash });
+    const saved = JSON.parse(input.storage.getItem(contributionStorageKey(input.intent))!);
+    expect(saved.hash).toBe(input.receipt.transactionHash);
+    expect(saved.nativeBlock).toBeUndefined();
+    expect(await recoverSavedContribution({ ...input, scope: input.intent, confirm })).toMatchObject({
+      status: 'uncertain',
+      hash: input.receipt.transactionHash
+    });
+    expect(input.recover).not.toHaveBeenCalled();
+    saveNativeContributionBlock(input.intent, 123, input.storage);
+    expect(await recoverSavedContribution({ ...input, scope: input.intent, confirm })).toMatchObject({ status: 'confirmed' });
+    expect(confirm).toHaveBeenLastCalledWith(input.receipt.transactionHash, input.receipt.id, { number: 123 });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(tx).toHaveBeenCalledTimes(1);
+    expect(input.storage.getItem(contributionStorageKey(input.intent))).toBeNull();
   });
   it('adds a block hint to an older native payment without changing its amount, ID or hash', async () => {
     const input = fixture();

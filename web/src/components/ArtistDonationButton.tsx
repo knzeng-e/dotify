@@ -199,7 +199,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
               nativeReceipt: async () => {
                 if (!nativeBlock)
                   throw new Error(
-                    'This older Product transaction needs its receipt block. Open the network receipt and enter its block number under Technical details. No new payment is needed.'
+                    'This Product transaction needs its receipt block. Open the network receipt and enter its block number under Technical details. No new payment is needed.'
                   );
                 if (contributionE2e && new URLSearchParams(location.search).get('e2eGift') !== 'native-api-recovery')
                   return reader.finalizedReceipt(scope.runtime, id);
@@ -328,7 +328,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
         void checkReceiptBlock();
       }}
     >
-      <p>Older Product transactions need their receipt block once. Use the block shown in the network receipt linked above.</p>
+      <p>Product transactions without a saved block reference need their receipt block once. Use the block shown in the network receipt linked above.</p>
       <label>
         Receipt block number
         <input className='field' inputMode='numeric' value={receiptBlock} onChange={event => setReceiptBlock(event.target.value)} required />
