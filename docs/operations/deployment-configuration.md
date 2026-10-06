@@ -618,6 +618,14 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 
 ### Shared native contribution ledger (Product 0.1.40)
 
+Published on 2026-10-07 (Paris): Product source `0aef57670c71a60d46f67f7d5f62d008561afcb8`,
+API source `48e3bda9af3ba26ec65b2f794ee96dd169956857`, executable CID
+`bafybeia4lm3ybgkqod3majkgu52xvbpnmlrtpnogjjutkxtxhfqbroyjzu`. The finalized manifest and gateway bundle
+were verified. A real API restart preserved the recovered contribution; a managed
+volume snapshot completed with 14-day retention. Full rollout evidence and
+remaining physical-device/historical coverage gates are recorded in
+[the dashboard evidence](../backlog/implementation/evidence/artist-dashboard-2026-10-07.md).
+
 `NATIVE_CONTRIBUTION_SNAPSHOT_PATH` is `/data/contributions/receipts.json` in
 Fly and defaults to `.data/native-contributions.json` locally. The `contribution_data`
 volume mounts at `/data/contributions`. Keep exactly one API machine/writer;
@@ -659,11 +667,13 @@ RPC URL. It verifies chain ID `420420417` and genesis
 The endpoint is limited to 20 requests/minute/IP, four concurrent archive reads,
 a 20-second total read budget and 8 MiB per RPC response. It retains at most
 128 immutable verified receipts for 30 minutes and two historical metadata
-codecs in process memory. There is no new durable state. Missing configuration,
+codecs in process memory. The verifier itself has no durable cache; verified
+contributions are persisted by the ledger described above. Missing configuration,
 wrong genesis, an unavailable archive or an unverified proof returns an explicit
 error with a request ID, never a failed-payment verdict. The browser read budget
-is 25 seconds. CORS origins, secrets, content-key authorization, storage mounts
-and the single-machine limit are unchanged.
+is 25 seconds. CORS origins, secrets and content-key authorization are unchanged;
+the contribution ledger adds the persistent mount and single-writer requirement
+described above.
 
 Deploy the API before the Product executable that depends on this endpoint:
 

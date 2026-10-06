@@ -29,3 +29,5 @@ listener analytics. #229 remains open for those wider acceptance gates.
 Base: tested `origin/dev` `76d07e7350e83d8c5e29d1b2f1b3650288dd16ca`, with the
 already-published receipt fixes through `51f403a` retained as prerequisites.
 Branch: `feat/artist-dashboard`.
+
+Implementation, public rollout and remaining acceptance boundaries: [2026-10-07 evidence](implementation/evidence/artist-dashboard-2026-10-07.md).
