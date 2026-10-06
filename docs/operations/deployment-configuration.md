@@ -216,6 +216,26 @@ then checks runtime, work, intent ID, payer and amount. Archive errors keep the
 journal pending; only a verified native dispatch failure may release it.
 Technical details now show the latest check error alongside the original error.
 
+Version `[0, 1, 39]` was published on 2026-10-06 from clean commit
+`c698b1c7b9b83e813c68fb902de62696b67e25a6` with the `product-cdm` profile,
+after deploying the API from that same commit. The public API `/version`,
+`/health`, configured Product HTTPS CORS preflight and a known historical native
+receipt were checked successfully. The published receipt logs matched the
+independently verified historical native events, including the paid-share event.
+The executable CID is
+`bafybeiglfaqtudp27j3hwqv3qvgelknfrbt7melueuic4tqh7wrogvqlia`; its atomic
+manifest update finalized in transaction
+`0x463499d3e54d7046129ced609b1d6ad64a04e0e0bca38734d358236f7b871f0a`.
+Read-back at 2026-10-06 23:08 Europe/Paris confirmed `[0, 1, 39]`, its CID and
+the public CAR's index/entry bytes against the built artifact, including the
+source SHA. Host configuration checks passed before and after publication.
+Validation passed: 785 frontend unit tests, 160 API tests and 22 gift/tip browser
+tests, including real HTTP-client recovery and archive-error display without
+resubmission. Type checks, the Product build and lint passed; lint excluded
+ignored local diagnostic archives and reported two pre-existing App hook
+warnings. Recovery inside the installed mobile host still requires live-device
+confirmation; no new funded tip was submitted during this investigation.
+
 Version `[0, 1, 38]` introduced block-reference capture and manual recovery for
 older journal entries, after native `Revive.call` events were found absent from
 the EVM log index. Those journal and proof invariants remain, but its historical
