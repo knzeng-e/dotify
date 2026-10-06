@@ -218,8 +218,15 @@ and mismatched receipts keep the intent pending. Proven finalized native dispatc
 failures can release it. Entries lacking a native hash remain unresolved; do not
 resubmit based on an absent Ethereum event. New payments capture their block
 reference automatically. Full cross-device native earnings/history indexing is
-still separate work. This version is a prepared correction candidate until its
-publication is recorded; new funded mobile submission still needs live evidence.
+still separate work. Version `[0, 1, 38]` was published on 2026-10-06 from clean
+commit `99d51aa42f9ac9acef93780773e9953e8474a492` with the `product-cdm` profile. Its executable CID
+is `bafybeihydvxrlzv2d4kpnjrellwntsvt5ifo2fkfh7frlvq3ngrobxltwi`; the atomic executable update finalized in transaction
+`0xae364b1b290b8815fc0771014cbb912080f79e20b5571b3927bb588c2cee2ea7`. Independent read-back at 2026-10-06 21:51 Europe/Paris confirmed
+the finalized version/CID and compared the public CAR's index/entry bundle with
+the built artifact, including its source SHA. Host configuration checks passed
+before and after publication. Mobile replay and a new funded mobile submission
+still need live-device evidence; the historical native receipt itself was
+verified directly on-chain.
 
 During diagnosis on 2026-10-06, an owner-supplied pending tip was independently
 verified directly from historical Asset Hub native storage, with matching
