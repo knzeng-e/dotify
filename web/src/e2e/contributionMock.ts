@@ -93,5 +93,7 @@ export async function contributionTestWrite(runtime: Address, method: string, ar
     transactionHash: E2E_CLASSIC_TX_HASH,
     shares: [{ recipient: '0x0000000000000000000000000000000000000a71', amount, role: 0, paid: true, claimed: false }]
   };
+  if (new URLSearchParams(location.search).get('e2eGift') === 'host-timeout')
+    throw new Error('Transaction timed out after 300s. The transaction may still be processing on-chain.');
   return E2E_CLASSIC_TX_HASH;
 }

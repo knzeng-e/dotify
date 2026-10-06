@@ -288,9 +288,30 @@ test('a mobile confirmation timeout keeps checking without exposing raw wallet e
   expect(state.finalizedReads).toBe(1);
   await expect(dialog.getByRole('button', { name: /Confirm gift|Confirming/ })).toHaveCount(0);
   await expect(dialog.getByRole('link', { name: 'View transaction' })).toBeVisible();
-  await expect(dialog).not.toContainText('viem@2.55.19');
+  await expect(dialog.getByText(/viem@2.55.19/)).not.toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const pending = dialog.locator('.contribution-pending');
   expect((await pending.boundingBox())!.width).toBeLessThanOrEqual((await dialog.boundingBox())!.width);
   await page.screenshot({ path: info.outputPath('tip-pending-mobile-320.png'), animations: 'disabled' });
+});
+
+test('a mobile host timeout preserves its diagnostic across reload without another approval', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openGift(page, '?e2eGift=host-timeout');
+  await review(page, '0.1');
+  await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
+  const dialog = contributionDialog(page);
+  await expect(dialog.getByRole('status')).toContainText('Checking payment status');
+  await dialog.getByText('Technical details', { exact: true }).click();
+  await expect(dialog.getByText(/Transaction timed out after 300s/)).toBeVisible();
+  await expect(dialog).toContainText('Contribution reference:');
+  await expect(dialog.getByRole('link', { name: 'View transaction' })).toHaveCount(0);
+  await page.reload();
+  await page.locator('.catalogue-card .artist-text-button').first().click();
+  await page.getByRole('main').getByRole('button', { name: 'Send a gift', exact: true }).click();
+  await expect(dialog.getByRole('status')).toContainText('Checking payment status');
+  await dialog.getByText('Technical details', { exact: true }).click();
+  await expect(dialog.getByText(/Transaction timed out after 300s/)).toBeVisible();
+  expect((await giftState(page)).sends).toBe(0);
+  expect(await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__')?.confirmed)).toBe(false);
 });

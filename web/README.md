@@ -636,6 +636,20 @@ unavailable, Dotify cannot prove either outcome and keeps the intent pending; do
 not clear browser storage or repeat the payment. The sheet shows a transaction
 link when an EVM hash is available.
 
+Pending checks expose Technical details with the original uncertainty error and
+contribution reference. The error survives empty read-back and reloads. A missing
+wallet transaction reference is labelled `Checking payment status`; a finalized
+Product extrinsic still awaiting its contract event is labelled `Checking
+contribution receipt`. Neither label proves that a payment failed.
+
+The Product package for this reconciliation flow is `[0, 1, 37]`. Merging
+into `dev` does not publish or refresh an installed host app. After an authorized
+Product CDM deployment, verify both the loaded version and build SHA in You →
+Production readiness on each tested device. Version `[0, 1, 36]` at build
+`9c2a476` predates the pending-state/reconciliation fix in PR #239. Preserve
+saved contribution intents across an update and use `Check status again`;
+a timeout alone does not establish whether a payment was submitted.
+
 ### Listening and contribution actions
 
 The player separates audio controls from voluntary contributions and access

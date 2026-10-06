@@ -12,12 +12,13 @@ export type ContributionIntent = {
   quote: ContributionQuote;
   proof: Hash;
 };
-type Saved = { id: Hash; amount: string; hash?: Hash };
+type Saved = { id: Hash; amount: string; hash?: Hash; technicalMessage?: string };
 export type ContributionScope = Pick<ContributionIntent, 'network' | 'sender' | 'runtime'> & { context: Pick<ContributionContext, 'contentHash'> };
 export type ContributionOutcome = {
   status: 'confirmed' | 'uncertain' | 'failed';
   message: string;
   technicalMessage?: string;
+  id?: Hash;
   hash?: Hash;
   receipt?: ContributionReceipt;
 };
@@ -30,7 +31,13 @@ export function readSavedContribution(scope: ContributionScope, storage: Pick<St
   const raw = storage.getItem(contributionStorageKey(scope));
   if (!raw) return undefined;
   const saved = JSON.parse(raw) as Saved;
-  if (!saved || !/^0x[\da-f]{64}$/i.test(saved.id) || !/^[1-9]\d*$/.test(saved.amount) || (saved.hash && !/^0x[\da-f]{64}$/i.test(saved.hash)))
+  if (
+    !saved ||
+    !/^0x[\da-f]{64}$/i.test(saved.id) ||
+    !/^[1-9]\d*$/.test(saved.amount) ||
+    (saved.hash && !/^0x[\da-f]{64}$/i.test(saved.hash)) ||
+    (saved.technicalMessage !== undefined && typeof saved.technicalMessage !== 'string')
+  )
     throw new Error('The saved contribution is unreadable. Check your account activity.');
   return saved;
 }
@@ -38,13 +45,23 @@ function verifyReceipt(receipt: ContributionReceipt, saved: Saved, sender: Addre
   if (receipt.id !== saved.id || receipt.sender.toLowerCase() !== sender.toLowerCase() || receipt.amount !== BigInt(saved.amount))
     throw new Error('The receipt does not match the saved contribution.');
 }
-function pendingOutcome(error?: unknown, hash?: Hash): ContributionOutcome {
+function pendingOutcome(error?: unknown, saved?: Saved): ContributionOutcome {
   return {
     status: 'uncertain',
     message: 'The contribution is still being checked. No new payment will be sent.',
-    hash,
-    technicalMessage: error instanceof Error ? error.message : undefined
+    hash: saved?.hash,
+    id: saved?.id,
+    technicalMessage: saved?.technicalMessage ?? (error instanceof Error ? error.message : undefined)
   };
+}
+function rememberUncertainty(saved: Saved | undefined, error: unknown, key: string, storage: Pick<Storage, 'setItem'>) {
+  if (!saved || saved.technicalMessage || !(error instanceof Error)) return;
+  saved.technicalMessage = error.message.slice(0, 4_000);
+  try {
+    storage.setItem(key, JSON.stringify(saved));
+  } catch {
+    // Diagnostics must never release a reserved payment or trigger resubmission.
+  }
 }
 export async function runContribution(input: {
   intent: ContributionIntent;
@@ -66,7 +83,7 @@ export async function runContribution(input: {
       let receipt: ContributionReceipt;
       if (saved) {
         const recovered = saved.hash ? await input.confirm(saved.hash, saved.id) : await input.recover(saved.id);
-        if (!recovered) return pendingOutcome(undefined, saved.hash);
+        if (!recovered) return pendingOutcome(undefined, saved);
         receipt = recovered;
       } else {
         const reservation = { id: contributionId(input.intent.sender, input.intent.context.intentId), amount: input.intent.amount.toString() };
@@ -92,7 +109,8 @@ export async function runContribution(input: {
       }
       const status = saved && !safe ? 'uncertain' : 'failed';
       const technicalMessage = error instanceof Error ? error.message : 'The contribution could not be checked.';
-      return status === 'uncertain' ? pendingOutcome(error, saved?.hash) : { status, message: technicalMessage };
+      if (status === 'uncertain') rememberUncertainty(saved, error, key, input.storage);
+      return status === 'uncertain' ? pendingOutcome(error, saved) : { status, message: technicalMessage };
     }
   };
   const promise = (typeof navigator !== 'undefined' && navigator.locks ? navigator.locks.request(key, execute) : execute()).finally(() =>
@@ -104,7 +122,7 @@ export async function runContribution(input: {
 
 export async function recoverSavedContribution(input: {
   scope: ContributionScope;
-  storage: Pick<Storage, 'getItem' | 'removeItem'>;
+  storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
   confirm: (hash: Hash, id: Hash) => Promise<ContributionReceipt>;
   recover: (id: Hash) => Promise<ContributionReceipt | undefined>;
   currentAccount: () => boolean;
@@ -117,9 +135,9 @@ export async function recoverSavedContribution(input: {
     try {
       saved = readSavedContribution(input.scope, input.storage);
       if (!saved) return { status: 'failed', message: 'No pending contribution was found.' };
-      if (!input.currentAccount()) return pendingOutcome(new Error('Reconnect the paying account to continue checking.'), saved.hash);
+      if (!input.currentAccount()) return pendingOutcome(new Error('Reconnect the paying account to continue checking.'), saved);
       const receipt = saved.hash ? await input.confirm(saved.hash, saved.id) : await input.recover(saved.id);
-      if (!receipt) return pendingOutcome(undefined, saved.hash);
+      if (!receipt) return pendingOutcome(undefined, saved);
       verifyReceipt(receipt, saved, input.scope.sender);
       input.storage.removeItem(key);
       return { status: 'confirmed', message: 'Contribution confirmed. Each recipient’s settlement is recorded below.', receipt, hash: receipt.transactionHash };
@@ -132,7 +150,8 @@ export async function recoverSavedContribution(input: {
           /* Keep the journal until its final status can be shown safely. */
         }
       }
-      return pendingOutcome(error, saved?.hash);
+      rememberUncertainty(saved, error, key, input.storage);
+      return pendingOutcome(error, saved);
     }
   };
   const promise = (typeof navigator !== 'undefined' && navigator.locks ? navigator.locks.request(key, execute) : execute()).finally(() =>

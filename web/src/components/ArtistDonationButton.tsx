@@ -44,6 +44,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
   const [pending, setPending] = useState(false);
   const [checkingFinality, setCheckingFinality] = useState(false);
   const [pendingHash, setPendingHash] = useState<Hash>();
+  const [pendingDiagnostic, setPendingDiagnostic] = useState<ContributionOutcome>();
   const [purpose, setPurpose] = useState('');
   const [available, setAvailable] = useState<bigint>();
   const account = useRef(wallet.listenerEvmAddress);
@@ -174,6 +175,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
     setCheckingFinality(false);
     if (prepared) setPendingHash(undefined);
     setOutcome(undefined);
+    setPendingDiagnostic(undefined);
     setError('');
     try {
       const reader = contributionReader(wallet.ethRpcUrl);
@@ -224,6 +226,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
         if (!mounted.current) return;
         setPendingHash(result.hash);
         if (result.status === 'uncertain') {
+          setPendingDiagnostic(result);
           const delay = contributionReconciliationDelay(retry);
           if (delay === undefined) {
             setOutcome({
@@ -320,16 +323,40 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
             <div className='contribution-pending' role='status' aria-live='polite'>
               <LoaderCircle className='spin' size={23} aria-hidden='true' />
               <div>
-                <strong>{checkingFinality ? 'Checking network finality' : 'Waiting for confirmation'}</strong>
+                <strong>
+                  {checkingFinality
+                    ? pendingHash
+                      ? writer.contributionConfirmationMode === 'finalized-event'
+                        ? 'Checking contribution receipt'
+                        : 'Checking network finality'
+                      : 'Checking payment status'
+                    : 'Waiting for confirmation'}
+                </strong>
                 <p>
                   {checkingFinality
-                    ? 'The network can take several minutes. We will keep checking this contribution without sending another payment.'
+                    ? pendingHash
+                      ? 'We will keep checking the finalized contribution receipt without sending another payment.'
+                      : 'The wallet result is incomplete. We will keep checking this saved contribution without sending another payment.'
                     : 'Approve in your wallet if asked. You can close this window while Dotify checks the result.'}
                 </p>
                 {pendingHash && writer.contributionConfirmationMode === 'evm-receipt' && (
                   <a href={getBlockscoutTxUrl(pendingHash)} target='_blank' rel='noreferrer'>
                     View transaction <ExternalLink size={14} aria-hidden='true' />
                   </a>
+                )}
+                {pendingDiagnostic && (
+                  <details className='transaction-technical contribution-technical'>
+                    <summary>Technical details</summary>
+                    {pendingDiagnostic.technicalMessage && <code>{pendingDiagnostic.technicalMessage}</code>}
+                    <p>
+                      Contribution reference: <code>{pendingDiagnostic.id}</code>
+                    </p>
+                    {pendingHash && (
+                      <p>
+                        Wallet transaction reference: <code>{pendingHash}</code>
+                      </p>
+                    )}
+                  </details>
                 )}
               </div>
             </div>
@@ -453,10 +480,15 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                   </ul>
                 </>
               )}
-              {outcome.technicalMessage && outcome.technicalMessage !== outcome.message && (
+              {((outcome.technicalMessage && outcome.technicalMessage !== outcome.message) || outcome.id) && (
                 <details className='transaction-technical contribution-technical'>
                   <summary>Technical details</summary>
-                  <code>{outcome.technicalMessage}</code>
+                  {outcome.technicalMessage && <code>{outcome.technicalMessage}</code>}
+                  {outcome.id && (
+                    <p>
+                      Contribution reference: <code>{outcome.id}</code>
+                    </p>
+                  )}
                 </details>
               )}
               <div className='contribution-result-actions'>

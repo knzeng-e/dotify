@@ -72,6 +72,37 @@ describe('persistent contributions', () => {
     input.recover.mockResolvedValueOnce(input.receipt);
     expect((await runContribution(input)).status).toBe('confirmed');
   });
+  it('preserves the original host timeout through empty read-back, later RPC errors and reload', async () => {
+    const input = fixture();
+    const timeout = 'Transaction timed out after 300s. The transaction may still be processing on-chain.';
+    input.send.mockRejectedValueOnce(new Error(timeout));
+    const expected = { status: 'uncertain', technicalMessage: timeout, id: input.receipt.id, hash: undefined };
+    expect(await runContribution(input)).toMatchObject(expected);
+    expect(await runContribution(input)).toMatchObject(expected);
+    input.recover.mockRejectedValueOnce(new Error('Read RPC unavailable'));
+    const recovery = { scope: input.intent, storage: input.storage, confirm: input.confirm, recover: input.recover, currentAccount: input.currentAccount };
+    expect(await recoverSavedContribution(recovery)).toMatchObject(expected);
+    expect(await recoverSavedContribution(recovery)).toMatchObject(expected);
+    expect(input.send).toHaveBeenCalledTimes(1);
+    input.recover.mockResolvedValueOnce(input.receipt);
+    expect((await recoverSavedContribution(recovery)).status).toBe('confirmed');
+    expect(input.storage.getItem(contributionStorageKey(input.intent))).toBeNull();
+  });
+  it('retains a pending payment when persisting its diagnostic fails', async () => {
+    const input = fixture();
+    const setItem = vi.fn(input.storage.setItem);
+    setItem.mockImplementationOnce(input.storage.setItem).mockImplementationOnce(() => {
+      throw new Error('storage unavailable');
+    });
+    input.send.mockRejectedValueOnce(new Error('host timeout'));
+    expect(await runContribution({ ...input, storage: { ...input.storage, setItem } })).toMatchObject({
+      status: 'uncertain',
+      technicalMessage: 'host timeout'
+    });
+    expect(input.storage.getItem(contributionStorageKey(input.intent))).not.toBeNull();
+    await runContribution(input);
+    expect(input.send).toHaveBeenCalledTimes(1);
+  });
   it('recovers a saved contribution after reload using only its account and work scope', async () => {
     const input = fixture();
     input.send.mockRejectedValueOnce(new Error('host disconnected after submission'));

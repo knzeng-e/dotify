@@ -192,13 +192,42 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 36]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 37]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
+Version `[0, 1, 37]` packages the bounded pending-contribution reconciliation
+merged in PR #239, which did not increment the executable version. During the
+subsequent timeout investigation, an installed Product Desktop session reported
+`[0, 1, 36]` / build `9c2a476`, predating that fix. This observation does not
+establish which build is loaded on mobile or why its payment timed out.
+
+After an authorized CDM-profile deployment, check the loaded executable version
+**and build SHA** under You → Production readiness on each device. A merge to
+`dev`, a successful build, or an updated manifest is not proof that the host
+loaded the new bundle. Preserve local pending-contribution storage, reopen the
+same gift/tip with the paying account, and use `Check status again` without
+resubmitting. If it remains pending, record whether host approval appeared,
+the Technical details error, loaded version/SHA, and any transaction reference
+before diagnosing submission versus finalized-event read-back. Do not treat a
+timeout or an absent event as proof of a failed payment. Version `[0, 1, 37]`
+is a prepared package; mobile payment success still needs live validation.
+
+A subsequent mobile report stayed on `Checking network finality` after approval,
+with no accessible Technical details. That label exists in PR #239, so the
+Desktop stale-build observation cannot explain the mobile report on its own.
+The `[0, 1, 37]` candidate also preserves the first uncertainty error in the
+existing local contribution journal and exposes it, together with the intent
+reference, during pending checks. Empty event reads and later RPC failures no
+longer erase that diagnostic. Without a wallet transaction reference the label
+is `Checking payment status`; a finalized Product extrinsic awaiting its EVM
+contract event is `Checking contribution receipt`. These labels do not establish
+submission, failure, or settlement. This correction makes the unresolved host
+failure diagnosable; it does not constitute funded mobile payment evidence.
+
 Version `[0, 1, 36]` invalidates the Product host cache for finalized tip
 read-back. It filters contribution logs by concrete indexed topics because the
 DevNet EVM RPC rejects null topic placeholders; the matching intent must still
