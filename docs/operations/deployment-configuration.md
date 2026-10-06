@@ -192,23 +192,34 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 38]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 39]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
-Version `[0, 1, 38]` corrects Product gift/tip confirmation at the native
-receipt boundary. Native `Revive.call` events are absent from the EVM log index,
-so retrying `eth_getLogs` cannot confirm these payments. The Product writer now
-persists the finalized SDK block number/hash/extrinsic index with the existing
-pending journal. A separate read-only Product chain connection verifies the
-canonical block below the finalized head, exact Blake2-256 extrinsic hash,
-phase-specific dispatch outcome and `Revive.ContractEmitted` records. The gift/tip
-flow then checks runtime, work, intent ID, payer and amount. No signer is created
-for receipt checks, and no direct-RPC fallback is added to the user flow. Native
-proofs use Subscan links. Each native RPC read has a 20-second budget.
+Version `[0, 1, 39]` moves historical native gift/tip receipt reads to the
+Dotify API. The installed Product host SDK bridge accepts `chainHead_v1_*`,
+`chainSpec_v1_*` and `transaction_v1_*`, but rejects the legacy historical RPC
+methods used by the 0.1.38 reader. A direct archive test therefore did not prove
+that reader usable inside the mobile host. The API now supplies
+`POST /api/contributions/native-receipt` using a server-configured native archive
+URL; the frontend uses the existing `VITE_DOTIFY_API_URL`. Writes still use the
+Product signer, while receipt checks never create a signer.
+
+The API pins the Paseo Asset Hub genesis, loads metadata at the requested block,
+and verifies the canonical finalized block, exact Blake2-256 extrinsic hash,
+phase-specific System dispatch outcome and `Revive.ContractEmitted` records.
+The frontend binds the response to the expected network, transaction and block,
+then checks runtime, work, intent ID, payer and amount. Archive errors keep the
+journal pending; only a verified native dispatch failure may release it.
+Technical details now show the latest check error alongside the original error.
+
+Version `[0, 1, 38]` introduced block-reference capture and manual recovery for
+older journal entries, after native `Revive.call` events were found absent from
+the EVM log index. Those journal and proof invariants remain, but its historical
+host RPC transport is superseded by the API transport above.
 
 Older journal entries with a native hash but no block reference can enter the
 block number from `View transaction` under Technical details → `Receipt block
@@ -579,10 +590,37 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | `API_PORT`                 | `8790`                                                                                                                                                                                                                       |
 | `NODE_ENV`                 | `production`                                                                                                                                                                                                                 |
 | `API_ORIGINS`              | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
+| `PASEO_ASSET_HUB_NATIVE_RPC` | `https://asset-hub-paseo-rpc.n.dwellir.com` (HTTPS historical native receipts; no signing) |
 | `PASEO_ASSET_HUB_RPC`      | `https://eth-rpc-testnet.polkadot.io/`                                                                                                                                                                                       |
 | `DOTIFY_FACTORY_ADDRESS`   | `0x835a626a9a6965b197d079ae56b1ec94033c2699`                                                                                                                                                                                 |
 | `DOTIFY_DIRECTORY_ADDRESS` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
 | `DOTIFY_CHAIN_ID`          | `420420417`                                                                                                                                                                                                                  |
+
+Native receipts use a separate read-only archive boundary. The endpoint accepts
+only a 32-byte transaction hash and a block reference, never a caller-selected
+RPC URL. It verifies chain ID `420420417` and genesis
+`0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2`.
+The endpoint is limited to 20 requests/minute/IP, four concurrent archive reads,
+a 20-second total read budget and 8 MiB per RPC response. It retains at most
+128 immutable verified receipts for 30 minutes and two historical metadata
+codecs in process memory. There is no new durable state. Missing configuration,
+wrong genesis, an unavailable archive or an unverified proof returns an explicit
+error with a request ID, never a failed-payment verdict. The browser read budget
+is 25 seconds. CORS origins, secrets, content-key authorization, storage mounts
+and the single-machine limit are unchanged.
+
+Deploy the API before the Product executable that depends on this endpoint:
+
+```bash
+cd services/api
+flyctl deploy --ha=false --env GIT_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+Verify `/health`, `/version`, a known finalized native receipt and preflight
+CORS for the configured Product HTTPS origins. Then publish the `product-cdm`
+frontend and verify its finalized manifest, public CAR and embedded source SHA.
+Keep the device's pending journal and paying account when testing recovery.
+Live mobile host execution remains a separate acceptance check.
 
 Do not store `API_ORIGINS` as a Fly secret. Fly secrets override `[env]` values
 from `fly.toml`, so a stale secret can keep CORS broken after a clean deploy.

@@ -15,6 +15,8 @@ import { keyRoutes } from './routes/keys.js';
 import { turnRoutes } from './routes/turn.js';
 import { uploadRoutes } from './routes/uploads.js';
 import { createCatalogRoutes } from './routes/catalog.js';
+import { createNativeReceiptRoutes } from './routes/nativeReceipts.js';
+import { createNativeReceiptService } from './services/nativeReceipts.js';
 import { catalogReadModel as defaultCatalogReadModel } from './services/catalog/index.js';
 import type { CatalogReadModel } from './services/catalog/readModel.js';
 
@@ -98,6 +100,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // Routes.
   await app.register(healthRoutes);
+  const nativeReceipts = createNativeReceiptService({ rpcUrl: config.PASEO_ASSET_HUB_NATIVE_RPC, chainId: config.DOTIFY_CHAIN_ID });
+  await app.register(createNativeReceiptRoutes(nativeReceipts));
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(turnRoutes, { prefix: '/api/turn' });
   await app.register(keyRoutes, { prefix: '/api/tracks' });

@@ -3,6 +3,7 @@ import { useWalletContext } from '../../app/providers/WalletProvider';
 import { createRuntimeWriter } from '../runtime/runtimeWriterProvider';
 import { resolveProductHostConfig } from '../productHost/productHost';
 import { contributionE2e, contributionTestWrite } from '../../e2e/contributionMock';
+import { readNativeContributionReceiptApi } from '../runtime/nativeContributionReceiptApi';
 
 export function useContributionWriter() {
   const wallet = useWalletContext();
@@ -28,8 +29,13 @@ export function useContributionWriter() {
     return contributionE2e
       ? {
           ...writer,
-          contributionConfirmationMode:
-            new URLSearchParams(location.search).get('e2eGift') === 'native-recovery' ? ('finalized-event' as const) : writer.contributionConfirmationMode,
+          contributionConfirmationMode: ['native-recovery', 'native-api-recovery'].includes(new URLSearchParams(location.search).get('e2eGift') ?? '')
+            ? ('finalized-event' as const)
+            : writer.contributionConfirmationMode,
+          readFinalizedContributionLogs:
+            new URLSearchParams(location.search).get('e2eGift') === 'native-api-recovery'
+              ? (hash, block) => readNativeContributionReceiptApi({ apiUrl: 'https://receipt.dotify.test', hash, block })
+              : writer.readFinalizedContributionLogs,
           contributionCall: contributionTestWrite,
           waitForTransaction: async () => {}
         }

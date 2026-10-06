@@ -31,9 +31,6 @@
 // productHost.ts loads the host SDK.
 
 import type { Address } from 'viem';
-import { toHex } from 'viem';
-import type { NativeContributionBlock, NativeContributionLog } from './runtimePorts';
-import { readNativeContributionLogs } from './nativeContributionProof';
 import cdmManifest from '../../generated/contracts/cdm.json';
 import { SMART_RUNTIME_LIBRARY, smartRuntimeAbi } from '../../generated/contracts/smartRuntime';
 import {
@@ -102,7 +99,6 @@ export type ProductCdmContracts = {
   /** Native Balance precision read from the connected Product chain spec. */
   nativeTokenDecimals: number;
   readAvailableBalance: (address: string) => Promise<bigint>;
-  readFinalizedContributionLogs: (hash: `0x${string}`, block: NativeContributionBlock) => Promise<NativeContributionLog[]>;
   /**
    * Confirm the connected chain actually holds Dotify's contracts. Call before
    * serving catalog reads: a wrong-chain connection otherwise looks like an
@@ -230,28 +226,7 @@ export async function createProductCdmContracts(
     return account.data.free > unavailable ? account.data.free - unavailable : 0n;
   }
 
-  async function readFinalizedContributionLogs(hash: `0x${string}`, block: NativeContributionBlock): Promise<NativeContributionLog[]> {
-    const [{ getTypedCodecs }, { Blake2256 }] = await Promise.all([import('polkadot-api'), import('@polkadot-api/substrate-bindings')]);
-    const codecs = await getTypedCodecs(descriptor as typeof import('@parity/product-sdk-descriptors/devnet-asset-hub').devnet_asset_hub);
-    return readNativeContributionLogs(hash, block, {
-      request: async <T>(method: string, params: unknown[]): Promise<T> => {
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        try {
-          return await Promise.race([
-            client.raw.assetHub._request<T>(method, params),
-            new Promise<never>((_, reject) => {
-              timer = setTimeout(() => reject(new Error('The native receipt network did not respond. Check this saved contribution again.')), 20_000);
-            })
-          ]);
-        } finally {
-          if (timer) clearTimeout(timer);
-        }
-      },
-      decodeEvents: bytes => codecs.query.System.Events.value.dec(bytes),
-      hashExtrinsic: bytes => toHex(Blake2256(bytes))
-    });
-  }
-  return { resolver, nativeTokenDecimals, readAvailableBalance, readFinalizedContributionLogs, verifyDeployment, destroy: () => client.destroy() };
+  return { resolver, nativeTokenDecimals, readAvailableBalance, verifyDeployment, destroy: () => client.destroy() };
 }
 
 export function productCdmNativeTokenDecimals(properties: { tokenDecimals?: unknown }): number {

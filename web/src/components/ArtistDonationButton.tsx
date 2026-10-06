@@ -201,7 +201,8 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                   throw new Error(
                     'This older Product transaction needs its receipt block. Open the network receipt and enter its block number under Technical details. No new payment is needed.'
                   );
-                if (contributionE2e) return reader.finalizedReceipt(scope.runtime, id);
+                if (contributionE2e && new URLSearchParams(location.search).get('e2eGift') !== 'native-api-recovery')
+                  return reader.finalizedReceipt(scope.runtime, id);
                 if (!writer.readFinalizedContributionLogs) throw new Error('Native contribution receipts are unavailable for this wallet.');
                 const logs = await writer.readFinalizedContributionLogs(hash, nativeBlock);
                 const receipt = decodeContributions(scope.runtime, logs).find(row => row.id === id);
@@ -418,6 +419,11 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                   <details className='transaction-technical contribution-technical'>
                     <summary>Technical details</summary>
                     {pendingDiagnostic.technicalMessage && <code>{pendingDiagnostic.technicalMessage}</code>}
+                    {pendingDiagnostic.latestCheckMessage && (
+                      <p>
+                        Latest check: <code>{pendingDiagnostic.latestCheckMessage}</code>
+                      </p>
+                    )}
                     <p>
                       Contribution reference: <code>{pendingDiagnostic.id}</code>
                     </p>
@@ -555,6 +561,11 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                 <details className='transaction-technical contribution-technical'>
                   <summary>Technical details</summary>
                   {outcome.technicalMessage && <code>{outcome.technicalMessage}</code>}
+                  {outcome.latestCheckMessage && (
+                    <p>
+                      Latest check: <code>{outcome.latestCheckMessage}</code>
+                    </p>
+                  )}
                   {outcome.id && (
                     <p>
                       Contribution reference: <code>{outcome.id}</code>

@@ -75,6 +75,7 @@ const envSchema = z.object({
   API_ORIGIN: z.string().url().default('http://localhost:5273'),
   API_ORIGINS: optionalOriginList,
   PASEO_ASSET_HUB_RPC: z.string().url().optional(),
+  PASEO_ASSET_HUB_NATIVE_RPC: z.string().url().refine(value => new URL(value).protocol === "https:", "Native receipt RPC must use HTTPS").optional(),
   DOTIFY_FACTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_DIRECTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_CHAIN_ID: z.coerce.number().int().default(420420417),

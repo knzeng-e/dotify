@@ -58,7 +58,6 @@
 		"@parity/product-sdk-statement-store": "0.6.9",
 		"@parity/product-sdk-tx": "0.4.7",
 		"@polkadot-api/descriptors": "file:.papi/descriptors",
-		"@polkadot-api/substrate-bindings": "0.17.0",
 		"@polkadot-apps/chain-client": "^2.0.5",
 		"@polkadot-apps/descriptors": "^1.0.1",
 		"@polkadot-apps/keys": "^0.4.4",

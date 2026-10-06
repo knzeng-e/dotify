@@ -10,7 +10,7 @@ export default {
     {
       kind: 'app',
       path: './dist-product',
-      appVersion: [0, 1, 38]
+      appVersion: [0, 1, 39]
     }
   ]
 };

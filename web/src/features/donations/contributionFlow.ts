@@ -19,6 +19,7 @@ export type ContributionOutcome = {
   status: 'confirmed' | 'uncertain' | 'failed';
   message: string;
   technicalMessage?: string;
+  latestCheckMessage?: string;
   id?: Hash;
   hash?: Hash;
   receipt?: ContributionReceipt;
@@ -63,12 +64,15 @@ function verifyReceipt(receipt: ContributionReceipt, saved: Saved, scope: Contri
     throw new Error('The receipt does not match the saved contribution.');
 }
 function pendingOutcome(error?: unknown, saved?: Saved): ContributionOutcome {
+  const current = error instanceof Error ? error.message.slice(0, 4_000) : undefined;
+  const original = saved?.technicalMessage ?? current;
   return {
     status: 'uncertain',
     message: 'The contribution is still being checked. No new payment will be sent.',
     hash: saved?.hash,
     id: saved?.id,
-    technicalMessage: saved?.technicalMessage ?? (error instanceof Error ? error.message : undefined)
+    technicalMessage: original,
+    latestCheckMessage: current && current !== original ? current : undefined
   };
 }
 function rememberUncertainty(saved: Saved | undefined, error: unknown, key: string, storage: Pick<Storage, 'setItem'>) {

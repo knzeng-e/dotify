@@ -12,6 +12,7 @@ import { createProductCdmRuntimeWriter, productCdmPaymentWasNotSubmitted } from 
 import { resolveRuntimeAdapterConfig, type RuntimeAdapterConfig } from './runtimeAdapterConfig';
 import type { RuntimeAccessPolicyUpdate, RuntimeTrackRegistration, RuntimeWritePort } from './runtimePorts';
 import { createViemRuntimeWriter } from './viemRuntimeAdapter';
+import { readNativeContributionReceiptApi } from './nativeContributionReceiptApi';
 
 type ViemWalletClient = Awaited<ReturnType<typeof getWalletClient>>;
 
@@ -29,6 +30,7 @@ export type RuntimeWriterDeps = {
   getViemWalletClient: () => Promise<ViemWalletClient>;
   config?: RuntimeAdapterConfig;
   productAccount?: ProductRuntimeSignerAccount;
+  nativeReceiptApiUrl?: string;
 };
 
 // Build-time constant. A viem build must not import the Product contract graph,
@@ -170,7 +172,6 @@ async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccou
 export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
   const config = deps.config ?? resolveRuntimeAdapterConfig(import.meta.env);
   let productPortPromise: Promise<RuntimeWritePort> | null = null;
-  let nativeReaderPromise: Promise<Awaited<ReturnType<typeof import('./productCdmContracts').createProductCdmContracts>>> | null = null;
 
   function portForWrite(): Promise<RuntimeWritePort> {
     if (config.kind === 'viem') return createViemWriter(deps);
@@ -185,22 +186,7 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
     contributionConfirmationMode: config.kind === 'product-cdm' ? 'finalized-event' : 'evm-receipt',
     readFinalizedContributionLogs: async (hash, block) => {
       if (!PRODUCT_CDM_ENABLED || config.kind !== 'product-cdm') throw new Error('Native contribution receipts require the Product CDM profile.');
-      nativeReaderPromise ??= import('./productCdmContracts')
-        .then(async ({ createProductCdmContracts }) => {
-          const contracts = await createProductCdmContracts({ environment: config.productEnvironment });
-          try {
-            await contracts.verifyDeployment();
-            return contracts;
-          } catch (error) {
-            contracts.destroy();
-            throw error;
-          }
-        })
-        .catch(error => {
-          nativeReaderPromise = null;
-          throw error;
-        });
-      return (await nativeReaderPromise).readFinalizedContributionLogs(hash, block);
+      return readNativeContributionReceiptApi({ apiUrl: deps.nativeReceiptApiUrl ?? import.meta.env.VITE_DOTIFY_API_URL, hash, block });
     },
     contributionCall: async (runtime, method, args, value, onFinalized) => {
       let port: RuntimeWritePort;

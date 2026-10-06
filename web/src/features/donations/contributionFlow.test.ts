@@ -102,7 +102,7 @@ describe('persistent contributions', () => {
     expect(await runContribution(input)).toMatchObject(expected);
     input.recover.mockRejectedValueOnce(new Error('Read RPC unavailable'));
     const recovery = { scope: input.intent, storage: input.storage, confirm: input.confirm, recover: input.recover, currentAccount: input.currentAccount };
-    expect(await recoverSavedContribution(recovery)).toMatchObject(expected);
+    expect(await recoverSavedContribution(recovery)).toMatchObject({ ...expected, latestCheckMessage: 'Read RPC unavailable' });
     expect(await recoverSavedContribution(recovery)).toMatchObject(expected);
     expect(input.send).toHaveBeenCalledTimes(1);
     input.recover.mockResolvedValueOnce(input.receipt);
