@@ -130,7 +130,7 @@ export function ArtistEarningsSummary({
         </p>
         {history.coverage === 'verified-receipts' && (
           <p>
-            Product support includes receipts verified and saved by Dotify. Earlier unsynced contributions may be missing. Network fees and older direct
+            Product support includes receipts verified and saved by Dotify. Native listening payments and earlier unsynced support may be missing. Network fees and older direct
             transfers are excluded.
           </p>
         )}
