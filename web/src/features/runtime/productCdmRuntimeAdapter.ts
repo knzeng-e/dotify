@@ -443,9 +443,19 @@ async function txContract(
   const hash = asHash(result.value.txHash, methodName);
   if (onFinalized) {
     const block = result.value.block;
-    if (!block || !Number.isSafeInteger(block.number) || block.number < 0 || !Number.isSafeInteger(block.index) || block.index < 0)
-      throw new ProductCdmRuntimeError('The finalized Product contribution has no usable block reference. Keep this payment pending.');
-    onFinalized({ number: block.number, index: block.index, hash: asHash(block.hash, methodName) });
+    // Block metadata is optional in SDK results. Always return the valid hash
+    // so the contribution journal can retain it before receipt confirmation.
+    // Unusable metadata falls back to the existing manual block locator path.
+    if (
+      block &&
+      Number.isSafeInteger(block.number) &&
+      block.number >= 0 &&
+      Number.isSafeInteger(block.index) &&
+      block.index >= 0 &&
+      typeof block.hash === 'string' &&
+      /^0x[0-9a-fA-F]{64}$/.test(block.hash)
+    )
+      onFinalized({ number: block.number, index: block.index, hash: block.hash as Hash });
   }
   return hash;
 }

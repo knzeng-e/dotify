@@ -241,14 +241,18 @@ older journal entries, after native `Revive.call` events were found absent from
 the EVM log index. Those journal and proof invariants remain, but its historical
 host RPC transport is superseded by the API transport above.
 
-Older journal entries with a native hash but no block reference can enter the
-block number from `View transaction` under Technical details → `Receipt block
+Journal entries with a native hash but no usable SDK block reference can enter
+the block number from `View transaction` under Technical details → `Receipt block
 number` → `Check receipt block`. This is a locator, never trusted payment proof:
 wrong blocks, wrong extrinsics, changed block hashes, missing dispatch outcomes
 and mismatched receipts keep the intent pending. Proven finalized native dispatch
 failures can release it. Entries lacking a native hash remain unresolved; do not
-resubmit based on an absent Ethereum event. New payments capture their block
-reference automatically. Full cross-device native earnings/history indexing is
+resubmit based on an absent Ethereum event. A valid finalized transaction hash
+is preserved even when optional SDK block metadata is absent or malformed;
+the receipt then remains pending until a verified block locator is supplied.
+This PR #242 review fix requires a later frontend publication and is not included
+in the previously published 0.1.39 artifact. New payments capture usable block
+references automatically. Full cross-device native earnings/history indexing is
 still separate work. Version `[0, 1, 38]` was published on 2026-10-06 from clean
 commit `99d51aa42f9ac9acef93780773e9953e8474a492` with the `product-cdm` profile. Its executable CID
 is `bafybeihydvxrlzv2d4kpnjrellwntsvt5ifo2fkfh7frlvq3ngrobxltwi`; the atomic executable update finalized in transaction

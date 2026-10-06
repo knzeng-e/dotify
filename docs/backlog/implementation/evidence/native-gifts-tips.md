@@ -183,3 +183,25 @@ contain public chain/catalogue data only. This proves the selector change and
 state preservation, not a funded end-to-end gift/tip or Product-device flow.
 The PR's separate web Playwright failures are not cleared by this runtime
 upgrade. Frontend/CDM publication and user-facing acceptance remain separate.
+
+## PR #242 review follow-up (2026-10-07)
+
+A successful Product SDK result with a valid transaction hash now returns that
+hash even when optional block metadata is absent or malformed. The contribution
+journal saves the hash before receipt confirmation; the pending payment can
+then use the manual receipt-block locator. Invalid metadata is not persisted
+as proof, and uncertainty never triggers another send. User-facing recovery
+text covers any payment lacking usable SDK metadata, including new payments.
+
+- Four integration regressions exercise the Product adapter and journal with
+  missing blocks, invalid numbers, invalid indexes and invalid block hashes.
+  Each preserves the hash across another check, accepts a manual locator and
+  confirms the original payment with exactly one SDK transaction call.
+- Targeted contribution flow, Product adapter and writer-provider tests: 41
+  passed. Frontend type checking and scoped lint passed. All 22 gift/tip browser
+  scenarios passed, including mobile archive recovery and no resubmission.
+- The web README identifies 0.1.39 as the API-backed receipt build and labels
+  0.1.38's host-RPC reader as superseded. Operational notes distinguish these
+  review fixes from the existing published executable.
+
+No new deployment or funded payment is part of this review follow-up.

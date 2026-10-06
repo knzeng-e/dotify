@@ -397,7 +397,7 @@ for (const available of [true, false]) {
     else {
       await expect(dialog).toContainText('Latest check:');
       await expect(dialog).toContainText('Native archive unavailable Reference: native-check-123');
-      await expect(dialog).toContainText('This older Product transaction needs its receipt block.');
+      await expect(dialog).toContainText('This Product transaction needs its receipt block.');
       await expect(dialog.getByRole('heading', { name: 'Gift sent', exact: true })).toHaveCount(0);
     }
     expect(reads).toBeGreaterThanOrEqual(1);
