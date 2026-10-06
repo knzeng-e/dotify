@@ -213,8 +213,23 @@ same gift/tip with the paying account, and use `Check status again` without
 resubmitting. If it remains pending, record whether host approval appeared,
 the Technical details error, loaded version/SHA, and any transaction reference
 before diagnosing submission versus finalized-event read-back. Do not treat a
-timeout or an absent event as proof of a failed payment. Version `[0, 1, 37]`
-is a prepared package; mobile payment success still needs live validation.
+timeout or an absent event as proof of a failed payment.
+
+Version `[0, 1, 37]` was owner-authorized and published on 2026-10-06 from clean
+commit `1193a73951edaa6d132e07625fcb6a8e4010395c`, with the `product-cdm` writer
+profile. The executable CID is
+`bafybeiab765lpxm344uokugwsvghjypv4i4h3eobinrylougzpi3orci3a`. The atomic
+executable contenthash/manifest update finalized in transaction
+`0xfd81a340aa79ba1dfa5dd0f300e25c767477808153bc4524d2edf51f9f5f7a0a`.
+Independent read-back at 2026-10-06 21:22 Europe/Paris verified the finalized
+`app.dotify-test01.dot` version/CID and compared `index.html` and the entry JS
+byte-for-byte with the built artifact inside the 14,576,359-byte CAR served by
+the configured gateway. The entry identifies the same source SHA. The host
+Remote Config preflight and post-publication check both passed. This proves
+publication and artifact availability; installed mobile cache refresh and a
+funded mobile tip still require live validation. Preserve the existing pending
+intent and reopen it after checking the loaded SHA/version; do not submit a
+second tip to diagnose the first.
 
 A subsequent mobile report stayed on `Checking network finality` after approval,
 with no accessible Technical details. That label exists in PR #239, so the
