@@ -192,7 +192,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 40]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 41]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -620,11 +620,21 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | `DOTIFY_DIRECTORY_ADDRESS` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
 | `DOTIFY_CHAIN_ID`          | `420420417`                                                                                                                                                                                                                  |
 
-### Shared native contribution ledger (Product 0.1.40)
+<a id="shared-native-contribution-ledger-product-0140"></a>
 
-PR #243 review follow-up: batching and the 600-request history limit require
-redeploying both the API and frontend after review. The published 0.1.40 evidence
-below predates these fixes and used the 60-request limit.
+### Shared native contribution ledger (Product 0.1.40–0.1.41)
+
+Product 0.1.41 published the PR #242/#243 review follow-ups on 2026-10-07 from
+candidate `30bd5912c0cb4f7e85c03e30657037a1eb0127a4`. The API and Product bundle use
+that same candidate. The finalized executable CID is
+`bafybeidv2yvrqemk6bacqq63ovnso4to3oce265uq5ysv35gcfkfla32ci`; independent
+read-back matched the public CAR to the local build. The existing persistent
+volume retained the known verified contribution across the API update, and a
+managed pre-deploy snapshot has 14-day retention. Physical-device cache refresh
+and dashboard confirmation remain separate acceptance checks.
+
+The published 0.1.40 evidence below predates the review follow-ups and used the
+60-request history limit.
 
 Published on 2026-10-07 (Paris): Product source `0aef57670c71a60d46f67f7d5f62d008561afcb8`,
 API source `48e3bda9af3ba26ec65b2f794ee96dd169956857`, executable CID
