@@ -690,6 +690,14 @@ access stays unchanged. Recipient quotes, wallet approval, finality checks and
 recovery remain the same. Room guests can continue listening without an account.
 Catalog playback carries the runtime address into room metadata so both host and
 guest can resolve the live work by its runtime and content hash before tipping.
+The always-mounted session repairs legacy room metadata missing a runtime only
+when the authoritative catalog contains one active release for that hash, then
+broadcasts the repaired track. This continues while the host browses Music or
+You and retries after catalog verification or signaling reconnection. Guests
+cannot repair room attribution themselves; conflicting runtimes and ambiguous
+hashes keep tips unavailable. An older host must update its app and refresh the
+playing release. No listening access or second payment is needed for this
+metadata recovery.
 
 Review the action mapping in `PlayerView`, `PlayerTransport`,
 `ArtistDonationButton` and `AccessGateOverlay`. Browser coverage lives in

@@ -13,6 +13,7 @@ import { useWalletContext } from './WalletProvider';
 import { useNavigation } from './NavigationProvider';
 import { useCatalogContext } from './CatalogProvider';
 import { existingDotifySession } from '../../services/keyService';
+import { useRoomContributionTrackRecovery } from '../../features/donations/useRoomContributionTrackRecovery';
 
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const publicAppUrl = import.meta.env.VITE_PUBLIC_APP_URL?.trim() || null;
@@ -39,6 +40,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     resolvedAudioSourcesRef: catalog.resolvedAudioSourcesRef,
     navigateToView,
     setAudioSource: catalog.setAudioSource
+  });
+  useRoomContributionTrackRecovery({
+    mode: session.mode,
+    roomId: session.roomId,
+    socketStatus: session.socketStatus,
+    tracks: catalog.catalogTracks,
+    catalogIsAuthoritative: catalog.catalogIsAuthoritative,
+    trackInfo: catalog.trackInfo,
+    setTrackInfo: catalog.setTrackInfo,
+    socketEmit: session.socketEmit
   });
   const hostSocket = session.socketRef.current;
   const hostAccount = connectedWallet?.evmAddress;

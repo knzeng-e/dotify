@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type WebSocketRoute } from '@playwright/test';
 import { io } from 'socket.io-client';
 import { encodeAbiParameters, encodeEventTopics, zeroHash } from 'viem';
 import { musicRoyaltiesAbi } from '../src/generated/contracts/musicRoyalties';
@@ -162,6 +162,58 @@ for (const width of [320, 390, 1440]) {
     }
   });
 }
+
+test('the host repairs legacy tip metadata while browsing outside the player', async ({ page, browser }) => {
+  let hostSocket: WebSocketRoute | undefined;
+  await page.routeWebSocket('**/socket.io/**', socket => {
+    hostSocket = socket;
+    socket.connectToServer();
+  });
+  await page.goto('/?e2eRoom=protected-authorized&e2eSync=on');
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  await page.getByRole('button', { name: 'Select E2E Protected Room Track', exact: true }).click();
+  await page.getByLabel('Your name in the room').fill('Recovery host');
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  const roomCode = page.getByTestId('room-code');
+  await expect(roomCode).toHaveText(/[A-Z0-9]{4,}/);
+  const room = (await roomCode.innerText()).trim();
+  const guestContext = await browser.newContext();
+  try {
+    const guest = await guestContext.newPage();
+    await guest.goto(`/?e2eRoom=public&e2eSync=on#/rooms/${room}`);
+    await guest.getByLabel('Your name in the room').fill('Recovery guest');
+    await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+    await expect(guest.getByRole('button', { name: 'Tip this track', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Back to Music', exact: true }).click();
+    await expect(page.locator('.catalogue-card').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Tip this track', exact: true })).toHaveCount(0);
+    await expect.poll(() => Boolean(hostSocket)).toBe(true);
+
+    // Restore a legacy snapshot to the host via its real session event handler.
+    // The mounted session must repair/broadcast it without a PlayerView effect.
+    hostSocket!.send(
+      `42${JSON.stringify([
+        'room:track',
+        {
+          title: 'Recovered live room work',
+          artist: 'Dotify Room Host',
+          hash: '0xb0b0000000000000000000000000000000000000000000000000000000000001',
+          duration: 60,
+          updatedAt: Date.now(),
+          bulletinRef: ''
+        }
+      ])}`
+    );
+    await expect(guest.getByRole('heading', { name: 'Recovered live room work', exact: true })).toBeVisible();
+    const tip = guest.getByRole('button', { name: 'Tip this track', exact: true });
+    await expect(tip).toBeEnabled();
+    await tip.click();
+    await expect(contributionDialog(guest)).toContainText('E2E Protected Room Track');
+    expect(await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
+  } finally {
+    await guestContext.close();
+  }
+});
 
 test('a legacy room keeps the tip location visible while attribution is unavailable', async ({ page }, info) => {
   const host = io('http://127.0.0.1:8789', { transports: ['websocket'], forceNew: true });
