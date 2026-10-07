@@ -199,6 +199,27 @@ it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
+
+Version `[0, 1, 42]` published the merged room-tip metadata recovery on
+2026-10-07 from clean candidate
+`42661dafe9740e19d46121e7de5f29c481904380`, based on tested `dev` merge
+`ac9f05c75609113c3734d98ffde1b1629d894fd2`. This was a frontend-only release:
+the API remains on its verified 0.1.41 candidate and its persistent contribution
+ledger was not redeployed. The executable CID is
+`bafybeie672slb6kaqlo7hydj3tvqdynvzkge2eg2kmy4q7wsess52wg3uq`; content linking
+finalized at block `14155468` in transaction
+`0x118f540e550821486f89e0f008e47900d065b6394cec2ceeeaba9aab8a977af3`, and the
+atomic executable manifest update finalized in transaction
+`0xbe0b46e2b8343f1f1d37dfb1448a109bacc809a8a3b625db667b3445837b897a`.
+Independent read-back at 2026-10-07 22:59 Europe/Paris confirmed finalized
+version `[0, 1, 42]` and matched the public CAR's `index.html` and entry bundle
+to the local build, including the candidate source SHA. All 25 content nodes
+reached GRANDPA finality and P2P retrieval passed. The Bulletin pool allowance
+was reported as exhausted, so uploads ran in best-effort queue mode; inclusion,
+content integrity, root finality and read-back all completed. Installed-host
+cache refresh and a physical host/guest room-tip check remain separate live
+acceptance evidence.
+
 Version `[0, 1, 39]` moves historical native gift/tip receipt reads to the
 Dotify API. The installed Product host SDK bridge accepts `chainHead_v1_*`,
 `chainSpec_v1_*` and `transaction_v1_*`, but rejects the legacy historical RPC

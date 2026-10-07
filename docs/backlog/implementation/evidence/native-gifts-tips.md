@@ -205,3 +205,30 @@ text covers any payment lacking usable SDK metadata, including new payments.
   review fixes from the existing published executable.
 
 No new deployment or funded payment is part of this review follow-up.
+
+## Product 0.1.42 room metadata rollout (2026-10-07)
+
+The always-mounted host-session recovery from PR #245 was published after every
+`dev` quality gate passed on merge commit
+`ac9f05c75609113c3734d98ffde1b1629d894fd2`. Candidate
+`42661dafe9740e19d46121e7de5f29c481904380` bumps the Product executable to
+0.1.42 and contains no API, signaling, contract or payment-policy change. The
+existing verified 0.1.41 API and persistent contribution ledger remain in place.
+
+- The executable CID is
+  `bafybeie672slb6kaqlo7hydj3tvqdynvzkge2eg2kmy4q7wsess52wg3uq`; the atomic
+  manifest transaction is
+  `0xbe0b46e2b8343f1f1d37dfb1448a109bacc809a8a3b625db667b3445837b897a`.
+- Independent read-back at `2026-10-07T20:59:52.430Z` confirmed finalized
+  version 0.1.42 and CID. The public 14,598,091-byte CAR's `index.html` and entry
+  JavaScript exactly match the local candidate build and contain its source SHA.
+- The deployment preflight and frozen Product build passed. The storage pool
+  reported an exhausted allowance and queued uploads best-effort; every content
+  node nevertheless reached finality, integrity checks passed and public P2P
+  retrieval succeeded.
+
+Installed Product hosts still need to reload the new executable. A physical
+two-device check must confirm that a host can browse away from the player while
+legacy room metadata is repaired, after which the guest can open the tip flow
+without the “host needs to refresh” message. No new payment is required merely
+to test that the tip action becomes available.
