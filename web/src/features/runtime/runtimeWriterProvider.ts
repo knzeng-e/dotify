@@ -12,6 +12,7 @@ import { createProductCdmRuntimeWriter, productCdmPaymentWasNotSubmitted } from 
 import { resolveRuntimeAdapterConfig, type RuntimeAdapterConfig } from './runtimeAdapterConfig';
 import type { RuntimeAccessPolicyUpdate, RuntimeTrackRegistration, RuntimeWritePort } from './runtimePorts';
 import { createViemRuntimeWriter } from './viemRuntimeAdapter';
+import { readNativeContributionReceiptApi } from './nativeContributionReceiptApi';
 
 type ViemWalletClient = Awaited<ReturnType<typeof getWalletClient>>;
 
@@ -29,6 +30,7 @@ export type RuntimeWriterDeps = {
   getViemWalletClient: () => Promise<ViemWalletClient>;
   config?: RuntimeAdapterConfig;
   productAccount?: ProductRuntimeSignerAccount;
+  nativeReceiptApiUrl?: string;
 };
 
 // Build-time constant. A viem build must not import the Product contract graph,
@@ -182,7 +184,11 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
 
   return {
     contributionConfirmationMode: config.kind === 'product-cdm' ? 'finalized-event' : 'evm-receipt',
-    contributionCall: async (runtime, method, args, value) => {
+    readFinalizedContributionLogs: async (hash, block) => {
+      if (!PRODUCT_CDM_ENABLED || config.kind !== 'product-cdm') throw new Error('Native contribution receipts require the Product CDM profile.');
+      return readNativeContributionReceiptApi({ apiUrl: deps.nativeReceiptApiUrl ?? import.meta.env.VITE_DOTIFY_API_URL, hash, block });
+    },
+    contributionCall: async (runtime, method, args, value, onFinalized) => {
       let port: RuntimeWritePort;
       try {
         port = await portForWrite();
@@ -191,7 +197,7 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
       }
       if (!port.contributionCall) throw new SupportNotSubmittedError(new Error('This wallet cannot submit contributions.'));
       try {
-        return await port.contributionCall(runtime, method, args, value);
+        return await port.contributionCall(runtime, method, args, value, onFinalized);
       } catch (error) {
         if (config.kind === 'product-cdm' && productCdmPaymentWasNotSubmitted(error)) throw new SupportNotSubmittedError(error);
         throw error;

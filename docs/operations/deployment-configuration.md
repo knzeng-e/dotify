@@ -192,13 +192,131 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 36]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 39]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
+Version `[0, 1, 39]` moves historical native gift/tip receipt reads to the
+Dotify API. The installed Product host SDK bridge accepts `chainHead_v1_*`,
+`chainSpec_v1_*` and `transaction_v1_*`, but rejects the legacy historical RPC
+methods used by the 0.1.38 reader. A direct archive test therefore did not prove
+that reader usable inside the mobile host. The API now supplies
+`POST /api/contributions/native-receipt` using a server-configured native archive
+URL; the frontend uses the existing `VITE_DOTIFY_API_URL`. Writes still use the
+Product signer, while receipt checks never create a signer.
+
+The API pins the Paseo Asset Hub genesis, loads metadata at the requested block,
+and verifies the canonical finalized block, exact Blake2-256 extrinsic hash,
+phase-specific System dispatch outcome and `Revive.ContractEmitted` records.
+The frontend binds the response to the expected network, transaction and block,
+then checks runtime, work, intent ID, payer and amount. Archive errors keep the
+journal pending; only a verified native dispatch failure may release it.
+Technical details now show the latest check error alongside the original error.
+
+Version `[0, 1, 39]` was published on 2026-10-06 from clean commit
+`c698b1c7b9b83e813c68fb902de62696b67e25a6` with the `product-cdm` profile,
+after deploying the API from that same commit. The public API `/version`,
+`/health`, configured Product HTTPS CORS preflight and a known historical native
+receipt were checked successfully. The published receipt logs matched the
+independently verified historical native events, including the paid-share event.
+The executable CID is
+`bafybeiglfaqtudp27j3hwqv3qvgelknfrbt7melueuic4tqh7wrogvqlia`; its atomic
+manifest update finalized in transaction
+`0x463499d3e54d7046129ced609b1d6ad64a04e0e0bca38734d358236f7b871f0a`.
+Read-back at 2026-10-06 23:08 Europe/Paris confirmed `[0, 1, 39]`, its CID and
+the public CAR's index/entry bytes against the built artifact, including the
+source SHA. Host configuration checks passed before and after publication.
+Validation passed: 785 frontend unit tests, 160 API tests and 22 gift/tip browser
+tests, including real HTTP-client recovery and archive-error display without
+resubmission. Type checks, the Product build and lint passed; lint excluded
+ignored local diagnostic archives and reported two pre-existing App hook
+warnings. Recovery inside the installed mobile host still requires live-device
+confirmation; no new funded tip was submitted during this investigation.
+
+Version `[0, 1, 38]` introduced block-reference capture and manual recovery for
+older journal entries, after native `Revive.call` events were found absent from
+the EVM log index. Those journal and proof invariants remain, but its historical
+host RPC transport is superseded by the API transport above.
+
+Journal entries with a native hash but no usable SDK block reference can enter
+the block number from `View transaction` under Technical details → `Receipt block
+number` → `Check receipt block`. This is a locator, never trusted payment proof:
+wrong blocks, wrong extrinsics, changed block hashes, missing dispatch outcomes
+and mismatched receipts keep the intent pending. Proven finalized native dispatch
+failures can release it. Entries lacking a native hash remain unresolved; do not
+resubmit based on an absent Ethereum event. A valid finalized transaction hash
+is preserved even when optional SDK block metadata is absent or malformed;
+the receipt then remains pending until a verified block locator is supplied.
+This PR #242 review fix requires a later frontend publication and is not included
+in the previously published 0.1.39 artifact. New payments capture usable block
+references automatically. Full cross-device native earnings/history indexing is
+still separate work. Version `[0, 1, 38]` was published on 2026-10-06 from clean
+commit `99d51aa42f9ac9acef93780773e9953e8474a492` with the `product-cdm` profile. Its executable CID
+is `bafybeihydvxrlzv2d4kpnjrellwntsvt5ifo2fkfh7frlvq3ngrobxltwi`; the atomic executable update finalized in transaction
+`0xae364b1b290b8815fc0771014cbb912080f79e20b5571b3927bb588c2cee2ea7`. Independent read-back at 2026-10-06 21:51 Europe/Paris confirmed
+the finalized version/CID and compared the public CAR's index/entry bundle with
+the built artifact, including its source SHA. Host configuration checks passed
+before and after publication. Mobile replay and a new funded mobile submission
+still need live-device evidence; the historical native receipt itself was
+verified directly on-chain.
+
+During diagnosis on 2026-10-06, an owner-supplied pending tip was independently
+verified directly from historical Asset Hub native storage, with matching
+contribution and paid-share events. The corrected reader was then run on that
+same historical block and recovered the matching receipt. Explorer data was
+used only to locate the block; the native chain verified its hash, extrinsic and
+dispatch. User-specific references, amounts and raw proofs remain in ignored
+local diagnostic artifacts. This receipt check does not establish full native
+ledger indexing or receipt-verified room-chat broadcasts; the signaling verifier
+still needs a native-event receipt path for those broadcasts.
+
+Version `[0, 1, 37]` packages the bounded pending-contribution reconciliation
+merged in PR #239, which did not increment the executable version. During the
+subsequent timeout investigation, an installed Product Desktop session reported
+`[0, 1, 36]` / build `9c2a476`, predating that fix. This observation does not
+establish which build is loaded on mobile or why its payment timed out.
+
+After an authorized CDM-profile deployment, check the loaded executable version
+**and build SHA** under You → Production readiness on each device. A merge to
+`dev`, a successful build, or an updated manifest is not proof that the host
+loaded the new bundle. Preserve local pending-contribution storage, reopen the
+same gift/tip with the paying account, and use `Check status again` without
+resubmitting. If it remains pending, record whether host approval appeared,
+the Technical details error, loaded version/SHA, and any transaction reference
+before diagnosing submission versus finalized-event read-back. Do not treat a
+timeout or an absent event as proof of a failed payment.
+
+Version `[0, 1, 37]` was owner-authorized and published on 2026-10-06 from clean
+commit `1193a73951edaa6d132e07625fcb6a8e4010395c`, with the `product-cdm` writer
+profile. The executable CID is
+`bafybeiab765lpxm344uokugwsvghjypv4i4h3eobinrylougzpi3orci3a`. The atomic
+executable contenthash/manifest update finalized in transaction
+`0xfd81a340aa79ba1dfa5dd0f300e25c767477808153bc4524d2edf51f9f5f7a0a`.
+Independent read-back at 2026-10-06 21:22 Europe/Paris verified the finalized
+`app.dotify-test01.dot` version/CID and compared `index.html` and the entry JS
+byte-for-byte with the built artifact inside the 14,576,359-byte CAR served by
+the configured gateway. The entry identifies the same source SHA. The host
+Remote Config preflight and post-publication check both passed. This proves
+publication and artifact availability; installed mobile cache refresh and a
+funded mobile tip still require live validation. Preserve the existing pending
+intent and reopen it after checking the loaded SHA/version; do not submit a
+second tip to diagnose the first.
+
+A subsequent mobile report stayed on `Checking network finality` after approval,
+with no accessible Technical details. That label exists in PR #239, so the
+Desktop stale-build observation cannot explain the mobile report on its own.
+The `[0, 1, 37]` candidate also preserves the first uncertainty error in the
+existing local contribution journal and exposes it, together with the intent
+reference, during pending checks. Empty event reads and later RPC failures no
+longer erase that diagnostic. Without a wallet transaction reference the label
+is `Checking payment status`; a finalized Product extrinsic awaiting its EVM
+contract event is `Checking contribution receipt`. These labels do not establish
+submission, failure, or settlement. This correction makes the unresolved host
+failure diagnosable; it does not constitute funded mobile payment evidence.
+
 Version `[0, 1, 36]` invalidates the Product host cache for finalized tip
 read-back. It filters contribution logs by concrete indexed topics because the
 DevNet EVM RPC rejects null topic placeholders; the matching intent must still
@@ -496,10 +614,37 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | `API_PORT`                 | `8790`                                                                                                                                                                                                                       |
 | `NODE_ENV`                 | `production`                                                                                                                                                                                                                 |
 | `API_ORIGINS`              | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
+| `PASEO_ASSET_HUB_NATIVE_RPC` | `https://asset-hub-paseo-rpc.n.dwellir.com` (HTTPS historical native receipts; no signing) |
 | `PASEO_ASSET_HUB_RPC`      | `https://eth-rpc-testnet.polkadot.io/`                                                                                                                                                                                       |
 | `DOTIFY_FACTORY_ADDRESS`   | `0x835a626a9a6965b197d079ae56b1ec94033c2699`                                                                                                                                                                                 |
 | `DOTIFY_DIRECTORY_ADDRESS` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
 | `DOTIFY_CHAIN_ID`          | `420420417`                                                                                                                                                                                                                  |
+
+Native receipts use a separate read-only archive boundary. The endpoint accepts
+only a 32-byte transaction hash and a block reference, never a caller-selected
+RPC URL. It verifies chain ID `420420417` and genesis
+`0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2`.
+The endpoint is limited to 20 requests/minute/IP, four concurrent archive reads,
+a 20-second total read budget and 8 MiB per RPC response. It retains at most
+128 immutable verified receipts for 30 minutes and two historical metadata
+codecs in process memory. There is no new durable state. Missing configuration,
+wrong genesis, an unavailable archive or an unverified proof returns an explicit
+error with a request ID, never a failed-payment verdict. The browser read budget
+is 25 seconds. CORS origins, secrets, content-key authorization, storage mounts
+and the single-machine limit are unchanged.
+
+Deploy the API before the Product executable that depends on this endpoint:
+
+```bash
+cd services/api
+flyctl deploy --ha=false --env GIT_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+Verify `/health`, `/version`, a known finalized native receipt and preflight
+CORS for the configured Product HTTPS origins. Then publish the `product-cdm`
+frontend and verify its finalized manifest, public CAR and embedded source SHA.
+Keep the device's pending journal and paying account when testing recovery.
+Live mobile host execution remains a separate acceptance check.
 
 Do not store `API_ORIGINS` as a Fly secret. Fly secrets override `[env]` values
 from `fly.toml`, so a stale secret can keep CORS broken after a clean deploy.

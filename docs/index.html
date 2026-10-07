@@ -1547,7 +1547,8 @@
                 read-back before success, preserve transaction receipts when verification fails, and expose runtime royalty claims through the shared writer
                 port. Product payment hashes now open as native Paseo Asset Hub extrinsics instead of dead EVM explorer links. Claimable balances remain
                 readable, while complete cross-device Product settlement history still needs native <code>Revive.ContractEmitted</code>
-                indexing. Interrupted support can be checked again without another payment. Native gifts and work tips have dedicated dated receipts,
+                indexing. Product gift/tip confirmation reads native events from a bounded, read-only API archive and verifies the exact finalized transaction block;
+                the Ethereum log index does not expose native calls, and the host bridge cannot read historical receipts directly. Interrupted support can be checked again without another payment. Native gifts and work tips have dedicated dated receipts,
                 direct artist-chosen allocations and optional room-host sharing from the whole tip before the remainder follows the work's rights split. Activation requires owner-approved runtime upgrades and
                 Product device validation; campaign references identify contributions without certifying charitable impact.
                 The explicit Product support build waits for native payment finalization. A Product Web CDM transaction now has host-signed evidence. Desktop

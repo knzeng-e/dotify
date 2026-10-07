@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { encodeAbiParameters, encodeEventTopics as encodeTopics, zeroAddress, zeroHash, type Address, type Hash } from 'viem';
 import { musicRoyaltiesAbi } from '../../generated/contracts/musicRoyalties';
 import { ContributionRevertedError, confirmSubmittedContribution, decodeContributions, type ContributionReceipt } from './contributions';
+import { FinalizedNativeContributionFailedError } from '../runtime/nativeContributionProof';
 
 const productRuntime = '0x1000000000000000000000000000000000000000' as Address;
 const productHash = `0x${'11'.repeat(32)}` as Hash;
@@ -21,11 +22,36 @@ const receipt: ContributionReceipt = {
 };
 
 describe('contribution confirmation', () => {
-  it('confirms a finalized Product contribution by intent without waiting for an EVM receipt', async () => {
+  it('fails closed without a native reader and never substitutes Ethereum logs', async () => {
+    const reader = { receipt: vi.fn(), finalizedReceipt: vi.fn() };
+    await expect(confirmSubmittedContribution({ mode: 'finalized-event', runtime: productRuntime, hash: productHash, id: productId, reader })).rejects.toThrow(
+      'native receipt reader'
+    );
+    expect(reader.receipt).not.toHaveBeenCalled();
+    expect(reader.finalizedReceipt).not.toHaveBeenCalled();
+  });
+  it('reports a proved finalized native dispatch failure without polling the EVM index', async () => {
+    const reader = { receipt: vi.fn(), finalizedReceipt: vi.fn() };
+    await expect(
+      confirmSubmittedContribution({
+        mode: 'finalized-event',
+        runtime: productRuntime,
+        hash: productHash,
+        id: productId,
+        reader,
+        nativeReceipt: async () => {
+          throw new FinalizedNativeContributionFailedError();
+        }
+      })
+    ).rejects.toBeInstanceOf(ContributionRevertedError);
+    expect(reader.finalizedReceipt).not.toHaveBeenCalled();
+  });
+  it('confirms a finalized Product contribution from native events without consulting the EVM index', async () => {
     const reader = {
       receipt: vi.fn(async () => receipt),
-      finalizedReceipt: vi.fn().mockResolvedValueOnce(undefined).mockResolvedValueOnce(receipt)
+      finalizedReceipt: vi.fn()
     };
+    const nativeReceipt = vi.fn().mockResolvedValueOnce(undefined).mockResolvedValueOnce(receipt);
     const wait = vi.fn(async () => undefined);
 
     await expect(
@@ -35,12 +61,14 @@ describe('contribution confirmation', () => {
         hash: productHash,
         id: productId,
         reader,
+        nativeReceipt,
         polling: { attempts: 2, intervalMs: 0, wait }
       })
     ).resolves.toBe(receipt);
 
     expect(reader.receipt).not.toHaveBeenCalled();
-    expect(reader.finalizedReceipt).toHaveBeenCalledTimes(2);
+    expect(reader.finalizedReceipt).not.toHaveBeenCalled();
+    expect(nativeReceipt).toHaveBeenCalledTimes(2);
     expect(wait).toHaveBeenCalledTimes(1);
   });
 

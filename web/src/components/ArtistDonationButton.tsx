@@ -6,10 +6,11 @@ import { contributionE2e } from '../e2e/contributionMock';
 import { Dialog } from './Dialog';
 import { useWalletContext, useSessionContext, useUiFeedback } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
-import { confirmSubmittedContribution, contributionReader, newContributionContext } from '../features/donations/contributions';
+import { confirmSubmittedContribution, contributionReader, decodeContributions, newContributionContext } from '../features/donations/contributions';
 import {
   readSavedContribution,
   recoverSavedContribution,
+  saveNativeContributionBlock,
   runContribution,
   type ContributionIntent,
   type ContributionOutcome,
@@ -18,7 +19,8 @@ import {
 import { contributionReconciliationDelay, waitForContributionReconciliation } from '../features/donations/contributionReconciliation';
 import { useContributionWriter } from '../features/donations/useContributionWriter';
 import { nativeCurrencyForChain } from '../shared/config/contracts';
-import { getBlockscoutTxUrl } from '../shared/utils/explorer';
+import { getTransactionProofUrl } from '../shared/utils/explorer';
+import type { NativeContributionBlock } from '../features/runtime/runtimePorts';
 import { SupportNotSubmittedError } from '../features/payments/supportPayment';
 
 type ContributionButtonProps = { track: CatalogTrack; kind?: 'gift' | 'tip' };
@@ -44,6 +46,10 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
   const [pending, setPending] = useState(false);
   const [checkingFinality, setCheckingFinality] = useState(false);
   const [pendingHash, setPendingHash] = useState<Hash>();
+  const [pendingDiagnostic, setPendingDiagnostic] = useState<ContributionOutcome>();
+  const [needsNativeBlock, setNeedsNativeBlock] = useState(false);
+  const [receiptBlock, setReceiptBlock] = useState('');
+  const monitorTask = useRef<Promise<void>>();
   const [purpose, setPurpose] = useState('');
   const [available, setAvailable] = useState<bigint>();
   const account = useRef(wallet.listenerEvmAddress);
@@ -174,6 +180,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
     setCheckingFinality(false);
     if (prepared) setPendingHash(undefined);
     setOutcome(undefined);
+    setPendingDiagnostic(undefined);
     setError('');
     try {
       const reader = contributionReader(wallet.ethRpcUrl);
@@ -182,16 +189,32 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
       while (mounted.current && !abort.signal.aborted) {
         const scope = prepared ?? contributionScope;
         const check = {
-          confirm: (hash: Hash, id: Hash) =>
+          confirm: (hash: Hash, id: Hash, nativeBlock?: NativeContributionBlock) =>
             confirmSubmittedContribution({
               mode: writer.contributionConfirmationMode,
               runtime: scope.runtime,
               hash,
               id,
               reader,
+              nativeReceipt: async () => {
+                if (!nativeBlock)
+                  throw new Error(
+                    'This Product transaction needs its receipt block. Open the network receipt and enter its block number under Technical details. No new payment is needed.'
+                  );
+                if (contributionE2e && new URLSearchParams(location.search).get('e2eGift') !== 'native-api-recovery')
+                  return reader.finalizedReceipt(scope.runtime, id);
+                if (!writer.readFinalizedContributionLogs) throw new Error('Native contribution receipts are unavailable for this wallet.');
+                const logs = await writer.readFinalizedContributionLogs(hash, nativeBlock);
+                const receipt = decodeContributions(scope.runtime, logs).find(row => row.id === id);
+                return receipt ? { ...receipt, proofKind: 'substrate-extrinsic' as const } : undefined;
+              },
               polling: writer.contributionConfirmationMode === 'finalized-event' ? { attempts: 1 } : undefined
             }),
-          recover: (id: Hash) => reader.finalizedReceipt(scope.runtime, id),
+          recover: (id: Hash) => {
+            if (writer.contributionConfirmationMode === 'finalized-event')
+              throw new Error('The host returned no native transaction reference. Check account activity before paying again.');
+            return reader.finalizedReceipt(scope.runtime, id);
+          },
           currentAccount: () => account.current?.toLowerCase() === scope.sender.toLowerCase()
         };
         const result =
@@ -211,12 +234,17 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                   } catch (failure) {
                     throw new SupportNotSubmittedError(failure);
                   }
-                  return writer.contributionCall!(
+                  let nativeBlock: NativeContributionBlock | undefined;
+                  const hash = await writer.contributionCall!(
                     prepared.runtime,
                     'musicGiftContribute',
                     [prepared.context, prepared.quote.digest, prepared.proof],
-                    prepared.amount
+                    prepared.amount,
+                    block => {
+                      nativeBlock = block;
+                    }
                   );
+                  return { hash, nativeBlock };
                 }
               })
             : await recoverSavedContribution({ scope, storage: localStorage, ...check });
@@ -224,6 +252,12 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
         if (!mounted.current) return;
         setPendingHash(result.hash);
         if (result.status === 'uncertain') {
+          setPendingDiagnostic(result);
+          setNeedsNativeBlock(
+            writer.contributionConfirmationMode === 'finalized-event' &&
+              Boolean(result.hash) &&
+              readSavedContribution(scope, localStorage)?.nativeBlock?.index === undefined
+          );
           const delay = contributionReconciliationDelay(retry);
           if (delay === undefined) {
             setOutcome({
@@ -269,6 +303,39 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
       monitoring.current = false;
     }
   }
+  function startMonitoring(prepared?: ContributionIntent) {
+    if (monitoring.current) return;
+    monitorTask.current = monitor(prepared);
+    void monitorTask.current;
+  }
+  async function checkReceiptBlock() {
+    if (!contributionScope) return;
+    try {
+      if (!/^\d+$/.test(receiptBlock)) throw new Error('Enter the block number from the network receipt.');
+      saveNativeContributionBlock(contributionScope, Number(receiptBlock), localStorage);
+      monitorAbort.current?.abort();
+      await monitorTask.current;
+      setNeedsNativeBlock(false);
+      startMonitoring();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Could not check the receipt block.');
+    }
+  }
+  const nativeRecovery = needsNativeBlock && (
+    <form
+      onSubmit={event => {
+        event.preventDefault();
+        void checkReceiptBlock();
+      }}
+    >
+      <p>Product transactions without a saved block reference need their receipt block once. Use the block shown in the network receipt linked above.</p>
+      <label>
+        Receipt block number
+        <input className='field' inputMode='numeric' value={receiptBlock} onChange={event => setReceiptBlock(event.target.value)} required />
+      </label>
+      <button className='secondary-action'>Check receipt block</button>
+    </form>
+  );
   return (
     <>
       <button
@@ -287,7 +354,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
             if (saved) {
               setIntent(undefined);
               setPendingHash(saved.hash);
-              void monitor();
+              startMonitoring();
             }
           } catch (failure) {
             setError(failure instanceof Error ? failure.message : 'Could not read the saved contribution.');
@@ -320,16 +387,53 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
             <div className='contribution-pending' role='status' aria-live='polite'>
               <LoaderCircle className='spin' size={23} aria-hidden='true' />
               <div>
-                <strong>{checkingFinality ? 'Checking network finality' : 'Waiting for confirmation'}</strong>
+                <strong>
+                  {checkingFinality
+                    ? pendingHash
+                      ? writer.contributionConfirmationMode === 'finalized-event'
+                        ? 'Checking contribution receipt'
+                        : 'Checking network finality'
+                      : 'Checking payment status'
+                    : 'Waiting for confirmation'}
+                </strong>
                 <p>
                   {checkingFinality
-                    ? 'The network can take several minutes. We will keep checking this contribution without sending another payment.'
+                    ? pendingHash
+                      ? 'We will keep checking the finalized contribution receipt without sending another payment.'
+                      : 'The wallet result is incomplete. We will keep checking this saved contribution without sending another payment.'
                     : 'Approve in your wallet if asked. You can close this window while Dotify checks the result.'}
                 </p>
-                {pendingHash && writer.contributionConfirmationMode === 'evm-receipt' && (
-                  <a href={getBlockscoutTxUrl(pendingHash)} target='_blank' rel='noreferrer'>
+                {pendingHash && (
+                  <a
+                    href={getTransactionProofUrl(
+                      pendingHash,
+                      writer.contributionConfirmationMode === 'finalized-event' ? 'substrate-extrinsic' : 'evm-transaction'
+                    )}
+                    target='_blank'
+                    rel='noreferrer'
+                  >
                     View transaction <ExternalLink size={14} aria-hidden='true' />
                   </a>
+                )}
+                {pendingDiagnostic && (
+                  <details className='transaction-technical contribution-technical'>
+                    <summary>Technical details</summary>
+                    {pendingDiagnostic.technicalMessage && <code>{pendingDiagnostic.technicalMessage}</code>}
+                    {pendingDiagnostic.latestCheckMessage && (
+                      <p>
+                        Latest check: <code>{pendingDiagnostic.latestCheckMessage}</code>
+                      </p>
+                    )}
+                    <p>
+                      Contribution reference: <code>{pendingDiagnostic.id}</code>
+                    </p>
+                    {pendingHash && (
+                      <p>
+                        Wallet transaction reference: <code>{pendingHash}</code>
+                      </p>
+                    )}
+                    {nativeRecovery}
+                  </details>
                 )}
               </div>
             </div>
@@ -412,7 +516,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                 <button className='secondary-action' disabled={busy} onClick={() => setIntent(undefined)}>
                   Change amount
                 </button>
-                <button className='primary-action' disabled={busy} onClick={() => void monitor(intent)}>
+                <button className='primary-action' disabled={busy} onClick={() => startMonitoring(intent)}>
                   Confirm {kind} · {formatEther(intent.amount)} {symbol}
                 </button>
               </div>
@@ -453,15 +557,34 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                   </ul>
                 </>
               )}
-              {outcome.technicalMessage && outcome.technicalMessage !== outcome.message && (
+              {((outcome.technicalMessage && outcome.technicalMessage !== outcome.message) || outcome.id) && (
                 <details className='transaction-technical contribution-technical'>
                   <summary>Technical details</summary>
-                  <code>{outcome.technicalMessage}</code>
+                  {outcome.technicalMessage && <code>{outcome.technicalMessage}</code>}
+                  {outcome.latestCheckMessage && (
+                    <p>
+                      Latest check: <code>{outcome.latestCheckMessage}</code>
+                    </p>
+                  )}
+                  {outcome.id && (
+                    <p>
+                      Contribution reference: <code>{outcome.id}</code>
+                    </p>
+                  )}
+                  {nativeRecovery}
                 </details>
               )}
               <div className='contribution-result-actions'>
-                {outcome.hash && (writer.contributionConfirmationMode === 'evm-receipt' || outcome.receipt) && (
-                  <a className='secondary-action contribution-transaction-link' href={getBlockscoutTxUrl(outcome.hash)} target='_blank' rel='noreferrer'>
+                {outcome.hash && (
+                  <a
+                    className='secondary-action contribution-transaction-link'
+                    href={getTransactionProofUrl(
+                      outcome.hash,
+                      outcome.receipt?.proofKind ?? (writer.contributionConfirmationMode === 'finalized-event' ? 'substrate-extrinsic' : 'evm-transaction')
+                    )}
+                    target='_blank'
+                    rel='noreferrer'
+                  >
                     <ExternalLink size={16} aria-hidden='true' />
                     View transaction
                   </a>
@@ -471,7 +594,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                     className='primary-action'
                     onClick={() => {
                       setOutcome(undefined);
-                      void monitor();
+                      startMonitoring();
                     }}
                   >
                     Check status again

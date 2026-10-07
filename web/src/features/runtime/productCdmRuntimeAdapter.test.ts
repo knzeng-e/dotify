@@ -276,6 +276,18 @@ describe('createProductCdmRuntimeWriter', () => {
     expect(musicRoyPayAccess.tx).toHaveBeenCalledTimes(1);
   });
 
+  it('retains the finalized native contribution block for receipt recovery', async () => {
+    const block = { hash: txHash, number: 123, index: 2 };
+    const musicGiftContribute = { tx: vi.fn(async () => ({ ok: true as const, value: { ok: true, txHash, block } })) };
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      contracts: { getDirectoryContract: () => ({}), getFactoryContract: () => ({}), getRuntimeContract: () => ({ musicGiftContribute }) }
+    });
+    const onFinalized = vi.fn();
+    await expect(writer.contributionCall!(runtime, 'musicGiftContribute', [hash], 1_000_000_000_000_000_000n, onFinalized)).resolves.toBe(txHash);
+    expect(onFinalized).toHaveBeenCalledExactlyOnceWith({ hash: txHash, number: 123, index: 2 });
+    expect(musicGiftContribute.tx).toHaveBeenCalledWith(hash, { value: 10_000_000_000n, waitFor: 'finalized' });
+  });
   it('routes runtime writes through Product CDM contract tx methods', async () => {
     const createRuntime = txMethod();
     const installRuntimeStep = txMethod();

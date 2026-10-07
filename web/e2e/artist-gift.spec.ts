@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { io } from 'socket.io-client';
+import { encodeAbiParameters, encodeEventTopics, zeroHash } from 'viem';
+import { musicRoyaltiesAbi } from '../src/generated/contracts/musicRoyalties';
+import type { ContributionReceipt } from '../src/features/donations/contributions';
 import { renderedTextContrast } from './helpers/renderedContrast';
 function contributionDialog(page: Page) {
   return page.locator('.artist-gift-dialog');
@@ -288,9 +291,116 @@ test('a mobile confirmation timeout keeps checking without exposing raw wallet e
   expect(state.finalizedReads).toBe(1);
   await expect(dialog.getByRole('button', { name: /Confirm gift|Confirming/ })).toHaveCount(0);
   await expect(dialog.getByRole('link', { name: 'View transaction' })).toBeVisible();
-  await expect(dialog).not.toContainText('viem@2.55.19');
+  await expect(dialog.getByText(/viem@2.55.19/)).not.toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const pending = dialog.locator('.contribution-pending');
   expect((await pending.boundingBox())!.width).toBeLessThanOrEqual((await dialog.boundingBox())!.width);
   await page.screenshot({ path: info.outputPath('tip-pending-mobile-320.png'), animations: 'disabled' });
 });
+
+test('a mobile host timeout preserves its diagnostic across reload without another approval', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openGift(page, '?e2eGift=host-timeout');
+  await review(page, '0.1');
+  await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
+  const dialog = contributionDialog(page);
+  await expect(dialog.getByRole('status')).toContainText('Checking payment status');
+  await dialog.getByText('Technical details', { exact: true }).click();
+  await expect(dialog.getByText(/Transaction timed out after 300s/)).toBeVisible();
+  await expect(dialog).toContainText('Contribution reference:');
+  await expect(dialog.getByRole('link', { name: 'View transaction' })).toHaveCount(0);
+  await page.reload();
+  await page.locator('.catalogue-card .artist-text-button').first().click();
+  await page.getByRole('main').getByRole('button', { name: 'Send a gift', exact: true }).click();
+  await expect(dialog.getByRole('status')).toContainText('Checking payment status');
+  await dialog.getByText('Technical details', { exact: true }).click();
+  await expect(dialog.getByText(/Transaction timed out after 300s/)).toBeVisible();
+  expect((await giftState(page)).sends).toBe(0);
+  expect(await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__')?.confirmed)).toBe(false);
+});
+
+test('an older Product payment recovers from its native receipt block without resubmitting', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openGift(page, '?e2eGift=native-recovery');
+  await review(page, '0.1');
+  await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
+  const dialog = contributionDialog(page);
+  await expect(dialog.getByRole('status')).toContainText('Checking contribution receipt');
+  await expect(dialog.getByRole('link', { name: 'View transaction' })).toHaveAttribute('href', /assethub-paseo\.subscan\.io\/extrinsic\//);
+  await dialog.getByText('Technical details', { exact: true }).click();
+  await dialog.getByLabel('Receipt block number').fill('123');
+  await dialog.getByRole('button', { name: 'Check receipt block' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
+  expect((await giftState(page)).sends).toBe(1);
+});
+
+for (const available of [true, false]) {
+  test(`mobile native receipt API ${available ? 'confirms the saved payment' : 'shows its latest archive error'} without resubmitting`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    let reads = 0;
+    await page.route('https://receipt.dotify.test/api/contributions/native-receipt', async route => {
+      const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type' };
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+      reads++;
+      const input = route.request().postDataJSON() as { hash: string; block: { number: number } };
+      expect(input.block.number).toBe(123);
+      if (!available) return route.fulfill({ status: 503, headers, json: { error: 'Native archive unavailable', requestId: 'native-check-123' } });
+      const receipt = await page.evaluate(() => {
+        const r = Reflect.get(window, '__DOTIFY_E2E_DONATION__').receipt;
+        return { ...r, amount: r.amount.toString(), shares: r.shares.map((s: { amount: bigint }) => ({ ...s, amount: s.amount.toString() })) };
+      });
+      const row = receipt as ContributionReceipt;
+      const logs = [
+        {
+          address: row.runtime,
+          transactionHash: input.hash,
+          logIndex: 0,
+          topics: encodeEventTopics({
+            abi: musicRoyaltiesAbi,
+            eventName: 'ContributionReceived',
+            args: { id: row.id, contentHash: row.contentHash, sender: row.sender }
+          }),
+          data: encodeAbiParameters(
+            [{ type: 'uint256' }, { type: 'address' }, { type: 'bytes32' }, { type: 'bytes32' }, { type: 'bytes32' }, { type: 'uint64' }],
+            [BigInt(row.amount), row.host, row.room, row.campaign, zeroHash, BigInt(Math.floor(row.timestamp / 1000))]
+          )
+        },
+        ...row.shares.map((s, i) => ({
+          address: row.runtime,
+          transactionHash: input.hash,
+          logIndex: i + 1,
+          topics: encodeEventTopics({ abi: musicRoyaltiesAbi, eventName: 'ContributionShare', args: { id: row.id, recipient: s.recipient } }),
+          data: encodeAbiParameters([{ type: 'uint256' }, { type: 'uint8' }, { type: 'bool' }], [BigInt(s.amount), s.role, s.paid])
+        }))
+      ];
+      await route.fulfill({
+        status: 200,
+        headers,
+        json: {
+          ...input,
+          block: { number: 123, hash: zeroHash },
+          genesisHash: '0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2',
+          status: 'success',
+          logs
+        }
+      });
+    });
+    await openGift(page, '?e2eGift=native-api-recovery');
+    await review(page, '0.1');
+    await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
+    const dialog = contributionDialog(page);
+    await expect(dialog.getByRole('status')).toContainText('Checking contribution receipt');
+    await dialog.getByText('Technical details', { exact: true }).click();
+    await dialog.getByLabel('Receipt block number').fill('123');
+    await dialog.getByRole('button', { name: 'Check receipt block' }).click();
+    if (available) await expect(dialog.getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
+    else {
+      await expect(dialog).toContainText('Latest check:');
+      await expect(dialog).toContainText('Native archive unavailable Reference: native-check-123');
+      await expect(dialog).toContainText('This Product transaction needs its receipt block.');
+      await expect(dialog.getByRole('heading', { name: 'Gift sent', exact: true })).toHaveCount(0);
+    }
+    expect(reads).toBeGreaterThanOrEqual(1);
+    expect((await giftState(page)).sends).toBe(1);
+  });
+}

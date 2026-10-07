@@ -12,6 +12,7 @@ import {
   type RuntimeTrackSnapshot,
   type RuntimeWritePort
 } from './runtimePorts';
+import type { NativeContributionBlock } from './runtimePorts';
 import type { OnchainTrackRecord } from '../../shared/types';
 
 export type ProductCdmQueryResult<T = unknown> =
@@ -30,6 +31,7 @@ export type ProductCdmTxResult = {
   txHash: string;
   ok: boolean;
   dispatchError?: unknown;
+  block?: { hash: string; number: number; index: number };
 };
 
 export type ProductCdmResult<T> =
@@ -297,11 +299,13 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
 export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps): RuntimeWritePort {
   return {
     contributionConfirmationMode: 'finalized-event',
-    contributionCall(runtime, method, args, value = 0n) {
-      return txContract(deps.contracts.getRuntimeContract(runtime), method, [
-        ...args,
-        { value: evmValueToNativeUnits(value, deps.nativeTokenDecimals), waitFor: 'finalized' }
-      ]);
+    contributionCall(runtime, method, args, value = 0n, onFinalized) {
+      return txContract(
+        deps.contracts.getRuntimeContract(runtime),
+        method,
+        [...args, { value: evmValueToNativeUnits(value, deps.nativeTokenDecimals), waitFor: 'finalized' }],
+        onFinalized
+      );
     },
     async inspectPayment(intent) {
       assertNativeAccessPayment(intent);
@@ -418,7 +422,12 @@ async function queryContract<T>(contract: ProductCdmContractHandle, methodName: 
   return result.value as T;
 }
 
-async function txContract(contract: ProductCdmContractHandle, methodName: string, args: unknown[] = []): Promise<Hash> {
+async function txContract(
+  contract: ProductCdmContractHandle,
+  methodName: string,
+  args: unknown[] = [],
+  onFinalized?: (block: NativeContributionBlock) => void
+): Promise<Hash> {
   const method = getMethod(contract, methodName);
   if (!method.tx) {
     throw new ProductCdmRuntimeError(`Product CDM contract method "${methodName}" does not support transactions.`);
@@ -431,7 +440,24 @@ async function txContract(contract: ProductCdmContractHandle, methodName: string
   if (!result.value.ok) {
     throw new ProductCdmRuntimeError(`Product CDM transaction "${methodName}" was rejected by the runtime: ${formatUnknown(result.value.dispatchError)}`);
   }
-  return asHash(result.value.txHash, methodName);
+  const hash = asHash(result.value.txHash, methodName);
+  if (onFinalized) {
+    const block = result.value.block;
+    // Block metadata is optional in SDK results. Always return the valid hash
+    // so the contribution journal can retain it before receipt confirmation.
+    // Unusable metadata falls back to the existing manual block locator path.
+    if (
+      block &&
+      Number.isSafeInteger(block.number) &&
+      block.number >= 0 &&
+      Number.isSafeInteger(block.index) &&
+      block.index >= 0 &&
+      typeof block.hash === 'string' &&
+      /^0x[0-9a-fA-F]{64}$/.test(block.hash)
+    )
+      onFinalized({ number: block.number, index: block.index, hash: block.hash as Hash });
+  }
+  return hash;
 }
 
 function asHash(value: string, methodName: string): Hash {

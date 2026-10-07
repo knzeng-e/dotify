@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { zeroAddress, zeroHash, type Hash } from 'viem';
-import { runContribution, recoverSavedContribution, contributionStorageKey, type ContributionIntent } from './contributionFlow';
+import { runContribution, recoverSavedContribution, saveNativeContributionBlock, contributionStorageKey, type ContributionIntent } from './contributionFlow';
 import { ContributionRevertedError, contributionId, type ContributionReceipt } from './contributions';
 import { SupportNotSubmittedError } from '../payments/supportPayment';
+import { createProductCdmRuntimeWriter } from '../runtime/productCdmRuntimeAdapter';
+import type { NativeContributionBlock } from '../runtime/runtimePorts';
 
 function fixture() {
   const data = new Map<string, string>();
@@ -49,6 +51,66 @@ function fixture() {
   };
 }
 describe('persistent contributions', () => {
+  it('persists the finalized native block and reuses it on recovery without sending again', async () => {
+    const input = fixture();
+    const nativeBlock = { number: 123, hash: input.receipt.transactionHash, index: 2 };
+    const send = vi.fn(async () => ({ hash: input.receipt.transactionHash, nativeBlock }));
+    input.confirm.mockRejectedValueOnce(new Error('read-back interrupted'));
+    expect((await runContribution({ ...input, send })).status).toBe('uncertain');
+    expect((await recoverSavedContribution({ ...input, scope: input.intent })).status).toBe('confirmed');
+    expect(input.confirm).toHaveBeenLastCalledWith(input.receipt.transactionHash, input.receipt.id, nativeBlock);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    ['missing', undefined],
+    ['invalid number', { number: -1, hash: zeroHash, index: 0 }],
+    ['invalid index', { number: 123, hash: zeroHash, index: -1 }],
+    ['invalid hash', { number: 123, hash: 'invalid', index: 0 }]
+  ])('keeps the Product hash with %s block metadata and recovers without another send', async (_label, block) => {
+    const input = fixture();
+    const tx = vi.fn(async () => ({ ok: true as const, value: { ok: true, txHash: input.receipt.transactionHash, block } }));
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      contracts: { getDirectoryContract: () => ({}), getFactoryContract: () => ({}), getRuntimeContract: () => ({ musicGiftContribute: { tx } }) }
+    });
+    const send = vi.fn(async () => {
+      let nativeBlock: NativeContributionBlock | undefined;
+      const hash = await writer.contributionCall!(input.intent.runtime, 'musicGiftContribute', [], undefined, block => {
+        nativeBlock = block;
+      });
+      return { hash, nativeBlock };
+    });
+    const confirm = vi.fn(async (_hash: Hash, _id: Hash, nativeBlock?: NativeContributionBlock) => {
+      if (!nativeBlock) throw new Error('This Product transaction needs its receipt block.');
+      return input.receipt;
+    });
+    expect(await runContribution({ ...input, send, confirm })).toMatchObject({ status: 'uncertain', hash: input.receipt.transactionHash });
+    const saved = JSON.parse(input.storage.getItem(contributionStorageKey(input.intent))!);
+    expect(saved.hash).toBe(input.receipt.transactionHash);
+    expect(saved.nativeBlock).toBeUndefined();
+    expect(await recoverSavedContribution({ ...input, scope: input.intent, confirm })).toMatchObject({
+      status: 'uncertain',
+      hash: input.receipt.transactionHash
+    });
+    expect(input.recover).not.toHaveBeenCalled();
+    saveNativeContributionBlock(input.intent, 123, input.storage);
+    expect(await recoverSavedContribution({ ...input, scope: input.intent, confirm })).toMatchObject({ status: 'confirmed' });
+    expect(confirm).toHaveBeenLastCalledWith(input.receipt.transactionHash, input.receipt.id, { number: 123 });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(tx).toHaveBeenCalledTimes(1);
+    expect(input.storage.getItem(contributionStorageKey(input.intent))).toBeNull();
+  });
+  it('adds a block hint to an older native payment without changing its amount, ID or hash', async () => {
+    const input = fixture();
+    input.confirm.mockRejectedValueOnce(new Error('missing native block'));
+    await runContribution(input);
+    const original = JSON.parse(input.storage.getItem(contributionStorageKey(input.intent))!);
+    saveNativeContributionBlock(input.intent, 123, input.storage);
+    expect(JSON.parse(input.storage.getItem(contributionStorageKey(input.intent))!)).toEqual({ ...original, nativeBlock: { number: 123 } });
+    await expect(recoverSavedContribution({ ...input, scope: input.intent })).resolves.toMatchObject({ status: 'confirmed' });
+    expect(input.send).toHaveBeenCalledTimes(1);
+    expect(input.confirm).toHaveBeenLastCalledWith(input.receipt.transactionHash, input.receipt.id, { number: 123 });
+  });
   it('recovers after reload without resubmitting, even if the requested amount changed', async () => {
     const input = fixture();
     input.confirm.mockRejectedValueOnce(new Error('timeout'));
@@ -71,6 +133,37 @@ describe('persistent contributions', () => {
     expect(input.recover).toHaveBeenCalledTimes(1);
     input.recover.mockResolvedValueOnce(input.receipt);
     expect((await runContribution(input)).status).toBe('confirmed');
+  });
+  it('preserves the original host timeout through empty read-back, later RPC errors and reload', async () => {
+    const input = fixture();
+    const timeout = 'Transaction timed out after 300s. The transaction may still be processing on-chain.';
+    input.send.mockRejectedValueOnce(new Error(timeout));
+    const expected = { status: 'uncertain', technicalMessage: timeout, id: input.receipt.id, hash: undefined };
+    expect(await runContribution(input)).toMatchObject(expected);
+    expect(await runContribution(input)).toMatchObject(expected);
+    input.recover.mockRejectedValueOnce(new Error('Read RPC unavailable'));
+    const recovery = { scope: input.intent, storage: input.storage, confirm: input.confirm, recover: input.recover, currentAccount: input.currentAccount };
+    expect(await recoverSavedContribution(recovery)).toMatchObject({ ...expected, latestCheckMessage: 'Read RPC unavailable' });
+    expect(await recoverSavedContribution(recovery)).toMatchObject(expected);
+    expect(input.send).toHaveBeenCalledTimes(1);
+    input.recover.mockResolvedValueOnce(input.receipt);
+    expect((await recoverSavedContribution(recovery)).status).toBe('confirmed');
+    expect(input.storage.getItem(contributionStorageKey(input.intent))).toBeNull();
+  });
+  it('retains a pending payment when persisting its diagnostic fails', async () => {
+    const input = fixture();
+    const setItem = vi.fn(input.storage.setItem);
+    setItem.mockImplementationOnce(input.storage.setItem).mockImplementationOnce(() => {
+      throw new Error('storage unavailable');
+    });
+    input.send.mockRejectedValueOnce(new Error('host timeout'));
+    expect(await runContribution({ ...input, storage: { ...input.storage, setItem } })).toMatchObject({
+      status: 'uncertain',
+      technicalMessage: 'host timeout'
+    });
+    expect(input.storage.getItem(contributionStorageKey(input.intent))).not.toBeNull();
+    await runContribution(input);
+    expect(input.send).toHaveBeenCalledTimes(1);
   });
   it('recovers a saved contribution after reload using only its account and work scope', async () => {
     const input = fixture();
@@ -130,5 +223,13 @@ describe('persistent contributions', () => {
     const original = contributionStorageKey(intent);
     expect(contributionStorageKey({ ...intent, network: 43 })).not.toBe(original);
     expect(contributionStorageKey({ ...intent, context: { ...intent.context, contentHash: intent.context.intentId } })).not.toBe(original);
+  });
+  it('keeps an intent pending when a receipt belongs to another runtime or work', async () => {
+    for (const patch of [{ runtime: '0x1000000000000000000000000000000000000000' as const }, { contentHash: `0x${'ff'.repeat(32)}` as Hash }]) {
+      const input = fixture();
+      input.confirm.mockResolvedValueOnce({ ...input.receipt, ...patch });
+      expect((await runContribution(input)).status).toBe('uncertain');
+      expect(input.storage.getItem(contributionStorageKey(input.intent))).not.toBeNull();
+    }
   });
 });

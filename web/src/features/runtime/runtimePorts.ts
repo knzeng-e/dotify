@@ -92,20 +92,24 @@ export interface RuntimeReadPort {
 export type PaymentLifecycle = 'signing' | 'broadcasting' | 'in-block' | 'finalized' | 'error';
 export type PaymentObserver = (status: PaymentLifecycle, txHash?: Hash) => void;
 export type ContributionConfirmationMode = 'evm-receipt' | 'finalized-event';
+export type NativeContributionBlock = { number: number; hash?: Hash; index?: number };
+export type NativeContributionLog = { address: Address; data: Hash; topics: Hash[]; transactionHash: Hash; logIndex: number };
 
 export interface RuntimeWritePort {
   /**
    * Product CDM returns a native extrinsic hash after finalization. It must be
-   * confirmed from the indexed contract event, not passed to an EVM receipt
-   * lookup. Viem returns an EVM transaction hash and can use the receipt path.
+   * confirmed from native Revive events in the finalized block. The EVM log
+   * index does not expose native calls. Viem uses the EVM receipt path.
    */
   contributionConfirmationMode: ContributionConfirmationMode;
   contributionCall?(
     runtime: Address,
     method: 'musicGiftContribute' | 'musicGiftSetPolicy' | 'musicGiftClaim',
     args: readonly unknown[],
-    value?: bigint
+    value?: bigint,
+    onFinalized?: (block: NativeContributionBlock) => void
   ): Promise<Hash>;
+  readFinalizedContributionLogs?(hash: Hash, block: NativeContributionBlock): Promise<NativeContributionLog[]>;
   createRuntime(factoryAddress: Address): Promise<Hash>;
   installRuntimeStep(factoryAddress: Address): Promise<Hash>;
   registerTrack(runtimeAddress: Address, registration: RuntimeTrackRegistration): Promise<Hash>;

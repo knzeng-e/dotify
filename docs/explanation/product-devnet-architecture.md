@@ -287,7 +287,14 @@ for transactions submitted through the EVM JSON-RPC path. The Subscan extrinsic
 shows the `Revive.call` and its raw `Revive.ContractEmitted` records. Turning
 those records into the cross-device artist royalty ledger still belongs in a
 native-event backend indexer; a browser-local payment history would be
-incomplete and easy to lose.
+incomplete and easy to lose. Gift/tip confirmation now reads those native events
+for the exact finalized transaction block instead of querying `eth_getLogs`.
+The writer preserves the SDK's block reference in the pending intent. Recovery
+uses a read-only host connection, checks the canonical finalized block and native
+extrinsic hash, isolates its dispatch/events, and verifies the receiving runtime,
+work, contribution ID, payer and amount. Older intents without a block can supply
+an explorer block number as an untrusted locator; success still requires native
+chain proof. This targeted receipt path does not provide a complete native ledger.
 
 ### The CDM Manifest Is Generated, Not Installed
 

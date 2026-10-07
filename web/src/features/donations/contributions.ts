@@ -16,6 +16,7 @@ import { musicRoyaltiesAbi } from '../../generated/contracts/musicRoyalties';
 import { getPublicClient } from '../../shared/config/contracts';
 import { contributionE2e, contributionTestReader } from '../../e2e/contributionMock';
 import type { ContributionConfirmationMode } from '../runtime/runtimePorts';
+import { FinalizedNativeContributionFailedError } from '../runtime/nativeContributionProof';
 
 export type ContributionPolicy = ContractFunctionReturnType<typeof musicRoyaltiesAbi, 'view', 'musicGiftPolicy'>;
 export type ContributionQuote = ContractFunctionReturnType<typeof musicRoyaltiesAbi, 'view', 'musicGiftQuote'>;
@@ -49,6 +50,7 @@ export type ContributionReceipt = {
   campaign: Hash;
   timestamp: number;
   transactionHash: Hash;
+  proofKind?: 'substrate-extrinsic' | 'evm-transaction';
   shares: Array<{ recipient: Address; amount: bigint; role: number; paid: boolean; claimed: boolean }>;
 };
 export class ContributionRevertedError extends Error {
@@ -93,9 +95,16 @@ export async function confirmSubmittedContribution(input: {
     finalizedReceipt(runtime: Address, expectedId: Hash): Promise<ContributionReceipt | undefined>;
   };
   polling?: Parameters<typeof waitForFinalizedContribution>[1];
+  nativeReceipt?: () => Promise<ContributionReceipt | undefined>;
 }): Promise<ContributionReceipt> {
   if (input.mode === 'finalized-event') {
-    return waitForFinalizedContribution(() => input.reader.finalizedReceipt(input.runtime, input.id), input.polling);
+    if (!input.nativeReceipt) throw new Error('Product contributions need a native receipt reader. Keep this payment pending.');
+    try {
+      return await waitForFinalizedContribution(input.nativeReceipt, input.polling);
+    } catch (error) {
+      if (error instanceof FinalizedNativeContributionFailedError) throw new ContributionRevertedError();
+      throw error;
+    }
   }
 
   try {
@@ -131,7 +140,8 @@ export function contributionReader(rpc: string) {
     },
     async finalizedReceipt(runtime: Address, expectedId: Hash): Promise<ContributionReceipt | undefined> {
       const final = await client.getBlock({ blockTag: 'finalized' });
-      // Product DevNet rejects null topic placeholders emitted by getLogs({ args: { id } }).
+      // DevNet EVM logs reject null topic placeholders. Native Product calls
+      // require the separate finalized-block reader; they are absent from this index.
       const received = (
         await client.request({
           method: 'eth_getLogs',

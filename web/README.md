@@ -636,6 +636,33 @@ unavailable, Dotify cannot prove either outcome and keeps the intent pending; do
 not clear browser storage or repeat the payment. The sheet shows a transaction
 link when an EVM hash is available.
 
+Pending checks expose Technical details with the original uncertainty error and
+contribution reference. The error survives empty read-back and reloads. A missing
+wallet transaction reference is labelled `Checking payment status`; a finalized
+Product extrinsic still awaiting its contract event is labelled `Checking
+contribution receipt`. Neither label proves that a payment failed.
+
+Product gifts/tips now verify native `Revive.ContractEmitted` events from the
+transaction's canonical finalized block, including the exact extrinsic hash,
+dispatch result, runtime, contribution ID, payer, work and amount. The Ethereum
+log index does not expose native `Revive.call` payments. New payments preserve
+the SDK's block/hash/index reference for recovery when usable. Pending payments
+with a native transaction hash but no usable SDK block reference need their
+receipt block once: open Technical details, follow `View transaction`, and enter the explorer's block number using `Check
+receipt block`. That number is an untrusted location hint; the native chain must
+verify the transaction and receipt before clearing the journal. Checking never
+submits a payment or requests a signer. Native receipts link to Subscan; the
+complete cross-device ledger still needs native-event indexing.
+
+The Product package for API-backed native receipt confirmation is `[0, 1, 39]`;
+`[0, 1, 38]` used the superseded host-RPC reader, and `[0, 1, 37]` introduced
+pending diagnostics. Merging into `dev` does not publish or refresh an installed host app. After an authorized
+Product CDM deployment, verify both the loaded version and build SHA in You →
+Production readiness on each tested device. Version `[0, 1, 36]` at build
+`9c2a476` predates the pending-state/reconciliation fix in PR #239. Preserve
+saved contribution intents across an update and use `Check status again`;
+a timeout alone does not establish whether a payment was submitted.
+
 ### Listening and contribution actions
 
 The player separates audio controls from voluntary contributions and access
