@@ -620,6 +620,8 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | `DOTIFY_DIRECTORY_ADDRESS` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
 | `DOTIFY_CHAIN_ID`          | `420420417`                                                                                                                                                                                                                  |
 
+<a id="shared-native-contribution-ledger-product-0140"></a>
+
 ### Shared native contribution ledger (Product 0.1.40–0.1.41)
 
 Product 0.1.41 published the PR #242/#243 review follow-ups on 2026-10-07 from
