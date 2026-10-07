@@ -43,4 +43,27 @@ Operational limits and rollback instructions: [deployment configuration](../../.
 - Catalogs beyond 100 runtime addresses are read as deduplicated batches. Offset resets for each batch, but snapshot revision and the 25-second deadline cover the entire refresh. A failure or revision drift in a later batch rejects the reading rather than publishing partial income.
 - The history route permits 600 requests/minute/IP: four complete 100-page scheduled refreshes plus two manual refreshes. A regression using the real Fastify rate-limit plugin and a 10,000-receipt ledger proves all six reads complete and request 601 receives HTTP 429.
 - Targeted frontend history/dashboard tests: 8 passed. API type checking and frontend type checking/scoped lint passed. The full API suite passed all 166 tests; both fresh-device browser scenarios passed at 390 and 1440 px.
-- These source fixes are not included in the published 0.1.40 executable/API described above; a subsequent rollout must deploy both components.
+- These source fixes are not included in the published 0.1.40 executable/API described above.
+
+## Product 0.1.41 rollout
+
+The merged review fixes were published on 2026-10-07 from candidate
+`30bd5912c0cb4f7e85c03e30657037a1eb0127a4` after the `dev` quality gates
+passed on merge commit `8cd0b18462c062d60daf3db95b30e63ac1a3478a`.
+
+- The API was deployed first with the existing encrypted `contribution_data`
+  volume and one-writer topology. `/version` reports the candidate SHA,
+  `/health` is healthy, Product-host CORS preflight returns 204, and the known
+  verified contribution remained present in public history after deployment.
+- A managed volume snapshot completed before the API update with 14-day
+  retention.
+- Product executable **0.1.41** finalized at CID
+  `bafybeidv2yvrqemk6bacqq63ovnso4to3oce265uq5ysv35gcfkfla32ci`. The atomic
+  manifest update finalized in transaction
+  `0x48d6129bbe34712a2feca95a94fc8419f0d00aa032cc247c104b5fb775f8e720`.
+- Independent read-back at `2026-10-07T03:30:24.858Z` confirmed the finalized
+  manifest version and CID. The public CAR's `index.html` and entry JavaScript
+  exactly match the local candidate build and contain the candidate source SHA.
+
+Installed-host cache refresh and physical-device dashboard confirmation remain
+separate acceptance evidence.
