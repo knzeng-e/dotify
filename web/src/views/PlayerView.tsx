@@ -22,7 +22,6 @@ import { roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount, roomPres
 import { playbackTrack, playbackTrackDetails } from '../features/player/playbackPresentation';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
-import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import { resolvePlaybackContributionTrack, resolveRoomContributionTrack } from '../features/donations/roomContributionTrack';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
@@ -47,7 +46,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
   const coverSource = catalog.coverSource;
   const accessGate = catalog.accessGate;
-  const setCatalogTrackInfo = catalog.setTrackInfo;
   const {
     mode,
     hostName,
@@ -62,8 +60,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     localStreamReady,
     roomPlaybackMode,
     productHostWebRtcUnavailable,
-    socketEmit,
-    socketStatus,
     error
   } = session;
   const roomContribution = useMemo(
@@ -126,15 +122,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     setShareOpen(false);
     setChatUnread(false);
   }, [roomId]);
-  useEffect(() => {
-    if (!roomId || mode !== 'host' || socketStatus !== 'online' || roomContribution.state !== 'recoverable' || !trackInfo) return;
-    const runtimeAddress = runtimeAddressFromTrackId(roomContribution.track);
-    if (!runtimeAddress) return;
-
-    const repairedTrack = { ...trackInfo, runtimeAddress };
-    setCatalogTrackInfo(repairedTrack);
-    socketEmit('room:track', repairedTrack);
-  }, [mode, roomContribution, roomId, setCatalogTrackInfo, socketEmit, socketStatus, trackInfo]);
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 769px)');
     const resetPeople = () => {
