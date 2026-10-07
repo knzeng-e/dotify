@@ -108,7 +108,7 @@ export function ArtistEarningsSummary({
           </button>
         )}
       </div>
-      <div className='dashboard-sources' aria-label='Received by source'>
+      <div className='dashboard-sources'>
         {sources.map(source => (
           <div key={source.id} data-source={source.id} className='dashboard-source'>
             <span className='source-dot' aria-hidden='true' />
@@ -130,8 +130,8 @@ export function ArtistEarningsSummary({
         </p>
         {history.coverage === 'verified-receipts' && (
           <p>
-            Product support includes receipts verified and saved by Dotify. Native listening payments and earlier unsynced support may be missing. Network fees and older direct
-            transfers are excluded.
+            Product support includes receipts verified and saved by Dotify. Native listening payments and earlier unsynced support may be missing. Network fees
+            and older direct transfers are excluded.
           </p>
         )}
       </details>
