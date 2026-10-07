@@ -192,7 +192,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 39]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 40]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -620,6 +620,58 @@ Non-secret runtime values are tracked in `services/api/fly.toml`:
 | `DOTIFY_DIRECTORY_ADDRESS` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
 | `DOTIFY_CHAIN_ID`          | `420420417`                                                                                                                                                                                                                  |
 
+### Shared native contribution ledger (Product 0.1.40)
+
+PR #243 review follow-up: batching and the 600-request history limit require
+redeploying both the API and frontend after review. The published 0.1.40 evidence
+below predates these fixes and used the 60-request limit.
+
+Published on 2026-10-07 (Paris): Product source `0aef57670c71a60d46f67f7d5f62d008561afcb8`,
+API source `48e3bda9af3ba26ec65b2f794ee96dd169956857`, executable CID
+`bafybeia4lm3ybgkqod3majkgu52xvbpnmlrtpnogjjutkxtxhfqbroyjzu`. The finalized manifest and gateway bundle
+were verified. A real API restart preserved the recovered contribution; a managed
+volume snapshot completed with 14-day retention. Full rollout evidence and
+remaining physical-device/historical coverage gates are recorded in
+[the dashboard evidence](../backlog/implementation/evidence/artist-dashboard-2026-10-07.md).
+
+`NATIVE_CONTRIBUTION_SNAPSHOT_PATH` is `/data/contributions/receipts.json` in
+Fly and defaults to `.data/native-contributions.json` locally. The `contribution_data`
+volume mounts at `/data/contributions`. Keep exactly one API machine/writer;
+independent volume replicas would diverge. Use `--ha=false` on deploy and do not
+add a spare API machine until there is a shared transactional store. Other
+catalog/key storage and CORS settings are unchanged.
+
+The verified receipt route saves successful contribution events before replying.
+It rejects incomplete recipient totals, wrong networks and conflicting blocks.
+Repeated verification is idempotent. Atomic replacement publishes the new
+snapshot only after saving succeeds; corrupt or unwritable storage returns an
+explicit error rather than an empty history. Limits: 10,000 receipts / 64 MiB,
+no silent eviction, 100 receipts/page, 100 runtimes/query, and 600 history
+queries/minute/IP. This permits four full 100-page scheduled refreshes and two
+full manual refreshes within one minute from an IP while preserving an abuse
+bound. Catalog runtime lists are deduplicated and split into batches of at most
+100; every page and batch binds to the same snapshot revision. The browser uses
+one 25-second total budget for the whole refresh, and rejects partial results
+if a later batch fails or the revision changes. Outstanding contribution
+claims are reconciled against finalized contract state.
+
+`POST /api/contributions/history` accepts `{ runtimes, offset?, revision? }`
+and returns verified native receipts with `coverage: verified-receipts`. It is
+public, like the underlying events, and never accepts submitted logs. It is not
+an exhaustive native chain indexer. Earlier receipts can be recovered by calling
+the existing native-receipt endpoint with their transaction hash/block, which
+re-verifies before saving; do not edit the ledger to add a payment.
+
+Before publishing this frontend, provision its volume in the API machine's
+region, configure the mount, and deploy the API first. Preserve any existing
+unrelated volumes. Follow [Fly's volume attachment procedure](https://docs.fly.io/launch/volume-storage).
+Verify a known receipt through the public endpoint, read it through history from
+a separate client, restart the API process, and confirm the same record remains.
+Enable automatic volume snapshots and retain an independent export of the ledger
+before migration or rollback. A rollback must retain the volume; never replace
+a saved history with an empty file. This bounded read model has no replication
+or zero-downtime failover claim.
+
 Native receipts use a separate read-only archive boundary. The endpoint accepts
 only a 32-byte transaction hash and a block reference, never a caller-selected
 RPC URL. It verifies chain ID `420420417` and genesis
@@ -627,11 +679,13 @@ RPC URL. It verifies chain ID `420420417` and genesis
 The endpoint is limited to 20 requests/minute/IP, four concurrent archive reads,
 a 20-second total read budget and 8 MiB per RPC response. It retains at most
 128 immutable verified receipts for 30 minutes and two historical metadata
-codecs in process memory. There is no new durable state. Missing configuration,
+codecs in process memory. The verifier itself has no durable cache; verified
+contributions are persisted by the ledger described above. Missing configuration,
 wrong genesis, an unavailable archive or an unverified proof returns an explicit
 error with a request ID, never a failed-payment verdict. The browser read budget
-is 25 seconds. CORS origins, secrets, content-key authorization, storage mounts
-and the single-machine limit are unchanged.
+is 25 seconds. CORS origins, secrets and content-key authorization are unchanged;
+the contribution ledger adds the persistent mount and single-writer requirement
+described above.
 
 Deploy the API before the Product executable that depends on this endpoint:
 

@@ -328,3 +328,33 @@ compute aggregates:
 ```
 
 The `RoyaltyPayment` type is defined in `web/src/shared/types.ts`.
+
+
+## Artist dashboard: recorded native support
+
+Overview and Earnings share a contribution snapshot. The headline is the
+connected artist account's received share. Generated value includes every
+recipient of the artist's releases and personal support; claimable value is
+still held in the runtime. A contribution's gross amount is never treated as
+the artist's income when another beneficiary received it.
+
+Product native contributions are absent from the Ethereum event index. After
+`POST /api/contributions/native-receipt` verifies the chain, finalized block,
+transaction and complete contribution distribution, the API atomically saves
+its receipt in a shared JSON ledger. The history endpoint accepts runtime
+addresses only; callers cannot insert events or select an RPC. Browser reads
+combine Ethereum history and these saved receipts by runtime plus intent ID,
+retain native proof links, and check outstanding shares through finalized
+`musicGiftPending` state. A claim therefore does not manufacture another sale.
+
+This collection covers receipts verified by Dotify, not every historical native
+transaction. The API reports `coverage: verified-receipts` and the interface
+explains that earlier unsynced contributions may be absent. Failed reads retain
+the last snapshot or show unavailable on an initial failure; they never become
+zero income. Chart columns contain received shares dated by their original
+payment, including later claims; they use fourteen local calendar days and do
+not represent listening counts, wallet balances or claim-day cash flow.
+
+The ledger is a bounded single-writer read model: a persistent volume is required
+for deployment, with snapshots and independent backup. It does not replace
+on-chain proof. See the [deployment runbook](../operations/deployment-configuration.md).

@@ -15,6 +15,8 @@ import { keyRoutes } from './routes/keys.js';
 import { turnRoutes } from './routes/turn.js';
 import { uploadRoutes } from './routes/uploads.js';
 import { createCatalogRoutes } from './routes/catalog.js';
+import { NativeContributionLedger } from './services/nativeContributionLedger.js';
+import { createContributionHistoryRoutes } from './routes/contributionHistory.js';
 import { createNativeReceiptRoutes } from './routes/nativeReceipts.js';
 import { createNativeReceiptService } from './services/nativeReceipts.js';
 import { catalogReadModel as defaultCatalogReadModel } from './services/catalog/index.js';
@@ -48,7 +50,7 @@ export type BuildAppOptions = {
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const serverOptions: FastifyServerOptions = {
     logger: options.logging === false ? false : fastifyLoggerOptions,
-    genReqId,
+    genReqId
   };
   const app = Fastify(serverOptions);
 
@@ -56,7 +58,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(cors, {
     origin: options.apiOrigins ?? config.API_ORIGINS,
     methods: ['GET', 'POST', 'OPTIONS'],
-    exposedHeaders: ['x-request-id', 'etag', 'x-catalog-state', 'x-catalog-block-lag'],
+    exposedHeaders: ['x-request-id', 'etag', 'x-catalog-state', 'x-catalog-block-lag']
   });
 
   // Multipart — required by upload routes. Register before routes.
@@ -65,7 +67,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // Rate limiting — placeholder; tune limits before production traffic.
   await app.register(rateLimit, {
     max: 100,
-    timeWindow: '1 minute',
+    timeWindow: '1 minute'
   });
 
   app.addHook('onSend', async (request, reply) => {
@@ -93,7 +95,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     const body: ApiErrorBody = {
       error: status >= 500 ? 'Internal server error' : error.message,
       code: status >= 500 ? 'INTERNAL_ERROR' : (error.code ?? 'REQUEST_ERROR'),
-      requestId: String(request.id),
+      requestId: String(request.id)
     };
     return reply.status(status).send(body);
   });
@@ -101,7 +103,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // Routes.
   await app.register(healthRoutes);
   const nativeReceipts = createNativeReceiptService({ rpcUrl: config.PASEO_ASSET_HUB_NATIVE_RPC, chainId: config.DOTIFY_CHAIN_ID });
-  await app.register(createNativeReceiptRoutes(nativeReceipts));
+  const contributionLedger = new NativeContributionLedger(config.NATIVE_CONTRIBUTION_SNAPSHOT_PATH);
+  await app.register(
+    createNativeReceiptRoutes({
+      read: async input => {
+        const receipt = await nativeReceipts.read(input);
+        await contributionLedger.record(receipt);
+        return receipt;
+      }
+    })
+  );
+  await app.register(createContributionHistoryRoutes(contributionLedger, Boolean(config.PASEO_ASSET_HUB_NATIVE_RPC) && config.DOTIFY_CHAIN_ID === 420420417));
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(turnRoutes, { prefix: '/api/turn' });
   await app.register(keyRoutes, { prefix: '/api/tracks' });

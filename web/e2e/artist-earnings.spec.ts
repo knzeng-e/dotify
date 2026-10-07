@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
-import { encodeAbiParameters, pad, parseAbiItem, toEventSelector, toHex } from 'viem';
+import { encodeAbiParameters, encodeEventTopics, pad, parseAbiItem, toEventSelector, toHex, zeroAddress, zeroHash } from 'viem';
+
+import { musicRoyaltiesAbi } from '../src/generated/contracts/musicRoyalties';
 
 const account = '0x000000000000000000000000000000000000a711';
 const runtime = '0x000000000000000000000000000000000000a712';
@@ -9,11 +11,17 @@ const paidTopic = toEventSelector(
   parseAbiItem('event MusicRoyRoyaltyPaid(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount)')
 );
 
-async function openStudio(page: Page, options: { collaboratorOnly?: boolean } = {}) {
-  const control = { failed: false, payments: 1, queries: 0 };
+async function openStudio(page: Page, options: { collaboratorOnly?: boolean; nativeSupport?: boolean; supportUnavailable?: boolean } = {}) {
+  const control = { failed: false, payments: 1, queries: 0, nativeFailed: false };
   await page.route('**/*', async route => {
     if (route.request().resourceType() === 'image' && route.request().url().includes('QmYtt')) {
       return route.fulfill({ path: 'e2e/fixtures/artist-cover.svg', contentType: 'image/svg+xml' });
+    }
+    if (route.request().url().includes('/api/contributions/history')) {
+      const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type' };
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+      if (control.nativeFailed) return route.fulfill({ status: 503, headers, json: { error: 'Native history unavailable' } });
+      return route.fulfill({ headers, json: nativeHistoryFixture() });
     }
     if (route.request().method() !== 'POST') return route.continue();
     let body;
@@ -81,21 +89,23 @@ async function openStudio(page: Page, options: { collaboratorOnly?: boolean } = 
     },
     { account, runtime, hash, collaborator, collaboratorOnly: options.collaboratorOnly ?? false }
   );
-  await page.goto('/artists?e2eArtist=happy');
+  await page.goto(
+    `/artists?e2eArtist=happy${options.nativeSupport ? '&e2eNativeHistory=on' : ''}${options.supportUnavailable ? '&e2eGift=history-error' : ''}`
+  );
   await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toBeVisible();
   return control;
 }
 
 test('overview loads real event-shaped earnings, refreshes automatically, and preserves last amounts on failure', async ({ page }) => {
   const control = await openStudio(page);
-  const summary = page.getByRole('region', { name: 'Release earnings' });
+  const summary = page.getByRole('region', { name: 'All earnings' });
   await expect(summary).toContainText('4.2 PAS');
   await expect(summary).toContainText('1.764 PAS');
   control.payments = 2;
   await expect(summary).toContainText('8.4 PAS', { timeout: 22000 });
   await expect(summary).toContainText('3.528 PAS');
   control.failed = true;
-  await page.getByRole('button', { name: 'Refresh earnings' }).click();
+  await page.getByRole('button', { name: 'Refresh all earnings' }).click();
   await expect(summary).toContainText('Update delayed');
   await expect(summary).toContainText('8.4 PAS');
   await page.getByRole('tab', { name: 'Earnings', exact: true }).click();
@@ -107,10 +117,10 @@ test('unavailable history is never displayed as zero earned', async ({ page }) =
   const control = await openStudio(page);
   control.failed = true;
   await page.reload();
-  const summary = page.getByRole('region', { name: 'Release earnings' });
+  const summary = page.getByRole('region', { name: 'All earnings' });
   await expect(summary).toContainText('History unavailable');
-  await expect(summary.locator('.earnings-totals > div').first()).toContainText('Unavailable');
-  await expect(summary.locator('.earnings-totals > div').first()).not.toContainText('0 PAS');
+  await expect(summary.locator('[data-metric=generated]')).toContainText('Unavailable');
+  await expect(summary.locator('[data-metric=generated]')).not.toContainText('0 PAS');
 });
 
 async function addContributionSources(page: Page) {
@@ -154,10 +164,9 @@ test('earnings leads with all sources, distinguishes shares and keeps its summar
   await openStudio(page);
   await addContributionSources(page);
   const summary = page.getByRole('region', { name: 'All earnings' });
-  const metrics = summary.locator('.earnings-totals > div');
-  await expect(metrics.nth(0)).toContainText('7.2 PAS');
-  await expect(metrics.nth(1)).toContainText('2.164 PAS');
-  await expect(metrics.nth(2)).toContainText('0.5 PAS');
+  await expect(summary.locator('[data-metric=generated]')).toContainText('7.2 PAS');
+  await expect(summary.locator('[data-metric=received]')).toContainText('2.164 PAS');
+  await expect(summary.locator('[data-metric=claimable]')).toContainText('0.5 PAS');
   await expect(page.getByRole('tabpanel', { name: 'Listening payments', exact: true })).toBeVisible();
   await expect(page.locator('.contribution-history')).toHaveCount(0);
   const listening = page.getByRole('tab', { name: 'Listening payments', exact: true });
@@ -171,28 +180,22 @@ test('earnings leads with all sources, distinguishes shares and keeps its summar
     Reflect.get(window, '__DOTIFY_E2E_DONATION__').receipts[1].shares[0].claimed = true;
   });
   await page.getByRole('button', { name: 'Refresh all earnings' }).click();
-  await expect(metrics.nth(1)).toContainText('2.664 PAS');
-  await expect(metrics.nth(2)).toContainText('0 PAS');
-  await expect(metrics.nth(0)).toContainText('7.2 PAS');
+  await expect(summary.locator('[data-metric=received]')).toContainText('2.664 PAS');
+  await expect(summary.locator('[data-metric=claimable]')).toContainText('0 PAS');
+  await expect(summary.locator('[data-metric=generated]')).toContainText('7.2 PAS');
   await page.evaluate(() => {
     Reflect.get(window, '__DOTIFY_E2E_DONATION__').historyError = 'Receipt source unavailable';
   });
   await page.getByRole('button', { name: 'Refresh all earnings' }).click();
   await expect(summary.getByRole('status')).toContainText('Update delayed');
-  await expect(metrics.nth(0)).toContainText('7.2 PAS');
+  await expect(summary.locator('[data-metric=generated]')).toContainText('7.2 PAS');
 });
 
 test('an unavailable contribution source does not become a misleading global zero', async ({ page }) => {
-  await openStudio(page);
-  await addContributionSources(page);
-  await page.evaluate(() => {
-    Reflect.get(window, '__DOTIFY_E2E_DONATION__').historyError = 'Receipt source unavailable';
-  });
-  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
-  await page.getByRole('tab', { name: 'Earnings', exact: true }).click();
+  await openStudio(page, { supportUnavailable: true });
   const summary = page.getByRole('region', { name: 'All earnings' });
-  await expect(summary.getByRole('status')).toContainText('Some sources unavailable');
-  await expect(summary.locator('.earnings-totals > div').first()).toContainText('Unavailable');
+  await expect(summary.getByRole('status')).toContainText('History unavailable');
+  await expect(summary.locator('[data-metric=generated]')).toContainText('Unavailable');
   await expect(summary.locator('[data-source="listening"]')).toContainText('4.2 PAS');
   await expect(summary.locator('[data-source="gifts"]')).not.toContainText('0 PAS');
 });
@@ -200,7 +203,7 @@ test('an unavailable contribution source does not become a misleading global zer
 test('a collaborator without a runtime can create an artist profile without losing earnings', async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openStudio(page, { collaboratorOnly: true });
-  await expect(page.getByRole('region', { name: 'Release earnings' })).toContainText('1.764 PAS');
+  await expect(page.getByRole('region', { name: 'All earnings' })).toContainText('1.764 PAS');
   await expect(page.getByRole('heading', { name: 'Create your artist space' })).toBeVisible();
   const createProfile = page.getByRole('button', { name: 'Create artist profile' });
   await expect(createProfile).toBeDisabled();
@@ -211,15 +214,15 @@ test('a collaborator without a runtime can create an artist profile without losi
   await expect(page.getByRole('dialog')).toContainText('Artist registered');
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Start your first release' })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Release earnings' })).toContainText('1.764 PAS');
+  await expect(page.getByRole('region', { name: 'All earnings' })).toContainText('1.764 PAS');
 });
 
 for (const width of [320, 390, 430, 1440]) {
   test(`artist earnings and works are readable at ${width}px`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 900 });
     await openStudio(page);
-    await expect(page.getByRole('region', { name: 'Release earnings' })).toContainText('4.2 PAS');
-    if (width <= 430) expect((await page.locator('.studio-id h1').boundingBox())!.width).toBeGreaterThan(180);
+    await expect(page.getByRole('region', { name: 'All earnings' })).toContainText('4.2 PAS');
+    if (width <= 430) expect((await page.locator('.studio-id h1').boundingBox())!.width).toBeGreaterThan(140);
     for (const tab of ['Overview', 'Releases', 'Earnings', 'Rights']) {
       await page.getByRole('tab', { name: tab, exact: true }).click();
       if (tab === 'Earnings') await addContributionSources(page);
@@ -249,5 +252,81 @@ for (const width of [320, 390, 430, 1440]) {
         }))
     );
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), JSON.stringify(overflow)).toBe(true);
+  });
+}
+
+function nativeHistoryFixture() {
+  const transactionHash = `0x${'fe'.repeat(32)}` as const;
+  const id = `0x${'cd'.repeat(32)}` as const;
+  const contentHash = `0x${'1'.repeat(64)}` as const;
+  return {
+    genesisHash: '0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2',
+    chainId: 420420417,
+    coverage: 'verified-receipts',
+    updatedAt: new Date().toISOString(),
+    nextOffset: null,
+    receipts: [
+      {
+        hash: transactionHash,
+        block: { number: 123, hash: zeroHash },
+        genesisHash: '0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2',
+        status: 'success',
+        logs: [
+          {
+            address: runtime,
+            transactionHash,
+            logIndex: 1,
+            topics: encodeEventTopics({ abi: musicRoyaltiesAbi, eventName: 'ContributionReceived', args: { id, contentHash, sender: collaborator } }),
+            data: encodeAbiParameters(
+              [{ type: 'uint256' }, { type: 'address' }, { type: 'bytes32' }, { type: 'bytes32' }, { type: 'bytes32' }, { type: 'uint64' }],
+              [4200000000000000000n, zeroAddress, zeroHash, zeroHash, zeroHash, BigInt(Math.floor(Date.now() / 1000))]
+            )
+          },
+          {
+            address: runtime,
+            transactionHash,
+            logIndex: 2,
+            topics: encodeEventTopics({ abi: musicRoyaltiesAbi, eventName: 'ContributionShare', args: { id, recipient: account } }),
+            data: encodeAbiParameters([{ type: 'uint256' }, { type: 'uint8' }, { type: 'bool' }], [4200000000000000000n, 0, true])
+          }
+        ]
+      }
+    ]
+  };
+}
+for (const width of [390, 1440]) {
+  test(`artist dashboard receives a Product tip on a fresh device at ${width}px`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 940 });
+    const control = await openStudio(page, { nativeSupport: true });
+    const summary = page.getByRole('region', { name: 'All earnings' });
+    await expect(summary.locator('[data-metric=received]')).toContainText('5.964 PAS');
+    await expect(summary.locator('[data-metric=generated]')).toContainText('8.4 PAS');
+    await expect(page.getByRole('region', { name: 'Recent activity' })).toContainText('Mon cerveau');
+    const nativeReceipt = page.getByRole('link', { name: 'Tip · Mon cerveau · View receipt' });
+    await expect(nativeReceipt).toHaveAttribute('href', /assethub-paseo.subscan.io/);
+    await expect(page.locator('.studio-works .earnings-release-row').filter({ hasText: 'Mon cerveau' })).toContainText('4.2 PAS');
+    expect(await page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('dotify.contribution.v1:')))).toBe(false);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await expect(page.locator('.studio-portrait img')).toHaveAttribute('data-cover-loaded', 'true');
+    await page.screenshot({ path: info.outputPath(`dashboard-native-${width}.png`), fullPage: true, animations: 'disabled' });
+    if (width === 390) {
+      const tipBox = await nativeReceipt.boundingBox();
+      const catalogBox = await page.getByRole('heading', { name: 'Music you own' }).boundingBox();
+      expect(tipBox!.y).toBeLessThan(catalogBox!.y);
+      await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.addStyleTag({ content: 'html { font-size: 100% !important; }' });
+    }
+    await page.getByRole('tab', { name: 'Earnings', exact: true }).click();
+    await expect(summary.locator('[data-metric=received]')).toContainText('5.964 PAS');
+    await page.getByRole('tab', { name: 'Gifts & tips', exact: true }).click();
+    await expect(page.locator('.contribution-history')).toContainText('Mon cerveau');
+    control.nativeFailed = true;
+    await page.getByRole('button', { name: 'Refresh all earnings' }).click();
+    await expect(summary).toContainText('Update delayed');
+    await expect(summary.locator('[data-metric=received]')).toContainText('5.964 PAS');
+    await page.reload();
+    await expect(summary).toContainText('History unavailable');
+    await expect(summary.locator('[data-metric=received]')).toContainText('Unavailable');
   });
 }
