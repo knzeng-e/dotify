@@ -695,9 +695,8 @@ when the authoritative catalog contains one active release for that hash, then
 broadcasts the repaired track. This continues while the host browses Music or
 You and retries after catalog verification or signaling reconnection. Guests
 cannot repair room attribution themselves; conflicting runtimes and ambiguous
-hashes keep tips unavailable. An older host must update its app and refresh the
-playing release. No listening access or second payment is needed for this
-metadata recovery.
+hashes keep tips unavailable. No listening access or second payment is needed
+for this metadata recovery.
 
 The signaling service provides the same fail-closed repair for rooms created by
 an older or cached host. It accepts only a unique active release from a fresh
@@ -705,6 +704,13 @@ API catalog snapshot, verifies the release and artist runtime on-chain, and then
 rebroadcasts the recovered runtime to the whole room. Catalog outages,
 ambiguity, inactive releases, runtime conflicts and tracks that change during
 verification remain unavailable for tipping.
+
+The signaling recovery and contribution configuration were deployed on
+2026-10-08. The dedicated server attestor is approved in the artist runtime's
+profile policy and inherited by works that do not set their own authority.
+After the signaling restart, reopen the room and use People > Receive room tips
+if the host has no current Dotify sign-in session. The server-side rollout and
+remaining physical-device checks are recorded in the deployment runbook.
 
 Review the action mapping in `PlayerView`, `PlayerTransport`,
 `ArtistDonationButton` and `AccessGateOverlay`. Browser coverage lives in
