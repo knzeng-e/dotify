@@ -232,3 +232,49 @@ two-device check must confirm that a host can browse away from the player while
 legacy room metadata is repaired, after which the guest can open the tip flow
 without the “host needs to refresh” message. No new payment is required merely
 to test that the tip action becomes available.
+
+## Room contribution activation (2026-10-08)
+
+The physical room report following Product 0.1.42 showed missing runtime
+attribution. The deployed signaling image predated contribution support, its
+public API/RPC configuration and dedicated attestor secret were absent, and the
+artist profile/work room authority was the zero address. PR #247 adds verified
+server-side runtime recovery and tracks the public configuration.
+
+After explicit owner approval, candidate
+`fa3b6d88e1ff4c897cb36e4ce225684d12198fc6` was deployed to the single AMS
+machine as image `deployment-01M4CRA7K6GEAWZRCGAN3S3E1E`. The private attestor
+key was generated in memory and staged directly into the Fly secret store; only
+its public address,
+`0xFa4A67C1b4f1E6fC6d39b0A0df4f4a4a7343aE19`, was disclosed. The runtime
+owner set that address in the profile policy of
+`0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338` via transaction
+`0x95fc6d47c147b52b5b33ee78c0537603b9c18d29d39c3d15b1a3d3e8dc684601`.
+Canonical finalized read-back at block `14164663` confirmed the version
+increment to 2 and preservation of all remaining profile fields and the
+unchanged Mon cerveau work policy. No contract upgrade was performed.
+
+- Candidate CI passed every quality gate, including Playwright. Local signaling
+  tests passed all 75 cases; formatting and scoped lint passed.
+- Deployed health, expected Product origin, denied origin and a temporary
+  walletless room join passed at `2026-10-08T03:20:39.887Z`.
+- At `2026-10-08T03:22:08.026Z`, an actual temporary room on the public service
+  recovered Mon cerveau's runtime from its hash. The Product-style Fetch host
+  and WebSocket guest both received the repaired runtime; `/status` agreed and
+  source references remained absent. The test closed its temporary room.
+- At `2026-10-08T03:23:03.199Z`, an isolated server-local proof recovered the
+  active attestor address and matched the finalized contract quote. This was
+  not a real signed-in host session, and no contribution was submitted.
+- SHA-256 checks of deployed `signaling.mjs`, `room-contributions.mjs` and
+  `signaling-utils.mjs` exactly matched the tested candidate. Fly reports one
+  started machine with the attestor and TURN secrets deployed.
+
+The image build reported 1 moderate and 29 high dependency audit findings from
+the existing production install. No dependency upgrade was included in this
+targeted activation. The physical mobile contribution-sheet/quote flow, funded
+room settlement and native receipt chat notification remain open; public room
+and isolated cryptographic checks do not prove them. Product remains 0.1.42,
+and API storage and existing contributions were not changed by this rollout.
+
+Full configuration and rollback boundary:
+[deployment runbook](../../../operations/deployment-configuration.md#room-contribution-activation-2026-10-08).

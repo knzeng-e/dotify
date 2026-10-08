@@ -6,7 +6,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 const account = privateKeyToAccount(`0x${'11'.repeat(32)}`);
 const address = account.address;
 const hash = `0x${'22'.repeat(32)}`;
-const config = { chainId: 42, directory: address, api: 'https://api.example' };
+const config = { chainId: 42, directory: address, api: 'https://api.example/api' };
 function setup() {
   const client = {
     getChainId: async () => 42,
@@ -47,6 +47,81 @@ test('a room proof binds chain, runtime, payer, work, host, unique room, amount 
 test('a claimed host identity requires a valid API session on the configured chain', async () => {
   const service = createRoomContributions(config, { fetch: async () => ({ ok: false }), signer: account });
   await assert.rejects(() => service.bind({}, 'bad-token'), /could not be verified/);
+});
+test('a fresh unique catalog release repairs missing room attribution before quoting', async () => {
+  const client = {
+    getChainId: async () => 42,
+    readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? address : [{ artist: address, active: true, title: 'Work' }])
+  };
+  const requests = [];
+  const service = createRoomContributions(config, {
+    client,
+    signer: account,
+    fetch: async url => {
+      requests.push(url);
+      if (url.endsWith('/auth/identity')) return { ok: true, json: async () => ({ address, chainId: 42 }) };
+      return {
+        ok: true,
+        json: async () => ({ release: { hash, runtimeAddress: address, active: true }, meta: { state: 'fresh' } })
+      };
+    }
+  });
+  const room = { hostId: 'host', track: { hash } };
+  const input = { runtime: address, contentHash: hash, sender: address, intentId: hash, amount: '10' };
+  await service.bind(room, 'valid-token');
+
+  const proof = await service.quote(room, input);
+
+  assert.equal(room.track.runtimeAddress, address.toLowerCase());
+  assert.match(proof.proof, /^0x[\da-f]+$/i);
+  assert.deepEqual(requests, ['https://api.example/api/auth/identity', `https://api.example/api/catalog/releases/${hash}`]);
+});
+test('room attribution recovery fails closed for stale, inactive, mismatched and ambiguous catalog results', async () => {
+  const rejectedResponses = [
+    { ok: true, body: { release: { hash, runtimeAddress: address, active: true }, meta: { state: 'stale-cache' } } },
+    { ok: true, body: { release: { hash, runtimeAddress: address, active: false }, meta: { state: 'fresh' } } },
+    { ok: true, body: { release: { hash: zeroHash, runtimeAddress: address, active: true }, meta: { state: 'fresh' } } },
+    { ok: false, body: { error: { code: 'AMBIGUOUS_RELEASE' } } }
+  ];
+
+  for (const response of rejectedResponses) {
+    const service = createRoomContributions(config, {
+      client: {
+        getChainId: async () => 42,
+        readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? address : [{ artist: address, active: true }])
+      },
+      signer: account,
+      fetch: async () => ({ ok: response.ok, json: async () => response.body })
+    });
+    const room = { hostId: 'host', track: { hash } };
+    await assert.rejects(() => service.recoverTrack(room, room.track), /could not be verified/);
+    assert.equal(room.track.runtimeAddress, undefined);
+  }
+});
+test('room attribution recovery never overwrites a track that changed during verification', async () => {
+  let resolveCatalog;
+  const catalog = new Promise(resolve => {
+    resolveCatalog = resolve;
+  });
+  const service = createRoomContributions(config, {
+    client: {
+      getChainId: async () => 42,
+      readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? address : [{ artist: address, active: true }])
+    },
+    signer: account,
+    fetch: async () => catalog
+  });
+  const expectedTrack = { hash, title: 'First work' };
+  const room = { hostId: 'host', track: expectedTrack };
+  const recovery = service.recoverTrack(room, expectedTrack);
+  room.track = { hash: zeroHash, title: 'Next work' };
+  resolveCatalog({
+    ok: true,
+    json: async () => ({ release: { hash, runtimeAddress: address, active: true }, meta: { state: 'fresh' } })
+  });
+
+  assert.equal(await recovery, null);
+  assert.deepEqual(room.track, { hash: zeroHash, title: 'Next work' });
 });
 test('a host account change invalidates an in-flight quote and a stale identity binding', async () => {
   const { service, room, input, client } = setup();

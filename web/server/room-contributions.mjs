@@ -37,7 +37,37 @@ export function createRoomContributions(config, dependencies = {}) {
     if (registered.toLowerCase() !== runtime.toLowerCase() || !track.active) throw new Error('The release could not be verified.');
     return track;
   }
+
+  async function uniqueCatalogRelease(hash) {
+    if (!config.api || !hashPattern.test(hash)) throw new Error('The room release could not be verified.');
+    const response = await request(`${config.api.replace(/\/$/, '')}/catalog/releases/${hash.toLowerCase()}`, {
+      signal: globalThis.AbortSignal.timeout(10000)
+    });
+    const body = response.ok ? await response.json() : null;
+    const release = body?.release;
+    if (
+      !response.ok ||
+      body?.meta?.state !== 'fresh' ||
+      !release?.active ||
+      release.hash?.toLowerCase() !== hash.toLowerCase() ||
+      !isAddress(release.runtimeAddress ?? '')
+    ) {
+      throw new Error('The room release could not be verified. Try again in a moment.');
+    }
+    return release;
+  }
+
+  async function recoverTrack(room, expectedTrack = room.track) {
+    if (!expectedTrack || room.track !== expectedTrack || expectedTrack.runtimeAddress || !hashPattern.test(expectedTrack.hash ?? '')) return null;
+    const release = await uniqueCatalogRelease(expectedTrack.hash);
+    await knownTrack(release.runtimeAddress, expectedTrack.hash);
+    if (room.track !== expectedTrack || room.track?.runtimeAddress || room.track?.hash?.toLowerCase() !== expectedTrack.hash.toLowerCase()) return null;
+    room.track = { ...expectedTrack, runtimeAddress: release.runtimeAddress.toLowerCase() };
+    return room.track;
+  }
+
   return {
+    recoverTrack,
     async bind(room, token, stillHost = () => true) {
       if (!config.api || typeof token !== 'string' || token.length > 4096) throw new Error('Sign in to Dotify to receive host tips.');
       const response = await request(`${config.api.replace(/\/$/, '')}/auth/identity`, {
@@ -56,15 +86,18 @@ export function createRoomContributions(config, dependencies = {}) {
       if (!isAddress(input.sender ?? '') || !hashPattern.test(input.intentId ?? '') || !/^[1-9]\d{0,76}$/.test(input.amount ?? ''))
         throw new Error('Invalid contribution.');
       if (room.track?.hash?.toLowerCase() !== input.contentHash?.toLowerCase()) throw new Error('The room track changed. Review the current track.');
+      if (!room.track?.runtimeAddress) await recoverTrack(room, room.track);
       if (room.track?.runtimeAddress?.toLowerCase() !== input.runtime?.toLowerCase())
         throw new Error('The room release could not be identified. Reopen this track.');
       const originalHost = room.hostId;
       const originalAccount = room.tipHost;
+      const originalTrack = room.track;
       await knownTrack(input.runtime, input.contentHash);
       if (
         !room.hostId ||
         room.hostId !== originalHost ||
         room.tipHost !== originalAccount ||
+        room.track !== originalTrack ||
         room.track?.hash?.toLowerCase() !== input.contentHash.toLowerCase() ||
         room.track?.runtimeAddress?.toLowerCase() !== input.runtime.toLowerCase()
       )

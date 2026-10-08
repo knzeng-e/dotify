@@ -1072,6 +1072,10 @@ Non-secret runtime values are tracked in `web/fly.signal.toml`:
 | `SIGNAL_HOST_TIMEOUT_MS`      | `120000`                                                                                                                                                                                                                     |
 | `SIGNAL_MAX_LISTENERS`        | `24`                                                                                                                                                                                                                         |
 | `SIGNAL_TURN_CAPABILITY_TTL_MS` | `120000`                                                                                                                                                                                                                   |
+| `SIGNAL_CONTRIBUTION_RPC_URL` | `https://eth-rpc-testnet.polkadot.io/`                                                                                                                                                                                       |
+| `SIGNAL_CONTRIBUTION_CHAIN_ID` | `420420417`                                                                                                                                                                                                                 |
+| `SIGNAL_CONTRIBUTION_DIRECTORY` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                               |
+| `SIGNAL_CONTRIBUTION_API_URL` | `https://dotify-api.fly.dev/api`                                                                                                                                                                                             |
 | `SIGNAL_ALLOW_MISSING_ORIGIN` | `true`                                                                                                                                                                                                                       |
 | `SIGNAL_ORIGINS`              | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 
@@ -1095,6 +1099,59 @@ because it serves authenticated upload and key-delivery routes.
 `isFull` values. When changing `SIGNAL_MAX_LISTENERS`, capture this metadata in
 room smoke evidence so the frontend capacity labels and server-enforced
 `ROOM_FULL` boundary stay aligned.
+
+When a room track has a valid content hash but no runtime address, signaling
+uses `SIGNAL_CONTRIBUTION_API_URL` to request the catalog release by hash. It
+repairs the ephemeral room metadata only when the API snapshot is fresh and the
+hash has one active release, then independently verifies the release, artist
+runtime and directory registration through `SIGNAL_CONTRIBUTION_RPC_URL` before
+rebroadcasting it. Concurrent joins share one recovery attempt, and a track
+change during verification cannot be overwritten. API/RPC outages, stale
+catalogs, ambiguous hashes, inactive releases and runtime conflicts fail closed:
+the Tip action remains unavailable. Deploy signaling for this behavior. Its
+existing contribution API/RPC settings must be configured; creating an attestor
+and approving its address in an artist policy are separate owner-authorized
+activation steps. No frontend, API or storage migration is required.
+
+### Room contribution activation (2026-10-08)
+
+Following explicit owner approval, signaling candidate
+`fa3b6d88e1ff4c897cb36e4ce225684d12198fc6` was deployed as
+`registry.fly.io/dotify-signal:deployment-01M4CRA7K6GEAWZRCGAN3S3E1E`, image
+digest `sha256:03c072d68118e1dd5e73232cdec88b5519f04e53d8aeaf0448aab6afc398e562`.
+Machine `d8d5205f929e28` remains the only writer/process in AMS (version 27).
+The four public contribution settings above and dedicated
+`SIGNAL_CONTRIBUTION_ATTESTOR_KEY` are active; the existing TURN secret remains
+deployed. No private key was printed or saved to a local file.
+
+The active attestor's public address is
+`0xFa4A67C1b4f1E6fC6d39b0A0df4f4a4a7343aE19`. The runtime owner approved this
+address for the profile policy of
+`0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338` in transaction
+`0x95fc6d47c147b52b5b33ee78c0537603b9c18d29d39c3d15b1a3d3e8dc684601`,
+canonically finalized at block `14164663`. Read-back at
+`2026-10-08T03:18:24.112Z` verified the policy's automatic version change from
+1 to 2 and that only `roomAttestor` changed. All existing destinations, shares,
+dates, campaign and description were retained; the work policy for Mon cerveau
+was unchanged and inherits the profile authority.
+
+Live checks passed: service health, origin allow/deny behavior, temporary
+walletless join, and recovery of Mon cerveau's missing runtime from a Product
+Fetch-polling host. Host and guest received the verified runtime and public
+`/status` contained it at `2026-10-08T03:22:08.026Z`. Source-bearing fields
+remained absent. A separate isolated server-local signature check recovered the
+configured attestor and matched the contract's finalized quote; it did not
+exercise a real signed-in host session or send a payment. The deployed server
+file hashes match the tested candidate. All temporary rooms were closed.
+
+The restart cleared the in-memory rooms; recreate them. If a connected host has
+no current Dotify session, People > Receive room tips starts the usual sign-in.
+Physical-device contribution-sheet/quote confirmation, funded settlement and
+native room-chat notification remain acceptance gates under #229. The API and
+Product 0.1.42 executable were not redeployed. A rollback restores the previous
+signaling image; revoking the artist's authority requires a separately approved
+policy update preserving all other current fields. Retain the dedicated secret
+for recovery/rollback until policy and deployment no longer refer to it.
 
 For a candidate build with `VITE_DOTIFY_DEBUG_PANEL=true`, the Product room
 smoke panel exports the host-side evidence accepted by the Product journey
@@ -1403,8 +1460,10 @@ bound to them. Do not replace artist runtimes to obtain the new functions.
    optional host share. A work can inherit the profile's room authority.
 6. A connected host with a valid Dotify sign-in session is bound automatically.
    Otherwise use Receive room tips to perform the normal sign-in. A listener
-   never needs that session merely to hear the room. Open/reselect the work so
-   its runtime identity is present in the current room metadata.
+   never needs that session merely to hear the room. Current clients publish the
+   work runtime directly. For older/cached clients, signaling may recover a
+   missing runtime only from one fresh catalog match that also passes on-chain
+   runtime and directory verification; otherwise tips stay unavailable.
 7. With separately authorized test funds, inspect and confirm one gift, one
    direct tip and one room tip on the intended Product device. Verify exact
    recipient amounts, canonical dated receipts, host allocation, a single chat
