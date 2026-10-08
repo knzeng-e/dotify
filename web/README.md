@@ -699,6 +699,13 @@ hashes keep tips unavailable. An older host must update its app and refresh the
 playing release. No listening access or second payment is needed for this
 metadata recovery.
 
+The signaling service provides the same fail-closed repair for rooms created by
+an older or cached host. It accepts only a unique active release from a fresh
+API catalog snapshot, verifies the release and artist runtime on-chain, and then
+rebroadcasts the recovered runtime to the whole room. Catalog outages,
+ambiguity, inactive releases, runtime conflicts and tracks that change during
+verification remain unavailable for tipping.
+
 Review the action mapping in `PlayerView`, `PlayerTransport`,
 `ArtistDonationButton` and `AccessGateOverlay`. Browser coverage lives in
 `artist-gift.spec.ts`, `classic-unlock.spec.ts`, `player-presence.spec.ts`,

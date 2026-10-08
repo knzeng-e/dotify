@@ -1096,6 +1096,17 @@ because it serves authenticated upload and key-delivery routes.
 room smoke evidence so the frontend capacity labels and server-enforced
 `ROOM_FULL` boundary stay aligned.
 
+When a room track has a valid content hash but no runtime address, signaling
+uses `SIGNAL_CONTRIBUTION_API_URL` to request the catalog release by hash. It
+repairs the ephemeral room metadata only when the API snapshot is fresh and the
+hash has one active release, then independently verifies the release, artist
+runtime and directory registration through `SIGNAL_CONTRIBUTION_RPC_URL` before
+rebroadcasting it. Concurrent joins share one recovery attempt, and a track
+change during verification cannot be overwritten. API/RPC outages, stale
+catalogs, ambiguous hashes, inactive releases and runtime conflicts fail closed:
+the Tip action remains unavailable. Deploy signaling for this behavior; no API,
+frontend, contract, secret or storage migration is required.
+
 For a candidate build with `VITE_DOTIFY_DEBUG_PANEL=true`, the Product room
 smoke panel exports the host-side evidence accepted by the Product journey
 harness. It derives room creation, stream readiness, peer connection, listener
@@ -1403,8 +1414,10 @@ bound to them. Do not replace artist runtimes to obtain the new functions.
    optional host share. A work can inherit the profile's room authority.
 6. A connected host with a valid Dotify sign-in session is bound automatically.
    Otherwise use Receive room tips to perform the normal sign-in. A listener
-   never needs that session merely to hear the room. Open/reselect the work so
-   its runtime identity is present in the current room metadata.
+   never needs that session merely to hear the room. Current clients publish the
+   work runtime directly. For older/cached clients, signaling may recover a
+   missing runtime only from one fresh catalog match that also passes on-chain
+   runtime and directory verification; otherwise tips stay unavailable.
 7. With separately authorized test funds, inspect and confirm one gift, one
    direct tip and one room tip on the intended Product device. Verify exact
    recipient amounts, canonical dated receipts, host allocation, a single chat

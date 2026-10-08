@@ -127,6 +127,7 @@ export function startSignalingServer(overrides = {}) {
   }
   const rooms = new Map();
   const contributions = createRoomContributions(config.contributions ?? {});
+  const contributionTrackRecoveries = new WeakMap();
   const realtimeMembers = createRoomRealtimeMembers();
   const clockIdentity = randomBytes(16).toString('hex');
   // One ephemeral solo-listening declaration per connected socket. No wallet,
@@ -248,6 +249,35 @@ export function startSignalingServer(overrides = {}) {
 
   function emitRooms() {
     io.emit('rooms:updated', publicRooms());
+  }
+
+  function recoverRoomContributionTrack(roomId, room, expectedTrack = room.track) {
+    if (!expectedTrack || expectedTrack.runtimeAddress) return;
+    const current = contributionTrackRecoveries.get(room);
+    if (current?.expectedTrack === expectedTrack) return;
+    const recovery = contributions.recoverTrack(room, expectedTrack);
+    contributionTrackRecoveries.set(room, { expectedTrack, recovery });
+    void recovery
+      .then(recoveredTrack => {
+        if (!recoveredTrack) return;
+        io.to(roomId).emit('room:track', recoveredTrack);
+        emitRooms();
+        logEvent('room:track-attribution-recovered', {
+          roomId,
+          hash: recoveredTrack.hash,
+          runtimeAddress: recoveredTrack.runtimeAddress
+        });
+      })
+      .catch(error => {
+        logEvent('room:track-attribution-unavailable', {
+          roomId,
+          hash: expectedTrack.hash,
+          reason: error instanceof Error ? error.message : 'Release verification failed'
+        });
+      })
+      .finally(() => {
+        if (contributionTrackRecoveries.get(room)?.recovery === recovery) contributionTrackRecoveries.delete(room);
+      });
   }
 
   function publicSoloPresence() {
@@ -504,6 +534,7 @@ export function startSignalingServer(overrides = {}) {
         expiresAt: room.createdAt + config.roomTtlMs
       });
       emitRooms();
+      recoverRoomContributionTrack(roomId, room);
     });
 
     socket.on('room:resume', (payload = {}, reply) => {
@@ -553,6 +584,7 @@ export function startSignalingServer(overrides = {}) {
         });
       }
       emitRooms();
+      recoverRoomContributionTrack(roomId, room);
     });
 
     socket.on('room:join', (payload = {}, reply) => {
@@ -619,6 +651,7 @@ export function startSignalingServer(overrides = {}) {
       io.to(roomId).emit('room:listener-count', { listenerCount });
       emitListenerRoster(roomId, room);
       emitRooms();
+      recoverRoomContributionTrack(roomId, room);
     });
 
     socket.on('room:track', track => {
@@ -635,6 +668,7 @@ export function startSignalingServer(overrides = {}) {
       room.track = nextTrack;
       socket.to(socket.data.roomId).emit('room:track', room.track);
       emitRooms();
+      recoverRoomContributionTrack(socket.data.roomId, room, nextTrack);
     });
 
     socket.on('room:lineup', (payload = []) => {
