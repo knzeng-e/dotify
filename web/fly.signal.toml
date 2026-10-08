@@ -11,8 +11,14 @@ primary_region = "ams"
   SIGNAL_HOST_TIMEOUT_MS = "120000"
   SIGNAL_MAX_LISTENERS = "24"
   SIGNAL_TURN_CAPABILITY_TTL_MS = "120000"
+  SIGNAL_CONTRIBUTION_RPC_URL = "https://eth-rpc-testnet.polkadot.io/"
+  SIGNAL_CONTRIBUTION_CHAIN_ID = "420420417"
+  SIGNAL_CONTRIBUTION_DIRECTORY = "0x4e883827d61e573094c7b777bae323070ea9f954"
+  SIGNAL_CONTRIBUTION_API_URL = "https://dotify-api.fly.dev/api"
   # SIGNAL_TURN_CAPABILITY_SECRET is a Fly secret shared with the API app as
   # TURN_CAPABILITY_SECRET. Never track its value here.
+  # SIGNAL_CONTRIBUTION_ATTESTOR_KEY is a dedicated Fly secret. Its public
+  # address must be approved in the artist contribution policy before room tips.
   # Polkadot Desktop/native hosts can omit Origin on Socket.IO handshakes.
   # Keep literal Origin: null rejected; this only permits a missing header.
   SIGNAL_ALLOW_MISSING_ORIGIN = "true"
