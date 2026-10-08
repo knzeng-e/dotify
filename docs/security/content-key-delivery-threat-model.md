@@ -190,8 +190,22 @@ Properties and boundaries:
   fetch keys the address could already obtain.
 - Revocation is an in-memory jti blocklist: process-lifetime, matching the
   single-instance deployment. Scale-out needs a shared store first.
-- If the active key-version secret is unconfigured, session auth returns 503 and
-  clients fall back to the per-request signed path (fail closed, never open).
+- The frontend caches identity tokens by API URL, account, chain, and signing
+  identity. Memory remains authoritative when persistent browser/Host storage
+  cannot be written. The 60-second refresh margin and server expiry remain in
+  force; storage failure does not extend a token or remove per-track access checks.
+- A disconnect clears cached tokens even if persistent removal fails, revokes
+  them best-effort, and invalidates pending sign-ins. A session returned after
+  disconnect is revoked rather than installed. A late 401 for an old token must
+  not erase a newer token installed by another request.
+- Legacy address-only cache entries are not reused across unverified scopes.
+  Upgrading can require one new sign-in; Free playback and room guests are
+  unaffected. Explicit sign-out also removes/revokes readable legacy entries.
+- Only a missing session route (404), or an explicit `SESSION_NOT_CONFIGURED`
+  capability response, enables the legacy per-request signed path. This negative
+  capability cache lasts 30 seconds. A generic 503/network failure asks the user
+  to retry without prompting for a signature; a failed session exchange does not
+  trigger a second per-track signature on 503.
 
 ## Logging rules
 

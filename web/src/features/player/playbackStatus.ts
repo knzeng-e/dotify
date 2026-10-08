@@ -8,6 +8,8 @@ import type { Mode } from '../../shared/types';
 export type AudioStatus =
   | 'idle' //            nothing selected yet
   | 'preparing' //       source set, decoding / loading metadata
+  | 'buffering' //       play intent retained while waiting for media
+  | 'recovering' //      reconnecting a source at the same position
   | 'autoplay-blocked' // play() was rejected; a tap is needed
   | 'syncing' // waiting for fresh host clock
   | 'host-paused'
@@ -33,6 +35,10 @@ export function playbackStatusLabel(status: AudioStatus, mode: Mode, preparingDe
   switch (status) {
     case 'preparing':
       return preparingDetail || 'Preparing audio';
+    case 'buffering':
+      return 'Loading audio';
+    case 'recovering':
+      return 'Reconnecting audio';
     case 'autoplay-blocked':
       return 'Tap play to start';
     case 'joining':

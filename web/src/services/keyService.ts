@@ -10,6 +10,7 @@
 // closed: verification simply rejects.
 
 import type { WalletClient } from 'viem';
+import { createSessionCache, type SessionScope } from './sessionCache';
 
 import { publishProductHostKeySmokeMetric, type ProductHostKeySmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
 
@@ -152,43 +153,16 @@ export type ContentKeyReleaseIdentity = {
 // The backend re-checks the on-chain policy per track on every request.
 // ---------------------------------------------------------------------------
 
-type StoredSession = { token: string; expiresAt: string };
-
-// Refresh slightly early so a token never expires mid-request.
-const SESSION_REFRESH_MARGIN_MS = 60_000;
-let sessionCapability: 'unknown' | 'available' | 'unavailable' = 'unknown';
+const sessionCache = createSessionCache(API_URL ?? '');
+let sessionCapability: { available: boolean; expiresAt: number } | null = null;
 const sessionRequests = new Map<string, Promise<string | null>>();
-
-function sessionStorageKey(address: string): string {
-  return `dotify:session:${address.toLowerCase()}`;
-}
-
-function readStoredSession(address: string, options: { requireFresh: boolean }): StoredSession | null {
-  try {
-    const raw = window.localStorage.getItem(sessionStorageKey(address));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as StoredSession;
-    if (typeof parsed.token !== 'string' || typeof parsed.expiresAt !== 'string') return null;
-    const expiresAtMs = Date.parse(parsed.expiresAt);
-    if (!Number.isFinite(expiresAtMs)) return null;
-    if (options.requireFresh && expiresAtMs - SESSION_REFRESH_MARGIN_MS <= Date.now()) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function getStoredSession(address: string): StoredSession | null {
-  return readStoredSession(address, { requireFresh: true });
-}
-
-function storeSession(address: string, session: StoredSession): void {
-  try {
-    window.localStorage.setItem(sessionStorageKey(address), JSON.stringify(session));
-  } catch {
-    // Storage unavailable: the session still works for this page lifetime via
-    // the per-request fallback; nothing to do.
-  }
+const sessionEpochs = new Map<string, number>();
+function sessionScope(signer: KeyRequestSigner, chainId: number): SessionScope {
+  return {
+    address: signer.address,
+    chainId,
+    identity: signer.signatureScheme === PRODUCT_SR25519_SIGNATURE_SCHEME ? `${signer.signatureScheme}:${signer.productPublicKey}` : 'eip191'
+  };
 }
 
 function toWalletSigner(walletClient: WalletClient): KeyRequestSigner | null {
@@ -264,39 +238,31 @@ function publishProductKeyResponseSmoke(input: {
 }
 
 export function clearStoredSession(address: string, expectedToken?: string): void {
-  try {
-    const key = sessionStorageKey(address);
-    if (expectedToken) {
-      const stored = readStoredSession(address, { requireFresh: false });
-      if (stored?.token !== expectedToken) return;
-    }
-    window.localStorage.removeItem(key);
-  } catch {
-    // ignore
-  }
+  sessionCache.clear(address, expectedToken);
 }
 
 /** Reuse a signed-in identity without opening another wallet prompt. */
 export function existingDotifySession(address: string): string | null {
-  return getStoredSession(address)?.token ?? null;
+  return sessionCache.existing(address);
 }
 
 async function isDotifySessionAvailable(): Promise<boolean> {
   if (!API_URL) return false;
-  if (sessionCapability === 'available') return true;
-  if (sessionCapability === 'unavailable') return false;
+  if (sessionCapability && sessionCapability.expiresAt > Date.now()) return sessionCapability.available;
 
   const res = await fetch(`${API_URL}/api/auth/session`, { method: 'GET' });
   if (res.ok) {
-    sessionCapability = 'available';
+    sessionCapability = { available: true, expiresAt: Date.now() + 60_000 };
     return true;
   }
-  if (res.status === 404 || res.status === 503) {
-    sessionCapability = 'unavailable';
+  const { message, code } = await parseError(res, 'Listening is temporarily unavailable. Please try again shortly.');
+  if (res.status === 404 || (res.status === 503 && code === 'SESSION_NOT_CONFIGURED')) {
+    sessionCapability = { available: false, expiresAt: Date.now() + 30_000 };
     return false;
   }
-
-  const { message, code } = await parseError(res, `Session capability check failed (${res.status})`);
+  // A proxy/network 503 is not evidence that sessions are unsupported. Do not
+  // turn an outage into wallet prompts; the next explicit attempt rechecks.
+  sessionCapability = null;
   throw new KeyServiceError(message, code);
 }
 
@@ -322,10 +288,15 @@ function buildSignInMessage(payload: { requester: string; chainId: number; nonce
  * Returns null when the backend does not support sessions (older deployment
  * or unconfigured), so callers fall back to per-request signing.
  */
-async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: number): Promise<string | null> {
+async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: number, epoch: number): Promise<string | null> {
   if (!API_URL) return null;
 
-  const stored = getStoredSession(signer.address);
+  const isCurrent = () => (sessionEpochs.get(signer.address.toLowerCase()) ?? 0) === epoch;
+  const assertCurrent = () => {
+    if (!isCurrent()) throw new KeyServiceError('Listening session cancelled after disconnect.', 'SESSION_CANCELLED');
+  };
+  const scope = sessionScope(signer, chainId);
+  const stored = sessionCache.read(scope);
   if (stored) return stored.token;
   try {
     if (!(await isDotifySessionAvailable())) {
@@ -345,7 +316,9 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
   let smokePublished = false;
   try {
     const { nonce, expiresAt } = await requestNonce(signer.address, chainId);
+    assertCurrent();
     const signature = await signer.signMessage(buildSignInMessage({ requester: signer.address, chainId, nonce, expiresAt }));
+    assertCurrent();
 
     const res = await fetch(`${API_URL}/api/auth/session`, {
       method: 'POST',
@@ -360,15 +333,16 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
       })
     });
 
-    // 404 (older backend) or 503 (session auth unconfigured): fall back to the
-    // per-request signed path rather than failing playback.
-    if (res.status === 404 || res.status === 503) {
-      sessionCapability = 'unavailable';
+    // Only a missing route proves a legacy server. A failed SIGN_IN must not
+    // immediately trigger another, per-track signature.
+    if (res.status === 404) {
+      sessionCapability = { available: false, expiresAt: Date.now() + 30_000 };
       smokePublished = true;
       keyRequestSmokeFields(signer, chainId, { phase: 'session-unavailable', path: 'session', status: res.status });
       return null;
     }
     if (!res.ok) {
+      sessionCapability = null;
       const { message, code } = await parseError(res, `Sign-in failed (${res.status})`);
       smokePublished = true;
       keyRequestSmokeFields(signer, chainId, { phase: 'session-rejected', path: 'session', status: res.status, code, error: message });
@@ -376,7 +350,11 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
     }
 
     const body = (await res.json()) as { sessionToken: string; expiresAt: string };
-    storeSession(signer.address, { token: body.sessionToken, expiresAt: body.expiresAt });
+    if (!isCurrent()) {
+      await revokeSession(body.sessionToken);
+      assertCurrent();
+    }
+    sessionCache.store(scope, { token: body.sessionToken, expiresAt: body.expiresAt });
     keyRequestSmokeFields(signer, chainId, { phase: 'session-created', path: 'session' });
     return body.sessionToken;
   } catch (error) {
@@ -394,11 +372,17 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
 
 /** Reuse one in-flight SIGN_IN request across simultaneous artist uploads. */
 export async function ensureDotifySessionForSigner(signer: KeyRequestSigner, chainId: number): Promise<string | null> {
-  const key = `${signer.address.toLowerCase()}:${chainId}`;
+  const epoch = sessionEpochs.get(signer.address.toLowerCase()) ?? 0;
+  const key = `${sessionCache.keyFor(sessionScope(signer, chainId))}:${epoch}`;
   const pending = sessionRequests.get(key);
   if (pending) return pending;
 
-  const request = openDotifySessionForSigner(signer, chainId);
+  const request = openDotifySessionForSigner(signer, chainId, epoch).then(token => {
+    if ((sessionEpochs.get(signer.address.toLowerCase()) ?? 0) !== epoch) {
+      throw new KeyServiceError('Listening session cancelled after disconnect.', 'SESSION_CANCELLED');
+    }
+    return token;
+  });
   sessionRequests.set(key, request);
   try {
     return await request;
@@ -414,14 +398,19 @@ export async function ensureDotifySession(walletClient: WalletClient, chainId: n
 
 /** Sign out: revoke the session server-side and forget the stored token. */
 export async function signOutOfDotifySession(address: string): Promise<void> {
-  const stored = readStoredSession(address, { requireFresh: false });
-  clearStoredSession(address);
-  if (!API_URL || !stored) return;
+  const key = address.toLowerCase();
+  sessionEpochs.set(key, (sessionEpochs.get(key) ?? 0) + 1);
+  const stored = sessionCache.clear(address);
+  await Promise.all(stored.map(session => revokeSession(session.token)));
+}
+
+async function revokeSession(token: string): Promise<void> {
+  if (!API_URL) return;
   try {
     await fetch(`${API_URL}/api/auth/logout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionToken: stored.token })
+      body: JSON.stringify({ sessionToken: token })
     });
   } catch {
     // Best-effort: the local token is already gone and the server token expires.

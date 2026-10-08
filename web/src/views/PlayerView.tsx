@@ -134,7 +134,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const { transport, status } = playback;
   const transportDuration = transport.duration || currentTrack?.duration || 0;
   const audioStartupDetail = mode === 'host' && (status === 'idle' || status === 'preparing') ? (catalog.audioStartupStatus ?? undefined) : undefined;
-  const isBusy = status === 'preparing' || status === 'joining' || Boolean(audioStartupDetail);
+  const isBusy = status === 'preparing' || status === 'joining' || status === 'buffering' || status === 'recovering' || Boolean(audioStartupDetail);
   const isOnAir = !isBusy && transport.playing;
   const statusLabel = isOnAir ? 'ON AIR' : !roomId && status === 'ready' ? 'Ready to listen' : playbackStatusLabel(status, mode, audioStartupDetail);
   const isRoomGuest = mode === 'listener' && Boolean(roomId);
