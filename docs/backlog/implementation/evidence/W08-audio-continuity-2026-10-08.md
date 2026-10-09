@@ -126,9 +126,12 @@ key; extension identities select only the EIP-191 scope. The address-wide
 lookup was removed so another caller cannot reintroduce ambiguous selection.
 A focused regression creates same-address Product sessions on two chains and
 proves that each exact lookup returns its own token while the EIP-191 identity
-does not inherit either Product token. No API, signaling protocol, environment,
-deployment, payment, or guest-room behavior changes.
+does not inherit either Product token. Disconnecting the host wallet, losing
+the expected chain, finding no exact session, or observing an account/signer
+mismatch now emits the empty binding so signaling clears the former recipient.
+No API, signaling protocol, environment, deployment, payment, or guest-room
+behavior changes.
 
-Follow-up validation passed: `npm run test:unit` (825/825), `npm run build`,
+Follow-up validation passed: `npm run test:unit` (831/831), `npm run build`,
 `npm run lint` (zero errors; the two existing `App.tsx` hook warnings),
 `npm run fmt:check`, and `git diff --check`.
