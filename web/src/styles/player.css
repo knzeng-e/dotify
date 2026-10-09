@@ -430,6 +430,19 @@ input[type='range']::-moz-range-thumb {
   justify-self: center;
 }
 
+.playback-failure {
+  gap: 0.5rem;
+  border-radius: var(--radius-md);
+  background: var(--warning-soft);
+  padding: 1rem;
+}
+
+.playback-failure p {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
 .solo-session-feedback .primary-action,
 .solo-session-feedback .secondary-action {
   width: 100%;
@@ -483,6 +496,12 @@ input[type='range']::-moz-range-thumb {
   border-radius: 50%;
   background: var(--surface-soft);
   color: var(--signal);
+}
+
+.panel-title > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .panel-title-text,

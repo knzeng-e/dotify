@@ -835,6 +835,15 @@ disconnect/reconnect. HTTP requests time out after 15 seconds. This does not
 change the 24-hour TTL or the API's process-epoch invalidation on restart, and
 adds no new environment setting. Free tracks and room guests stay walletless.
 
+The W29 frontend bounds session capability, nonce, session exchange, key and
+logout HTTP requests to 15 seconds each. A capability timeout fails without a
+wallet signature and can be retried; wallet approval itself is not interrupted
+by that HTTP budget. Failed startup key requests retry twice (900 ms and
+2,200 ms delays), then expose a recovery action in the player. Operators should
+check API/RPC health when that state persists. No new environment setting is
+required; validate the purposeful connect/sign-in flow in the deployed browser
+and Product host after publishing the frontend.
+
 | Key                                 | Default      | Meaning                                                                    |
 | ----------------------------------- | ------------ | -------------------------------------------------------------------------- |
 | `UPLOAD_AUTH_TTL_SECONDS`           | `300`        | Lifetime of a one-use capability for one audio, cover, or metadata upload. |

@@ -48,20 +48,95 @@ export function ListenView({
 }: ListenViewProps) {
   const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
 
+  const liveSection = (
+    <section className='live-section' aria-labelledby='live-section-title'>
+      <div className='section-heading presence-section-heading'>
+        <div>
+          <h2 id='live-section-title'>{openRooms.length ? 'Live now' : 'Rooms'}</h2>
+        </div>
+        {openRooms.length > 0 && (
+          <span className='presence-summary'>
+            {totalListening} listening in {openRooms.length} {openRooms.length === 1 ? 'room' : 'rooms'}
+          </span>
+        )}
+      </div>
+
+      {openRooms.length > 0 ? (
+        <div className='home-room-strip'>
+          {openRooms.slice(0, 6).map(room => {
+            const hostDisplayName = roomHostDisplayName(room.hostName);
+            return (
+              <button
+                className='home-room-card'
+                type='button'
+                key={room.roomId}
+                onClick={() => {
+                  if (!room.isFull) onJoinRoom(room.roomId);
+                }}
+                disabled={room.isFull}
+                aria-label={
+                  room.isFull
+                    ? hostDisplayName
+                      ? `${hostDisplayName}'s room is full`
+                      : 'This listening room is full'
+                    : hostDisplayName
+                      ? `Join ${hostDisplayName}'s room`
+                      : 'Join this listening room'
+                }
+              >
+                <span className='home-room-art' aria-hidden='true'>
+                  {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' fallbackLabel={room.track.title} />}
+                </span>
+                <span className='home-room-copy'>
+                  <span className='home-room-host'>{hostDisplayName ? `${hostDisplayName} hosts` : 'Live listening room'}</span>
+                  <strong>{room.track?.title ?? 'Audio session'}</strong>
+                  <span>{room.track?.artist ?? 'Live on Dotify'}</span>
+                  <span className='home-room-presence'>
+                    <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={25} />
+                    <small>{roomPresenceCount(room.listenerCount, true)} here</small>
+                  </span>
+                </span>
+                <span className='home-room-join'>
+                  {room.isFull ? 'Full' : 'Join'}
+                  <ArrowRight size={15} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className='live-empty'>
+          <span className='live-empty-mark' aria-hidden='true' />
+          <div>
+            <strong>No room is open yet.</strong>
+            <span>Be the first: open a room and send the link to someone.</span>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+
   return (
-    <section className='listen-home listen-home-focused' aria-labelledby='now-title'>
+    <section className='listen-home listen-home-focused' data-live={openRooms.length > 0} aria-labelledby='now-title'>
       <header className='now-intro'>
         <div>
           <h1 id='now-title'>Listen together.</h1>
+          <p className='now-intro-copy'>Open a room, share the link, and your people hear what you hear. Joining never needs an account.</p>
         </div>
+        <button className='primary-action' type='button' onClick={() => onStartRoom()}>
+          <Radio size={17} />
+          Open a room
+        </button>
       </header>
+
+      {/* Live rooms lead in the document, not only visually, when people are listening. */}
+      {openRooms.length > 0 && liveSection}
 
       <section className='catalogue-section' aria-labelledby='tracks-title'>
         <div className='section-heading'>
           <div>
             <h2 id='tracks-title'>{hasReleaseChronology(catalogTracks) ? 'New from artists' : 'Start with the music'}</h2>
           </div>
-          <span>{catalogTracks.length} available</span>
         </div>
 
         <CatalogBrowser
@@ -79,6 +154,7 @@ export function ListenView({
         />
       </section>
 
+      {openRooms.length === 0 && liveSection}
       <RecentListening
         tracks={recentListeningTracks(catalogTracks, recentTrackIds)}
         access={catalogAccessByTrackId}
@@ -87,84 +163,6 @@ export function ListenView({
         onOpen={onOpenTrack}
         onClear={onClearRecent}
       />
-      <section className='live-section' aria-labelledby='live-section-title'>
-        <div className='section-heading presence-section-heading'>
-          <div>
-            <h2 id='live-section-title'>{openRooms.length ? 'Live now' : 'Listen together'}</h2>
-          </div>
-          <div className='presence-command' role='group' aria-label={`${openRooms.length} open rooms, ${totalListening} people listening`}>
-            {openRooms.length > 0 && (
-              <dl className='presence-facts'>
-                <div>
-                  <dt>Rooms</dt>
-                  <dd>{openRooms.length}</dd>
-                </div>
-                <div>
-                  <dt>In rooms now</dt>
-                  <dd>{totalListening}</dd>
-                </div>
-              </dl>
-            )}
-            <button className='primary-action' type='button' onClick={() => onStartRoom()}>
-              <Radio size={17} />
-              Open a room
-            </button>
-          </div>
-        </div>
-
-        {openRooms.length > 0 ? (
-          <div className='home-room-strip'>
-            {openRooms.slice(0, 6).map(room => {
-              const hostDisplayName = roomHostDisplayName(room.hostName);
-              return (
-                <button
-                  className='home-room-card'
-                  type='button'
-                  key={room.roomId}
-                  onClick={() => {
-                    if (!room.isFull) onJoinRoom(room.roomId);
-                  }}
-                  disabled={room.isFull}
-                  aria-label={
-                    room.isFull
-                      ? hostDisplayName
-                        ? `${hostDisplayName}'s room is full`
-                        : 'This listening room is full'
-                      : hostDisplayName
-                        ? `Enter ${hostDisplayName}'s room`
-                        : 'Enter this listening room'
-                  }
-                >
-                  <span className='home-room-art' aria-hidden='true'>
-                    {room.track?.imageRef && <CoverImage src={room.track.imageRef} alt='' fallbackLabel={room.track.title} />}
-                  </span>
-                  <span className='home-room-copy'>
-                    <span className='home-room-host'>{hostDisplayName ? `${hostDisplayName} hosts` : 'Live listening room'}</span>
-                    <strong>{room.track?.title ?? 'Audio session'}</strong>
-                    <span>{room.track?.artist ?? 'Live on Dotify'}</span>
-                    <span className='home-room-presence'>
-                      <AvatarStack names={roomPresenceNames(room.hostName, room.listenerCount, room.roomId)} max={4} size={25} />
-                      <small>{roomPresenceCount(room.listenerCount, true)} here</small>
-                    </span>
-                  </span>
-                  <span className='home-room-join'>
-                    {room.isFull ? 'Full' : 'Enter'}
-                    <ArrowRight size={15} />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <div className='live-empty'>
-            <span className='live-empty-mark' aria-hidden='true' />
-            <div>
-              <strong>No room is open yet.</strong>
-              <span>Choose a track above, or open a room from the catalog.</span>
-            </div>
-          </div>
-        )}
-      </section>
     </section>
   );
 }

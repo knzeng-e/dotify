@@ -1116,6 +1116,7 @@ button.you-panel:hover {
 
 .release-wizard {
   display: grid;
+  align-content: start;
   gap: 1rem;
 }
 
@@ -1232,6 +1233,11 @@ button.you-panel:hover {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 0.7rem;
+}
+
+.asset-readiness strong {
+  display: block;
+  margin-bottom: 0.2rem;
 }
 
 .fields-grid {

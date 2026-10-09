@@ -52,11 +52,12 @@ function fixture(digit: string) {
   return { bytes: Buffer.concat([prefix, json, ...chunks]), firstStart: bodyOffset, failingStart: bodyOffset + chunks[0].length + chunks[1].length };
 }
 
-type Fault = 'none' | 'retry' | 'fallback' | 'slow' | 'corrupt' | 'denied' | 'failed-fallback' | 'failed-startup';
+type Fault = 'none' | 'retry' | 'fallback' | 'slow' | 'corrupt' | 'denied' | 'failed-fallback' | 'failed-startup' | 'key-retry';
 async function setup(page: Page, fault: Fault = 'none', holdRecovery = false) {
   const media = { a: fixture('1'), b: fixture('2') };
   const requests: string[] = [];
   let attempts = 0;
+  let keyRequests = 0;
   let releaseRecovery = () => {};
   const recoveryGate = new Promise<void>(resolve => {
     releaseRecovery = resolve;
@@ -65,13 +66,16 @@ async function setup(page: Page, fault: Fault = 'none', holdRecovery = false) {
     const request = route.request(),
       url = request.url();
     if (url.startsWith('http://127.0.0.1:5286') || url.startsWith('blob:http://127.0.0.1:5286/')) return route.continue();
-    if (url.endsWith('/free-key'))
+    if (url.endsWith('/free-key')) {
+      keyRequests++;
+      if (fault === 'key-retry' && keyRequests === 1) return route.fulfill({ status: 503, json: { error: 'Temporarily unavailable' } });
       return route.fulfill({
         json:
           fault === 'denied'
             ? { access: 'denied', reason: 'ACCESS_DENIED', message: 'Unavailable', hostAction: { type: 'none', label: '' } }
             : { access: 'allowed', playbackMode: 'full', contentKey: `0x${key.toString('hex')}`, runtime: `0x${'33'.repeat(20)}` }
       });
+    }
     if (url.startsWith('http://rpc.audio.test')) return route.fulfill({ json: { jsonrpc: '2.0', id: request.postDataJSON().id, result: '0x190f1b41' } });
     const match = /\/ipfs\/continuity-([ab])/.exec(url);
     if (!match) return route.fulfill({ status: 503, body: 'No live network in media regression tests' });
@@ -117,7 +121,7 @@ async function setup(page: Page, fault: Fault = 'none', holdRecovery = false) {
     );
   });
   await page.getByRole('button', { name: 'Select a', exact: true }).click();
-  return { requests, attempts: () => attempts, releaseRecovery };
+  return { requests, attempts: () => attempts, keyRequests: () => keyRequests, releaseRecovery };
 }
 
 const audio = (page: Page) => page.locator('audio').first();
@@ -139,14 +143,17 @@ test('a transient 503 retries the same segment without replacing the player', as
 
 test('full-file recovery resumes the media clock before any replacement playing event', async ({ page }) => {
   const probe = await setup(page, 'fallback', true);
-  await playing(page, 1);
+  // Recovery is deliberately held: the short buffered prefix may already
+  // be exhausted. Require the saved clock, then release the replacement.
+  await expect.poll(() => time(page)).toBeGreaterThan(1);
   await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'recovering');
+  const positionAtRelease = await time(page);
   probe.releaseRecovery();
   await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
-  await playing(page, 3);
+  await playing(page, positionAtRelease + 0.5);
   const starts = await page.evaluate(() => Reflect.get(window, 'continuityEvents') as { time: number; source: string }[]);
   expect(new Set(starts.map(start => start.source)).size).toBe(2);
-  expect(starts.at(-1)!.time).toBeGreaterThan(3);
+  expect(starts.at(-1)!.time).toBeGreaterThanOrEqual(positionAtRelease - 0.1);
 });
 
 test('pause during recovery remains paused at the saved position', async ({ page }) => {
@@ -208,6 +215,8 @@ test('a denied key never starts playback', async ({ page }) => {
   const probe = await setup(page, 'denied');
   await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'idle');
   await expect(audio(page)).toHaveJSProperty('paused', true);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', 'access-not-confirmed');
+  expect(probe.keyRequests()).toBe(3);
   // Only the public header/first ciphertext may be warmed, never decrypted.
   expect(probe.requests.some(request => request.endsWith('full'))).toBe(false);
   expect(await page.evaluate(() => Reflect.get(window, 'continuityEvents'))).toEqual([]);
@@ -226,4 +235,11 @@ test('failure before metadata settles the pending selection and permits another 
   await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
   await page.getByRole('button', { name: 'Select b', exact: true }).click();
   await playing(page);
+});
+
+test('a temporary key-service failure retries authorization and clears its failure on success', async ({ page }) => {
+  const probe = await setup(page, 'key-retry');
+  await playing(page);
+  expect(probe.keyRequests()).toBe(2);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', '');
 });

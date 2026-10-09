@@ -86,7 +86,7 @@ test('room discovery exposes an inspection panel beside the desktop list', async
   const roomCard = await openRoomsTab(page, roomId);
 
   await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
-  await page.getByRole('button', { name: '3D', exact: true }).click();
+  await page.getByRole('button', { name: 'Galaxy', exact: true }).click();
   await expectGalaxyReady(page);
   await expectGalaxyCanvasPainted(page);
   await page.getByTestId('room-galaxy-scene').screenshot({ path: testInfo.outputPath('room-galaxy-desktop.png') });
@@ -98,9 +98,9 @@ test('room discovery exposes an inspection panel beside the desktop list', async
   await expectGalaxyReady(page);
   await page.getByTestId('room-galaxy-canvas').dispatchEvent('webglcontextlost');
   await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
-  await page.getByRole('button', { name: '2D', exact: true }).click();
+  await page.getByRole('button', { name: 'Map', exact: true }).click();
   await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
-  await page.getByRole('button', { name: '3D', exact: true }).click();
+  await page.getByRole('button', { name: 'Galaxy', exact: true }).click();
   await expectGalaxyReady(page);
   await expectGalaxyCanvasPainted(page);
 

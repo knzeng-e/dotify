@@ -42,7 +42,7 @@
 }
 .studio-kicker {
   color: #ff94c5;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 .artist-console .console-tabs {
   display: flex;
@@ -84,7 +84,7 @@
 .earnings-subtitle,
 .earnings-overview .earnings-totals .earnings-total-note {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   line-height: 1.5;
 }
 .earnings-subtitle {
@@ -102,7 +102,7 @@
 }
 .earnings-sources caption {
   text-align: left;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   padding-bottom: 0.75rem;
 }
@@ -111,13 +111,13 @@
   padding: 0.8rem 0.65rem;
   text-align: right;
   overflow-wrap: anywhere;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   border-bottom: 1px solid var(--line);
 }
 .earnings-sources thead th {
   color: var(--muted);
   font-weight: 400;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 .earnings-sources th:first-child {
   text-align: left;
@@ -148,7 +148,7 @@
   background: transparent;
   color: var(--muted);
   border-bottom: 2px solid transparent;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 .earnings-detail-tabs button[aria-selected='true'] {
   color: var(--ink);
@@ -171,10 +171,10 @@
   .earnings-sources th,
   .earnings-sources td {
     padding-inline: 0.4rem;
-    font-size: 0.8rem;
+    font-size: var(--text-xs);
   }
   .earnings-sources thead th {
-    font-size: 0.7rem;
+    font-size: var(--text-xs);
   }
 }
 .studio-overview-columns {
@@ -192,7 +192,7 @@
 .studio-profile-setup h2 {
   margin: 0.35rem 0 0.6rem;
   font-family: var(--font-interface);
-  font-size: 1.35rem;
+  font-size: var(--text-xl);
   letter-spacing: 0;
 }
 .studio-profile-setup p {
@@ -209,7 +209,7 @@
   display: grid;
   gap: 0.45rem;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
 }
 .studio-profile-setup-form .primary-action {
   justify-self: start;
@@ -237,7 +237,7 @@
 .earnings-freshness,
 .earnings-definition {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 .earnings-freshness {
   display: flex;
@@ -264,7 +264,7 @@
 }
 .earnings-totals dt,
 .release-earnings-totals dt {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--muted);
   overflow-wrap: anywhere;
 }
@@ -300,7 +300,7 @@
   gap: 1rem;
 }
 .earnings-release-columns {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--muted);
   padding: 0.5rem 0;
 }
@@ -342,11 +342,11 @@
 }
 .earnings-release-title small,
 .studio-payment-preview small {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 .earnings-release-amount {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
   text-align: right;
   overflow-wrap: anywhere;
@@ -364,7 +364,7 @@
   align-items: center;
   background: transparent;
   color: var(--action);
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
 }
 .studio-payment-preview {
   display: flex;
@@ -387,7 +387,7 @@
   flex-shrink: 0;
 }
 .studio-payment-preview strong {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   overflow-wrap: anywhere;
 }
@@ -452,7 +452,7 @@
 }
 .artist-console .release-tab-copy strong {
   overflow-wrap: anywhere;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 .artist-console .release-tab-copy small {
   color: var(--muted);
@@ -467,7 +467,7 @@
   line-height: 1.2;
 }
 .artist-console .release-description {
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   overflow-wrap: anywhere;
 }
 .artist-console .release-primary-actions button {
@@ -485,7 +485,7 @@
   background: transparent;
   padding-inline: 0;
   min-height: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 .release-earnings-totals {
   display: grid;
@@ -496,7 +496,7 @@
 }
 .release-earnings-totals dd {
   margin: 0.35rem 0 0;
-  font-size: 1.15rem;
+  font-size: var(--text-lg);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
@@ -557,7 +557,7 @@
     flex: 1 0 auto;
   }
   .artist-console .console-tabs strong {
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
   }
   .earnings-totals {
     gap: 1rem;
@@ -567,7 +567,7 @@
     grid-column: 1 / -1;
   }
   .earnings-totals dd {
-    font-size: 1.3rem;
+    font-size: var(--text-xl);
   }
   .earnings-totals > div:first-child dd {
     font-size: 2rem;
@@ -596,7 +596,7 @@
   .earnings-release-amount small {
     display: block;
     color: var(--muted);
-    font-size: 0.7rem;
+    font-size: var(--text-xs);
   }
   .artist-console .release-console-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -637,7 +637,7 @@
     overflow-wrap: anywhere;
   }
   .artist-console .release-focus-copy h2 {
-    font-size: 1.3rem;
+    font-size: var(--text-xl);
   }
   .release-earnings-totals {
     grid-template-columns: repeat(2, minmax(0, 1fr));

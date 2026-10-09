@@ -483,6 +483,16 @@
       "note": "Mobile premium experience slice from the 2026-09-29 audit: room-aware mini-player, native track rails, immersive mobile player, and room mobile ergonomics. Evidence: docs/backlog/implementation/evidence/W28.md. Project 5 owns workflow status."
     },
     {
+      "id": "W29",
+      "doc": "docs/backlog/implementation/W29-ux-clarity-pass.md",
+      "issue": 250,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Next",
+      "note": "Owner-requested clarity slice from the 2026-10-08 audit, implemented by PR #249: one word per gesture, room-first home, named payment recipients, named and retried protected playback failures, room exit in the header, sign-in chained to a purposeful connect. Reverses the W21/W28 choice to keep prices off catalog cards. Evidence: docs/backlog/implementation/evidence/W29.md. Project 5 owns workflow status."
+    },
+    {
       "id": "backlog-reconciliation",
       "doc": "docs/backlog/README.md",
       "issue": 204,

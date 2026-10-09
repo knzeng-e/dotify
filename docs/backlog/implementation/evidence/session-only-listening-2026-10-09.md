@@ -27,7 +27,7 @@ this work does not add a durable session/revocation store.
 
 ## Validation and boundaries
 
-837 unit tests pass. Focused tests exercise an EIP-191 WalletClient and Product
+847 unit tests pass after integration of W29/#249 (`dev` `77710b2`). Focused tests exercise an EIP-191 WalletClient and Product
 signer across twenty distinct key requests with one signature, including a
 key-service 503; missing session capability makes zero signatures; ambiguous
 401 preserves the token; typed revocation renews once; repeated rejection and
@@ -43,3 +43,12 @@ API, then count prompts over twenty protected tracks in browser and Product.
 Sessions expire after 24 hours, refresh shortly before expiry, and are revoked
 by disconnect/API restart. Storage-blocked sessions survive only in the page.
 An interrupted login latch is page-local and holds no signature or content key.
+
+Review correction: the first failed post-approval exchange now throws the
+latched `SESSION_SIGN_IN_INTERRUPTED` error immediately, retaining the original
+error for telemetry. W29 classifies that error as a non-transient session
+interruption and shows the account recovery action in the player/host notice.
+Its retry callback opens account controls instead of replaying the track.
+Session-service unavailability remains a transient service failure with no
+wallet prompt. Merge resolution retains W29's invocation-owned errors,
+startup retries, and the session-only key path; no legacy signing returned.

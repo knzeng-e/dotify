@@ -1,4 +1,4 @@
-import { ArrowRight, ExternalLink, LogOut, Mic2, Music2, Sparkles, Users, Wallet } from 'lucide-react';
+import { ArrowRight, ExternalLink, Mic2, Music2, Power, Sparkles, Users, Wallet } from 'lucide-react';
 
 import { ProductionReadinessPanel, type ProductionReadinessPanelProps } from '../components/ProductionReadinessPanel';
 import type { WalletState } from '../hooks/useWallet';
@@ -60,9 +60,9 @@ export function YouView({
           <section className='you-panel you-invitation' aria-label='Your collection'>
             <Music2 size={28} aria-hidden='true' />
             <h3>Your collection</h3>
-            <p>Connect to find your listening access payments.</p>
+            <p>Connect to see the music you have unlocked and the artists you support.</p>
             <button className='primary-action' type='button' onClick={onShowWalletModal}>
-              Connect a wallet
+              Connect your account
             </button>
           </section>
         ) : (
@@ -72,14 +72,14 @@ export function YouView({
                 <Music2 size={18} />
               </span>
               <div>
-                <h3 id='account-dashboard-title'>Your listening access</h3>
-                <p>Listening access is checked when you open a track.</p>
+                <h3 id='account-dashboard-title'>Your collection</h3>
+                <p>Music you have unlocked stays here for this account.</p>
               </div>
               {(unlockedTrackCount > 0 || supportedArtistCount > 0) && (
                 <div className='account-summary' aria-label='Music summary'>
                   <span>
                     <strong className='tnum'>{unlockedTrackCount}</strong>
-                    access payments
+                    unlocked tracks
                   </span>
                   <span>
                     <strong className='tnum'>{supportedArtistCount}</strong>
@@ -93,7 +93,7 @@ export function YouView({
               <section className='account-detail-section' id='account-unlocked-tracks' tabIndex={-1} aria-labelledby='account-unlocked-title'>
                 <div className='account-detail-title'>
                   <Music2 size={16} />
-                  <h4 id='account-unlocked-title'>Access payments</h4>
+                  <h4 id='account-unlocked-title'>Unlocked tracks</h4>
                 </div>
                 {unlockedTracks.length > 0 ? (
                   <div className='account-detail-list'>
@@ -103,12 +103,12 @@ export function YouView({
                           <strong>{track.title}</strong>
                           <small>{track.artist}</small>
                         </span>
-                        <span className='support-record-label'>Payment recorded</span>
+                        <span className='support-record-label'>Unlocked</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p>Tracks appear here after their access payment is verified. Gifts and tips have their own history below.</p>
+                  <p>Tracks appear here once you unlock them. Gifts and tips have their own history below.</p>
                 )}
               </section>
 
@@ -124,7 +124,7 @@ export function YouView({
                         <span>
                           <strong>{artist.artist}</strong>
                           <small>
-                            {artist.trackCount} paid track{artist.trackCount === 1 ? '' : 's'}
+                            {artist.trackCount} unlocked track{artist.trackCount === 1 ? '' : 's'}
                           </small>
                         </span>
                         {artist.artistAddress && (
@@ -142,7 +142,7 @@ export function YouView({
                     ))}
                   </div>
                 ) : (
-                  <p className='account-empty'>Artists appear here when you pay for listening access to their music.</p>
+                  <p className='account-empty'>Artists appear here when you unlock their music.</p>
                 )}
               </section>
             </div>
@@ -158,7 +158,7 @@ export function YouView({
                 </span>
                 <div>
                   <strong>{artistName}</strong>
-                  <span>Your artist space</span>
+                  <span>Your artist studio</span>
                 </div>
                 <ArrowRight className='you-card-arrow' size={18} />
               </div>
@@ -179,20 +179,20 @@ export function YouView({
               </span>
             </button>
           ) : (
-            <button className='you-panel artist-setup-card' type='button' onClick={onOpenArtistStudio} aria-label='Set up your artist space'>
+            <button className='you-panel artist-setup-card' type='button' onClick={onOpenArtistStudio} aria-label='Set up your artist studio'>
               <div className='you-panel-head'>
                 <span className='you-panel-icon lime'>
                   <Sparkles size={18} />
                 </span>
                 <div>
-                  <strong>Artist space</strong>
+                  <strong>Artist studio</strong>
                   <span>Share your music</span>
                 </div>
                 <ArrowRight className='you-card-arrow' size={18} />
               </div>
               <p className='you-muted'>Publish a release and receive support.</p>
               <span className='you-studio-cta'>
-                Open artist studio
+                Open Studio
                 <ArrowRight size={15} />
               </span>
             </button>
@@ -218,7 +218,7 @@ export function YouView({
                   Manage
                 </button>
                 <button className='secondary-action compact-action' type='button' onClick={onDisconnectWallet}>
-                  <LogOut size={16} />
+                  <Power size={16} />
                   Disconnect
                 </button>
               </div>

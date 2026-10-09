@@ -47,18 +47,19 @@ export function AccessGateOverlay({
       {classicReceipt && (
         <section className='access-gate-receipt' aria-label={`Access payment for ${gate.track.title}`}>
           <div className='access-gate-price' aria-label={`Access price ${classicReceipt.supportAmount}`}>
-            <span>Listening access</span>
+            <span>Unlock this track</span>
             <strong>{classicReceipt.supportAmount}</strong>
           </div>
+          <p className='access-gate-split-title'>Where your payment goes</p>
           <dl>
             {classicReceipt.recipients.map(recipient => (
-              <div key={`${recipient.label}-${recipient.value}`}>
+              <div key={`${recipient.label}-${recipient.account ?? recipient.value}`}>
                 <dt>{recipient.label}</dt>
                 <dd>{recipient.value}</dd>
               </div>
             ))}
             <div>
-              <dt>Confirmation fee</dt>
+              <dt>Network fee</dt>
               <dd>Shown before you approve</dd>
             </div>
           </dl>
@@ -73,6 +74,20 @@ export function AccessGateOverlay({
               ))}
             </dl>
             <p>{classicReceipt.settlementNote}</p>
+            {classicReceipt.recipients.some(recipient => recipient.account) && (
+              <dl>
+                {classicReceipt.recipients
+                  .filter(recipient => recipient.account)
+                  .map(recipient => (
+                    <div key={`account-${recipient.label}-${recipient.account}`}>
+                      <dt>{recipient.label} account</dt>
+                      <dd>
+                        <code>{recipient.account}</code>
+                      </dd>
+                    </div>
+                  ))}
+              </dl>
+            )}
           </details>
         </section>
       )}

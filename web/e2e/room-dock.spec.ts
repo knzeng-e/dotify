@@ -36,7 +36,7 @@ for (const width of [320, 390, 430, 1440]) {
       await guest.getByLabel('Room code or link').fill(roomId);
       await guest.getByRole('button', { name: 'Join', exact: true }).click();
       await guest.getByLabel('Your name in the room').fill('Live guest');
-      await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+      await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
       await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
       const roomCover = await guest.locator('.cover img').getAttribute('src');
       await guest.evaluate(() => Reflect.set(window, '__dockRemoteStream', document.querySelectorAll<HTMLAudioElement>('audio')[1].srcObject));

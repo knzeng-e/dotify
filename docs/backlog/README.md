@@ -122,6 +122,17 @@ Source: `docs/design/ux-design-audit-2026-09-17.md`. Existing tickets were reuse
 | `implementation/W24-visual-system-contract.md`    | #179         | Delivered by #189                                    | One documented type, color and component system                                           |
 | `implementation/W26-french-localization.md`       | #181         | Later                                                | French interface after the pilot                                                          |
 
+## UX clarity pass (October 2026)
+
+Source: the 2026-10-08 audit of the running app, requested by the owner.
+
+| Backlog doc                             | GitHub issue | Delivery record | Goal                                                                                                                                             |
+| --------------------------------------- | ------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `implementation/W29-ux-clarity-pass.md` | #250         | PR #249         | One word per gesture, room-first home, named payment recipients, protected playback that names its failure, room exit in the header, sign-in after a purposeful connect |
+
+W29 reverses one earlier record: catalog cards show a short access cue again
+(W21 / #195 and W28 kept access details on demand).
+
 ## Remaining execution map
 
 The current implementation backlog is deliberately small. Consult Project 5
@@ -138,6 +149,7 @@ open.
 | P1       | #90          | Next                | Re-scope only the wallet-later gaps observed in pilot evidence; do not replay the delivered UX work.                                                           |
 | P1       | #214 / W27   | Next Product sprint | Prove Celerity room events behind a typed dual-transport boundary, preserve anonymous link entry, and decide each Socket.IO responsibility from live evidence. |
 | P1       | #223 / W28   | Next                | Review the mobile premium slice: room-aware mini-player, native track rails, full player clarity, and room mobile ergonomics. Evidence: `implementation/evidence/W28.md`. |
+| P1       | #250 / W29   | Next                | Review the clarity slice in PR #249, then see the playback failure states and the chained sign-in with a real wallet and inside the Product host. Evidence: `implementation/evidence/W29.md`. |
 | P2       | #12          | Product feasibility | Prove a private personhood source and address binding before implementing Human free.                                                                          |
 | P3       | #13          | Later               | Design consented cultural propagation after the first pilot.                                                                                                   |
 | P2       | #181 / W26   | Later               | Add French after W13 and the visual contract are accepted.                                                                                                     |

@@ -101,7 +101,6 @@ export function OverviewTab({
         <section className='studio-works'>
           <div className='studio-section-head'>
             <div>
-              <p className='dashboard-eyebrow'>Your catalog</p>
               <h2>Music you own</h2>
             </div>
             {releases.length > 0 && (

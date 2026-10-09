@@ -20,7 +20,7 @@ async function hostRoom(page: Page, captureMode = 'synthetic') {
 async function join(page: Page, id: string) {
   await page.goto(`/#/rooms/${id}`);
   await page.getByLabel('Your name in the room').fill('Sync guest');
-  await page.getByRole('button', { name: 'Enter and listen' }).click();
+  await page.getByRole('button', { name: 'Join and listen' }).click();
   await expect(page.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
 }
 async function seek(page: Page, percent: number) {
@@ -140,7 +140,7 @@ test('real Web Audio stays silent through repeated host pauses and local pause s
         () => Reflect.get(window, '__roomSyncStream') === document.querySelectorAll<HTMLAudioElement>('audio.native-player-source')[1].srcObject
       )
     ).toBe(true);
-    await guest.getByRole('button', { name: 'Back to Music', exact: true }).click();
+    await guest.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     await expect(guest.locator('.player-dock input[type=range]')).toBeDisabled();
     const dockProgress = Number(await guest.locator('.player-dock input[type=range]').inputValue());
     expect(Math.abs(dockProgress - (await progress(host)))).toBeLessThan(1.5);

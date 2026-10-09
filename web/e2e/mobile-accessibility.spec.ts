@@ -19,7 +19,7 @@ const surfaces = [
   'Overview',
   'Releases',
   'Earnings',
-  'Rights'
+  'Rights & support'
 ];
 
 for (const width of [390, 1440]) {
@@ -27,7 +27,7 @@ for (const width of [390, 1440]) {
     test(`accessible ${surface} at ${width}px`, async ({ page }, info) => {
       await page.setViewportSize({ width, height: 844 });
       await page.emulateMedia({ reducedMotion: 'reduce' });
-      if (['Overview', 'Releases', 'Earnings', 'Rights'].includes(surface)) {
+      if (['Overview', 'Releases', 'Earnings', 'Rights & support'].includes(surface)) {
         await page.goto('/artists?e2eArtist=happy');
         await page.getByTestId('artist-name-input').fill('E2E Artist');
         await page.getByLabel(/I understand and consent/i).check();
@@ -58,7 +58,7 @@ for (const width of [390, 1440]) {
               .click();
             await expect(page.getByRole('dialog')).toBeVisible();
           } else if (['chat', 'people', 'requests', 'share'].includes(surface)) {
-            await page.getByRole('button', { name: 'Open room', exact: true }).click();
+            await page.getByRole('button', { name: 'Open a room', exact: true }).click();
             await page.getByLabel('Your name in the room').fill('Accessibility host');
             await page.getByRole('button', { name: 'Open the room', exact: true }).click();
             await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
@@ -93,7 +93,7 @@ for (const width of [390, 1440]) {
       await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
       await expect(page.locator('html')).toHaveAttribute('data-aura-source', 'cover');
       if (surface === 'room') {
-        await page.getByRole('button', { name: 'Open room', exact: true }).click();
+        await page.getByRole('button', { name: 'Open a room', exact: true }).click();
         await page.getByLabel('Your name in the room').fill('Contrast host');
         await page.getByRole('button', { name: 'Open the room', exact: true }).click();
         await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
