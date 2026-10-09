@@ -34,8 +34,8 @@ export const PRODUCT_CASH_SETTLEMENT_EXTERNAL_DEPENDENCY =
   'Product must expose an authoritative CASH settlement or attestation path that binds the payer, recipient, CASH asset, People-chain finality, Asset-Hub runtime entitlement, and stable receipt id.';
 
 const EXPECTED_PRODUCT_PACKAGES = {
-  '@parity/product-sdk': '0.27.0',
-  '@parity/product-sdk-host': '0.19.1'
+  '@parity/product-sdk': '0.35.0',
+  '@parity/product-sdk-host': '0.25.0'
 };
 
 const RECOGNIZED_AUTHORITY = 'product-confirmed-cash-asset-hub-entitlement';

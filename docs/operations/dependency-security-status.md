@@ -1,6 +1,6 @@
 # Dependency and Security Status
 
-Last checked: 2026-10-01.
+Last checked: 2026-10-09.
 
 This record captures the dependency/security evidence for the maintenance pass
 that follows the Product payment-label work. It is not a blanket policy change:
@@ -14,6 +14,7 @@ inside their reviewed scope.
 | `web`           | `brace-expansion` override `5.0.8` -> `5.0.9`                                                                                                                                                                        | Removes the high-severity `brace-expansion` advisory from the frontend toolchain.                                                                                  |
 | `web`           | Lockfile updates inside declared ranges: `viem` `2.55.19`, `@polkadot-apps/chain-client` `2.0.6`, `@polkadot-apps/descriptors` `1.0.2`                                                                               | Keeps the Product/PAPI-facing browser stack current without changing public ranges or SDK major assumptions.                                                       |
 | `web`           | Product SDK set: `@parity/product-sdk` `0.23.0` -> `0.27.0`, host `0.16.0` -> `0.19.1`, statement-store `0.6.5` -> `0.6.9`, descriptors `0.10.0` -> `0.11.0`                                                         | Aligns Dotify's Product adapter with the September 2026 Product DevNet host/runtime baseline while preserving the standalone path and Product CDM opt-in boundary. |
+| `web`           | Product SDK set: SDK `0.27.0` -> `0.35.0`, host `0.19.1` -> `0.25.0`, statement-store `0.6.9` -> `0.6.16`, descriptors `0.11.0` -> `0.13.0`, transaction helpers `0.4.7` -> `0.4.13` | Aligns Dotify with the October 2026 Host protocol; the scoped Host-wrapper PAPI 2.2.2 override prevents npm from selecting an incompatible PAPI 3 release. |
 | `web`           | Product DevNet deploy tooling `@polkadot-community-foundation/polkadot-app-deploy` `0.13.1` -> `0.16.2`                                                                                                              | Uses the post-migration DotNS/Bulletin publication path required for new Product DevNet app records.                                                               |
 | `web`           | Product DevNet deploy tooling `0.16.2` -> `0.16.7`, with an executable environment preflight                                                                                                                        | Rejects the transient registry/resolver generation that Product Desktop did not observe and verifies the host-facing registry, content resolver, and Publisher before publication. |
 | `web`           | Product DevNet deploy tooling `@polkadot-community-foundation/polkadot-app-deploy@0.16.7` -> `@parity/polkadot-app-deploy@0.20.0`                                                                                  | Follows the upstream package rename and current DotNS DevNet profile used by Product host resolution.                                                            |
@@ -25,17 +26,19 @@ inside their reviewed scope.
 
 ## Official Version Drift
 
-Checked against npm published versions on 2026-10-01.
+Checked against npm published versions on 2026-10-09.
 
 | Package                                              | Current pinned/locked value                            | Latest published value   | Decision                                                                                                                                                                                                                                                                       |
 | ---------------------------------------------------- | ------------------------------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `@parity/product-sdk`                                | `0.27.0`                                               | `0.27.0`                 | Current.                                                                                                                                                                                                                                                                       |
-| `@parity/product-sdk-host`                           | `0.19.1`                                               | `0.19.1`                 | Current.                                                                                                                                                                                                                                                                       |
-| `@parity/product-sdk-statement-store`                | `0.6.9`                                                | `0.6.9`                  | Current.                                                                                                                                                                                                                                                                       |
-| `@parity/product-sdk-descriptors`                    | `0.11.0`                                               | `0.11.0`                 | Current.                                                                                                                                                                                                                                                                       |
+| `@parity/product-sdk`                                | `0.35.0`                                               | `0.35.0`                 | Current stable release.                                                                                                                                                                                                                                                        |
+| `@parity/product-sdk-host`                           | `0.25.0`                                               | `0.25.0`                 | Current stable release.                                                                                                                                                                                                                                                        |
+| `@parity/product-sdk-statement-store`                | `0.6.16`                                               | `0.6.16`                 | Current stable release.                                                                                                                                                                                                                                                        |
+| `@parity/product-sdk-descriptors`                    | `0.13.0`                                               | `0.13.0`                 | Current stable release.                                                                                                                                                                                                                                                        |
+| `@parity/product-sdk-tx`                             | `0.4.13`                                               | `0.4.13`                 | Current stable release.                                                                                                                                                                                                                                                        |
 | `@parity/product-sdk-signer`                         | transitively via `@parity/product-sdk/wallet`          | bundled with Product SDK | No direct dependency; import through the Product SDK export and upgrade with the SDK set.                                                                                                                                                                                      |
 | `@parity/product-sdk-address`                        | `0.2.0` transitively via `@parity/product-sdk/address` | `0.2.0`                  | Current through the Product SDK export.                                                                                                                                                                                                                                        |
-| `polkadot-api`                                       | `1.23.3`                                               | `3.0.0`                  | Blocked as a root migration: Product SDK `0.27.0` currently depends on PAPI `2.2.x`, while `@polkadot-apps/chain-client` / keys / signer depend on PAPI `1.23.x`; a direct root PAPI 3 trial removes `PolkadotSigner` and breaks `ChainDefinition` / `TypedApi` compatibility. |
+| root `polkadot-api`                                  | `1.23.3`                                               | `3.2.1`                  | Blocked as a root migration: `@polkadot-apps/chain-client` / keys / signer depend on PAPI `1.23.x`; Product packages keep their own 2.2.x graph.                                                                    |
+| Host-wrapper `polkadot-api`                          | `2.2.2` scoped override                                | compatibility pin        | Required because `@novasamatech/host-api-wrapper@0.9.2` declares `>=2`, while PAPI 3 removed `getPolkadotSignerFromPjs`; resolving 3.2.1 breaks the Product build.                                                  |
 | `@parity/polkadot-app-deploy`                        | `0.20.0`                                               | `0.20.0`                 | Current; the deploy preflight also verifies the embedded Product DevNet DotNS addresses.                                                                                                                                                                                      |
 | `react` / `react-dom`                                | `18.3.1`                                               | `19.2.8`                 | Defer as a UI/runtime migration.                                                                                                                                                                                                                                               |
 | `vite`                                               | `6.x`                                                  | `8.2.2`                  | Defer as a build-system migration.                                                                                                                                                                                                                                             |
@@ -53,17 +56,15 @@ Checked against npm published versions on 2026-10-01.
 `web`:
 
 - `brace-expansion` is fixed.
-- `npm audit --audit-level=moderate` reports 32 findings: 1 low, 3 moderate,
-  and 28 high. The report includes Product / PAPI transitive findings, host API
-  `nanoid`, and build/test tooling advisories.
-- `npm audit --omit=dev --audit-level=moderate` reports 28 runtime findings: 1
-  moderate and 27 high. These run through `baseline-browser-mapping` /
-  `browserslist`, the Product / PAPI `deepmerge-ts` path, and host API
-  `nanoid`. npm does not offer a non-breaking fix for the `deepmerge-ts` path,
-  and the forced `nanoid` path changes the `@polkadot-apps/signer` line.
-- The Product SDK `0.27.0` app bundle still needs a real Product host smoke
+- `npm audit --audit-level=moderate` reports 49 findings: 3 moderate, 42 high,
+  and 4 critical. The critical findings are in development tooling; the report
+  also includes Product/PAPI transitives and host API `nanoid`.
+- `npm audit --omit=dev --audit-level=moderate` reports 31 runtime findings: 1
+  moderate and 30 high. They run mainly through the Product/PAPI graph. npm
+  offers no compatible fix for the Host-wrapper/PAPI path.
+- The Product SDK `0.35.0` app bundle still needs a real Product host smoke
   after publication on the refreshed Product DevNet. A root
-  `polkadot-api@3.0.0` trial also did not produce a deployable graph because
+  `polkadot-api@3.2.1` trial also did not produce a deployable graph because
   the official Product SDK and `@polkadot-apps` packages still use different
   PAPI major lines.
 - Next safe action: Product host-signed transaction/resource-allocation smoke
@@ -83,10 +84,10 @@ Checked against npm published versions on 2026-10-01.
 ## Improvement Flags
 
 - Run real Product host smoke tests for Product sr25519 key/session requests
-  and the opt-in `product-cdm` runtime adapter with the SDK `0.27.0` set,
+  and the opt-in `product-cdm` runtime adapter with the SDK `0.35.0` set,
   capturing the `dotify:product-cdm-payment-smoke` read-back event for Classic
   unlocks.
-- Track root `polkadot-api` `3.0.0` separately until Product SDK and
+- Track root `polkadot-api` `3.2.1` separately until Product SDK and
   `@polkadot-apps` publish compatible packages on the same PAPI major line.
 - Plan a Hardhat 3 migration separately from app/runtime changes.
 - Keep the standalone web/API path first-class; Product SDK mode remains a

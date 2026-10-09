@@ -53,11 +53,11 @@
 		"preview": "vite preview --host 0.0.0.0 --port 4273"
 	},
 	"dependencies": {
-		"@parity/product-sdk": "0.27.0",
-		"@parity/product-sdk-descriptors": "0.11.0",
-		"@parity/product-sdk-host": "0.19.1",
-		"@parity/product-sdk-statement-store": "0.6.9",
-		"@parity/product-sdk-tx": "0.4.7",
+		"@parity/product-sdk": "0.35.0",
+		"@parity/product-sdk-descriptors": "0.13.0",
+		"@parity/product-sdk-host": "0.25.0",
+		"@parity/product-sdk-statement-store": "0.6.16",
+		"@parity/product-sdk-tx": "0.4.13",
 		"@polkadot-api/descriptors": "file:.papi/descriptors",
 		"@polkadot-apps/chain-client": "^2.0.5",
 		"@polkadot-apps/descriptors": "^1.0.1",
@@ -79,6 +79,9 @@
 		"viem": "^2.53.1"
 	},
 	"overrides": {
+		"@novasamatech/host-api-wrapper": {
+			"polkadot-api": "2.2.2"
+		},
 		"brace-expansion": "5.0.9",
 		"ws": "8.21.0"
 	},

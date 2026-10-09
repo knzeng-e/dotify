@@ -24,8 +24,8 @@ function staticSnapshot(patch = {}) {
   return {
     webPackageLock: {
       packages: {
-        'node_modules/@parity/product-sdk': { version: '0.27.0' },
-        'node_modules/@parity/product-sdk-host': { version: '0.19.1' }
+        'node_modules/@parity/product-sdk': { version: '0.35.0' },
+        'node_modules/@parity/product-sdk-host': { version: '0.25.0' }
       }
     },
     paymentModelText: "type Cash = { rail: 'product-cash'; status: 'unsupported' };",
@@ -130,7 +130,7 @@ function gate(report, id) {
 }
 
 test('packageLockVersion reads exact pinned Product package versions', () => {
-  assert.equal(packageLockVersion(staticSnapshot().webPackageLock, '@parity/product-sdk-host'), '0.19.1');
+  assert.equal(packageLockVersion(staticSnapshot().webPackageLock, '@parity/product-sdk-host'), '0.25.0');
   assert.equal(packageLockVersion(staticSnapshot().webPackageLock, '@missing/pkg'), null);
 });
 
