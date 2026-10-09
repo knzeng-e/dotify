@@ -5,7 +5,24 @@ import { RoomShareDialog } from '../components/RoomShareDialog';
 import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
 import { HostContributions } from '../components/HostContributions';
-import { ChevronDown, Coins, Copy, Check, ExternalLink, Headphones, KeyRound, Library, LogOut, QrCode, Radio, RefreshCw, Share2, Users, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ChevronDown,
+  Coins,
+  Copy,
+  Check,
+  ExternalLink,
+  Headphones,
+  KeyRound,
+  Library,
+  LogOut,
+  QrCode,
+  Radio,
+  RefreshCw,
+  Share2,
+  Users,
+  X
+} from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
 import { CoverImage } from '../components/CoverImage';
@@ -268,8 +285,18 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       )}
       {roomId && (
         <div className='room-header'>
-          <button type='button' className='icon-action room-back' onClick={onNavigateToListen} aria-label='Back to Music' title='Back to Music'>
-            <ChevronDown size={24} />
+          {/* Minimizes the room: the music keeps playing in the dock. The chevron
+              reads as "collapse" on a phone; a wide screen gets an arrow and a word. */}
+          <button
+            type='button'
+            className='icon-action room-back'
+            onClick={onNavigateToListen}
+            aria-label='Keep listening and browse'
+            title='Keep listening and browse'
+          >
+            <ChevronDown className='room-back-compact' size={24} />
+            <ArrowLeft className='room-back-wide' size={20} />
+            <span className='room-back-label'>Browse</span>
           </button>
           <div className='room-social-context'>
             <span className='room-live-chip' data-online={session.socketStatus === 'online'}>

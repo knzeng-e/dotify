@@ -144,7 +144,7 @@ for (const capture of ['standard', 'without-native-api']) {
         ).toBe(true);
       }
       expect(await host.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.offers)).toBe(offers);
-      await host.getByRole('button', { name: 'Back to Music', exact: true }).click();
+      await host.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
       await expect(host.getByRole('heading', { name: 'Listen together.', exact: true })).toBeVisible();
       await expect.poll(async () => Math.abs((await tone()) - 660)).toBeLessThan(25);
       // Re-entering our own public card must return to the room, never join it as a guest.
@@ -152,7 +152,7 @@ for (const capture of ['standard', 'without-native-api']) {
       await expect(code).toHaveText(roomId);
       await expect(host.locator('.room-live-chip')).toHaveText('Hosting');
       await expect.poll(async () => Math.abs((await tone()) - 660)).toBeLessThan(25);
-      await host.getByRole('button', { name: 'Back to Music', exact: true }).click();
+      await host.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
       await host.getByRole('link', { name: 'Dotify home', exact: true }).click();
       await expect(host.getByRole('heading', { name: 'Listen together.', exact: true })).toBeVisible();
       await host.getByRole('button', { name: 'Return to your room', exact: true }).click();

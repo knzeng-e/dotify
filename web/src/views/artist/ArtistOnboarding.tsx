@@ -63,9 +63,7 @@ export function ArtistOnboarding() {
             Dotify for Artists
           </div>
           <h1 id='artist-claim-title'>Your music, on your terms.</h1>
-          <p>
-            Publish your releases, choose how people listen, and decide where every payment goes. Your catalog stays under your control, not the platform's.
-          </p>
+          <p>Publish your releases, choose how people listen, and decide how payments are shared. Your catalog stays under your control, not the platform's.</p>
           <div className='artist-claim-actions'>
             <a className='primary-action' href='#claim-profile'>
               <UserRoundPlus size={16} />
@@ -88,7 +86,7 @@ export function ArtistOnboarding() {
           </div>
           <div>
             <strong>Support goes where you decide</strong>
-            <span>Payments, gifts and tips follow the split you publish, visible to listeners.</span>
+            <span>Listening payments follow the split you publish, shown to listeners before they pay. Gifts and tips go to the destination you set.</span>
           </div>
         </div>
       </section>

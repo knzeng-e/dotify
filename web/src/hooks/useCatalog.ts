@@ -422,8 +422,10 @@ export function useCatalog(deps: UseCatalogDeps) {
   const [accessGate, setAccessGate] = useState<AccessGate | null>(null);
   const [audioStartupStatus, setAudioStartupStatus] = useState<string | null>(null);
   const [playbackFailure, setPlaybackFailure] = useState<ProtectedPlaybackFailure | null>(null);
-  // Why the last key request returned no key. Read right after the request.
-  const lastKeyFailureRef = useRef<unknown>(null);
+  // Why a key request returned no key, by content-key cache key. Each request
+  // clears or sets only its own entry, so overlapping selections and cache
+  // hits never inherit another track's failure.
+  const keyFailuresRef = useRef(new Map<string, unknown>());
   const [fileHash, setFileHashState] = useState<`0x${string}` | ''>('');
   const [audioCID, setAudioCID] = useState('');
   const [coverCID, setCoverCID] = useState('');
@@ -749,12 +751,12 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
 
     const cacheKey = contentKeyCacheKey(contentHash, release);
+    keyFailuresRef.current.delete(cacheKey);
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
-    lastKeyFailureRef.current = null;
     if (!isKeyServiceConfigured()) return null;
     if (!connectedWallet || (!connectedWallet.createEvmClient && !connectedWallet.keyRequestSigner)) {
-      lastKeyFailureRef.current = new ProtectedPlaybackError('account-required', 'No connected account can request protected playback.');
+      keyFailuresRef.current.set(cacheKey, new ProtectedPlaybackError('account-required', 'No connected account can request protected playback.'));
       return null;
     }
 
@@ -769,7 +771,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         release
       });
       if (response.access !== 'allowed') {
-        lastKeyFailureRef.current = new ProtectedPlaybackError('access-not-confirmed', response.message);
+        keyFailuresRef.current.set(cacheKey, new ProtectedPlaybackError('access-not-confirmed', response.message));
         return null;
       }
       const keyBytes = hexToBytes(response.contentKey);
@@ -779,7 +781,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       // Fail closed: no key. Playback falls back to demo derivation or the
       // access gate; it never invents access. The cause is kept so the player
       // can retry or explain instead of failing anonymously.
-      lastKeyFailureRef.current = error;
+      keyFailuresRef.current.set(cacheKey, error);
       return null;
     }
   }
@@ -791,22 +793,22 @@ export function useCatalog(deps: UseCatalogDeps) {
    */
   async function resolveFreeContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
     const cacheKey = contentKeyCacheKey(contentHash, release);
+    keyFailuresRef.current.delete(cacheKey);
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
-    lastKeyFailureRef.current = null;
     if (!isKeyServiceConfigured()) return null;
 
     try {
       const response = await requestFreeContentKey(contentHash, release);
       if (response.access !== 'allowed') {
-        lastKeyFailureRef.current = new ProtectedPlaybackError('access-not-confirmed', response.message);
+        keyFailuresRef.current.set(cacheKey, new ProtectedPlaybackError('access-not-confirmed', response.message));
         return null;
       }
       const keyBytes = hexToBytes(response.contentKey);
       contentKeysRef.current.set(cacheKey, keyBytes);
       return keyBytes;
     } catch (error) {
-      lastKeyFailureRef.current = error;
+      keyFailuresRef.current.set(cacheKey, error);
       return null;
     }
   }
@@ -1176,14 +1178,15 @@ export function useCatalog(deps: UseCatalogDeps) {
         }
       };
       const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
+      const keyFailure = keyFailuresRef.current.get(contentKeyCacheKey(contentHash, release));
       throwIfAborted(context.signal);
       if (!serverKey) {
         publishAudioV2StartupMetric(context, {
           phase: 'error',
           errorKind: 'key-unavailable',
-          detail: `DAV2 content key unavailable (${classifyProtectedPlaybackFailure(lastKeyFailureRef.current)}).`
+          detail: `DAV2 content key unavailable (${classifyProtectedPlaybackFailure(keyFailure)}).`
         });
-        throw lastKeyFailureRef.current ?? new Error('DAV2 content key unavailable.');
+        throw keyFailure ?? new Error('DAV2 content key unavailable.');
       }
       publishAudioV2StartupMetric(context, { phase: 'key-authorized' });
       const objectUrl = await fetchAndDecryptAudioV2(context, serverKey);
@@ -1193,18 +1196,26 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
 
     const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
+    const keyFailure = keyFailuresRef.current.get(contentKeyCacheKey(contentHash, release));
     throwIfAborted(signal);
-    const response = isEncryptedAudioRef(audioRef)
-      ? await fetchAudioIpfsCid(encryptedRefToCID(audioRef), { signal })
-      : await fetchAssetRef(audioRef || gatewayUrl, { signal });
-    if (!response.ok) throw new Error(`Unable to fetch audio (${response.status})`);
-    throwIfAborted(signal);
+    let clearBytes: Uint8Array;
+    try {
+      const response = isEncryptedAudioRef(audioRef)
+        ? await fetchAudioIpfsCid(encryptedRefToCID(audioRef), { signal })
+        : await fetchAssetRef(audioRef || gatewayUrl, { signal });
+      if (!response.ok) throw new Error(`Unable to fetch audio (${response.status})`);
+      throwIfAborted(signal);
 
-    const encryptedBytes = new Uint8Array(await response.arrayBuffer());
-    // Free tracks fetch their key without a wallet or signature; everything
-    // else goes through the signed request. Both fall back to the demo
-    // bundle-derived key, which only decrypts demo-published tracks.
-    const clearBytes = serverKey ? await decryptAudio(encryptedBytes, serverKey) : await decryptTrackAudio(encryptedBytes, contentHash);
+      const encryptedBytes = new Uint8Array(await response.arrayBuffer());
+      // Free tracks fetch their key without a wallet or signature; everything
+      // else goes through the signed request. Both fall back to the demo
+      // bundle-derived key, which only decrypts demo-published tracks.
+      clearBytes = serverKey ? await decryptAudio(encryptedBytes, serverKey) : await decryptTrackAudio(encryptedBytes, contentHash);
+    } catch (error) {
+      // Without a server key, the missing key is the cause worth reporting.
+      if (isAbortError(error) || serverKey || !keyFailure) throw error;
+      throw keyFailure;
+    }
     throwIfAborted(signal);
 
     const blob = new Blob([clearBytes]);
@@ -1344,7 +1355,7 @@ export function useCatalog(deps: UseCatalogDeps) {
               break;
             } catch (error) {
               if (isAbortError(error) || !isTrackSelectionCurrent(selection)) break;
-              failureKind = classifyProtectedPlaybackFailure(lastKeyFailureRef.current ?? error);
+              failureKind = classifyProtectedPlaybackFailure(error);
               const retryDelay = PROTECTED_PLAYBACK_RETRY_DELAYS_MS[attempt];
               if (retryDelay === undefined || !isTransientProtectedPlaybackFailure(failureKind)) break;
               setAudioStartupStatus('Still preparing');

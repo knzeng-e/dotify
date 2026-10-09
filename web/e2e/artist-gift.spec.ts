@@ -184,7 +184,7 @@ test('the host repairs legacy tip metadata while browsing outside the player', a
     await guest.getByLabel('Your name in the room').fill('Recovery guest');
     await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
     await expect(guest.getByRole('button', { name: 'Tip this track', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Back to Music', exact: true }).click();
+    await page.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     await expect(page.locator('.catalogue-card').first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Tip this track', exact: true })).toHaveCount(0);
     await expect.poll(() => Boolean(hostSocket)).toBe(true);

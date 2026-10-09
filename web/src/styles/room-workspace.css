@@ -38,10 +38,30 @@
   font-size: var(--text-sm);
   font-weight: 700;
 }
-.room-exit-label {
+.room-exit-label,
+.room-back-wide,
+.room-back-label {
   display: none;
 }
+.room-back {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
 @media (min-width: 769px) {
+  .room-back {
+    display: inline-flex;
+    width: auto;
+    align-items: center;
+    gap: 0.45rem;
+    padding-inline: 0.9rem;
+  }
+  .room-back-compact {
+    display: none;
+  }
+  .room-back-wide,
+  .room-back-label {
+    display: inline;
+  }
   .room-exit-trigger {
     width: auto;
     padding-inline: 0.9rem;

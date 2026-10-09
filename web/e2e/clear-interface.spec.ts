@@ -180,7 +180,7 @@ test('clear interface restores individual playback after leaving a room', async 
     await guest.getByLabel('Your name in the room').fill('Returning listener');
     await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
     await expect(guest.getByTestId('room-code')).toHaveText(code);
-    await guest.getByRole('button', { name: 'Back to Music', exact: true }).click();
+    await guest.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     const cover = guest.getByTestId('track-artwork-action').filter({ has: guest.locator('img') });
     await expect(guest.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ })).toHaveCount(0);
     await expect(cover.first()).toBeVisible();
@@ -219,7 +219,7 @@ test('clear interface lets guests inspect releases without changing their listen
     await guest.getByLabel('Your name in the room').fill('Curious listener');
     await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
     await expect(guest.getByTestId('room-code')).toHaveText(code);
-    await guest.getByRole('button', { name: 'Back to Music', exact: true }).click();
+    await guest.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     const originalSource = await guest.locator('audio.native-player-source').first().getAttribute('src');
     const selectedTitle = await guest.locator('.catalogue-card[data-selected="true"] .catalogue-card-open').innerText();
     const keyRequests = await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests);
