@@ -825,6 +825,16 @@ For production-grade catalog evidence:
 
 Artist upload and session-boundary variables:
 
+Session-only frontend releases require `/api/auth/session` GET and POST plus
+token-based key requests. Verify session auth and `CONTENT_KEY_MASTER_SECRET`
+before rollout; older APIs without sessions now fail closed for protected
+listening. There is no per-track signing fallback. Established tokens survive
+network/503 failures; typed expiry/revocation/process-restart renews once.
+An interrupted exchange after approval requires explicit sign-in or account
+disconnect/reconnect. HTTP requests time out after 15 seconds. This does not
+change the 24-hour TTL or the API's process-epoch invalidation on restart, and
+adds no new environment setting. Free tracks and room guests stay walletless.
+
 | Key                                 | Default      | Meaning                                                                    |
 | ----------------------------------- | ------------ | -------------------------------------------------------------------------- |
 | `UPLOAD_AUTH_TTL_SECONDS`           | `300`        | Lifetime of a one-use capability for one audio, cover, or metadata upload. |

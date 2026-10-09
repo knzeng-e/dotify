@@ -174,64 +174,19 @@ describe('keyService sessions', () => {
     expect(localStorage.removeItem).toHaveBeenCalledWith(sessionKey);
   });
 
-  it('falls back to the legacy signed request without SIGN_IN when the session route is missing', async () => {
+  it.each([404, 503])('never signs per track when session capability is unavailable (%s)', async status => {
     installLocalStorage();
-    const signMessage = vi.fn(async ({ message }: { message: string }) => {
-      expect(message).toContain('Action: REQUEST_CONTENT_KEY');
-      expect(message).not.toContain('Action: SIGN_IN');
-      return `0x${'11'.repeat(65)}`;
-    });
-    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === 'https://api.test/api/auth/session' && init?.method === 'GET') return jsonResponse({ error: 'not found' }, 404);
-      if (url === 'https://api.test/api/auth/nonce') {
-        return jsonResponse({ nonce: 'a'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
-      }
-      if (url === `https://api.test/api/tracks/${CONTENT_HASH}/key-request`) return keyRequestResponse();
-      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
-    });
+    const signMessage = vi.fn(async () => PRODUCT_SIGNATURE);
+    const fetchMock = vi.fn(async () => jsonResponse({ code: 'SESSION_NOT_CONFIGURED' }, status));
     vi.stubGlobal('fetch', fetchMock);
     const { requestContentKey } = await loadKeyService();
-    const response = await requestContentKey({
-      contentHash: CONTENT_HASH,
-      purpose: 'individual',
-      walletClient: walletClient(signMessage),
-      chainId: 420420417
-    });
-
-    expect(response.access).toBe('allowed');
-    expect(signMessage).toHaveBeenCalledTimes(1);
-    expect(fetchMock).not.toHaveBeenCalledWith('https://api.test/api/auth/session', expect.objectContaining({ method: 'POST' }));
-  });
-
-  it('falls back to the legacy signed request without SIGN_IN when sessions are unconfigured', async () => {
-    installLocalStorage();
-    const signMessage = vi.fn(async ({ message }: { message: string }) => {
-      expect(message).toContain('Action: REQUEST_CONTENT_KEY');
-      expect(message).not.toContain('Action: SIGN_IN');
-      return `0x${'11'.repeat(65)}`;
-    });
-    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === 'https://api.test/api/auth/session' && init?.method === 'GET') {
-        return jsonResponse({ code: 'SESSION_NOT_CONFIGURED' }, 503);
-      }
-      if (url === 'https://api.test/api/auth/nonce') {
-        return jsonResponse({ nonce: 'b'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
-      }
-      if (url === `https://api.test/api/tracks/${CONTENT_HASH}/key-request`) return keyRequestResponse();
-      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
-    });
-    vi.stubGlobal('fetch', fetchMock);
-    const { requestContentKey } = await loadKeyService();
-
-    await requestContentKey({
-      contentHash: CONTENT_HASH,
-      purpose: 'individual',
-      walletClient: walletClient(signMessage),
-      chainId: 420420417
-    });
-
-    expect(signMessage).toHaveBeenCalledTimes(1);
-    expect(fetchMock).not.toHaveBeenCalledWith('https://api.test/api/auth/session', expect.objectContaining({ method: 'POST' }));
+    for (let index = 0; index < 3; index++) {
+      await expect(
+        requestContentKey({ walletClient: walletClient(signMessage), chainId: 420420417, purpose: 'individual', contentHash: CONTENT_HASH })
+      ).rejects.toMatchObject({ code: 'SESSION_UNAVAILABLE' });
+    }
+    expect(signMessage).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('opens a Product-signed session and then requests the key with the session token', async () => {
@@ -389,6 +344,54 @@ describe('keyService sessions', () => {
     expect(existingDotifySession({ address: ADDRESS }, 420420417)).toBeNull();
   });
 
+  it.each(['eip191', 'product'])('signs once across twenty tracks and key-service outages (%s)', async scheme => {
+    installLocalStorage();
+    const signMessage = vi.fn(async () => PRODUCT_SIGNATURE);
+    let keys = 0;
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/session') && init?.method === 'GET') return jsonResponse({ available: true });
+      if (url.endsWith('/nonce')) return jsonResponse({ nonce: 'a'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+      if (url.endsWith('/session')) return jsonResponse({ sessionToken: 'one-session', expiresAt: new Date(Date.now() + 86_400_000).toISOString() });
+      expect(JSON.parse(String(init?.body)).sessionToken).toBe('one-session');
+      return ++keys === 10 ? jsonResponse({ error: 'Temporary outage' }, 503) : keyRequestResponse();
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { requestContentKey } = await loadKeyService();
+    const identity = scheme === 'product' ? { signer: productSigner(signMessage) } : { walletClient: walletClient(signMessage) };
+    for (let index = 0; index < 20; index++) {
+      const request = {
+        ...identity,
+        chainId: 420420417,
+        purpose: 'individual' as const,
+        contentHash: `0x${index.toString(16).padStart(64, '0')}` as `0x${string}`
+      };
+      if (index === 9) await expect(requestContentKey(request)).rejects.toThrow('Temporary outage');
+      await requestContentKey(request);
+    }
+    expect(signMessage).toHaveBeenCalledTimes(1);
+    expect(signMessage.mock.calls[0]).toBeDefined();
+  });
+
+  it.each(['KEY_SERVICE_ERROR', 'SESSION_NOT_CONFIGURED', 'SESSION_INVALID'])('retains the session without signing on an ambiguous 401 (%s)', async code => {
+    installLocalStorage();
+    const signMessage = vi.fn(async () => PRODUCT_SIGNATURE);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('/session') && init?.method === 'GET') return jsonResponse({ available: true });
+        if (url.endsWith('/nonce')) return jsonResponse({ nonce: 'a'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+        if (url.endsWith('/session')) return jsonResponse({ sessionToken: 'retained', expiresAt: new Date(Date.now() + 86_400_000).toISOString() });
+        return jsonResponse({ error: 'Unavailable', code }, 401);
+      })
+    );
+    const { requestContentKey, existingDotifySession } = await loadKeyService();
+    const signer = productSigner(signMessage);
+    for (let i = 0; i < 3; i++)
+      await expect(requestContentKey({ signer, chainId: 420420417, purpose: 'individual', contentHash: CONTENT_HASH })).rejects.toMatchObject({ code });
+    expect(existingDotifySession(signer, 420420417)).toBe('retained');
+    expect(signMessage).toHaveBeenCalledTimes(1);
+  });
+
   it('does not prompt during a temporary 503 and rechecks sessions on the next attempt', async () => {
     installLocalStorage();
     const signMessage = vi.fn(async (_message: string) => PRODUCT_SIGNATURE);
@@ -453,7 +456,9 @@ describe('keyService sessions', () => {
         if (url.endsWith('/nonce')) return jsonResponse({ nonce: 'a'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
         if (url.endsWith('/session')) return jsonResponse({ sessionToken: `token-${++sessions}`, expiresAt: new Date(Date.now() + 86_400_000).toISOString() });
         keyCalls++;
-        return keyCalls === 1 ? jsonResponse({ error: 'Revoked' }, 401) : jsonResponse({ error: 'No access', code: 'ACCESS_DENIED' }, 403);
+        return keyCalls === 1
+          ? jsonResponse({ error: 'Revoked', code: 'SESSION_REVOKED' }, 401)
+          : jsonResponse({ error: 'No access', code: 'ACCESS_DENIED' }, 403);
       })
     );
     const { requestContentKey } = await loadKeyService();
@@ -478,8 +483,61 @@ describe('keyService sessions', () => {
     await expect(
       requestContentKey({ signer: productSigner(signMessage), chainId: 420420417, purpose: 'individual', contentHash: CONTENT_HASH })
     ).rejects.toThrow('Temporarily unavailable');
+    for (let i = 0; i < 3; i++)
+      await expect(
+        requestContentKey({ signer: productSigner(signMessage), chainId: 420420417, purpose: 'individual', contentHash: CONTENT_HASH })
+      ).rejects.toMatchObject({ code: 'SESSION_SIGN_IN_INTERRUPTED' });
     expect(signMessage).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls.some(([url]) => url.endsWith('/key-request'))).toBe(false);
+  });
+
+  it('requires explicit sign-in after a failed exchange, then reuses the recovered session', async () => {
+    installLocalStorage();
+    const signMessage = vi.fn(async () => PRODUCT_SIGNATURE);
+    let fail = true;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('/session') && init?.method === 'GET') return jsonResponse({ available: true });
+        if (url.endsWith('/nonce')) return jsonResponse({ nonce: 'a'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+        if (url.endsWith('/session'))
+          return fail
+            ? jsonResponse({ error: 'Offline' }, 503)
+            : jsonResponse({ sessionToken: 'recovered', expiresAt: new Date(Date.now() + 86_400_000).toISOString() });
+        return keyRequestResponse();
+      })
+    );
+    const { requestContentKey, ensureDotifySessionForSigner } = await loadKeyService();
+    const signer = productSigner(signMessage);
+    const input = { signer, chainId: 420420417, purpose: 'individual' as const, contentHash: CONTENT_HASH };
+    await expect(requestContentKey(input)).rejects.toThrow('Offline');
+    fail = false;
+    await expect(requestContentKey(input)).rejects.toMatchObject({ code: 'SESSION_SIGN_IN_INTERRUPTED' });
+    expect(signMessage).toHaveBeenCalledTimes(1);
+    await ensureDotifySessionForSigner(signer, 420420417);
+    await requestContentKey(input);
+    expect(signMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it('never loops wallet prompts when the renewed session is also rejected', async () => {
+    installLocalStorage();
+    const signMessage = vi.fn(async () => PRODUCT_SIGNATURE);
+    let sessions = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('/session') && init?.method === 'GET') return jsonResponse({ available: true });
+        if (url.endsWith('/nonce')) return jsonResponse({ nonce: 'a'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+        if (url.endsWith('/session')) return jsonResponse({ sessionToken: `token-${++sessions}`, expiresAt: new Date(Date.now() + 86_400_000).toISOString() });
+        return jsonResponse({ code: 'SESSION_REVOKED', error: 'Revoked' }, 401);
+      })
+    );
+    const { requestContentKey } = await loadKeyService();
+    for (let i = 0; i < 3; i++)
+      await expect(
+        requestContentKey({ signer: productSigner(signMessage), chainId: 420420417, purpose: 'individual', contentHash: CONTENT_HASH })
+      ).rejects.toMatchObject({ code: 'SESSION_SIGN_IN_INTERRUPTED' });
+    expect(signMessage).toHaveBeenCalledTimes(2);
   });
 
   it('coalesces simultaneous session requests for parallel asset uploads', async () => {
@@ -507,49 +565,5 @@ describe('keyService sessions', () => {
 
     expect(signMessage).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(3);
-  });
-
-  it('submits Product signature fields on the per-request fallback path', async () => {
-    installLocalStorage();
-    const signMessage = vi.fn(async (message: string) => {
-      expect(message).toContain('Action: REQUEST_CONTENT_KEY');
-      expect(message).toContain(`Requester: ${ADDRESS}`);
-      expect(message).toContain(`Release ID: ${RELEASE_ID.toLowerCase()}`);
-      expect(message).toContain(`Runtime Address: ${RUNTIME.toLowerCase()}`);
-      expect(message).toContain(`Artist Address: ${ARTIST.toLowerCase()}`);
-      expect(message).toContain(`Audio Ref: ${AUDIO_REF}`);
-      expect(message).toContain(`Key Version: ${KEY_VERSION}`);
-      return PRODUCT_SIGNATURE;
-    });
-    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === 'https://api.test/api/auth/session' && init?.method === 'GET') return jsonResponse({ error: 'not found' }, 404);
-      if (url === 'https://api.test/api/auth/nonce') {
-        return jsonResponse({ nonce: 'd'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
-      }
-      if (url === `https://api.test/api/tracks/${CONTENT_HASH}/key-request`) {
-        expect(JSON.parse(String(init?.body))).toMatchObject({
-          requester: ADDRESS,
-          signature: PRODUCT_SIGNATURE,
-          signatureScheme: 'product-sr25519-v1',
-          productPublicKey: PRODUCT_PUBLIC_KEY,
-          purpose: 'individual',
-          ...releaseIdentity()
-        });
-        return keyRequestResponse();
-      }
-      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
-    });
-    vi.stubGlobal('fetch', fetchMock);
-    const { requestContentKey } = await loadKeyService();
-
-    await requestContentKey({
-      contentHash: CONTENT_HASH,
-      purpose: 'individual',
-      signer: productSigner(signMessage),
-      chainId: 420420417,
-      release: releaseIdentity()
-    });
-
-    expect(signMessage).toHaveBeenCalledTimes(1);
   });
 });

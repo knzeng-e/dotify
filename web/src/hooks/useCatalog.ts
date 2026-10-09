@@ -15,6 +15,7 @@ import {
   LEGACY_CONTENT_KEY_VERSION,
   isKeyServiceConfigured,
   requestContentKey,
+  KeyServiceError,
   requestFreeContentKey,
   type ContentKeyReleaseIdentity,
   type KeyRequestPurpose
@@ -766,7 +767,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       const keyBytes = hexToBytes(response.contentKey);
       contentKeysRef.current.set(cacheKey, keyBytes);
       return keyBytes;
-    } catch {
+    } catch (error) {
+      if (error instanceof KeyServiceError && ['SESSION_UNAVAILABLE', 'SESSION_SIGN_IN_INTERRUPTED'].includes(error.code)) throw error;
       // Fail closed: no key. Playback falls back to demo derivation or the
       // access gate; it never invents access.
       return null;
@@ -1340,6 +1342,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
 
       if (hasAccess && track.localUrl) {
+        let startupFailure: unknown;
         audioUrl = track.encrypted
           ? await fetchAndDecryptAudio(
               track.audioRef,
@@ -1349,17 +1352,27 @@ export function useCatalog(deps: UseCatalogDeps) {
               releaseIdentityFromTrack(track),
               selection.controller.signal,
               () => isTrackSelectionCurrent(selection)
-            ).catch(() => null)
+            ).catch(error => {
+              startupFailure = error;
+              return null;
+            })
           : track.localUrl;
         if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
 
         if (!audioUrl && track.encrypted) {
           // Access is granted but the key or decryption failed. Say so plainly
           // instead of leaving a silent dead player.
+          const interrupted = startupFailure instanceof KeyServiceError && startupFailure.code === 'SESSION_SIGN_IN_INTERRUPTED';
+          const unavailable = startupFailure instanceof KeyServiceError && startupFailure.code === 'SESSION_UNAVAILABLE';
           setTransactionFeedback({
             tone: 'error',
-            title: 'Protected playback unavailable',
-            message: 'Your access checks out, but the content key could not be obtained or used. The key service may be unreachable; try again shortly.'
+            title: interrupted ? 'Confirm a new listening session' : unavailable ? 'Listening service unavailable' : 'Protected playback unavailable',
+            message: interrupted
+              ? 'Your sign-in could not finish. Disconnect and reconnect your account to confirm a new session. No payment is needed.'
+              : unavailable
+                ? 'The listening service cannot open sessions right now. Try again later; no new signature is needed.'
+                : 'Your access checks out, but the audio could not be opened. Try again shortly.',
+            recoveryAction: interrupted ? { label: 'Open account', run: openSupportWalletModal } : undefined
           });
           setAudioStartupStatus(null);
         }
