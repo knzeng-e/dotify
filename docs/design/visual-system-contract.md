@@ -17,13 +17,15 @@ size:
 | `--text-base` | `1rem` | Body copy and fields |
 | `--text-lg` | `1.125rem` | Emphasized body copy |
 | `--text-xl` | `1.25rem` | Compact section headings |
-| `--text-title` | `1.75rem` | Card and panel titles |
-| `--text-display-sm` | `clamp(2rem, 4vw, 3.5rem)` | Modal and secondary display headings |
+| `--text-title` | `1.75rem` | Card, panel and dialog titles |
+| `--text-display-sm` | `clamp(2rem, 4vw, 3.5rem)` | Page and secondary display headings; the room threshold |
 | `--text-display` | `clamp(3rem, 7vw, 6rem)` | One primary narrative heading per surface |
 
 Instrument Sans is the interface voice. Newsreader is reserved for narrative
 page, artist, release and immersive player headings; it is not used for
-controls, status, forms or technical proof. Large headings use
+controls, status, forms or technical proof. Dialog titles use the interface
+voice at `--text-title`; the one exception is the room threshold a guest lands
+on from a link, which keeps the editorial display heading (W29). Large headings use
 `--tracking-display` so letters remain distinct. The symbol-capable fallback
 stack precedes platform fallbacks so artist names containing characters such as
 `☥` remain legible when the primary face lacks a glyph.

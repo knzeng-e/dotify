@@ -89,6 +89,13 @@ new mobile evidence: room-aware mini-player state, native track rails, full
 player clarity, and room ergonomics. It must not replay delivered premium UX
 work or displace W13 release evidence gates.
 
+**W29** is the owner-requested clarity slice from the 2026-10-08 audit of the
+running app: one word per gesture, a room-first home, named payment
+recipients, protected playback that names its failure and retries in place, a
+room exit in the header, and the sign-in signature chained to a purposeful
+connection. It reverses the W21/W28 choice to keep prices off catalog cards and
+does not displace W13 release evidence gates.
+
 ## Sequences and branches
 
 | Prompt                                  | Outcome                                                     | Branch created when work starts  | Dependencies                                               |
@@ -121,6 +128,7 @@ work or displace W13 release evidence gates.
 | [W26](W26-french-localization.md)       | Offer Dotify in French (Later)                              | `feat/french-localization`       | W13, W24                                                   |
 | [W27](W27-celerity-room-realtime.md)    | Prove Product-native room realtime with Celerity            | `feat/celerity-room-realtime`    | W09, W11, W13, merged room-beacon discovery                |
 | [W28](W28-mobile-premium-experience.md) | Make mobile listening feel premium and room-aware           | `feat/mobile-premium-experience` | W10, W21, W22, W23, W24, W25                               |
+| [W29](W29-ux-clarity-pass.md)           | Make the interface self-explanatory and playback resilient  | `design/ux-clarity-pass`         | W21, W22, W23, W24, W25, W28                               |
 
 `sequence.json` records these dependencies for inspection. It intentionally contains no workflow status. For pilot outcome gates, use W13 rather than treating every proposed enhancement as mandatory. Research sequences can finish with an evidenced unsupported result; this never means the corresponding feature shipped.
 
