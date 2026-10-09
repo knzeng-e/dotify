@@ -825,6 +825,15 @@ For production-grade catalog evidence:
 
 Artist upload and session-boundary variables:
 
+The W29 frontend bounds session capability, nonce, session exchange, key and
+logout HTTP requests to 15 seconds each. A capability timeout fails without a
+wallet signature and can be retried; wallet approval itself is not interrupted
+by that HTTP budget. Failed startup key requests retry twice (900 ms and
+2,200 ms delays), then expose a recovery action in the player. Operators should
+check API/RPC health when that state persists. No new environment setting is
+required; validate the purposeful connect/sign-in flow in the deployed browser
+and Product host after publishing the frontend.
+
 | Key                                 | Default      | Meaning                                                                    |
 | ----------------------------------- | ------------ | -------------------------------------------------------------------------- |
 | `UPLOAD_AUTH_TTL_SECONDS`           | `300`        | Lifetime of a one-use capability for one audio, cover, or metadata upload. |

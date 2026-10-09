@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogTrack } from '../types';
-import { accessModeLabelFromState, catalogAccessAriaLabel, catalogAccessLabel, describeArtistRegistrationError, normalizeDisplayText } from './format';
+import {
+  accessModeLabelFromState,
+  catalogAccessAriaLabel,
+  catalogAccessLabel,
+  catalogAccessShortLabel,
+  describeArtistRegistrationError,
+  normalizeDisplayText
+} from './format';
 
 const classicTrack = {
   accessMode: 'classic',
@@ -32,6 +39,15 @@ describe('catalog access labels', () => {
 
     expect(catalogAccessLabel(inactive, 'PAS')).toBe('Inactive release');
     expect(catalogAccessAriaLabel(inactive, false, 'PAS')).toBe('Access unavailable: Inactive release');
+  });
+});
+
+describe('catalog card access cue', () => {
+  it('names the price until the track is unlocked', () => {
+    expect(catalogAccessShortLabel(classicTrack, false, 'PAS')).toBe('0.5 PAS');
+    expect(catalogAccessShortLabel(classicTrack, true, 'PAS')).toBe('Unlocked');
+    expect(catalogAccessShortLabel({ ...classicTrack, accessMode: 'free' }, false, 'PAS')).toBe('Free');
+    expect(catalogAccessShortLabel({ ...classicTrack, active: false }, true, 'PAS')).toBe('Unavailable');
   });
 });
 

@@ -14,9 +14,88 @@
   align-items: center;
   gap: 0.35rem;
 }
+.room-social-context .room-header-meta {
+  justify-self: start;
+  min-height: 1.75rem;
+  border-radius: var(--radius-full);
+  background: transparent;
+  padding: 0 0.4rem 0 0;
+  text-align: left;
+}
+.room-social-context .room-header-meta:hover {
+  color: var(--ink);
+}
 .room-back,
+.room-exit-trigger,
 .room-share-trigger {
   flex-shrink: 0;
+}
+/* Leaving is one tap from anywhere in the room; the label joins the icon when there is width for it. */
+.room-exit-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.room-exit-label,
+.room-back-wide,
+.room-back-label {
+  display: none;
+}
+.room-back {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+@media (min-width: 769px) {
+  .room-back {
+    display: inline-flex;
+    width: auto;
+    align-items: center;
+    gap: 0.45rem;
+    padding-inline: 0.9rem;
+  }
+  .room-back-compact {
+    display: none;
+  }
+  .room-back-wide,
+  .room-back-label {
+    display: inline;
+  }
+  .room-exit-trigger {
+    width: auto;
+    padding-inline: 0.9rem;
+  }
+  .room-exit-label {
+    display: inline;
+  }
+}
+.room-panel-switch button[id='room-tab-people'] {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-width: 4.25rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.room-people-count {
+  font-variant-numeric: tabular-nums;
+}
+/* The host's one outward gesture: the invite stays labeled and lit at the top of the room. */
+.room-share-trigger[data-invite] {
+  display: inline-flex;
+  width: auto;
+  align-items: center;
+  gap: 0.45rem;
+  border-color: var(--line-strong);
+  padding-inline: 0.9rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.room-share-trigger[data-invite][data-alone] {
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--on-action);
 }
 .room-share-link {
   display: block;
@@ -732,6 +811,7 @@
   .app-shell[data-composing='true'] .room-requests-panel .panel-title,
   .app-shell[data-composing='true'] .room-code-pill,
   .app-shell[data-composing='true'] .room-back,
+  .app-shell[data-composing='true'] .room-exit-trigger,
   .app-shell[data-composing='true'] .room-share-trigger,
   .app-shell[data-composing='true'] .room-social-context .room-header-meta,
   .app-shell[data-composing='true'] .player-room-mode .access-badges {

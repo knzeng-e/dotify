@@ -4,7 +4,7 @@ import { TrackArtworkButton } from './TrackArtworkButton';
 import { DotBirth } from './DotBirth';
 import { ReleaseDetailsDialog } from './ReleaseDetailsDialog';
 import { auraStyleForTrack } from '../shared/utils/aura';
-import { catalogAccessAriaLabel, normalizeDisplayText } from '../shared/utils/format';
+import { catalogAccessAriaLabel, catalogAccessShortLabel, normalizeDisplayText } from '../shared/utils/format';
 import type { CatalogTrack } from '../shared/types';
 
 // In-memory navigation state only. No listening/search history is persisted.
@@ -236,6 +236,9 @@ export function CatalogBrowser({
                   >
                     {artist}
                   </button>
+                  <span className='catalogue-card-access' data-access={accessGranted ? 'open' : 'locked'} aria-hidden='true'>
+                    {catalogAccessShortLabel(track, hasCatalogAccess, nativePaymentSymbol)}
+                  </span>
                 </div>
               </article>
             );

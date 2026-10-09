@@ -223,7 +223,7 @@ for (const width of [320, 390, 430, 1440]) {
     await openStudio(page);
     await expect(page.getByRole('region', { name: 'All earnings' })).toContainText('4.2 PAS');
     if (width <= 430) expect((await page.locator('.studio-id h1').boundingBox())!.width).toBeGreaterThan(140);
-    for (const tab of ['Overview', 'Releases', 'Earnings', 'Rights']) {
+    for (const tab of ['Overview', 'Releases', 'Earnings', 'Rights & support']) {
       await page.getByRole('tab', { name: tab, exact: true }).click();
       if (tab === 'Earnings') await addContributionSources(page);
       await expect(page.locator('.studio-portrait img')).toHaveAttribute('data-cover-loaded', 'true');

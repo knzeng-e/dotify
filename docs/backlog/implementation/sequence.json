@@ -347,6 +347,22 @@
       ],
       "issue": null,
       "phase": "Pilot polish"
+    },
+    {
+      "id": "W29",
+      "title": "Make the interface self-explanatory and playback resilient",
+      "file": "W29-ux-clarity-pass.md",
+      "branch": "design/ux-clarity-pass",
+      "dependencies": [
+        "W21",
+        "W22",
+        "W23",
+        "W24",
+        "W25",
+        "W28"
+      ],
+      "issue": 250,
+      "phase": "Pilot polish"
     }
   ]
 }

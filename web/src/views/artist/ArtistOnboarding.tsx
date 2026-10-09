@@ -46,7 +46,7 @@ export function ArtistOnboarding() {
     ? artistPublicationQuarantineReason
     : connectedWallet
       ? artistRegistrationStatus
-      : 'Connect your account to create an artist space.';
+      : 'Connect your account to create your artist profile.';
 
   return (
     <div className='artist-onboarding'>
@@ -62,10 +62,8 @@ export function ArtistOnboarding() {
             <Sparkles size={16} />
             Dotify for Artists
           </div>
-          <h1 id='artist-claim-title'>Claim your artist space on Dotify.</h1>
-          <p>
-            Create a home for your releases, choose how people listen, and decide where support goes. Dotify keeps the technical record behind the experience.
-          </p>
+          <h1 id='artist-claim-title'>Your music, on your terms.</h1>
+          <p>Publish your releases, choose how people listen, and decide how payments are shared. Your catalog stays under your control, not the platform's.</p>
           <div className='artist-claim-actions'>
             <a className='primary-action' href='#claim-profile'>
               <UserRoundPlus size={16} />
@@ -79,16 +77,16 @@ export function ArtistOnboarding() {
 
         <div className='artist-claim-proof' aria-label='Artist tools summary'>
           <div>
-            <strong>Own the release path</strong>
-            <span>One artist space per connected account, with choices attached to each release.</span>
+            <strong>You set the terms</strong>
+            <span>Free or paid, release by release. You can change or withdraw a release yourself.</span>
           </div>
           <div>
-            <strong>Publish into listening rooms</strong>
-            <span>Music enters a social catalog where people listen together in real time.</span>
+            <strong>Made for listening together</strong>
+            <span>People discover your music in live rooms, through each other.</span>
           </div>
           <div>
-            <strong>Keep context attached</strong>
-            <span>Release details, listening access, and support choices stay together.</span>
+            <strong>Support goes where you decide</strong>
+            <span>Listening payments follow the split you publish, shown to listeners before they pay. Gifts and tips go to the destination you set.</span>
           </div>
         </div>
       </section>
@@ -98,8 +96,8 @@ export function ArtistOnboarding() {
           <div className='onboarding-icon'>
             <Wallet size={28} />
           </div>
-          <h2>Register as an artist</h2>
-          <p className='onboarding-subtitle'>Three short steps create your artist space before you publish.</p>
+          <h2>Create your artist profile</h2>
+          <p className='onboarding-subtitle'>Three short steps, then you can publish.</p>
         </div>
 
         <div className='onboarding-steps'>
@@ -151,15 +149,18 @@ export function ArtistOnboarding() {
           <div className='step'>
             <div className='step-number'>3</div>
             <div className='step-content'>
-              <h3>Register your artist space</h3>
-              <p>Dotify will use your releases in real-time shared listening rooms. You choose the listening access and support terms for every release.</p>
+              <h3>Agree to shared listening</h3>
+              <p>Your releases can be played in live listening rooms. You still choose the access and support terms of every release.</p>
               <label className='consent-row'>
                 <input type='checkbox' className='consent-checkbox' checked={consented} onChange={e => setConsented(e.target.checked)} />
                 <span>I understand and consent to shared listening on Dotify.</span>
               </label>
-              <div className='registration-status'>
-                <span className='status-text'>{registrationStatus}</span>
-              </div>
+              {/* The idle default says nothing the form does not already show. */}
+              {registrationStatus !== 'Artist space not created yet' && (
+                <div className='registration-status'>
+                  <span className='status-text'>{registrationStatus}</span>
+                </div>
+              )}
               {registrationBlocker && !isRegisteringArtist && <p className='registration-guidance'>{registrationBlocker}</p>}
               <button
                 className='primary-action compact-action'
@@ -172,13 +173,13 @@ export function ArtistOnboarding() {
                 {isRegisteringArtist ? 'Registering...' : 'Create artist profile'}
               </button>
               <button
-                className='secondary-action compact-action'
+                className='text-action'
                 type='button'
                 onClick={onRefreshArtistRuntime}
                 disabled={isRefreshingArtistRuntime || !artistRegistrationConfigured || !connectedWallet}
               >
                 {isRefreshingArtistRuntime ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
-                {isRefreshingArtistRuntime ? 'Refreshing...' : 'Refresh status'}
+                {isRefreshingArtistRuntime ? 'Checking...' : 'Already created one? Check again'}
               </button>
             </div>
           </div>

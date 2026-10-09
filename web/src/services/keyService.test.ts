@@ -123,6 +123,23 @@ afterEach(() => {
 });
 
 describe('keyService sessions', () => {
+  it('bounds the capability probe and does not sign when that probe times out', async () => {
+    installLocalStorage();
+    const signMessage = vi.fn(async () => PRODUCT_SIGNATURE);
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(AbortSignal.abort(new DOMException('Timed out', 'TimeoutError')));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        init?.signal?.throwIfAborted();
+        return jsonResponse({ available: true });
+      })
+    );
+    const { ensureDotifySessionForSigner } = await loadKeyService();
+    await expect(ensureDotifySessionForSigner(productSigner(signMessage), 420420417)).rejects.toMatchObject({ name: 'TimeoutError' });
+    expect(timeout).toHaveBeenCalledWith(15_000);
+    expect(signMessage).not.toHaveBeenCalled();
+  });
+
   it('revokes a stored token on sign-out even inside the refresh margin', async () => {
     const sessionKey = `dotify:session:${ADDRESS}`;
     const { store } = installLocalStorage([

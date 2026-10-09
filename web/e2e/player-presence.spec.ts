@@ -68,7 +68,7 @@ for (const [width, height] of [
     await stage.getByRole('button', { name: 'Shuffle', exact: true }).click();
     await expect(stage.getByRole('button', { name: 'Shuffle', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await page.screenshot({ path: testInfo.outputPath('solo-player.png') });
-    await page.getByRole('button', { name: 'Open room', exact: true }).click();
+    await page.getByRole('button', { name: 'Open a room', exact: true }).click();
     await page.getByLabel('Your name in the room').fill('Player host');
     await page.getByRole('button', { name: 'Open the room', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);

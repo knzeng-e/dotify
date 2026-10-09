@@ -5,7 +5,24 @@ import { RoomShareDialog } from '../components/RoomShareDialog';
 import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
 import { HostContributions } from '../components/HostContributions';
-import { ChevronDown, Coins, Copy, Check, ExternalLink, Headphones, KeyRound, Library, QrCode, Radio, Share2, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ChevronDown,
+  Coins,
+  Copy,
+  Check,
+  ExternalLink,
+  Headphones,
+  KeyRound,
+  Library,
+  LogOut,
+  QrCode,
+  Radio,
+  RefreshCw,
+  Share2,
+  Users,
+  X
+} from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
 import { CoverImage } from '../components/CoverImage';
@@ -22,6 +39,7 @@ import { roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount, roomPres
 import { playbackTrack, playbackTrackDetails } from '../features/player/playbackPresentation';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
+import { protectedPlaybackFailureCopy } from '../features/catalog/protectedPlaybackFailure';
 import { resolvePlaybackContributionTrack, resolveRoomContributionTrack } from '../features/donations/roomContributionTrack';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
@@ -37,7 +55,7 @@ type PlayerViewProps = {
 export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewProps) {
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const { playback } = usePlaybackContext();
+  const { playback, openTrack } = usePlaybackContext();
   const { openWalletModal } = useUiFeedback();
   const { navigateToView, setPublicArtistName } = useNavigation();
   const { title, artistName, accessMode, priceDot } = useReleaseForm();
@@ -115,11 +133,13 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const [shareOpen, setShareOpen] = useState(false);
   const [detailsTrack, setDetailsTrack] = useState<CatalogTrack | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [roomPanel, setRoomPanel] = useState<'chat' | 'queue' | 'people'>('chat');
   const [chatUnread, setChatUnread] = useState(false);
   useEffect(() => {
     setRoomPanel('chat');
     setShareOpen(false);
+    setConfirmCloseOpen(false);
     setChatUnread(false);
   }, [roomId]);
   useEffect(() => {
@@ -150,7 +170,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     : selectedTrackInactive
       ? 'Release unavailable'
       : needsTrackAccess
-        ? 'Listening closed'
+        ? 'Locked'
         : effectiveAccessMode === 'classic'
           ? 'Full track opened'
           : 'Ready to listen';
@@ -178,6 +198,30 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
   );
   const showAudioRetry = Boolean(mode === 'listener' && roomId && !productHostWebRtcUnavailable && (!remoteReady || status === 'no-audio'));
+  // Authorized, but no sound: name the cause and retry in place. Guests never
+  // request a key, so this only concerns the solo listener or the room host.
+  const playbackFailure =
+    !isRoomGuest && selectedTrack && catalog.playbackFailure?.trackId === selectedTrack.id
+      ? { kind: catalog.playbackFailure.kind, ...protectedPlaybackFailureCopy(catalog.playbackFailure.kind) }
+      : null;
+  const onRetryPlayback = () => {
+    if (!selectedTrack) return;
+    if (playbackFailure?.kind === 'account-required') onShowSupportWalletModal();
+    else openTrack(selectedTrack);
+  };
+  // The People tab only exists in the compact layouts; elsewhere the list is
+  // already on screen, so bring it into view instead of hiding the chat.
+  const onShowPeople = () => {
+    const tab = document.getElementById('room-tab-people');
+    if (tab && tab.getClientRects().length > 0) setRoomPanel('people');
+    else document.getElementById('room-panel-people')?.scrollIntoView({ block: 'nearest' });
+  };
+  // Closing ends the room for everyone, so a host with guests confirms first.
+  const onExitRoom = () => {
+    if (mode === 'host' && activeListeners.length > 0) setConfirmCloseOpen(true);
+    else onLeaveSession();
+  };
+  const passiveSignalFailure = !roomId && sessionAction === 'idle' && sessionStatus === 'Ready' && session.socketStatus !== 'online';
   const soloRoomRecoveryIsJoin = mode === 'listener' || /room closed|expired|host left/i.test(`${sessionStatus} ${error ?? ''}`);
 
   // Unlock ritual (Constellation phase C): when THIS track's real access flips
@@ -241,19 +285,29 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       )}
       {roomId && (
         <div className='room-header'>
-          <button type='button' className='icon-action room-back' onClick={onNavigateToListen} aria-label='Back to Music' title='Back to Music'>
-            <ChevronDown size={24} />
+          {/* Minimizes the room: the music keeps playing in the dock. The chevron
+              reads as "collapse" on a phone; a wide screen gets an arrow and a word. */}
+          <button
+            type='button'
+            className='icon-action room-back'
+            onClick={onNavigateToListen}
+            aria-label='Keep listening and browse'
+            title='Keep listening and browse'
+          >
+            <ChevronDown className='room-back-compact' size={24} />
+            <ArrowLeft className='room-back-wide' size={20} />
+            <span className='room-back-label'>Browse</span>
           </button>
           <div className='room-social-context'>
             <span className='room-live-chip' data-online={session.socketStatus === 'online'}>
               <span className='live-dot' data-online={session.socketStatus === 'online'} aria-hidden='true' />
               {session.socketStatus === 'online' ? (mode === 'host' ? 'Hosting' : 'Together') : 'Reconnecting'}
             </span>
-            <span className='room-header-meta'>
+            <button className='room-header-meta' type='button' onClick={onShowPeople} title='See who is here'>
               {session.socketStatus === 'online' && <AvatarStack {...roomPresencePreview(visibleHostName || '', listeners, listenerCount)} max={3} size={22} />}
               {session.socketStatus === 'online' ? `${presenceCount} here · ` : ''}
               {mode === 'host' ? 'you host' : visibleHostName ? `with ${visibleHostName}` : 'listening together'}
-            </span>
+            </button>
           </div>
           {/* Room playback mode metadata hook (always 'full' since access model
               v2 retired the preview; kept for wire compatibility); the visible cue lives
@@ -289,8 +343,31 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <span className='sr-only' data-testid='room-code'>
             {roomId}
           </span>
-          <button className='icon-action room-share-trigger' type='button' onClick={() => setShareOpen(true)} aria-label='Share room' title='Share room'>
+          <button
+            className='icon-action room-exit-trigger'
+            type='button'
+            onClick={onExitRoom}
+            aria-label={mode === 'host' ? 'Close room' : 'Leave'}
+            title={mode === 'host' ? 'Close this room for everyone' : 'Leave this room'}
+          >
+            <LogOut size={20} />
+            <span className='room-exit-label'>{mode === 'host' ? 'Close room' : 'Leave'}</span>
+          </button>
+          <button
+            className='icon-action room-share-trigger'
+            type='button'
+            data-invite={mode === 'host' || undefined}
+            data-alone={hostIsAlone || undefined}
+            onClick={() => setShareOpen(true)}
+            aria-label='Share room'
+            title='Share room'
+          >
             <Share2 size={20} />
+            {mode === 'host' && (
+              <span className='room-share-label' aria-hidden='true'>
+                Invite
+              </span>
+            )}
           </button>
         </div>
       )}
@@ -300,10 +377,12 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           showAudioRetry ||
           productHostWebRtcUnavailable ||
           error ||
+          playbackFailure ||
           /reconnecting/i.test(sessionStatus)) && (
-          <div className='room-connection-note' role='status'>
+          <div className='room-connection-note' role='status' data-testid={playbackFailure && !error ? 'playback-failure' : undefined}>
             <span>
               {error ||
+                (playbackFailure ? `${playbackFailure.title}. ${playbackFailure.message}` : '') ||
                 (/reconnecting/i.test(sessionStatus) ? 'Reconnecting to the listening moment.' : '') ||
                 (session.socketStatus !== 'online'
                   ? 'Reconnecting to the room. Your draft stays here.'
@@ -316,6 +395,10 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             {productHostWebRtcUnavailable ? (
               <button type='button' onClick={() => void session.openRoomInBrowser()}>
                 Continue in browser
+              </button>
+            ) : playbackFailure && !error ? (
+              <button type='button' onClick={onRetryPlayback}>
+                {playbackFailure.action}
               </button>
             ) : (
               (showManualAudioStart || showAudioRetry) && (
@@ -359,7 +442,17 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 tabs[next].focus();
               }}
             >
-              {panel === 'chat' ? 'Chat' : panel === 'queue' ? 'Queue' : session.socketStatus === 'online' ? `People · ${presenceCount}` : 'People'}
+              {panel === 'chat' ? (
+                'Chat'
+              ) : panel === 'queue' ? (
+                'Queue'
+              ) : (
+                <>
+                  <Users size={18} aria-hidden='true' />
+                  <span className='sr-only'>{session.socketStatus === 'online' ? 'People · ' : 'People'}</span>
+                  {session.socketStatus === 'online' && <span className='room-people-count'>{presenceCount}</span>}
+                </>
+              )}
               {panel === 'chat' && chatUnread && <span className='room-chat-unread' role='img' aria-label='New messages' />}
               {panel === 'queue' && session.requestQueue.length > 0 && (
                 <span className='room-request-count' aria-label={`${session.requestQueue.length} requests`}>
@@ -533,18 +626,28 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       {!roomId && canHostSelectedTrack && (
         <div className='solo-room-invite'>
           <div>
-            <span className='eyebrow'>One link away</span>
             <strong>Make this track a shared room.</strong>
             <p>Invite someone into what you’re hearing. All they need is the link.</p>
           </div>
           <button className='primary-action compact-action' type='button' onClick={onShowCreateModal}>
             <Radio size={16} />
-            Open room
+            Open a room
           </button>
         </div>
       )}
 
-      {!roomId && error && (
+      {!roomId && playbackFailure && (
+        <div className='solo-session-feedback playback-failure' role='alert' data-testid='playback-failure' data-kind={playbackFailure.kind}>
+          <strong>{playbackFailure.title}</strong>
+          <p>{playbackFailure.message}</p>
+          <button className='primary-action' type='button' onClick={onRetryPlayback}>
+            <RefreshCw size={16} />
+            {playbackFailure.action}
+          </button>
+        </div>
+      )}
+
+      {!roomId && error && !passiveSignalFailure && (
         <div className='solo-session-feedback'>
           <p className='error-box' data-testid='session-error'>
             {error}
@@ -669,10 +772,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   </div>
                 )}
               </div>
-
-              <button className='secondary-action' type='button' onClick={onLeaveSession}>
-                Close room
-              </button>
             </>
           )}
 
@@ -756,10 +855,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   </button>
                 </div>
               </form>
-
-              <button className='secondary-action' type='button' onClick={onLeaveSession}>
-                Leave
-              </button>
             </>
           )}
 
@@ -805,7 +900,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                     ? 'Inactive release'
                     : effectiveAccessMode === 'classic'
                       ? needsTrackAccess
-                        ? `${effectivePaymentAmount} to open`
+                        ? `${effectivePaymentAmount} to unlock`
                         : 'Access verified'
                       : 'Open in this room'
               }
@@ -841,6 +936,37 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         />
       )}
       {queueOpen && !roomId && <PlayerQueueDialog onClose={() => setQueueOpen(false)} />}
+      {confirmCloseOpen && roomId && mode === 'host' && (
+        <Dialog
+          className='room-close-dialog'
+          size='compact'
+          labelledBy='room-close-title'
+          describedBy='room-close-copy'
+          onClose={() => setConfirmCloseOpen(false)}
+        >
+          <div className='modal-copy'>
+            <h2 id='room-close-title'>Close this room?</h2>
+            <p id='room-close-copy'>
+              {activeListeners.length === 1 ? '1 person is' : `${activeListeners.length} people are`} listening with you. Closing ends the room for everyone.
+            </p>
+          </div>
+          <div className='modal-actions'>
+            <button
+              className='primary-action'
+              type='button'
+              onClick={() => {
+                setConfirmCloseOpen(false);
+                onLeaveSession();
+              }}
+            >
+              Close for everyone
+            </button>
+            <button className='secondary-action' type='button' onClick={() => setConfirmCloseOpen(false)}>
+              Keep listening
+            </button>
+          </div>
+        </Dialog>
+      )}
     </section>
   );
 }

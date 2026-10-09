@@ -1,5 +1,5 @@
 import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
-import { ArrowRight, Box, Headphones, Map as MapIcon, Radio, RefreshCw, Users, X } from 'lucide-react';
+import { ArrowRight, Box, Map as MapIcon, Radio, RefreshCw, Users, X } from 'lucide-react';
 import type { FormEvent, Ref } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -86,9 +86,8 @@ export function RoomsView({
     <section className='rooms-landing rooms-landing-focused' aria-labelledby='rooms-title'>
       <header className='rooms-intro'>
         <div>
-          <p className='eyebrow'>Listening rooms</p>
-          <h1 id='rooms-title'>Live listening rooms.</h1>
-          <p className='rooms-intro-copy'>Open a room from a track, or join with a code.</p>
+          <h1 id='rooms-title'>Listening rooms.</h1>
+          <p className='rooms-intro-copy'>Join people who are listening right now, or open your own room and share the link.</p>
         </div>
       </header>
 
@@ -107,7 +106,7 @@ export function RoomsView({
                   onClick={() => setDiscoveryRenderer('galaxy-3d')}
                 >
                   <Box size={15} />
-                  3D
+                  Galaxy
                 </button>
                 <button
                   type='button'
@@ -116,11 +115,11 @@ export function RoomsView({
                   onClick={() => setDiscoveryRenderer('sky-2d')}
                 >
                   <MapIcon size={15} />
-                  2D
+                  Map
                 </button>
               </div>
             )}
-            {roomSignalUnavailable && (
+            {roomSignalUnavailable && openRooms.length > 0 && (
               <button className='text-action' type='button' onClick={onRefreshRooms} disabled={isRefreshingRooms}>
                 <RefreshCw size={15} className={isRefreshingRooms ? 'spin' : undefined} />
                 {isRefreshingRooms ? 'Reconnecting' : 'Try again'}
@@ -129,7 +128,7 @@ export function RoomsView({
           </div>
         </div>
 
-        {roomListStatus.tone !== 'ready' && (
+        {roomListStatus.tone !== 'ready' && openRooms.length > 0 && (
           <p className='room-list-status' role='status' data-status={roomListStatus.tone}>
             {roomListStatus.label}
           </p>
@@ -164,8 +163,8 @@ export function RoomsView({
                       aria-pressed={isSelected}
                       aria-label={
                         hostDisplayName
-                          ? `Inspect ${room.track?.title ?? 'live audio session'} hosted by ${hostDisplayName}`
-                          : `Inspect ${room.track?.title ?? 'live audio session'}`
+                          ? `See ${room.track?.title ?? 'live audio session'} hosted by ${hostDisplayName}`
+                          : `See ${room.track?.title ?? 'live audio session'}`
                       }
                     >
                       <span className='room-live-art' aria-hidden='true'>
@@ -186,7 +185,7 @@ export function RoomsView({
                       <span className='room-live-side'>
                         <code>{room.roomId}</code>
                         <span>
-                          {isSelected ? 'Selected' : room.isFull ? 'Full' : 'Inspect'}
+                          {isSelected ? 'Selected' : room.isFull ? 'Full' : 'See room'}
                           <ArrowRight size={15} />
                         </span>
                       </span>
@@ -227,11 +226,15 @@ export function RoomsView({
             </span>
             <div>
               <strong>
-                {roomSignalUnavailable ? 'Room list is unavailable.' : roomListStatus.tone === 'loading' ? 'Finding rooms…' : 'No room is open right now.'}
+                {roomSignalUnavailable
+                  ? 'Rooms are out of reach right now.'
+                  : roomListStatus.tone === 'loading'
+                    ? 'Finding rooms…'
+                    : 'No room is open right now.'}
               </strong>
               <p>
                 {roomSignalUnavailable
-                  ? 'Refresh when the room signal is back.'
+                  ? 'Your music still plays. Try again in a moment.'
                   : roomListStatus.tone === 'loading'
                     ? 'Looking for people to listen with.'
                     : 'Choose music, open a room, and share the link.'}
@@ -245,7 +248,7 @@ export function RoomsView({
                 disabled={roomSignalUnavailable ? isRefreshingRooms : sessionAction !== 'idle'}
               >
                 {roomSignalUnavailable ? <RefreshCw size={17} className={isRefreshingRooms ? 'spin' : undefined} /> : <Radio size={17} />}
-                {roomSignalUnavailable ? 'Refresh rooms' : 'Open the first room'}
+                {roomSignalUnavailable ? (isRefreshingRooms ? 'Reconnecting' : 'Try again') : 'Open the first room'}
               </button>
             )}
           </div>
@@ -265,7 +268,7 @@ export function RoomsView({
               autoComplete='off'
             />
             <button className='primary-action room-action-submit' type='submit' disabled={sessionAction !== 'idle'}>
-              <Headphones size={17} />
+              <ArrowRight size={17} />
               {isJoining ? 'Joining…' : 'Join'}
             </button>
           </div>
@@ -300,8 +303,7 @@ function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms
           <span className='room-detail-icon' aria-hidden='true'>
             <Radio size={20} />
           </span>
-          <p className='room-detail-kicker'>Select a room</p>
-          <strong>Inspect the room before joining.</strong>
+          <strong>Pick a room to see who is listening.</strong>
           {status.tone !== 'ready' && <span role='status'>{status.label}</span>}
         </div>
       </aside>
@@ -351,7 +353,7 @@ function RoomDetailsPanel({ room, sessionAction, socketStatus, isRefreshingRooms
       )}
 
       <button className='primary-action room-detail-join' type='button' onClick={() => onJoinRoom(room.roomId)} disabled={joinDisabled}>
-        <Headphones size={17} />
+        <ArrowRight size={17} />
         {joinLabel}
       </button>
     </aside>

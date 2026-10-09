@@ -47,19 +47,19 @@ test('Classic track stays locked before payment and unlocks full playback after 
 
   const trackCard = page.getByTestId('track-card');
   await expect(trackCard).toContainText('Deterministic Classic Unlock');
-  await expect(trackCard).not.toContainText(`0.5 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(trackCard).toContainText(`0.5 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
   await expect(page.getByTestId('track-card-open')).toHaveAccessibleName(new RegExp(`0.5 ${E2E_NATIVE_PAYMENT_SYMBOL}`));
 
   await page.getByTestId('track-card-open').click();
 
-  await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
+  await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
   await expect(page.getByTestId('access-warning')).toHaveCount(0);
   await expect(page.locator('.solo-room-invite')).toHaveCount(0);
   await expect(page.locator('.player-lower-grid')).toBeHidden();
   await openClassicSupport(page);
   await expect(page.getByTestId('access-warning')).toContainText('Unlock listening');
   await expect(page.getByTestId('access-warning')).toContainText(`0.5 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
-  await expect(page.getByTestId('access-warning')).toContainText('Primary recipient');
+  await expect(page.getByTestId('access-warning')).toContainText('Dotify Test Artist');
   await expect(page.getByTestId('access-warning')).toContainText('Nothing is sent until you confirm.');
   await expect(page.getByTestId('access-warning')).not.toContainText(/runtime|registry|chain|EVM/i);
 
@@ -143,7 +143,7 @@ test('Classic payment record remains visible when runtime read-back denies playa
   await expect(trackCard).toContainText('Deterministic Classic Unlock');
 
   await page.getByTestId('track-card-open').click();
-  await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
+  await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
 
   await openClassicSupport(page);
   await page.getByTestId('classic-unlock-button').click();
@@ -152,7 +152,7 @@ test('Classic payment record remains visible when runtime read-back denies playa
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('Check access again');
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('Protected audio stays closed');
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('Settlement');
-  await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
+  await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
   await expect(page.getByTestId('full-playback-state')).toHaveCount(0);
 
   const afterPayment = await readClassicUnlockState(page);
@@ -163,13 +163,13 @@ test('Classic payment record remains visible when runtime read-back denies playa
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'You' }).first().click();
 
-  const supportedTracks = page.getByLabel('Access payments');
-  await expect(page.getByRole('heading', { name: 'Access payments' })).toBeVisible();
-  await expect(page.getByLabel('Music summary')).toContainText(/1\s*access payments/);
+  const supportedTracks = page.getByLabel('Unlocked tracks');
+  await expect(page.getByRole('heading', { name: 'Unlocked tracks' })).toBeVisible();
+  await expect(page.getByLabel('Music summary')).toContainText(/1\s*unlocked tracks/);
   await expect(page.getByLabel('Music summary')).toContainText(/1\s*artists in your collection/);
   await expect(supportedTracks.getByText('Deterministic Classic Unlock')).toBeVisible();
   await expect(supportedTracks.getByText('Dotify Test Artist', { exact: true })).toBeVisible();
-  await expect(supportedTracks.getByText('Payment recorded', { exact: true })).toBeVisible();
+  await expect(supportedTracks.getByText('Unlocked', { exact: true })).toBeVisible();
   await expect(supportedTracks.locator('code')).toHaveCount(0);
 });
 
@@ -198,7 +198,7 @@ test.describe('mobile Classic support receipt states', () => {
     const receipt = page.getByTestId('unlock-transaction-status');
     await expect(receipt).toContainText('Listening access not verified');
     await expect(receipt).toContainText('Protected audio stays closed');
-    await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
+    await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
   });
 
   test('mobile Product funding failure stays plain and confirms that nothing was sent', async ({ page }) => {
@@ -215,7 +215,7 @@ test.describe('mobile Classic support receipt states', () => {
     await receipt.getByText('Technical details', { exact: true }).click();
     await expect(receipt.getByLabel('Technical transaction details')).toContainText('TransferFailed');
     await expect(receipt.getByRole('button', { name: 'Check access again' })).toHaveCount(0);
-    await expect(page.getByTestId('locked-player-state')).toContainText('Listening closed');
+    await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
     expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
     expect((await readClassicUnlockState(page))?.paid).toBe(false);
   });

@@ -45,7 +45,8 @@ for (const width of [390, 1440]) {
       await expect(row.locator('.catalogue-card-open .lucide-arrow-right')).toHaveCount(0);
       await expect(row.locator('.catalogue-access-line')).toHaveCount(0);
       await expect(row.locator('.catalogue-access-cue')).toHaveCount(0);
-      await expect(row.getByText('0.5 PAS', { exact: true })).toHaveCount(0);
+      // Each card states its access in one short visible cue.
+      await expect(row.locator('.catalogue-card-access').filter({ hasText: '0.5 PAS' }).first()).toBeVisible();
       await expect(row.getByText('Verified humans', { exact: true })).toHaveCount(0);
       const playable = row.getByRole('button', { name: /^Play / });
       const inspectable = row.getByRole('button', { name: /^View listening options for / });
@@ -76,7 +77,7 @@ for (const width of [390, 1440]) {
       // explicit player CTA rather than opening over the catalog.
       await page.getByLabel('Find a track or artist').fill('E2E Protected Room Track');
       const protectedCard = page.getByTestId('track-card').filter({ hasText: 'E2E Protected Room Track' });
-      await expect(protectedCard).not.toContainText('0.5 PAS');
+      await expect(protectedCard).toContainText('0.5 PAS');
       await protectedCard.getByTestId('track-artwork-action').click();
       await expect(page.getByTestId('access-warning')).toHaveCount(0);
       await expect(page.getByRole('button', { name: 'Unlock listening', exact: true })).toBeVisible();
@@ -96,11 +97,11 @@ for (const width of [390, 1440]) {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`artist-${width}.png`), fullPage: false });
       await page.getByRole('button', { name: 'You', exact: true }).click();
-      await expect(page.getByRole('button', { name: 'Connect a wallet', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Connect your account', exact: true })).toBeVisible();
       await expect(page.getByRole('region', { name: 'Your collection' })).toBeVisible();
       await expect(page.locator('.account-summary,.account-detail-grid,.wallet-pass-panel')).toHaveCount(0);
       await page.screenshot({ path: testInfo.outputPath(`you-${width}.png`), fullPage: false });
-      await page.getByRole('button', { name: 'Connect a wallet', exact: true }).click();
+      await page.getByRole('button', { name: 'Connect your account', exact: true }).click();
       await expect(page.getByRole('dialog')).toBeVisible();
     });
   });
@@ -177,9 +178,9 @@ test('clear interface restores individual playback after leaving a room', async 
     await guest.goto(`/?e2eRoom=public&e2eAutoplay=on#/rooms/${code}`);
     await expect(guest.locator('#join-room-title')).toContainText('welcomes you');
     await guest.getByLabel('Your name in the room').fill('Returning listener');
-    await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+    await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
     await expect(guest.getByTestId('room-code')).toHaveText(code);
-    await guest.getByRole('button', { name: 'Back to Music', exact: true }).click();
+    await guest.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     const cover = guest.getByTestId('track-artwork-action').filter({ has: guest.locator('img') });
     await expect(guest.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ })).toHaveCount(0);
     await expect(cover.first()).toBeVisible();
@@ -216,9 +217,9 @@ test('clear interface lets guests inspect releases without changing their listen
     await guest.goto(`/?e2eRoom=public#/rooms/${code}`);
     await expect(guest.locator('#join-room-title')).toContainText('welcomes you');
     await guest.getByLabel('Your name in the room').fill('Curious listener');
-    await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+    await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
     await expect(guest.getByTestId('room-code')).toHaveText(code);
-    await guest.getByRole('button', { name: 'Back to Music', exact: true }).click();
+    await guest.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     const originalSource = await guest.locator('audio.native-player-source').first().getAttribute('src');
     const selectedTitle = await guest.locator('.catalogue-card[data-selected="true"] .catalogue-card-open').innerText();
     const keyRequests = await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests);

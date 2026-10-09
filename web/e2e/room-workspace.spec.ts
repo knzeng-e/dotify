@@ -82,7 +82,7 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
     const guest = await guestContext.newPage();
     await guest.goto(`/#/rooms/${roomId}`);
     await guest.getByRole('textbox', { name: 'Your name in the room' }).fill('Mina');
-    await guest.getByRole('button', { name: 'Enter and listen' }).click();
+    await guest.getByRole('button', { name: 'Join and listen' }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20000 });
     await guest.evaluate(() => {
       (window as unknown as { roomAudio: Element }).roomAudio = document.querySelectorAll('audio.native-player-source')[1];
@@ -492,7 +492,7 @@ test('live reactions reach both participants, stay available in Queue, and do no
     guest.setDefaultTimeout(5000);
     await guest.goto(`/#/rooms/${code}`);
     await guest.getByLabel('Your name in the room').fill('Mina');
-    await guest.getByRole('button', { name: 'Enter and listen' }).click();
+    await guest.getByRole('button', { name: 'Join and listen' }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20000 });
     await host.getByRole('textbox', { name: 'Message the room' }).fill('That bassline. Stay for the next track.');
     await host.getByRole('button', { name: 'Send message' }).click();
@@ -540,7 +540,7 @@ test('live chat lets readers pause history and catch up after visiting another t
     const guest = await guestContext.newPage();
     await guest.goto(`/#/rooms/${code}`);
     await guest.getByLabel('Your name in the room').fill('Mina');
-    await guest.getByRole('button', { name: 'Enter and listen' }).click();
+    await guest.getByRole('button', { name: 'Join and listen' }).click();
     await expect(guest.getByRole('log')).toBeVisible();
     for (let index = 0; index < 7; index++) {
       await host

@@ -61,7 +61,7 @@ for (const capture of ['standard', 'without-native-api']) {
       const roomId = (await code.textContent())!.trim();
       await guest.goto(`/#/rooms/${roomId}`);
       await guest.getByLabel('Your name in the room').fill('Continuous listener');
-      await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+      await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
       await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
       await guest.evaluate(async () => {
         const audio = document.querySelectorAll<HTMLAudioElement>('audio.native-player-source')[1];
@@ -144,15 +144,15 @@ for (const capture of ['standard', 'without-native-api']) {
         ).toBe(true);
       }
       expect(await host.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.offers)).toBe(offers);
-      await host.getByRole('button', { name: 'Back to Music', exact: true }).click();
+      await host.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
       await expect(host.getByRole('heading', { name: 'Listen together.', exact: true })).toBeVisible();
       await expect.poll(async () => Math.abs((await tone()) - 660)).toBeLessThan(25);
       // Re-entering our own public card must return to the room, never join it as a guest.
-      await host.getByRole('button', { name: `Enter ${hostName}'s room`, exact: true }).click();
+      await host.getByRole('button', { name: `Join ${hostName}'s room`, exact: true }).click();
       await expect(code).toHaveText(roomId);
       await expect(host.locator('.room-live-chip')).toHaveText('Hosting');
       await expect.poll(async () => Math.abs((await tone()) - 660)).toBeLessThan(25);
-      await host.getByRole('button', { name: 'Back to Music', exact: true }).click();
+      await host.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
       await host.getByRole('link', { name: 'Dotify home', exact: true }).click();
       await expect(host.getByRole('heading', { name: 'Listen together.', exact: true })).toBeVisible();
       await host.getByRole('button', { name: 'Return to your room', exact: true }).click();

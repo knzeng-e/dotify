@@ -105,7 +105,7 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
 
 test('artist saves a scheduled gift destination and reloads it from Rights', async ({ page }) => {
   await createArtistProfile(page);
-  await page.getByRole('tab', { name: 'Rights', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
   const policy = page.locator('.contribution-policy');
   await policy.getByLabel('Purpose', { exact: true }).fill('Community music school');
   await policy.getByLabel('Starts (local time)', { exact: true }).fill('2026-10-01T08:00');
@@ -116,7 +116,7 @@ test('artist saves a scheduled gift destination and reloads it from Rights', asy
   await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
   await expect(policy.getByRole('status')).toContainText('settings saved');
   await page.getByRole('tab', { name: 'Overview', exact: true }).click();
-  await page.getByRole('tab', { name: 'Rights', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
   await expect(policy.getByLabel('Purpose', { exact: true })).toHaveValue('Community music school');
   await expect(policy.getByLabel('Share (%)', { exact: true })).toHaveValue('75');
   await expect(policy).toContainText('25% of your remaining portion stays with you');
@@ -144,7 +144,7 @@ test('artist can create a runtime, publish a release, and see it in the listener
   await page.getByRole('tab', { name: 'Releases', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Save access', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Manage rights', exact: true }).click();
-  await expect(page.getByRole('tab', { name: 'Rights', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'Rights & support', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('button', { name: 'Save access', exact: true })).toBeDisabled();
   await page.getByRole('combobox', { name: 'Access mode', exact: true }).selectOption('free');
   await expect(page.getByRole('button', { name: 'Save access', exact: true })).toBeEnabled();
@@ -154,7 +154,7 @@ test('artist can create a runtime, publish a release, and see it in the listener
   await page.goto('/');
   const publishedCard = page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' });
   await expect(publishedCard).toContainText('E2E Artist');
-  await expect(publishedCard).not.toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(publishedCard).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
   await expect(publishedCard.getByTestId('track-card-open')).toHaveAccessibleName(new RegExp(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`));
   await publishedCard.getByRole('button', { name: 'E2E Artist', exact: true }).click();
   const release = page.locator('.artist-release-card').filter({ hasText: 'E2E Published Signal' });
@@ -174,7 +174,7 @@ test('artist onboarding handles a missing wallet without enabling profile creati
   await openArtistScenario(page, 'missing-wallet');
 
   await expect(page.getByTestId('artist-name-input')).toHaveValue('');
-  await expect(page.getByText('Connect your account to create an artist space.')).toBeVisible();
+  await expect(page.getByText('Connect your account to create your artist profile.')).toBeVisible();
   await expect(page.getByRole('button', { name: /Use my account/i })).toBeVisible();
   await expect(page.getByTestId('create-artist-profile')).toBeDisabled();
   await expect(page.getByText('Connect your account to continue.')).toBeVisible();
@@ -304,12 +304,12 @@ test('new artist mobile overview presents one next step and four keyboard-access
   await expect(page.locator('.studio-next-label')).toHaveText('Your next step');
   await expect(page.getByRole('button', { name: 'Start your first release' })).toHaveCount(1);
   const tasks = page.getByRole('tablist', { name: 'Artist workspace' });
-  await expect(tasks.getByRole('tab')).toHaveText(['Overview', 'Releases', 'Earnings', 'Rights']);
+  await expect(tasks.getByRole('tab')).toHaveText(['Overview', 'Releases', 'Earnings', 'Rights & support']);
   await tasks.getByRole('tab', { name: 'Overview', exact: true }).press('End');
-  await expect(tasks.getByRole('tab', { name: 'Rights', exact: true })).toBeFocused();
+  await expect(tasks.getByRole('tab', { name: 'Rights & support', exact: true })).toBeFocused();
   await expect(page.getByText('Technical records', { exact: true })).toBeVisible();
   await expect(page.locator('.studio-technical').filter({ has: page.getByText('Technical records', { exact: true }) })).not.toHaveAttribute('open', '');
-  await tasks.getByRole('tab', { name: 'Rights', exact: true }).press('Home');
+  await tasks.getByRole('tab', { name: 'Rights & support', exact: true }).press('Home');
   await expect(tasks.getByRole('tab', { name: 'Overview', exact: true })).toBeFocused();
   await expect(page.locator('.studio-metric')).toHaveCount(0);
 });
@@ -319,7 +319,7 @@ for (const width of [320, 390, 430, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     await createArtistProfile(page);
     const tasks = page.getByRole('tablist', { name: 'Artist workspace' });
-    for (const name of ['Overview', 'Releases', 'Earnings', 'Rights']) {
+    for (const name of ['Overview', 'Releases', 'Earnings', 'Rights & support']) {
       const tab = tasks.getByRole('tab', { name, exact: true });
       await tab.click();
       await expect(tab).toHaveAttribute('aria-selected', 'true');
@@ -336,7 +336,7 @@ for (const width of [320, 390, 430, 1440]) {
       await page.screenshot({ path: info.outputPath(`${width}-studio-${name}.png`), animations: 'disabled', fullPage: true });
     }
     await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
-    for (const name of ['Overview', 'Releases', 'Earnings', 'Rights']) {
+    for (const name of ['Overview', 'Releases', 'Earnings', 'Rights & support']) {
       const tab = tasks.getByRole('tab', { name, exact: true });
       await tab.click();
       await expect(tab).toHaveAttribute('aria-selected', 'true');

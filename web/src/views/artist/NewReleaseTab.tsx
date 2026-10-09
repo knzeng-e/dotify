@@ -195,11 +195,11 @@ export function NewReleaseTab({
             <div className='asset-readiness'>
               <div>
                 <strong>{audioSource ? 'Audio ready' : 'Audio missing'}</strong>
-                <span>{fileHash ? shorten(fileHash, 18) : 'Upload an audio file to generate the release hash.'}</span>
+                <span>{fileHash ? shorten(fileHash, 18) : 'Add an audio file to start your release.'}</span>
               </div>
               <div>
                 <strong>{coverSource.startsWith('blob:') ? 'Cover ready' : 'Generated cover'}</strong>
-                <span>{coverCID ? shorten(coverCID, 18) : 'A custom cover can be added before publish.'}</span>
+                <span>{coverCID ? shorten(coverCID, 18) : 'You can add your own cover before publishing.'}</span>
               </div>
             </div>
           </div>

@@ -1,4 +1,5 @@
-/* One catalog, first on every screen. Artwork is the visual focal point. */
+/* Live rooms lead when people are listening; otherwise the catalog comes first.
+   ListenView renders the sections in that order, so focus order matches. */
 .listen-home-focused {
   gap: 1.75rem;
 }
@@ -23,7 +24,23 @@
   gap: 0.75rem;
 }
 .listen-home-focused > .live-section {
-  order: 2;
+  order: 1;
+}
+.listen-home-focused > .now-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+}
+.listen-home-focused .now-intro-copy {
+  max-width: 36rem;
+  color: var(--ink-soft);
+  font-size: var(--text-base);
+  line-height: 1.5;
+}
+.presence-summary {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
 }
 .listen-home-focused .section-heading h2 {
   font-family: var(--font-interface);
@@ -142,9 +159,8 @@
 }
 
 .listen-home-focused .now-intro h1 {
-  font-size: 2rem;
-  line-height: 1.2;
-  letter-spacing: 0;
+  font-size: var(--text-display-sm);
+  line-height: 1.1;
 }
 .recent-listening {
   min-width: 0;

@@ -93,6 +93,7 @@ function Harness() {
         data-track={catalog.selectedTrackId}
         data-status={playback.status}
         data-pending={catalog.trackSelectionPending}
+        data-failure={catalog.playbackFailure?.kind ?? ''}
         data-time={playback.transport.currentTime}
         data-playing={playback.transport.playing}
       />
