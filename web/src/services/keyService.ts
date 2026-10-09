@@ -38,6 +38,12 @@ export type ContentKeyResponse =
       hostAction: { type: 'unlock' | 'personhood' | 'none'; label: string };
     };
 
+const KEY_SERVICE_TIMEOUT_MS = 15_000;
+
+function keyServiceTimeout(): AbortSignal {
+  return AbortSignal.timeout(KEY_SERVICE_TIMEOUT_MS);
+}
+
 export class KeyServiceError extends Error {
   readonly code: string;
 
@@ -118,6 +124,7 @@ async function requestNonce(address: string, chainId: number): Promise<{ nonce: 
   const res = await fetch(`${API_URL}/api/auth/nonce`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal: keyServiceTimeout(),
     body: JSON.stringify({ address, chainId })
   });
   if (!res.ok) {
@@ -350,6 +357,7 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
     const res = await fetch(`${API_URL}/api/auth/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: keyServiceTimeout(),
       body: JSON.stringify({
         address: signer.address,
         signature,
@@ -421,6 +429,7 @@ export async function signOutOfDotifySession(address: string): Promise<void> {
     await fetch(`${API_URL}/api/auth/logout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: keyServiceTimeout(),
       body: JSON.stringify({ sessionToken: stored.token })
     });
   } catch {
@@ -448,6 +457,7 @@ async function requestKeyWithSession(
   return fetch(`${API_URL}/api/tracks/${contentHash}/key-request`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal: keyServiceTimeout(),
     body: JSON.stringify({ sessionToken, purpose, ...releaseIdentityRequestFields(release) })
   });
 }
@@ -541,6 +551,7 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
     const res = await fetch(`${API_URL}/api/tracks/${request.contentHash}/key-request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: keyServiceTimeout(),
       body: JSON.stringify({
         requester: signer.address,
         signature,
@@ -608,6 +619,7 @@ export async function requestFreeContentKey(contentHash: `0x${string}`, release?
   const res = await fetch(`${API_URL}/api/tracks/${contentHash}/free-key`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal: keyServiceTimeout(),
     body: JSON.stringify(releaseIdentityRequestFields(release))
   });
 

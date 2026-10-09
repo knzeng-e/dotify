@@ -5,7 +5,7 @@ import { RoomShareDialog } from '../components/RoomShareDialog';
 import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
 import { HostContributions } from '../components/HostContributions';
-import { ChevronDown, Coins, Copy, Check, ExternalLink, Headphones, KeyRound, Library, QrCode, Radio, Share2, X } from 'lucide-react';
+import { ChevronDown, Coins, Copy, Check, ExternalLink, Headphones, KeyRound, Library, QrCode, Radio, RefreshCw, Share2, X } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
 import { CoverImage } from '../components/CoverImage';
@@ -22,6 +22,7 @@ import { roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount, roomPres
 import { playbackTrack, playbackTrackDetails } from '../features/player/playbackPresentation';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
+import { protectedPlaybackFailureCopy } from '../features/catalog/protectedPlaybackFailure';
 import { resolvePlaybackContributionTrack, resolveRoomContributionTrack } from '../features/donations/roomContributionTrack';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
@@ -37,7 +38,7 @@ type PlayerViewProps = {
 export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewProps) {
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const { playback } = usePlaybackContext();
+  const { playback, openTrack } = usePlaybackContext();
   const { openWalletModal } = useUiFeedback();
   const { navigateToView, setPublicArtistName } = useNavigation();
   const { title, artistName, accessMode, priceDot } = useReleaseForm();
@@ -178,6 +179,17 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
   );
   const showAudioRetry = Boolean(mode === 'listener' && roomId && !productHostWebRtcUnavailable && (!remoteReady || status === 'no-audio'));
+  // Authorized, but no sound: name the cause and retry in place. Guests never
+  // request a key, so this only concerns the solo listener or the room host.
+  const playbackFailure =
+    !isRoomGuest && selectedTrack && catalog.playbackFailure?.trackId === selectedTrack.id
+      ? { kind: catalog.playbackFailure.kind, ...protectedPlaybackFailureCopy(catalog.playbackFailure.kind) }
+      : null;
+  const onRetryPlayback = () => {
+    if (!selectedTrack) return;
+    if (playbackFailure?.kind === 'account-required') onShowSupportWalletModal();
+    else openTrack(selectedTrack);
+  };
   const passiveSignalFailure = !roomId && sessionAction === 'idle' && sessionStatus === 'Ready' && session.socketStatus !== 'online';
   const soloRoomRecoveryIsJoin = mode === 'listener' || /room closed|expired|host left/i.test(`${sessionStatus} ${error ?? ''}`);
 
@@ -314,10 +326,12 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           showAudioRetry ||
           productHostWebRtcUnavailable ||
           error ||
+          playbackFailure ||
           /reconnecting/i.test(sessionStatus)) && (
-          <div className='room-connection-note' role='status'>
+          <div className='room-connection-note' role='status' data-testid={playbackFailure && !error ? 'playback-failure' : undefined}>
             <span>
               {error ||
+                (playbackFailure ? `${playbackFailure.title}. ${playbackFailure.message}` : '') ||
                 (/reconnecting/i.test(sessionStatus) ? 'Reconnecting to the listening moment.' : '') ||
                 (session.socketStatus !== 'online'
                   ? 'Reconnecting to the room. Your draft stays here.'
@@ -330,6 +344,10 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             {productHostWebRtcUnavailable ? (
               <button type='button' onClick={() => void session.openRoomInBrowser()}>
                 Continue in browser
+              </button>
+            ) : playbackFailure && !error ? (
+              <button type='button' onClick={onRetryPlayback}>
+                {playbackFailure.action}
               </button>
             ) : (
               (showManualAudioStart || showAudioRetry) && (
@@ -553,6 +571,17 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <button className='primary-action compact-action' type='button' onClick={onShowCreateModal}>
             <Radio size={16} />
             Open a room
+          </button>
+        </div>
+      )}
+
+      {!roomId && playbackFailure && (
+        <div className='solo-session-feedback playback-failure' role='alert' data-testid='playback-failure' data-kind={playbackFailure.kind}>
+          <strong>{playbackFailure.title}</strong>
+          <p>{playbackFailure.message}</p>
+          <button className='primary-action' type='button' onClick={onRetryPlayback}>
+            <RefreshCw size={16} />
+            {playbackFailure.action}
           </button>
         </div>
       )}
