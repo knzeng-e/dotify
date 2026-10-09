@@ -135,3 +135,18 @@ behavior changes.
 Follow-up validation passed: `npm run test:unit` (831/831), `npm run build`,
 `npm run lint` (zero errors; the two existing `App.tsx` hook warnings),
 `npm run fmt:check`, and `git diff --check`.
+
+## Product rollout — 2026-10-09
+
+The merged continuity and scoped-session frontend shipped in Product executable
+`[0, 1, 43]` from clean candidate
+`c394c2354b128f5bb71cc039142835450ae210f6`, based on tested `dev` merge
+`3183de87d4ab90b74e889fae4c317c2b1dc97d2d`. The finalized executable CID is
+`bafybeid6izin3sjhmeb7yrslf4snerngjmt4ttt5tsysazf7vju5h3gpkq`. Product host
+configuration, Bulletin finality, DotNS content read-back, P2P retrieval and a
+public CAR read passed. The CAR contains the exact local `index.html` and the
+candidate SHA. The API and signaling services were unchanged.
+
+The real-device W13 boundary remains: this publication does not by itself prove
+30-minute continuity, multi-track prompt counts, background recovery or audible
+host/guest synchronization on any Product host surface.

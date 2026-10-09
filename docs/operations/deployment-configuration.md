@@ -192,13 +192,39 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 42]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 43]` in `web/polkadot-app-deploy.config.ts`                                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
+
+Version `[0, 1, 43]` published the merged playback-continuity, scoped room-tip,
+UX clarity and reusable listening-session changes on 2026-10-09 from clean
+candidate `c394c2354b128f5bb71cc039142835450ae210f6`, based on tested `dev`
+merge `3183de87d4ab90b74e889fae4c317c2b1dc97d2d`. This was a frontend-only
+release; the API and signaling services were not redeployed. The executable CID
+is `bafybeid6izin3sjhmeb7yrslf4snerngjmt4ttt5tsysazf7vju5h3gpkq`.
+Bulletin finalized the stable upload at block `1147924` in transaction
+`0x32d6f14c8fa24828341f2a4dac829a50cfb5270c4b30d0373934c823d58c132c`
+and the full-CAR root at block `1147928` in transaction
+`0x25a17aaaf896cd9a1f788ca4f7bdc6ace64582d3a3d094fde83e2cad906fc4db`.
+Content linking finalized at Asset Hub block `14227528` in transaction
+`0x0842921760de6896a1475ac90e914e3a4b807428949a1e48f18959e4eb29a56a`;
+the atomic executable manifest update finalized in transaction
+`0xadecfa8c78dbb042f6605588097b676523652bef83304947d5273af0290c2276`.
+
+All 14 content nodes reached GRANDPA finality, the deployer's P2P retrieval
+passed, and a separate public gateway read returned a 5,766,617-byte CAR. That
+CAR contains the exact local `index.html` bytes and the full candidate source
+SHA. The pre- and post-publication Product Remote Config checks matched the
+pinned registry and resolver. An initial preflight stopped before upload because
+the shared Bulletin pool authorization had expired; after the operator renewed
+pool account `5DDa6Wx3AV7UNCF7rf7dvHuU29Q6scojoQMohpMnCUiQN7BJ`, the clean
+candidate published successfully. Installed-host cache refresh, prompt counts
+over real protected tracks, long-session audio continuity and host/guest room
+behavior remain physical-device acceptance work.
 
 Version `[0, 1, 42]` published the merged room-tip metadata recovery on
 2026-10-07 from clean candidate
