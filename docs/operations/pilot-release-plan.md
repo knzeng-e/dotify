@@ -90,9 +90,9 @@ Product/CDM anchors:
 | --- | --- |
 | Product DevNet CDM `ContractRegistry` | `0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f` |
 | Retired registry to avoid | `0x59b0245778917af55224e5f8fb55f7f8d452619f` |
-| Product SDK | `@parity/product-sdk@0.27.0` |
-| Product host SDK | `@parity/product-sdk-host@0.19.1` |
-| Statement Store SDK | `@parity/product-sdk-statement-store@0.6.9` |
+| Product SDK | `@parity/product-sdk@0.35.0` |
+| Product host SDK | `@parity/product-sdk-host@0.25.0` |
+| Statement Store SDK | `@parity/product-sdk-statement-store@0.6.16` |
 | Product deploy CLI | `@parity/polkadot-app-deploy@0.20.0` plus the host-profile preflight |
 
 Product has two deliberately separate deployment identities during this gate.

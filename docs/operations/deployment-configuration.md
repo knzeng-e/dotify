@@ -192,7 +192,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 43]` in `web/polkadot-app-deploy.config.ts`                                                                              |
+| Product executable `appVersion` | `[0, 1, 44]` in `web/polkadot-app-deploy.config.ts`; compatibility candidate, not yet published                                  |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -417,25 +417,26 @@ chunk on demand; the Bulletin single-file build inlines it.
 
 Current Product host SDK dependencies:
 
-| Package                                              | Current value | Latest checked 2026-09-12 |
-| ---------------------------------------------------- | ------------- | ------------------------- |
-| `@parity/product-sdk`                                | `0.27.0`      | `0.27.0`                  |
-| `@parity/product-sdk-host`                           | `0.19.1`      | `0.19.1`                  |
-| `@parity/product-sdk-statement-store`                | `0.6.9`       | `0.6.9`                   |
-| `@parity/product-sdk-descriptors`                    | `0.11.0`      | `0.11.0`                  |
-| `polkadot-api`                                       | `1.23.3`      | `3.0.0`                   |
-| `@parity/polkadot-app-deploy`                        | `0.20.0`      | `0.20.0`                  |
-| `engine.io-client`                                   | `6.6.6`       | `6.6.6`                   |
+| Package                                              | Current value | Latest stable checked 2026-10-09 |
+| ---------------------------------------------------- | ------------- | -------------------------------- |
+| `@parity/product-sdk`                                | `0.35.0`      | `0.35.0`                         |
+| `@parity/product-sdk-host`                           | `0.25.0`      | `0.25.0`                         |
+| `@parity/product-sdk-statement-store`                | `0.6.16`      | `0.6.16`                         |
+| `@parity/product-sdk-descriptors`                    | `0.13.0`      | `0.13.0`                         |
+| `@parity/product-sdk-tx`                             | `0.4.13`      | `0.4.13`                         |
+| root `polkadot-api`                                  | `1.23.3`      | `3.2.1`                          |
+| Product Host wrapper `polkadot-api` override         | `2.2.2`       | compatibility pin                |
+| `@parity/polkadot-app-deploy`                        | `0.20.0`      | `0.20.0` stable                  |
+| `engine.io-client`                                   | `6.6.6`       | `6.6.6`                          |
 
 Keep the Product SDK packages pinned exactly during Product DevNet hardening.
 Recheck npm and the official Product docs before changing them because the
 mobile host API is still moving quickly. `polkadot-api` remains on `1.23.3` at
-the Dotify root even though npm publishes `3.0.0`: Product SDK `0.27.0` brings
-its own PAPI `2.2.x` tree, while `@polkadot-apps` chain-client/keys/signer still
-depend on PAPI `1.23.x`. A direct root PAPI 3 trial failed type compatibility
-for the `PolkadotSigner` export and `ChainDefinition` / `TypedApi` boundaries,
-so PAPI 3 is tracked as a blocked compatibility migration rather than a
-deployable dependency bump.
+the Dotify root because `@polkadot-apps` chain-client/keys/signer still depend
+on that line. The Product graph uses PAPI 2.2.x. Keep the scoped
+`@novasamatech/host-api-wrapper` override at 2.2.2: its `>=2` declaration can
+otherwise select PAPI 3, which no longer exports `getPolkadotSignerFromPjs` and
+makes the Product bundle fail at build time.
 
 W27 adds `VITE_DOTIFY_ROOM_REALTIME`, default off. It requires a Product host
 mode and observes aggregate room presence plus encrypted social mirrors;

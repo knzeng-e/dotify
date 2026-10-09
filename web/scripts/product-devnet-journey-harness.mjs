@@ -24,10 +24,12 @@ export const EXPECTED_PRODUCT_DEVNET = {
   assetHubRpcUrls: ['https://eth-rpc-testnet.polkadot.io/', 'https://paseo-assethub-rpc.laissez-faire.trade/'],
   cdmRegistry: '0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f',
   retiredCdmRegistry: '0x59b0245778917af55224e5f8fb55f7f8d452619f',
-  productSdk: '0.27.0',
-  productSdkHost: '0.19.1',
-  productSdkDescriptors: '0.11.0',
-  productSdkStatementStore: '0.6.9',
+  productSdk: '0.35.0',
+  productSdkHost: '0.25.0',
+  productSdkDescriptors: '0.13.0',
+  productSdkStatementStore: '0.6.16',
+  productSdkTx: '0.4.13',
+  hostWrapperPolkadotApi: '2.2.2',
   productDeployCli: PRODUCT_DEPLOY_PROFILE.cliVersion
 };
 
@@ -68,6 +70,10 @@ export function parseEnvFile(text) {
 
 export function packageLockVersion(lockfile, packageName) {
   return lockfile?.packages?.[`node_modules/${packageName}`]?.version ?? null;
+}
+
+function packageLockPathVersion(lockfile, packagePath) {
+  return lockfile?.packages?.[packagePath]?.version ?? null;
 }
 
 export function extractProductAppVersion(configText) {
@@ -229,6 +235,27 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
   checkPackage(gates, snapshot.webPackageLock, '@parity/product-sdk-host', EXPECTED_PRODUCT_DEVNET.productSdkHost);
   checkPackage(gates, snapshot.webPackageLock, '@parity/product-sdk-descriptors', EXPECTED_PRODUCT_DEVNET.productSdkDescriptors);
   checkPackage(gates, snapshot.webPackageLock, '@parity/product-sdk-statement-store', EXPECTED_PRODUCT_DEVNET.productSdkStatementStore);
+  checkPackage(gates, snapshot.webPackageLock, '@parity/product-sdk-tx', EXPECTED_PRODUCT_DEVNET.productSdkTx);
+
+  const hostWrapperPapiOverride = snapshot.webPackageJson?.overrides?.['@novasamatech/host-api-wrapper']?.['polkadot-api'];
+  const hostWrapperPapiVersion = packageLockPathVersion(snapshot.webPackageLock, 'node_modules/@novasamatech/host-api-wrapper/node_modules/polkadot-api');
+  if (hostWrapperPapiOverride === EXPECTED_PRODUCT_DEVNET.hostWrapperPolkadotApi && hostWrapperPapiVersion === EXPECTED_PRODUCT_DEVNET.hostWrapperPolkadotApi) {
+    pass(
+      gates,
+      'host-wrapper-papi',
+      'Product Host PAPI compatibility',
+      `The host wrapper is locked to polkadot-api ${EXPECTED_PRODUCT_DEVNET.hostWrapperPolkadotApi}.`,
+      'web/package.json and web/package-lock.json'
+    );
+  } else {
+    fail(
+      gates,
+      'host-wrapper-papi',
+      'Product Host PAPI compatibility',
+      `Expected override and lockfile resolution ${EXPECTED_PRODUCT_DEVNET.hostWrapperPolkadotApi}; found ${hostWrapperPapiOverride ?? 'no override'} and ${hostWrapperPapiVersion ?? 'no nested resolution'}.`,
+      'web/package.json and web/package-lock.json'
+    );
+  }
 
   const deployScript = snapshot.webPackageJson?.scripts?.['deploy:product-devnet'] ?? '';
   const deployEnvironmentCheck = snapshot.webPackageJson?.scripts?.['verify:product-deploy-environment'] ?? '';

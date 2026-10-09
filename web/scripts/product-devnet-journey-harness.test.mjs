@@ -30,7 +30,11 @@ function lockfile() {
       'node_modules/@parity/product-sdk': { version: EXPECTED_PRODUCT_DEVNET.productSdk },
       'node_modules/@parity/product-sdk-host': { version: EXPECTED_PRODUCT_DEVNET.productSdkHost },
       'node_modules/@parity/product-sdk-descriptors': { version: EXPECTED_PRODUCT_DEVNET.productSdkDescriptors },
-      'node_modules/@parity/product-sdk-statement-store': { version: EXPECTED_PRODUCT_DEVNET.productSdkStatementStore }
+      'node_modules/@parity/product-sdk-statement-store': { version: EXPECTED_PRODUCT_DEVNET.productSdkStatementStore },
+      'node_modules/@parity/product-sdk-tx': { version: EXPECTED_PRODUCT_DEVNET.productSdkTx },
+      'node_modules/@novasamatech/host-api-wrapper/node_modules/polkadot-api': {
+        version: EXPECTED_PRODUCT_DEVNET.hostWrapperPolkadotApi
+      }
     }
   };
 }
@@ -51,6 +55,11 @@ function staticSnapshot(patch = {}) {
       VITE_CONTENT_SECRET: ''
     },
     webPackageJson: {
+      overrides: {
+        '@novasamatech/host-api-wrapper': {
+          'polkadot-api': EXPECTED_PRODUCT_DEVNET.hostWrapperPolkadotApi
+        }
+      },
       scripts: {
         'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
         'build:product-devnet:frozen': 'tsc -b && vite build',
@@ -441,6 +450,23 @@ test('static gates fail when the tracked Product profile points at the retired C
 
   assert.equal(report.summary.status, 'fail');
   assert.equal(report.staticGates.find(gate => gate.id === 'cdm-registry')?.status, 'fail');
+});
+
+test('static gates fail when the Product Host wrapper can resolve an incompatible PAPI major', () => {
+  const snapshot = staticSnapshot();
+  delete snapshot.webPackageJson.overrides['@novasamatech/host-api-wrapper'];
+  snapshot.webPackageLock.packages['node_modules/@novasamatech/host-api-wrapper/node_modules/polkadot-api'].version = '3.2.1';
+
+  const report = buildProductDevnetJourneyReport({
+    snapshot,
+    productSmokeEvidence: null,
+    roomEvidence: null,
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-10-09T10:00:00.000Z'
+  });
+
+  assert.equal(report.summary.status, 'fail');
+  assert.equal(report.staticGates.find(gate => gate.id === 'host-wrapper-papi')?.status, 'fail');
 });
 
 test('static gates fail when the configured HTTPS RPC is not the Product DevNet Asset Hub endpoint', () => {
