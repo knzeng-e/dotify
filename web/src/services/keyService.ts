@@ -70,6 +70,9 @@ export type ProductKeyRequestSigner = {
 };
 
 export type KeyRequestSigner = Eip191KeyRequestSigner | ProductKeyRequestSigner;
+export type DotifySessionIdentity =
+  | Pick<Eip191KeyRequestSigner, 'address' | 'signatureScheme'>
+  | Pick<ProductKeyRequestSigner, 'address' | 'signatureScheme' | 'productPublicKey'>;
 
 type SignedRequestPayload = {
   action: 'REQUEST_CONTENT_KEY';
@@ -157,7 +160,7 @@ const sessionCache = createSessionCache(API_URL ?? '');
 let sessionCapability: { available: boolean; expiresAt: number } | null = null;
 const sessionRequests = new Map<string, Promise<string | null>>();
 const sessionEpochs = new Map<string, number>();
-function sessionScope(signer: KeyRequestSigner, chainId: number): SessionScope {
+function sessionScope(signer: DotifySessionIdentity, chainId: number): SessionScope {
   return {
     address: signer.address,
     chainId,
@@ -241,9 +244,9 @@ export function clearStoredSession(address: string, expectedToken?: string): voi
   sessionCache.clear(address, expectedToken);
 }
 
-/** Reuse a signed-in identity without opening another wallet prompt. */
-export function existingDotifySession(address: string): string | null {
-  return sessionCache.existing(address);
+/** Reuse only the session for this exact account, chain, and signing identity. */
+export function existingDotifySession(identity: DotifySessionIdentity, chainId: number): string | null {
+  return sessionCache.read(sessionScope(identity, chainId))?.token ?? null;
 }
 
 async function isDotifySessionAvailable(): Promise<boolean> {

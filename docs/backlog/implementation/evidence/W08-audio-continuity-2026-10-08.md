@@ -111,3 +111,27 @@ interruptions and unintended timeline resets. No sub-two-second or web2-parity
 claim follows from these synthetic tests. Keep guest key requests and
 per-track signatures during a valid supported session at zero; spending still
 requires an explicit confirmation.
+
+## Post-merge review correction — 2026-10-09
+
+A late review on #248 found that the room-host contribution binding still
+collapsed the scoped cache to an address-only lookup. When that address had
+fresh sessions for several chains, storage order could select a token that the
+contribution server correctly rejected for its configured chain, leaving tips
+disabled even though the valid token was present.
+
+The follow-up lookup now requires Dotify's resolved expected chain and the
+connected signing identity. Product identities include their sr25519 public
+key; extension identities select only the EIP-191 scope. The address-wide
+lookup was removed so another caller cannot reintroduce ambiguous selection.
+A focused regression creates same-address Product sessions on two chains and
+proves that each exact lookup returns its own token while the EIP-191 identity
+does not inherit either Product token. Disconnecting the host wallet, losing
+the expected chain, finding no exact session, or observing an account/signer
+mismatch now emits the empty binding so signaling clears the former recipient.
+No API, signaling protocol, environment, deployment, payment, or guest-room
+behavior changes.
+
+Follow-up validation passed: `npm run test:unit` (831/831), `npm run build`,
+`npm run lint` (zero errors; the two existing `App.tsx` hook warnings),
+`npm run fmt:check`, and `git diff --check`.

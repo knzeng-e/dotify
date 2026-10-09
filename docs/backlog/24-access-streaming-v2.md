@@ -206,6 +206,10 @@ Continuity and session follow-up (2026-10-08, #88 / #90):
   transient 503 no longer causes a sticky per-track-signature mode. See the
   [implementation evidence](implementation/evidence/W08-audio-continuity-2026-10-08.md)
   for tests, migration boundaries, and remaining physical-device gates.
+- The room-host contribution binding reads that same exact chain and signing
+  identity scope. A token cached first for another network or signing identity
+  cannot silently replace the valid session for the configured contribution
+  network.
 
 #87 responsive-cover slice (2026-09-18):
 

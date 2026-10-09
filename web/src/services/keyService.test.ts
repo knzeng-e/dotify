@@ -353,15 +353,40 @@ describe('keyService sessions', () => {
     for (const digit of ['1', '2', '3']) await requestContentKey({ signer, chainId: 420420417, purpose: 'individual', contentHash: `0x${digit.repeat(64)}` });
     expect(signMessage).toHaveBeenCalledTimes(1);
     expect(keyTokens).toEqual(['session-1', 'session-1', 'session-1']);
-    expect(existingDotifySession(ADDRESS)).toBe('session-1');
+    expect(existingDotifySession(signer, 420420417)).toBe('session-1');
     await signOutOfDotifySession(ADDRESS);
-    expect(existingDotifySession(ADDRESS)).toBeNull();
+    expect(existingDotifySession(signer, 420420417)).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.test/api/auth/logout',
       expect.objectContaining({ body: JSON.stringify({ sessionToken: 'session-1' }) })
     );
     await requestContentKey({ signer, chainId: 420420417, purpose: 'individual', contentHash: CONTENT_HASH });
     expect(signMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it('selects an existing session for the requested chain instead of storage order', async () => {
+    installLocalStorage();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('/session') && init?.method === 'GET') return jsonResponse({ available: true });
+        if (url.endsWith('/nonce')) return jsonResponse({ nonce: 'a'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+        if (url.endsWith('/session')) {
+          const { chainId } = JSON.parse(String(init?.body)) as { chainId: number };
+          return jsonResponse({ sessionToken: `session-${chainId}`, expiresAt: new Date(Date.now() + 86_400_000).toISOString() });
+        }
+        if (url.endsWith('/key-request')) return keyRequestResponse();
+        throw new Error(`Unexpected request ${url}`);
+      })
+    );
+    const { requestContentKey, existingDotifySession } = await loadKeyService();
+    const signer = productSigner();
+    await requestContentKey({ signer, chainId: 1, purpose: 'individual', contentHash: CONTENT_HASH });
+    await requestContentKey({ signer, chainId: 420420417, purpose: 'individual', contentHash: `0x${'44'.repeat(32)}` });
+
+    expect(existingDotifySession(signer, 420420417)).toBe('session-420420417');
+    expect(existingDotifySession(signer, 1)).toBe('session-1');
+    expect(existingDotifySession({ address: ADDRESS }, 420420417)).toBeNull();
   });
 
   it('does not prompt during a temporary 503 and rechecks sessions on the next attempt', async () => {
@@ -409,7 +434,7 @@ describe('keyService sessions', () => {
     await signOutOfDotifySession(ADDRESS);
     finish(jsonResponse({ sessionToken: 'late-token', expiresAt: new Date(Date.now() + 86_400_000).toISOString() }));
     await rejection;
-    expect(existingDotifySession(ADDRESS)).toBeNull();
+    expect(existingDotifySession(productSigner(), 420420417)).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.test/api/auth/logout',
       expect.objectContaining({ body: JSON.stringify({ sessionToken: 'late-token' }) })
