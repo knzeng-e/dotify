@@ -185,9 +185,9 @@ async function joinAsListener(context: BrowserContext, roomId: string, options: 
     await expect(page.locator('#join-room-title')).toContainText('welcomes you', { timeout: 15_000 });
     await expect(page.locator('.room-threshold-preview')).toBeVisible();
     await expect(page.locator('.room-threshold-code')).toContainText(roomId);
-    await expect(page.getByRole('button', { name: 'Enter and listen' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Join and listen' })).toBeDisabled();
     await page.getByLabel('Your name in the room').fill(options.displayName);
-    await page.getByRole('button', { name: 'Enter and listen' }).click();
+    await page.getByRole('button', { name: 'Join and listen' }).click();
   }
   return page;
 }
@@ -309,7 +309,7 @@ test('embedded Product Web guest sees a live room before media permission', asyn
     await expect(embeddedDotify.locator('#join-room-title')).toContainText('welcomes you', { timeout: 15_000 });
     await expect(embeddedDotify.locator('.room-threshold-preview')).toContainText(PUBLIC_TITLE);
     await expect(embeddedDotify.getByLabel('Your name in the room')).toHaveValue('Product guest');
-    await expect(embeddedDotify.getByRole('button', { name: 'Enter and listen' })).toBeEnabled();
+    await expect(embeddedDotify.getByRole('button', { name: 'Join and listen' })).toBeEnabled();
   } finally {
     await hostContext.close();
     await listenerContext.close();
@@ -552,7 +552,7 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
 
     // Reopening on the same element/source reuses the retained live capture
     // and must restore the host-ready UI even though no new media event fires.
-    await host.getByRole('button', { name: 'Open room', exact: true }).click();
+    await host.getByRole('button', { name: 'Open a room', exact: true }).click();
     await host.getByLabel('Your name in the room').fill('Room host');
     await host.getByRole('button', { name: 'Open the room', exact: true }).click();
     await expect(host.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/, { timeout: 15_000 });

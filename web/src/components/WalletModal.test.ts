@@ -12,7 +12,7 @@ describe('wallet modal intent copy', () => {
   });
 
   it('keeps artist and account entry points distinct', () => {
-    expect(walletModalCopy('artist').description).toContain('artist space');
+    expect(walletModalCopy('artist').description).toContain('artist studio');
     expect(walletModalCopy('account').description).toContain('support an artist');
   });
 });

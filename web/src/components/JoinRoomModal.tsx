@@ -1,4 +1,4 @@
-import { Disc3, Headphones, Radio, Users, X } from 'lucide-react';
+import { ArrowRight, Disc3, Headphones, Radio, Users, X } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { CoverImage } from './CoverImage';
@@ -79,7 +79,7 @@ export function JoinRoomModal({
   const description = room
     ? isFull
       ? `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here, which is the current listener cap.`
-      : `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here. Choose a name to enter.`
+      : `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here. Choose a name to join.`
     : isResolving
       ? 'Loading host, track, and presence.'
       : isServiceUnavailable
@@ -178,9 +178,9 @@ export function JoinRoomModal({
               type='submit'
               disabled={isJoining || isResolving || isRoomUnavailable || isFull || !joinCode.trim() || !hasChosenName}
             >
-              {isJoining || isResolving ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
+              {isJoining || isResolving ? <Disc3 size={16} className='spin' /> : <ArrowRight size={16} />}
               {isJoining
-                ? 'Entering...'
+                ? 'Joining...'
                 : isResolving
                   ? 'Finding room...'
                   : isRoomUnavailable
@@ -188,7 +188,7 @@ export function JoinRoomModal({
                     : isFull
                       ? 'Room full'
                       : room
-                        ? 'Enter and listen'
+                        ? 'Join and listen'
                         : 'Join room'}
             </button>
           )}

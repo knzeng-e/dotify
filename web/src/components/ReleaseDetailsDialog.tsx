@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { Dialog } from './Dialog';
 import { CoverImage } from './CoverImage';
+import { buildClassicAccessReceipt } from '../features/access/accessPromise';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import type { CatalogTrack } from '../shared/types';
 
@@ -9,7 +10,7 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
     track.active === false
       ? 'Release unavailable'
       : track.accessMode === 'classic'
-        ? `${nativeRuntimeAmountLabel(track.priceDot, { symbol: nativePaymentSymbol })} to open, plus network fees`
+        ? `${nativeRuntimeAmountLabel(track.priceDot, { symbol: nativePaymentSymbol })} to unlock, plus network fees`
         : track.accessMode === 'free'
           ? 'Free for everyone'
           : track.personhoodLevel === 'DIM2'
@@ -38,7 +39,7 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
         </div>
         <div>
           <dt>In a room</dt>
-          <dd>The host opens the track. Guests listen without a wallet.</dd>
+          <dd>The host unlocks the track. Guests listen without an account.</dd>
         </div>
         {track.durationLabel && (
           <div>
@@ -51,20 +52,20 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
       <p>Listening access does not transfer copyright or permission to redistribute the recording.</p>
       {track.accessMode === 'classic' && (
         <div>
-          <h4>Published payment split</h4>
+          <h4>Where a payment goes</h4>
           {track.royaltySplits.length ? (
             <ul className='release-payment-splits'>
-              {track.royaltySplits.map((split, index) => (
-                <li key={`${split.recipient}-${index}`}>
-                  <span>{split.label || 'Recipient'}</span>
-                  <strong>{split.bps / 100}%</strong>
+              {buildClassicAccessReceipt(track, { symbol: nativePaymentSymbol }).recipients.map((recipient, index) => (
+                <li key={`${recipient.label}-${index}`}>
+                  <span>{recipient.label}</span>
+                  <strong>{recipient.value}</strong>
                 </li>
               ))}
             </ul>
           ) : (
             <p>Payment recipients are not indexed here. Review the confirmed quote before paying.</p>
           )}
-          <p>Review the access price before signing. Gifts and tips are voluntary contributions and do not unlock listening.</p>
+          <p>You see the exact price before you confirm. Gifts and tips are voluntary and do not unlock listening.</p>
         </div>
       )}
       <details className='release-provenance'>

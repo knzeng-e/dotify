@@ -24,7 +24,7 @@ async function openGift(page: Page, query = '') {
 }
 async function review(page: Page, amount = '0.25', kind: 'gift' | 'tip' = 'gift') {
   await amountField(page, kind).fill(amount);
-  await contributionDialog(page).getByRole('button', { name: 'Review contribution', exact: true }).click();
+  await contributionDialog(page).getByRole('button', { name: /^Review (tip|gift)$/ }).click();
 }
 async function giftState(page: Page) {
   return page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__') as { sends: number; confirmed: boolean; finalizedReads?: number });
@@ -35,7 +35,7 @@ for (const width of [320, 390, 430, 1440]) {
     await openGift(page);
     await review(page);
     const dialog = contributionDialog(page);
-    await expect(dialog).toContainText('Where your contribution goes');
+    await expect(dialog).toContainText(/Where your (tip|gift) goes/);
     await expect(dialog).toContainText('0.25 PAS');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: info.outputPath(`gift-review-${width}.png`), animations: 'disabled' });
@@ -46,7 +46,7 @@ for (const width of [320, 390, 430, 1440]) {
     const access = await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_CLASSIC_UNLOCK__') as { paid: boolean; accessGranted: boolean });
     expect(access.paid).toBe(false);
     expect(access.accessGranted).toBe(false);
-    await page.getByRole('button', { name: 'Close contribution' }).click();
+    await page.getByRole('button', { name: /^Close (tip|gift)$/ }).click();
     await expect(page.getByRole('button', { name: 'Gift sent. View receipt', exact: true })).toBeFocused();
     await expect(page.locator('.toast-card[data-tone="success"]')).toContainText('Gift sent');
   });
@@ -95,7 +95,7 @@ for (const width of [320, 390, 430, 1440]) {
     const access = await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_CLASSIC_UNLOCK__') as { paid: boolean; accessGranted: boolean });
     expect(access.paid).toBe(false);
     expect(access.accessGranted).toBe(false);
-    await page.getByRole('button', { name: 'Close contribution' }).click();
+    await page.getByRole('button', { name: /^Close (tip|gift)$/ }).click();
     const sentTip = page.getByRole('button', { name: 'Tip sent. View receipt', exact: true });
     await expect(sentTip).toBeFocused();
     await expect(sentTip).toHaveAttribute('data-confirmed', 'true');
@@ -112,7 +112,7 @@ test('a confirmed gift is visible in You with a dated exportable receipt', async
   await review(page, '0.5');
   await page.getByRole('button', { name: 'Confirm gift · 0.5 PAS', exact: true }).click();
   await expect(contributionDialog(page).getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Close contribution' }).click();
+  await page.getByRole('button', { name: /^Close (tip|gift)$/ }).click();
   await page.getByRole('button', { name: 'You', exact: true }).click();
   const history = page.locator('.contribution-history');
   await expect(history).toContainText('Gift to artist');
@@ -140,7 +140,7 @@ for (const width of [320, 390, 1440]) {
       const guest = await guestContext.newPage();
       await guest.goto(`/?e2eRoom=public&e2eSync=on#/rooms/${room}`);
       await guest.getByLabel('Your name in the room').fill('Tip room guest');
-      await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+      await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
       await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync');
       for (const [role, participant] of [
         ['host', page],
@@ -154,7 +154,7 @@ for (const width of [320, 390, 1440]) {
         await tip.click();
         await expect(contributionDialog(participant)).toContainText('E2E Protected Room Track');
         await expect(contributionDialog(participant)).toContainText('Listening access stays unchanged');
-        await participant.getByRole('button', { name: 'Close contribution' }).click();
+        await participant.getByRole('button', { name: /^Close (tip|gift)$/ }).click();
       }
       expect(await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
     } finally {
@@ -182,7 +182,7 @@ test('the host repairs legacy tip metadata while browsing outside the player', a
     const guest = await guestContext.newPage();
     await guest.goto(`/?e2eRoom=public&e2eSync=on#/rooms/${room}`);
     await guest.getByLabel('Your name in the room').fill('Recovery guest');
-    await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+    await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
     await expect(guest.getByRole('button', { name: 'Tip this track', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Back to Music', exact: true }).click();
     await expect(page.locator('.catalogue-card').first()).toBeVisible();
@@ -249,7 +249,7 @@ test('a legacy room keeps the tip location visible while attribution is unavaila
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/?e2eRoom=public&e2eSync=on#/rooms/${created.roomId}`);
     await page.getByLabel('Your name in the room').fill('Legacy room guest');
-    await page.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+    await page.getByRole('button', { name: 'Join and listen', exact: true }).click();
 
     const unavailable = page.getByRole('button', { name: 'Tip this track unavailable', exact: true });
     await expect(unavailable).toBeVisible();
@@ -273,7 +273,7 @@ test('a pending contribution can close and reopen without another transfer', asy
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
   await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
-  await page.getByRole('button', { name: 'Close contribution' }).click();
+  await page.getByRole('button', { name: /^Close (tip|gift)$/ }).click();
   await page.getByRole('button', { name: 'Send a gift', exact: true }).click();
   await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
   expect((await giftState(page)).sends).toBe(1);

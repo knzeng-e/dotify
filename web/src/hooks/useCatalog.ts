@@ -1427,7 +1427,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       setAccessGate(null);
       showPaymentFeedback({
         tone: 'error',
-        title: 'Payment signer unavailable',
+        title: 'Payment could not start',
         message: walletRequirement || 'Reconnect your account before paying for listening access.',
         facts: buildSupportFacts(track, nativeRuntimePaymentAsset, 'failed')
       });

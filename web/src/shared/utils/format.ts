@@ -121,6 +121,14 @@ export function catalogAccessLabel(track: CatalogTrack, nativePaymentSymbol = 'n
   return track.accessMode === 'classic' ? `${track.priceDot} ${nativePaymentSymbol}` : 'Free for verified humans';
 }
 
+/** Short, visible access cue for a catalog card. */
+export function catalogAccessShortLabel(track: CatalogTrack, hasAccess: boolean, nativePaymentSymbol = 'native token') {
+  if (track.active === false) return 'Unavailable';
+  if (track.accessMode === 'free') return 'Free';
+  if (track.accessMode === 'human-free') return 'Free for verified humans';
+  return hasAccess ? 'Unlocked' : `${track.priceDot} ${nativePaymentSymbol}`;
+}
+
 export function normalizeDisplayText(value: string) {
   return value.replace(/\s+/g, ' ').trim();
 }

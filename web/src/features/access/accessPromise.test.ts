@@ -83,9 +83,15 @@ describe('access promise copy', () => {
       }
     ]);
     expect(receipt.recipients).toEqual([
-      { label: 'Producer', value: '25% to 0x111111...111111' },
-      { label: 'Original artist remainder', value: '75% to 0x222222...222222' }
+      { label: 'Nova', value: '75%', account: '0x222222...222222' },
+      { label: 'Producer', value: '25%', account: '0x111111...111111' }
     ]);
+  });
+
+  it('folds a split paid to the artist account into one named artist row', () => {
+    const release = track({ royaltySplits: [{ label: 'Primary recipient', recipient: '0x2222222222222222222222222222222222222222', bps: 7_000 }] });
+
+    expect(buildClassicAccessReceipt(release, nativePaymentAsset).recipients).toEqual([{ label: 'Nova', value: '100%', account: '0x222222...222222' }]);
   });
 
   it('shows the authoritative payment amount even when a display price is stale', () => {

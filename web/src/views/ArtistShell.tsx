@@ -24,9 +24,13 @@ export function ArtistShell() {
     if (storedName) setArtistName(storedName);
   }, [activeEvmAddress, setArtistName]);
 
-  return (
-    <ArtistPortalView>
-      {connectedWallet && (artistConsole.artistRuntimeAddress || artistConsole.hasKnownRoyaltyRuntime) ? <ArtistConsole /> : <ArtistOnboarding />}
-    </ArtistPortalView>
-  );
+  const showConsole = Boolean(connectedWallet && (artistConsole.artistRuntimeAddress || artistConsole.hasKnownRoyaltyRuntime));
+
+  // The console is shorter than the onboarding form: without this, a freshly
+  // registered artist lands mid-page with the studio tabs under the top bar.
+  useEffect(() => {
+    if (showConsole) window.scrollTo({ top: 0 });
+  }, [showConsole]);
+
+  return <ArtistPortalView>{showConsole ? <ArtistConsole /> : <ArtistOnboarding />}</ArtistPortalView>;
 }

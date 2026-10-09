@@ -18,6 +18,22 @@
 .room-share-trigger {
   flex-shrink: 0;
 }
+/* The host's one outward gesture: the invite stays labeled and lit at the top of the room. */
+.room-share-trigger[data-invite] {
+  display: inline-flex;
+  width: auto;
+  align-items: center;
+  gap: 0.45rem;
+  border-color: var(--line-strong);
+  padding-inline: 0.9rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.room-share-trigger[data-invite][data-alone] {
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--on-action);
+}
 .room-share-link {
   display: block;
   overflow-wrap: anywhere;

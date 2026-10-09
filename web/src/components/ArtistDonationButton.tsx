@@ -379,7 +379,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
               </p>
               <h2 id='contribution-title'>{kind === 'tip' ? track.title : `Gift to ${track.artist}`}</h2>
             </div>
-            <button className='modal-close' aria-label='Close contribution' onClick={() => setOpen(false)}>
+            <button className='modal-close' aria-label={kind === 'tip' ? 'Close tip' : 'Close gift'} onClick={() => setOpen(false)}>
               <X size={18} />
             </button>
           </div>
@@ -462,7 +462,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                 <input className='field' inputMode='decimal' value={amount} onChange={event => setAmount(event.target.value)} required />
               </label>
               <button className='primary-action' disabled={busy}>
-                {busy ? 'Checking distribution…' : 'Review contribution'}
+                {busy ? 'Checking distribution…' : kind === 'tip' ? 'Review tip' : 'Review gift'}
               </button>
             </form>
           )}
@@ -482,7 +482,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                   </dd>
                 </div>
               </dl>
-              <h3>Where your contribution goes</h3>
+              <h3>{kind === 'tip' ? 'Where your tip goes' : 'Where your gift goes'}</h3>
               {purpose && <p>{purpose}</p>}
               {available !== undefined && (
                 <p>

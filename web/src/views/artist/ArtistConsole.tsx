@@ -36,7 +36,7 @@ const artistTabs: Array<{ id: ArtistTab; label: string }> = [
   { id: 'overview', label: 'Overview' },
   { id: 'releases', label: 'Releases' },
   { id: 'royalties', label: 'Earnings' },
-  { id: 'rights', label: 'Rights' }
+  { id: 'rights', label: 'Rights & support' }
 ];
 
 // The console reads the release draft, wallet, catalog, artist studio, and

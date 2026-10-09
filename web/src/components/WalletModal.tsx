@@ -24,13 +24,13 @@ export function walletModalCopy(reason: WalletModalReason) {
     return {
       eyebrow: 'Artist tools',
       title: 'Connect to continue',
-      description: 'Connect the account that will control your artist space and approve publishing.'
+      description: 'Connect the account that will control your artist studio and approve publishing.'
     };
   }
   return {
-    eyebrow: 'Account',
-    title: 'Connect account',
-    description: 'Connect when you want to support an artist, open protected music, or publish.'
+    eyebrow: '',
+    title: 'Connect',
+    description: 'Listening in a room never needs an account. Connect when you want to unlock a track, support an artist, or publish.'
   };
 }
 
@@ -114,7 +114,6 @@ export function WalletModal({
           </button>
         </div>
         <div className='modal-copy'>
-          <p className='modal-eyebrow'>Account</p>
           <h2 id='wallet-modal-title'>Connected</h2>
         </div>
 
@@ -295,7 +294,7 @@ export function WalletModal({
         </button>
       </div>
       <div className='modal-copy'>
-        <p className='modal-eyebrow'>{connectCopy.eyebrow}</p>
+        {connectCopy.eyebrow && <p className='modal-eyebrow'>{connectCopy.eyebrow}</p>}
         <h2 id='wallet-modal-title'>{connectCopy.title}</h2>
         <p id='wallet-modal-desc'>{connectCopy.description}</p>
       </div>

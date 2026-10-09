@@ -756,7 +756,7 @@
     padding: 1.25rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
   }
 
-  .modal-copy h2 {
+  .join-room-modal .modal-copy h2 {
     font-size: var(--text-display-sm);
   }
 

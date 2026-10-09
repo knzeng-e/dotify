@@ -159,7 +159,7 @@
 .contribution-policy p,
 .contribution-freshness {
   color: var(--text-muted, #adbec0);
-  font-size: 14px;
+  font-size: var(--text-sm);
   line-height: 1.6;
 }
 .contribution-policy fieldset {
@@ -206,7 +206,7 @@
 }
 .contribution-totals dt {
   color: var(--text-muted, #adbec0);
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 .contribution-totals dd {
   margin: 8px 0 0;
@@ -255,7 +255,7 @@
 }
 .contribution-destinations li span {
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 .contribution-destinations small {
   display: block;
@@ -270,7 +270,7 @@
   max-width: 45%;
   overflow-wrap: anywhere;
   text-align: right;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 .contribution-history code,
 .artist-gift-dialog code,

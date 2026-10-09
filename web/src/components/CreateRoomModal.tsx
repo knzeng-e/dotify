@@ -77,9 +77,8 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
         </div>
       </div>
       <div className='modal-copy'>
-        <p className='modal-eyebrow'>Start a room</p>
-        <h2 id='create-room-title'>As easy as sharing a link</h2>
-        <p>Open a room and share the link.</p>
+        <h2 id='create-room-title'>Open a room</h2>
+        <p>Pick a track, share the link, listen together. Guests join without an account.</p>
       </div>
 
       {picked && (
@@ -118,6 +117,9 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
                 aria-pressed={picked?.id === track.id}
               >
                 <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
+                <span className='create-room-pick-title' aria-hidden='true'>
+                  {track.title}
+                </span>
               </button>
             ))}
           </div>
@@ -147,7 +149,6 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
           Cancel
         </button>
       </div>
-      <p className='create-room-foot'>You host the track. Guests hear the room stream.</p>
     </Dialog>
   );
 }

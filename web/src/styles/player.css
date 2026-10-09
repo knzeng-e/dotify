@@ -485,6 +485,12 @@ input[type='range']::-moz-range-thumb {
   color: var(--signal);
 }
 
+.panel-title > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .panel-title-text,
 .panel-title > span:first-child,
 .panel-title strong {

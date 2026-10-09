@@ -9,6 +9,8 @@ type ClassicSupportStatus = 'pending' | 'confirmed' | 'included-unverified' | 'f
 export type ClassicReceiptRow = {
   label: string;
   value: string;
+  /** Shortened payout account, shown only under the technical disclosure. */
+  account?: string;
 };
 
 export type ClassicAccessReceipt = {
@@ -23,17 +25,23 @@ function royaltyPercentLabel(bps: number): string {
 }
 
 export function buildClassicAccessReceipt(track: CatalogTrack, nativePaymentAsset: RuntimeAssetShape): ClassicAccessReceipt {
-  const configuredSplitBps = track.royaltySplits.reduce((total, split) => total + split.bps, 0);
-  const artistRemainderBps = Math.max(0, 10_000 - configuredSplitBps);
-  const recipients = track.royaltySplits.map((split, index) => ({
+  const artistAccount = track.artistAddress?.toLowerCase();
+  // A split paid to the artist's own account is the artist's share: show one
+  // named row instead of a generic label next to a "remainder".
+  const collaboratorSplits = track.royaltySplits.filter(split => !artistAccount || split.recipient.toLowerCase() !== artistAccount);
+  const collaboratorBps = collaboratorSplits.reduce((total, split) => total + split.bps, 0);
+  const artistBps = Math.max(0, 10_000 - collaboratorBps);
+  const recipients: ClassicReceiptRow[] = collaboratorSplits.map((split, index) => ({
     label: split.label || `Collaborator ${index + 1}`,
-    value: `${royaltyPercentLabel(split.bps)} to ${shortenAddress(split.recipient)}`
+    value: royaltyPercentLabel(split.bps),
+    account: shortenAddress(split.recipient)
   }));
 
-  if (artistRemainderBps > 0) {
-    recipients.push({
-      label: 'Original artist remainder',
-      value: `${royaltyPercentLabel(artistRemainderBps)}${track.artistAddress ? ` to ${shortenAddress(track.artistAddress)}` : ''}`
+  if (artistBps > 0) {
+    recipients.unshift({
+      label: track.artist || 'Artist',
+      value: royaltyPercentLabel(artistBps),
+      account: track.artistAddress ? shortenAddress(track.artistAddress) : undefined
     });
   }
 
@@ -54,7 +62,7 @@ export function buildClassicAccessReceipt(track: CatalogTrack, nativePaymentAsse
       }
     ],
     recipients,
-    settlementNote: 'Your access payment follows this split when confirmation completes.'
+    settlementNote: 'Your payment follows this split when confirmation completes.'
   };
 }
 
@@ -64,7 +72,8 @@ export function buildClassicSupportFacts(
   status: ClassicSupportStatus = 'pending'
 ): TransactionFeedbackFact[] {
   const receipt = buildClassicAccessReceipt(track, nativePaymentAsset);
-  const recipients = receipt.recipients.map(row => `${row.label}: ${row.value}`).join('; ') || 'Artist’s published recipient list';
+  const recipients =
+    receipt.recipients.map(row => `${row.label}: ${row.value}${row.account ? ` to ${row.account}` : ''}`).join('; ') || 'Artist’s published recipient list';
   const accessValue =
     status === 'confirmed'
       ? 'Listening access is verified for this account while the release remains available.'
@@ -110,7 +119,7 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
       return {
         track,
         title: 'Unlock listening',
-        message: `Listening access to "${track.title}" costs ${supportAmount}. Review the recipients, then connect your paying account.`,
+        message: `Unlocking "${track.title}" costs ${supportAmount}. See who receives it, then connect the account you want to pay with.`,
         hint: 'Nothing is sent until you confirm.',
         actionType: 'signin'
       };
@@ -137,7 +146,7 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
   return {
     track,
     title: 'Unlock listening',
-    message: `Listening access to "${track.title}" costs ${supportAmount}. Full playback opens after payment and access verification.`,
+    message: `Unlocking "${track.title}" costs ${supportAmount}. Full playback opens after payment and access verification.`,
     hint: 'Nothing is sent until you confirm.',
     actionType: 'payment'
   };

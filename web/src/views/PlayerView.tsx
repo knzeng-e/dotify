@@ -150,7 +150,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     : selectedTrackInactive
       ? 'Release unavailable'
       : needsTrackAccess
-        ? 'Listening closed'
+        ? 'Locked'
         : effectiveAccessMode === 'classic'
           ? 'Full track opened'
           : 'Ready to listen';
@@ -178,6 +178,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
   );
   const showAudioRetry = Boolean(mode === 'listener' && roomId && !productHostWebRtcUnavailable && (!remoteReady || status === 'no-audio'));
+  const passiveSignalFailure = !roomId && sessionAction === 'idle' && sessionStatus === 'Ready' && session.socketStatus !== 'online';
   const soloRoomRecoveryIsJoin = mode === 'listener' || /room closed|expired|host left/i.test(`${sessionStatus} ${error ?? ''}`);
 
   // Unlock ritual (Constellation phase C): when THIS track's real access flips
@@ -289,8 +290,21 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <span className='sr-only' data-testid='room-code'>
             {roomId}
           </span>
-          <button className='icon-action room-share-trigger' type='button' onClick={() => setShareOpen(true)} aria-label='Share room' title='Share room'>
+          <button
+            className='icon-action room-share-trigger'
+            type='button'
+            data-invite={mode === 'host' || undefined}
+            data-alone={hostIsAlone || undefined}
+            onClick={() => setShareOpen(true)}
+            aria-label='Share room'
+            title='Share room'
+          >
             <Share2 size={20} />
+            {mode === 'host' && (
+              <span className='room-share-label' aria-hidden='true'>
+                Invite
+              </span>
+            )}
           </button>
         </div>
       )}
@@ -533,18 +547,17 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       {!roomId && canHostSelectedTrack && (
         <div className='solo-room-invite'>
           <div>
-            <span className='eyebrow'>One link away</span>
             <strong>Make this track a shared room.</strong>
             <p>Invite someone into what you’re hearing. All they need is the link.</p>
           </div>
           <button className='primary-action compact-action' type='button' onClick={onShowCreateModal}>
             <Radio size={16} />
-            Open room
+            Open a room
           </button>
         </div>
       )}
 
-      {!roomId && error && (
+      {!roomId && error && !passiveSignalFailure && (
         <div className='solo-session-feedback'>
           <p className='error-box' data-testid='session-error'>
             {error}
@@ -805,7 +818,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                     ? 'Inactive release'
                     : effectiveAccessMode === 'classic'
                       ? needsTrackAccess
-                        ? `${effectivePaymentAmount} to open`
+                        ? `${effectivePaymentAmount} to unlock`
                         : 'Access verified'
                       : 'Open in this room'
               }

@@ -111,7 +111,7 @@ for (const viewport of viewports) {
       await guest.emulateMedia({ reducedMotion: 'reduce' });
       await guest.goto(`/?e2eRoom=public&e2eSync=on#/rooms/${roomId}`);
       await guest.getByLabel('Your name in the room').fill('Visual guest');
-      await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+      await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
       await expect(guest.getByTestId('room-code')).toHaveText(roomId);
       await capture(guest, testInfo, 'guest-room');
     } finally {

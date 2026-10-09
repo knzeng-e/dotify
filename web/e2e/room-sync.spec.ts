@@ -20,7 +20,7 @@ async function hostRoom(page: Page, captureMode = 'synthetic') {
 async function join(page: Page, id: string) {
   await page.goto(`/#/rooms/${id}`);
   await page.getByLabel('Your name in the room').fill('Sync guest');
-  await page.getByRole('button', { name: 'Enter and listen' }).click();
+  await page.getByRole('button', { name: 'Join and listen' }).click();
   await expect(page.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
 }
 async function seek(page: Page, percent: number) {
