@@ -74,9 +74,6 @@ export function createSessionCache(apiUrl: string) {
         // Reuse in this page even when persistent Host/browser storage fails.
       }
     },
-    existing(address: string): string | null {
-      return entries(address).find(([, session]) => valid(session, true))?.[1].token ?? null;
-    },
     clear(address: string, expectedToken?: string): StoredSession[] {
       const removed: StoredSession[] = [];
       for (const [key, session] of entries(address)) {

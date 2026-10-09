@@ -23,7 +23,7 @@ type SessionValue = ReturnType<typeof useSession>;
 const SessionContext = createContext<SessionValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const { activeIdentityAddress, connectedWallet } = useWalletContext();
+  const { activeIdentityAddress, connectedWallet, expectedChainId } = useWalletContext();
   const { navigateToView } = useNavigation();
   const catalog = useCatalogContext();
 
@@ -53,11 +53,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   });
   const hostSocket = session.socketRef.current;
   const hostAccount = connectedWallet?.evmAddress;
+  const hostSigner = connectedWallet?.keyRequestSigner;
   useEffect(() => {
-    if (session.mode !== 'host' || !session.roomId || !hostSocket?.connected) return;
-    const token = hostAccount ? existingDotifySession(hostAccount) : null;
+    if (session.mode !== 'host' || !session.roomId || !hostSocket?.connected || !hostAccount || !expectedChainId) return;
+    // The contribution service verifies Dotify's configured chain. Product
+    // wallets may not expose a wallet chain id, so use the resolved expected
+    // chain together with the exact EIP-191/Product signing identity.
+    const token = existingDotifySession(hostSigner ?? { address: hostAccount }, expectedChainId);
     hostSocket.request('room:tip-bind', { token: token ?? '' }, { timeoutMs: 15000 }, () => {});
-  }, [session.mode, session.roomId, session.socketStatus, hostSocket, hostAccount]);
+  }, [session.mode, session.roomId, session.socketStatus, hostSocket, hostAccount, hostSigner, expectedChainId]);
 
   // One-link join: a guest landing on a #/rooms/<id> share link joins
   // immediately only when a wallet-scoped or guest name is already remembered.
