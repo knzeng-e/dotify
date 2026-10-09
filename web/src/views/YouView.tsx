@@ -1,4 +1,4 @@
-import { ArrowRight, ExternalLink, LogOut, Mic2, Music2, Sparkles, Users, Wallet } from 'lucide-react';
+import { ArrowRight, ExternalLink, Mic2, Music2, Power, Sparkles, Users, Wallet } from 'lucide-react';
 
 import { ProductionReadinessPanel, type ProductionReadinessPanelProps } from '../components/ProductionReadinessPanel';
 import type { WalletState } from '../hooks/useWallet';
@@ -218,7 +218,7 @@ export function YouView({
                   Manage
                 </button>
                 <button className='secondary-action compact-action' type='button' onClick={onDisconnectWallet}>
-                  <LogOut size={16} />
+                  <Power size={16} />
                   Disconnect
                 </button>
               </div>
