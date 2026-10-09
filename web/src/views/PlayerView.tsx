@@ -206,7 +206,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       : null;
   const onRetryPlayback = () => {
     if (!selectedTrack) return;
-    if (playbackFailure?.kind === 'account-required') onShowSupportWalletModal();
+    if (playbackFailure?.kind === 'account-required' || playbackFailure?.kind === 'session-interrupted') onShowSupportWalletModal();
     else openTrack(selectedTrack);
   };
   // The People tab only exists in the compact layouts; elsewhere the list is

@@ -825,6 +825,16 @@ For production-grade catalog evidence:
 
 Artist upload and session-boundary variables:
 
+Session-only frontend releases require `/api/auth/session` GET and POST plus
+token-based key requests. Verify session auth and `CONTENT_KEY_MASTER_SECRET`
+before rollout; older APIs without sessions now fail closed for protected
+listening. There is no per-track signing fallback. Established tokens survive
+network/503 failures; typed expiry/revocation/process-restart renews once.
+An interrupted exchange after approval requires explicit sign-in or account
+disconnect/reconnect. HTTP requests time out after 15 seconds. This does not
+change the 24-hour TTL or the API's process-epoch invalidation on restart, and
+adds no new environment setting. Free tracks and room guests stay walletless.
+
 The W29 frontend bounds session capability, nonce, session exchange, key and
 logout HTTP requests to 15 seconds each. A capability timeout fails without a
 wallet signature and can be retried; wallet approval itself is not interrupted

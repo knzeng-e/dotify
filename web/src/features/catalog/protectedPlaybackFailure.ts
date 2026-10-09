@@ -13,6 +13,7 @@ export type ProtectedPlaybackFailureKind =
   | 'access-not-confirmed'
   | 'audio-unavailable'
   | 'account-required'
+  | 'session-interrupted'
   | 'unknown';
 
 export type ProtectedPlaybackFailure = {
@@ -33,7 +34,7 @@ export class ProtectedPlaybackError extends Error {
 
 // KEY_SERVICE_ERROR is the client fallback for a response without a typed code
 // (proxy 5xx, rate limit). The others are typed by services/api.
-const SERVICE_ERROR_CODES = new Set(['KEY_SERVICE_ERROR', 'RPC_UNAVAILABLE', 'CATALOG_UNAVAILABLE']);
+const SERVICE_ERROR_CODES = new Set(['KEY_SERVICE_ERROR', 'RPC_UNAVAILABLE', 'CATALOG_UNAVAILABLE', 'SESSION_UNAVAILABLE']);
 const ACCESS_ERROR_CODES = new Set(['LISTENER_ACCESS_REQUIRED', 'HOST_ACCESS_REQUIRED', 'NOT_FREE']);
 
 // Wallet-side refusal only. A server "denied" is an access answer, not this.
@@ -42,6 +43,7 @@ const WALLET_REJECTION = /\b4001\b|user rejected|request rejected|cancell?ed/i;
 export function classifyProtectedPlaybackFailure(error: unknown): ProtectedPlaybackFailureKind {
   if (error instanceof ProtectedPlaybackError) return error.kind;
   if (error instanceof KeyServiceError) {
+    if (error.code === 'SESSION_SIGN_IN_INTERRUPTED') return 'session-interrupted';
     if (error.code === 'WALLET_REQUIRED') return 'account-required';
     if (SERVICE_ERROR_CODES.has(error.code)) return 'service-unreachable';
     if (ACCESS_ERROR_CODES.has(error.code)) return 'access-not-confirmed';
@@ -66,6 +68,12 @@ export const PROTECTED_PLAYBACK_RETRY_DELAYS_MS: readonly number[] = [900, 2200]
 
 export function protectedPlaybackFailureCopy(kind: ProtectedPlaybackFailureKind): { title: string; message: string; action: string } {
   switch (kind) {
+    case 'session-interrupted':
+      return {
+        title: 'Confirm a new listening session',
+        message: 'Your sign-in could not finish. Disconnect and reconnect your account to confirm a new session. No payment is needed.',
+        action: 'Open account'
+      };
     case 'signature-declined':
       return {
         title: 'Listening was not confirmed',

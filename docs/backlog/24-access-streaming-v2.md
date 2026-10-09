@@ -25,6 +25,12 @@ P0 once approved (it redefines the production spine's access rules).
 
 ## Phases
 
+October 9 session hardening: the current frontend no longer falls back to a
+per-track signed request when session auth is unavailable. Established sessions
+survive transport outages; renewal requires a typed expiration/revocation/API
+restart response and is bounded to one attempt. Failed login exchanges require
+explicit recovery rather than new wallet prompts on each playback retry.
+
 | Phase | Scope                                                                                                                                                              |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | P1    | Access model v2 (contracts + UI); delete the preview machinery                                                                                                     |

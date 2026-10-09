@@ -201,11 +201,16 @@ Properties and boundaries:
 - Legacy address-only cache entries are not reused across unverified scopes.
   Upgrading can require one new sign-in; Free playback and room guests are
   unaffected. Explicit sign-out also removes/revokes readable legacy entries.
-- Only a missing session route (404), or an explicit `SESSION_NOT_CONFIGURED`
-  capability response, enables the legacy per-request signed path. This negative
-  capability cache lasts 30 seconds. A generic 503/network failure asks the user
-  to retry without prompting for a signature; a failed session exchange does not
-  trigger a second per-track signature on 503.
+- The frontend requires session authentication for protected listening. A
+  missing route or `SESSION_NOT_CONFIGURED` response fails closed without a
+  per-track signature (negative capability cache: 30 seconds). Generic network,
+  503 and ambiguous 401 failures retain an established token. Only typed
+  `SESSION_EXPIRED`, `SESSION_REVOKED` or `SESSION_RESTARTED` responses renew it
+  once. If the new token is rejected too, or exchange fails after wallet
+  approval, automatic playback retries cannot sign again: explicit sign-in or
+  disconnect/reconnect clears an in-memory interruption latch. The API still
+  accepts its legacy signed route for older clients; the current frontend never
+  uses it. Requests have a 15-second HTTP budget, excluding wallet approval.
 
 ## Logging rules
 

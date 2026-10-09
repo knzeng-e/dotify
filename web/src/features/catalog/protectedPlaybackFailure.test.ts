@@ -9,6 +9,14 @@ import {
 } from './protectedPlaybackFailure';
 
 describe('protected playback failure', () => {
+  it('offers account recovery immediately for an interrupted sign-in without quiet retries', () => {
+    const kind = classifyProtectedPlaybackFailure(new KeyServiceError('Interrupted', 'SESSION_SIGN_IN_INTERRUPTED'));
+    expect(kind).toBe('session-interrupted');
+    expect(isTransientProtectedPlaybackFailure(kind)).toBe(false);
+    expect(protectedPlaybackFailureCopy(kind)).toMatchObject({ action: 'Open account' });
+    expect(protectedPlaybackFailureCopy(kind).message).toContain('Disconnect and reconnect');
+    expect(classifyProtectedPlaybackFailure(new KeyServiceError('Unavailable', 'SESSION_UNAVAILABLE'))).toBe('service-unreachable');
+  });
   it('names a declined signature and never retries it', () => {
     const kind = classifyProtectedPlaybackFailure(new Error('User rejected the request.'));
     expect(kind).toBe('signature-declined');
@@ -45,6 +53,7 @@ describe('protected playback failure', () => {
       'access-not-confirmed',
       'audio-unavailable',
       'account-required',
+      'session-interrupted',
       'unknown'
     ];
     for (const kind of kinds) {
