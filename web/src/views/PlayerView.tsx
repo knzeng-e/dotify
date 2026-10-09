@@ -5,7 +5,7 @@ import { RoomShareDialog } from '../components/RoomShareDialog';
 import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
 import { HostContributions } from '../components/HostContributions';
-import { ChevronDown, Coins, Copy, Check, ExternalLink, Headphones, KeyRound, Library, QrCode, Radio, RefreshCw, Share2, X } from 'lucide-react';
+import { ChevronDown, Coins, Copy, Check, ExternalLink, Headphones, KeyRound, Library, LogOut, QrCode, Radio, RefreshCw, Share2, Users, X } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
 import { EndpointRow } from '../shared/ui/EndpointRow';
 import { CoverImage } from '../components/CoverImage';
@@ -116,11 +116,13 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const [shareOpen, setShareOpen] = useState(false);
   const [detailsTrack, setDetailsTrack] = useState<CatalogTrack | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [roomPanel, setRoomPanel] = useState<'chat' | 'queue' | 'people'>('chat');
   const [chatUnread, setChatUnread] = useState(false);
   useEffect(() => {
     setRoomPanel('chat');
     setShareOpen(false);
+    setConfirmCloseOpen(false);
     setChatUnread(false);
   }, [roomId]);
   useEffect(() => {
@@ -189,6 +191,18 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     if (!selectedTrack) return;
     if (playbackFailure?.kind === 'account-required') onShowSupportWalletModal();
     else openTrack(selectedTrack);
+  };
+  // The People tab only exists in the compact layouts; elsewhere the list is
+  // already on screen, so bring it into view instead of hiding the chat.
+  const onShowPeople = () => {
+    const tab = document.getElementById('room-tab-people');
+    if (tab && tab.getClientRects().length > 0) setRoomPanel('people');
+    else document.getElementById('room-panel-people')?.scrollIntoView({ block: 'nearest' });
+  };
+  // Closing ends the room for everyone, so a host with guests confirms first.
+  const onExitRoom = () => {
+    if (mode === 'host' && activeListeners.length > 0) setConfirmCloseOpen(true);
+    else onLeaveSession();
   };
   const passiveSignalFailure = !roomId && sessionAction === 'idle' && sessionStatus === 'Ready' && session.socketStatus !== 'online';
   const soloRoomRecoveryIsJoin = mode === 'listener' || /room closed|expired|host left/i.test(`${sessionStatus} ${error ?? ''}`);
@@ -262,11 +276,11 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               <span className='live-dot' data-online={session.socketStatus === 'online'} aria-hidden='true' />
               {session.socketStatus === 'online' ? (mode === 'host' ? 'Hosting' : 'Together') : 'Reconnecting'}
             </span>
-            <span className='room-header-meta'>
+            <button className='room-header-meta' type='button' onClick={onShowPeople} title='See who is here'>
               {session.socketStatus === 'online' && <AvatarStack {...roomPresencePreview(visibleHostName || '', listeners, listenerCount)} max={3} size={22} />}
               {session.socketStatus === 'online' ? `${presenceCount} here · ` : ''}
               {mode === 'host' ? 'you host' : visibleHostName ? `with ${visibleHostName}` : 'listening together'}
-            </span>
+            </button>
           </div>
           {/* Room playback mode metadata hook (always 'full' since access model
               v2 retired the preview; kept for wire compatibility); the visible cue lives
@@ -302,6 +316,16 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <span className='sr-only' data-testid='room-code'>
             {roomId}
           </span>
+          <button
+            className='icon-action room-exit-trigger'
+            type='button'
+            onClick={onExitRoom}
+            aria-label={mode === 'host' ? 'Close room' : 'Leave'}
+            title={mode === 'host' ? 'Close this room for everyone' : 'Leave this room'}
+          >
+            <LogOut size={20} />
+            <span className='room-exit-label'>{mode === 'host' ? 'Close room' : 'Leave'}</span>
+          </button>
           <button
             className='icon-action room-share-trigger'
             type='button'
@@ -391,7 +415,17 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 tabs[next].focus();
               }}
             >
-              {panel === 'chat' ? 'Chat' : panel === 'queue' ? 'Queue' : session.socketStatus === 'online' ? `People · ${presenceCount}` : 'People'}
+              {panel === 'chat' ? (
+                'Chat'
+              ) : panel === 'queue' ? (
+                'Queue'
+              ) : (
+                <>
+                  <Users size={18} aria-hidden='true' />
+                  <span className='sr-only'>{session.socketStatus === 'online' ? 'People · ' : 'People'}</span>
+                  {session.socketStatus === 'online' && <span className='room-people-count'>{presenceCount}</span>}
+                </>
+              )}
               {panel === 'chat' && chatUnread && <span className='room-chat-unread' role='img' aria-label='New messages' />}
               {panel === 'queue' && session.requestQueue.length > 0 && (
                 <span className='room-request-count' aria-label={`${session.requestQueue.length} requests`}>
@@ -711,10 +745,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   </div>
                 )}
               </div>
-
-              <button className='secondary-action' type='button' onClick={onLeaveSession}>
-                Close room
-              </button>
             </>
           )}
 
@@ -798,10 +828,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   </button>
                 </div>
               </form>
-
-              <button className='secondary-action' type='button' onClick={onLeaveSession}>
-                Leave
-              </button>
             </>
           )}
 
@@ -883,6 +909,37 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         />
       )}
       {queueOpen && !roomId && <PlayerQueueDialog onClose={() => setQueueOpen(false)} />}
+      {confirmCloseOpen && roomId && mode === 'host' && (
+        <Dialog
+          className='room-close-dialog'
+          size='compact'
+          labelledBy='room-close-title'
+          describedBy='room-close-copy'
+          onClose={() => setConfirmCloseOpen(false)}
+        >
+          <div className='modal-copy'>
+            <h2 id='room-close-title'>Close this room?</h2>
+            <p id='room-close-copy'>
+              {activeListeners.length === 1 ? '1 person is' : `${activeListeners.length} people are`} listening with you. Closing ends the room for everyone.
+            </p>
+          </div>
+          <div className='modal-actions'>
+            <button
+              className='primary-action'
+              type='button'
+              onClick={() => {
+                setConfirmCloseOpen(false);
+                onLeaveSession();
+              }}
+            >
+              Close for everyone
+            </button>
+            <button className='secondary-action' type='button' onClick={() => setConfirmCloseOpen(false)}>
+              Keep listening
+            </button>
+          </div>
+        </Dialog>
+      )}
     </section>
   );
 }

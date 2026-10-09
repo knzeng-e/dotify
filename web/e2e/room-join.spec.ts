@@ -539,8 +539,10 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
 
     // An explicit close is authoritative and bypasses the transient transport
     // resume window, so listeners are notified immediately.
-    await host.getByRole('tab', { name: /People/ }).click();
-    await host.getByRole('button', { name: 'Close room' }).click();
+    // The exit lives in the room header; with a guest present the host confirms.
+    await host.getByRole('button', { name: 'Close room', exact: true }).click();
+    await expect(host.getByRole('dialog', { name: 'Close this room?' })).toContainText('1 person is listening with you');
+    await host.getByRole('button', { name: 'Close for everyone', exact: true }).click();
 
     await expect(listener.getByTestId('session-error')).toContainText(/host left|room closed|expired/i, { timeout: 20_000 });
     await expect(listener.getByRole('button', { name: 'Try another room', exact: true })).toBeVisible();
