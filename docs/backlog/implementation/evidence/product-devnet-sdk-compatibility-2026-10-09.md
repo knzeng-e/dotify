@@ -5,7 +5,7 @@
 - Scope: align Dotify with the October 2026 Product Host protocol under compatibility epic #85.
 - Date: 2026-10-09.
 - Starting `dev` SHA: `9533ceddaacfa0ccc69a6ef0c3629b31a6278383`.
-- Implementation SHA actually tested: `c7f10b7` (content commit before this evidence-only SHA binding).
+- Implementation SHA actually tested: `241431b3a87dbf89b5ee92bfdeb728c6ac750a82`.
 - Branch / issue: `fix/product-devnet-sdk-compat` / #85.
 - External sources checked:
   - Product SDK changelog: https://github.com/paritytech/product-sdk/blob/main/product-sdk/packages/sdk/CHANGELOG.md
