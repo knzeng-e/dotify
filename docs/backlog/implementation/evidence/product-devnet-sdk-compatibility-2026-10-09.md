@@ -12,7 +12,11 @@
   - Product Host changelog: https://github.com/paritytech/product-sdk/blob/main/product-sdk/packages/host/CHANGELOG.md
   - npm stable package metadata on 2026-10-09.
 - Code readiness: locally verified.
-- Release readiness: not deployed; real Host smoke remains required.
+- Published candidate: `97bf831679a5cfb1177d62475907625e40a8ebaf`, Product
+  version `[0, 1, 44]`, executable CID
+  `bafybeihcn3ffl5aveabuaukuloaje5ckyhgklhrfxtmkf3w77yupfkekg4`.
+- Release readiness: publication and independent artifact verification passed;
+  real Host smoke remains required.
 
 ## Result and decisions
 
@@ -61,9 +65,32 @@ not a failed browser assertion.
 - Product Desktop/Web requires a Host compatible with the October 2026 wire
   protocol; the app continues to fail closed when the Host handshake is absent.
 - No storage, key, contract, or server migration is required.
-- `[0, 1, 43]` remains the published rollback version until 0.1.44 is deployed
-  and verified.
+- `[0, 1, 43]` remains the immediate rollback version.
 - No user data or new telemetry is collected.
+
+## Product DevNet publication
+
+Version `[0, 1, 44]` was published on 2026-10-09 from the clean, tested `dev`
+merge `97bf831679a5cfb1177d62475907625e40a8ebaf`. This was a frontend-only
+release; the API and signaling services were not redeployed.
+
+- Bulletin finalized the stable upload at block `1149269` in transaction
+  `0x450a6ea545445d055e5d655d9ec1f8e78d16359ac0a232e33c89ebe6be051cfc`.
+- Bulletin finalized the full-CAR root at block `1149272` in transaction
+  `0xe3cc643d9123121fb618b4475f447f2e3c2cae9baaf20701098d8b67981340f7`.
+- DotNS linked the executable CID at Asset Hub block `14233097` in transaction
+  `0xd98a58dc9bea93a84acebd80a6902996cbf3065d751392a415a19948c7131c68`.
+- The atomic executable manifest update finalized in transaction
+  `0xb281118d7f2578927c0f709038eaf661c63a7f21dbf35889b33ffb00105c0cd5`.
+
+All 14 content chunks reached finality and the deployer's P2P retrieval passed.
+An independent read through the public DevNet IPFS gateway returned a
+5,821,636-byte CAR. All 26 files in that CAR match the frozen local build
+byte-for-byte; its entry bundle contains the full deployed source SHA and
+Product version. The pre- and post-publication Remote Config checks both matched
+the pinned DevNet registry and content resolver. These checks prove publication
+and public artifact integrity, not that an installed Product Host refreshed its
+cache or exercised the new protocol.
 
 ## Acceptance mapping
 
@@ -72,12 +99,11 @@ not a failed browser assertion.
 | Build against the current stable Product SDK/Host family | Passed | Ordinary and frozen Product builds passed |
 | Prevent the Host wrapper from silently selecting incompatible PAPI 3 | Passed | Scoped override, lockfile resolution, and negative journey-gate test |
 | Preserve standalone web and fail-closed Product boundaries | Passed locally | 847 unit tests and both builds passed |
-| Prove the new wire protocol in a real Product Host | Not run | Requires publication and Product Desktop/Web access |
+| Publish the reviewed Product candidate and verify its public artifact | Passed | Finalized Bulletin/DotNS transactions and 26/26 CAR files matched locally |
+| Prove the new wire protocol in a real Product Host | Not run | Requires Product Desktop/Web access on the published CID |
 
 ## Remaining gates
 
-- Review and merge this compatibility PR.
-- Publish executable `[0, 1, 44]` from the reviewed commit.
 - Run a real Product Desktop/Web smoke for account connection, signing,
   protected playback, and room creation/joining. Bind exports to the same commit,
   app version, and deployed CID.
