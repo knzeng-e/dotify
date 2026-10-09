@@ -482,7 +482,7 @@ describe('keyService sessions', () => {
     const { requestContentKey } = await loadKeyService();
     await expect(
       requestContentKey({ signer: productSigner(signMessage), chainId: 420420417, purpose: 'individual', contentHash: CONTENT_HASH })
-    ).rejects.toThrow('Temporarily unavailable');
+    ).rejects.toMatchObject({ code: 'SESSION_SIGN_IN_INTERRUPTED' });
     for (let i = 0; i < 3; i++)
       await expect(
         requestContentKey({ signer: productSigner(signMessage), chainId: 420420417, purpose: 'individual', contentHash: CONTENT_HASH })
@@ -510,7 +510,7 @@ describe('keyService sessions', () => {
     const { requestContentKey, ensureDotifySessionForSigner } = await loadKeyService();
     const signer = productSigner(signMessage);
     const input = { signer, chainId: 420420417, purpose: 'individual' as const, contentHash: CONTENT_HASH };
-    await expect(requestContentKey(input)).rejects.toThrow('Offline');
+    await expect(requestContentKey(input)).rejects.toMatchObject({ code: 'SESSION_SIGN_IN_INTERRUPTED' });
     fail = false;
     await expect(requestContentKey(input)).rejects.toMatchObject({ code: 'SESSION_SIGN_IN_INTERRUPTED' });
     expect(signMessage).toHaveBeenCalledTimes(1);

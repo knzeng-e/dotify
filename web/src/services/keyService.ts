@@ -335,13 +335,16 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
     keyRequestSmokeFields(signer, chainId, { phase: 'session-created', path: 'session' });
     return body.sessionToken;
   } catch (error) {
+    let playbackError = error;
     if (approved && isCurrent()) {
+      const interruption = new KeyServiceError(
+        'Your listening sign-in could not be completed. Reconnect your account to confirm a new session.',
+        'SESSION_SIGN_IN_INTERRUPTED'
+      );
+      playbackError = interruption;
       interruptedSignIns.set(sessionCache.keyFor(scope), {
         address: signer.address.toLowerCase(),
-        error: new KeyServiceError(
-          'Your listening sign-in could not be completed. Reconnect your account to confirm a new session.',
-          'SESSION_SIGN_IN_INTERRUPTED'
-        )
+        error: interruption
       });
     }
     if (!smokePublished) {
@@ -352,7 +355,7 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
         error: errorText(error)
       });
     }
-    throw error;
+    throw playbackError;
   }
 }
 
