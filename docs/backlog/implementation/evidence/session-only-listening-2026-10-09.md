@@ -52,3 +52,19 @@ Its retry callback opens account controls instead of replaying the track.
 Session-service unavailability remains a transient service failure with no
 wallet prompt. Merge resolution retains W29's invocation-owned errors,
 startup retries, and the session-only key path; no legacy signing returned.
+
+## Product rollout
+
+The merged frontend shipped in Product executable `[0, 1, 43]` on 2026-10-09
+from candidate `c394c2354b128f5bb71cc039142835450ae210f6` and tested `dev`
+merge `3183de87d4ab90b74e889fae4c317c2b1dc97d2d`. The finalized executable CID
+is `bafybeid6izin3sjhmeb7yrslf4snerngjmt4ttt5tsysazf7vju5h3gpkq`. Static
+release gates, the frozen Product build, Product host configuration checks,
+Bulletin chunk/root finality, DotNS content read-back, P2P retrieval and public
+CAR retrieval passed. The public CAR contains the exact local `index.html` and
+the candidate SHA.
+
+This rollout proves publication, not the wallet-friction outcome on physical
+Product hosts. Count prompts across at least twenty protected track changes and
+exercise expiry, API restart, disconnect/reconnect and storage-blocked cases on
+the loaded `0.1.43` SHA before closing the real-device acceptance boundary.
