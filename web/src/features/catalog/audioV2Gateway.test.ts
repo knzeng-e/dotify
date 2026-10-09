@@ -52,6 +52,21 @@ describe('audioV2 gateway range fetching', () => {
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([PRIMARY, PRIMARY]);
   });
 
+  it.each([408, 429, 502, 503])('retries HTTP %s on the same segment before reloading any source', async status => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response('temporary', { status })).mockResolvedValueOnce(rangeResponse(9, 3));
+    const result = await fetchAudioV2RangeThroughGateways(CID, 10, 18, { phase: 'chunk', fetchImpl: fetchMock, getGatewayUrlsForCid: () => [PRIMARY] });
+    expect(result.bytes).toEqual(new Uint8Array(9).fill(3));
+    expect(fetchMock.mock.calls.map(([, init]) => init?.headers)).toEqual([{ Range: 'bytes=10-18' }, { Range: 'bytes=10-18' }]);
+  });
+
+  it('stops retrying HTTP 503 at the attempt limit', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => new Response('temporary', { status: 503 }));
+    await expect(
+      fetchAudioV2RangeThroughGateways(CID, 10, 18, { phase: 'chunk', fetchImpl: fetchMock, getGatewayUrlsForCid: () => [PRIMARY] })
+    ).rejects.toThrow('503');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('falls back to the next gateway and caches the winner per CID', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()

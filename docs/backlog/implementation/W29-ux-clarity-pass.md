@@ -51,8 +51,8 @@ UX/UI audit of the running app. Project 5 owns workflow status; evidence is in
 
 ## Boundaries kept
 
-- A content key is released only after server-side authorization. Every
-  playback retry repeats that check; retries never widen access.
+- A content key is released only after server-side authorization. Failed key
+  requests repeat that check; transport retries may reuse an authorized key.
 - Room guests join from a link without wallet, signature or payment, and
   receive only the host's stream.
 - A chosen room name stays required (ticket 23); it is not pre-filled.

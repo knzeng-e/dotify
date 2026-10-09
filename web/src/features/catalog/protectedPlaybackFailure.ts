@@ -2,8 +2,8 @@
 //
 // Access was already granted client-side when these apply. Naming the cause
 // lets transient failures retry quietly and lets a persistent one offer the
-// right recovery. Nothing here loosens access: every retry repeats the
-// server-side authorization before a key is released.
+// right recovery. Failed key requests retry server-side authorization;
+// transport retries can reuse an already authorized key.
 
 import { KeyServiceError } from '../../services/keyService';
 

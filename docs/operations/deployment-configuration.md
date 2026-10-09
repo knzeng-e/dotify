@@ -527,6 +527,25 @@ decrypt Worker is therefore compiled as an inline Blob Worker. The
 Worker or script asset; do not replace the inline path with a relative Worker
 URL unless Bulletin publication also starts uploading the full asset tree.
 
+The October 8 audio/session correction is a frontend-only change: no gateway,
+secret, API schema, signaling protocol, or contract migration is required.
+See [W08 continuity evidence](../backlog/implementation/evidence/W08-audio-continuity-2026-10-08.md).
+After publishing a candidate, verify a failed segment resumes at the same time,
+Pause survives recovery, A → B → A plays, and a valid protected session does not
+prompt between tracks with persistent storage blocked. Record the exact build,
+Host/browser, role, network profile, and failures. Chromium/WebKit synthetic
+tests do not replace iPhone/Product or two-device room acceptance.
+
+The session cache now includes API, chain and signing identity. The old
+address-only cache cannot establish those boundaries, so an upgrade may require
+one sign-in for protected playback. When storage is unavailable, the new token
+lasts only for the current page lifetime (and never beyond its server expiry).
+Free playback and room guests require no sign-in. Generic 503 responses stop
+protected preparation without wallet prompts; the next attempt probes again.
+Do not clear storage or ask the user to pay again to troubleshoot this state.
+Rollback is the prior frontend artifact; existing ciphertext, purchases and
+backend tokens remain compatible, though the older client may ask to sign in.
+
 The Product build also embeds a non-secret `dotify-test01.dot` bootstrap catalog
 snapshot. It prevents first-run mobile hosts from staying on `Loading registry
 catalog` when the Fly catalog request hangs; the Fly API remains the source of
@@ -805,6 +824,15 @@ For production-grade catalog evidence:
   record whether the trace was warm or cold.
 
 Artist upload and session-boundary variables:
+
+The W29 frontend bounds session capability, nonce, session exchange, key and
+logout HTTP requests to 15 seconds each. A capability timeout fails without a
+wallet signature and can be retried; wallet approval itself is not interrupted
+by that HTTP budget. Failed startup key requests retry twice (900 ms and
+2,200 ms delays), then expose a recovery action in the player. Operators should
+check API/RPC health when that state persists. No new environment setting is
+required; validate the purposeful connect/sign-in flow in the deployed browser
+and Product host after publishing the frontend.
 
 | Key                                 | Default      | Meaning                                                                    |
 | ----------------------------------- | ------------ | -------------------------------------------------------------------------- |

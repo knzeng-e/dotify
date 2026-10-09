@@ -61,7 +61,7 @@ export function PlayerDock({
   const currentTime = transport.currentTime;
   const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
   const startupDetail = mode === 'host' && (status === 'idle' || status === 'preparing') ? (audioStartupStatus ?? undefined) : undefined;
-  const isBusy = status === 'preparing' || status === 'joining' || Boolean(startupDetail);
+  const isBusy = status === 'preparing' || status === 'joining' || status === 'buffering' || status === 'recovering' || Boolean(startupDetail);
 
   const roomContext = roomPlaybackPresentation(mode, status, socketStatus);
   const presenceCount = roomPresenceCount(listenerCount, Boolean(roomId));

@@ -110,9 +110,9 @@ export function WalletModal({
 
   useEffect(() => {
     if (!connectedWallet || !signInAfterConnectRef.current) return;
-    signInAfterConnectRef.current = false;
     const chainId = expectedChainId ?? connectedWallet.chainId;
     if (!isKeyServiceConfigured() || !chainId) return;
+    signInAfterConnectRef.current = false;
     void (async () => {
       try {
         const signer = connectedWallet.keyRequestSigner;

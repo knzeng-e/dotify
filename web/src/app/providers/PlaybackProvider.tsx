@@ -58,6 +58,8 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     remoteAudioRef: session.remoteAudioRef,
     audioSource: catalog.audioSource,
     audioSourceGeneration: catalog.audioSourceGeneration,
+    audioContinuation: catalog.audioContinuation,
+    audioRecovery: catalog.audioRecovery,
     audioStartupAttemptId: catalog.audioStartupAttemptId,
     trackSelectionPending: catalog.trackSelectionPending,
     onHostMediaSettled: catalog.settleTrackSelectionMedia,

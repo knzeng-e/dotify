@@ -12,8 +12,8 @@ import { requiresExplicitProductRoomEntry } from '../../features/productHost/pro
 import { useWalletContext } from './WalletProvider';
 import { useNavigation } from './NavigationProvider';
 import { useCatalogContext } from './CatalogProvider';
-import { existingDotifySession } from '../../services/keyService';
 import { useRoomContributionTrackRecovery } from '../../features/donations/useRoomContributionTrackRecovery';
+import { resolveRoomContributionSessionToken } from '../../features/donations/roomContributionSession';
 
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const publicAppUrl = import.meta.env.VITE_PUBLIC_APP_URL?.trim() || null;
@@ -23,7 +23,7 @@ type SessionValue = ReturnType<typeof useSession>;
 const SessionContext = createContext<SessionValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const { activeIdentityAddress, connectedWallet } = useWalletContext();
+  const { activeIdentityAddress, connectedWallet, expectedChainId } = useWalletContext();
   const { navigateToView } = useNavigation();
   const catalog = useCatalogContext();
 
@@ -53,11 +53,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   });
   const hostSocket = session.socketRef.current;
   const hostAccount = connectedWallet?.evmAddress;
+  const hostSigner = connectedWallet?.keyRequestSigner;
   useEffect(() => {
     if (session.mode !== 'host' || !session.roomId || !hostSocket?.connected) return;
-    const token = hostAccount ? existingDotifySession(hostAccount) : null;
-    hostSocket.request('room:tip-bind', { token: token ?? '' }, { timeoutMs: 15000 }, () => {});
-  }, [session.mode, session.roomId, session.socketStatus, hostSocket, hostAccount]);
+    // The contribution service verifies Dotify's configured chain. Product
+    // wallets may not expose a wallet chain id, so use the resolved expected
+    // chain together with the exact EIP-191/Product signing identity. Missing
+    // identity state sends an empty binding so the server forgets any previous
+    // contribution recipient for this room.
+    const token = resolveRoomContributionSessionToken({ hostAccount, hostSigner, expectedChainId });
+    hostSocket.request('room:tip-bind', { token }, { timeoutMs: 15000 }, () => {});
+  }, [session.mode, session.roomId, session.socketStatus, hostSocket, hostAccount, hostSigner, expectedChainId]);
 
   // One-link join: a guest landing on a #/rooms/<id> share link joins
   // immediately only when a wallet-scoped or guest name is already remembered.

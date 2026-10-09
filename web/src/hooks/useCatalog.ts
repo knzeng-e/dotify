@@ -1,6 +1,7 @@
 import { resolveDonationArtist } from '../features/donations/donationModel';
 import type { RoomTrackEmitter } from '../features/rooms/roomRealtimePort';
 import { retireHostAudio } from '../features/player/hostAudioOutput';
+import { captureAudioContinuation, type AudioContinuation } from '../features/player/audioContinuation';
 import { formatEther } from 'viem';
 import { createSupportPaymentFlow } from '../features/payments/supportPayment';
 import { browserPaymentLock, persistentPaymentJournal } from '../features/payments/paymentJournal';
@@ -33,6 +34,7 @@ import { buildAccessGate, buildClassicAccessVerifiedFeedback, buildClassicSuppor
 import { catalogApiStatus, catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
+import { readAudioBody } from '../features/catalog/readAudioBody';
 import { AudioV2DecryptAuthenticationError, createAudioV2ChunkDecryptor } from '../features/catalog/audioV2Decryptor';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { cancelAudioV2TrackIntentPrefetch, prefetchAudioV2TrackIntent } from '../features/catalog/audioV2IntentPrefetch';
@@ -415,6 +417,8 @@ export function useCatalog(deps: UseCatalogDeps) {
   );
   const [audioSource, setAudioSource] = useState<string | null>(null);
   const [audioSourceGeneration, setAudioSourceGeneration] = useState(0);
+  const [audioContinuation, setAudioContinuation] = useState<AudioContinuation | null>(null);
+  const [audioRecovery, setAudioRecovery] = useState<'recovering' | 'failed' | null>(null);
   const [audioStartupAttemptId, setAudioStartupAttemptId] = useState<string | null>(null);
   const [trackSelectionPending, setTrackSelectionPending] = useState(false);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
@@ -422,10 +426,6 @@ export function useCatalog(deps: UseCatalogDeps) {
   const [accessGate, setAccessGate] = useState<AccessGate | null>(null);
   const [audioStartupStatus, setAudioStartupStatus] = useState<string | null>(null);
   const [playbackFailure, setPlaybackFailure] = useState<ProtectedPlaybackFailure | null>(null);
-  // Why a key request returned no key, by content-key cache key. Each request
-  // clears or sets only its own entry, so overlapping selections and cache
-  // hits never inherit another track's failure.
-  const keyFailuresRef = useRef(new Map<string, unknown>());
   const [fileHash, setFileHashState] = useState<`0x${string}` | ''>('');
   const [audioCID, setAudioCID] = useState('');
   const [coverCID, setCoverCID] = useState('');
@@ -433,6 +433,8 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   const objectUrlsRef = useRef<Set<string>>(new Set());
   const resolvedAudioSourcesRef = useRef<Map<string, string>>(new Map());
+  // MediaSource URLs belong to one selection; only complete Blobs are reusable.
+  const mseObjectUrlsRef = useRef<Set<string>>(new Set());
   const audioSourceRef = useRef<string | null>(null);
   const pendingTrackMediaSourceRef = useRef<string | null>(null);
   const audioV2FallbacksRef = useRef<Set<string>>(new Set());
@@ -489,7 +491,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     setFileHashState(hash);
   }
 
-  function setResolvedAudioSource(source: string | null) {
+  function setResolvedAudioSource(source: string | null, continuePlayback = false) {
+    setAudioContinuation(source && continuePlayback ? captureAudioContinuation(localAudioRef.current, source) : null);
     // Capture can materialize a URL before its first canplay; readiness must
     // then follow the replacement rather than wait forever for the old URL.
     if (audioSourceRef.current && pendingTrackMediaSourceRef.current === audioSourceRef.current) {
@@ -504,6 +507,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   function retireAudioV2MseObjectUrl(audioRef: string, objectUrl: string) {
+    mseObjectUrlsRef.current.delete(objectUrl);
     if (resolvedAudioSourcesRef.current.get(audioRef) === objectUrl) {
       resolvedAudioSourcesRef.current.delete(audioRef);
     }
@@ -535,6 +539,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     // event before the next playback intent so evidence correlation does not
     // strand an interrupted attempt in "Timing active".
     retireActiveTrackSelection(true);
+    setAudioRecovery(null);
+    setAudioContinuation(null);
     setTrackSelectionPending(true);
     const id = (nextTrackSelectionIdRef.current += 1);
     const selection: ActiveTrackSelection = {
@@ -731,9 +737,9 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   /**
    * Obtain the per-track content key from the backend key service.
-   * Returns null when the service is not configured, no wallet is connected,
-   * or the backend denies access; callers then fall back to the demo-mode
-   * bundle-derived key (which only decrypts demo-published tracks).
+   * Returns null only for the local/demo path without a configured service.
+   * Configured-service failures travel with their invocation as thrown errors;
+   * concurrent requests never share mutable failure state.
    */
   async function resolveServerContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
@@ -751,39 +757,28 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
 
     const cacheKey = contentKeyCacheKey(contentHash, release);
-    keyFailuresRef.current.delete(cacheKey);
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
     if (!isKeyServiceConfigured()) return null;
     if (!connectedWallet || (!connectedWallet.createEvmClient && !connectedWallet.keyRequestSigner)) {
-      keyFailuresRef.current.set(cacheKey, new ProtectedPlaybackError('account-required', 'No connected account can request protected playback.'));
-      return null;
+      throw new ProtectedPlaybackError('account-required', 'No connected account can request protected playback.');
     }
 
-    try {
-      const walletClient = connectedWallet.keyRequestSigner ? null : await getActiveWalletClient();
-      const chainId = walletClient?.chain?.id ?? (await getPublicClient(ethRpcUrl).getChainId());
-      const response = await requestContentKey({
-        contentHash,
-        purpose: keyRequestPurposeRef.current,
-        ...(connectedWallet.keyRequestSigner ? { signer: connectedWallet.keyRequestSigner } : { walletClient: walletClient! }),
-        chainId,
-        release
-      });
-      if (response.access !== 'allowed') {
-        keyFailuresRef.current.set(cacheKey, new ProtectedPlaybackError('access-not-confirmed', response.message));
-        return null;
-      }
-      const keyBytes = hexToBytes(response.contentKey);
-      contentKeysRef.current.set(cacheKey, keyBytes);
-      return keyBytes;
-    } catch (error) {
-      // Fail closed: no key. Playback falls back to demo derivation or the
-      // access gate; it never invents access. The cause is kept so the player
-      // can retry or explain instead of failing anonymously.
-      keyFailuresRef.current.set(cacheKey, error);
-      return null;
+    const walletClient = connectedWallet.keyRequestSigner ? null : await getActiveWalletClient();
+    const chainId = walletClient?.chain?.id ?? (await getPublicClient(ethRpcUrl).getChainId());
+    const response = await requestContentKey({
+      contentHash,
+      purpose: keyRequestPurposeRef.current,
+      ...(connectedWallet.keyRequestSigner ? { signer: connectedWallet.keyRequestSigner } : { walletClient: walletClient! }),
+      chainId,
+      release
+    });
+    if (response.access !== 'allowed') {
+      throw new ProtectedPlaybackError('access-not-confirmed', response.message);
     }
+    const keyBytes = hexToBytes(response.contentKey);
+    contentKeysRef.current.set(cacheKey, keyBytes);
+    return keyBytes;
   }
 
   /**
@@ -793,24 +788,17 @@ export function useCatalog(deps: UseCatalogDeps) {
    */
   async function resolveFreeContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
     const cacheKey = contentKeyCacheKey(contentHash, release);
-    keyFailuresRef.current.delete(cacheKey);
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
     if (!isKeyServiceConfigured()) return null;
 
-    try {
-      const response = await requestFreeContentKey(contentHash, release);
-      if (response.access !== 'allowed') {
-        keyFailuresRef.current.set(cacheKey, new ProtectedPlaybackError('access-not-confirmed', response.message));
-        return null;
-      }
-      const keyBytes = hexToBytes(response.contentKey);
-      contentKeysRef.current.set(cacheKey, keyBytes);
-      return keyBytes;
-    } catch (error) {
-      keyFailuresRef.current.set(cacheKey, error);
-      return null;
+    const response = await requestFreeContentKey(contentHash, release);
+    if (response.access !== 'allowed') {
+      throw new ProtectedPlaybackError('access-not-confirmed', response.message);
     }
+    const keyBytes = hexToBytes(response.contentKey);
+    contentKeysRef.current.set(cacheKey, keyBytes);
+    return keyBytes;
   }
 
   async function fetchAudioV2Range(
@@ -1014,7 +1002,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const response = await fetchAudioIpfsCid(cid, { signal });
     if (!response.ok) throw new Error(`Unable to fetch DAV2 audio (${response.status})`);
     throwIfAborted(signal);
-    const container = new Uint8Array(await response.arrayBuffer());
+    const container = await readAudioBody(response, signal);
     throwIfAborted(signal);
     const parsed = parseAudioV2Container(container);
     const decryptor = await createAudioV2ChunkDecryptor({ header: parsed.header, key, signal });
@@ -1044,10 +1032,11 @@ export function useCatalog(deps: UseCatalogDeps) {
       retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
       return;
     }
-    if (audioV2FallbacksRef.current.has(audioRef)) return;
+    if (audioV2FallbacksRef.current.has(failedObjectUrl)) return;
     if (audioSourceRef.current !== failedObjectUrl) return;
 
-    audioV2FallbacksRef.current.add(audioRef);
+    audioV2FallbacksRef.current.add(failedObjectUrl);
+    setAudioRecovery('recovering');
     try {
       console.warn('DAV2 streaming failed, falling back to full decrypt', error);
       publishAudioV2StartupMetric(context, {
@@ -1055,6 +1044,10 @@ export function useCatalog(deps: UseCatalogDeps) {
         detail: errorMessage(error)
       });
       const fallbackUrl = await fetchAndDecryptAudioV2Blob(cid, key, context.signal);
+      if (!isAudioV2ContextActive(context) || audioSourceRef.current !== failedObjectUrl) {
+        URL.revokeObjectURL(fallbackUrl);
+        return;
+      }
       objectUrlsRef.current.add(fallbackUrl);
       resolvedAudioSourcesRef.current.set(audioRef, fallbackUrl);
 
@@ -1062,7 +1055,9 @@ export function useCatalog(deps: UseCatalogDeps) {
         if (pendingTrackMediaSourceRef.current === failedObjectUrl) {
           pendingTrackMediaSourceRef.current = fallbackUrl;
         }
-        setResolvedAudioSource(fallbackUrl);
+        // Read the clock only at the swap: buffered audio may have kept playing,
+        // or the listener may have paused/seeked while the download completed.
+        setResolvedAudioSource(fallbackUrl, true);
       }
 
       retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
@@ -1070,9 +1065,30 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (!isAbortError(fallbackError)) {
         console.warn('DAV2 full decrypt fallback failed', fallbackError);
       }
+      if (isAudioV2ContextActive(context) && audioSourceRef.current === failedObjectUrl) {
+        publishAudioV2StartupMetric(context, { phase: 'error', detail: errorMessage(fallbackError) });
+        const selection = activeTrackSelectionRef.current;
+        if (selection?.pending && !selection.terminalReported) {
+          selection.terminalReported = true;
+          publishHostAudioStartupMetric({
+            phase: 'error',
+            attemptId: selection.attemptId,
+            source: selection.source,
+            elapsedMs: Number((nowMs() - selection.startedAt).toFixed(1)),
+            timestamp: Date.now(),
+            terminalReason: 'media-error'
+          });
+        }
+        if (localAudioRef.current) retireHostAudio(localAudioRef.current);
+        settleTrackSelectionMedia(failedObjectUrl, true, activeTrackSelectionRef.current?.attemptId);
+        setResolvedAudioSource(null);
+        setAudioRecovery('failed');
+        setTransactionFeedback({ tone: 'error', title: 'Audio interrupted', message: 'We could not reconnect to this track. Select it again to retry.' });
+      }
       retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
     } finally {
-      audioV2FallbacksRef.current.delete(audioRef);
+      audioV2FallbacksRef.current.delete(failedObjectUrl);
+      if (isAudioV2ContextActive(context)) setAudioRecovery(previous => (previous === 'failed' ? previous : null));
     }
   }
 
@@ -1081,6 +1097,9 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     const mediaSource = new MediaSource();
     const objectUrl = URL.createObjectURL(mediaSource);
+    mseObjectUrlsRef.current.add(objectUrl);
+    objectUrlsRef.current.add(objectUrl);
+    context.signal.addEventListener('abort', () => retireAudioV2MseObjectUrl(context.audioRef, objectUrl), { once: true });
 
     void waitForMediaSourceOpen(mediaSource, context.signal)
       .then(() => {
@@ -1105,7 +1124,9 @@ export function useCatalog(deps: UseCatalogDeps) {
             });
           }
         });
-        if (mediaSource.readyState === 'open') {
+        // Transport recovery may still use the buffered media. A decode error
+        // here would poison the element and reset its intent before the swap.
+        if (error instanceof AudioV2ChunkAuthenticationError && mediaSource.readyState === 'open') {
           try {
             mediaSource.endOfStream('decode');
           } catch {
@@ -1177,45 +1198,48 @@ export function useCatalog(deps: UseCatalogDeps) {
           setAudioStartupStatus(audioV2StartupPhaseLabel(metric));
         }
       };
-      const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
-      const keyFailure = keyFailuresRef.current.get(contentKeyCacheKey(contentHash, release));
+      let serverKey: Uint8Array | null;
+      try {
+        serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
+      } catch (error) {
+        throwIfAborted(context.signal);
+        publishAudioV2StartupMetric(context, {
+          phase: 'error',
+          errorKind: 'key-unavailable',
+          detail: `DAV2 content key unavailable (${classifyProtectedPlaybackFailure(error)}).`
+        });
+        throw error;
+      }
       throwIfAborted(context.signal);
       if (!serverKey) {
         publishAudioV2StartupMetric(context, {
           phase: 'error',
           errorKind: 'key-unavailable',
-          detail: `DAV2 content key unavailable (${classifyProtectedPlaybackFailure(keyFailure)}).`
+          detail: 'DAV2 content key unavailable.'
         });
-        throw keyFailure ?? new Error('DAV2 content key unavailable.');
+        throw new Error('DAV2 content key unavailable.');
       }
       publishAudioV2StartupMetric(context, { phase: 'key-authorized' });
       const objectUrl = await fetchAndDecryptAudioV2(context, serverKey);
+      throwIfAborted(context.signal);
       objectUrlsRef.current.add(objectUrl);
-      resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
+      if (!mseObjectUrlsRef.current.has(objectUrl)) resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
       return objectUrl;
     }
 
     const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
-    const keyFailure = keyFailuresRef.current.get(contentKeyCacheKey(contentHash, release));
     throwIfAborted(signal);
-    let clearBytes: Uint8Array;
-    try {
-      const response = isEncryptedAudioRef(audioRef)
-        ? await fetchAudioIpfsCid(encryptedRefToCID(audioRef), { signal })
-        : await fetchAssetRef(audioRef || gatewayUrl, { signal });
-      if (!response.ok) throw new Error(`Unable to fetch audio (${response.status})`);
-      throwIfAborted(signal);
+    const response = isEncryptedAudioRef(audioRef)
+      ? await fetchAudioIpfsCid(encryptedRefToCID(audioRef), { signal })
+      : await fetchAssetRef(audioRef || gatewayUrl, { signal });
+    if (!response.ok) throw new Error(`Unable to fetch audio (${response.status})`);
+    throwIfAborted(signal);
 
-      const encryptedBytes = new Uint8Array(await response.arrayBuffer());
-      // Free tracks fetch their key without a wallet or signature; everything
-      // else goes through the signed request. Both fall back to the demo
-      // bundle-derived key, which only decrypts demo-published tracks.
-      clearBytes = serverKey ? await decryptAudio(encryptedBytes, serverKey) : await decryptTrackAudio(encryptedBytes, contentHash);
-    } catch (error) {
-      // Without a server key, the missing key is the cause worth reporting.
-      if (isAbortError(error) || serverKey || !keyFailure) throw error;
-      throw keyFailure;
-    }
+    const encryptedBytes = new Uint8Array(await response.arrayBuffer());
+    // Free tracks fetch their key without a wallet or signature; everything
+    // else goes through the signed request. Both fall back to the demo
+    // bundle-derived key, which only decrypts demo-published tracks.
+    const clearBytes = serverKey ? await decryptAudio(encryptedBytes, serverKey) : await decryptTrackAudio(encryptedBytes, contentHash);
     throwIfAborted(signal);
 
     const blob = new Blob([clearBytes]);
@@ -1338,8 +1362,8 @@ export function useCatalog(deps: UseCatalogDeps) {
         if (track.encrypted) {
           const localUrl = track.localUrl;
           // Transient failures (service out of reach, access not propagated
-          // yet, slow gateway) retry quietly. Every attempt repeats the
-          // server-side authorization, so a retry never widens access.
+          // yet, slow gateway) retry quietly. Failed key requests repeat
+          // authorization; transport retries reuse an already authorized key.
           for (let attempt = 0; ; attempt += 1) {
             try {
               audioUrl = await fetchAndDecryptAudio(
@@ -1849,6 +1873,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     for (const url of objectUrlsRef.current.values()) {
       URL.revokeObjectURL(url);
     }
+    objectUrlsRef.current.clear();
+    mseObjectUrlsRef.current.clear();
     resolvedAudioSourcesRef.current.clear();
   }
 
@@ -1872,10 +1898,12 @@ export function useCatalog(deps: UseCatalogDeps) {
     usesCatalogApi,
     audioSource,
     audioSourceGeneration,
+    audioContinuation,
+    audioRecovery,
     audioStartupAttemptId,
     trackSelectionPending,
     settleTrackSelectionMedia,
-    setAudioSource: setResolvedAudioSource,
+    setAudioSource: (source: string | null) => setResolvedAudioSource(source, true),
     audioStartupStatus,
     playbackFailure,
     trackInfo,
