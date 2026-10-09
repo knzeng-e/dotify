@@ -78,12 +78,17 @@ export function PersistentAudio({
           // this cheap when the current capture is already valid.
           void onPrepareLocalStream();
         }}
-        onPause={() => {
-          playback.syncFromAudio(localAudioRef.current);
+        onPause={event => {
+          if (event.currentTarget !== localAudioRef.current) return;
+          playback.syncFromAudio(event.currentTarget);
           onEmitPlayerState(true);
         }}
         onSeeking={() => onEmitPlayerState(true)}
-        onWaiting={() => onEmitPlayerState(true)}
+        onWaiting={event => {
+          if (event.currentTarget !== localAudioRef.current) return;
+          playback.handleHostWaiting(event.currentTarget);
+          onEmitPlayerState(true);
+        }}
         onSeeked={() => {
           playback.syncFromAudio(localAudioRef.current);
           onEmitPlayerState(true);

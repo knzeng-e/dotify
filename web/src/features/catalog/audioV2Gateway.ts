@@ -77,9 +77,20 @@ function formatError(error: unknown): string {
 }
 
 function isRetryableRangeError(error: unknown): boolean {
+  if (error instanceof AudioV2RangeHttpError) return error.status === 408 || error.status === 429 || error.status >= 500;
   if (!(error instanceof Error)) return false;
   if (error.name === 'AbortError') return true;
   return /failed to fetch|load failed|network|returned 5\d\d/i.test(error.message);
+}
+
+class AudioV2RangeHttpError extends Error {
+  constructor(
+    gatewayUrl: string,
+    readonly status: number
+  ) {
+    super(`Gateway ${gatewayUrl} did not serve a range (${status})`);
+    this.name = 'AudioV2RangeHttpError';
+  }
 }
 
 function createAbortError(): Error {
@@ -207,7 +218,8 @@ function makeRangeAttempt(
           signal: controller.signal
         });
         if (response.status !== 206) {
-          throw new Error(`Gateway ${gatewayUrl} did not serve a range (${response.status})`);
+          void response.body?.cancel().catch(() => undefined);
+          throw new AudioV2RangeHttpError(gatewayUrl, response.status);
         }
         const bytes = new Uint8Array(await response.arrayBuffer());
         validateRangeBytes(response, bytes, gatewayUrl, start, end, phase);

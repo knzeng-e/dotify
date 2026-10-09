@@ -15,6 +15,7 @@
 		"test:celerity-feasibility": "node --test scripts/celerity-feasibility.test.mjs",
 		"test:celerity-capture": "node --test scripts/celerity-capture-report.test.mjs",
 		"test:e2e": "playwright test",
+		"test:audio-continuity": "playwright test --config playwright.audio.config.ts",
 		"dev:listen": "concurrently -n signal,web -c magenta,cyan \"npm:signal\" \"npm:dev\"",
 		"build": "tsc -b && vite build",
 		"build:bulletin": "tsc -b && vite build --config vite.bulletin.config.ts && node scripts/bulletin-artifact-smoke.mjs",
