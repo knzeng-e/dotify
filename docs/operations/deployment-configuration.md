@@ -192,13 +192,36 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 44]` in `web/polkadot-app-deploy.config.ts`; compatibility candidate, not yet published                                  |
+| Product executable `appVersion` | `[0, 1, 44]` in `web/polkadot-app-deploy.config.ts`; published compatibility release                                             |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
+
+Version `[0, 1, 44]` published the October 2026 Product SDK/Host compatibility
+alignment on 2026-10-09 from clean, tested `dev` merge
+`97bf831679a5cfb1177d62475907625e40a8ebaf`. This was a frontend-only release;
+the API and signaling services were not redeployed. The executable CID is
+`bafybeihcn3ffl5aveabuaukuloaje5ckyhgklhrfxtmkf3w77yupfkekg4`.
+Bulletin finalized the stable upload at block `1149269` in transaction
+`0x450a6ea545445d055e5d655d9ec1f8e78d16359ac0a232e33c89ebe6be051cfc`
+and the full-CAR root at block `1149272` in transaction
+`0xe3cc643d9123121fb618b4475f447f2e3c2cae9baaf20701098d8b67981340f7`.
+Content linking finalized at Asset Hub block `14233097` in transaction
+`0xd98a58dc9bea93a84acebd80a6902996cbf3065d751392a415a19948c7131c68`;
+the atomic executable manifest update finalized in transaction
+`0xb281118d7f2578927c0f709038eaf661c63a7f21dbf35889b33ffb00105c0cd5`.
+
+All 14 content chunks reached finality and the deployer's P2P retrieval passed.
+A separate public DevNet gateway read returned a 5,821,636-byte CAR whose 26
+files all match the frozen local build byte-for-byte. Its entry bundle contains
+the full deployed source SHA and Product `[0, 1, 44]`. Remote Config checks
+before and after publication matched the pinned registry and content resolver.
+Installed-host refresh and real Product Desktop/Web account connection,
+signing, protected playback, and room creation/joining remain live acceptance
+work for compatibility epic #85.
 
 Version `[0, 1, 43]` published the merged playback-continuity, scoped room-tip,
 UX clarity and reusable listening-session changes on 2026-10-09 from clean

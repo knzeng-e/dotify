@@ -1495,7 +1495,7 @@
                 Read-only audit at finalized block 13103348 verified the active factory/directory pairing, the corrected registry facet hash, and zero finalized
                 or pending runtimes. The legacy quarantined deployment remains documented for operators. The <code>[0, 1, 29]</code> Product validation
                 candidate was published through the verified DotNS profile, with payment/key and shared-room checks captured; the current default release is
-                <code>[0, 1, 43]</code>. A temporary rollback/restore passed a single-account listening check; W13 still needs broader physical-device evidence
+                <code>[0, 1, 44]</code>. A temporary rollback/restore passed a single-account listening check; W13 still needs broader physical-device evidence
                 and a consented community pilot before a go decision.
                 <a class="text-link" href="operations/registry-facet-remediation.md">Read the operator runbook</a>.
               </p>
@@ -1570,11 +1570,13 @@
                 validation evidence, not an accepted aggregate pilot or a successful Desktop-signed payment.
               </p>
               <p>
-                The current published default release is <code>[0, 1, 43]</code>. Compatibility candidate <code>[0, 1, 44]</code> moves Dotify to the October
-                2026 Product SDK/Host protocol and pins the Host wrapper to its supported PAPI 2.2 line so npm cannot silently select incompatible PAPI 3 APIs.
-                Ordinary and Product builds, static gates, and a simulated Chromium Host pass. This does not certify the new wire protocol on a real Product
-                surface: Product Desktop/Web account connection, signing, protected playback, and room creation/joining must still be captured from the
-                published 0.1.44 commit and CID. A temporary rollback/restore passed catalog/key/playback checks on one Product Desktop account. The remaining
+                The current published default release is <code>[0, 1, 44]</code>, built from source
+                <code>97bf831679a5cfb1177d62475907625e40a8ebaf</code> and published at CID
+                <code>bafybeihcn3ffl5aveabuaukuloaje5ckyhgklhrfxtmkf3w77yupfkekg4</code>. It moves Dotify to the October 2026 Product SDK/Host protocol and pins the Host wrapper
+                to its supported PAPI 2.2 line so npm cannot silently select incompatible PAPI 3 APIs. Bulletin and DotNS finality, public artifact integrity,
+                ordinary and Product builds, static gates, and a simulated Chromium Host pass. This does not certify the new wire protocol on a real Product
+                surface: Product Desktop/Web account connection, signing, protected playback, and room creation/joining must still be captured from this
+                published candidate. A temporary rollback/restore passed catalog/key/playback checks on one Product Desktop account. The remaining
                 W13 checks are broader supported-device first-sound and room measurements, plus a consented aggregate pilot and evidence-backed go/no-go
                 decision.
               </p>
