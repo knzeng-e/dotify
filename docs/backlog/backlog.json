@@ -25,6 +25,15 @@
   },
   "items": [
     {
+      "id": "room-life",
+      "doc": "docs/backlog/room-life-and-artist-visits.md",
+      "issue": 257,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Room reliability",
+      "phase": "Next"
+    },
+    {
       "id": "01",
       "doc": "docs/backlog/01-backend-key-service-skeleton.md",
       "issue": 2,

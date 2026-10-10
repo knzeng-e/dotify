@@ -1495,7 +1495,8 @@
                 Read-only audit at finalized block 13103348 verified the active factory/directory pairing, the corrected registry facet hash, and zero finalized
                 or pending runtimes. The legacy quarantined deployment remains documented for operators. The <code>[0, 1, 29]</code> Product validation
                 candidate was published through the verified DotNS profile, with payment/key and shared-room checks captured; the current default release is
-                <code>[0, 1, 44]</code>. A temporary rollback/restore passed a single-account listening check; W13 still needs broader physical-device evidence
+                <code>[0, 1, 44]</code>, with a connection incident reported on Desktop and mobile. Recovery candidate <code>[0, 1, 45]</code> restores the
+                previous Host protocol and awaits publication and device confirmation. A temporary rollback/restore passed a single-account listening check; W13 still needs broader physical-device evidence
                 and a consented community pilot before a go decision.
                 <a class="text-link" href="operations/registry-facet-remediation.md">Read the operator runbook</a>.
               </p>
@@ -1576,7 +1577,11 @@
                 to its supported PAPI 2.2 line so npm cannot silently select incompatible PAPI 3 APIs. Bulletin and DotNS finality, public artifact integrity,
                 ordinary and Product builds, static gates, and a simulated Chromium Host pass. This does not certify the new wire protocol on a real Product
                 surface: Product Desktop/Web account connection, signing, protected playback, and room creation/joining must still be captured from this
-                published candidate. A temporary rollback/restore passed catalog/key/playback checks on one Product Desktop account. The remaining
+                published candidate. Desktop 0.1.3 and mobile 0.10.0 now have a reported connection timeout. Recovery candidate <code>[0, 1, 45]</code>
+                restores the previous SDK family and pins the codec-1 transport; raw handshake regression tests now supplement the simulated Host tests.
+                The same candidate simplifies room navigation with familiar icons and unread chat counts, catalog-backed track suggestions and a visual
+                host queue picker, and one invitation entry point. Playback preparation uses plain loading language while retaining technical diagnostics.
+                Its publication and real-device recovery are still pending. A temporary rollback/restore passed catalog/key/playback checks on one Product Desktop account. The remaining
                 W13 checks are broader supported-device first-sound and room measurements, plus a consented aggregate pilot and evidence-backed go/no-go
                 decision.
               </p>
@@ -1613,6 +1618,10 @@
                 only when available. The artist workspace separates Overview, Releases, Earnings and Rights &amp; support, while gifts remain distinct from listening access.
                 The artist dashboard leads with the artist's received share, separates listening payments, gifts and tips, and shows real dated activity and
                 per-release value. Verified native support receipts are saved by the API for cross-device history; earlier unsynced native payments may be absent.
+                The next room-life increment adds live release-matched rooms to the artist Overview and lets artists choose an ordinary visit or an
+                explicitly announced, registry-verified welcome. Counts describe connected sessions, not historical or unique-human listens.
+                Room conversation gains temporary typing indicators, discreet activity, replies, mentions and a host-pinned message, with no notification sound
+                or additional wallet signature for an already connected artist.
                 Generated totals include all recipients, while received and claimable amounts remain distinct.
                 Visible-page refreshes retain the last complete reading on failure; unavailable history is not presented as zero income. Artwork and searchable
                 works lead the workspace, with transaction proofs available on demand. This revision still requires release validation in Product.

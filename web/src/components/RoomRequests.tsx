@@ -8,48 +8,56 @@
 // joined with. This is a shared wishlist the host curates: it is intent,
 // not playback, and the UI never claims a request plays itself.
 
-import { ListMusic, Send, X } from 'lucide-react';
+import { ListMusic, Plus, Send, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { useSessionContext } from '../app/providers';
+import { useCatalogContext, usePlaybackContext, useSessionContext } from '../app/providers';
 import { PanelTitle } from '../shared/ui/PanelTitle';
-import { REQUEST_TEXT_MAX_LENGTH } from '../shared/social';
+import { ROOM_LINEUP_LIMIT } from '../features/player/playbackQueue';
+import { resolveRequestedTrack, roomTrackRequestText } from '../features/rooms/roomCatalogSearch';
+import { RoomTrackSearch } from './RoomTrackSearch';
 import { formatClockTime } from '../shared/utils/format';
 import { Avatar } from './Presence';
 
 export function RoomRequests() {
   const session = useSessionContext();
+  const catalog = useCatalogContext();
+  const { playback } = usePlaybackContext();
   const { roomId, requestQueue, sendRoomRequest, removeRoomRequest, clearRoomRequests, mode } = session;
   const [draft, setDraft] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
   const connected = session.socketStatus === 'online';
   const selfId = session.socketRef.current?.id;
   const isHost = mode === 'host';
+  const selected = catalog.catalogTracks.find(track => track.id === selectedId && track.active !== false);
 
   if (!roomId) return null;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const text = draft.trim();
-    if (!text || sending || !connected) return;
+    if (!selected || sending || !connected) return;
+    const text = roomTrackRequestText(selected);
     setSending(true);
     setSendError('');
     const result = await sendRoomRequest(text);
     setSending(false);
-    if (result.ok) setDraft(current => (current.trim() === text ? '' : current));
-    else setSendError(result.message || 'Request not sent. Your draft is still here.');
+    if (result.ok) {
+      setDraft('');
+      setSelectedId(null);
+    } else setSendError(result.message || 'Request not sent. Your draft is still here.');
   }
 
   return (
     <div className='doc-panel room-chat-panel room-requests-panel'>
       <PanelTitle
         icon={ListMusic}
-        title='Requests'
-        meta='the host picks'
+        title='Track suggestions'
+        meta='the host chooses what plays'
         action={
           isHost && requestQueue.length > 0 ? (
             <button className='room-req-clear' type='button' disabled={!connected} onClick={() => clearRoomRequests()}>
-              Clear
+              Clear suggestions
             </button>
           ) : undefined
         }
@@ -57,32 +65,55 @@ export function RoomRequests() {
 
       <div className='room-chat-list' role='group' aria-live='polite' aria-label='Track requests'>
         {requestQueue.length === 0 ? (
-          <p className='room-chat-empty'>No requests yet. Anyone here can suggest what to play next; the host decides what actually plays.</p>
+          <p className='room-chat-empty'>What should we hear next? Find a track below and suggest it to the host.</p>
         ) : (
-          requestQueue.map(request => (
-            <div className='room-chat-row room-req-row' key={request.id} data-self={request.senderId === selfId || undefined}>
-              <Avatar name={request.senderName} size={26} you={request.senderId === selfId} />
-              <div className='room-chat-body'>
-                <span className='room-chat-meta'>
-                  <span className='room-chat-name'>{request.senderName}</span>
-                  <span className='room-chat-time'>{formatClockTime(request.ts)}</span>
-                </span>
-                <span className='room-chat-text'>{request.text}</span>
+          requestQueue.map(request => {
+            const track = resolveRequestedTrack(catalog.catalogTracks, request.text);
+            const queued = track && session.roomLineup.some(item => item.trackId === track.id);
+            return (
+              <div className='room-chat-row room-req-row' key={request.id} data-self={request.senderId === selfId || undefined}>
+                <Avatar name={request.senderName} size={26} you={request.senderId === selfId} />
+                <div className='room-chat-body'>
+                  <span className='room-chat-meta'>
+                    <span className='room-chat-name'>{request.senderName}</span>
+                    <span className='room-chat-time'>{formatClockTime(request.ts)}</span>
+                  </span>
+                  <span className='room-chat-text'>{request.text}</span>
+                  {isHost && (
+                    <small className='room-track-search-hint'>
+                      {queued ? 'Added to Up next' : !track ? 'Not matched to an available track' : `Suggested by ${request.senderName}`}
+                    </small>
+                  )}
+                </div>
+                {isHost && (
+                  <>
+                    {track && (
+                      <button
+                        type='button'
+                        className='room-req-add'
+                        aria-label={`Add ${track.title} to Up next`}
+                        title='Add to Up next'
+                        disabled={!connected || !!queued || track.id === catalog.selectedTrackId || session.roomLineup.length >= ROOM_LINEUP_LIMIT}
+                        onClick={() => playback.addToLineup(track)}
+                      >
+                        <Plus size={18} />
+                      </button>
+                    )}
+                    <button
+                      className='room-req-veto'
+                      type='button'
+                      disabled={!connected}
+                      onClick={() => removeRoomRequest(request.id)}
+                      aria-label={`Remove request from ${request.senderName}`}
+                      title='Remove'
+                    >
+                      <X size={14} />
+                    </button>
+                  </>
+                )}
               </div>
-              {isHost && (
-                <button
-                  className='room-req-veto'
-                  type='button'
-                  disabled={!connected}
-                  onClick={() => removeRoomRequest(request.id)}
-                  aria-label={`Remove request from ${request.senderName}`}
-                  title='Remove'
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -91,18 +122,26 @@ export function RoomRequests() {
           {!connected ? 'Reconnecting. Your draft stays here.' : sendError}
         </p>
       )}
-      <form className='room-chat-form' onSubmit={event => void handleSubmit(event)} aria-busy={sending}>
-        <input
-          className='field'
-          value={draft}
-          onChange={event => setDraft(event.target.value)}
-          placeholder='Request a track'
-          maxLength={REQUEST_TEXT_MAX_LENGTH}
-          aria-label='Request a track'
-          autoComplete='off'
+      <form className='room-request-search-form' onSubmit={event => void handleSubmit(event)} aria-busy={sending}>
+        <RoomTrackSearch
+          tracks={catalog.catalogTracks}
+          query={draft}
+          label='Request a track'
+          action='Suggest'
+          disabled={sending || !connected}
+          selected={!!selected}
+          onQueryChange={value => {
+            setDraft(value);
+            setSelectedId(null);
+            setSendError('');
+          }}
+          onPick={track => {
+            setSelectedId(track.id);
+            setDraft(roomTrackRequestText(track));
+          }}
         />
-        <button className='room-chat-send' type='submit' disabled={!draft.trim() || sending || !connected} aria-label='Send request'>
-          <Send size={16} />
+        <button className='primary-action' type='submit' disabled={!selected || sending || !connected} aria-label='Send request'>
+          <Send size={16} /> {sending ? 'Sending…' : 'Suggest this track'}
         </button>
       </form>
     </div>

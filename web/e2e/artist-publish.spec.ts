@@ -301,7 +301,7 @@ test('new artist mobile overview presents one next step and four keyboard-access
   await page.setViewportSize({ width: 390, height: 844 });
   await createArtistProfile(page);
 
-  await expect(page.locator('.studio-next-label')).toHaveText('Your next step');
+  await expect(page.locator('.studio-next-step .studio-next-label')).toHaveText('Your next step');
   await expect(page.getByRole('button', { name: 'Start your first release' })).toHaveCount(1);
   const tasks = page.getByRole('tablist', { name: 'Artist workspace' });
   await expect(tasks.getByRole('tab')).toHaveText(['Overview', 'Releases', 'Earnings', 'Rights & support']);

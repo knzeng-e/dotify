@@ -9,17 +9,18 @@ import {
   ArrowLeft,
   ChevronDown,
   Coins,
-  Copy,
   Check,
   ExternalLink,
   Headphones,
   KeyRound,
   Library,
   LogOut,
-  QrCode,
+  ListMusic,
+  MessageCircle,
   Radio,
   RefreshCw,
   Share2,
+  ShieldCheck,
   Users,
   X
 } from 'lucide-react';
@@ -135,12 +136,14 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const [queueOpen, setQueueOpen] = useState(false);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [roomPanel, setRoomPanel] = useState<'chat' | 'queue' | 'people'>('chat');
-  const [chatUnread, setChatUnread] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+  const [chatMentions, setChatMentions] = useState(0);
   useEffect(() => {
     setRoomPanel('chat');
     setShareOpen(false);
     setConfirmCloseOpen(false);
-    setChatUnread(false);
+    setChatUnread(0);
+    setChatMentions(0);
   }, [roomId]);
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 769px)');
@@ -192,7 +195,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const disconnectedListeners = listeners.filter(listener => listener.status === 'disconnected');
   const visibleHostName = roomHostDisplayName(mode === 'host' ? hostName || displayName : hostName);
   const hostIsAlone = mode === 'host' && activeListeners.length === 0;
-  const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
   const ownSocketId = session.socketRef.current?.id;
   const showManualAudioStart = Boolean(
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
@@ -419,6 +421,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               id={`room-tab-${panel}`}
               aria-controls={`room-panel-${panel}`}
               aria-selected={roomPanel === panel}
+              title={panel === 'chat' ? 'Chat' : panel === 'queue' ? 'Up next & suggestions' : 'People'}
               tabIndex={roomPanel === panel ? 0 : -1}
               onClick={() => setRoomPanel(panel)}
               onKeyDown={event => {
@@ -443,9 +446,15 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               }}
             >
               {panel === 'chat' ? (
-                'Chat'
+                <>
+                  <MessageCircle size={21} aria-hidden='true' />
+                  <span className='sr-only'>Chat</span>
+                </>
               ) : panel === 'queue' ? (
-                'Queue'
+                <>
+                  <ListMusic size={21} aria-hidden='true' />
+                  <span className='sr-only'>Queue</span>
+                </>
               ) : (
                 <>
                   <Users size={18} aria-hidden='true' />
@@ -453,7 +462,16 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   {session.socketStatus === 'online' && <span className='room-people-count'>{presenceCount}</span>}
                 </>
               )}
-              {panel === 'chat' && chatUnread && <span className='room-chat-unread' role='img' aria-label='New messages' />}
+              {panel === 'chat' && chatUnread > 0 && (
+                <span className='room-request-count' aria-label={`${chatUnread} unread messages`}>
+                  {chatUnread > 99 ? '99+' : chatUnread}
+                </span>
+              )}
+              {panel === 'chat' && chatMentions > 0 && (
+                <span className='room-mention-count' aria-label={`${chatMentions} unread mentions`}>
+                  @{chatMentions}
+                </span>
+              )}
               {panel === 'queue' && session.requestQueue.length > 0 && (
                 <span className='room-request-count' aria-label={`${session.requestQueue.length} requests`}>
                   {session.requestQueue.length}
@@ -469,7 +487,9 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <div className='cover-card'>
             <div className={`audio-stack${showUnlockAction ? ' has-unlock-action' : ''}${showWideStatus ? ' has-wide-status' : ''}`}>
               <div className='remote-state' role='status' aria-label='Playback status' data-active={transport.playing} data-busy={isBusy}>
-                {isBusy ? (
+                {audioStartupDetail === 'Checking your access…' ? (
+                  <ShieldCheck size={16} aria-hidden='true' />
+                ) : isBusy ? (
                   <span className='remote-state-dots' aria-hidden='true'>
                     <i />
                     <i />
@@ -685,30 +705,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           {/* State 2: hosting a room */}
           {roomId && mode === 'host' && (
             <>
-              {sessionLink && (
-                <section className='room-invite-card' data-alone={hostIsAlone || undefined} aria-label='Invite people to this room'>
-                  <div className='room-invite-copy'>
-                    <strong>{hostIsAlone ? 'Bring someone into this track' : 'Invite another listener'}</strong>
-                    <span>{hostIsAlone ? 'Share one link. They can enter without an account.' : 'The same room link stays open while you listen.'}</span>
-                  </div>
-                  <div className='room-invite-actions'>
-                    <button className={hostIsAlone ? 'primary-action' : 'secondary-action'} type='button' onClick={onCopySessionLink}>
-                      <Copy size={16} />
-                      Copy invite
-                    </button>
-                    {canNativeShare && (
-                      <button className='secondary-action' type='button' onClick={() => void session.shareSessionLink()}>
-                        <Share2 size={16} />
-                        Share
-                      </button>
-                    )}
-                    <button className='secondary-action' type='button' onClick={() => setIsQrProjectorOpen(true)}>
-                      <QrCode size={16} />
-                      Show QR
-                    </button>
-                  </div>
-                </section>
-              )}
+              {sessionLink && hostIsAlone && <p className='room-track-search-hint'>Invite someone using the button above. They can join without an account.</p>}
 
               <div className='listener-list'>
                 <div className='list-row'>
@@ -868,7 +865,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         {roomId && (
           <div className='room-social-column'>
             <div id='room-panel-chat' className='room-conversation-pane' role='tabpanel' aria-labelledby='room-tab-chat' hidden={roomPanel !== 'chat'}>
-              <RoomChat key={roomId} active={roomPanel === 'chat'} onUnreadChange={setChatUnread} />
+              <RoomChat key={roomId} active={roomPanel === 'chat'} onUnreadChange={setChatUnread} onMentionChange={setChatMentions} />
             </div>
             <div
               id='room-panel-queue'

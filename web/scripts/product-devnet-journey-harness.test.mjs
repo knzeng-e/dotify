@@ -32,8 +32,8 @@ function lockfile() {
       'node_modules/@parity/product-sdk-descriptors': { version: EXPECTED_PRODUCT_DEVNET.productSdkDescriptors },
       'node_modules/@parity/product-sdk-statement-store': { version: EXPECTED_PRODUCT_DEVNET.productSdkStatementStore },
       'node_modules/@parity/product-sdk-tx': { version: EXPECTED_PRODUCT_DEVNET.productSdkTx },
-      'node_modules/@novasamatech/host-api-wrapper/node_modules/polkadot-api': {
-        version: EXPECTED_PRODUCT_DEVNET.hostWrapperPolkadotApi
+      'node_modules/@parity/truapi': {
+        version: EXPECTED_PRODUCT_DEVNET.truapi
       }
     }
   };
@@ -56,9 +56,7 @@ function staticSnapshot(patch = {}) {
     },
     webPackageJson: {
       overrides: {
-        '@novasamatech/host-api-wrapper': {
-          'polkadot-api': EXPECTED_PRODUCT_DEVNET.hostWrapperPolkadotApi
-        }
+        '@parity/truapi': EXPECTED_PRODUCT_DEVNET.truapi
       },
       scripts: {
         'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
@@ -452,10 +450,10 @@ test('static gates fail when the tracked Product profile points at the retired C
   assert.equal(report.staticGates.find(gate => gate.id === 'cdm-registry')?.status, 'fail');
 });
 
-test('static gates fail when the Product Host wrapper can resolve an incompatible PAPI major', () => {
+test('static gates fail when the Product transport can resolve an unvalidated wire codec', () => {
   const snapshot = staticSnapshot();
-  delete snapshot.webPackageJson.overrides['@novasamatech/host-api-wrapper'];
-  snapshot.webPackageLock.packages['node_modules/@novasamatech/host-api-wrapper/node_modules/polkadot-api'].version = '3.2.1';
+  delete snapshot.webPackageJson.overrides['@parity/truapi'];
+  snapshot.webPackageLock.packages['node_modules/@parity/truapi'].version = '0.24.0';
 
   const report = buildProductDevnetJourneyReport({
     snapshot,
@@ -466,7 +464,7 @@ test('static gates fail when the Product Host wrapper can resolve an incompatibl
   });
 
   assert.equal(report.summary.status, 'fail');
-  assert.equal(report.staticGates.find(gate => gate.id === 'host-wrapper-papi')?.status, 'fail');
+  assert.equal(report.staticGates.find(gate => gate.id === 'host-wire-compatibility')?.status, 'fail');
 });
 
 test('static gates fail when the configured HTTPS RPC is not the Product DevNet Asset Hub endpoint', () => {

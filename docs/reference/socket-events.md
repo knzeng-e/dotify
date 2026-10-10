@@ -5,6 +5,16 @@ The signaling server relays WebRTC handshake messages and room state between cli
 Clients consume these events through the typed `RoomRealtimePort`. The opt-in
 W27 Celerity observer does not replace any event below or grant room authority.
 
+### Ephemeral conversation and artist visits
+
+The additive `room:typing`, `room:activity`, `room:pin` and `room:artist-clear`
+events, optional chat replies/mentions, and artist-aware join handshake are
+specified in [Room life and artist visits](../explanation/room-life-and-artist-visits.md).
+`room:artist-clear` takes no payload and removes only the calling participant's
+artist badge/continuity metadata after an account change. Public discovery never
+contains this private social state. The typed client boundary is
+`web/src/features/rooms/roomRealtimePort.ts`.
+
 ### Optional Private Realtime Membership
 
 `room:realtime-register` accepts `{ publicKey }` (base64url raw P-256 ECDH public
@@ -132,6 +142,9 @@ Joins an existing room as a listener.
 socket.emit('room:join', {
   roomId: string,
   displayName: string,
+  announceArtist?: boolean, // Explicit opt-in; default false
+  artistToken?: string,     // Existing Dotify session, verified server-side
+  listenerResumeToken?: string, // Opaque in-memory token from the previous ack
 }, (response: JoinRoomResponse) => { ... });
 
 // Ack — success
@@ -145,6 +158,10 @@ socket.emit('room:join', {
   playerState: PlayerState | null;
   playbackMode?: 'full' | 'preview';
   chatHistory?: RoomChatMessage[];   // Up to the last 50 in-room messages
+  activity?: RoomActivity[];        // Last 50 room lifecycle/track/queue events
+  pinnedMessage?: RoomChatMessage | null;
+  listenerResumeToken?: string;     // Private continuity; never public metadata
+  artistAnnounced?: boolean;
   requests?: RoomRequest[];          // Current collaborative request queue
   lineup?: RoomLineupItem[];         // Host-curated playback order, max 12
   expiresAt?: number;

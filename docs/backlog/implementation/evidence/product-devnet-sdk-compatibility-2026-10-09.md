@@ -1,5 +1,11 @@
 # Product DevNet SDK compatibility — evidence and handoff
 
+Incident update (2026-10-10): the owner reports connection timeouts on Desktop
+0.1.3 and mobile 0.10.0 after this rollout. The local fake-Host tests bypassed
+wire negotiation. See [0.1.45 recovery evidence](product-host-connection-recovery-2026-10-10.md)
+for the codec-1 recovery candidate and raw handshake regression tests. The
+publication evidence below remains valid; real-Host compatibility is unaccepted.
+
 ## Identity
 
 - Scope: align Dotify with the October 2026 Product Host protocol under compatibility epic #85.

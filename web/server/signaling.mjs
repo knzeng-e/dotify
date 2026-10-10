@@ -20,6 +20,7 @@ import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
 import { createRoomRealtimeMembers } from './room-realtime-members.mjs';
 import { createRoomContributions } from './room-contributions.mjs';
+import { createRoomLife } from './room-life.mjs';
 import {
   REQUEST_TEXT_MAX_LENGTH,
   clientKey,
@@ -120,13 +121,13 @@ export function isSignalingOriginAllowed(origin, config) {
   return config.origins.includes(origin.replace(/\/$/, ''));
 }
 
-export function startSignalingServer(overrides = {}) {
+export function startSignalingServer(overrides = {}, dependencies = {}) {
   const config = { ...defaultConfig, ...overrides };
   if (config.turnCapabilitySecret && config.turnCapabilitySecret.length < 32) {
     throw new Error('SIGNAL_TURN_CAPABILITY_SECRET must contain at least 32 characters');
   }
   const rooms = new Map();
-  const contributions = createRoomContributions(config.contributions ?? {});
+  const contributions = createRoomContributions(config.contributions ?? {}, dependencies.contributions);
   const contributionTrackRecoveries = new WeakMap();
   const realtimeMembers = createRoomRealtimeMembers();
   const clockIdentity = randomBytes(16).toString('hex');
@@ -138,6 +139,8 @@ export function startSignalingServer(overrides = {}) {
   const chatLimiter = createWindowLimiter(config.chatRateLimit.limit, config.chatRateLimit.windowMs);
   const reactionLimiter = createWindowLimiter(config.reactionRateLimit.limit, config.reactionRateLimit.windowMs);
   const requestLimiter = createWindowLimiter(config.requestRateLimit.limit, config.requestRateLimit.windowMs);
+  const typingLimiter = createWindowLimiter(8, 5000);
+  const pinLimiter = createWindowLimiter(5, 5000);
   // Keyed by network address, never cleared on disconnect (that is the point):
   // a reconnect from the same address keeps consuming the same join budget.
   const joinLimiter = createWindowLimiter(config.joinRateLimit.limit, config.joinRateLimit.windowMs);
@@ -220,6 +223,7 @@ export function startSignalingServer(overrides = {}) {
     },
     cors: { origin: config.origins === '*' ? '*' : config.origins, methods: ['GET', 'POST'] }
   });
+  const life = createRoomLife({ io, rooms, historyLimit: config.chatHistoryLimit });
 
   function publicRoom(roomId, room) {
     return {
@@ -228,6 +232,7 @@ export function startSignalingServer(overrides = {}) {
       hostName: room.hostName,
       track: room.track,
       playerState: room.playerState,
+      hostConnected: Boolean(room.hostId),
       playbackMode: room.playbackMode,
       // Every registered track sits behind an artist access policy that the
       // HOST must satisfy. Listeners never need wallet access for rooms.
@@ -312,6 +317,7 @@ export function startSignalingServer(overrides = {}) {
   }
 
   function closeRoom(roomId, room, reason, event) {
+    life.closeRoom(room);
     io.to(roomId).emit('room:closed', { reason });
     rooms.delete(roomId);
     io.in(roomId).socketsLeave(roomId);
@@ -492,6 +498,7 @@ export function startSignalingServer(overrides = {}) {
     });
 
     socket.on('room:create', (payload = {}, reply) => {
+      socket.data.joinRevision = (socket.data.joinRevision ?? 0) + 1;
       leaveRoom(socket);
 
       const roomId = createRoomId(rooms);
@@ -538,6 +545,7 @@ export function startSignalingServer(overrides = {}) {
     });
 
     socket.on('room:resume', (payload = {}, reply) => {
+      socket.data.joinRevision = (socket.data.joinRevision ?? 0) + 1;
       const roomId = normalizeRoomId(payload.roomId);
       const room = rooms.get(roomId);
       if (!room) {
@@ -572,6 +580,8 @@ export function startSignalingServer(overrides = {}) {
         hostName: room.hostName,
         listenerCount: room.listeners.size,
         listeners: listenerRoster(room),
+        chatHistory: room.chat,
+        ...life.snapshot(room),
         lineup: room.lineup,
         expiresAt: room.createdAt + config.roomTtlMs
       });
@@ -587,7 +597,13 @@ export function startSignalingServer(overrides = {}) {
       recoverRoomContributionTrack(roomId, room);
     });
 
-    socket.on('room:join', (payload = {}, reply) => {
+    socket.on('room:join', async (payload = {}, reply) => {
+      reply = typeof reply === 'function' ? reply : () => {};
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        reply({ ok: false, error: 'Invalid room request.' });
+        return;
+      }
+      const joinRevision = (socket.data.joinRevision = (socket.data.joinRevision ?? 0) + 1);
       leaveRoom(socket);
 
       // Throttle join/reconnect churn per network address. Anonymous listeners
@@ -615,6 +631,30 @@ export function startSignalingServer(overrides = {}) {
         return;
       }
 
+      const resumed = life.resumable(room, payload.listenerResumeToken);
+      let artist = resumed?.artist;
+      if (!resumed && payload.announceArtist === true) {
+        let deadline;
+        try {
+          artist = await Promise.race([
+            contributions.verifyArtist(room, payload.artistToken),
+            new Promise((_, reject) => {
+              deadline = setTimeout(() => reject(new Error('Artist verification is taking too long. Try again or join discreetly.')), 6000);
+            })
+          ]);
+        } catch (error) {
+          reply?.({ ok: false, error: error instanceof Error ? error.message : 'The artist visit could not be verified.' });
+          return;
+        } finally {
+          clearTimeout(deadline);
+        }
+      }
+      if (!socket.connected || socket.data.joinRevision !== joinRevision) return;
+      if (rooms.get(roomId) !== room || !room.hostId || room.listeners.size >= config.maxListenersPerRoom) {
+        reply?.({ ok: false, error: 'The room changed or is full. Please try again.' });
+        return;
+      }
+
       const listener = {
         id: socket.id,
         displayName: sanitizeText(payload.displayName, 'Listener', 32)
@@ -624,6 +664,7 @@ export function startSignalingServer(overrides = {}) {
       socket.data.roomId = roomId;
       socket.data.role = 'listener';
       socket.join(roomId);
+      const listenerResumeToken = life.joined(roomId, socket, listener.displayName, artist, payload.listenerResumeToken);
 
       const listenerCount = room.listeners.size;
       logEvent('room:joined', { roomId, listenerId: socket.id, listenerCount });
@@ -637,6 +678,9 @@ export function startSignalingServer(overrides = {}) {
         playerState: snapshotPlayerState(room.playerState, room.playerStateReceivedAt),
         playbackMode: room.playbackMode,
         chatHistory: room.chat,
+        ...life.snapshot(room),
+        listenerResumeToken,
+        artistAnnounced: Boolean(socket.data.artist),
         requests: room.requests,
         lineup: room.lineup,
         listeners: listenerRoster(room),
@@ -660,6 +704,9 @@ export function startSignalingServer(overrides = {}) {
 
       touchHost(room);
       const nextTrack = sanitizeTrack(track);
+      if (nextTrack && (room.track?.hash !== nextTrack.hash || room.track?.runtimeAddress !== nextTrack.runtimeAddress)) {
+        life.activity(socket.data.roomId, 'track', `Now playing: ${nextTrack.title} — ${nextTrack.artist}`);
+      }
       if (room.track?.hash !== nextTrack?.hash || room.track?.title !== nextTrack?.title) {
         room.playerState = null;
         room.playerStateReceivedAt = 0;
@@ -677,6 +724,7 @@ export function startSignalingServer(overrides = {}) {
 
       touchHost(room);
       const seen = new Set();
+      const previousIds = new Set(room.lineup.map(item => item.trackId));
       room.lineup = payload
         .slice(0, config.lineupLimit * 2)
         .map(sanitizeLineupItem)
@@ -686,6 +734,15 @@ export function startSignalingServer(overrides = {}) {
           return true;
         })
         .slice(0, config.lineupLimit);
+      const additions = room.lineup.filter(item => !previousIds.has(item.trackId));
+      if (additions.length)
+        life.activity(
+          socket.data.roomId,
+          'queue',
+          additions.length === 1
+            ? `${room.hostName} added “${additions[0].title}” to Up next.`
+            : `${room.hostName} added ${additions.length} tracks to Up next.`
+        );
       io.to(socket.data.roomId).emit('room:lineup', room.lineup);
     });
 
@@ -734,6 +791,7 @@ export function startSignalingServer(overrides = {}) {
       }
 
       listener.displayName = displayName;
+      life.rename(socket, displayName);
       io.to(participant.roomId).emit('listener:renamed', { listenerId: socket.id, displayName });
       emitListenerRoster(participant.roomId, participant.room);
       reply?.({ ok: true, displayName });
@@ -787,6 +845,36 @@ export function startSignalingServer(overrides = {}) {
       });
     });
 
+    socket.on('room:typing', (payload = {}) => {
+      const participant = getParticipant(socket);
+      if (!participant || typeof payload?.active !== 'boolean' || !typingLimiter.allow(socket.id)) return;
+      life.typing(socket, payload.active, participant.displayName);
+    });
+    socket.on('room:pin', (payload = {}, ack) => {
+      ack = typeof ack === 'function' ? ack : () => {};
+      if (!payload || (payload.id !== null && typeof payload.id !== 'string')) {
+        ack({ ok: false });
+        return;
+      }
+      const room = getHostedRoom(socket);
+      if (!room || !pinLimiter.allow(socket.id)) {
+        ack?.({ ok: false });
+        return;
+      }
+      const message = payload.id === null ? null : room.chat.find(message => message.id === payload.id && message.senderId !== 'dotify-confirmed-tip');
+      if (message === undefined) {
+        ack?.({ ok: false });
+        return;
+      }
+      life.pin(socket.data.roomId, message);
+      ack?.({ ok: true });
+    });
+    socket.on('room:artist-clear', () => {
+      delete socket.data.artist;
+      const participant = getParticipant(socket);
+      const member = participant?.room.lifeMembers?.get(socket.data.lifeToken);
+      if (member) member.artist = undefined;
+    });
     socket.on('room:chat', (payload = {}, ack) => {
       const reply = result => {
         if (typeof ack === 'function') ack(result);
@@ -815,6 +903,13 @@ export function startSignalingServer(overrides = {}) {
         senderName: participant.displayName,
         ts: Date.now()
       };
+      if (socket.data.artist) message.artist = socket.data.artist;
+      const parent = participant.room.chat.find(entry => entry.id === payload.replyTo && entry.senderId !== 'dotify-confirmed-tip');
+      if (parent) message.replyTo = { id: parent.id, text: parent.text, senderId: parent.senderId, senderName: parent.senderName };
+      // Mentions address current participants; arbitrary ids and payload labels are ignored.
+      const ids = new Set([participant.room.hostId, ...participant.room.listeners.keys()]);
+      message.mentions = Array.isArray(payload.mentions) ? [...new Set(payload.mentions.filter(id => ids.has(id)))].slice(0, 5) : [];
+      life.typing(socket, false);
 
       participant.room.chat.push(message);
       if (participant.room.chat.length > config.chatHistoryLimit) {
@@ -970,7 +1065,10 @@ export function startSignalingServer(overrides = {}) {
       reply?.(publicRooms());
     });
 
-    socket.on('room:leave', () => leaveRoom(socket));
+    socket.on('room:leave', () => {
+      socket.data.joinRevision = (socket.data.joinRevision ?? 0) + 1;
+      leaveRoom(socket);
+    });
     socket.on('disconnect', reason => disconnectFromRoom(socket, reason));
   });
 
@@ -1076,7 +1174,7 @@ export function startSignalingServer(overrides = {}) {
     return null;
   }
 
-  function leaveRoom(socket) {
+  function leaveRoom(socket, disconnected = false) {
     clearSoloPresence(socket);
     const roomId = socket.data.roomId;
     const role = socket.data.role;
@@ -1089,6 +1187,7 @@ export function startSignalingServer(overrides = {}) {
     }
 
     removeRealtimeMember(socket, room);
+    life.leaving(socket, disconnected);
 
     if (role === 'host' && room.hostId === socket.id) {
       socket.leave(roomId);
@@ -1125,6 +1224,7 @@ export function startSignalingServer(overrides = {}) {
 
     if (role === 'host' && room.hostId === socket.id) {
       room.hostId = null;
+      life.leaving(socket, true);
       delete room.tipHost;
       room.tipBindRevision = (room.tipBindRevision ?? 0) + 1;
       removeRealtimeMember(socket, room);
@@ -1145,15 +1245,19 @@ export function startSignalingServer(overrides = {}) {
       return;
     }
 
-    leaveRoom(socket);
+    leaveRoom(socket, true);
   }
 
   function clearSocketRoom(socket) {
+    delete socket.data.artist;
+    delete socket.data.lifeToken;
     socket.data.roomId = undefined;
     socket.data.role = undefined;
     chatLimiter.clear(socket.id);
     reactionLimiter.clear(socket.id);
     requestLimiter.clear(socket.id);
+    typingLimiter.clear(socket.id);
+    pinLimiter.clear(socket.id);
   }
 
   return {
@@ -1177,6 +1281,7 @@ export function startSignalingServer(overrides = {}) {
     },
     async close() {
       clearInterval(sweepTimer);
+      life.close();
       await io.close();
     }
   };

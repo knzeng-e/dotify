@@ -37,14 +37,17 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const navigateToView = useCallback(
     (nextView: View, options: { replace?: boolean } = {}) => {
+      const leavingArtistPortal = isArtistPortalPath(window.location.pathname);
       setPublicArtistName(null);
       setActiveView(nextView);
+      if (leavingArtistPortal) setIsArtistPortal(false);
       const nextState = { ...historyStateObject(window.history.state), dotifyView: nextView };
-      if (options.replace || activeView === nextView) {
-        window.history.replaceState(nextState, '', window.location.href);
+      const nextUrl = leavingArtistPortal ? '/' : window.location.href;
+      if (options.replace || (!leavingArtistPortal && activeView === nextView)) {
+        window.history.replaceState(nextState, '', nextUrl);
         return;
       }
-      window.history.pushState(nextState, '', window.location.href);
+      window.history.pushState(nextState, '', nextUrl);
     },
     [activeView]
   );
