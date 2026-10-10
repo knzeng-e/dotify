@@ -20,6 +20,13 @@ Client-supplied badges and reply labels are ignored. A reply also counts as a
 mention for its recipient. Mentions are ephemeral socket identities, not a
 persistent social graph; reconnecting does not retroactively reassign mentions.
 
+Chat and catalog suggestions use acknowledged, connected-only sends. An occupied
+fetch-polling write queues the message until the transport drains instead of
+discarding it as volatile traffic. Disconnected sends are refused, and a missing
+acknowledgement preserves the draft with an explicit uncertain-delivery message;
+there is no automatic resend or optimistic message. Typing and reactions remain
+volatile because they are transient cues.
+
 `room:pin` accepts `{ id: string | null }` only from the actual host. It selects a
 buffered user message, broadcasts the canonical message (or null), expires after
 ten minutes and is included in new-join snapshots. Pins neither grant moderation
@@ -59,8 +66,12 @@ is distinguished, offline catalog/discovery values show unavailable, and rooms
 whose hosts disconnect disappear from discovery until resumed.
 
 The visit sheet defaults to an ordinary alias-only visit. The optional artist
-announcement uses the exact existing Dotify account/chain/signature-scheme session,
-never an automatic new signature. Signaling checks `/auth/identity` on its trusted
+announcement reuses the exact Dotify account/chain/signature-scheme session. If
+none is usable, the artist's explicit Join action opens the normal reusable
+sign-in session, with one wallet approval when needed. Opening the sheet or
+joining without an announcement never signs in. A failed sign-in keeps the sheet
+open with a retryable error; changing account, closing the sheet or unmounting
+cancels the pending navigation. Signaling checks `/auth/identity` on its trusted
 API, reads the active registered track and ArtistDirectory on its configured
 chain, and requires the session account to equal the track's registered artist.
 The welcome and badge use registry labels. Verification is bounded to six seconds

@@ -16,7 +16,8 @@ their releases and join the conversation by choice.
   current playback state and connected-session counts, with unavailable states.
 - Visit sheet with an unchecked announcement choice. Discreet means an ordinary
   participant visible under their room alias, not invisible attendance.
-- Announced visits require an existing authenticated Dotify session and registry
+- Announced visits reuse an authenticated Dotify session, or offer one explicit
+  sign-in on Join when the connected artist has no usable session, and registry
   proof that the account is the registered artist of the room's current release.
   Canonical artist welcome, message badge and departure; no extra signature per room.
 

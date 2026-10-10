@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowUpRight, BadgeCheck, Headphones, Radio, Users, X } from 'lucide-react';
 import { useSessionContext, useWalletContext, useCatalogContext } from '../../app/providers';
 import { Dialog } from '../../components/Dialog';
 import { CoverImage } from '../../components/CoverImage';
 import type { CatalogTrack, OpenRoom } from '../../shared/types';
 import { artistLiveRooms, liveRoomState } from '../../features/artist-studio/liveRooms';
-import { resolveRoomContributionSessionToken } from '../../features/donations/roomContributionSession';
+import { artistVisitSession } from '../../features/artist-studio/artistVisitSession';
 
 export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; runtime: string | null }) {
   const session = useSessionContext();
@@ -15,6 +15,18 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
   const [announce, setAnnounce] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [joining, setJoining] = useState(false);
+  const attemptRef = useRef(0);
+  useLayoutEffect(() => {
+    attemptRef.current++;
+    setJoining(false);
+  }, [visit, wallet.connectedWallet, wallet.expectedChainId]);
+  useEffect(
+    () => () => {
+      attemptRef.current++;
+    },
+    []
+  );
   useEffect(() => {
     // The standalone artist portal does not mount listener discovery.
     void session.requestOpenRooms();
@@ -27,21 +39,29 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
   const currentVisit = rows.find(row => row.room.roomId === visit?.roomId);
   const playing = rows.filter(({ room }) => liveRoomState(room) === 'Playing');
   const present = playing.reduce((sum, { room }) => sum + room.listenerCount + 1, 0);
-  function enter() {
-    if (!currentVisit || !online || !name.trim()) return;
-    const token = announce
-      ? resolveRoomContributionSessionToken({
-          hostAccount: wallet.connectedWallet?.evmAddress,
-          hostSigner: wallet.connectedWallet?.keyRequestSigner,
-          expectedChainId: wallet.expectedChainId
-        })
-      : '';
-    if (announce && !token) {
-      setError('Reconnect to Dotify to announce your artist visit. You can still join without announcing your presence.');
-      return;
+  async function enter() {
+    if (!currentVisit || !online || !name.trim() || joining) return;
+    const attempt = ++attemptRef.current;
+    const identity = wallet.connectedWallet;
+    setJoining(true);
+    setError('');
+    try {
+      const token = announce
+        ? await artistVisitSession({
+            account: identity?.evmAddress,
+            signer: identity?.keyRequestSigner,
+            chainId: wallet.expectedChainId,
+            getWalletClient: wallet.getActiveWalletClient
+          })
+        : '';
+      if (attempt !== attemptRef.current) return;
+      session.joinRoom(currentVisit.room.roomId, { displayName: name.trim(), announceArtist: announce, artistToken: token || undefined });
+      setVisit(null);
+    } catch (cause) {
+      if (attempt === attemptRef.current) setError(cause instanceof Error ? cause.message : 'Could not verify your artist account. Try again.');
+    } finally {
+      if (attempt === attemptRef.current) setJoining(false);
     }
-    session.joinRoom(currentVisit.room.roomId, { displayName: name.trim(), announceArtist: announce, artistToken: token || undefined });
-    setVisit(null);
   }
   if (!runtime) return null;
   return (
@@ -123,12 +143,13 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
           <p>{currentVisit ? `${currentVisit.track.title} · with ${currentVisit.room.hostName}` : 'This room is no longer playing one of your releases.'}</p>
           <label className='artist-visit-name'>
             Your room name
-            <input className='field' value={name} onChange={event => setName(event.target.value)} maxLength={32} autoComplete='off' />
+            <input className='field' disabled={joining} value={name} onChange={event => setName(event.target.value)} maxLength={32} autoComplete='off' />
           </label>
           <label className='artist-visit-consent'>
             <input
               type='checkbox'
               checked={announce}
+              disabled={joining}
               onChange={event => {
                 setAnnounce(event.target.checked);
                 setError('');
@@ -152,10 +173,10 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
           <button
             type='button'
             className='primary-action'
-            disabled={!name.trim() || !online || !currentVisit || currentVisit.room.isFull || currentVisit.room.hostConnected === false}
+            disabled={joining || !name.trim() || !online || !currentVisit || currentVisit.room.isFull || currentVisit.room.hostConnected === false}
             onClick={enter}
           >
-            Join
+            {joining ? 'Verifying your artist account…' : 'Join'}
           </button>
         </Dialog>
       )}

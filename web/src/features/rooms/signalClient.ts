@@ -89,6 +89,10 @@ export function adaptSocketRealtime(socket: Socket): RoomRealtimePort {
       socket.volatile.emit(event, ...args);
     },
     request: (event, input, options, reply) => {
+      if (options.connectedOnly && !socket.connected) {
+        reply(new Error('Room connection interrupted'), undefined);
+        return;
+      }
       const sender = socket.timeout(options.timeoutMs);
       (options.volatile ? sender.volatile : sender).emit(
         event,

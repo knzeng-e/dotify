@@ -2,6 +2,12 @@
 
 ## Room life and artist visits (2026-10-10 candidate)
 
+The follow-up Product `[0, 1, 46]` candidate creates a reusable artist session
+on explicit announced entry when none exists, and fixes chat/suggestion loss
+under fetch-polling backpressure. It is not published yet: the live Product
+release remains 0.1.45. This follow-up requires only frontend publication; the
+existing signaling acknowledgement and registry-verification paths are reused.
+
 Deploy signaling and the frontend from the room-life candidate after #256.
 No contract, database, content-key or upload migration is required. Events and
 optional join fields are additive; old clients can still join. A new client
@@ -12,8 +18,9 @@ Artist verification reuses `SIGNAL_CONTRIBUTION_API_URL`,
 `SIGNAL_CONTRIBUTION_RPC_URL`, `SIGNAL_CONTRIBUTION_CHAIN_ID` and
 `SIGNAL_CONTRIBUTION_DIRECTORY`. They must identify the same API/network as the
 frontend session. The attestor private key is not needed for artist badges.
-Missing services or sessions fail the announcement; anonymous entry remains
-available. No new frontend secrets or environment variables.
+Missing verification services fail the announcement; the explicit announced
+Join action can create a reusable session when the connected artist has none.
+Anonymous entry remains available. No new frontend secrets or environment variables.
 
 Smoke with two guests and one artist: typing expires without transmitting drafts;
 short reconnects avoid duplicate activity; only the host can pin; the dashboard
