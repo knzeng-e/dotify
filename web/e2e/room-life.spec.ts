@@ -52,7 +52,7 @@ test('typing, mentions, replies, pins and muted activity coexist with room playb
   }
 });
 
-test('artist dashboard matches a release and offers an explicitly discreet visit', async ({ page }, testInfo) => {
+test('artist dashboard matches a release and lets the artist choose whether to announce their visit', async ({ page }, testInfo) => {
   const runtime = '0x000000000000000000000000000000000000a712';
   const artist = '0x000000000000000000000000000000000000a711';
   const hash = `0x${'77'.repeat(32)}`;
@@ -103,11 +103,11 @@ test('artist dashboard matches a release and offers an explicitly discreet visit
     await expect(announce).not.toBeChecked();
     await page.getByLabel('Your room name', { exact: true }).fill('Ada quietly');
     await announce.check();
-    await page.getByRole('button', { name: 'Join and announce' }).click();
+    await page.getByRole('button', { name: 'Join', exact: true }).click();
     await expect(page.getByRole('alert')).toContainText('Reconnect to Dotify');
     await announce.uncheck();
     await page.screenshot({ path: testInfo.outputPath('artist-visit-mobile.png') });
-    await page.getByRole('button', { name: 'Join discreetly' }).click();
+    await page.getByRole('button', { name: 'Join', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(room.roomId);
     await expect(page.getByRole('textbox', { name: 'Message the room' })).toBeVisible();
   } finally {

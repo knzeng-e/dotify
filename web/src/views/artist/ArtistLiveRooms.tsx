@@ -38,7 +38,7 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
         })
       : '';
     if (announce && !token) {
-      setError('Reconnect to Dotify to announce your artist visit. You can also join discreetly.');
+      setError('Reconnect to Dotify to announce your artist visit. You can still join without announcing your presence.');
       return;
     }
     if (navigation.isArtistPortal) {
@@ -160,7 +160,7 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
             disabled={!name.trim() || !online || !currentVisit || currentVisit.room.isFull || currentVisit.room.hostConnected === false}
             onClick={enter}
           >
-            {announce ? 'Join and announce' : 'Join discreetly'}
+            Join
           </button>
         </Dialog>
       )}
