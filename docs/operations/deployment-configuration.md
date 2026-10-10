@@ -192,13 +192,21 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 44]` in `web/polkadot-app-deploy.config.ts`; published compatibility release                                             |
+| Product executable `appVersion` | `[0, 1, 45]` recovery candidate; published release remains 0.1.44 until deployment                                                |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
 permissions, metadata, or cache-sensitive assets. A new CID alone proves the
 bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
+
+The 2026-10-10 owner report establishes a connection incident on Desktop 0.1.3
+and mobile 0.10.0 after the 0.1.44 rollout. Recovery candidate `[0, 1, 45]`
+restores the previous SDK family and pins TruAPI 0.13.1 (codec 1). The 0.1.44
+bundle uses codec 3; mock identity tests did not exercise that wire boundary.
+The candidate needs publication and confirmation on both reported devices.
+Preserve existing account derivation, access and pending-contribution storage;
+no server or contract migration is required.
 
 Version `[0, 1, 44]` published the October 2026 Product SDK/Host compatibility
 alignment on 2026-10-09 from clean, tested `dev` merge
@@ -442,13 +450,13 @@ Current Product host SDK dependencies:
 
 | Package                                              | Current value | Latest stable checked 2026-10-09 |
 | ---------------------------------------------------- | ------------- | -------------------------------- |
-| `@parity/product-sdk`                                | `0.35.0`      | `0.35.0`                         |
-| `@parity/product-sdk-host`                           | `0.25.0`      | `0.25.0`                         |
-| `@parity/product-sdk-statement-store`                | `0.6.16`      | `0.6.16`                         |
-| `@parity/product-sdk-descriptors`                    | `0.13.0`      | `0.13.0`                         |
-| `@parity/product-sdk-tx`                             | `0.4.13`      | `0.4.13`                         |
+| `@parity/product-sdk`                                | `0.27.0`      | `0.35.0`                         |
+| `@parity/product-sdk-host`                           | `0.19.1`      | `0.25.0`                         |
+| `@parity/product-sdk-statement-store`                | `0.6.9`       | `0.6.16`                         |
+| `@parity/product-sdk-descriptors`                    | `0.11.0`      | `0.13.0`                         |
+| `@parity/product-sdk-tx`                             | `0.4.7`       | `0.4.13`                         |
 | root `polkadot-api`                                  | `1.23.3`      | `3.2.1`                          |
-| Product Host wrapper `polkadot-api` override         | `2.2.2`       | compatibility pin                |
+| `@parity/truapi` override                            | `0.13.1`      | codec-1 compatibility pin        |
 | `@parity/polkadot-app-deploy`                        | `0.20.0`      | `0.20.0` stable                  |
 | `engine.io-client`                                   | `6.6.6`       | `6.6.6`                          |
 
@@ -456,10 +464,10 @@ Keep the Product SDK packages pinned exactly during Product DevNet hardening.
 Recheck npm and the official Product docs before changing them because the
 mobile host API is still moving quickly. `polkadot-api` remains on `1.23.3` at
 the Dotify root because `@polkadot-apps` chain-client/keys/signer still depend
-on that line. The Product graph uses PAPI 2.2.x. Keep the scoped
-`@novasamatech/host-api-wrapper` override at 2.2.2: its `>=2` declaration can
-otherwise select PAPI 3, which no longer exports `getPolkadotSignerFromPjs` and
-makes the Product bundle fail at build time.
+on that line. The Product graph uses PAPI 2.2.x. Keep TruAPI pinned to 0.13.1
+for the recovery baseline; require raw wire tests and real supported-Host
+connection evidence before adopting a new codec. The Host-wrapper PAPI override
+introduced in 0.1.44 is no longer needed by the restored dependency graph.
 
 W27 adds `VITE_DOTIFY_ROOM_REALTIME`, default off. It requires a Product host
 mode and observes aggregate room presence plus encrypted social mirrors;

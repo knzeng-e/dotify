@@ -2,6 +2,15 @@
 
 Last checked: 2026-10-09.
 
+Recovery update, 2026-10-10: the SDK 0.35.0 rollout caused owner-reported
+connection timeouts on Desktop 0.1.3 and mobile 0.10.0. Candidate 0.1.45 restores
+SDK 0.27.0 / Host 0.19.1 / Statement Store 0.6.9 / descriptors 0.11.0 / tx 0.4.7
+and pins TruAPI 0.13.1 (codec 1). The version/audit tables below are the historical
+October 9 maintenance snapshot, not validation of this recovery candidate.
+The restored graph removes the Host-wrapper PAPI override. Its runtime audit
+reports 30 findings (1 moderate, 29 high, zero critical), compared with 31 in
+the October 9 snapshot. Real-device recovery remains a separate gate.
+
 This record captures the dependency/security evidence for the maintenance pass
 that follows the Product payment-label work. It is not a blanket policy change:
 future feature PRs should still avoid dependency churn unless the dependency is
