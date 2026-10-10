@@ -12,6 +12,7 @@ on:
       - 'web/scripts/product*config-check*'
       - 'web/scripts/product-deploy-environment-check*'
       - 'web/package.json'
+      - 'web/package-lock.json'
 
 permissions:
   contents: read
