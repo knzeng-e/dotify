@@ -77,7 +77,7 @@ it('binds ephemeral keys to real membership and server roles, never self-declare
   assert.equal(first.ok, true);
   assert.equal(first.roster.peers[0].role, 'host');
   assert.notEqual(first.self, 'fake');
-  const update = once(host, 'room:realtime-roster');
+  const update = nextRoster(host, first.roster.revision);
   const second = await ack(guest, 'room:realtime-register', { publicKey: key(), role: 'host' });
   assert.equal(second.roster.scope, first.roster.scope);
   assert.equal(second.roster.peers.find(peer => peer.id === second.self).role, 'listener');
@@ -91,8 +91,8 @@ it('binds ephemeral keys to real membership and server roles, never self-declare
 
 it('revokes disconnected members and gives reconnects new producer identities', async () => {
   const { host, guest, created } = await pair();
-  await ack(host, 'room:realtime-register', { publicKey: key() });
-  const added = once(host, 'room:realtime-roster');
+  const hostRegistered = await ack(host, 'room:realtime-register', { publicKey: key() });
+  const added = nextRoster(host, hostRegistered.roster.revision);
   const registered = await ack(guest, 'room:realtime-register', { publicKey: key() });
   await added;
   const removed = nextRoster(host, registered.roster.revision);
@@ -152,7 +152,7 @@ it('ignores stale unsubscribe credentials and unregisters only the caller', asyn
   const g = await ack(guest, 'room:realtime-register', { publicKey: key() });
   guest.emit('room:realtime-unregister', { scope: h.roster.scope, self: h.self });
   await ack(guest, 'room:rename', { displayName: 'still admitted' });
-  const updated = once(host, 'room:realtime-roster');
+  const updated = nextRoster(host, g.roster.revision);
   guest.emit('room:realtime-unregister', { scope: g.roster.scope, self: g.self });
   assert.deepEqual(
     (await updated).peers.map(peer => peer.id),
