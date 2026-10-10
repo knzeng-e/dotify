@@ -182,23 +182,18 @@ export function getAudioStartupTelemetrySnapshot(): AudioStartupTelemetrySnapsho
 export function audioV2StartupPhaseLabel(metric: Pick<AudioV2StartupMetric, 'phase'>): string {
   switch (metric.phase) {
     case 'key-authorized':
-      return 'Access confirmed';
+      return 'Loading your track…';
     case 'gateway-selected':
-      return 'Finding audio gateway';
     case 'header-ready':
-      return 'Reading audio map';
     case 'first-range-ready':
-      return 'Receiving first audio bytes';
     case 'first-chunk-decrypted':
-      return 'Preparing first sound';
     case 'first-chunk-appended':
-      return 'Starting audio';
     case 'fallback':
-      return 'Switching playback path';
+      return 'Loading your track…';
     case 'error':
       return 'Audio unavailable';
     default:
-      return 'Preparing audio';
+      return 'Loading your track…';
   }
 }
 

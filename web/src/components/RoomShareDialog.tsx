@@ -49,7 +49,7 @@ export function RoomShareDialog({
         )}
         {onProject && (
           <button className='secondary-action' type='button' onClick={onProject}>
-            <QrCode size={18} /> Show QR
+            <QrCode size={18} /> Enlarge QR
           </button>
         )}
       </div>

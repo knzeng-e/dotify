@@ -161,7 +161,8 @@ for (const [width, height] of sizes) {
       await guest.getByRole('tab', { name: 'Queue', exact: true }).click();
       await expect(guest.locator('.host-lineup')).toBeVisible();
       await expect(guest.getByLabel('Add from the catalog')).toHaveCount(0);
-      await guest.getByLabel('Request a track', { exact: true }).fill('A song from home');
+      await guest.getByLabel('Request a track', { exact: true }).fill('E2E Public');
+      await guest.getByRole('button', { name: /^Suggest E2E Public Room Track by/ }).click();
       await capture(guest, info, 'room-queue');
       await guest.getByRole('tab', { name: 'Chat', exact: true }).click();
       await guest.getByLabel('Message the room', { exact: true }).fill('A shared listening moment');
@@ -331,7 +332,7 @@ test('replacing room sharing with the projected QR adds only one Back step', asy
   const original = await code.textContent();
   await page.getByRole('button', { name: 'Share room', exact: true }).click();
   const length = await page.evaluate(() => history.length);
-  await page.getByRole('button', { name: 'Show QR', exact: true }).click();
+  await page.getByRole('button', { name: 'Enlarge QR', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Scan to join' })).toBeVisible();
   expect(await page.evaluate(() => history.length)).toBe(length);
   await page.goBack();

@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, ListMusic, SkipForward, Trash2, X } from 'lucide-re
 import { useState } from 'react';
 import { useCatalogContext, usePlaybackContext, useSessionContext } from '../app/providers';
 import { ROOM_LINEUP_LIMIT } from '../features/player/playbackQueue';
+import { RoomTrackSearch } from './RoomTrackSearch';
 
 // The host curates one ephemeral playback order and the signaling server mirrors
 // its public metadata to everyone in the room. Access checks and source loading
@@ -10,43 +11,18 @@ export function HostLineup() {
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { playback } = usePlaybackContext();
-  const [picked, setPicked] = useState('');
+  const [query, setQuery] = useState('');
   const isHost = session.mode === 'host';
   const lineup = session.roomLineup;
   const queuedIds = new Set(lineup.map(item => item.trackId));
   const available = catalog.catalogTracks.filter(track => track.active !== false && track.id !== catalog.selectedTrackId && !queuedIds.has(track.id));
 
   return (
-    <details className='host-lineup'>
+    <details className='host-lineup' open={isHost || lineup.length > 0}>
       <summary>
         <ListMusic size={16} /> Up next
         <span>{lineup[0] ? lineup[0].title : 'Nothing queued'}</span>
       </summary>
-
-      {isHost && (
-        <form
-          onSubmit={event => {
-            event.preventDefault();
-            const track = available.find(item => item.id === picked);
-            if (!track) return;
-            playback.addToLineup(track);
-            setPicked('');
-          }}
-        >
-          <label htmlFor='host-plan-track'>Add from the catalog</label>
-          <select id='host-plan-track' className='field' value={picked} onChange={event => setPicked(event.target.value)}>
-            <option value=''>Choose a track</option>
-            {available.map(track => (
-              <option value={track.id} key={track.id}>
-                {track.title} — {track.artist}
-              </option>
-            ))}
-          </select>
-          <button type='submit' className='secondary-action' disabled={!picked || lineup.length >= ROOM_LINEUP_LIMIT}>
-            Add
-          </button>
-        </form>
-      )}
 
       {lineup.length ? (
         <>
@@ -104,6 +80,20 @@ export function HostLineup() {
         </>
       ) : (
         <p>{isHost ? 'Choose what the room will hear after this track.' : 'The host has not chosen another track yet.'}</p>
+      )}
+      {isHost && (
+        <RoomTrackSearch
+          tracks={available}
+          query={query}
+          onQueryChange={setQuery}
+          label='Find a track to add next'
+          action='Add to queue'
+          disabled={session.socketStatus !== 'online' || lineup.length >= ROOM_LINEUP_LIMIT}
+          onPick={track => {
+            playback.addToLineup(track);
+            setQuery('');
+          }}
+        />
       )}
     </details>
   );

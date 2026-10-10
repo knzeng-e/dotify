@@ -121,6 +121,9 @@
   background: var(--surface);
 }
 .room-panel-switch button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
   min-height: var(--touch-target);
   border-radius: var(--radius-sm);
@@ -178,6 +181,8 @@
 .player-room-mode .room-queue-pane > .room-requests-panel {
   flex: 1;
   height: auto;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
 }
 .player-room-mode .room-chat-panel {
   border-color: transparent;
@@ -658,6 +663,114 @@
 .host-lineup select {
   min-width: 0;
 }
+
+.room-request-search-form {
+  display: grid;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+.player-room-mode .room-requests-panel .room-chat-list {
+  display: block;
+  flex: 0 0 auto;
+  height: auto;
+  max-height: 180px;
+}
+.room-requests-panel .panel-title {
+  flex-shrink: 0;
+}
+.room-track-search {
+  min-width: 0;
+}
+.room-track-search-field {
+  position: relative;
+}
+.room-track-search-field > svg {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.room-track-search-field .field {
+  width: 100%;
+  padding-left: 2.6rem;
+}
+.room-track-results {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-sm);
+}
+.host-lineup .room-track-results li {
+  display: block;
+  padding: 0;
+  border: 0;
+}
+.room-track-results button {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem;
+  text-align: left;
+  background: transparent;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.room-track-results button:hover,
+.room-track-results button:focus-visible {
+  background: var(--surface-soft);
+  outline: 2px solid var(--action);
+  outline-offset: -2px;
+}
+.room-track-results button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.room-track-results img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+}
+.room-track-results button > span {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 0.15rem;
+}
+.room-track-results strong,
+.room-track-results small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.room-track-results strong {
+  font-size: var(--text-sm);
+}
+.room-track-results small,
+.room-track-search-hint {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+.room-track-search-hint {
+  display: block;
+  margin-block: 0.5rem;
+  line-height: 1.5;
+}
+.room-req-add {
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  background: transparent;
+  color: var(--action);
+}
 .host-lineup ol {
   padding: 0;
   list-style: none;
@@ -687,7 +800,7 @@
   display: block;
   color: var(--muted);
 }
-.host-lineup li button {
+.host-lineup ol > li > button {
   flex: 0 0 var(--touch-target);
   width: var(--touch-target);
   height: var(--touch-target);
@@ -800,7 +913,8 @@
     right: auto;
     width: var(--room-viewport-width, 100%);
   }
-  .player-room-mode .room-chat-form .field {
+  .player-room-mode .room-chat-form .field,
+  .player-room-mode .room-request-search-form .field {
     height: var(--touch-target);
     padding-block: 0.5rem;
     font-size: var(--text-base);
@@ -808,6 +922,7 @@
   .app-shell[data-room-focus='true'][data-composing='true'] .topbar,
   .app-shell[data-room-focus='true'][data-composing='true'] .bottom-nav,
   .app-shell[data-composing='true'] .room-queue-pane > .host-lineup,
+  .app-shell[data-composing='true'] .room-requests-panel .room-chat-list,
   .app-shell[data-composing='true'] .room-requests-panel .panel-title,
   .app-shell[data-composing='true'] .room-code-pill,
   .app-shell[data-composing='true'] .room-back,

@@ -34,7 +34,9 @@ export function useRoomViewport(active: boolean) {
         return;
       const focused = document.activeElement;
       const editing =
-        focused instanceof HTMLElement && shell.contains(focused) && focused.matches('.room-chat-form input, .room-chat-form textarea, .room-composer-done');
+        focused instanceof HTMLElement &&
+        shell.contains(focused) &&
+        focused.matches('.room-chat-form input, .room-chat-form textarea, .room-request-search-form input, .room-composer-done');
       if (!initialized) {
         baselineHeight = window.innerHeight;
         // A keyboard may already be opening before the first valid sample.

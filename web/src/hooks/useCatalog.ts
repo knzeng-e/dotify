@@ -1311,7 +1311,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       setPlayerState(null);
       setAccessGate(null);
       setPlaybackFailure(null);
-      setAudioStartupStatus(track.encrypted ? 'Checking access' : null);
+      setAudioStartupStatus(track.encrypted ? 'Checking your access…' : null);
       // A socketEmit callback means this selection streams into a room: the
       // signer is the host, and only the host needs to satisfy the policy.
       keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';

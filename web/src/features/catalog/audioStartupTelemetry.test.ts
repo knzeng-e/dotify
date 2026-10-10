@@ -87,8 +87,8 @@ describe('audio startup telemetry', () => {
   });
 
   it('maps DAV2 phases to listener-safe progress labels', () => {
-    expect(audioV2StartupPhaseLabel({ phase: 'key-authorized' })).toBe('Access confirmed');
-    expect(audioV2StartupPhaseLabel({ phase: 'first-range-ready' })).toBe('Receiving first audio bytes');
+    expect(audioV2StartupPhaseLabel({ phase: 'key-authorized' })).toBe('Loading your track…');
+    expect(audioV2StartupPhaseLabel({ phase: 'first-range-ready' })).toBe('Loading your track…');
     expect(audioV2StartupPhaseLabel({ phase: 'error' })).toBe('Audio unavailable');
   });
 });

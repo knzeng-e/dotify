@@ -6,16 +6,17 @@ import { PanelTitle } from '../shared/ui/PanelTitle';
 import { CHAT_TEXT_MAX_LENGTH } from '../shared/social';
 import { formatClockTime } from '../shared/utils/format';
 import { Avatar } from './Presence';
+import { updateChatUnread, type ChatReadState } from '../features/rooms/chatUnread';
 
-export function RoomChat({ active = true, onUnreadChange }: { active?: boolean; onUnreadChange?: (unread: boolean) => void }) {
+export function RoomChat({ active = true, onUnreadChange }: { active?: boolean; onUnreadChange?: (unread: number) => void }) {
   const session = useSessionContext();
   const { roomId, chatMessages, sendChatMessage } = session;
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
-  const [unread, setUnread] = useState(false);
+  const [unread, setUnread] = useState(0);
   const followingRef = useRef(true);
-  const lastMessageIdRef = useRef<string>();
+  const readStateRef = useRef<ChatReadState | null>(null);
   const connected = session.socketStatus === 'online';
   const listRef = useRef<HTMLDivElement | null>(null);
   const selfId = session.socketRef.current?.id;
@@ -26,15 +27,13 @@ export function RoomChat({ active = true, onUnreadChange }: { active?: boolean; 
   // Follow the conversation unless the reader has scrolled up into history.
   useEffect(() => {
     const list = listRef.current;
-    const latestId = chatMessages[chatMessages.length - 1]?.id;
-    const changed = latestId !== lastMessageIdRef.current;
-    lastMessageIdRef.current = latestId;
+    readStateRef.current = updateChatUnread(readStateRef.current, chatMessages, selfId, active && followingRef.current);
+    setUnread(readStateRef.current.unread);
     if (!list) return;
     if (active && followingRef.current) {
       list.scrollTop = list.scrollHeight;
-      setUnread(false);
-    } else if (changed) setUnread(true);
-  }, [chatMessages, active]);
+    }
+  }, [chatMessages, active, selfId]);
 
   // Keyboard/viewport changes should keep a live reader at the newest message,
   // without pulling somebody who is reading older messages back to the bottom.
@@ -75,7 +74,10 @@ export function RoomChat({ active = true, onUnreadChange }: { active?: boolean; 
             if (!active) return;
             const list = event.currentTarget;
             followingRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 90;
-            if (followingRef.current) setUnread(false);
+            if (followingRef.current) {
+              if (readStateRef.current) readStateRef.current.unread = 0;
+              setUnread(0);
+            }
           }}
           role='log'
           aria-live={active ? 'polite' : 'off'}
@@ -112,17 +114,18 @@ export function RoomChat({ active = true, onUnreadChange }: { active?: boolean; 
           </div>
         </div>
 
-        {unread && (
+        {unread > 0 && (
           <button
             type='button'
             className='room-chat-latest'
             onClick={() => {
               followingRef.current = true;
-              setUnread(false);
+              if (readStateRef.current) readStateRef.current.unread = 0;
+              setUnread(0);
               if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
             }}
           >
-            <ArrowDown size={14} aria-hidden='true' /> New messages
+            <ArrowDown size={14} aria-hidden='true' /> {unread} new {unread === 1 ? 'message' : 'messages'}
           </button>
         )}
       </div>
