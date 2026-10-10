@@ -10,6 +10,23 @@ let clients;
 const ack = (client, event, payload) =>
   new Promise((resolve, reject) => client.timeout(2000).emit(event, payload, (error, value) => (error ? reject(error) : resolve(value))));
 const once = (client, event) => new Promise(resolve => client.once(event, resolve));
+// A registration ack can arrive before its broadcast on another socket. Wait
+// for the newer revision under test, rather than consuming that queued roster.
+function nextRoster(client, afterRevision) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      client.off('room:realtime-roster', onRoster);
+      reject(new Error('Updated roster not received'));
+    }, 2000);
+    function onRoster(roster) {
+      if (roster.revision <= afterRevision) return;
+      clearTimeout(timer);
+      client.off('room:realtime-roster', onRoster);
+      resolve(roster);
+    }
+    client.on('room:realtime-roster', onRoster);
+  });
+}
 function key() {
   const ecdh = createECDH('prime256v1');
   ecdh.generateKeys();
@@ -78,7 +95,7 @@ it('revokes disconnected members and gives reconnects new producer identities', 
   const added = once(host, 'room:realtime-roster');
   const registered = await ack(guest, 'room:realtime-register', { publicKey: key() });
   await added;
-  const removed = once(host, 'room:realtime-roster');
+  const removed = nextRoster(host, registered.roster.revision);
   guest.disconnect();
   const roster = await removed;
   assert.ok(roster.revision > registered.roster.revision);
@@ -95,8 +112,8 @@ it('revokes disconnected members and gives reconnects new producer identities', 
 it('revokes host identity during reconnect and restores host role only via resume token', async () => {
   const { host, guest, created } = await pair();
   const registered = await ack(host, 'room:realtime-register', { publicKey: key() });
-  await ack(guest, 'room:realtime-register', { publicKey: key() });
-  const removed = once(guest, 'room:realtime-roster');
+  const listenerRegistered = await ack(guest, 'room:realtime-register', { publicKey: key() });
+  const removed = nextRoster(guest, listenerRegistered.roster.revision);
   host.disconnect();
   assert.equal(
     (await removed).peers.some(peer => peer.role === 'host'),

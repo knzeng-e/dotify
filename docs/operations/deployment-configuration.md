@@ -1,5 +1,32 @@
 # Deployment Configuration Runbook
 
+## Room life and artist visits (2026-10-10 candidate)
+
+Deploy signaling and the frontend from the room-life candidate after #256.
+No contract, database, content-key or upload migration is required. Events and
+optional join fields are additive; old clients can still join. A new client
+explicitly reports an ordinary join if an older server cannot confirm its
+requested artist announcement.
+
+Artist verification reuses `SIGNAL_CONTRIBUTION_API_URL`,
+`SIGNAL_CONTRIBUTION_RPC_URL`, `SIGNAL_CONTRIBUTION_CHAIN_ID` and
+`SIGNAL_CONTRIBUTION_DIRECTORY`. They must identify the same API/network as the
+frontend session. The attestor private key is not needed for artist badges.
+Missing services or sessions fail the announcement; anonymous entry remains
+available. No new frontend secrets or environment variables.
+
+Smoke with two guests and one artist: typing expires without transmitting drafts;
+short reconnects avoid duplicate activity; only the host can pin; the dashboard
+follows start/pause/track changes; discreet entry is the default; announced entry
+uses registry labels; wrong-account and stale-session announcements fail. Verify
+Product Desktop and Mobile entry without a new signature while the session is
+valid. Inspect `/status` for absence of private social state and continuity tokens.
+
+Social history and pending continuity die with the room or service restart.
+Rollback frontend and signaling together; no durable data needs rollback. Counts
+are connected sessions, not historical listens. See the
+[protocol and trust boundaries](../explanation/room-life-and-artist-visits.md).
+
 This runbook is the operator checklist for Dotify's hosted configuration across
 Netlify, Product DevNet, and Fly.io. Use it when changing dashboard values, deploy contexts,
 `*.toml` settings, hosted origins, secrets, catalog persistence, or production

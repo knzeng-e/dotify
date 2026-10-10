@@ -23,6 +23,11 @@ The PR writing workflow is tracked in [`pr-review-quality.md`](pr-review-quality
 
 ## Product north star
 
+Owner-requested room-life continuation: [#257](https://github.com/knzeng-e/dotify/issues/257),
+[scope and acceptance](room-life-and-artist-visits.md). It follows #256 and adds
+ephemeral conversation cues and verified artist visits; public-pilot reliability
+and physical Product-host validation remain release gates.
+
 Dotify is not a Spotify clone. Dotify is a decentralized cultural social hub where music becomes a live social connector, artists retain sovereignty over catalog/access/royalties, and listeners can discover music through shared real-time presence.
 
 ## Production readiness rule

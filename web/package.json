@@ -10,7 +10,7 @@
 	"scripts": {
 		"dev": "vite --host 0.0.0.0 --port 5273",
 		"signal": "SIGNAL_PORT=8788 node server/signaling.mjs",
-		"test:signal": "node --test server/signaling.test.mjs server/signaling-smoke.test.mjs server/signaling-realtime.test.mjs server/room-contributions.test.mjs",
+		"test:signal": "node --test server/signaling.test.mjs server/signaling-smoke.test.mjs server/signaling-realtime.test.mjs server/room-contributions.test.mjs server/room-life.test.mjs",
 		"test:unit": "vitest run",
 		"test:celerity-feasibility": "node --test scripts/celerity-feasibility.test.mjs",
 		"test:celerity-capture": "node --test scripts/celerity-capture-report.test.mjs",

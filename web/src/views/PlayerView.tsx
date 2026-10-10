@@ -137,11 +137,13 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [roomPanel, setRoomPanel] = useState<'chat' | 'queue' | 'people'>('chat');
   const [chatUnread, setChatUnread] = useState(0);
+  const [chatMentions, setChatMentions] = useState(0);
   useEffect(() => {
     setRoomPanel('chat');
     setShareOpen(false);
     setConfirmCloseOpen(false);
     setChatUnread(0);
+    setChatMentions(0);
   }, [roomId]);
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 769px)');
@@ -463,6 +465,11 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               {panel === 'chat' && chatUnread > 0 && (
                 <span className='room-request-count' aria-label={`${chatUnread} unread messages`}>
                   {chatUnread > 99 ? '99+' : chatUnread}
+                </span>
+              )}
+              {panel === 'chat' && chatMentions > 0 && (
+                <span className='room-mention-count' aria-label={`${chatMentions} unread mentions`}>
+                  @{chatMentions}
                 </span>
               )}
               {panel === 'queue' && session.requestQueue.length > 0 && (
@@ -858,7 +865,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         {roomId && (
           <div className='room-social-column'>
             <div id='room-panel-chat' className='room-conversation-pane' role='tabpanel' aria-labelledby='room-tab-chat' hidden={roomPanel !== 'chat'}>
-              <RoomChat key={roomId} active={roomPanel === 'chat'} onUnreadChange={setChatUnread} />
+              <RoomChat key={roomId} active={roomPanel === 'chat'} onUnreadChange={setChatUnread} onMentionChange={setChatMentions} />
             </div>
             <div
               id='room-panel-queue'

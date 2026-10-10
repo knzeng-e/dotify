@@ -13,6 +13,7 @@ import type {
   RoomReactionEvent,
   RoomRequest
 } from '../../shared/types';
+import type { RoomTyping, RoomActivity } from '../../shared/types';
 import type { RealtimeRegistration, RealtimeRoster } from './celerityPrivateTypes';
 
 type ListenerJoined = { listenerId: string; displayName: string; listenerCount: number };
@@ -21,6 +22,9 @@ export type RoomContributionReply =
   | { ok: true; host: `0x${string}`; room: `0x${string}`; expiresAt: string; proof: `0x${string}` };
 
 export type RoomIncomingEvents = {
+  'room:activity': [activity: RoomActivity];
+  'room:typing': [typing: RoomTyping[]];
+  'room:pin': [message: RoomChatMessage | null];
   'room:realtime-roster': [roster: RealtimeRoster];
   connect: [];
   disconnect: [reason: string];
@@ -51,6 +55,8 @@ export type RoomIncomingEvents = {
 };
 
 export type RoomOutgoingEvents = {
+  'room:typing': [payload: { active: boolean }];
+  'room:artist-clear': [];
   'room:realtime-unregister': [membership: { scope: string; self: string }];
   'rooms:list': [reply: (rooms: OpenRoom[]) => void];
   'presence:solo': [presence: { trackHash: string | null }];
@@ -73,17 +79,21 @@ export type RoomOutgoingEvents = {
 };
 
 export type RoomRequests = {
+  'room:pin': { input: { id: string | null }; output: { ok: boolean } };
   'room:tip-bind': { input: { token: string }; output: { ok: boolean; error?: string } };
   'room:tip-quote': { input: { runtime: string; contentHash: string; sender: string; intentId: string; amount: string }; output: RoomContributionReply };
   'room:tip-notify': { input: { runtime: string; hash: string }; output: { ok: boolean; error?: string } };
   'room:realtime-clock': { input: Record<string, never>; output: { ok: true; time: number; server: string } | { ok: false } };
   'room:realtime-register': { input: { publicKey: string }; output: RealtimeRegistration };
   'room:create': { input: { displayName: string; track: TrackInfo | null; playbackMode: RoomPlaybackMode }; output: CreateRoomResponse };
-  'room:join': { input: { roomId: string; displayName: string }; output: JoinRoomResponse };
+  'room:join': {
+    input: { roomId: string; displayName: string; announceArtist?: boolean; artistToken?: string; listenerResumeToken?: string };
+    output: JoinRoomResponse;
+  };
   'room:resume': { input: { roomId: string; hostResumeToken: string }; output: ResumeRoomResponse };
   'room:turn-capability': { input: Record<string, never>; output: TurnCapabilityResponse };
   'room:rename': { input: { displayName: string }; output: { ok: boolean; displayName?: string; error?: string } };
-  'room:chat': { input: { text: string }; output: { ok?: boolean; message?: string } };
+  'room:chat': { input: { text: string; replyTo?: string; mentions?: string[] }; output: { ok?: boolean; message?: string } };
   'room:request': { input: { text: string }; output: { ok?: boolean; message?: string } };
 };
 

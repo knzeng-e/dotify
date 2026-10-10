@@ -135,6 +135,7 @@ export type RoyaltyRuntimeSummary = {
 export type RoomPlaybackMode = 'full' | 'preview';
 
 export type OpenRoom = {
+  hostConnected?: boolean;
   roomId: string;
   title?: string;
   hostName: string;
@@ -165,6 +166,9 @@ export type ResumeRoomResponse =
       hostName: string;
       listenerCount: number;
       listeners: RoomPresenceListener[];
+      chatHistory?: RoomChatMessage[];
+      activity?: RoomActivity[];
+      pinnedMessage?: RoomChatMessage | null;
       lineup?: RoomLineupItem[];
       expiresAt?: number;
     }
@@ -173,12 +177,24 @@ export type ResumeRoomResponse =
 // Social layer message shapes. Deliberately transport-agnostic: nothing in
 // here knows about sockets, so a Statement Store presence layer can adopt
 // the same shapes later (see docs/backlog/20-room-social-layer.md).
+export type RoomArtist = { name: string; title: string; runtime: string; hash: string };
+export type RoomActivity = {
+  id: string;
+  kind: 'joined' | 'left' | 'artist-joined' | 'artist-left' | 'track' | 'queue';
+  text: string;
+  ts: number;
+  artist?: RoomArtist;
+};
+export type RoomTyping = { id: string; name: string; expiresAt: number };
 export type RoomChatMessage = {
   id: string;
   text: string;
   senderId: string;
   senderName: string;
   ts: number;
+  artist?: RoomArtist;
+  replyTo?: { id: string; text: string; senderId: string; senderName: string };
+  mentions?: string[];
 };
 
 export type RoomReactionEvent = {
@@ -224,6 +240,10 @@ export type JoinRoomResponse =
       playerState: PlayerState | null;
       playbackMode?: RoomPlaybackMode;
       chatHistory?: RoomChatMessage[];
+      activity?: RoomActivity[];
+      pinnedMessage?: RoomChatMessage | null;
+      listenerResumeToken?: string;
+      artistAnnounced?: boolean;
       requests?: RoomRequest[];
       lineup?: RoomLineupItem[];
       listeners?: RoomPresenceListener[];

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RoomRealtimePort, RoomRequests, RoomTrackEmitter } from '../features/rooms/roomRealtimePort';
+import type { RoomTyping, RoomActivity } from '../shared/types';
 import {
   createRoomJoinE2eCaptureStream,
   isRoomJoinE2e,
@@ -222,6 +223,10 @@ export function useSession(deps: UseSessionDeps) {
   // the reaction feed keeps a short sliding window that the player view
   // turns into rising petals.
   const [chatMessages, setChatMessages] = useState<RoomChatMessage[]>([]);
+  const [roomActivity, setRoomActivity] = useState<RoomActivity[]>([]);
+  const [roomTyping, setRoomTyping] = useState<RoomTyping[]>([]);
+  const [pinnedMessage, setPinnedMessage] = useState<RoomChatMessage | null>(null);
+  const listenerResumeTokenRef = useRef('');
   const [reactionFeed, setReactionFeed] = useState<RoomReactionEvent[]>([]);
   // Collaborative request queue: server-authoritative full-list broadcast,
   // so the client only ever mirrors what the room actually holds.
@@ -527,6 +532,10 @@ export function useSession(deps: UseSessionDeps) {
     setListenerCount(0);
     setRoomPlaybackMode('full');
     setChatMessages([]);
+    setRoomActivity([]);
+    setRoomTyping([]);
+    setPinnedMessage(null);
+    listenerResumeTokenRef.current = '';
     setReactionFeed([]);
     setRequestQueue([]);
     setRoomLineup([]);
@@ -601,6 +610,7 @@ export function useSession(deps: UseSessionDeps) {
       });
     });
     socket.on('disconnect', () => {
+      setRoomTyping([]);
       setSocketStatus('offline');
       if (modeRef.current === 'host' && roomIdRef.current) {
         setSessionStatus('Reconnecting room');
@@ -741,6 +751,14 @@ export function useSession(deps: UseSessionDeps) {
       if (!message || typeof message.text !== 'string' || typeof message.id !== 'string') return;
       setChatMessages(previous => [...previous, message].slice(-CHAT_CLIENT_LIMIT));
     });
+    socket.on('room:activity', event => {
+      if (!event || typeof event.id !== 'string' || typeof event.text !== 'string') return;
+      setRoomActivity(previous => [...previous.filter(item => item.id !== event.id), event].slice(-50));
+    });
+    socket.on('room:typing', entries =>
+      setRoomTyping(Array.isArray(entries) ? entries.slice(0, 25).map(entry => ({ ...entry, expiresAt: Date.now() + 4500 })) : [])
+    );
+    socket.on('room:pin', message => setPinnedMessage(message));
     socket.on('room:reaction', (reaction: RoomReactionEvent) => {
       if (!reaction || typeof reaction.emoji !== 'string' || typeof reaction.id !== 'string') return;
       setReactionFeed(previous => [...previous.slice(-19), reaction]);
@@ -1593,6 +1611,9 @@ export function useSession(deps: UseSessionDeps) {
         setListenerCount(0);
         setRoomPlaybackMode(playbackMode);
         setChatMessages([]);
+        setRoomActivity([]);
+        setRoomTyping([]);
+        setPinnedMessage(null);
         setReactionFeed([]);
         setRequestQueue([]);
         setRoomLineup([]);
@@ -1607,7 +1628,7 @@ export function useSession(deps: UseSessionDeps) {
     );
   }
 
-  function joinRoom(roomCode: string, options: { displayName?: string } = {}) {
+  function joinRoom(roomCode: string, options: { displayName?: string; announceArtist?: boolean; artistToken?: string } = {}) {
     const normalizedRoomId = normalizeRoomCode(roomCode);
     if (!normalizedRoomId) {
       setError('Room code required');
@@ -1640,7 +1661,7 @@ export function useSession(deps: UseSessionDeps) {
 
     emitAckWhenConnected(
       'room:join',
-      { roomId: normalizedRoomId, displayName: joinDisplayName },
+      { roomId: normalizedRoomId, displayName: joinDisplayName, announceArtist: options.announceArtist, artistToken: options.artistToken },
       (response: JoinRoomResponse) => {
         setSessionAction('idle');
         if (!response.ok) {
@@ -1668,6 +1689,12 @@ export function useSession(deps: UseSessionDeps) {
         }
         setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
         setChatMessages(response.chatHistory ?? []);
+        setRoomActivity(response.activity ?? []);
+        setRoomTyping([]);
+        setPinnedMessage(response.pinnedMessage ?? null);
+        listenerResumeTokenRef.current = response.listenerResumeToken ?? '';
+        if (options.announceArtist && !response.artistAnnounced)
+          setError('You joined as an ordinary participant. This room service could not announce your artist visit.');
         setRequestQueue(response.requests ?? []);
         setRoomLineup(response.lineup ?? []);
         setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
@@ -1699,40 +1726,49 @@ export function useSession(deps: UseSessionDeps) {
       detail: 'socket-reconnect'
     });
 
-    socket.request('room:join', { roomId: targetRoomId, displayName }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }, (error, response) => {
-      if (error || !response) {
-        setSessionStatus('Reconnecting');
-        setError('The room connection is still recovering.');
-        return;
-      }
-      if (!response.ok) {
-        clearRoomState('Room closed', response.error);
-        return;
-      }
+    socket.request(
+      'room:join',
+      { roomId: targetRoomId, displayName, listenerResumeToken: listenerResumeTokenRef.current },
+      { timeoutMs: SIGNAL_ACK_TIMEOUT_MS },
+      (error, response) => {
+        if (error || !response) {
+          setSessionStatus('Reconnecting');
+          setError('The room connection is still recovering.');
+          return;
+        }
+        if (!response.ok) {
+          clearRoomState('Room closed', response.error);
+          return;
+        }
 
-      roomIdRef.current = response.roomId;
-      hostIdRef.current = response.hostId;
-      publishRoomQuality('room-rejoined', 'listener', {
-        roomId: response.roomId,
-        elapsedMs: elapsedSince(listenerJoinStartedAtRef.current),
-        listenerCount: response.listenerCount
-      });
-      setHostName(response.hostName);
-      setTrackInfo(response.track);
-      setPlayerState(response.playerState);
-      if (response.listeners) {
-        applyListenerRoster(response.listeners);
-      } else {
-        setListenerCount(response.listenerCount);
+        roomIdRef.current = response.roomId;
+        hostIdRef.current = response.hostId;
+        publishRoomQuality('room-rejoined', 'listener', {
+          roomId: response.roomId,
+          elapsedMs: elapsedSince(listenerJoinStartedAtRef.current),
+          listenerCount: response.listenerCount
+        });
+        setHostName(response.hostName);
+        setTrackInfo(response.track);
+        setPlayerState(response.playerState);
+        if (response.listeners) {
+          applyListenerRoster(response.listeners);
+        } else {
+          setListenerCount(response.listenerCount);
+        }
+        setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
+        setChatMessages(response.chatHistory ?? []);
+        setRoomActivity(response.activity ?? []);
+        setRoomTyping([]);
+        setPinnedMessage(response.pinnedMessage ?? null);
+        listenerResumeTokenRef.current = response.listenerResumeToken ?? '';
+        setRequestQueue(response.requests ?? []);
+        setRoomLineup(response.lineup ?? []);
+        setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
+        listenerConnectionStartedAtRef.current = monotonicNow();
+        startListenerConnectionTimeout();
       }
-      setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
-      setChatMessages(response.chatHistory ?? []);
-      setRequestQueue(response.requests ?? []);
-      setRoomLineup(response.lineup ?? []);
-      setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
-      listenerConnectionStartedAtRef.current = monotonicNow();
-      startListenerConnectionTimeout();
-    });
+    );
   }
 
   // A mobile host can briefly lose its signaling transport while the webview
@@ -1760,6 +1796,9 @@ export function useSession(deps: UseSessionDeps) {
       emitPlayerState(true);
       setHostName(response.hostName);
       applyListenerRoster(response.listeners);
+      setChatMessages(response.chatHistory ?? []);
+      setRoomActivity(response.activity ?? []);
+      setPinnedMessage(response.pinnedMessage ?? null);
       setRoomLineup(response.lineup ?? []);
       setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
       setError(null);
@@ -1896,7 +1935,12 @@ export function useSession(deps: UseSessionDeps) {
   // Social layer sends. The server validates, rate-limits, and echoes back to
   // the whole room (sender included), so local state only updates on receipt:
   // one render path, no optimistic divergence.
-  function sendRoomText(event: 'room:chat' | 'room:request', text: string, maxLength: number): Promise<{ ok: boolean; message?: string }> {
+  function sendRoomText(
+    event: 'room:chat' | 'room:request',
+    text: string,
+    maxLength: number,
+    details: { replyTo?: string; mentions?: string[] } = {}
+  ): Promise<{ ok: boolean; message?: string }> {
     const socket = socketRef.current;
     if (!roomIdRef.current || !socket?.connected) return Promise.resolve({ ok: false, message: 'Reconnecting. Your draft stays here.' });
     const trimmed = text.trim().slice(0, maxLength);
@@ -1905,7 +1949,7 @@ export function useSession(deps: UseSessionDeps) {
     // Older signaling servers can echo without acknowledging: retain the
     // draft on timeout and ask the sender to check before resending.
     return new Promise(resolve => {
-      socket.request(event, { text: trimmed }, { timeoutMs: 5000, volatile: true }, (error, result) => {
+      socket.request(event, { text: trimmed, ...details }, { timeoutMs: 5000, volatile: true }, (error, result) => {
         resolve(
           error || !result
             ? { ok: false, message: 'Couldn’t confirm delivery. Check the room before resending.' }
@@ -1915,8 +1959,8 @@ export function useSession(deps: UseSessionDeps) {
     });
   }
 
-  function sendChatMessage(text: string) {
-    return sendRoomText('room:chat', text, CHAT_TEXT_MAX_LENGTH);
+  function sendChatMessage(text: string, details?: { replyTo?: string; mentions?: string[] }) {
+    return sendRoomText('room:chat', text, CHAT_TEXT_MAX_LENGTH, details);
   }
 
   function sendRoomReaction(emoji: string) {
@@ -1978,6 +2022,13 @@ export function useSession(deps: UseSessionDeps) {
     roomPlaybackMode,
     productHostWebRtcUnavailable,
     chatMessages,
+    roomActivity,
+    roomTyping,
+    pinnedMessage,
+    clearArtistPresence: () => {
+      listenerResumeTokenRef.current = '';
+      socketRef.current?.emit('room:artist-clear');
+    },
     reactionFeed,
     requestQueue,
     roomLineup,
