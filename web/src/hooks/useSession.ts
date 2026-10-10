@@ -1945,11 +1945,13 @@ export function useSession(deps: UseSessionDeps) {
     if (!roomIdRef.current || !socket?.connected) return Promise.resolve({ ok: false, message: 'Reconnecting. Your draft stays here.' });
     const trimmed = text.trim().slice(0, maxLength);
     if (!trimmed) return Promise.resolve({ ok: false, message: 'Write something first.' });
-    // Never buffer text for an automatic reconnect or render optimistically.
+    // Connected sends must survive polling backpressure; volatile sends drop
+    // when an HTTP write is in flight. Refuse disconnected sends at the port.
+    // Never render optimistically or automatically retry uncertain delivery.
     // Older signaling servers can echo without acknowledging: retain the
     // draft on timeout and ask the sender to check before resending.
     return new Promise(resolve => {
-      socket.request(event, { text: trimmed, ...details }, { timeoutMs: 5000, volatile: true }, (error, result) => {
+      socket.request(event, { text: trimmed, ...details }, { timeoutMs: 5000, connectedOnly: true }, (error, result) => {
         resolve(
           error || !result
             ? { ok: false, message: 'Couldn’t confirm delivery. Check the room before resending.' }

@@ -2,6 +2,17 @@
 
 ## Room life and artist visits (2026-10-10 candidate)
 
+The follow-up Product `[0, 1, 46]` candidate creates a reusable artist session
+on explicit announced entry when none exists, and fixes chat/suggestion loss
+under fetch-polling backpressure. It is not published yet: the live Product
+release remains 0.1.45. This follow-up requires only frontend publication; the
+existing signaling acknowledgement and registry-verification paths are reused.
+It also restores the native Product payment profile: `.env.product-devnet`
+explicitly selects `product-cdm` and `devnet`. The Product build refuses missing,
+EVM-only or wrong-chain adapter settings. Release 0.1.45 used the default viem
+profile, causing Product tips to request an EVM wallet before submission. Existing
+pending receipts remain intact; this correction must not resubmit a payment.
+
 Deploy signaling and the frontend from the room-life candidate after #256.
 No contract, database, content-key or upload migration is required. Events and
 optional join fields are additive; old clients can still join. A new client
@@ -12,8 +23,9 @@ Artist verification reuses `SIGNAL_CONTRIBUTION_API_URL`,
 `SIGNAL_CONTRIBUTION_RPC_URL`, `SIGNAL_CONTRIBUTION_CHAIN_ID` and
 `SIGNAL_CONTRIBUTION_DIRECTORY`. They must identify the same API/network as the
 frontend session. The attestor private key is not needed for artist badges.
-Missing services or sessions fail the announcement; anonymous entry remains
-available. No new frontend secrets or environment variables.
+Missing verification services fail the announcement; the explicit announced
+Join action can create a reusable session when the connected artist has none.
+Anonymous entry remains available. No new frontend secrets or environment variables.
 
 Smoke with two guests and one artist: typing expires without transmitting drafts;
 short reconnects avoid duplicate activity; only the host can pin; the dashboard
@@ -740,8 +752,9 @@ session, not the mnemonic-derived owner signer.
 The manual GitHub Actions workflow `.github/workflows/deploy-frontend.yml`
 validates an exact candidate SHA but cannot publish it. It receives no mnemonic
 or signer and performs no Product write. Validation builds enable the Product
-CDM adapter and operator readiness panel; release builds use the checked-in
-viem profile. Both profiles consume the committed catalog snapshot through the
+CDM adapter and operator readiness panel; the 0.1.46 candidate makes that adapter
+explicit in the checked-in Product release profile too. Ordinary web retains viem.
+Both profiles consume the committed catalog snapshot through the
 same frozen build used by local publication. DotNS publication remains a local
 operator action from the same clean SHA.
 
@@ -1054,9 +1067,9 @@ an explicit Product-host account connection.
 
 `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` also routes runtime write submissions,
 including Classic unlock payments, through the Product CDM contract adapter. The
-tracked Product profile does not enable that flag yet. Keep `viem` as the
-production default until Product-host transaction evidence proves account
-mapping, fees/native value handling, and user approval for real writes. Product
+0.1.46 candidate enables that flag in the tracked Product profile to restore
+the native tips previously validated in support releases. Ordinary web retains
+`viem`; installed-host payment approval/finality still needs release acceptance. Product
 CDM writes now fail closed unless the host signer public key maps to the same
 pallet-revive H160 address that Dotify connected for key/session requests, and
 Classic unlocks in a `product-cdm` build must poll `musicAccHasPaid` plus

@@ -11,6 +11,25 @@ function setup(writable = true) {
 }
 
 describe('Socket.IO realtime port', () => {
+  it('delivers connected chat during polling backpressure instead of dropping it', () => {
+    const { socket, packet, port } = setup(false);
+    const reply = vi.fn();
+    port.request('room:chat', { text: 'Hello' }, { timeoutMs: 100, connectedOnly: true }, reply);
+    expect(packet).toHaveBeenCalledOnce();
+    Reflect.get(socket, 'acks')[0](null, { ok: true });
+    expect(reply).toHaveBeenCalledWith(null, { ok: true });
+    expect(socket.sendBuffer).toHaveLength(0);
+  });
+
+  it('refuses disconnected chat without buffering a reconnect send', () => {
+    const { socket, packet, port } = setup();
+    socket.connected = false;
+    const reply = vi.fn();
+    port.request('room:chat', { text: 'Hello' }, { timeoutMs: 100, connectedOnly: true }, reply);
+    expect(reply).toHaveBeenCalledWith(expect.any(Error), undefined);
+    expect(packet).not.toHaveBeenCalled();
+    expect(socket.sendBuffer).toHaveLength(0);
+  });
   it('preserves ack success and does not reinterpret application denials', () => {
     const { socket, port } = setup();
     const reply = vi.fn();

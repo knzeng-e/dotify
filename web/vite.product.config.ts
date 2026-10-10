@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { assertProductionEnvironment } from './src/shared/config/deploymentSafety';
+import { assertProductRuntimeProfile } from './scripts/product-runtime-profile.mjs';
 import productDeployConfig from './polkadot-app-deploy.config';
 import { assertCleanEvidenceBuild, computeBuildConfigDigest, readGitBuildIdentity, resolveEmbeddedBuildIdentity } from './scripts/build-identity.mjs';
 
@@ -25,7 +26,10 @@ function cdmRegistry(): string {
 // changed chunks incrementally on later releases.
 export default defineConfig(({ command, mode }) => {
   const env = { ...loadEnv(mode, process.cwd(), ''), ...process.env };
-  if (command === 'build') assertProductionEnvironment(env);
+  if (command === 'build') {
+    assertProductionEnvironment(env);
+    assertProductRuntimeProfile(env);
+  }
   const gitIdentity = readGitBuildIdentity(__dirname);
   assertCleanEvidenceBuild(command, env, gitIdentity);
   const buildIdentity = resolveEmbeddedBuildIdentity(command, env, gitIdentity);

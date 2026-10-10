@@ -11,6 +11,37 @@ async function hostRoom(page: Page) {
   return (await page.getByTestId('room-code').innerText()).trim();
 }
 
+test('chat survives busy Product-style fetch polling alongside typing and playback', async ({ page, browser }) => {
+  const roomId = await hostRoom(page);
+  const context = await browser.newContext();
+  const guest = await context.newPage();
+  try {
+    // Keep the same fetch polling transport used by Product, without pretending
+    // this browser supplies the independent native Host media capability.
+    await guest.routeWebSocket('**/socket.io/**', socket => socket.close());
+    // Hold polling POSTs long enough to make the transport busy during sends.
+    await guest.route('**/socket.io/**', async route => {
+      if (route.request().method() === 'POST') await new Promise(resolve => setTimeout(resolve, 250));
+      await route.continue();
+    });
+    await guest.goto(`/#/rooms/${roomId}`);
+    await guest.getByLabel('Your name in the room').fill('Polling guest');
+    await guest.getByRole('button', { name: 'Join and listen' }).click();
+    await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20000 });
+    for (let index = 0; index < 3; index++) {
+      const text = `Polling message ${index}`;
+      // Filling sends a typing POST; the chat must wait for that write to drain.
+      await guest.getByLabel('Message the room').fill(text);
+      await guest.getByRole('button', { name: 'Send message' }).click();
+      await expect(page.getByRole('log')).toContainText(text);
+      await expect(guest.getByLabel('Message the room')).toHaveValue('');
+      await expect(page.locator('.room-chat-row').filter({ hasText: text })).toHaveCount(1);
+    }
+  } finally {
+    await context.close();
+  }
+});
+
 test('typing, mentions, replies, pins and muted activity coexist with room playback', async ({ page, browser }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const roomId = await hostRoom(page);
@@ -102,9 +133,17 @@ test('artist dashboard matches a release and lets the artist choose whether to a
     const announce = page.getByRole('checkbox', { name: /Announce my presence/ });
     await expect(announce).not.toBeChecked();
     await page.getByLabel('Your room name', { exact: true }).fill('Ada quietly');
+    await page.route('**/api/auth/session', route =>
+      route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Artist sign-in is temporarily unavailable.', code: 'SESSION_NOT_CONFIGURED' })
+      })
+    );
     await announce.check();
     await page.getByRole('button', { name: 'Join', exact: true }).click();
-    await expect(page.getByRole('alert')).toContainText('Reconnect to Dotify');
+    await expect(page.getByRole('alert')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Join', exact: true })).toBeEnabled();
     await announce.uncheck();
     await page.screenshot({ path: testInfo.outputPath('artist-visit-mobile.png') });
     await page.getByRole('button', { name: 'Join', exact: true }).click();
