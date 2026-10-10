@@ -54,6 +54,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const hostSocket = session.socketRef.current;
   const hostAccount = connectedWallet?.evmAddress;
   const hostSigner = connectedWallet?.keyRequestSigner;
+  const previousAccountRef = useRef(hostAccount);
+  useEffect(() => {
+    if (previousAccountRef.current !== hostAccount) session.clearArtistPresence();
+    previousAccountRef.current = hostAccount;
+    // Only an identity change should clear the in-memory visit continuity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hostAccount]);
   useEffect(() => {
     if (session.mode !== 'host' || !session.roomId || !hostSocket?.connected) return;
     // The contribution service verifies Dotify's configured chain. Product

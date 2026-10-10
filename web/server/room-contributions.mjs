@@ -68,6 +68,26 @@ export function createRoomContributions(config, dependencies = {}) {
 
   return {
     recoverTrack,
+    async verifyArtist(room, token) {
+      if (!config.api || typeof token !== 'string' || !token || token.length > 4096) throw new Error('Connect to Dotify before announcing your artist visit.');
+      const expectedTrack = room.track;
+      if (!expectedTrack?.hash) throw new Error('This room has no release to verify.');
+      const track = expectedTrack.runtimeAddress ? expectedTrack : await recoverTrack(room, expectedTrack);
+      if (!track || room.track !== track) throw new Error('The room changed tracks. Review your visit and try again.');
+      const response = await request(`${config.api.replace(/\/$/, '')}/auth/identity`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: globalThis.AbortSignal.timeout(10000)
+      });
+      const identity = response.ok ? await response.json() : null;
+      if (!identity || !isAddress(identity.address ?? '') || identity.chainId !== config.chainId)
+        throw new Error('Your connection could not be verified. Reconnect to Dotify.');
+      const release = await knownTrack(track?.runtimeAddress ?? '', track?.hash ?? '');
+      if (release.artist.toLowerCase() !== identity.address.toLowerCase())
+        throw new Error('Only the registered artist of this release can announce this visit.');
+      if (room.track !== track) throw new Error('The room changed tracks. Review your visit and try again.');
+      // These public labels come from the registry, never the submitted alias.
+      return { name: release.artistName.slice(0, 100), title: release.title.slice(0, 200), runtime: track.runtimeAddress, hash: track.hash };
+    },
     async bind(room, token, stillHost = () => true) {
       if (!config.api || typeof token !== 'string' || token.length > 4096) throw new Error('Sign in to Dotify to receive host tips.');
       const response = await request(`${config.api.replace(/\/$/, '')}/auth/identity`, {

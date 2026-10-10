@@ -8,6 +8,7 @@ import type { ArtistActivity } from '../../features/artist-studio/dashboard';
 import { ArtistEarningsSummary } from './ArtistEarningsSummary';
 import { DashboardActivity } from './DashboardActivity';
 import { ReleaseEarningsList } from './ReleaseEarningsList';
+import { ArtistLiveRooms } from './ArtistLiveRooms';
 
 type OverviewTabProps = {
   artistName: string;
@@ -97,6 +98,7 @@ export function OverviewTab({
         <ArtistEarningsSummary earnings={earnings} history={history} runtime={artistRuntimeAddress} onDetails={() => onSetArtistTab('royalties')} />
       )}
 
+      <ArtistLiveRooms tracks={releases.map(row => row.track)} runtime={artistRuntimeAddress} />
       <div className='studio-overview-columns'>
         <section className='studio-works'>
           <div className='studio-section-head'>
