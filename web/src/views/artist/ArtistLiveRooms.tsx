@@ -17,10 +17,13 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
   const [error, setError] = useState('');
   const [joining, setJoining] = useState(false);
   const attemptRef = useRef(0);
+  const artistAccount = wallet.connectedWallet?.evmAddress;
+  const artistSigner = wallet.connectedWallet?.keyRequestSigner;
+  const walletMethod = wallet.connectedWallet?.method;
   useLayoutEffect(() => {
     attemptRef.current++;
     setJoining(false);
-  }, [visit, wallet.connectedWallet, wallet.expectedChainId]);
+  }, [visit, artistAccount, artistSigner, walletMethod, wallet.expectedChainId]);
   useEffect(
     () => () => {
       attemptRef.current++;

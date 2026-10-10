@@ -23,6 +23,14 @@ typing and reactions keep volatile semantics.
 
 ## Evidence and release boundary
 
+Follow-up owner report: Product tips requested an EVM wallet. The published
+0.1.45 release used the default viem profile, while earlier native-tip releases
+explicitly used product-cdm. The candidate now pins `product-cdm`/`devnet` in
+the tracked Product environment and rejects other adapter settings at build
+time. Ordinary web remains viem; native signer mapping, finality and historical
+receipt checks are unchanged. This prevents the profile regression from silently
+shipping again and never retries existing pending payments.
+
 - 19 targeted unit tests passed: existing/new Product and extension sessions,
   changed identity/network, missing session service, busy and disconnected
   transport, acknowledgements and exact session scoping.
@@ -31,5 +39,9 @@ typing and reactions keep volatile semantics.
   chat messages delivered exactly once and drafts cleared after confirmation.
 - Ordinary and frozen Product builds and targeted lint passed. Existing bundle-size and upstream
   annotation/Browserslist warnings remain.
+- Native contribution flows, receipt reconciliation, Product runtime writes and
+  writer selection: 53 tests passed. Product profile/journey/CASH guards:
+  44 tests passed. CASH remains externally blocked; this uses native Revive
+  payments rather than an unsupported CASH-to-access shortcut.
 - Product 0.1.46 is a frontend candidate, not deployed. Physical Product Host
   artist entry and room chat validation remain required after publication.

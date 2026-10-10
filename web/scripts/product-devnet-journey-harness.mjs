@@ -395,12 +395,12 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
   }
 
   const runtimeAdapter = String(env.VITE_DOTIFY_RUNTIME_ADAPTER ?? '').trim() || 'viem';
-  if (runtimeAdapter === 'viem') {
+  if (runtimeAdapter === 'product-cdm' && env.VITE_DOTIFY_PRODUCT_CHAIN === 'devnet') {
     pass(
       gates,
       'tracked-runtime-adapter',
       'Tracked runtime adapter',
-      'Default Product profile remains viem until live Product CDM write evidence passes.',
+      'Product profile preserves native Host payments through product-cdm on DevNet; physical-host acceptance remains separate.',
       'web/.env.product-devnet'
     );
   } else {
@@ -408,7 +408,7 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
       gates,
       'tracked-runtime-adapter',
       'Tracked runtime adapter',
-      `Expected viem/unset for tracked profile, found ${runtimeAdapter}.`,
+      `Expected product-cdm/devnet for tracked Product profile, found ${runtimeAdapter}/${env.VITE_DOTIFY_PRODUCT_CHAIN ?? 'unset'}.`,
       'web/.env.product-devnet'
     );
   }

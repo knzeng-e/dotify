@@ -360,11 +360,14 @@ gates pass, and the live CASH path remains blocked on a Product-confirmed
 CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
 operator-supplied evidence file is unsafe and must block the release.
 
-The default build keeps the viem runtime adapter, which tree-shakes the Product
-contract graph away and publishes at roughly 4.4 MB. Building with
-`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` pulls in the Product SDK descriptors
-and roughly doubles that. Bulletin storage is a finite quota, so only opt in
-when the Product contract path is actually being exercised.
+The 0.1.46 Product candidate explicitly uses `product-cdm` on `devnet` so
+Product account holders retain native tips and access payments. The Product
+build refuses an EVM-only profile; ordinary web still uses viem. Product SDK
+descriptors increase the bundle and Bulletin storage demand. The 0.1.45 viem
+publication regressed native tips by requesting an EVM wallet; it remains the
+published release until this candidate is reviewed and deployed. Validate native
+approval, exact account mapping and finalized receipt recovery on the installed
+Hosts after publication.
 
 ## 5. Authenticate The Deploy Tool
 

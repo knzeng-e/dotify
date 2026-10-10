@@ -45,6 +45,8 @@ function staticSnapshot(patch = {}) {
       VITE_DOTIFY_DEPLOYMENT: 'production',
       VITE_DOTIFY_HOST_MODE: 'required',
       VITE_DOTIFY_PRODUCT_ID: EXPECTED_PRODUCT_DEVNET.productId,
+      VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm',
+      VITE_DOTIFY_PRODUCT_CHAIN: 'devnet',
       VITE_PUBLIC_APP_URL: EXPECTED_PRODUCT_DEVNET.publicAppUrl,
       VITE_SIGNAL_URL: 'https://dotify-signal.fly.dev',
       VITE_DOTIFY_API_URL: 'https://dotify-api.fly.dev',
