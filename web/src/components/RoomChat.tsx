@@ -209,14 +209,7 @@ export function RoomChat({
             className='room-chat-latest'
             onClick={() => {
               followingRef.current = true;
-              const first = readStateRef.current?.firstUnread;
-              const target = first
-                ? Array.from(listRef.current?.querySelectorAll<HTMLElement>('[data-message-id]') ?? []).find(row => row.dataset.messageId === first)
-                : null;
-              if (target && listRef.current) {
-                followingRef.current = false;
-                listRef.current.scrollTop += target.getBoundingClientRect().top - listRef.current.getBoundingClientRect().top;
-              } else if (listRef.current) {
+              if (listRef.current) {
                 listRef.current.scrollTop = listRef.current.scrollHeight;
                 markRead();
               }
