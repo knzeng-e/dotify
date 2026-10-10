@@ -12,6 +12,7 @@ on:
       - 'web/scripts/product*config-check*'
       - 'web/scripts/product-deploy-environment-check*'
       - 'web/package.json'
+      - 'web/package-lock.json'
 
 permissions:
   contents: read
@@ -36,6 +37,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
       - name: Test fail-closed checks offline
         run: npm run test:product-deploy-environment
       - name: Read live Product configuration (no signer or deployment)
