@@ -596,7 +596,7 @@ describe('signaling server', () => {
 
     const listener = connectClient();
     await once(listener, 'connect');
-    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+    const joined = await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
 
     const other = connectClient();
     await once(other, 'connect');
@@ -613,6 +613,7 @@ describe('signaling server', () => {
     assert.equal(payload.displayName, 'Nina');
     assert.equal(peerPayload.displayName, 'Nina');
     assert.equal(server.rooms.get(created.roomId).listeners.get(listener.id).displayName, 'Nina');
+    assert.equal(server.rooms.get(created.roomId).lifeMembers.get(joined.listenerResumeToken).name, 'Nina');
   });
 
   it('broadcasts the listener roster to every participant', async () => {

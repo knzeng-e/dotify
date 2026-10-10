@@ -110,6 +110,9 @@ test('artist dashboard matches a release and lets the artist choose whether to a
     await page.getByRole('button', { name: 'Join', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(room.roomId);
     await expect(page.getByRole('textbox', { name: 'Message the room' })).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL(/\/artists/);
+    await expect(page.getByRole('region', { name: 'Your music, live' })).toBeVisible();
   } finally {
     host.disconnect();
   }

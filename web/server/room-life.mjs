@@ -78,6 +78,11 @@ export function createRoomLife({ io, rooms, historyLimit = 50, graceMs = 8000, n
     if (disconnected) member.timer = later(finish, graceMs);
     else finish();
   }
+  function rename(socket, name) {
+    const room = rooms.get(socket.data.roomId);
+    const member = room?.lifeMembers?.get(socket.data.lifeToken);
+    if (member?.socketId === socket.id) member.name = name;
+  }
   function typing(socket, active, name) {
     const roomId = socket.data.roomId;
     const room = rooms.get(roomId);
@@ -119,6 +124,7 @@ export function createRoomLife({ io, rooms, historyLimit = 50, graceMs = 8000, n
     activity,
     joined,
     leaving,
+    rename,
     resumable,
     typing,
     snapshot,

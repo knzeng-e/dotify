@@ -125,6 +125,20 @@ test('a short reconnect preserves artist continuity without duplicate welcomes',
   );
 });
 
+test('departure activity uses a listener’s current room name', t => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const room = {};
+  const rooms = new Map([['room', room]]);
+  const life = createRoomLife({ rooms, io: { to: () => ({ emit: () => {} }) } });
+  t.after(() => life.close());
+  const socket = { id: 'listener', data: { roomId: 'room' } };
+  life.joined('room', socket, 'Guest');
+  t.mock.timers.tick(1201);
+  life.rename(socket, 'Nina');
+  life.leaving(socket);
+  assert.equal(room.activity.at(-1).text, 'Nina left.');
+});
+
 test('a resumed host receives the current conversation and pin snapshot', async t => {
   const { host, roomId, hostResumeToken, connect, server } = await setup(t);
   await ack(host, 'room:chat', { text: 'Question for the room' });

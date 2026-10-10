@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowUpRight, BadgeCheck, Headphones, Radio, Users, X } from 'lucide-react';
-import { useSessionContext, useWalletContext, useCatalogContext, useNavigation } from '../../app/providers';
+import { useSessionContext, useWalletContext, useCatalogContext } from '../../app/providers';
 import { Dialog } from '../../components/Dialog';
 import { CoverImage } from '../../components/CoverImage';
 import type { CatalogTrack, OpenRoom } from '../../shared/types';
@@ -11,7 +11,6 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
   const session = useSessionContext();
   const wallet = useWalletContext();
   const catalog = useCatalogContext();
-  const navigation = useNavigation();
   const [visit, setVisit] = useState<OpenRoom | null>(null);
   const [announce, setAnnounce] = useState(false);
   const [name, setName] = useState('');
@@ -40,10 +39,6 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
     if (announce && !token) {
       setError('Reconnect to Dotify to announce your artist visit. You can still join without announcing your presence.');
       return;
-    }
-    if (navigation.isArtistPortal) {
-      navigation.setIsArtistPortal(false);
-      window.history.pushState({ dotifyView: 'player' }, '', '/');
     }
     session.joinRoom(currentVisit.room.roomId, { displayName: name.trim(), announceArtist: announce, artistToken: token || undefined });
     setVisit(null);

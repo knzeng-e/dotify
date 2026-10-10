@@ -791,6 +791,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       }
 
       listener.displayName = displayName;
+      life.rename(socket, displayName);
       io.to(participant.roomId).emit('listener:renamed', { listenerId: socket.id, displayName });
       emitListenerRoster(participant.roomId, participant.room);
       reply?.({ ok: true, displayName });
