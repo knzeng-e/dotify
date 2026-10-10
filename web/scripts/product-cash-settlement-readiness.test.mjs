@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -6,6 +7,7 @@ import {
   PRODUCT_CASH_SETTLEMENT_SCHEMA_VERSION,
   PRODUCT_CASH_TOPOLOGY,
   buildProductCashSettlementReport,
+  evaluateStaticCashBoundary,
   packageLockVersion
 } from './product-cash-settlement-readiness.mjs';
 
@@ -24,8 +26,8 @@ function staticSnapshot(patch = {}) {
   return {
     webPackageLock: {
       packages: {
-        'node_modules/@parity/product-sdk': { version: '0.35.0' },
-        'node_modules/@parity/product-sdk-host': { version: '0.25.0' }
+        'node_modules/@parity/product-sdk': { version: '0.27.0' },
+        'node_modules/@parity/product-sdk-host': { version: '0.19.1' }
       }
     },
     paymentModelText: "type Cash = { rail: 'product-cash'; status: 'unsupported' };",
@@ -130,8 +132,21 @@ function gate(report, id) {
 }
 
 test('packageLockVersion reads exact pinned Product package versions', () => {
-  assert.equal(packageLockVersion(staticSnapshot().webPackageLock, '@parity/product-sdk-host'), '0.25.0');
+  assert.equal(packageLockVersion(staticSnapshot().webPackageLock, '@parity/product-sdk-host'), '0.19.1');
   assert.equal(packageLockVersion(staticSnapshot().webPackageLock, '@missing/pkg'), null);
+});
+
+test('CASH static gates accept the real recovery lockfile and runtime port', () => {
+  const webPackageLock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
+  const runtimePortsText = readFileSync(new URL('../src/features/runtime/runtimePorts.ts', import.meta.url), 'utf8');
+  const gates = evaluateStaticCashBoundary(staticSnapshot({ webPackageLock, runtimePortsText }));
+  assert.equal(gates.filter(gate => gate.status === 'fail').length, 0);
+});
+
+test('CASH gate rejects a runtime writer accepting the broader non-executable payment type', () => {
+  const runtimePortsText = 'payForAccess(intent: TrackAccessPaymentIntent, onStatus?: PaymentObserver): Promise<Hash>;';
+  const gates = evaluateStaticCashBoundary(staticSnapshot({ runtimePortsText }));
+  assert.equal(gates.find(gate => gate.id === 'cash-not-executable').status, 'fail');
 });
 
 test('local static gates pass while Product CASH remains externally blocked', () => {

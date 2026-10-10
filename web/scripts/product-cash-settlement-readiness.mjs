@@ -13,6 +13,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { deriveH160 } from '@parity/product-sdk/address';
+import { EXPECTED_PRODUCT_DEVNET } from './product-devnet-journey-harness.mjs';
 
 export const PRODUCT_CASH_SETTLEMENT_SCHEMA_VERSION = 1;
 export const PRODUCT_CASH_DECISION_DATE = '2026-09-14';
@@ -34,8 +35,8 @@ export const PRODUCT_CASH_SETTLEMENT_EXTERNAL_DEPENDENCY =
   'Product must expose an authoritative CASH settlement or attestation path that binds the payer, recipient, CASH asset, People-chain finality, Asset-Hub runtime entitlement, and stable receipt id.';
 
 const EXPECTED_PRODUCT_PACKAGES = {
-  '@parity/product-sdk': '0.35.0',
-  '@parity/product-sdk-host': '0.25.0'
+  '@parity/product-sdk': EXPECTED_PRODUCT_DEVNET.productSdk,
+  '@parity/product-sdk-host': EXPECTED_PRODUCT_DEVNET.productSdkHost
 };
 
 const RECOGNIZED_AUTHORITY = 'product-confirmed-cash-asset-hub-entitlement';
@@ -144,7 +145,11 @@ export function evaluateStaticCashBoundary(snapshot) {
     );
   }
 
-  if (runtimePorts.includes('ExecutableTrackAccessPaymentIntent') && runtimePorts.includes('payForAccess(intent: ExecutableTrackAccessPaymentIntent)')) {
+  if (
+    /payForAccess\s*\(\s*intent\s*:\s*ExecutableTrackAccessPaymentIntent\s*(?:,\s*onStatus\?\s*:\s*PaymentObserver\s*)?\)\s*:\s*Promise<Hash>/.test(
+      runtimePorts
+    )
+  ) {
     pass(gates, 'cash-not-executable', 'Executable payment rail', 'Runtime writers accept only executable native runtime payment intents.', 'runtimePorts.ts');
   } else {
     fail(gates, 'cash-not-executable', 'Executable payment rail', 'Runtime writers must not accept product-cash intents.', 'runtimePorts.ts');

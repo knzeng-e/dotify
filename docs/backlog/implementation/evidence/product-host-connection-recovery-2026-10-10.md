@@ -47,6 +47,13 @@ and transport tests, rather than a completed physical-device reproduction.
 
 ## Remaining acceptance
 
+PR review follow-up: CASH readiness now shares the journey harness's expected
+SDK versions. A real-lockfile/runtime-port test also exposed and corrected a
+stale exact-string signature check that rejected the optional payment observer.
+A negative test still refuses the broader non-executable intent type. Combined
+journey/CASH/wire tests: 44 passed; the actual CASH readiness command has zero
+failed static gates and retains the external settlement-authority block.
+
 Publish the reviewed 0.1.45 candidate, confirm the loaded version/SHA on Desktop
 0.1.3 and mobile 0.10.0, then connect and sign for protected playback. Keep #85
 open until those device results are captured. The 0.1.44 artifact remains the
