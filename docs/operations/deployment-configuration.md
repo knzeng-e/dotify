@@ -219,7 +219,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 45]` recovery candidate; published release remains 0.1.44 until deployment                                                |
+| Product executable `appVersion` | `[0, 1, 45]` published recovery release                                                                                          |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -228,12 +228,39 @@ bundle changed on-chain, but the mobile host can still use executable metadata
 when deciding whether to refresh a previously opened app.
 
 The 2026-10-10 owner report establishes a connection incident on Desktop 0.1.3
-and mobile 0.10.0 after the 0.1.44 rollout. Recovery candidate `[0, 1, 45]`
-restores the previous SDK family and pins TruAPI 0.13.1 (codec 1). The 0.1.44
-bundle uses codec 3; mock identity tests did not exercise that wire boundary.
-The candidate needs publication and confirmation on both reported devices.
-Preserve existing account derivation, access and pending-contribution storage;
-no server or contract migration is required.
+and mobile 0.10.0 after the 0.1.44 rollout. Published recovery release
+`[0, 1, 45]` restores the previous SDK family and pins TruAPI 0.13.1 (codec 1).
+The 0.1.44 bundle uses codec 3; mock identity tests did not exercise that wire
+boundary. Confirmation on both reported devices remains required. Preserve
+existing account derivation, access and pending-contribution storage; no server
+or contract migration is required.
+
+Version `[0, 1, 45]` published the reviewed Product Host connection recovery,
+room-presence UX and artist live-room changes on 2026-10-10 from clean, tested
+`dev` merge `b45c2f700c2c36eed06d23dad2ea51c917842c80`. The executable CID is
+`bafybeicrl7vkxowvwddmptksezhzvop7xwxl7mwk6ptoxxtdwsmfn5mcfq`.
+Bulletin finalized the stable upload at block `1156565` in transaction
+`0x7d8ece12c78b1a0540b758f08a78c576c9ed74e539ec690e5c928fee4197f0a9`
+and the full-CAR root at block `1156568` in transaction
+`0x3f6a39805b3d273320a08ea2ac5b66ce8980509dd9300c3153c448edf57e6680`.
+Content linking finalized at Asset Hub block `14262803` in transaction
+`0x8047c3404e54d4e991b3eebe7284c8ae9a69824c1f3615ab2410a3bd48676da8`;
+the atomic executable manifest update finalized in transaction
+`0x5ec4f5f72bc55d9eeea7174f1b6c9b7db6e6976318fe9b91f7185687d8b5adf4`.
+
+All 14 content chunks reached GRANDPA finality and P2P retrieval passed in
+1,857 ms. The public Product wrapper resolved the new executable and loaded the
+app frame from `dotify-test01.app.dev-dot.li` without browser errors. Product
+Remote Config checks before and after publication matched the pinned DevNet
+registry and content resolver. The coordinated signaling deployment runs image
+`registry.fly.io/dotify-signal:deployment-01M4K1454N8JD5TPAQBNM1KDBG`
+(manifest digest
+`sha256:aab04e153a410972ed7116426911980f440fceb0e6d043814f81d7236cc58631`);
+health and the configured ordinary/Product origin smokes passed. The API and
+contracts were not redeployed. Reopen the installed Hosts, verify version
+0.1.45 and source SHA, then capture connection, signing, protected playback and
+room behavior on Desktop 0.1.3 and mobile 0.10.0 before closing compatibility
+epic #85. Version 0.1.44 remains the rollback artifact.
 
 Version `[0, 1, 44]` published the October 2026 Product SDK/Host compatibility
 alignment on 2026-10-09 from clean, tested `dev` merge

@@ -1,8 +1,11 @@
 # Room clarity and catalog suggestions — 2026-10-10
 
 Owner-requested follow-up under W29 / #250 and room reliability #89, included
-in the Product 0.1.45 recovery candidate (PR #256). Publication and physical
-Product/device validation remain pending.
+in Product 0.1.45 (PR #256). The release is published from tested `dev`
+`b45c2f700c2c36eed06d23dad2ea51c917842c80` at CID
+`bafybeicrl7vkxowvwddmptksezhzvop7xwxl7mwk6ptoxxtdwsmfn5mcfq`.
+Publication and public-wrapper loading are verified; physical Product/device
+validation remains pending.
 
 ## Visible changes
 
