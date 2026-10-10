@@ -2,10 +2,10 @@
 
 ## Room life and artist visits (2026-10-10 candidate)
 
-The follow-up Product `[0, 1, 46]` candidate creates a reusable artist session
+The published Product `[0, 1, 46]` release creates a reusable artist session
 on explicit announced entry when none exists, and fixes chat/suggestion loss
-under fetch-polling backpressure. It is not published yet: the live Product
-release remains 0.1.45. This follow-up requires only frontend publication; the
+under fetch-polling backpressure. It was published from tested `dev`
+`e5d92b5af2a8f9c2b9860db8d0ee91163c2f08b3`. This was a frontend-only rollout; the
 existing signaling acknowledgement and registry-verification paths are reused.
 It also restores the native Product payment profile: `.env.product-devnet`
 explicitly selects `product-cdm` and `devnet`. The Product build refuses missing,
@@ -231,7 +231,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 45]` published recovery release                                                                                          |
+| Product executable `appVersion` | `[0, 1, 46]` published native-payment and room reliability release                                                               |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -246,6 +246,35 @@ The 0.1.44 bundle uses codec 3; mock identity tests did not exercise that wire
 boundary. Confirmation on both reported devices remains required. Preserve
 existing account derivation, access and pending-contribution storage; no server
 or contract migration is required.
+
+Version `[0, 1, 46]` was published on 2026-10-10 from clean, tested `dev`
+`e5d92b5af2a8f9c2b9860db8d0ee91163c2f08b3`. It restores the explicit
+`product-cdm`/`devnet` profile for native Product payments, opens a reusable
+artist session on explicit announced entry when needed, and makes chat and
+suggestions survive connected fetch-polling backpressure. Ordinary web retains
+viem; Netlify's entry bundle was checked against the same source SHA. API,
+signaling and contracts were not redeployed.
+
+The executable CID is
+`bafybeif3sjmbjz3hmpcnozz2btkewimxr3a4xy5pjia47pxgqfe636voty`.
+Bulletin finalized the stable upload at block `1159609` in transaction
+`0x948a75fe6a73827203d8958df9210faaab0afc9d54c8dae68fa739108ac97003`
+and the full-CAR root at block `1159612` in transaction
+`0x4255259f8134c7a0edc5f23a9ede4b8484e28e26aa1ac17ac95318de786ea7a0`.
+All 24 content nodes reached GRANDPA finality. Content linking finalized at
+Asset Hub block `14274629` in transaction
+`0xc3724b5ccb63d0d5be278bcafd53d3d1dd4d2db9e66dc99c9ee9b9e96dfc3f3f`;
+the atomic executable manifest update finalized in transaction
+`0x59fa755d7761c39ef21a8f658f61ef3266eba8ebeb0f7da111233a0831d60acd`.
+P2P retrieval passed in 44 ms. Independent public gateway read returned the
+14,599,935-byte CAR and matched all 77 files against the published local build.
+Remote Config matched before and after publication.
+The public Product wrapper loaded the application frame without page errors;
+the served entry bundle embeds the exact source SHA, `[0, 1, 46]` and
+`product-cdm`. Installed Desktop/mobile
+announced visits, native tips and room-chat recovery remain physical-device
+acceptance. The preceding 0.1.45 artifact is the immediate rollback target,
+but it has the documented EVM-wallet-only Product payment regression.
 
 Version `[0, 1, 45]` published the reviewed Product Host connection recovery,
 room-presence UX and artist live-room changes on 2026-10-10 from clean, tested
@@ -752,7 +781,7 @@ session, not the mnemonic-derived owner signer.
 The manual GitHub Actions workflow `.github/workflows/deploy-frontend.yml`
 validates an exact candidate SHA but cannot publish it. It receives no mnemonic
 or signer and performs no Product write. Validation builds enable the Product
-CDM adapter and operator readiness panel; the 0.1.46 candidate makes that adapter
+CDM adapter and operator readiness panel; release 0.1.46 makes that adapter
 explicit in the checked-in Product release profile too. Ordinary web retains viem.
 Both profiles consume the committed catalog snapshot through the
 same frozen build used by local publication. DotNS publication remains a local
@@ -1067,7 +1096,7 @@ an explicit Product-host account connection.
 
 `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` also routes runtime write submissions,
 including Classic unlock payments, through the Product CDM contract adapter. The
-0.1.46 candidate enables that flag in the tracked Product profile to restore
+0.1.46 release enables that flag in the tracked Product profile to restore
 the native tips previously validated in support releases. Ordinary web retains
 `viem`; installed-host payment approval/finality still needs release acceptance. Product
 CDM writes now fail closed unless the host signer public key maps to the same

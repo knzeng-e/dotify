@@ -360,12 +360,12 @@ gates pass, and the live CASH path remains blocked on a Product-confirmed
 CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
 operator-supplied evidence file is unsafe and must block the release.
 
-The 0.1.46 Product candidate explicitly uses `product-cdm` on `devnet` so
+Product release 0.1.46 explicitly uses `product-cdm` on `devnet` so
 Product account holders retain native tips and access payments. The Product
 build refuses an EVM-only profile; ordinary web still uses viem. Product SDK
 descriptors increase the bundle and Bulletin storage demand. The 0.1.45 viem
-publication regressed native tips by requesting an EVM wallet; it remains the
-published release until this candidate is reviewed and deployed. Validate native
+publication regressed native tips by requesting an EVM wallet; it is the
+immediate rollback artifact, with that known limitation. Validate native
 approval, exact account mapping and finalized receipt recovery on the installed
 Hosts after publication.
 
