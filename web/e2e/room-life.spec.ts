@@ -197,6 +197,28 @@ test('message actions are quiet on desktop and reachable by keyboard', async ({ 
   await page.screenshot({ path: testInfo.outputPath('quiet-chat-desktop.png') });
 });
 
+test('newest message actions remain inside a full chat viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await hostRoom(page);
+  for (let index = 1; index <= 5; index++) {
+    await page.getByLabel('Message the room').fill(`Conversation line ${index}`);
+    await page.getByRole('button', { name: 'Send message' }).click();
+    await expect(page.getByLabel('Message the room')).toHaveValue('');
+  }
+  const log = page.getByRole('log');
+  await log.evaluate(element => {
+    element.scrollTop = element.scrollHeight;
+  });
+  const message = page.locator('.room-chat-interactive').filter({ hasText: 'Conversation line 5' });
+  await message.getByRole('button', { name: 'Message actions for Room host' }).click();
+  const actions = message.locator('.room-chat-message-actions');
+  await expect(actions).toBeInViewport();
+  const [logBox, actionsBox] = await Promise.all([log.boundingBox(), actions.boundingBox()]);
+  expect(logBox).not.toBeNull();
+  expect(actionsBox).not.toBeNull();
+  expect(actionsBox!.y + actionsBox!.height).toBeLessThanOrEqual(logBox!.y + logBox!.height + 1);
+});
+
 test('touch swipe replies once while short, vertical and cancelled gestures preserve the draft', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();

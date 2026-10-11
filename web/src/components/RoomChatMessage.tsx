@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { BadgeCheck, HeartHandshake, MoreHorizontal, Pin, Reply } from 'lucide-react';
 import type { RoomChatMessage as Message } from '../shared/types';
 import { formatClockTime } from '../shared/utils/format';
@@ -26,6 +26,7 @@ export function RoomChatMessage({
   const actionsId = useId();
   const rowRef = useRef<HTMLDivElement>(null);
   const actionRef = useRef<HTMLButtonElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
   const lastTouchActivationAt = useRef(0);
   const reply = () => {
     setActionsOpen(false);
@@ -39,6 +40,10 @@ export function RoomChatMessage({
     }
     document.addEventListener('pointerdown', outside);
     return () => document.removeEventListener('pointerdown', outside);
+  }, [actionsOpen]);
+  useLayoutEffect(() => {
+    if (!actionsOpen) return;
+    actionsRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [actionsOpen]);
   if (message.senderId === 'dotify-confirmed-tip')
     return (
@@ -113,6 +118,7 @@ export function RoomChatMessage({
           <MoreHorizontal size={16} aria-hidden='true' />
         </button>
         <div
+          ref={actionsRef}
           id={actionsId}
           className='room-chat-message-actions'
           hidden={!actionsOpen}
