@@ -1,10 +1,31 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import Fastify from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import { createNativeReceiptRoutes } from './nativeReceipts.js';
 import { NativeReceiptUnavailableError, PASEO_ASSET_HUB_GENESIS, type NativeReceiptRequest, type NativeReceiptResponse } from '../services/nativeReceipts.js';
 const hash = `0x${'11'.repeat(32)}` as const;
 describe('native receipt route', () => {
+  it('keeps authenticated signaling receipts in a bounded bucket separate from public per-IP traffic', async () => {
+    const app = Fastify();
+    await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
+    const serviceToken = 'test-receipt-service-token-32-characters';
+    await app.register(
+      createNativeReceiptRoutes({ serviceToken, read: async input => ({ ...input, genesisHash: PASEO_ASSET_HUB_GENESIS, status: 'success', logs: [] }) })
+    );
+    const inject = (authorization?: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/contributions/native-receipt',
+        payload: { hash, block: { number: 123 } },
+        headers: authorization ? { authorization } : {}
+      });
+    for (let index = 0; index < 20; index++) assert.equal((await inject()).statusCode, 200);
+    assert.equal((await inject('Bearer forged-service-token')).statusCode, 429);
+    for (let index = 0; index < 300; index++) assert.equal((await inject(`Bearer ${serviceToken}`)).statusCode, 200);
+    assert.equal((await inject(`Bearer ${serviceToken}`)).statusCode, 429);
+    await app.close();
+  });
   it('returns only the verified chain response and rejects caller-selected RPC targets', async () => {
     const app = Fastify();
     let calls = 0;

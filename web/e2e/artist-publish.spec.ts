@@ -45,6 +45,25 @@ async function readArtistPublishState(page: Page) {
 // the clear fires exactly once on the first page load and then leaves in-test state
 // (e.g. a published track inspected after navigating to '/') intact.
 test.beforeEach(async ({ page }) => {
+  // The artist wallet and contribution reader use the Paseo fixture. Resolve
+  // the shell's network identity from that same fixture, not a live RPC whose
+  // latency could leave expectedChainId null while the form is already ready.
+  await page.route('https://eth-rpc-testnet.polkadot.io/**', async route => {
+    const headers = {
+      'access-control-allow-origin': '*',
+      'access-control-allow-methods': 'POST, OPTIONS',
+      'access-control-allow-headers': 'content-type'
+    };
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    const input = route.request().postDataJSON();
+    if (input?.method !== 'eth_chainId') return route.fallback();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers,
+      body: JSON.stringify({ jsonrpc: '2.0', id: input.id, result: `0x${(420420417).toString(16)}` })
+    });
+  });
   await page.addInitScript(() => {
     if (window.sessionStorage.getItem('dotify:e2e:artist-publish:reset')) return;
     window.__DOTIFY_E2E_ARTIST_PUBLISH__ = undefined;
@@ -323,17 +342,40 @@ test('artist publish remains recoverable while catalog read-back is delayed', as
   await page.getByTestId('publish-release-button').click();
 
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('Approved, still waiting for the catalog');
-  await expect(dialog).toContainText('publication approval was confirmed');
-  await expect(dialog).toContainText('will not call the release published');
+  await expect(dialog).toContainText('Making your release visible');
+  await expect(dialog).toContainText('no further approval is needed');
   await expect(dialog).toContainText('Visible in Dotify');
 
   const state = await readArtistPublishState(page);
   expect(state?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 1 });
   expect(state?.registerTrackTransactions).toBe(1);
 
-  await page.goto('/');
-  await expect(page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' })).toHaveCount(0);
+  await expect(dialog).toContainText('Release published', { timeout: 15000 });
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.evaluate(() => {
+    (window as unknown as { navigationMarker: string }).navigationMarker = 'same-document';
+  });
+  await page.getByRole('link', { name: 'Listener app', exact: true }).click();
+  await expect(page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' })).toHaveCount(1);
+  expect(await page.evaluate(() => (window as unknown as { navigationMarker?: string }).navigationMarker)).toBe('same-document');
+  await page.goBack();
+  await page.getByRole('link', { name: 'Dotify home', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Open a room', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { navigationMarker?: string }).navigationMarker)).toBe('same-document');
+});
+
+test('approved publication keeps read-only recovery after the artist disconnects', async ({ page }) => {
+  await createArtistProfile(page, 'catalog-delay');
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Making your release visible');
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Disconnect wallet', exact: true }).click();
+  await page.getByRole('button', { name: 'View payment status: Release published', exact: true }).click({ timeout: 15000 });
+  await expect(page.getByRole('dialog')).toContainText('Release published', { timeout: 15000 });
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
 });
 
 test('artist publish does not accept a same-hash track from another runtime as visible', async ({ page }) => {
@@ -342,8 +384,8 @@ test('artist publish does not accept a same-hash track from another runtime as v
   await page.getByTestId('publish-release-button').click();
 
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('Approved, still waiting for the catalog');
-  await expect(dialog).toContainText('The catalog read-back did not include this release yet.');
+  await expect(dialog).toContainText('Making your release visible');
+  await expect(dialog).not.toContainText('Release published');
 
   const state = await readArtistPublishState(page);
   expect(state?.registerTrackTransactions).toBe(1);

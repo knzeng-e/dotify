@@ -23,6 +23,7 @@ const CONTRACTS = [
   { exportName: 'artistDirectoryAbi', file: 'artistDirectory', artifact: 'ArtistDirectory.sol/ArtistDirectory.json' },
   { exportName: 'artistRuntimeFactoryAbi', file: 'artistRuntimeFactory', artifact: 'ArtistRuntimeFactory.sol/ArtistRuntimeFactory.json' },
   { exportName: 'musicRegistryAbi', file: 'musicRegistry', artifact: 'pallets/MusicRegistryPallet.sol/MusicRegistryPallet.json' },
+  { exportName: 'musicMetadataAbi', file: 'musicMetadata', artifact: 'pallets/MusicMetadataPallet.sol/MusicMetadataPallet.json' },
   { exportName: 'musicRoyaltiesAbi', file: 'musicRoyalties', artifact: 'pallets/MusicRoyaltiesPallet.sol/MusicRoyaltiesPallet.json' },
   { exportName: 'musicAccessAbi', file: 'musicAccess', artifact: 'pallets/MusicAccessPallet.sol/MusicAccessPallet.json' },
   { exportName: 'musicNFTAbi', file: 'musicNFT', artifact: 'pallets/MusicNFTPallet.sol/MusicNFTPallet.json' }

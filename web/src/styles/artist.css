@@ -1952,3 +1952,32 @@ button.you-panel:hover {
     display: none;
   }
 }
+.release-metadata-editor fieldset {
+  display: grid;
+  gap: 1rem;
+  border: 0;
+  padding: 0;
+  margin: 1.25rem 0;
+}
+.release-metadata-editor label {
+  display: grid;
+  gap: 0.45rem;
+}
+.release-metadata-editor textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+.release-metadata-editor .release-explicit-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.release-edit-credits {
+  display: grid;
+  gap: 0.65rem;
+}
+.release-edit-credits > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}

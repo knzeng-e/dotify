@@ -106,6 +106,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const contributionLedger = new NativeContributionLedger(config.NATIVE_CONTRIBUTION_SNAPSHOT_PATH);
   await app.register(
     createNativeReceiptRoutes({
+      serviceToken: config.NATIVE_RECEIPT_SERVICE_TOKEN,
       read: async input => {
         const receipt = await nativeReceipts.read(input);
         await contributionLedger.record(receipt);

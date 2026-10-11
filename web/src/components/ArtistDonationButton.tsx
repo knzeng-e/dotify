@@ -186,11 +186,13 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
       const reader = contributionReader(wallet.ethRpcUrl);
       let first = true;
       let retry = 0;
+      let confirmedNativeBlock: NativeContributionBlock | undefined;
       while (mounted.current && !abort.signal.aborted) {
         const scope = prepared ?? contributionScope;
         const check = {
-          confirm: (hash: Hash, id: Hash, nativeBlock?: NativeContributionBlock) =>
-            confirmSubmittedContribution({
+          confirm: (hash: Hash, id: Hash, nativeBlock?: NativeContributionBlock) => {
+            confirmedNativeBlock = nativeBlock;
+            return confirmSubmittedContribution({
               mode: writer.contributionConfirmationMode,
               runtime: scope.runtime,
               hash,
@@ -209,7 +211,8 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                 return receipt ? { ...receipt, proofKind: 'substrate-extrinsic' as const } : undefined;
               },
               polling: writer.contributionConfirmationMode === 'finalized-event' ? { attempts: 1 } : undefined
-            }),
+            });
+          },
           recover: (id: Hash) => {
             if (writer.contributionConfirmationMode === 'finalized-event')
               throw new Error('The host returned no native transaction reference. Check account activity before paying again.');
@@ -284,12 +287,19 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
               ? `${formatEther(result.receipt.amount)} ${symbol} for “${track.title}”. The finalized receipt is ready.`
               : `${formatEther(result.receipt.amount)} ${symbol} for ${track.artist}. The finalized receipt is ready.`
         });
-        if (result.receipt.room !== zeroHash)
+        if (kind === 'tip' && session.roomId)
           session.socketRef.current?.request(
             'room:tip-notify',
-            { runtime: scope.runtime, hash: result.receipt.transactionHash },
-            { timeoutMs: 15000 },
-            () => {}
+            { runtime: scope.runtime, hash: result.receipt.transactionHash, ...(confirmedNativeBlock ? { nativeBlock: confirmedNativeBlock } : {}) },
+            { timeoutMs: confirmedNativeBlock ? 30000 : 15000 },
+            (error, reply) => {
+              if (error || !reply?.ok)
+                pushNotice({
+                  tone: 'error',
+                  title: 'Tip sent; room announcement delayed',
+                  message: 'Your payment is confirmed, but the chat announcement could not be delivered.'
+                });
+            }
           );
         break;
       }

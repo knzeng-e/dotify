@@ -1,5 +1,6 @@
 import { createPublicClient, encodeFunctionData, http, parseAbiItem, zeroAddress, type Abi, type Address, type Hash } from 'viem';
 import { SupportNotSubmittedError } from '../payments/supportPayment';
+import { musicMetadataAbi } from '../../generated/contracts/musicMetadata';
 import { assertNativeAccessPayment } from '../payments/paymentModel';
 import {
   artistDirectoryAbi,
@@ -682,6 +683,15 @@ export function createViemRuntimeWriter(deps: ViemRuntimeWriterDeps): RuntimeWri
         functionName: 'musicRegRegister',
         args,
         ...overrides
+      });
+    },
+
+    updateMetadata(runtimeAddress, contentHash, title, description, metadataRef, expectedMetadataRef) {
+      return walletClient.writeContract({
+        address: runtimeAddress,
+        abi: musicMetadataAbi,
+        functionName: 'musicRegUpdateMetadata',
+        args: [contentHash, title, description, metadataRef, expectedMetadataRef]
       });
     },
 

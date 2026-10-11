@@ -65,6 +65,7 @@ import type {
 import type { ConnectedWallet } from './useWallet';
 import type { PolkadotSigner } from 'polkadot-api';
 import { runSerializedRefresh, type RefreshGate } from './useVisibleRefresh';
+import { usePublicationConfirmation } from '../features/artist-studio/usePublicationConfirmation';
 
 const runtimeAdapterConfig = resolveRuntimeAdapterConfig(import.meta.env);
 const productHostConfig = resolveProductHostConfig(import.meta.env);
@@ -203,10 +204,6 @@ function preparedAudioRuntimeMismatchMessage(uploadRuntime: `0x${string}`, publi
   return `The prepared audio upload was encrypted for ${shorten(uploadRuntime, 10)}, but this release is being published to ${shorten(publicationRuntime, 10)}. Dotify will not register audio under a different runtime than the one that derived its content key. Select the audio file again and retry.`;
 }
 
-function isReleaseVisibleInRuntime(track: CatalogTrack, runtimeAddress: `0x${string}`, contentHash: `0x${string}`): boolean {
-  return track.hash.toLowerCase() === contentHash.toLowerCase() && runtimeAddressFromTrackId(track)?.toLowerCase() === runtimeAddress.toLowerCase();
-}
-
 export { getStoredArtistName, storeArtistName };
 
 export type UseArtistConsoleDeps = {
@@ -235,8 +232,9 @@ export type UseArtistConsoleDeps = {
   activeSubstrateAddress: string | null;
   activeSubstrateSigner: PolkadotSigner | null;
   artistTracks: CatalogTrack[];
+  transactionFeedback?: TransactionFeedback | null;
   setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
-  refreshCatalogFromRegistry: (hash?: `0x${string}`) => Promise<CatalogTrack[]>;
+  refreshCatalogFromRegistry: (hash?: `0x${string}`, options?: { fresh?: boolean }) => Promise<CatalogTrack[]>;
   setAudioCID: (cid: string) => void;
   setCoverCID: (cid: string) => void;
   uploadToBulletinEnabled: boolean;
@@ -268,6 +266,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     activeSubstrateAddress,
     activeSubstrateSigner,
     artistTracks,
+    transactionFeedback,
     setTransactionFeedback,
     refreshCatalogFromRegistry,
     setAudioCID,
@@ -296,6 +295,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const [bulletinManifestRef, setBulletinManifestRef] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [releaseActionId, setReleaseActionId] = useState<string | null>(null);
+  const publication = usePublicationConfirmation({
+    tracks: artistTracks,
+    refresh: refreshCatalogFromRegistry,
+    setFeedback: setTransactionFeedback,
+    setStatus: setRightsStatus,
+    activeFeedback: transactionFeedback
+  });
 
   // Earnings use public EVM events, including in Product builds. This reader
   // cannot sign, grant access, or replace the configured contract writer.
@@ -827,6 +833,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   }
 
   async function registerRights() {
+    if (publication.pending) return;
     if (artistPublicationQuarantined) {
       setRightsStatus('Artist publishing temporarily paused');
       setTransactionFeedback({ tone: 'error', title: 'Artist publishing paused', message: artistPublicationSafety.reason });
@@ -1013,6 +1020,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         });
         if (e2eScenario === 'catalog-delay') {
           recordArtistPublishTrackRegistration();
+          window.setTimeout(() => publishArtistPublishE2eTrack(track, false), 1200);
         } else if (e2eScenario === 'catalog-hash-collision') {
           publishArtistPublishE2eTrack(
             createArtistPublishE2eTrack({
@@ -1045,32 +1053,17 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           steps: buildReleasePublicationRoadmap('catalog', E2E_ARTIST_RELEASE_TX_HASH),
           txHash: E2E_ARTIST_RELEASE_TX_HASH
         });
-        const refreshedTracks = await refreshCatalogFromRegistry(fileHash);
-        const visible = refreshedTracks.some(refreshedTrack => isReleaseVisibleInRuntime(refreshedTrack, targetRuntimeAddress, fileHash));
-        if (!visible) {
-          setRightsStatus('Approval confirmed; catalog refresh pending');
-          setTransactionFeedback({
-            tone: 'error',
-            title: 'Approved, still waiting for the catalog',
-            message: buildReleaseRegistrationFailureMessage({
-              error: 'The catalog read-back did not include this release yet.',
-              submittedTxHash: E2E_ARTIST_RELEASE_TX_HASH,
-              registrationConfirmed: true
-            }),
+        publication.confirm({
+          runtime: targetRuntimeAddress,
+          hash: fileHash,
+          feedback: {
+            tone: 'pending',
+            title: 'Making your release visible',
+            message: '',
             technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
             steps: buildReleasePublicationRoadmap('catalog', E2E_ARTIST_RELEASE_TX_HASH),
             txHash: E2E_ARTIST_RELEASE_TX_HASH
-          });
-          return;
-        }
-        setRightsStatus('Release published');
-        setTransactionFeedback({
-          tone: 'success',
-          title: 'Release published',
-          message: 'Dotify can see this release in the catalog. The listening and support choices you reviewed are now active.',
-          technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
-          steps: buildReleasePublicationRoadmap('complete', E2E_ARTIST_RELEASE_TX_HASH),
-          txHash: E2E_ARTIST_RELEASE_TX_HASH
+          }
         });
         return;
       }
@@ -1223,32 +1216,18 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
         steps: buildReleasePublicationRoadmap(publicationStage, txHash)
       });
-      const refreshedTracks = await refreshCatalogFromRegistry(fileHash);
-      const visible = refreshedTracks.some(refreshedTrack => isReleaseVisibleInRuntime(refreshedTrack, targetRuntimeAddress, fileHash));
-      if (!visible) {
-        setRightsStatus('Approval confirmed; catalog refresh pending');
-        setTransactionFeedback({
-          tone: 'error',
-          title: 'Approved, still waiting for the catalog',
-          message: buildReleaseRegistrationFailureMessage({
-            error: 'The catalog read-back did not include this release yet.',
-            submittedTxHash: txHash,
-            registrationConfirmed: true
-          }),
+      publication.confirm({
+        runtime: targetRuntimeAddress,
+        hash: fileHash,
+        feedback: {
+          tone: 'pending',
+          title: 'Making your release visible',
+          message: '',
           txHash,
+          proofKind: runtimeWriter.contributionConfirmationMode === 'finalized-event' ? 'substrate-extrinsic' : 'evm-transaction',
           technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
-          steps: buildReleasePublicationRoadmap(publicationStage, txHash)
-        });
-        return;
-      }
-      setRightsStatus('Release published');
-      setTransactionFeedback({
-        tone: 'success',
-        title: 'Release published',
-        message: 'Dotify can see this release in the catalog. The listening and support choices you reviewed are now active.',
-        txHash,
-        technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
-        steps: buildReleasePublicationRoadmap('complete', txHash)
+          steps: buildReleasePublicationRoadmap('catalog', txHash)
+        }
       });
     } catch (registrationError) {
       const message = registrationError instanceof Error ? registrationError.message : 'Registration failed';
@@ -1535,7 +1514,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     setExpandedRoyaltyPaymentId,
     bulletinManifestRef,
     setBulletinManifestRef,
-    isRegistering,
+    isRegistering: isRegistering || publication.pending,
     releaseActionId,
     artistRegistrationAvailable,
     artistRegistrationConfigured,

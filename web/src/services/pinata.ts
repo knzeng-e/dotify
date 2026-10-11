@@ -15,6 +15,7 @@
 import { getArtistPublishE2eCid, getArtistPublishE2eScenario, isArtistPublishE2e, recordArtistPublishUploadFailure } from '../e2e/artistPublishMock';
 import { contentKeyVersionForAudioRef, encryptedRefToCID, normalizeEncryptedAudioRef } from '../shared/utils/protectedAudio';
 import { fetchThroughGateways } from './gatewayRace';
+import { loadPublicArtwork } from './publicArtworkCache';
 import { clearStoredSession, ensureDotifySession, ensureDotifySessionForSigner, type KeyRequestSigner } from './keyService';
 import { getAddress, isAddress, type WalletClient } from 'viem';
 import { parseReleaseEditorialMetadata } from '../features/catalog/releaseMetadata';
@@ -474,7 +475,14 @@ export async function uploadFileToPinata(file: File, name: string, keyvalues: Re
 
   // Cover images: route through backend when API is configured.
   if (API_URL && keyvalues.type === 'cover') {
-    return uploadCoverToBackend(file, identity);
+    const ref = await uploadCoverToBackend(file, identity);
+    // Warm canonical public variants while the artist reviews/signs the release.
+    // A local original must never be stored under a different immutable CID.
+    for (const width of [160, 320, 640]) {
+      const variant = ref.replace(/\/cover\/640\.webp$/, `/cover/${width}.webp`);
+      void loadPublicArtwork(getGatewayUrlsForAssetRef(variant.startsWith('ipfs://') ? variant : `ipfs://${variant}`)).catch(() => {});
+    }
+    return ref;
   }
 
   // Demo/local path — requires VITE_PINATA_JWT.

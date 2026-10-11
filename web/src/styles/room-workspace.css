@@ -687,6 +687,26 @@
 .room-track-search-field {
   position: relative;
 }
+.room-track-browse {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+}
+.room-track-browse:hover,
+.room-track-browse:focus-visible {
+  color: var(--action);
+  background: color-mix(in srgb, var(--action) 10%, transparent);
+}
 .room-track-search-field > svg {
   position: absolute;
   left: 0.85rem;
@@ -696,6 +716,7 @@
   pointer-events: none;
 }
 .room-track-search-field .field {
+  padding-right: 3rem;
   width: 100%;
   padding-left: 2.6rem;
 }

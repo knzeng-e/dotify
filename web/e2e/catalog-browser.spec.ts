@@ -96,3 +96,26 @@ test('new covers expose responsive browser hints while legacy cards remain compa
   await expect(image).toHaveAttribute('data-cover-loaded', 'true');
   await expect.poll(() => Array.from(requested).some(path => /\/cover\/(64|160|320|640)\.webp$/.test(path))).toBe(true);
 });
+
+test('cached artwork stays visible and resumes native loading if its blob cannot be displayed', async ({ page }) => {
+  const cid = `bafy${'a'.repeat(50)}`;
+  const webp = Buffer.from('UklGRjgAAABXRUJQVlA4ICwAAACwAQCdASoCAAIAAUAmJaACdLoABdQAAP6k15FIsZW//DlP/DlP/DlP+F/AAA==', 'base64');
+  await page.route(`**/ipfs/${cid}/cover/**`, route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'image/webp',
+      body: webp,
+      headers: { 'access-control-allow-origin': '*' }
+    })
+  );
+  await page.goto('/?e2eRoom=public&e2eCachedCover=on');
+  const image = page.getByTestId('track-card').filter({ hasText: 'E2E Public Room Track' }).locator('img');
+  await image.scrollIntoViewIfNeeded();
+  await expect(image).toHaveAttribute('src', /^blob:/);
+  await expect(image).toHaveAttribute('data-cover-loaded', 'true');
+  await expect(image).toHaveCSS('opacity', '1');
+  await image.dispatchEvent('error');
+  await expect(image).toHaveAttribute('src', /\/ipfs\/.*\/cover\/640\.webp$/);
+  await expect(image).toHaveAttribute('data-cover-loaded', 'true');
+  await expect(image).toHaveCSS('opacity', '1');
+});

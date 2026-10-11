@@ -30,7 +30,7 @@ const ArtistStudioContext = createContext<ArtistStudioValue | null>(null);
 
 export function ArtistStudioProvider({ children }: { children: ReactNode }) {
   const { activeEvmAddress, connectedWallet, ethRpcUrl, expectedChainId, activeSubstrateAddress, activeSubstrateSigner } = useWalletContext();
-  const { setTransactionFeedback } = useUiFeedback();
+  const { setTransactionFeedback, transactionFeedback } = useUiFeedback();
   const {
     title,
     artistName,
@@ -74,6 +74,7 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     activeSubstrateSigner,
     artistTracks: catalog.allCatalogTracks,
     setTransactionFeedback,
+    transactionFeedback,
     refreshCatalogFromRegistry: catalog.refreshCatalogFromRegistry,
     setAudioCID: catalog.setAudioCID,
     setCoverCID: catalog.setCoverCID,

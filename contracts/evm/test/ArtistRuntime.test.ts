@@ -343,6 +343,56 @@ describe('DotifyRuntimeInitializer — bootstrap', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('Artist SmartRuntime — music pallets', () => {
+  async function withEditableRelease() {
+    const ctx = await loadFixture(deployDotifySystemFixture);
+    const runtime = await createArtistRuntime(ctx.factory, ctx.artistA);
+    const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtime, { client: { wallet: ctx.artistA } });
+    await registry.write.musicRegRegister([sampleRegistration(), [ctx.royaltyRecip.account.address], [10000]]);
+    const facet = await hre.viem.deployContract('MusicMetadataPallet');
+    const artifact = await hre.artifacts.readArtifact('MusicMetadataPallet');
+    const cut = await hre.viem.getContractAt('DiamondCutPallet', runtime, { client: { wallet: ctx.artistA } });
+    await cut.write.diamondCut([
+      [{ facetAddress: facet.address, action: FacetCutAction.Add, functionSelectors: selectorsFromAbi(artifact.abi) }],
+      ZERO_ADDR,
+      '0x'
+    ]);
+    const metadata = await hre.viem.getContractAt('MusicMetadataPallet', runtime, { client: { wallet: ctx.artistA } });
+    return { ...ctx, runtime, registry, metadata };
+  }
+
+  it('artist corrections preserve the NFT, paid access, assets and revenue splits', async () => {
+    const ctx = await withEditableRelease();
+    const royalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', ctx.runtime, { client: { wallet: ctx.listener } });
+    await royalties.write.musicRoyPayAccess([TRACK_HASH], { value: parseEther('0.5') });
+    const nft = await hre.viem.getContractAt('MusicNFTPallet', ctx.runtime, { client: { wallet: ctx.artistA } });
+    await nft.write.musicNFTTransfer([1n, ctx.other.account.address]);
+    const before = await ctx.registry.read.musicRegGetTrack([TRACK_HASH]);
+    await ctx.metadata.write.musicRegUpdateMetadata([TRACK_HASH, 'Corrected title', 'Corrected story', 'ipfs://new-details', before[0].metadataRef]);
+    const after = await ctx.registry.read.musicRegGetTrack([TRACK_HASH]);
+    expect(after[0].title).to.equal('Corrected title');
+    expect(after[0].description).to.equal('Corrected story');
+    expect(after[0].metadataRef).to.equal('ipfs://new-details');
+    const { title: _t, description: _d, metadataRef: _m, ...preserved } = before[0];
+    const { title: _nt, description: _nd, metadataRef: _nm, ...stillPreserved } = after[0];
+    expect(stillPreserved).to.deep.equal(preserved);
+    expect(after[1]).to.equal(before[1]);
+    const access = await hre.viem.getContractAt('MusicAccessPallet', ctx.runtime);
+    expect(await access.read.musicAccHasPaid([TRACK_HASH, ctx.listener.account.address])).to.equal(true);
+    const split = await royalties.read.musicRoySplitAt([TRACK_HASH, 0n]);
+    expect(split[0].toLowerCase()).to.equal(ctx.royaltyRecip.account.address.toLowerCase());
+    expect(split[1]).to.equal(10000);
+  });
+
+  it('rejects foreign artists, stale edits and empty titles', async () => {
+    const ctx = await withEditableRelease();
+    const foreign = await hre.viem.getContractAt('MusicMetadataPallet', ctx.runtime, { client: { wallet: ctx.artistB } });
+    const args = [TRACK_HASH, 'Title', 'Story', 'ipfs://new-details', sampleRegistration().metadataRef] as const;
+    await expectRevertMessage(foreign.write.musicRegUpdateMetadata(args), 'not artist');
+    await ctx.metadata.write.musicRegUpdateMetadata(args);
+    await expectRevertMessage(ctx.metadata.write.musicRegUpdateMetadata(args), 'metadata changed');
+    await expectRevertMessage(ctx.metadata.write.musicRegUpdateMetadata([TRACK_HASH, '', 'Story', 'ipfs://other', 'ipfs://new-details']), 'invalid title');
+  });
+
   async function withArtistRuntime() {
     const ctx = await loadFixture(deployDotifySystemFixture);
     await createArtistRuntime(ctx.factory, ctx.artistA);

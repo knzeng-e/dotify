@@ -113,6 +113,14 @@ export interface RuntimeWritePort {
   createRuntime(factoryAddress: Address): Promise<Hash>;
   installRuntimeStep(factoryAddress: Address): Promise<Hash>;
   registerTrack(runtimeAddress: Address, registration: RuntimeTrackRegistration): Promise<Hash>;
+  updateMetadata?(
+    runtimeAddress: Address,
+    contentHash: Hash,
+    title: string,
+    description: string,
+    metadataRef: string,
+    expectedMetadataRef: string
+  ): Promise<Hash>;
   inspectPayment?(intent: ExecutableTrackAccessPaymentIntent): Promise<PaymentAccountState>;
   payForAccess(intent: ExecutableTrackAccessPaymentIntent, onStatus?: PaymentObserver): Promise<Hash>;
   claimRoyalty(runtimeAddress: Address, recipientAddress: Address): Promise<Hash>;

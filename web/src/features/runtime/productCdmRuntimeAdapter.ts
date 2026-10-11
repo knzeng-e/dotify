@@ -349,6 +349,16 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
     // chain Balance. Convert only this extrinsic field: the pallet expands it
     // back to 18 EVM decimals before `musicRoyPayAccess` sees `msg.value`.
     // Contract ABI arguments such as `pricePlanck` remain unchanged.
+    updateMetadata(runtimeAddress, contentHash, title, description, metadataRef, expectedMetadataRef) {
+      return txContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRegUpdateMetadata', [
+        contentHash,
+        title,
+        description,
+        metadataRef,
+        expectedMetadataRef
+      ]);
+    },
+
     payForAccess(intent, onStatus) {
       assertNativeAccessPayment(intent);
       const nativeValue = evmValueToNativeUnits(intent.amountPlanck, deps.nativeTokenDecimals);

@@ -91,6 +91,7 @@ test('host lineup is shared, advances on track end, and Previous follows real hi
     const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { captureMode: 'web-audio', catalogSequence: true });
 
     await host.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await host.getByRole('textbox', { name: 'Find a track to add next' }).fill('Second room track');
     await host.getByRole('button', { name: 'Add to queue Second room track by Dotify Room Host' }).click();
     await expect(host.locator('.host-lineup')).toContainText('Second room track');
 
@@ -121,7 +122,9 @@ test('rapid host Next commands consume distinct lineup entries', async ({ browse
     await openHostRoom(host, 'public', PUBLIC_TITLE, { catalogSequence: true });
 
     await host.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await host.getByRole('textbox', { name: 'Find a track to add next' }).fill('Second room track');
     await host.getByRole('button', { name: 'Add to queue Second room track by Dotify Room Host' }).click();
+    await host.getByRole('textbox', { name: 'Find a track to add next' }).fill(PROTECTED_TITLE);
     await host.getByRole('button', { name: `Add to queue ${PROTECTED_TITLE} by Dotify Room Host` }).click();
     await expect(host.locator('.host-lineup ol > li')).toHaveCount(2);
 

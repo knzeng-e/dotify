@@ -83,6 +83,10 @@ const envSchema = z.object({
   DOTIFY_FACTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_DIRECTORY_ADDRESS: optionalNonEmptyString,
   DOTIFY_CHAIN_ID: z.coerce.number().int().default(420420417),
+  NATIVE_RECEIPT_SERVICE_TOKEN: z.preprocess(
+    value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().min(32).max(256).optional()
+  ),
   NATIVE_CONTRIBUTION_SNAPSHOT_PATH: z.string().default('.data/native-contributions.json'),
   CATALOG_SNAPSHOT_PATH: z.string().default('.data/catalog.json'),
   CATALOG_POLL_INTERVAL_MS: z.coerce.number().int().min(1_000).default(10_000),

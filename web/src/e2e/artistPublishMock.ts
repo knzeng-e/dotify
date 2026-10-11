@@ -227,9 +227,9 @@ export function createArtistPublishE2eTrack(input: ArtistPublishTrackInput): Cat
   };
 }
 
-export function publishArtistPublishE2eTrack(track: CatalogTrack) {
+export function publishArtistPublishE2eTrack(track: CatalogTrack, recordTransaction = true) {
   const state = getArtistPublishE2eState();
-  state.registerTrackTransactions += 1;
+  if (recordTransaction) state.registerTrackTransactions += 1;
   state.tracks = [track, ...state.tracks.filter(existing => existing.hash.toLowerCase() !== track.hash.toLowerCase())];
   persistArtistPublishE2eState(state);
 }

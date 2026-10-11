@@ -94,7 +94,8 @@ export function readConfigFromEnv(env = process.env) {
       rpc: env.SIGNAL_CONTRIBUTION_RPC_URL,
       directory: env.SIGNAL_CONTRIBUTION_DIRECTORY,
       chainId: Number(env.SIGNAL_CONTRIBUTION_CHAIN_ID),
-      api: env.SIGNAL_CONTRIBUTION_API_URL
+      api: env.SIGNAL_CONTRIBUTION_API_URL,
+      receiptToken: env.SIGNAL_NATIVE_RECEIPT_SERVICE_TOKEN
     },
     port: Number(env.SIGNAL_PORT ?? defaultConfig.port),
     host: env.SIGNAL_HOST ?? defaultConfig.host,

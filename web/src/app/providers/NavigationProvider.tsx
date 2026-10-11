@@ -37,7 +37,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const navigateToView = useCallback(
     (nextView: View, options: { replace?: boolean } = {}) => {
-      const leavingArtistPortal = isArtistPortalPath(window.location.pathname);
+      const leavingArtistPortal = isArtistPortal || isArtistPortalPath(window.location.pathname);
       setPublicArtistName(null);
       setActiveView(nextView);
       if (leavingArtistPortal) setIsArtistPortal(false);
@@ -49,7 +49,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       }
       window.history.pushState(nextState, '', nextUrl);
     },
-    [activeView]
+    [activeView, isArtistPortal]
   );
 
   const openArtistStudio = useCallback(() => {

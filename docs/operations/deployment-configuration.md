@@ -1,5 +1,69 @@
 # Deployment Configuration Runbook
 
+## Publication and room follow-up (#269)
+
+This follow-up is implementation work for a subsequent release; 0.1.47 remains
+the published artifact until an explicit rollout. Deploy the API (metadata-event
+indexing), signaling (unbound-host tip intents and native receipt announcements),
+and matching Web/Product UI together. Bump Product appVersion for that rollout.
+No Redis service, storage mount or CORS origin is introduced. Configure the
+server-only receipt service token described below before enabling Product
+tip announcements.
+
+The browser uses `dotify-public-artwork-v1` Cache Storage for public immutable
+IPFS images only: at most 48 images of up to 1 MiB each, with an in-memory LRU
+capped at 16 MiB/48 entries, four concurrent complete-image reads and a bounded
+queue. Gateway hedging waits 500 ms; attempts have a 4 s body budget and the read
+has a 12 s total network budget. Host storage/CORS failures retain native image
+loading and bounded gateway switching. Uploaded canonical cover variants are
+warmed while publication proceeds. Keys, session tokens and protected audio
+are never admitted to this cache. Clearing it affects artwork speed only.
+
+Signaling must retain `SIGNAL_CONTRIBUTION_API_URL` with its `/api` suffix,
+pointing to the trusted Dotify API, and a matching chain ID. Product announcements
+call its bounded native-receipt verifier with an extrinsic hash/block; clients
+cannot supply trusted event logs. EVM announcements still require canonical
+finalized receipts. An unbound host uses an ordinary tip with no host allocation;
+its chat linkage is a server-only, bounded 30-minute intent record. Signaling
+restart loses that linkage, so an already-paid tip may lack a chat announcement;
+the payment stays valid and must never be repeated to restore chat.
+If an account is bound but the attestor is unavailable, quoting fails rather
+than silently removing that host's allocation.
+
+Set the same randomly generated 32–256-character value as API
+`NATIVE_RECEIPT_SERVICE_TOKEN` and signaling
+`SIGNAL_NATIVE_RECEIPT_SERVICE_TOKEN`. Keep it in their server secret stores,
+never a `VITE_` variable or a frontend artifact. Signaling sends it only in the
+Authorization header to the trusted API; API logging redacts that header.
+Authenticated receipt traffic has a separate, bounded 300/minute service
+bucket; public and spoofed requests retain the 20/minute per-IP limit. This
+changes quota identity only: every receipt still undergoes the same canonical
+chain verification. Missing signaling configuration fails the announcement
+without affecting an already-confirmed tip. Roll out matching tokens on both
+services; coordinate rotation, and revoke/replace both values if exposed.
+
+Editorial editing requires installing the additive `MusicMetadataPallet`
+selector `musicRegUpdateMetadata(bytes32,string,string,string,string)` on each
+artist runtime. This PR does not deploy or install a live facet. Deploy the new
+facet from the reviewed artifact, verify its bytecode, and have the runtime owner
+approve an **Add** diamond cut of that single selector with zero initializer.
+Preserve the audited registry facet, storage layout and all existing selectors.
+The editor checks the loupe before any upload and explains the upgrade requirement
+if absent. A full development reset must likewise install this additive facet
+for each new runtime; the existing factory bootstrap does not install it.
+Only the original registered artist can edit title/story/metadata reference;
+the expected previous reference prevents stale concurrent editors overwriting
+another correction. Audio, artwork, access, NFT ownership and royalty state
+remain unchanged. Capture before/after records, paid access and splits during
+the owner-approved upgrade and test both Product and Web correction/read-back.
+
+Release checks: delayed catalog convergence without resubmission; exact
+runtime/hash confirmation; studio-to-listener navigation without a reload;
+cold/warm cover transfer and a stalled/CORS-failed gateway; connected host and
+walletless host tip quotes; native tip plus one chat announcement; reconnect and
+account changes; empty queue search and explicit Browse; corrected metadata in
+the artist and listener release sheets. Physical-device evidence remains W13.
+
 ## Structured release metadata rollout (2026-10-11)
 
 PR #263 changes new artist publications from `dotify.track.v1` to the strict

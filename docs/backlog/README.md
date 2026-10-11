@@ -27,6 +27,11 @@ implemented by PR #264.
 
 ## Product north star
 
+Post-0.1.47 owner feedback is tracked by [#269](https://github.com/knzeng-e/dotify/issues/269),
+[publication, artwork and room follow-up](release-room-followup.md). It covers
+confirmation convergence, Product navigation, public-image caching, automatic
+host-tip association, verified native announcements and editorial corrections.
+
 Owner-requested room-life continuation: [#257](https://github.com/knzeng-e/dotify/issues/257),
 [scope and acceptance](room-life-and-artist-visits.md). It follows #256 and adds
 ephemeral conversation cues and verified artist visits; public-pilot reliability

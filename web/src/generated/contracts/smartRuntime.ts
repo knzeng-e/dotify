@@ -3,6 +3,7 @@
 // call time via createContract(), so it carries no address of its own.
 // Source facets:
 //   contracts/evm/artifacts/contracts/pallets/MusicRegistryPallet.sol/MusicRegistryPallet.json
+//   contracts/evm/artifacts/contracts/pallets/MusicMetadataPallet.sol/MusicMetadataPallet.json
 //   contracts/evm/artifacts/contracts/pallets/MusicRoyaltiesPallet.sol/MusicRoyaltiesPallet.json
 //   contracts/evm/artifacts/contracts/pallets/MusicAccessPallet.sol/MusicAccessPallet.json
 //   contracts/evm/artifacts/contracts/pallets/MusicNFTPallet.sol/MusicNFTPallet.json
@@ -538,6 +539,64 @@ export const smartRuntimeAbi = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "contentHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "artist",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "metadataRef",
+        "type": "string"
+      }
+    ],
+    "name": "TrackMetadataUpdated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "contentHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "metadataRef",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "expectedMetadataRef",
+        "type": "string"
+      }
+    ],
+    "name": "musicRegUpdateMetadata",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

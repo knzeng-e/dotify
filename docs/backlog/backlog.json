@@ -272,6 +272,15 @@
       "note": "Responsive variants are delivered by #198. Keep active for live upload, mobile transfer and paint, gateway timeout, cache-edge, and legacy-backfill evidence."
     },
     {
+      "id": "release-room-followup",
+      "doc": "docs/backlog/release-room-followup.md",
+      "issue": 269,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now"
+    },
+    {
       "id": "dav2-startup",
       "doc": "docs/backlog/24-access-streaming-v2.md",
       "issue": 88,

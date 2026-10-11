@@ -46,11 +46,13 @@ const FIXED_CONTRACTS = [
   { library: '@dotify/artist-runtime-factory', deployment: 'factory', artifact: 'ArtistRuntimeFactory.sol/ArtistRuntimeFactory.json' }
 ];
 
-// Facets whose selectors are installed on every artist runtime diamond. Merged
+// Runtime facets, including the optional metadata editing upgrade. Merged
 // into one ABI so a runtime address can be called through a single handle, the
 // same way the viem adapter calls facet ABIs at the runtime address.
+// Optional methods still require a capability check before submission.
 const RUNTIME_FACETS = [
   'pallets/MusicRegistryPallet.sol/MusicRegistryPallet.json',
+  'pallets/MusicMetadataPallet.sol/MusicMetadataPallet.json',
   'pallets/MusicRoyaltiesPallet.sol/MusicRoyaltiesPallet.json',
   'pallets/MusicAccessPallet.sol/MusicAccessPallet.json',
   'pallets/MusicNFTPallet.sol/MusicNFTPallet.json'

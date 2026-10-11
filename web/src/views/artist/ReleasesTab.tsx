@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Library, Play, Power, PowerOff, Save, Search, ShieldCheck } from 'lucide-react';
+import { Library, Play, Power, PowerOff, Save, Search, ShieldCheck, Pencil } from 'lucide-react';
+import { ReleaseMetadataEditor } from '../../components/ReleaseMetadataEditor';
 import { CoverImage } from '../../components/CoverImage';
 import { EndpointRow } from '../../shared/ui/EndpointRow';
 import { PanelTitle } from '../../shared/ui/PanelTitle';
@@ -50,6 +51,7 @@ export function ReleasesTab({
   arrivedReleaseId = null
 }: ReleasesTabProps) {
   const [search, setSearch] = useState('');
+  const [editing, setEditing] = useState<CatalogTrack | null>(null);
   const visibleTracks = artistTracks.filter(track => track.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
   const selectedRelease = visibleTracks.find(track => track.id === selectedReleaseId) ?? visibleTracks[0] ?? null;
   const selectedEarnings = earnings.find(row => row.track.id === selectedRelease?.id);
@@ -88,6 +90,7 @@ export function ReleasesTab({
   return (
     <section className='content-grid releases-grid release-console-grid' data-task={mode}>
       <aside className='doc-panel releases-panel release-list-panel'>
+        {editing && <ReleaseMetadataEditor key={editing.id} track={editing} onClose={() => setEditing(null)} />}
         <PanelTitle icon={Library} title='My releases' meta={`${artistTracks.length} releases`} />
         <label className='studio-release-search'>
           <Search size={17} aria-hidden='true' />
@@ -179,6 +182,9 @@ export function ReleasesTab({
               </div>
               <p className='release-description'>{selectedRelease.description}</p>
               <div className='release-actions release-primary-actions'>
+                <button className='secondary-action compact-action' type='button' onClick={() => setEditing(selectedRelease)} disabled={isBusy}>
+                  <Pencil size={15} /> Edit details
+                </button>
                 <button
                   className='secondary-action compact-action'
                   type='button'

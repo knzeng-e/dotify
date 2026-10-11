@@ -1,5 +1,5 @@
-import { Music2, Plus, Search } from 'lucide-react';
-import { useId, useMemo } from 'react';
+import { ChevronDown, Music2, Plus, Search } from 'lucide-react';
+import { useId, useMemo, useState } from 'react';
 import type { CatalogTrack } from '../shared/types';
 import { searchRoomCatalog } from '../features/rooms/roomCatalogSearch';
 import { CoverImage } from './CoverImage';
@@ -24,7 +24,9 @@ export function RoomTrackSearch({
   selected?: boolean;
 }) {
   const id = useId();
-  const matches = useMemo(() => searchRoomCatalog(tracks, query), [tracks, query]);
+  const [browse, setBrowse] = useState(false);
+  const showResults = !selected && (Boolean(query.trim()) || browse);
+  const matches = useMemo(() => (showResults ? searchRoomCatalog(tracks, query) : []), [tracks, query, showResults]);
   return (
     <div className='room-track-search'>
       <label className='sr-only' htmlFor={id}>
@@ -36,18 +38,43 @@ export function RoomTrackSearch({
           id={id}
           className='field'
           value={query}
-          onChange={event => onQueryChange(event.target.value)}
+          onChange={event => {
+            setBrowse(false);
+            onQueryChange(event.target.value);
+          }}
           placeholder={label}
           autoComplete='off'
           disabled={disabled}
         />
+        <button
+          type='button'
+          className='quiet-action room-track-browse'
+          disabled={disabled}
+          aria-label='Browse catalog'
+          aria-expanded={showResults}
+          aria-controls={`${id}-results`}
+          onClick={() => {
+            if (query.trim()) onQueryChange('');
+            setBrowse(value => !value);
+          }}
+        >
+          <ChevronDown size={18} aria-hidden='true' />
+        </button>
       </div>
-      {!selected && (
+      {showResults && (
         <>
-          <ul className='room-track-results' aria-label={`${label} results`}>
+          <ul id={`${id}-results`} className='room-track-results' aria-label={`${label} results`}>
             {matches.slice(0, 6).map(track => (
               <li key={track.id}>
-                <button type='button' disabled={disabled} onClick={() => onPick(track)} aria-label={`${action} ${track.title} by ${track.artist}`}>
+                <button
+                  type='button'
+                  disabled={disabled}
+                  onClick={() => {
+                    setBrowse(false);
+                    onPick(track);
+                  }}
+                  aria-label={`${action} ${track.title} by ${track.artist}`}
+                >
                   <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} sizes='40px' />
                   <span>
                     <strong>{track.title}</strong>
