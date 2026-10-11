@@ -44,8 +44,11 @@ npm test 2>&1
 
 ### 4. Every change
 
+`git diff HEAD --check` covers staged and unstaged changes; plain `git diff --check`
+misses anything already staged.
+
 ```bash
-git diff --check
+git diff HEAD --check
 cd web && npm run fmt
 ```
 

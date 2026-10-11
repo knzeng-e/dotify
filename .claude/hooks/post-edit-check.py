@@ -23,14 +23,18 @@ if content and re.search(r"[‘’“”]", content):
 if not path.endswith((".ts", ".tsx")):
     sys.exit(0)
 
-sep = os.sep
+rel = os.path.relpath(os.path.abspath(path), ROOT).replace(os.sep, "/")
+# Both tsconfigs include only src/, so only src/ edits are actually covered.
 # web/ has no typecheck script; its build runs `tsc -b` (noEmit in tsconfig).
-if f"{sep}web{sep}" in path or path.endswith(f"{sep}web"):
+if rel.startswith("web/src/"):
     ws_dir, ws_name = os.path.join(ROOT, "web"), "web"
     cmd = ["npx", "--no-install", "tsc", "-b"]
-elif f"{sep}services{sep}api{sep}" in path:
+elif rel.startswith("services/api/src/"):
     ws_dir, ws_name = os.path.join(ROOT, "services", "api"), "services/api"
     cmd = ["npm", "run", "typecheck", "--silent"]
+elif rel.startswith(("web/", "services/api/")):
+    print(f"\n{rel} is outside the workspace tsconfig include - not type-checked")
+    sys.exit(0)
 else:
     sys.exit(0)
 
