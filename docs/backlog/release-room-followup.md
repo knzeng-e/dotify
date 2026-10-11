@@ -54,3 +54,6 @@ that service bucket. Approved publication recovery survives a wallet disconnect
 without submitting another registration. These are local checks, not live deployment or
 physical Host evidence. Keep issue #269 open through coordinated rollout and
 metadata upgrade verification.
+
+An additional catalog browser regression confirms cached images are visibly
+loaded and resume the responsive native path after a blob display failure.

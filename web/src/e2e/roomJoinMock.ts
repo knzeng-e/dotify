@@ -130,7 +130,12 @@ export const E2E_ROOM_PUBLIC_TRACK: CatalogTrack = {
 // from the protected track (index 0) to the public track (index 1).
 export function getRoomJoinE2eTracks(): CatalogTrack[] {
   const params = isRoomJoinE2e && typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-  const responsiveImageRef = params?.get('e2eResponsiveCover') === 'on' ? 'ipfs://bafy-e2e-cover/cover/640.webp' : null;
+  const responsiveImageRef =
+    params?.get('e2eCachedCover') === 'on'
+      ? `ipfs://bafy${'a'.repeat(50)}/cover/640.webp`
+      : params?.get('e2eResponsiveCover') === 'on'
+        ? 'ipfs://bafy-e2e-cover/cover/640.webp'
+        : null;
   const protectedTrack = {
     ...E2E_ROOM_PROTECTED_TRACK,
     ...(responsiveImageRef ? { imageRef: responsiveImageRef } : {}),

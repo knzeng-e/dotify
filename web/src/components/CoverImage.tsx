@@ -136,7 +136,7 @@ export function CoverImage({
       sizes={responsive ? (sizes ?? '320px') : sizes}
       alt={alt}
       className={['cover-image', className].filter(Boolean).join(' ')}
-      data-cover-loaded={presentation.isReady || showResponsivePlaceholder}
+      data-cover-loaded={loadedSource === activeSource || presentation.showFallbackBackground || showResponsivePlaceholder}
       data-cover-fallback={presentation.showFallbackBackground || undefined}
       loading={loading}
       decoding={decoding}
@@ -148,6 +148,13 @@ export function CoverImage({
       }}
       onError={event => {
         onError?.(event);
+        if (cachedSource?.ref === src && activeSource === cachedSource.url) {
+          // Decoding failures or a Host policy rejecting blob URLs must not
+          // strand the image on its cached source; resume native loading.
+          setCachedSource(null);
+          setShowLocalFallback(true);
+          return;
+        }
         if (didExhaustSources || activeSource === fallbackSource || sources.length === 0) return;
         if (boundedSourceIndex >= lastSourceIndex) {
           setDidExhaustSources(true);
