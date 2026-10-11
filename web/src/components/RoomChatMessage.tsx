@@ -94,11 +94,21 @@ export function RoomChatMessage({
           aria-expanded={actionsOpen}
           aria-controls={actionsId}
           title='Message actions'
+          onPointerDown={event => event.stopPropagation()}
+          onPointerUp={event => event.stopPropagation()}
           onClick={() => setActionsOpen(open => !open)}
         >
           <MoreHorizontal size={16} aria-hidden='true' />
         </button>
-        <div id={actionsId} className='room-chat-message-actions' hidden={!actionsOpen} role='group' aria-label='Message actions'>
+        <div
+          id={actionsId}
+          className='room-chat-message-actions'
+          hidden={!actionsOpen}
+          role='group'
+          aria-label='Message actions'
+          onPointerDown={event => event.stopPropagation()}
+          onPointerUp={event => event.stopPropagation()}
+        >
           <button type='button' onClick={reply} aria-label={`Reply to ${message.senderName}`}>
             <Reply size={14} aria-hidden='true' /> Reply
           </button>
