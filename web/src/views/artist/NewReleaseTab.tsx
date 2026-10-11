@@ -15,7 +15,8 @@ import {
   royaltySplitRemaining,
   royaltySplitTotal
 } from '../../features/artist-studio/releaseForm';
-import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseRoyaltySplitDraft, ReleaseStep } from '../../shared/types';
+import { RELEASE_CREDIT_ROLE_OPTIONS, RELEASE_KIND_OPTIONS, releaseKindLabel } from '../../features/catalog/releaseMetadata';
+import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseEditorialMetadata, ReleaseRoyaltySplitDraft, ReleaseStep } from '../../shared/types';
 import type { ChangeEvent } from 'react';
 
 type NewReleaseTabProps = {
@@ -29,6 +30,7 @@ type NewReleaseTabProps = {
   coverCID: string;
   title: string;
   description: string;
+  releaseMetadata: ReleaseEditorialMetadata;
   accessMode: AccessMode;
   personhoodLevel: PersonhoodLevel;
   priceDot: string;
@@ -52,6 +54,7 @@ type NewReleaseTabProps = {
   onHandleCoverFile: (event: ChangeEvent<HTMLInputElement>) => void;
   onSetTitle: (title: string) => void;
   onSetDescription: (desc: string) => void;
+  onSetReleaseMetadata: (metadata: ReleaseEditorialMetadata) => void;
   onSetAccessMode: (mode: AccessMode) => void;
   onSetPersonhoodLevel: (level: PersonhoodLevel) => void;
   onSetPriceDot: (price: string) => void;
@@ -75,6 +78,7 @@ export function NewReleaseTab({
   coverCID,
   title,
   description,
+  releaseMetadata,
   accessMode,
   personhoodLevel,
   priceDot,
@@ -98,6 +102,7 @@ export function NewReleaseTab({
   onHandleCoverFile,
   onSetTitle,
   onSetDescription,
+  onSetReleaseMetadata,
   onSetAccessMode,
   onSetPersonhoodLevel,
   onSetPriceDot,
@@ -206,27 +211,241 @@ export function NewReleaseTab({
         )}
 
         {releaseStep === 'metadata' && (
-          <div className='wizard-panel fields-grid'>
-            <label>
-              <span>Title</span>
-              <input
-                className='field'
-                data-testid='release-title-input'
-                value={title}
-                onChange={event => onSetTitle(event.target.value)}
-                disabled={artistStudioLocked}
-              />
-            </label>
-            <label>
-              <span>Description</span>
-              <textarea
-                className='field textarea-field'
-                data-testid='release-description-input'
-                value={description}
-                onChange={event => onSetDescription(event.target.value)}
-                disabled={artistStudioLocked}
-              />
-            </label>
+          <div className='wizard-panel release-metadata-editor'>
+            <div className='fields-grid'>
+              <label>
+                <span>Title</span>
+                <input
+                  className='field'
+                  data-testid='release-title-input'
+                  value={title}
+                  onChange={event => onSetTitle(event.target.value)}
+                  disabled={artistStudioLocked}
+                />
+              </label>
+              <label>
+                <span>About this track</span>
+                <textarea
+                  className='field textarea-field'
+                  data-testid='release-description-input'
+                  value={description}
+                  placeholder='Share the story, context or intention behind this track.'
+                  onChange={event => onSetDescription(event.target.value)}
+                  disabled={artistStudioLocked}
+                  maxLength={2000}
+                />
+              </label>
+            </div>
+
+            <details className='release-editorial-details'>
+              <summary>
+                <span>More release details</span>
+                <small>Album, date, genres, languages and credits</small>
+              </summary>
+              <div className='fields-grid release-editorial-fields'>
+                <label>
+                  <span>Release type</span>
+                  <select
+                    className='field'
+                    data-testid='release-kind-input'
+                    value={releaseMetadata.releaseKind}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, releaseKind: event.target.value as ReleaseEditorialMetadata['releaseKind'] })}
+                    disabled={artistStudioLocked}
+                  >
+                    {RELEASE_KIND_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Album or EP</span>
+                  <input
+                    className='field'
+                    data-testid='release-project-input'
+                    value={releaseMetadata.projectTitle}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, projectTitle: event.target.value })}
+                    placeholder='Project title'
+                    maxLength={200}
+                    disabled={artistStudioLocked}
+                  />
+                </label>
+                <label>
+                  <span>Original release date</span>
+                  <input
+                    className='field'
+                    data-testid='release-date-input'
+                    value={releaseMetadata.releaseDate}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, releaseDate: event.target.value })}
+                    placeholder='YYYY or YYYY-MM-DD'
+                    inputMode='numeric'
+                    pattern='\d{4}(-\d{2}-\d{2})?'
+                    maxLength={10}
+                    disabled={artistStudioLocked}
+                  />
+                </label>
+                <label>
+                  <span>Version</span>
+                  <input
+                    className='field'
+                    value={releaseMetadata.version}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, version: event.target.value })}
+                    placeholder='Original, acoustic, radio edit…'
+                    maxLength={120}
+                    disabled={artistStudioLocked}
+                  />
+                </label>
+                <label>
+                  <span>Genres</span>
+                  <input
+                    className='field'
+                    data-testid='release-genres-input'
+                    value={releaseMetadata.genres.join(', ')}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, genres: event.target.value.split(',').slice(0, 8) })}
+                    placeholder='Hip hop, soul'
+                    disabled={artistStudioLocked}
+                  />
+                  <small>Separate up to eight genres with commas.</small>
+                </label>
+                <label>
+                  <span>Languages</span>
+                  <input
+                    className='field'
+                    value={releaseMetadata.languages.join(', ')}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, languages: event.target.value.split(',').slice(0, 8) })}
+                    placeholder='French, Fang'
+                    disabled={artistStudioLocked}
+                  />
+                </label>
+                <label>
+                  <span>Label</span>
+                  <input
+                    className='field'
+                    value={releaseMetadata.label}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, label: event.target.value })}
+                    placeholder='Independent or label name'
+                    maxLength={200}
+                    disabled={artistStudioLocked}
+                  />
+                </label>
+                <label>
+                  <span>Recorded / produced in</span>
+                  <input
+                    className='field'
+                    value={releaseMetadata.productionLocation}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, productionLocation: event.target.value })}
+                    placeholder='City, studio or context'
+                    maxLength={200}
+                    disabled={artistStudioLocked}
+                  />
+                </label>
+                <label>
+                  <span>ISRC</span>
+                  <input
+                    className='field'
+                    value={releaseMetadata.isrc}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, isrc: event.target.value })}
+                    placeholder='Optional recording identifier'
+                    maxLength={15}
+                    disabled={artistStudioLocked}
+                  />
+                </label>
+                <label className='release-explicit-field'>
+                  <input
+                    type='checkbox'
+                    checked={releaseMetadata.explicitContent}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, explicitContent: event.target.checked })}
+                    disabled={artistStudioLocked}
+                  />
+                  <span>Contains explicit content</span>
+                </label>
+                <label>
+                  <span>Copyright notice</span>
+                  <input
+                    className='field'
+                    value={releaseMetadata.copyrightNotice}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, copyrightNotice: event.target.value })}
+                    placeholder='© notice'
+                    maxLength={300}
+                    disabled={artistStudioLocked}
+                  />
+                </label>
+                <label>
+                  <span>Master recording notice</span>
+                  <input
+                    className='field'
+                    value={releaseMetadata.masterNotice}
+                    onChange={event => onSetReleaseMetadata({ ...releaseMetadata, masterNotice: event.target.value })}
+                    placeholder='℗ notice'
+                    maxLength={300}
+                    disabled={artistStudioLocked}
+                  />
+                </label>
+              </div>
+
+              <div className='release-credit-editor'>
+                <div className='release-credit-editor-head'>
+                  <div>
+                    <strong>Credits</strong>
+                    <small>Artist-declared contributors and roles</small>
+                  </div>
+                  <button
+                    className='secondary-action compact-action'
+                    type='button'
+                    onClick={() => onSetReleaseMetadata({ ...releaseMetadata, credits: [...releaseMetadata.credits, { name: '', role: 'performer' }] })}
+                    disabled={artistStudioLocked || releaseMetadata.credits.length >= 20}
+                  >
+                    <Plus size={16} /> Add credit
+                  </button>
+                </div>
+                {releaseMetadata.credits.map((credit, index) => (
+                  <div className='release-credit-row' key={index}>
+                    <input
+                      className='field'
+                      value={credit.name}
+                      aria-label={`Contributor ${index + 1}`}
+                      placeholder='Contributor name'
+                      maxLength={200}
+                      disabled={artistStudioLocked}
+                      onChange={event => {
+                        const credits = [...releaseMetadata.credits];
+                        credits[index] = { ...credit, name: event.target.value };
+                        onSetReleaseMetadata({ ...releaseMetadata, credits });
+                      }}
+                    />
+                    <select
+                      className='field'
+                      value={credit.role}
+                      aria-label={`Contributor ${index + 1} role`}
+                      disabled={artistStudioLocked}
+                      onChange={event => {
+                        const credits = [...releaseMetadata.credits];
+                        credits[index] = { ...credit, role: event.target.value as typeof credit.role };
+                        onSetReleaseMetadata({ ...releaseMetadata, credits });
+                      }}
+                    >
+                      {RELEASE_CREDIT_ROLE_OPTIONS.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className='icon-button release-credit-remove'
+                      type='button'
+                      aria-label={`Remove contributor ${index + 1}`}
+                      onClick={() =>
+                        onSetReleaseMetadata({ ...releaseMetadata, credits: releaseMetadata.credits.filter((_, creditIndex) => creditIndex !== index) })
+                      }
+                      disabled={artistStudioLocked}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </details>
           </div>
         )}
 
@@ -439,6 +658,16 @@ export function NewReleaseTab({
                   ))}
                 </dl>
               </div>
+              <div className='release-review-editorial' data-testid='release-editorial-review'>
+                <h4>Release details</h4>
+                <span>{releaseKindLabel(releaseMetadata.releaseKind)}</span>
+                {releaseMetadata.projectTitle && <span>{releaseMetadata.projectTitle}</span>}
+                {releaseMetadata.releaseDate && <span>{releaseMetadata.releaseDate}</span>}
+                {releaseMetadata.genres.filter(Boolean).length > 0 && <span>{releaseMetadata.genres.filter(Boolean).join(' · ')}</span>}
+                {releaseMetadata.credits.filter(credit => credit.name.trim()).length > 0 && (
+                  <span>{releaseMetadata.credits.filter(credit => credit.name.trim()).length} credited contributor(s)</span>
+                )}
+              </div>
             </section>
             <details className='artist-technical-disclosure release-technical-review'>
               <summary>Technical details</summary>
@@ -492,6 +721,11 @@ export function NewReleaseTab({
             <span className='release-preview-artist'>{artistName || 'Artist'}</span>
             <h2>{title || 'Untitled'}</h2>
             <p>{description || 'Add a short release note to help listeners understand the world behind this track.'}</p>
+            <div className='release-preview-meta'>
+              <span>{releaseKindLabel(releaseMetadata.releaseKind)}</span>
+              {releaseMetadata.projectTitle && <span>{releaseMetadata.projectTitle}</span>}
+              {releaseMetadata.releaseDate && <span>{releaseMetadata.releaseDate}</span>}
+            </div>
             <div className='access-badges'>
               <span>{accessModeLabelFromState(accessMode)}</span>
               <span>{accessMode === 'classic' ? `${priceDot} ${nativePaymentSymbol}` : accessMode === 'free' ? 'Free' : 'Free with human verification'}</span>

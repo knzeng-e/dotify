@@ -147,6 +147,61 @@ describe('fetchAssetRef', () => {
   });
 });
 
+describe('fetchTrackManifest', () => {
+  it('accepts the strict v2 editorial manifest used by release details', async () => {
+    const { fetchTrackManifest } = await loadPinataService();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          schema: 'dotify.track.v2',
+          createdAt: '2026-10-11T10:00:00.000Z',
+          assets: { audioCID: 'audio', coverCID: 'cover', encrypted: true },
+          track: {
+            contentHash: `0x${'11'.repeat(32)}`,
+            title: 'Signal',
+            artistName: 'Artist',
+            description: 'Story',
+            durationSeconds: 237.4,
+            accessMode: 'free',
+            priceDot: '0',
+            requiredPersonhood: 'None',
+            zone: 'Studio'
+          },
+          editorial: {
+            releaseKind: 'single',
+            projectTitle: 'Night lines',
+            version: '',
+            releaseDate: '2026',
+            genres: ['Soul'],
+            languages: ['French'],
+            credits: [{ name: 'Artist', role: 'performer' }],
+            label: '',
+            productionLocation: 'Paris',
+            explicitContent: false,
+            isrc: '',
+            copyrightNotice: '',
+            masterNotice: ''
+          },
+          royalties: [],
+          settlement: { target: 'evm', royaltyBps: 10000, pricePlanck: '0' }
+        }),
+        { status: 200 }
+      )
+    );
+
+    await expect(fetchTrackManifest('ipfs://manifest')).resolves.toMatchObject({
+      schema: 'dotify.track.v2',
+      editorial: { projectTitle: 'Night lines', credits: [{ name: 'Artist', role: 'performer' }] }
+    });
+  });
+
+  it('refuses obsolete or malformed editorial metadata', async () => {
+    const { fetchTrackManifest } = await loadPinataService();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ schema: 'dotify.track.v1' }), { status: 200 }));
+    await expect(fetchTrackManifest('ipfs://legacy')).rejects.toThrow('current Dotify metadata format');
+  });
+});
+
 describe('formatBackendUploadError', () => {
   it('keeps manifest validation issue details from the backend', async () => {
     const { formatBackendUploadError } = await loadPinataService();

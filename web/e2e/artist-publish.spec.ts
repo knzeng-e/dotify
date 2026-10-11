@@ -79,6 +79,14 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByTestId('release-title-input').fill('E2E Published Signal');
   await page.getByTestId('release-description-input').fill('A deterministic artist publish e2e release.');
+  await page.getByText('More release details', { exact: true }).click();
+  await page.getByTestId('release-kind-input').selectOption('album-track');
+  await page.getByTestId('release-project-input').fill('E2E Night Lines');
+  await page.getByTestId('release-date-input').fill('2026');
+  await page.getByTestId('release-genres-input').fill('Soul, Electronic');
+  await page.getByRole('button', { name: 'Add credit', exact: true }).click();
+  await page.getByLabel('Contributor 1', { exact: true }).fill('E2E Artist');
+  await page.getByLabel('Contributor 1 role', { exact: true }).selectOption('producer');
 
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByTestId('release-access-select').selectOption('classic');
@@ -92,6 +100,10 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   await expect(page.getByTestId('release-preflight-panel')).toContainText('Listening access');
   await expect(page.getByTestId('release-preflight-panel')).toContainText('Published when');
   await expect(page.getByTestId('release-preflight-panel')).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(page.getByTestId('release-editorial-review')).toContainText('Album track');
+  await expect(page.getByTestId('release-editorial-review')).toContainText('E2E Night Lines');
+  await expect(page.getByTestId('release-editorial-review')).toContainText('Soul · Electronic');
+  await expect(page.getByTestId('release-editorial-review')).toContainText('1 credited contributor');
   if (Number(royaltySharePercent) > 0) {
     await expect(page.getByTestId('release-value-flow')).toContainText('You receive');
     await expect(page.getByTestId('release-value-flow')).toContainText('100%');
@@ -157,10 +169,53 @@ test('artist can create a runtime, publish a release, and see it in the listener
   await expect(publishedCard).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
   await expect(publishedCard.getByTestId('track-card-open')).toHaveAccessibleName(new RegExp(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`));
   await publishedCard.getByRole('button', { name: 'E2E Artist', exact: true }).click();
+  await page.route('**/ipfs/e2e-artist-metadata-cid', route =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        schema: 'dotify.track.v2',
+        createdAt: '2026-10-11T10:00:00.000Z',
+        assets: { audioCID: 'e2e-artist-audio-cid', coverCID: 'e2e-artist-cover-cid', encrypted: true },
+        track: {
+          contentHash: `0x${'11'.repeat(32)}`,
+          title: 'E2E Published Signal',
+          artistName: 'E2E Artist',
+          description: 'A deterministic artist publish e2e release.',
+          durationSeconds: 42,
+          accessMode: 'classic',
+          priceDot: '0.75',
+          requiredPersonhood: 'None',
+          zone: 'Studio'
+        },
+        editorial: {
+          releaseKind: 'album-track',
+          projectTitle: 'E2E Night Lines',
+          version: '',
+          releaseDate: '2026',
+          genres: ['Soul', 'Electronic'],
+          languages: [],
+          credits: [{ name: 'E2E Artist', role: 'producer' }],
+          label: '',
+          productionLocation: '',
+          explicitContent: false,
+          isrc: '',
+          copyrightNotice: '',
+          masterNotice: ''
+        },
+        royalties: [],
+        settlement: { target: 'evm', royaltyBps: 7250, pricePlanck: '750000000000' }
+      })
+    })
+  );
   const release = page.locator('.artist-release-card').filter({ hasText: 'E2E Published Signal' });
   await release.getByText('About this release', { exact: true }).click();
   await expect(release).not.toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
-  await expect(page.getByRole('dialog', { name: 'About this release' })).toContainText('A deterministic artist publish e2e release.');
+  const releaseDialog = page.getByRole('dialog', { name: 'About this release' });
+  await expect(releaseDialog).toContainText('A deterministic artist publish e2e release.');
+  await expect(releaseDialog).toContainText('E2E Night Lines');
+  await expect(releaseDialog).toContainText('Soul · Electronic');
+  await expect(releaseDialog).toContainText('Producer');
+  await page.screenshot({ path: info.outputPath('release-details.png'), animations: 'disabled', fullPage: true });
   await page.getByRole('button', { name: 'Close release details' }).click();
   await expect(release.getByRole('button', { name: /Open E2E Published Signal by E2E Artist/ })).toHaveAccessibleName(
     new RegExp(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`)

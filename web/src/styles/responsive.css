@@ -664,6 +664,25 @@
     border: 1px solid var(--line);
   }
 
+  .release-credit-row,
+  .release-editorial-facts,
+  .release-credits-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .release-credit-row {
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .release-credit-remove {
+    justify-self: end;
+  }
+
+  .release-details-hero {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+  }
+
   .royalty-toolbar {
     align-items: stretch;
     flex-direction: column;

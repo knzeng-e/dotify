@@ -420,7 +420,7 @@ describe('authorized upload routes', () => {
 });
 
 const validManifest = {
-  schema: 'dotify.track.v1',
+  schema: 'dotify.track.v2',
   createdAt: new Date().toISOString(),
   assets: { audioCID: 'audiocid', coverCID: 'covercid', encrypted: true, previewCID: 'previewcid' },
   track: {
@@ -428,10 +428,26 @@ const validManifest = {
     title: 'Signal',
     artistName: 'Nova',
     description: '',
+    durationSeconds: 237.4,
     accessMode: 'classic',
     priceDot: '1',
     requiredPersonhood: 'DIM1',
     zone: 'Studio'
+  },
+  editorial: {
+    releaseKind: 'single',
+    projectTitle: '',
+    version: '',
+    releaseDate: '',
+    genres: ['Soul'],
+    languages: ['French'],
+    credits: [{ name: 'Artist', role: 'performer' }],
+    label: '',
+    productionLocation: '',
+    explicitContent: false,
+    isrc: '',
+    copyrightNotice: '',
+    masterNotice: ''
   },
   royalties: [{ recipient: 'r', bps: 10000 }],
   settlement: { target: 'evm', royaltyBps: 700, pricePlanck: '1' }
@@ -465,6 +481,22 @@ describe('POST /api/uploads/metadata', () => {
     });
     assert.equal(response.statusCode, 400);
     assert.equal(response.json().code, 'UPLOAD_MANIFEST_INVALID');
+  });
+
+  it('rejects incomplete editorial metadata before pinning it', async () => {
+    const server = await buildApp();
+    const { editorial: _editorial, ...missingEditorial } = validManifest;
+    const bytes = Buffer.byteLength(JSON.stringify(missingEditorial));
+    const grant = (await authorize(server, 'metadata', bytes)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/metadata',
+      headers: { authorization: `Bearer ${grant}` },
+      payload: missingEditorial
+    });
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().code, 'UPLOAD_MANIFEST_INVALID');
+    assert.match(JSON.stringify(response.json().issues), /editorial/);
   });
 
   it('rejects a manifest whose request body exceeds its signed byte budget', async () => {

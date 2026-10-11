@@ -35,6 +35,32 @@ export type ReleaseRoyaltySplitDraft = {
   bps: number;
 };
 
+export type ReleaseKind = 'single' | 'album-track' | 'ep-track' | 'live' | 'remix' | 'other';
+
+export type ReleaseCreditRole = 'performer' | 'writer' | 'composer' | 'producer' | 'featured-artist' | 'engineer' | 'other';
+
+export type ReleaseCredit = {
+  name: string;
+  role: ReleaseCreditRole;
+};
+
+/** Artist-declared editorial context. Runtime access and payment policy remain authoritative elsewhere. */
+export type ReleaseEditorialMetadata = {
+  releaseKind: ReleaseKind;
+  projectTitle: string;
+  version: string;
+  releaseDate: string;
+  genres: string[];
+  languages: string[];
+  credits: ReleaseCredit[];
+  label: string;
+  productionLocation: string;
+  explicitContent: boolean;
+  isrc: string;
+  copyrightNotice: string;
+  masterNotice: string;
+};
+
 export type TrackInfo = {
   runtimeAddress?: `0x${string}`;
   title: string;

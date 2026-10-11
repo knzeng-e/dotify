@@ -57,8 +57,9 @@ shortcut, and explains the activity filter and host-tip binding. See the
 [interaction follow-up](../explanation/room-live-conversation.md#quiet-controls-and-role-specific-queue--2026-10-11).
 It retains server authorization, acknowledgement delivery and wallet-free guests.
 
-An illustrated guide and standardized release details are outlined separately
-in the [guide and metadata proposal](../design/user-guide-and-track-details-proposal.md).
-They remain proposals; the UI follow-up neither publishes a guide nor migrates
-release metadata. Installed Product gesture checks and the broader pilot
-reliability evidence remain open after this change.
+The [guide and release-details record](../design/user-guide-and-track-details-proposal.md)
+keeps the illustrated guide as follow-up work. PR #263 now implements the
+structured `dotify.track.v2` publication fields and the story-first in-app
+release sheet for the next test-data reset. It deliberately adds no migration
+for earlier development manifests. Installed Product gesture checks and the
+broader pilot reliability evidence remain open after this change.

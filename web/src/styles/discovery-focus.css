@@ -135,6 +135,12 @@
   .rooms-landing-focused {
     gap: 1rem;
   }
+  .rooms-landing-focused .room-arrival {
+    order: 1;
+  }
+  .rooms-landing-focused .rooms-live-section {
+    order: 2;
+  }
   .room-arrival {
     align-items: stretch;
     flex-direction: column;
