@@ -1,6 +1,6 @@
 # Deployment Configuration Runbook
 
-## Structured release metadata candidate (2026-10-11)
+## Structured release metadata rollout (2026-10-11)
 
 PR #263 changes new artist publications from `dotify.track.v1` to the strict
 `dotify.track.v2` manifest. It introduces no environment variable, secret,
@@ -10,11 +10,28 @@ test publishing during the rollout, deploy the API validator, publish the web
 and Product bundles immediately afterward, then reopen installed Hosts before
 publishing the first v2 release.
 
-The coordinated Product candidate is `[0, 1, 47]`. This version bump is required
-because the release changes cache-sensitive room controls, the artist publishing
-flow, and the listener release sheet. Preserve `product-cdm` on `devnet`; no
-contract or signaling deployment is part of this release. Treat 0.1.46 as the
-rollback Product artifact until 0.1.47 publication and read-back are recorded.
+The coordinated Product release is `[0, 1, 47]`, published from tested `dev`
+`1075800ea1e60acaa05923c966d4ed498448cb92` at executable CID
+`bafybeiht6sq4c3ehc3oku7fbvuonq3hbywnnwot6c5wf4jyi5pjgdgmv74`. The
+version bump refreshes cache-sensitive room controls, the artist publishing
+flow, and the listener release sheet. The release preserves `product-cdm` on
+`devnet`; no contract or signaling deployment was required. Product 0.1.46 is
+the rollback artifact while installed-host and physical-device checks remain
+open.
+
+The API was deployed first and `/version` returned the exact release SHA. Its
+health and Netlify CORS checks passed. Netlify then served a bundle containing
+the same SHA. Bulletin finalized the stable upload at block `1169320` in
+transaction `0x52a4948882fe0def1869d466894d3d140290a2f361474a2d0e1781d43ea43f0b`
+and the full-CAR root at block `1169323` in transaction
+`0x23bc505a62c99b770322a2c45b00406218b52226c881e34b3a6535c8357183ed`.
+All 25 content nodes reached finality. DotNS content linking finalized at Asset
+Hub block `14311095` in transaction
+`0x676701b6560840052e842effce63e81506fc471ca538ea675d5a747ac5db0be7`;
+the executable manifest update finalized in transaction
+`0x5b091dcd24e179aba50b7b8ddea172c309f3845f404c47ff7bbbfa4682b2444b`.
+P2P retrieval passed in 44 ms. An independent public gateway read returned the
+14,623,653-byte CAR and found the exact source SHA and release entry bundle.
 
 This construction-phase rollout assumes the owner-approved development-data
 reset. Do not claim that old prose was migrated: rich release facts appear only
@@ -258,7 +275,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 47]` coordinated structured-metadata and room-controls candidate; publication evidence pending                              |
+| Product executable `appVersion` | `[0, 1, 47]` published structured-metadata and room-controls release                                                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
