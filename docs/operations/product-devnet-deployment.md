@@ -1,5 +1,21 @@
 # Deploy Dotify To Product DevNet
 
+## Product 0.1.48 follow-up candidate
+
+The tracked executable now requests `[0, 1, 48]` for the publication, artwork,
+room-tip and release-editor follow-up in #269/#270. Build from the tested
+release commit and preserve `product-cdm` on `devnet`. Deploy matching API and
+signaling services, with the shared server-only native-receipt token configured,
+before publishing the ordinary Web and Product bundles. See the
+[configuration runbook](deployment-configuration.md#publication-and-room-follow-up-269).
+
+0.1.47 remains the published Product/rollback artifact until signed publication
+and independent read-back establish the new SHA/CID. The metadata editor
+requires an owner-approved additive runtime upgrade; frontend publication does
+not install it. Installed Desktop/mobile verification, one native tip with one
+chat announcement, publication reconciliation, and correction/read-back remain
+physical acceptance gates. Never submit another payment to repair an announcement.
+
 This runbook publishes the Product build to Bulletin/DotNS and connects it to
 the existing Fly API and signaling services. It does not deploy contracts or
 change production secrets.
