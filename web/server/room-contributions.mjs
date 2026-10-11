@@ -21,6 +21,8 @@ const hashPattern = /^0x[\da-f]{64}$/i;
 
 export function createRoomContributions(config, dependencies = {}) {
   if (config.key && !hashPattern.test(config.key)) throw new Error('Invalid room contribution attestor configuration.');
+  if (config.receiptToken && (typeof config.receiptToken !== 'string' || config.receiptToken.length < 32 || config.receiptToken.length > 256))
+    throw new Error('Invalid native receipt service credential configuration.');
   const client = dependencies.client ?? (config.rpc ? createPublicClient({ transport: http(config.rpc, { timeout: 10000 }) }) : null);
   const signer = dependencies.signer ?? (config.key ? privateKeyToAccount(config.key) : null);
   const request = dependencies.fetch ?? fetch;
@@ -161,6 +163,7 @@ export function createRoomContributions(config, dependencies = {}) {
       const rpc = await chain();
       let logs;
       if (nativeBlock !== undefined) {
+        if (!config.receiptToken) throw new Error('Native room announcements need the receipt service credential.');
         if (
           !config.api ||
           config.chainId !== 420420417 ||
@@ -173,7 +176,7 @@ export function createRoomContributions(config, dependencies = {}) {
           throw new Error('Invalid native receipt block.');
         const response = await request(`${config.api.replace(/\/$/, '')}/contributions/native-receipt`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.receiptToken}` },
           body: JSON.stringify({ hash, block: nativeBlock }),
           signal: globalThis.AbortSignal.timeout(25000)
         });

@@ -6,7 +6,9 @@ This follow-up is implementation work for a subsequent release; 0.1.47 remains
 the published artifact until an explicit rollout. Deploy the API (metadata-event
 indexing), signaling (unbound-host tip intents and native receipt announcements),
 and matching Web/Product UI together. Bump Product appVersion for that rollout.
-No Redis service, storage mount, CORS origin or new secret is introduced.
+No Redis service, storage mount or CORS origin is introduced. Configure the
+server-only receipt service token described below before enabling Product
+tip announcements.
 
 The browser uses `dotify-public-artwork-v1` Cache Storage for public immutable
 IPFS images only: at most 48 images of up to 1 MiB each, with an in-memory LRU
@@ -27,6 +29,18 @@ restart loses that linkage, so an already-paid tip may lack a chat announcement;
 the payment stays valid and must never be repeated to restore chat.
 If an account is bound but the attestor is unavailable, quoting fails rather
 than silently removing that host's allocation.
+
+Set the same randomly generated 32–256-character value as API
+`NATIVE_RECEIPT_SERVICE_TOKEN` and signaling
+`SIGNAL_NATIVE_RECEIPT_SERVICE_TOKEN`. Keep it in their server secret stores,
+never a `VITE_` variable or a frontend artifact. Signaling sends it only in the
+Authorization header to the trusted API; API logging redacts that header.
+Authenticated receipt traffic has a separate, bounded 300/minute service
+bucket; public and spoofed requests retain the 20/minute per-IP limit. This
+changes quota identity only: every receipt still undergoes the same canonical
+chain verification. Missing signaling configuration fails the announcement
+without affecting an already-confirmed tip. Roll out matching tokens on both
+services; coordinate rotation, and revoke/replace both values if exposed.
 
 Editorial editing requires installing the additive `MusicMetadataPallet`
 selector `musicRegUpdateMetadata(bytes32,string,string,string,string)` on each

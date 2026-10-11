@@ -225,7 +225,7 @@ test('native room announcements use the verified API extrinsic receipt and rejec
   let body;
   const requests = [];
   const service = createRoomContributions(
-    { ...config, chainId: 420420417 },
+    { ...config, chainId: 420420417, receiptToken: 'test-receipt-service-token-32-characters' },
     {
       client,
       signer: account,
@@ -259,5 +259,22 @@ test('native room announcements use the verified API extrinsic receipt and rejec
   assert.equal((await service.notification(room, input)).senderId, 'dotify-confirmed-tip');
   assert.equal(await service.notification(room, input), null);
   assert.equal(requests.at(-1).url, 'https://api.example/api/contributions/native-receipt');
+  assert.equal(requests.at(-1).init.headers.Authorization, 'Bearer test-receipt-service-token-32-characters');
   assert.deepEqual(JSON.parse(requests.at(-1).init.body), { hash, block: input.nativeBlock });
+});
+test('native announcements require the configured service credential before calling the API', async () => {
+  const { client } = setup();
+  client.getChainId = async () => 420420417;
+  let called = false;
+  const service = createRoomContributions(
+    { ...config, chainId: 420420417 },
+    {
+      client,
+      fetch: async () => {
+        called = true;
+      }
+    }
+  );
+  await assert.rejects(() => service.notification({}, { runtime: address, hash, nativeBlock: { number: 10 } }), /service credential/);
+  assert.equal(called, false);
 });

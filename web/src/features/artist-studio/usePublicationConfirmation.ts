@@ -15,14 +15,12 @@ export const publicationIsVisible = (tracks: CatalogTrack[], pending: Pick<Pendi
 // Reconciliation is read-only. The approved write is never called by a timer
 // or the recovery CTA; a hash collision in another artist runtime cannot pass.
 export function usePublicationConfirmation({
-  account,
   tracks,
   refresh,
   setFeedback,
   setStatus,
   activeFeedback
 }: {
-  account: string;
   tracks: CatalogTrack[];
   refresh: (hash?: `0x${string}`, options?: { fresh?: boolean }) => Promise<CatalogTrack[]>;
   setFeedback: (feedback: TransactionFeedback | null) => void;
@@ -48,10 +46,9 @@ export function usePublicationConfirmation({
       steps: buildReleasePublicationRoadmap('complete', item.feedback.txHash)
     });
   }, []);
-  useEffect(() => {
-    setPending(null);
-    generation.current += 1;
-  }, [account]);
+  // The approved runtime/hash belongs to the operation, not the current
+  // wallet. Public, read-only reconciliation survives account changes; keep
+  // publication blocked until this operation completes or is checked again.
   useEffect(() => {
     if (pending && publicationIsVisible(tracks, pending)) complete(pending);
   }, [tracks, pending, complete]);

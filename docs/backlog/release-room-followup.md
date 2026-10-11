@@ -35,8 +35,8 @@ room evidence remain W13 release gates.
 
 ## Implementation evidence
 
-Local checks on 2026-10-11: 879 frontend unit tests, 87 signaling tests,
-168 API tests and 74 contract tests passed. The 43 artist-publication and room
+Local checks on 2026-10-11: 879 frontend unit tests, 88 signaling tests,
+169 API tests and 74 contract tests passed. The 44 artist-publication and room
 workspace browser scenarios passed, including delayed catalog convergence
 without another registration, in-document listener navigation, empty queue
 search and explicit Browse. Typechecks, ordinary/Product builds, formatting,
@@ -48,6 +48,9 @@ authorization, compare-and-swap rejection and preservation of all other track
 fields, token ownership, purchased access and royalty split. Artwork tests
 prove response-type and size limits, in-flight reuse, body-stall gateway hedging
 and eviction. Native notification tests reject wrong chain/hash/block/status
-and duplicate announcements. These are local checks, not live deployment or
+and duplicate announcements. A server-only credential isolates bounded
+signaling receipt traffic from the public per-IP quota; spoofing never obtains
+that service bucket. Approved publication recovery survives a wallet disconnect
+without submitting another registration. These are local checks, not live deployment or
 physical Host evidence. Keep issue #269 open through coordinated rollout and
 metadata upgrade verification.

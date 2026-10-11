@@ -346,6 +346,19 @@ test('artist publish remains recoverable while catalog read-back is delayed', as
   expect(await page.evaluate(() => (window as unknown as { navigationMarker?: string }).navigationMarker)).toBe('same-document');
 });
 
+test('approved publication keeps read-only recovery after the artist disconnects', async ({ page }) => {
+  await createArtistProfile(page, 'catalog-delay');
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Making your release visible');
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Disconnect wallet', exact: true }).click();
+  await page.getByRole('button', { name: 'View payment status: Release published', exact: true }).click({ timeout: 15000 });
+  await expect(page.getByRole('dialog')).toContainText('Release published', { timeout: 15000 });
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+});
+
 test('artist publish does not accept a same-hash track from another runtime as visible', async ({ page }) => {
   await createArtistProfile(page, 'catalog-hash-collision');
   await completeReleaseDraft(page);

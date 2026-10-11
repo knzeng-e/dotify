@@ -296,7 +296,6 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const [isRegistering, setIsRegistering] = useState(false);
   const [releaseActionId, setReleaseActionId] = useState<string | null>(null);
   const publication = usePublicationConfirmation({
-    account: activeEvmAddress,
     tracks: artistTracks,
     refresh: refreshCatalogFromRegistry,
     setFeedback: setTransactionFeedback,
