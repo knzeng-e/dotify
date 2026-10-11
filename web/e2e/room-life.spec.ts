@@ -56,9 +56,10 @@ test('typing, mentions, replies, pins and muted activity coexist with room playb
     await expect(page.locator('.room-chat-typing')).toContainText('Mina is typing');
     await expect(page.getByRole('log')).not.toContainText('Writing a thought');
     await expect(page.getByRole('log')).toContainText('Mina joined.');
-    await page.getByRole('button', { name: 'Hide room activity' }).click();
+    await page.getByRole('button', { name: 'Room activity', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Room activity', exact: true })).toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByRole('log')).not.toContainText('Mina joined.');
-    await page.getByRole('button', { name: 'Show room activity' }).click();
+    await page.getByRole('button', { name: 'Room activity', exact: true }).click();
     await page.getByRole('tab', { name: /Queue/ }).click();
     await guest.getByLabel('Message the room').fill('@Room');
     await guest.getByRole('button', { name: '@Room host', exact: true }).click();
@@ -67,12 +68,16 @@ test('typing, mentions, replies, pins and muted activity coexist with room playb
     await guest.getByRole('button', { name: 'Send message' }).click();
     await expect(page.locator('#room-tab-chat').getByLabel('1 unread mentions')).toHaveText('@1');
     await page.locator('#room-tab-chat').click();
+    await page.getByRole('button', { name: 'Message actions for Mina' }).click();
     await page.getByRole('button', { name: 'Reply to Mina' }).click();
     await page.getByLabel('Message the room').fill('Welcome to this listening moment');
     await page.getByRole('button', { name: 'Send message' }).click();
     await expect(guest.locator('.room-chat-quote')).toContainText('@Room host hello!');
+    await page.getByRole('button', { name: 'Message actions for Room host' }).click();
     await page.getByRole('button', { name: 'Pin message from Room host' }).click();
     await expect(guest.locator('.room-chat-pinned')).toContainText('Welcome to this listening moment');
+    await guest.getByRole('button', { name: 'Message actions for Room host' }).click();
+    await expect(guest.getByRole('button', { name: 'Reply to Room host' })).toBeVisible();
     await expect(guest.getByRole('button', { name: /Pin message/ })).toHaveCount(0);
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync');
     await page.screenshot({ path: testInfo.outputPath('room-life-mobile.png') });
@@ -154,5 +159,93 @@ test('artist dashboard matches a release and lets the artist choose whether to a
     await expect(page.getByRole('region', { name: 'Your music, live' })).toBeVisible();
   } finally {
     host.disconnect();
+  }
+});
+
+test('message actions are quiet on desktop and reachable by keyboard', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await hostRoom(page);
+  await page.getByLabel('Message the room').fill('A moment worth sharing');
+  await page.getByRole('button', { name: 'Send message' }).click();
+  const message = page.locator('.room-chat-interactive').filter({ hasText: 'A moment worth sharing' });
+  const trigger = message.getByRole('button', { name: 'Message actions for Room host' });
+  await expect(trigger).toHaveCSS('opacity', '0');
+  await expect(message.getByRole('button', { name: 'Reply to Room host' })).toHaveCount(0);
+  await message.hover();
+  await expect(trigger).toHaveCSS('opacity', '1');
+  await page.mouse.move(1, 1);
+  await trigger.focus();
+  await expect(trigger).toHaveCSS('opacity', '1');
+  await trigger.press('Enter');
+  await trigger.press('Tab');
+  await expect(message.getByRole('button', { name: 'Reply to Room host' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(trigger).toBeFocused();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await trigger.press('Enter');
+  await trigger.press('Tab');
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Message the room')).toBeFocused();
+  await expect(page.locator('.room-chat-reply-draft')).toContainText('Room host');
+  await page.getByRole('button', { name: 'Cancel reply' }).click();
+  await trigger.click();
+  await page.getByRole('button', { name: 'Room activity', exact: true }).click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  const people = (await page.getByLabel('People and room controls').boundingBox())!;
+  const tipExplanation = (await page.locator('.host-contributions p').first().boundingBox())!;
+  expect(tipExplanation.x + tipExplanation.width).toBeLessThanOrEqual(people.x + people.width);
+  await page.screenshot({ path: testInfo.outputPath('quiet-chat-desktop.png') });
+});
+
+test('touch swipe replies once while short, vertical and cancelled gestures preserve the draft', async ({ browser }, testInfo) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  try {
+    await hostRoom(page);
+    await page.getByLabel('Message the room').fill('Same track, your people');
+    await page.getByRole('button', { name: 'Send message' }).click();
+    const message = page.locator('.room-chat-interactive').filter({ hasText: 'Same track, your people' });
+    const trigger = message.getByRole('button', { name: 'Message actions for Room host' });
+    await expect(trigger).toHaveCSS('opacity', '1');
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await page.getByLabel('Message the room').fill('My unfinished thought');
+    await page.getByLabel('Message the room').blur();
+    const client = await context.newCDPSession(page);
+    async function swipe(dx: number, dy: number, cancel = false) {
+      const box = (await message.locator('.room-chat-text').boundingBox())!;
+      const x = box.x + 35;
+      const y = box.y + box.height / 2;
+      await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 0 }] });
+      for (let step = 1; step <= 5; step++) {
+        await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + (dx * step) / 5, y: y + (dy * step) / 5, id: 0 }] });
+      }
+      await client.send('Input.dispatchTouchEvent', { type: cancel ? 'touchCancel' : 'touchEnd', touchPoints: [] });
+    }
+    for (const [dx, dy, cancel] of [
+      [25, 0, false],
+      [5, -50, false],
+      [75, 0, true]
+    ] as const) {
+      await swipe(dx, dy, cancel);
+      await expect(page.locator('.room-chat-reply-draft')).toHaveCount(0);
+      await expect(page.getByLabel('Message the room')).toHaveValue('My unfinished thought');
+    }
+    await swipe(75, 2);
+    await expect(page.locator('.room-chat-reply-draft')).toContainText('Room host');
+    await expect(page.getByLabel('Message the room')).toBeFocused();
+    await expect(page.getByLabel('Message the room')).toHaveValue('My unfinished thought');
+    await expect(page.getByRole('log')).not.toContainText('My unfinished thought');
+    await page.getByRole('button', { name: 'Cancel reply' }).click();
+    await trigger.tap();
+    await expect(message.getByRole('button', { name: 'Pin message from Room host' })).toBeVisible();
+    const actions = (await message.locator('.room-chat-message-actions').boundingBox())!;
+    expect(actions.x).toBeGreaterThanOrEqual(0);
+    expect(actions.x + actions.width).toBeLessThanOrEqual(390);
+    await page.screenshot({ path: testInfo.outputPath('quiet-chat-mobile-actions.png') });
+    await message.getByRole('button', { name: 'Reply to Room host' }).tap();
+    await expect(page.getByLabel('Message the room')).toBeFocused();
+    await expect(page.locator('.room-chat-reply-draft')).toHaveCount(1);
+  } finally {
+    await context.close();
   }
 });

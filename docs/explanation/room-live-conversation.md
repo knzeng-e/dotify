@@ -65,6 +65,59 @@ payment/access policy and Product permission flows are untouched.
 No new configuration, backend migration, hosting setting or secret is needed.
 Reverting this UI change does not alter stored data or network protocol.
 
+## Quiet controls and role-specific queue — 2026-10-11
+
+The host chooses tracks through the catalog search in **Up next** and sees
+listener suggestions with the existing add/remove/clear controls. Only guests
+see **Request a track**. Suggestions remain intent, and adding a protected
+track to the lineup still does not unlock it or start a payment. The host's
+search now participates in the mobile keyboard layout just like the guest's
+request composer, so it stays visible while typing.
+
+Chat message actions sit behind one **…** button beside each message. It appears
+on hover or keyboard focus on a mouse device and remains visible on touch
+screens. The disclosure contains labeled Reply and, for the connected host,
+Pin for 10 min actions. Escape closes it and returns focus; leaving the
+message or pressing elsewhere closes it. It expands within the conversation
+instead of opening a popup that could be clipped by its scrolling container.
+
+A rightward touch swipe of at least 52 CSS pixels also selects a reply and
+focuses the composer. Vertical, leftward, short or cancelled gestures do not
+select a reply. The screen's leftmost 24 pixels are excluded to avoid competing
+with browser navigation. Zoom and vertical scrolling remain available. The
+gesture never sends a message and the visible action button is always the
+alternative. Reduced motion disables the return animation.
+
+**Room activity — On/Off** replaces the ambiguous bell. It filters arrivals,
+departures, track/queue activity and confirmed tips locally; it does not enable
+push notifications, sound, or hide chat messages. The filter lasts for the
+mounted room view. Message drafts, acknowledgements, mentions, unread tracking
+and server-enforced host pin permissions retain their existing ownership.
+
+**Enable host tips** replaces **Receive room tips** with explanatory copy.
+This explicitly binds the host's authenticated account to the room. In the
+current implementation, preparing an in-room tip requires that binding and
+the configured room attestor even when the artist assigns no host share.
+The artist's contribution policy determines any host share; enabling the
+button itself pays nobody, changes no allocation and grants no listening
+access. The actual quote and confirmed receipt remain authoritative.
+
+This is a frontend follow-up to #257 and #69. Ordinary-web browser tests prove
+the role split, keyboard behavior, touch gestures and retained room delivery;
+the installed Product mobile host still needs a physical gesture check after
+deployment. The owner's successful web EVM artist-entry check is separate
+evidence for the previously deployed 0.1.46 flow, not validation of this UI patch.
+
+Local evidence: 33 Chromium scenarios in `room-life.spec.ts` and
+`room-workspace.spec.ts`, plus 10 timeline/catalog/viewport unit tests. The
+changed activity-label and guest-action checks were rerun after final copy
+adjustments. Ordinary and frozen Product builds pass. Full ESLint has no errors
+and retains the two existing `App.tsx` hook-dependency warnings; build warnings
+about bundle size, Browserslist data and dependency annotations are unchanged.
+Screenshots use explicitly synthetic E2E catalog and participant data:
+[mobile](../images/quiet-room-controls/mobile.png) and
+[desktop](../images/quiet-room-controls/desktop.png).
+
 ## Native Celerity continuation
 
 The product direction is Product-native social delivery, not permanent

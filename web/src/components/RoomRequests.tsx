@@ -36,7 +36,7 @@ export function RoomRequests() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selected || sending || !connected) return;
+    if (isHost || !selected || sending || !connected) return;
     const text = roomTrackRequestText(selected);
     setSending(true);
     setSendError('');
@@ -49,11 +49,11 @@ export function RoomRequests() {
   }
 
   return (
-    <div className='doc-panel room-chat-panel room-requests-panel'>
+    <div className='doc-panel room-chat-panel room-requests-panel' data-host={isHost}>
       <PanelTitle
         icon={ListMusic}
         title='Track suggestions'
-        meta='the host chooses what plays'
+        meta={isHost ? 'from your listeners' : 'the host chooses what plays'}
         action={
           isHost && requestQueue.length > 0 ? (
             <button className='room-req-clear' type='button' disabled={!connected} onClick={() => clearRoomRequests()}>
@@ -65,7 +65,9 @@ export function RoomRequests() {
 
       <div className='room-chat-list' role='group' aria-live='polite' aria-label='Track requests'>
         {requestQueue.length === 0 ? (
-          <p className='room-chat-empty'>What should we hear next? Find a track below and suggest it to the host.</p>
+          <p className='room-chat-empty'>
+            {isHost ? 'Suggestions from your listeners will appear here.' : 'What should we hear next? Find a track below and suggest it to the host.'}
+          </p>
         ) : (
           requestQueue.map(request => {
             const track = resolveRequestedTrack(catalog.catalogTracks, request.text);
@@ -117,33 +119,35 @@ export function RoomRequests() {
         )}
       </div>
 
-      {(!connected || sendError) && (
+      {!isHost && (!connected || sendError) && (
         <p className='room-chat-connection' role='status'>
           {!connected ? 'Reconnecting. Your draft stays here.' : sendError}
         </p>
       )}
-      <form className='room-request-search-form' onSubmit={event => void handleSubmit(event)} aria-busy={sending}>
-        <RoomTrackSearch
-          tracks={catalog.catalogTracks}
-          query={draft}
-          label='Request a track'
-          action='Suggest'
-          disabled={sending || !connected}
-          selected={!!selected}
-          onQueryChange={value => {
-            setDraft(value);
-            setSelectedId(null);
-            setSendError('');
-          }}
-          onPick={track => {
-            setSelectedId(track.id);
-            setDraft(roomTrackRequestText(track));
-          }}
-        />
-        <button className='primary-action' type='submit' disabled={!selected || sending || !connected} aria-label='Send request'>
-          <Send size={16} /> {sending ? 'Sending…' : 'Suggest this track'}
-        </button>
-      </form>
+      {!isHost && (
+        <form className='room-request-search-form' onSubmit={event => void handleSubmit(event)} aria-busy={sending}>
+          <RoomTrackSearch
+            tracks={catalog.catalogTracks}
+            query={draft}
+            label='Request a track'
+            action='Suggest'
+            disabled={sending || !connected}
+            selected={!!selected}
+            onQueryChange={value => {
+              setDraft(value);
+              setSelectedId(null);
+              setSendError('');
+            }}
+            onPick={track => {
+              setSelectedId(track.id);
+              setDraft(roomTrackRequestText(track));
+            }}
+          />
+          <button className='primary-action' type='submit' disabled={!selected || sending || !connected} aria-label='Send request'>
+            <Send size={16} /> {sending ? 'Sending…' : 'Suggest this track'}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

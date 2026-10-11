@@ -18,7 +18,7 @@ export function HostLineup() {
   const available = catalog.catalogTracks.filter(track => track.active !== false && track.id !== catalog.selectedTrackId && !queuedIds.has(track.id));
 
   return (
-    <details className='host-lineup' open={isHost || lineup.length > 0}>
+    <details className='host-lineup' data-host={isHost} open={isHost || lineup.length > 0}>
       <summary>
         <ListMusic size={16} /> Up next
         <span>{lineup[0] ? lineup[0].title : 'Nothing queued'}</span>

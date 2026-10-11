@@ -1557,6 +1557,16 @@ message; there is no automatic retry or exactly-once guarantee. Request capacity
 and social rate limits remain server-enforced. Reactions are not buffered during
 transport loss.
 
+The 2026-10-11 quiet room-controls follow-up is frontend-only. It uses the
+existing suggestions, replies, pin and host-tip binding protocol, with no new
+environment variables, server release, permission or migration. After publishing
+it, check host versus guest Queue, catalog search with the mobile keyboard open,
+the message **…** actions by touch and keyboard, right-swipe reply versus vertical
+scroll, and local **Room activity** filtering on web and the installed Product
+host. **Enable host tips** is the renamed explicit account binding, not a new
+payment or a change to artist-selected shares. See
+[room conversation controls](../explanation/room-live-conversation.md#quiet-controls-and-role-specific-queue--2026-10-11).
+
 Rollback the galaxy experiment by rebuilding without its `on` value. The room
 lineup requires a coordinated frontend/signaling rollback because old signaling
 servers ignore its events while the current frontend keeps playback functional.

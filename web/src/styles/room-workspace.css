@@ -178,6 +178,9 @@
   overscroll-behavior-y: contain;
   padding: 0 0.65rem;
 }
+.room-queue-pane > .host-lineup[data-host='true'] {
+  max-height: 75%;
+}
 .player-room-mode .room-queue-pane > .room-requests-panel {
   flex: 1;
   height: auto;
@@ -914,6 +917,7 @@
     width: var(--room-viewport-width, 100%);
   }
   .player-room-mode .room-chat-form .field,
+  .player-room-mode .host-lineup .field,
   .player-room-mode .room-request-search-form .field {
     height: var(--touch-target);
     padding-block: 0.5rem;
@@ -921,7 +925,9 @@
   }
   .app-shell[data-room-focus='true'][data-composing='true'] .topbar,
   .app-shell[data-room-focus='true'][data-composing='true'] .bottom-nav,
-  .app-shell[data-composing='true'] .room-queue-pane > .host-lineup,
+  .app-shell[data-composing='true'] .room-queue-pane > .host-lineup:not([data-host='true']),
+  .app-shell[data-composing='true'] .host-lineup[data-host='true'] > :not(.room-track-search),
+  .app-shell[data-composing='true'] .room-requests-panel[data-host='true'],
   .app-shell[data-composing='true'] .room-requests-panel .room-chat-list,
   .app-shell[data-composing='true'] .room-requests-panel .panel-title,
   .app-shell[data-composing='true'] .room-code-pill,
@@ -931,6 +937,11 @@
   .app-shell[data-composing='true'] .room-social-context .room-header-meta,
   .app-shell[data-composing='true'] .player-room-mode .access-badges {
     display: none;
+  }
+  .app-shell[data-composing='true'] .room-queue-pane > .host-lineup[data-host='true'] {
+    flex: 1;
+    max-height: none;
+    border: 0;
   }
   .app-shell[data-composing='true'] .room-composer-done {
     display: inline-flex;
@@ -962,25 +973,35 @@
 .room-chat-panel {
   position: relative;
 }
-.room-chat-activity-toggle {
-  position: absolute;
-  z-index: 2;
-  right: 12px;
-  top: 9px;
-  width: 32px;
-  height: 32px;
-  justify-content: center;
-  border-radius: 8px;
-  background: var(--surface, #0b192d);
+.room-chat-status {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 8px;
 }
-.room-chat-panel .room-chat-messages {
-  padding-right: 34px;
+.room-chat-status .room-chat-typing {
+  flex: 1;
+  min-width: 0;
 }
-.room-chat-panel .room-chat-pinned {
-  margin-right: 36px;
+.room-chat-status .room-chat-activity-toggle {
+  align-self: flex-end;
+  flex: 0 0 auto;
+  min-height: 32px;
+  gap: 6px;
+  padding: 4px 8px;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
 }
-.room-chat-panel .panel-title {
-  padding-right: 30px;
+@media (max-width: 360px) {
+  .player-room-mode .room-conversation-pane .room-chat-panel {
+    padding-block: 0;
+  }
+}
+.room-chat-activity-state {
+  color: var(--muted);
+}
+.room-chat-activity-toggle[aria-pressed='true'] .room-chat-activity-state {
+  color: var(--action);
 }
 .room-chat-activity {
   display: flex;
@@ -1014,13 +1035,82 @@
 }
 .room-chat-message-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 3px;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.room-chat-message-actions[hidden] {
+  display: none;
 }
 .room-chat-message-actions button {
-  min-height: 28px;
-  min-width: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.room-chat-interactive {
+  position: relative;
+  padding-right: 44px;
+  min-height: 44px;
+  touch-action: pan-y pinch-zoom;
+  transition: transform 140ms ease-out;
+}
+.room-chat-interactive[data-swiping] {
+  transition: none;
+}
+.room-chat-action-trigger {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.room-chat-action-trigger:hover,
+.room-chat-action-trigger[aria-expanded='true'],
+.room-chat-message-actions button:hover {
+  color: var(--action);
+  background: var(--surface);
+}
+.room-chat-swipe-cue {
+  position: absolute;
+  top: 12px;
+  left: -28px;
+  color: var(--muted);
+}
+.room-chat-swipe-cue[data-ready='true'] {
+  color: var(--action);
+}
+@media (hover: hover) and (pointer: fine) {
+  .room-chat-action-trigger {
+    opacity: 0;
+  }
+  .room-chat-interactive:hover .room-chat-action-trigger,
+  .room-chat-interactive:focus-within .room-chat-action-trigger,
+  .room-chat-interactive[data-actions-open] .room-chat-action-trigger {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-chat-interactive {
+    transition: none;
+  }
 }
 .room-chat-quote {
   margin: 5px 0;

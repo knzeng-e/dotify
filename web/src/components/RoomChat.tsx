@@ -1,4 +1,4 @@
-import { ArrowDown, LoaderCircle, MessageCircle, Send, Bell, BellOff, BadgeCheck, Pin, X } from 'lucide-react';
+import { ArrowDown, LoaderCircle, MessageCircle, Send, ListFilter, BadgeCheck, Pin, X } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSessionContext } from '../app/providers';
 import { roomPresenceCount } from '../features/rooms/roomState';
@@ -128,15 +128,27 @@ export function RoomChat({
   return (
     <div className='doc-panel room-chat-panel'>
       <PanelTitle icon={MessageCircle} title='Room chat' meta={connected ? `${roomPresenceCount(session.listenerCount, true)} here` : 'Reconnecting'} />
-      <button
-        type='button'
-        className='text-action room-chat-activity-toggle'
-        aria-label={showActivity ? 'Hide room activity' : 'Show room activity'}
-        aria-pressed={!showActivity}
-        onClick={() => setShowActivity(value => !value)}
-      >
-        {showActivity ? <Bell size={16} /> : <BellOff size={16} />}
-      </button>
+      <div className='room-chat-status'>
+        <div className='room-chat-typing' role='status' aria-live={active ? 'polite' : 'off'}>
+          {typing && (
+            <>
+              <span aria-hidden='true'>•••</span> {typing}
+            </>
+          )}
+        </div>
+        <button
+          type='button'
+          className='text-action room-chat-activity-toggle'
+          aria-label='Room activity'
+          aria-pressed={showActivity}
+          title='Show or hide arrivals, departures, track changes and confirmed tips in this chat'
+          onClick={() => setShowActivity(value => !value)}
+        >
+          <ListFilter size={14} aria-hidden='true' />
+          <span>Room activity</span>
+          <span className='room-chat-activity-state'>{showActivity ? 'On' : 'Off'}</span>
+        </button>
+      </div>
       {session.pinnedMessage && (
         <div className='room-chat-pinned'>
           <Pin size={15} aria-hidden='true' />
@@ -217,13 +229,6 @@ export function RoomChat({
           >
             <ArrowDown size={14} aria-hidden='true' /> {unread} new {unread === 1 ? 'message' : 'messages'}
           </button>
-        )}
-      </div>
-      <div className='room-chat-typing' role='status' aria-live={active ? 'polite' : 'off'}>
-        {typing && (
-          <>
-            <span aria-hidden='true'>•••</span> {typing}
-          </>
         )}
       </div>
       {replyTo && (

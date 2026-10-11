@@ -33,7 +33,7 @@ export function HostContributions() {
         )
       );
       setBound(scope);
-      setStatus('Host account connected for room tips.');
+      setStatus('Your host account is connected for tips in this room.');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Room contributions unavailable.');
     } finally {
@@ -42,9 +42,10 @@ export function HostContributions() {
   }
   return (
     <div className='host-contributions'>
+      <p>Connect your host account to enable tips in this room. You receive a share only if the artist has included the host.</p>
       <button className='secondary-action compact-action' disabled={busy || bound === scope} onClick={() => void connect()}>
         <Coins size={16} aria-hidden='true' />
-        {bound === scope ? 'Room tips connected' : busy ? 'Connecting…' : 'Receive room tips'}
+        {bound === scope ? 'Host tips enabled' : busy ? 'Connecting…' : 'Enable host tips'}
       </button>
       {status && <p role='status'>{status}</p>}
     </div>
