@@ -431,8 +431,8 @@ Product candidate** workflow accepts only an exact full commit SHA and a
 `validation` or `release` profile. It checks out and builds that immutable
 candidate with no mnemonic, signer, upload, or network write. The validation
 profile enables the Product CDM adapter, artist gifts, and the operator-only
-readiness panel. For 0.1.46, the release profile uses the tracked
-`product-cdm`/`devnet` settings.
+readiness panel. The release profile uses the tracked `product-cdm`/`devnet`
+settings; 0.1.47 must preserve that native payment path.
 
 ```bash
 gh workflow run deploy-frontend.yml \
