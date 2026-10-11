@@ -10,6 +10,12 @@ test publishing during the rollout, deploy the API validator, publish the web
 and Product bundles immediately afterward, then reopen installed Hosts before
 publishing the first v2 release.
 
+The coordinated Product candidate is `[0, 1, 47]`. This version bump is required
+because the release changes cache-sensitive room controls, the artist publishing
+flow, and the listener release sheet. Preserve `product-cdm` on `devnet`; no
+contract or signaling deployment is part of this release. Treat 0.1.46 as the
+rollback Product artifact until 0.1.47 publication and read-back are recorded.
+
 This construction-phase rollout assumes the owner-approved development-data
 reset. Do not claim that old prose was migrated: rich release facts appear only
 after a track is republished with v2 metadata. Smoke one artist publication with
@@ -252,7 +258,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 46]` published native-payment and room reliability release                                                               |
+| Product executable `appVersion` | `[0, 1, 47]` coordinated structured-metadata and room-controls candidate; publication evidence pending                              |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
