@@ -21,6 +21,10 @@ Project item to Done explicitly.
 The PR writing workflow is tracked in [`pr-review-quality.md`](pr-review-quality.md)
 (#240); it changes review documentation only, not product behavior.
 
+The local Claude hook and verification workflow correction is tracked in
+[`claude-verification-tooling.md`](claude-verification-tooling.md) (#265),
+implemented by PR #264.
+
 ## Product north star
 
 Owner-requested room-life continuation: [#257](https://github.com/knzeng-e/dotify/issues/257),
