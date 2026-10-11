@@ -350,7 +350,7 @@ the reversible pilot plan, contract inventory, and optional aggregate pilot
 metrics. Optional pilot evidence must use schema v2 and bind the decision to
 the candidate git SHA, Product appVersion, `product-cdm`/`devnet` profile,
 published executable CID, capture time, outcome metrics, privacy flags,
-rollback, and join-count invariants. Pass the published 0.1.46 CDM CID with
+rollback, and join-count invariants. Pass the published 0.1.47 CDM CID with
 `--pilot-release-cid`; Product payment/key and room evidence must bind to that
 same CID. The command does not sign,
 deploy, contact participants, or treat missing live evidence as a pass.
@@ -361,7 +361,7 @@ gates pass, and the live CASH path remains blocked on a Product-confirmed
 CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
 operator-supplied evidence file is unsafe and must block the release.
 
-Product release 0.1.46 explicitly uses `product-cdm` on `devnet` so
+Product releases 0.1.46 and 0.1.47 explicitly use `product-cdm` on `devnet` so
 Product account holders retain native tips and access payments. The Product
 build refuses an EVM-only profile; ordinary web still uses viem. Product SDK
 descriptors increase the bundle and Bulletin storage demand. The 0.1.45 viem
@@ -724,7 +724,7 @@ Then verify in the Product host:
 6. The tracked Product profile uses the `product-cdm` writer on `devnet`.
    A debug build is useful for a future pilot candidate, but it creates a
    different executable CID. Evidence from it cannot validate the published
-   0.1.46 CID; keep those live gates blocked until observations are captured
+   0.1.47 CID; keep those live gates blocked until observations are captured
    from the exact release artifact. To prepare a new candidate with the debug
    panel, publish from a clean committed worktree and record its own CID:
 
@@ -844,7 +844,7 @@ npm run smoke:product-journey -- \
    host approval UX, or post-payment access evidence is missing, the
    `product-cdm` build must report **Payment included, access not verified**
    with the transaction hash instead of marking the track open.
-   The published 0.1.46 profile remains `product-cdm`/`devnet`; keep its
+   The published 0.1.47 profile remains `product-cdm`/`devnet`; keep its
    acceptance blocked until this native payment and read-back are observed.
 
    Product CASH is a separate future rail, not a replacement for this native
@@ -927,7 +927,7 @@ npm run smoke:product-journey -- \
    from the Product Web gateway. A Product Desktop room smoke must not be reused
    as Product Web evidence.
 
-   For the current 0.1.46 gate, use the published `product-cdm` executable CID
+   For the current 0.1.47 gate, use the published `product-cdm` executable CID
    for the release and capture host evidence from that same artifact. A debug
    build with a different CID cannot validate the published release. Run the
    aggregate readiness gate with one release identity:
@@ -1059,7 +1059,7 @@ active.
   produced - that observation is the evidence, and until it is captured the
   accepted set stays deliberately wide.
 - Contract writes use the shared runtime writer port, with `product-cdm` selected
-  for the tracked 0.1.46 Product deployment. The Product CDM/PAPI runtime adapter has its
+  for the tracked 0.1.47 Product deployment. The Product CDM/PAPI runtime adapter has its
   generated manifest, contract types, live resolver, signer-account mapping
   checks, Classic unlock write path, and W05 royalty claim write path. It still
   needs real host-signed transaction evidence before the current release can
@@ -1087,7 +1087,7 @@ active.
   catalog recovery but is not required for API startup.
 - Product contract mode (`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`) covers
   catalog reads and runtime write submissions inside the Product host. The
-  tracked 0.1.46 deployment uses this profile; installed-host payment, approval
+  tracked 0.1.47 deployment uses this profile; installed-host payment, approval
   UX, and post-payment read-back still need candidate-bound observations.
   Product payment history is still not exposed
   by the current Product contract handle API, so the full royalty settlement
