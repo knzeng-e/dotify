@@ -28,11 +28,11 @@
       "id": "claude-verification-tooling",
       "doc": "docs/backlog/claude-verification-tooling.md",
       "issue": 265,
-      "kind": "work",
+      "kind": "record",
       "priority": "P2",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "PR #264 corrects the local Claude hook and touched-workspace verification instructions. Targeted hook checks and real Web/API typechecks passed; merge into dev completes this bounded tooling scope."
+      "phase": "Record",
+      "note": "Delivered by PR #264, merged into dev at e86406d0cb0282b8e67be3a5f7897b87fe13e032 on 2026-10-11. Targeted hook checks, real Web/API typechecks, and all executed PR CI checks passed."
     },
     {
       "id": "room-life",
