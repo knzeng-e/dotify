@@ -45,6 +45,25 @@ async function readArtistPublishState(page: Page) {
 // the clear fires exactly once on the first page load and then leaves in-test state
 // (e.g. a published track inspected after navigating to '/') intact.
 test.beforeEach(async ({ page }) => {
+  // The artist wallet and contribution reader use the Paseo fixture. Resolve
+  // the shell's network identity from that same fixture, not a live RPC whose
+  // latency could leave expectedChainId null while the form is already ready.
+  await page.route('https://eth-rpc-testnet.polkadot.io/**', async route => {
+    const headers = {
+      'access-control-allow-origin': '*',
+      'access-control-allow-methods': 'POST, OPTIONS',
+      'access-control-allow-headers': 'content-type'
+    };
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    const input = route.request().postDataJSON();
+    if (input?.method !== 'eth_chainId') return route.fallback();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers,
+      body: JSON.stringify({ jsonrpc: '2.0', id: input.id, result: `0x${(420420417).toString(16)}` })
+    });
+  });
   await page.addInitScript(() => {
     if (window.sessionStorage.getItem('dotify:e2e:artist-publish:reset')) return;
     window.__DOTIFY_E2E_ARTIST_PUBLISH__ = undefined;
