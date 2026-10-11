@@ -26,6 +26,7 @@ export function RoomChatMessage({
   const actionsId = useId();
   const rowRef = useRef<HTMLDivElement>(null);
   const actionRef = useRef<HTMLButtonElement>(null);
+  const lastTouchActivationAt = useRef(0);
   const reply = () => {
     setActionsOpen(false);
     onReply(message);
@@ -95,8 +96,19 @@ export function RoomChatMessage({
           aria-controls={actionsId}
           title='Message actions'
           onPointerDown={event => event.stopPropagation()}
-          onPointerUp={event => event.stopPropagation()}
-          onClick={() => setActionsOpen(open => !open)}
+          onPointerUp={event => {
+            event.stopPropagation();
+            if (event.pointerType !== 'touch') return;
+            // Mobile browsers can suppress the compatibility click after a
+            // preceding swipe has used pointer capture. Activate directly on
+            // touch release, then ignore only that touch's generated click.
+            lastTouchActivationAt.current = performance.now();
+            setActionsOpen(open => !open);
+          }}
+          onClick={() => {
+            if (performance.now() - lastTouchActivationAt.current < 750) return;
+            setActionsOpen(open => !open);
+          }}
         >
           <MoreHorizontal size={16} aria-hidden='true' />
         </button>
