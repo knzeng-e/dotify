@@ -11,7 +11,9 @@ small consented community is counted as served.
 - Issue: #158.
 - Original consolidation base: `dev` at
   `f4d2d49721a85169c5f9c37d36ac2ef315396d57`.
-- Current published candidate SHA: `b18f24acdc53c055bd9f10cdcbefd3985fa84927`.
+- Current published Product candidate: 0.1.46, source SHA
+  `e5d92b5af2a8f9c2b9860db8d0ee91163c2f08b3`, `product-cdm` on `devnet`,
+  executable CID `bafybeif3sjmbjz3hmpcnozz2btkewimxr3a4xy5pjia47pxgqfe636voty`.
 - Readiness command:
 
 ```bash
@@ -21,24 +23,22 @@ npm run smoke:pilot-release -- \
   --json-out /tmp/dotify-pilot-release-readiness.json
 ```
 
-Add `--product-smoke-json` and `--room-json` for the explicit `product-cdm`
-validation deployment. Supply `--pilot-release-cid <cid>` for the separately
-published default-`viem` release, and `--rollback-json` for the independent
-rollback rehearsal. Add `--pilot-json` only after the consented participant
-pilot has run on the matching release CID.
+Add `--product-smoke-json` and `--room-json` for this published `product-cdm`
+release. Supply its executable CID through `--pilot-release-cid`, and
+`--rollback-json` for a rehearsal of that exact candidate. Add `--pilot-json`
+only after the consented participant pilot has run on the matching release CID.
 Missing live artifacts must stay visible as `blocked` or `not-run`.
 
 The original consolidation is recorded in
 [`W13-consolidation-2026-09-17.md`](../backlog/implementation/evidence/W13-consolidation-2026-09-17.md).
 It verifies the merged code through PR #173, but it is not a deployed candidate
-identity. If `dev` or the Product appVersion changes, recapture every live
-input. If the validation CID changes, recapture Product CDM and room evidence;
-if the default `viem` release CID changes, recapture pilot evidence. Never bind
-the pilot decision to the Product CDM validation CID. The
+identity. If `dev`, the Product appVersion, profile or executable CID changes,
+recapture every live input. Product payment, room, rollback and pilot evidence
+must identify the same published CDM executable CID. The historical
 [0.1.29 live evidence](../backlog/implementation/evidence/W13-candidate-0-1-29-live-2026-09-28.md)
-records the validation CID
+record used a separate 0.1.29 validation CID
 `bafybeihawlfqhqgipiwg2dj5iamchz22e3d6z6t7t5snc4iv3333bdavom` and
-the distinct default-`viem` release CID
+and a distinct default-`viem` release CID
 `bafybeihe4oty4sdifkbajty76kgj5gasvoqqpv5bnssmg65mcdhduqwpkm`.
 
 ## Environment And Config Diff
@@ -47,15 +47,16 @@ The original tracked W13 package did not change hosted secrets, origins,
 contract addresses, Fly scaling, Product permissions, or DotNS ownership.
 During live 0.1.29 validation, the missing shared TURN capability secret was
 installed on the API and signal services, and those services were redeployed;
-their origin allowlists and contract addresses were not changed. The release
-profile differs from the CDM validation bundle, not from those service values.
+their origin allowlists and contract addresses were not changed. The 0.1.29
+release profile differed from its CDM validation bundle. The current 0.1.46
+release uses CDM on DevNet.
 
 | Surface | Current tracked value | W13 action |
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 29]` | CDM validation, payment/key smoke, and Product Desktop room smoke captured on the validation CID above. The separate default-`viem` release CID above is published. Physical-device matrix, rollback, and aggregate pilot remain open. |
-| Runtime write adapter | `viem` by default | Keep until Product CDM write evidence passes |
+| Product appVersion | `[0, 1, 46]` | Published from the source SHA and CID above. Installed-host payment, room, device matrix, matching rollback, and aggregate pilot evidence remain open. |
+| Runtime write adapter | `product-cdm` on `devnet` | Match the published Product profile; ordinary web uses viem. |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
 | Asset Hub EVM RPC | `https://eth-rpc-testnet.polkadot.io/` | Keep; chain id `420420417` |
@@ -95,17 +96,18 @@ Product/CDM anchors:
 | Statement Store SDK | `@parity/product-sdk-statement-store@0.6.9` |
 | Product deploy CLI | `@parity/polkadot-app-deploy@0.20.0` plus the host-profile preflight |
 
-Product has two deliberately separate deployment identities during this gate.
-The CDM validation CID above is payment/key and room evidence only. The default
-`viem` CID above is the published pilot release identity; supply it through
-`--pilot-release-cid`. The readiness script never infers it from the validation
-artifacts. Do not repeat the paid transaction to populate another evidence file.
+The earlier 0.1.29 gate had separate CDM validation and default-viem release
+CIDs. For the current 0.1.46 gate, supply the published CDM executable CID
+through `--pilot-release-cid`. The readiness script requires matching Product
+payment/key, room, rollback and pilot candidate identities. Do not repeat a
+paid transaction to populate another evidence file.
 
 ## Rollback
 
 Rollback is static and reversible:
 
-An owner-approved temporary rollback/restore was rehearsed on 2026-09-29.
+Historical 0.1.29 evidence: an owner-approved temporary rollback/restore was
+rehearsed on 2026-09-29. This does not satisfy the rollback gate for 0.1.46.
 The rebuilt 0.1.25 CDM/debug CAR was published at
 `bafybeicew7wtqc6s6kq37nnv3yzsfg2tq4dalaxbamrvs443z4ikhunrsa`;
 Product Desktop loaded its 12-track catalog and reopened an already-paid
@@ -117,7 +119,7 @@ check passed after a cache clear. The old rebuilt CID is **not** proven
 byte-identical to the historical 0.1.25 room-proven CID. A 0.1.26 or
 default-`viem` reconstruction is not a substitute for that target.
 
-The rehearsal used `--no-manifest` to avoid `pad --input-car` independently
+The historical rehearsal used `--no-manifest` to avoid `pad --input-car` independently
 uploading the executable path from a config with different bytes. It changed
 both contenthashes but left manifest text records unchanged. This is adequate
 evidence for the observed single-account content/access recovery, **not** a
@@ -125,7 +127,9 @@ complete long-lived rollback procedure with consistent Product metadata.
 Product Desktop also mixed JavaScript from adjacent CIDs until its cache was
 cleared with owner consent on each switch. Prefer an isolated alias for future
 rehearsals; on a public test name, warn that active sessions may reload. Never
-store or paste the DotNS phrase into the repo or chat.
+store or paste the DotNS phrase into the repo or chat. The steps below record
+the 0.1.29 rehearsal; for 0.1.46, select a distinct rollback artifact and
+restore the exact 0.1.46 CID before claiming its rollback gate.
 
 1. Identify the selected old commit, build flags, Product appVersion, and
    observed CID. Preserve the exact current release CAR and config before
@@ -234,8 +238,10 @@ decision to the exact candidate build being evaluated:
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 29]",
-    "deployedCid": "<default-viem-pilot-release-cid>",
+    "productAppVersion": "[0, 1, 46]",
+    "runtimeAdapterKind": "product-cdm",
+    "productChain": "devnet",
+    "deployedCid": "<published-product-cdm-cid>",
     "capturedAt": "2026-09-28T12:00:00.000Z"
   },
   "participants": { "artists": 3, "hosts": 5, "listeners": 20 },
@@ -280,7 +286,7 @@ sharing; do not publish signing prompts, secrets, or unconsented participant
 details. A visible player or `In sync` label does not by itself prove audible
 sound, successful recovery, or the aggregate join target.
 
-Run the aggregate gate with the independently recorded release CID:
+Run the aggregate gate with the published CDM release CID:
 
 Run this command from a clean checkout at the **deployed candidate SHA**.
 The harness deliberately binds evidence to `git HEAD`; a later documentation
@@ -290,16 +296,16 @@ commit will fail the SHA gates even when the Product JSON is genuine.
 npm run smoke:pilot-release -- \
   --product-smoke-json /path/to/product-cdm-host-smoke.json \
   --room-json /path/to/product-cdm-room-evidence.json \
-  --pilot-release-cid <default-viem-pilot-release-cid> \
+  --pilot-release-cid <published-product-cdm-cid> \
   --rollback-json /path/to/candidate-bound-rollback-evidence.json \
   --pilot-json /path/to/aggregate-pilot-evidence.json
 ```
 
-The Product smoke and room artifacts retain the `product-cdm` deployment CID.
-The rollback artifact is independent of the future pilot cohort and binds the
-old/new DotNS transactions and catalog/key checks to that release CID. The
-pilot artifact and `--pilot-release-cid` retain the separately deployed
-default `viem` CID. All tracks must use the same candidate git SHA.
+The Product smoke, room, rollback and pilot artifacts must all bind to the
+published `product-cdm` CID supplied through `--pilot-release-cid`. The
+rollback artifact is independent of the future pilot cohort and binds the
+old/new DotNS transactions and catalog/key checks to that release CID. All
+artifacts must use the same candidate git SHA and appVersion.
 
 ## Go/No-Go Record
 
