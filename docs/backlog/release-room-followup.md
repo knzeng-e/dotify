@@ -57,3 +57,6 @@ metadata upgrade verification.
 
 An additional catalog browser regression confirms cached images are visibly
 loaded and resume the responsive native path after a blob display failure.
+The touch-swipe test waits for font/layout readiness and a rendered frame between
+CDP movements, while retaining native scrolling and no-release-open assertions;
+ten repeated local runs passed.

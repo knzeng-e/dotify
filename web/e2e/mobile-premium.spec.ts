@@ -231,12 +231,17 @@ test('a touch swipe browses music without opening a release', async ({ browser }
     await page.goto(fixture);
     const rail = page.getByRole('region', { name: 'Music catalog' });
     await expect(page.getByTestId('track-card')).toHaveCount(13);
+    await page.evaluate(() => document.fonts.ready);
+    await rail.scrollIntoViewIfNeeded();
     const box = (await rail.boundingBox())!;
     const cdp = await context.newCDPSession(page);
     const y = box.y + 60;
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 340, y }] });
     for (const x of [300, 250, 200, 150, 90]) {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] });
+      // Let Chromium process each real gesture frame; back-to-back CDP
+      // commands can be coalesced before native scrolling begins on CI.
+      await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
     }
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect.poll(() => rail.evaluate(element => element.scrollLeft)).toBeGreaterThan(150);
