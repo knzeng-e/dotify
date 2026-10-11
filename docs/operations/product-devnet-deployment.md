@@ -348,10 +348,11 @@ CDM unlock as `blocked` and the room journey as `not-run`. Treat a static
 package. It additionally verifies W01-W12 local evidence, issue/backlog mapping,
 the reversible pilot plan, contract inventory, and optional aggregate pilot
 metrics. Optional pilot evidence must use schema v2 and bind the decision to
-the candidate git SHA, Product appVersion, default `viem` release CID, capture
-time, outcome metrics, privacy flags, rollback, and join-count invariants. Pass
-that independently recorded release CID with `--pilot-release-cid`; the command
-never substitutes the earlier `product-cdm` smoke or room CID. It does not sign,
+the candidate git SHA, Product appVersion, `product-cdm`/`devnet` profile,
+published executable CID, capture time, outcome metrics, privacy flags,
+rollback, and join-count invariants. Pass the published 0.1.46 CDM CID with
+`--pilot-release-cid`; Product payment/key and room evidence must bind to that
+same CID. The command does not sign,
 deploy, contact participants, or treat missing live evidence as a pass.
 
 `smoke:product-cash-settlement` is also read-only. The expected result for the
@@ -430,7 +431,8 @@ Product candidate** workflow accepts only an exact full commit SHA and a
 `validation` or `release` profile. It checks out and builds that immutable
 candidate with no mnemonic, signer, upload, or network write. The validation
 profile enables the Product CDM adapter, artist gifts, and the operator-only
-readiness panel; the release profile retains the tracked viem defaults.
+readiness panel. For 0.1.46, the release profile uses the tracked
+`product-cdm`/`devnet` settings.
 
 ```bash
 gh workflow run deploy-frontend.yml \
@@ -480,7 +482,7 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The tracked Product executable candidate is `[0, 1, 34]`. It invalidates host
+The historical Product executable candidate `[0, 1, 34]` invalidated host
 caches for the verified room-tip affordance while retaining `[0, 1, 33]`
 artist earnings and native-contribution behavior. Verify the embedded SHA and
 this appVersion after reopening Product; a new CID carrying the previous
@@ -719,13 +721,14 @@ Then verify in the Product host:
    In every rejected case, playback must stop and offer an EVM wallet fallback.
    No path may release a key without a verified signature.
 
-6. The tracked Product profile intentionally uses the `viem` writer, so that
-   published profile asks for an EVM-compatible wallet when it needs to write.
-   To test payment through the Product host instead, publish an explicit Product
-   CDM smoke build from the candidate commit:
+6. The tracked Product profile uses the `product-cdm` writer on `devnet`.
+   A debug build is useful for a future pilot candidate, but it creates a
+   different executable CID. Evidence from it cannot validate the published
+   0.1.46 CID; keep those live gates blocked until observations are captured
+   from the exact release artifact. To prepare a new candidate with the debug
+   panel, publish from a clean committed worktree and record its own CID:
 
 ```bash
-VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm \
 VITE_DOTIFY_DEBUG_PANEL=true \
 npm run deploy:product-devnet
 ```
@@ -794,7 +797,7 @@ npm run deploy:product-devnet
 
    A separately authorized new-payment test still needs a funded Product
    account without access to the target Classic track. Do not use this as the
-   default `dotify-test01.dot` release gate until it has passed end to end. Verify:
+   sole `dotify-test01.dot` release gate until it has passed end to end. Verify:
    - the connected Dotify Product account and the host-selected signer expose
      the same public key;
    - deriving `pallet-revive` H160 from that public key gives the same H160
@@ -841,7 +844,8 @@ npm run smoke:product-journey -- \
    host approval UX, or post-payment access evidence is missing, the
    `product-cdm` build must report **Payment included, access not verified**
    with the transaction hash instead of marking the track open.
-   Keep the shipped profile on `viem`.
+   The published 0.1.46 profile remains `product-cdm`/`devnet`; keep its
+   acceptance blocked until this native payment and read-back are observed.
 
    Product CASH is a separate future rail, not a replacement for this native
    runtime smoke. A Host `PaymentManager` status of `Completed` is not enough
@@ -923,30 +927,23 @@ npm run smoke:product-journey -- \
    from the Product Web gateway. A Product Desktop room smoke must not be reused
    as Product Web evidence.
 
-   This completes the validation deployment track. Before an authorized pilot,
-   republish the same SHA and Product appVersion with the tracked default
-   `viem` profile:
-
-```bash
-npm run deploy:product-devnet
-```
-
-   Record the new CID printed by this command. It is the pilot release CID and
-   is expected to differ from the earlier `product-cdm` CID because the bundles
-   differ. Run the aggregate readiness gate with both identities kept separate:
+   For the current 0.1.46 gate, use the published `product-cdm` executable CID
+   for the release and capture host evidence from that same artifact. A debug
+   build with a different CID cannot validate the published release. Run the
+   aggregate readiness gate with one release identity:
 
 ```bash
 npm run smoke:pilot-release -- \
   --product-smoke-json /path/to/product-cdm-host-smoke.json \
   --room-json /path/to/product-cdm-room-evidence.json \
-  --pilot-release-cid <default-viem-pilot-release-cid> \
+  --pilot-release-cid <published-product-cdm-cid> \
   --pilot-json /path/to/aggregate-pilot-evidence.json
 ```
 
    The command rejects pilot evidence when `--pilot-release-cid` is absent,
-   malformed, or different from `pilot-json.candidate.deployedCid`. Product CDM
-   and room evidence can validate the experimental writer, but cannot approve
-   the release bundle used by participants.
+   malformed, or different from `pilot-json.candidate.deployedCid`, and rejects
+   Product payment/key or room evidence from another CID. Capture real Host and
+   participant observations against the exact published bundle.
 
 10. A Netlify-origin host and Product-origin guest also connect.
 11. Briefly interrupting the mobile network preserves and resumes the same room
@@ -1061,12 +1058,12 @@ active.
   step for `product-sr25519-v1` records which shape the live host actually
   produced - that observation is the evidence, and until it is captured the
   accepted set stays deliberately wide.
-- Contract writes use the shared runtime writer port, with viem still selected
-  for the tracked deployment. The Product CDM/PAPI runtime adapter now has its
+- Contract writes use the shared runtime writer port, with `product-cdm` selected
+  for the tracked 0.1.46 Product deployment. The Product CDM/PAPI runtime adapter has its
   generated manifest, contract types, live resolver, signer-account mapping
   checks, Classic unlock write path, and W05 royalty claim write path. It still
-  needs real host-signed transaction evidence before Product CDM becomes the
-  default. Dotify validates that the selected Product host signer public key
+  needs real host-signed transaction evidence before the current release can
+  pass acceptance. Dotify validates that the selected Product host signer public key
   maps to the same `pallet-revive` H160 account used by the connected Product
   identity before a CDM write can be submitted, and Product CDM Classic unlocks
   poll `musicAccHasPaid` and `musicAccCanAccess` for that H160 account before
@@ -1090,9 +1087,9 @@ active.
   catalog recovery but is not required for API startup.
 - Product contract mode (`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`) covers
   catalog reads and runtime write submissions inside the Product host. The
-  tracked deployment still keeps the default `viem` adapter until
-  native value forwarding, host approval UX, and successful post-payment
-  read-back evidence are captured. Product payment history is still not exposed
+  tracked 0.1.46 deployment uses this profile; installed-host payment, approval
+  UX, and post-payment read-back still need candidate-bound observations.
+  Product payment history is still not exposed
   by the current Product contract handle API, so the full royalty settlement
   ledger needs an event/indexer source. Use `VITE_DOTIFY_DEBUG_PANEL=true` on
   that smoke build to export the Product CDM host evidence JSON.

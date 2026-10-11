@@ -13,9 +13,10 @@ EVM-only or wrong-chain adapter settings. Release 0.1.45 used the default viem
 profile, causing Product tips to request an EVM wallet before submission. Existing
 pending receipts remain intact; this correction must not resubmit a payment.
 
-Deploy signaling and the frontend from the room-life candidate after #256.
-No contract, database, content-key or upload migration is required. Events and
-optional join fields are additive; old clients can still join. A new client
+Release 0.1.46 deployed only the Product frontend. Signaling was already
+deployed for the earlier room-life rollout and was not redeployed with 0.1.46.
+No contract, database, content-key or upload migration was required. Events
+and optional join fields are additive; old clients can still join. A new client
 explicitly reports an ordinary join if an older server cannot confirm its
 requested artist announcement.
 
@@ -35,8 +36,9 @@ Product Desktop and Mobile entry without a new signature while the session is
 valid. Inspect `/status` for absence of private social state and continuity tokens.
 
 Social history and pending continuity die with the room or service restart.
-Rollback frontend and signaling together; no durable data needs rollback. Counts
-are connected sessions, not historical listens. See the
+For the 0.1.46 rollback, restore only the prior Product frontend artifact;
+signaling remains on its current deployed version. No durable data needs
+rollback. Counts are connected sessions, not historical listens. See the
 [protocol and trust boundaries](../explanation/room-life-and-artist-visits.md).
 
 This runbook is the operator checklist for Dotify's hosted configuration across
