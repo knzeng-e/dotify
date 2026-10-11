@@ -10,6 +10,7 @@ export function RoomChatMessage({
   selfId,
   hostId,
   canPin,
+  pinDisabled,
   onReply,
   onPin
 }: {
@@ -17,6 +18,7 @@ export function RoomChatMessage({
   selfId?: string;
   hostId?: string;
   canPin: boolean;
+  pinDisabled?: boolean;
   onReply: (message: Message) => void;
   onPin: (id: string) => void;
 }) {
@@ -103,6 +105,8 @@ export function RoomChatMessage({
           {canPin && (
             <button
               type='button'
+              disabled={pinDisabled}
+              title={pinDisabled ? 'Reconnect to pin this message' : undefined}
               onClick={() => {
                 setActionsOpen(false);
                 actionRef.current?.focus();

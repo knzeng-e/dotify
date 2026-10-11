@@ -196,7 +196,8 @@ export function RoomChat({
                       message={entry.message}
                       selfId={selfId}
                       hostId={hostId}
-                      canPin={session.mode === 'host' && connected}
+                      canPin={session.mode === 'host'}
+                      pinDisabled={!connected}
                       onPin={pin}
                       onReply={message => {
                         setReplyTo(message);
