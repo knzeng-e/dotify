@@ -1,5 +1,24 @@
 # Deployment Configuration Runbook
 
+## Structured release metadata candidate (2026-10-11)
+
+PR #263 changes new artist publications from `dotify.track.v1` to the strict
+`dotify.track.v2` manifest. It introduces no environment variable, secret,
+contract or catalog-read-model change, but the API upload validator and both
+ordinary/Product frontend bundles must be deployed from the same commit. Pause
+test publishing during the rollout, deploy the API validator, publish the web
+and Product bundles immediately afterward, then reopen installed Hosts before
+publishing the first v2 release.
+
+This construction-phase rollout assumes the owner-approved development-data
+reset. Do not claim that old prose was migrated: rich release facts appear only
+after a track is republished with v2 metadata. Smoke one artist publication with
+an album/project, year, two genres and one contributor; reopen it from the
+listener catalog and confirm that the story, facts and credit load from IPFS,
+while access price and recipients still match the runtime. Rollback requires
+the prior API and frontend together; reset releases created with v2 before
+returning to a v1-only frontend.
+
 ## Room life and artist visits (2026-10-10 candidate)
 
 The published Product `[0, 1, 46]` release creates a reusable artist session
@@ -1587,6 +1606,16 @@ acceptance within five seconds. Check the room before resending an unconfirmed
 message; there is no automatic retry or exactly-once guarantee. Request capacity
 and social rate limits remain server-enforced. Reactions are not buffered during
 transport loss.
+
+The 2026-10-11 quiet room-controls follow-up is frontend-only. It uses the
+existing suggestions, replies, pin and host-tip binding protocol, with no new
+environment variables, server release, permission or migration. After publishing
+it, check host versus guest Queue, catalog search with the mobile keyboard open,
+the message **…** actions by touch and keyboard, right-swipe reply versus vertical
+scroll, and local **Room activity** filtering on web and the installed Product
+host. **Enable host tips** is the renamed explicit account binding, not a new
+payment or a change to artist-selected shares. See
+[room conversation controls](../explanation/room-live-conversation.md#quiet-controls-and-role-specific-queue--2026-10-11).
 
 Rollback the galaxy experiment by rebuilding without its `on` value. The room
 lineup requires a coordinated frontend/signaling rollback because old signaling

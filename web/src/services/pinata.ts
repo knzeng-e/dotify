@@ -17,6 +17,8 @@ import { contentKeyVersionForAudioRef, encryptedRefToCID, normalizeEncryptedAudi
 import { fetchThroughGateways } from './gatewayRace';
 import { clearStoredSession, ensureDotifySession, ensureDotifySessionForSigner, type KeyRequestSigner } from './keyService';
 import { getAddress, isAddress, type WalletClient } from 'viem';
+import { parseReleaseEditorialMetadata } from '../features/catalog/releaseMetadata';
+import type { ReleaseEditorialMetadata } from '../shared/types';
 
 // Backend API base URL. When set, uploads are routed server-side.
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
@@ -52,7 +54,7 @@ export type AccessMode = 'human-free' | 'classic' | 'free';
 export type PersonhoodLevel = 'DIM1' | 'DIM2';
 
 export interface DotifyTrackManifest {
-  schema: 'dotify.track.v1';
+  schema: 'dotify.track.v2';
   createdAt: string;
   assets: {
     audioCID: string;
@@ -67,11 +69,13 @@ export interface DotifyTrackManifest {
     title: string;
     artistName: string;
     description: string;
+    durationSeconds: number | null;
     accessMode: AccessMode;
     priceDot: string;
     requiredPersonhood: string;
     zone: string;
   };
+  editorial: ReleaseEditorialMetadata;
   royalties: Array<{ recipient: string; bps: number }>;
   settlement: {
     target: 'evm';
@@ -82,6 +86,18 @@ export interface DotifyTrackManifest {
     txHash: string;
     contractAddress: string;
   };
+}
+
+export async function fetchTrackManifest(metadataRef: string, options: GatewayReadOptions = {}): Promise<DotifyTrackManifest> {
+  const response = await fetchAssetRef(metadataRef, options);
+  if (!response.ok) throw new Error(`Release details could not be read (${response.status}).`);
+  const value = (await response.json()) as Partial<DotifyTrackManifest> | null;
+  if (!value || value.schema !== 'dotify.track.v2' || !value.track || !value.assets || !value.settlement || !Array.isArray(value.royalties)) {
+    throw new Error('This release does not use the current Dotify metadata format.');
+  }
+  const editorial = parseReleaseEditorialMetadata(value.editorial);
+  if (!editorial) throw new Error('The release details are incomplete or invalid.');
+  return { ...value, editorial } as DotifyTrackManifest;
 }
 
 // ---------------------------------------------------------------------------
@@ -553,7 +569,7 @@ export async function fetchCatalogFromPinata(): Promise<DotifyTrackManifest[]> {
     sorted.map(async pin => {
       const r = await fetchIpfsCid(pin.ipfs_pin_hash);
       const manifest = (await r.json()) as DotifyTrackManifest;
-      if (manifest.schema !== 'dotify.track.v1') throw new Error('Unknown schema');
+      if (manifest.schema !== 'dotify.track.v2') throw new Error('Unknown schema');
       return manifest;
     })
   );

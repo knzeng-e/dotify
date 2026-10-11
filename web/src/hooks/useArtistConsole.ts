@@ -34,6 +34,7 @@ import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
 import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { resolveProductHostConfig } from '../features/productHost/productHost';
 import { resolveConfiguredArtistPublicationSafety } from '../shared/config/deploymentSafety';
+import { normalizeReleaseMetadata } from '../features/catalog/releaseMetadata';
 import { describeArtistRegistrationError, formatWeiAsDot, shorten, dotToPlanck } from '../shared/utils/format';
 import {
   createArtistPublishE2eTrack,
@@ -56,6 +57,7 @@ import type {
   CatalogTrack,
   PersonhoodLevel,
   ReleaseRoyaltySplitDraft,
+  ReleaseEditorialMetadata,
   RoyaltyPayment,
   RoyaltyRuntimeSummary,
   TransactionFeedback
@@ -218,6 +220,8 @@ export type UseArtistConsoleDeps = {
   title: string;
   artistName: string;
   description: string;
+  releaseMetadata: ReleaseEditorialMetadata;
+  durationSeconds: number | null;
   accessMode: AccessMode;
   priceDot: string;
   personhoodLevel: PersonhoodLevel;
@@ -252,6 +256,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     title,
     artistName,
     description,
+    releaseMetadata,
+    durationSeconds,
     accessMode,
     priceDot,
     personhoodLevel,
@@ -788,7 +794,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   ): DotifyTrackManifest {
     const keyVersion = protectedAudioUploadToKeyVersion(resolvedAudioRef);
     return {
-      schema: 'dotify.track.v1',
+      schema: 'dotify.track.v2',
       createdAt: new Date().toISOString(),
       assets: {
         audioCID: resolvedAudioCID,
@@ -801,11 +807,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         title: title.trim() || 'Untitled',
         artistName: artistName.trim() || 'Unknown artist',
         description: description.trim(),
+        durationSeconds,
         accessMode,
         priceDot: priceDotForAccessMode(accessMode, priceDot),
         requiredPersonhood: manifestRequiredPersonhood(accessMode, personhoodLevel),
         zone: 'Studio'
       },
+      editorial: normalizeReleaseMetadata(releaseMetadata),
       royalties: royaltyRecipients.map((recipient, index) => ({
         recipient,
         bps: royaltyShares[index] ?? 0

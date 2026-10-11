@@ -32,6 +32,28 @@ function nextRoyaltySplitId() {
   return `split-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function measureAudioDuration(source: string): Promise<number | null> {
+  return new Promise(resolve => {
+    const audio = new Audio();
+    let settled = false;
+    const timeout = window.setTimeout(() => finish(null), 5_000);
+    function finish(value: number | null) {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      audio.onloadedmetadata = null;
+      audio.onerror = null;
+      audio.removeAttribute('src');
+      audio.load();
+      resolve(value);
+    }
+    audio.preload = 'metadata';
+    audio.onloadedmetadata = () => finish(Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null);
+    audio.onerror = () => finish(null);
+    audio.src = source;
+  });
+}
+
 const artistTabs: Array<{ id: ArtistTab; label: string }> = [
   { id: 'overview', label: 'Overview' },
   { id: 'releases', label: 'Releases' },
@@ -48,6 +70,9 @@ export function ArtistConsole() {
     setTitle,
     description,
     setDescription,
+    releaseMetadata,
+    setReleaseMetadata,
+    setDurationSeconds,
     artistName,
     setArtistName,
     priceDot,
@@ -183,6 +208,7 @@ export function ArtistConsole() {
       const nextTitle = nextTitleFromUpload(title, file.name);
       const nextUrl = URL.createObjectURL(file);
       catalog.objectUrlsRef.current.add(nextUrl);
+      setDurationSeconds(await measureAudioDuration(nextUrl));
 
       catalog.setAudioSource(nextUrl);
       catalog.setFileHash(result.hash);
@@ -400,6 +426,7 @@ export function ArtistConsole() {
             coverCID={coverCID}
             title={title}
             description={description}
+            releaseMetadata={releaseMetadata}
             accessMode={accessMode}
             personhoodLevel={personhoodLevel}
             priceDot={priceDot}
@@ -423,6 +450,7 @@ export function ArtistConsole() {
             onHandleCoverFile={onHandleCoverFile}
             onSetTitle={onSetTitle}
             onSetDescription={onSetDescription}
+            onSetReleaseMetadata={setReleaseMetadata}
             onSetAccessMode={onSetAccessMode}
             onSetPersonhoodLevel={onSetPersonhoodLevel}
             onSetPriceDot={onSetPriceDot}

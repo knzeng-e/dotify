@@ -47,3 +47,19 @@ navigation, short reconnect suppression and unchanged guest key separation.
 
 Deploy signaling and the frontend together after #256. The installed mobile and
 desktop Product hosts remain physical-device acceptance targets.
+
+## Owner feedback — 2026-10-11
+
+The owner reports a successful physical web/EVM announced artist visit after
+the 0.1.46 release. The next requested usability correction reserves track
+requests for guests, makes chat reply/pin actions discreet with a touch reply
+shortcut, and explains the activity filter and host-tip binding. See the
+[interaction follow-up](../explanation/room-live-conversation.md#quiet-controls-and-role-specific-queue--2026-10-11).
+It retains server authorization, acknowledgement delivery and wallet-free guests.
+
+The [guide and release-details record](../design/user-guide-and-track-details-proposal.md)
+keeps the illustrated guide as follow-up work. PR #263 now implements the
+structured `dotify.track.v2` publication fields and the story-first in-app
+release sheet for the next test-data reset. It deliberately adds no migration
+for earlier development manifests. Installed Product gesture checks and the
+broader pilot reliability evidence remain open after this change.

@@ -51,10 +51,11 @@ for (const [width, height] of [
     const draft = page.getByRole('textbox', { name: 'Message the room' });
     await draft.fill('Keep this thought');
     await page.getByRole('tab', { name: /Queue/ }).click();
-    await page.getByRole('textbox', { name: 'Request a track' }).fill('Something soulful');
+    await expect(page.getByRole('textbox', { name: 'Request a track' })).toHaveCount(0);
+    await page.getByRole('textbox', { name: 'Find a track to add next' }).fill('Something soulful');
     await page.getByRole('tab', { name: /People/ }).click();
     await expect(page.getByRole('button', { name: 'Close room', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Receive room tips', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Enable host tips', exact: true })).toBeVisible();
     await page.getByRole('tab', { name: 'Chat', exact: true }).click();
     await expect(draft).toHaveValue('Keep this thought');
     await expectConversationFits(page);
@@ -63,13 +64,12 @@ for (const [width, height] of [
     await expect(draft).toHaveValue('');
     await page.screenshot({ path: testInfo.outputPath('room-conversation.png') });
     await page.getByRole('tab', { name: /Queue/ }).click();
-    await expect(page.getByRole('textbox', { name: 'Request a track' })).toHaveValue('Something soulful');
-    await expect(page.getByRole('button', { name: 'Send request' })).toBeDisabled();
-    await page.getByRole('textbox', { name: 'Request a track' }).fill('E2E Public');
-    await page.getByRole('button', { name: /^Suggest E2E Public Room Track by/ }).click();
-    await page.getByRole('button', { name: 'Send request' }).click();
-    await expect(page.getByLabel('Track requests', { exact: true })).toContainText('E2E Public Room Track');
-    await expect(page.getByRole('textbox', { name: 'Request a track' })).toHaveValue('');
+    await expect(page.getByRole('textbox', { name: 'Find a track to add next' })).toHaveValue('Something soulful');
+    await expect(page.getByRole('button', { name: 'Send request' })).toHaveCount(0);
+    await page.getByRole('textbox', { name: 'Find a track to add next' }).fill('E2E Protected');
+    await page.getByRole('button', { name: /^Add to queue E2E Protected Room Track by/ }).click();
+    await expect(page.locator('.host-lineup ol')).toContainText('E2E Protected Room Track');
+    await expect(page.getByRole('textbox', { name: 'Find a track to add next' })).toHaveValue('');
     await page.getByRole('tab', { name: 'Chat', exact: true }).click();
     await page.getByRole('tab', { name: 'Chat', exact: true }).press('ArrowRight');
     await expect(page.getByRole('tab', { name: /Queue/ })).toBeFocused();
@@ -278,7 +278,10 @@ for (const scenario of ['zoomed-chat', 'zoomed-chat-tab', 'resized-requests']) {
     await page.setViewportSize({ width: 390, height: 844 });
     await hostRoom(page);
     if (scenario === 'resized-requests') await page.getByRole('tab', { name: /Queue/ }).click();
-    const input = page.getByRole('textbox', { name: scenario.startsWith('zoomed-chat') ? 'Message the room' : 'Request a track', includeHidden: true });
+    const input = page.getByRole('textbox', {
+      name: scenario.startsWith('zoomed-chat') ? 'Message the room' : 'Find a track to add next',
+      includeHidden: true
+    });
     await input.fill('My words remain visible');
     await expect(page.locator('.bottom-nav')).toBeVisible();
     await page.evaluate(kind => {
@@ -345,7 +348,7 @@ test('switching panels while typing keeps the tapped tab in place until release'
   const duringPress = await requests.boundingBox();
   await page.mouse.up();
   expect(duringPress!.y).toBeCloseTo(bounds!.y, 0);
-  await expect(page.getByRole('textbox', { name: 'Request a track' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Find a track to add next' })).toBeVisible();
 });
 
 test('focus waits for keyboard geometry without moving the player or tabs', async ({ page }) => {
@@ -455,7 +458,7 @@ test('keyboard transition retains an opaque canvas, player geometry and drafts a
   await page.evaluate(() => Reflect.set(window, '__transitionAudio', document.querySelector('audio')));
   for (const tab of ['Chat', 'Queue']) {
     await page.getByRole('tab', { name: new RegExp(`^${tab}`) }).click();
-    const input = page.getByRole('textbox', { name: tab === 'Chat' ? 'Message the room' : 'Request a track' });
+    const input = page.getByRole('textbox', { name: tab === 'Chat' ? 'Message the room' : 'Find a track to add next' });
     await input.fill(`Draft in ${tab}`);
     for (const height of [0, 500, 0, 310, Number.NaN, 310]) {
       const previous = await shell.boundingBox();
