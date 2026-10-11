@@ -17,7 +17,7 @@ export function HostContributions() {
         <>
           <p>{message || 'Connecting your host account…'}</p>
           {status !== 'connecting' && (
-            <button type='button' className='quiet-action compact-action' onClick={() => (wallet.connectedWallet ? retry() : openWalletModal('support'))}>
+            <button type='button' className='secondary-action compact-action' onClick={() => (wallet.connectedWallet ? retry() : openWalletModal('support'))}>
               <RefreshCw size={16} aria-hidden='true' /> {wallet.connectedWallet ? 'Retry connection' : 'Connect for host tips'}
             </button>
           )}

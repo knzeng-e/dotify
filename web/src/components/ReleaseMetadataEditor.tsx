@@ -212,7 +212,7 @@ export function ReleaseMetadataEditor({ track: initialTrack, onClose }: { track:
                   onBlur={() => patch({ languages: parseMetadataList(metadata.languages.join(',')) })}
                 />
               </label>
-              <label>
+              <label className='release-explicit-toggle'>
                 <input type='checkbox' checked={metadata.explicitContent} onChange={event => patch({ explicitContent: event.target.checked })} /> Explicit
                 content
               </label>
@@ -243,7 +243,7 @@ export function ReleaseMetadataEditor({ track: initialTrack, onClose }: { track:
                     </select>
                     <button
                       type='button'
-                      className='quiet-action'
+                      className='secondary-action compact-action'
                       aria-label={`Remove credit ${index + 1}`}
                       onClick={() => patch({ credits: metadata.credits.filter((_, i) => i !== index) })}
                     >
@@ -253,7 +253,7 @@ export function ReleaseMetadataEditor({ track: initialTrack, onClose }: { track:
                 ))}
                 <button
                   type='button'
-                  className='quiet-action'
+                  className='secondary-action compact-action'
                   disabled={metadata.credits.length >= 20}
                   onClick={() => patch({ credits: [...metadata.credits, { name: '', role: 'performer' }] })}
                 >

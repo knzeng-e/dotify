@@ -1967,6 +1967,11 @@ button.you-panel:hover {
   min-height: 7rem;
   resize: vertical;
 }
+.release-metadata-editor .release-explicit-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
 .release-edit-credits {
   display: grid;
   gap: 0.65rem;
