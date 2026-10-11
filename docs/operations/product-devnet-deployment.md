@@ -17,8 +17,17 @@ chat announcement, publication reconciliation, and correction/read-back remain
 physical acceptance gates. Never submit another payment to repair an announcement.
 
 This runbook publishes the Product build to Bulletin/DotNS and connects it to
-the existing Fly API and signaling services. It does not deploy contracts or
-change production secrets.
+the existing Fly API and signaling services. The frontend publish command does
+not deploy contracts or configure backend secrets. For the 0.1.48 coordinated
+rollout, operators must first stage the same randomly generated 32–256-character
+value as API `NATIVE_RECEIPT_SERVICE_TOKEN` and signaling
+`SIGNAL_NATIVE_RECEIPT_SERVICE_TOKEN` in their respective Fly secret stores,
+then deploy the API and signaling services to activate it. Verify matching
+platform digests and deployed status on both apps before frontend publication;
+staging alone does not activate the token. Keep its value out of frontend
+variables, artifacts and logs. Follow the linked configuration runbook for this
+required production-secret addition, even in environments where it has not yet
+been staged.
 
 ## September 2026 Product DevNet Platform Refresh
 
