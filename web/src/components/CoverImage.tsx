@@ -8,6 +8,7 @@ import {
 } from '../features/catalog/coverArtwork';
 import { responsiveCoverSources } from '../features/catalog/responsiveCover';
 import { getGatewayUrlsForAssetRef } from '../services/pinata';
+import { artworkCacheKey, loadPublicArtwork } from '../services/publicArtworkCache';
 
 type CoverImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'crossOrigin' | 'src'> & {
   src: string | undefined;
@@ -38,6 +39,7 @@ export function CoverImage({
   const [didExhaustSources, setDidExhaustSources] = useState(false);
   const [showLocalFallback, setShowLocalFallback] = useState(false);
   const [lazyLoadRangeSource, setLazyLoadRangeSource] = useState<string | null>(null);
+  const [cachedSource, setCachedSource] = useState<{ ref: string; url: string } | null>(null);
 
   useEffect(() => {
     setSourceIndex(0);
@@ -74,20 +76,41 @@ export function CoverImage({
   const boundedSourceIndex = Math.min(sourceIndex, Math.max(lastSourceIndex, 0));
   const gatewaySource = sources[boundedSourceIndex];
   const presentation = resolveCoverPresentation(gatewaySource, fallbackSource, loadedSource, didExhaustSources, showLocalFallback);
-  const activeSource = presentation.source;
+  const activeSource = cachedSource && cachedSource.ref === src ? cachedSource.url : presentation.source;
   const responsive = useMemo(() => responsiveCoverSources(activeSource), [activeSource]);
   const isInLoadRange = loading !== 'lazy' || lazyLoadRangeSource === (src ?? null);
   const canStartGatewayTimeout = shouldArmCoverGatewayTimeout(loading, isInLoadRange);
 
   useEffect(() => {
-    if (!canStartGatewayTimeout || !shouldUseLocalCoverFallbackAfterGatewayTimeout(gatewaySource, loadedSource, didExhaustSources)) return;
+    if (!isInLoadRange || !src || !sources[0] || !artworkCacheKey(sources[0])) return;
+    let cancelled = false;
+    // Cache the width selected for this surface, rather than a 640px thumbnail.
+    const width = Math.min(640, Math.max(64, (imageRef.current?.getBoundingClientRect().width || 320) * Math.min(window.devicePixelRatio || 1, 2)));
+    const variant = [64, 160, 320, 640].find(candidate => candidate >= width) ?? 640;
+    const urls = sources.map(url => url.replace(/\/cover\/640\.webp(?=([?#]|$))/, `/cover/${variant}.webp`));
+    void loadPublicArtwork(urls)
+      .then(url => {
+        if (!cancelled) setCachedSource({ ref: src, url });
+      })
+      .catch(() => {
+        // Image loading without CORS remains available through the native path.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [src, sources, isInLoadRange]);
+
+  useEffect(() => {
+    if (cachedSource?.ref === src || !canStartGatewayTimeout || !shouldUseLocalCoverFallbackAfterGatewayTimeout(gatewaySource, loadedSource, didExhaustSources))
+      return;
 
     const timeoutId = window.setTimeout(() => {
       setShowLocalFallback(true);
+      if (boundedSourceIndex < lastSourceIndex) setSourceIndex(index => Math.min(index + 1, lastSourceIndex));
     }, COVER_GATEWAY_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [canStartGatewayTimeout, didExhaustSources, gatewaySource, loadedSource]);
+  }, [canStartGatewayTimeout, didExhaustSources, gatewaySource, loadedSource, boundedSourceIndex, lastSourceIndex, cachedSource, src]);
 
   const showResponsivePlaceholder = Boolean(responsive && loadedSource !== activeSource && !didExhaustSources);
   const fallbackBackground = presentation.showFallbackBackground

@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { createPublicClient, http, parseAbi, keccak256, encodeAbiParameters, zeroHash, isAddress } from 'viem';
+import { createPublicClient, http, parseAbi, keccak256, encodeAbiParameters, zeroAddress, zeroHash, isAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const abi = parseAbi([
@@ -102,7 +102,7 @@ export function createRoomContributions(config, dependencies = {}) {
       room.tipScope ??= `0x${randomBytes(32).toString('hex')}`;
     },
     async quote(room, input) {
-      if (!signer || !room.tipHost || !room.hostId) throw new Error('The host needs to enable contributions for this room.');
+      if (!room.hostId) throw new Error('The room is no longer hosted.');
       if (!isAddress(input.sender ?? '') || !hashPattern.test(input.intentId ?? '') || !/^[1-9]\d{0,76}$/.test(input.amount ?? ''))
         throw new Error('Invalid contribution.');
       if (room.track?.hash?.toLowerCase() !== input.contentHash?.toLowerCase()) throw new Error('The room track changed. Review the current track.');
@@ -122,11 +122,14 @@ export function createRoomContributions(config, dependencies = {}) {
         room.track?.runtimeAddress?.toLowerCase() !== input.runtime.toLowerCase()
       )
         throw new Error('The room changed. Review the current track.');
+      if (room.tipHost && !signer) throw new Error('Room tip verification is unavailable. Try again shortly.');
+      const bound = Boolean(room.tipHost);
+      room.tipScope ??= `0x${randomBytes(32).toString('hex')}`;
       const context = {
         contentHash: input.contentHash,
         intentId: input.intentId,
-        host: room.tipHost,
-        room: room.tipScope,
+        host: bound ? room.tipHost : zeroAddress,
+        room: bound ? room.tipScope : zeroHash,
         expiresAt: BigInt(Math.floor(Date.now() / 1000) + 600)
       };
       const digest = keccak256(
@@ -135,23 +138,94 @@ export function createRoomContributions(config, dependencies = {}) {
           [BigInt(config.chainId), input.runtime, input.sender, context, BigInt(input.amount)]
         )
       );
-      const proof = await signer.signMessage({ message: { raw: digest } });
+      const proof = bound ? await signer.signMessage({ message: { raw: digest } }) : '0x';
+      // Old runtimes cannot accept room context without a recipient. Retain a
+      // bounded server-side link to the unshared tip intent for chat verification.
+      if (!bound) {
+        room.tipIntents ??= new Map();
+        for (const [id, intent] of room.tipIntents) if (intent.expiresAt < Date.now()) room.tipIntents.delete(id);
+        if (room.tipIntents.size >= 1000) throw new Error('Room contribution limit reached. Try later.');
+        const id = keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'bytes32' }], [input.sender, input.intentId]));
+        room.tipIntents.set(id, {
+          runtime: input.runtime.toLowerCase(),
+          contentHash: input.contentHash.toLowerCase(),
+          sender: input.sender.toLowerCase(),
+          amount: input.amount,
+          expiresAt: Date.now() + 30 * 60 * 1000
+        });
+      }
       return { ok: true, host: context.host, room: context.room, expiresAt: context.expiresAt.toString(), proof };
     },
-    async notification(room, { runtime, hash }) {
+    async notification(room, { runtime, hash, nativeBlock }) {
       if (!isAddress(runtime ?? '') || !hashPattern.test(hash ?? '')) throw new Error('Invalid receipt.');
       const rpc = await chain();
-      const receipt = await rpc.getTransactionReceipt({ hash });
-      const final = await rpc.getBlock({ blockTag: 'finalized' });
-      if (receipt.status !== 'success' || receipt.blockNumber > final.number) throw new Error('The contribution is not finalized yet.');
-      if ((await rpc.getBlock({ blockNumber: receipt.blockNumber })).hash !== receipt.blockHash) throw new Error('The payment receipt changed.');
+      let logs;
+      if (nativeBlock !== undefined) {
+        if (
+          !config.api ||
+          config.chainId !== 420420417 ||
+          !Number.isSafeInteger(nativeBlock?.number) ||
+          nativeBlock.number < 0 ||
+          nativeBlock.number > 0xffffffff ||
+          (nativeBlock.hash !== undefined && !hashPattern.test(nativeBlock.hash)) ||
+          (nativeBlock.index !== undefined && (!Number.isSafeInteger(nativeBlock.index) || nativeBlock.index < 0))
+        )
+          throw new Error('Invalid native receipt block.');
+        const response = await request(`${config.api.replace(/\/$/, '')}/contributions/native-receipt`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hash, block: nativeBlock }),
+          signal: globalThis.AbortSignal.timeout(25000)
+        });
+        const body = response.ok ? await response.json() : null;
+        if (
+          body?.status !== 'success' ||
+          body.genesisHash !== '0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2' ||
+          body.hash?.toLowerCase() !== hash.toLowerCase() ||
+          body.block?.number !== nativeBlock.number ||
+          !hashPattern.test(body.block?.hash ?? '') ||
+          (nativeBlock.hash && body.block.hash.toLowerCase() !== nativeBlock.hash.toLowerCase()) ||
+          (nativeBlock.index !== undefined && body.block.index !== nativeBlock.index) ||
+          !Array.isArray(body.logs) ||
+          !body.logs.every(
+            log =>
+              log.transactionHash?.toLowerCase() === hash.toLowerCase() &&
+              isAddress(log.address ?? '') &&
+              Number.isSafeInteger(log.logIndex) &&
+              log.logIndex >= 0 &&
+              /^0x(?:[\da-f]{2})*$/i.test(log.data ?? '') &&
+              Array.isArray(log.topics) &&
+              log.topics.every(topic => hashPattern.test(topic))
+          )
+        )
+          throw new Error('The native contribution could not be verified.');
+        logs = body.logs;
+      } else {
+        const receipt = await rpc.getTransactionReceipt({ hash });
+        const final = await rpc.getBlock({ blockTag: 'finalized' });
+        if (receipt.status !== 'success' || receipt.blockNumber > final.number) throw new Error('The contribution is not finalized yet.');
+        if ((await rpc.getBlock({ blockNumber: receipt.blockNumber })).hash !== receipt.blockHash) throw new Error('The payment receipt changed.');
+        logs = receipt.logs;
+      }
       const { parseEventLogs } = await import('viem');
-      const event = parseEventLogs({ abi, logs: receipt.logs, eventName: 'ContributionReceived' }).find(
-        log => log.address.toLowerCase() === runtime.toLowerCase() && log.args.room === room.tipScope && log.args.contentHash !== zeroHash
-      );
+      const event = parseEventLogs({ abi, logs, eventName: 'ContributionReceived' }).find(log => {
+        if (log.address.toLowerCase() !== runtime.toLowerCase() || log.args.contentHash === zeroHash) return false;
+        if (log.args.room !== zeroHash && log.args.room === room.tipScope) return true;
+        const intent = room.tipIntents?.get(log.args.id);
+        return (
+          log.args.room === zeroHash &&
+          log.args.host === zeroAddress &&
+          intent &&
+          intent.expiresAt >= Date.now() &&
+          intent.runtime === runtime.toLowerCase() &&
+          intent.contentHash === log.args.contentHash.toLowerCase() &&
+          intent.sender === log.args.sender.toLowerCase() &&
+          BigInt(intent.amount) === log.args.amount
+        );
+      });
       if (!event) throw new Error('This payment does not belong to this room.');
       const track = await knownTrack(runtime, event.args.contentHash);
-      const id = `${config.chainId}:${runtime.toLowerCase()}:${receipt.transactionHash.toLowerCase()}:${event.logIndex}`;
+      const id = `${config.chainId}:${runtime.toLowerCase()}:${hash.toLowerCase()}:${event.logIndex}`;
       room.tipNotified ??= new Set();
       if (room.tipNotified.has(id)) return null;
       if (room.tipNotified.size >= 1000) throw new Error('Room contribution notification limit reached.');

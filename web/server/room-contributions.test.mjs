@@ -19,7 +19,10 @@ function setup() {
 }
 test('a room proof binds chain, runtime, payer, work, host, unique room, amount and expiry', async () => {
   const { service, room, input } = setup();
-  await assert.rejects(() => service.quote(room, input), /host needs/);
+  const unbound = await service.quote(room, input);
+  assert.equal(unbound.host, zeroAddress);
+  assert.equal(unbound.room, zeroHash);
+  assert.equal(unbound.proof, '0x');
   await service.bind(room, 'valid-token');
   const proof = await service.quote(room, input);
   const context = { contentHash: hash, intentId: hash, host: address, room: proof.room, expiresAt: BigInt(proof.expiresAt) };
@@ -47,6 +50,12 @@ test('a room proof binds chain, runtime, payer, work, host, unique room, amount 
 test('a claimed host identity requires a valid API session on the configured chain', async () => {
   const service = createRoomContributions(config, { fetch: async () => ({ ok: false }), signer: account });
   await assert.rejects(() => service.bind({}, 'bad-token'), /could not be verified/);
+});
+test('an unavailable attestor cannot silently remove a connected host allocation', async () => {
+  const { client, room, input } = setup();
+  room.tipHost = address;
+  const service = createRoomContributions(config, { client });
+  await assert.rejects(() => service.quote(room, input), /verification is unavailable/);
 });
 test('a fresh unique catalog release repairs missing room attribution before quoting', async () => {
   const client = {
@@ -172,4 +181,83 @@ test('chat announces only a finalized canonical contribution in this room, once'
   assert.match(message.text, /Work/);
   assert.equal(await service.notification(room, { runtime: address, hash }), null);
   assert.equal(await service.notification(room, { runtime: address, hash: hash.toUpperCase().replace('0X', '0x') }), null);
+});
+
+function tipLog(room, host = address, id = hash) {
+  const abi = parseAbi([
+    'event ContributionReceived(bytes32 indexed id,bytes32 indexed contentHash,address indexed sender,uint256 amount,address host,bytes32 room,bytes32 campaign,bytes32 policy,uint64 timestamp)'
+  ]);
+  return {
+    address,
+    logIndex: 1,
+    transactionHash: hash,
+    topics: encodeEventTopics({ abi, eventName: 'ContributionReceived', args: { id, contentHash: hash, sender: address } }),
+    data: encodeAbiParameters(
+      [{ type: 'uint256' }, { type: 'address' }, { type: 'bytes32' }, { type: 'bytes32' }, { type: 'bytes32' }, { type: 'uint64' }],
+      [10n, host, room, zeroHash, hash, 1700000000n]
+    )
+  };
+}
+
+test('an unbound host still permits a full artist tip and its exact room intent announcement', async () => {
+  const { service, room, input, client } = setup();
+  const quoted = await service.quote(room, input);
+  assert.equal(quoted.host, zeroAddress);
+  assert.equal(quoted.room, zeroHash);
+  assert.equal(quoted.proof, '0x');
+  const id = keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'bytes32' }], [address, input.intentId]));
+  client.getTransactionReceipt = async () => ({
+    status: 'success',
+    transactionHash: hash,
+    blockNumber: 10n,
+    blockHash: hash,
+    logs: [tipLog(zeroHash, zeroAddress, id)]
+  });
+  client.getBlock = async () => ({ number: 10n, hash });
+  await assert.rejects(() => service.notification({ hostId: 'other-room' }, { runtime: address, hash }), /does not belong/);
+  assert.match((await service.notification(room, { runtime: address, hash })).text, /Work/);
+  assert.equal(await service.notification(room, { runtime: address, hash }), null);
+});
+
+test('native room announcements use the verified API extrinsic receipt and reject mismatches', async () => {
+  const { room, client } = setup();
+  client.getChainId = async () => 420420417;
+  let body;
+  const requests = [];
+  const service = createRoomContributions(
+    { ...config, chainId: 420420417 },
+    {
+      client,
+      signer: account,
+      fetch: async (url, init) => {
+        requests.push({ url, init });
+        return { ok: true, json: async () => (url.endsWith('/auth/identity') ? { address, chainId: 420420417 } : body) };
+      }
+    }
+  );
+  await service.bind(room, 'token');
+  body = {
+    status: 'success',
+    genesisHash: '0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2',
+    hash,
+    block: { number: 10, hash, index: 3 },
+    logs: [tipLog(room.tipScope)]
+  };
+  const input = { runtime: address, hash, nativeBlock: { number: 10, hash, index: 3 } };
+  const correct = globalThis.structuredClone(body);
+  for (const mutation of [
+    { hash: zeroHash },
+    { status: 'failed' },
+    { genesisHash: zeroHash },
+    { block: { number: 11, hash, index: 3 } },
+    { logs: [tipLog(zeroHash)] }
+  ]) {
+    body = { ...correct, ...mutation };
+    await assert.rejects(() => service.notification(room, input), /could not be verified|does not belong/);
+  }
+  body = correct;
+  assert.equal((await service.notification(room, input)).senderId, 'dotify-confirmed-tip');
+  assert.equal(await service.notification(room, input), null);
+  assert.equal(requests.at(-1).url, 'https://api.example/api/contributions/native-receipt');
+  assert.deepEqual(JSON.parse(requests.at(-1).init.body), { hash, block: input.nativeBlock });
 });

@@ -82,7 +82,10 @@ export type RoomRequests = {
   'room:pin': { input: { id: string | null }; output: { ok: boolean } };
   'room:tip-bind': { input: { token: string }; output: { ok: boolean; error?: string } };
   'room:tip-quote': { input: { runtime: string; contentHash: string; sender: string; intentId: string; amount: string }; output: RoomContributionReply };
-  'room:tip-notify': { input: { runtime: string; hash: string }; output: { ok: boolean; error?: string } };
+  'room:tip-notify': {
+    input: { runtime: string; hash: string; nativeBlock?: import('../runtime/runtimePorts').NativeContributionBlock };
+    output: { ok: boolean; error?: string };
+  };
   'room:realtime-clock': { input: Record<string, never>; output: { ok: true; time: number; server: string } | { ok: false } };
   'room:realtime-register': { input: { publicKey: string }; output: RealtimeRegistration };
   'room:create': { input: { displayName: string; track: TrackInfo | null; playbackMode: RoomPlaybackMode }; output: CreateRoomResponse };

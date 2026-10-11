@@ -9,6 +9,7 @@ import { CoverImage } from './CoverImage';
 import { Dialog } from './Dialog';
 import { roomHostDisplayName } from '../features/rooms/roomState';
 import type { CatalogTrack } from '../shared/types';
+import { useUiFeedback, useWalletContext } from '../app/providers';
 
 function SvgBroadcast({ size }: { size: number }) {
   return (
@@ -62,6 +63,8 @@ type CreateRoomModalProps = {
 };
 
 export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDisplayName, onClose, onOpenRoom, onTrackIntent }: CreateRoomModalProps) {
+  const { connectedWallet } = useWalletContext();
+  const { openWalletModal } = useUiFeedback();
   const [picked, setPicked] = useState<CatalogTrack | undefined>(initialTrack ?? tracks[0]);
   const hasChosenName = roomHostDisplayName(displayName) !== null;
 
@@ -141,6 +144,24 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
       />
 
       <div className='create-room-actions'>
+        {!connectedWallet && (
+          <div className='room-host-tip-warning' role='status'>
+            <strong>You will not receive a host share without connecting.</strong>
+            <p>
+              When an artist shares tips with hosts, your share goes to the artist’s recipients until your account is connected. You can still open the room.
+            </p>
+            <button
+              type='button'
+              className='secondary-action'
+              onClick={() => {
+                onClose();
+                openWalletModal('support');
+              }}
+            >
+              Connect my account
+            </button>
+          </div>
+        )}
         <button className='primary-action wide' type='button' disabled={!picked || !hasChosenName} onClick={() => picked && onOpenRoom(picked)}>
           <SvgBroadcast size={16} />
           Open the room

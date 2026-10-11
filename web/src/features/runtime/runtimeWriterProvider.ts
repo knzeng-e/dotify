@@ -211,6 +211,11 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
     createRuntime: factoryAddress => portForWrite().then(port => port.createRuntime(factoryAddress)),
     installRuntimeStep: factoryAddress => portForWrite().then(port => port.installRuntimeStep(factoryAddress)),
     registerTrack: (runtimeAddress, registration: RuntimeTrackRegistration) => portForWrite().then(port => port.registerTrack(runtimeAddress, registration)),
+    updateMetadata: (runtimeAddress, contentHash, title, description, metadataRef, expectedMetadataRef) =>
+      portForWrite().then(port => {
+        if (!port.updateMetadata) throw new Error('This artist runtime needs the metadata editing upgrade.');
+        return port.updateMetadata(runtimeAddress, contentHash, title, description, metadataRef, expectedMetadataRef);
+      }),
     payForAccess: async (intent, onStatus) => {
       assertNativeAccessPayment(intent);
       let port: RuntimeWritePort;

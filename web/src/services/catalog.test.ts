@@ -26,6 +26,26 @@ afterEach(() => {
 });
 
 describe('fetchCatalog', () => {
+  it('post-publication checks bypass HTTP freshness and find a release on a later page', async () => {
+    const first = response();
+    first.meta.state = 'fresh';
+    first.items = [{ id: 'first' } as CatalogApiResponse['items'][number]];
+    first.pagination = { limit: 100, nextCursor: 'revision:100', total: 2 };
+    const second = response();
+    second.meta.state = 'fresh';
+    second.items = [{ id: 'published' } as CatalogApiResponse['items'][number]];
+    second.pagination.total = 2;
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(first)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(second)));
+    vi.stubGlobal('fetch', fetch);
+    const result = await fetchCatalog({ apiUrl: 'https://api.example', storage: null, fresh: true, allPages: true });
+    expect(result.items.map(item => item.id)).toEqual(['first', 'published']);
+    expect(isAuthoritativeCatalogResponse(result)).toBe(true);
+    expect(fetch.mock.calls.every(call => call[1].cache === 'no-store')).toBe(true);
+    expect(fetch.mock.calls[0][1].headers.has('If-None-Match')).toBe(false);
+  });
   it('loads the browser catalog with one cacheable request', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(response()), {

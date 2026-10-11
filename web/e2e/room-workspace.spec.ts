@@ -51,11 +51,16 @@ for (const [width, height] of [
     const draft = page.getByRole('textbox', { name: 'Message the room' });
     await draft.fill('Keep this thought');
     await page.getByRole('tab', { name: /Queue/ }).click();
+    await expect(page.locator('.room-track-results')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Browse catalog', exact: true }).click();
+    await expect(page.locator('.room-track-results')).toBeVisible();
+    await page.getByRole('button', { name: 'Browse catalog', exact: true }).click();
+    await expect(page.locator('.room-track-results')).toHaveCount(0);
     await expect(page.getByRole('textbox', { name: 'Request a track' })).toHaveCount(0);
     await page.getByRole('textbox', { name: 'Find a track to add next' }).fill('Something soulful');
     await page.getByRole('tab', { name: /People/ }).click();
     await expect(page.getByRole('button', { name: 'Close room', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Enable host tips', exact: true })).toBeVisible();
+    await expect(page.locator('.host-contributions')).toBeVisible();
     await page.getByRole('tab', { name: 'Chat', exact: true }).click();
     await expect(draft).toHaveValue('Keep this thought');
     await expectConversationFits(page);
@@ -136,6 +141,7 @@ for (const [width, height] of [
     await page.setViewportSize({ width, height });
     await hostRoom(page);
     await page.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Find a track to add next' }).fill('E2E Protected');
     await page.getByRole('button', { name: 'Add to queue E2E Protected Room Track by Dotify Room Host' }).click();
     await expect(page.locator('.host-lineup')).toContainText('Next');
     await page.getByRole('button', { name: 'Play next' }).click();

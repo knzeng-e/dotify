@@ -1,5 +1,6 @@
 import { Disc3, ExternalLink, FileAudio, LockKeyhole, RefreshCw, Sparkles, UserRoundPlus, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigation } from '../../app/providers/NavigationProvider';
 import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
 import { shorten } from '../../shared/utils/format';
 import { isTrackManagedByArtist } from '../../features/catalog/trackModel';
@@ -7,6 +8,7 @@ import { useReleaseForm, useWalletContext, useUiFeedback, useCatalogContext, use
 
 // Self-contained via context, mirroring ArtistConsole.
 export function ArtistOnboarding() {
+  const { navigateToView } = useNavigation();
   const { artistName, setArtistName } = useReleaseForm();
   const { connectedWallet, activeEvmAddress } = useWalletContext();
   const { openWalletModal } = useUiFeedback();
@@ -69,7 +71,14 @@ export function ArtistOnboarding() {
               <UserRoundPlus size={16} />
               Get started
             </a>
-            <a className='secondary-link' href='/'>
+            <a
+              className='secondary-link'
+              href='/'
+              onClick={event => {
+                event.preventDefault();
+                navigateToView('listen');
+              }}
+            >
               Open listener app
             </a>
           </div>

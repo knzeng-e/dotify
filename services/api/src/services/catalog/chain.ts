@@ -102,6 +102,7 @@ const trackRegisteredEvent = parseAbiItem(
   'event TrackRegistered(bytes32 indexed contentHash, uint256 indexed tokenId, address indexed artist, string title, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood)'
 );
 const trackDeactivatedEvent = parseAbiItem('event TrackDeactivated(bytes32 indexed contentHash, address indexed artist)');
+const trackMetadataUpdatedEvent = parseAbiItem('event TrackMetadataUpdated(bytes32 indexed contentHash, address indexed artist, string metadataRef)');
 const trackReactivatedEvent = parseAbiItem('event TrackReactivated(bytes32 indexed contentHash, address indexed artist)');
 const trackAccessModeChangedEvent = parseAbiItem(
   'event TrackAccessModeChanged(bytes32 indexed contentHash, address indexed artist, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood)'
@@ -312,6 +313,13 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
       this.client.getLogs({
         address: runtimeAddresses,
         event: trackReactivatedEvent,
+        fromBlock: BigInt(fromBlock),
+        toBlock: BigInt(toBlock),
+        strict: true
+      }),
+      this.client.getLogs({
+        address: runtimeAddresses,
+        event: trackMetadataUpdatedEvent,
         fromBlock: BigInt(fromBlock),
         toBlock: BigInt(toBlock),
         strict: true

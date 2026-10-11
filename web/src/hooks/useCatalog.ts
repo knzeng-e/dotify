@@ -1745,7 +1745,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     return nextCatalog;
   }
 
-  async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
+  async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`, options: { fresh?: boolean } = {}) {
     setCatalogIsAuthoritative(false);
     if (isClassicUnlockE2e || isArtistPublishE2e || isRoomJoinE2e) {
       const nextCatalog = getDeterministicE2eCatalogTracks().map(normalizeCatalogTrackDisplay);
@@ -1779,7 +1779,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (usesCatalogApi) {
       if (allCatalogTracks.length === 0) setCatalogStatus('Loading registry catalog');
       try {
-        const response = await fetchCatalog({ includeInactive: true, limit: 100 });
+        const response = await fetchCatalog({ includeInactive: true, limit: 100, fresh: options.fresh, allPages: options.fresh });
         const apiTracks = response.items.map(catalogApiReleaseToTrack);
         const usesApiResponse = response.meta.cacheAvailable || allCatalogTracks.length === 0;
         const allTracks = usesApiResponse ? apiTracks : allCatalogTracks;
