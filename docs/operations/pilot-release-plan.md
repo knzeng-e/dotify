@@ -149,10 +149,10 @@ rollback gate.
    let config-driven manifest publishing upload a different `dist-product`.
 4. Confirm Product loads that CID, the current catalog still resolves, and an
    already-entitled protected track releases its key without another payment.
-   Then restore both names to the preserved exact 0.1.29 release CID (or
-   re-upload its preserved CAR if necessary), verify both finalized on-chain
-   contenthashes, clear a stale Product host cache with owner consent if
-   needed, and repeat the catalog/key check. For a lasting rollback, update
+   Then restore both names to the preserved exact 0.1.47 release CID shown
+   above (or re-upload its preserved CAR if necessary), verify both finalized
+   on-chain contenthashes, clear a stale Product host cache with owner consent
+   if needed, and repeat the catalog/key check. For a lasting rollback, update
    and verify root/executable manifest text records and appVersion too.
 5. Keep Fly API and signaling origin allowlists unchanged while public Product
    or Netlify clients may still call them.
