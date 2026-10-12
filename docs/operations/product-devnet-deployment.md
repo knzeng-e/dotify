@@ -1,8 +1,33 @@
 # Deploy Dotify To Product DevNet
 
+## Product 0.1.48 follow-up candidate
+
+The tracked executable now requests `[0, 1, 48]` for the publication, artwork,
+room-tip and release-editor follow-up in #269/#270. Build from the tested
+release commit and preserve `product-cdm` on `devnet`. Deploy matching API and
+signaling services, with the shared server-only native-receipt token configured,
+before publishing the ordinary Web and Product bundles. See the
+[configuration runbook](deployment-configuration.md#publication-and-room-follow-up-269).
+
+0.1.47 remains the published Product/rollback artifact until signed publication
+and independent read-back establish the new SHA/CID. The metadata editor
+requires an owner-approved additive runtime upgrade; frontend publication does
+not install it. Installed Desktop/mobile verification, one native tip with one
+chat announcement, publication reconciliation, and correction/read-back remain
+physical acceptance gates. Never submit another payment to repair an announcement.
+
 This runbook publishes the Product build to Bulletin/DotNS and connects it to
-the existing Fly API and signaling services. It does not deploy contracts or
-change production secrets.
+the existing Fly API and signaling services. The frontend publish command does
+not deploy contracts or configure backend secrets. For the 0.1.48 coordinated
+rollout, operators must first stage the same randomly generated 32–256-character
+value as API `NATIVE_RECEIPT_SERVICE_TOKEN` and signaling
+`SIGNAL_NATIVE_RECEIPT_SERVICE_TOKEN` in their respective Fly secret stores,
+then deploy the API and signaling services to activate it. Verify matching
+platform digests and deployed status on both apps before frontend publication;
+staging alone does not activate the token. Keep its value out of frontend
+variables, artifacts and logs. Follow the linked configuration runbook for this
+required production-secret addition, even in environments where it has not yet
+been staged.
 
 ## September 2026 Product DevNet Platform Refresh
 

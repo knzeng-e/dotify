@@ -2,10 +2,26 @@
 
 ## Publication and room follow-up (#269)
 
-This follow-up is implementation work for a subsequent release; 0.1.47 remains
-the published artifact until an explicit rollout. Deploy the API (metadata-event
-indexing), signaling (unbound-host tip intents and native receipt announcements),
-and matching Web/Product UI together. Bump Product appVersion for that rollout.
+The prepared follow-up candidate is Product `[0, 1, 48]`; 0.1.47 remains
+the published Product artifact until signed publication and read-back. Deploy
+the API (metadata-event indexing), signaling (unbound-host tip intents and native
+receipt announcements), and matching Web/Product UI from the same tested release
+commit. Preserve the tracked `product-cdm`/`devnet` profile. Record the exact
+source SHA, Fly image identities, Netlify bundle, executable CID and DotNS
+transactions after rollout; the version bump alone is not deployment evidence.
+Stage the matching receipt tokens on both Fly apps before deploying either
+service, then deploy API, signaling, ordinary Web and Product in that order.
+Keep one active API writer and one signaling machine. Signaling restart clears
+ephemeral rooms/chat/intent links; existing paid tips must not be repeated.
+Retain Product 0.1.47 at executable CID
+`bafybeiht6sq4c3ehc3oku7fbvuonq3hbywnnwot6c5wf4jyi5pjgdgmv74` and
+the pre-rollout Fly images as rollback artifacts: API
+`registry.fly.io/dotify-api:deployment-01M4P0WQZB9V4DZV1G1181BG1B`, signaling
+`registry.fly.io/dotify-signal:deployment-01M4K1454N8JD5TPAQBNM1KDBG`.
+The matching native-receipt token is staged in both Fly secret stores as of
+2026-10-12, with matching platform digests; it is not active until deployment.
+No token value is stored in the repository, artifacts or this record.
+Keep #269 open until owner-approved metadata activation and physical checks pass.
 No Redis service, storage mount or CORS origin is introduced. Configure the
 server-only receipt service token described below before enabling Product
 tip announcements.
@@ -339,7 +355,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 47]` published structured-metadata and room-controls release                                                              |
+| Product executable `appVersion` | `[0, 1, 48]` tracked follow-up candidate; `[0, 1, 47]` remains published until signed rollout/read-back                            |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
