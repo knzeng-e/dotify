@@ -64,3 +64,11 @@ Artist browser fixtures also intercept the RPC network-identity read so the
 simulated wallet, contribution reader and shell agree without a live-network
 race. Repeated policy-save, wrong-wallet-network and disconnect-recovery
 scenarios passed; production chain checks remain unchanged.
+
+## Rollout evidence
+
+Product 0.1.48 and matching API/signaling/Web source were released on 2026-10-12.
+See [the candidate-bound rollout record](implementation/evidence/product-0.1.48-rollout-2026-10-12.md)
+for exact SHA/CID, backend images, receipt-service authentication, finalized
+DotNS read-back and the remaining owner-approved metadata activation and physical
+checks. Issue #269 remains open; publication alone does not activate the editor.

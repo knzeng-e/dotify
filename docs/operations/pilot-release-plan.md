@@ -11,9 +11,9 @@ small consented community is counted as served.
 - Issue: #158.
 - Original consolidation base: `dev` at
   `f4d2d49721a85169c5f9c37d36ac2ef315396d57`.
-- Current published Product candidate: 0.1.47, source SHA
-  `1075800ea1e60acaa05923c966d4ed498448cb92`, `product-cdm` on `devnet`,
-  executable CID `bafybeiht6sq4c3ehc3oku7fbvuonq3hbywnnwot6c5wf4jyi5pjgdgmv74`.
+- Current published Product candidate: 0.1.48, source SHA
+  `fc7faf5a49e6d5b3392285bab2ee957d325b4cb6`, `product-cdm` on `devnet`,
+  executable CID `bafybeicqj4ekyiz7pmbt7ry2ixpwvpa24v5liialmhe3zwonjslt47wvna`.
 - Readiness command:
 
 ```bash
@@ -48,14 +48,18 @@ contract addresses, Fly scaling, Product permissions, or DotNS ownership.
 During live 0.1.29 validation, the missing shared TURN capability secret was
 installed on the API and signal services, and those services were redeployed;
 their origin allowlists and contract addresses were not changed. The 0.1.29
-release profile differed from its CDM validation bundle. The current 0.1.47
-release uses CDM on DevNet.
+release profile differed from its CDM validation bundle. The current 0.1.48
+release uses CDM on DevNet. Its coordinated backend rollout added matching
+server-only native-receipt credentials on API/signaling; no origin, storage or
+scaling change was introduced. Editorial corrections require a separate
+owner-approved additive metadata selector on each artist runtime; publication
+alone does not activate it.
 
 | Surface | Current tracked value | W13 action |
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 47]` | Published from the source SHA and CID above. Installed-host payment, v2 metadata publication/read-back, room, device matrix, matching rollback, and aggregate pilot evidence remain open. |
+| Product appVersion | `[0, 1, 48]` | Published from the source SHA and CID above. Installed-host payment, v2 metadata publication/read-back, room, device matrix, matching rollback, and aggregate pilot evidence remain open. |
 | Runtime write adapter | `product-cdm` on `devnet` | Match the published Product profile; ordinary web uses viem. |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -97,7 +101,7 @@ Product/CDM anchors:
 | Product deploy CLI | `@parity/polkadot-app-deploy@0.20.0` plus the host-profile preflight |
 
 The earlier 0.1.29 gate had separate CDM validation and default-viem release
-CIDs. For the current 0.1.47 gate, supply the published CDM executable CID
+CIDs. For the current 0.1.48 gate, supply the published CDM executable CID
 through `--pilot-release-cid`. The readiness script requires matching Product
 payment/key, room, rollback and pilot candidate identities. Do not repeat a
 paid transaction to populate another evidence file.
@@ -107,7 +111,7 @@ paid transaction to populate another evidence file.
 Rollback is static and reversible:
 
 Historical 0.1.29 evidence: an owner-approved temporary rollback/restore was
-rehearsed on 2026-09-29. This does not satisfy the rollback gate for 0.1.47.
+rehearsed on 2026-09-29. This does not satisfy the rollback gate for 0.1.48.
 The rebuilt 0.1.25 CDM/debug CAR was published at
 `bafybeicew7wtqc6s6kq37nnv3yzsfg2tq4dalaxbamrvs443z4ikhunrsa`;
 Product Desktop loaded its 12-track catalog and reopened an already-paid
@@ -128,8 +132,8 @@ Product Desktop also mixed JavaScript from adjacent CIDs until its cache was
 cleared with owner consent on each switch. Prefer an isolated alias for future
 rehearsals; on a public test name, warn that active sessions may reload. Never
 store or paste the DotNS phrase into the repo or chat. The steps below record
-the 0.1.29 rehearsal; for 0.1.47, use the exact published 0.1.46 artifact as
-the rollback target and restore the exact 0.1.47 CID before claiming its
+the 0.1.29 rehearsal; for 0.1.48, use the exact published 0.1.47 artifact as
+the rollback target and restore the exact 0.1.48 CID before claiming its
 rollback gate.
 
 1. Identify the selected old commit, build flags, Product appVersion, and
@@ -149,7 +153,7 @@ rollback gate.
    let config-driven manifest publishing upload a different `dist-product`.
 4. Confirm Product loads that CID, the current catalog still resolves, and an
    already-entitled protected track releases its key without another payment.
-   Then restore both names to the preserved exact 0.1.47 release CID shown
+   Then restore both names to the preserved exact 0.1.48 release CID shown
    above (or re-upload its preserved CAR if necessary), verify both finalized
    on-chain contenthashes, clear a stale Product host cache with owner consent
    if needed, and repeat the catalog/key check. For a lasting rollback, update
@@ -239,7 +243,7 @@ decision to the exact candidate build being evaluated:
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 47]",
+    "productAppVersion": "[0, 1, 48]",
     "runtimeAdapterKind": "product-cdm",
     "productChain": "devnet",
     "deployedCid": "<published-product-cdm-cid>",
