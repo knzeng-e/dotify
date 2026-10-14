@@ -1869,6 +1869,8 @@ Rollback: set `SIGNAL_NEARBY=off` and restart signaling (clears all presence),
 then rebuild with `VITE_DOTIFY_NEARBY=off`. This restart ends active rooms, so
 schedule it deliberately. Frontend-only rollback stops collection/refresh;
 old remote presence expires within 90 seconds. Offline opt-out clears local
-state immediately and displays that expiry limit. No contracts/keys/catalog
+state immediately and displays that expiry limit. Connected `nearby:off`
+uses a non-volatile packet, including during polling backpressure; disconnected
+requests are rejected without buffering a send after reconnect. No contracts/keys/catalog
 migration or payment is involved. Local tests cover feature-off and empty
 fresh-store behavior; no live rollback has been performed.

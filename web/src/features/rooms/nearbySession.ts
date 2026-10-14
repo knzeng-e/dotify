@@ -72,7 +72,9 @@ export class NearbySession {
         reject(new Error('DISCONNECTED'));
         return;
       }
-      this.port.request(event, payload, { connectedOnly: true, timeoutMs: 6000, volatile: true }, (error, reply) => {
+      // Revocation must survive connected polling backpressure. Other discovery
+      // work may be dropped; connectedOnly prevents queuing off for reconnect.
+      this.port.request(event, payload, { connectedOnly: true, timeoutMs: 6000, volatile: event !== 'nearby:off' }, (error, reply) => {
         if (error || !reply) reject(new Error('DISCONNECTED'));
         else resolve(reply);
       });

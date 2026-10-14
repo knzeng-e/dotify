@@ -49,7 +49,9 @@ action. Cancellable single-fix watches discard exact fixes immediately after
 coarsening; fixes with accuracy worse than 1 km or older than 30 seconds fail.
 Permission state is checked afresh before refresh so it cannot trigger a new
 background permission prompt. Offline opt-out explicitly explains the possible
-90-second remote expiry. Browser permission support is required for device
+90-second remote expiry. Connected revocation uses a reliable (non-volatile)
+packet so polling backpressure does not discard it; disconnected revocation is
+never buffered for replay after reconnect. Browser permission support is required for device
 mode; unsupported Product containers offer manual areas and existing QR/links.
 
 Manual areas are an offline starter list of city centres; there is no external

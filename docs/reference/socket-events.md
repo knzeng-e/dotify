@@ -627,7 +627,9 @@ socket.on('peer:connected', (payload: { from: string }) => { ... });
 ## Nearby v2 (W19, default off)
 
 Requires `SIGNAL_NEARBY=on`; the client also requires `VITE_DOTIFY_NEARBY=on`.
-All requests use connected-only, non-buffered acknowledgements. Unknown fields,
+All requests use connected-only acknowledgements without disconnected buffering.
+`nearby:off` is non-volatile so connected polling backpressure cannot discard
+revocation; publication/search/report remain volatile. Unknown fields,
 old schemas, cell arrays and unsupported radii are rejected. Publication and
 search accept exactly `{ schemaVersion: 2, cell: "n2:<band>:<sector>", radiusKm: 5 | 10 | 25 }`.
 The cell is computed on-device; precise fixes never enter Socket.IO.
