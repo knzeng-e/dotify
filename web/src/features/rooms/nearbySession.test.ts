@@ -7,7 +7,7 @@ import { adaptSocketRealtime } from './signalClient';
 
 const cell = coarseNearbyCell(0, 0)!;
 const manual = { kind: 'manual' as const, cell };
-function harness(host = false, enabled = true) {
+function harness(host = false, enabled = true, options: { authorize?: (signal: AbortSignal) => Promise<void>; continuousDevice?: () => boolean } = {}) {
   const events: { event: string; input: unknown }[] = [];
   let permissionState = 'granted';
   const permission = {
@@ -28,7 +28,8 @@ function harness(host = false, enabled = true) {
     visible: () => true,
     supported: () => true,
     locate,
-    permission: async () => permission as unknown as PermissionStatus
+    permission: async () => permission as unknown as PermissionStatus,
+    ...options
   });
   return {
     session,
@@ -44,6 +45,57 @@ function harness(host = false, enabled = true) {
 afterEach(() => vi.useRealTimers());
 
 describe('nearby consent and lifecycle', () => {
+  it('cannot locate or publish when a Product grant arrives after stop', async () => {
+    let finish!: () => void;
+    const authorize = vi.fn(
+      () =>
+        new Promise<void>(resolve => {
+          finish = resolve;
+        })
+    );
+    const f = harness(true, true, { authorize });
+    const pending = f.session.start({ kind: 'device' }, 5);
+    expect(f.session.snapshot().phase).toBe('locating');
+    f.session.stop();
+    finish();
+    await pending;
+    expect(f.locate).not.toHaveBeenCalled();
+    expect(f.events.some(item => item.event === 'nearby:publish')).toBe(false);
+    expect(f.session.snapshot().phase).toBe('off');
+  });
+  it('does not switch a denied Product location to a city automatically', async () => {
+    const f = harness(false, true, {
+      authorize: async () => {
+        throw new Error('DENIED');
+      }
+    });
+    await f.session.start({ kind: 'device' }, 5);
+    expect(f.session.snapshot().phase).toBe('denied');
+    expect(f.locate).not.toHaveBeenCalled();
+    expect(f.events).toEqual([]);
+  });
+  it('uses a bounded Product snapshot with no automatic permission request, movement tracking or renewal', async () => {
+    vi.useFakeTimers();
+    const authorize = vi.fn(async () => {});
+    let continuous = false;
+    const f = harness(true, true, { authorize, continuousDevice: () => continuous });
+    await f.session.start({ kind: 'device' }, 5);
+    continuous = true; // A lost Host marker cannot change the active policy.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(f.session.snapshot().phase).toBe('active');
+    expect(f.locate).toHaveBeenCalledOnce();
+    expect(authorize).toHaveBeenCalledOnce();
+    expect(f.events.map(item => item.event)).toEqual(['nearby:publish']);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(f.session.snapshot().phase).toBe('off');
+    expect(f.session.snapshot().message).toContain('snapshot has expired');
+    expect(f.events.map(item => item.event)).toEqual(['nearby:publish', 'nearby:off']);
+    continuous = false;
+    await f.session.start({ kind: 'device' }, 10);
+    expect(authorize).toHaveBeenCalledTimes(2);
+    expect(f.events[f.events.length - 1]).toEqual({ event: 'nearby:publish', input: { schemaVersion: 2, cell, radiusKm: 10 } });
+    f.session.stop();
+  });
   it('feature-off never locates, searches or publishes', async () => {
     const f = harness(true, false);
     await f.session.start({ kind: 'device' }, 5);

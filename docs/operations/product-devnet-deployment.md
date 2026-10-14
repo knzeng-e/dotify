@@ -1,5 +1,27 @@
 # Deploy Dotify To Product DevNet
 
+## Nearby location test profile
+
+Nearby and Product device-location flags remain off in the tracked production
+profile. Build-only validation uses
+`VITE_DOTIFY_NEARBY=on VITE_DOTIFY_PRODUCT_NEARBY_LOCATION=on npm --prefix web run build:product-devnet:frozen`;
+it does not publish, refresh the catalog or modify manifest permissions.
+The selected test signaling service also needs `SIGNAL_NEARBY=on` on one worker.
+
+Location permission is requested only after **Find rooms near me** or **Enable
+nearby visibility**. A secure WebView with working Geolocation and observable
+Permissions APIs is required; SDK `Location` approval alone is insufficient.
+Product location uses a single snapshot, expiring within 90 seconds, renewed
+only by an explicit **Update my location** action. **Explore a city** is separate
+and never activates automatically. Capture the
+[physical-device checklist](../backlog/implementation/evidence/W19-product-location.md)
+before treating this experiment as supported. A late Host grant cannot restart
+Nearby after stop/timeout, but Dotify cannot dismiss or undo the Host's own
+permission decision.
+
+Rollback only this experiment by rebuilding with
+`VITE_DOTIFY_PRODUCT_NEARBY_LOCATION=off`; old snapshots expire within 90 seconds.
+
 ## Product 0.1.48 published follow-up
 
 The published executable is `[0, 1, 48]` for the publication, artwork,

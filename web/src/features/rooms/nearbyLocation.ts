@@ -1,4 +1,7 @@
 import { coarseNearbyCell } from '../../../shared/nearby-v2.mjs';
+import { requiresExplicitProductRoomEntry } from '../productHost/productHost';
+import { authorizeProductNearbyLocation } from '../productHost/productNearbyLocation';
+import { roomExperienceFlags } from './roomExperienceFlags';
 
 // Offline starter areas, not geocoding: neither a query nor a location goes to
 // a third party. The label stays on the device; only its coarse cell is sent.
@@ -18,17 +21,55 @@ export const nearbyManualAreas = [
 ].map(([name, latitude, longitude]) => ({ name: String(name), cell: coarseNearbyCell(Number(latitude), Number(longitude))! }));
 
 export function canUseNearbyDeviceLocation(): boolean {
-  const host = window as Window & { __HOST_WEBVIEW_MARK__?: boolean; __HOST_API_PORT__?: MessagePort };
-  // Native Product location is unverified. Do not request a new host permission
-  // merely because a webview happens to expose navigator.geolocation.
   return (
     window.isSecureContext &&
-    window.location.protocol !== 'polkadot:' &&
-    window.self === window.top &&
-    !host.__HOST_WEBVIEW_MARK__ &&
-    !host.__HOST_API_PORT__ &&
-    Boolean(navigator.geolocation && navigator.permissions?.query)
+    (!requiresExplicitProductRoomEntry() || roomExperienceFlags.productNearbyLocation) &&
+    typeof navigator.geolocation?.watchPosition === 'function' &&
+    typeof navigator.geolocation?.clearWatch === 'function' &&
+    typeof navigator.permissions?.query === 'function'
   );
+}
+
+/** Product permission is asked only by an explicit Nearby start, never refresh. */
+export async function authorizeNearbyDeviceLocation(signal: AbortSignal): Promise<void> {
+  if (signal.aborted) throw new Error('STOPPED');
+  if (!canUseNearbyDeviceLocation()) throw new Error('UNAVAILABLE');
+  if (requiresExplicitProductRoomEntry()) await authorizeProductNearbyLocation(signal);
+}
+
+// No public SDK API silently observes Product-only permission revocation.
+// Use a single bounded snapshot until that boundary has host/device evidence.
+export function canRefreshNearbyDeviceLocation(): boolean {
+  return !requiresExplicitProductRoomEntry();
+}
+
+export function queryNearbyLocationPermission(signal: AbortSignal): Promise<PermissionStatus> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new Error('STOPPED'));
+      return;
+    }
+    let finished = false;
+    const finish = (permission?: PermissionStatus, code = 'UNAVAILABLE') => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      signal.removeEventListener('abort', abort);
+      if (permission && ['granted', 'prompt', 'denied'].includes(permission.state)) resolve(permission);
+      else reject(new Error(code));
+    };
+    const abort = () => finish(undefined, 'STOPPED');
+    const timer = setTimeout(() => finish(undefined, 'TIMEOUT'), 6000);
+    signal.addEventListener('abort', abort, { once: true });
+    try {
+      void navigator.permissions.query({ name: 'geolocation' }).then(
+        permission => finish(permission),
+        () => finish()
+      );
+    } catch {
+      finish();
+    }
+  });
 }
 
 /** Cancellable one-fix watch: precise values never resolve or escape here. */

@@ -1832,9 +1832,30 @@ permission to publish real locations or change a Product manifest.
 Use the existing HTTPS signaling origin/CORS policy and room transport. No new
 service, port, third-party geocoder, storage mount, secret or Product permission
 is required. Standalone device mode requires secure context, Geolocation and
-Permissions APIs. Native/embedded Product containers intentionally offer offline
-manual city areas and ordinary links/QR; their native location capability is
-not verified. No new manifest device permission is requested.
+Permissions APIs. Product device location is a separate experimental opt-in:
+`VITE_DOTIFY_PRODUCT_NEARBY_LOCATION=on` in addition to both Nearby flags.
+It requires the same secure-context/browser APIs and an explicit SDK `Location`
+grant. The grant alone never proves WebView geolocation support. The tracked
+Product profile keeps this flag unset/off; no manifest permission is added.
+
+Product takes one position snapshot, valid for at most 90 seconds (search
+results can expire sooner), without automatic fixes or SDK permission requests.
+**Update my location** is an explicit renewal. Browser permission revocation
+stops immediately when observable; Host-only revocation has no silent public
+SDK observer and is bounded by snapshot expiry. Unsupported containers explain
+the limitation; **Explore a city** stays collapsed and requires an independent
+selection/action. It never searches a city automatically.
+
+Build a test artifact without publication or catalog refresh:
+
+```sh
+VITE_DOTIFY_NEARBY=on VITE_DOTIFY_PRODUCT_NEARBY_LOCATION=on npm --prefix web run build:product-devnet:frozen
+```
+
+Keep signaling single-process with `SIGNAL_NEARBY=on` only on the selected test
+service. Before publication, record the exact Host/device versions and validate
+the checklist in [W19 Product location evidence](../backlog/implementation/evidence/W19-product-location.md).
+Compilation and the fake-Host browser fixture are not physical capability proof.
 
 The first version is **single-process signaling only**. Presence is held in
 memory outside public room state, expires strictly at 90 seconds, and is
@@ -1874,3 +1895,7 @@ uses a non-volatile packet, including during polling backpressure; disconnected
 requests are rejected without buffering a send after reconnect. No contracts/keys/catalog
 migration or payment is involved. Local tests cover feature-off and empty
 fresh-store behavior; no live rollback has been performed.
+To roll back only the Product location experiment, rebuild with
+`VITE_DOTIFY_PRODUCT_NEARBY_LOCATION=off`; regular web Nearby and explicit city
+exploration remain under the main Nearby flag. Existing native snapshots expire
+within 90 seconds.

@@ -8,13 +8,15 @@ afterEach(() => {
 it.each([undefined, 'off', 'true', 'ON'])('keeps room experiments off for %s', async value => {
   vi.stubEnv('VITE_DOTIFY_ROOM_GALAXY', value);
   vi.stubEnv('VITE_DOTIFY_NEARBY', value);
+  vi.stubEnv('VITE_DOTIFY_PRODUCT_NEARBY_LOCATION', value);
   const { roomExperienceFlags } = await import('./roomExperienceFlags');
-  expect(roomExperienceFlags).toEqual({ galaxy: false, nearby: false });
+  expect(roomExperienceFlags).toEqual({ galaxy: false, nearby: false, productNearbyLocation: false });
 });
 
 it('requires an explicit opt-in for the galaxy experiment', async () => {
   vi.stubEnv('VITE_DOTIFY_ROOM_GALAXY', 'on');
   vi.stubEnv('VITE_DOTIFY_NEARBY', 'on');
+  vi.stubEnv('VITE_DOTIFY_PRODUCT_NEARBY_LOCATION', 'on');
   const { roomExperienceFlags } = await import('./roomExperienceFlags');
-  expect(roomExperienceFlags).toEqual({ galaxy: true, nearby: true });
+  expect(roomExperienceFlags).toEqual({ galaxy: true, nearby: true, productNearbyLocation: true });
 });

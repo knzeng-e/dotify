@@ -2,5 +2,6 @@
 // of the shipped experience; no URL or localStorage switch enables them.
 export const roomExperienceFlags = {
   nearby: import.meta.env.VITE_DOTIFY_NEARBY === 'on',
+  productNearbyLocation: import.meta.env.VITE_DOTIFY_PRODUCT_NEARBY_LOCATION === 'on',
   galaxy: import.meta.env.VITE_DOTIFY_ROOM_GALAXY === 'on'
 };

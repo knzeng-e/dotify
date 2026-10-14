@@ -242,6 +242,12 @@ jobs:
           VITE_DOTIFY_ROOM_REALTIME: dual
         run: npx vite build --config vite.product.config.ts --mode product-devnet
 
+      - name: Build opt-in Product Nearby location profile
+        env:
+          VITE_DOTIFY_NEARBY: 'on'
+          VITE_DOTIFY_PRODUCT_NEARBY_LOCATION: 'on'
+        run: npx vite build --config vite.product.config.ts --mode product-devnet
+
       - name: Fail on generated Product catalog drift
         working-directory: .
         run: |

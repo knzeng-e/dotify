@@ -52,9 +52,24 @@ background permission prompt. Offline opt-out explicitly explains the possible
 90-second remote expiry. Connected revocation uses a reliable (non-volatile)
 packet so polling backpressure does not discard it; disconnected revocation is
 never buffered for replay after reconnect. Browser permission support is required for device
-mode; unsupported Product containers offer manual areas and existing QR/links.
+mode. Product location additionally requires the separate, default-off
+`VITE_DOTIFY_PRODUCT_NEARBY_LOCATION=on` flag, a secure context, working
+Geolocation/Permissions APIs and an explicit SDK `Location` grant. A grant
+does not prove the WebView can return coordinates. Missing APIs, failed
+handshakes and denied/unanswered permission checks fail closed.
 
-Manual areas are an offline starter list of city centres; there is no external
+Product uses a single position snapshot with a maximum 90-second lease, never
+automatic movement tracking or automatic SDK permission requests. **Update my
+location** explicitly starts a new grant/fix cycle; expiry clears the results
+and withdraws visibility. The public SDK currently exposes no silent observer
+of Product-only permission revocation. Browser/OS permission changes stop
+immediately when observable; a Host-only revocation is bounded by the snapshot
+expiry rather than claimed to be observable. Native continuous refresh remains
+unsupported until this boundary is resolved and physically verified. Neither
+the experimental flag nor an SDK grant relaxes secure-context/API prerequisites.
+
+**Explore a city** is a separate, explicit option, never a default or an
+automatic fallback after a failed location request. Manual areas are an offline starter list of city centres; there is no external
 geocoder. The selected label and precise centre are not sent. This intentionally
 does not cover every locality yet. Host and listener choose their area separately.
 
@@ -78,7 +93,8 @@ Physical browser/Product permission checks remain required before enablement.
 Browser consent behaviour was checked against the
 [W3C specification](https://www.w3.org/TR/geolocation/); the
 [Product Host API](https://paritytech.github.io/product-sdk/api/host/) does not
-constitute device evidence. No Product manifest permission is changed here.
+constitute device evidence. No Product manifest permission is changed here;
+the experimental adapter requests `Location` only following a Nearby action.
 
 ## Radius amendment — 2026-10-14
 
