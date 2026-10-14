@@ -2,29 +2,29 @@
 
 ## Publication and room follow-up (#269)
 
-The prepared follow-up candidate is Product `[0, 1, 48]`; 0.1.47 remains
-the published Product artifact until signed publication and read-back. Deploy
-the API (metadata-event indexing), signaling (unbound-host tip intents and native
-receipt announcements), and matching Web/Product UI from the same tested release
-commit. Preserve the tracked `product-cdm`/`devnet` profile. Record the exact
-source SHA, Fly image identities, Netlify bundle, executable CID and DotNS
-transactions after rollout; the version bump alone is not deployment evidence.
-Stage the matching receipt tokens on both Fly apps before deploying either
-service, then deploy API, signaling, ordinary Web and Product in that order.
-Keep one active API writer and one signaling machine. Signaling restart clears
-ephemeral rooms/chat/intent links; existing paid tips must not be repeated.
+Product `[0, 1, 48]` was published on 2026-10-12 from tested `dev`
+`fc7faf5a49e6d5b3392285bab2ee957d325b4cb6` at executable CID
+`bafybeicqj4ekyiz7pmbt7ry2ixpwvpa24v5liialmhe3zwonjslt47wvna`, preserving `product-cdm` on
+`devnet`. API and signaling were deployed from that same source before signed
+Product publication; Netlify's merge-triggered build already served the matching
+commit. Exact images, transactions, read-back and remaining acceptance are in
+[the rollout record](../backlog/implementation/evidence/product-0.1.48-rollout-2026-10-12.md).
+
+For this coordinated rollout, stage matching receipt tokens on both Fly apps
+before deploying either service, then deploy API, signaling, ordinary Web and
+Product. Keep one active API writer and one signaling machine. Signaling restart
+clears ephemeral rooms/chat/intent links; paid tips must not be repeated.
 Retain Product 0.1.47 at executable CID
 `bafybeiht6sq4c3ehc3oku7fbvuonq3hbywnnwot6c5wf4jyi5pjgdgmv74` and
 the pre-rollout Fly images as rollback artifacts: API
 `registry.fly.io/dotify-api:deployment-01M4P0WQZB9V4DZV1G1181BG1B`, signaling
 `registry.fly.io/dotify-signal:deployment-01M4K1454N8JD5TPAQBNM1KDBG`.
-The matching native-receipt token is staged in both Fly secret stores as of
-2026-10-12, with matching platform digests; it is not active until deployment.
-No token value is stored in the repository, artifacts or this record.
-Keep #269 open until owner-approved metadata activation and physical checks pass.
-No Redis service, storage mount or CORS origin is introduced. Configure the
-server-only receipt service token described below before enabling Product
-tip announcements.
+The matching native-receipt token is deployed in both Fly secret stores as of
+2026-10-12. A live request from signaling received the trusted 300/minute quota;
+the public route retained 20/minute. No token value is stored in the repository,
+artifacts or this record. Keep #269 open through owner-approved metadata
+activation and physical checks. No Redis service, storage mount or CORS origin
+was introduced.
 
 The browser uses `dotify-public-artwork-v1` Cache Storage for public immutable
 IPFS images only: at most 48 images of up to 1 MiB each, with an in-memory LRU
@@ -355,7 +355,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
-| Product executable `appVersion` | `[0, 1, 48]` tracked follow-up candidate; `[0, 1, 47]` remains published until signed rollout/read-back                            |
+| Product executable `appVersion` | `[0, 1, 48]` published follow-up release; `[0, 1, 47]` is the rollback artifact                            |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
