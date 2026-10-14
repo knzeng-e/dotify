@@ -161,8 +161,9 @@ Nearby room discovery is designed but not implemented. W18 defines the privacy
 contract in
 [dotify-nearby-discovery-privacy.md](../design/dotify-nearby-discovery-privacy.md):
 host and listener opt-in are separate, exact coordinates stay off the network,
-logs, chain, Statement Store, and durable stores, and sparse areas expand before
-results are shown. Current rooms remain discoverable through the existing room
+logs, chain, Statement Store, and durable stores. The 2026-10-14 amendment
+prioritizes W19 with separate approximate host/listener radii in km; sparse
+results offer explicit widening rather than silently exceeding consent. Current rooms remain discoverable through the existing room
 list, manual code entry, and shared links without requiring wallet or location
 permission.
 
