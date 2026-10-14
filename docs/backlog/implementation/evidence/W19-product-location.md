@@ -111,8 +111,10 @@ session. Fill this record with observations; do not infer results from a build.
    search/publication. Verify browser/OS revocation and record whether a
    Product-only revocation is visible; do not claim that boundary is immediate.
 5. Confirm a single snapshot, no automatic permission/fix/refresh, expiry within
-   90 seconds (or earlier matching-room expiry), and explicit renewal at the
+   90 seconds at response-level expiry, and explicit renewal at the
    selected radius. Test background/pagehide/off/disconnect without auto-resume.
+   Give returned rooms different leases: expired cards disappear independently
+   while remaining rooms and the position snapshot stay usable.
 6. On a separate client/network, find an opted-in host using both selected
    radii, Join without a wallet, and hear the protected host stream with no guest
    source key. Record discover-to-audio latency and actual speaker output.

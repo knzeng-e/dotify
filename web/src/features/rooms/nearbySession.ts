@@ -46,6 +46,8 @@ export class NearbySession {
   private abort: AbortController | null = null;
   private refresh: ReturnType<typeof setTimeout> | undefined;
   private expiry: ReturnType<typeof setTimeout> | undefined;
+  private resultExpiry: ReturnType<typeof setTimeout> | undefined;
+  private resultDeadlines = new Map<string, number>();
   private permission: PermissionStatus | null = null;
   private state = initial;
   private listeners = new Set<(state: NearbyState) => void>();
@@ -102,6 +104,8 @@ export class NearbySession {
     this.abort = null;
     clearTimeout(this.refresh);
     clearTimeout(this.expiry);
+    clearTimeout(this.resultExpiry);
+    this.resultDeadlines.clear();
     if (this.permission) this.permission.onchange = null;
     this.permission = null;
     this.set({ phase, message, results: [] });
@@ -191,7 +195,17 @@ export class NearbySession {
       if (rev !== this.revision) return;
       if (!safeNearbyReply(reply, this.host)) throw new Error('UNAVAILABLE');
       if (!reply.ok) throw new Error(reply.code);
-      const results = 'results' in reply ? reply.results.filter(item => !this.hidden.has(item.roomId)) : [];
+      const receivedAt = performance.now();
+      this.resultDeadlines.clear();
+      const results =
+        'results' in reply
+          ? reply.results.filter(item => {
+              const deadline = requestedAt + Math.min(item.expiresInMs, reply.expiresInMs ?? 0);
+              if (this.hidden.has(item.roomId) || deadline <= receivedAt) return false;
+              this.resultDeadlines.set(item.discoveryId, deadline);
+              return true;
+            })
+          : [];
       this.set({
         phase: this.host || results.length ? 'active' : 'empty',
         results,
@@ -203,14 +217,14 @@ export class NearbySession {
             ? source.kind === 'manual'
               ? 'Live rooms around your chosen city centre'
               : 'Live rooms in your approximate area'
-            : source.kind === 'manual'
-              ? 'No visible rooms around this city centre yet. Explore a wider radius or use a room link.'
-              : 'No visible rooms in this area yet. Try a wider search or share a room link.'
+            : this.emptyMessage()
       });
       clearTimeout(this.expiry);
       // Relative, conservative leases tolerate clock skew between devices and
       // server. Subtract the whole round-trip so transit cannot extend a lease.
-      const remaining = Math.min(reply.expiresInMs ?? 0, ...results.map(item => item.expiresInMs)) - (performance.now() - requestedAt);
+      // The response owns the snapshot lease; each room owns only its card.
+      // A short-lived room must not force a new Host permission/location cycle.
+      const remaining = (reply.expiresInMs ?? 0) - (performance.now() - requestedAt);
       const snapshotOnly = this.deviceSnapshotOnly;
       this.expiry = setTimeout(
         () => {
@@ -220,11 +234,33 @@ export class NearbySession {
         },
         Math.max(0, remaining)
       );
+      this.expireResults(rev);
       if (!snapshotOnly) this.refresh = setTimeout(() => void this.update(rev), NEARBY_REFRESH_MS);
     } catch (error) {
       if (rev !== this.revision) return;
       const code = error instanceof Error ? error.message : '';
       this.stop(copy[code] ?? 'Nearby could not refresh. Reconnect and try again.', code === 'DENIED' ? 'denied' : 'stale');
+    }
+  }
+  private emptyMessage() {
+    return this.source?.kind === 'manual'
+      ? 'No visible rooms around this city centre yet. Explore a wider radius or use a room link.'
+      : 'No visible rooms in this area yet. Try a wider search or share a room link.';
+  }
+  private expireResults(rev: number) {
+    if (rev !== this.revision || !this.source) return;
+    clearTimeout(this.resultExpiry);
+    const now = performance.now();
+    for (const [id, deadline] of this.resultDeadlines) {
+      if (deadline <= now) this.resultDeadlines.delete(id);
+    }
+    const results = this.state.results.filter(item => (this.resultDeadlines.get(item.discoveryId) ?? 0) > now);
+    if (results.length !== this.state.results.length) {
+      this.set({ ...this.state, results, phase: results.length ? 'active' : 'empty', message: results.length ? this.state.message : this.emptyMessage() });
+    }
+    if (results.length) {
+      const next = Math.min(...results.map(item => this.resultDeadlines.get(item.discoveryId)!));
+      this.resultExpiry = setTimeout(() => this.expireResults(rev), Math.max(0, next - now));
     }
   }
   hide(roomId: string) {

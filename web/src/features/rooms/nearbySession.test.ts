@@ -4,6 +4,7 @@ import { NearbySession } from './nearbySession';
 import { coarseNearbyCell, NEARBY_TTL_MS } from '../../../shared/nearby-v2.mjs';
 import { io } from 'socket.io-client';
 import { adaptSocketRealtime } from './signalClient';
+import type { NearbyResult } from './nearbyTypes';
 
 const cell = coarseNearbyCell(0, 0)!;
 const manual = { kind: 'manual' as const, cell };
@@ -44,7 +45,101 @@ function harness(host = false, enabled = true, options: { authorize?: (signal: A
 }
 afterEach(() => vi.useRealTimers());
 
+function result(roomId: string, expiresInMs: number, index: number): NearbyResult {
+  return {
+    roomId,
+    expiresInMs,
+    discoveryId: `00000000-0000-4000-a000-${String(index).padStart(12, '0')}`,
+    hostName: 'Host',
+    title: roomId,
+    artist: 'Artist',
+    presence: '1–3',
+    isFull: false
+  };
+}
+function replyWithRooms(f: ReturnType<typeof harness>, results: NearbyResult[], delayMs = 0) {
+  f.port.request = (event, input, _options, done) => {
+    f.events.push({ event, input });
+    const reply = { ok: true, schemaVersion: 2, expiresInMs: NEARBY_TTL_MS, results };
+    if (delayMs) setTimeout(() => done(null, reply), delayMs);
+    else done(null, reply);
+  };
+}
+
 describe('nearby consent and lifecycle', () => {
+  it('expires Product room cards independently while retaining consent until the response lease ends', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    const authorize = vi.fn(async () => {});
+    const f = harness(false, true, { authorize, continuousDevice: () => false });
+    replyWithRooms(f, [result('SHORT2', 1000, 1), result('LONG34', 60_000, 2)]);
+    await f.session.start({ kind: 'device' }, 5);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(f.session.snapshot().results.map(item => item.roomId)).toEqual(['LONG34']);
+    expect(f.session.snapshot().phase).toBe('active');
+    expect(f.session.selection().source).toEqual({ kind: 'device' });
+    await vi.advanceTimersByTimeAsync(59_000);
+    expect(f.session.snapshot().results).toEqual([]);
+    expect(f.session.snapshot().phase).toBe('empty');
+    expect(f.session.snapshot().message).toContain('No visible rooms');
+    expect(f.session.selection().source).toEqual({ kind: 'device' });
+    expect(authorize).toHaveBeenCalledOnce();
+    expect(f.locate).toHaveBeenCalledOnce();
+    expect(f.events.map(item => item.event)).toEqual(['nearby:search']);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(f.session.snapshot().phase).toBe('off');
+    expect(f.session.selection().source).toBeNull();
+    expect(f.session.snapshot().message).toContain('snapshot has expired');
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('drops cards expired during transit and subtracts the round trip from the snapshot lease', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    const f = harness(false, true, { continuousDevice: () => false });
+    replyWithRooms(f, [result('SHORT2', 1000, 1), result('LONG34', 60_000, 2)], 2000);
+    const pending = f.session.start({ kind: 'device' }, 5);
+    await vi.advanceTimersByTimeAsync(2000);
+    await pending;
+    expect(f.session.snapshot().results.map(item => item.roomId)).toEqual(['LONG34']);
+    await vi.advanceTimersByTimeAsync(57_999);
+    expect(f.session.snapshot().results).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(f.session.snapshot().results).toEqual([]);
+    expect(f.session.selection().source).not.toBeNull();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(f.session.snapshot().phase).toBe('off');
+  });
+  it('cancels old card deadlines on explicit restart and stop', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    const f = harness(false, true, { continuousDevice: () => false });
+    replyWithRooms(f, [result('SHORT2', 1000, 1)]);
+    await f.session.start({ kind: 'device' }, 5);
+    await vi.advanceTimersByTimeAsync(500);
+    replyWithRooms(f, [result('LONG34', 60_000, 2)]);
+    await f.session.start({ kind: 'device' }, 10);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(f.session.snapshot().results.map(item => item.roomId)).toEqual(['LONG34']);
+    expect(f.session.snapshot().phase).toBe('active');
+    f.session.stop();
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(f.session.snapshot().phase).toBe('off');
+    expect(f.session.snapshot().results).toEqual([]);
+  });
+  it('replaces card deadlines on an ordinary browser refresh without discarding other valid rooms', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    const f = harness();
+    replyWithRooms(f, [result('SHORT2', 1000, 1), result('LONG34', 60_000, 2)]);
+    await f.session.start({ kind: 'device' }, 5);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(f.session.snapshot().results.map(item => item.roomId)).toEqual(['LONG34']);
+    replyWithRooms(f, [result('LONG34', 80_000, 2)]);
+    await vi.advanceTimersByTimeAsync(29_000);
+    expect(f.events).toHaveLength(2);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(f.session.snapshot().results.map(item => item.roomId)).toEqual(['LONG34']);
+    expect(f.session.snapshot().phase).toBe('active');
+    f.session.stop();
+    expect(vi.getTimerCount()).toBe(0);
+  });
   it('cannot locate or publish when a Product grant arrives after stop', async () => {
     let finish!: () => void;
     const authorize = vi.fn(

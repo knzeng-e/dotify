@@ -60,7 +60,9 @@ handshakes and denied/unanswered permission checks fail closed.
 
 Product uses a single position snapshot with a maximum 90-second lease, never
 automatic movement tracking or automatic SDK permission requests. **Update my
-location** explicitly starts a new grant/fix cycle; expiry clears the results
+location** explicitly starts a new grant/fix cycle. Each room card expires
+independently; a short room lease does not end the position snapshot or discard
+other live results. Response-level expiry clears the results
 and withdraws visibility. The public SDK currently exposes no silent observer
 of Product-only permission revocation. Browser/OS permission changes stop
 immediately when observable; a Host-only revocation is bounded by the snapshot

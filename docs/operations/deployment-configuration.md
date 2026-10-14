@@ -1839,7 +1839,10 @@ grant. The grant alone never proves WebView geolocation support. The tracked
 Product profile keeps this flag unset/off; no manifest permission is added.
 
 Product takes one position snapshot, valid for at most 90 seconds (search
-results can expire sooner), without automatic fixes or SDK permission requests.
+individual room cards can expire sooner), without automatic fixes or SDK permission requests.
+Each expired card is removed independently; remaining cards and the position
+snapshot stay usable until the response-level expiry, without a new permission
+or fix cycle.
 **Update my location** is an explicit renewal. Browser permission revocation
 stops immediately when observable; Host-only revocation has no silent public
 SDK observer and is bounded by snapshot expiry. Unsupported containers explain
