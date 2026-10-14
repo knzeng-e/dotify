@@ -148,6 +148,32 @@ changed. The source-default change is not proof of physical Host positioning.
 - Physical Product Desktop/mobile positioning and independent-network speaker
   output remain **not run**. No deployment or real-position collection.
 
+## CI correction and final review — 2026-10-14
+
+The default-on change exposed two real arrival-layout regressions in
+[CI run 38621902002](https://github.com/knzeng-e/dotify/actions/runs/38621902002):
+the 390 px and 1440 px Join/Open controls were below the usable viewport after
+the expanded Nearby panel. The other 236 core browser checks passed.
+
+`RoomsView.tsx` now renders direct Join/Open controls immediately after the
+introduction, before Nearby and general discovery. Removed the mobile CSS
+ordering that contradicted this DOM order; visual, reading and keyboard order
+therefore agree. Nearby stays available by default with explicit location consent.
+Arrival tests retain their viewport assertions and additionally prove Nearby
+is visible after the direct-entry controls. No test was skipped or weakened.
+
+- Arrival/adaptive regression suite: 6/6 passed with two workers. Both 390 px
+  and 1440 px screenshots inspected; Join/Open controls are within the initial
+  viewport, with no horizontal overflow. Web build/typecheck and targeted
+  ESLint/Prettier passed; existing build warnings persist.
+- Reviewed the final location/permission/session, server defaults, expiry,
+  request validation, consent cleanup, Product fixture and rollback paths.
+  No additional merge-blocking code issue found. Physical Host positioning,
+  Host-only revocation and independent-network speaker evidence remain open.
+- The exploratory local full-suite run was stopped after the CI logs identified
+  the exact two failures; it is not counted as completed evidence. The final
+  full suite is verified by the fresh CI run for the corrected head.
+
 ## Physical-device validation checklist — not run
 
 Use the default build from

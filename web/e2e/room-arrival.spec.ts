@@ -8,6 +8,11 @@ for (const width of [390, 1440]) {
     await page.getByRole('button', { name: 'Rooms', exact: true }).click();
     const form = page.getByRole('region', { name: 'Join or host a room' });
     await expect(form).toBeVisible();
+    const nearby = page.getByRole('region', { name: 'Nearby', exact: true });
+    await expect(nearby).toBeVisible();
+    const arrivalBox = await form.boundingBox();
+    const nearbyBox = await nearby.boundingBox();
+    expect(arrivalBox!.y + arrivalBox!.height).toBeLessThanOrEqual(nearbyBox!.y);
     const code = page.getByLabel('Room code or link', { exact: true });
     const inputBox = await code.boundingBox();
     expect(inputBox!.width).toBeGreaterThanOrEqual(180);

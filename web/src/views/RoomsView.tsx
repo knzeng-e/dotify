@@ -97,6 +97,29 @@ export function RoomsView({
         </div>
       </header>
 
+      <section className='room-arrival' aria-label='Join or host a room'>
+        <form className='session-form room-action-form' onSubmit={onJoinSession}>
+          <label htmlFor='room-code-input'>Room code or link</label>
+          <div className='room-action-row'>
+            <input
+              id='room-code-input'
+              className='field code-field room-action-field'
+              value={joinCode}
+              onChange={event => onSetJoinCode(event.target.value)}
+              placeholder='ABC123 or a room link'
+              maxLength={140}
+              autoComplete='off'
+            />
+            <button className='primary-action room-action-submit' type='submit' disabled={sessionAction !== 'idle'}>
+              <ArrowRight size={17} />
+              {isJoining ? 'Joining…' : 'Join'}
+            </button>
+          </div>
+        </form>
+        <button className='secondary-action' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
+          <Radio size={18} /> Open a room
+        </button>
+      </section>
       {roomExperienceFlags.nearby && <NearbyControls nearby={nearby} onJoin={onJoinRoom} joining={isJoining} />}
       <section className='rooms-live-section' aria-labelledby='rooms-live-title'>
         <div className='section-heading'>
@@ -260,29 +283,6 @@ export function RoomsView({
             )}
           </div>
         )}
-      </section>
-      <section className='room-arrival' aria-label='Join or host a room'>
-        <form className='session-form room-action-form' onSubmit={onJoinSession}>
-          <label htmlFor='room-code-input'>Room code or link</label>
-          <div className='room-action-row'>
-            <input
-              id='room-code-input'
-              className='field code-field room-action-field'
-              value={joinCode}
-              onChange={event => onSetJoinCode(event.target.value)}
-              placeholder='ABC123 or a room link'
-              maxLength={140}
-              autoComplete='off'
-            />
-            <button className='primary-action room-action-submit' type='submit' disabled={sessionAction !== 'idle'}>
-              <ArrowRight size={17} />
-              {isJoining ? 'Joining…' : 'Join'}
-            </button>
-          </div>
-        </form>
-        <button className='secondary-action' type='button' onClick={onStartRoom} disabled={sessionAction !== 'idle'}>
-          <Radio size={18} /> Open a room
-        </button>
       </section>
     </section>
   );
