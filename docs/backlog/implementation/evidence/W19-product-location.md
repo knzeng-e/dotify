@@ -150,6 +150,8 @@ changed. The source-default change is not proof of physical Host positioning.
 
 ## CI correction and final review — 2026-10-14
 
+Tested implementation: `047f5b3714734e528e2fd9b994390ee2e5875966`.
+
 The default-on change exposed two real arrival-layout regressions in
 [CI run 38621902002](https://github.com/knzeng-e/dotify/actions/runs/38621902002):
 the 390 px and 1440 px Join/Open controls were below the usable viewport after
@@ -172,7 +174,8 @@ is visible after the direct-entry controls. No test was skipped or weakened.
   Host-only revocation and independent-network speaker evidence remain open.
 - The exploratory local full-suite run was stopped after the CI logs identified
   the exact two failures; it is not counted as completed evidence. The final
-  full suite is verified by the fresh CI run for the corrected head.
+  full-suite result is tracked on the fresh CI run for the corrected head and
+  must pass before merge.
 
 ## Physical-device validation checklist — not run
 
