@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { ArrowRight, EyeOff, Flag, MapPin, Radio, Search, X } from 'lucide-react';
 import { NEARBY_RADII } from '../../shared/nearby-v2.mjs';
 import { nearbyManualAreas, canUseNearbyDeviceLocation } from '../features/rooms/nearbyLocation';
+import { requiresExplicitProductRoomEntry } from '../features/productHost/productHost';
 import type { useNearby } from '../features/rooms/useNearby';
 
 type Props = { nearby: ReturnType<typeof useNearby>; host?: boolean; onJoin?: (roomId: string) => void; joining?: boolean };
@@ -52,7 +53,7 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
       </p>
       <details className='nearby-settings' open={!active}>
         <summary>
-          {host ? 'Visibility area' : 'Search area'} · about {radius} km
+          {host ? 'Visibility area' : 'Search area'} · {source === 'manual' && selected ? `${selected.name} centre` : 'Your location'} · about {radius} km
         </summary>
         <fieldset className='nearby-radius'>
           <legend>{host ? 'Visibility radius' : 'Search radius'} · approximate</legend>
@@ -80,11 +81,16 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
               {host ? 'Enable nearby visibility' : 'Find rooms near me'}
             </button>
           ) : (
-            <p>Device location is not supported in this app container. Choose an area below, or use an invite link or QR code.</p>
+            <p>Location is unavailable in this app environment. Use an invite link or QR code, or explore a city separately.</p>
           )}
         </div>
-        <details className='nearby-manual' open={!deviceSupported || undefined}>
-          <summary>Choose an area manually</summary>
+        {deviceSupported && requiresExplicitProductRoomEntry() && (
+          <p className='nearby-hint'>
+            Your Polkadot app uses your current position for up to 90 seconds. Update your location to refresh it; your movements are not followed.
+          </p>
+        )}
+        <details className='nearby-manual'>
+          <summary>Explore a city</summary>
           <label htmlFor={`${id}-area`}>City centre · starter areas</label>
           <div className='nearby-manual-row'>
             <select
@@ -102,10 +108,13 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
               ))}
             </select>
             <button type='button' className='secondary-action' disabled={!selected || busy} onClick={() => start('manual')}>
-              {host ? 'Enable in this area' : 'Search this area'}
+              {host ? 'Enable around this city centre' : 'Explore this city'}
             </button>
           </div>
-          <p className='nearby-hint'>The radius starts at the selected city centre. If your area is not listed, share a room link or QR code.</p>
+          <p className='nearby-hint'>
+            This separate search starts at the selected city centre, not your current location. It only includes the chosen radius. If your city is not listed,
+            use a room link or QR code.
+          </p>
         </details>
         <details className='nearby-manual'>
           <summary>How your area is shared</summary>
@@ -115,6 +124,14 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
           </p>
         </details>
       </details>
+      {active && source === 'device' && requiresExplicitProductRoomEntry() && (
+        <div className='nearby-actions'>
+          <p className='nearby-hint'>Current position · valid for up to 90 seconds.</p>
+          <button type='button' className='secondary-action' onClick={() => start('device')}>
+            <MapPin size={17} /> Update my location
+          </button>
+        </div>
+      )}
       <p ref={statusRef} tabIndex={-1} role='status' className='nearby-status' data-phase={state.phase}>
         {state.message || (host ? 'Off · your room stays accessible by link.' : 'Search is off. Your location has not been requested.')}
       </p>

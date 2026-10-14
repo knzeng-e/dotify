@@ -113,9 +113,9 @@ test('opt-in nearby discovery reaches real guest audio, clears on background and
     await guest.getByRole('button', { name: 'Rooms', exact: true }).click();
     await nearby.getByRole('button', { name: 'Find rooms near me' }).click();
     await expect(nearby).toContainText(/Location is off|location took too long/);
-    await nearby.getByText('Choose an area manually', { exact: true }).click();
+    await nearby.getByText('Explore a city', { exact: true }).click();
     await nearby.getByLabel('City centre · starter areas').selectOption('Libreville');
-    await nearby.getByRole('button', { name: 'Search this area' }).click();
+    await nearby.getByRole('button', { name: 'Explore this city' }).click();
     await expect(nearby).toContainText('No visible rooms');
   } finally {
     await Promise.allSettled([hostContext.close(), guestContext.close()]);

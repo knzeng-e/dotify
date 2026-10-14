@@ -1,5 +1,28 @@
 # Deploy Dotify To Product DevNet
 
+## Nearby in the default Product build
+
+Nearby is included by default, matching Web. Build-only validation uses
+`npm --prefix web run build:product-devnet:frozen`;
+it does not publish, refresh the catalog or modify manifest permissions.
+Signaling also includes Nearby by default and must run on one worker. Existing
+explicit `VITE_DOTIFY_NEARBY=off` / `SIGNAL_NEARBY=off` settings still disable it;
+audit them before release. The removed Product-specific flag has no effect.
+
+Location permission is requested only after **Find rooms near me** or **Enable
+nearby visibility**. A secure WebView with working Geolocation and observable
+Permissions APIs is required; SDK `Location` approval alone is insufficient.
+Product location uses a single snapshot, expiring within 90 seconds, renewed
+only by an explicit **Update my location** action. **Explore a city** is separate
+and never activates automatically. Capture the
+[physical-device checklist](../backlog/implementation/evidence/W19-product-location.md)
+before claiming physical Host support. A late Host grant cannot restart
+Nearby after stop/timeout, but Dotify cannot dismiss or undo the Host's own
+permission decision.
+
+Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
+there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
+
 ## Product 0.1.48 published follow-up
 
 The published executable is `[0, 1, 48]` for the publication, artwork,

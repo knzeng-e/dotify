@@ -8,6 +8,8 @@ declare global {
   interface Window {
     identityFixture: {
       requests: number;
+      locationRequests: number;
+      locationGranted: boolean;
       setProfile: (name: string, key?: number, delayed?: boolean, denied?: boolean) => void;
       resolveName: () => void;
       addressForKey: (key: number) => string;
@@ -29,8 +31,15 @@ Object.assign(window, {
 let finishName = () => {};
 window.identityFixture = {
   requests: 0,
+  locationRequests: 0,
+  locationGranted: true,
   setProfile(name, key = 17, delayed = false, denied = false) {
     const host = createFakeHost({ primaryUsername: name, publicKey: new Uint8Array(32).fill(key) });
+    host.client.permissions.requestDevicePermission = permission => {
+      if (permission !== 'Location') throw new Error('Unexpected device permission in fixture');
+      window.identityFixture.locationRequests++;
+      return ResultAsync.fromSafePromise(Promise.resolve({ granted: window.identityFixture.locationGranted }));
+    };
     const original = host.client.account.getUserId.bind(host.client.account);
     host.client.account.getUserId = () => {
       window.identityFixture.requests++;

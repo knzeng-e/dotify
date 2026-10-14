@@ -624,9 +624,11 @@ socket.emit('peer:connected', { targetId: string /* host socket ID */ });
 // Host receives
 socket.on('peer:connected', (payload: { from: string }) => { ... });
 ```
-## Nearby v2 (W19, default off)
+## Nearby v2 (W19, available by default)
 
-Requires `SIGNAL_NEARBY=on`; the client also requires `VITE_DOTIFY_NEARBY=on`.
+Unset or exact `on` includes Nearby for `SIGNAL_NEARBY` and the client setting
+`VITE_DOTIFY_NEARBY`. Explicit `off` or an invalid value disables the respective
+boundary. Availability does not collect a location or publish a room by itself.
 All requests use connected-only acknowledgements without disconnected buffering.
 `nearby:off` is non-volatile so connected polling backpressure cannot discard
 revocation; publication/search/report remain volatile. Unknown fields,

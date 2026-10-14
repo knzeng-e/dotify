@@ -69,7 +69,8 @@ Paths are starting points from the reviewed dev snapshot; locate moved files and
    mixed scales. Review whether responses need host cell IDs at all; do not
    expose them in public room state. Prepare responsive inactive, locating,
    active, empty, denied, stale and disconnected states.
-2. Implement behind a feature flag. Coarsen on-device before every outbound
+2. Include Nearby by default in Web and Product, with an operational disable
+   (owner clarification 2026-10-14). Coarsen on-device before every outbound
    request. Bind publication to the existing authenticated room-host session
    without requiring a wallet, use rotating public identifiers and derive
    displayed room metadata server-side. Keep Socket.IO authoritative and WebRTC
@@ -116,16 +117,21 @@ No public geographic Statement Store beacon, permanent location history, wallet-
 
 The owner has prioritized W19 ahead of optional galaxy/activity work, further
 realtime migration and stablecoins. Implementation may proceed before W13's
-aggregate acceptance. Default enablement still requires reviewed privacy,
+aggregate acceptance. The owner subsequently requested default availability in
+both Web and Product. Publication still requires reviewed privacy,
 device, room and applicable W13/#89 reliability evidence. Planning priority
 does not authorize deployment, participant contact, collecting real locations,
 spending funds or changing permissions in a published build.
 
 ## Handoff
 
-Implementation review: see [W19 evidence](evidence/W19.md). The default-off v2
+Implementation review: see [W19 evidence](evidence/W19.md). The v2
 uses 5 / 10 / 25 km; 2 km is intentionally withheld because the coarse cells
 are approximately 2.22 km across. Public enablement still needs the physical
 device/privacy and room reliability gates listed in that handoff.
+Product location continuation: [capability and snapshot evidence](evidence/W19-product-location.md).
+It separates current-position discovery from explicit city exploration and
+includes Product location by default alongside Web, preserving explicit user
+consent and honest capability checks. The former additional build flag is removed.
 
 Write `docs/backlog/implementation/evidence/W19.md` using `evidence-template.md`. Include the initial base SHA, implementation SHA, PR, artifacts, operational changes, known risks, and the next eligible sequences. Keep Project 5 as the workflow-status source. End with an implementation summary and the exact next step; do not start another sequence automatically.

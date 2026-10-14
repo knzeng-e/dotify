@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('ordinary builds expose no Nearby UI and never request location or send nearby packets', async ({ page }) => {
+test('operational rollback exposes no Nearby UI and never requests location or sends nearby packets', async ({ page }) => {
   const packets: string[] = [];
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'geolocation', {

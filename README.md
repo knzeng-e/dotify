@@ -31,7 +31,8 @@ aura lights the whole field (`web/src/styles/aura.css`).
 
 - **Music**: an actionable horizontal catalog first, followed by real open rooms, policy-aware listening,
   and one-step room hosting without a permanent player navigation tab.
-- **Rooms**: open listening rooms in the default 2D sky/list path, an optional
+- **Rooms**: open listening rooms in the default 2D sky/list path, Nearby available
+  by default in Web and Product with explicit location/visibility consent, an optional
   3D galaxy behind a build-time opt-in, and manual room-code entry. Room guests should be able to join and
   listen without wallet friction.
 - **Artist portal**: a dedicated `/artists` onboarding and studio surface where

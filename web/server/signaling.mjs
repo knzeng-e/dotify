@@ -39,7 +39,7 @@ import {
 } from './signaling-utils.mjs';
 
 export const defaultConfig = {
-  nearbyEnabled: false,
+  nearbyEnabled: true,
   port: 8788,
   host: '0.0.0.0',
   // '*' (demo) or an array of exact origins.
@@ -91,7 +91,7 @@ export function readConfigFromEnv(env = process.env) {
   const origins = (env.SIGNAL_ORIGINS ?? env.SIGNAL_ORIGIN ?? '*').trim();
   return {
     ...defaultConfig,
-    nearbyEnabled: env.SIGNAL_NEARBY === 'on',
+    nearbyEnabled: (env.SIGNAL_NEARBY ?? 'on') === 'on',
     contributions: {
       key: env.SIGNAL_CONTRIBUTION_ATTESTOR_KEY,
       rpc: env.SIGNAL_CONTRIBUTION_RPC_URL,

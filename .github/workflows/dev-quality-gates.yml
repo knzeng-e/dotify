@@ -242,6 +242,11 @@ jobs:
           VITE_DOTIFY_ROOM_REALTIME: dual
         run: npx vite build --config vite.product.config.ts --mode product-devnet
 
+      - name: Build Nearby operational rollback profile
+        env:
+          VITE_DOTIFY_NEARBY: 'off'
+        run: npx vite build --config vite.product.config.ts --mode product-devnet
+
       - name: Fail on generated Product catalog drift
         working-directory: .
         run: |
@@ -278,8 +283,11 @@ jobs:
       - name: Run deterministic core flows
         run: npm run test:e2e
 
-      - name: Verify opt-in nearby discovery
+      - name: Verify default Web and Product Nearby discovery
         run: npm run test:e2e -- --config playwright.nearby.config.ts
+
+      - name: Verify Nearby operational rollback
+        run: npm run test:e2e -- --config playwright.nearby-off.config.ts
 
       - name: Verify encrypted audio continuity
         run: npm run test:audio-continuity -- --project chromium

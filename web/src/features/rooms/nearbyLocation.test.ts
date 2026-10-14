@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { canUseNearbyDeviceLocation, locateNearbyCell } from './nearbyLocation';
+import { canRefreshNearbyDeviceLocation, canUseNearbyDeviceLocation, locateNearbyCell, queryNearbyLocationPermission } from './nearbyLocation';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -44,16 +44,61 @@ it('times out even if the container never answers and clears its watcher', async
   expect(clearWatch).toHaveBeenCalledWith(2);
 });
 
-it('offers device location only for standalone secure browsers with observable permission state', () => {
+it('offers device location by default in secure Web and Product surfaces with observable permission state', () => {
   const page = { isSecureContext: true, location: { protocol: 'https:' }, self: {}, top: {} };
   page.top = page.self;
   vi.stubGlobal('window', page);
-  vi.stubGlobal('navigator', { geolocation: {}, permissions: { query: () => {} } });
+  vi.stubGlobal('navigator', { geolocation: { watchPosition: () => 1, clearWatch: () => {} }, permissions: { query: () => {} } });
   expect(canUseNearbyDeviceLocation()).toBe(true);
   vi.stubGlobal('window', { ...page, __HOST_WEBVIEW_MARK__: true });
-  expect(canUseNearbyDeviceLocation()).toBe(false);
+  expect(canUseNearbyDeviceLocation()).toBe(true);
   vi.stubGlobal('window', { ...page, location: { protocol: 'polkadot:' } });
-  expect(canUseNearbyDeviceLocation()).toBe(false);
+  expect(canUseNearbyDeviceLocation()).toBe(true);
   vi.stubGlobal('window', { ...page, top: {} });
+  expect(canUseNearbyDeviceLocation()).toBe(true);
+});
+
+it('keeps Product snapshot capability prerequisites even with default availability', () => {
+  const page = { isSecureContext: true, location: { protocol: 'https:' }, self: {}, top: {}, __HOST_WEBVIEW_MARK__: true };
+  page.top = page.self;
+  vi.stubGlobal('window', page);
+  vi.stubGlobal('navigator', { geolocation: { watchPosition: () => 1, clearWatch: () => {} }, permissions: { query: () => {} } });
+  expect(canUseNearbyDeviceLocation()).toBe(true);
+  expect(canRefreshNearbyDeviceLocation()).toBe(false);
+  vi.stubGlobal('navigator', { geolocation: { watchPosition: () => 1, clearWatch: () => {} } });
   expect(canUseNearbyDeviceLocation()).toBe(false);
+  vi.stubGlobal('window', { ...page, isSecureContext: false });
+  expect(canUseNearbyDeviceLocation()).toBe(false);
+});
+
+it('bounds an unanswered permission query and ignores a late result', async () => {
+  vi.useFakeTimers();
+  let finish!: (value: PermissionStatus) => void;
+  vi.stubGlobal('navigator', {
+    permissions: {
+      query: () =>
+        new Promise(resolve => {
+          finish = resolve;
+        })
+    }
+  });
+  const pending = expect(queryNearbyLocationPermission(new AbortController().signal)).rejects.toThrow('TIMEOUT');
+  await vi.advanceTimersByTimeAsync(6000);
+  await pending;
+  finish({ state: 'granted' } as PermissionStatus);
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('cancels a permission query without keeping its timer alive', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('navigator', { permissions: { query: () => new Promise(() => {}) } });
+  const controller = new AbortController();
+  const pending = expect(queryNearbyLocationPermission(controller.signal)).rejects.toThrow('STOPPED');
+  controller.abort();
+  await pending;
+  expect(vi.getTimerCount()).toBe(0);
+});
+it('rejects an unrecognized permission state rather than treating it as consent', async () => {
+  vi.stubGlobal('navigator', { permissions: { query: async () => ({ state: 'unknown' }) } });
+  await expect(queryNearbyLocationPermission(new AbortController().signal)).rejects.toThrow('UNAVAILABLE');
 });

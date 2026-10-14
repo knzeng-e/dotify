@@ -1,6 +1,6 @@
 # Dotify Nearby Discovery Privacy Contract
 
-Status: W19 implements the default-off v2 below. W18 v1 is retained as inert historical scaffolding.
+Status: W19 v2 is available by default in Web and Product builds. Location and room visibility require explicit user consent. W18 v1 is retained as inert historical scaffolding.
 
 Last reviewed: 2026-09-13 (v1); radius/planning amendment: 2026-10-14.
 
@@ -8,7 +8,11 @@ Last reviewed: 2026-09-13 (v1); radius/planning amendment: 2026-10-14.
 
 `web/shared/nearby-v2.mjs` is the shared geometry/validation boundary;
 `web/server/nearby.mjs` owns short-lived presence independently from public
-room state. The frontend and server each require an explicit `on` flag.
+room state. The frontend and server include Nearby when their respective
+`VITE_DOTIFY_NEARBY` / `SIGNAL_NEARBY` setting is unset or exact `on`.
+Explicit `off` or an invalid value disables it for operational rollback.
+There is no additional Product feature flag. Availability never starts
+location collection, permission requests, search or visibility by itself.
 No collection, permission query or nearby traffic occurs with the frontend
 flag off. The server rejects all Nearby events with its flag off.
 
@@ -52,9 +56,25 @@ background permission prompt. Offline opt-out explicitly explains the possible
 90-second remote expiry. Connected revocation uses a reliable (non-volatile)
 packet so polling backpressure does not discard it; disconnected revocation is
 never buffered for replay after reconnect. Browser permission support is required for device
-mode; unsupported Product containers offer manual areas and existing QR/links.
+mode. Product location requires a secure context, working
+Geolocation/Permissions APIs and an explicit SDK `Location` grant. A grant
+does not prove the WebView can return coordinates. Missing APIs, failed
+handshakes and denied/unanswered permission checks fail closed.
 
-Manual areas are an offline starter list of city centres; there is no external
+Product uses a single position snapshot with a maximum 90-second lease, never
+automatic movement tracking or automatic SDK permission requests. **Update my
+location** explicitly starts a new grant/fix cycle. Each room card expires
+independently; a short room lease does not end the position snapshot or discard
+other live results. Response-level expiry clears the results
+and withdraws visibility. The public SDK currently exposes no silent observer
+of Product-only permission revocation. Browser/OS permission changes stop
+immediately when observable; a Host-only revocation is bounded by the snapshot
+expiry rather than claimed to be observable. Native continuous refresh remains
+unsupported until this boundary is resolved and physically verified. Neither
+default availability nor an SDK grant relaxes secure-context/API prerequisites.
+
+**Explore a city** is a separate, explicit option, never a default or an
+automatic fallback after a failed location request. Manual areas are an offline starter list of city centres; there is no external
 geocoder. The selected label and precise centre are not sent. This intentionally
 does not cover every locality yet. Host and listener choose their area separately.
 
@@ -74,18 +94,25 @@ public room metadata and exact connected-session counts: Nearby is not anonymity
 
 The v1 sections below are historical: automatic sparse expansion, 2-minute
 expiry, area-bearing responses and the old schemas are superseded by v2.
-Physical browser/Product permission checks remain required before enablement.
+Physical browser/Product permission checks remain required before release.
 Browser consent behaviour was checked against the
 [W3C specification](https://www.w3.org/TR/geolocation/); the
 [Product Host API](https://paritytech.github.io/product-sdk/api/host/) does not
-constitute device evidence. No Product manifest permission is changed here.
+constitute device evidence. No Product manifest permission is changed here;
+the Product adapter requests `Location` only following a Nearby action.
 
 ## Radius amendment — 2026-10-14
 
 The owner selects W19 as the next product expansion, before optional 3D,
-activity, further realtime migration and stablecoins. Flagged implementation
+activity, further realtime migration and stablecoins. Initial flagged implementation
 may start before W13 aggregate acceptance; public enablement still requires
 W19 privacy/device evidence and applicable reliability gates.
+
+Owner clarification on 2026-10-14: Product must carry Dotify features by default.
+Nearby availability is now the same default in Web and Product; operational
+disables remain possible. User consent, physical capability evidence and release
+validation are separate from feature availability. This amendment does not
+authorize collecting real positions or publishing a build.
 
 Add separate host discovery-radius and listener search-radius controls in km.
 Initial proposal: 2 / 5 / 10 / 25 km with 5 km selected inside the control,

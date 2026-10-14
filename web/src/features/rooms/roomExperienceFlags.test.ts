@@ -5,11 +5,18 @@ afterEach(() => {
   vi.resetModules();
 });
 
-it.each([undefined, 'off', 'true', 'ON'])('keeps room experiments off for %s', async value => {
+it.each(['off', 'true', 'ON', ''])('disables Nearby for an explicit off or invalid setting (%s)', async value => {
   vi.stubEnv('VITE_DOTIFY_ROOM_GALAXY', value);
   vi.stubEnv('VITE_DOTIFY_NEARBY', value);
   const { roomExperienceFlags } = await import('./roomExperienceFlags');
   expect(roomExperienceFlags).toEqual({ galaxy: false, nearby: false });
+});
+
+it.each([undefined, 'on'])('includes Nearby by default or explicit on (%s), without enabling Galaxy', async value => {
+  vi.stubEnv('VITE_DOTIFY_ROOM_GALAXY', undefined);
+  vi.stubEnv('VITE_DOTIFY_NEARBY', value);
+  const { roomExperienceFlags } = await import('./roomExperienceFlags');
+  expect(roomExperienceFlags).toEqual({ galaxy: false, nearby: true });
 });
 
 it('requires an explicit opt-in for the galaxy experiment', async () => {
