@@ -4,7 +4,8 @@
 
 - Date: 2026-10-14. Existing issue: [#274](https://github.com/knzeng-e/dotify/issues/274).
 - Base: tested `dev`, `f0380f8c0d99fc262b66553597eba3a900264986`, including #278.
-- Branch: `feat/product-nearby-location`.
+- Branch / PR: `feat/product-nearby-location` / [#279](https://github.com/knzeng-e/dotify/pull/279).
+- Tested implementation: `d74075dd650ddf84939d752635fd0083a04db341`.
 - Scope: explicit Product Location permission plus a bounded, coarse position
   snapshot; separate current-position discovery from city-centre exploration.
 - No deployment, real-position collection, runtime migration or SDK upgrade.
@@ -64,8 +65,23 @@ denial or capability failure never activates it automatically.
 Synthetic coordinates only, Node 22.13.1, macOS and local Chromium. The Product
 browser fixture uses the installed SDK fake client together with real browser
 Geolocation/Permissions APIs and the real signaling service. This is adapter
-evidence, not installed-Host evidence. Final tested SHA/results are appended
-after the implementation commit.
+evidence, not installed-Host evidence.
+
+| Check | Observed result |
+| --- | --- |
+| Full unit suite before final strict-state hardening | 119 files / 914 tests passed. |
+| Final permission/location/session/flags tests | 36/36 passed, including the added unknown-state rejection, snapshot policy capture and late cancellation/expiry paths. |
+| Typecheck and Web build | Passed. |
+| Frozen Product build, Nearby and Product location flags on | Passed on the tested implementation above; no bootstrap refresh/deployment. |
+| Nearby Playwright | 3/3 passed, 0 flaky: installed SDK fake client plus real browser positioning, denial/missing API, explicit city choice and ordinary protected host → guest audio. |
+| Lint / formatting | Zero errors; two existing App.tsx hook warnings. Prettier passed. |
+| Offline backlog / diff checks | Passed. |
+
+The final browser run took 23.8 seconds. Wire assertions found no precise fix
+or wallet field. Screenshots of current-position and named-city states were
+visually inspected at 390 px. Headless audio is not physical speaker evidence.
+Existing build chunk/annotation/Browserslist warnings persist. No signaling or
+contract code changed. CI results are tracked live on #279.
 
 Artifacts: `/private/tmp/dotify-product-nearby-unit.log`,
 `/private/tmp/dotify-product-nearby-build.log`,
