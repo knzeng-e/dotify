@@ -1825,6 +1825,13 @@ Nearby is included by default in new Web/Product builds and single-worker
 signaling. Existing published artifacts/settings are not changed by this PR.
 Location collection and room visibility still require explicit user actions.
 
+The 0.1.49 test release packages `shared` alongside `server` in
+`web/Dockerfile.signal`; omitting the geometry module prevents signaling from
+booting. Run the packaged-runtime smoke in `npm --prefix web run test:signal`,
+then verify one active worker and `nearbyEnabled: true` after rollout. This
+release increments the Product executable identity, retaining the native
+runtime profile and existing origins. Installed-device evidence remains pending.
+
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `VITE_DOTIFY_NEARBY` | unset → enabled | Unset or exact `on` includes Nearby in both Web and Product. `off` or an invalid value disables UI and effects. No URL/storage override. |

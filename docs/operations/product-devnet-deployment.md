@@ -23,6 +23,22 @@ permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
+## Product 0.1.49 Nearby test release
+
+The candidate is based on merged #279 (`6de81d1`) and bumps the executable to
+`[0, 1, 49]` so installed Hosts can identify the Nearby integration. The default
+Product profile remains `product-cdm` on `devnet`, with explicit location consent.
+Use a clean committed release checkout and verify the embedded SHA/version after
+publication. The prior 0.1.48 executable remains the rollback reference.
+
+The signaling image must include both `server` and `shared`: Nearby imports
+`shared/nearby-v2.mjs`. The packaged-runtime smoke boots the directories declared
+by `Dockerfile.signal`; deploying source tests alone cannot prove image startup.
+Deploy one signaling worker before testing discovery. Recheck active rooms before
+restart and verify `/health` reports `nearbyEnabled: true`. No API or contract
+change is needed for this slice. The location checklist above remains required
+on the installed Desktop/mobile versions; publication is not device evidence.
+
 ## Product 0.1.48 published follow-up
 
 The published executable is `[0, 1, 48]` for the publication, artwork,
