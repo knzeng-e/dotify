@@ -1723,9 +1723,10 @@ payment or a change to artist-selected shares. See
 Rollback the galaxy experiment by rebuilding without its `on` value. The room
 lineup requires a coordinated frontend/signaling rollback because old signaling
 servers ignore its events while the current frontend keeps playback functional.
-Nearby and
-community memory remain documentation only: no new endpoint or location
-permission is configured by this pass. See
+Nearby now has a default-off implementation; use the Nearby configuration and
+validation gates documented below before enabling it. Community memory remains
+documentation only. The original shared-presence pass added no location
+permission. See
 [shared-presence pass](../design/dotify-shared-presence-pass.md).
 
 ## Product artist-support validation profile
