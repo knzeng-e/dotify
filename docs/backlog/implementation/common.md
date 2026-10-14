@@ -57,7 +57,8 @@ Preserve these invariants:
 - Artist/runtime/NFT ownership and beneficiary rights are described accurately.
 - Real data drives presence. Session counts are not verified unique humans.
 - Audio survives visual navigation, graphics failure, and degraded discovery.
-- Location is an opt-in later feature with explicit disclosure limits.
+- Location is opt-in with explicit disclosure limits; W19 is the next product
+  expansion under the 2026-10-14 decision, with separate release evidence gates.
 
 For contract/storage/key changes, include compatibility fixtures and a local
 migration/restore rehearsal. Existing purchases, ciphertext, and Diamond storage

@@ -161,8 +161,10 @@ open.
 | P1       | #89          | Next                | Exercise forced TURN, independent networks, mobile recovery, host capacity, and the mesh/SFU decision.                                                         |
 | P1       | #85          | Product feasibility | Maintain the Product capability/compatibility epic around evidence that the current Host actually exposes.                                                     |
 | P1       | #90          | Next                | Re-scope only the wallet-later gaps observed in pilot evidence; do not replay the delivered UX work.                                                           |
+| P1       | #274 / W19   | Now                 | Implement opt-in Nearby room discovery with separate approximate host/listener radii, explicit widening, wallet-free joining, and privacy/device evidence.      |
+| P1       | #275         | Next                | Design artist-controlled runtime modules, safe owner-approved updates, admin inventory, and a separate artist-admission boundary.                               |
+| P1       | #276         | Next                | Prove per-artist key export and restore through a second compatible operator without exposing a global master secret.                                           |
 | P1       | #214 / W27   | Next Product sprint | Prove Celerity room events behind a typed dual-transport boundary, preserve anonymous link entry, and decide each Socket.IO responsibility from live evidence. |
-| P1       | #223 / W28   | Next                | Review the mobile premium slice: room-aware mini-player, native track rails, full player clarity, and room mobile ergonomics. Evidence: `implementation/evidence/W28.md`. |
 | P1       | #250 / W29   | Next                | Review the clarity slice in PR #249, then see the playback failure states and the chained sign-in with a real wallet and inside the Product host. Evidence: `implementation/evidence/W29.md`. |
 | P2       | #12          | Product feasibility | Prove a private personhood source and address binding before implementing Human free.                                                                          |
 | P3       | #13          | Later               | Design consented cultural propagation after the first pilot.                                                                                                   |
@@ -234,13 +236,27 @@ For new implementation sessions, use the September 2026
 It translates the existing backlog and the latest product direction into
 bounded prompts, dependency gates, and a Product DevNet/web pilot. Product is
 a first-class acceptance target; responsive design can progress alongside the
-spine, a 3D prototype can start early, and nearby discovery comes later after
-privacy design. The historical order below remains context; the playbook is the
+spine and a 3D prototype remains optional. The 2026-10-14 owner decision makes
+Nearby the next product expansion after reviewing W18's radius amendment. The historical order below remains context; the playbook is the
 current sequencing guide. Project 5 continues to own workflow status.
 
 Sprint 0, Sprint 1, ticket 24 P1/P2/P3 first slice, ticket 25, W01-W12,
 W14, W16, W18, and W21-W25 have delivered implementation records. W13 remains
-the release gate. The remaining order is:
+the release gate. Current product scheduling is documented in
+[Product alignment and Nearby priorities](polkadot-alignment-and-nearby-priority.md):
+
+- **Now product expansion:** W19, find nearby rooms and make a room visible in a
+  chosen approximate radius in km. Flagged implementation can start after
+  W09/W10/W18 and radius/privacy review, before aggregate pilot acceptance.
+- **Supporting work:** #85 Product compatibility/network profiles and observed
+  playback/joining/publication/tip failures, with release evidence retained.
+- **Next:** artist-controlled [runtime features](artist-runtime-features.md) and
+  [key portability](artist-key-portability.md), after the first Nearby slice.
+- **Later:** stablecoin/Coinage feasibility. W16 remains a delivered record;
+  #85 carries any explicitly reactivated follow-up. JAM stays a watch item.
+
+Nearby does not depend on 3D, Celerity migration or new payments. The remaining
+release-evidence order is:
 
 1. Finish W13 against the published Product CDM validation CID: reuse an
    existing entitlement, capture Product payment/access read-back, host-to-
@@ -252,8 +268,9 @@ the release gate. The remaining order is:
    rollback/restore, publish the distinct pilot release identity, and open the
    `dev` to `main` promotion for review.
 4. Run the consented aggregate pilot and record `go`, `hold`, or `no-go` before
-   starting W15, W19, W20, or W27.
-5. If the pilot is accepted, execute W27 as a measured dual-transport sprint:
+   promoting W15/W19/W20/W27 to public readiness. Owner-activated flagged
+   implementation can proceed under each sequence's explicit scope.
+5. After the first Nearby slice, continue W27 as a measured dual-transport sprint:
    keep wallet-free joining intact, migrate only event classes whose delivery
    guarantees are proven, and retain Socket.IO wherever Celerity has not reached
    parity.

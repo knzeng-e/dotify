@@ -22,8 +22,12 @@ Execution update (September 2026): use
 `docs/backlog/implementation/README.md` for implementation order and acceptance.
 Product DevNet now has explicit pilot acceptance alongside standalone web;
 capability adaptation remains mandatory. Responsive discovery is followed by
-optional 3D rendering, measured musical activity, and later opt-in coarse-area
-discovery. These are planned increments, not claims about delivered capability.
+optional 3D rendering, measured musical activity, and opt-in coarse-area
+discovery, promoted to the next product expansion on 2026-10-14. W19 adds separate
+approximate host/listener km radii after schema/privacy review; existing v1
+protocol remains inert until implementation. Stablecoins are deferred; Product
+compatibility, runtime feature inventory and key portability follow the dated
+`docs/backlog/polkadot-alignment-and-nearby-priority.md` decision. These are planned increments, not claims about delivered capability.
 Earlier limitations below are historical snapshots: reconcile them with current
 code and live evidence before implementing, especially personhood and Product.
 

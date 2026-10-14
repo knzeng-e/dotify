@@ -12,6 +12,14 @@ Implement **W20** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Existing issue: #13 (reconcile current state; do not close an epic for a partial slice)
 - Product purpose: effortless shared listening, meaningful artist control, transparent value, and a coherent poetic interface. Product DevNet is a first-class target alongside ordinary web.
 
+## Scheduling update — 2026-10-14
+
+Nearby is the next product expansion. Artist-controlled runtime features and
+per-artist key portability now have scoped follow-ups in
+[the current priorities](../polkadot-alignment-and-nearby-priority.md). Do not
+wait for ambassador research to design recovery, and do not duplicate those
+scopes when selecting cultural propagation work here.
+
 ## Outcome
 
 Use real pilot learning to choose a small expansion that strengthens the musical commons.

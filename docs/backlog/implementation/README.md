@@ -1,9 +1,21 @@
 # Dotify implementation playbook
 
-Twenty-seven agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf` and extended with W27 on 2026-09-22; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
+Agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf` and extended with W27 on 2026-09-22; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
-## Current execution state — 2026-09-22
+## Owner priority update — 2026-10-14
 
+[The Product alignment and Nearby decision](../polkadot-alignment-and-nearby-priority.md)
+selects **W19 as the next product expansion**: listener search and host visibility
+with separate approximate radii in km. W09/W10/W18 are implementation prerequisites;
+W13 remains a public release gate. Review W18's radius amendment before collection.
+Stablecoin/CASH follow-up is Later; the completed W16 record stays intact.
+Artist module inventory/updates and per-artist key portability are scoped Next
+follow-ups. Optional galaxy/activity and further Celerity migration do not precede
+Nearby. This is scheduling, not evidence that Nearby is live.
+
+## Historical execution snapshot — 2026-09-22
+
+This historical snapshot is superseded by dated owner updates above and below.
 The sequences are recipes; they are not a second workflow board. GitHub Project
 5 owns live status, and each evidence file records the delivered boundary.
 
@@ -16,8 +28,9 @@ The sequences are recipes; they are not a second workflow board. GitHub Project
 
 W14 is complete as an optional implementation with a full 2D/list fallback;
 that does not authorize making 3D the default. W18 is complete as a privacy
-design and inert scaffold; it does not authorize collecting location or
-starting W19. W21's original card-level policy cue was intentionally refined by
+design and inert scaffold. The 2026-10-14 owner decision activates W19 planning
+and flagged implementation subject to its radius/privacy review; this document
+does not enable collection in a deployed app. W21's original card-level policy cue was intentionally refined by
 PR #195, so its evidence is a historical design iteration rather than an
 instruction to restore the cue.
 
@@ -68,7 +81,7 @@ For independently staffed work, W08, W02, W04, W06, and W10 can start after W01.
 
 The first pilot includes responsive discovery, reliable rooms, an honest artist/support flow, and Product Desktop/Web evidence. Product iOS can only be listed as supported through a tested continuation path until its media capability exists. Missing Product evidence must remain an explicit block on the Product claim; it cannot be quietly waived because web tests pass.
 
-**W14/W15** add the immersive galaxy and measured musical activity. A prototype can begin after W09/W10 without delaying W13. **W16/W17** investigate and implement only proven CASH/personhood paths. **W18/W19** add privacy-preserving nearby discovery later. **W20** chooses cultural/sovereignty expansion from actual pilot learning. None of W14–W20 is a prerequisite for the first pilot.
+**W14/W15** add the immersive galaxy and measured musical activity. A prototype can begin after W09/W10 without delaying W13. **W16/W17** investigate and implement only proven CASH/personhood paths. **W18/W19** now lead the next discovery increment under the 2026-10-14 owner decision; W19 release gates still apply. **W20** chooses cultural/sovereignty expansion from actual pilot learning. None of W14–W20 is a prerequisite for the first pilot.
 
 **W21–W26** come from the [2026-09-17 UX and visual design audit](../../design/ux-design-audit-2026-09-17.md). Run them in the order **W21 → W22 → W23 → W25 → W24**; W24 consolidates styles after the structural and wording changes. W26 (French) is Later by owner decision. These sequences polish the pilot experience; they do not replace the W13 evidence gates.
 
@@ -118,7 +131,7 @@ does not displace W13 release evidence gates.
 | [W16](W16-product-cash-settlement.md)   | Prove a real Product CASH settlement path                   | `feat/product-cash-settlement`   | W05, W11                                                   |
 | [W17](W17-human-free-evidence.md)       | Bind Human free access to real private personhood           | `feat/human-free-evidence`       | W03, W11                                                   |
 | [W18](W18-nearby-privacy-design.md)     | Design nearby discovery with explicit privacy boundaries    | `docs/nearby-privacy-design`     | W09, W10                                                   |
-| [W19](W19-nearby-rooms.md)              | Implement opt-in nearby room discovery                      | `feat/nearby-rooms`              | W13, W18                                                   |
+| [W19](W19-nearby-rooms.md)              | Find/open nearby rooms with approximate km radii             | `feat/nearby-rooms`              | W09, W10, W18; W13 for release                              |
 | [W20](W20-community-sovereignty.md)     | Choose the next community and sovereignty increment         | `docs/community-sovereignty`     | W13                                                        |
 | [W21](W21-first-listening-screen.md)    | Make the first listening screen trustworthy                 | `fix/first-listening-screen`     | W08, W10                                                   |
 | [W22](W22-room-hosting-clarity.md)      | Make hosting and joining a room unmistakable                | `fix/room-hosting-clarity`       | W09, W10                                                   |

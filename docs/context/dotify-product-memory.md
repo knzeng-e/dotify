@@ -141,8 +141,11 @@ destination alongside ordinary mobile/desktop web, with acceptance based on
 real host capabilities. A coherent responsive identity and an optional 3D
 room galaxy express the shared-presence purpose; sound activity must use real
 data, and discovery must retain an accessible 2D/list path. Nearby discovery
-is a later, separately consented feature that never publishes precise host
-coordinates. Follow `docs/backlog/implementation/README.md` for the current
+is the next owner-prioritized expansion as of 2026-10-14, with separate host
+visibility/listener search and approximate km radii. It never publishes precise
+host coordinates. Stablecoin feasibility is Later; artist features and key
+portability are scoped Next follow-ups after the first Nearby slice. This is
+planning, not a claim that location collection is enabled. Follow `docs/backlog/implementation/README.md` for the current
 sequencing, pilot gates, and agent prompts. The earlier lists below remain
 historical context where their priorities differ.
 
