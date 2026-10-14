@@ -92,9 +92,7 @@ Artifacts: `/private/tmp/dotify-product-nearby-unit.log`,
 screenshots under `/private/tmp/dotify-product-nearby-artifacts/`.
 Do not treat temporary local artifacts as a durable public device report.
 
-## Physical-device validation checklist — not run
-
-### Review correction — independent room expiry
+## Review correction — independent room expiry
 
 - [Discussion](https://github.com/knzeng-e/dotify/pull/279#discussion_r4274024302):
   a nearly expired room incorrectly shortened the whole Product search.
@@ -109,8 +107,10 @@ Do not treat temporary local artifacts as a durable public device report.
 - Focused session/schema tests: 21/21 passed, including short/long room leases,
   empty-but-valid Product snapshots, transit delay, restart/stop cleanup and
   ordinary browser deadline replacement. Nearby Playwright: 3/3 passed. Web
-  build, final typecheck, targeted ESLint/Prettier, offline backlog validation
+  and opt-in frozen Product builds, final typecheck, targeted ESLint/Prettier, offline backlog validation
   and diff checks passed. Physical-device gates remain unchanged.
+
+## Physical-device validation checklist — not run
 
 Use the build-only test profile from
 [deployment configuration](../../../operations/deployment-configuration.md).
