@@ -2,7 +2,40 @@
 
 Status: W18 design proposal, not implemented at runtime.
 
-Last reviewed: 2026-09-13.
+Last reviewed: 2026-09-13 (v1); radius/planning amendment: 2026-10-14.
+
+## Radius amendment — 2026-10-14
+
+The owner selects W19 as the next product expansion, before optional 3D,
+activity, further realtime migration and stablecoins. Flagged implementation
+may start before W13 aggregate acceptance; public enablement still requires
+W19 privacy/device evidence and applicable reliability gates.
+
+Add separate host discovery-radius and listener search-radius controls in km.
+Initial proposal: 2 / 5 / 10 / 25 km with 5 km selected inside the control,
+subject to matching/uncertainty review. Matching respects both coarse areas;
+a wide query cannot enlarge host consent. Location is a discovery aid, not a
+secure room-admission fence, and links still work from elsewhere.
+
+The v1 protocol/tunables below are historical scaffolding. They have no radius
+field and are not an implementation of this amendment. W19 must version/review
+allowlisted schemas, bounded query coverage, projection and uncertainty before
+collection. Reconsider publishing host cell IDs in responses; return only the
+minimum metadata needed to join. Exact coordinates stay device-side.
+
+The new explicit-radius contract supersedes automatic sparse-area expansion in
+v1: do not silently widen either actor's area. Offer **Widen search** to the
+listener; preserve host consent. If coarse privacy requirements cannot support
+an advertised radius, explain the limitation or offer a larger area before
+search. Review count/coverage leakage and repeated radius probes with synthetic
+data. Default-off visibility, foreground-only collection, expiry, revocation,
+manual-area/QR paths and operator-visibility caveats remain required.
+
+This amendment changes planning, not runtime code or deployed permissions.
+See [W19](../backlog/implementation/W19-nearby-rooms.md) for current acceptance.
+Browser consent/security behavior was rechecked against the
+[W3C Geolocation specification](https://www.w3.org/TR/geolocation/) on 2026-10-14;
+actual Product location support still needs capability and device evidence.
 
 ## Decision
 

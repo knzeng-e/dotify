@@ -14,6 +14,19 @@ on 1.23.3 because `@polkadot-apps` chain-client/keys/signer still use that
 line. Product SDK uses its own PAPI 2.2.x graph. Future SDK adoption requires
 actual supported-Host wire evidence before promoting the default bundle.
 
+## Alignment and scheduling update — 2026-10-14
+
+[Current priorities](polkadot-alignment-and-nearby-priority.md) make W19 Nearby
+the next product expansion. #85 retains the existing adapter boundary and owns
+assessment of SDK 0.36's coordinated signing/PAPI/Host changes, exact physical
+Host compatibility and a shared versioned network/deployment profile.
+Browser/manual-area Nearby does not require this SDK migration. Product
+geolocation claims require documented permission/capability plus device evidence.
+Stablecoin/Coinage reassessment is Later; new clearing-reference proposals merit
+future review but do not grant access or prove shipped Host support by themselves.
+Keep the W16 decision as dated evidence. JAM is a watch item; no rewrite is
+scheduled. Artist features and key portability have scoped Next follow-ups.
+
 ## Verdict
 
 Dotify should align with the Polkadot product ecosystem without replacing its

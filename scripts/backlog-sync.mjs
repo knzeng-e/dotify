@@ -150,7 +150,13 @@ function validateLiveProject(data, targetErrors, targetWarnings) {
   }
 
   try {
-    project = runGhJson(['project', 'item-list', String(data.project.number), '--owner', data.project.owner, '--limit', '1000', '--format', 'json']);
+    // Project inventory includes full issue/PR bodies. Keep only checked fields
+    // so a growing backlog does not exceed execFileSync's output buffer.
+    project = runGhJson([
+      'project', 'item-list', String(data.project.number), '--owner', data.project.owner,
+      '--limit', '1000', '--format', 'json', '--jq',
+      '{items: [.items[] | {id, status, priority, track, phase, type, "backlog doc": .["backlog doc"], content: (.content | {type, repository, number})}]}'
+    ]);
   } catch (error) {
     targetErrors.push(`Project ${data.project.number} inventory failed: ${compact(error.stderr?.toString() || error.message)}`);
     return;

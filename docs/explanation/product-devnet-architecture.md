@@ -171,7 +171,9 @@ record, [Dotify Nearby Discovery Privacy Contract](../design/dotify-nearby-disco
 keeps it server-ephemeral and opt-in: hosts choose whether one live room appears
 in approximate-area discovery, listeners choose whether to search by device
 area or manual area, and no exact coordinates, wallet addresses, IP addresses,
-geohashes, or distance values enter the protocol.
+geohashes, or exact distance values enter the protocol. The 2026-10-14 W19
+plan adds separate approximate host/listener radius controls in km after
+schema/privacy review; no native Product geolocation support is implied.
 
 Product Desktop adds an extra constraint. The current Product permission model
 is host-governed and manifest-based; Dotify has verified remote/WebRTC

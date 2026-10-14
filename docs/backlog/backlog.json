@@ -166,10 +166,11 @@
       "id": "21",
       "doc": "docs/backlog/21-room-collaborative-queue.md",
       "issue": 210,
-      "kind": "work",
+      "kind": "record",
       "priority": "P2",
       "track": "Room reliability",
-      "phase": "Now"
+      "phase": "Record",
+      "note": "Delivered by merged PR #211; GitHub issue #210 completed 2026-09-22. Keep playback lineup evidence as a record, not active implementation."
     },
     {
       "id": "24",
@@ -249,7 +250,7 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Product feasibility",
-      "note": "W11 Product journey and W16 CASH feasibility are delivered slices. Keep the epic open for candidate-bound Product host evidence and capability compatibility, not to rebuild those slices."
+      "note": "Owns exact SDK/Host compatibility assessment, coordinated SDK 0.36 migration and shared versioned network profile. Stablecoin/Coinage follow-up is Later by owner decision 2026-10-14; W16 remains dated delivered evidence. Nearby browser/manual-area prototyping is independent."
     },
     {
       "id": "catalog-read-model",
@@ -428,7 +429,7 @@
       "priority": "P2",
       "track": "Design record",
       "phase": "Record",
-      "note": "Delivered by PR #155 as a privacy contract and inert protocol scaffold. W19 remains blocked on an accepted W13 pilot."
+      "note": "Delivered by PR #155 as privacy contract/inert v1 scaffold. Owner prioritized W19 on 2026-10-14; radius amendment needs review before collection. W13 remains a public release gate, not an implementation prerequisite."
     },
     {
       "id": "W21",
@@ -504,11 +505,11 @@
       "id": "W28",
       "doc": "docs/backlog/implementation/W28-mobile-premium-experience.md",
       "issue": 223,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Design record",
-      "phase": "Next",
-      "note": "Mobile premium experience slice from the 2026-09-29 audit: room-aware mini-player, native track rails, immersive mobile player, and room mobile ergonomics. Evidence: docs/backlog/implementation/evidence/W28.md. Project 5 owns workflow status."
+      "phase": "Record",
+      "note": "W28 scope delivered through merged PR #224 and audit completion #225; issue #223 completed 2026-09-29. Physical/pilot evidence remains under W13, not a replay of this scope."
     },
     {
       "id": "W29",
@@ -529,6 +530,46 @@
       "track": "Production spine",
       "phase": "Record",
       "note": "Reconciliation record carried by PR #205: delivered implementation records, active pilot gates, issue state, Project 5 metadata, and dev protection were synchronized on 2026-09-20."
+    },
+    {
+      "id": "nearby-priority-roadmap",
+      "doc": "docs/backlog/polkadot-alignment-and-nearby-priority.md",
+      "issue": 273,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Owner-requested 2026-10-14 backlog reprioritization delivered by PR #277. This record activates #274/W19 as the next product implementation; it does not claim Nearby is implemented."
+    },
+    {
+      "id": "W19",
+      "doc": "docs/backlog/implementation/W19-nearby-rooms.md",
+      "issue": 274,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Room reliability",
+      "phase": "Now",
+      "note": "Next product expansion: separate host/listener opt-ins and approximate km radii. W09/W10/W18 plus radius review for implementation; W13 and privacy/device/room evidence for public enablement."
+    },
+    {
+      "id": "artist-runtime-features",
+      "doc": "docs/backlog/artist-runtime-features.md",
+      "issue": 275,
+      "kind": "epic",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "After first Nearby slice: artist-owned module choices/updates, admin inventory and separate admission design."
+    },
+    {
+      "id": "artist-key-portability",
+      "doc": "docs/backlog/artist-key-portability.md",
+      "issue": 276,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "After first Nearby slice: per-artist export and second-operator synthetic recovery. W07 stays a delivered record; real key migration separately approved."
     }
   ]
 }

@@ -224,15 +224,20 @@
     },
     {
       "id": "W19",
-      "title": "Implement opt-in nearby room discovery",
+      "title": "Find and open nearby rooms with approximate km radii",
       "file": "W19-nearby-rooms.md",
       "branch": "feat/nearby-rooms",
       "dependencies": [
-        "W13",
+        "W09",
+        "W10",
         "W18"
       ],
-      "issue": null,
-      "phase": "Later implementation"
+      "issue": 274,
+      "phase": "Now implementation",
+      "releaseGates": [
+        "W13",
+        "W19 privacy/device/room evidence"
+      ]
     },
     {
       "id": "W20",
