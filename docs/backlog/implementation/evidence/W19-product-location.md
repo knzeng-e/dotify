@@ -114,6 +114,8 @@ Do not treat temporary local artifacts as a durable public device report.
 
 ## Owner-default amendment — 2026-10-14
 
+Tested implementation: `5e6741e7f6f6766a0998ead2dbce7cec8a4bf2b6`.
+
 The owner requires the Product application to carry Dotify features by default.
 Nearby now defaults available in both Web and Product and in single-worker
 signaling. The Product-only build gate is removed. Unset or exact `on` enables
@@ -137,7 +139,7 @@ changed. The source-default change is not proof of physical Host positioning.
   is absent before a user action, denial emits no Nearby packets, a granted
   snapshot uses only coarse data, and ordinary host discovery reaches guest audio.
 - Explicit-off browser suite: 1/1 passed, proving no Nearby UI, location access
-  or packets. Web and default frozen Product builds passed. Lint: zero errors,
+  or packets. Web, default frozen Product and explicit-off Product builds passed. Lint: zero errors,
   two existing App.tsx hook warnings; targeted Prettier passed.
 - Existing room/adaptive browser journeys with default availability: 16/16
   passed, including desktop/mobile inspection, protected host-only keys,
