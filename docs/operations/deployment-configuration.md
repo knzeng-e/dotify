@@ -1818,3 +1818,56 @@ revert the frontend while preserving local recovery records. Do not blindly
 replace the upgraded facet with an old one that omits contribution claims.
 The former claimable-royalty balance and contribution claim balances are
 separate; legacy receipts and old direct wallet gifts cannot be reclassified.
+## Nearby pilot configuration (W19)
+
+Nearby remains **off in deployed profiles**. This implementation does not grant
+permission to publish real locations or change a Product manifest.
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `VITE_DOTIFY_NEARBY` | unset / `off` | Build with exact value `on` to show controls and allow Nearby effects. No URL/storage override. |
+| `SIGNAL_NEARBY` | unset / `off` | Exact `on` registers active server handlers; otherwise all requests receive `DISABLED`. |
+
+Use the existing HTTPS signaling origin/CORS policy and room transport. No new
+service, port, third-party geocoder, storage mount, secret or Product permission
+is required. Standalone device mode requires secure context, Geolocation and
+Permissions APIs. Native/embedded Product containers intentionally offer offline
+manual city areas and ordinary links/QR; their native location capability is
+not verified. No new manifest device permission is requested.
+
+The first version is **single-process signaling only**. Presence is held in
+memory outside public room state, expires strictly at 90 seconds, and is
+removed on disconnect/room close. Requests prune expired entries; the existing
+30-second sweep reclaims idle entries. Budget hashes expire after 60 seconds.
+There are at most 10,000 presence records and 20,000 rate-budget records.
+No nearby state belongs in Redis persistence, backups, catalog snapshots,
+browser storage, Statement Store, analytics or crash reports. Do not log
+Socket.IO request/response bodies. Operators still see network/coarse-area
+context in memory; this is not anonymity.
+
+`/health` reports `nearbyEnabled` and cumulative searches/publications/reports/
+throttled counters only. No area or identifier appears there. Reports are
+aggregate signals, not a staffed abuse inbox. Review this limit before broad
+public enablement. On shared NAT, users share the six-search/minute network
+budget; the UI does not silently retry throttles.
+
+**Do not enable with multiple workers yet.** A Socket.IO adapter alone does not
+coordinate presence and rate limits. A future topology must use an ephemeral
+TTL store and shared network budgets, authenticated host ownership, atomic
+revoke/refresh ordering and restart/partition tests. Redis could serve that
+role with persistence disabled; it is not needed for this single-worker pilot.
+
+Before enablement: review W19 evidence, conduct an authorized physical-device
+permission/denial/revocation/background check for each exact browser and Product
+version, and validate independent-network discover → Join → audio under W13/#89.
+Use synthetic coordinates in captured artifacts; never capture a participant's
+real position. Confirm coarse-only wire bodies, expiry, host/listener radius
+asymmetry, startup-off and links from outside the area.
+
+Rollback: set `SIGNAL_NEARBY=off` and restart signaling (clears all presence),
+then rebuild with `VITE_DOTIFY_NEARBY=off`. This restart ends active rooms, so
+schedule it deliberately. Frontend-only rollback stops collection/refresh;
+old remote presence expires within 90 seconds. Offline opt-out clears local
+state immediately and displays that expiry limit. No contracts/keys/catalog
+migration or payment is involved. Local tests cover feature-off and empty
+fresh-store behavior; no live rollback has been performed.

@@ -1,0 +1,160 @@
+.nearby-panel {
+  margin: 1.5rem 0;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid var(--line, #2b4254);
+  border-radius: 1.5rem;
+  background: var(--surface, #0d1d32);
+}
+.nearby-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.nearby-heading > svg {
+  color: var(--accent, #5edcca);
+  margin-top: 0.3rem;
+  flex-shrink: 0;
+}
+.nearby-heading > div {
+  flex: 1;
+}
+.nearby-heading h2,
+.nearby-room h3 {
+  margin: 0;
+}
+.nearby-heading p,
+.nearby-room p {
+  margin: 0.35rem 0;
+}
+.nearby-disclosure,
+.nearby-hint,
+.nearby-heading p,
+.nearby-room small {
+  color: var(--muted, #aec0d2);
+}
+.nearby-disclosure {
+  max-width: 68ch;
+  line-height: 1.6;
+}
+.nearby-radius {
+  border: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0.5rem;
+}
+.nearby-radius legend {
+  margin-bottom: 0.7rem;
+  font-weight: 600;
+}
+.nearby-radius label {
+  position: relative;
+}
+.nearby-radius input {
+  position: absolute;
+  opacity: 0;
+}
+.nearby-radius span {
+  display: grid;
+  place-items: center;
+  min-width: 4.5rem;
+  min-height: 2.75rem;
+  border: 1px solid #3b536a;
+  border-radius: 2rem;
+  cursor: pointer;
+}
+.nearby-radius input:checked + span {
+  background: #5edcca;
+  color: #071729;
+  border-color: #5edcca;
+}
+.nearby-radius input:focus-visible + span {
+  outline: 2px solid white;
+  outline-offset: 3px;
+}
+.nearby-hint {
+  font-size: 0.875rem;
+}
+.nearby-actions,
+.nearby-manual {
+  margin-top: 1rem;
+}
+.nearby-manual summary,
+.nearby-settings > summary {
+  cursor: pointer;
+  min-height: 2.75rem;
+  padding: 0.6rem 0;
+}
+.nearby-manual label {
+  display: block;
+  margin: 0.5rem 0;
+}
+.nearby-manual-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.nearby-manual-row select {
+  flex: 1;
+  min-width: 12rem;
+}
+.nearby-status {
+  min-height: 1.5em;
+  margin: 1rem 0 0;
+}
+.nearby-status[data-phase='active'] {
+  color: #5edcca;
+}
+.nearby-results {
+  padding: 0;
+  margin: 1.25rem 0 0;
+  list-style: none;
+}
+.nearby-results:empty {
+  display: none;
+}
+.nearby-room {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 1.25rem 0;
+  border-top: 1px solid #2b4254;
+}
+.nearby-room-mark {
+  padding: 1rem;
+  border-radius: 50%;
+  background: #183947;
+  color: #5edcca;
+}
+.nearby-room-copy {
+  flex: 1;
+  min-width: 10rem;
+  overflow-wrap: anywhere;
+}
+.nearby-room-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1.5rem;
+  flex-basis: 100%;
+}
+.nearby-panel .text-action {
+  min-height: 2.75rem;
+}
+.nearby-report {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.nearby-report p {
+  flex-basis: 100%;
+}
+@media (max-width: 30rem) {
+  .nearby-room-mark {
+    display: none;
+  }
+  .nearby-manual-row > button {
+    width: 100%;
+  }
+}

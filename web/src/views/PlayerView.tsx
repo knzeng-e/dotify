@@ -2,6 +2,7 @@ import { PlayerTransport } from '../components/PlayerTransport';
 import { HostLineup } from '../components/HostLineup';
 import { PlayerQueueDialog } from '../components/PlayerQueueDialog';
 import { RoomShareDialog } from '../components/RoomShareDialog';
+import { NearbyControls } from '../components/NearbyControls';
 import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
 import { HostContributions } from '../components/HostContributions';
@@ -706,6 +707,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           {roomId && mode === 'host' && (
             <>
               {sessionLink && hostIsAlone && <p className='room-track-search-hint'>Invite someone using the button above. They can join without an account.</p>}
+              <NearbyControls nearby={session.nearbyHost} host />
 
               <div className='listener-list'>
                 <div className='list-row'>

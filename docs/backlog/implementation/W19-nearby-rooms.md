@@ -123,4 +123,9 @@ spending funds or changing permissions in a published build.
 
 ## Handoff
 
+Implementation review: see [W19 evidence](evidence/W19.md). The default-off v2
+uses 5 / 10 / 25 km; 2 km is intentionally withheld because the coarse cells
+are approximately 2.22 km across. Public enablement still needs the physical
+device/privacy and room reliability gates listed in that handoff.
+
 Write `docs/backlog/implementation/evidence/W19.md` using `evidence-template.md`. Include the initial base SHA, implementation SHA, PR, artifacts, operational changes, known risks, and the next eligible sequences. Keep Project 5 as the workflow-status source. End with an implementation summary and the exact next step; do not start another sequence automatically.
