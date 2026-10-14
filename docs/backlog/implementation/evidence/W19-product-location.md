@@ -94,6 +94,24 @@ Do not treat temporary local artifacts as a durable public device report.
 
 ## Physical-device validation checklist — not run
 
+### Review correction — independent room expiry
+
+- [Discussion](https://github.com/knzeng-e/dotify/pull/279#discussion_r4274024302):
+  a nearly expired room incorrectly shortened the whole Product search.
+- Tested correction: `1da55ae45bf6819d76897ccbc0a641cfac2c7d38`.
+- Response-level expiry now owns the position snapshot. Each room card has a
+  separate monotonic deadline, bounded by the response lease and reduced by the
+  full request round trip. Expired cards are removed independently, including
+  cards already expired during transit. Empty results retain consent until the
+  response lease ends; no automatic fix or Host permission request is added.
+- Refresh/restart replaces card deadlines; stop cancels both response and card
+  timers. Ordinary browser refresh preserves other valid rooms as well.
+- Focused session/schema tests: 21/21 passed, including short/long room leases,
+  empty-but-valid Product snapshots, transit delay, restart/stop cleanup and
+  ordinary browser deadline replacement. Nearby Playwright: 3/3 passed. Web
+  build, final typecheck, targeted ESLint/Prettier, offline backlog validation
+  and diff checks passed. Physical-device gates remain unchanged.
+
 Use the build-only test profile from
 [deployment configuration](../../../operations/deployment-configuration.md).
 Publication and real-position collection require an explicitly authorized test
