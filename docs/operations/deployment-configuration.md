@@ -1723,8 +1723,8 @@ payment or a change to artist-selected shares. See
 Rollback the galaxy experiment by rebuilding without its `on` value. The room
 lineup requires a coordinated frontend/signaling rollback because old signaling
 servers ignore its events while the current frontend keeps playback functional.
-Nearby now has a default-off implementation; use the Nearby configuration and
-validation gates documented below before enabling it. Community memory remains
+Nearby is included by default in new Web and Product builds; use the Nearby
+configuration and validation gates documented below before release. Community memory remains
 documentation only. The original shared-presence pass added no location
 permission. See
 [shared-presence pass](../design/dotify-shared-presence-pass.md).
@@ -1821,22 +1821,25 @@ The former claimable-royalty balance and contribution claim balances are
 separate; legacy receipts and old direct wallet gifts cannot be reclassified.
 ## Nearby pilot configuration (W19)
 
-Nearby remains **off in deployed profiles**. This implementation does not grant
-permission to publish real locations or change a Product manifest.
+Nearby is included by default in new Web/Product builds and single-worker
+signaling. Existing published artifacts/settings are not changed by this PR.
+Location collection and room visibility still require explicit user actions.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `VITE_DOTIFY_NEARBY` | unset / `off` | Build with exact value `on` to show controls and allow Nearby effects. No URL/storage override. |
-| `SIGNAL_NEARBY` | unset / `off` | Exact `on` registers active server handlers; otherwise all requests receive `DISABLED`. |
+| `VITE_DOTIFY_NEARBY` | unset → enabled | Unset or exact `on` includes Nearby in both Web and Product. `off` or an invalid value disables UI and effects. No URL/storage override. |
+| `SIGNAL_NEARBY` | unset → enabled | Unset or exact `on` registers handlers; `off` or an invalid value returns `DISABLED`. Requires single-worker signaling. |
 
 Use the existing HTTPS signaling origin/CORS policy and room transport. No new
 service, port, third-party geocoder, storage mount, secret or Product permission
 is required. Standalone device mode requires secure context, Geolocation and
-Permissions APIs. Product device location is a separate experimental opt-in:
-`VITE_DOTIFY_PRODUCT_NEARBY_LOCATION=on` in addition to both Nearby flags.
-It requires the same secure-context/browser APIs and an explicit SDK `Location`
+Permissions APIs. Product device location is included under the same Nearby
+setting and requires the same secure-context/browser APIs and an explicit SDK `Location`
 grant. The grant alone never proves WebView geolocation support. The tracked
-Product profile keeps this flag unset/off; no manifest permission is added.
+Product profile needs no additional feature flag; no manifest permission is added.
+Remove obsolete `VITE_DOTIFY_PRODUCT_NEARBY_LOCATION` settings during the next
+release. Audit existing explicit `off` settings: they still disable Nearby, even
+though unset now includes it. This PR does not change hosted dashboard settings.
 
 Product takes one position snapshot, valid for at most 90 seconds (search
 individual room cards can expire sooner), without automatic fixes or SDK permission requests.
@@ -1852,11 +1855,10 @@ selection/action. It never searches a city automatically.
 Build a test artifact without publication or catalog refresh:
 
 ```sh
-VITE_DOTIFY_NEARBY=on VITE_DOTIFY_PRODUCT_NEARBY_LOCATION=on npm --prefix web run build:product-devnet:frozen
+npm --prefix web run build:product-devnet:frozen
 ```
 
-Keep signaling single-process with `SIGNAL_NEARBY=on` only on the selected test
-service. Before publication, record the exact Host/device versions and validate
+Keep signaling single-process. Before publication, record the exact Host/device versions and validate
 the checklist in [W19 Product location evidence](../backlog/implementation/evidence/W19-product-location.md).
 Compilation and the fake-Host browser fixture are not physical capability proof.
 
@@ -1887,7 +1889,8 @@ permission/denial/revocation/background check for each exact browser and Product
 version, and validate independent-network discover → Join → audio under W13/#89.
 Use synthetic coordinates in captured artifacts; never capture a participant's
 real position. Confirm coarse-only wire bodies, expiry, host/listener radius
-asymmetry, startup-off and links from outside the area.
+asymmetry, default availability without startup location/traffic, explicit
+rollback-off and links from outside the area.
 
 Rollback: set `SIGNAL_NEARBY=off` and restart signaling (clears all presence),
 then rebuild with `VITE_DOTIFY_NEARBY=off`. This restart ends active rooms, so
@@ -1898,7 +1901,5 @@ uses a non-volatile packet, including during polling backpressure; disconnected
 requests are rejected without buffering a send after reconnect. No contracts/keys/catalog
 migration or payment is involved. Local tests cover feature-off and empty
 fresh-store behavior; no live rollback has been performed.
-To roll back only the Product location experiment, rebuild with
-`VITE_DOTIFY_PRODUCT_NEARBY_LOCATION=off`; regular web Nearby and explicit city
-exploration remain under the main Nearby flag. Existing native snapshots expire
-within 90 seconds.
+Product shares the main Nearby disable with ordinary Web. Existing native
+snapshots expire within 90 seconds; there is no separate Product experiment setting.

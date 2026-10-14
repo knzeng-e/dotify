@@ -2,9 +2,17 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { io } from 'socket.io-client';
 import { createNearby } from './nearby.mjs';
-import { startSignalingServer } from './signaling.mjs';
+import { readConfigFromEnv, startSignalingServer } from './signaling.mjs';
 import { coarseNearbyCell, NEARBY_TTL_MS } from '../shared/nearby-v2.mjs';
 const area = (lat = 0, radiusKm = 5) => ({ schemaVersion: 2, cell: coarseNearbyCell(lat, 0), radiusKm });
+
+test('Nearby is available by default, with an explicit operational disable', () => {
+  assert.equal(readConfigFromEnv({}).nearbyEnabled, true);
+  assert.equal(readConfigFromEnv({ SIGNAL_NEARBY: 'on' }).nearbyEnabled, true);
+  for (const value of ['off', '', 'true', 'ON']) {
+    assert.equal(readConfigFromEnv({ SIGNAL_NEARBY: value }).nearbyEnabled, false);
+  }
+});
 
 function fixture() {
   let time = 1000;
@@ -73,10 +81,11 @@ test('rate limits include repeated probes and reconnects, but never prevent revo
   assert.equal(guest('nearby:search', area()).ok, true);
 });
 
-test('live sockets: feature off, no public-state leakage, disconnect clears presence and Join stays wallet-free', async () => {
-  for (const enabled of [false, true]) {
+test('live sockets: default availability and explicit off, no leakage, disconnect cleanup and wallet-free Join', async () => {
+  for (const setting of ['off', undefined]) {
+    const enabled = setting === undefined;
     const logs = [];
-    const server = startSignalingServer({ host: '127.0.0.1', port: 0, nearbyEnabled: enabled, logger: line => logs.push(line) });
+    const server = startSignalingServer({ ...readConfigFromEnv({ SIGNAL_NEARBY: setting }), host: '127.0.0.1', port: 0, logger: line => logs.push(line) });
     const port = await server.listen();
     const clients = [];
     const connect = async () => {

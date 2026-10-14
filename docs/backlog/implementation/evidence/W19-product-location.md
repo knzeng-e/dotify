@@ -9,7 +9,9 @@
 - Scope: explicit Product Location permission plus a bounded, coarse position
   snapshot; separate current-position discovery from city-centre exploration.
 - No deployment, real-position collection, runtime migration or SDK upgrade.
-- Flags remain off in the tracked Product profile; physical support is unverified.
+- Availability now defaults on in Web/Product and signaling; physical support
+  is unverified. The owner-default amendment below supersedes the original
+  three-flag rollout design and its historical verification record.
 
 ## Capability finding and design
 
@@ -40,7 +42,7 @@ a fix/search/publication. Raw Host errors are not forwarded to the user.
 A late grant cannot restart stopped consent. The app cannot dismiss or undo
 the Host's own permission dialog/decision.
 
-Product device mode requires three exact build/server flags, a secure context,
+Product device mode requires a secure context,
 working Geolocation watch/clear methods, and a Permissions query. The browser
 permission query has a six-second bound and cancellation; the existing fix
 quality/coarsening/watch cleanup boundary remains authoritative. Precise fixes
@@ -110,9 +112,43 @@ Do not treat temporary local artifacts as a durable public device report.
   and opt-in frozen Product builds, final typecheck, targeted ESLint/Prettier, offline backlog validation
   and diff checks passed. Physical-device gates remain unchanged.
 
+## Owner-default amendment — 2026-10-14
+
+The owner requires the Product application to carry Dotify features by default.
+Nearby now defaults available in both Web and Product and in single-worker
+signaling. The Product-only build gate is removed. Unset or exact `on` enables
+the main frontend/server setting; explicit `off` or an invalid value disables
+that boundary operationally. Location permission, search and host visibility
+remain explicit user actions. Secure context, observable permissions,
+coarse-only transmission, bounded Product snapshots and cancellation are retained.
+
+The normal Product build needs no activation flags. CI checks that normal build,
+the rollback build, Web/Product discovery without enabling flags, and a separate
+explicit-off browser profile. Existing published artifacts/settings were not
+changed. The source-default change is not proof of physical Host positioning.
+
+- Full unit suite: 119 files / 921 tests passed. Focused permission/location/
+  session/default-setting tests: 42/42 passed. Default availability does not
+  weaken permission/cancellation/expiry or coarse-cell assertions.
+- Signaling suite: 93/93 passed, including default configuration, invalid/off
+  overrides and live sockets with default-on search/publication and explicit-off
+  rejection, disconnect cleanup, wallet-free Join and public-state privacy.
+- Nearby browser suite without activation flags: 3/3 passed. Product consent
+  is absent before a user action, denial emits no Nearby packets, a granted
+  snapshot uses only coarse data, and ordinary host discovery reaches guest audio.
+- Explicit-off browser suite: 1/1 passed, proving no Nearby UI, location access
+  or packets. Web and default frozen Product builds passed. Lint: zero errors,
+  two existing App.tsx hook warnings; targeted Prettier passed.
+- Existing room/adaptive browser journeys with default availability: 16/16
+  passed, including desktop/mobile inspection, protected host-only keys,
+  embedded Product guest entry, Web Audio capture and wallet-free Join.
+  Offline backlog validation and diff checks passed.
+- Physical Product Desktop/mobile positioning and independent-network speaker
+  output remain **not run**. No deployment or real-position collection.
+
 ## Physical-device validation checklist — not run
 
-Use the build-only test profile from
+Use the default build from
 [deployment configuration](../../../operations/deployment-configuration.md).
 Publication and real-position collection require an explicitly authorized test
 session. Fill this record with observations; do not infer results from a build.
@@ -137,7 +173,8 @@ session. Fill this record with observations; do not infer results from a build.
    radii, Join without a wallet, and hear the protected host stream with no guest
    source key. Record discover-to-audio latency and actual speaker output.
 7. Inspect coarse-only wire/storage output, touch/keyboard/screen-reader paths,
-   unsupported-Host copy, city-centre labels, startup-off and rollback-off.
+   unsupported-Host copy, city-centre labels, no startup location/traffic and
+   explicit rollback-off.
 
 If a Host exposes Location consent without a usable/observable browser bridge,
 this slice does not enable native positioning there. A Host-side bridge or a
@@ -148,11 +185,10 @@ a city to pass acceptance. Continuous Product positioning stays unsupported.
 ## Operations and next step
 
 No contracts, content-key authority, signaling schema, shared store, origin or
-manifest change. Configuration adds only
-`VITE_DOTIFY_PRODUCT_NEARBY_LOCATION=on`, default off. CI builds the opt-in
-Product profile and runs both ordinary and Product-fixture Nearby scenarios.
-Rollback this profile by rebuilding the flag off; snapshots expire within
-90 seconds. See the existing W19 privacy and W13/#89 room-release gates.
+manifest change. The Product-only flag is removed; `VITE_DOTIFY_NEARBY` and
+`SIGNAL_NEARBY` become default-on operational settings. Rollback uses explicit
+`off`; snapshots expire within 90 seconds. Audit hosted explicit-off settings
+before the next release. See the W19 privacy and W13/#89 room-release gates.
 
 Next: review this continuation, then prepare an authorized device-validation
 session. Do not close physical capability gates from synthetic results. No

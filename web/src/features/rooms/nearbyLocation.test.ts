@@ -1,11 +1,9 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { canRefreshNearbyDeviceLocation, canUseNearbyDeviceLocation, locateNearbyCell, queryNearbyLocationPermission } from './nearbyLocation';
-import { roomExperienceFlags } from './roomExperienceFlags';
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
-  roomExperienceFlags.productNearbyLocation = false;
 });
 
 it('clears the device watch and returns only a coarse cell', async () => {
@@ -46,27 +44,25 @@ it('times out even if the container never answers and clears its watcher', async
   expect(clearWatch).toHaveBeenCalledWith(2);
 });
 
-it('offers device location only for standalone secure browsers with observable permission state', () => {
+it('offers device location by default in secure Web and Product surfaces with observable permission state', () => {
   const page = { isSecureContext: true, location: { protocol: 'https:' }, self: {}, top: {} };
   page.top = page.self;
   vi.stubGlobal('window', page);
   vi.stubGlobal('navigator', { geolocation: { watchPosition: () => 1, clearWatch: () => {} }, permissions: { query: () => {} } });
   expect(canUseNearbyDeviceLocation()).toBe(true);
   vi.stubGlobal('window', { ...page, __HOST_WEBVIEW_MARK__: true });
-  expect(canUseNearbyDeviceLocation()).toBe(false);
+  expect(canUseNearbyDeviceLocation()).toBe(true);
   vi.stubGlobal('window', { ...page, location: { protocol: 'polkadot:' } });
-  expect(canUseNearbyDeviceLocation()).toBe(false);
+  expect(canUseNearbyDeviceLocation()).toBe(true);
   vi.stubGlobal('window', { ...page, top: {} });
-  expect(canUseNearbyDeviceLocation()).toBe(false);
+  expect(canUseNearbyDeviceLocation()).toBe(true);
 });
 
-it('offers a Product snapshot only under a separate opt-in with real browser capability prerequisites', () => {
+it('keeps Product snapshot capability prerequisites even with default availability', () => {
   const page = { isSecureContext: true, location: { protocol: 'https:' }, self: {}, top: {}, __HOST_WEBVIEW_MARK__: true };
   page.top = page.self;
   vi.stubGlobal('window', page);
   vi.stubGlobal('navigator', { geolocation: { watchPosition: () => 1, clearWatch: () => {} }, permissions: { query: () => {} } });
-  expect(canUseNearbyDeviceLocation()).toBe(false);
-  roomExperienceFlags.productNearbyLocation = true;
   expect(canUseNearbyDeviceLocation()).toBe(true);
   expect(canRefreshNearbyDeviceLocation()).toBe(false);
   vi.stubGlobal('navigator', { geolocation: { watchPosition: () => 1, clearWatch: () => {} } });

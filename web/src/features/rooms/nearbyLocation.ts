@@ -1,7 +1,6 @@
 import { coarseNearbyCell } from '../../../shared/nearby-v2.mjs';
 import { requiresExplicitProductRoomEntry } from '../productHost/productHost';
 import { authorizeProductNearbyLocation } from '../productHost/productNearbyLocation';
-import { roomExperienceFlags } from './roomExperienceFlags';
 
 // Offline starter areas, not geocoding: neither a query nor a location goes to
 // a third party. The label stays on the device; only its coarse cell is sent.
@@ -23,7 +22,6 @@ export const nearbyManualAreas = [
 export function canUseNearbyDeviceLocation(): boolean {
   return (
     window.isSecureContext &&
-    (!requiresExplicitProductRoomEntry() || roomExperienceFlags.productNearbyLocation) &&
     typeof navigator.geolocation?.watchPosition === 'function' &&
     typeof navigator.geolocation?.clearWatch === 'function' &&
     typeof navigator.permissions?.query === 'function'

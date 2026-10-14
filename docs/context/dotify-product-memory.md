@@ -25,6 +25,12 @@ Hosts can open real-time rooms and let others enter the same listening moment.
 
 The app should transform isolated music consumption into human connection.
 
+Product Desktop/mobile must offer Dotify's supported application features by
+default, with the same product scope as Web. Platform adapters handle actual
+capabilities; user consent and operational rollback remain separate controls.
+Nearby follows this rule: availability is default, location and room visibility
+start only through explicit user actions, and missing Host support is explained.
+
 ## User roles
 
 ### Listener
