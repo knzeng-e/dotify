@@ -1,4 +1,7 @@
 import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
+import { NearbyControls } from '../components/NearbyControls';
+import { useNearby } from '../features/rooms/useNearby';
+import type { RoomRealtimePort } from '../features/rooms/roomRealtimePort';
 import { ArrowRight, Box, Map as MapIcon, Radio, RefreshCw, Users, X } from 'lucide-react';
 import type { FormEvent, Ref } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -10,6 +13,7 @@ import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomSt
 import type { OpenRoom, SessionAction, SocketStatus } from '../shared/types';
 
 type RoomsViewProps = {
+  nearbyPort?: RoomRealtimePort | null;
   openRooms: OpenRoom[];
   joinCode: string;
   sessionAction: SessionAction;
@@ -29,6 +33,7 @@ function isMobileRoomDetailsLayout() {
 }
 
 export function RoomsView({
+  nearbyPort = null,
   openRooms,
   joinCode,
   sessionAction,
@@ -40,6 +45,7 @@ export function RoomsView({
   onRefreshRooms,
   onStartRoom
 }: RoomsViewProps) {
+  const nearby = useNearby(nearbyPort, false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [discoveryRenderer, setDiscoveryRenderer] = useState<RoomDiscoveryRendererKind>('sky-2d');
   const roomCardRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -91,6 +97,7 @@ export function RoomsView({
         </div>
       </header>
 
+      {roomExperienceFlags.nearby && <NearbyControls nearby={nearby} onJoin={onJoinRoom} joining={isJoining} />}
       <section className='rooms-live-section' aria-labelledby='rooms-live-title'>
         <div className='section-heading'>
           <div>

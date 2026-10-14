@@ -624,3 +624,31 @@ socket.emit('peer:connected', { targetId: string /* host socket ID */ });
 // Host receives
 socket.on('peer:connected', (payload: { from: string }) => { ... });
 ```
+## Nearby v2 (W19, default off)
+
+Requires `SIGNAL_NEARBY=on`; the client also requires `VITE_DOTIFY_NEARBY=on`.
+All requests use connected-only acknowledgements without disconnected buffering.
+`nearby:off` is non-volatile so connected polling backpressure cannot discard
+revocation; publication/search/report remain volatile. Unknown fields,
+old schemas, cell arrays and unsupported radii are rejected. Publication and
+search accept exactly `{ schemaVersion: 2, cell: "n2:<band>:<sector>", radiusKm: 5 | 10 | 25 }`.
+The cell is computed on-device; precise fixes never enter Socket.IO.
+
+| Request | Authority / response |
+| --- | --- |
+| `nearby:publish` | Current room-host socket only; `{ok:true, expiresInMs}`. Server sets 90-second lease; derives metadata from its room. |
+| `nearby:off`, `{}` | Removes current host's lease; `{ok:true}`. Never rate limited. |
+| `nearby:search` | No wallet or room membership; `{ok:true, schemaVersion:2, expiresInMs, results}`. At most 20 matches within both approximate radii. |
+| `nearby:report`, `{discoveryId, reason}` | Reason is `unwanted`, `misleading` or `offensive`; `{ok:true}` counts an aggregate safety signal. Not a durable moderation case. |
+
+Each result contains only `roomId`, `discoveryId`, `expiresInMs`, `hostName`,
+`title`, `artist`, bucketed `presence`, and `isFull`. It contains no area,
+distance, wallet, image/source reference or exact count. Join uses the existing
+room flow. Relative leases are bounded at 90 seconds; the client subtracts the
+request round trip, avoiding dependence on synchronized device/server clocks.
+Failures are `{ok:false,code}` with `DISABLED`, `HOST_REQUIRED`,
+`INVALID_AREA`, `INVALID_REPORT`, `EXPIRED`, `RATE_LIMITED` or `BUSY`.
+Search/publication/report budgets are respectively 6/12/3 per minute per
+socket and network. Nearby never enters ordinary public room snapshots.
+See [privacy contract](../design/dotify-nearby-discovery-privacy.md) for retention,
+coarse-boundary uncertainty, residual inference and manual/Product limits.

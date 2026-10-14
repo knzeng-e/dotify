@@ -14,11 +14,12 @@ import { useNavigation } from './NavigationProvider';
 import { useCatalogContext } from './CatalogProvider';
 import { useRoomContributionTrackRecovery } from '../../features/donations/useRoomContributionTrackRecovery';
 import { useHostTipBinding } from '../../features/donations/useHostTipBinding';
+import { useNearby } from '../../features/rooms/useNearby';
 
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const publicAppUrl = import.meta.env.VITE_PUBLIC_APP_URL?.trim() || null;
 
-type SessionValue = ReturnType<typeof useSession> & { hostTipBinding: ReturnType<typeof useHostTipBinding> };
+type SessionValue = ReturnType<typeof useSession> & { hostTipBinding: ReturnType<typeof useHostTipBinding>; nearbyHost: ReturnType<typeof useNearby> };
 
 const SessionContext = createContext<SessionValue | null>(null);
 
@@ -52,6 +53,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     socketEmit: session.socketEmit
   });
   const hostSocket = session.socketRef.current;
+  const nearbyHost = useNearby(hostSocket, true, session.mode === 'host' ? session.roomId : '');
   const hostAccount = connectedWallet?.evmAddress;
   const hostTipBinding = useHostTipBinding({
     mode: session.mode,
@@ -113,7 +115,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
   }, [activeIdentityAddress, hostDisplayName, session.roomId, setDisplayName]);
 
-  return <SessionContext.Provider value={{ ...session, hostTipBinding }}>{children}</SessionContext.Provider>;
+  return <SessionContext.Provider value={{ ...session, hostTipBinding, nearbyHost }}>{children}</SessionContext.Provider>;
 }
 
 export function useSessionContext(): SessionValue {

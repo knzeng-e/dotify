@@ -21,6 +21,7 @@ import { Server } from 'socket.io';
 import { createRoomRealtimeMembers } from './room-realtime-members.mjs';
 import { createRoomContributions } from './room-contributions.mjs';
 import { createRoomLife } from './room-life.mjs';
+import { createNearby } from './nearby.mjs';
 import {
   REQUEST_TEXT_MAX_LENGTH,
   clientKey,
@@ -38,6 +39,7 @@ import {
 } from './signaling-utils.mjs';
 
 export const defaultConfig = {
+  nearbyEnabled: false,
   port: 8788,
   host: '0.0.0.0',
   // '*' (demo) or an array of exact origins.
@@ -89,6 +91,7 @@ export function readConfigFromEnv(env = process.env) {
   const origins = (env.SIGNAL_ORIGINS ?? env.SIGNAL_ORIGIN ?? '*').trim();
   return {
     ...defaultConfig,
+    nearbyEnabled: env.SIGNAL_NEARBY === 'on',
     contributions: {
       key: env.SIGNAL_CONTRIBUTION_ATTESTOR_KEY,
       rpc: env.SIGNAL_CONTRIBUTION_RPC_URL,
@@ -128,6 +131,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     throw new Error('SIGNAL_TURN_CAPABILITY_SECRET must contain at least 32 characters');
   }
   const rooms = new Map();
+  const nearby = createNearby({ enabled: config.nearbyEnabled, rooms, trustProxy: config.trustProxy, maxListeners: config.maxListenersPerRoom });
   const contributions = createRoomContributions(config.contributions ?? {}, dependencies.contributions);
   const contributionTrackRecoveries = new WeakMap();
   const realtimeMembers = createRoomRealtimeMembers();
@@ -192,6 +196,8 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         allowedOrigins: config.origins,
         allowMissingOrigin: config.allowMissingOrigin,
         turnCapabilityConfigured: Boolean(config.turnCapabilitySecret),
+        nearbyEnabled: config.nearbyEnabled,
+        nearby: config.nearbyEnabled ? nearby.diagnostics() : undefined,
         roomTtlMs: config.roomTtlMs,
         hostHeartbeatTimeoutMs: config.hostHeartbeatTimeoutMs,
         maxListenersPerRoom: config.maxListenersPerRoom
@@ -318,6 +324,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
   }
 
   function closeRoom(roomId, room, reason, event) {
+    nearby.remove(roomId);
     life.closeRoom(room);
     io.to(roomId).emit('room:closed', { reason });
     rooms.delete(roomId);
@@ -422,6 +429,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         }
       });
     }
+    nearby.register(socket);
     socket.emit('rooms:updated', publicRooms());
     socket.emit('presence:solo:updated', publicSoloPresence());
 
@@ -1079,6 +1087,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     // Reclaim expired join-throttle buckets (keyed by address, never cleared
     // on disconnect) so the limiter Map stays bounded.
     joinLimiter.prune(now);
+    nearby.prune();
     for (const [roomId, room] of rooms) {
       if (now - room.createdAt > config.roomTtlMs) {
         closeRoom(roomId, room, 'Room expired', 'room:expired');
@@ -1225,6 +1234,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
 
     if (role === 'host' && room.hostId === socket.id) {
       room.hostId = null;
+      nearby.remove(roomId);
       life.leaving(socket, true);
       delete room.tipHost;
       room.tipBindRevision = (room.tipBindRevision ?? 0) + 1;
@@ -1267,6 +1277,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     rooms,
     soloPresenceBySocket,
     config,
+    nearbyDiagnostics: nearby.diagnostics,
     listen() {
       return new Promise(resolve => {
         httpServer.listen(config.port, config.host, () => {

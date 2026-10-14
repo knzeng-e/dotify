@@ -332,6 +332,7 @@ export function ListenerShell() {
 
                 {activeView === 'rooms' && (
                   <RoomsView
+                    nearbyPort={session.socketRef.current}
                     openRooms={session.openRooms}
                     joinCode={session.joinCode}
                     sessionAction={session.sessionAction}

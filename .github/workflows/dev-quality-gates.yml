@@ -278,6 +278,9 @@ jobs:
       - name: Run deterministic core flows
         run: npm run test:e2e
 
+      - name: Verify opt-in nearby discovery
+        run: npm run test:e2e -- --config playwright.nearby.config.ts
+
       - name: Verify encrypted audio continuity
         run: npm run test:audio-continuity -- --project chromium
 

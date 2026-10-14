@@ -1,8 +1,84 @@
 # Dotify Nearby Discovery Privacy Contract
 
-Status: W18 design proposal, not implemented at runtime.
+Status: W19 implements the default-off v2 below. W18 v1 is retained as inert historical scaffolding.
 
 Last reviewed: 2026-09-13 (v1); radius/planning amendment: 2026-10-14.
+
+## W19 v2 implementation contract — 2026-10-14
+
+`web/shared/nearby-v2.mjs` is the shared geometry/validation boundary;
+`web/server/nearby.mjs` owns short-lived presence independently from public
+room state. The frontend and server each require an explicit `on` flag.
+No collection, permission query or nearby traffic occurs with the frontend
+flag off. The server rejects all Nearby events with its flag off.
+
+The first supported approximate radii are **5 / 10 / 25 km**, selected
+independently by host and listener. The proposed 2 km value is not offered:
+cells are about 2.22 km across and cannot honestly support that precision.
+The client converts a fix into a latitude band and a longitude sector whose
+width adapts to that band's latitude, including polar caps. This is a spherical
+grid, not Web Mercator. Fixtures cover the dateline, poles and cross-cell edges.
+Only the string `n2:<band>:<sector>` leaves the device. There is no variable
+scale and no cell list to enumerate or disperse.
+
+Both publish and search accept exactly `{schemaVersion: 2, cell, radiusKm}`.
+Matching compares spherical cell-centre distance to the **minimum of both
+radii**; sparse results never widen either area automatically. Coarsening
+makes the boundary approximate (several kilometres of uncertainty across two
+cells, plus up to 1 km fix error per device). This is discovery, not a physical
+admission fence. A wider listener search never changes the host radius.
+
+The server binds publication to the existing room-host socket, derives display
+metadata from its room, and sets the expiry itself. No client timestamp,
+credential, room ID or metadata is accepted in publication. Discovery IDs
+rotate on area/radius change, after 15 minutes, and after opt-out/disconnect.
+Search returns at most 20 room IDs, rotating discovery IDs, host name, title,
+artist, bucketed presence, capacity state and expiry. **No host cell IDs,
+exact counts, distances, source refs or wallets** are returned. Results are
+ordered by discovery ID, not distance. The existing Join handler owns entry.
+The public room ID remains linkable for that room's lifetime; rotation does
+not make an already public room untraceable. Replies use bounded relative
+leases (`expiresInMs`); the client subtracts the round trip rather than relying
+on its clock agreeing with the server's clock.
+
+Presence expires after **90 seconds, with no grace period**, refreshes every
+30 seconds in the foreground, and disappears immediately at room end or
+socket disconnect. Clients stop and clear memory on opt-out, permission
+revocation, background/pagehide or disconnect. Resume always needs an explicit
+action. Cancellable single-fix watches discard exact fixes immediately after
+coarsening; fixes with accuracy worse than 1 km or older than 30 seconds fail.
+Permission state is checked afresh before refresh so it cannot trigger a new
+background permission prompt. Offline opt-out explicitly explains the possible
+90-second remote expiry. Connected revocation uses a reliable (non-volatile)
+packet so polling backpressure does not discard it; disconnected revocation is
+never buffered for replay after reconnect. Browser permission support is required for device
+mode; unsupported Product containers offer manual areas and existing QR/links.
+
+Manual areas are an offline starter list of city centres; there is no external
+geocoder. The selected label and precise centre are not sent. This intentionally
+does not cover every locality yet. Host and listener choose their area separately.
+
+Ephemeral per-socket and per-network budgets allow 6 searches, 12 publications
+and 3 reports per minute. Network keys are HMACs with a process-local random key,
+expire after a minute, and are never logged. Revocation bypasses rate limits.
+Budgets and presence have hard memory caps; restart empties both. NAT users share
+a network budget; reconnects cannot reset it. Multiple networks and forged
+locations remain possible. No attendance/personhood/value claim uses Nearby.
+
+Hide stays in page memory (max 200 room IDs). Report hides the room and records
+only an aggregate safety counter, without location, identity, free text or a
+durable moderation case. The interface says so. A staffed abuse workflow remains
+a public-enable review concern. `/health` exposes only cumulative event counters,
+not areas or a location index. Existing ordinary room discovery can still reveal
+public room metadata and exact connected-session counts: Nearby is not anonymity.
+
+The v1 sections below are historical: automatic sparse expansion, 2-minute
+expiry, area-bearing responses and the old schemas are superseded by v2.
+Physical browser/Product permission checks remain required before enablement.
+Browser consent behaviour was checked against the
+[W3C specification](https://www.w3.org/TR/geolocation/); the
+[Product Host API](https://paritytech.github.io/product-sdk/api/host/) does not
+constitute device evidence. No Product manifest permission is changed here.
 
 ## Radius amendment — 2026-10-14
 
