@@ -226,3 +226,26 @@ test('worldwide rooms appear without location and stay separate from private lin
     await guestContext.close();
   }
 });
+
+test('worldwide discovery automatically resumes after reconnecting within the scan cooldown', async ({ page }) => {
+  let closeConnection: (() => Promise<void>) | undefined;
+  let connections = 0;
+  await page.routeWebSocket('ws://127.0.0.1:8789/**', route => {
+    connections++;
+    route.connectToServer();
+    closeConnection = () => route.close();
+  });
+  await page.goto('/?e2eRoom=listener');
+  await page.getByRole('button', { name: 'Rooms', exact: true }).click();
+  const world = page.getByRole('region', { name: 'Around the world' });
+  await expect(world).toContainText('No worldwide rooms');
+  await expect.poll(() => connections).toBe(1);
+  const disconnectedAt = Date.now();
+  await closeConnection!();
+  await expect(world).toContainText('Nearby stopped');
+  // Prove reconnect happens before the ten-second cooldown can expire.
+  await expect.poll(() => connections, { timeout: 5000 }).toBeGreaterThan(1);
+  expect(Date.now() - disconnectedAt).toBeLessThan(10_000);
+  await expect(world).toContainText('No worldwide rooms', { timeout: 15_000 });
+  await expect(world.getByRole('button', { name: /Try again/ })).toHaveCount(0);
+});

@@ -72,3 +72,22 @@ tracks. Publish one new cover and fetch its returned canonical reference.
 - [Product Desktop permission implementation](https://github.com/paritytech/polkadot-desktop-community/blob/7843fae/main/sandbox/index.ts).
 - [Product SDK Host permission API](https://paritytech.github.io/product-sdk/api/host/).
 - [Pinata directory upload API](https://docs.pinata.cloud/api-reference/endpoint/ipfs/pin-file-to-ipfs), and the observed public CID directory above.
+
+## PR #283 review and CI follow-up
+
+The review identified a second foreground recovery case: a socket reconnecting
+within the ten-second worldwide scan cooldown kept the `disconnected` phase.
+At zero, only `off` sessions restarted, leaving the public list stopped. The
+resume effect now accepts connected `disconnected` sessions too; it does not
+retry while offline or start geographical scans/host publication.
+
+A real routed-WebSocket browser test closes the connection immediately after
+an empty worldwide scan, verifies reconnection within ten seconds and waits for
+an automatic completed scan without pressing Try again. It failed before the
+fix (the countdown ended with the list still disconnected) and passed afterward.
+
+The initial CI failure was in the older adaptive-radar suite: ArrowRight still
+expected 5 → 10 km rather than 5 → 6 km. Its consent assertion now observes
+geographical discovery traffic separately from the consent-free public worldwide
+read, and its repeated manual scan honors the visible cooldown. No CI gate or
+privacy assertion was removed. Final validation is recorded on the PR.

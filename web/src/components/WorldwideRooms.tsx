@@ -25,10 +25,19 @@ export function WorldwideRooms({ port, onJoin, joining }: { port: RoomRealtimePo
     };
   }, [session, port]);
   useEffect(() => {
-    if (!session || state.phase !== 'off' || state.retryInSeconds || document.visibilityState !== 'visible') return;
+    // A quick reconnect can finish before the scan cooldown. Once it expires,
+    // resume public reads from the disconnected phase too, but never offline.
+    if (
+      !session ||
+      !port?.connected ||
+      (state.phase !== 'off' && state.phase !== 'disconnected') ||
+      state.retryInSeconds ||
+      document.visibilityState !== 'visible'
+    )
+      return;
     const timer = setTimeout(() => void session.start({ kind: 'worldwide' }, 5), 0);
     return () => clearTimeout(timer);
-  }, [session, state.phase, state.retryInSeconds]);
+  }, [session, port, state.phase, state.retryInSeconds]);
   if (!session) return null;
   return (
     <section className='worldwide-rooms' aria-labelledby='worldwide-title'>
