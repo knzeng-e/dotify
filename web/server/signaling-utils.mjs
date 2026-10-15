@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+
 const ROOM_ID_LENGTH = 6;
 
 export function createRoomId(rooms) {
@@ -5,7 +7,8 @@ export function createRoomId(rooms) {
   let roomId = '';
 
   do {
-    roomId = Array.from({ length: ROOM_ID_LENGTH }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+    // The code is the only secret of a link-only room: use a CSPRNG, never Math.random.
+    roomId = Array.from({ length: ROOM_ID_LENGTH }, () => alphabet[randomInt(alphabet.length)]).join('');
   } while (rooms.has(roomId));
 
   return roomId;
@@ -162,10 +165,19 @@ export function createWindowLimiter(limit, windowMs) {
 // churn is throttled per address.
 export function clientKey(socket, { trustProxy = false } = {}) {
   if (trustProxy) {
-    const forwarded = socket?.handshake?.headers?.['x-forwarded-for'];
-    if (typeof forwarded === 'string' && forwarded.length > 0) {
-      const first = forwarded.split(',')[0].trim();
-      if (first) return first;
+    const headers = socket?.handshake?.headers ?? {};
+    // Fly's edge sets Fly-Client-IP itself. Otherwise only the last
+    // X-Forwarded-For hop was appended by the trusted proxy; earlier hops are
+    // whatever the client sent and must never become its identity.
+    const flyClient = headers['fly-client-ip'];
+    if (typeof flyClient === 'string' && flyClient.trim()) return flyClient.trim();
+    const forwarded = headers['x-forwarded-for'];
+    if (typeof forwarded === 'string') {
+      const hops = forwarded
+        .split(',')
+        .map(hop => hop.trim())
+        .filter(Boolean);
+      if (hops.length) return hops[hops.length - 1];
     }
   }
   return socket?.handshake?.address || 'unknown';

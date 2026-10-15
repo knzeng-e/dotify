@@ -73,6 +73,14 @@ export const defaultConfig = {
   // socket id. Generous by design: honest crowds arriving together stay well
   // under it. Best-effort dampening, not a hard identity guarantee.
   joinRateLimit: { limit: 15, windowMs: 10_000 },
+  // Room creation is keyed by network like joins; the cap bounds memory and
+  // the release lookups each creation can trigger.
+  roomCreateRateLimit: { limit: 10, windowMs: 60_000 },
+  maxRooms: 2_000,
+  // Solo presence is a public aggregate: limit each socket and send at most
+  // one changed aggregate per interval instead of one broadcast per change.
+  soloPresenceRateLimit: { limit: 6, windowMs: 10_000 },
+  soloPresenceBroadcastMs: 2_000,
   // Only trust x-forwarded-for for the client key when a reverse proxy is
   // guaranteed to set it. Off by default (raw socket address) so a bare demo
   // deployment cannot be spoofed via a forged header.
@@ -149,6 +157,11 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
   // Keyed by network address, never cleared on disconnect (that is the point):
   // a reconnect from the same address keeps consuming the same join budget.
   const joinLimiter = createWindowLimiter(config.joinRateLimit.limit, config.joinRateLimit.windowMs);
+  const roomCreateLimiter = createWindowLimiter(config.roomCreateRateLimit.limit, config.roomCreateRateLimit.windowMs);
+  const soloPresenceLimiter = createWindowLimiter(config.soloPresenceRateLimit.limit, config.soloPresenceRateLimit.windowMs);
+  let soloPresenceTimer = null;
+  let soloPresenceSentAt = 0;
+  let soloPresenceSent = '{}';
 
   function logEvent(event, fields = {}) {
     config.logger(JSON.stringify({ at: new Date().toISOString(), app: 'dotify-signal', event, ...fields }));
@@ -239,10 +252,8 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     // Room members still receive metadata through join/resume and room events.
     return [];
   }
-
-  function emitRooms() {
-    io.emit('rooms:updated', publicRooms());
-  }
+  // There is deliberately no global rooms:updated broadcast. It always carried
+  // an empty list, yet every playback tick sent it to every connected socket.
 
   function recoverRoomContributionTrack(roomId, room, expectedTrack = room.track) {
     if (!expectedTrack || expectedTrack.runtimeAddress) return;
@@ -254,7 +265,6 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       .then(recoveredTrack => {
         if (!recoveredTrack) return;
         io.to(roomId).emit('room:track', recoveredTrack);
-        emitRooms();
         logEvent('room:track-attribution-recovered', {
           roomId,
           hash: recoveredTrack.hash,
@@ -282,7 +292,23 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
   }
 
   function emitSoloPresence() {
-    io.emit('presence:solo:updated', publicSoloPresence());
+    if (soloPresenceTimer) return;
+    const flush = () => {
+      soloPresenceTimer = null;
+      const counts = publicSoloPresence();
+      const serialized = JSON.stringify(counts);
+      if (serialized === soloPresenceSent) return;
+      soloPresenceSent = serialized;
+      soloPresenceSentAt = Date.now();
+      io.emit('presence:solo:updated', counts);
+    };
+    const wait = soloPresenceSentAt + config.soloPresenceBroadcastMs - Date.now();
+    if (wait <= 0) {
+      flush();
+      return;
+    }
+    soloPresenceTimer = setTimeout(flush, wait);
+    soloPresenceTimer.unref?.();
   }
 
   function clearSoloPresence(socket) {
@@ -311,7 +337,6 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     rooms.delete(roomId);
     io.in(roomId).socketsLeave(roomId);
     logEvent(event, { roomId, listenerCount: room.listeners.size, reason });
-    emitRooms();
   }
 
   function emitRealtimeRoster(room, roster) {
@@ -474,6 +499,8 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       }
 
       if (soloPresenceBySocket.get(socket.id) === trackHash) return;
+      // Clearing is always accepted; only new declarations spend the budget.
+      if (!soloPresenceLimiter.allow(socket.id)) return;
       soloPresenceBySocket.set(socket.id, trackHash);
       emitSoloPresence();
     });
@@ -492,6 +519,17 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     });
 
     socket.on('room:create', (payload = {}, reply) => {
+      // Check limits before leaving: a refused creation keeps any current room.
+      if (!roomCreateLimiter.allow(clientKey(socket, { trustProxy: config.trustProxy }))) {
+        logEvent('room:create-throttled', { socketId: socket.id });
+        reply?.({ ok: false, code: 'RATE_LIMITED', error: 'Too many rooms were opened from this network. Wait a minute, then try again.' });
+        return;
+      }
+      if (rooms.size >= config.maxRooms) {
+        logEvent('room:create-capacity', { rooms: rooms.size });
+        reply?.({ ok: false, code: 'ROOMS_BUSY', error: 'Dotify is hosting as many rooms as it can right now. Try again in a few minutes.' });
+        return;
+      }
       socket.data.joinRevision = (socket.data.joinRevision ?? 0) + 1;
       leaveRoom(socket);
 
@@ -534,7 +572,6 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         hostResumeToken: resumeCredential.token,
         expiresAt: room.createdAt + config.roomTtlMs
       });
-      emitRooms();
       recoverRoomContributionTrack(roomId, room);
     });
 
@@ -587,7 +624,6 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
           listenerCount: room.listeners.size
         });
       }
-      emitRooms();
       recoverRoomContributionTrack(roomId, room);
     });
 
@@ -688,7 +724,6 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       });
       io.to(roomId).emit('room:listener-count', { listenerCount });
       emitListenerRoster(roomId, room);
-      emitRooms();
       recoverRoomContributionTrack(roomId, room);
     });
 
@@ -708,7 +743,6 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       }
       room.track = nextTrack;
       socket.to(socket.data.roomId).emit('room:track', room.track);
-      emitRooms();
       recoverRoomContributionTrack(socket.data.roomId, room, nextTrack);
     });
 
@@ -753,7 +787,6 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         logEvent('room:playback-mode', { roomId: socket.data.roomId, playbackMode });
       }
       socket.to(socket.data.roomId).emit('room:playback-mode', { playbackMode });
-      emitRooms();
     });
 
     socket.on('room:rename', (payload = {}, reply) => {
@@ -773,7 +806,6 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         participant.room.hostName = displayName;
         touchHost(participant.room);
         io.to(participant.roomId).emit('host:renamed', { displayName });
-        emitRooms();
         reply?.({ ok: true, displayName });
         return;
       }
@@ -799,7 +831,6 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       room.playerState = sanitizePlayerState(state);
       room.playerStateReceivedAt = Date.now();
       socket.to(socket.data.roomId).emit('player:state', room.playerState);
-      emitRooms();
     });
 
     // Host media transport is independent from metadata. When the host swaps
@@ -1072,6 +1103,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     // Reclaim expired join-throttle buckets (keyed by address, never cleared
     // on disconnect) so the limiter Map stays bounded.
     joinLimiter.prune(now);
+    roomCreateLimiter.prune(now);
     nearby.prune();
     for (const [roomId, room] of rooms) {
       if (now - room.createdAt > config.roomTtlMs) {
@@ -1198,7 +1230,6 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       if (room.hostId) io.to(room.hostId).emit('listener:left', { listenerId: socket.id, listenerCount });
       io.to(roomId).emit('room:listener-count', { listenerCount });
       emitListenerRoster(roomId, room);
-      emitRooms();
     }
 
     clearSocketRoom(socket);
@@ -1207,6 +1238,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
 
   function disconnectFromRoom(socket, reason) {
     clearSoloPresence(socket);
+    soloPresenceLimiter.clear(socket.id);
     const roomId = socket.data.roomId;
     const role = socket.data.role;
     if (!roomId || !role) return;
@@ -1237,7 +1269,6 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         status: 'reconnecting',
         resumeUntil: room.lastHostSeenAt + config.hostHeartbeatTimeoutMs
       });
-      emitRooms();
       return;
     }
 
@@ -1278,6 +1309,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     },
     async close() {
       clearInterval(sweepTimer);
+      clearTimeout(soloPresenceTimer);
       life.close();
       await io.close();
     }
@@ -1292,4 +1324,13 @@ const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv
 if (isMain) {
   const server = startSignalingServer(readConfigFromEnv());
   void server.listen();
+  // Fly stops machines with SIGTERM. Close sockets so clients see a clean
+  // disconnect and start reconnecting instead of waiting for a ping timeout.
+  for (const signal of ['SIGTERM', 'SIGINT']) {
+    process.once(signal, () => {
+      const forceExit = setTimeout(() => process.exit(1), 10_000);
+      forceExit.unref();
+      void server.close().finally(() => process.exit(0));
+    });
+  }
 }
